@@ -2541,4 +2541,192 @@ mod tests {
         );
         ensure_reference_srs_matches_public_id(&DevSrs::default()).expect("matching srs id");
     }
+
+    // --- Transcript completeness manifest assertions ---------------------------
+    //
+    // Oracle: docs/snarkpack/transcript-completeness-manifest.md. The bound-input
+    // lists below transcribe that manifest's per-stage tables. The manifest's
+    // required set is paper-derived; these tests only check that the real prover
+    // preimage's framed structure matches the manifest (presence + order + width),
+    // not values. Removing any bound input changes the framed length and fails.
+
+    /// Encoding tag for one manifest-declared bound input. Widths are BLS12-377
+    /// serialization constants, recomputed here from sample elements so they
+    /// cannot silently drift from the curve.
+    #[derive(Clone, Copy, Debug)]
+    enum BoundInput {
+        Fr,
+        G1,
+        G2,
+        Gt,
+        /// `IdentityOutput` singleton over a GT element (length-prefixed Vec).
+        IdentityGt1,
+        /// `IdentityOutput` singleton over a G1 element (length-prefixed Vec).
+        IdentityG11,
+    }
+
+    fn serialized_len<T: CanonicalSerialize>(value: &T) -> usize {
+        let mut buf = Vec::new();
+        value
+            .serialize_uncompressed(&mut buf)
+            .expect("sample element serializes");
+        buf.len()
+    }
+
+    impl BoundInput {
+        fn width(self) -> usize {
+            let g1 = G1::generator();
+            let g2 = G2::generator();
+            let gt = P::pairing(g1, g2);
+            match self {
+                BoundInput::Fr => serialized_len(&Fr::one()),
+                BoundInput::G1 => serialized_len(&g1),
+                BoundInput::G2 => serialized_len(&g2),
+                BoundInput::Gt => serialized_len(&gt),
+                BoundInput::IdentityGt1 => serialized_len(&vec![gt]),
+                BoundInput::IdentityG11 => serialized_len(&vec![g1]),
+            }
+        }
+    }
+
+    /// Stages reachable on the Groth16 aggregation path, with their ordered
+    /// bound-input lists (the manifest oracle). `n >= 2` so every "first
+    /// transcript element" binding is present.
+    fn manifest_aggregation_path_stages() -> Vec<(&'static str, Vec<BoundInput>)> {
+        use BoundInput::*;
+        vec![
+            ("aggregate.randomizer", vec![Gt, Gt, Gt]),
+            (
+                "tipa.ab.gipa.round",
+                vec![Fr, Gt, Gt, IdentityGt1, Gt, Gt, IdentityGt1],
+            ),
+            ("tipa.ab.kzg", vec![Fr, G2, G1]),
+            (
+                "tipa.c.gipa.round",
+                vec![Fr, Gt, Fr, IdentityG11, Gt, Fr, IdentityG11],
+            ),
+            ("tipa.c.kzg", vec![Fr, G2]),
+        ]
+    }
+
+    /// Fixed framing length: domain || u32(label_len) || label || context[32]
+    /// || u64(nonce), before the stage-specific messages region.
+    fn framing_len(stage_label: &str) -> usize {
+        CHALLENGE_DOMAIN.len() + 4 + stage_label.len() + 32 + 8
+    }
+
+    fn capture_aggregation_prover_trace() -> Vec<TraceEvent> {
+        let (pvk, items, statement, srs) = fixture();
+        assert!(
+            items.len() >= 2,
+            "manifest assertion needs n >= 2 so KZG transcript bindings are present"
+        );
+        let (_proof, trace) = aggregate_family_with_trace(&statement, &pvk, &items, &srs)
+            .expect("production aggregate with trace");
+        trace
+    }
+
+    fn preimages_for_stage<'a>(trace: &'a [TraceEvent], stage_label: &str) -> Vec<&'a Vec<u8>> {
+        trace
+            .iter()
+            .filter(|event| {
+                event.spec_row_id == "fs.challenge-preimage" && event.stage_label == stage_label
+            })
+            .map(|event| &event.byte_payload)
+            .collect()
+    }
+
+    #[test]
+    fn transcript_completeness_preimage_structure_matches_manifest() {
+        let trace = capture_aggregation_prover_trace();
+        for (stage_label, inputs) in manifest_aggregation_path_stages() {
+            let expected_messages_len: usize = inputs.iter().map(|input| input.width()).sum();
+            let frame = framing_len(stage_label);
+            let preimages = preimages_for_stage(&trace, stage_label);
+            assert!(
+                !preimages.is_empty(),
+                "stage `{stage_label}` produced no preimage on the aggregation path"
+            );
+            for preimage in preimages {
+                assert!(
+                    preimage.len() >= frame,
+                    "stage `{stage_label}` preimage shorter than fixed framing"
+                );
+                // Fixed framing: domain, length-prefixed label, context, nonce.
+                assert_eq!(
+                    &preimage[..CHALLENGE_DOMAIN.len()],
+                    CHALLENGE_DOMAIN,
+                    "stage `{stage_label}` missing challenge domain"
+                );
+                let label_len_off = CHALLENGE_DOMAIN.len();
+                let label_len = u32::from_le_bytes(
+                    preimage[label_len_off..label_len_off + 4]
+                        .try_into()
+                        .expect("label length field"),
+                ) as usize;
+                assert_eq!(
+                    label_len,
+                    stage_label.len(),
+                    "stage `{stage_label}` label length prefix mismatch"
+                );
+                let label_off = label_len_off + 4;
+                assert_eq!(
+                    &preimage[label_off..label_off + label_len],
+                    stage_label.as_bytes(),
+                    "stage `{stage_label}` label bytes mismatch"
+                );
+                let messages_len = preimage.len() - frame;
+                assert_eq!(
+                    messages_len, expected_messages_len,
+                    "stage `{stage_label}` bound-message width does not match the manifest: \
+                     a required input is missing, extra, or reordered"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn transcript_completeness_covers_every_aggregation_stage() {
+        let trace = capture_aggregation_prover_trace();
+        let manifest_stages: BTreeSet<&'static str> = manifest_aggregation_path_stages()
+            .into_iter()
+            .map(|(label, _)| label)
+            .collect();
+        let observed_stages: BTreeSet<&str> = trace
+            .iter()
+            .filter(|event| event.spec_row_id == "fs.challenge-preimage")
+            .map(|event| event.stage_label)
+            .collect();
+        assert_eq!(
+            observed_stages,
+            manifest_stages.iter().copied().collect::<BTreeSet<_>>(),
+            "an aggregation-path challenge stage is unchecked by the completeness manifest \
+             (or the manifest lists a stage that no longer fires)"
+        );
+    }
+
+    #[test]
+    fn transcript_completeness_manifest_doc_in_sync() {
+        let manifest = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../docs/snarkpack/transcript-completeness-manifest.md"
+        ))
+        .expect("manifest doc readable");
+        for (stage_label, _) in manifest_aggregation_path_stages() {
+            assert!(
+                manifest.contains(&format!("### `{stage_label}`")),
+                "manifest doc missing on-path stage section for `{stage_label}`"
+            );
+        }
+        for off_path in [
+            "tipa.generic.gipa.round",
+            "tipa.generic.kzg",
+            "tipa.generic.ssm.gipa.round",
+        ] {
+            assert!(
+                manifest.contains(off_path),
+                "manifest doc missing off-path stage `{off_path}`"
+            );
+        }
+    }
 }
