@@ -3,7 +3,8 @@
 
 //! Dependency-free trace schema for SnarkPack proof aggregation.
 //!
-//! The policy table mirrors the Spec Row Index in `docs/snarkpack/ripp-spec.md`.
+//! The policy table mirrors the Spec Row Index in
+//! `crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md`.
 //! The invariant gate checks that this table and the spec stay synchronized.
 
 extern crate alloc;

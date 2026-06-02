@@ -1,5 +1,5 @@
 # Filecoin-to-Penumbra SnarkPack adaptation touch points that must be mapped in
-# docs/snarkpack/adaptation-register.md.
+# adaptation-register.md.
 #
 # Format: adaptation.id|relative/file/path:grep-pattern
 # External references use: adaptation.id|external:identifier-or-url

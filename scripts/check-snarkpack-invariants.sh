@@ -136,7 +136,7 @@ check_reference_crate_boundary() {
   production_reference_imports="$(
     rg -n 'penumbra-sdk-proof-aggregation-reference|proof_aggregation_reference|proof-aggregation-reference' \
       Cargo.toml crates \
-      | rg -v '^Cargo.toml:|^crates/crypto/proof-aggregation-reference/|^crates/crypto/proof-aggregation-fuzz/' || true
+      | rg -v '^Cargo.toml:|^crates/crypto/proof-aggregation-reference/|^crates/crypto/proof-aggregation-fuzz/|\.md:|\.txt:' || true
   )"
   if [[ -n "$production_reference_imports" ]]; then
     echo "$production_reference_imports" >&2
@@ -186,7 +186,7 @@ check_fuzz_crate_boundary() {
     [[ -n "$(find "$corpus_dir" -type f -print -quit)" ]] \
       || fail "fuzz corpus must contain seed files for $target"
   done
-  rg -n 'fuzz-corpus-baseline.md' docs/snarkpack/security.md docs/snarkpack/verification-plan.md >/dev/null \
+  rg -n 'fuzz-corpus-baseline.md' docs/snarkpack/verification.md >/dev/null \
     || fail "fuzz corpus baseline must be referenced by SnarkPack docs"
 }
 
@@ -278,7 +278,7 @@ check_trace_schema() {
     gsub(/`/, "", id)
     gsub(/`/, "", level)
     print id "|" level
-  }' docs/snarkpack/ripp-spec.md | sort > "$spec_rows"
+  }' crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md | sort > "$spec_rows"
   awk '
   /TracePolicy \{/ { id = ""; level = "" }
   /spec_row_id:/ {
@@ -378,17 +378,17 @@ if [[ -n "$duplicate_codec_sites" ]]; then
   fail "statement and aggregate-proof encoding/decoding must stay in the canonical modules"
 fi
 
-if rg -n "\\badmit\\b|--admit_smt_queries" crates/crypto/proof-aggregation/formal scripts/snarkpack-formal.sh; then
+if rg -n "\\badmit\\b|--admit_smt_queries" crates/crypto/proof-aggregation/formal/snarkpack/fstar scripts/snarkpack-formal.sh; then
   fail "formal proofs must not use unrecorded admits or --admit_smt_queries"
 fi
 
 if rg -n "assume val impl_u32__is_power_of_two" scripts/snarkpack-formal.sh >/dev/null; then
-  rg -n "impl_u32__is_power_of_two" docs/snarkpack/formal-handoff.md >/dev/null \
+  rg -n "impl_u32__is_power_of_two" crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md >/dev/null \
     || fail "hax power-of-two support assumption must be recorded in formal-handoff.md"
 fi
 
 if rg -n "assume val impl__starts_with" scripts/snarkpack-formal.sh >/dev/null; then
-  rg -n "impl__starts_with" docs/snarkpack/formal-handoff.md >/dev/null \
+  rg -n "impl__starts_with" crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md >/dev/null \
     || fail "hax slice starts_with support assumption must be recorded in formal-handoff.md"
 fi
 
@@ -412,7 +412,7 @@ if rg -n "assume val" scripts/snarkpack-formal.sh >/dev/null; then
 fi
 
 ripp_scope=crates/crypto/proof-aggregation/formal/snarkpack/ripp-refinement-scope.txt
-ripp_map=docs/snarkpack/ripp-refinement.md
+ripp_map=crates/crypto/proof-aggregation/formal/snarkpack/ripp-refinement.md
 if [[ -f "$ripp_scope" ]]; then
   [[ -f "$ripp_map" ]] || fail "RIPP refinement map is missing"
   while IFS= read -r symbol_id; do
@@ -454,7 +454,7 @@ if [[ -f "$ripp_scope" ]]; then
   done < <(sed -n 's/^| `\([^`]*\)` |.*/\1/p' "$ripp_map")
 fi
 
-ripp_spec=docs/snarkpack/ripp-spec.md
+ripp_spec=crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md
 if [[ -f "$ripp_spec" ]]; then
   duplicate_spec_rows="$(
     sed -n 's/^| `\([^`]*\)` |.*/\1/p' "$ripp_spec" | sort | uniq -d
@@ -477,7 +477,7 @@ if [[ -f "$ripp_spec" ]]; then
 fi
 
 adaptation_scope=crates/crypto/proof-aggregation/formal/snarkpack/adaptation-scope.txt
-adaptation_map=docs/snarkpack/adaptation-register.md
+adaptation_map=crates/crypto/proof-aggregation/formal/snarkpack/adaptation-register.md
 if [[ -f "$adaptation_scope" ]]; then
   [[ -f "$adaptation_map" ]] || fail "SnarkPack adaptation register is missing"
   filecoin_normative_pin_status="$(
@@ -564,7 +564,7 @@ if [[ -f "$adaptation_scope" ]]; then
   done < <(sed -n '/^| `[^`]*` |/p' "$adaptation_map")
 fi
 
-formal_handoff=docs/snarkpack/formal-handoff.md
+formal_handoff=crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md
 open_handoff_rows="$(rg -n '\|[[:space:]]*`?open`?[[:space:]]*\|' "$formal_handoff" || true)"
 if [[ -n "$open_handoff_rows" ]]; then
   echo "$open_handoff_rows" >&2
@@ -606,7 +606,7 @@ check_trace_schema
 expected_stamp="$(formal_proof_stamp)"
 recorded_stamp="$(
   sed -n 's/^Proof artifact stamp: sha256:\([0-9a-f]\{64\}\)$/\1/p' \
-    docs/snarkpack/formal-handoff.md
+    crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md
 )"
 if [[ -z "$recorded_stamp" ]]; then
   fail "formal-handoff.md must record the proof artifact SHA256 stamp"

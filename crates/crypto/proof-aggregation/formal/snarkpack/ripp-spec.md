@@ -1,7 +1,7 @@
 # SnarkPack RIPP Review Spec
 
 Status: Penumbra-local implementation spec, checked against Filecoin v2
-transcript bug classes and used by `docs/snarkpack/ripp-refinement.md`.
+transcript bug classes and used by `ripp-refinement.md`.
 This is not a mechanized proof and not an independently invented SnarkPack
 specification.
 
@@ -461,7 +461,7 @@ Required checks:
 
 ## Minimum Evidence Per Refinement Row
 
-Use this table when filling `docs/snarkpack/ripp-refinement.md`.
+Use this table when filling `ripp-refinement.md`.
 
 | Row class | Required evidence |
 | --- | --- |
@@ -484,7 +484,7 @@ This spec does not prove:
 - hax semantic preservation
 
 Those are tracked as standing assumptions in
-`docs/snarkpack/formal-handoff.md`. End-to-end formal verification is out of
+`formal-handoff.md`. End-to-end formal verification is out of
 scope; algebraic soundness is assumed from the paper and the Filecoin
 implementation and probabilistically cross-checked by Lean differential
-conformance (security.md Stage 9).
+conformance (verification.md ALG-I4).

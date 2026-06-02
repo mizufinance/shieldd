@@ -2258,7 +2258,7 @@ mod tests {
     // Stage 9 byte-trace lock: the committed aggregate-proof bytes for a fixed
     // vector set must not change unless `AGGREGATE_PROTOCOL_VERSION` is bumped.
     // An optimization that alters these bytes is a protocol change, not a
-    // refactor, and must take the version-bump path (see docs/snarkpack/security.md).
+    // refactor, and must take the version-bump path (see docs/snarkpack/verification.md).
 
     const BYTE_BASELINE_PATH: &str = concat!(
         env!("CARGO_MANIFEST_DIR"),

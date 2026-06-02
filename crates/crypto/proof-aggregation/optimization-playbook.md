@@ -5,7 +5,7 @@ RIPP backend without changing protocol bytes silently, without shipping
 microbench fiction, and without paying complexity that the measured benefit
 does not justify.
 
-This is the durable process behind `security.md` Stage 10. Every optimization
+This is the durable process behind `docs/snarkpack/verification.md` (X3). Every optimization
 follows it.
 
 ## 0. The one rule: optimize in category 1 or 2, never 3

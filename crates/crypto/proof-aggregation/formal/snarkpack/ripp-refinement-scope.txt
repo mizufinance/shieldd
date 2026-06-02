@@ -1,5 +1,5 @@
 # Proof-relevant local RIPP/SnarkPack symbols that must be mapped in
-# docs/snarkpack/ripp-refinement.md.
+# ripp-refinement.md.
 #
 # Format: relative/file/path.rs:symbol
 

@@ -2544,11 +2544,11 @@ mod tests {
 
     // --- Transcript completeness manifest assertions ---------------------------
     //
-    // Oracle: docs/snarkpack/transcript-completeness-manifest.md. The bound-input
-    // lists below transcribe that manifest's per-stage tables. The manifest's
-    // required set is paper-derived; these tests only check that the real prover
-    // preimage's framed structure matches the manifest (presence + order + width),
-    // not values. Removing any bound input changes the framed length and fails.
+    // Oracle: docs/snarkpack/verification.md (Transcript — model). The bound-input
+    // lists below transcribe that doc's per-stage table. The required set is
+    // paper-derived; these tests only check that the real prover preimage's framed
+    // structure matches the model (presence + order + width), not values. Removing
+    // any bound input changes the framed length and fails.
 
     /// Encoding tag for one manifest-declared bound input. Widths are BLS12-377
     /// serialization constants, recomputed here from sample elements so they
@@ -2709,13 +2709,13 @@ mod tests {
     fn transcript_completeness_manifest_doc_in_sync() {
         let manifest = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../docs/snarkpack/transcript-completeness-manifest.md"
+            "/../../../docs/snarkpack/verification.md"
         ))
-        .expect("manifest doc readable");
+        .expect("verification doc readable");
         for (stage_label, _) in manifest_aggregation_path_stages() {
             assert!(
-                manifest.contains(&format!("### `{stage_label}`")),
-                "manifest doc missing on-path stage section for `{stage_label}`"
+                manifest.contains(&format!("`{stage_label}`")),
+                "verification doc missing on-path stage `{stage_label}`"
             );
         }
         for off_path in [
