@@ -95,10 +95,10 @@ def staticAbstractTrace : List Event :=
     abstractEvent "gipa.round-folding",
     abstractEvent "gipa.verifier-folding",
     abstractEvent "tipa.srs",
-    abstractEvent "tipa.ab.gipa",
-    abstractEvent "tipa.ab.kzg-equations",
-    abstractEvent "ssm.power-sequence",
-    abstractEvent "ssm.base-equation",
+    abstractEvent "tipp-mipp.gipa",
+    abstractEvent "tipp-mipp.kzg-equations",
+    abstractEvent "tipp-mipp.power-sequence",
+    abstractEvent "tipp-mipp.base-equations",
     abstractEvent "groth16.folded-inputs",
     abstractEvent "groth16.ppe"
   ]
@@ -140,10 +140,10 @@ def traceForCount (count : Nat) : List Event :=
   [contextEvent] ++
   staticAbstractTrace ++
   challengeEvents "groth16.randomizer" "aggregate.randomizer" 0 ++
-  roundChallenges rounds "tipa.ab.gipa.round" ++
-  challengeEvents "tipa.ab.kzg-challenge" "tipa.ab.kzg" 0 ++
-  roundChallenges rounds "tipa.c.gipa.round" ++
-  challengeEvents "ssm.kzg-challenge" "tipa.c.kzg" 0
+  challengeEvents "tipp-mipp.x0-seed" "tipp-mipp.x0" 0 ++
+  roundChallenges rounds "tipp-mipp.gipa.round" ++
+  challengeEvents "tipp-mipp.final-bridge" "tipp-mipp.final-bridge" 0 ++
+  challengeEvents "tipp-mipp.kzg-challenge" "tipp-mipp.kzg" 0
 
 def emitCount (count : Nat) : IO Unit := do
   for event in traceForCount count do

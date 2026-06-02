@@ -150,6 +150,10 @@ pub fn challenge_preimage(
 fn trace_stage_label(stage_label: &'static [u8]) -> &'static str {
     match stage_label {
         b"aggregate.randomizer" => "aggregate.randomizer",
+        b"tipp-mipp.x0" => "tipp-mipp.x0",
+        b"tipp-mipp.gipa.round" => "tipp-mipp.gipa.round",
+        b"tipp-mipp.final-bridge" => "tipp-mipp.final-bridge",
+        b"tipp-mipp.kzg" => "tipp-mipp.kzg",
         b"tipa.ab.gipa.round" => "tipa.ab.gipa.round",
         b"tipa.ab.kzg" => "tipa.ab.kzg",
         b"tipa.c.gipa.round" => "tipa.c.gipa.round",
@@ -164,8 +168,11 @@ fn trace_stage_label(stage_label: &'static [u8]) -> &'static str {
 fn trace_spec_row_id(stage_label: &'static [u8]) -> &'static str {
     match stage_label {
         b"aggregate.randomizer" => "groth16.randomizer",
-        b"tipa.ab.kzg" | b"tipa.generic.kzg" => "tipa.ab.kzg-challenge",
-        b"tipa.c.kzg" => "ssm.kzg-challenge",
+        b"tipp-mipp.x0" => "tipp-mipp.x0-seed",
+        b"tipp-mipp.final-bridge" => "tipp-mipp.final-bridge",
+        b"tipp-mipp.kzg" => "tipp-mipp.kzg-challenge",
+        b"tipp-mipp.gipa.round" => "gipa.challenge-dependency",
+        b"tipa.ab.kzg" | b"tipa.generic.kzg" | b"tipa.c.kzg" => "tipp-mipp.kzg-challenge",
         b"tipa.ab.gipa.round"
         | b"tipa.c.gipa.round"
         | b"tipa.generic.gipa.round"

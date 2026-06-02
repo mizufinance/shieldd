@@ -108,34 +108,20 @@ struct ReferenceAggregateProof {
     com_c: PairingOutput<P>,
     ip_ab: PairingOutput<P>,
     agg_c: G1,
-    tipa_proof_ab: ReferenceTipaAbProof,
-    tipa_proof_c: ReferenceTipaCProof,
+    tipp_mipp_proof: ReferenceTippMippProof,
 }
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
-struct ReferenceTipaAbProof {
-    gipa_proof: ReferenceGipaAbProof,
+struct ReferenceTippMippProof {
+    gipa_proof: ReferenceTippMippGipaProof,
     final_ck: (G2, G1),
-    final_ck_proof: (G2, G1),
+    final_ck_proofs: (G2, G1),
+    final_messages: (G1, G2, G1),
 }
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
-struct ReferenceTipaCProof {
-    gipa_proof: ReferenceGipaCProof,
-    final_ck: G2,
-    final_ck_proof: G2,
-}
-
-#[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
-struct ReferenceGipaAbProof {
-    r_commitment_steps: Vec<(AbCommitmentTriple, AbCommitmentTriple)>,
-    r_base: (G1, G2),
-}
-
-#[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
-struct ReferenceGipaCProof {
-    r_commitment_steps: Vec<(CCommitmentTriple, CCommitmentTriple)>,
-    r_base: (G1, Fr),
+struct ReferenceTippMippGipaProof {
+    r_commitment_steps: Vec<(TippMippCommitment, TippMippCommitment)>,
 }
 
 type AbCommitmentTriple = (
@@ -143,7 +129,13 @@ type AbCommitmentTriple = (
     PairingOutput<P>,
     IdentityOutput<PairingOutput<P>>,
 );
-type CCommitmentTriple = (PairingOutput<P>, Fr, IdentityOutput<G1>);
+type CCommitmentPair = (PairingOutput<P>, IdentityOutput<G1>);
+
+#[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
+struct TippMippCommitment {
+    ab: AbCommitmentTriple,
+    c: CCommitmentPair,
+}
 
 #[derive(Clone)]
 struct ReferenceSrs {
@@ -162,15 +154,12 @@ struct ReferenceVerifierSrs {
 }
 
 #[derive(Clone)]
-struct GipaAbAux {
-    r_transcript: Vec<Fr>,
-    ck_base: (G2, G1),
-}
-
-#[derive(Clone)]
-struct GipaCAux {
-    r_transcript: Vec<Fr>,
-    ck_base: G2,
+struct TippMippAux {
+    raw_transcript: Vec<Fr>,
+    inv_transcript: Vec<Fr>,
+    last_raw_challenge: Fr,
+    final_ck: (G2, G1),
+    final_messages: (G1, G2, G1),
 }
 
 #[derive(Clone, Debug, Default)]
@@ -209,10 +198,15 @@ impl ReferenceTraceCollector {
             (
                 Some(VerifierMutant::GipaChallengeDependency),
                 "gipa.challenge-dependency"
-            ) | (
-                Some(VerifierMutant::TipaAbKzgChallenge),
-                "tipa.ab.kzg-challenge"
-            ) | (Some(VerifierMutant::SsmKzgChallenge), "ssm.kzg-challenge")
+            ) | (Some(VerifierMutant::TippMippX0Seed), "tipp-mipp.x0-seed")
+                | (
+                    Some(VerifierMutant::TippMippFinalBridge),
+                    "tipp-mipp.final-bridge"
+                )
+                | (
+                    Some(VerifierMutant::TippMippKzgChallenge),
+                    "tipp-mipp.kzg-challenge"
+                )
                 | (
                     Some(VerifierMutant::Groth16Randomizer),
                     "groth16.randomizer"
@@ -402,10 +396,10 @@ fn emit_static_abstract_trace(trace: &mut ReferenceTraceCollector) {
     trace.record_abstract("gipa.round-folding", "gipa.round-folding");
     trace.record_abstract("gipa.verifier-folding", "gipa.verifier-folding");
     trace.record_abstract("tipa.srs", "tipa.srs");
-    trace.record_abstract("tipa.ab.gipa", "tipa.ab.gipa");
-    trace.record_abstract("tipa.ab.kzg-equations", "tipa.ab.kzg-equations");
-    trace.record_abstract("ssm.power-sequence", "ssm.power-sequence");
-    trace.record_abstract("ssm.base-equation", "ssm.base-equation");
+    trace.record_abstract("tipp-mipp.gipa", "tipp-mipp.gipa");
+    trace.record_abstract("tipp-mipp.kzg-equations", "tipp-mipp.kzg-equations");
+    trace.record_abstract("tipp-mipp.power-sequence", "tipp-mipp.power-sequence");
+    trace.record_abstract("tipp-mipp.base-equations", "tipp-mipp.base-equations");
     trace.record_abstract("groth16.folded-inputs", "groth16.folded-inputs");
     trace.record_abstract("groth16.ppe", "groth16.ppe");
 }
@@ -437,25 +431,27 @@ fn reference_aggregate_proofs(
 
     let r = derive_randomizer(family_id, context, trace, &com_a, &com_b, &com_c)?;
     let r_vec = structured_scalar_power(proofs.len(), &r);
-    let a_r = a
+    let b_r = b
         .iter()
         .zip(&r_vec)
         .map(|(point, scalar)| *point * scalar)
         .collect::<Vec<_>>();
-    let ip_ab = pairing_inner_product(&a_r, &b)?;
+    let ip_ab = pairing_inner_product(&a, &b_r)?;
     let agg_c = multiexp_inner_product(&c, &r_vec)?;
-    let ck_1_r = build_shifted_ck_1(&ck_1, &r);
+    let ck_2_r_inv = build_shifted_ck_2(&ck_2, &r);
 
-    let tipa_proof_ab = prove_tipa_ab(
+    let tipp_mipp_proof = prove_tipp_mipp(
         family_id,
         context,
         trace,
         srs,
-        (&a_r, &b),
-        (&ck_1_r, &ck_2),
+        (&a, &b_r, &c, &r_vec),
+        (&ck_1, &ck_2_r_inv),
         &r,
+        (&com_a, &com_b, &com_c),
+        &ip_ab,
+        &agg_c,
     )?;
-    let tipa_proof_c = prove_tipa_c(family_id, context, trace, srs, (&c, &r_vec), &ck_1)?;
 
     Ok(ReferenceAggregateProof {
         com_a,
@@ -463,8 +459,7 @@ fn reference_aggregate_proofs(
         com_c,
         ip_ab,
         agg_c,
-        tipa_proof_ab,
-        tipa_proof_c,
+        tipp_mipp_proof,
     })
 }
 
@@ -485,101 +480,130 @@ fn reference_verify_aggregate_proof(
         &proof.com_b,
         &proof.com_c,
     )?;
-    let tipa_ab_valid = verify_tipa_ab(family_id, context, trace, verifier_srs, proof, &r)?;
-    let tipa_c_valid = verify_tipa_c(family_id, context, trace, verifier_srs, proof, &r)?;
+    let tipp_mipp_valid = verify_tipp_mipp(family_id, context, trace, verifier_srs, proof, &r)?;
     let (r_sum, g_ic) = fold_public_inputs(vk, public_inputs, &r);
     let ppe_valid = verify_ppe(vk, proof, &r_sum, g_ic);
-    Ok(tipa_ab_valid && tipa_c_valid && ppe_valid)
+    Ok(tipp_mipp_valid && ppe_valid)
 }
 
-fn prove_tipa_ab(
+fn prove_tipp_mipp(
     family_id: ProofFamilyId,
     context: &[u8; 32],
     trace: &mut ReferenceTraceCollector,
     srs: &ReferenceSrs,
-    values: (&[G1], &[G2]),
+    values: (&[G1], &[G2], &[G1], &[Fr]),
     ck: (&[G2], &[G1]),
-    r_shift: &Fr,
-) -> ReferenceResult<ReferenceTipaAbProof> {
+    r: &Fr,
+    com: (&PairingOutput<P>, &PairingOutput<P>, &PairingOutput<P>),
+    ip_ab: &PairingOutput<P>,
+    agg_c: &G1,
+) -> ReferenceResult<ReferenceTippMippProof> {
     let (gipa_proof, aux) =
-        prove_gipa_ab(family_id, context, trace, b"tipa.ab.gipa.round", values, ck)?;
-    let (ck_a_final, ck_b_final) = aux.ck_base;
-    let transcript = aux.r_transcript;
-    let transcript_inverse = transcript
-        .iter()
-        .map(|x| {
-            x.inverse()
-                .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))
-        })
-        .collect::<ReferenceResult<Vec<_>>>()?;
-    let r_inverse = r_shift
+        prove_tipp_mipp_gipa(family_id, context, trace, values, ck, r, com, ip_ab, agg_c)?;
+    let r_inverse = r
         .inverse()
         .ok_or_else(|| ReferencePathError::Rejected("zero randomizer".to_owned()))?;
-    let c = derive_kzg_challenge_ab(
+    let final_bridge = derive_final_bridge(
         family_id,
         context,
         trace,
-        b"tipa.ab.kzg",
-        &transcript,
-        &ck_a_final,
-        &ck_b_final,
+        &aux.last_raw_challenge,
+        &aux.final_ck,
+        &aux.final_messages,
     )?;
-    let ck_a_kzg_opening =
-        prove_commitment_key_kzg_opening(&srs.h_beta_powers, &transcript_inverse, &r_inverse, &c)?;
-    let ck_b_kzg_opening =
-        prove_commitment_key_kzg_opening(&srs.g_alpha_powers, &transcript, &Fr::one(), &c)?;
+    let z =
+        derive_tipp_mipp_kzg_challenge(family_id, context, trace, &final_bridge, &aux.final_ck)?;
+    let ck_v_opening =
+        prove_commitment_key_kzg_opening(&srs.h_beta_powers, &aux.raw_transcript, &Fr::one(), &z)?;
+    let ck_w_opening =
+        prove_commitment_key_kzg_opening(&srs.g_alpha_powers, &aux.inv_transcript, &r_inverse, &z)?;
 
-    Ok(ReferenceTipaAbProof {
+    Ok(ReferenceTippMippProof {
         gipa_proof,
-        final_ck: (ck_a_final, ck_b_final),
-        final_ck_proof: (ck_a_kzg_opening, ck_b_kzg_opening),
+        final_ck: aux.final_ck,
+        final_ck_proofs: (ck_v_opening, ck_w_opening),
+        final_messages: aux.final_messages,
     })
 }
 
-fn prove_tipa_c(
+fn prove_tipp_mipp_gipa(
     family_id: ProofFamilyId,
     context: &[u8; 32],
     trace: &mut ReferenceTraceCollector,
-    srs: &ReferenceSrs,
-    values: (&[G1], &[Fr]),
-    ck_a: &[G2],
-) -> ReferenceResult<ReferenceTipaCProof> {
-    let (gipa_proof, aux) = prove_gipa_c(
-        family_id,
-        context,
-        trace,
-        b"tipa.c.gipa.round",
-        values,
-        ck_a,
-    )?;
-    let ck_a_final = aux.ck_base;
-    let transcript = aux.r_transcript;
-    let transcript_inverse = transcript
-        .iter()
-        .map(|x| {
-            x.inverse()
-                .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))
-        })
-        .collect::<ReferenceResult<Vec<_>>>()?;
-    let c = derive_kzg_challenge_c(
-        family_id,
-        context,
-        trace,
-        b"tipa.c.kzg",
-        &transcript,
-        &ck_a_final,
-    )?;
-    let ck_a_kzg_opening =
-        prove_commitment_key_kzg_opening(&srs.h_beta_powers, &transcript_inverse, &Fr::one(), &c)?;
+    values: (&[G1], &[G2], &[G1], &[Fr]),
+    ck: (&[G2], &[G1]),
+    r: &Fr,
+    com: (&PairingOutput<P>, &PairingOutput<P>, &PairingOutput<P>),
+    ip_ab: &PairingOutput<P>,
+    agg_c: &G1,
+) -> ReferenceResult<(ReferenceTippMippGipaProof, TippMippAux)> {
+    let mut m_a = values.0.to_vec();
+    let mut m_b = values.1.to_vec();
+    let mut m_c = values.2.to_vec();
+    let mut m_r = values.3.to_vec();
+    let mut ck_v = ck.0.to_vec();
+    let mut ck_w = ck.1.to_vec();
+    let mut r_commitment_steps = Vec::new();
+    let mut raw_transcript = Vec::new();
+    let mut inv_transcript = Vec::new();
+    let mut prior_raw = derive_x0(family_id, context, trace, r, com, ip_ab, agg_c)?;
+    let mut last_raw = prior_raw;
+    loop {
+        if m_a.len() == 1 {
+            break;
+        }
+        let split = m_a.len() / 2;
+        let com_1 = commit_tipp_mipp_round(
+            &m_a[split..],
+            &m_b[..split],
+            &m_c[split..],
+            &m_r[..split],
+            &ck_v[..split],
+            &ck_w[split..],
+        )?;
+        let com_2 = commit_tipp_mipp_round(
+            &m_a[..split],
+            &m_b[split..],
+            &m_c[..split],
+            &m_r[split..],
+            &ck_v[split..],
+            &ck_w[..split],
+        )?;
+        let raw = derive_tipp_mipp_round_challenge(
+            family_id, context, trace, &prior_raw, &com_1, &com_2,
+        )?;
+        let inv = raw
+            .inverse()
+            .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))?;
 
-    Ok(ReferenceTipaCProof {
-        gipa_proof,
-        final_ck: ck_a_final,
-        final_ck_proof: ck_a_kzg_opening,
-    })
+        m_a = rescale_fold(&m_a[split..], &m_a[..split], &inv);
+        m_b = rescale_fold(&m_b[split..], &m_b[..split], &raw);
+        m_c = rescale_fold(&m_c[split..], &m_c[..split], &inv);
+        m_r = rescale_fold(&m_r[split..], &m_r[..split], &raw);
+        ck_v = rescale_fold(&ck_v[split..], &ck_v[..split], &raw);
+        ck_w = rescale_fold(&ck_w[split..], &ck_w[..split], &inv);
+        r_commitment_steps.push((com_1, com_2));
+        raw_transcript.push(raw);
+        inv_transcript.push(inv);
+        prior_raw = raw;
+        last_raw = raw;
+    }
+    r_commitment_steps.reverse();
+    raw_transcript.reverse();
+    inv_transcript.reverse();
+    Ok((
+        ReferenceTippMippGipaProof { r_commitment_steps },
+        TippMippAux {
+            raw_transcript,
+            inv_transcript,
+            last_raw_challenge: last_raw,
+            final_ck: (ck_v[0], ck_w[0]),
+            final_messages: (m_a[0], m_b[0], m_c[0]),
+        },
+    ))
 }
 
-fn verify_tipa_ab(
+fn verify_tipp_mipp(
     family_id: ProofFamilyId,
     context: &[u8; 32],
     trace: &mut ReferenceTraceCollector,
@@ -587,321 +611,123 @@ fn verify_tipa_ab(
     proof: &ReferenceAggregateProof,
     r: &Fr,
 ) -> ReferenceResult<bool> {
-    let (base_com, transcript) = compute_recursive_challenges_ab(
+    let tipp_mipp = &proof.tipp_mipp_proof;
+    let mut com_a = proof.com_a;
+    let mut com_b = proof.com_b;
+    let mut com_t = IdentityOutput(vec![proof.ip_ab]);
+    let mut com_c = proof.com_c;
+    let mut com_z = IdentityOutput(vec![proof.agg_c]);
+    let mut prior_raw = derive_x0(
         family_id,
         context,
         trace,
-        b"tipa.ab.gipa.round",
-        (
-            proof.com_a.clone(),
-            proof.com_b.clone(),
-            IdentityOutput(vec![proof.ip_ab.clone()]),
-        ),
-        &proof.tipa_proof_ab.gipa_proof,
+        r,
+        (&proof.com_a, &proof.com_b, &proof.com_c),
+        &proof.ip_ab,
+        &proof.agg_c,
     )?;
-    let transcript_inverse = transcript
-        .iter()
-        .map(|x| {
-            x.inverse()
-                .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))
-        })
-        .collect::<ReferenceResult<Vec<_>>>()?;
-    let (ck_a_final, ck_b_final) = &proof.tipa_proof_ab.final_ck;
-    let (ck_a_proof, ck_b_proof) = &proof.tipa_proof_ab.final_ck_proof;
-    let c = derive_kzg_challenge_ab(
+    let mut last_raw = prior_raw;
+    let mut raw_transcript = Vec::new();
+    let mut inv_transcript = Vec::new();
+
+    for (com_1, com_2) in tipp_mipp.gipa_proof.r_commitment_steps.iter().rev() {
+        let raw =
+            derive_tipp_mipp_round_challenge(family_id, context, trace, &prior_raw, com_1, com_2)?;
+        let inv = raw
+            .inverse()
+            .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))?;
+        com_a = scale(com_1.ab.0, &inv) + com_a + scale(com_2.ab.0, &raw);
+        com_b = scale(com_1.ab.1, &inv) + com_b + scale(com_2.ab.1, &raw);
+        com_t = scale(com_1.ab.2.clone(), &inv) + com_t + scale(com_2.ab.2.clone(), &raw);
+        com_c = scale(com_1.c.0, &inv) + com_c + scale(com_2.c.0, &raw);
+        com_z = scale(com_1.c.1.clone(), &inv) + com_z + scale(com_2.c.1.clone(), &raw);
+        raw_transcript.push(raw);
+        inv_transcript.push(inv);
+        prior_raw = raw;
+        last_raw = raw;
+    }
+    raw_transcript.reverse();
+    inv_transcript.reverse();
+
+    let final_bridge = derive_final_bridge(
         family_id,
         context,
         trace,
-        b"tipa.ab.kzg",
-        &transcript,
-        ck_a_final,
-        ck_b_final,
+        &last_raw,
+        &tipp_mipp.final_ck,
+        &tipp_mipp.final_messages,
+    )?;
+    let z = derive_tipp_mipp_kzg_challenge(
+        family_id,
+        context,
+        trace,
+        &final_bridge,
+        &tipp_mipp.final_ck,
     )?;
     let r_inverse = r
         .inverse()
         .ok_or_else(|| ReferencePathError::Rejected("zero randomizer".to_owned()))?;
-    let ck_a_valid = verify_commitment_key_g2_kzg_opening(
+    let (ck_v_final, ck_w_final) = &tipp_mipp.final_ck;
+    let (ck_v_proof, ck_w_proof) = &tipp_mipp.final_ck_proofs;
+    let ck_v_valid = verify_commitment_key_g2_kzg_opening(
         verifier_srs,
-        ck_a_final,
-        ck_a_proof,
-        &transcript_inverse,
+        ck_v_final,
+        ck_v_proof,
+        &raw_transcript,
+        &Fr::one(),
+        &z,
+    )?;
+    let ck_w_valid = verify_commitment_key_g1_kzg_opening(
+        verifier_srs,
+        ck_w_final,
+        ck_w_proof,
+        &inv_transcript,
         &r_inverse,
-        &c,
+        &z,
     )?;
-    let ck_b_valid = verify_commitment_key_g1_kzg_opening(
-        verifier_srs,
-        ck_b_final,
-        ck_b_proof,
-        &transcript,
-        &Fr::one(),
-        &c,
-    )?;
-    let (com_a, com_b, com_t) = base_com;
-    let a_base = [proof.tipa_proof_ab.gipa_proof.r_base.0];
-    let b_base = [proof.tipa_proof_ab.gipa_proof.r_base.1];
-    let t_base = IdentityOutput(vec![pairing_inner_product(&a_base, &b_base)?]);
-    let base_valid = pairing_inner_product(&a_base, &[*ck_a_final])? == com_a
-        && pairing_inner_product(&[*ck_b_final], &b_base)? == com_b
-        && t_base == com_t;
 
-    Ok(ck_a_valid && ck_b_valid && base_valid)
+    let (a_final, b_final, c_final) = tipp_mipp.final_messages;
+    let ab_base = pairing_inner_product(&[a_final], &[b_final])?;
+    let final_r = structured_scalar_final_from_raw_transcript(&raw_transcript, r);
+    let z_base = multiexp_inner_product(&[c_final], &[final_r])?;
+    let base_valid = pairing_inner_product(&[a_final], &[*ck_v_final])? == com_a
+        && pairing_inner_product(&[*ck_w_final], &[b_final])? == com_b
+        && IdentityOutput(vec![ab_base]) == com_t
+        && pairing_inner_product(&[c_final], &[*ck_v_final])? == com_c
+        && IdentityOutput(vec![z_base]) == com_z;
+
+    Ok(ck_v_valid && ck_w_valid && base_valid)
 }
 
-fn verify_tipa_c(
-    family_id: ProofFamilyId,
-    context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
-    verifier_srs: &ReferenceVerifierSrs,
-    proof: &ReferenceAggregateProof,
-    r: &Fr,
-) -> ReferenceResult<bool> {
-    let (base_com, transcript) = compute_recursive_challenges_c(
-        family_id,
-        context,
-        trace,
-        b"tipa.c.gipa.round",
-        (
-            proof.com_c.clone(),
-            Fr::zero(),
-            IdentityOutput(vec![proof.agg_c]),
+fn commit_tipp_mipp_round(
+    a: &[G1],
+    b: &[G2],
+    c: &[G1],
+    r: &[Fr],
+    ck_v: &[G2],
+    ck_w: &[G1],
+) -> ReferenceResult<TippMippCommitment> {
+    Ok(TippMippCommitment {
+        ab: (
+            pairing_inner_product(a, ck_v)?,
+            pairing_inner_product(ck_w, b)?,
+            IdentityOutput(vec![pairing_inner_product(a, b)?]),
         ),
-        &proof.tipa_proof_c.gipa_proof,
-    )?;
-    let transcript_inverse = transcript
-        .iter()
-        .map(|x| {
-            x.inverse()
-                .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))
-        })
-        .collect::<ReferenceResult<Vec<_>>>()?;
-    let ck_a_final = &proof.tipa_proof_c.final_ck;
-    let ck_a_proof = &proof.tipa_proof_c.final_ck_proof;
-    let c = derive_kzg_challenge_c(
-        family_id,
-        context,
-        trace,
-        b"tipa.c.kzg",
-        &transcript,
-        ck_a_final,
-    )?;
-    let ck_a_valid = verify_commitment_key_g2_kzg_opening(
-        verifier_srs,
-        ck_a_final,
-        ck_a_proof,
-        &transcript_inverse,
-        &Fr::one(),
-        &c,
-    )?;
-    let mut power_2_b = *r;
-    let mut b_base = Fr::one();
-    for x in &transcript {
-        let x_inverse = x
-            .inverse()
-            .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))?;
-        b_base *= Fr::one() + (x_inverse * power_2_b);
-        power_2_b *= power_2_b;
+        c: (
+            pairing_inner_product(c, ck_v)?,
+            IdentityOutput(vec![multiexp_inner_product(c, r)?]),
+        ),
+    })
+}
+
+fn structured_scalar_final_from_raw_transcript(raw_transcript_reversed: &[Fr], r: &Fr) -> Fr {
+    let mut power = *r;
+    let mut product = Fr::one();
+    for challenge in raw_transcript_reversed {
+        product *= Fr::one() + (*challenge * power);
+        power *= power;
     }
-
-    let (com_a, _, com_t) = base_com;
-    let a_base = [proof.tipa_proof_c.gipa_proof.r_base.0];
-    let t_base = IdentityOutput(vec![multiexp_inner_product(&a_base, &[b_base])?]);
-    let base_valid = pairing_inner_product(&a_base, &[*ck_a_final])? == com_a && t_base == com_t;
-
-    Ok(ck_a_valid && base_valid)
-}
-
-fn prove_gipa_ab(
-    family_id: ProofFamilyId,
-    context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
-    stage_label: &'static [u8],
-    values: (&[G1], &[G2]),
-    ck: (&[G2], &[G1]),
-) -> ReferenceResult<(ReferenceGipaAbProof, GipaAbAux)> {
-    let mut m_a = values.0.to_vec();
-    let mut m_b = values.1.to_vec();
-    let mut ck_a = ck.0.to_vec();
-    let mut ck_b = ck.1.to_vec();
-    let mut r_commitment_steps = Vec::new();
-    let mut r_transcript = Vec::new();
-    let (m_base, ck_base) = loop {
-        if m_a.len() == 1 {
-            break ((m_a[0], m_b[0]), (ck_a[0], ck_b[0]));
-        }
-        let split = m_a.len() / 2;
-        let m_a_1 = &m_a[split..];
-        let m_a_2 = &m_a[..split];
-        let ck_a_1 = &ck_a[..split];
-        let ck_a_2 = &ck_a[split..];
-        let m_b_1 = &m_b[..split];
-        let m_b_2 = &m_b[split..];
-        let ck_b_1 = &ck_b[split..];
-        let ck_b_2 = &ck_b[..split];
-
-        let com_1 = (
-            pairing_inner_product(m_a_1, ck_a_1)?,
-            pairing_inner_product(ck_b_1, m_b_1)?,
-            IdentityOutput(vec![pairing_inner_product(m_a_1, m_b_1)?]),
-        );
-        let com_2 = (
-            pairing_inner_product(m_a_2, ck_a_2)?,
-            pairing_inner_product(ck_b_2, m_b_2)?,
-            IdentityOutput(vec![pairing_inner_product(m_a_2, m_b_2)?]),
-        );
-        let (c, c_inv) = derive_gipa_challenge(
-            family_id,
-            context,
-            trace,
-            stage_label,
-            &r_transcript,
-            &com_1,
-            &com_2,
-        )?;
-
-        m_a = rescale_fold(m_a_1, m_a_2, &c);
-        m_b = rescale_fold(m_b_2, m_b_1, &c_inv);
-        ck_a = rescale_fold(ck_a_2, ck_a_1, &c_inv);
-        ck_b = rescale_fold(ck_b_1, ck_b_2, &c);
-        r_commitment_steps.push((com_1, com_2));
-        r_transcript.push(c);
-    };
-    r_transcript.reverse();
-    r_commitment_steps.reverse();
-
-    Ok((
-        ReferenceGipaAbProof {
-            r_commitment_steps,
-            r_base: m_base,
-        },
-        GipaAbAux {
-            r_transcript,
-            ck_base,
-        },
-    ))
-}
-
-fn prove_gipa_c(
-    family_id: ProofFamilyId,
-    context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
-    stage_label: &'static [u8],
-    values: (&[G1], &[Fr]),
-    ck_a: &[G2],
-) -> ReferenceResult<(ReferenceGipaCProof, GipaCAux)> {
-    let mut m_a = values.0.to_vec();
-    let mut m_b = values.1.to_vec();
-    let mut ck_a = ck_a.to_vec();
-    let mut r_commitment_steps = Vec::new();
-    let mut r_transcript = Vec::new();
-    let (m_base, ck_base) = loop {
-        if m_a.len() == 1 {
-            break ((m_a[0], m_b[0]), ck_a[0]);
-        }
-        let split = m_a.len() / 2;
-        let m_a_1 = &m_a[split..];
-        let m_a_2 = &m_a[..split];
-        let ck_a_1 = &ck_a[..split];
-        let ck_a_2 = &ck_a[split..];
-        let m_b_1 = &m_b[..split];
-        let m_b_2 = &m_b[split..];
-
-        let com_1 = (
-            pairing_inner_product(m_a_1, ck_a_1)?,
-            Fr::zero(),
-            IdentityOutput(vec![multiexp_inner_product(m_a_1, m_b_1)?]),
-        );
-        let com_2 = (
-            pairing_inner_product(m_a_2, ck_a_2)?,
-            Fr::zero(),
-            IdentityOutput(vec![multiexp_inner_product(m_a_2, m_b_2)?]),
-        );
-        let (c, c_inv) = derive_gipa_challenge_c(
-            family_id,
-            context,
-            trace,
-            stage_label,
-            &r_transcript,
-            &com_1,
-            &com_2,
-        )?;
-
-        m_a = rescale_fold(m_a_1, m_a_2, &c);
-        m_b = rescale_fold(m_b_2, m_b_1, &c_inv);
-        ck_a = rescale_fold(ck_a_2, ck_a_1, &c_inv);
-        r_commitment_steps.push((com_1, com_2));
-        r_transcript.push(c);
-    };
-    r_transcript.reverse();
-    r_commitment_steps.reverse();
-
-    Ok((
-        ReferenceGipaCProof {
-            r_commitment_steps,
-            r_base: m_base,
-        },
-        GipaCAux {
-            r_transcript,
-            ck_base,
-        },
-    ))
-}
-
-fn compute_recursive_challenges_ab(
-    family_id: ProofFamilyId,
-    context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
-    stage_label: &'static [u8],
-    com: AbCommitmentTriple,
-    proof: &ReferenceGipaAbProof,
-) -> ReferenceResult<(AbCommitmentTriple, Vec<Fr>)> {
-    let (mut com_a, mut com_b, mut com_t) = com;
-    let mut r_transcript = Vec::new();
-    for (com_1, com_2) in proof.r_commitment_steps.iter().rev() {
-        let (c, c_inv) = derive_gipa_challenge(
-            family_id,
-            context,
-            trace,
-            stage_label,
-            &r_transcript,
-            com_1,
-            com_2,
-        )?;
-        com_a = scale(com_1.0.clone(), &c) + com_a + scale(com_2.0.clone(), &c_inv);
-        com_b = scale(com_1.1.clone(), &c) + com_b + scale(com_2.1.clone(), &c_inv);
-        com_t = scale(com_1.2.clone(), &c) + com_t + scale(com_2.2.clone(), &c_inv);
-        r_transcript.push(c);
-    }
-    r_transcript.reverse();
-    Ok(((com_a, com_b, com_t), r_transcript))
-}
-
-fn compute_recursive_challenges_c(
-    family_id: ProofFamilyId,
-    context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
-    stage_label: &'static [u8],
-    com: CCommitmentTriple,
-    proof: &ReferenceGipaCProof,
-) -> ReferenceResult<(CCommitmentTriple, Vec<Fr>)> {
-    let (mut com_a, mut com_b, mut com_t) = com;
-    let mut r_transcript = Vec::new();
-    for (com_1, com_2) in proof.r_commitment_steps.iter().rev() {
-        let (c, c_inv) = derive_gipa_challenge_c(
-            family_id,
-            context,
-            trace,
-            stage_label,
-            &r_transcript,
-            com_1,
-            com_2,
-        )?;
-        com_a = scale(com_1.0.clone(), &c) + com_a + scale(com_2.0.clone(), &c_inv);
-        com_b = (com_1.1 * c) + com_b + (com_2.1 * c_inv);
-        com_t = scale(com_1.2.clone(), &c) + com_t + scale(com_2.2.clone(), &c_inv);
-        r_transcript.push(c);
-    }
-    r_transcript.reverse();
-    Ok(((com_a, com_b, com_t), r_transcript))
+    product
 }
 
 fn derive_randomizer(
@@ -947,176 +773,165 @@ fn derive_randomizer(
     }
 }
 
-fn derive_gipa_challenge(
+fn derive_scalar_challenge(
     family_id: ProofFamilyId,
     context: &[u8; 32],
     trace: &mut ReferenceTraceCollector,
     stage_label: &'static [u8],
-    transcript: &[Fr],
-    com_1: &AbCommitmentTriple,
-    com_2: &AbCommitmentTriple,
-) -> ReferenceResult<(Fr, Fr)> {
-    let previous = transcript.last().copied().unwrap_or_default();
-    let mut nonce = 0u64;
-    loop {
-        let mut messages = Vec::new();
-        previous
-            .serialize_uncompressed(&mut messages)
-            .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-        serialize_ab_commitment(com_1, &mut messages)?;
-        serialize_ab_commitment(com_2, &mut messages)?;
-        let (preimage, digest) = challenge_digest_for_trace(
-            trace,
-            family_id,
-            context,
-            stage_label,
-            nonce,
-            &messages,
-            "gipa.challenge-dependency",
-        );
-        trace.record_challenge(
-            "gipa.challenge-dependency",
-            stage_label,
-            nonce,
-            preimage,
-            &digest,
-        );
-        let c: Fr = u128::from_be_bytes(digest[0..16].try_into().map_err(|_| {
-            ReferencePathError::MalformedProof("short challenge digest".to_owned())
-        })?)
-        .into();
-        if let Some(c_inv) = c.inverse() {
-            return Ok((c_inv, c));
-        }
-        nonce += 1;
-    }
-}
-
-fn derive_gipa_challenge_c(
-    family_id: ProofFamilyId,
-    context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
-    stage_label: &'static [u8],
-    transcript: &[Fr],
-    com_1: &CCommitmentTriple,
-    com_2: &CCommitmentTriple,
-) -> ReferenceResult<(Fr, Fr)> {
-    let previous = transcript.last().copied().unwrap_or_default();
-    let mut nonce = 0u64;
-    loop {
-        let mut messages = Vec::new();
-        previous
-            .serialize_uncompressed(&mut messages)
-            .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-        serialize_c_commitment(com_1, &mut messages)?;
-        serialize_c_commitment(com_2, &mut messages)?;
-        let (preimage, digest) = challenge_digest_for_trace(
-            trace,
-            family_id,
-            context,
-            stage_label,
-            nonce,
-            &messages,
-            "gipa.challenge-dependency",
-        );
-        trace.record_challenge(
-            "gipa.challenge-dependency",
-            stage_label,
-            nonce,
-            preimage,
-            &digest,
-        );
-        let c: Fr = u128::from_be_bytes(digest[0..16].try_into().map_err(|_| {
-            ReferencePathError::MalformedProof("short challenge digest".to_owned())
-        })?)
-        .into();
-        if let Some(c_inv) = c.inverse() {
-            return Ok((c_inv, c));
-        }
-        nonce += 1;
-    }
-}
-
-fn derive_kzg_challenge_ab(
-    family_id: ProofFamilyId,
-    context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
-    stage_label: &'static [u8],
-    transcript: &[Fr],
-    ck_a_final: &G2,
-    ck_b_final: &G1,
+    messages: &[u8],
+    spec_row_id: &'static str,
 ) -> ReferenceResult<Fr> {
     let mut nonce = 0u64;
     loop {
-        let mut messages = Vec::new();
-        if let Some(first) = transcript.first() {
-            first
-                .serialize_uncompressed(&mut messages)
-                .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-        }
-        ck_a_final
-            .serialize_uncompressed(&mut messages)
-            .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-        ck_b_final
-            .serialize_uncompressed(&mut messages)
-            .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
         let (preimage, digest) = challenge_digest_for_trace(
             trace,
             family_id,
             context,
             stage_label,
             nonce,
-            &messages,
-            "tipa.ab.kzg-challenge",
+            messages,
+            spec_row_id,
         );
-        trace.record_challenge(
-            "tipa.ab.kzg-challenge",
-            stage_label,
-            nonce,
-            preimage,
-            &digest,
-        );
+        trace.record_challenge(spec_row_id, stage_label, nonce, preimage, &digest);
         if let Some(c) = Fr::from_random_bytes(&digest) {
-            return Ok(c);
+            if !c.is_zero() {
+                return Ok(c);
+            }
         }
         nonce += 1;
     }
 }
 
-fn derive_kzg_challenge_c(
+fn derive_x0(
     family_id: ProofFamilyId,
     context: &[u8; 32],
     trace: &mut ReferenceTraceCollector,
-    stage_label: &'static [u8],
-    transcript: &[Fr],
-    ck_a_final: &G2,
+    r: &Fr,
+    com: (&PairingOutput<P>, &PairingOutput<P>, &PairingOutput<P>),
+    ip_ab: &PairingOutput<P>,
+    agg_c: &G1,
 ) -> ReferenceResult<Fr> {
-    let mut nonce = 0u64;
-    loop {
-        let mut messages = Vec::new();
-        if let Some(first) = transcript.first() {
-            first
-                .serialize_uncompressed(&mut messages)
-                .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-        }
-        ck_a_final
-            .serialize_uncompressed(&mut messages)
-            .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-        let (preimage, digest) = challenge_digest_for_trace(
-            trace,
-            family_id,
-            context,
-            stage_label,
-            nonce,
-            &messages,
-            "ssm.kzg-challenge",
-        );
-        trace.record_challenge("ssm.kzg-challenge", stage_label, nonce, preimage, &digest);
-        if let Some(c) = Fr::from_random_bytes(&digest) {
-            return Ok(c);
-        }
-        nonce += 1;
-    }
+    let mut messages = Vec::new();
+    r.serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    com.0
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    com.1
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    com.2
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    ip_ab
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    agg_c
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    derive_scalar_challenge(
+        family_id,
+        context,
+        trace,
+        b"tipp-mipp.x0",
+        &messages,
+        "tipp-mipp.x0-seed",
+    )
+}
+
+fn derive_tipp_mipp_round_challenge(
+    family_id: ProofFamilyId,
+    context: &[u8; 32],
+    trace: &mut ReferenceTraceCollector,
+    prior_raw: &Fr,
+    com_1: &TippMippCommitment,
+    com_2: &TippMippCommitment,
+) -> ReferenceResult<Fr> {
+    let mut messages = Vec::new();
+    prior_raw
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    serialize_tipp_mipp_commitment(com_1, &mut messages)?;
+    serialize_tipp_mipp_commitment(com_2, &mut messages)?;
+    derive_scalar_challenge(
+        family_id,
+        context,
+        trace,
+        b"tipp-mipp.gipa.round",
+        &messages,
+        "gipa.challenge-dependency",
+    )
+}
+
+fn derive_final_bridge(
+    family_id: ProofFamilyId,
+    context: &[u8; 32],
+    trace: &mut ReferenceTraceCollector,
+    last_raw: &Fr,
+    final_ck: &(G2, G1),
+    final_messages: &(G1, G2, G1),
+) -> ReferenceResult<Fr> {
+    let mut messages = Vec::new();
+    last_raw
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    final_ck
+        .0
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    final_ck
+        .1
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    final_messages
+        .0
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    final_messages
+        .1
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    final_messages
+        .2
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    derive_scalar_challenge(
+        family_id,
+        context,
+        trace,
+        b"tipp-mipp.final-bridge",
+        &messages,
+        "tipp-mipp.final-bridge",
+    )
+}
+
+fn derive_tipp_mipp_kzg_challenge(
+    family_id: ProofFamilyId,
+    context: &[u8; 32],
+    trace: &mut ReferenceTraceCollector,
+    final_bridge: &Fr,
+    final_ck: &(G2, G1),
+) -> ReferenceResult<Fr> {
+    let mut messages = Vec::new();
+    final_bridge
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    final_ck
+        .0
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    final_ck
+        .1
+        .serialize_uncompressed(&mut messages)
+        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
+    derive_scalar_challenge(
+        family_id,
+        context,
+        trace,
+        b"tipp-mipp.kzg",
+        &messages,
+        "tipp-mipp.kzg-challenge",
+    )
 }
 
 fn challenge_digest_for_trace(
@@ -1368,9 +1183,9 @@ fn structured_generators_scalar_power<G: CurveGroup>(
         .collect()
 }
 
-fn build_shifted_ck_1(ck_1: &[G2], r: &Fr) -> Vec<G2> {
-    let inverse_powers = inverse_powers(ck_1.len(), r);
-    ck_1.iter()
+fn build_shifted_ck_2(ck_2: &[G1], r: &Fr) -> Vec<G1> {
+    let inverse_powers = inverse_powers(ck_2.len(), r);
+    ck_2.iter()
         .zip(inverse_powers.iter())
         .map(|(ck, power)| *ck * power)
         .collect()
@@ -1547,14 +1362,17 @@ fn serialize_ab_commitment(com: &AbCommitmentTriple, out: &mut Vec<u8>) -> Refer
     Ok(())
 }
 
-fn serialize_c_commitment(com: &CCommitmentTriple, out: &mut Vec<u8>) -> ReferenceResult<()> {
-    com.0
+fn serialize_tipp_mipp_commitment(
+    com: &TippMippCommitment,
+    out: &mut Vec<u8>,
+) -> ReferenceResult<()> {
+    serialize_ab_commitment(&com.ab, out)?;
+    com.c
+        .0
         .serialize_uncompressed(&mut *out)
         .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-    com.1
-        .serialize_uncompressed(&mut *out)
-        .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-    com.2
+    com.c
+        .1
         .serialize_uncompressed(&mut *out)
         .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
     Ok(())
@@ -1570,8 +1388,9 @@ pub enum VerifierMutant {
     ChallengePreimage,
     StageLabels,
     GipaChallengeDependency,
-    TipaAbKzgChallenge,
-    SsmKzgChallenge,
+    TippMippX0Seed,
+    TippMippFinalBridge,
+    TippMippKzgChallenge,
     Groth16Randomizer,
 }
 
@@ -1588,8 +1407,9 @@ impl VerifierMutant {
             Self::ChallengePreimage => "fs.challenge-preimage",
             Self::StageLabels => "fs.stage-labels",
             Self::GipaChallengeDependency => "gipa.challenge-dependency",
-            Self::TipaAbKzgChallenge => "tipa.ab.kzg-challenge",
-            Self::SsmKzgChallenge => "ssm.kzg-challenge",
+            Self::TippMippX0Seed => "tipp-mipp.x0-seed",
+            Self::TippMippFinalBridge => "tipp-mipp.final-bridge",
+            Self::TippMippKzgChallenge => "tipp-mipp.kzg-challenge",
             Self::Groth16Randomizer => "groth16.randomizer",
         }
     }
@@ -1600,8 +1420,9 @@ pub const VERIFIER_MUTANTS: &[VerifierMutant] = &[
     VerifierMutant::ChallengePreimage,
     VerifierMutant::StageLabels,
     VerifierMutant::GipaChallengeDependency,
-    VerifierMutant::TipaAbKzgChallenge,
-    VerifierMutant::SsmKzgChallenge,
+    VerifierMutant::TippMippX0Seed,
+    VerifierMutant::TippMippFinalBridge,
+    VerifierMutant::TippMippKzgChallenge,
     VerifierMutant::Groth16Randomizer,
 ];
 
@@ -2457,8 +2278,9 @@ mod tests {
                 "fs.challenge-preimage",
                 "fs.stage-labels",
                 "gipa.challenge-dependency",
-                "tipa.ab.kzg-challenge",
-                "ssm.kzg-challenge",
+                "tipp-mipp.x0-seed",
+                "tipp-mipp.final-bridge",
+                "tipp-mipp.kzg-challenge",
                 "groth16.randomizer",
             ]
         );
@@ -2596,16 +2418,25 @@ mod tests {
         use BoundInput::*;
         vec![
             ("aggregate.randomizer", vec![Gt, Gt, Gt]),
+            ("tipp-mipp.x0", vec![Fr, Gt, Gt, Gt, Gt, G1]),
             (
-                "tipa.ab.gipa.round",
-                vec![Fr, Gt, Gt, IdentityGt1, Gt, Gt, IdentityGt1],
+                "tipp-mipp.gipa.round",
+                vec![
+                    Fr,
+                    Gt,
+                    Gt,
+                    IdentityGt1,
+                    Gt,
+                    IdentityG11,
+                    Gt,
+                    Gt,
+                    IdentityGt1,
+                    Gt,
+                    IdentityG11,
+                ],
             ),
-            ("tipa.ab.kzg", vec![Fr, G2, G1]),
-            (
-                "tipa.c.gipa.round",
-                vec![Fr, Gt, Fr, IdentityG11, Gt, Fr, IdentityG11],
-            ),
-            ("tipa.c.kzg", vec![Fr, G2]),
+            ("tipp-mipp.final-bridge", vec![Fr, G2, G1, G1, G2, G1]),
+            ("tipp-mipp.kzg", vec![Fr, G2, G1]),
         ]
     }
 
@@ -2716,16 +2547,6 @@ mod tests {
             assert!(
                 manifest.contains(&format!("`{stage_label}`")),
                 "verification doc missing on-path stage `{stage_label}`"
-            );
-        }
-        for off_path in [
-            "tipa.generic.gipa.round",
-            "tipa.generic.kzg",
-            "tipa.generic.ssm.gipa.round",
-        ] {
-            assert!(
-                manifest.contains(off_path),
-                "manifest doc missing off-path stage `{off_path}`"
             );
         }
     }

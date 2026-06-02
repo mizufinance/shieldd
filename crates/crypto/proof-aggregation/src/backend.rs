@@ -115,8 +115,7 @@ impl From<AggregateProofBytesError> for AggregateVerifyError {
 pub struct AggregateVerificationProfile {
     pub deserialize_ms: f64,
     pub challenge_ms: f64,
-    pub tipa_ab_ms: f64,
-    pub tipa_c_ms: f64,
+    pub tipp_mipp_ms: f64,
     pub public_input_fold_ms: f64,
     pub ppe_ms: f64,
     pub core_total_ms: f64,
@@ -129,8 +128,7 @@ impl Default for AggregateVerificationProfile {
         Self {
             deserialize_ms: 0.0,
             challenge_ms: 0.0,
-            tipa_ab_ms: 0.0,
-            tipa_c_ms: 0.0,
+            tipp_mipp_ms: 0.0,
             public_input_fold_ms: 0.0,
             ppe_ms: 0.0,
             core_total_ms: 0.0,
@@ -144,8 +142,7 @@ impl AggregateVerificationProfile {
     pub fn merge(&mut self, other: &Self) {
         self.deserialize_ms += other.deserialize_ms;
         self.challenge_ms += other.challenge_ms;
-        self.tipa_ab_ms += other.tipa_ab_ms;
-        self.tipa_c_ms += other.tipa_c_ms;
+        self.tipp_mipp_ms += other.tipp_mipp_ms;
         self.public_input_fold_ms += other.public_input_fold_ms;
         self.ppe_ms += other.ppe_ms;
         self.core_total_ms += other.core_total_ms;
@@ -171,42 +168,30 @@ pub struct AggregateBuildBackendProfile {
     pub backend_pairing_final_exponentiation_ms: f64,
     pub backend_randomizer_ms: f64,
     pub backend_structured_scalar_ms: f64,
-    pub backend_weighted_a_ms: f64,
+    pub backend_weighted_b_ms: f64,
     pub backend_ip_ab_ms: f64,
     pub backend_agg_c_ms: f64,
-    pub backend_ck_1_r_ms: f64,
+    pub backend_ck_2_r_inv_ms: f64,
     pub backend_consistency_check_ms: f64,
-    pub backend_tipa_ab_ms: f64,
-    pub backend_tipa_c_ms: f64,
-    pub backend_tipa_ab_gipa_ms: f64,
-    pub backend_tipa_ab_gipa_commit_l_ms: f64,
-    pub backend_tipa_ab_gipa_commit_r_ms: f64,
-    pub backend_tipa_ab_gipa_challenge_ms: f64,
-    pub backend_tipa_ab_gipa_rescale_m1_ms: f64,
-    pub backend_tipa_ab_gipa_rescale_m2_ms: f64,
-    pub backend_tipa_ab_gipa_rescale_ck1_ms: f64,
-    pub backend_tipa_ab_gipa_rescale_ck2_ms: f64,
-    pub backend_tipa_ab_transcript_inverse_ms: f64,
-    pub backend_tipa_ab_kzg_challenge_ms: f64,
-    pub backend_tipa_ab_kzg_coefficient_build_ms: f64,
-    pub backend_tipa_ab_kzg_eval_quotient_ms: f64,
-    pub backend_tipa_ab_kzg_opening_msm_ms: f64,
-    pub backend_tipa_ab_kzg_opening_ck_a_ms: f64,
-    pub backend_tipa_ab_kzg_opening_ck_b_ms: f64,
-    pub backend_tipa_c_gipa_ms: f64,
-    pub backend_tipa_c_gipa_commit_l_ms: f64,
-    pub backend_tipa_c_gipa_commit_r_ms: f64,
-    pub backend_tipa_c_gipa_challenge_ms: f64,
-    pub backend_tipa_c_gipa_rescale_m1_ms: f64,
-    pub backend_tipa_c_gipa_rescale_m2_ms: f64,
-    pub backend_tipa_c_gipa_rescale_ck1_ms: f64,
-    pub backend_tipa_c_gipa_rescale_ck2_ms: f64,
-    pub backend_tipa_c_transcript_inverse_ms: f64,
-    pub backend_tipa_c_kzg_challenge_ms: f64,
-    pub backend_tipa_c_kzg_coefficient_build_ms: f64,
-    pub backend_tipa_c_kzg_eval_quotient_ms: f64,
-    pub backend_tipa_c_kzg_opening_msm_ms: f64,
-    pub backend_tipa_c_kzg_opening_ck_a_ms: f64,
+    pub backend_tipp_mipp_ms: f64,
+    pub backend_tipp_mipp_gipa_ms: f64,
+    pub backend_tipp_mipp_gipa_commit_l_ms: f64,
+    pub backend_tipp_mipp_gipa_commit_r_ms: f64,
+    pub backend_tipp_mipp_gipa_challenge_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_m1_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_m2_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_m3_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_r_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_ck1_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_ck2_ms: f64,
+    pub backend_tipp_mipp_transcript_inverse_ms: f64,
+    pub backend_tipp_mipp_final_bridge_ms: f64,
+    pub backend_tipp_mipp_kzg_challenge_ms: f64,
+    pub backend_tipp_mipp_kzg_coefficient_build_ms: f64,
+    pub backend_tipp_mipp_kzg_eval_quotient_ms: f64,
+    pub backend_tipp_mipp_kzg_opening_msm_ms: f64,
+    pub backend_tipp_mipp_kzg_opening_ck_v_ms: f64,
+    pub backend_tipp_mipp_kzg_opening_ck_w_ms: f64,
     pub serialize_ms: f64,
     pub total_ms: f64,
 }
@@ -1074,43 +1059,31 @@ fn apply_core_build_profile(
     profile.backend_pairing_final_exponentiation_ms = core_profile.pairing_final_exponentiation_ms;
     profile.backend_randomizer_ms = core_profile.randomizer_ms;
     profile.backend_structured_scalar_ms = core_profile.structured_scalar_ms;
-    profile.backend_weighted_a_ms = core_profile.weighted_a_ms;
+    profile.backend_weighted_b_ms = core_profile.weighted_b_ms;
     profile.backend_ip_ab_ms = core_profile.ip_ab_ms;
     profile.backend_agg_c_ms = core_profile.agg_c_ms;
-    profile.backend_ck_1_r_ms = core_profile.ck_1_r_ms;
+    profile.backend_ck_2_r_inv_ms = core_profile.ck_2_r_inv_ms;
     profile.backend_consistency_check_ms = core_profile.consistency_check_ms;
-    profile.backend_tipa_ab_ms = core_profile.tipa_ab_ms;
-    profile.backend_tipa_c_ms = core_profile.tipa_c_ms;
-    profile.backend_tipa_ab_gipa_ms = core_profile.tipa_ab_gipa_ms;
-    profile.backend_tipa_ab_gipa_commit_l_ms = core_profile.tipa_ab_gipa_commit_l_ms;
-    profile.backend_tipa_ab_gipa_commit_r_ms = core_profile.tipa_ab_gipa_commit_r_ms;
-    profile.backend_tipa_ab_gipa_challenge_ms = core_profile.tipa_ab_gipa_challenge_ms;
-    profile.backend_tipa_ab_gipa_rescale_m1_ms = core_profile.tipa_ab_gipa_rescale_m1_ms;
-    profile.backend_tipa_ab_gipa_rescale_m2_ms = core_profile.tipa_ab_gipa_rescale_m2_ms;
-    profile.backend_tipa_ab_gipa_rescale_ck1_ms = core_profile.tipa_ab_gipa_rescale_ck1_ms;
-    profile.backend_tipa_ab_gipa_rescale_ck2_ms = core_profile.tipa_ab_gipa_rescale_ck2_ms;
-    profile.backend_tipa_ab_transcript_inverse_ms = core_profile.tipa_ab_transcript_inverse_ms;
-    profile.backend_tipa_ab_kzg_challenge_ms = core_profile.tipa_ab_kzg_challenge_ms;
-    profile.backend_tipa_ab_kzg_coefficient_build_ms =
-        core_profile.tipa_ab_kzg_coefficient_build_ms;
-    profile.backend_tipa_ab_kzg_eval_quotient_ms = core_profile.tipa_ab_kzg_eval_quotient_ms;
-    profile.backend_tipa_ab_kzg_opening_msm_ms = core_profile.tipa_ab_kzg_opening_msm_ms;
-    profile.backend_tipa_ab_kzg_opening_ck_a_ms = core_profile.tipa_ab_kzg_opening_ck_a_ms;
-    profile.backend_tipa_ab_kzg_opening_ck_b_ms = core_profile.tipa_ab_kzg_opening_ck_b_ms;
-    profile.backend_tipa_c_gipa_ms = core_profile.tipa_c_gipa_ms;
-    profile.backend_tipa_c_gipa_commit_l_ms = core_profile.tipa_c_gipa_commit_l_ms;
-    profile.backend_tipa_c_gipa_commit_r_ms = core_profile.tipa_c_gipa_commit_r_ms;
-    profile.backend_tipa_c_gipa_challenge_ms = core_profile.tipa_c_gipa_challenge_ms;
-    profile.backend_tipa_c_gipa_rescale_m1_ms = core_profile.tipa_c_gipa_rescale_m1_ms;
-    profile.backend_tipa_c_gipa_rescale_m2_ms = core_profile.tipa_c_gipa_rescale_m2_ms;
-    profile.backend_tipa_c_gipa_rescale_ck1_ms = core_profile.tipa_c_gipa_rescale_ck1_ms;
-    profile.backend_tipa_c_gipa_rescale_ck2_ms = core_profile.tipa_c_gipa_rescale_ck2_ms;
-    profile.backend_tipa_c_transcript_inverse_ms = core_profile.tipa_c_transcript_inverse_ms;
-    profile.backend_tipa_c_kzg_challenge_ms = core_profile.tipa_c_kzg_challenge_ms;
-    profile.backend_tipa_c_kzg_coefficient_build_ms = core_profile.tipa_c_kzg_coefficient_build_ms;
-    profile.backend_tipa_c_kzg_eval_quotient_ms = core_profile.tipa_c_kzg_eval_quotient_ms;
-    profile.backend_tipa_c_kzg_opening_msm_ms = core_profile.tipa_c_kzg_opening_msm_ms;
-    profile.backend_tipa_c_kzg_opening_ck_a_ms = core_profile.tipa_c_kzg_opening_ck_a_ms;
+    profile.backend_tipp_mipp_ms = core_profile.tipp_mipp_ms;
+    profile.backend_tipp_mipp_gipa_ms = core_profile.tipp_mipp_gipa_ms;
+    profile.backend_tipp_mipp_gipa_commit_l_ms = core_profile.tipp_mipp_gipa_commit_l_ms;
+    profile.backend_tipp_mipp_gipa_commit_r_ms = core_profile.tipp_mipp_gipa_commit_r_ms;
+    profile.backend_tipp_mipp_gipa_challenge_ms = core_profile.tipp_mipp_gipa_challenge_ms;
+    profile.backend_tipp_mipp_gipa_rescale_m1_ms = core_profile.tipp_mipp_gipa_rescale_m1_ms;
+    profile.backend_tipp_mipp_gipa_rescale_m2_ms = core_profile.tipp_mipp_gipa_rescale_m2_ms;
+    profile.backend_tipp_mipp_gipa_rescale_m3_ms = core_profile.tipp_mipp_gipa_rescale_m3_ms;
+    profile.backend_tipp_mipp_gipa_rescale_r_ms = core_profile.tipp_mipp_gipa_rescale_r_ms;
+    profile.backend_tipp_mipp_gipa_rescale_ck1_ms = core_profile.tipp_mipp_gipa_rescale_ck1_ms;
+    profile.backend_tipp_mipp_gipa_rescale_ck2_ms = core_profile.tipp_mipp_gipa_rescale_ck2_ms;
+    profile.backend_tipp_mipp_transcript_inverse_ms = core_profile.tipp_mipp_transcript_inverse_ms;
+    profile.backend_tipp_mipp_final_bridge_ms = core_profile.tipp_mipp_final_bridge_ms;
+    profile.backend_tipp_mipp_kzg_challenge_ms = core_profile.tipp_mipp_kzg_challenge_ms;
+    profile.backend_tipp_mipp_kzg_coefficient_build_ms =
+        core_profile.tipp_mipp_kzg_coefficient_build_ms;
+    profile.backend_tipp_mipp_kzg_eval_quotient_ms = core_profile.tipp_mipp_kzg_eval_quotient_ms;
+    profile.backend_tipp_mipp_kzg_opening_msm_ms = core_profile.tipp_mipp_kzg_opening_msm_ms;
+    profile.backend_tipp_mipp_kzg_opening_ck_v_ms = core_profile.tipp_mipp_kzg_opening_ck_v_ms;
+    profile.backend_tipp_mipp_kzg_opening_ck_w_ms = core_profile.tipp_mipp_kzg_opening_ck_w_ms;
 }
 
 pub(crate) fn verify_with_digest<D: Digest>(
@@ -1187,10 +1160,10 @@ fn push_static_abstract_trace(trace: &mut Vec<TraceEvent>) {
     push_abstract_trace(trace, "gipa.round-folding");
     push_abstract_trace(trace, "gipa.verifier-folding");
     push_abstract_trace(trace, "tipa.srs");
-    push_abstract_trace(trace, "tipa.ab.gipa");
-    push_abstract_trace(trace, "tipa.ab.kzg-equations");
-    push_abstract_trace(trace, "ssm.power-sequence");
-    push_abstract_trace(trace, "ssm.base-equation");
+    push_abstract_trace(trace, "tipp-mipp.gipa");
+    push_abstract_trace(trace, "tipp-mipp.kzg-equations");
+    push_abstract_trace(trace, "tipp-mipp.power-sequence");
+    push_abstract_trace(trace, "tipp-mipp.base-equations");
     push_abstract_trace(trace, "groth16.folded-inputs");
     push_abstract_trace(trace, "groth16.ppe");
 }
@@ -1247,8 +1220,7 @@ fn profile_with_deserialize(
     AggregateVerificationProfile {
         deserialize_ms,
         challenge_ms: core_profile.challenge_ms,
-        tipa_ab_ms: core_profile.tipa_ab_ms,
-        tipa_c_ms: core_profile.tipa_c_ms,
+        tipp_mipp_ms: core_profile.tipp_mipp_ms,
         public_input_fold_ms: core_profile.public_input_fold_ms,
         ppe_ms: core_profile.ppe_ms,
         core_total_ms: core_profile.core_total_ms,
@@ -2094,8 +2066,7 @@ mod tests {
         assert!(profile.accepted, "profiled verification should accept");
         assert!(profile.total_ms >= profile.deserialize_ms);
         assert!(profile.challenge_ms >= 0.0);
-        assert!(profile.core_total_ms >= profile.tipa_ab_ms);
-        assert!(profile.core_total_ms >= profile.tipa_c_ms);
+        assert!(profile.core_total_ms >= profile.tipp_mipp_ms);
         assert!(profile.public_input_fold_ms >= 0.0);
         assert!(profile.ppe_ms >= 0.0);
     }
@@ -2140,7 +2111,7 @@ mod tests {
     }
 
     #[test]
-    fn snarkpack_build_profile_exposes_tipa_subbuckets() {
+    fn snarkpack_build_profile_exposes_tipp_mipp_subbuckets() {
         let (pvk, items) = sample_items();
         let srs = DevSrs::default();
         let padded_items =
@@ -2152,10 +2123,8 @@ mod tests {
             aggregate_family_profiled(&statement, &pvk, &padded_items, &srs)
                 .expect("profiled aggregation should succeed");
 
-        assert!(profile.backend_tipa_ab_ms >= profile.backend_tipa_ab_gipa_ms);
-        assert!(profile.backend_tipa_c_ms >= profile.backend_tipa_c_gipa_ms);
-        assert!(profile.backend_tipa_ab_gipa_ms > 0.0);
-        assert!(profile.backend_tipa_c_gipa_ms > 0.0);
+        assert!(profile.backend_tipp_mipp_ms >= profile.backend_tipp_mipp_gipa_ms);
+        assert!(profile.backend_tipp_mipp_gipa_ms > 0.0);
         assert!(profile.backend_prepared_srs_ms >= 0.0);
         assert!(profile.backend_commitment_key_extract_ms >= 0.0);
         assert!(profile.backend_com_a_ms >= 0.0);
@@ -2165,45 +2134,35 @@ mod tests {
         assert!(profile.backend_pairing_prepare_ms >= 0.0);
         assert!(profile.backend_pairing_miller_loop_ms >= 0.0);
         assert!(profile.backend_pairing_final_exponentiation_ms >= 0.0);
-        assert!(profile.backend_tipa_ab_kzg_coefficient_build_ms >= 0.0);
-        assert!(profile.backend_tipa_ab_kzg_eval_quotient_ms >= 0.0);
-        assert!(profile.backend_tipa_ab_kzg_opening_msm_ms >= 0.0);
-        assert!(profile.backend_tipa_ab_kzg_opening_ck_a_ms >= 0.0);
-        assert!(profile.backend_tipa_ab_kzg_opening_ck_b_ms >= 0.0);
-        assert!(profile.backend_tipa_c_kzg_coefficient_build_ms >= 0.0);
-        assert!(profile.backend_tipa_c_kzg_eval_quotient_ms >= 0.0);
-        assert!(profile.backend_tipa_c_kzg_opening_msm_ms >= 0.0);
-        assert!(profile.backend_tipa_c_kzg_opening_ck_a_ms >= 0.0);
+        assert!(profile.backend_tipp_mipp_kzg_coefficient_build_ms >= 0.0);
+        assert!(profile.backend_tipp_mipp_kzg_eval_quotient_ms >= 0.0);
+        assert!(profile.backend_tipp_mipp_kzg_opening_msm_ms >= 0.0);
+        assert!(profile.backend_tipp_mipp_kzg_opening_ck_v_ms >= 0.0);
+        assert!(profile.backend_tipp_mipp_kzg_opening_ck_w_ms >= 0.0);
 
-        // Subtotals use only direct children of the tipa_ab/tipa_c spans.
-        // kzg_coefficient_build_ms, kzg_eval_quotient_ms, kzg_opening_msm_ms are
-        // accumulated sums of ck_a and ck_b sub-operations — already contained
-        // within kzg_opening_ck_a_ms and kzg_opening_ck_b_ms — so they are not
-        // included here to avoid double-counting.
-        let tipa_ab_subtotal = profile.backend_tipa_ab_gipa_ms
-            + profile.backend_tipa_ab_transcript_inverse_ms
-            + profile.backend_tipa_ab_kzg_challenge_ms
-            + profile.backend_tipa_ab_kzg_opening_ck_a_ms
-            + profile.backend_tipa_ab_kzg_opening_ck_b_ms;
-        let tipa_c_subtotal = profile.backend_tipa_c_gipa_ms
-            + profile.backend_tipa_c_transcript_inverse_ms
-            + profile.backend_tipa_c_kzg_challenge_ms
-            + profile.backend_tipa_c_kzg_opening_ck_a_ms;
+        // Subtotals use only direct children of the combined TIPP/MIPP span.
+        // kzg_coefficient_build_ms, kzg_eval_quotient_ms, and
+        // kzg_opening_msm_ms are accumulated sub-operation sums already
+        // contained within the ck_v/ck_w wrapper spans.
+        let tipp_mipp_subtotal = profile.backend_tipp_mipp_gipa_ms
+            + profile.backend_tipp_mipp_transcript_inverse_ms
+            + profile.backend_tipp_mipp_final_bridge_ms
+            + profile.backend_tipp_mipp_kzg_challenge_ms
+            + profile.backend_tipp_mipp_kzg_opening_ck_v_ms
+            + profile.backend_tipp_mipp_kzg_opening_ck_w_ms;
 
-        assert!(profile.backend_tipa_ab_ms + 5.0 >= tipa_ab_subtotal);
-        assert!(profile.backend_tipa_c_ms + 5.0 >= tipa_c_subtotal);
-        // kzg sub-ops are bounded by their ck wrapper spans
+        assert!(profile.backend_tipp_mipp_ms + 5.0 >= tipp_mipp_subtotal);
         assert!(
-            profile.backend_tipa_ab_kzg_opening_ck_a_ms
-                + profile.backend_tipa_ab_kzg_opening_ck_b_ms
+            profile.backend_tipp_mipp_kzg_opening_ck_v_ms
+                + profile.backend_tipp_mipp_kzg_opening_ck_w_ms
                 + 1.0
-                >= profile.backend_tipa_ab_kzg_coefficient_build_ms
-                    + profile.backend_tipa_ab_kzg_eval_quotient_ms
-                    + profile.backend_tipa_ab_kzg_opening_msm_ms
+                >= profile.backend_tipp_mipp_kzg_coefficient_build_ms
+                    + profile.backend_tipp_mipp_kzg_eval_quotient_ms
+                    + profile.backend_tipp_mipp_kzg_opening_msm_ms
         );
         assert!(
-            profile.backend_tipa_ab_gipa_rescale_ck1_ms
-                + profile.backend_tipa_ab_gipa_rescale_ck2_ms
+            profile.backend_tipp_mipp_gipa_rescale_ck1_ms
+                + profile.backend_tipp_mipp_gipa_rescale_ck2_ms
                 > 0.0
         );
     }

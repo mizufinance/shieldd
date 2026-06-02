@@ -44,15 +44,16 @@ Given `N` Groth16 proofs `(Aᵢ, Bᵢ, Cᵢ)`:
 - **TIPA** — GIPA specialized to the pairing inner product, plus KZG openings of
   the two final folded commitment keys (`ck_a_final`, `ck_b_final`), tying the
   folding the verifier recomputed to the SRS.
-- **TIPA-with-structured-scalar (SSM)** — the `C`-vector path, where the right
-  operand is the public power vector `[1, r, r², …]` rather than a committed
-  vector, so only the left commitment key is opened.
+- **Combined TIPP/MIPP** — one GIPA instance folds both the randomized AB pairing
+  relation and the C multiexponentiation relation with shared per-round
+  challenges, seeded by `x0 = Hash(r, hcom, Z_AB, Z_C)` and linked to KZG by a
+  final bridge challenge.
 - **Groth16 aggregation adapter** — derives `r`, drives the AB-path (TIPA) and the
   C-path (SSM), folds the public inputs, and assembles the final PPE.
 
-The four Fiat-Shamir challenge stages on the Penumbra Groth16 path are
-`aggregate.randomizer`, `tipa.ab.gipa.round`, `tipa.ab.kzg`, `tipa.c.gipa.round`,
-`tipa.c.kzg` — enumerated input-by-input in
+The Fiat-Shamir challenge stages on the Penumbra Groth16 path are
+`aggregate.randomizer`, `tipp-mipp.x0`, `tipp-mipp.gipa.round`,
+`tipp-mipp.final-bridge`, and `tipp-mipp.kzg` — enumerated input-by-input in
 [verification.md](verification.md#transcript--model).
 
 ## 2. What we forked
@@ -145,10 +146,9 @@ The full search-to-land process and candidate backlog is the contributor
 playbook in the crate:
 [optimization-playbook.md](../../crates/crypto/proof-aggregation/optimization-playbook.md).
 
-### Known divergence left open: GIPA `x0` seed
-The paper seeds the GIPA transcript with `x0 = Hash(r, hcom, Z_AB, Z_C)`; Penumbra
-starts the first round from `Default` and does not bind `r` / initial commitment /
-claimed inner products into the GIPA transcript. We **documented this rather than
-silently "fixing" it**. It is an open soundness obligation about the split TIPA
-argument, tracked in [verification.md](verification.md#transcript--model), not a
-closed completeness claim.
+### Adopted: combined TIPP/MIPP proof shape
+Penumbra now follows the SnarkPack paper/Bellperson v2 proof shape for the
+aggregate AB/C argument: one proof object, one shared GIPA challenge stream,
+paper-style `x0` seed, final bridge, and one KZG challenge. **Why:** this matches
+the soundness theorem's combined argument instead of relying on a local split
+TIPA/SSM obligation.

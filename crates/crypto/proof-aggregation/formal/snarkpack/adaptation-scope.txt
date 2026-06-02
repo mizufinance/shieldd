@@ -36,6 +36,9 @@ backend.digest-dispatch|crates/crypto/proof-aggregation/src/backend.rs:verify_pr
 ripp.prepared-srs|crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs:PreparedProvingSrs
 ripp.shifted-srs-ab|crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs:prove_pairing_inner_product_with_prepared_srs_shift_profiled
 ripp.kzg-openings|crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs:verify_commitment_key_g2_kzg_opening
+ripp.combined-tipp-mipp|crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:TippMippProof
+ripp.x0-seed|crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_x0
+ripp.final-bridge|crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_final_bridge
 ripp.public-input-folding|crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:fold_public_inputs
 ripp.randomizer|crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_randomizer
 arkworks.subgroup-rejection-g1|crates/crypto/proof-aggregation/src/backend.rs:deserialize_compressed

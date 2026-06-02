@@ -91,7 +91,7 @@ The build and verify paths are already instrumented. Read the sub-timings and
 attack the largest *measured* stage, not the most obvious one.
 
 - `AggregateVerificationProfile` — `backend.rs` (verify path): `deserialize_ms`,
-  `challenge_ms`, `tipa_ab_ms`, `tipa_c_ms`, `public_input_fold_ms`, `ppe_ms`,
+  `challenge_ms`, `tipp_mipp_ms`, `public_input_fold_ms`, `ppe_ms`,
   `core_total_ms`.
 - `AggregateBuildBackendProfile` — `backend.rs` (build path): per-stage
   `backend_*_ms` fields, including the pairing breakdown
@@ -280,9 +280,9 @@ the §4a 10% estimate.
 1. **Batched GT subgroup validation on deserialization.** The measured #1 verify
    hotspot is `deserialize_ms`, **not** pairings. `AggregateProof`
    (`groth16_aggregation.rs`) carries many GT elements — the four top-level
-   (`com_a/b/c`, `ip_ab`) plus the `r_commitment_steps` commitments in both
-   `tipa_proof_ab` and `tipa_proof_c`, ~2 per round × log₂n rounds (≈16 at n=8,
-   ≈28 at n=64). `deserialize_aggregate_proof` (`backend.rs`) calls
+   (`com_a/b/c`, `ip_ab`) plus the combined `tipp_mipp_proof`
+   `r_commitment_steps`, where each round carries both AB and C commitments.
+   `deserialize_aggregate_proof` (`backend.rs`) calls
    `deserialize_compressed` (Arkworks `Validate::Yes`), which runs a **full
    GT-subgroup exponentiation per element** — the dominant cost. Replace it with
    decode-`Validate::No` + **one randomized batch subgroup check** over all GT
@@ -450,4 +450,3 @@ only under `bench-baseline`) for the §3b A/B seam.
 
 `crates/bench/benches/vanilla/snarkpack_prepared_g2.rs` measures per-`G2Prepared::from`
 cost against full verify, bounding the prepare-reuse portion of the saving.
-

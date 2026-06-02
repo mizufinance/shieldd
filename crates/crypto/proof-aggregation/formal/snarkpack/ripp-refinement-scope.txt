@@ -43,9 +43,14 @@ crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggre
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:aggregate_proofs_profiled_with_trace
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:verify_aggregate_proof_profiled_with_trace
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_randomizer
-crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:verify_tipa_ab
-crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:verify_tipa_c
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:prove_tipp_mipp_profiled
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:prove_tipp_mipp_gipa_profiled
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_x0
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_round_challenge
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_final_bridge
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_kzg_challenge
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:verify_tipp_mipp
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:fold_public_inputs
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:verify_ppe
-crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:build_shifted_ck_1
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:build_shifted_ck_2
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:inverse_powers

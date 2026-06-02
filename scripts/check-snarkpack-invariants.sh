@@ -219,8 +219,9 @@ check_lean_conformance_boundary() {
     fs.challenge-preimage \
     fs.stage-labels \
     gipa.challenge-dependency \
-    tipa.ab.kzg-challenge \
-    ssm.kzg-challenge \
+    tipp-mipp.x0-seed \
+    tipp-mipp.final-bridge \
+    tipp-mipp.kzg-challenge \
     groth16.randomizer; do
     rg -F "\"$row\"" "$lean_source" >/dev/null \
       || fail "Lean conformance oracle must name spec row $row"

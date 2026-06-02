@@ -2,30 +2,36 @@ use ark_ec::{pairing::Pairing, CurveGroup, PrimeGroup};
 use ark_ff::{Field, One, UniformRand, Zero};
 use ark_poly::polynomial::{univariate::DensePolynomial, DenseUVPolynomial};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+#[cfg(test)]
 use ark_std::cfg_iter;
 use ark_std::rand::Rng;
 use ark_std::{end_timer, start_timer};
 use digest::Digest;
 use itertools::Itertools;
-use std::{convert::TryInto, marker::PhantomData, ops::MulAssign};
+use std::{marker::PhantomData, ops::MulAssign};
 
-#[cfg(feature = "parallel")]
+#[cfg(all(test, feature = "parallel"))]
 use rayon::prelude::*;
 
 use crate::{
     challenge::{challenge_digest, ChallengeContext, ChallengeTraceSink, NoopChallengeTraceSink},
-    gipa::{GIPAAux, GIPAProof, GipaBuildProfile, GIPA},
-    mul_helper, Error,
+    gipa::{GIPAProof, GipaBuildProfile, GIPA},
+    Error,
 };
+#[cfg(test)]
+use crate::{gipa::GIPAAux, mul_helper};
+#[cfg(test)]
+use ark_dh_commitments::identity::{HomomorphicPlaceholderValue, IdentityCommitment};
 use ark_dh_commitments::{
     afgho16::{AFGHOCommitmentG1, AFGHOCommitmentG2},
-    identity::{HomomorphicPlaceholderValue, IdentityCommitment},
     pedersen::PedersenCommitment,
     DoublyHomomorphicCommitment,
 };
-use ark_inner_products::{
-    cfg_multi_pairing, cfg_multi_pairing_g1_affine_g2_prepared, InnerProduct, PairingInnerProduct,
-};
+#[cfg(test)]
+use ark_inner_products::cfg_multi_pairing_g1_affine_g2_prepared;
+#[cfg(test)]
+use ark_inner_products::PairingInnerProduct;
+use ark_inner_products::{cfg_multi_pairing, InnerProduct};
 
 pub mod structured_scalar_message;
 
@@ -147,6 +153,7 @@ pub struct PreparedProvingSrs<P: Pairing> {
     ck_2: Vec<P::G1>,
 }
 
+#[cfg(test)]
 type PairingTipaProof<P, D> = TIPAProof<
     PairingInnerProduct<P>,
     AFGHOCommitmentG1<P>,
@@ -156,6 +163,7 @@ type PairingTipaProof<P, D> = TIPAProof<
     D,
 >;
 
+#[cfg(test)]
 const PAIRING_GIPA_RESCALE_THRESHOLD: usize = 64;
 
 //TODO: Change SRS to return reference iterator - requires changes to TIPA and GIPA signatures
@@ -207,6 +215,7 @@ impl<P: Pairing> PreparedProvingSrs<P> {
     }
 }
 
+#[cfg(test)]
 #[inline]
 fn use_pairing_rescale_parallel(len: usize) -> bool {
     #[cfg(feature = "parallel")]
@@ -220,6 +229,7 @@ fn use_pairing_rescale_parallel(len: usize) -> bool {
     }
 }
 
+#[cfg(test)]
 fn rescale_fold_curve<G>(scaled_half: &[G], unscaled_half: &[G], scalar: &G::ScalarField) -> Vec<G>
 where
     G: CurveGroup + Send + Sync,
@@ -240,6 +250,7 @@ where
     }
 }
 
+#[cfg(test)]
 fn rescale_fold_curve_profiled<G>(
     scaled_half: &[G],
     unscaled_half: &[G],
@@ -253,6 +264,7 @@ where
     (folded, started.elapsed().as_secs_f64() * 1000.0)
 }
 
+#[cfg(test)]
 fn prepare_g2_affine_vec<P: Pairing>(points: &[P::G2Affine]) -> Vec<P::G2Prepared> {
     let mut prepared = Vec::with_capacity(points.len());
 
@@ -273,6 +285,7 @@ fn prepare_g2_affine_vec<P: Pairing>(points: &[P::G2Affine]) -> Vec<P::G2Prepare
     prepared
 }
 
+#[cfg(test)]
 fn pairing_affine<P: Pairing>(
     left: &[P::G1Affine],
     right: &[P::G2Affine],
@@ -281,6 +294,7 @@ fn pairing_affine<P: Pairing>(
     pairing_affine_with_prepared_g2::<P>(left, &right_prepared)
 }
 
+#[cfg(test)]
 fn pairing_affine_with_prepared_g2<P: Pairing>(
     left: &[P::G1Affine],
     right: &[P::G2Prepared],
@@ -289,6 +303,7 @@ fn pairing_affine_with_prepared_g2<P: Pairing>(
         .ok_or_else(|| Box::new(std::io::Error::other("pairing length mismatch")) as Error)
 }
 
+#[cfg(test)]
 pub(crate) fn prove_pairing_inner_product_with_prepared_srs_shift_profiled<P, D>(
     context: &ChallengeContext,
     trace: &mut impl ChallengeTraceSink,
@@ -382,6 +397,7 @@ where
     ))
 }
 
+#[cfg(test)]
 fn prove_pairing_inner_product_gipa_with_aux_profiled<P, D>(
     context: &ChallengeContext,
     trace: &mut impl ChallengeTraceSink,

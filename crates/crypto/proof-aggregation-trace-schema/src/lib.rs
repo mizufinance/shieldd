@@ -130,27 +130,31 @@ pub const TRACE_POLICIES: &[TracePolicy] = &[
         primary_level: TraceComparisonLevel::AbstractTrace,
     },
     TracePolicy {
-        spec_row_id: "tipa.ab.gipa",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "tipa.ab.kzg-challenge",
+        spec_row_id: "tipp-mipp.x0-seed",
         primary_level: TraceComparisonLevel::PenumbraByte,
     },
     TracePolicy {
-        spec_row_id: "tipa.ab.kzg-equations",
+        spec_row_id: "tipp-mipp.gipa",
         primary_level: TraceComparisonLevel::AbstractTrace,
     },
     TracePolicy {
-        spec_row_id: "ssm.power-sequence",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "ssm.kzg-challenge",
+        spec_row_id: "tipp-mipp.final-bridge",
         primary_level: TraceComparisonLevel::PenumbraByte,
     },
     TracePolicy {
-        spec_row_id: "ssm.base-equation",
+        spec_row_id: "tipp-mipp.kzg-challenge",
+        primary_level: TraceComparisonLevel::PenumbraByte,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.kzg-equations",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.power-sequence",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.base-equations",
         primary_level: TraceComparisonLevel::AbstractTrace,
     },
     TracePolicy {

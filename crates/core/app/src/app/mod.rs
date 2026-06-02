@@ -427,42 +427,30 @@ pub struct AggregateBuildProfile {
     pub backend_pairing_final_exponentiation_ms: f64,
     pub backend_randomizer_ms: f64,
     pub backend_structured_scalar_ms: f64,
-    pub backend_weighted_a_ms: f64,
+    pub backend_weighted_b_ms: f64,
     pub backend_ip_ab_ms: f64,
     pub backend_agg_c_ms: f64,
-    pub backend_ck_1_r_ms: f64,
+    pub backend_ck_2_r_inv_ms: f64,
     pub backend_consistency_check_ms: f64,
-    pub backend_tipa_ab_ms: f64,
-    pub backend_tipa_c_ms: f64,
-    pub backend_tipa_ab_gipa_ms: f64,
-    pub backend_tipa_ab_gipa_commit_l_ms: f64,
-    pub backend_tipa_ab_gipa_commit_r_ms: f64,
-    pub backend_tipa_ab_gipa_challenge_ms: f64,
-    pub backend_tipa_ab_gipa_rescale_m1_ms: f64,
-    pub backend_tipa_ab_gipa_rescale_m2_ms: f64,
-    pub backend_tipa_ab_gipa_rescale_ck1_ms: f64,
-    pub backend_tipa_ab_gipa_rescale_ck2_ms: f64,
-    pub backend_tipa_ab_transcript_inverse_ms: f64,
-    pub backend_tipa_ab_kzg_challenge_ms: f64,
-    pub backend_tipa_ab_kzg_coefficient_build_ms: f64,
-    pub backend_tipa_ab_kzg_eval_quotient_ms: f64,
-    pub backend_tipa_ab_kzg_opening_msm_ms: f64,
-    pub backend_tipa_ab_kzg_opening_ck_a_ms: f64,
-    pub backend_tipa_ab_kzg_opening_ck_b_ms: f64,
-    pub backend_tipa_c_gipa_ms: f64,
-    pub backend_tipa_c_gipa_commit_l_ms: f64,
-    pub backend_tipa_c_gipa_commit_r_ms: f64,
-    pub backend_tipa_c_gipa_challenge_ms: f64,
-    pub backend_tipa_c_gipa_rescale_m1_ms: f64,
-    pub backend_tipa_c_gipa_rescale_m2_ms: f64,
-    pub backend_tipa_c_gipa_rescale_ck1_ms: f64,
-    pub backend_tipa_c_gipa_rescale_ck2_ms: f64,
-    pub backend_tipa_c_transcript_inverse_ms: f64,
-    pub backend_tipa_c_kzg_challenge_ms: f64,
-    pub backend_tipa_c_kzg_coefficient_build_ms: f64,
-    pub backend_tipa_c_kzg_eval_quotient_ms: f64,
-    pub backend_tipa_c_kzg_opening_msm_ms: f64,
-    pub backend_tipa_c_kzg_opening_ck_a_ms: f64,
+    pub backend_tipp_mipp_ms: f64,
+    pub backend_tipp_mipp_gipa_ms: f64,
+    pub backend_tipp_mipp_gipa_commit_l_ms: f64,
+    pub backend_tipp_mipp_gipa_commit_r_ms: f64,
+    pub backend_tipp_mipp_gipa_challenge_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_m1_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_m2_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_m3_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_r_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_ck1_ms: f64,
+    pub backend_tipp_mipp_gipa_rescale_ck2_ms: f64,
+    pub backend_tipp_mipp_transcript_inverse_ms: f64,
+    pub backend_tipp_mipp_final_bridge_ms: f64,
+    pub backend_tipp_mipp_kzg_challenge_ms: f64,
+    pub backend_tipp_mipp_kzg_coefficient_build_ms: f64,
+    pub backend_tipp_mipp_kzg_eval_quotient_ms: f64,
+    pub backend_tipp_mipp_kzg_opening_msm_ms: f64,
+    pub backend_tipp_mipp_kzg_opening_ck_v_ms: f64,
+    pub backend_tipp_mipp_kzg_opening_ck_w_ms: f64,
     pub proof_serialize_ms: f64,
     pub bundle_tx_build_ms: f64,
     pub spend_ms: f64,
@@ -539,44 +527,33 @@ impl AggregateBuildProfile {
             backend.backend_pairing_final_exponentiation_ms;
         self.backend_randomizer_ms = backend.backend_randomizer_ms;
         self.backend_structured_scalar_ms = backend.backend_structured_scalar_ms;
-        self.backend_weighted_a_ms = backend.backend_weighted_a_ms;
+        self.backend_weighted_b_ms = backend.backend_weighted_b_ms;
         self.backend_ip_ab_ms = backend.backend_ip_ab_ms;
         self.backend_agg_c_ms = backend.backend_agg_c_ms;
-        self.backend_ck_1_r_ms = backend.backend_ck_1_r_ms;
+        self.backend_ck_2_r_inv_ms = backend.backend_ck_2_r_inv_ms;
         self.backend_consistency_check_ms = backend.backend_consistency_check_ms;
-        self.backend_tipa_ab_ms = backend.backend_tipa_ab_ms;
-        self.backend_tipa_c_ms = backend.backend_tipa_c_ms;
-        self.backend_tipa_ab_gipa_ms = backend.backend_tipa_ab_gipa_ms;
-        self.backend_tipa_ab_gipa_commit_l_ms = backend.backend_tipa_ab_gipa_commit_l_ms;
-        self.backend_tipa_ab_gipa_commit_r_ms = backend.backend_tipa_ab_gipa_commit_r_ms;
-        self.backend_tipa_ab_gipa_challenge_ms = backend.backend_tipa_ab_gipa_challenge_ms;
-        self.backend_tipa_ab_gipa_rescale_m1_ms = backend.backend_tipa_ab_gipa_rescale_m1_ms;
-        self.backend_tipa_ab_gipa_rescale_m2_ms = backend.backend_tipa_ab_gipa_rescale_m2_ms;
-        self.backend_tipa_ab_gipa_rescale_ck1_ms = backend.backend_tipa_ab_gipa_rescale_ck1_ms;
-        self.backend_tipa_ab_gipa_rescale_ck2_ms = backend.backend_tipa_ab_gipa_rescale_ck2_ms;
-        self.backend_tipa_ab_transcript_inverse_ms = backend.backend_tipa_ab_transcript_inverse_ms;
-        self.backend_tipa_ab_kzg_challenge_ms = backend.backend_tipa_ab_kzg_challenge_ms;
-        self.backend_tipa_ab_kzg_coefficient_build_ms =
-            backend.backend_tipa_ab_kzg_coefficient_build_ms;
-        self.backend_tipa_ab_kzg_eval_quotient_ms = backend.backend_tipa_ab_kzg_eval_quotient_ms;
-        self.backend_tipa_ab_kzg_opening_msm_ms = backend.backend_tipa_ab_kzg_opening_msm_ms;
-        self.backend_tipa_ab_kzg_opening_ck_a_ms = backend.backend_tipa_ab_kzg_opening_ck_a_ms;
-        self.backend_tipa_ab_kzg_opening_ck_b_ms = backend.backend_tipa_ab_kzg_opening_ck_b_ms;
-        self.backend_tipa_c_gipa_ms = backend.backend_tipa_c_gipa_ms;
-        self.backend_tipa_c_gipa_commit_l_ms = backend.backend_tipa_c_gipa_commit_l_ms;
-        self.backend_tipa_c_gipa_commit_r_ms = backend.backend_tipa_c_gipa_commit_r_ms;
-        self.backend_tipa_c_gipa_challenge_ms = backend.backend_tipa_c_gipa_challenge_ms;
-        self.backend_tipa_c_gipa_rescale_m1_ms = backend.backend_tipa_c_gipa_rescale_m1_ms;
-        self.backend_tipa_c_gipa_rescale_m2_ms = backend.backend_tipa_c_gipa_rescale_m2_ms;
-        self.backend_tipa_c_gipa_rescale_ck1_ms = backend.backend_tipa_c_gipa_rescale_ck1_ms;
-        self.backend_tipa_c_gipa_rescale_ck2_ms = backend.backend_tipa_c_gipa_rescale_ck2_ms;
-        self.backend_tipa_c_transcript_inverse_ms = backend.backend_tipa_c_transcript_inverse_ms;
-        self.backend_tipa_c_kzg_challenge_ms = backend.backend_tipa_c_kzg_challenge_ms;
-        self.backend_tipa_c_kzg_coefficient_build_ms =
-            backend.backend_tipa_c_kzg_coefficient_build_ms;
-        self.backend_tipa_c_kzg_eval_quotient_ms = backend.backend_tipa_c_kzg_eval_quotient_ms;
-        self.backend_tipa_c_kzg_opening_msm_ms = backend.backend_tipa_c_kzg_opening_msm_ms;
-        self.backend_tipa_c_kzg_opening_ck_a_ms = backend.backend_tipa_c_kzg_opening_ck_a_ms;
+        self.backend_tipp_mipp_ms = backend.backend_tipp_mipp_ms;
+        self.backend_tipp_mipp_gipa_ms = backend.backend_tipp_mipp_gipa_ms;
+        self.backend_tipp_mipp_gipa_commit_l_ms = backend.backend_tipp_mipp_gipa_commit_l_ms;
+        self.backend_tipp_mipp_gipa_commit_r_ms = backend.backend_tipp_mipp_gipa_commit_r_ms;
+        self.backend_tipp_mipp_gipa_challenge_ms = backend.backend_tipp_mipp_gipa_challenge_ms;
+        self.backend_tipp_mipp_gipa_rescale_m1_ms = backend.backend_tipp_mipp_gipa_rescale_m1_ms;
+        self.backend_tipp_mipp_gipa_rescale_m2_ms = backend.backend_tipp_mipp_gipa_rescale_m2_ms;
+        self.backend_tipp_mipp_gipa_rescale_m3_ms = backend.backend_tipp_mipp_gipa_rescale_m3_ms;
+        self.backend_tipp_mipp_gipa_rescale_r_ms = backend.backend_tipp_mipp_gipa_rescale_r_ms;
+        self.backend_tipp_mipp_gipa_rescale_ck1_ms = backend.backend_tipp_mipp_gipa_rescale_ck1_ms;
+        self.backend_tipp_mipp_gipa_rescale_ck2_ms = backend.backend_tipp_mipp_gipa_rescale_ck2_ms;
+        self.backend_tipp_mipp_transcript_inverse_ms =
+            backend.backend_tipp_mipp_transcript_inverse_ms;
+        self.backend_tipp_mipp_final_bridge_ms = backend.backend_tipp_mipp_final_bridge_ms;
+        self.backend_tipp_mipp_kzg_challenge_ms = backend.backend_tipp_mipp_kzg_challenge_ms;
+        self.backend_tipp_mipp_kzg_coefficient_build_ms =
+            backend.backend_tipp_mipp_kzg_coefficient_build_ms;
+        self.backend_tipp_mipp_kzg_eval_quotient_ms =
+            backend.backend_tipp_mipp_kzg_eval_quotient_ms;
+        self.backend_tipp_mipp_kzg_opening_msm_ms = backend.backend_tipp_mipp_kzg_opening_msm_ms;
+        self.backend_tipp_mipp_kzg_opening_ck_v_ms = backend.backend_tipp_mipp_kzg_opening_ck_v_ms;
+        self.backend_tipp_mipp_kzg_opening_ck_w_ms = backend.backend_tipp_mipp_kzg_opening_ck_w_ms;
         self.proof_serialize_ms = backend.serialize_ms;
     }
 
@@ -600,44 +577,32 @@ impl AggregateBuildProfile {
             other.backend_pairing_final_exponentiation_ms;
         self.backend_randomizer_ms += other.backend_randomizer_ms;
         self.backend_structured_scalar_ms += other.backend_structured_scalar_ms;
-        self.backend_weighted_a_ms += other.backend_weighted_a_ms;
+        self.backend_weighted_b_ms += other.backend_weighted_b_ms;
         self.backend_ip_ab_ms += other.backend_ip_ab_ms;
         self.backend_agg_c_ms += other.backend_agg_c_ms;
-        self.backend_ck_1_r_ms += other.backend_ck_1_r_ms;
+        self.backend_ck_2_r_inv_ms += other.backend_ck_2_r_inv_ms;
         self.backend_consistency_check_ms += other.backend_consistency_check_ms;
-        self.backend_tipa_ab_ms += other.backend_tipa_ab_ms;
-        self.backend_tipa_c_ms += other.backend_tipa_c_ms;
-        self.backend_tipa_ab_gipa_ms += other.backend_tipa_ab_gipa_ms;
-        self.backend_tipa_ab_gipa_commit_l_ms += other.backend_tipa_ab_gipa_commit_l_ms;
-        self.backend_tipa_ab_gipa_commit_r_ms += other.backend_tipa_ab_gipa_commit_r_ms;
-        self.backend_tipa_ab_gipa_challenge_ms += other.backend_tipa_ab_gipa_challenge_ms;
-        self.backend_tipa_ab_gipa_rescale_m1_ms += other.backend_tipa_ab_gipa_rescale_m1_ms;
-        self.backend_tipa_ab_gipa_rescale_m2_ms += other.backend_tipa_ab_gipa_rescale_m2_ms;
-        self.backend_tipa_ab_gipa_rescale_ck1_ms += other.backend_tipa_ab_gipa_rescale_ck1_ms;
-        self.backend_tipa_ab_gipa_rescale_ck2_ms += other.backend_tipa_ab_gipa_rescale_ck2_ms;
-        self.backend_tipa_ab_transcript_inverse_ms += other.backend_tipa_ab_transcript_inverse_ms;
-        self.backend_tipa_ab_kzg_challenge_ms += other.backend_tipa_ab_kzg_challenge_ms;
-        self.backend_tipa_ab_kzg_coefficient_build_ms +=
-            other.backend_tipa_ab_kzg_coefficient_build_ms;
-        self.backend_tipa_ab_kzg_eval_quotient_ms += other.backend_tipa_ab_kzg_eval_quotient_ms;
-        self.backend_tipa_ab_kzg_opening_msm_ms += other.backend_tipa_ab_kzg_opening_msm_ms;
-        self.backend_tipa_ab_kzg_opening_ck_a_ms += other.backend_tipa_ab_kzg_opening_ck_a_ms;
-        self.backend_tipa_ab_kzg_opening_ck_b_ms += other.backend_tipa_ab_kzg_opening_ck_b_ms;
-        self.backend_tipa_c_gipa_ms += other.backend_tipa_c_gipa_ms;
-        self.backend_tipa_c_gipa_commit_l_ms += other.backend_tipa_c_gipa_commit_l_ms;
-        self.backend_tipa_c_gipa_commit_r_ms += other.backend_tipa_c_gipa_commit_r_ms;
-        self.backend_tipa_c_gipa_challenge_ms += other.backend_tipa_c_gipa_challenge_ms;
-        self.backend_tipa_c_gipa_rescale_m1_ms += other.backend_tipa_c_gipa_rescale_m1_ms;
-        self.backend_tipa_c_gipa_rescale_m2_ms += other.backend_tipa_c_gipa_rescale_m2_ms;
-        self.backend_tipa_c_gipa_rescale_ck1_ms += other.backend_tipa_c_gipa_rescale_ck1_ms;
-        self.backend_tipa_c_gipa_rescale_ck2_ms += other.backend_tipa_c_gipa_rescale_ck2_ms;
-        self.backend_tipa_c_transcript_inverse_ms += other.backend_tipa_c_transcript_inverse_ms;
-        self.backend_tipa_c_kzg_challenge_ms += other.backend_tipa_c_kzg_challenge_ms;
-        self.backend_tipa_c_kzg_coefficient_build_ms +=
-            other.backend_tipa_c_kzg_coefficient_build_ms;
-        self.backend_tipa_c_kzg_eval_quotient_ms += other.backend_tipa_c_kzg_eval_quotient_ms;
-        self.backend_tipa_c_kzg_opening_msm_ms += other.backend_tipa_c_kzg_opening_msm_ms;
-        self.backend_tipa_c_kzg_opening_ck_a_ms += other.backend_tipa_c_kzg_opening_ck_a_ms;
+        self.backend_tipp_mipp_ms += other.backend_tipp_mipp_ms;
+        self.backend_tipp_mipp_gipa_ms += other.backend_tipp_mipp_gipa_ms;
+        self.backend_tipp_mipp_gipa_commit_l_ms += other.backend_tipp_mipp_gipa_commit_l_ms;
+        self.backend_tipp_mipp_gipa_commit_r_ms += other.backend_tipp_mipp_gipa_commit_r_ms;
+        self.backend_tipp_mipp_gipa_challenge_ms += other.backend_tipp_mipp_gipa_challenge_ms;
+        self.backend_tipp_mipp_gipa_rescale_m1_ms += other.backend_tipp_mipp_gipa_rescale_m1_ms;
+        self.backend_tipp_mipp_gipa_rescale_m2_ms += other.backend_tipp_mipp_gipa_rescale_m2_ms;
+        self.backend_tipp_mipp_gipa_rescale_m3_ms += other.backend_tipp_mipp_gipa_rescale_m3_ms;
+        self.backend_tipp_mipp_gipa_rescale_r_ms += other.backend_tipp_mipp_gipa_rescale_r_ms;
+        self.backend_tipp_mipp_gipa_rescale_ck1_ms += other.backend_tipp_mipp_gipa_rescale_ck1_ms;
+        self.backend_tipp_mipp_gipa_rescale_ck2_ms += other.backend_tipp_mipp_gipa_rescale_ck2_ms;
+        self.backend_tipp_mipp_transcript_inverse_ms +=
+            other.backend_tipp_mipp_transcript_inverse_ms;
+        self.backend_tipp_mipp_final_bridge_ms += other.backend_tipp_mipp_final_bridge_ms;
+        self.backend_tipp_mipp_kzg_challenge_ms += other.backend_tipp_mipp_kzg_challenge_ms;
+        self.backend_tipp_mipp_kzg_coefficient_build_ms +=
+            other.backend_tipp_mipp_kzg_coefficient_build_ms;
+        self.backend_tipp_mipp_kzg_eval_quotient_ms += other.backend_tipp_mipp_kzg_eval_quotient_ms;
+        self.backend_tipp_mipp_kzg_opening_msm_ms += other.backend_tipp_mipp_kzg_opening_msm_ms;
+        self.backend_tipp_mipp_kzg_opening_ck_v_ms += other.backend_tipp_mipp_kzg_opening_ck_v_ms;
+        self.backend_tipp_mipp_kzg_opening_ck_w_ms += other.backend_tipp_mipp_kzg_opening_ck_w_ms;
         self.proof_serialize_ms += other.proof_serialize_ms;
         self.bundle_tx_build_ms += other.bundle_tx_build_ms;
         self.spend_ms += other.spend_ms;
@@ -664,42 +629,30 @@ impl AggregateBuildProfile {
         self.backend_pairing_final_exponentiation_ms *= factor;
         self.backend_randomizer_ms *= factor;
         self.backend_structured_scalar_ms *= factor;
-        self.backend_weighted_a_ms *= factor;
+        self.backend_weighted_b_ms *= factor;
         self.backend_ip_ab_ms *= factor;
         self.backend_agg_c_ms *= factor;
-        self.backend_ck_1_r_ms *= factor;
+        self.backend_ck_2_r_inv_ms *= factor;
         self.backend_consistency_check_ms *= factor;
-        self.backend_tipa_ab_ms *= factor;
-        self.backend_tipa_c_ms *= factor;
-        self.backend_tipa_ab_gipa_ms *= factor;
-        self.backend_tipa_ab_gipa_commit_l_ms *= factor;
-        self.backend_tipa_ab_gipa_commit_r_ms *= factor;
-        self.backend_tipa_ab_gipa_challenge_ms *= factor;
-        self.backend_tipa_ab_gipa_rescale_m1_ms *= factor;
-        self.backend_tipa_ab_gipa_rescale_m2_ms *= factor;
-        self.backend_tipa_ab_gipa_rescale_ck1_ms *= factor;
-        self.backend_tipa_ab_gipa_rescale_ck2_ms *= factor;
-        self.backend_tipa_ab_transcript_inverse_ms *= factor;
-        self.backend_tipa_ab_kzg_challenge_ms *= factor;
-        self.backend_tipa_ab_kzg_coefficient_build_ms *= factor;
-        self.backend_tipa_ab_kzg_eval_quotient_ms *= factor;
-        self.backend_tipa_ab_kzg_opening_msm_ms *= factor;
-        self.backend_tipa_ab_kzg_opening_ck_a_ms *= factor;
-        self.backend_tipa_ab_kzg_opening_ck_b_ms *= factor;
-        self.backend_tipa_c_gipa_ms *= factor;
-        self.backend_tipa_c_gipa_commit_l_ms *= factor;
-        self.backend_tipa_c_gipa_commit_r_ms *= factor;
-        self.backend_tipa_c_gipa_challenge_ms *= factor;
-        self.backend_tipa_c_gipa_rescale_m1_ms *= factor;
-        self.backend_tipa_c_gipa_rescale_m2_ms *= factor;
-        self.backend_tipa_c_gipa_rescale_ck1_ms *= factor;
-        self.backend_tipa_c_gipa_rescale_ck2_ms *= factor;
-        self.backend_tipa_c_transcript_inverse_ms *= factor;
-        self.backend_tipa_c_kzg_challenge_ms *= factor;
-        self.backend_tipa_c_kzg_coefficient_build_ms *= factor;
-        self.backend_tipa_c_kzg_eval_quotient_ms *= factor;
-        self.backend_tipa_c_kzg_opening_msm_ms *= factor;
-        self.backend_tipa_c_kzg_opening_ck_a_ms *= factor;
+        self.backend_tipp_mipp_ms *= factor;
+        self.backend_tipp_mipp_gipa_ms *= factor;
+        self.backend_tipp_mipp_gipa_commit_l_ms *= factor;
+        self.backend_tipp_mipp_gipa_commit_r_ms *= factor;
+        self.backend_tipp_mipp_gipa_challenge_ms *= factor;
+        self.backend_tipp_mipp_gipa_rescale_m1_ms *= factor;
+        self.backend_tipp_mipp_gipa_rescale_m2_ms *= factor;
+        self.backend_tipp_mipp_gipa_rescale_m3_ms *= factor;
+        self.backend_tipp_mipp_gipa_rescale_r_ms *= factor;
+        self.backend_tipp_mipp_gipa_rescale_ck1_ms *= factor;
+        self.backend_tipp_mipp_gipa_rescale_ck2_ms *= factor;
+        self.backend_tipp_mipp_transcript_inverse_ms *= factor;
+        self.backend_tipp_mipp_final_bridge_ms *= factor;
+        self.backend_tipp_mipp_kzg_challenge_ms *= factor;
+        self.backend_tipp_mipp_kzg_coefficient_build_ms *= factor;
+        self.backend_tipp_mipp_kzg_eval_quotient_ms *= factor;
+        self.backend_tipp_mipp_kzg_opening_msm_ms *= factor;
+        self.backend_tipp_mipp_kzg_opening_ck_v_ms *= factor;
+        self.backend_tipp_mipp_kzg_opening_ck_w_ms *= factor;
         self.proof_serialize_ms *= factor;
         self.bundle_tx_build_ms *= factor;
         self.spend_ms *= factor;
@@ -715,8 +668,7 @@ struct AggregateVerifyProfile {
     prepare_inputs_ms: f64,
     backend_deserialize_ms: f64,
     backend_challenge_ms: f64,
-    backend_tipa_ab_ms: f64,
-    backend_tipa_c_ms: f64,
+    backend_tipp_mipp_ms: f64,
     backend_public_input_fold_ms: f64,
     backend_ppe_ms: f64,
     backend_core_total_ms: f64,
@@ -726,8 +678,7 @@ impl AggregateVerifyProfile {
     fn merge_backend_profile(&mut self, backend: &AggregateVerificationProfile) {
         self.backend_deserialize_ms += backend.deserialize_ms;
         self.backend_challenge_ms += backend.challenge_ms;
-        self.backend_tipa_ab_ms += backend.tipa_ab_ms;
-        self.backend_tipa_c_ms += backend.tipa_c_ms;
+        self.backend_tipp_mipp_ms += backend.tipp_mipp_ms;
         self.backend_public_input_fold_ms += backend.public_input_fold_ms;
         self.backend_ppe_ms += backend.ppe_ms;
         self.backend_core_total_ms += backend.core_total_ms;
@@ -2841,8 +2792,7 @@ impl App {
             .max(0.0);
         profile.aggregate_backend_deserialize_ms = aggregate_profile.backend_deserialize_ms;
         profile.aggregate_backend_challenge_ms = aggregate_profile.backend_challenge_ms;
-        profile.aggregate_backend_tipa_ab_ms = aggregate_profile.backend_tipa_ab_ms;
-        profile.aggregate_backend_tipa_c_ms = aggregate_profile.backend_tipa_c_ms;
+        profile.aggregate_backend_tipp_mipp_ms = aggregate_profile.backend_tipp_mipp_ms;
         profile.aggregate_backend_public_input_fold_ms =
             aggregate_profile.backend_public_input_fold_ms;
         profile.aggregate_backend_ppe_ms = aggregate_profile.backend_ppe_ms;

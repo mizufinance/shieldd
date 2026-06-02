@@ -6,8 +6,8 @@ This is not a mechanized proof and not an independently invented SnarkPack
 specification.
 
 In this document, "RIPP" means the local proof stack under
-`crates/crypto/proof-aggregation/src/ipp/ip_proofs/src`: GIPA, TIPA,
-TIPA-with-structured-scalar-message, and the Groth16 aggregation adapter.
+`crates/crypto/proof-aggregation/src/ipp/ip_proofs/src`: GIPA, TIPP/MIPP,
+TIPA helper primitives, and the Groth16 aggregation adapter.
 
 Filecoin SnarkPack v2 is the reference for Fiat-Shamir omission/reordering bug
 classes and transcript discipline. The normative SnarkPack-shape source is
@@ -65,12 +65,13 @@ canonical framing and byte-to-object binding.
 | `gipa.challenge-dependency` | Penumbra challenge helper and Filecoin v2 transcript-input discipline | `penumbra-byte` | trace parity over exact Penumbra challenge bytes |
 | `gipa.verifier-folding` | paper algebra and local implementation | `abstract-trace` | equation review and mutation rejection evidence |
 | `tipa.srs` | paper algebra and Penumbra SRS adaptation | `abstract-trace` | SRS dimension tests and refinement review |
-| `tipa.ab.gipa` | paper algebra and local implementation | `abstract-trace` | GIPA trace/equation evidence |
-| `tipa.ab.kzg-challenge` | Penumbra challenge helper and Filecoin v2 transcript-input discipline | `penumbra-byte` | trace parity over exact Penumbra KZG challenge bytes |
-| `tipa.ab.kzg-equations` | paper algebra and local implementation | `abstract-trace` | KZG equation review and mutation tests |
-| `ssm.power-sequence` | paper algebra and local implementation | `abstract-trace` | structured-power tests and equation review |
-| `ssm.kzg-challenge` | Penumbra challenge helper and Filecoin v2 transcript-input discipline | `penumbra-byte` | trace parity over exact Penumbra C-path challenge bytes |
-| `ssm.base-equation` | paper algebra and local implementation | `abstract-trace` | equation review and mutation tests |
+| `tipp-mipp.x0-seed` | SnarkPack paper and Bellperson v2 combined transcript seed | `penumbra-byte` | trace parity over exact Penumbra seed bytes and x0-omission mutant |
+| `tipp-mipp.gipa` | paper algebra and local combined TIPP/MIPP implementation | `abstract-trace` | combined GIPA trace/equation evidence |
+| `tipp-mipp.final-bridge` | Bellperson v2 final-randomness link | `penumbra-byte` | trace parity over exact Penumbra bridge bytes and final-bridge mutant |
+| `tipp-mipp.kzg-challenge` | Penumbra challenge helper and Filecoin v2 transcript-input discipline | `penumbra-byte` | trace parity over exact Penumbra combined KZG challenge bytes |
+| `tipp-mipp.kzg-equations` | paper algebra and local implementation | `abstract-trace` | shared-key KZG equation review and mutation tests |
+| `tipp-mipp.power-sequence` | paper algebra and local implementation | `abstract-trace` | structured-power tests and equation review |
+| `tipp-mipp.base-equations` | paper algebra and local implementation | `abstract-trace` | combined base-equation review and mutation tests |
 | `groth16.randomizer` | Penumbra challenge helper and Filecoin v2 final-randomness bug class | `penumbra-byte` | randomizer trace parity and Filecoin bug-class review |
 | `groth16.folded-inputs` | Penumbra public-input adaptation and paper algebra; byte binding is covered by `curve.field.public-input` and `serialization.public-input-fields` adaptation rows | `abstract-trace` | public-input mutation tests and equation review |
 | `groth16.ppe` | paper algebra and local implementation | `abstract-trace` | PPE mutation tests and equation review |
@@ -159,10 +160,10 @@ Required checks:
 - nonce starts at `0` and increments only when challenge decoding fails
 - stage labels are stable:
   - `aggregate.randomizer`
-  - `tipa.ab.gipa.round`
-  - `tipa.ab.kzg`
-  - `tipa.c.gipa.round`
-  - `tipa.c.kzg`
+  - `tipp-mipp.x0`
+  - `tipp-mipp.gipa.round`
+  - `tipp-mipp.final-bridge`
+  - `tipp-mipp.kzg`
 - prover and verifier traces are byte-identical for accepted proofs
 
 Filecoin v2 bug-class checklist:
@@ -270,19 +271,27 @@ Required checks:
 - base commitment check recomputes `IP(a_base, b_base)`
 - parallel rescale path is equation-identical to sequential rescale
 
-## TIPA Spec
+## Combined TIPP/MIPP Spec
 
 Implementation file:
+`crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs`;
+KZG helper primitives live in
 `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs`.
 
-Source basis: paper algebra plus Penumbra SRS and transcript adaptations.
+Source basis: SnarkPack paper algebra plus Bellperson v2's combined
+TIPP/MIPP transcript discipline, adapted to Penumbra SRS, curve, and challenge
+framing.
 
 Primary comparison levels:
 
 - `tipa.srs`: `abstract-trace`
-- `tipa.ab.gipa`: `abstract-trace`
-- `tipa.ab.kzg-challenge`: `penumbra-byte`
-- `tipa.ab.kzg-equations`: `abstract-trace`
+- `tipp-mipp.x0-seed`: `penumbra-byte`
+- `tipp-mipp.gipa`: `abstract-trace`
+- `tipp-mipp.final-bridge`: `penumbra-byte`
+- `tipp-mipp.kzg-challenge`: `penumbra-byte`
+- `tipp-mipp.kzg-equations`: `abstract-trace`
+- `tipp-mipp.power-sequence`: `abstract-trace`
+- `tipp-mipp.base-equations`: `abstract-trace`
 
 SRS:
 
@@ -293,93 +302,73 @@ g_beta = g * beta
 h_alpha = h * alpha
 ```
 
-TIPA prover:
+Combined prover:
 
-1. Runs GIPA for the pairing inner-product relation.
-2. Gets final commitment keys `(ck_a_final, ck_b_final)` and transcript.
-3. Derives KZG challenge from:
+1. Computes the aggregate randomizer `r` from `com_a`, `com_b`, and `com_c`.
+2. Forms `r_vec = [1, r, r^2, ...]`, `B_r = [B_i * r^i]`,
+   `ip_ab = <A, B_r>`, and `agg_c = <C, r_vec>`.
+3. Derives `x0` from:
 
 ```text
-first transcript element, if present
-|| ck_a_final
-|| ck_b_final
+r
+|| com_a
+|| com_b
+|| com_c
+|| ip_ab
+|| agg_c
 ```
 
-4. Proves KZG openings showing `ck_a_final` and `ck_b_final` are the
-   transcript-derived commitment keys from the SRS.
-
-TIPA verifier:
-
-1. Recomputes GIPA transcript and folded base commitments.
-2. Recomputes the KZG challenge from the same transcript/final-key bytes.
-3. Verifies the G2 opening for `ck_a_final`.
-4. Verifies the G1 opening for `ck_b_final`.
-5. Verifies the base inner-product commitment:
+4. Runs one GIPA loop over both relations. Each round emits one `(L, R)` pair
+   whose commitment object contains the AB pairing-commitment triple and the C
+   multiexponentiation commitment pair. The challenge input is the prior raw
+   challenge plus both round commitment objects under stage
+   `tipp-mipp.gipa.round`.
+5. Folds the shared key `v` with the AB/TIPP challenge and folds the shifted
+   key `w` with the inverse challenge. The C path reuses `v`.
+6. Derives the final bridge challenge from:
 
 ```text
-CommitA(ck_a_final, [a_base]) == ComA_base
-CommitB(ck_b_final, [b_base]) == ComB_base
-CommitT(ck_t, [IP(a_base, b_base)]) == ComT_base
+last_gipa_challenge
+|| v_final
+|| w_final
+|| A_final
+|| B_final
+|| C_final
+```
+
+7. Derives one KZG challenge from the final bridge and final keys, opens `v`
+   once and `w` once, and stores `(A_final, B_final, C_final)` in the proof.
+
+Combined verifier:
+
+1. Recomputes `r`, `x0`, every shared GIPA challenge, and the folded AB/C
+   commitments from the single proof object.
+2. Recomputes final keys from the shared transcript and verifies the stored
+   final keys through one KZG challenge stage.
+3. Checks the terminal base equations:
+
+```text
+<A_final, v_final> == folded com_a
+<w_final, B_final> == folded com_b
+<A_final, B_final> == folded ip_ab
+<C_final, v_final> == folded com_c
+C_final * r_final == folded agg_c
 ```
 
 Required checks:
 
-- generic and specialized pairing paths compute the same proof bytes
+- prover and verifier serialize the same `x0`, round, final-bridge, and KZG
+  challenge preimages in the same order
+- every round challenge cross-binds both the AB and C commitments
+- final bridge binds the last GIPA challenge, final keys, and final messages
+- `v` is opened once and reused by both the TIPP and MIPP base equations
 - affine/projective KZG opening paths match
 - transcript polynomial coefficients match the product-form evaluation
-- verifier KZG equations use the correct source group for each final key
-- shifted-SRS path accounts for `r_shift` and its inverse consistently
-
-## TIPA With Structured Scalar Message Spec
-
-Implementation file:
-`crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs`.
-
-Source basis: paper algebra plus local C-path specialization.
-
-Primary comparison levels:
-
-- `ssm.power-sequence`: `abstract-trace`
-- `ssm.kzg-challenge`: `penumbra-byte`
-- `ssm.base-equation`: `abstract-trace`
-
-This is the C-path variant where the right message is public structured powers:
-
-```text
-b = [1, s, s^2, ..., s^(n-1)]
-```
-
-Prover:
-
-1. Runs GIPA with placeholder commitments for the structured right message.
-2. Proves one KZG opening for the final left commitment key.
-3. Uses stage labels:
-   - `tipa.c.gipa.round`
-   - `tipa.c.kzg`
-
-Verifier:
-
-1. Recomputes GIPA transcript and folded commitments.
-2. Verifies the final left commitment key KZG opening.
-3. Computes final structured scalar:
-
-```text
-b_base = product_i (1 + transcript_i^-1 * s^(2^i))
-```
-
-4. Verifies:
-
-```text
-CommitA(ck_a_final, [a_base]) == ComA_base
-CommitT(ck_t, [IP(a_base, [b_base])]) == ComT_base
-```
-
-Required checks:
-
-- `structured_scalar_power` returns `[1, s, s^2, ...]`
-- prover and verifier use inverse transcript elements consistently
-- no placeholder commitment value enters a real algebraic check
-- C-path stage labels are distinct from AB-path labels
+- verifier KZG equations use the correct source group and shift for each final
+  key
+- shifted-SRS path accounts for `r` and its inverse consistently
+- the final structured scalar for the C relation matches the shared raw
+  transcript
 
 ## Groth16 Aggregation Adapter Spec
 
@@ -416,21 +405,21 @@ com_c = pairing_inner_product(C, ck_1)
 
 r = Fiat-Shamir(com_a, com_b, com_c)
 r_vec = [1, r, r^2, ..., r^(n-1)]
-A_r = [A_i * r^i]
-ip_ab = sum_i e(A_i * r^i, B_i)
+B_r = [B_i * r^i]
+ip_ab = sum_i e(A_i, B_i * r^i)
 agg_c = sum_i C_i * r^i
-ck_1_r = [ck_1_i * r^-i]
+ck_2_r_inv = [ck_2_i * r^-i]
 
-tipa_ab proves ip_ab over (A_r, B) and (ck_1_r, ck_2)
-tipa_c proves agg_c over (C, r_vec) and ck_1
+tipp_mipp proves both ip_ab over (A, B_r) and agg_c over (C, r_vec)
+with one shared GIPA transcript, shared ck_1, shifted ck_2_r_inv, one final
+bridge, and one KZG challenge.
 ```
 
 Verifier:
 
 ```text
 r = Fiat-Shamir(com_a, com_b, com_c)
-verify tipa_ab using stage labels tipa.ab.*
-verify tipa_c using stage labels tipa.c.*
+verify combined tipp_mipp proof using tipp-mipp.* labels
 
 r_sum = 1 + r + ... + r^(n-1)
 folded_inputs_j = sum_i public_inputs_i[j] * r^i
@@ -438,8 +427,7 @@ g_ic = gamma_abc_g1[0] * r_sum
      + sum_j gamma_abc_g1[j + 1] * folded_inputs_j
 
 accept iff:
-  tipa_ab_valid
-  && tipa_c_valid
+  tipp_mipp_valid
   && e(alpha_g1 * r_sum, beta_g2)
      * e(g_ic, gamma_g2)
      * e(agg_c, delta_g2)
@@ -450,11 +438,16 @@ Required checks:
 
 - prover and verifier derive `r` from exactly `com_a`, `com_b`, `com_c`
 - `r_vec` order matches public-input folding and `agg_c`
+- `x0` binds `r`, `com_a`, `com_b`, `com_c`, `ip_ab`, and `agg_c`
+- the single GIPA proof carries both AB and C round commitments under one shared
+  challenge stream
+- the final bridge is derived before the KZG challenge and binds final keys plus
+  final base messages
 - byte binding of public inputs to field elements is covered by upstream
   `penumbra-byte` rows; this section checks the folding equation
-- `ck_1_r` uses inverse powers matching the shifted TIPA AB prover
+- `ck_2_r_inv` uses inverse powers matching the shifted combined prover
 - public input arity was checked before this backend is called
-- malformed or mutated TIPA AB, TIPA C, KZG opening, public input, or PPE input
+- malformed or mutated combined proof, KZG opening, public input, or PPE input
   rejects
 - reviewer must decide whether the randomizer must reject `r == 1`, or whether
   the verifier must handle `r_sum = n` for that case

@@ -89,6 +89,8 @@ mod_rs="$BELLPERSON_DIR/src/groth16/aggregate/mod.rs"
 fil_seal="$FIL_PROOFS_DIR/filecoin-proofs/src/api/seal.rs"
 fil_compound="$FIL_PROOFS_DIR/storage-proofs-core/src/compound_proof.rs"
 fil_api_tests="$FIL_PROOFS_DIR/filecoin-proofs/tests/api.rs"
+penumbra_groth16="crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs"
+penumbra_challenge="crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs"
 
 [[ -f "$prove" && -f "$verify" && -f "$transcript" && -f "$mod_rs" ]] \
   || fail "Bellperson aggregate source files are missing at pinned commit"
@@ -123,6 +125,13 @@ require_pattern "compound aggregate version parameter" "version: groth16::aggreg
 require_pattern "compound aggregate call" "aggregate_proofs::<Bls12>" "$fil_compound"
 require_pattern "compound verify call" "verify_aggregate_proof" "$fil_compound"
 require_pattern "conflicting aggregate version rejection test" "conflicting_aggregate_version" "$fil_api_tests"
+
+require_pattern "Penumbra single combined proof field" "tipp_mipp_proof" "$penumbra_groth16"
+require_pattern "Penumbra combined proof object" "struct TippMippProof" "$penumbra_groth16"
+require_pattern "Penumbra x0 seed stage" "tipp-mipp\\.x0" "$penumbra_groth16"
+require_pattern "Penumbra final bridge stage" "tipp-mipp\\.final-bridge" "$penumbra_groth16"
+require_pattern "Penumbra combined KZG stage" "tipp-mipp\\.kzg" "$penumbra_groth16"
+require_pattern "Penumbra combined round stage" "tipp-mipp\\.gipa\\.round" "$penumbra_challenge"
 
 printf 'snarkpack filecoin-shape ok\n'
 printf 'bellperson %s %s\n' "$BELLPERSON_TAG" "$BELLPERSON_COMMIT"

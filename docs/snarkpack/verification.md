@@ -142,30 +142,22 @@ Stages on the Groth16 path and the 2026-06-02 reviewer ruling:
 | Stage | Bound inputs (in order) | Ruling |
 |---|---|---|
 | `aggregate.randomizer` | `com_a`, `com_b`, `com_c` `[GT]` | **Accept** — exactly the grind-sensitive set; `ip_ab`/`Z_C` don't exist yet |
-| `tipa.ab.gipa.round` | `prior_challenge[Fr]`, `L.{com_a,com_b,com_t}`, `R.{…}` | **Accept hashed set; sufficiency OPEN** (see below) |
-| `tipa.ab.kzg` | `transcript_first[Fr]`, `ck_a_final[G2]`, `ck_b_final[G1]` | **Accept** |
-| `tipa.c.gipa.round` | `prior_challenge`, `L.{com_a,placeholder,com_t}`, `R.{…}` | **Accept hashed set; sufficiency OPEN** |
-| `tipa.c.kzg` | `transcript_first[Fr]`, `ck_a_final[G2]` | **Accept** |
+| `tipp-mipp.x0` | `r[Fr]`, `com_a[GT]`, `com_b[GT]`, `com_c[GT]`, `ip_ab[GT]`, `agg_c[G1]` | **Accept/adopted** — paper `x0 = Hash(r, hcom, Z_AB, Z_C)` binding, with `hcom` represented by the three AFGHO commitments already bound into `r` |
+| `tipp-mipp.gipa.round` | `prior_challenge[Fr]`, `L.ab.{com_a,com_b,com_t}`, `L.c.{com_a,com_t}`, `R.ab.{…}`, `R.c.{…}` | **Accept/adopted** — one shared challenge folds the AB pairing relation and C multiexponentiation relation |
+| `tipp-mipp.final-bridge` | `last_gipa_challenge[Fr]`, `final_ck.{v,w}`, `final_messages.{A,B,C}` | **Accept/adopted** — Bellperson-v2-style `gipa-extra-link` before KZG |
+| `tipp-mipp.kzg` | `final_bridge[Fr]`, `final_ck.{v,w}` | **Accept/adopted** — one KZG challenge opens shared `v` once and `w` once |
 
-Three library-generic labels exist in `challenge.rs` but are **not reached** on
-the Penumbra aggregation path — `tipa.generic.gipa.round`, `tipa.generic.kzg`,
-and `tipa.generic.ssm.gipa.round`; the coverage assertion treats them as off-path
-and fails if a future change routes through them.
+Closed 2026-06-02: TXN-M2 now adopts the SnarkPack paper/Bellperson v2 combined
+TIPP/MIPP proof shape. The previous open divergence, where the GIPA recursion
+started from `Default` and the AB/C relations had independent transcripts, is
+removed. The reference oracle includes verifier mutants for omitting `x0`, for
+omitting the final bridge, and for failing the combined-round cross-binding; all
+must reject valid proofs.
 
-**OPEN divergence (HIGH) — GIPA omits the paper `x0` seed.** The paper seeds the
-recursion with `x0 = Hash(r, hcom, Z_AB, Z_C)`; Penumbra starts the first GIPA
-round from `Default` and never binds `r` / initial commitment / `ip_ab` / `Z_C`
-into the GIPA transcript. Penumbra may still be sound — the split TIPA/MIPP
-argument pins those through the GIPA base case and the final PPE rather than the
-seed — but "the base/PPE checks make `x0` unnecessary" is a **separate soundness
-obligation** that this model does **not** discharge. Tracked as a paper deviation
-for the soundness review (ALG-M2 / ALG-I4); **never cited as completeness.**
-
-**Accepted scope note (MEDIUM) — structured scalar.** The C-path does not hash the
-public power vector `b = [1, r, r², …]`. Accepted **only for the Groth16 aggregate
-C-path**, where `s = r` is already FS-bound at the randomizer stage and `b` is a
-deterministic public function of `r` (no adaptive freedom). **Not** a generic SSM
-invariant — any other caller supplying a non-bound scalar is out of scope.
+Library-generic labels can still exist for non-aggregation callers, but they are
+not part of the Penumbra aggregate transcript reference set. The coverage
+assertion fails if the Groth16 aggregation path routes through a generic or split
+label instead of the `tipp-mipp.*` stages above.
 
 ---
 
@@ -201,8 +193,9 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
 - **Why:** directly executes the SnarkPack v2 bug classes — a field that looks
   bound but isn't, and a transcript step that doesn't matter. Every *traced* input
   is proven load-bearing.
-- **State:** implemented. *Limit:* can only test traced inputs — it cannot catch a
-  value that *should* be traced but isn't (that is TXN-I3 + TXN-M2's `x0` gap).
+- **State:** implemented. *Limit:* can only test traced inputs; the current
+  Groth16 path traces the adopted `x0`, combined round, final bridge, and KZG
+  challenge rows.
 
 ### TXN-I3 — Transcript completeness structural assertion *(was Layer 6b)*
 - **What:** `transcript_completeness_*` tests in `proof-aggregation-reference`
@@ -211,8 +204,8 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
   on-path stage to have a model entry.
 - **Why:** TXN-I2 proves every traced input matters; this names the reference set
   so omissions are explicit — the structural side of the v1/Frozen-Heart class.
-- **State:** implemented as `composed`. **Checks the hashed set, not sufficiency**
-  — the GIPA `x0` sufficiency question (TXN-M2) stays open.
+- **State:** implemented as `composed`. Checks the hashed set against the adopted
+  TXN-M2 reference table, including the combined `x0` seed and final bridge.
 
 ### TXN-I4 — Byte-equivalence golden baselines *(was Layer 5)*
 - **What:** two committed, version-tagged golden artifacts — an aggregate-proof
