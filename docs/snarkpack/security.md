@@ -43,7 +43,8 @@ layers. They do not claim SnarkPack/RIPP/Groth16 algebraic soundness.
 ### What the layers enforce today
 
 - **Formal ledger** (`formal-handoff.md`): statement-encoding injectivity, digest
-  reduction, padding canonicality, and challenge-preimage injectivity are
+  reduction, SRS/VK preimage binding, wrapper cap completeness, preflight gate
+  ordering, family routing, padding canonicality, and challenge-preimage injectivity are
   `proved`; the RIPP mapping is `refined`, with every scoped RIPP/GIPA/TIPA symbol
   classified against a `ripp-spec.md` row and file:line evidence. No `open` rows.
 - **Performance / DoS gate** (`bench-thresholds.md`, `just snarkpack-dos-gate`):
@@ -564,9 +565,11 @@ Penumbra bytes only between Penumbra paths; Filecoin-shape rows are checked by
 
 ## Completion Criteria
 
-Implementation-boundary F* rows cover the current extracted Rust target set; RIPP
-refinement, clean-image formal CI, arkworks/decaf377 boundary tests, and fixed CI
-benchmark gates are in place. Final manual review remains.
+Implementation-boundary F* rows cover the current extracted Rust target set,
+including SRS/VK binding, preflight ordering, wrapper cap completeness, and
+family routing; RIPP refinement, clean-image formal CI, arkworks/decaf377
+boundary tests, and fixed CI benchmark gates are in place. Final manual review
+remains.
 
 This phase is complete when:
 

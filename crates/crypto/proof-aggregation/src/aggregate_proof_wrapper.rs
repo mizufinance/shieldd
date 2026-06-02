@@ -188,6 +188,23 @@ mod tests {
         );
     }
 
+    #[test]
+    fn wrapper_decode_rejects_oversize_before_inner_exposure() {
+        let wrapped =
+            encode_wrapped_aggregate_proof([7u8; 32], &[1, 2, 3]).expect("wrapper encode");
+
+        let err = decode_wrapped_aggregate_proof(&wrapped, [7u8; 32], Some(1))
+            .expect_err("oversize wrapper should reject before exposing bytes");
+
+        assert_eq!(
+            err,
+            AggregateProofBytesError::OversizeBytes {
+                max: 1,
+                got: wrapped.len()
+            }
+        );
+    }
+
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(32))]
 

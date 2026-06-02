@@ -121,6 +121,13 @@ let smoke_decode_inner_range_is_extracted
         W.t_AggregateProofBytesError =
   W.decode_wrapped_aggregate_proof_inner_range wrapped_proof_bytes expected_statement_digest cap
 
+let smoke_decode_wrapper_is_extracted
+      (wrapped_proof_bytes:t_Slice u8)
+      (expected_statement_digest:t_Array u8 (mk_usize 32))
+      (cap:Core_models.Option.t_Option usize)
+    : Core_models.Result.t_Result (t_Slice u8) W.t_AggregateProofBytesError =
+  W.decode_wrapped_aggregate_proof wrapped_proof_bytes expected_statement_digest cap
+
 let lemma_wrapper_rejects_oversize_before_parsing
       (wrapped_proof_bytes:t_Slice u8)
       (expected_statement_digest:t_Array u8 (mk_usize 32))
@@ -138,6 +145,25 @@ let lemma_wrapper_rejects_oversize_before_parsing
           })
       )
 = ()
+
+let lemma_wrapper_decode_rejects_oversize_before_inner_exposure
+      (wrapped_proof_bytes:t_Slice u8)
+      (expected_statement_digest:t_Array u8 (mk_usize 32))
+      (max:usize{(Core_models.Slice.impl__len #u8 wrapped_proof_bytes <: usize) >. max})
+    : Lemma (
+        W.decode_wrapped_aggregate_proof
+          wrapped_proof_bytes
+          expected_statement_digest
+          (Core_models.Option.Option_Some max <: Core_models.Option.t_Option usize)
+        ==
+        Core_models.Result.Result_Err
+          (W.AggregateProofBytesError_OversizeBytes {
+            W.f_max = max;
+            W.f_got = Core_models.Slice.impl__len #u8 wrapped_proof_bytes
+          })
+      )
+= lemma_wrapper_rejects_oversize_before_parsing
+    wrapped_proof_bytes expected_statement_digest max
 
 let lemma_wrapper_roundtrip
       (statement_digest:t_Array u8 (mk_usize 32))

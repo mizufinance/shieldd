@@ -17,6 +17,37 @@ pub struct AggregatePreflightInput<'a> {
     pub srs: &'a DevSrs,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PreflightCheapChecks {
+    pub supported_count: bool,
+    pub non_empty: bool,
+    pub srs_matches: bool,
+    pub wrapper_matches_statement: bool,
+    pub vk_matches_statement: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PreflightWorkGate {
+    Reject,
+    BackendWorkAllowed,
+}
+
+pub fn preflight_work_gate(checks: PreflightCheapChecks) -> PreflightWorkGate {
+    if checks.supported_count
+        && checks.non_empty
+        && checks.srs_matches
+        && checks.wrapper_matches_statement
+        && checks.vk_matches_statement
+    {
+        PreflightWorkGate::BackendWorkAllowed
+    } else {
+        PreflightWorkGate::Reject
+    }
+}
+
+#[derive(Clone, Copy)]
+struct VerifiedPreflightChecks;
+
 #[derive(Clone, Copy)]
 pub struct VerifiedInnerProofBytes<'a> {
     bytes: &'a [u8],
@@ -73,6 +104,29 @@ impl<'a> VerifiedAggregateBackendCall<'a> {
     pub fn padded_public_inputs(self) -> &'a [Vec<Fq>] {
         self.padded_public_inputs
     }
+
+    fn new(
+        _checks: VerifiedPreflightChecks,
+        family_id: ProofFamilyId,
+        pvk: &'a PreparedVerifyingKey<Bls12_377>,
+        srs: &'a DevSrs,
+        challenge_context: &'a ChallengeContext,
+        inner_proof_bytes: &'a [u8],
+        padded_public_inputs: &'a [Vec<Fq>],
+    ) -> Self {
+        Self {
+            family_id,
+            pvk,
+            srs,
+            challenge_context: VerifiedChallengeContext {
+                context: challenge_context,
+            },
+            inner_proof_bytes: VerifiedInnerProofBytes {
+                bytes: inner_proof_bytes,
+            },
+            padded_public_inputs,
+        }
+    }
 }
 
 pub fn preflight_aggregate_verify<'a>(
@@ -82,9 +136,10 @@ pub fn preflight_aggregate_verify<'a>(
     let family_id = statement.family_id();
     let padded_public_inputs = statement.padded_public_inputs();
 
-    input
+    let supported_count = input
         .srs
         .ensure_supported_count(padded_public_inputs.len())
+        .map(|_| true)
         .map_err(|err| AggregateVerifyError::BadPadding(err.to_string()))?;
     if padded_public_inputs.is_empty() {
         return Err(AggregateVerifyError::BadCount(format!(
@@ -96,27 +151,41 @@ pub fn preflight_aggregate_verify<'a>(
         return Err(AggregateVerifyError::StatementDigestMismatch);
     }
 
-    let expected_vk_digest = aggregate_verification_key_digest(input.pvk)?;
-    if statement.vk_digest() != expected_vk_digest {
-        return Err(AggregateVerifyError::StatementDigestMismatch);
-    }
-
     let inner_proof_bytes = decode_wrapped_aggregate_proof(
         input.aggregate_proof_bytes,
         statement.statement_digest(),
         Some(MAX_AGGREGATE_PROOF_BYTES),
     )?;
 
-    Ok(VerifiedAggregateBackendCall {
+    let expected_vk_digest = aggregate_verification_key_digest(input.pvk)?;
+    if statement.vk_digest() != expected_vk_digest {
+        return Err(AggregateVerifyError::StatementDigestMismatch);
+    }
+
+    let checks = require_preflight_checks(PreflightCheapChecks {
+        supported_count,
+        non_empty: true,
+        srs_matches: true,
+        wrapper_matches_statement: true,
+        vk_matches_statement: true,
+    })?;
+
+    Ok(VerifiedAggregateBackendCall::new(
+        checks,
         family_id,
-        pvk: input.pvk,
-        srs: input.srs,
-        challenge_context: VerifiedChallengeContext {
-            context: statement.challenge_context(),
-        },
-        inner_proof_bytes: VerifiedInnerProofBytes {
-            bytes: inner_proof_bytes,
-        },
+        input.pvk,
+        input.srs,
+        statement.challenge_context(),
+        inner_proof_bytes,
         padded_public_inputs,
-    })
+    ))
+}
+
+fn require_preflight_checks(
+    checks: PreflightCheapChecks,
+) -> Result<VerifiedPreflightChecks, AggregateVerifyError> {
+    match preflight_work_gate(checks) {
+        PreflightWorkGate::BackendWorkAllowed => Ok(VerifiedPreflightChecks),
+        PreflightWorkGate::Reject => Err(AggregateVerifyError::StatementDigestMismatch),
+    }
 }

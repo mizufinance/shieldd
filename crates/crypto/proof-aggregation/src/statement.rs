@@ -303,10 +303,18 @@ pub fn aggregate_verification_key_digest(
         .serialize_compressed(&mut vk_bytes)
         .map_err(|err| AggregateStatementError::EncodingFailed(err.to_string()))?;
 
+    let digest_preimage = vk_digest_preimage(&vk_bytes)?;
+
     let mut hasher = Sha256::new();
-    hasher.update(VK_DIGEST_DOMAIN);
-    append_field(&mut hasher, &vk_bytes)?;
+    hasher.update(&digest_preimage);
     Ok(hasher.finalize().into())
+}
+
+pub fn vk_digest_preimage(serialized_vk: &[u8]) -> Result<Vec<u8>, AggregateStatementError> {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(VK_DIGEST_DOMAIN);
+    append_bytes_field(&mut bytes, serialized_vk)?;
+    Ok(bytes)
 }
 
 pub fn encode_statement(
@@ -598,17 +606,6 @@ fn append_u32_field(bytes: &mut Vec<u8>, value: u32) {
 fn append_bytes_field(bytes: &mut Vec<u8>, field: &[u8]) -> Result<(), AggregateStatementError> {
     append_len(bytes, field.len(), "bytes_field")?;
     bytes.extend_from_slice(field);
-    Ok(())
-}
-
-fn append_field(hasher: &mut Sha256, field: &[u8]) -> Result<(), AggregateStatementError> {
-    let len = u32::try_from(field.len()).map_err(|_| AggregateStatementError::OversizeBytes {
-        field: "hash_field",
-        max: u32::MAX as usize,
-        got: field.len(),
-    })?;
-    hasher.update(len.to_le_bytes());
-    hasher.update(field);
     Ok(())
 }
 

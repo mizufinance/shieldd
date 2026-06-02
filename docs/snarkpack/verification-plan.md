@@ -201,17 +201,22 @@ outright, so they carry the heaviest evidence: the only layer that mechanically
 #### 1. Boundary formal verification (hax → F*)
 
 - What: extracts the executed Rust at the implementation boundary — statement
-  encoder (`statement.rs`), wrapper framing, count/arity validation, padding
-  canonicality, Fiat-Shamir challenge preimage — into F* and mechanically proves
-  statement-encoding injectivity (distinct statements ⇒ distinct transcript
-  preimage), digest reduction (a digest collision reduces to a SHA-256
-  collision), padding canonicality, and bounded non-malleability.
+  encoder (`statement.rs`), SRS/VK digest preimage builders, wrapper framing and
+  cap checks, count/arity validation, padding canonicality, typed preflight gate,
+  family routing, and Fiat-Shamir challenge preimage — into F* and mechanically
+  proves statement-encoding injectivity (distinct statements ⇒ distinct transcript
+  preimage), digest/preimage reductions (a digest collision reduces to a SHA-256
+  collision after injective preimage framing), padding canonicality, wrapper
+  cap completeness, preflight gate ordering, family-route totality/injectivity,
+  and bounded non-malleability.
 - Why: the load-bearing binding property — a malicious proposer must not craft
   two different statements that hash to the same challenge. It is a proof over
   the real byte-producing code, so it cannot drift from what ships.
 - State: complete for the current extracted target set. Statement-encoding
-  injectivity, digest reduction, padding canonicality, and challenge-preimage
-  injectivity are mechanically proved in the F* artifact set.
+  injectivity, digest reduction, SRS/VK preimage binding, padding canonicality,
+  wrapper cap completeness, preflight gate ordering, family-route
+  totality/injectivity, and challenge-preimage injectivity are mechanically
+  proved in the F* artifact set.
 - Implementation: hax extraction → F* lemmas under
   `crates/crypto/proof-aggregation/formal/snarkpack/fstar/`, gated by
   `just snarkpack-formal`, content-stamped by the invariants gate.
@@ -274,7 +279,7 @@ outright, so they carry the heaviest evidence: the only layer that mechanically
   recorded postcondition + removal path; coverage is invariant-gated.
 - Why: not a test — it makes "what is proven vs assumed" auditable and honest and
   prevents an assumption from silently widening.
-- State: 13 proved / 1 refined / 6 composed / 13 assumed / 0 open, matching
+- State: 19 proved / 1 refined / 6 composed / 13 assumed / 0 open, matching
   `formal-handoff.md`.
 - Left: no ledger rows remain open; further work is evidence strengthening
   outside the completion gate.
@@ -296,7 +301,7 @@ Scope is locked. What each layer enforces today:
 
 | Item | Layer | Detail |
 |---|---|---|
-| Prose reconciled with the ledger | 1, 11 | Statement injectivity, digest reduction, padding canonicality, and challenge-preimage injectivity are `proved`; the ledger has no `open` rows. |
+| Prose reconciled with the ledger | 1, 11 | Statement injectivity, digest reduction, SRS/VK preimage binding, wrapper cap completeness, preflight gate ordering, family routing, padding canonicality, and challenge-preimage injectivity are `proved`; the ledger has no `open` rows. |
 | Clean-image formal CI + arkworks boundary property tests | 1, 11 | The `snarkpack-formal` workflow uses pinned hax/F*/Z3 versions and the arkworks/decaf377 boundary tests are named in the assumption register. |
 | RIPP-mapping review (`ripp-refinement.md`) | 1, 11 | Every scoped symbol is `refined` with code line and spec-row evidence. |
 | DoS-asymmetry + perf gate | 10 | `just snarkpack-dos-gate` enforces fixed size, latency, and cheap-rejection thresholds in CI. |
@@ -312,9 +317,10 @@ Touches all layers.
 
 The completion path is evidence maintenance, not new proof: statement-encoding
 injectivity is already present in `StatementEncodingProofs.fst` and the dependent
-digest/padding/challenge rows are closed in `formal-handoff.md`. Keep the RIPP
-refinement map exact, keep the DoS gate in CI, keep assumption rows narrow, and
-keep the formal workflow reproducible from pinned tools.
+digest, SRS/VK preimage, wrapper, preflight, family-routing, padding, and
+challenge rows are closed in `formal-handoff.md`. Keep the RIPP refinement map
+exact, keep the DoS gate in CI, keep assumption rows narrow, and keep the formal
+workflow reproducible from pinned tools.
 
 The standing algebraic-soundness assumption remains, backed (non-blocking) by the
 paper-derived Lean conformance oracle that exhaustively enumerates the finite
@@ -327,8 +333,9 @@ rows remain open; the Filecoin divergence review is recorded in
 - All implementation-boundary rows in `formal-handoff.md` are `proved`;
   RIPP-mapping rows `refined`/`proved-equivalent`/`assumed`; adaptation rows
   coverage-checked; composition rows `composed`.
-- No `open` rows remain; statement-encoding injectivity and digest reduction
-  mechanically proved; padding canonicality + bounded non-malleability proved.
+- No `open` rows remain; statement-encoding injectivity, digest reduction,
+  SRS/VK preimage binding, wrapper cap completeness, preflight gate ordering,
+  family routing, padding canonicality, and bounded non-malleability proved.
 - No raw verifier bypass remains.
 - Benchmark/DoS thresholds hold in CI after proof-driven refactors.
 - Every assumption reviewed and narrowly scoped.

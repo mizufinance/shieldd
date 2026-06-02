@@ -5,6 +5,19 @@ use penumbra_sdk_shielded_pool::{
 };
 use serde::{Deserialize, Serialize};
 
+const PROOF_FAMILY_TRANSFER: u32 = pb::ProofFamilyId::Transfer as u32;
+const PROOF_FAMILY_CONSOLIDATE: u32 = pb::ProofFamilyId::Consolidate as u32;
+const PROOF_FAMILY_SPLIT: u32 = pb::ProofFamilyId::Split as u32;
+const PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL: u32 =
+    pb::ProofFamilyId::ShieldedIcs20Withdrawal as u32;
+
+const CONSOLIDATE_TWO_BY_ONE: u32 = 1;
+const CONSOLIDATE_FOUR_BY_ONE: u32 = 2;
+const CONSOLIDATE_EIGHT_BY_ONE: u32 = 3;
+const SPLIT_ONE_BY_FOUR: u32 = 1;
+const SPLIT_ONE_BY_EIGHT: u32 = 2;
+const SHIELDED_ICS20_WITHDRAWAL_CANONICAL: u32 = 1;
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum ProofFamilyId {
     Transfer,
@@ -28,6 +41,98 @@ pub struct AggregateBundle {
     pub families: Vec<FamilyAggregate>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FamilyRouteKind {
+    Transfer,
+    Consolidate,
+    Split,
+    ShieldedIcs20Withdrawal,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct FamilyRoute {
+    pub kind: FamilyRouteKind,
+    pub subfamily_id: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FamilyRouteError {
+    UnknownProofFamily,
+    MissingSubfamily,
+    UnexpectedSubfamily,
+    UnknownSubfamily,
+}
+
+pub fn family_route_from_proto_fields(
+    family_id: u32,
+    consolidate_family_id: u32,
+    split_family_id: u32,
+    shielded_ics20_withdrawal_family_id: u32,
+) -> Result<FamilyRoute, FamilyRouteError> {
+    match family_id {
+        PROOF_FAMILY_TRANSFER => {
+            if consolidate_family_id != 0
+                || split_family_id != 0
+                || shielded_ics20_withdrawal_family_id != 0
+            {
+                Err(FamilyRouteError::UnexpectedSubfamily)
+            } else {
+                Ok(FamilyRoute {
+                    kind: FamilyRouteKind::Transfer,
+                    subfamily_id: 0,
+                })
+            }
+        }
+        PROOF_FAMILY_CONSOLIDATE => {
+            if consolidate_family_id == 0 {
+                Err(FamilyRouteError::MissingSubfamily)
+            } else if split_family_id != 0 || shielded_ics20_withdrawal_family_id != 0 {
+                Err(FamilyRouteError::UnexpectedSubfamily)
+            } else if consolidate_family_id == CONSOLIDATE_TWO_BY_ONE
+                || consolidate_family_id == CONSOLIDATE_FOUR_BY_ONE
+                || consolidate_family_id == CONSOLIDATE_EIGHT_BY_ONE
+            {
+                Ok(FamilyRoute {
+                    kind: FamilyRouteKind::Consolidate,
+                    subfamily_id: consolidate_family_id,
+                })
+            } else {
+                Err(FamilyRouteError::UnknownSubfamily)
+            }
+        }
+        PROOF_FAMILY_SPLIT => {
+            if split_family_id == 0 {
+                Err(FamilyRouteError::MissingSubfamily)
+            } else if consolidate_family_id != 0 || shielded_ics20_withdrawal_family_id != 0 {
+                Err(FamilyRouteError::UnexpectedSubfamily)
+            } else if split_family_id == SPLIT_ONE_BY_FOUR || split_family_id == SPLIT_ONE_BY_EIGHT
+            {
+                Ok(FamilyRoute {
+                    kind: FamilyRouteKind::Split,
+                    subfamily_id: split_family_id,
+                })
+            } else {
+                Err(FamilyRouteError::UnknownSubfamily)
+            }
+        }
+        PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL => {
+            if shielded_ics20_withdrawal_family_id == 0 {
+                Err(FamilyRouteError::MissingSubfamily)
+            } else if consolidate_family_id != 0 || split_family_id != 0 {
+                Err(FamilyRouteError::UnexpectedSubfamily)
+            } else if shielded_ics20_withdrawal_family_id == SHIELDED_ICS20_WITHDRAWAL_CANONICAL {
+                Ok(FamilyRoute {
+                    kind: FamilyRouteKind::ShieldedIcs20Withdrawal,
+                    subfamily_id: shielded_ics20_withdrawal_family_id,
+                })
+            } else {
+                Err(FamilyRouteError::UnknownSubfamily)
+            }
+        }
+        _ => Err(FamilyRouteError::UnknownProofFamily),
+    }
+}
+
 impl From<ProofFamilyId> for pb::ProofFamilyId {
     fn from(value: ProofFamilyId) -> Self {
         match value {
@@ -46,43 +151,25 @@ impl ProofFamilyId {
         split_family_id: u32,
         shielded_ics20_withdrawal_family_id: u32,
     ) -> Result<Self> {
-        match pb::ProofFamilyId::try_from(family_id) {
-            Ok(pb::ProofFamilyId::Unspecified) => Err(anyhow!("unspecified proof family id")),
-            Ok(pb::ProofFamilyId::Transfer) => {
-                ensure_only_transfer_related_ids(
-                    consolidate_family_id,
-                    split_family_id,
-                    shielded_ics20_withdrawal_family_id,
-                )?;
-                Ok(Self::Transfer)
-            }
-            Ok(pb::ProofFamilyId::Consolidate) => {
-                ensure_only_consolidate_family_id(
-                    consolidate_family_id,
-                    split_family_id,
-                    shielded_ics20_withdrawal_family_id,
-                )?;
-                Ok(Self::Consolidate(consolidate_family_id.try_into()?))
-            }
-            Ok(pb::ProofFamilyId::Split) => {
-                ensure_only_split_family_id(
-                    consolidate_family_id,
-                    split_family_id,
-                    shielded_ics20_withdrawal_family_id,
-                )?;
-                Ok(Self::Split(split_family_id.try_into()?))
-            }
-            Ok(pb::ProofFamilyId::ShieldedIcs20Withdrawal) => {
-                ensure_only_shielded_ics20_withdrawal_family_id(
-                    consolidate_family_id,
-                    split_family_id,
-                    shielded_ics20_withdrawal_family_id,
-                )?;
-                Ok(Self::ShieldedIcs20Withdrawal(
-                    shielded_ics20_withdrawal_family_id.try_into()?,
-                ))
-            }
-            Err(_) => Err(anyhow!("unknown proof family id {family_id}")),
+        let family_id_u32 =
+            u32::try_from(family_id).map_err(|_| anyhow!("unknown proof family id {family_id}"))?;
+        if family_id_u32 == pb::ProofFamilyId::Unspecified as u32 {
+            return Err(anyhow!("unspecified proof family id"));
+        }
+        let route = family_route_from_proto_fields(
+            family_id_u32,
+            consolidate_family_id,
+            split_family_id,
+            shielded_ics20_withdrawal_family_id,
+        )
+        .map_err(|err| family_route_error_message(err, family_id))?;
+        match route.kind {
+            FamilyRouteKind::Transfer => Ok(Self::Transfer),
+            FamilyRouteKind::Consolidate => Ok(Self::Consolidate(route.subfamily_id.try_into()?)),
+            FamilyRouteKind::Split => Ok(Self::Split(route.subfamily_id.try_into()?)),
+            FamilyRouteKind::ShieldedIcs20Withdrawal => Ok(Self::ShieldedIcs20Withdrawal(
+                route.subfamily_id.try_into()?,
+            )),
         }
     }
 
@@ -108,72 +195,18 @@ impl ProofFamilyId {
     }
 }
 
-fn ensure_only_transfer_related_ids(
-    consolidate_family_id: u32,
-    split_family_id: u32,
-    shielded_ics20_withdrawal_family_id: u32,
-) -> Result<()> {
-    if consolidate_family_id != 0
-        || split_family_id != 0
-        || shielded_ics20_withdrawal_family_id != 0
-    {
-        Err(anyhow!(
-            "transfer aggregate must not set consolidate/split/shielded_ics20_withdrawal ids: consolidate={consolidate_family_id}, split={split_family_id}, shielded_ics20_withdrawal={shielded_ics20_withdrawal_family_id}"
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-fn ensure_only_consolidate_family_id(
-    consolidate_family_id: u32,
-    split_family_id: u32,
-    shielded_ics20_withdrawal_family_id: u32,
-) -> Result<()> {
-    if consolidate_family_id == 0 {
-        Err(anyhow!(
-            "consolidate aggregate must set consolidate_family_id"
-        ))
-    } else if split_family_id != 0 || shielded_ics20_withdrawal_family_id != 0 {
-        Err(anyhow!(
-            "consolidate aggregate must not set split/shielded_ics20_withdrawal ids: split={split_family_id}, shielded_ics20_withdrawal={shielded_ics20_withdrawal_family_id}"
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-fn ensure_only_split_family_id(
-    consolidate_family_id: u32,
-    split_family_id: u32,
-    shielded_ics20_withdrawal_family_id: u32,
-) -> Result<()> {
-    if split_family_id == 0 {
-        Err(anyhow!("split aggregate must set split_family_id"))
-    } else if consolidate_family_id != 0 || shielded_ics20_withdrawal_family_id != 0 {
-        Err(anyhow!(
-            "split aggregate must not set consolidate/shielded_ics20_withdrawal ids: consolidate={consolidate_family_id}, shielded_ics20_withdrawal={shielded_ics20_withdrawal_family_id}"
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-fn ensure_only_shielded_ics20_withdrawal_family_id(
-    consolidate_family_id: u32,
-    split_family_id: u32,
-    shielded_ics20_withdrawal_family_id: u32,
-) -> Result<()> {
-    if shielded_ics20_withdrawal_family_id == 0 {
-        Err(anyhow!(
-            "shielded_ics20_withdrawal aggregate must set shielded_ics20_withdrawal_family_id"
-        ))
-    } else if consolidate_family_id != 0 || split_family_id != 0 {
-        Err(anyhow!(
-            "shielded_ics20_withdrawal aggregate must not set consolidate/split ids: consolidate={consolidate_family_id}, split={split_family_id}"
-        ))
-    } else {
-        Ok(())
+fn family_route_error_message(err: FamilyRouteError, family_id: i32) -> anyhow::Error {
+    match err {
+        FamilyRouteError::UnknownProofFamily => anyhow!("unknown proof family id {family_id}"),
+        FamilyRouteError::MissingSubfamily => {
+            anyhow!("aggregate family {family_id} is missing its required subfamily id")
+        }
+        FamilyRouteError::UnexpectedSubfamily => {
+            anyhow!("aggregate family {family_id} has subfamily ids for another family")
+        }
+        FamilyRouteError::UnknownSubfamily => {
+            anyhow!("aggregate family {family_id} has an unknown subfamily id")
+        }
     }
 }
 
