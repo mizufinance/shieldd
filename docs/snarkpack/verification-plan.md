@@ -181,6 +181,25 @@ executes the bug classes; Layer 7 pins the discipline to the audited reference.
   layer.
 - State: implemented.
 
+#### 6b. Fiat-Shamir transcript completeness manifest
+
+- What: an explicit, reviewed manifest (`transcript-completeness-manifest.md`)
+  naming, per challenge stage, the exact ordered set of inputs the soundness
+  argument requires bound, with paper/`ripp-spec.md` citations. A per-stage
+  structure assertion (`transcript_completeness_*` in
+  `proof-aggregation-reference`) captures the real prover preimage and asserts its
+  framed structure matches the manifest in order; a coverage assertion forces
+  every on-path stage to have a manifest entry.
+- Why: the mutation matrix (Layer 6) proves every *traced* input is load-bearing,
+  but not that a value which *should* be traced is. The manifest names that
+  reference set so the gap is explicit and falsifiable — the structural side of the
+  v1/Frozen-Heart omission class.
+- Limit: **structural, not statistical.** Whether a value is hashed is binary and
+  this checks it; the reference set is external (paper-derived, human-reviewed),
+  cross-checked on stage inventory/order by the Lean oracle (Layer 9) but not on
+  per-input content. This is explicitly *not* a soundness mechanization (Tier 3).
+- State: implemented (low-priority hardening over Layers 6 and 9).
+
 #### 7. Filecoin-shape static check
 
 - What: `scripts/check-snarkpack-filecoin-shape.sh` clones pinned Bellperson
