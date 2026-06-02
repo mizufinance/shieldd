@@ -763,6 +763,28 @@ where
     D: Digest,
     S: ChallengeTraceSink,
 {
+    // Defense-in-depth: the combined GIPA must carry exactly log2(n) folding
+    // rounds for the padded proof count n. A wrong count already fails the base
+    // equation in verify_tipp_mipp, but reject it explicitly here for a clear
+    // failure mode and to bound attacker-controlled work before folding.
+    let num_proofs = public_inputs.len();
+    if num_proofs == 0 || !num_proofs.is_power_of_two() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "padded proof count must be a nonzero power of two",
+        )));
+    }
+    let expected_rounds = num_proofs.trailing_zeros() as usize;
+    let actual_rounds = proof.tipp_mipp_proof.gipa_proof.r_commitment_steps.len();
+    if actual_rounds != expected_rounds {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            format!(
+                "combined GIPA round count {actual_rounds} does not match log2(proof count) {expected_rounds}"
+            ),
+        )));
+    }
+
     #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
     let (tipp_mipp_result, ppe_result) = rayon::join(
         || verify_tipp_mipp_buffered_profiled::<P, D>(context, ip_verifier_srs, proof, r),

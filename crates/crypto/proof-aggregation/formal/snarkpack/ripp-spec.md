@@ -166,6 +166,19 @@ Required checks:
   - `tipp-mipp.kzg`
 - prover and verifier traces are byte-identical for accepted proofs
 
+Stage labels (the `b"…"` bytes hashed at each challenge) are a distinct
+namespace from the Spec Row Index ids above. Crosswalk (stage label ↔ spec-row
+id), written as bullets so the index parser does not read them as rows:
+
+- stage `tipp-mipp.x0` ↔ row `tipp-mipp.x0-seed`
+- stage `tipp-mipp.gipa.round` ↔ row `tipp-mipp.gipa`
+- stage `tipp-mipp.final-bridge` ↔ row `tipp-mipp.final-bridge`
+- stage `tipp-mipp.kzg` ↔ row `tipp-mipp.kzg-challenge`
+
+`verification.md` (TXN-M2 per-stage hashed-input table) references stage labels;
+`filecoin-divergence-findings.md` references spec-row ids. Both are correct for
+their context — use this crosswalk to move between them.
+
 Filecoin v2 bug-class checklist:
 
 - no omitted first-round transcript hash

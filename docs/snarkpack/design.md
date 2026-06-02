@@ -145,10 +145,3 @@ protocol — never silently change transcript bytes. The rule:
 The full search-to-land process and candidate backlog is the contributor
 playbook in the crate:
 [optimization-playbook.md](../../crates/crypto/proof-aggregation/optimization-playbook.md).
-
-### Adopted: combined TIPP/MIPP proof shape
-Penumbra now follows the SnarkPack paper/Bellperson v2 proof shape for the
-aggregate AB/C argument: one proof object, one shared GIPA challenge stream,
-paper-style `x0` seed, final bridge, and one KZG challenge. **Why:** this matches
-the soundness theorem's combined argument instead of relying on a local split
-TIPA/SSM obligation.
