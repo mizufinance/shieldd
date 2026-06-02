@@ -59,7 +59,7 @@ canonical framing and byte-to-object binding.
 | `fs.context-constructor` | Penumbra adaptation; Filecoin v2 transcript context bug class | `penumbra-byte` | F* challenge-context row; invariant guard against alternate constructors |
 | `fs.challenge-preimage` | Penumbra adaptation; Filecoin v2 ordered transcript-input bug class | `penumbra-byte` | F* challenge-preimage row; golden layout test |
 | `fs.stage-labels` | Penumbra adaptation; Filecoin v2 domain-separation discipline | `penumbra-byte` | prover/verifier trace parity and stage-label review |
-| `fs.filecoin-bug-class` | Bellperson `v0.21.0` Filecoin v2 transcript hardening, with rust-fil-proofs `filecoin-proofs-v11.1.0` as production-consumer evidence | `filecoin-shape` | manual review against pinned Filecoin v2 reference |
+| `fs.filecoin-bug-class` | Bellperson `v0.21.0` Filecoin v2 transcript hardening, with rust-fil-proofs `filecoin-proofs-v11.1.0` as production-consumer evidence | `filecoin-shape` | `filecoin-divergence-findings.md` review against pinned Filecoin v1/v2 sources |
 | `gipa.input-relation` | paper algebra and local implementation | `abstract-trace` | equation review and unit/property evidence |
 | `gipa.round-folding` | paper algebra and local implementation | `abstract-trace` | equation review and prover/verifier trace evidence |
 | `gipa.challenge-dependency` | Penumbra challenge helper and Filecoin v2 transcript-input discipline | `penumbra-byte` | trace parity over exact Penumbra challenge bytes |
