@@ -30,6 +30,19 @@ func transferSaltConstant(label string) *big.Int {
 	return primitives.LittleEndianBytesToBigInt(sum[:])
 }
 
+func complianceStreamCipherDomain() *big.Int {
+	sum := blake2b.Sum512([]byte("penumbra.compliance.poseidon_stream"))
+	return primitives.LittleEndianBytesToBigInt(sum[:])
+}
+
+func complianceStreamBlock(api frontend.API, seed frontend.Variable, counter int) (frontend.Variable, error) {
+	return primitives.Poseidon377Hash2(
+		api,
+		complianceStreamCipherDomain(),
+		[2]frontend.Variable{seed, counter},
+	)
+}
+
 func DeriveTransferSalt(
 	api frontend.API,
 	transferNonceRoot frontend.Variable,
@@ -79,19 +92,19 @@ func VerifyPoseidonEncryptionTransferDetection(
 	}
 
 	detectionPlaintext := api.Add(assetID, api.Mul(isFlagged, flagBitFq()))
-	keystream0, err := primitives.Poseidon377Hash2(api, seedDetection, [2]frontend.Variable{0, seedDetection})
+	keystream0, err := complianceStreamBlock(api, seedDetection, 0)
 	if err != nil {
 		return err
 	}
-	keystream1, err := primitives.Poseidon377Hash2(api, seedDetection, [2]frontend.Variable{1, seedDetection})
+	keystream1, err := complianceStreamBlock(api, seedDetection, 1)
 	if err != nil {
 		return err
 	}
-	keystream2, err := primitives.Poseidon377Hash2(api, seedDetection, [2]frontend.Variable{2, seedDetection})
+	keystream2, err := complianceStreamBlock(api, seedDetection, 2)
 	if err != nil {
 		return err
 	}
-	keystream3, err := primitives.Poseidon377Hash2(api, seedDetection, [2]frontend.Variable{3, seedDetection})
+	keystream3, err := complianceStreamBlock(api, seedDetection, 3)
 	if err != nil {
 		return err
 	}
@@ -118,7 +131,7 @@ func VerifyPoseidonEncryptionTransferAmount(
 		return err
 	}
 	seed := api.Sub(c2, sharedSecretFq)
-	keystream, err := primitives.Poseidon377Hash2(api, seed, [2]frontend.Variable{0, seed})
+	keystream, err := complianceStreamBlock(api, seed, 0)
 	if err != nil {
 		return err
 	}
@@ -144,7 +157,7 @@ func VerifyPoseidonEncryptionTransferAddress(
 	seed := api.Sub(c2, sharedSecretFq)
 	plaintexts := AddressPlaintextFQsFromCompressed(api, diversifiedGeneratorFq, transmissionKeyFq)
 	for i, plain := range plaintexts {
-		keystream, err := primitives.Poseidon377Hash2(api, seed, [2]frontend.Variable{i, seed})
+		keystream, err := complianceStreamBlock(api, seed, i)
 		if err != nil {
 			return err
 		}

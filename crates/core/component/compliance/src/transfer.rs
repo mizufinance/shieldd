@@ -6,7 +6,8 @@ use shieldd_sdk_keys::Address;
 
 use crate::{
     crypto::{
-        compute_dleq_native, compute_metadata_hash, encrypt_tier_bytes, ISSUER_DETECTION_DOMAIN,
+        compliance_stream_block, compute_dleq_native, compute_metadata_hash, encrypt_tier_bytes,
+        ISSUER_DETECTION_DOMAIN,
     },
     issuer_keys::detection_plaintext_fq,
     structs::{DleqProof, C2_BYTES, DETECTION_TAG_BYTES, EPK_BYTES, FQ_BYTES},
@@ -331,13 +332,10 @@ pub fn encrypt_transfer(
         (ss_detection.vartime_compress_to_field(), sender_core_epk_fq),
     );
     let detection_0 = detection_plaintext_fq(&receiver_value.asset_id, is_flagged)
-        + poseidon377::hash_2(&seed_detection, (Fq::from(0u64), seed_detection));
-    let detection_1 =
-        detection_salt + poseidon377::hash_2(&seed_detection, (Fq::from(1u64), seed_detection));
-    let detection_2 = Fq::from(sender_slot_id)
-        + poseidon377::hash_2(&seed_detection, (Fq::from(2u64), seed_detection));
-    let detection_3 = Fq::from(receiver_slot_id)
-        + poseidon377::hash_2(&seed_detection, (Fq::from(3u64), seed_detection));
+        + compliance_stream_block(seed_detection, 0);
+    let detection_1 = detection_salt + compliance_stream_block(seed_detection, 1);
+    let detection_2 = Fq::from(sender_slot_id) + compliance_stream_block(seed_detection, 2);
+    let detection_3 = Fq::from(receiver_slot_id) + compliance_stream_block(seed_detection, 3);
     let mut detection_tag = [0u8; DETECTION_TAG_BYTES];
     detection_tag[..32].copy_from_slice(&detection_0.to_bytes());
     detection_tag[32..64].copy_from_slice(&detection_1.to_bytes());

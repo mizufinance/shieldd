@@ -591,12 +591,14 @@ async fn try_receiver_match(
     }
     let output_core_seed =
         pre_package_seed(ctx, &ring_id, output_core, timings, object_cache).await?;
+    output_core.validate_c2_seed(ct.output_core_c2, output_core_seed)?;
     let started = Instant::now();
     let amount = decrypt_amount_with_seed(output_core_seed, &ct.encrypted_output_core)?;
     timings.amount_decrypt_ms += started.elapsed().as_millis();
 
     let output_ext_seed =
         pre_package_seed(ctx, &ring_id, output_ext, timings, object_cache).await?;
+    output_ext.validate_c2_seed(ct.output_ext_c2, output_ext_seed)?;
     let started = Instant::now();
     let sender = match decrypt_address_with_seed(output_ext_seed, &ct.encrypted_output_ext) {
         Ok(sender) => {
@@ -638,12 +640,14 @@ async fn try_sender_match(
     }
     let sender_core_seed =
         pre_package_seed(ctx, &ring_id, sender_core, timings, object_cache).await?;
+    sender_core.validate_c2_seed(ct.sender_core_c2, sender_core_seed)?;
     let started = Instant::now();
     let amount = decrypt_amount_with_seed(sender_core_seed, &ct.encrypted_sender_core)?;
     timings.amount_decrypt_ms += started.elapsed().as_millis();
 
     let sender_ext_seed =
         pre_package_seed(ctx, &ring_id, sender_ext, timings, object_cache).await?;
+    sender_ext.validate_c2_seed(ct.sender_ext_c2, sender_ext_seed)?;
     let started = Instant::now();
     let receiver = match decrypt_address_with_seed(sender_ext_seed, &ct.encrypted_sender_ext) {
         Ok(receiver) => {

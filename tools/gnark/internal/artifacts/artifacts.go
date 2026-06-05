@@ -1,6 +1,7 @@
 package artifacts
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -125,6 +126,83 @@ func FillCircuitMetadataShape(metadata *CircuitMetadataJSON, ccs constraint.Cons
 	metadata.NbConstraints = ccs.GetNbConstraints()
 	metadata.NbPublic = ccs.GetNbPublicVariables()
 	metadata.NbSecret = ccs.GetNbSecretVariables()
+}
+
+func WriteConstraintSystem(path string, ccs constraint.ConstraintSystem) error {
+	if ccs == nil {
+		return fmt.Errorf("missing compiled constraint system")
+	}
+	r1cs, ok := ccs.(constraint.R1CS[constraint.U64])
+	if !ok {
+		return fmt.Errorf("constraint system is not a U64 R1CS")
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("create constraint system file: %w", err)
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+
+	if _, err := fmt.Fprintf(writer, "(prime-number %s)\n", ccs.Field().String()); err != nil {
+		return err
+	}
+
+	nbPublic := ccs.GetNbPublicVariables()
+	nbSecret := ccs.GetNbSecretVariables()
+	for wire := nbPublic; wire < nbPublic+nbSecret; wire++ {
+		if _, err := fmt.Fprintf(writer, "(in %d)\n", wire); err != nil {
+			return err
+		}
+	}
+	for wire := 1; wire < nbPublic; wire++ {
+		if _, err := fmt.Fprintf(writer, "(out %d)\n", wire); err != nil {
+			return err
+		}
+	}
+
+	for _, r1c := range r1cs.GetR1Cs() {
+		if _, err := fmt.Fprint(writer, "(constraint "); err != nil {
+			return err
+		}
+		if err := writePicusLinearExpression(writer, ccs, r1c.L); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprint(writer, " "); err != nil {
+			return err
+		}
+		if err := writePicusLinearExpression(writer, ccs, r1c.R); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprint(writer, " "); err != nil {
+			return err
+		}
+		if err := writePicusLinearExpression(writer, ccs, r1c.O); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(writer, ")"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writePicusLinearExpression(writer *bufio.Writer, resolver constraint.Resolver, expr constraint.LinearExpression) error {
+	if _, err := fmt.Fprint(writer, "["); err != nil {
+		return err
+	}
+	for _, term := range expr {
+		wireID := term.WireID()
+		if term.IsConstant() {
+			wireID = 0
+		}
+		if _, err := fmt.Fprintf(writer, "(%s %d) ", resolver.CoeffToString(term.CoeffID()), wireID); err != nil {
+			return err
+		}
+	}
+	_, err := fmt.Fprint(writer, "]")
+	return err
 }
 
 func LoadCircuitMetadata(dir string) (*CircuitMetadataJSON, error) {

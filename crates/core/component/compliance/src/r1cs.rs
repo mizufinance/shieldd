@@ -839,6 +839,16 @@ fn verify_path(
     Ok(())
 }
 
+fn compliance_stream_block_r1cs(
+    cs: ConstraintSystemRef<Fq>,
+    seed: &FqVar,
+    counter: u64,
+) -> Result<FqVar, SynthesisError> {
+    let domain = FqVar::new_constant(cs.clone(), *crate::crypto::COMPLIANCE_STREAM_CIPHER_DOMAIN)?;
+    let counter = FqVar::new_constant(cs.clone(), Fq::from(counter))?;
+    poseidon377::r1cs::hash_2(cs, &domain, (seed.clone(), counter))
+}
+
 /// Verify 4-tier Poseidon stream cipher encryption with hybrid KEM/DEM.
 ///
 /// Ciphertext layout: [detection:4] [core:3] [ext:3] [sext:3] = 13 Fqs.
@@ -898,40 +908,20 @@ fn verify_poseidon_encryption(
     let flag_contribution = FqVar::conditionally_select(is_flagged, &flag_bit_var, &FqVar::zero())?;
     let detection_plaintext = &plaintext_var.detection_plaintext() + &flag_contribution;
 
-    let counter_0 = FqVar::new_constant(cs.clone(), Fq::from(0u64))?;
-    let keystream_0 = poseidon377::r1cs::hash_2(
-        cs.clone(),
-        &seed_detection,
-        (counter_0, seed_detection.clone()),
-    )?;
+    let keystream_0 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 0)?;
     let computed_detection_0 = &detection_plaintext + &keystream_0;
     computed_detection_0.conditional_enforce_equal(&compliance_ciphertext[0], is_regulated)?;
 
     // Slot 1: salt
-    let counter_1 = FqVar::new_constant(cs.clone(), Fq::from(1u64))?;
-    let keystream_1 = poseidon377::r1cs::hash_2(
-        cs.clone(),
-        &seed_detection,
-        (counter_1, seed_detection.clone()),
-    )?;
+    let keystream_1 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 1)?;
     let computed_detection_1 = salt + &keystream_1;
     computed_detection_1.conditional_enforce_equal(&compliance_ciphertext[1], is_regulated)?;
 
-    let counter_2 = FqVar::new_constant(cs.clone(), Fq::from(2u64))?;
-    let keystream_2 = poseidon377::r1cs::hash_2(
-        cs.clone(),
-        &seed_detection,
-        (counter_2, seed_detection.clone()),
-    )?;
+    let keystream_2 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 2)?;
     let computed_detection_2 = sender_slot_id + &keystream_2;
     computed_detection_2.conditional_enforce_equal(&compliance_ciphertext[2], is_regulated)?;
 
-    let counter_3 = FqVar::new_constant(cs.clone(), Fq::from(3u64))?;
-    let keystream_3 = poseidon377::r1cs::hash_2(
-        cs.clone(),
-        &seed_detection,
-        (counter_3, seed_detection.clone()),
-    )?;
+    let keystream_3 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 3)?;
     let computed_detection_3 = receiver_slot_id + &keystream_3;
     computed_detection_3.conditional_enforce_equal(&compliance_ciphertext[3], is_regulated)?;
 
@@ -941,9 +931,7 @@ fn verify_poseidon_encryption(
 
     let core_plaintexts = plaintext_var.core_plaintext_fqs()?;
     for (i, plain_var) in core_plaintexts.iter().enumerate() {
-        let counter = FqVar::new_constant(cs.clone(), Fq::from(i as u64))?;
-        let keystream =
-            poseidon377::r1cs::hash_2(cs.clone(), &seed_core, (counter, seed_core.clone()))?;
+        let keystream = compliance_stream_block_r1cs(cs.clone(), &seed_core, i as u64)?;
         let computed_cipher = plain_var + &keystream;
         computed_cipher.conditional_enforce_equal(&compliance_ciphertext[4 + i], is_regulated)?;
     }
@@ -954,9 +942,7 @@ fn verify_poseidon_encryption(
 
     let extension_plaintexts = plaintext_var.extension_plaintext_fqs()?;
     for (i, plain_var) in extension_plaintexts.iter().enumerate() {
-        let counter = FqVar::new_constant(cs.clone(), Fq::from(i as u64))?;
-        let keystream =
-            poseidon377::r1cs::hash_2(cs.clone(), &seed_ext, (counter, seed_ext.clone()))?;
+        let keystream = compliance_stream_block_r1cs(cs.clone(), &seed_ext, i as u64)?;
         let computed_cipher = plain_var + &keystream;
         computed_cipher.conditional_enforce_equal(&compliance_ciphertext[7 + i], is_regulated)?;
     }
@@ -966,9 +952,7 @@ fn verify_poseidon_encryption(
     let seed_sext = c2_sext - &ss_sext_fq;
 
     for (i, plain_var) in core_plaintexts.iter().enumerate() {
-        let counter = FqVar::new_constant(cs.clone(), Fq::from(i as u64))?;
-        let keystream =
-            poseidon377::r1cs::hash_2(cs.clone(), &seed_sext, (counter, seed_sext.clone()))?;
+        let keystream = compliance_stream_block_r1cs(cs.clone(), &seed_sext, i as u64)?;
         let computed_cipher = plain_var + &keystream;
         computed_cipher.conditional_enforce_equal(&compliance_ciphertext[10 + i], is_regulated)?;
     }
@@ -1248,40 +1232,20 @@ fn verify_poseidon_encryption_spend(
     let flag_contribution = FqVar::conditionally_select(is_flagged, &flag_bit_var, &FqVar::zero())?;
     let detection_plaintext = &plaintext_var.detection_plaintext() + &flag_contribution;
 
-    let counter_0 = FqVar::new_constant(cs.clone(), Fq::from(0u64))?;
-    let keystream_0 = poseidon377::r1cs::hash_2(
-        cs.clone(),
-        &seed_detection,
-        (counter_0, seed_detection.clone()),
-    )?;
+    let keystream_0 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 0)?;
     let computed_detection_0 = &detection_plaintext + &keystream_0;
     computed_detection_0.conditional_enforce_equal(&compliance_ciphertext[0], is_regulated)?;
 
     // Detection slot 1: salt
-    let counter_1 = FqVar::new_constant(cs.clone(), Fq::from(1u64))?;
-    let keystream_1 = poseidon377::r1cs::hash_2(
-        cs.clone(),
-        &seed_detection,
-        (counter_1, seed_detection.clone()),
-    )?;
+    let keystream_1 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 1)?;
     let computed_detection_1 = salt + &keystream_1;
     computed_detection_1.conditional_enforce_equal(&compliance_ciphertext[1], is_regulated)?;
 
-    let counter_2 = FqVar::new_constant(cs.clone(), Fq::from(2u64))?;
-    let keystream_2 = poseidon377::r1cs::hash_2(
-        cs.clone(),
-        &seed_detection,
-        (counter_2, seed_detection.clone()),
-    )?;
+    let keystream_2 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 2)?;
     let computed_detection_2 = FqVar::zero() + &keystream_2;
     computed_detection_2.conditional_enforce_equal(&compliance_ciphertext[2], is_regulated)?;
 
-    let counter_3 = FqVar::new_constant(cs.clone(), Fq::from(3u64))?;
-    let keystream_3 = poseidon377::r1cs::hash_2(
-        cs.clone(),
-        &seed_detection,
-        (counter_3, seed_detection.clone()),
-    )?;
+    let keystream_3 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 3)?;
     let computed_detection_3 = FqVar::zero() + &keystream_3;
     computed_detection_3.conditional_enforce_equal(&compliance_ciphertext[3], is_regulated)?;
 
@@ -1291,9 +1255,7 @@ fn verify_poseidon_encryption_spend(
 
     let core_plaintexts = plaintext_var.core_plaintext_fqs()?;
     for (i, plain_var) in core_plaintexts.iter().enumerate() {
-        let counter = FqVar::new_constant(cs.clone(), Fq::from(i as u64))?;
-        let keystream =
-            poseidon377::r1cs::hash_2(cs.clone(), &seed_core, (counter, seed_core.clone()))?;
+        let keystream = compliance_stream_block_r1cs(cs.clone(), &seed_core, i as u64)?;
         let computed_cipher = plain_var + &keystream;
         computed_cipher.conditional_enforce_equal(&compliance_ciphertext[4 + i], is_regulated)?;
     }

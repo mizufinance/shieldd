@@ -12,7 +12,6 @@
 //! epk = ephemeral public key, fq = field element (Fq), dk = detection key
 
 use anyhow::Context;
-use ark_ff::Zero;
 use decaf377::{Element, Fq, Fr};
 use once_cell::sync::Lazy;
 use shieldd_sdk_asset::asset;
@@ -52,6 +51,10 @@ pub static COMPLIANCE_STREAM_CIPHER_DOMAIN: Lazy<Fq> = Lazy::new(|| {
         blake2b_simd::blake2b(b"shieldd.compliance.poseidon_stream").as_bytes(),
     )
 });
+
+pub fn compliance_stream_block(seed: Fq, counter: u64) -> Fq {
+    poseidon377::hash_2(&COMPLIANCE_STREAM_CIPHER_DOMAIN, (seed, Fq::from(counter)))
+}
 
 fn derive_unregulated_sink_point(domain_sep: &[u8]) -> Element {
     let point_domain = Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(domain_sep).as_bytes());
@@ -236,8 +239,7 @@ pub fn encrypt_tier_bytes(plaintext: &[u8], seed: Fq) -> Vec<u8> {
         let mut buf = [0u8; 32];
         buf[0..chunk.len()].copy_from_slice(chunk);
         let plaintext_fq = Fq::from_le_bytes_mod_order(&buf);
-        let counter = Fq::from(i as u64);
-        let keystream = poseidon377::hash_2(&seed, (counter, seed));
+        let keystream = compliance_stream_block(seed, i as u64);
         let ciphertext_fq = plaintext_fq + keystream;
         encrypted.extend_from_slice(&ciphertext_fq.to_bytes());
     }
@@ -263,12 +265,12 @@ pub fn decrypt_detection_tier(
 
     // Decrypt slot 0: asset_id + flag
     let ct_fq = Fq::from_le_bytes_mod_order(&detection_ciphertext[..32]);
-    let keystream_0 = poseidon377::hash_2(&seed, (Fq::zero(), seed));
+    let keystream_0 = compliance_stream_block(seed, 0);
     let pt_fq = ct_fq - keystream_0;
 
     // Decrypt slot 1: salt
     let ct_salt = Fq::from_le_bytes_mod_order(&detection_ciphertext[32..64]);
-    let keystream_1 = poseidon377::hash_2(&seed, (Fq::from(1u64), seed));
+    let keystream_1 = compliance_stream_block(seed, 1);
     let salt = ct_salt - keystream_1;
 
     let slot_id_from_fq = |value: Fq, field: &str| -> anyhow::Result<u32> {
@@ -281,11 +283,11 @@ pub fn decrypt_detection_tier(
     };
 
     let ct_sender_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[64..96]);
-    let keystream_2 = poseidon377::hash_2(&seed, (Fq::from(2u64), seed));
+    let keystream_2 = compliance_stream_block(seed, 2);
     let sender_slot_id = slot_id_from_fq(ct_sender_slot - keystream_2, "sender_slot_id")?;
 
     let ct_receiver_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[96..128]);
-    let keystream_3 = poseidon377::hash_2(&seed, (Fq::from(3u64), seed));
+    let keystream_3 = compliance_stream_block(seed, 3);
     let receiver_slot_id = slot_id_from_fq(ct_receiver_slot - keystream_3, "receiver_slot_id")?;
 
     if pt_fq == expected_asset_id.0 {
@@ -329,7 +331,7 @@ pub fn decrypt(
         (ss_detection.vartime_compress_to_field(), epk_1_fq),
     );
 
-    let detection_keystream = poseidon377::hash_2(&seed_detection, (Fq::zero(), seed_detection));
+    let detection_keystream = compliance_stream_block(seed_detection, 0);
     let ct_fq = Fq::from_le_bytes_mod_order(&ciphertext.detection_tag[..32]);
     let pt_fq = ct_fq - detection_keystream;
 
@@ -399,8 +401,7 @@ pub fn decrypt_tier_bytes(encrypted: &[u8], seed: Fq, expected_plaintext_len: us
         let mut buf = [0u8; 32];
         buf[0..chunk.len()].copy_from_slice(chunk);
         let ciphertext_fq = Fq::from_le_bytes_mod_order(&buf);
-        let counter = Fq::from(i as u64);
-        let keystream = poseidon377::hash_2(&seed, (counter, seed));
+        let keystream = compliance_stream_block(seed, i as u64);
         let plaintext_fq = ciphertext_fq - keystream;
         let fq_bytes = plaintext_fq.to_bytes();
         let bytes_to_take = 31.min(expected_plaintext_len - plaintext_bytes.len());
@@ -412,6 +413,7 @@ pub fn decrypt_tier_bytes(encrypted: &[u8], seed: Fq, expected_plaintext_len: us
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_ff::Zero;
     use rand_core::OsRng;
 
     fn make_ring_keys(rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng)) -> (Fr, Element) {

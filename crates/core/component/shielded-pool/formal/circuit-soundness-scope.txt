@@ -1,0 +1,12 @@
+# ID|file:fixed-string-pattern
+NO-DOUBLE-SPEND|tools/gnark/internal/circuits/spend_auth_shared.go:func Nullifier
+BALANCE-CONSERVATION|tools/gnark/internal/circuits/transfer_circuit.go:computeTransferNetBalanceCommitment
+NOTE-OWNERSHIP-SPEND-AUTH|tools/gnark/internal/circuits/spend_auth_shared.go:func RandomizedVerificationKey
+OUTPUT-WELL-FORMEDNESS|tools/gnark/internal/circuits/shared_core.go:NoteCommitmentWithCompressedDivGen
+REGULATED-STATUS-SOUNDNESS|crates/core/component/compliance/src/r1cs.rs:verify_asset_registry_imt
+CIPHERTEXT-CORRECTNESS|tools/gnark/internal/compliance/transfer_encryption.go:VerifyPoseidonEncryptionTransferDetection
+STATEMENT-INTEGRITY|tools/gnark/internal/abi/statement_fields_test.go:TestRustGoStatementFieldDifferential
+ZK-FIND-GO-UNREGULATED-NONMEMBERSHIP|tools/gnark/internal/compliance/indexed_tree.go:func VerifyAssetRegistryIMT
+ZK-FIND-WITHDRAWAL-EFFECT-HASH-EXTERNAL|crates/core/component/shielded-pool/src/component/action_handler/shielded_ics20_withdrawal.rs:shielded_ics20_withdrawal_extract_public
+ZK-FIND-DUMMY-NULLIFIER-DOMAIN|crates/core/component/shielded-pool/src/note_reshape.rs:synthetic_dummy_nullifier
+ZK-FIND-RUST-GO-FIELD-CORRESPONDENCE|tools/gnark/internal/abi/statement_fields.go:ReconstructedTransferStatementFieldsFromWitnessV1

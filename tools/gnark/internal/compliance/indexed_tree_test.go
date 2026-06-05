@@ -71,6 +71,17 @@ func (c *quadPathCircuit) Define(api frontend.API) error {
 	return nil
 }
 
+type fieldLessThanCircuit struct {
+	Left     frontend.Variable
+	Right    frontend.Variable
+	Expected frontend.Variable `gnark:",public"`
+}
+
+func (c *fieldLessThanCircuit) Define(api frontend.API) error {
+	api.AssertIsEqual(FieldLessThan(api, c.Left, c.Right), c.Expected)
+	return nil
+}
+
 func syntheticIndexedLeafInputs(t *testing.T) IndexedLeafInputs {
 	t.Helper()
 
@@ -149,6 +160,41 @@ func TestQuadPathCircuitCompiles(t *testing.T) {
 	_, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &quadPathCircuit{})
 	if err != nil {
 		t.Fatalf("compile quad path circuit: %v", err)
+	}
+}
+
+func TestFieldLessThanCircuitMatchesFullFieldOrder(t *testing.T) {
+	modulus := primitives.ScalarField()
+	two128 := new(big.Int).Lsh(big.NewInt(1), 128)
+	two200 := new(big.Int).Lsh(big.NewInt(1), 200)
+	nearModulus := new(big.Int).Sub(modulus, big.NewInt(2))
+
+	cases := []struct {
+		name     string
+		left     *big.Int
+		right    *big.Int
+		expected int
+	}{
+		{name: "equal", left: big.NewInt(9), right: big.NewInt(9), expected: 0},
+		{name: "small less", left: big.NewInt(8), right: big.NewInt(9), expected: 1},
+		{name: "small greater", left: big.NewInt(10), right: big.NewInt(9), expected: 0},
+		{name: "above amount bit range less", left: two128, right: new(big.Int).Add(two128, big.NewInt(1)), expected: 1},
+		{name: "above amount bit range greater", left: two200, right: two128, expected: 0},
+		{name: "near modulus greater", left: nearModulus, right: two200, expected: 0},
+		{name: "near modulus less than max", left: nearModulus, right: new(big.Int).Sub(modulus, big.NewInt(1)), expected: 1},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assignment := &fieldLessThanCircuit{
+				Left:     tc.left.String(),
+				Right:    tc.right.String(),
+				Expected: tc.expected,
+			}
+			if err := test.IsSolved(&fieldLessThanCircuit{}, assignment, ecc.BLS12_377.ScalarField()); err != nil {
+				t.Fatalf("field less-than circuit mismatch: %v", err)
+			}
+		})
 	}
 }
 

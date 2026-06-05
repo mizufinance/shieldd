@@ -245,15 +245,17 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		return transferSharedContext{}, err
 	}
 
-	assetLeafCommitment, err := IndexedLeafCommitment(api, shared.indexedLeaf)
-	if err != nil {
+	if err := VerifyAssetRegistryIMT(
+		api,
+		shared.sharedAssetID,
+		c.IsRegulated,
+		shared.indexedLeaf,
+		c.Asset.Path,
+		c.Asset.Position,
+		c.AssetAnchor,
+	); err != nil {
 		return transferSharedContext{}, err
 	}
-	assetRoot, err := VerifyQuadPath(api, assetLeafCommitment, c.Asset.Path, c.Asset.Position)
-	if err != nil {
-		return transferSharedContext{}, err
-	}
-	AssertEqualIf(api, assetRoot, c.AssetAnchor, c.IsRegulated)
 
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,

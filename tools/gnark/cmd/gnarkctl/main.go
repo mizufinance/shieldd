@@ -33,6 +33,8 @@ func main() {
 	switch os.Args[1] {
 	case "setup":
 		err = runSetup(os.Args[2:])
+	case "export-r1cs":
+		err = runExportR1CS(os.Args[2:])
 	case "prove":
 		err = runProve(os.Args[2:])
 	case "replay":
@@ -50,7 +52,31 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|prove|replay|verify-bench> [flags]")
+}
+
+func runExportR1CS(args []string) error {
+	fs := flag.NewFlagSet("export-r1cs", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
+	outPath := fs.String("out", "", "output .sr1cs path")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *outPath == "" {
+		return fmt.Errorf("--circuit and --out are required")
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	ccs, compileMS, err := compileCircuit(*circuit)
+	if err != nil {
+		return err
+	}
+	if err := artifacts.WriteConstraintSystem(*outPath, ccs); err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "wrote %s (compile %.2fms)\n", *outPath, compileMS)
+	return nil
 }
 
 func runSetup(args []string) error {
@@ -93,6 +119,9 @@ func runSetup(args []string) error {
 	vkJSONPath := filepath.Join(*outDir, "verifying_key.json")
 	if err := artifacts.WriteJSON(vkJSONPath, artifacts.EncodeVerifyingKeyJSON(vk)); err != nil {
 		return fmt.Errorf("write verifying key json: %w", err)
+	}
+	if err := artifacts.WriteConstraintSystem(filepath.Join(*outDir, *circuit+".sr1cs"), ccs); err != nil {
+		return fmt.Errorf("write constraint system: %w", err)
 	}
 
 	pkSize, err := artifacts.FileSize(pkPath)
@@ -447,6 +476,15 @@ func runVerifyBench(args []string) error {
 func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error) {
 	compileStart := time.Now()
 	switch circuit {
+	case "gadget-poseidon2":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash2Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-nullifier":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NullifierGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-imt-gap":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ImtGapGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {
 			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewTransferCircuit())

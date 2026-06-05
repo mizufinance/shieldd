@@ -1,0 +1,109 @@
+name: soundness-formal
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 9 * * *'
+  pull_request:
+    paths:
+      - '.github/workflows/soundness-formal.yml'
+      - 'docs/soundness/**'
+      - 'crates/core/component/compliance/formal/**'
+      - 'crates/core/component/compliance/src/crypto.rs'
+      - 'crates/core/component/compliance/src/decode_object.rs'
+      - 'crates/core/component/compliance/src/r1cs.rs'
+      - 'crates/core/component/shielded-pool/formal/**'
+      - 'crates/core/component/shielded-pool/src/public_input_hash.rs'
+      - 'tools/gnark/internal/circuits/**'
+      - 'tools/gnark/internal/compliance/**'
+      - 'tools/gnark/internal/abi/**'
+      - 'scripts/check-soundness-invariants.sh'
+      - 'scripts/compliance-symbolic.sh'
+      - 'scripts/shielded-pool-formal.sh'
+      - 'scripts/circuit-constraint-check.sh'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Cheap, deterministic gate: kind-aware ledger statuses, scope bindings,
+  # and stamped-artifact references. Runs on every triggering PR.
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Check soundness invariants
+        run: bash scripts/check-soundness-invariants.sh
+
+  # Heavy provers (Tamarin symbolic + hax/F* injectivity). Schedule/dispatch
+  # only; re-derives the stamped artifacts and fails on stamp drift.
+  provers:
+    if: github.event_name != 'pull_request'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: soundness-formal
+
+      - name: Install pinned Z3
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -L \
+            -o /tmp/z3-4.14.1.zip \
+            https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
+          unzip -q /tmp/z3-4.14.1.zip -d "$HOME/.local/opt"
+          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned F*
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -L \
+            -o /tmp/fstar-v2026.05.24.tar.gz \
+            https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
+          tar -xzf /tmp/fstar-v2026.05.24.tar.gz -C "$HOME/.local/opt"
+          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned hax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$HOME/.local/opt/hax-v0.3.7"
+          nix profile install \
+            "$HOME/.local/opt/hax-v0.3.7#hax" \
+            "$HOME/.local/opt/hax-v0.3.7#hax-engine"
+          echo "HAX_PROOF_LIBS_HOME=$HOME/.local/opt/hax-v0.3.7/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
+
+      - name: Run compliance symbolic gate (Tamarin)
+        run: nix shell nixpkgs#tamarin-prover nixpkgs#maude --command bash scripts/compliance-symbolic.sh
+
+      - name: Run shielded-pool F* injectivity gate
+        run: bash scripts/shielded-pool-formal.sh
+
+      - name: Install Picus (Veridise under-constraint checker)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/Veridise/Picus "$HOME/.local/opt/picus"
+          ( cd "$HOME/.local/opt/picus" && raco pkg install --auto --batch || true )
+          echo "PICUS_BIN=$HOME/.local/opt/picus/run-picus" >> "$GITHUB_ENV"
+
+      - name: Run gadget-scope R1CS under-constraint check (Picus)
+        run: nix shell nixpkgs#z3 --command bash scripts/circuit-constraint-check.sh
+
+      - name: Check soundness invariants (post-prover, stamp drift)
+        run: nix develop --command bash scripts/check-soundness-invariants.sh

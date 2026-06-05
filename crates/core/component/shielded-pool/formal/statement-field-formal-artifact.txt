@@ -1,0 +1,11 @@
+tool: fstar
+hax: v0.3.7
+fstar: v2026.05.24
+z3: 4.14.1
+full_encoder_extraction_sha256: 0c0bf8a0f981471d85a8a3e828193ee9c13cab1aec051c60a31305b6c1c0f621
+proof_source_sha256: 02d8d26c7f37337e13753141d361a4a2436bd0714271a9dcbbed53e7e0f157d8
+LEMMA EXTRACTED_FIELD_COUNT_CONSTANTS verified
+LEMMA TRANSFER_FIELD_COUNT_INJECTIVE verified
+LEMMA SINGLE_OUTPUT_NOTE_RESHAPE_FIELD_COUNT_INJECTIVE verified
+LEMMA SHIELDED_ICS20_FIELD_COUNT_INJECTIVE verified
+NOTE full Rust encoder injectivity still requires field-encoding and Decaf conversion lemmas

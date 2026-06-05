@@ -269,3 +269,49 @@ func VerifyQuadPath(
 	}
 	return current, nil
 }
+
+func VerifyAssetRegistryIMT(
+	api frontend.API,
+	noteAssetID frontend.Variable,
+	isRegulated frontend.Variable,
+	indexedLeaf IndexedLeafInputs,
+	assetPath [ComplianceQuadTreeDepth][3]frontend.Variable,
+	assetPosition frontend.Variable,
+	assetAnchor frontend.Variable,
+) error {
+	api.AssertIsBoolean(isRegulated)
+
+	assetLeafCommitment, err := IndexedLeafCommitment(api, indexedLeaf)
+	if err != nil {
+		return err
+	}
+	assetRoot, err := VerifyQuadPath(api, assetLeafCommitment, assetPath, assetPosition)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(assetRoot, assetAnchor)
+
+	validProof := AssetMembershipValid(api, noteAssetID, isRegulated, indexedLeaf.Value, indexedLeaf.NextValue)
+	api.AssertIsEqual(validProof, 1)
+	return nil
+}
+
+// AssetMembershipValid returns 1 iff the regulated branch sees an exact IMT
+// match (noteAssetID == leafValue) or the unregulated branch sees a
+// non-membership gap (leafValue < noteAssetID < nextValue). This is the
+// soundness-critical comparator the Go circuit must share with Rust's
+// `is_regulated.select(is_exact_match, is_in_gap)`; it is isolated here so a
+// constraint-system checker can analyze it apart from the 16-deep Merkle path.
+func AssetMembershipValid(
+	api frontend.API,
+	noteAssetID frontend.Variable,
+	isRegulated frontend.Variable,
+	leafValue frontend.Variable,
+	nextValue frontend.Variable,
+) frontend.Variable {
+	isExactMatch := api.IsZero(api.Sub(noteAssetID, leafValue))
+	gtLow := FieldLessThan(api, leafValue, noteAssetID)
+	ltHigh := FieldLessThan(api, noteAssetID, nextValue)
+	isInGap := api.Mul(gtLow, ltHigh)
+	return api.Select(isRegulated, isExactMatch, isInGap)
+}

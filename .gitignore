@@ -99,6 +99,7 @@ crates/bench/benches/compliance/tps/{runs,microscope,admission,incremental}/
 crates/crypto/proof-aggregation/proofs/
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/
 crates/crypto/proof-aggregation/formal/snarkpack/.generated/
+crates/core/component/shielded-pool/formal/.generated/
 
 # POC tool caches
 poc/tools/gnark-spend-prototype/.gocache/
