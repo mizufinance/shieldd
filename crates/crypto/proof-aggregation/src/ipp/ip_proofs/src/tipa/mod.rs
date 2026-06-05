@@ -4,10 +4,10 @@ use ark_poly::polynomial::{univariate::DensePolynomial, DenseUVPolynomial};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 #[cfg(test)]
 use ark_std::cfg_iter;
-#[cfg(test)]
-use core::convert::TryInto;
 use ark_std::rand::Rng;
 use ark_std::{end_timer, start_timer};
+#[cfg(test)]
+use core::convert::TryInto;
 use digest::Digest;
 use itertools::Itertools;
 use std::{marker::PhantomData, ops::MulAssign};
