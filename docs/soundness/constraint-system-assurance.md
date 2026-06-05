@@ -61,9 +61,55 @@ C3 ACL2/Axe gadget theorem reaches `proved`, scoped to that gadget.
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |
 | Circomspect / Coda | Not applicable unless Circom circuits are introduced. | Penumbra production circuits are gnark; Circom source analyzers do not run on this codebase. |
 
-## Artifact Prerequisites
+## C3 — ACL2/Axe gadget theorems (the only route to `proved`)
 
-Deterministic `.sr1cs` export (`gnarkctl export-r1cs`) and the SHA-256 stamped
-constraint report exist (C1/C2). The remaining prerequisite for C3 is per-gadget
-public/private/output variable *labels* carried into the export so an ACL2/Axe
-spec can name wires.
+C3 proves a gadget's R1CS *implies* an ACL2 spec predicate (Axe lifts the R1CS,
+the Axe Prover discharges `R1CS ⟹ spec`; PFCS gives compositional scaling). Only
+this reaches `proved`, scoped to the gadget — it never promotes a whole-circuit
+property row. Heavy, nightly CI only. Toolchain pinned in
+[toolchain.toml](../../crates/core/component/shielded-pool/formal/toolchain.toml)
+`[constraints]`. Full plan: `.claude/plans/soundness-phase-c3-acl2-axe-gadget-theorems.md`.
+
+**C3.0 (landed) — toolchain pin + R1CS bridge.** The field is pinned to
+BLS12-377 Fr and asserted equal to gnark's `ScalarField()` (a mismatch makes
+proofs vacuous). `gnarkctl export-r1cs --circuit gadget-* --format axe-json`
+emits a named-wire R1CS: the prime, a wire manifest (`ONE`, public, secret, and
+internal wires — so the spec can name `Out`/`In0`/…), and constraints as sparse
+`(A,B,C)` prime-field combinations. Bridge fidelity is enforced by
+`TestAxeExportFidelity*`
+([gadgets_axe_fidelity_test.go](../../tools/gnark/internal/circuits/gadgets_axe_fidelity_test.go)):
+it solves each gadget in gnark, then checks `A(W)·B(W) == C(W)` for every
+exported constraint on gnark's own witness `W`, plus wire-count and
+constraint-count agreement. A silent converter bug (wrong coeff, wrong wire,
+dropped constraint) fails the test rather than proving the wrong system.
+
+**C3.1 (landed) — the first certified gadget theorem.**
+[gadget-bool-select](../../tools/gnark/internal/circuits/gadgets_constraint.go)
+isolates the routing primitive `Valid = Select(Cond, IfTrue, IfFalse)` for
+boolean `Cond` — the algebraic core of Rust's
+`is_regulated.select(is_exact_match, is_in_gap)`. Its R1CS (3 constraints, 6
+wires) is hand-modelled in
+[acl2/bool-select-proof.lisp](../../crates/core/component/shielded-pool/formal/acl2/bool-select-proof.lisp)
+and the theorem `BOOL-SELECT-R1CS-IMPLIES-SPEC` (`R1CS ⟹ select-spec`) is
+certified in ACL2 (parallel `acl2p` image + `arithmetic-5`). The model is tied to
+the *actual compiled gadget* wire-for-wire by `TestBoolSelectAcl2ModelParity`
+([gadgets_acl2_parity_test.go](../../tools/gnark/internal/circuits/gadgets_acl2_parity_test.go)),
+so the proof cannot drift onto a different circuit.
+[scripts/circuit-gadget-proof-check.sh](../../scripts/circuit-gadget-proof-check.sh)
+re-runs parity → certify → stamp in the nightly `provers` job, and a stamped
+[bool-select-proof-artifact.txt](../../crates/core/component/shielded-pool/formal/acl2/bool-select-proof-artifact.txt)
+gates the `proved` row. Scope honesty: booleanity of `Cond` (constraint c0) is a
+hypothesis, not yet derived from `Cond*(1-Cond)=0` (needs the prime-fields
+`primep` book).
+
+The gadget-scoped ledger
+[circuit-gadget-proofs.md](../../crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md)
+carries the `proved` rows. It is the only ledger whose rows may hold `proved`,
+and a `proved` gadget row never promotes a whole-circuit property row —
+`REGULATED-STATUS-SOUNDNESS` *cites* `gadget-bool-select` but stays `refined`.
+
+**C3.2–C3.4 (future) — full Poseidon spec + proof, nullifier composition, c0
+booleanity closure via prime-fields.** `gadget-poseidon2`/`gadget-nullifier`
+remain Picus under-constraint *evidence* until an Axe lift of the full
+permutation (276/311 constraints) lands; that needs the Kestrel Axe books and is
+multi-week, CI-bound.

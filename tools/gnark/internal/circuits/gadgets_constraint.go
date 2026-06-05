@@ -72,3 +72,23 @@ func (c *ImtGapGadget) Define(api frontend.API) error {
 	api.AssertIsEqual(valid, 1)
 	return nil
 }
+
+// BoolSelectGadget isolates the soundness decision primitive
+// `Valid = Select(Cond, IfTrue, IfFalse)` with `Cond` boolean — the exact shape
+// of Rust's `is_regulated.select(is_exact_match, is_in_gap)` that the Phase-0
+// fix mirrors, stripped of the field comparators. It is small enough (a handful
+// of constraints) that its exported R1CS is hand-modelled in ACL2 and the
+// `R1CS ⟹ spec` theorem is discharged in base ACL2 (no Axe books) — the
+// end-to-end certified anchor for the C3 methodology.
+type BoolSelectGadget struct {
+	Cond    frontend.Variable `gnark:",public"`
+	IfTrue  frontend.Variable `gnark:",public"`
+	IfFalse frontend.Variable `gnark:",public"`
+	Valid   frontend.Variable
+}
+
+func (c *BoolSelectGadget) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.Cond)
+	api.AssertIsEqual(c.Valid, api.Select(c.Cond, c.IfTrue, c.IfFalse))
+	return nil
+}

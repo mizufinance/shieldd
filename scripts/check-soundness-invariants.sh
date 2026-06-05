@@ -54,6 +54,11 @@ status_allowed_for_kind() {
       case "$status" in
         assumed) return 0 ;;
       esac ;;
+    gadget)
+      # Gadget-scoped R1CS proofs: only `proved` carries a certified theorem.
+      case "$status" in
+        planned|decomposed|evidence|proved) return 0 ;;
+      esac ;;
   esac
   return 1
 }
@@ -176,6 +181,7 @@ required_files=(
   "$CIRCUIT_FORMAL/external-check-map.md"
   "$CIRCUIT_FORMAL/circuit-soundness-findings.md"
   "$CIRCUIT_FORMAL/circuit-soundness-scope.txt"
+  "$CIRCUIT_FORMAL/circuit-gadget-proofs.md"
   "$HANDOFF"
   docs/soundness/index.md
   docs/soundness/compliance-ciphertext.md
@@ -236,6 +242,31 @@ while IFS= read -r row; do
       ;;
   esac
 done < <(table_rows "$HANDOFF")
+# Gadget-scoped R1CS proof ledger. Status is the last column; a `proved` gadget
+# row must cite a checked-in, stamped proof artifact whose sidecar hash matches.
+# This is the only ledger whose rows may hold `proved`.
+GADGET_LEDGER="$CIRCUIT_FORMAL/circuit-gadget-proofs.md"
+check_duplicates "$GADGET_LEDGER" "$(row_ids "$GADGET_LEDGER")"
+while IFS= read -r row; do
+  [[ -z "$row" ]] && continue
+  label="$(markdown_field "$row" 2 | strip_ticks)"
+  status="$(printf '%s\n' "$row" | awk -F'|' '{f=$(NF-1); gsub(/^[[:space:]]+|[[:space:]]+$/,"",f); print f}' | strip_ticks)"
+  status_allowed_for_kind gadget "$status" \
+    || fail "$GADGET_LEDGER gadget $label has invalid status $status"
+  if [[ "$status" == "proved" ]]; then
+    artifact_cell="$(printf '%s\n' "$row" | awk -F'|' '{print $5}')"
+    art="$(printf '%s\n' "$artifact_cell" | sed -n 's/.*(\([^)]*\)).*/\1/p')"
+    [[ -n "$art" ]] || fail "$GADGET_LEDGER proved gadget $label cites no artifact path"
+    art="$CIRCUIT_FORMAL/$art"
+    [[ -f "$art" ]] || fail "$GADGET_LEDGER gadget $label cites missing artifact $art"
+    [[ -f "$art.sha256" ]] || fail "$GADGET_LEDGER gadget $label artifact $art lacks .sha256 stamp"
+    want="$(cat "$art.sha256")"
+    have="$(shasum -a 256 "$art" | awk '{print $1}')"
+    [[ "$want" == "$have" ]] \
+      || fail "$GADGET_LEDGER gadget $label artifact stamp mismatch (want $want got $have)"
+  fi
+done < <(table_rows "$GADGET_LEDGER")
+
 required_handoff_ids="$(printf '%s\n%s\n%s\n' "$property_ids" "$finding_ids" "$assumption_ids" | sed '/^$/d' | sort)"
 
 while IFS= read -r id; do

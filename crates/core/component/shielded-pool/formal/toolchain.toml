@@ -9,3 +9,27 @@ opam_switch = "hax-0.3.7"
 [policy]
 primary_backend = "fstar"
 go_correspondence_status = "differential-conformance-testing-only"
+
+# Phase C3 — gadget-scope constraint-system proofs (ACL2/Axe). Heavy, nightly
+# CI only. Proves a decomposed gadget's R1CS implies an ACL2 spec predicate;
+# does not promote whole-circuit property rows. See
+# docs/soundness/constraint-system-assurance.md and the C3 plan.
+[constraints]
+acl2 = "8.7"
+sbcl = "2.4.0"
+# The landed C3.0 anchor (bool-select) certifies against the distribution
+# community books shipped with ACL2 8.7 (arithmetic-5/top), via the parallel
+# `acl2p` image. The Axe / prime-fields / r1cs / pfcs Kestrel books are only
+# needed for the C3.1+ Poseidon/nullifier semantic lifts (not yet landed).
+acl2_books = "distribution-8.7"
+acl2_image = "acl2p"
+# R1CS prime field. MUST equal gnark's primitives.ScalarField() (BLS12-377 Fr);
+# a mismatch makes every gadget proof vacuous. Asserted by the export bridge.
+field = "bls12-377-fr"
+field_modulus = "8444461749428370424248824938781546531375899335154063827935233455917409239041"
+
+[constraints.policy]
+scope = "decomposed-gadget-only"
+whole_circuit_status = "out-of-reach-by-design"
+picus_status = "under-constraint-evidence-only"
+axe_status = "semantic-proof-gadget-scoped-proved"

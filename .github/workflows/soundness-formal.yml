@@ -105,5 +105,12 @@ jobs:
       - name: Run gadget-scope R1CS under-constraint check (Picus)
         run: nix shell nixpkgs#z3 --command bash scripts/circuit-constraint-check.sh
 
+      # C3 gadget theorems — the only route to `proved`. Certifies the ACL2
+      # `R1CS => spec` proof, verifies the gnark parity tie, and checks the
+      # stamped artifact. nixpkgs#acl2 ships its community books (arithmetic-5)
+      # certified under its own image, so the serial `acl2` certifies cleanly.
+      - name: Run C3 gadget theorem certification (ACL2)
+        run: nix shell nixpkgs#acl2 --command bash scripts/circuit-gadget-proof-check.sh
+
       - name: Check soundness invariants (post-prover, stamp drift)
         run: nix develop --command bash scripts/check-soundness-invariants.sh

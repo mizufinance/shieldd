@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	groth16bls "github.com/consensys/gnark/backend/groth16/bls12-377"
 	"github.com/consensys/gnark/constraint"
+	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/frontend/schema"
 )
 
 type G1PointJSON struct {
@@ -203,6 +206,147 @@ func writePicusLinearExpression(writer *bufio.Writer, resolver constraint.Resolv
 	}
 	_, err := fmt.Fprint(writer, "]")
 	return err
+}
+
+// AxeR1CSJSON is the Axe/ACL2-ingestible R1CS: the prime, an explicit wire
+// manifest (so an ACL2 spec can name the Out/In wires), and the constraints as
+// sparse (A,B,C) prime-field linear combinations. Unlike the Picus `.sr1cs`
+// sexpr this carries wire *names* derived from the gnark circuit schema, which
+// the gadget spec predicate references.
+type AxeR1CSJSON struct {
+	Prime       string              `json:"prime"`
+	NbWires     int                 `json:"nb_wires"`
+	Wires       []AxeWireJSON       `json:"wires"`
+	Constraints []AxeConstraintJSON `json:"constraints"`
+}
+
+type AxeWireJSON struct {
+	Index      int    `json:"index"`
+	Name       string `json:"name"`
+	Visibility string `json:"visibility"` // one | public | secret
+}
+
+type AxeTermJSON struct {
+	Coeff string `json:"coeff"`
+	Wire  int    `json:"wire"`
+}
+
+type AxeConstraintJSON struct {
+	A []AxeTermJSON `json:"a"`
+	B []AxeTermJSON `json:"b"`
+	C []AxeTermJSON `json:"c"`
+}
+
+// WriteAxeJSON exports an Axe-ingestible R1CS for a single gadget circuit. The
+// circuit instance is required: its schema supplies ordered public/secret leaf
+// names, which gnark assigns to wire indices public-first (after wire 0 = ONE).
+func WriteAxeJSON(path string, ccs constraint.ConstraintSystem, circuit frontend.Circuit) error {
+	out, err := BuildAxeR1CS(ccs, circuit)
+	if err != nil {
+		return err
+	}
+	return WriteJSON(path, out)
+}
+
+// BuildAxeR1CS constructs the named-wire R1CS for a gadget circuit. Exposed so a
+// fidelity test can evaluate the exported constraints on gnark's own solved
+// witness vector and confirm the bridge is faithful.
+func BuildAxeR1CS(ccs constraint.ConstraintSystem, circuit frontend.Circuit) (*AxeR1CSJSON, error) {
+	if ccs == nil {
+		return nil, fmt.Errorf("missing compiled constraint system")
+	}
+	r1cs, ok := ccs.(constraint.R1CS[constraint.U64])
+	if !ok {
+		return nil, fmt.Errorf("constraint system is not a U64 R1CS")
+	}
+
+	wires, err := axeWireManifest(ccs, circuit)
+	if err != nil {
+		return nil, err
+	}
+
+	out := AxeR1CSJSON{
+		Prime:   ccs.Field().String(),
+		NbWires: len(wires),
+		Wires:   wires,
+	}
+	for _, r1c := range r1cs.GetR1Cs() {
+		out.Constraints = append(out.Constraints, AxeConstraintJSON{
+			A: axeTerms(ccs, r1c.L),
+			B: axeTerms(ccs, r1c.R),
+			C: axeTerms(ccs, r1c.O),
+		})
+	}
+	return &out, nil
+}
+
+func axeTerms(resolver constraint.Resolver, expr constraint.LinearExpression) []AxeTermJSON {
+	terms := make([]AxeTermJSON, 0, len(expr))
+	for _, term := range expr {
+		wireID := term.WireID()
+		if term.IsConstant() {
+			wireID = 0
+		}
+		terms = append(terms, AxeTermJSON{Coeff: resolver.CoeffToString(term.CoeffID()), Wire: wireID})
+	}
+	return terms
+}
+
+// axeWireManifest maps wire indices to schema leaf names. gnark layout: wire 0
+// is the constant ONE; public user leaves follow (indices 1..nbPublic-1), then
+// secret leaves. schema.Walk visits public leaves before secret, matching that
+// ordering.
+func axeWireManifest(ccs constraint.ConstraintSystem, circuit frontend.Circuit) ([]AxeWireJSON, error) {
+	var public, secret []string
+	tVariable := reflect.TypeOf((*frontend.Variable)(nil)).Elem()
+	_, err := schema.Walk(ccs.Field(), circuit, tVariable, func(leaf schema.LeafInfo, _ reflect.Value) error {
+		switch leaf.Visibility {
+		case schema.Public:
+			public = append(public, leaf.FullName())
+		case schema.Secret:
+			secret = append(secret, leaf.FullName())
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walk circuit schema: %w", err)
+	}
+
+	nbPublic := ccs.GetNbPublicVariables()
+	nbSecret := ccs.GetNbSecretVariables()
+	// nbPublic counts the ONE wire; user public leaves are nbPublic-1.
+	if len(public) != nbPublic-1 {
+		return nil, fmt.Errorf("schema public leaves %d != ccs public user wires %d", len(public), nbPublic-1)
+	}
+	if len(secret) != nbSecret {
+		return nil, fmt.Errorf("schema secret leaves %d != ccs secret wires %d", len(secret), nbSecret)
+	}
+
+	// Internal wires are anonymous intermediates; named only by index. They
+	// complete the R1CS variable space (gnark layout: ONE, public, secret,
+	// internal) that Axe existentially quantifies over.
+	nbInternal := internalVariableCount(ccs)
+
+	wires := make([]AxeWireJSON, 0, nbPublic+nbSecret+nbInternal)
+	wires = append(wires, AxeWireJSON{Index: 0, Name: "ONE", Visibility: "one"})
+	for i, name := range public {
+		wires = append(wires, AxeWireJSON{Index: 1 + i, Name: name, Visibility: "public"})
+	}
+	for i, name := range secret {
+		wires = append(wires, AxeWireJSON{Index: nbPublic + i, Name: name, Visibility: "secret"})
+	}
+	for i := 0; i < nbInternal; i++ {
+		idx := nbPublic + nbSecret + i
+		wires = append(wires, AxeWireJSON{Index: idx, Name: fmt.Sprintf("internal_%d", idx), Visibility: "internal"})
+	}
+	return wires, nil
+}
+
+func internalVariableCount(ccs constraint.ConstraintSystem) int {
+	if s, ok := ccs.(interface{ GetNbInternalVariables() int }); ok {
+		return s.GetNbInternalVariables()
+	}
+	return 0
 }
 
 func LoadCircuitMetadata(dir string) (*CircuitMetadataJSON, error) {

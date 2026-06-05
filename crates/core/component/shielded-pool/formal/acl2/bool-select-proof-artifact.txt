@@ -1,0 +1,14 @@
+tool: acl2
+acl2: Version 8.7
+image: acl2p (ACL2(p) parallel)
+books: arithmetic-5/top (distribution community books)
+field_modulus: 8444461749428370424248824938781546531375899335154063827935233455917409239041
+proof_source_sha256: c630688a09b03919e494c6fc8badedf87f3d0f8f13857b26d6a39d3124508a9a
+proof_cert_sha256: 1116dffe55107f2dc4d2169d46b9e52f91e0d45049f640eded7676bcc6e74981
+arithmetic5_cert_sha256: fbdf8c40ce3743a44b7525eeb73375e404cc5c891f89e8993b07b3386951dca3
+parity_test: tools/gnark/internal/circuits/gadgets_acl2_parity_test.go::TestBoolSelectAcl2ModelParity
+THEOREM BOOL-SELECT-R1CS-IMPLIES-SPEC certified
+SCOPE gadget gadget-bool-select only (Valid = Select(Cond, IfTrue, IfFalse), Cond boolean)
+NOTE booleanity of Cond from constraint c0 is taken as a hypothesis; deriving it
+NOTE from Cond*(1-Cond)=0 needs the prime-fields primep book (CI-gated extension)
+NOTE this theorem promotes no whole-circuit property row; it is gadget-scoped only

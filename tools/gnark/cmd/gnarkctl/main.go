@@ -57,8 +57,9 @@ func usage() {
 
 func runExportR1CS(args []string) error {
 	fs := flag.NewFlagSet("export-r1cs", flag.ContinueOnError)
-	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
-	outPath := fs.String("out", "", "output .sr1cs path")
+	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, shielded-ics20-withdrawalN, or gadget-* label")
+	outPath := fs.String("out", "", "output path")
+	format := fs.String("format", "picus", "picus (.sr1cs sexpr) or axe-json (named-wire R1CS for ACL2/Axe)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -72,11 +73,42 @@ func runExportR1CS(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := artifacts.WriteConstraintSystem(*outPath, ccs); err != nil {
-		return err
+	switch *format {
+	case "picus":
+		if err := artifacts.WriteConstraintSystem(*outPath, ccs); err != nil {
+			return err
+		}
+	case "axe-json":
+		instance, ok := gadgetCircuit(*circuit)
+		if !ok {
+			return fmt.Errorf("axe-json export is gadget-scope only; %q is not a gadget label", *circuit)
+		}
+		if err := artifacts.WriteAxeJSON(*outPath, ccs, instance); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown --format %q (want picus or axe-json)", *format)
 	}
 	fmt.Fprintf(os.Stderr, "wrote %s (compile %.2fms)\n", *outPath, compileMS)
 	return nil
+}
+
+// gadgetCircuit returns the gadget circuit instance for schema-based wire
+// naming (axe-json export). Family circuits are not gadget-scope and return
+// false.
+func gadgetCircuit(label string) (frontend.Circuit, bool) {
+	switch label {
+	case "gadget-poseidon2":
+		return &circuits.PoseidonHash2Gadget{}, true
+	case "gadget-nullifier":
+		return &circuits.NullifierGadget{}, true
+	case "gadget-imt-gap":
+		return &circuits.ImtGapGadget{}, true
+	case "gadget-bool-select":
+		return &circuits.BoolSelectGadget{}, true
+	default:
+		return nil, false
+	}
 }
 
 func runSetup(args []string) error {
@@ -484,6 +516,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-imt-gap":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ImtGapGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-bool-select":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.BoolSelectGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {
