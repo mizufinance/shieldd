@@ -17,6 +17,12 @@ pub const DEFAULT_MAX_PADDED_PROOF_COUNT: u32 = 32_768;
 pub const DEV_SRS_VERSION: u32 = 1;
 pub const DEV_SRS_CURVE_ID: &str = "bls12-377";
 pub const DEV_SRS_BACKEND_ID: &str = "ripp-snarkpack";
+const DEFAULT_DEV_SRS_ID_PREFIX: &[u8] =
+    b"penumbra.proof_aggregation.srs.v1:backend=ripp-snarkpack:curve=bls12-377:max_padded_count=32768";
+pub const DEFAULT_DEV_SRS_ID: [u8; 32] = [
+    0x59, 0x95, 0xc6, 0x3d, 0xcc, 0x9f, 0xa5, 0xff, 0x52, 0x73, 0xff, 0x4a, 0x43, 0x10, 0x44, 0x0c,
+    0xbf, 0x24, 0xf2, 0x68, 0x2a, 0x05, 0x93, 0x94, 0x36, 0x1f, 0x1b, 0x9f, 0xc4, 0x4c, 0x61, 0xb1,
+];
 const DEV_SRS_SEED: [u8; 32] = [0x50; 32];
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -43,7 +49,7 @@ impl Default for DevSrs {
 impl DevSrs {
     pub fn ensure_supported_count(&self, item_count: usize) -> Result<()> {
         ensure!(
-            item_count <= self.max_padded_count as usize,
+            dev_srs_supports_count(self.max_padded_count, item_count),
             "proof count {} exceeds SRS max {}",
             item_count,
             self.max_padded_count
@@ -99,6 +105,10 @@ impl DevSrs {
     }
 }
 
+pub fn dev_srs_supports_count(max_padded_count: u32, item_count: usize) -> bool {
+    item_count <= max_padded_count as usize
+}
+
 struct GeneratedDevSrs {
     inner_product_srs: InnerProductSrs<Bls12_377>,
     verifier_srs: InnerProductVerifierSrs<Bls12_377>,
@@ -106,7 +116,6 @@ struct GeneratedDevSrs {
 }
 
 static DEFAULT_DEV_SRS: OnceLock<GeneratedDevSrs> = OnceLock::new();
-static DEFAULT_DEV_SRS_ID: OnceLock<[u8; 32]> = OnceLock::new();
 
 fn generate_default_dev_srs() -> GeneratedDevSrs {
     let started = Instant::now();
@@ -127,7 +136,7 @@ fn generate_default_dev_srs() -> GeneratedDevSrs {
 
 pub fn srs_id(srs: &DevSrs) -> [u8; 32] {
     if srs.max_padded_count == DEFAULT_MAX_PADDED_PROOF_COUNT {
-        return *DEFAULT_DEV_SRS_ID.get_or_init(|| compute_srs_id(srs));
+        return DEFAULT_DEV_SRS_ID;
     }
 
     compute_srs_id(srs)
@@ -135,20 +144,28 @@ pub fn srs_id(srs: &DevSrs) -> [u8; 32] {
 
 fn compute_srs_id(srs: &DevSrs) -> [u8; 32] {
     let mut hasher = Sha256::new();
-    hasher.update(
-        format!(
-            "penumbra.proof_aggregation.srs.v{DEV_SRS_VERSION}:backend={DEV_SRS_BACKEND_ID}:curve={DEV_SRS_CURVE_ID}:max_padded_count={}",
-            srs.max_padded_count
-        )
-        .as_bytes(),
-    );
     if srs.max_padded_count == DEFAULT_MAX_PADDED_PROOF_COUNT {
         let serialized = srs
             .serialized_inner_product_srs_compressed()
             .expect("serializing cached dev SRS must succeed");
-        hasher.update(&serialized);
+        hasher.update(default_dev_srs_id_preimage(&serialized));
+    } else {
+        hasher.update(
+            format!(
+                "penumbra.proof_aggregation.srs.v{DEV_SRS_VERSION}:backend={DEV_SRS_BACKEND_ID}:curve={DEV_SRS_CURVE_ID}:max_padded_count={}",
+                srs.max_padded_count
+            )
+            .as_bytes(),
+        );
     }
     hasher.finalize().into()
+}
+
+pub fn default_dev_srs_id_preimage(serialized_srs: &[u8]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(DEFAULT_DEV_SRS_ID_PREFIX.len() + serialized_srs.len());
+    bytes.extend_from_slice(DEFAULT_DEV_SRS_ID_PREFIX);
+    bytes.extend_from_slice(serialized_srs);
+    bytes
 }
 
 pub fn srs_report(srs: &DevSrs) -> Result<DevSrsReport> {
@@ -193,7 +210,11 @@ impl DevSrs {
 
 #[cfg(test)]
 mod tests {
-    use super::{srs_id, DevSrs};
+    use super::{compute_srs_id, srs_id, DevSrs, DEFAULT_DEV_SRS_ID};
+    use super::{
+        DEFAULT_DEV_SRS_ID_PREFIX, DEFAULT_MAX_PADDED_PROOF_COUNT, DEV_SRS_BACKEND_ID,
+        DEV_SRS_CURVE_ID, DEV_SRS_VERSION,
+    };
 
     #[test]
     fn srs_id_is_stable() {
@@ -211,5 +232,20 @@ mod tests {
             max_padded_count: 16_384,
         });
         assert_ne!(a, b);
+    }
+
+    #[test]
+    fn default_srs_id_prefix_matches_declared_fields() {
+        let expected = format!(
+            "penumbra.proof_aggregation.srs.v{DEV_SRS_VERSION}:backend={DEV_SRS_BACKEND_ID}:curve={DEV_SRS_CURVE_ID}:max_padded_count={DEFAULT_MAX_PADDED_PROOF_COUNT}"
+        );
+
+        assert_eq!(DEFAULT_DEV_SRS_ID_PREFIX, expected.as_bytes());
+    }
+
+    #[test]
+    #[ignore = "serializes the full default SRS; run only when SRS generation changes"]
+    fn checked_in_default_srs_id_matches_generated_srs() {
+        assert_eq!(DEFAULT_DEV_SRS_ID, compute_srs_id(&DevSrs::default()));
     }
 }
