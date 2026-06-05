@@ -1,38 +1,42 @@
 # SnarkPack Verification
 
 How we check that the design in [design.md](design.md) is faithfully and securely
-implemented. This merges the former `verification-plan.md`, `security.md`, and
-`transcript-completeness-manifest.md` into one doc.
+implemented.
 
 ## How to read this
 
 Verification is layered defense: no single check proves the system; each catches
-a different bug class. The checks are organized by **what they verify** and **at
-what level**, not by the order they were built:
+a different bug class. The doc is organized in three categories, and each
+category is laid out the same way: **what must hold**, then **the tools that
+verify it**.
 
-|              | **Model** (is the spec/claim correct?) | **Implementation** (does the code match the spec?) |
-|--------------|----------------------------------------|----------------------------------------------------|
-| **Algebra**    | the RIPP/GIPA/TIPA/KZG equations + folding schedule | our code computes that algebra |
-| **Transcript** | what must be Fiat-Shamir-bound, in what order | our bytes bind exactly that |
+- **Algebra** — the RIPP/GIPA/TIPA/KZG equations + folding schedule. Soundness is
+  *assumed* (paper + Filecoin); the tools verify our code refines it.
+- **Transcript** — what must be Fiat-Shamir-bound, and in what order. The "must
+  hold" set comes from the paper, not the code; the tools verify our bytes bind
+  exactly that.
+- **Cross-cutting** — gates that protect the whole stack (DoS, assumption
+  ledger, optimization byte-lock).
 
-Plus a set of **cross-cutting** gates that protect the whole stack.
+Each check keeps a stable ID (`ALG-M*` / `TXN-M*` for the "what must hold"
+references, `ALG-I*` / `TXN-I*` for the tools, `X*` for cross-cutting).
 
-Each check has a stable ID (`ALG-M*`, `ALG-I*`, `TXN-M*`, `TXN-I*`, `X*`). The
-"was" note maps it to the old layer numbers other commits may cite. Every entry
-keeps **What / Why / State**.
-
-**Standing assumption (Scope Lock, 2026-06-01):** SnarkPack/RIPP/Groth16
-algebraic soundness is assumed from the paper + Filecoin; end-to-end formal
-verification is out of scope. See [Standing assumptions](#standing-assumptions).
+**Standing assumption:** SnarkPack/RIPP/Groth16 algebraic soundness is assumed
+from the paper + Filecoin; end-to-end formal verification is out of scope. See
+[Standing assumptions](#standing-assumptions).
 
 ---
 
-## Algebra — model
+## Algebra
 
-What algebra we *claim* to compute. Soundness of the algebra itself is assumed;
-these artifacts pin down which algorithm our code must refine.
+### What must hold
 
-### ALG-M1 — Local algorithm spec (`ripp-spec.md`)
+The RIPP/GIPA/TIPA/KZG equations and folding schedule. Soundness of the algebra
+itself is *assumed* (paper + Filecoin, see [Standing
+assumptions](#standing-assumptions)); these references pin down which algorithm
+our code must refine, and the tools below verify it does.
+
+#### ALG-M1 — Local algorithm spec (`ripp-spec.md`)
 - **What:** the Penumbra-local, row-indexed spec of GIPA/TIPA/SSM and the Groth16
   adapter, checked against Filecoin v2 transcript bug classes.
 - **Why:** the reference every implementation check and the trace-schema policy
@@ -41,7 +45,7 @@ these artifacts pin down which algorithm our code must refine.
   Spec Row Index.
 - **Fixture:** [ripp-spec.md](../../crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md).
 
-### ALG-M2 — Refinement map (`ripp-refinement.md`)
+#### ALG-M2 — Refinement map (`ripp-refinement.md`)
 - **What:** per-symbol audit mapping every scoped RIPP/GIPA/TIPA Rust symbol to a
   spec row, classified by deviation class with file:line evidence; bijective with
   `ripp-refinement-scope.txt`.
@@ -50,16 +54,14 @@ these artifacts pin down which algorithm our code must refine.
 - **State:** every scoped symbol `refined` with evidence; no `open` rows.
 - **Fixture:** [ripp-refinement.md](../../crates/crypto/proof-aggregation/formal/snarkpack/ripp-refinement.md).
 
----
+### Tools that verify the code matches
 
-## Algebra — implementation
+The hard problem here is the **shared-lineage common-mode bug**: most behavioral
+checks run arkworks-descended code on both sides, so a bug in the equations
+themselves passes them all. Only the independent oracles (ALG-I2, ALG-I4) can
+falsify that class.
 
-That our **code** computes the ALG-M algebra. The hard problem here is the
-**shared-lineage common-mode bug**: most behavioral checks run arkworks-descended
-code on both sides, so a bug in the equations themselves passes them all. Only
-the independent oracles (ALG-I2, ALG-I4) can falsify that class.
-
-### ALG-I1 — Differential oracle agreement *(was Layer 3)*
+#### ALG-I1 — Differential oracle agreement
 - **What:** the aggregate's accept/reject must agree with per-proof Groth16 verify
   and with legacy batch verify across all parity families and counts
   (`snarkpack_matches_single_and_batch_groth16_oracles`,
@@ -69,7 +71,7 @@ the independent oracles (ALG-I2, ALG-I4) can falsify that class.
 - **State:** implemented. *Limit:* both sides share the arkworks lineage — a
   shared algebraic bug passes both (that gap is ALG-I4's job).
 
-### ALG-I2 — Independent reference path *(was Layer 2)*
+#### ALG-I2 — Independent reference path
 - **What:** a dev-only, non-published crate `proof-aggregation-reference`
   re-implements the slow prover/verifier from scratch using only public APIs; a
   gate forbids importing production `src/ipp`, `ark-ip-proofs`, or
@@ -79,7 +81,7 @@ the independent oracles (ALG-I2, ALG-I4) can falsify that class.
   a same-code test would miss. The Rust-level independent oracle.
 - **State:** implemented; feeds ALG-I1, ALG-I3, TXN-I2, TXN-I3.
 
-### ALG-I3 — Trace instrumentation + equivalence *(was Layer 4)*
+#### ALG-I3 — Trace instrumentation + equivalence
 - **What:** production and reference emit structured `TraceEvent`s through the
   dependency-free `proof-aggregation-trace-schema` crate; its policy table must
   match the ALG-M1 Spec Row Index, and instrumentation must not re-decide levels
@@ -89,7 +91,7 @@ the independent oracles (ALG-I2, ALG-I4) can falsify that class.
   baselines and mutation matrices hang off.
 - **State:** implemented.
 
-### ALG-I4 — Lean differential conformance *(was Layer 9)*
+#### ALG-I4 — Lean differential conformance
 - **What:** an independent, hand-built Lean model of the transcript + folding
   discipline (FS label sequence, challenge derivation, GIPA/TIPA fold order,
   padding), derived from `ripp-spec.md` and the paper — **not** transliterated
@@ -103,17 +105,19 @@ the independent oracles (ALG-I2, ALG-I4) can falsify that class.
   `proof-aggregation-lean-conformance`. Always-on smoke covers round depths 0..=5;
   `lean_oracle_matches_all_shapes_to_max` (release-gated) covers every shape to the
   SRS max. Strengthens, does not remove, the standing algebraic-soundness
-  assumption. Run: `just snarkpack-lean-conformance`. *Not in the completion gate.*
+  assumption. Run: `just snarkpack-lean-conformance`.
 
 ---
 
-## Transcript — model
+## Transcript
+
+### What must hold
 
 What the Fiat-Shamir transcript *must* bind, and in what order. The reference set
 comes from the paper's security proof, not from the Rust (deriving it from the
 code would be circular). This is the explicit oracle TXN-I2/TXN-I3 check against.
 
-### TXN-M1 — Filecoin v2 discipline + adaptation register *(was Layer 7 source)*
+#### TXN-M1 — Filecoin v2 discipline + adaptation register
 - **What:** the audited Filecoin Bellperson v2 transcript discipline — bind every
   input, fixed order, domain-separated — borrowed as a *principle* (not bytes;
   different curve and stack). Every intentional Filecoin→Penumbra difference is
@@ -124,7 +128,7 @@ code would be circular). This is the explicit oracle TXN-I2/TXN-I3 check against
   [filecoin-divergence-findings.md](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md).
 - **Fixture:** [adaptation-register.md](../../crates/crypto/proof-aggregation/formal/snarkpack/adaptation-register.md).
 
-### TXN-M2 — Transcript completeness reference set
+#### TXN-M2 — Transcript completeness reference set
 The per-stage set of inputs that **must** be hashed before each challenge. The
 implementation's hashed set is a code fact (checked by TXN-I3); whether that set
 is *sufficient* is a review judgement recorded here.
@@ -137,37 +141,79 @@ The 32-byte context is `SHA256` over the statement digest — it binds the
 the proof commitments / inner products / randomizer; those are bound (or not) by
 the stage `messages`.
 
-Stages on the Groth16 path and the 2026-06-02 reviewer ruling:
+Stages on the Groth16 path:
 
-| Stage | Bound inputs (in order) | Ruling |
+| Stage | Bound inputs (in order) | Why this set is sufficient |
 |---|---|---|
-| `aggregate.randomizer` | `com_a`, `com_b`, `com_c` `[GT]` | **Accept** — exactly the grind-sensitive set; `ip_ab`/`Z_C` don't exist yet |
-| `tipp-mipp.x0` | `r[Fr]`, `com_a[GT]`, `com_b[GT]`, `com_c[GT]`, `ip_ab[GT]`, `agg_c[G1]` | **Accept/adopted** — paper `x0 = Hash(r, hcom, Z_AB, Z_C)` binding, with `hcom` represented by the three AFGHO commitments already bound into `r` |
-| `tipp-mipp.gipa.round` | `prior_challenge[Fr]`, `L.ab.{com_a,com_b,com_t}`, `L.c.{com_a,com_t}`, `R.ab.{…}`, `R.c.{…}` | **Accept/adopted** — one shared challenge folds the AB pairing relation and C multiexponentiation relation |
-| `tipp-mipp.final-bridge` | `last_gipa_challenge[Fr]`, `final_ck.{v,w}`, `final_messages.{A,B,C}` | **Accept/adopted** — Bellperson-v2-style `gipa-extra-link` before KZG |
-| `tipp-mipp.kzg` | `final_bridge[Fr]`, `final_ck.{v,w}` | **Accept/adopted** — one KZG challenge opens shared `v` once and `w` once |
+| `aggregate.randomizer` | `com_a`, `com_b`, `com_c` `[GT]` | exactly the grind-sensitive set; `ip_ab`/`Z_C` don't exist yet |
+| `tipp-mipp.x0` | `r[Fr]`, `com_a[GT]`, `com_b[GT]`, `com_c[GT]`, `ip_ab[GT]`, `agg_c[G1]` | paper `x0 = Hash(r, hcom, Z_AB, Z_C)` binding, with `hcom` represented by the three AFGHO commitments already bound into `r` |
+| `tipp-mipp.gipa.round` | `prior_challenge[Fr]`, `L.ab.{com_a,com_b,com_t}`, `L.c.{com_a,com_t}`, `R.ab.{…}`, `R.c.{…}` | one shared challenge folds the AB pairing relation and C multiexponentiation relation |
+| `tipp-mipp.final-bridge` | `last_gipa_challenge[Fr]`, `final_ck.{v,w}`, `final_messages.{A,B,C}` | Bellperson-v2-style `gipa-extra-link` before KZG |
+| `tipp-mipp.kzg` | `final_bridge[Fr]`, `final_ck.{v,w}` | one KZG challenge opens shared `v` once and `w` once |
 
-Closed 2026-06-02: TXN-M2 now adopts the SnarkPack paper/Bellperson v2 combined
-TIPP/MIPP proof shape. The previous open divergence, where the GIPA recursion
-started from `Default` and the AB/C relations had independent transcripts, is
-removed. The reference oracle includes verifier mutants for omitting `x0`, for
-omitting the final bridge, and for failing the combined-round cross-binding; all
-must reject valid proofs.
+The reference set follows the SnarkPack paper / Bellperson v2 combined TIPP/MIPP
+proof shape: a single GIPA recursion seeded by `x0`, with the AB pairing relation
+and the C multiexponentiation relation sharing one transcript. The reference
+oracle includes verifier mutants for omitting `x0`, for omitting the final
+bridge, and for failing the combined-round cross-binding; all must reject valid
+proofs.
 
 Library-generic labels can still exist for non-aggregation callers, but they are
 not part of the Penumbra aggregate transcript reference set. The coverage
 assertion fails if the Groth16 aggregation path routes through a generic or split
 label instead of the `tipp-mipp.*` stages above.
 
----
+#### TXN-M3 — Statement binding & padding soundness
+The aggregate statement is the root of trust the transcript hangs off. Two
+soundness claims must hold about *what it commits to*, independent of the byte
+mechanics that TXN-I1 proves.
 
-## Transcript — implementation
+**Padding soundness (incl. the one-real-proof case).** A verifying aggregate
+proves "all `padded_count` slots verify under the family VK." The statement
+binds `real_count` into the digest, and the padded slots beyond `real_count` are
+forced — *before* verification — to be exact copies of the last real slot
+(repeat-final), with `padded_count` a power of two and `real_count ≤ padded_count`
+([`statement.rs:415-557`](../../crates/crypto/proof-aggregation/src/statement.rs)).
+Therefore:
+- A padded slot cannot smuggle an invalid proof: it is equality-checked against a
+  real slot, so it contributes no new relation, only a duplicated valid one.
+- An invalid real proof cannot hide: the real slots are a subset of the verified
+  `padded_count` set.
+- The **one-real-proof** aggregate (`real_count = 1`, padded up to a power of two
+  with copies of that one proof) is sound by the same argument — it is just
+  "verify one proof." This is why Penumbra safely permits it where Filecoin's
+  `< 2` rejection is a production *policy*, not a missing security fix.
 
-That our **bytes** bind exactly the TXN-M reference set, injectively and stably.
+**Verifying-key allowlisting.** The verifier never trusts a VK carried in the
+bundle. The consensus boundary maps a closed `ProofFamilyId` enum to a compiled-in
+`&'static PreparedVerifyingKey`
+([`app/mod.rs:156-164`](../../crates/core/app/src/app/mod.rs)), and preflight
+checks `statement.vk_digest() == digest(canonical_pvk)` before any backend work
+([`preflight.rs:160-161`](../../crates/crypto/proof-aggregation/src/preflight.rs)).
+The inner numeric `family_id` carried in `Consolidate`/`Split`/`ShieldedIcs20Withdrawal`
+bodies is attacker-controlled, and the registry lookups it feeds (`spec()`,
+`proof_verification_key()`) **panic** on an unknown id. That panic is unreachable
+because the wire→domain conversion validates the id against the registry
+(`proto.family_id.try_into()?`) before the body is constructed; an unknown id is
+rejected at deserialization with a graceful error, so a malicious proposer cannot
+reach the panic (a consensus-halt) or substitute an attacker VK.
+- **Why:** statement binding is the assumption every transcript proof rests on; if
+  padding could smuggle a proof or the VK weren't pinned, no amount of transcript
+  injectivity would save soundness.
+- **State:** padding divergence rejected by `statement_rejects_noncanonical_repeat_final_padding`,
+  one-real-proof accepted by `statement_accepts_single_real_proof`
+  (`proof-aggregation`); unknown `family_id` rejected at the wire boundary by
+  `unknown_family_id_is_rejected_at_wire_boundary` per family (`shielded-pool`).
+  Padding canonicality and family-route totality are additionally *proved* in F\*
+  (TXN-I1).
+
+### Tools that verify our bytes do exactly that
+
+Our **bytes** must bind exactly the reference set above, injectively and stably.
 We own these bytes outright, so they carry the heaviest evidence — including the
 only checks that mechanically *prove* (not test) over the shipping bytes.
 
-### TXN-I1 — Boundary formal verification (hax → F*) *(was Layer 1)*
+#### TXN-I1 — Boundary formal verification (hax → F*)
 - **What:** extracts the executed Rust at the implementation boundary (statement
   encoder, SRS/VK digest preimage builders, wrapper framing/cap, count/arity
   validation, padding canonicality, preflight gate, family routing, FS challenge
@@ -184,7 +230,7 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
   [`formal/snarkpack/fstar/`](../../crates/crypto/proof-aggregation/formal/snarkpack/fstar);
   gated by `just snarkpack-formal`, content-stamped by the invariants gate.
 
-### TXN-I2 — Mutation matrices *(was Layer 6)*
+#### TXN-I2 — Mutation matrices
 - **What:** an **input-mutant** matrix mutates each binding field (VK digest,
   public-input value/order, padding, counts, SRS id) and asserts the verifier
   rejects; a **verifier-mutant** matrix builds verifiers that omit/reorder
@@ -197,7 +243,7 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
   Groth16 path traces the adopted `x0`, combined round, final bridge, and KZG
   challenge rows.
 
-### TXN-I3 — Transcript completeness structural assertion *(was Layer 6b)*
+#### TXN-I3 — Transcript completeness structural assertion
 - **What:** `transcript_completeness_*` tests in `proof-aggregation-reference`
   capture the real prover preimage per stage and assert its framed structure
   matches the TXN-M2 observed set, in order; a coverage assertion forces every
@@ -207,7 +253,7 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
 - **State:** implemented as `composed`. Checks the hashed set against the adopted
   TXN-M2 reference table, including the combined `x0` seed and final bridge.
 
-### TXN-I4 — Byte-equivalence golden baselines *(was Layer 5)*
+#### TXN-I4 — Byte-equivalence golden baselines
 - **What:** two committed, version-tagged golden artifacts — an aggregate-proof
   byte baseline (`aggregate_bytes_match_committed_baseline`) and a PenumbraByte
   transcript-trace baseline (`penumbra_byte_trace_matches_committed_baseline`).
@@ -219,7 +265,7 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
 - **State:** implemented. *Scope:* Penumbra-reference vs Penumbra-optimized only —
   no cross-curve byte equivalence to Filecoin (BLS12-381 vs BLS12-377).
 
-### TXN-I5 — Filecoin-shape static check *(was Layer 7)*
+#### TXN-I5 — Filecoin-shape static check
 - **What:** `scripts/check-snarkpack-filecoin-shape.sh` clones pinned Bellperson
   v0.21.0 and greps the prover/verifier/transcript source to confirm the labels,
   ordering, V2 branch, and domain/nonce binding we modeled on still exist.
@@ -228,7 +274,7 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
 - **State:** implemented, but review-grade and static — it never executes
   Bellperson or compares behavior. ALG-I4 is its executable upgrade.
 
-### TXN-I6 — Fuzzing *(was Layer 8)*
+#### TXN-I6 — Fuzzing
 - **What:** stable proptests (in-gate smoke) plus cargo-fuzz/libFuzzer targets in
   the non-published `proof-aggregation-fuzz` crate over every byte boundary —
   wrapper decode, preflight, aggregate-proof deserialize, sidecar decode, bundle
@@ -239,17 +285,17 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
 - **State:** minimized corpora committed for all targets; smoke seeds from a
   temporary copy. Baseline + triage in the crate's
   [fuzz-corpus-baseline.md](../../crates/crypto/proof-aggregation-fuzz/fuzz-corpus-baseline.md).
-  Closed finding: proposal validation once built default SRS material before
-  rejecting bad SRS ids; `aggregate_bundle_verification_rejects_bad_srs_id_before_srs_setup`
-  + checked-in `DEFAULT_DEV_SRS_ID` keep those rejects cheap.
+  Proposal validation rejects bad SRS ids before building default SRS material;
+  `aggregate_bundle_verification_rejects_bad_srs_id_before_srs_setup` + checked-in
+  `DEFAULT_DEV_SRS_ID` keep those rejects cheap.
 
 ---
 
 ## Cross-cutting
 
-Not tied to one quadrant; they protect the whole stack.
+Not tied to one domain; they protect the whole stack.
 
-### X1 — Performance / DoS-asymmetry gates *(was Layer 10/11)*
+### X1 — Performance / DoS-asymmetry gates
 - **What:** fixed CI latency thresholds (p50/p95/p99 under mixed proposals) plus
   valid-vs-adversarial-path benchmarks proving a malformed aggregate is rejected
   cheaply with bounded verifier work.
@@ -259,7 +305,7 @@ Not tied to one quadrant; they protect the whole stack.
   `snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds`. Thresholds in
   the bench crate's [bench-thresholds.md](../../crates/bench/bench-thresholds.md).
 
-### X2 — Assumption register (ledger governance) *(was Layer 11)*
+### X2 — Assumption register (ledger governance)
 - **What:** the typed evidence ledger in `formal-handoff.md`: every fact is
   `proved / refined / composed / assumed / open`; each `assumed` row needs a
   recorded postcondition + removal path; coverage is invariant-gated.
@@ -268,7 +314,7 @@ Not tied to one quadrant; they protect the whole stack.
 - **State:** 19 proved / 1 refined / 6 composed / 13 assumed / 0 open.
 - **Fixture:** [formal-handoff.md](../../crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md).
 
-### X3 — Optimization byte-lock *(was Layer 10)*
+### X3 — Optimization byte-lock
 - **What:** any optimization must preserve the Penumbra byte trace (TXN-I4
   baselines) or explicitly version the protocol — never silently change transcript
   bytes. Category 1/2/3 rule in [design.md](design.md#optimization-byte-lock).
@@ -280,7 +326,7 @@ Not tied to one quadrant; they protect the whole stack.
 
 ## Standing assumptions
 
-Locked 2026-06-01, deliberately **not** verified here:
+Deliberately **not** verified here:
 SnarkPack/RIPP/Groth16 algebraic soundness (assumed from the paper + Filecoin),
 arkworks field/group/pairing/MSM correctness, SHA-256 collision/preimage
 resistance, the random-oracle model for Fiat-Shamir, BLS12-377 group laws, and
@@ -300,8 +346,3 @@ Scope is locked; the completion path is evidence maintenance, not new proof.
   canonicality, and challenge-preimage injectivity are mechanically proved.
 - No raw verifier bypass remains; DoS/perf thresholds hold in CI after refactors;
   every assumption is narrowly scoped.
-
-**Remaining — final manual review:** a timeboxed review of spec, adaptation
-register, reference path, F* proof index, test/fuzz evidence, and assumptions.
-ALG-I4 (Lean differential) is **not** in the completion gate — it strengthens the
-standing algebraic-soundness assumption but the phase completes without it.

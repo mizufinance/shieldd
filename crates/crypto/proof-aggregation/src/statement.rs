@@ -772,6 +772,27 @@ mod tests {
     }
 
     #[test]
+    fn statement_accepts_single_real_proof() {
+        // real_count = padded_count = 1 (2^0): the one-real-proof aggregate, sound
+        // because the single real slot is the entire verified set (TXN-M3).
+        let pvk = sample_pvk();
+        let rows = vec![vec![Fq::from(7u64)]];
+
+        let statement = AggregateStatement::new(
+            AGGREGATE_PROTOCOL_VERSION,
+            ProofFamilyId::Transfer,
+            [0u8; 32],
+            &pvk,
+            1,
+            &rows,
+        )
+        .expect("one-real-proof statement should build");
+
+        assert_eq!(statement.real_count(), 1);
+        assert_eq!(statement.padded_count(), 1);
+    }
+
+    #[test]
     fn statement_accepts_canonical_repeat_final_padding() {
         let pvk = sample_pvk();
         let rows = vec![

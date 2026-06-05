@@ -1334,7 +1334,15 @@ where
             counter_nonce,
             &hash_input,
         )) {
-            break Ok(r);
+            // Reject the degenerate randomizers. r == 0 breaks inverse-power
+            // rescaling; r == 1 collapses every position weight to 1, defeating
+            // the inter-proof anti-mixing the randomizer exists to provide. Both
+            // are ~2^-256 events, so the re-derivation loop never fires in
+            // practice; the guard removes the cases from the soundness argument
+            // and matches the nonzero discipline of the GIPA round challenges.
+            if !r.is_zero() && !r.is_one() {
+                break Ok(r);
+            }
         };
         counter_nonce += 1;
     }

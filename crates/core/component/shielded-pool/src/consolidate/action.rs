@@ -279,3 +279,25 @@ impl TryFrom<pb::ConsolidateBody> for ConsolidateBody {
         Ok(body)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{pb, ConsolidateBody};
+
+    // TXN-M3: an attacker-controlled family_id that is not in the registry must be
+    // rejected at the wire boundary, before it can reach the panicking spec() /
+    // proof_verification_key() lookups in consensus verification.
+    #[test]
+    fn unknown_family_id_is_rejected_at_wire_boundary() {
+        let proto = pb::ConsolidateBody {
+            family_id: u32::MAX,
+            ..Default::default()
+        };
+        let err = ConsolidateBody::try_from(proto)
+            .expect_err("unknown consolidate family id must be rejected on decode");
+        assert!(
+            err.to_string().contains("family"),
+            "expected a family-id error, got: {err}"
+        );
+    }
+}

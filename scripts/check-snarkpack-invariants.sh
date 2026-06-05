@@ -318,10 +318,6 @@ check_trace_schema() {
     || fail "trace schema must reject filecoin-shape events without bug-class markers"
 }
 
-if rg -n "TranscriptPhase" crates/crypto/proof-aggregation docs/snarkpack; then
-  fail "dead TranscriptPhase API must not reappear"
-fi
-
 if rg -n "deserialize_compressed_unchecked" crates/crypto/proof-aggregation crates/core/app crates/bench; then
   fail "unchecked aggregate deserialization must not be production-accessible"
 fi

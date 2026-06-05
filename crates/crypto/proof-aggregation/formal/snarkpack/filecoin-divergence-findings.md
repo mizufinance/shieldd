@@ -36,6 +36,34 @@ git clone https://github.com/arkworks-rs/ripp.git /tmp/ripp
 git -C /tmp/ripp checkout --detach c2c9e80b2ecd6d796bd443adf15bc17a1ee17090
 ```
 
+## Fork Point Resolution
+
+`crates/crypto/proof-aggregation/src/ipp/PROVENANCE.md` now records
+`arkworks-rs/ripp` commit `c2c9e80b2ecd6d796bd443adf15bc17a1ee17090` as the
+closest clean upstream source commit. The import was not an exact upstream tree:
+Penumbra baseline `52383754737b6672b8dc09d4d521e221e886a3c0` already moved the
+manifests to Arkworks `0.5`, added `serde`, and carried local source edits. A
+full upstream history grep found no `ip_proofs/Cargo.toml` with
+`ark-ec = "0.5"`, so naming a more exact single upstream commit would be false.
+
+## Diff A: arkworks/ripp to Bellperson
+
+Diff A was reviewed functionally across `arkworks-rs/ripp` at
+`c2c9e80b2ecd6d796bd443adf15bc17a1ee17090` and Bellperson v2 at
+`62c362fd46ca2139747b8770bae53ce6f1e42bb1`. Pure BLS12-381/blstrs/serialization
+mechanics are classified as curve or stack exemptions.
+
+| id | Filecoin change from arkworks lineage | Source evidence | Penumbra disposition | Penumbra evidence |
+| --- | --- | --- | --- | --- |
+| `A.public-transcript-include` | Bellperson added an external `transcript_include` input and warns that public inputs or their non-fixed derivation material must be included in the transcript. | Bellperson PR 184 `https://github.com/filecoin-project/bellperson/pull/184`, PR 190 `https://github.com/filecoin-project/bellperson/pull/190`; v2 `prove.rs:23-39`, `prove.rs:81-90`, `verify.rs:33-51`, `verify.rs:75-84`. Arkworks randomizer only hashes `com_a`, `com_b`, and `com_c`: arkworks `groth16_aggregation.rs:104-116`, `groth16_aggregation.rs:172-184`. | `exempt-fs-replaced` | Penumbra binds version, curve, backend, family ids, SRS id, VK digest, real/padded counts, padding, and every padded public-input row into the statement digest, then derives all challenges from that digest: `statement.rs:190-247`, `challenge.rs:17-37`, `challenge.rs:131-148`; spec rows `fs.context-constructor`, `fs.challenge-preimage`, `statement.canonical-binding`. |
+| `A.transcript-framing` | Bellperson introduced a transcript helper with a domain prefix, application tag, serialized writes, and challenge nonce. | Bellperson v2 `transcript.rs:9`, `transcript.rs:52-69`, `transcript.rs:72-105`. Arkworks uses ad hoc digest inputs in GIPA/TIPA/Groth16. | `exempt-fs-replaced` | Penumbra's helper frames domain, stage-label length, stage label, statement-bound context, nonce, and messages; labels map to spec rows: `challenge.rs:9-10`, `challenge.rs:114-148`, `challenge.rs:150-174`. |
+| `A.aggregate-shape-guards` | Bellperson productionized verifier/prover shape checks: at least two proofs, power-of-two counts, SRS length, proof-vector consistency, and public-input arity/count checks. | Bellperson v2 `prove.rs:50-61`, `verify.rs:62-73`, `proof.rs:67-90`, `srs.rs:108-115`. Arkworks accepts the generic proof object with fewer product-level guards: arkworks `groth16_aggregation.rs:77-167`, `gipa.rs:108-160`. | `mirrored` | Penumbra validates non-empty/power-of-two padded counts, repeat-final padding, public-input arity, SRS capacity, SRS/VK identity, wrapper digest, and byte caps before backend verification: `statement.rs:407-427`, `statement.rs:459-506`, `preflight.rs:78-122`, `srs.rs:47-88`, `aggregate_proof_wrapper.rs:52-117`. Penumbra intentionally permits a one-real-proof aggregate if its local statement/padding rules produce one padded proof; Filecoin's `<2` rejection is a Filecoin production policy, not a missing Bellperson security fix for Penumbra's current statement language. |
+| `A.combined-tipp-mipp` | Bellperson replaced the arkworks two-proof AB/C TIPA structure with one combined TIPP/MIPP proof object and a shared transcript seed (`hcom`, `ip_ab`, `agg_c`, `r_shift`). | Bellperson v2 `prove.rs:173-205`, `prove.rs:280-378`, `verify.rs:220-265`, `verify.rs:370-433`. Arkworks keeps separate AB and C proofs: arkworks `groth16_aggregation.rs:138-149`, `groth16_aggregation.rs:186-204`. | `adopted` | Penumbra now has one `tipp_mipp_proof` carrying combined AB/C round commitments, the paper-style `x0` seed over `r`, the three AFGHO commitments, `ip_ab`, and `agg_c`, and one shared final-bridge/KZG path: `groth16_aggregation.rs:144-163`, `groth16_aggregation.rs:342-559`, verifier mirror `groth16_aggregation.rs:1302-1459`; spec rows `tipp-mipp.x0-seed`, `tipp-mipp.gipa`, `tipp-mipp.final-bridge`, `tipp-mipp.kzg-equations`. |
+| `A.curve-serialization-stack` | Bellperson ports the implementation to the Filecoin BLS12-381/blstrs stack, Filecoin SRS material, and Bellperson serialization. | Bellperson aggregate source and SRS/proof readers; Filecoin consumer at rust-fil-proofs `compound_proof.rs:279-315`. | `exempt-curve` | Penumbra uses BLS12-377/arkworks, local SRS identity, and local wrapper/serialization assumptions. These remain tracked separately in `adaptation-register.md` rows `curve.*`, `serialization.*`, `srs.*`, and `arkworks.*`; representative code: `statement.rs:223-247`, `srs.rs:131-155`, `aggregate_proof_wrapper.rs:4-117`. |
+
+Diff A reconciliation: every security-relevant non-curve Filecoin change is in
+one of the rows above. No `missing-fix` finding was identified.
+
 ## Diff B: Bellperson v1 to v2
 
 The public Filecoin writeup for SnarkPack v2 identifies two CryptoNet audit
@@ -73,34 +101,6 @@ Diff B reconciliation: the audit prose accounts for `B.first-gipa-round` and
 `B.final-randomness-link`; the PR body and rust-fil-proofs consumer account for
 `B.versioning`. The mechanical diff has no remaining aggregate-source delta
 outside these buckets.
-
-## Fork Point Resolution
-
-`crates/crypto/proof-aggregation/src/ipp/PROVENANCE.md` now records
-`arkworks-rs/ripp` commit `c2c9e80b2ecd6d796bd443adf15bc17a1ee17090` as the
-closest clean upstream source commit. The import was not an exact upstream tree:
-Penumbra baseline `52383754737b6672b8dc09d4d521e221e886a3c0` already moved the
-manifests to Arkworks `0.5`, added `serde`, and carried local source edits. A
-full upstream history grep found no `ip_proofs/Cargo.toml` with
-`ark-ec = "0.5"`, so naming a more exact single upstream commit would be false.
-
-## Diff A: arkworks/ripp to Bellperson
-
-Diff A was reviewed functionally across `arkworks-rs/ripp` at
-`c2c9e80b2ecd6d796bd443adf15bc17a1ee17090` and Bellperson v2 at
-`62c362fd46ca2139747b8770bae53ce6f1e42bb1`. Pure BLS12-381/blstrs/serialization
-mechanics are classified as curve or stack exemptions.
-
-| id | Filecoin change from arkworks lineage | Source evidence | Penumbra disposition | Penumbra evidence |
-| --- | --- | --- | --- | --- |
-| `A.public-transcript-include` | Bellperson added an external `transcript_include` input and warns that public inputs or their non-fixed derivation material must be included in the transcript. | Bellperson PR 184 `https://github.com/filecoin-project/bellperson/pull/184`, PR 190 `https://github.com/filecoin-project/bellperson/pull/190`; v2 `prove.rs:23-39`, `prove.rs:81-90`, `verify.rs:33-51`, `verify.rs:75-84`. Arkworks randomizer only hashes `com_a`, `com_b`, and `com_c`: arkworks `groth16_aggregation.rs:104-116`, `groth16_aggregation.rs:172-184`. | `exempt-fs-replaced` | Penumbra binds version, curve, backend, family ids, SRS id, VK digest, real/padded counts, padding, and every padded public-input row into the statement digest, then derives all challenges from that digest: `statement.rs:190-247`, `challenge.rs:17-37`, `challenge.rs:131-148`; spec rows `fs.context-constructor`, `fs.challenge-preimage`, `statement.canonical-binding`. |
-| `A.transcript-framing` | Bellperson introduced a transcript helper with a domain prefix, application tag, serialized writes, and challenge nonce. | Bellperson v2 `transcript.rs:9`, `transcript.rs:52-69`, `transcript.rs:72-105`. Arkworks uses ad hoc digest inputs in GIPA/TIPA/Groth16. | `exempt-fs-replaced` | Penumbra's helper frames domain, stage-label length, stage label, statement-bound context, nonce, and messages; labels map to spec rows: `challenge.rs:9-10`, `challenge.rs:114-148`, `challenge.rs:150-174`. |
-| `A.aggregate-shape-guards` | Bellperson productionized verifier/prover shape checks: at least two proofs, power-of-two counts, SRS length, proof-vector consistency, and public-input arity/count checks. | Bellperson v2 `prove.rs:50-61`, `verify.rs:62-73`, `proof.rs:67-90`, `srs.rs:108-115`. Arkworks accepts the generic proof object with fewer product-level guards: arkworks `groth16_aggregation.rs:77-167`, `gipa.rs:108-160`. | `mirrored` | Penumbra validates non-empty/power-of-two padded counts, repeat-final padding, public-input arity, SRS capacity, SRS/VK identity, wrapper digest, and byte caps before backend verification: `statement.rs:407-427`, `statement.rs:459-506`, `preflight.rs:78-122`, `srs.rs:47-88`, `aggregate_proof_wrapper.rs:52-117`. Penumbra intentionally permits a one-real-proof aggregate if its local statement/padding rules produce one padded proof; Filecoin's `<2` rejection is a Filecoin production policy, not a missing Bellperson security fix for Penumbra's current statement language. |
-| `A.combined-tipp-mipp` | Bellperson replaced the arkworks two-proof AB/C TIPA structure with one combined TIPP/MIPP proof object and a shared transcript seed (`hcom`, `ip_ab`, `agg_c`, `r_shift`). | Bellperson v2 `prove.rs:173-205`, `prove.rs:280-378`, `verify.rs:220-265`, `verify.rs:370-433`. Arkworks keeps separate AB and C proofs: arkworks `groth16_aggregation.rs:138-149`, `groth16_aggregation.rs:186-204`. | `adopted` | Penumbra now has one `tipp_mipp_proof` carrying combined AB/C round commitments, the paper-style `x0` seed over `r`, the three AFGHO commitments, `ip_ab`, and `agg_c`, and one shared final-bridge/KZG path: `groth16_aggregation.rs:144-163`, `groth16_aggregation.rs:342-559`, verifier mirror `groth16_aggregation.rs:1302-1459`; spec rows `tipp-mipp.x0-seed`, `tipp-mipp.gipa`, `tipp-mipp.final-bridge`, `tipp-mipp.kzg-equations`. |
-| `A.curve-serialization-stack` | Bellperson ports the implementation to the Filecoin BLS12-381/blstrs stack, Filecoin SRS material, and Bellperson serialization. | Bellperson aggregate source and SRS/proof readers; Filecoin consumer at rust-fil-proofs `compound_proof.rs:279-315`. | `exempt-curve` | Penumbra uses BLS12-377/arkworks, local SRS identity, and local wrapper/serialization assumptions. These remain tracked separately in `adaptation-register.md` rows `curve.*`, `serialization.*`, `srs.*`, and `arkworks.*`; representative code: `statement.rs:223-247`, `srs.rs:131-155`, `aggregate_proof_wrapper.rs:4-117`. |
-
-Diff A reconciliation: every security-relevant non-curve Filecoin change is in
-one of the rows above. No `missing-fix` finding was identified.
 
 ## Governance Result
 

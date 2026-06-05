@@ -272,3 +272,24 @@ impl TryFrom<pb::SplitBody> for SplitBody {
         Ok(body)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{pb, SplitBody};
+
+    // TXN-M3: unknown split family_id must be rejected on decode, before reaching
+    // the panicking registry lookups in consensus verification.
+    #[test]
+    fn unknown_family_id_is_rejected_at_wire_boundary() {
+        let proto = pb::SplitBody {
+            family_id: u32::MAX,
+            ..Default::default()
+        };
+        let err = SplitBody::try_from(proto)
+            .expect_err("unknown split family id must be rejected on decode");
+        assert!(
+            err.to_string().contains("family"),
+            "expected a family-id error, got: {err}"
+        );
+    }
+}

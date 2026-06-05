@@ -3,7 +3,8 @@ Paper/spec-derived SnarkPack transcript-shape oracle.
 
 This executable Lean model intentionally keeps pairing and field arithmetic
 abstract. It derives only the trace/folding structure from
-`docs/snarkpack/ripp-spec.md`: one statement-bound context event, the abstract
+`crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md`: one
+statement-bound context event, the abstract
 RIPP/TIPA/Groth16 equation roles, and the Fiat-Shamir challenge sequence for the
 Groth16 randomizer, AB GIPA rounds, AB KZG opening, C/SSM GIPA rounds, and C/SSM
 KZG opening.

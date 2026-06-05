@@ -125,13 +125,6 @@ Aggregates are accepted only through the proposal aggregation pipeline as
 as the last, unique bundle in a proposal. **Why:** aggregation is a
 consensus-pipeline operation, not a user-facing action.
 
-### Deleted: legacy prover/verifier phase-domain API
-Removed as a bug-class reduction. It *looked* like phase domain separation, but
-the backend digest path never consumed it, creating a false sense of transcript
-binding. Per the prototype contract policy we deleted it rather than keep a dead
-shim; the next transcript builder must add real statement binding, not
-reintroduce unused phase labels.
-
 ### Optimization byte-lock
 Optimizations must preserve the Penumbra byte trace or explicitly version the
 protocol — never silently change transcript bytes. The rule:
