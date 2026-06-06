@@ -17,13 +17,12 @@ The compliance properties are `proved-symbolic` via Tamarin
 The Rust statement-field encoders have an F* field-count injectivity artifact
 (`crates/core/component/shielded-pool/formal/statement-field-formal-artifact.txt`);
 full encoder injectivity and the Rust↔Go correspondence remain `composed`.
-Constraint-system (R1CS) rows stay `refined`/`composed` by design — whole-circuit
-formal verification is out of reach. The gadget decomposition (C1) and a
-gadget-scope Picus under-constraint check (C2, nightly CI only) now exist as
-*evidence* (`tools/gnark/internal/circuits/gadgets_constraint.go`,
-`scripts/circuit-constraint-check.sh`); they do not promote any row, since
-"no under-constraint found" is not a semantic proof. Only gadget-scope ACL2/Axe
-theorems (C3, future) would reach `proved`. See
+Constraint-system (R1CS) property rows stay `refined`/`composed` until they cite
+a stamped whole-circuit artifact. The gadget decomposition (C1), gadget-scope
+Picus under-constraint check (C2, nightly CI only), and gadget-scope ACL2/Axe
+theorems (C3) are evidence for those rows but do not promote a property by
+themselves. `gadget-bool-select` is now certified with Cond booleanity derived
+from c0, and `gadget-poseidon2` has a certified Axe lift smoke theorem; see
 `docs/soundness/constraint-system-assurance.md`.
 
 | ID | Kind | Source | Status | Evidence | Removal path |
@@ -39,7 +38,7 @@ theorems (C3, future) would reach `proved`. See
 | `BALANCE-CONSERVATION` | property | zk-circuits | `refined` | Circuit balance commitment checks are scoped; whole-circuit constraint FV is out of reach. | Add gadget-scope balance-commitment verification (ACL2/Axe). |
 | `NOTE-OWNERSHIP-SPEND-AUTH` | property | zk-circuits | `composed` | Circuit key derivation and external signature verification are mapped. | Prove accepted-language composition. |
 | `OUTPUT-WELL-FORMEDNESS` | property | zk-circuits | `refined` | Commitment and recipient binding code is scoped. | Add gadget-scope checks for note/output commitments. |
-| `REGULATED-STATUS-SOUNDNESS` | property | zk-circuits | `refined` | Go now mirrors Rust membership/non-membership via `VerifyAssetRegistryIMT` (full-field `FieldLessThan`); regression tests reject a regulated asset routed through the unregulated branch. Gadget-scope: the routing primitive `Valid = Select(Cond, IfTrue, IfFalse)` is certified in ACL2 (`gadget-bool-select`, see `circuit-gadget-proofs.md`); the whole-circuit comparator wiring (16-deep Merkle path, 256-bit field comparators) remains out of reach, so this stays `refined`. | Lift the full IMT membership/gap comparator (`gadget-imt-gap`) to a certified theorem (ACL2/Axe), and close c0 booleanity via the prime-fields book. |
+| `REGULATED-STATUS-SOUNDNESS` | property | zk-circuits | `refined` | Go now mirrors Rust membership/non-membership via `VerifyAssetRegistryIMT` (full-field `FieldLessThan`); regression tests reject a regulated asset routed through the unregulated branch. Gadget-scope: the routing primitive `Valid = Select(Cond, IfTrue, IfFalse)` is certified in ACL2 with Cond booleanity derived from c0 (`gadget-bool-select`, see `circuit-gadget-proofs.md`); the whole-circuit comparator wiring (16-deep Merkle path, full-field comparators) is not proved, so this stays `refined`. | Lift the full IMT membership/gap comparator (`gadget-imt-gap`) to a certified theorem (ACL2/Axe), then compose it with the Merkle path and Poseidon proofs into a stamped whole-circuit artifact. |
 | `CIPHERTEXT-CORRECTNESS` | property | zk-circuits | `composed` | Compliance encryption/DLEQ checks are tied to Track A (`proved-symbolic`). | Add gadget-scope R1CS verification for encryption and DLEQ gadgets. |
 | `STATEMENT-INTEGRITY` | property | zk-circuits | `composed` | Rust/Go differential plus F* field-count injectivity (`crates/core/component/shielded-pool/formal/statement-field-formal-artifact.txt`); full encoder injectivity is not yet proved. | Prove full Rust encoder injectivity and mechanize the Go-side correspondence. |
 | `CC-FIND-C2-MALLEABILITY` | finding | compliance | `resolved` | `validate_c2_seed` checks `c2 == seed + compress(shared_point)` on the standalone decode path; `compliance-ciphertext.md` documents that DLEQ does not authenticate `c2`. | — |

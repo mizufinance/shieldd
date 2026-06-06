@@ -17,12 +17,17 @@ go_correspondence_status = "differential-conformance-testing-only"
 [constraints]
 acl2 = "8.7"
 sbcl = "2.4.0"
-# The landed C3.0 anchor (bool-select) certifies against the distribution
-# community books shipped with ACL2 8.7 (arithmetic-5/top), via the parallel
-# `acl2p` image. The Axe / prime-fields / r1cs / pfcs Kestrel books are only
-# needed for the C3.1+ Poseidon/nullifier semantic lifts (not yet landed).
+# The landed C3 anchor (bool-select) certifies against the distribution
+# community books shipped with ACL2 8.7, via the parallel `acl2p` image. The
+# Poseidon2 feasibility spike additionally certifies Kestrel sparse-R1CS and
+# Axe/R1CS books.
 acl2_books = "distribution-8.7"
 acl2_image = "acl2p"
+prime_fields_book = "projects/bls12-377-curves/primes/bls12-377-prime"
+fr_primality_cert = "Kestrel BLS12-377 scalar-field defprime"
+r1cs_book = "kestrel/crypto/r1cs/sparse/r1cs"
+axe_r1cs_book = "kestrel/axe/r1cs/top"
+axe_books_rev = "distribution-8.7"
 # R1CS prime field. MUST equal gnark's primitives.ScalarField() (BLS12-377 Fr);
 # a mismatch makes every gadget proof vacuous. Asserted by the export bridge.
 field = "bls12-377-fr"
@@ -30,6 +35,6 @@ field_modulus = "844446174942837042424882493878154653137589933515406382793523345
 
 [constraints.policy]
 scope = "decomposed-gadget-only"
-whole_circuit_status = "out-of-reach-by-design"
+whole_circuit_status = "requires whole-circuit artifact before any property row is proved"
 picus_status = "under-constraint-evidence-only"
-axe_status = "semantic-proof-gadget-scoped-proved"
+axe_status = "bool-select semantic proof; poseidon2 lift smoke only"

@@ -12,6 +12,9 @@ package circuits
 // fails and the ACL2 model must be updated in lockstep.
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/consensys/gnark/frontend"
@@ -71,6 +74,35 @@ func TestBoolSelectAcl2ModelParity(t *testing.T) {
 		assertTermsEqual(t, i, "A", axe.Constraints[i].A, want[i].A)
 		assertTermsEqual(t, i, "B", axe.Constraints[i].B, want[i].B)
 		assertTermsEqual(t, i, "C", axe.Constraints[i].C, want[i].C)
+	}
+}
+
+func TestBoolSelectAxeLispExport(t *testing.T) {
+	field := primitives.ScalarField()
+	ccs, err := frontend.Compile(field, r1cs.NewBuilder, &BoolSelectGadget{})
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "gadget-bool-select-r1cs.lisp")
+	if err := artifacts.WriteAxeLisp(path, "gadget-bool-select", ccs, &BoolSelectGadget{}); err != nil {
+		t.Fatalf("write axe lisp: %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read axe lisp: %v", err)
+	}
+	text := string(data)
+	for _, want := range []string{
+		`(defconst *GADGET-BOOL-SELECT-vars*`,
+		`'(COND IFTRUE IFFALSE VALID INTERNAL-5))`,
+		`(:index 1 :name "Cond" :symbol COND :visibility "public")`,
+		`:a '((1 COND))`,
+		`:b '((1 1) (-1 COND))`,
+		`:c '((1 IFFALSE) (1 INTERNAL-5))`,
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("axe-lisp export missing %q\n%s", want, text)
+		}
 	}
 }
 

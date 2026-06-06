@@ -18,8 +18,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 ACL2_DIR="crates/core/component/shielded-pool/formal/acl2"
-PROOF=bool-select-proof
-ARTIFACT="$ACL2_DIR/$PROOF-artifact.txt"
+GENERATED_DIR="$ACL2_DIR/generated"
+BOOL_SELECT_PROOF=bool-select-proof
+POSEIDON2_SMOKE_PROOF=poseidon2-lift-smoke
 
 fail() {
   echo "circuit gadget proof check failed: $*" >&2
@@ -41,31 +42,85 @@ else
 fi
 command -v "$ACL2P" >/dev/null 2>&1 || fail "ACL2 image not executable: $ACL2P"
 
-# 1. The ACL2 model must match the compiled gnark gadget, wire-for-wire.
+if [ -n "${ACL2_CERT_PL:-}" ]; then
+  CERT_PL="$ACL2_CERT_PL"
+elif command -v cert.pl >/dev/null 2>&1; then
+  CERT_PL="$(command -v cert.pl)"
+else
+  CERT_PL="$(
+    find /opt/homebrew/Cellar/acl2 /usr/share/acl2 /nix/store \
+      -path '*/books/build/cert.pl' -print 2>/dev/null \
+      | sort \
+      | tail -1 \
+      || true
+  )"
+fi
+[[ -n "$CERT_PL" && -x "$CERT_PL" ]] || fail "cert.pl not found; set ACL2_CERT_PL"
+
+certify_book() {
+  local proof="$1"
+  rm -f "$ACL2_DIR/$proof.cert"
+  (cd "$ACL2_DIR" && echo "(certify-book \"$proof\" 0)" | "$ACL2P") >"$ACL2_DIR/$proof.cert.out" 2>&1 || true
+  [ -f "$ACL2_DIR/$proof.cert" ] \
+    || { tail -40 "$ACL2_DIR/$proof.cert.out" >&2; fail "ACL2 certification produced no .cert for $proof"; }
+  rg -q "Q.E.D." "$ACL2_DIR/$proof.cert.out" \
+    || fail "ACL2 certification did not reach Q.E.D. for $proof"
+}
+
+certify_with_cert_pl() {
+  local book="$1"
+  (cd "$ACL2_DIR" && ACL2="$ACL2P" "$CERT_PL" "$book") \
+    >"$ACL2_DIR/$book.cert.out" 2>&1 \
+    || { tail -80 "$ACL2_DIR/$book.cert.out" >&2; fail "cert.pl failed for $book"; }
+  [ -f "$ACL2_DIR/$book.cert" ] \
+    || fail "cert.pl produced no .cert for $book"
+}
+
+check_artifact_stamp() {
+  local proof="$1"
+  local artifact="$ACL2_DIR/$proof-artifact.txt"
+  local proof_sha cert_sha want got
+
+  [ -f "$artifact" ] || fail "missing proof artifact $artifact"
+  proof_sha="$(shasum -a 256 "$ACL2_DIR/$proof.lisp" | awk '{print $1}')"
+  cert_sha="$(shasum -a 256 "$ACL2_DIR/$proof.cert" | awk '{print $1}')"
+  rg -q "proof_source_sha256: $proof_sha" "$artifact" \
+    || fail "artifact proof_source_sha256 for $proof != $proof_sha (re-stamp $artifact)"
+  echo "  ($proof certified cert sha256: $cert_sha)"
+
+  [ -f "$artifact.sha256" ] || fail "missing artifact stamp $artifact.sha256"
+  want="$(cat "$artifact.sha256")"
+  got="$(shasum -a 256 "$artifact" | awk '{print $1}')"
+  [ "$want" = "$got" ] || fail "artifact stamp mismatch: $artifact ($got != $want)"
+  echo "  ($proof artifact sha256: $got)"
+}
+
+# 1. The ACL2 model and generated Axe lift data must match the compiled gnark
+# gadgets, wire-for-wire.
 (
   cd tools/gnark
-  go test ./internal/circuits/ -run TestBoolSelectAcl2ModelParity -count=1
-) || fail "ACL2 model / gnark parity test failed — proof models a different circuit"
+  go test ./internal/circuits/ -run 'TestBoolSelectAcl2ModelParity|TestAxeExportFidelity' -count=1
+) || fail "ACL2/gnark parity or Axe export fidelity failed — proof models a different circuit"
 
-# 2. Certify the proof (clean: drop any stale cert first).
-rm -f "$ACL2_DIR/$PROOF.cert"
-( cd "$ACL2_DIR" && echo "(certify-book \"$PROOF\" 0)" | "$ACL2P" ) >"$ACL2_DIR/$PROOF.cert.out" 2>&1 || true
-[ -f "$ACL2_DIR/$PROOF.cert" ] || { tail -40 "$ACL2_DIR/$PROOF.cert.out" >&2; fail "ACL2 certification produced no .cert"; }
-rg -q "Q.E.D." "$ACL2_DIR/$PROOF.cert.out" || fail "ACL2 certification did not reach Q.E.D."
+tmp_poseidon2="$(mktemp)"
+trap 'rm -f "$tmp_poseidon2"' EXIT
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-r1cs \
+    --circuit gadget-poseidon2 \
+    --format axe-lisp \
+    --out "$tmp_poseidon2"
+) || fail "failed to regenerate gadget-poseidon2 Axe Lisp"
+diff -u "$GENERATED_DIR/gadget-poseidon2-r1cs.lisp" "$tmp_poseidon2" \
+  || fail "checked-in gadget-poseidon2 Axe Lisp is stale"
 
-# 3. The checked-in stamped artifact must match the certified proof + cert.
-proof_sha="$(shasum -a 256 "$ACL2_DIR/$PROOF.lisp" | awk '{print $1}')"
-cert_sha="$(shasum -a 256 "$ACL2_DIR/$PROOF.cert" | awk '{print $1}')"
-rg -q "proof_source_sha256: $proof_sha" "$ARTIFACT" \
-  || fail "artifact proof_source_sha256 != $proof_sha (re-stamp $ARTIFACT)"
-# The cert embeds an absolute path + timestamps, so its hash is environment-bound;
-# record it as evidence but do not gate on it across machines.
-echo "  (certified cert sha256: $cert_sha)"
+# 2. Certify the proof books.
+certify_book "$BOOL_SELECT_PROOF"
+certify_with_cert_pl generated/gadget-poseidon2-r1cs
+certify_with_cert_pl "$POSEIDON2_SMOKE_PROOF"
 
-# Verify the artifact stamp file itself.
-[ -f "$ARTIFACT.sha256" ] || fail "missing artifact stamp $ARTIFACT.sha256"
-want="$(cat "$ARTIFACT.sha256")"
-got="$(shasum -a 256 "$ARTIFACT" | awk '{print $1}')"
-[ "$want" = "$got" ] || fail "artifact stamp mismatch: $ARTIFACT ($got != $want)"
+# 3. The checked-in stamped artifacts must match the certified proof sources.
+check_artifact_stamp "$BOOL_SELECT_PROOF"
+check_artifact_stamp "$POSEIDON2_SMOKE_PROOF"
 
-echo "circuit gadget proof check ok: BOOL-SELECT-R1CS-IMPLIES-SPEC certified, artifact sha256:$got"
+echo "circuit gadget proof check ok: bool-select and poseidon2 Axe lift smoke proofs certified"

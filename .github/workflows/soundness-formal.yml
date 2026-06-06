@@ -14,6 +14,8 @@ on:
       - 'crates/core/component/compliance/src/r1cs.rs'
       - 'crates/core/component/shielded-pool/formal/**'
       - 'crates/core/component/shielded-pool/src/public_input_hash.rs'
+      - 'tools/gnark/cmd/gnarkctl/**'
+      - 'tools/gnark/internal/artifacts/**'
       - 'tools/gnark/internal/circuits/**'
       - 'tools/gnark/internal/compliance/**'
       - 'tools/gnark/internal/abi/**'
@@ -21,6 +23,7 @@ on:
       - 'scripts/compliance-symbolic.sh'
       - 'scripts/shielded-pool-formal.sh'
       - 'scripts/circuit-constraint-check.sh'
+      - 'scripts/circuit-gadget-proof-check.sh'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -1,12 +1,12 @@
 # Constraint-System Assurance Strategy
 
-No tool formally verifies a *whole* transaction circuit — not Picus, not Ecne,
-not ACL2. That is a fundamental scaling limit (Poseidon + Merkle + Decaf377 in
-one SMT system), not a setup gap: a Picus spike on the smallest family
-(consolidate2x1) timed out, the expected outcome. Serious projects (Zcash,
-Aztec) verify **gadgets**, not whole circuits. The strategy is therefore
-layered: a gnark-native baseline over the whole circuit (evidence), and
-automated/formal tooling only at **decomposed gadget scope**.
+No checked-in artifact currently verifies a *whole* transaction circuit. Picus
+timed out on the smallest family (consolidate2x1), the expected outcome for an
+SMT under-constraint checker on Poseidon + Merkle + Decaf377 in one system. The
+strategy is therefore layered: a gnark-native baseline over the whole circuit
+(evidence), certified theorem-prover work at **decomposed gadget scope**, and a
+hard gate that allows a circuit property to become `proved` only when it cites a
+stamped whole-circuit artifact.
 
 This is heavy prover work. It runs in the `soundness-formal` CI `provers` job
 (nightly cron + `workflow_dispatch`), guarded `if: github.event_name !=
@@ -48,8 +48,9 @@ Whole-circuit families are recorded as `undischarged-by-design`, not retried.
 **Status honesty:** a Picus-clean gadget is under-constraint *evidence* for that
 gadget — necessary, not sufficient for the semantic property. There is no
 theorem connecting "no under-constraint found" to `NO-DOUBLE-SPEND` /
-`REGULATED-STATUS-SOUNDNESS`. Picus keeps rows at `refined`/`composed`; only a
-C3 ACL2/Axe gadget theorem reaches `proved`, scoped to that gadget.
+`REGULATED-STATUS-SOUNDNESS`. Picus keeps rows at `refined`/`composed`; C3
+ACL2/Axe gadget theorems reach `proved` only in the gadget ledger, and property
+rows still require whole-circuit composition artifacts.
 
 ## Follow-Up Track C
 
@@ -57,7 +58,7 @@ C3 ACL2/Axe gadget theorem reaches `proved`, scoped to that gadget.
 | --- | --- | --- |
 | Picus | Landed at gadget scope (C2, CI-only). | Runs on the decomposed gadget `.sr1cs` in the nightly `provers` job; whole-circuit recorded `undischarged-by-design`. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
 | Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Penumbra needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
-| ACL2/Axe | Deep follow-up for selected gadgets. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
+| ACL2/Axe | Landed for bool-select and the Poseidon2 lift feasibility spike; deeper semantic proofs remain follow-up. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |
 | Circomspect / Coda | Not applicable unless Circom circuits are introduced. | Penumbra production circuits are gnark; Circom source analyzers do not run on this codebase. |
 
@@ -75,7 +76,9 @@ BLS12-377 Fr and asserted equal to gnark's `ScalarField()` (a mismatch makes
 proofs vacuous). `gnarkctl export-r1cs --circuit gadget-* --format axe-json`
 emits a named-wire R1CS: the prime, a wire manifest (`ONE`, public, secret, and
 internal wires — so the spec can name `Out`/`In0`/…), and constraints as sparse
-`(A,B,C)` prime-field combinations. Bridge fidelity is enforced by
+`(A,B,C)` prime-field combinations. `--format axe-lisp` exports the same data as
+Kestrel sparse R1CS constants for `lift-r1cs`/`verify-r1cs`. Bridge fidelity is
+enforced by
 `TestAxeExportFidelity*`
 ([gadgets_axe_fidelity_test.go](../../tools/gnark/internal/circuits/gadgets_axe_fidelity_test.go)):
 it solves each gadget in gnark, then checks `A(W)·B(W) == C(W)` for every
@@ -91,16 +94,28 @@ boolean `Cond` — the algebraic core of Rust's
 wires) is hand-modelled in
 [acl2/bool-select-proof.lisp](../../crates/core/component/shielded-pool/formal/acl2/bool-select-proof.lisp)
 and the theorem `BOOL-SELECT-R1CS-IMPLIES-SPEC` (`R1CS ⟹ select-spec`) is
-certified in ACL2 (parallel `acl2p` image + `arithmetic-5`). The model is tied to
-the *actual compiled gadget* wire-for-wire by `TestBoolSelectAcl2ModelParity`
+certified in ACL2 (parallel `acl2p` image + arithmetic and BLS12-377 prime
+books). The theorem derives `Cond` booleanity from c0
+`Cond*(1-Cond)=0` over BLS12-377 Fr; it is no longer a hypothesis. The model is
+tied to the *actual compiled gadget* wire-for-wire by
+`TestBoolSelectAcl2ModelParity`
 ([gadgets_acl2_parity_test.go](../../tools/gnark/internal/circuits/gadgets_acl2_parity_test.go)),
 so the proof cannot drift onto a different circuit.
 [scripts/circuit-gadget-proof-check.sh](../../scripts/circuit-gadget-proof-check.sh)
-re-runs parity → certify → stamp in the nightly `provers` job, and a stamped
+re-runs parity -> certify -> stamp in the nightly `provers` job, and a stamped
 [bool-select-proof-artifact.txt](../../crates/core/component/shielded-pool/formal/acl2/bool-select-proof-artifact.txt)
-gates the `proved` row. Scope honesty: booleanity of `Cond` (constraint c0) is a
-hypothesis, not yet derived from `Cond*(1-Cond)=0` (needs the prime-fields
-`primep` book).
+gates the `proved` row.
+
+**C3.2 (landed) — Axe lift feasibility spike.** The same gate now regenerates
+the checked-in
+[gadget-poseidon2-r1cs.lisp](../../crates/core/component/shielded-pool/formal/acl2/generated/gadget-poseidon2-r1cs.lisp)
+from gnark and certifies
+[poseidon2-lift-smoke.lisp](../../crates/core/component/shielded-pool/formal/acl2/poseidon2-lift-smoke.lisp).
+That theorem lifts the real 276-constraint Poseidon2 gadget through Axe and
+proves a non-vacuous first-round constraint consequence:
+`internal_5 = (domain + round_constant)^2`. This validates the Kestrel ingestion
+loop on real Penumbra data, but it is deliberately not the semantic Poseidon
+permutation proof.
 
 The gadget-scoped ledger
 [circuit-gadget-proofs.md](../../crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md)
@@ -108,8 +123,9 @@ carries the `proved` rows. It is the only ledger whose rows may hold `proved`,
 and a `proved` gadget row never promotes a whole-circuit property row —
 `REGULATED-STATUS-SOUNDNESS` *cites* `gadget-bool-select` but stays `refined`.
 
-**C3.2–C3.4 (future) — full Poseidon spec + proof, nullifier composition, c0
-booleanity closure via prime-fields.** `gadget-poseidon2`/`gadget-nullifier`
-remain Picus under-constraint *evidence* until an Axe lift of the full
-permutation (276/311 constraints) lands; that needs the Kestrel Axe books and is
-multi-week, CI-bound.
+**Future semantic proofs — comparator, Poseidon, nullifier, and whole-circuit
+composition.** `gadget-poseidon2`/`gadget-nullifier` remain evidence until a full
+Poseidon spec and proof land. `gadget-imt-gap` remains evidence until the
+full-field comparator proof closes. A circuit property row moves to `proved`
+only with a stamped whole-circuit artifact; the invariant gate rejects gadget
+artifacts as substitutes for that property-level claim.

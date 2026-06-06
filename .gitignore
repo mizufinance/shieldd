@@ -112,4 +112,8 @@ crates/core/component/shielded-pool/formal/acl2/*.cert
 crates/core/component/shielded-pool/formal/acl2/*.cert.out
 crates/core/component/shielded-pool/formal/acl2/*.fasl
 crates/core/component/shielded-pool/formal/acl2/*.port
+crates/core/component/shielded-pool/formal/acl2/**/*.cert
+crates/core/component/shielded-pool/formal/acl2/**/*.cert.out
+crates/core/component/shielded-pool/formal/acl2/**/*.fasl
+crates/core/component/shielded-pool/formal/acl2/**/*.port
 crates/core/component/shielded-pool/formal/acl2/Makefile-tmp

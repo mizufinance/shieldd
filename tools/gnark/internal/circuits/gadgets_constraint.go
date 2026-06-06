@@ -73,6 +73,25 @@ func (c *ImtGapGadget) Define(api frontend.API) error {
 	return nil
 }
 
+// FieldLessThanGadget isolates a single full-field `FieldLessThan` comparator —
+// the 253-bit `to_bits_le` decomposition + MSB-first comparison ladder that is
+// the algebraic core of REGULATED-STATUS-SOUNDNESS, apart from the IMT gap
+// wiring, the IsZero exact-match, the Select, and the Merkle path. `Out` is the
+// boolean comparator result, exposed as a witness wire so the `R1CS ⟹ spec`
+// theorem can name it: any satisfying assignment has `Out = (A < B ? 1 : 0)`
+// over canonical residues in `[0, p)`. This is the reusable comparator lemma the
+// imt-gap proof (two calls) and the threshold check compose from.
+type FieldLessThanGadget struct {
+	A   frontend.Variable `gnark:",public"`
+	B   frontend.Variable `gnark:",public"`
+	Out frontend.Variable
+}
+
+func (c *FieldLessThanGadget) Define(api frontend.API) error {
+	api.AssertIsEqual(c.Out, FieldLessThan(api, c.A, c.B))
+	return nil
+}
+
 // BoolSelectGadget isolates the soundness decision primitive
 // `Valid = Select(Cond, IfTrue, IfFalse)` with `Cond` boolean — the exact shape
 // of Rust's `is_regulated.select(is_exact_match, is_in_gap)` that the Phase-0

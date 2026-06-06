@@ -63,6 +63,16 @@ func TestAxeExportFidelityImtGap(t *testing.T) {
 	assertAxeExportMatchesSolvedWitness(t, &ImtGapGadget{}, assignment)
 }
 
+func TestAxeExportFidelityFieldLessThan(t *testing.T) {
+	// 50 < 100 holds, so the comparator output is 1.
+	assignment := &FieldLessThanGadget{
+		A:   big.NewInt(50),
+		B:   big.NewInt(100),
+		Out: big.NewInt(1),
+	}
+	assertAxeExportMatchesSolvedWitness(t, &FieldLessThanGadget{}, assignment)
+}
+
 // assertAxeExportMatchesSolvedWitness compiles the gadget, solves it on the
 // assignment to get gnark's full witness W, exports the axe-json R1CS, and
 // checks A(W)·B(W) == C(W) for every exported constraint.

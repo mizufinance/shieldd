@@ -1,8 +1,7 @@
 ; C3 gadget theorem: the exported R1CS of `gadget-bool-select` implies the
 ; Select spec it is meant to compute. Certified with the parallel image
-; (`acl2p`) so the pre-certified `arithmetic-5` community book — built under the
-; same ACL2(p) world — includes cleanly; the serial `acl2` image rejects its
-; `arithmetic-5-current-base` deftheory (INCREMENT-TIMER@PAR rune mismatch).
+; (`acl2p`) so the Kestrel community books built under the same ACL2(p) world
+; include cleanly.
 ;
 ; This is the end-to-end certified anchor for the C3 ACL2/Axe methodology: a
 ; real `R1CS => spec` proof over the *actual* gnark-exported constraints. The
@@ -12,11 +11,9 @@
 ;
 ; Field: BLS12-377 Fr, pinned in formal/toolchain.toml [constraints].
 ;
-; Scope note (honesty): base ACL2 has no primality book, so booleanity of Cond
-; (constraint c0: Cond*(1-Cond)=0 => Cond in {0,1}) is taken as a hypothesis
-; here; deriving it from c0 needs the prime-fields `primep` book and is the
-; CI-gated extension. The algebraic core proved below (c1, c2 => Valid = Select)
-; is the soundness content of the `is_regulated.select(...)` primitive.
+; Scope note (honesty): c0 derives booleanity of Cond using the checked
+; BLS12-377 scalar-field prime certificate in the Kestrel books. The theorem is
+; still gadget-scoped; it does not prove the full comparator or Merkle path.
 
 (in-package "ACL2")
 
@@ -24,6 +21,9 @@
 ; base ACL2 lacks. Pre-certified in the community books shipped with the ACL2
 ; distribution; include via the parallel `acl2p` image (see header).
 (include-book "arithmetic-5/top" :dir :system)
+(include-book "projects/bls12-377-curves/primes/bls12-377-prime" :dir :system)
+(include-book "kestrel/number-theory/mod" :dir :system)
+(include-book "kestrel/arithmetic-light/mod" :dir :system)
 
 (defconst *fr*
   8444461749428370424248824938781546531375899335154063827935233455917409239041)
@@ -46,12 +46,29 @@
 (defun select-spec (cond iftrue iffalse)
   (if (equal cond 1) iftrue iffalse))
 
-; Main theorem: a satisfying assignment of the exported R1CS, with Cond boolean
-; and all wires canonical field elements, has Valid equal to the Select spec.
+(defthm cond-boolean-from-r1cs-c0
+  (implies (and (fep cond)
+                (equal (mod (* cond (- 1 cond)) *fr*) 0))
+           (or (equal cond 0) (equal cond 1)))
+  :rule-classes nil
+  :hints (("Goal"
+           :use ((:instance acl2::equal-of-0-and-mod-of-*-when-primep
+                            (p *fr*)
+                            (x cond)
+                            (y (- 1 cond))))
+           :in-theory (e/d (fep)
+                           (acl2::equal-of-0-and-mod-of-*-when-primep
+                            (:definition mod)
+                            (:definition floor))))))
+
+; Main theorem: a satisfying assignment of the exported R1CS, with all wires
+; canonical field elements, has Valid equal to the Select spec. Cond booleanity
+; is derived from c0, not assumed.
 (defthm bool-select-r1cs-implies-spec
   (implies (and (fep cond) (fep iftrue) (fep iffalse) (fep valid) (fep w5)
-                (or (equal cond 0) (equal cond 1))
                 (bool-select-r1cs cond iftrue iffalse valid w5))
            (equal valid (select-spec cond iftrue iffalse)))
   :rule-classes nil
-  :hints (("Goal" :cases ((equal cond 0) (equal cond 1)))))
+  :hints (("Goal"
+           :use (:instance cond-boolean-from-r1cs-c0)
+           :cases ((equal cond 0) (equal cond 1)))))

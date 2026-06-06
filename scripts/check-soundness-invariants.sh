@@ -155,6 +155,48 @@ check_proof_artifact() {
   fi
 }
 
+check_stamped_artifact() {
+  local id="$1" artifact="$2"
+  [[ -f "$artifact" ]] || fail "row $id cites missing proof artifact $artifact"
+  [[ -f "$artifact.sha256" ]] || fail "row $id artifact $artifact lacks .sha256 stamp"
+  local want have
+  want="$(cat "$artifact.sha256")"
+  have="$(shasum -a 256 "$artifact" | awk '{print $1}')"
+  [[ "$want" == "$have" ]] \
+    || fail "row $id artifact $artifact stamp mismatch (want $want got $have)"
+}
+
+check_whole_circuit_artifact() {
+  local id="$1" evidence="$2"
+  local matched="" artifact
+  for artifact in \
+    "$CIRCUIT_FORMAL"/acl2/*whole-circuit*-artifact.txt \
+    "$CIRCUIT_FORMAL"/*whole-circuit*-artifact.txt; do
+    [[ -e "$artifact" ]] || continue
+    if [[ "$evidence" == *"$artifact"* ]]; then
+      matched="$artifact"
+      check_stamped_artifact "$id" "$artifact"
+      rg -F "whole-circuit" "$artifact" >/dev/null \
+        || fail "row $id whole-circuit artifact $artifact does not state whole-circuit scope"
+    fi
+  done
+  [[ -n "$matched" ]] \
+    || fail "proved zk-circuit property $id must cite a stamped whole-circuit artifact in Evidence"
+}
+
+handoff_row_for_id() {
+  local want="$1" row id
+  while IFS= read -r row; do
+    [[ -z "$row" ]] && continue
+    id="$(markdown_field "$row" 2 | strip_ticks)"
+    if [[ "$id" == "$want" ]]; then
+      printf '%s\n' "$row"
+      return 0
+    fi
+  done < <(table_rows "$HANDOFF")
+  return 1
+}
+
 require_symbol() {
   local label="$1"
   local symbol="$2"
@@ -231,6 +273,8 @@ handoff_ids="$(row_ids "$HANDOFF")"
 # Enforce stamped proof artifacts for every proved* row in the handoff ledger.
 handoff_status_index="$(status_column_index "$HANDOFF")"
 handoff_evidence_index="$(column_index "$HANDOFF" "Evidence")"
+handoff_kind_index="$(column_index "$HANDOFF" "Kind")"
+handoff_source_index="$(column_index "$HANDOFF" "Source")"
 while IFS= read -r row; do
   [[ -z "$row" ]] && continue
   id="$(markdown_field "$row" 2 | strip_ticks)"
@@ -238,10 +282,33 @@ while IFS= read -r row; do
   case "$status" in
     proved|proved-symbolic)
       evidence="$(markdown_field "$row" "$handoff_evidence_index")"
-      check_proof_artifact "$id" "$status" "$evidence" "$assumption_ids"
+      kind="$(markdown_field "$row" "$handoff_kind_index" | strip_ticks)"
+      source="$(markdown_field "$row" "$handoff_source_index" | strip_ticks)"
+      if [[ "$kind" == "property" && "$source" == "zk-circuits" && "$status" == "proved" ]]; then
+        check_whole_circuit_artifact "$id" "$evidence"
+      else
+        check_proof_artifact "$id" "$status" "$evidence" "$assumption_ids"
+      fi
       ;;
   esac
 done < <(table_rows "$HANDOFF")
+
+circuit_status_index="$(status_column_index "$CIRCUIT_FORMAL/circuit-soundness-properties.md")"
+while IFS= read -r row; do
+  [[ -z "$row" ]] && continue
+  id="$(markdown_field "$row" 2 | strip_ticks)"
+  status="$(markdown_field "$row" "$circuit_status_index" | strip_ticks)"
+  if [[ "$status" == "proved" ]]; then
+    handoff_row="$(handoff_row_for_id "$id")" \
+      || fail "proved circuit property $id is missing from $HANDOFF"
+    handoff_status="$(markdown_field "$handoff_row" "$handoff_status_index" | strip_ticks)"
+    [[ "$handoff_status" == "proved" ]] \
+      || fail "proved circuit property $id must also be proved in $HANDOFF"
+    evidence="$(markdown_field "$handoff_row" "$handoff_evidence_index")"
+    check_whole_circuit_artifact "$id" "$evidence"
+  fi
+done < <(table_rows "$CIRCUIT_FORMAL/circuit-soundness-properties.md")
+
 # Gadget-scoped R1CS proof ledger. Status is the last column; a `proved` gadget
 # row must cite a checked-in, stamped proof artifact whose sidecar hash matches.
 # This is the only ledger whose rows may hold `proved`.

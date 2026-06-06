@@ -59,7 +59,7 @@ func runExportR1CS(args []string) error {
 	fs := flag.NewFlagSet("export-r1cs", flag.ContinueOnError)
 	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, shielded-ics20-withdrawalN, or gadget-* label")
 	outPath := fs.String("out", "", "output path")
-	format := fs.String("format", "picus", "picus (.sr1cs sexpr) or axe-json (named-wire R1CS for ACL2/Axe)")
+	format := fs.String("format", "picus", "picus (.sr1cs sexpr), axe-json (named-wire R1CS), or axe-lisp (Kestrel sparse R1CS)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -86,8 +86,16 @@ func runExportR1CS(args []string) error {
 		if err := artifacts.WriteAxeJSON(*outPath, ccs, instance); err != nil {
 			return err
 		}
+	case "axe-lisp":
+		instance, ok := gadgetCircuit(*circuit)
+		if !ok {
+			return fmt.Errorf("axe-lisp export is gadget-scope only; %q is not a gadget label", *circuit)
+		}
+		if err := artifacts.WriteAxeLisp(*outPath, *circuit, ccs, instance); err != nil {
+			return err
+		}
 	default:
-		return fmt.Errorf("unknown --format %q (want picus or axe-json)", *format)
+		return fmt.Errorf("unknown --format %q (want picus, axe-json, or axe-lisp)", *format)
 	}
 	fmt.Fprintf(os.Stderr, "wrote %s (compile %.2fms)\n", *outPath, compileMS)
 	return nil
@@ -104,6 +112,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.NullifierGadget{}, true
 	case "gadget-imt-gap":
 		return &circuits.ImtGapGadget{}, true
+	case "gadget-field-less-than":
+		return &circuits.FieldLessThanGadget{}, true
 	case "gadget-bool-select":
 		return &circuits.BoolSelectGadget{}, true
 	default:
@@ -516,6 +526,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-imt-gap":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ImtGapGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-field-less-than":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.FieldLessThanGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-bool-select":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.BoolSelectGadget{})
