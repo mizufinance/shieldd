@@ -28,6 +28,12 @@ fr_primality_cert = "Kestrel BLS12-377 scalar-field defprime"
 r1cs_book = "kestrel/crypto/r1cs/sparse/r1cs"
 axe_r1cs_book = "kestrel/axe/r1cs/top"
 axe_books_rev = "distribution-8.7"
+# M6 Lean scaffold. This currently builds the shared spec of record only; it
+# does not yet run gnark-lean-extractor/proven-zk over extracted source circuits.
+lean = "4.11.0"
+lake = "5.0.0"
+gnark_lean_extractor = "not-integrated; candidate github.com/reilabs/gnark-lean-extractor/v3"
+proven_zk = "not-integrated"
 # R1CS prime field. MUST equal gnark's primitives.ScalarField() (BLS12-377 Fr);
 # a mismatch makes every gadget proof vacuous. Asserted by the export bridge.
 field = "bls12-377-fr"
@@ -37,4 +43,5 @@ field_modulus = "844446174942837042424882493878154653137589933515406382793523345
 scope = "decomposed-gadget-only"
 whole_circuit_status = "requires whole-circuit artifact before any property row is proved"
 picus_status = "under-constraint-evidence-only"
-axe_status = "bool-select semantic proof; poseidon2 lift smoke only"
+axe_status = "bool-select semantic proof; field-less-than/nullifier decomposed; poseidon2 lift smoke plus vector-certified spec"
+lean_status = "spec scaffold builds; no extracted-source proof rows yet"

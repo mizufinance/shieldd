@@ -20,7 +20,9 @@ cd "$ROOT"
 ACL2_DIR="crates/core/component/shielded-pool/formal/acl2"
 GENERATED_DIR="$ACL2_DIR/generated"
 BOOL_SELECT_PROOF=bool-select-proof
+FIELD_LESS_THAN_LIFT=field-less-than-lift
 POSEIDON2_SMOKE_PROOF=poseidon2-lift-smoke
+NULLIFIER_SMOKE_PROOF=nullifier-lift-smoke
 
 fail() {
   echo "circuit gadget proof check failed: $*" >&2
@@ -99,11 +101,15 @@ check_artifact_stamp() {
 # gadgets, wire-for-wire.
 (
   cd tools/gnark
-  go test ./internal/circuits/ -run 'TestBoolSelectAcl2ModelParity|TestAxeExportFidelity' -count=1
+  go test ./internal/circuits/ -run 'TestBoolSelectAcl2ModelParity|TestAxeExportFidelity|TestFieldLessThanAxeBitInputs' -count=1
 ) || fail "ACL2/gnark parity or Axe export fidelity failed — proof models a different circuit"
 
 tmp_poseidon2="$(mktemp)"
-trap 'rm -f "$tmp_poseidon2"' EXIT
+tmp_nullifier="$(mktemp)"
+tmp_poseidon_spec="$(mktemp)"
+tmp_field_less_than="$(mktemp)"
+tmp_field_less_than_bits="$(mktemp)"
+trap 'rm -f "$tmp_poseidon2" "$tmp_nullifier" "$tmp_poseidon_spec" "$tmp_field_less_than" "$tmp_field_less_than_bits"' EXIT
 (
   cd tools/gnark
   go run ./cmd/gnarkctl export-r1cs \
@@ -114,13 +120,63 @@ trap 'rm -f "$tmp_poseidon2"' EXIT
 diff -u "$GENERATED_DIR/gadget-poseidon2-r1cs.lisp" "$tmp_poseidon2" \
   || fail "checked-in gadget-poseidon2 Axe Lisp is stale"
 
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-r1cs \
+    --circuit gadget-nullifier \
+    --format axe-lisp \
+    --out "$tmp_nullifier"
+) || fail "failed to regenerate gadget-nullifier Axe Lisp"
+diff -u "$GENERATED_DIR/gadget-nullifier-r1cs.lisp" "$tmp_nullifier" \
+  || fail "checked-in gadget-nullifier Axe Lisp is stale"
+
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-poseidon-acl2 \
+    --out "$tmp_poseidon_spec"
+) || fail "failed to regenerate Poseidon377 ACL2 spec"
+diff -u "$GENERATED_DIR/poseidon377-spec.lisp" "$tmp_poseidon_spec" \
+  || fail "checked-in Poseidon377 ACL2 spec is stale"
+
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-r1cs \
+    --circuit gadget-field-less-than \
+    --format axe-lisp \
+    --out "$tmp_field_less_than"
+) || fail "failed to regenerate gadget-field-less-than Axe Lisp"
+diff -u "$GENERATED_DIR/gadget-field-less-than-r1cs.lisp" "$tmp_field_less_than" \
+  || fail "checked-in gadget-field-less-than Axe Lisp is stale"
+
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl extract-bit-inputs \
+    --label gadget-field-less-than \
+    --in "$ROOT/$GENERATED_DIR/gadget-field-less-than-r1cs.lisp" \
+    --out "$tmp_field_less_than_bits" >/dev/null
+) || fail "failed to regenerate gadget-field-less-than bit inputs"
+diff -u "$GENERATED_DIR/gadget-field-less-than-bit-inputs.lisp" "$tmp_field_less_than_bits" \
+  || fail "checked-in gadget-field-less-than bit-input list is stale"
+
 # 2. Certify the proof books.
 certify_book "$BOOL_SELECT_PROOF"
+certify_with_cert_pl generated/gadget-field-less-than-r1cs
+certify_with_cert_pl generated/gadget-field-less-than-bit-inputs
+certify_with_cert_pl lib/fq-compare
+certify_with_cert_pl "$FIELD_LESS_THAN_LIFT"
 certify_with_cert_pl generated/gadget-poseidon2-r1cs
+certify_with_cert_pl generated/poseidon377-spec
 certify_with_cert_pl "$POSEIDON2_SMOKE_PROOF"
+certify_with_cert_pl generated/gadget-nullifier-r1cs
+certify_with_cert_pl "$NULLIFIER_SMOKE_PROOF"
 
 # 3. The checked-in stamped artifacts must match the certified proof sources.
 check_artifact_stamp "$BOOL_SELECT_PROOF"
 check_artifact_stamp "$POSEIDON2_SMOKE_PROOF"
 
-echo "circuit gadget proof check ok: bool-select and poseidon2 Axe lift smoke proofs certified"
+if [ -d tools/gnark/lean ]; then
+  command -v lake >/dev/null 2>&1 || fail "Lean lake not found for tools/gnark/lean"
+  (cd tools/gnark/lean && lake build) || fail "Lean spec scaffold failed to build"
+fi
+
+echo "circuit gadget proof check ok: bool-select, poseidon2, and nullifier Axe lift smoke proofs certified; Poseidon377 ACL2 spec vectors certified; field-less-than Axe lift checkpoint certified; Lean spec scaffold builds"

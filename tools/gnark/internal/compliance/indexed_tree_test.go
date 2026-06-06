@@ -1,11 +1,13 @@
 package compliance
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
+	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
@@ -198,6 +200,26 @@ func TestFieldLessThanCircuitMatchesFullFieldOrder(t *testing.T) {
 	}
 }
 
+func TestFieldLessThanRejectsNonCanonicalBinaryAlias(t *testing.T) {
+	assert := test.NewAssert(t)
+	toReplaceHint, err := getNBitsHintID()
+	if err != nil {
+		t.Fatalf("find nBits hint: %v", err)
+	}
+
+	assignment := &fieldLessThanCircuit{
+		Left:     0,
+		Right:    6,
+		Expected: 0,
+	}
+	assert.CheckCircuit(
+		&fieldLessThanCircuit{},
+		test.WithInvalidAssignment(assignment),
+		test.NoTestEngine(),
+		test.WithSolverOpts(solver.OverrideHint(toReplaceHint, maliciousAliasNBitsHint)),
+	)
+}
+
 func TestIndexedLeafCircuitMatchesNativeCommitment(t *testing.T) {
 	inputs := syntheticIndexedLeafInputs(t)
 	commitment, err := IndexedLeafCommitmentNative(inputs)
@@ -230,6 +252,26 @@ func TestIndexedLeafCircuitMatchesNativeCommitment(t *testing.T) {
 		test.WithBackends(backend.GROTH16),
 		test.WithValidAssignment(assignment),
 	)
+}
+
+func getNBitsHintID() (solver.HintID, error) {
+	for _, hint := range solver.GetRegisteredHints() {
+		if solver.GetHintName(hint) == "github.com/consensys/gnark/std/math/bits.nBits" {
+			return solver.GetHintID(hint), nil
+		}
+	}
+	return 0, fmt.Errorf("nBits hint not registered")
+}
+
+func maliciousAliasNBitsHint(mod *big.Int, inputs []*big.Int, results []*big.Int) error {
+	n := new(big.Int).Set(inputs[0])
+	if n.Cmp(big.NewInt(5)) <= 0 {
+		n.Add(n, mod)
+	}
+	for i := range results {
+		results[i].SetUint64(uint64(n.Bit(i)))
+	}
+	return nil
 }
 
 func TestQuadPathCircuitMatchesNativeRoot(t *testing.T) {

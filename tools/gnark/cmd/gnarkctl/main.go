@@ -35,6 +35,10 @@ func main() {
 		err = runSetup(os.Args[2:])
 	case "export-r1cs":
 		err = runExportR1CS(os.Args[2:])
+	case "extract-bit-inputs":
+		err = runExtractBitInputs(os.Args[2:])
+	case "export-poseidon-acl2":
+		err = runExportPoseidonACL2(os.Args[2:])
 	case "prove":
 		err = runProve(os.Args[2:])
 	case "replay":
@@ -52,7 +56,40 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|prove|replay|verify-bench> [flags]")
+}
+
+func runExtractBitInputs(args []string) error {
+	fs := flag.NewFlagSet("extract-bit-inputs", flag.ContinueOnError)
+	label := fs.String("label", "", "gadget label used for generated ACL2 constants")
+	inPath := fs.String("in", "", "input Axe Lisp R1CS file")
+	outPath := fs.String("out", "", "output ACL2 bit-input constants file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *label == "" || *inPath == "" || *outPath == "" {
+		return fmt.Errorf("--label, --in, and --out are required")
+	}
+	data, err := os.ReadFile(*inPath)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", *inPath, err)
+	}
+	symbols, err := artifacts.ExtractBooleanBitInputsFromAxeLisp(data)
+	if err != nil {
+		return err
+	}
+	runs, err := artifacts.ContiguousInternalRuns(symbols)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	if err := artifacts.WriteAxeLispBitInputs(*outPath, *label, symbols, runs); err != nil {
+		return err
+	}
+	fmt.Fprintln(os.Stderr, artifacts.FormatAxeBitInputsReport(symbols, runs))
+	return nil
 }
 
 func runExportR1CS(args []string) error {

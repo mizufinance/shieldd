@@ -112,8 +112,9 @@ jobs:
       # `R1CS => spec` proof, verifies the gnark parity tie, and checks the
       # stamped artifact. nixpkgs#acl2 ships its community books (arithmetic-5)
       # certified under its own image, so the serial `acl2` certifies cleanly.
+      # The same script also runs the M6 Lean spec scaffold (`lake build`).
       - name: Run C3 gadget theorem certification (ACL2)
-        run: nix shell nixpkgs#acl2 --command bash scripts/circuit-gadget-proof-check.sh
+        run: nix shell nixpkgs#acl2 nixpkgs#lean4 --command bash scripts/circuit-gadget-proof-check.sh
 
       - name: Check soundness invariants (post-prover, stamp drift)
         run: nix develop --command bash scripts/check-soundness-invariants.sh

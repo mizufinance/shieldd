@@ -23,6 +23,11 @@
 ;     semaphore rule set -- AleoVM and Penumbra share BLS12-377 Fr.
 ;   * Bit-input wire set (extracted from the export, 506 wires forced boolean by
 ;     `X*(1-X)=0`): INTERNAL-4..256 (A's bits) and INTERNAL-343..595 (B's bits).
+;   * A semantic `verify-r1cs` attempt with these generated bit inputs and the
+;     portable fq-compare rule book reduces the real R1CS to the expected
+;     506-bit obligation, but does not close the generated reducedness-check +
+;     MSB-first dual-ladder theorem.  The row remains decomposed until that
+;     bespoke ladder-to-`<` theorem is certified.
 ;
 ; Field: BLS12-377 Fr, pinned in formal/toolchain.toml [constraints].
 
@@ -30,6 +35,8 @@
 
 (include-book "kestrel/axe/r1cs/top" :dir :system)
 (include-book "generated/gadget-field-less-than-r1cs")
+(include-book "generated/gadget-field-less-than-bit-inputs")
+(include-book "lib/fq-compare")
 
 ; The lift succeeds on the real 2531-constraint comparator (~73s under acl2p):
 ; this is the validated ingestion checkpoint the semantic proof builds on.

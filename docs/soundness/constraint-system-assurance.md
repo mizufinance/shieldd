@@ -109,13 +109,17 @@ gates the `proved` row.
 **C3.2 (landed) — Axe lift feasibility spike.** The same gate now regenerates
 the checked-in
 [gadget-poseidon2-r1cs.lisp](../../crates/core/component/shielded-pool/formal/acl2/generated/gadget-poseidon2-r1cs.lisp)
-from gnark and certifies
+from gnark, regenerates/certifies the generated
+[poseidon377-spec.lisp](../../crates/core/component/shielded-pool/formal/acl2/generated/poseidon377-spec.lisp)
+ACL2 spec against the existing Poseidon vectors, and certifies
 [poseidon2-lift-smoke.lisp](../../crates/core/component/shielded-pool/formal/acl2/poseidon2-lift-smoke.lisp).
 That theorem lifts the real 276-constraint Poseidon2 gadget through Axe and
 proves a non-vacuous first-round constraint consequence:
 `internal_5 = (domain + round_constant)^2`. This validates the Kestrel ingestion
-loop on real Penumbra data, but it is deliberately not the semantic Poseidon
-permutation proof.
+loop on real Penumbra data. The Poseidon spec is available and vector-checked,
+but the semantic `R1CS ⟹ Poseidon377(domain, in0, in1)` proof is still open on
+the Axe substitution/rewrite staging for the compressed partial-round S-box
+chain.
 
 The gadget-scoped ledger
 [circuit-gadget-proofs.md](../../crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md)
@@ -124,8 +128,18 @@ and a `proved` gadget row never promotes a whole-circuit property row —
 `REGULATED-STATUS-SOUNDNESS` *cites* `gadget-bool-select` but stays `refined`.
 
 **Future semantic proofs — comparator, Poseidon, nullifier, and whole-circuit
-composition.** `gadget-poseidon2`/`gadget-nullifier` remain evidence until a full
-Poseidon spec and proof land. `gadget-imt-gap` remains evidence until the
-full-field comparator proof closes. A circuit property row moves to `proved`
-only with a stamped whole-circuit artifact; the invariant gate rejects gadget
-artifacts as substitutes for that property-level claim.
+composition.** `gadget-poseidon2`/`gadget-nullifier` remain below `proved` until
+the full Poseidon semantic proof lands and composes into nullifier derivation.
+`gadget-imt-gap` remains evidence until the full-field comparator proof closes.
+A circuit property row moves to `proved` only with a stamped whole-circuit
+artifact; the invariant gate rejects gadget artifacts as substitutes for that
+property-level claim.
+
+**M6 Lean scaffold.** A Lean 4 project now lives in
+[tools/gnark/lean](../../tools/gnark/lean). It builds the shared high-value spec
+surface for the comparator, IMT gap predicate, nullifier definition, and the
+`REGULATED-STATUS-SOUNDNESS` / `NO-DOUBLE-SPEND` property predicates. The prover
+gate runs `lake build` so the spec layer stays typechecked. This is not yet an
+independent `proven-zk` corroboration: no gnark source circuit has been extracted
+to Lean, and no property row cites a Lean artifact until extractor/proven-zk
+integration lands.
