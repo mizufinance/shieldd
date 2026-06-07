@@ -528,6 +528,9 @@ func acl2LinearExprString(expr acl2LinearExpr, basisOrder []string) string {
 			terms = append(terms, fieldMulConst(expr.coeffs[name].String(), name))
 		}
 	}
+	for i, j := 0, len(terms)-1; i < j; i, j = i+1, j-1 {
+		terms[i], terms[j] = terms[j], terms[i]
+	}
 	if expr.constant.Sign() == 0 {
 		return fieldAddExpr(terms)
 	}

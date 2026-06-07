@@ -3,6 +3,7 @@ package compliance
 import (
 	"math/big"
 
+	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
 )
@@ -10,6 +11,24 @@ import (
 const ThresholdAmountBits = 128
 
 var fieldElementBits = primitives.ScalarField().BitLen()
+
+func init() {
+	solver.RegisterHint(identityHint)
+}
+
+func identityHint(_ *big.Int, inputs []*big.Int, outputs []*big.Int) error {
+	outputs[0].Set(inputs[0])
+	return nil
+}
+
+func materialize(api frontend.API, v frontend.Variable) frontend.Variable {
+	wires, err := api.Compiler().NewHint(identityHint, 1, v)
+	if err != nil {
+		panic(err)
+	}
+	api.AssertIsEqual(wires[0], v)
+	return wires[0]
+}
 
 func flagBitFq() *big.Int {
 	return new(big.Int).Lsh(big.NewInt(1), 253)
@@ -36,17 +55,17 @@ func FieldLessThan(api frontend.API, a, b frontend.Variable) frontend.Variable {
 	aBits := api.ToBinary(a, fieldElementBits)
 	bBits := api.ToBinary(b, fieldElementBits)
 
-	isGreater := frontend.Variable(0)
+	prefixEqual := frontend.Variable(1)
 	isLess := frontend.Variable(0)
 	for i := fieldElementBits - 1; i >= 0; i-- {
 		ai := aBits[i]
 		bi := bBits[i]
-		notGreater := api.Sub(1, isGreater)
-		notLess := api.Sub(1, isLess)
-		greaterAtI := api.Mul(notLess, ai, api.Sub(1, bi))
-		lessAtI := api.Mul(notGreater, api.Sub(1, ai), bi)
-		isGreater = api.Sub(api.Add(isGreater, greaterAtI), api.Mul(isGreater, greaterAtI))
-		isLess = api.Sub(api.Add(isLess, lessAtI), api.Mul(isLess, lessAtI))
+		lessAtI := api.Mul(prefixEqual, api.Sub(1, ai), bi)
+		isLess = materialize(api, api.Add(isLess, lessAtI))
+		eqBit := api.Add(1, api.Mul(2, ai, bi), api.Mul(-1, ai), api.Mul(-1, bi))
+		prefixEqual = materialize(api, api.Mul(prefixEqual, eqBit))
+		api.AssertIsBoolean(prefixEqual)
+		api.AssertIsBoolean(isLess)
 	}
 	return isLess
 }

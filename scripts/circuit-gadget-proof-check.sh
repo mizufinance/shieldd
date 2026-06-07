@@ -20,9 +20,19 @@ cd "$ROOT"
 ACL2_DIR="crates/core/component/shielded-pool/formal/acl2"
 GENERATED_DIR="$ACL2_DIR/generated"
 BOOL_SELECT_PROOF=bool-select-proof
+ISZERO_PROOF=iszero-proof
 FIELD_LESS_THAN_LIFT=field-less-than-lift
+FIELD_LESS_THAN_LADDER_PROOF=field-less-than-ladder-proof
+FIELD_LESS_THAN_PACK_PROOF=field-less-than-pack-proof
+FIELD_LESS_THAN_PROOF=field-less-than-proof
 POSEIDON2_SMOKE_PROOF=poseidon2-lift-smoke
 NULLIFIER_SMOKE_PROOF=nullifier-lift-smoke
+POSEIDON2_PROOF=poseidon2-proof
+NULLIFIER_PROOF=nullifier-proof
+BOOL_SELECT_LEAN=tools/gnark/lean/PenumbraGnarkFormal/Extracted/BoolSelect.lean
+ISZERO_LEAN=tools/gnark/lean/PenumbraGnarkFormal/Extracted/IsZero.lean
+NULLIFIER_LEAN=tools/gnark/lean/PenumbraGnarkFormal/Extracted/Nullifier.lean
+BOOL_SELECT_LEAN_ARTIFACT=tools/gnark/lean/bool-select-lean-artifact.txt
 
 fail() {
   echo "circuit gadget proof check failed: $*" >&2
@@ -97,6 +107,62 @@ check_artifact_stamp() {
   echo "  ($proof artifact sha256: $got)"
 }
 
+check_file_stamp() {
+  local artifact="$1"
+  local want got
+
+  [ -f "$artifact" ] || fail "missing artifact $artifact"
+  [ -f "$artifact.sha256" ] || fail "missing artifact stamp $artifact.sha256"
+  want="$(cat "$artifact.sha256")"
+  got="$(shasum -a 256 "$artifact" | awk '{print $1}')"
+  [ "$want" = "$got" ] || fail "artifact stamp mismatch: $artifact ($got != $want)"
+  echo "  ($artifact sha256: $got)"
+}
+
+check_lean_artifact_stamp() {
+  local bool_select_sha iszero_sha nullifier_sha proof_sha root_sha lakefile_sha manifest_sha toolchain_sha extractor_sha prelude_sha recovery_sha interface_sha
+
+  bool_select_sha="$(shasum -a 256 "$BOOL_SELECT_LEAN" | awk '{print $1}')"
+  iszero_sha="$(shasum -a 256 "$ISZERO_LEAN" | awk '{print $1}')"
+  nullifier_sha="$(shasum -a 256 "$NULLIFIER_LEAN" | awk '{print $1}')"
+  proof_sha="$(shasum -a 256 tools/gnark/lean/PenumbraGnarkFormal/ExtractedProofs.lean | awk '{print $1}')"
+  root_sha="$(shasum -a 256 tools/gnark/lean/PenumbraGnarkFormal.lean | awk '{print $1}')"
+  lakefile_sha="$(shasum -a 256 tools/gnark/lean/lakefile.lean | awk '{print $1}')"
+  manifest_sha="$(shasum -a 256 tools/gnark/lean/lake-manifest.json | awk '{print $1}')"
+  toolchain_sha="$(shasum -a 256 tools/gnark/lean/lean-toolchain | awk '{print $1}')"
+  extractor_sha="$(shasum -a 256 tools/gnark/third_party/gnark-lean-extractor/extractor/extractor.go | awk '{print $1}')"
+  prelude_sha="$(shasum -a 256 tools/gnark/third_party/gnark-lean-extractor/extractor/lean_export.go | awk '{print $1}')"
+  recovery_sha="$(shasum -a 256 tools/gnark/third_party/gnark-lean-extractor/extractor/misc.go | awk '{print $1}')"
+  interface_sha="$(shasum -a 256 tools/gnark/third_party/gnark-lean-extractor/extractor/interface.go | awk '{print $1}')"
+  rg -q "bool_select_extracted_source_sha256: $bool_select_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact bool_select_extracted_source_sha256 != $bool_select_sha"
+  rg -q "iszero_extracted_source_sha256: $iszero_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact iszero_extracted_source_sha256 != $iszero_sha"
+  rg -q "nullifier_extracted_source_sha256: $nullifier_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact nullifier_extracted_source_sha256 != $nullifier_sha"
+  rg -q "field_less_than_extraction_status: unsupported-by-vendored-extractor" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact field_less_than_extraction_status missing unsupported marker"
+  rg -q "proof_source_sha256: $proof_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact proof_source_sha256 != $proof_sha"
+  rg -q "root_source_sha256: $root_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact root_source_sha256 != $root_sha"
+  rg -q "lakefile_sha256: $lakefile_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact lakefile_sha256 != $lakefile_sha"
+  rg -q "lake_manifest_sha256: $manifest_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact lake_manifest_sha256 != $manifest_sha"
+  rg -q "lean_toolchain_sha256: $toolchain_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact lean_toolchain_sha256 != $toolchain_sha"
+  rg -q "extractor_source_sha256: $extractor_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact extractor_source_sha256 != $extractor_sha"
+  rg -q "extractor_prelude_sha256: $prelude_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact extractor_prelude_sha256 != $prelude_sha"
+  rg -q "extractor_recovery_sha256: $recovery_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact extractor_recovery_sha256 != $recovery_sha"
+  rg -q "extractor_interface_sha256: $interface_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
+    || fail "Lean artifact extractor_interface_sha256 != $interface_sha"
+  check_file_stamp "$BOOL_SELECT_LEAN_ARTIFACT"
+}
+
 # 1. The ACL2 model and generated Axe lift data must match the compiled gnark
 # gadgets, wire-for-wire.
 (
@@ -106,10 +172,14 @@ check_artifact_stamp() {
 
 tmp_poseidon2="$(mktemp)"
 tmp_nullifier="$(mktemp)"
+tmp_iszero="$(mktemp)"
 tmp_poseidon_spec="$(mktemp)"
 tmp_field_less_than="$(mktemp)"
 tmp_field_less_than_bits="$(mktemp)"
-trap 'rm -f "$tmp_poseidon2" "$tmp_nullifier" "$tmp_poseidon_spec" "$tmp_field_less_than" "$tmp_field_less_than_bits"' EXIT
+tmp_bool_select_lean="$(mktemp)"
+tmp_iszero_lean="$(mktemp)"
+tmp_nullifier_lean="$(mktemp)"
+trap 'rm -f "$tmp_poseidon2" "$tmp_nullifier" "$tmp_iszero" "$tmp_poseidon_spec" "$tmp_field_less_than" "$tmp_field_less_than_bits" "$tmp_bool_select_lean" "$tmp_iszero_lean" "$tmp_nullifier_lean"' EXIT
 (
   cd tools/gnark
   go run ./cmd/gnarkctl export-r1cs \
@@ -129,6 +199,16 @@ diff -u "$GENERATED_DIR/gadget-poseidon2-r1cs.lisp" "$tmp_poseidon2" \
 ) || fail "failed to regenerate gadget-nullifier Axe Lisp"
 diff -u "$GENERATED_DIR/gadget-nullifier-r1cs.lisp" "$tmp_nullifier" \
   || fail "checked-in gadget-nullifier Axe Lisp is stale"
+
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-r1cs \
+    --circuit gadget-iszero \
+    --format axe-lisp \
+    --out "$tmp_iszero"
+) || fail "failed to regenerate gadget-iszero Axe Lisp"
+diff -u "$GENERATED_DIR/gadget-iszero-r1cs.lisp" "$tmp_iszero" \
+  || fail "checked-in gadget-iszero Axe Lisp is stale"
 
 (
   cd tools/gnark
@@ -158,25 +238,71 @@ diff -u "$GENERATED_DIR/gadget-field-less-than-r1cs.lisp" "$tmp_field_less_than"
 diff -u "$GENERATED_DIR/gadget-field-less-than-bit-inputs.lisp" "$tmp_field_less_than_bits" \
   || fail "checked-in gadget-field-less-than bit-input list is stale"
 
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-lean \
+    --circuit gadget-bool-select \
+    --namespace Penumbra.GnarkFormal.Extracted.BoolSelect \
+    --out "$tmp_bool_select_lean"
+) || fail "failed to regenerate gadget-bool-select Lean extraction"
+diff -u "$BOOL_SELECT_LEAN" "$tmp_bool_select_lean" \
+  || fail "checked-in gadget-bool-select Lean extraction is stale"
+
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-lean \
+    --circuit gadget-iszero \
+    --namespace Penumbra.GnarkFormal.Extracted.IsZero \
+    --out "$tmp_iszero_lean"
+) || fail "failed to regenerate gadget-iszero Lean extraction"
+diff -u "$ISZERO_LEAN" "$tmp_iszero_lean" \
+  || fail "checked-in gadget-iszero Lean extraction is stale"
+
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-lean \
+    --circuit gadget-nullifier \
+    --namespace Penumbra.GnarkFormal.Extracted.Nullifier \
+    --out "$tmp_nullifier_lean"
+) || fail "failed to regenerate gadget-nullifier Lean extraction"
+diff -u "$NULLIFIER_LEAN" "$tmp_nullifier_lean" \
+  || fail "checked-in gadget-nullifier Lean extraction is stale"
+
 # 2. Certify the proof books.
 certify_book "$BOOL_SELECT_PROOF"
+certify_with_cert_pl generated/gadget-iszero-r1cs
+certify_with_cert_pl "$ISZERO_PROOF"
 certify_with_cert_pl generated/gadget-field-less-than-r1cs
 certify_with_cert_pl generated/gadget-field-less-than-bit-inputs
 certify_with_cert_pl lib/fq-compare
 certify_with_cert_pl "$FIELD_LESS_THAN_LIFT"
+certify_with_cert_pl "$FIELD_LESS_THAN_LADDER_PROOF"
+certify_with_cert_pl "$FIELD_LESS_THAN_PACK_PROOF"
+certify_with_cert_pl "$FIELD_LESS_THAN_PROOF"
 certify_with_cert_pl generated/gadget-poseidon2-r1cs
 certify_with_cert_pl generated/poseidon377-spec
 certify_with_cert_pl "$POSEIDON2_SMOKE_PROOF"
+certify_with_cert_pl "$POSEIDON2_PROOF"
 certify_with_cert_pl generated/gadget-nullifier-r1cs
 certify_with_cert_pl "$NULLIFIER_SMOKE_PROOF"
+certify_with_cert_pl "$NULLIFIER_PROOF"
+certify_with_cert_pl generated/gadget-imt-gap-r1cs
+certify_with_cert_pl imt-gap-compose-smoke
 
 # 3. The checked-in stamped artifacts must match the certified proof sources.
 check_artifact_stamp "$BOOL_SELECT_PROOF"
+check_artifact_stamp "$ISZERO_PROOF"
+check_artifact_stamp "$FIELD_LESS_THAN_LADDER_PROOF"
+check_artifact_stamp "$FIELD_LESS_THAN_PACK_PROOF"
+check_artifact_stamp "$FIELD_LESS_THAN_PROOF"
 check_artifact_stamp "$POSEIDON2_SMOKE_PROOF"
+check_artifact_stamp "$POSEIDON2_PROOF"
+check_artifact_stamp "$NULLIFIER_PROOF"
 
 if [ -d tools/gnark/lean ]; then
   command -v lake >/dev/null 2>&1 || fail "Lean lake not found for tools/gnark/lean"
   (cd tools/gnark/lean && lake build) || fail "Lean spec scaffold failed to build"
+  check_lean_artifact_stamp
 fi
 
-echo "circuit gadget proof check ok: bool-select, poseidon2, and nullifier Axe lift smoke proofs certified; Poseidon377 ACL2 spec vectors certified; field-less-than Axe lift checkpoint certified; Lean spec scaffold builds"
+echo "circuit gadget proof check ok: bool-select, iszero, poseidon2, and nullifier semantic proofs certified; Poseidon377 ACL2 spec vectors certified; field-less-than Axe lift/pack/ladder/composed bridge checkpoints certified; supported Lean extracted gadget scaffold builds and stamps match"

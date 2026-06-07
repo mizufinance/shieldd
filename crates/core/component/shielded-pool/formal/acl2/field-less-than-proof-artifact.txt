@@ -1,0 +1,11 @@
+artifact: field-less-than-proof
+scope: composed FieldLessThan proof over generated gadget slices
+status: certified-locally
+proof_source_sha256: d320f3ecf7ed0ec2c8b1fa8b0097004902409870560b7c4acc58139f0b027e60
+cert_sha256: ef46dc8752e4fdb0a3a5117da2e215bb5bbe63ec302ebf5074d89fbafcb118be
+pack_proof_source_sha256: 789dac1f99f244501dee975ea2dc193ef009efd31a250290dcd97da6c5401259
+pack_cert_sha256: 23f7d0d5bdd7af19bd865285d5c08126fe4505fe5eebd21067b3da633259ef48
+ladder_artifact: acl2/field-less-than-ladder-proof-artifact.txt
+THEOREM FIELD-LESS-THAN-PACK-LADDER-BRIDGE certified
+THEOREM FIELD-LESS-THAN-CONCRETE-PACK-LADDER-BRIDGE certified
+SCOPE ToBinary recomposition slices and comparator suffix only; full 3035-constraint monolithic Axe theorem is intentionally not claimed.

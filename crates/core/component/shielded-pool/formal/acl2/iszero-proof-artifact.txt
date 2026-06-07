@@ -1,0 +1,15 @@
+C3 ACL2/Axe gadget proof artifact: gadget-iszero
+
+scope: standalone gnark IsZero gadget over BLS12-377 Fr
+theorem: ISZERO-R1CS-IMPLIES-SPEC in iszero-proof.lisp
+constraint_source: generated/gadget-iszero-r1cs.lisp
+
+proof_source_sha256: ed38e74a5b2e2c8e50b11dff6844a4f0eaf9708346b34045791f7105259d8ca5
+proof_cert_sha256: 91edaccb7ff5b288a3bf11fa222ab84d0a00a6c6fd0f9e79b31c868d30c93066
+constraint_source_sha256: 56b5772ef6c48f016bf1b0db3ecc5fe5ff6456f795fe0960d5c0671c93321edb
+
+checked_by: /opt/homebrew/Cellar/acl2/8.7_3/libexec/books/build/cert.pl --acl2 /opt/homebrew/bin/acl2p iszero-proof
+
+NOTE this theorem is gadget-scoped. It proves the isolated IsZero primitive used
+inside IMT exact-match checks, but it does not compose the whole IMT gap or
+promote a whole-circuit property row by itself.

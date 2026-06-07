@@ -23,14 +23,16 @@ func TestFieldLessThanAxeBitInputs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("extract bit inputs: %v", err)
 	}
+	symbols, runs, err := artifacts.SelectRuns(symbols, func(run artifacts.AxeSymbolRun) bool {
+		return run.Count == 253
+	})
+	if err != nil {
+		t.Fatalf("select field-less-than bit inputs: %v", err)
+	}
 	if got, want := len(symbols), 506; got != want {
 		t.Fatalf("bit input count %d != %d", got, want)
 	}
 
-	runs, err := artifacts.ContiguousInternalRuns(symbols)
-	if err != nil {
-		t.Fatalf("extract contiguous runs: %v", err)
-	}
 	want := []artifacts.AxeSymbolRun{
 		{Start: "INTERNAL-4", End: "INTERNAL-256", Count: 253},
 		{Start: "INTERNAL-343", End: "INTERNAL-595", Count: 253},

@@ -21,9 +21,11 @@ Constraint-system (R1CS) property rows stay `refined`/`composed` until they cite
 a stamped whole-circuit artifact. The gadget decomposition (C1), gadget-scope
 Picus under-constraint check (C2, nightly CI only), and gadget-scope ACL2/Axe
 theorems (C3) are evidence for those rows but do not promote a property by
-themselves. `gadget-bool-select` is now certified with Cond booleanity derived
-from c0, and `gadget-poseidon2` has a certified Axe lift smoke theorem; see
-`docs/soundness/constraint-system-assurance.md`.
+themselves. `gadget-bool-select`, `gadget-iszero`, `gadget-poseidon2`, and
+`gadget-nullifier` now have stamped gadget-scope semantic proofs; the
+FieldLessThan work has certified pack/ladder/bridge checkpoints but not the
+public comparator theorem. See `docs/soundness/constraint-system-assurance.md`
+and `crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md`.
 
 | ID | Kind | Source | Status | Evidence | Removal path |
 | --- | --- | --- | --- | --- | --- |
@@ -34,11 +36,11 @@ from c0, and `gadget-poseidon2` has a certified Axe lift smoke theorem; see
 | `REPLAY-RESISTANCE` | property | compliance | `proved-symbolic` | Tamarin lemma `REPLAY_RESISTANCE verified` in `crates/core/component/compliance/formal/compliance-symbolic-artifact.txt`; modulo `CC-ASSUME-DLEQ-FS`. | Remove the DLEQ idealization to reach plain `proved`. |
 | `NO-KEY-CONFUSION` | property | compliance | `proved-symbolic` | Tamarin lemma `NO_KEY_CONFUSION verified` in `crates/core/component/compliance/formal/compliance-symbolic-artifact.txt`; modulo `CC-ASSUME-DECAF377-ENCODING` and `CC-ASSUME-DLEQ-FS`. | Remove the encoding/DLEQ idealizations to reach plain `proved`. |
 | `ANCHOR-FRESHNESS` | property | compliance | `proved-symbolic` | Tamarin lemma `ANCHOR_FRESHNESS verified` in `crates/core/component/compliance/formal/compliance-symbolic-artifact.txt`; modulo `CC-ASSUME-DECAF377-ENCODING` (IMT roots as canonical field elements). | Remove the IMT/encoding idealization to reach plain `proved`. |
-| `NO-DOUBLE-SPEND` | property | zk-circuits | `composed` | Nullifier circuit logic and action-handler freshness are separately scoped. | Mechanize cross-layer accepted-language proof. |
+| `NO-DOUBLE-SPEND` | property | zk-circuits | `composed` | `gadget-nullifier` has a stamped gadget-scope ACL2/Axe semantic proof; state-commitment path wiring and action-handler freshness are separately scoped. | Mechanize cross-layer accepted-language proof and add a stamped whole-circuit artifact before promotion. |
 | `BALANCE-CONSERVATION` | property | zk-circuits | `refined` | Circuit balance commitment checks are scoped; whole-circuit constraint FV is out of reach. | Add gadget-scope balance-commitment verification (ACL2/Axe). |
 | `NOTE-OWNERSHIP-SPEND-AUTH` | property | zk-circuits | `composed` | Circuit key derivation and external signature verification are mapped. | Prove accepted-language composition. |
 | `OUTPUT-WELL-FORMEDNESS` | property | zk-circuits | `refined` | Commitment and recipient binding code is scoped. | Add gadget-scope checks for note/output commitments. |
-| `REGULATED-STATUS-SOUNDNESS` | property | zk-circuits | `refined` | Go now mirrors Rust membership/non-membership via `VerifyAssetRegistryIMT` (full-field `FieldLessThan`); regression tests reject a regulated asset routed through the unregulated branch. Gadget-scope: the routing primitive `Valid = Select(Cond, IfTrue, IfFalse)` is certified in ACL2 with Cond booleanity derived from c0 (`gadget-bool-select`, see `circuit-gadget-proofs.md`); the whole-circuit comparator wiring (16-deep Merkle path, full-field comparators) is not proved, so this stays `refined`. | Lift the full IMT membership/gap comparator (`gadget-imt-gap`) to a certified theorem (ACL2/Axe), then compose it with the Merkle path and Poseidon proofs into a stamped whole-circuit artifact. |
+| `REGULATED-STATUS-SOUNDNESS` | property | zk-circuits | `refined` | Go now mirrors Rust membership/non-membership via `VerifyAssetRegistryIMT` (full-field `FieldLessThan`); regression tests reject a regulated asset routed through the unregulated branch. Gadget-scope: `gadget-bool-select` and `gadget-iszero` are stamped semantic ACL2 proofs, and FieldLessThan has certified pack/ladder/bridge checkpoints; the public comparator theorem, `gadget-imt-gap`, and the 16-deep Merkle path are not proved, so this stays `refined`. | Finish the full FieldLessThan theorem, lift the IMT membership/gap comparator (`gadget-imt-gap`) to a certified theorem (ACL2/Axe), then compose it with the Merkle path and Poseidon proofs into a stamped whole-circuit artifact. |
 | `CIPHERTEXT-CORRECTNESS` | property | zk-circuits | `composed` | Compliance encryption/DLEQ checks are tied to Track A (`proved-symbolic`). | Add gadget-scope R1CS verification for encryption and DLEQ gadgets. |
 | `STATEMENT-INTEGRITY` | property | zk-circuits | `composed` | Rust/Go differential plus F* field-count injectivity (`crates/core/component/shielded-pool/formal/statement-field-formal-artifact.txt`); full encoder injectivity is not yet proved. | Prove full Rust encoder injectivity and mechanize the Go-side correspondence. |
 | `CC-FIND-C2-MALLEABILITY` | finding | compliance | `resolved` | `validate_c2_seed` checks `c2 == seed + compress(shared_point)` on the standalone decode path; `compliance-ciphertext.md` documents that DLEQ does not authenticate `c2`. | — |

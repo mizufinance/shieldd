@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/consensys/gnark-crypto/ecc"
 	curve "github.com/consensys/gnark-crypto/ecc/bls12-377"
 	"github.com/consensys/gnark/backend/groth16"
 	groth16bls "github.com/consensys/gnark/backend/groth16/bls12-377"
@@ -21,6 +22,7 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
+	"github.com/reilabs/gnark-lean-extractor/v3/extractor"
 )
 
 func main() {
@@ -39,6 +41,8 @@ func main() {
 		err = runExtractBitInputs(os.Args[2:])
 	case "export-poseidon-acl2":
 		err = runExportPoseidonACL2(os.Args[2:])
+	case "export-lean":
+		err = runExportLean(os.Args[2:])
 	case "prove":
 		err = runProve(os.Args[2:])
 	case "replay":
@@ -56,7 +60,36 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|export-lean|prove|replay|verify-bench> [flags]")
+}
+
+func runExportLean(args []string) error {
+	fs := flag.NewFlagSet("export-lean", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "gadget-* label")
+	namespace := fs.String("namespace", "Penumbra.GnarkFormal.Extracted", "Lean namespace")
+	outPath := fs.String("out", "", "output Lean file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *outPath == "" {
+		return fmt.Errorf("--circuit and --out are required")
+	}
+	instance, ok := gadgetCircuit(*circuit)
+	if !ok {
+		return fmt.Errorf("Lean export is gadget-scope only; %q is not a gadget label", *circuit)
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	out, err := extractor.CircuitToLeanWithName(instance, ecc.BLS12_377, *namespace)
+	if err != nil {
+		return fmt.Errorf("extract Lean for %s: %w", *circuit, err)
+	}
+	if err := os.WriteFile(*outPath, []byte(out+"\n"), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", *outPath, err)
+	}
+	fmt.Fprintf(os.Stderr, "wrote %s\n", *outPath)
+	return nil
 }
 
 func runExtractBitInputs(args []string) error {
@@ -81,6 +114,17 @@ func runExtractBitInputs(args []string) error {
 	runs, err := artifacts.ContiguousInternalRuns(symbols)
 	if err != nil {
 		return err
+	}
+	if *label == "gadget-field-less-than" {
+		symbols, runs, err = artifacts.SelectRuns(symbols, func(run artifacts.AxeSymbolRun) bool {
+			return run.Count == 253
+		})
+		if err != nil {
+			return err
+		}
+		if len(runs) != 2 {
+			return fmt.Errorf("field-less-than bit input extraction selected %d runs, want 2", len(runs))
+		}
 	}
 	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
@@ -147,6 +191,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.PoseidonHash2Gadget{}, true
 	case "gadget-nullifier":
 		return &circuits.NullifierGadget{}, true
+	case "gadget-iszero":
+		return &circuits.IsZeroGadget{}, true
 	case "gadget-imt-gap":
 		return &circuits.ImtGapGadget{}, true
 	case "gadget-field-less-than":
@@ -560,6 +606,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-nullifier":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NullifierGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-iszero":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.IsZeroGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-imt-gap":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ImtGapGadget{})

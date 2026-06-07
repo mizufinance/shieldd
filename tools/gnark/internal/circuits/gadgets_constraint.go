@@ -73,6 +73,18 @@ func (c *ImtGapGadget) Define(api frontend.API) error {
 	return nil
 }
 
+// IsZeroGadget isolates gnark's zero-test primitive used by IMT exact-match
+// checks. `Out` is 1 exactly when `In` is zero.
+type IsZeroGadget struct {
+	In  frontend.Variable `gnark:",public"`
+	Out frontend.Variable
+}
+
+func (c *IsZeroGadget) Define(api frontend.API) error {
+	api.AssertIsEqual(c.Out, api.IsZero(c.In))
+	return nil
+}
+
 // FieldLessThanGadget isolates a single full-field `FieldLessThan` comparator —
 // the 253-bit `to_bits_le` decomposition + MSB-first comparison ladder that is
 // the algebraic core of REGULATED-STATUS-SOUNDNESS, apart from the IMT gap

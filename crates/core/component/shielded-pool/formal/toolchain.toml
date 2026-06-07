@@ -28,12 +28,16 @@ fr_primality_cert = "Kestrel BLS12-377 scalar-field defprime"
 r1cs_book = "kestrel/crypto/r1cs/sparse/r1cs"
 axe_r1cs_book = "kestrel/axe/r1cs/top"
 axe_books_rev = "distribution-8.7"
-# M6 Lean scaffold. This currently builds the shared spec of record only; it
-# does not yet run gnark-lean-extractor/proven-zk over extracted source circuits.
-lean = "4.11.0"
+# M6 Lean scaffold plus the extracted BoolSelect source-level proof.
+lean = "4.15.0"
 lake = "5.0.0"
-gnark_lean_extractor = "not-integrated; candidate github.com/reilabs/gnark-lean-extractor/v3"
-proven_zk = "not-integrated"
+# Spike 4 (2026-06-06): version recon done. Extractor v3 pinned gnark v0.9.2;
+# this repo runs gnark v0.14.0. The extractor is now vendored under
+# tools/gnark/third_party/gnark-lean-extractor and ported only at the builder
+# shim/export boundary needed for CircuitToLean. BoolSelect extraction is gated
+# by scripts/circuit-gadget-proof-check.sh.
+gnark_lean_extractor = "third_party/gnark-lean-extractor@663768cd712c3d71796a612859fd47c06665511d; local port to gnark v0.14.0"
+proven_zk = "github.com/reilabs/proven-zk.git@5c483bde5177b560c9095e5babc05d3dbed6951e (branch 4.15)"
 # R1CS prime field. MUST equal gnark's primitives.ScalarField() (BLS12-377 Fr);
 # a mismatch makes every gadget proof vacuous. Asserted by the export bridge.
 field = "bls12-377-fr"
@@ -43,5 +47,5 @@ field_modulus = "844446174942837042424882493878154653137589933515406382793523345
 scope = "decomposed-gadget-only"
 whole_circuit_status = "requires whole-circuit artifact before any property row is proved"
 picus_status = "under-constraint-evidence-only"
-axe_status = "bool-select semantic proof; field-less-than/nullifier decomposed; poseidon2 lift smoke plus vector-certified spec"
-lean_status = "spec scaffold builds; no extracted-source proof rows yet"
+axe_status = "bool-select/iszero/poseidon2/nullifier semantic proofs; field-less-than lift, exact-pack, comparator-suffix ladder, and assumption bridge checkpoints certified; reducedness-to-public-value semantic theorem pending"
+lean_status = "ProvenZK-backed extracted BoolSelect, IsZero, and Nullifier models build; BoolSelect/IsZero prove gate implications; FieldLessThan extraction is unsupported by the vendored extractor and fails loudly; whole-circuit Lean extraction pending"

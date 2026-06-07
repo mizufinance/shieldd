@@ -43,6 +43,39 @@ func ExtractBooleanBitInputsFromAxeLisp(data []byte) ([]string, error) {
 	return out, nil
 }
 
+func SelectRuns(symbols []string, keep func(AxeSymbolRun) bool) ([]string, []AxeSymbolRun, error) {
+	runs, err := ContiguousInternalRuns(symbols)
+	if err != nil {
+		return nil, nil, err
+	}
+	keepSet := map[string]struct{}{}
+	keptRuns := make([]AxeSymbolRun, 0, len(runs))
+	for _, run := range runs {
+		if !keep(run) {
+			continue
+		}
+		start, err := internalSymbolNumber(run.Start)
+		if err != nil {
+			return nil, nil, err
+		}
+		end, err := internalSymbolNumber(run.End)
+		if err != nil {
+			return nil, nil, err
+		}
+		for n := start; n <= end; n++ {
+			keepSet[fmt.Sprintf("INTERNAL-%d", n)] = struct{}{}
+		}
+		keptRuns = append(keptRuns, run)
+	}
+	out := make([]string, 0, len(symbols))
+	for _, symbol := range symbols {
+		if _, ok := keepSet[symbol]; ok {
+			out = append(out, symbol)
+		}
+	}
+	return out, keptRuns, nil
+}
+
 func ContiguousInternalRuns(symbols []string) ([]AxeSymbolRun, error) {
 	if len(symbols) == 0 {
 		return nil, nil
