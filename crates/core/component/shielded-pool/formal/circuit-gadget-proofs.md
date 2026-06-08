@@ -25,7 +25,7 @@ Status model (gadget rows):
 | `gadget-poseidon2` | `OUT = Poseidon377(DOMAIN, IN0, IN1)` over the 276-constraint gnark export and generated R1CS-shaped spec | `verify-r1cs` in [acl2/poseidon2-proof.lisp](acl2/poseidon2-proof.lisp); generated spec in [acl2/generated/poseidon377-spec.lisp](acl2/generated/poseidon377-spec.lisp) certifies Go/Rust vectors | [acl2/poseidon2-proof-artifact.txt](acl2/poseidon2-proof-artifact.txt) | `CIPHERTEXT-CORRECTNESS`, `NO-DOUBLE-SPEND`, Merkle-path composition | `proved` |
 | `gadget-nullifier` | `NULLIFIER = Poseidon377(nullifier-domain, NK, STATECOMMITMENT, POSITION)` over the 311-constraint gnark export | `verify-r1cs` in [acl2/nullifier-proof.lisp](acl2/nullifier-proof.lisp) | [acl2/nullifier-proof-artifact.txt](acl2/nullifier-proof-artifact.txt) | `NO-DOUBLE-SPEND` | `proved` |
 | `gadget-field-less-than` | `OUT = (A < B ? 1 : 0)` over BLS12-377 Fr (single 253-bit `to_bits_le` comparator) | lift checkpoint plus certified pack/ladder/bridge checkpoints ([acl2/field-less-than-lift.lisp](acl2/field-less-than-lift.lisp), [acl2/field-less-than-pack-proof.lisp](acl2/field-less-than-pack-proof.lisp), [acl2/field-less-than-ladder-proof.lisp](acl2/field-less-than-ladder-proof.lisp), [acl2/field-less-than-proof.lisp](acl2/field-less-than-proof.lisp)); public-value semantic theorem not proved | [acl2/field-less-than-pack-proof-artifact.txt](acl2/field-less-than-pack-proof-artifact.txt), [acl2/field-less-than-ladder-proof-artifact.txt](acl2/field-less-than-ladder-proof-artifact.txt), [acl2/field-less-than-proof-artifact.txt](acl2/field-less-than-proof-artifact.txt) | `gadget-imt-gap`, `REGULATED-STATUS-SOUNDNESS` | `decomposed` |
-| `gadget-imt-gap` | `Select(IsRegulated, exactMatch, inGap) == 1` comparator | — | — | `REGULATED-STATUS-SOUNDNESS` | `evidence` |
+| `gadget-imt-gap` | `Select(IsRegulated, exactMatch, inGap) == 1`, where `inGap` is the product of the embedded `leaf<id` and `id<next` lexLess ladders, over the 5568-constraint AssetRegistryGap export | `verify-r1cs` in [acl2/asset-registry-gap-output.lisp](acl2/asset-registry-gap-output.lisp) | [acl2/asset-registry-gap-output-artifact.txt](acl2/asset-registry-gap-output-artifact.txt) | `REGULATED-STATUS-SOUNDNESS` | `proved` |
 
 ## Scope honesty
 
@@ -268,11 +268,15 @@ Status model (gadget rows):
     `primep` taken as a hypothesis); **`asset-registry-gap-proof`** proves the
     5-way `holdp` block decomposition `reg·leaf·id·next·tail` over the real 5568
     gadget (boundaries `[0,1)·[1,507)·[507,1013)·[1013,1519)·[1519,5568)` verified
-    by the operand packing scan). **Still open:** the bridge from the gnark
-    506-slice to the constructor (fold the 166 identity wires + reorder + reconcile
-    the boolean strategy) and `lex-less-proof`; once both land the per-block lemmas
-    feed the decomposition to promote `gadget-imt-gap` to `proved`. Tracked in
-    [ASSET-REGISTRY-GAP-HANDOFF.md](ASSET-REGISTRY-GAP-HANDOFF.md).
+    by the operand packing scan).
+  - **1E output closure CERTIFIED (2026-06-08, acl2p homebrew 8.7).**
+    [acl2/asset-registry-gap-output.lisp](acl2/asset-registry-gap-output.lisp)
+    follows the nullifier recipe: named ACL2 ladder-chain rewrites collapse the
+    two embedded lexLess blocks (`leaf<id` and `id<next`), named algebra rewrites
+    collapse the final `inGap`/Select/output constraints, and one final
+    `verify-r1cs` over the real 5568-constraint `AssetRegistryGap` export proves
+    the gadget output predicate. The stamped artifact is
+    [acl2/asset-registry-gap-output-artifact.txt](acl2/asset-registry-gap-output-artifact.txt).
 - No row here promotes a whole-circuit property. `REGULATED-STATUS-SOUNDNESS`
   stays `refined` even though it now cites a `proved` gadget, because the
   whole-circuit comparator wiring (16-deep Merkle path, full-field comparators)

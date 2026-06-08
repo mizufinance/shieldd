@@ -1,0 +1,24 @@
+artifact: asset-registry-gap-output
+scope: gadget AssetRegistryGap output predicate over the real 5568-constraint gnark export
+status: certified-locally
+tool: acl2/axe
+acl2: Version 8.7
+image: acl2p (ACL2(p) parallel)
+books: kestrel/axe/r1cs/top; lex-less-proof; generated/gadget-asset-registry-gap-r1cs
+field_modulus: 8444461749428370424248824938781546531375899335154063827935233455917409239041
+proof_source_sha256: f4367503fc261860cc8601a35eb882e78f2fee10109d74123594603bb53d732f
+proof_cert_sha256: f2fc66aeed026ef8a92676ff45880613a9df27e666aefe5cbdbeab96f4126459
+generated_r1cs_source_sha256: a5c3e15d218945919c5c019b0f570d74c18e93690b97866afae14a4f04e63b10
+generated_r1cs_cert_sha256: 1caa7d58089b6ecd6cd73168f84dc2c36df0a68828f36a2e034f3043a9e4a964
+lex_less_source_sha256: efd662d9eeab822728384f1a7a74ea67822ed4c5a1b9e65c83d65f33de2112ef
+lex_less_cert_sha256: fd8ab32bd7240cc2327a7e0cd642a801eb54916d7f8cd8608c9d1532cb645b3e
+operand_canonicity_source_sha256: 36302a6cba628eedc41fbcac698d325b3e312efdb0a8fd370e1d273a1c37367f
+operand_canonicity_cert_sha256: b6df6bb0adf8b5ee9bcecb3a252fcd3b5495db47aa43aab46a1c164c033b609f
+THEOREM verify-r1cs asset-registry-gap-output certified
+SCOPE gadget gadget-imt-gap / AssetRegistryGap only
+SPEC Select(IsRegulated, INTERNAL-1520 exact-match wire, fq-prefix-ladder-less(leaf_bits_msb, id_bits_msb) * fq-prefix-ladder-less(id_bits_msb, next_bits_msb)) == 1
+NOTE the proof runs over *GADGET-ASSET-REGISTRY-GAP-constraints*, the real 5568-constraint gnark AssetRegistryGap export
+NOTE named ladder-chain rewrite rules ARG-L1-LADDER-STEP-0..252 and ARG-L2-LADDER-STEP-0..252 collapse the embedded lexLess ladders
+NOTE final tail glue is proved by named ACL2 algebra rewrites and the final whole-gadget verify-r1cs proves MAIN_CASE
+NOTE no skip-proofs and no new trust tag in the committed proof
+NOTE this theorem promotes no whole-circuit property row; it is gadget-scoped only
