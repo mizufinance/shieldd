@@ -34,8 +34,7 @@ gadget-*`:
 | `gadget-iszero` | zero test | IMT exact-match primitive | 3 |
 | `gadget-poseidon2` | Poseidon377 two-input hash | hashing primitive | 276 |
 | `gadget-nullifier` | nullifier derivation | `NO-DOUBLE-SPEND` | 311 |
-| `gadget-field-less-than` | full-field comparator | `REGULATED-STATUS-SOUNDNESS` | 3035 |
-| `gadget-imt-gap` | `Select(IsRegulated, exactMatch, inGap)` comparator | `REGULATED-STATUS-SOUNDNESS` | 6074 |
+| `gadget-imt-gap` | AssetRegistryGap `Select(IsRegulated, exactMatch, inGap)` comparator | `REGULATED-STATUS-SOUNDNESS` | 5568 |
 
 The derived output (hash / nullifier) is a witness wire so Picus has a signal
 whose uniqueness it must decide. Encryption/DLEQ and balance-commitment gadgets
@@ -61,7 +60,7 @@ rows still require whole-circuit composition artifacts.
 | --- | --- | --- |
 | Picus | Landed at gadget scope (C2, CI-only). | Runs on the decomposed gadget `.sr1cs` in the nightly `provers` job; whole-circuit recorded `undischarged-by-design`. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
 | Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Penumbra needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
-| ACL2/Axe | Landed for bool-select, iszero, Poseidon2, and nullifier semantic gadget proofs; FieldLessThan has certified pack/ladder/bridge checkpoints with the public comparator theorem still open. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
+| ACL2/Axe | Landed for bool-select, iszero, Poseidon2, nullifier, and AssetRegistryGap-backed `gadget-imt-gap` semantic gadget proofs. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |
 | Circomspect / Coda | Not applicable unless Circom circuits are introduced. | Penumbra production circuits are gnark; Circom source analyzers do not run on this codebase. |
 
@@ -121,20 +120,20 @@ and
 [nullifier-proof.lisp](../../crates/core/component/shielded-pool/formal/acl2/nullifier-proof.lisp)
 books. Poseidon opens the generated `poseidon377-pow17` spec into the 5-mul R1CS
 S-box chains; nullifier specializes the Poseidon hash3 spec at the fixed
-nullifier domain. The same gate certifies `gadget-iszero` and the FieldLessThan
-lift/pack/ladder/bridge checkpoint books. FieldLessThan is not promoted because
-the reducedness-to-public-value comparator theorem is still open.
+nullifier domain. The same gate certifies `gadget-iszero` and the
+AssetRegistryGap-backed `gadget-imt-gap` output proof over the real
+5568-constraint export.
 
 The gadget-scoped ledger
 [circuit-gadget-proofs.md](../../crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md)
 carries the `proved` rows. It is the only ledger whose rows may hold `proved`,
 and a `proved` gadget row never promotes a whole-circuit property row —
-`REGULATED-STATUS-SOUNDNESS` *cites* `gadget-bool-select` but stays `refined`.
+`REGULATED-STATUS-SOUNDNESS` *cites* `gadget-imt-gap` but stays `refined`.
 
-**Future semantic proofs — comparator, IMT gap, and whole-circuit composition.**
-`gadget-imt-gap` remains evidence until the full-field comparator proof closes
-and the append composition substitutes the bool-select, iszero, comparator, and
-mul characterizations.
+**Future semantic proof — whole-circuit composition.** `gadget-imt-gap` is proved
+at gadget scope; `REGULATED-STATUS-SOUNDNESS` still needs a stamped
+whole-circuit artifact composing the gadget theorem with the Merkle path and
+Poseidon path checks.
 A circuit property row moves to `proved` only with a stamped whole-circuit
 artifact; the invariant gate rejects gadget artifacts as substitutes for that
 property-level claim.
@@ -143,7 +142,6 @@ property-level claim.
 [tools/gnark/lean](../../tools/gnark/lean). The vendored
 `gnark-lean-extractor` port emits supported BoolSelect, IsZero, and Nullifier
 models, and `lake build` checks the extracted files plus small BoolSelect/IsZero
-implication proofs. FieldLessThan extraction currently fails loudly in the
-ported extractor, Poseidon remains opaque in the shared Lean spec, and no
+implication proofs. Poseidon remains opaque in the shared Lean spec, and no
 property row cites a Lean artifact until source-level whole-circuit extraction
 and proof integration land.

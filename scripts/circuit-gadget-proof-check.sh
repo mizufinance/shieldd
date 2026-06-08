@@ -21,10 +21,6 @@ ACL2_DIR="crates/core/component/shielded-pool/formal/acl2"
 GENERATED_DIR="$ACL2_DIR/generated"
 BOOL_SELECT_PROOF=bool-select-proof
 ISZERO_PROOF=iszero-proof
-FIELD_LESS_THAN_LIFT=field-less-than-lift
-FIELD_LESS_THAN_LADDER_PROOF=field-less-than-ladder-proof
-FIELD_LESS_THAN_PACK_PROOF=field-less-than-pack-proof
-FIELD_LESS_THAN_PROOF=field-less-than-proof
 POSEIDON2_SMOKE_PROOF=poseidon2-lift-smoke
 NULLIFIER_SMOKE_PROOF=nullifier-lift-smoke
 POSEIDON2_PROOF=poseidon2-proof
@@ -159,8 +155,6 @@ check_lean_artifact_stamp() {
     || fail "Lean artifact iszero_extracted_source_sha256 != $iszero_sha"
   rg -q "nullifier_extracted_source_sha256: $nullifier_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
     || fail "Lean artifact nullifier_extracted_source_sha256 != $nullifier_sha"
-  rg -q "field_less_than_extraction_status: unsupported-by-vendored-extractor" "$BOOL_SELECT_LEAN_ARTIFACT" \
-    || fail "Lean artifact field_less_than_extraction_status missing unsupported marker"
   rg -q "proof_source_sha256: $proof_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
     || fail "Lean artifact proof_source_sha256 != $proof_sha"
   rg -q "root_source_sha256: $root_sha" "$BOOL_SELECT_LEAN_ARTIFACT" \
@@ -186,19 +180,17 @@ check_lean_artifact_stamp() {
 # gadgets, wire-for-wire.
 (
   cd tools/gnark
-  go test ./internal/circuits/ -run 'TestBoolSelectAcl2ModelParity|TestAxeExportFidelity|TestFieldLessThanAxeBitInputs' -count=1
+  go test ./internal/circuits/ -run 'TestBoolSelectAcl2ModelParity|TestAxeExportFidelity' -count=1
 ) || fail "ACL2/gnark parity or Axe export fidelity failed — proof models a different circuit"
 
 tmp_poseidon2="$(mktemp)"
 tmp_nullifier="$(mktemp)"
 tmp_iszero="$(mktemp)"
 tmp_poseidon_spec="$(mktemp)"
-tmp_field_less_than="$(mktemp)"
-tmp_field_less_than_bits="$(mktemp)"
 tmp_bool_select_lean="$(mktemp)"
 tmp_iszero_lean="$(mktemp)"
 tmp_nullifier_lean="$(mktemp)"
-trap 'rm -f "$tmp_poseidon2" "$tmp_nullifier" "$tmp_iszero" "$tmp_poseidon_spec" "$tmp_field_less_than" "$tmp_field_less_than_bits" "$tmp_bool_select_lean" "$tmp_iszero_lean" "$tmp_nullifier_lean"' EXIT
+trap 'rm -f "$tmp_poseidon2" "$tmp_nullifier" "$tmp_iszero" "$tmp_poseidon_spec" "$tmp_bool_select_lean" "$tmp_iszero_lean" "$tmp_nullifier_lean"' EXIT
 (
   cd tools/gnark
   go run ./cmd/gnarkctl export-r1cs \
@@ -239,26 +231,6 @@ diff -u "$GENERATED_DIR/poseidon377-spec.lisp" "$tmp_poseidon_spec" \
 
 (
   cd tools/gnark
-  go run ./cmd/gnarkctl export-r1cs \
-    --circuit gadget-field-less-than \
-    --format axe-lisp \
-    --out "$tmp_field_less_than"
-) || fail "failed to regenerate gadget-field-less-than Axe Lisp"
-diff -u "$GENERATED_DIR/gadget-field-less-than-r1cs.lisp" "$tmp_field_less_than" \
-  || fail "checked-in gadget-field-less-than Axe Lisp is stale"
-
-(
-  cd tools/gnark
-  go run ./cmd/gnarkctl extract-bit-inputs \
-    --label gadget-field-less-than \
-    --in "$ROOT/$GENERATED_DIR/gadget-field-less-than-r1cs.lisp" \
-    --out "$tmp_field_less_than_bits" >/dev/null
-) || fail "failed to regenerate gadget-field-less-than bit inputs"
-diff -u "$GENERATED_DIR/gadget-field-less-than-bit-inputs.lisp" "$tmp_field_less_than_bits" \
-  || fail "checked-in gadget-field-less-than bit-input list is stale"
-
-(
-  cd tools/gnark
   go run ./cmd/gnarkctl export-lean \
     --circuit gadget-bool-select \
     --namespace Penumbra.GnarkFormal.Extracted.BoolSelect \
@@ -291,13 +263,7 @@ diff -u "$NULLIFIER_LEAN" "$tmp_nullifier_lean" \
 certify_book "$BOOL_SELECT_PROOF"
 certify_with_cert_pl generated/gadget-iszero-r1cs
 certify_with_cert_pl "$ISZERO_PROOF"
-certify_with_cert_pl generated/gadget-field-less-than-r1cs
-certify_with_cert_pl generated/gadget-field-less-than-bit-inputs
 certify_with_cert_pl lib/fq-compare
-certify_with_cert_pl "$FIELD_LESS_THAN_LIFT"
-certify_with_cert_pl "$FIELD_LESS_THAN_LADDER_PROOF"
-certify_with_cert_pl "$FIELD_LESS_THAN_PACK_PROOF"
-certify_with_cert_pl "$FIELD_LESS_THAN_PROOF"
 certify_with_cert_pl generated/gadget-poseidon2-r1cs
 certify_with_cert_pl generated/poseidon377-spec
 certify_with_cert_pl "$POSEIDON2_SMOKE_PROOF"
@@ -321,7 +287,6 @@ certify_with_cert_pl canonical-fq-bits-lift
 certify_with_cert_pl canonical-fq-bits-proof
 certify_with_cert_pl canonical-fq-bits-bridge
 certify_with_cert_pl canonical-fq-bits-rename
-certify_with_cert_pl generated/gadget-asset-registry-gap-r1cs
 certify_with_cert_pl lex-less-proof
 certify_with_cert_pl asset-registry-gap-proof
 certify_with_cert_pl asset-registry-operands-reduced
@@ -331,9 +296,6 @@ certify_with_cert_pl "$ASSET_REGISTRY_GAP_OUTPUT_PROOF"
 # 3. The checked-in stamped artifacts must match the certified proof sources.
 check_artifact_stamp "$BOOL_SELECT_PROOF"
 check_artifact_stamp "$ISZERO_PROOF"
-check_artifact_stamp "$FIELD_LESS_THAN_LADDER_PROOF"
-check_artifact_stamp "$FIELD_LESS_THAN_PACK_PROOF"
-check_artifact_stamp "$FIELD_LESS_THAN_PROOF"
 check_artifact_stamp "$POSEIDON2_SMOKE_PROOF"
 check_artifact_stamp "$POSEIDON2_PROOF"
 check_artifact_stamp "$NULLIFIER_PROOF"
@@ -358,4 +320,4 @@ else
   LEAN_STATUS="Lean closure skipped (tools/gnark/lean absent)"
 fi
 
-echo "circuit gadget proof check ok: bool-select, iszero, poseidon2, nullifier, and AssetRegistryGap output semantic proofs certified; Poseidon377 ACL2 spec vectors certified; field-less-than Axe lift/pack/ladder/composed bridge checkpoints certified; $LEAN_STATUS"
+echo "circuit gadget proof check ok: bool-select, iszero, poseidon2, nullifier, and AssetRegistryGap output semantic proofs certified; Poseidon377 ACL2 spec vectors certified; $LEAN_STATUS"

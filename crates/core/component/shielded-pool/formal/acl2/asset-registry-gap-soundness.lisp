@@ -35,7 +35,7 @@
                 (valuation-binds-allp valuation (strip-cdrs *sigma-leaf*))
                 (valuation-binds-allp valuation (strip-cdrs *sigma-id*))
                 (valuation-binds-allp valuation (strip-cdrs *sigma-next*))
-                (r1cs-constraints-holdp *GADGET-ASSET-REGISTRY-GAP-constraints*
+                (r1cs-constraints-holdp *GADGET-IMT-GAP-constraints*
                                         valuation *fq-prime*))
            (and ;; LeafValue operand is a canonical residue
                 (acl2::bit-listp (acl2::lookup-eq-lst *leaf-avars* valuation))

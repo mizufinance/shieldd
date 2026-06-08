@@ -386,15 +386,15 @@
 
 (local
  (lift-r1cs *arg-output-lifted*
-            *GADGET-ASSET-REGISTRY-GAP-vars*
-            *GADGET-ASSET-REGISTRY-GAP-constraints*
-            *GADGET-ASSET-REGISTRY-GAP-prime*
+            *GADGET-IMT-GAP-vars*
+            *GADGET-IMT-GAP-constraints*
+            *GADGET-IMT-GAP-prime*
             :package "R1CS"))
 
 (verify-r1cs
  *arg-output-lifted*
  (equal (arg-output-spec ISREGULATED) 1)
- *GADGET-ASSET-REGISTRY-GAP-prime*
+ *GADGET-IMT-GAP-prime*
  :tactic '(:rep :rewrite :subst)
  :global-rules '(acl2::rationalp-when-integerp
                  pfield::integerp-of-add
@@ -415,6 +415,6 @@
                  pfield::neg-of-0
                  primes::primep-of-bls12-377-scalar-field-prime-constant)
  :rule-lists (list (arg-output-rule-list))
- :var-ordering (append (reverse (cddddr *GADGET-ASSET-REGISTRY-GAP-vars*))
+ :var-ordering (append (reverse (cddddr *GADGET-IMT-GAP-vars*))
                        (list 'NOTEASSETID 'ISREGULATED 'LEAFVALUE 'NEXTVALUE))
  :print :brief)

@@ -1,12 +1,12 @@
 ; lexLess253 ladder semantics over the AssetRegistryGap gadget.
 ;
-; Re-point of the certified field-less-than-ladder-proof.lisp onto the two
-; lexLess253 sub-blocks embedded in the AssetRegistryGap tail. The ladder body is
-; byte-identical to the old FieldLessThan ladder; only the constraint slice and
-; the consumed bit-wires change (lexLess253 reuses the already-materialized
+; Semantics of the two lexLess253 sub-blocks embedded in the AssetRegistryGap
+; tail. The ladder body reuses the same MSB-first recurrence as the previous
+; comparator route; only the constraint slice and the consumed bit-wires change
+; (lexLess253 reuses the already-materialized
 ; CanonicalFqBits253 outputs -- it does not decompose again).
 ;
-; Tail block map (indices into *GADGET-ASSET-REGISTRY-GAP-constraints*):
+; Tail block map (indices into *GADGET-IMT-GAP-constraints*):
 ;   IsZero exact-match : [1519,1521)
 ;   ladder1 leaf<id    : [1521,3543)  -> output INTERNAL-3034 (gtLow)
 ;   ladder2 id<next    : [3543,5565)  -> output INTERNAL-4550 (ltHigh)
@@ -18,13 +18,13 @@
 (in-package "R1CS")
 
 (include-book "kestrel/axe/r1cs/top" :dir :system)
-(include-book "generated/gadget-asset-registry-gap-r1cs")
+(include-book "generated/gadget-imt-gap-r1cs")
 (include-book "lib/fq-compare")
 
 (defconst *arg-ladder1-constraints*
-  (take 2022 (nthcdr 1521 *GADGET-ASSET-REGISTRY-GAP-constraints*)))
+  (take 2022 (nthcdr 1521 *GADGET-IMT-GAP-constraints*)))
 (defconst *arg-ladder2-constraints*
-  (take 2022 (nthcdr 3543 *GADGET-ASSET-REGISTRY-GAP-constraints*)))
+  (take 2022 (nthcdr 3543 *GADGET-IMT-GAP-constraints*)))
 
 (defconst *ll-bitinputs-1*
   '(INTERNAL-5 INTERNAL-6 INTERNAL-7 INTERNAL-8 INTERNAL-9 INTERNAL-10 INTERNAL-11 INTERNAL-12
@@ -667,9 +667,9 @@
 
 (local
  (lift-r1cs *arg-ladder1-lifted*
-            *GADGET-ASSET-REGISTRY-GAP-vars*
+            *GADGET-IMT-GAP-vars*
             *arg-ladder1-constraints*
-            *GADGET-ASSET-REGISTRY-GAP-prime*
+            *GADGET-IMT-GAP-prime*
             :package "R1CS"))
 
 (verify-r1cs
@@ -740,7 +740,7 @@
          INTERNAL-530 INTERNAL-529 INTERNAL-528 INTERNAL-527 INTERNAL-526 INTERNAL-525 INTERNAL-524 INTERNAL-523
          INTERNAL-522 INTERNAL-521 INTERNAL-520 INTERNAL-519 INTERNAL-518 INTERNAL-517 INTERNAL-516 INTERNAL-515
          INTERNAL-514 INTERNAL-513 INTERNAL-512 INTERNAL-511 INTERNAL-510)))
- *GADGET-ASSET-REGISTRY-GAP-prime*
+ *GADGET-IMT-GAP-prime*
  :bit-inputs *ll-bitinputs-1*
  :tactic '(:rep :rewrite :subst)
  :global-rules '(acl2::rationalp-when-integerp
@@ -798,9 +798,9 @@
 
 (local
  (lift-r1cs *arg-ladder2-lifted*
-            *GADGET-ASSET-REGISTRY-GAP-vars*
+            *GADGET-IMT-GAP-vars*
             *arg-ladder2-constraints*
-            *GADGET-ASSET-REGISTRY-GAP-prime*
+            *GADGET-IMT-GAP-prime*
             :package "R1CS"))
 
 (verify-r1cs
@@ -871,7 +871,7 @@
          INTERNAL-1035 INTERNAL-1034 INTERNAL-1033 INTERNAL-1032 INTERNAL-1031 INTERNAL-1030 INTERNAL-1029 INTERNAL-1028
          INTERNAL-1027 INTERNAL-1026 INTERNAL-1025 INTERNAL-1024 INTERNAL-1023 INTERNAL-1022 INTERNAL-1021 INTERNAL-1020
          INTERNAL-1019 INTERNAL-1018 INTERNAL-1017 INTERNAL-1016 INTERNAL-1015)))
- *GADGET-ASSET-REGISTRY-GAP-prime*
+ *GADGET-IMT-GAP-prime*
  :bit-inputs *ll-bitinputs-2*
  :tactic '(:rep :rewrite :subst)
  :global-rules '(acl2::rationalp-when-integerp

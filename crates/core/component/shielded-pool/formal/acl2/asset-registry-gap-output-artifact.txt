@@ -4,20 +4,20 @@ status: certified-locally
 tool: acl2/axe
 acl2: Version 8.7
 image: acl2p (ACL2(p) parallel)
-books: kestrel/axe/r1cs/top; lex-less-proof; generated/gadget-asset-registry-gap-r1cs
+books: kestrel/axe/r1cs/top; lex-less-proof; generated/gadget-imt-gap-r1cs
 field_modulus: 8444461749428370424248824938781546531375899335154063827935233455917409239041
-proof_source_sha256: f4367503fc261860cc8601a35eb882e78f2fee10109d74123594603bb53d732f
-proof_cert_sha256: f2fc66aeed026ef8a92676ff45880613a9df27e666aefe5cbdbeab96f4126459
-generated_r1cs_source_sha256: a5c3e15d218945919c5c019b0f570d74c18e93690b97866afae14a4f04e63b10
-generated_r1cs_cert_sha256: 1caa7d58089b6ecd6cd73168f84dc2c36df0a68828f36a2e034f3043a9e4a964
-lex_less_source_sha256: efd662d9eeab822728384f1a7a74ea67822ed4c5a1b9e65c83d65f33de2112ef
-lex_less_cert_sha256: fd8ab32bd7240cc2327a7e0cd642a801eb54916d7f8cd8608c9d1532cb645b3e
-operand_canonicity_source_sha256: 36302a6cba628eedc41fbcac698d325b3e312efdb0a8fd370e1d273a1c37367f
-operand_canonicity_cert_sha256: b6df6bb0adf8b5ee9bcecb3a252fcd3b5495db47aa43aab46a1c164c033b609f
+proof_source_sha256: 1b8ac4391b26a88e23974df8e6b3dcc39c7ec6ec6bdd0d507750dca1fe26ca42
+proof_cert_sha256: 3c53d8cd4f344b00c933f9fe129da78c38904eb98b141f0c8df82afb0065fb74
+generated_r1cs_source_sha256: e1d2e80b38da5ebcccdb834cf3110f302f49220242f3f875fb699b8780cb4e57
+generated_r1cs_cert_sha256: e8b8e0908bb00bf93355d167b172d65543889716949ffd9576d34d1676d86550
+lex_less_source_sha256: 2921b8c5c9e7fe58936c4590035e811588dd4f7ac9a21bf9aaa5e0fd2a17f8f4
+lex_less_cert_sha256: 98176d4912e3aaf6faefe0fce7a24bf9c4003a7f4c01d872b27f8c7388b4bc9f
+operand_canonicity_source_sha256: abd25269986911d387f1f8331a98077534c91900052bdac370529d8f306cae24
+operand_canonicity_cert_sha256: 46900d9d437d980790472d08196016b25cec6a4825547b07e05d9e1808f1e6d9
 THEOREM verify-r1cs asset-registry-gap-output certified
 SCOPE gadget gadget-imt-gap / AssetRegistryGap only
 SPEC Select(IsRegulated, INTERNAL-1520 exact-match wire, fq-prefix-ladder-less(leaf_bits_msb, id_bits_msb) * fq-prefix-ladder-less(id_bits_msb, next_bits_msb)) == 1
-NOTE the proof runs over *GADGET-ASSET-REGISTRY-GAP-constraints*, the real 5568-constraint gnark AssetRegistryGap export
+NOTE the proof runs over *GADGET-IMT-GAP-constraints*, the real 5568-constraint gnark AssetRegistryGap export shipped under the gadget-imt-gap label
 NOTE named ladder-chain rewrite rules ARG-L1-LADDER-STEP-0..252 and ARG-L2-LADDER-STEP-0..252 collapse the embedded lexLess ladders
 NOTE final tail glue is proved by named ACL2 algebra rewrites and the final whole-gadget verify-r1cs proves MAIN_CASE
 NOTE no skip-proofs and no new trust tag in the committed proof

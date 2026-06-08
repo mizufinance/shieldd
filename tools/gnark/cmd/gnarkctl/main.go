@@ -115,17 +115,6 @@ func runExtractBitInputs(args []string) error {
 	if err != nil {
 		return err
 	}
-	if *label == "gadget-field-less-than" {
-		symbols, runs, err = artifacts.SelectRuns(symbols, func(run artifacts.AxeSymbolRun) bool {
-			return run.Count == 253
-		})
-		if err != nil {
-			return err
-		}
-		if len(runs) != 2 {
-			return fmt.Errorf("field-less-than bit input extraction selected %d runs, want 2", len(runs))
-		}
-	}
 	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
 	}
@@ -194,13 +183,9 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 	case "gadget-iszero":
 		return &circuits.IsZeroGadget{}, true
 	case "gadget-imt-gap":
-		return &circuits.ImtGapGadget{}, true
-	case "gadget-field-less-than":
-		return &circuits.FieldLessThanGadget{}, true
+		return &circuits.AssetRegistryGapGadget{}, true
 	case "gadget-canonical-fq-bits":
 		return &circuits.CanonicalFqBitsGadget{}, true
-	case "gadget-asset-registry-gap":
-		return &circuits.AssetRegistryGapGadget{}, true
 	case "gadget-bool-select":
 		return &circuits.BoolSelectGadget{}, true
 	default:
@@ -615,16 +600,10 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.IsZeroGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-imt-gap":
-		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ImtGapGadget{})
-		return ccs, time.Since(compileStart).Seconds() * 1000, err
-	case "gadget-field-less-than":
-		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.FieldLessThanGadget{})
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.AssetRegistryGapGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-canonical-fq-bits":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.CanonicalFqBitsGadget{})
-		return ccs, time.Since(compileStart).Seconds() * 1000, err
-	case "gadget-asset-registry-gap":
-		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.AssetRegistryGapGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-bool-select":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.BoolSelectGadget{})

@@ -54,23 +54,13 @@ func TestAxeExportFidelityNullifier(t *testing.T) {
 
 func TestAxeExportFidelityImtGap(t *testing.T) {
 	// Unregulated non-membership: leafValue < noteAssetID < nextValue.
-	assignment := &ImtGapGadget{
+	assignment := &AssetRegistryGapGadget{
 		NoteAssetID: big.NewInt(100),
 		IsRegulated: big.NewInt(0),
 		LeafValue:   big.NewInt(50),
 		NextValue:   big.NewInt(150),
 	}
-	assertAxeExportMatchesSolvedWitness(t, &ImtGapGadget{}, assignment)
-}
-
-func TestAxeExportFidelityFieldLessThan(t *testing.T) {
-	// 50 < 100 holds, so the comparator output is 1.
-	assignment := &FieldLessThanGadget{
-		A:   big.NewInt(50),
-		B:   big.NewInt(100),
-		Out: big.NewInt(1),
-	}
-	assertAxeExportMatchesSolvedWitness(t, &FieldLessThanGadget{}, assignment)
+	assertAxeExportMatchesSolvedWitness(t, &AssetRegistryGapGadget{}, assignment)
 }
 
 // assertAxeExportMatchesSolvedWitness compiles the gadget, solves it on the

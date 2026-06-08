@@ -1,13 +1,11 @@
 package compliance
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
-	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
@@ -70,17 +68,6 @@ func (c *quadPathCircuit) Define(api frontend.API) error {
 		return err
 	}
 	api.AssertIsEqual(root, c.ExpectedRoot)
-	return nil
-}
-
-type fieldLessThanCircuit struct {
-	Left     frontend.Variable
-	Right    frontend.Variable
-	Expected frontend.Variable `gnark:",public"`
-}
-
-func (c *fieldLessThanCircuit) Define(api frontend.API) error {
-	api.AssertIsEqual(FieldLessThan(api, c.Left, c.Right), c.Expected)
 	return nil
 }
 
@@ -165,61 +152,6 @@ func TestQuadPathCircuitCompiles(t *testing.T) {
 	}
 }
 
-func TestFieldLessThanCircuitMatchesFullFieldOrder(t *testing.T) {
-	modulus := primitives.ScalarField()
-	two128 := new(big.Int).Lsh(big.NewInt(1), 128)
-	two200 := new(big.Int).Lsh(big.NewInt(1), 200)
-	nearModulus := new(big.Int).Sub(modulus, big.NewInt(2))
-
-	cases := []struct {
-		name     string
-		left     *big.Int
-		right    *big.Int
-		expected int
-	}{
-		{name: "equal", left: big.NewInt(9), right: big.NewInt(9), expected: 0},
-		{name: "small less", left: big.NewInt(8), right: big.NewInt(9), expected: 1},
-		{name: "small greater", left: big.NewInt(10), right: big.NewInt(9), expected: 0},
-		{name: "above amount bit range less", left: two128, right: new(big.Int).Add(two128, big.NewInt(1)), expected: 1},
-		{name: "above amount bit range greater", left: two200, right: two128, expected: 0},
-		{name: "near modulus greater", left: nearModulus, right: two200, expected: 0},
-		{name: "near modulus less than max", left: nearModulus, right: new(big.Int).Sub(modulus, big.NewInt(1)), expected: 1},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			assignment := &fieldLessThanCircuit{
-				Left:     tc.left.String(),
-				Right:    tc.right.String(),
-				Expected: tc.expected,
-			}
-			if err := test.IsSolved(&fieldLessThanCircuit{}, assignment, ecc.BLS12_377.ScalarField()); err != nil {
-				t.Fatalf("field less-than circuit mismatch: %v", err)
-			}
-		})
-	}
-}
-
-func TestFieldLessThanRejectsNonCanonicalBinaryAlias(t *testing.T) {
-	assert := test.NewAssert(t)
-	toReplaceHint, err := getNBitsHintID()
-	if err != nil {
-		t.Fatalf("find nBits hint: %v", err)
-	}
-
-	assignment := &fieldLessThanCircuit{
-		Left:     0,
-		Right:    6,
-		Expected: 0,
-	}
-	assert.CheckCircuit(
-		&fieldLessThanCircuit{},
-		test.WithInvalidAssignment(assignment),
-		test.NoTestEngine(),
-		test.WithSolverOpts(solver.OverrideHint(toReplaceHint, maliciousAliasNBitsHint)),
-	)
-}
-
 func TestIndexedLeafCircuitMatchesNativeCommitment(t *testing.T) {
 	inputs := syntheticIndexedLeafInputs(t)
 	commitment, err := IndexedLeafCommitmentNative(inputs)
@@ -252,26 +184,6 @@ func TestIndexedLeafCircuitMatchesNativeCommitment(t *testing.T) {
 		test.WithBackends(backend.GROTH16),
 		test.WithValidAssignment(assignment),
 	)
-}
-
-func getNBitsHintID() (solver.HintID, error) {
-	for _, hint := range solver.GetRegisteredHints() {
-		if solver.GetHintName(hint) == "github.com/consensys/gnark/std/math/bits.nBits" {
-			return solver.GetHintID(hint), nil
-		}
-	}
-	return 0, fmt.Errorf("nBits hint not registered")
-}
-
-func maliciousAliasNBitsHint(mod *big.Int, inputs []*big.Int, results []*big.Int) error {
-	n := new(big.Int).Set(inputs[0])
-	if n.Cmp(big.NewInt(5)) <= 0 {
-		n.Add(n, mod)
-	}
-	for i := range results {
-		results[i].SetUint64(uint64(n.Bit(i)))
-	}
-	return nil
 }
 
 func TestQuadPathCircuitMatchesNativeRoot(t *testing.T) {

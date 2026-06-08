@@ -5,12 +5,9 @@ import (
 
 	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
 )
 
 const ThresholdAmountBits = 128
-
-var fieldElementBits = primitives.ScalarField().BitLen()
 
 func init() {
 	solver.RegisterHint(identityHint)
@@ -47,25 +44,6 @@ func fieldLessThan(api frontend.API, a, b frontend.Variable) frontend.Variable {
 		isLess = api.Sub(api.Add(isLess, lessAtI), api.Mul(isLess, lessAtI))
 		eqBit := api.Add(1, api.Mul(2, ai, bi), api.Mul(-1, ai), api.Mul(-1, bi))
 		prefixEqual = api.Mul(prefixEqual, eqBit)
-	}
-	return isLess
-}
-
-func FieldLessThan(api frontend.API, a, b frontend.Variable) frontend.Variable {
-	aBits := api.ToBinary(a, fieldElementBits)
-	bBits := api.ToBinary(b, fieldElementBits)
-
-	prefixEqual := frontend.Variable(1)
-	isLess := frontend.Variable(0)
-	for i := fieldElementBits - 1; i >= 0; i-- {
-		ai := aBits[i]
-		bi := bBits[i]
-		lessAtI := api.Mul(prefixEqual, api.Sub(1, ai), bi)
-		isLess = materialize(api, api.Add(isLess, lessAtI))
-		eqBit := api.Add(1, api.Mul(2, ai, bi), api.Mul(-1, ai), api.Mul(-1, bi))
-		prefixEqual = materialize(api, api.Mul(prefixEqual, eqBit))
-		api.AssertIsBoolean(prefixEqual)
-		api.AssertIsBoolean(isLess)
 	}
 	return isLess
 }

@@ -47,5 +47,5 @@ field_modulus = "844446174942837042424882493878154653137589933515406382793523345
 scope = "decomposed-gadget-only"
 whole_circuit_status = "requires whole-circuit artifact before any property row is proved"
 picus_status = "under-constraint-evidence-only"
-axe_status = "bool-select/iszero/poseidon2/nullifier semantic proofs; field-less-than lift, exact-pack, comparator-suffix ladder, and assumption bridge checkpoints certified; reducedness-to-public-value semantic theorem pending"
-lean_status = "ProvenZK-backed extracted BoolSelect, IsZero, and Nullifier models build; BoolSelect/IsZero prove gate implications; FieldLessThan extraction is unsupported by the vendored extractor and fails loudly; whole-circuit Lean extraction pending"
+axe_status = "bool-select/iszero/poseidon2/nullifier semantic proofs; gadget-imt-gap now maps to the 5568-constraint AssetRegistryGap export and has a stamped ACL2/Axe output proof; whole-circuit property rows still require whole-circuit artifacts"
+lean_status = "ProvenZK-backed extracted BoolSelect, IsZero, and Nullifier models build; BoolSelect/IsZero prove gate implications; whole-circuit Lean extraction pending"

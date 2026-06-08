@@ -12,7 +12,7 @@
 ;       the operand's 253 bit wires boolean and to pack to a value <= p-1
 ;       (canonical field residue) -- over the REAL operand wires.
 ;
-; Block offsets into *GADGET-ASSET-REGISTRY-GAP-constraints* (each 506 long):
+; Block offsets into *GADGET-IMT-GAP-constraints* (each 506 long):
 ;   leaf [1,507)  id [507,1013)  next [1013,1519).
 ;
 ; No skip-proofs; the rename equality and all sigma well-formedness / coverage
@@ -23,7 +23,7 @@
 
 (include-book "canonical-fq-bits-bridge")     ; A1 keystone over the standalone slice
 (include-book "canonical-fq-bits-rename")      ; generic substitution lemmas
-(include-book "generated/gadget-asset-registry-gap-r1cs")
+(include-book "generated/gadget-imt-gap-r1cs")
 (local (include-book "kestrel/alists-light/strip-cars" :dir :system))
 (local (include-book "kestrel/alists-light/strip-cdrs" :dir :system))
 
@@ -73,7 +73,7 @@
          (l-pull    (acl2::packn-pos (list "HOLDP-ARG-" suffix "-AS-PULLBACK") 'rename-cons))
          (thm       (acl2::packn-pos (list "ASSET-REGISTRY-" suffix "-REDUCED") 'rename-cons)))
     `(progn
-       (defconst ,argc (take 506 (nthcdr ,offset *GADGET-ASSET-REGISTRY-GAP-constraints*)))
+       (defconst ,argc (take 506 (nthcdr ,offset *GADGET-IMT-GAP-constraints*)))
        (defconst ,sigmac
          (pairlis$ (distinct-vars *GADGET-CANONICAL-FQ-BITS-constraints*)
                    (distinct-vars ,argc)))

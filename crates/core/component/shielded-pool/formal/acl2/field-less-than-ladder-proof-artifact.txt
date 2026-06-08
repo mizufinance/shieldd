@@ -1,8 +1,0 @@
-artifact: field-less-than-ladder-proof
-scope: comparator-suffix over actual generated gadget-field-less-than R1CS constraints 1012..end
-theorem: OUT equals fq-prefix-ladder-less over the two generated 253-bit operand runs
-status: certified-locally
-proof_source_sha256: 4771e83230513e137f99daef278f01b69d55dccdaa635935fe0f89616eb8e39f
-cert_sha256: ae278ee90c7633441e2af30a70728b6eea22abff90220b368f55085efbf1261c
-r1cs_source_sha256: a3f42f27688323c37b6f5819219530a734d8250f7f3f0bc583048faefb9afb43
-bit_inputs_source_sha256: 2f7f0ebb09ffb8b99d80198a5ea2f69e0658ce819c4a95be6ee4f7dfaf40de3b

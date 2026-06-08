@@ -24,7 +24,7 @@
 (in-package "R1CS")
 
 (include-book "kestrel/crypto/r1cs/sparse/gadgets/range-check" :dir :system)
-(include-book "lib/field-less-than-wires")
+(include-book "lib/internal-wires")
 
 ; p = BLS12-377 scalar field; c = p-1 is the largest canonical residue.
 (defconst *fq-prime*

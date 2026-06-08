@@ -1,13 +1,12 @@
 ; AssetRegistryGap whole-gadget composition (the proof-friendly IMT comparator).
 ;
-; Goal: on the real 5568-constraint AssetRegistryGap gadget (the decompose-once
-; replacement for AssetMembershipValid / ImtGapGadget), show that satisfying the
+; Goal: on the real 5568-constraint AssetRegistryGap gadget (the shipped
+; decompose-once IMT comparator), show that satisfying the
 ; whole circuit is *equivalent* to satisfying its five sub-blocks independently
 ; -- the append-decomposition idiom (r1cs-constraints-holdp-of-append) that the
-; whole-gadget soundness theorem composes from. Same primitive proved for the old
-; gadget in imt-gap-compose-smoke.lisp, here re-established over the new shape.
+; whole-gadget soundness theorem composes from.
 ;
-; Block map (indices into *GADGET-ASSET-REGISTRY-GAP-constraints*, verified by
+; Block map (indices into *GADGET-IMT-GAP-constraints*, verified by
 ; the :c packing-constraint scan against AssetRegistryGap in canonical_fq_bits.go):
 ;
 ;   reg    [0,1)        glue: isRegulated booleanity  isReg*(isReg-1)=0  (idx0)
@@ -25,34 +24,32 @@
 ;   2. asset-registry-gap-holdp-decomposition: holdp(whole) <=> holdp of each of
 ;      the five blocks. The composition primitive.
 ;
-; What remains for the full whole-gadget semantic theorem (the heavy, CI-gated
-; work, recorded in circuit-gadget-proofs.md and ASSET-REGISTRY-GAP-HANDOFF.md):
+; Certified proof inputs for the full whole-gadget semantic theorem:
 ;   - leaf/id/next block lemmas = the canonical-fq-bits keystone: each 506-block
 ;     instantiates make-range-check-constraints-correct (range-check.lisp:2268,
 ;     CERTIFIED) to give packbv <= p-1, i.e. the operand equals its bit
 ;     decomposition over canonical residues. The Axe lift of one such block is the
 ;     certified checkpoint canonical-fq-bits-lift.lisp.
-;   - the two lexLess253 sub-blocks inside tail = the lex-less ladder lemma
-;     (= the certified field-less-than-ladder-proof.lisp bridge, re-pointed onto
-;     the reused canonical bits -- the ladder body is byte-identical).
+;   - the two lexLess253 sub-blocks inside tail = the certified lex-less ladder
+;     rewrite rules, over the reused canonical bits.
 ;   - IsZero (= gadget-iszero, PROVED), select glue (= gadget-bool-select, PROVED).
-; Once those block lemmas are available, asset-registry-gap-holdp-decomposition
-; feeds them directly to conclude AssetRegistryGap = 1 over canonical field reps.
+; The output proof follows the nullifier-style named-rewrite + final verify-r1cs
+; recipe in asset-registry-gap-output.lisp.
 
 (in-package "R1CS")
 
 (include-book "kestrel/crypto/r1cs/sparse/r1cs" :dir :system)
-(include-book "generated/gadget-asset-registry-gap-r1cs")
+(include-book "generated/gadget-imt-gap-r1cs")
 
-(defconst *arg-reg*  (take 1 *GADGET-ASSET-REGISTRY-GAP-constraints*))
-(defconst *arg-leaf* (take 506 (nthcdr 1 *GADGET-ASSET-REGISTRY-GAP-constraints*)))
-(defconst *arg-id*   (take 506 (nthcdr 507 *GADGET-ASSET-REGISTRY-GAP-constraints*)))
-(defconst *arg-next* (take 506 (nthcdr 1013 *GADGET-ASSET-REGISTRY-GAP-constraints*)))
-(defconst *arg-tail* (nthcdr 1519 *GADGET-ASSET-REGISTRY-GAP-constraints*))
+(defconst *arg-reg*  (take 1 *GADGET-IMT-GAP-constraints*))
+(defconst *arg-leaf* (take 506 (nthcdr 1 *GADGET-IMT-GAP-constraints*)))
+(defconst *arg-id*   (take 506 (nthcdr 507 *GADGET-IMT-GAP-constraints*)))
+(defconst *arg-next* (take 506 (nthcdr 1013 *GADGET-IMT-GAP-constraints*)))
+(defconst *arg-tail* (nthcdr 1519 *GADGET-IMT-GAP-constraints*))
 
 ;; (1) Structural identity: whole = reg ++ leaf ++ id ++ next ++ tail.
 (defthm asset-registry-gap-block-decomposition
-  (equal *GADGET-ASSET-REGISTRY-GAP-constraints*
+  (equal *GADGET-IMT-GAP-constraints*
          (append *arg-reg*
                  (append *arg-leaf*
                          (append *arg-id*
@@ -75,7 +72,7 @@
 ;;     the structural identity, with holdp disabled so the rewriter never expands
 ;;     the 5568-element constant element-by-element.
 (defthm asset-registry-gap-holdp-decomposition
-  (equal (r1cs-constraints-holdp *GADGET-ASSET-REGISTRY-GAP-constraints* valuation prime)
+  (equal (r1cs-constraints-holdp *GADGET-IMT-GAP-constraints* valuation prime)
          (and (r1cs-constraints-holdp *arg-reg*  valuation prime)
               (r1cs-constraints-holdp *arg-leaf* valuation prime)
               (r1cs-constraints-holdp *arg-id*   valuation prime)

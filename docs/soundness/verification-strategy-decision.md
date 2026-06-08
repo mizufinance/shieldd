@@ -5,6 +5,12 @@ circuit soundness effort: keep the compiled-`R1CS ⟹ spec` ACL2/Axe path as the
 release-grade spine, but narrow the proof surface and unblock the comparator
 keystone via the cheapest non-invasive lever first.
 
+2026-06-08 outcome: the STP/full-field comparator route below is superseded.
+`gadget-imt-gap` now ships the 5568-constraint `AssetRegistryGap` export, with a
+stamped ACL2/Axe gadget proof in
+[`circuit-gadget-proofs.md`](../../crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md).
+The whole-circuit property rows remain gated on whole-circuit artifacts.
+
 ## Context
 
 - The bottleneck is `FieldLessThan`: two full-field comparators embedded in the

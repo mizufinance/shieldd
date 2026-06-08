@@ -55,24 +55,6 @@ func (c *NullifierGadget) Define(api frontend.API) error {
 	return nil
 }
 
-// ImtGapGadget isolates the asset-registry membership/non-membership comparator
-// `Select(IsRegulated, exactMatch, inGap)` (the Phase-0 fix for
-// REGULATED-STATUS-SOUNDNESS), apart from the 16-deep Merkle path. It asserts
-// the comparator accepts (== 1) for the supplied wires.
-type ImtGapGadget struct {
-	NoteAssetID frontend.Variable `gnark:",public"`
-	IsRegulated frontend.Variable `gnark:",public"`
-	LeafValue   frontend.Variable `gnark:",public"`
-	NextValue   frontend.Variable `gnark:",public"`
-}
-
-func (c *ImtGapGadget) Define(api frontend.API) error {
-	api.AssertIsBoolean(c.IsRegulated)
-	valid := AssetMembershipValid(api, c.NoteAssetID, c.IsRegulated, c.LeafValue, c.NextValue)
-	api.AssertIsEqual(valid, 1)
-	return nil
-}
-
 // IsZeroGadget isolates gnark's zero-test primitive used by IMT exact-match
 // checks. `Out` is 1 exactly when `In` is zero.
 type IsZeroGadget struct {
@@ -82,25 +64,6 @@ type IsZeroGadget struct {
 
 func (c *IsZeroGadget) Define(api frontend.API) error {
 	api.AssertIsEqual(c.Out, api.IsZero(c.In))
-	return nil
-}
-
-// FieldLessThanGadget isolates a single full-field `FieldLessThan` comparator —
-// the 253-bit `to_bits_le` decomposition + MSB-first comparison ladder that is
-// the algebraic core of REGULATED-STATUS-SOUNDNESS, apart from the IMT gap
-// wiring, the IsZero exact-match, the Select, and the Merkle path. `Out` is the
-// boolean comparator result, exposed as a witness wire so the `R1CS ⟹ spec`
-// theorem can name it: any satisfying assignment has `Out = (A < B ? 1 : 0)`
-// over canonical residues in `[0, p)`. This is the reusable comparator lemma the
-// imt-gap proof (two calls) and the threshold check compose from.
-type FieldLessThanGadget struct {
-	A   frontend.Variable `gnark:",public"`
-	B   frontend.Variable `gnark:",public"`
-	Out frontend.Variable
-}
-
-func (c *FieldLessThanGadget) Define(api frontend.API) error {
-	api.AssertIsEqual(c.Out, FieldLessThan(api, c.A, c.B))
 	return nil
 }
 
@@ -122,10 +85,9 @@ func (c *CanonicalFqBitsGadget) Define(api frontend.API) error {
 	return nil
 }
 
-// AssetRegistryGapGadget isolates the decompose-once IMT comparator
-// (Select(IsRegulated, exactMatch, inGap) == 1), the proof-friendly replacement
-// for ImtGapGadget. Each operand is decomposed exactly once via the
-// Kestrel-shaped CanonicalFqBits253.
+// AssetRegistryGapGadget isolates the shipped decompose-once IMT comparator:
+// Select(IsRegulated, exactMatch, inGap) == 1. Each operand is decomposed
+// exactly once via the Kestrel-shaped CanonicalFqBits253.
 type AssetRegistryGapGadget struct {
 	NoteAssetID frontend.Variable `gnark:",public"`
 	IsRegulated frontend.Variable `gnark:",public"`

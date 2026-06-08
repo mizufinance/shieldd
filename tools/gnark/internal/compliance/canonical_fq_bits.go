@@ -132,13 +132,11 @@ func lexLess253(api frontend.API, aBits, bBits []frontend.Variable) frontend.Var
 	return isLess
 }
 
-// AssetRegistryGap is the decompose-once fusion of the IMT membership /
-// non-membership comparator: same semantics as AssetMembershipValid
-// (Select(isRegulated, exactMatch, inGap)) and Rust's
-// `verify_asset_registry_imt`, but each of leaf/id/next is decomposed exactly
-// once via the Kestrel-shaped CanonicalFqBits253, and the two comparisons reuse
-// those bits. This is the proof-friendly target: reducedness closes by
-// instantiating make-range-check-constraints-correct per operand.
+// AssetRegistryGap is the decompose-once IMT membership / non-membership
+// comparator: Select(isRegulated, exactMatch, inGap), matching Rust's
+// `verify_asset_registry_imt`. Each of leaf/id/next is decomposed exactly once
+// via the Kestrel-shaped CanonicalFqBits253, and the two comparisons reuse those
+// bits.
 func AssetRegistryGap(
 	api frontend.API,
 	noteAssetID frontend.Variable,

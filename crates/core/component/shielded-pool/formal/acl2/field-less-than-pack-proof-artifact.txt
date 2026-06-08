@@ -1,8 +1,0 @@
-artifact: field-less-than-pack-proof
-scope: exact ToBinary recomposition literals for both FieldLessThan operands over generated gadget-field-less-than R1CS slices
-status: certified-locally
-proof_source_sha256: 789dac1f99f244501dee975ea2dc193ef009efd31a250290dcd97da6c5401259
-cert_sha256: 23f7d0d5bdd7af19bd865285d5c08126fe4505fe5eebd21067b3da633259ef48
-THEOREM generated exact A-pack equality certified by verify-r1cs
-THEOREM generated exact B-pack equality certified by verify-r1cs
-SCOPE pack constraints only; ordering and OUT semantics are certified separately by field-less-than-ladder-proof and field-less-than-proof.

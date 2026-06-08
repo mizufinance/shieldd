@@ -9,11 +9,7 @@ import (
 	"github.com/consensys/gnark/test"
 )
 
-func TestAssetRegistryGapConstraintDelta(t *testing.T) {
-	oldCS, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &ImtGapGadget{})
-	if err != nil {
-		t.Fatalf("compile ImtGapGadget: %v", err)
-	}
+func TestAssetRegistryGapConstraintShape(t *testing.T) {
 	newCS, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &AssetRegistryGapGadget{})
 	if err != nil {
 		t.Fatalf("compile AssetRegistryGapGadget: %v", err)
@@ -22,11 +18,8 @@ func TestAssetRegistryGapConstraintDelta(t *testing.T) {
 	if err != nil {
 		t.Fatalf("compile CanonicalFqBitsGadget: %v", err)
 	}
-	oldN := oldCS.GetNbConstraints()
 	newN := newCS.GetNbConstraints()
-	t.Logf("gadget-imt-gap (old FieldLessThan x2): %d constraints", oldN)
-	t.Logf("AssetRegistryGap (decompose-once):     %d constraints", newN)
-	t.Logf("delta = %d (%.2f%%)", newN-oldN, 100*float64(newN-oldN)/float64(oldN))
+	t.Logf("gadget-imt-gap / AssetRegistryGap:     %d constraints", newN)
 	t.Logf("CanonicalFqBits253 (single operand):   %d constraints", bitsCS.GetNbConstraints())
 	// The Kestrel make-range-check-constraints constructor for c=p-1,n=253 has
 	// 340 R1CS constraints (1 pack + 87 boolean + 166 zero-bit a + 86 pi).
@@ -40,6 +33,10 @@ func TestAssetRegistryGapConstraintDelta(t *testing.T) {
 	const wantBits = 1 + 87 + 166*2 + 86 // = 506
 	if got := bitsCS.GetNbConstraints(); got != wantBits {
 		t.Errorf("CanonicalFqBits253: expected %d, got %d", wantBits, got)
+	}
+	const wantAssetRegistryGap = 5568
+	if got := newN; got != wantAssetRegistryGap {
+		t.Errorf("AssetRegistryGap: expected %d constraints, got %d", wantAssetRegistryGap, got)
 	}
 }
 
