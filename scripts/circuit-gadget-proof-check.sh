@@ -307,17 +307,25 @@ certify_with_cert_pl "$NULLIFIER_PROOF"
 certify_with_cert_pl generated/gadget-imt-gap-r1cs
 certify_with_cert_pl imt-gap-compose-smoke
 # Proof-friendly AssetRegistryGap (Step 5, Option B): Kestrel-shaped canonical
-# decomposition + decompose-once fused comparator. Lift checkpoint and 5-way
-# composition primitive are certified here (like field-less-than-lift and
-# imt-gap-compose-smoke); the keystone semantic row (canonical-fq-bits-proof:
-# packbv <= p-1 via make-range-check-constraints-correct) is the heavy CI-gated
-# obligation tracked in ASSET-REGISTRY-GAP-HANDOFF.md.
+# decomposition + decompose-once fused comparator. The full reducedness chain is
+# certified here: keystone (canonical-fq-bits-proof: packbv <= p-1 via
+# make-range-check-constraints-correct) -> bridge to the real gnark slice
+# (canonical-fq-bits-bridge) -> rename transfer to each operand block
+# (asset-registry-operands-reduced) -> whole-gadget operand canonicity over the
+# real 5568-constraint gadget (asset-registry-gap-soundness). The remaining open
+# obligation is the tail output-predicate equivalence (output==1 <=> gap/equality
+# over the lex ladders); see ASSET-REGISTRY-GAP-HANDOFF.md.
 certify_with_cert_pl generated/gadget-canonical-fq-bits-r1cs
 certify_with_cert_pl generated/gadget-canonical-fq-bits-bit-inputs
 certify_with_cert_pl canonical-fq-bits-lift
 certify_with_cert_pl canonical-fq-bits-proof
+certify_with_cert_pl canonical-fq-bits-bridge
+certify_with_cert_pl canonical-fq-bits-rename
 certify_with_cert_pl generated/gadget-asset-registry-gap-r1cs
+certify_with_cert_pl lex-less-proof
 certify_with_cert_pl asset-registry-gap-proof
+certify_with_cert_pl asset-registry-operands-reduced
+certify_with_cert_pl asset-registry-gap-soundness
 
 # 3. The checked-in stamped artifacts must match the certified proof sources.
 check_artifact_stamp "$BOOL_SELECT_PROOF"
@@ -329,10 +337,23 @@ check_artifact_stamp "$POSEIDON2_SMOKE_PROOF"
 check_artifact_stamp "$POSEIDON2_PROOF"
 check_artifact_stamp "$NULLIFIER_PROOF"
 
+# Lean second-engine (M6) closure. Like the STP preflight above, a missing
+# toolchain degrades to an advisory skip rather than a hard failure: `lake` is the
+# optional Lean image, not yet on the critical path to any `proved` gadget row
+# (the ACL2 chain above is the gate). When `lake` IS present a build or stamp
+# mismatch still hard-fails — a real regression must not be masked. The full Lean
+# closure runs in the soundness-formal CI `provers` job where `lake` is installed.
 if [ -d tools/gnark/lean ]; then
-  command -v lake >/dev/null 2>&1 || fail "Lean lake not found for tools/gnark/lean"
-  (cd tools/gnark/lean && lake build) || fail "Lean spec scaffold failed to build"
-  check_lean_artifact_stamp
+  if command -v lake >/dev/null 2>&1; then
+    (cd tools/gnark/lean && lake build) || fail "Lean spec scaffold failed to build"
+    check_lean_artifact_stamp
+    LEAN_STATUS="Lean extracted gadget scaffold builds and stamps match"
+  else
+    echo "  (Lean closure: lake not found; skipping M6 Lean scaffold locally — CI-gated)"
+    LEAN_STATUS="Lean closure skipped locally (lake absent; CI-gated)"
+  fi
+else
+  LEAN_STATUS="Lean closure skipped (tools/gnark/lean absent)"
 fi
 
-echo "circuit gadget proof check ok: bool-select, iszero, poseidon2, and nullifier semantic proofs certified; Poseidon377 ACL2 spec vectors certified; field-less-than Axe lift/pack/ladder/composed bridge checkpoints certified; supported Lean extracted gadget scaffold builds and stamps match"
+echo "circuit gadget proof check ok: bool-select, iszero, poseidon2, and nullifier semantic proofs certified; Poseidon377 ACL2 spec vectors certified; field-less-than Axe lift/pack/ladder/composed bridge checkpoints certified; $LEAN_STATUS"
