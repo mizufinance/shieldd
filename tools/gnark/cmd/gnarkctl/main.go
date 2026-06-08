@@ -197,6 +197,10 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.ImtGapGadget{}, true
 	case "gadget-field-less-than":
 		return &circuits.FieldLessThanGadget{}, true
+	case "gadget-canonical-fq-bits":
+		return &circuits.CanonicalFqBitsGadget{}, true
+	case "gadget-asset-registry-gap":
+		return &circuits.AssetRegistryGapGadget{}, true
 	case "gadget-bool-select":
 		return &circuits.BoolSelectGadget{}, true
 	default:
@@ -615,6 +619,12 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-field-less-than":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.FieldLessThanGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-canonical-fq-bits":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.CanonicalFqBitsGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-asset-registry-gap":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.AssetRegistryGapGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-bool-select":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.BoolSelectGadget{})

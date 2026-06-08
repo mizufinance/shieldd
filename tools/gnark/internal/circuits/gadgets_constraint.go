@@ -104,6 +104,42 @@ func (c *FieldLessThanGadget) Define(api frontend.API) error {
 	return nil
 }
 
+// CanonicalFqBitsGadget isolates a single Kestrel-shaped canonical
+// decomposition: `In` is decomposed into 253 little-endian bits whose packing
+// equals `In` and whose value is asserted reduced (`packbv <= p-1`) via the
+// exact `make-range-check-constraints` shapes for `c = p-1, n = 253`. This is
+// the reducedness keystone, isolated so the ACL2 proof
+// (canonical-fq-bits-proof.lisp) lifts the slice and instantiates
+// `make-range-check-constraints-correct` directly — no STP, no
+// gnark-vs-Kestrel encoding-equivalence lemma. The bit wires are exposed so the
+// `R1CS ⟹ spec` theorem can name them.
+type CanonicalFqBitsGadget struct {
+	In frontend.Variable `gnark:",public"`
+}
+
+func (c *CanonicalFqBitsGadget) Define(api frontend.API) error {
+	CanonicalFqBits253(api, c.In)
+	return nil
+}
+
+// AssetRegistryGapGadget isolates the decompose-once IMT comparator
+// (Select(IsRegulated, exactMatch, inGap) == 1), the proof-friendly replacement
+// for ImtGapGadget. Each operand is decomposed exactly once via the
+// Kestrel-shaped CanonicalFqBits253.
+type AssetRegistryGapGadget struct {
+	NoteAssetID frontend.Variable `gnark:",public"`
+	IsRegulated frontend.Variable `gnark:",public"`
+	LeafValue   frontend.Variable `gnark:",public"`
+	NextValue   frontend.Variable `gnark:",public"`
+}
+
+func (c *AssetRegistryGapGadget) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.IsRegulated)
+	valid := AssetRegistryGap(api, c.NoteAssetID, c.IsRegulated, c.LeafValue, c.NextValue)
+	api.AssertIsEqual(valid, 1)
+	return nil
+}
+
 // BoolSelectGadget isolates the soundness decision primitive
 // `Valid = Select(Cond, IfTrue, IfFalse)` with `Cond` boolean — the exact shape
 // of Rust's `is_regulated.select(is_exact_match, is_in_gap)` that the Phase-0

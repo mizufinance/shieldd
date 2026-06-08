@@ -69,6 +69,24 @@ else
 fi
 [[ -n "$CERT_PL" && -x "$CERT_PL" ]] || fail "cert.pl not found; set ACL2_CERT_PL"
 
+# STP preflight (advisory, non-fatal). STP would discharge the field-less-than
+# `packbv <= p-1` reducedness bounds, but it is NOT reachable through `verify-r1cs`
+# in the current ACL2 bottle: the R1CS prover has no `:stp` tactic, and the
+# STP-capable `prove-with-tactics` book is uncertified here (see
+# circuit-gadget-proofs.md "STP lever refuted"). No checked-in proof depends on
+# STP yet, so this only reports solver readiness for the books-complete-image
+# route; it does not gate. `STP` selects the binary (default `stp`),
+# `ACL2_STP_VARIETY=2` the option syntax for STP 2.3.x.
+STP_BIN="${STP:-stp}"
+AXE_DIR="$(dirname "$CERT_PL")/../kestrel/axe"
+if command -v "$STP_BIN" >/dev/null 2>&1 && [ -x "$AXE_DIR/teststp.bash" ] \
+   && STP="$STP_BIN" ACL2_STP_VARIETY="${ACL2_STP_VARIETY:-2}" \
+        bash "$AXE_DIR/teststp.bash" 2>/dev/null | rg -q "Valid\."; then
+  echo "  (STP preflight: binary ok ($STP_BIN, variety ${ACL2_STP_VARIETY:-2}); not yet used by any proof)"
+else
+  echo "  (STP preflight: STP not callable; fine — no checked-in proof uses STP)"
+fi
+
 certify_book() {
   local proof="$1"
   rm -f "$ACL2_DIR/$proof.cert"
@@ -288,6 +306,18 @@ certify_with_cert_pl "$NULLIFIER_SMOKE_PROOF"
 certify_with_cert_pl "$NULLIFIER_PROOF"
 certify_with_cert_pl generated/gadget-imt-gap-r1cs
 certify_with_cert_pl imt-gap-compose-smoke
+# Proof-friendly AssetRegistryGap (Step 5, Option B): Kestrel-shaped canonical
+# decomposition + decompose-once fused comparator. Lift checkpoint and 5-way
+# composition primitive are certified here (like field-less-than-lift and
+# imt-gap-compose-smoke); the keystone semantic row (canonical-fq-bits-proof:
+# packbv <= p-1 via make-range-check-constraints-correct) is the heavy CI-gated
+# obligation tracked in ASSET-REGISTRY-GAP-HANDOFF.md.
+certify_with_cert_pl generated/gadget-canonical-fq-bits-r1cs
+certify_with_cert_pl generated/gadget-canonical-fq-bits-bit-inputs
+certify_with_cert_pl canonical-fq-bits-lift
+certify_with_cert_pl canonical-fq-bits-proof
+certify_with_cert_pl generated/gadget-asset-registry-gap-r1cs
+certify_with_cert_pl asset-registry-gap-proof
 
 # 3. The checked-in stamped artifacts must match the certified proof sources.
 check_artifact_stamp "$BOOL_SELECT_PROOF"
