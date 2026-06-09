@@ -8,11 +8,11 @@ mod device;
 use std::{ops::DerefMut, sync::Arc};
 
 use device::Device;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_custody::AuthorizeRequest;
 use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
 use shieldd_sdk_proto::custody::v1::{self as pb, AuthorizeResponse};
 use shieldd_sdk_transaction::{AuthorizationData, TransactionPlan};
-use serde::{Deserialize, Serialize};
 use tokio::sync::{Mutex, MutexGuard};
 use tonic::{async_trait, Request, Response, Status};
 

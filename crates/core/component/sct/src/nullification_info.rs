@@ -1,6 +1,6 @@
 use anyhow::anyhow;
-use shieldd_sdk_proto::{core::component::sct::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{core::component::sct::v1 as pb, DomainType};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(try_from = "pb::NullificationInfo", into = "pb::NullificationInfo")]

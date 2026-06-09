@@ -3,8 +3,8 @@ use std::{
     ops::{Add, AddAssign},
 };
 
-use shieldd_sdk_asset::{asset, Value, BASE_ASSET_ID};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_asset::{asset, Value, BASE_ASSET_ID};
 
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{core::component::fee::v1 as pb, DomainType};

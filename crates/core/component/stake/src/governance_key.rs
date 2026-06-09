@@ -1,10 +1,10 @@
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{
     // TODO: why is the governance key part of this crate?
     core::keys::v1 as pb,
     serializers::bech32str::{self, validator_governance_key::BECH32_PREFIX},
     DomainType,
 };
-use serde::{Deserialize, Serialize};
 
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 

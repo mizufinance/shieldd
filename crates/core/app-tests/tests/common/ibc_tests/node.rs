@@ -23,6 +23,7 @@ use {
             consensus_state::ConsensusState, header::Header as TendermintHeader,
         },
     },
+    rand::SeedableRng as _,
     shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
@@ -44,7 +45,6 @@ use {
         DomainType as _,
     },
     shieldd_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters},
-    rand::SeedableRng as _,
     std::{
         error::Error,
         fs,

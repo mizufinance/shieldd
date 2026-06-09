@@ -1,10 +1,10 @@
 use anyhow::{Context, Error};
 
 use decaf377::Fq;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::keys::FullViewingKey;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
-use serde::{Deserialize, Serialize};
 
 use crate::{note, Note, NoteCiphertext};
 use decaf377_ka as ka;

@@ -7,9 +7,7 @@ pub use {
         temp_storage_ext::TempStorageExt, test_node_builder_ext::BuilderExt,
         test_node_ext::TestNodeExt, validator_read_ext::ValidatorDataReadExt,
     },
-    shieldd_sdk_test_subscriber::{
-        set_tracing_subscriber, set_tracing_subscriber_with_env_filter,
-    },
+    shieldd_sdk_test_subscriber::{set_tracing_subscriber, set_tracing_subscriber_with_env_filter},
 };
 
 use cnidarium::StateWrite;

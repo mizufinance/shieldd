@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use decaf377::Fr;
+use rand::{rngs::StdRng, SeedableRng};
 use shieldd_sdk_asset::Value;
 #[cfg(feature = "component")]
 use shieldd_sdk_compliance::TRANSFER_WIRE_BYTES;
@@ -9,7 +10,6 @@ use shieldd_sdk_compliance::{
     TransferCompliancePublicInputs, TransferOrbisUploadBundle, TransferTierKind,
     TransferTierMetadataStatement,
 };
-use rand::{rngs::StdRng, SeedableRng};
 
 #[cfg(feature = "component")]
 use super::TransferOutputBody;

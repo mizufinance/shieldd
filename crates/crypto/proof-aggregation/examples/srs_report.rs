@@ -9,10 +9,7 @@ fn main() -> anyhow::Result<()> {
         "backend: {}",
         shieldd_sdk_proof_aggregation::DEV_SRS_BACKEND_ID
     );
-    println!(
-        "curve: {}",
-        shieldd_sdk_proof_aggregation::DEV_SRS_CURVE_ID
-    );
+    println!("curve: {}", shieldd_sdk_proof_aggregation::DEV_SRS_CURVE_ID);
     println!("max_padded_count: {}", srs.max_padded_count);
     println!("generation_ms: {}", report.generation_ms);
     println!("load_ms: {}", report.load_ms);

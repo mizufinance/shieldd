@@ -39,8 +39,8 @@ const TEST_SLOT_DERIVATION_HEX: &str =
 fn load_wallet_into_tmpdir() -> TempDir {
     let tmpdir = tempdir().unwrap();
 
-    let grpc_url = std::env::var("SHIELDD_NODE_PD_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned());
+    let grpc_url =
+        std::env::var("SHIELDD_NODE_PD_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned());
 
     let mut setup_cmd = Command::cargo_bin("pcli").unwrap();
     setup_cmd

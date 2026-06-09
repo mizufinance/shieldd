@@ -11,10 +11,10 @@ use std::{
 };
 
 use anyhow::Context;
-use shieldd_sdk_num::{Amount, AmountVar};
-use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_num::{Amount, AmountVar};
+use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 
 use crate::EquivalentValue;
 use crate::{

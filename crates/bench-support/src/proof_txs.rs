@@ -9,6 +9,9 @@ use anyhow::{Context, Result};
 use ark_serialize::CanonicalSerialize;
 use cnidarium::TempStorage;
 use decaf377_rdsa::VerificationKey;
+use rand_core::OsRng;
+use serde::{Deserialize, Serialize};
+use sha2::Digest as _;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
     server::consensus::{Consensus, ConsensusService},
@@ -29,9 +32,6 @@ use shieldd_sdk_shielded_pool::{
 use shieldd_sdk_transaction::{
     memo::MemoPlaintext, plan::MemoPlan, Transaction, TransactionParameters, TransactionPlan,
 };
-use rand_core::OsRng;
-use serde::{Deserialize, Serialize};
-use sha2::Digest as _;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 

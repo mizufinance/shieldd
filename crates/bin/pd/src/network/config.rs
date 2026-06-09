@@ -1,13 +1,13 @@
 use anyhow::Context;
 use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use directories::UserDirs;
-use shieldd_sdk_app::genesis::AppState;
-use shieldd_sdk_custody::soft_kms::Config as SoftKmsConfig;
-use shieldd_sdk_keys::keys::{SpendKey, SpendKeyBytes};
 use rand::Rng;
 use rand_core::OsRng;
 use regex::{Captures, Regex};
 use serde::Deserialize;
+use shieldd_sdk_app::genesis::AppState;
+use shieldd_sdk_custody::soft_kms::Config as SoftKmsConfig;
+use shieldd_sdk_keys::keys::{SpendKey, SpendKeyBytes};
 use std::{
     env::current_dir,
     fs::{self, File},

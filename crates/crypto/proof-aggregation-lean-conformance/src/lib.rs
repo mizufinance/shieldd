@@ -18,6 +18,8 @@ use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq};
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_proof_aggregation::trace_schema::{TraceEvent, TraceEventKind};
 use shieldd_sdk_proof_aggregation::{
     aggregate_family_with_trace, pad_items_to_power_of_two, srs_id, AggregateStatement, DevSrs,
@@ -25,8 +27,6 @@ use shieldd_sdk_proof_aggregation::{
 };
 use shieldd_sdk_proof_params::batch::BatchItem;
 use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
-use serde::{Deserialize, Serialize};
 
 // A SnarkPack transcript shape is fully determined by `padded_count = next power
 // of two of the real count`: the only count-dependent part of the trace is the

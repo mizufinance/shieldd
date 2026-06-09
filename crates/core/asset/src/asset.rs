@@ -145,10 +145,7 @@ mod tests {
             .unwrap()
             .base();
 
-        assert_eq!(
-            base_denom.best_unit_for(0u64.into()).to_string(),
-            "shieldd"
-        );
+        assert_eq!(base_denom.best_unit_for(0u64.into()).to_string(), "shieldd");
         assert_eq!(
             base_denom.best_unit_for(999u64.into()).to_string(),
             "ushieldd"
@@ -186,9 +183,7 @@ mod tests {
             mshieldd_sdk_display_denom.parse_value("1782").unwrap(),
             1782000u64.into()
         );
-        assert!(mshieldd_sdk_display_denom
-            .parse_value("1782.0001")
-            .is_err());
+        assert!(mshieldd_sdk_display_denom.parse_value("1782.0001").is_err());
 
         let ushieldd_sdk_display_denom = REGISTRY.parse_unit("ushieldd");
         assert_eq!(

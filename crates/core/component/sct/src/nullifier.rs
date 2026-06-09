@@ -1,14 +1,14 @@
 use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::SynthesisError;
 use decaf377::{r1cs::FqVar, Fq};
+use poseidon377::hash_3;
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_tct::{r1cs::StateCommitmentVar, StateCommitment};
-use poseidon377::hash_3;
 
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::keys::{NullifierKey, NullifierKeyVar};
 use shieldd_sdk_proto::{core::component::sct::v1 as pb, DomainType};
-use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "pb::Nullifier", into = "pb::Nullifier")]

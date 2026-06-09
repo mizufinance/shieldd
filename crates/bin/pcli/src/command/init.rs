@@ -5,11 +5,11 @@ use std::{
 
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
+use rand_core::OsRng;
 use shieldd_sdk_custody::threshold;
 #[cfg(feature = "ledger")]
 use shieldd_sdk_custody_ledger_usb as ledger;
 use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
-use rand_core::OsRng;
 use termion::screen::IntoAlternateScreen;
 use url::Url;
 

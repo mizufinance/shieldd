@@ -434,10 +434,10 @@ mod tests {
     use cnidarium::{StateRead, TempStorage};
     use decaf377::Fq;
     use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+    use rand_core::OsRng;
     use shieldd_sdk_asset::{asset, BASE_ASSET_ID};
     use shieldd_sdk_keys::Address;
     use shieldd_sdk_sct::component::clock::EpochManager;
-    use rand_core::OsRng;
 
     use crate::genesis::NativeAssetRegistration;
     use crate::structs::{

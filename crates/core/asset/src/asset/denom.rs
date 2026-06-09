@@ -1,5 +1,5 @@
-use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 /// An asset denomination.
 ///
 /// Each denomination has a unique [`asset::Id`] and base unit, and may also

@@ -7,9 +7,9 @@ use std::{
 
 use anyhow::{ensure, Context};
 use decaf377::Fq;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, view::v1::AssetsResponse, DomainType};
-use serde::{Deserialize, Serialize};
 
 use crate::{
     asset::{Id, REGISTRY},

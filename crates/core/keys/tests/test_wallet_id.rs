@@ -14,7 +14,7 @@ fn wallet_id_to_bech32() {
     let actual_bech32_str = wallet_id.to_string();
 
     let expected_bech32_str =
-        "shielddwalletid15r7q7qsf3hhsgj0g530n7ng9acdacmmx9ajknjz38dyt90u9gcgsmjre75".to_string();
+        "shielddwalletid15r7q7qsf3hhsgj0g530n7ng9acdacmmx9ajknjz38dyt90u9gcgsq7mezk".to_string();
 
     assert_eq!(expected_bech32_str, actual_bech32_str);
 

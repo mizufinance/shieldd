@@ -66,9 +66,9 @@ mod tests {
     use crate::crypto::derive_compliance_scalar;
     use crate::test_helpers::make_address;
     use crate::transfer::encrypt_transfer;
+    use rand_core::OsRng;
     use shieldd_sdk_asset::Value;
     use shieldd_sdk_num::Amount;
-    use rand_core::OsRng;
 
     fn derive_ack(
         ring_pk: &decaf377::Element,

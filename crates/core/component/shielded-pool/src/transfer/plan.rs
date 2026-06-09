@@ -1,6 +1,7 @@
 use anyhow::{anyhow, ensure, Error};
 use decaf377::{Fq, Fr};
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, Balance};
 use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
 use shieldd_sdk_keys::Address;
@@ -10,7 +11,6 @@ use shieldd_sdk_keys::{
 };
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
-use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 
 use super::compliance::{
@@ -791,10 +791,10 @@ fn recipient_leaf(output: &ShieldedOutputPlan, created_note: &crate::Note) -> Co
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_num::Amount;
-    use rand_core::OsRng;
 
     fn transfer_parts(
         spend_amount: u64,

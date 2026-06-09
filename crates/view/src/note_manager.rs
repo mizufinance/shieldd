@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use decaf377::Fr;
+use rand::CryptoRng;
+use rand_core::RngCore;
 use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_ID};
 use shieldd_sdk_fee::{Fee, FeeTier, GasPrices};
 use shieldd_sdk_keys::{keys::AddressIndex, Address};
@@ -17,8 +19,6 @@ use shieldd_sdk_transaction::{
     plan::{ActionPlan, MemoPlan, TransactionPlan},
     FeeFundingPlan, TransactionParameters,
 };
-use rand::CryptoRng;
-use rand_core::RngCore;
 use std::collections::BTreeSet;
 
 use crate::{
@@ -1493,6 +1493,7 @@ mod tests {
     use decaf377::Fq;
     use futures::{FutureExt, Stream};
     use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
+    use rand_core::OsRng;
     use shieldd_sdk_app::params::AppParameters;
     use shieldd_sdk_asset::BASE_ASSET_ID;
     use shieldd_sdk_fee::GasPrices;
@@ -1512,7 +1513,6 @@ mod tests {
         plan::ActionPlan, txhash::TransactionId, AuthorizationData, Transaction, WitnessData,
     };
     use shieldd_sdk_validator::{validator, GovernanceKey, IdentityKey};
-    use rand_core::OsRng;
     use std::collections::BTreeMap;
     use std::future::Future;
     use std::pin::Pin;

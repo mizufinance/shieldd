@@ -1,6 +1,6 @@
 use crate::asset;
-use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 
 /// The estimated price of one asset in terms of another.
 ///

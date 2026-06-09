@@ -1,12 +1,12 @@
 #[cfg(any(unix, windows))]
 use anyhow::Context;
 use anyhow::{anyhow, Error, Result};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
 use shieldd_sdk_shielded_pool::{Transfer, TransferPlan, TransferView};
 use shieldd_sdk_txhash::{EffectHash, EffectingData, TransactionContext};
-use serde::{Deserialize, Serialize};
 
 #[cfg(any(unix, windows))]
 use crate::WitnessData;

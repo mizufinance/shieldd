@@ -3,6 +3,7 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey},
+    rand_core::OsRng,
     shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
@@ -12,7 +13,6 @@ use {
     shieldd_sdk_mock_consensus::TestNode,
     shieldd_sdk_proto::DomainType,
     shieldd_sdk_validator::{validator::Validator, GovernanceKey, IdentityKey},
-    rand_core::OsRng,
     tap::Tap,
     tracing::{error_span, info, Instrument},
 };
@@ -91,9 +91,9 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
     // Make a transaction that defines a new validator, providing an invalid signature.
     let plan = {
         use {
+            rand_core::OsRng,
             shieldd_sdk_transaction::{ActionPlan, TransactionParameters, TransactionPlan},
             shieldd_sdk_validator::validator,
-            rand_core::OsRng,
         };
         let bytes = new_validator.encode_to_vec();
         // NB: we do NOT use the validator's signing key here. this transaction will contain an

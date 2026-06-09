@@ -6,11 +6,11 @@
 
 use assert_cmd::Command;
 use http::StatusCode;
-use shieldd_sdk_proto::FILE_DESCRIPTOR_SET;
 use predicates::prelude::*;
 use prost_reflect::{DescriptorPool, ServiceDescriptor};
 use regex::Regex;
 use rstest::rstest;
+use shieldd_sdk_proto::FILE_DESCRIPTOR_SET;
 use url::Url;
 
 #[rstest]

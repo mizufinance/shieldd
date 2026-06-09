@@ -2,9 +2,9 @@ use anyhow::{anyhow, bail, Result};
 use ark_ff::{BigInteger, PrimeField};
 use decaf377::Fq;
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType};
 use shieldd_sdk_tct::StateCommitment;
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use crate::structs::{canonical_route_policy_string, AssetParams, AssetPolicy, RingData};

@@ -1,7 +1,7 @@
 use crate::policy::AuthPolicy;
-use shieldd_sdk_keys::keys::SpendKey;
 use serde::{Deserialize, Serialize};
 use serde_with::DisplayFromStr;
+use shieldd_sdk_keys::keys::SpendKey;
 
 /// Configuration data for the [`SoftKms`](super::SoftKms).
 ///

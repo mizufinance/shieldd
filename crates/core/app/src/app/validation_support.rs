@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use shieldd_sdk_proof_aggregation::AggregateBundle;
-use shieldd_sdk_sct::Nullifier;
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
+use shieldd_sdk_proof_aggregation::AggregateBundle;
+use shieldd_sdk_sct::Nullifier;
 
 use super::preconsensus::ProposalArtifactSidecarRecord;
 use crate::stateless_cache::TxArtifact;

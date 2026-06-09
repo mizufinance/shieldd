@@ -1242,10 +1242,10 @@ mod tests {
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
     use ark_snark::SNARK;
     use decaf377::Fq;
-    use shieldd_sdk_proof_params::batch;
-    use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
     use proptest::prelude::*;
     use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+    use shieldd_sdk_proof_params::batch;
+    use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
 
     use crate::transcript::TransferTranscriptDigest;
     use crate::{

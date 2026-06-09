@@ -1,8 +1,8 @@
 //! Shieldd validators and related structures.
 
-use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
+use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
 
 use crate::{GovernanceKey, IdentityKey};
 

@@ -3,8 +3,8 @@ use std::convert::TryFrom;
 
 use hmac::Hmac;
 use pbkdf2::pbkdf2;
-use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 
 use super::{
     bip44::Bip44Path,
@@ -66,8 +66,7 @@ impl From<SpendKey> for pb::SpendKey {
 
 impl From<SpendKeyBytes> for SpendKey {
     fn from(seed: SpendKeyBytes) -> Self {
-        let ask =
-            SigningKey::new_from_field(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[0; 1]));
+        let ask = SigningKey::new_from_field(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[0; 1]));
         let nk = NullifierKey(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[1; 1]));
         let fvk = FullViewingKey::from_components(ask.into(), nk);
 

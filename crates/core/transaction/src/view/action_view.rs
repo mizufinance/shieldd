@@ -1,10 +1,10 @@
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_proof_aggregation::AggregateBundle;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
 use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView;
-use serde::{Deserialize, Serialize};
 
 pub use shieldd_sdk_shielded_pool::ConsolidateView;
 pub use shieldd_sdk_shielded_pool::SplitView;

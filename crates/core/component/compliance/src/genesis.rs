@@ -9,9 +9,9 @@
 //! continue to use IMT non-membership proofs.
 
 use decaf377_rdsa::{SpendAuth, VerificationKey};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_proto::{shieldd::core::component::compliance::v1 as pb, DomainType};
-use serde::{Deserialize, Serialize};
 
 use crate::params::ComplianceParameters;
 

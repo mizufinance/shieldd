@@ -33,6 +33,9 @@ use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa as rdsa;
 use ibc_types::core::connection::ChainId;
 use jmt::RootHash;
+use prost::bytes::Bytes;
+use prost::Message as _;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_compact_block::{component::CompactBlockManager, StatePayload};
 use shieldd_sdk_compliance::params::{StateReadExt as _, StateWriteExt as _};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead as _;
@@ -72,9 +75,6 @@ use shieldd_sdk_txhash::AuthorizingData as _;
 use shieldd_sdk_validator::component::{
     stake::ConsensusUpdateRead, Staking, StateReadExt as _, StateWriteExt as _,
 };
-use prost::bytes::Bytes;
-use prost::Message as _;
-use serde::{Deserialize, Serialize};
 use tendermint::abci::{self, Event};
 use tendermint::v0_37::abci::{request, response};
 use tendermint::validator::Update;
@@ -96,9 +96,9 @@ use crate::params::change::ParameterChangeExt as _;
 use crate::params::AppParameters;
 use crate::stateless_cache::{CacheEntry, HistoricalValidationStamp, StatelessCache, TxArtifact};
 use crate::{metrics, ShielddHost};
+use sha2::Digest as _;
 #[cfg(feature = "benchmark-helpers")]
 use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
-use sha2::Digest as _;
 use std::sync::OnceLock;
 
 pub mod state_key;
@@ -1465,12 +1465,11 @@ impl App {
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
 
                         let t2 = Instant::now();
-                        let item =
-                            shieldd_sdk_shielded_pool::component::consolidate_to_batch_item(
-                                consolidate,
-                                public,
-                            )
-                            .context("consolidate to_batch_item failed")?;
+                        let item = shieldd_sdk_shielded_pool::component::consolidate_to_batch_item(
+                            consolidate,
+                            public,
+                        )
+                        .context("consolidate to_batch_item failed")?;
                         profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id = action_family_id(&Action::Consolidate(consolidate.clone()))
                             .expect("consolidate has a proof family");
@@ -6393,6 +6392,9 @@ mod tests {
     use decaf377::{Fq, Fr};
     use decaf377_rdsa as rdsa;
     use futures::StreamExt as _;
+    use proptest::prelude::*;
+    use rand_core::OsRng;
+    use sha2::Digest as _;
     use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
     use shieldd_sdk_compact_block::StatePayload;
     use shieldd_sdk_compliance::registry::ComplianceRegistryWrite as _;
@@ -6424,9 +6426,6 @@ mod tests {
         Action, DetectionData, Transaction, TransactionParameters, TransactionPlan,
     };
     use shieldd_sdk_txhash::AuthorizingData;
-    use proptest::prelude::*;
-    use rand_core::OsRng;
-    use sha2::Digest as _;
     use tendermint::v0_37::abci::{request, response};
     use tendermint::{account, block, Hash, Time};
 
@@ -7329,9 +7328,10 @@ mod tests {
         assert!(App::is_ready(storage.latest_snapshot()).await);
 
         let mut corrupt = StateDelta::new(storage.latest_snapshot());
-        let mut stream = corrupt.nonverifiable_prefix_raw(
-            shieldd_sdk_sct::state_key::nullifier_set::tree_node_prefix(),
-        );
+        let mut stream =
+            corrupt.nonverifiable_prefix_raw(
+                shieldd_sdk_sct::state_key::nullifier_set::tree_node_prefix(),
+            );
         let mut keys = Vec::new();
         while let Some(item) = stream.next().await {
             let (key, _) = item?;

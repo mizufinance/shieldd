@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use anyhow::Context;
-use shieldd_sdk_proto::{core::component::governance::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{core::component::governance::v1 as pb, DomainType};
 
 /// An encoded parameter.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

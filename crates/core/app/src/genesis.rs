@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::genesis::Content as ComplianceContent;
 use shieldd_sdk_fee::genesis::Content as FeeContent;
 use shieldd_sdk_governance::genesis::Content as GovernanceContent;
@@ -6,7 +7,6 @@ use shieldd_sdk_proto::{shieldd::core::app::v1 as pb, DomainType};
 use shieldd_sdk_sct::genesis::Content as SctContent;
 use shieldd_sdk_shielded_pool::genesis::Content as ShieldedPoolContent;
 use shieldd_sdk_validator::genesis::Content as ValidatorContent;
-use serde::{Deserialize, Serialize};
 
 /// The application state at genesis.
 #[derive(Deserialize, Serialize, Debug, Clone)]

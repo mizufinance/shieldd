@@ -29,13 +29,13 @@ use demo_state::{
     StatusDocument, UserState,
 };
 use orbis_common::blockchain::SourceHubClient;
+use serde::Deserialize;
 use shieldd_orbis_client::{NodeInfo, OrbisClient};
 use shieldd_sdk_compliance::{
     decrypt_flagged_rows, export_ledger_rows_json, export_scan_json, import_orbis_audit_entries,
     mark_row_audited, record_address_alias, scanner_health_json, AuditScanExport, DetectionKey,
     OrbisAuditEntry, SqliteScannerStore,
 };
-use serde::Deserialize;
 
 mod command;
 mod demo_auth;

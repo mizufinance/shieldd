@@ -1,5 +1,5 @@
-use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
 
 mod allocation;
 

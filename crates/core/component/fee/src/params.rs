@@ -1,8 +1,8 @@
 use anyhow::ensure;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::BASE_ASSET_ID;
 use shieldd_sdk_proto::shieldd::core::component::fee::v1 as pb;
 use shieldd_sdk_proto::DomainType;
-use serde::{Deserialize, Serialize};
 
 use crate::GasPrices;
 

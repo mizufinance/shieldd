@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::core::component::ibc::v1 as pb;
 use shieldd_sdk_proto::DomainType;
-use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(try_from = "pb::IbcParameters", into = "pb::IbcParameters")]

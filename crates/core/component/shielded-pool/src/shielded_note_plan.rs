@@ -1,6 +1,8 @@
 use decaf377::{Fq, Fr};
 use decaf377_ka as ka;
 use decaf377_rdsa::{SpendAuth, VerificationKey};
+use rand_core::{CryptoRng, RngCore};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{Balance, Value};
 use shieldd_sdk_compliance::{AssetPolicy, MerklePath};
 use shieldd_sdk_keys::{
@@ -11,8 +13,6 @@ use shieldd_sdk_keys::{
 use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
-use rand_core::{CryptoRng, RngCore};
-use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 
 use crate::{Backref, Note, Rseed, TransferInputBody};

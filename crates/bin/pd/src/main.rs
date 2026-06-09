@@ -25,12 +25,12 @@ use pd::{
         join::network_join,
     },
 };
-use shieldd_sdk_app::app_version::check_and_update_app_version;
-use shieldd_sdk_app::{APP_VERSION, SUBSTORE_PREFIXES};
-use shieldd_sdk_tower_trace::remote_addr;
 use rand::Rng;
 use rand_core::OsRng;
 use rustls::crypto::aws_lc_rs;
+use shieldd_sdk_app::app_version::check_and_update_app_version;
+use shieldd_sdk_app::{APP_VERSION, SUBSTORE_PREFIXES};
+use shieldd_sdk_tower_trace::remote_addr;
 use tendermint_config::net::Address as TendermintAddress;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;

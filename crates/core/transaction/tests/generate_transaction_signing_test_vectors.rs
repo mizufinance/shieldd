@@ -8,6 +8,10 @@ use ibc_types::core::{
     commitment::MerkleProof,
 };
 use ibc_types::timestamp::Timestamp;
+use proptest::prelude::*;
+use proptest::strategy::ValueTree;
+use proptest::test_runner::{Config, TestRunner};
+use rand_core::OsRng;
 use shieldd_sdk_asset::{asset::Id, BASE_ASSET_DENOM};
 use shieldd_sdk_fee::Fee;
 use shieldd_sdk_governance::{
@@ -29,10 +33,6 @@ use shieldd_sdk_transaction::{
     check_transaction_plan_enabled, ActionPlan, TransactionParameters, TransactionPlan,
 };
 use shieldd_sdk_validator::{validator, validator::Definition, GovernanceKey, IdentityKey};
-use proptest::prelude::*;
-use proptest::strategy::ValueTree;
-use proptest::test_runner::{Config, TestRunner};
-use rand_core::OsRng;
 use std::io::Write;
 use std::str::FromStr;
 use std::{fs::File, io::Read};

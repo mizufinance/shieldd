@@ -28,11 +28,11 @@ use ibc_types::core::channel::{ChannelId, PortId};
 use ibc_types::core::client::ClientId;
 use ibc_types::core::connection::ConnectionId;
 use ibc_types::core::connection::IdentifiedConnectionEnd;
+use prost::Message;
 use shieldd_sdk_ibc::component::ChannelStateReadExt as _;
 use shieldd_sdk_ibc::component::ClientStateReadExt as _;
 use shieldd_sdk_ibc::component::ConnectionStateReadExt as _;
 use shieldd_sdk_ibc::component::HostInterface;
-use prost::Message;
 use std::str::FromStr;
 use tendermint::v0_37::abci::{
     request,

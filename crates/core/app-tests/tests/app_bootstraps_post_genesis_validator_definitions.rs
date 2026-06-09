@@ -3,6 +3,7 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey},
+    rand_core::OsRng,
     shieldd_sdk_app::{
         genesis::{self, AppState, Content},
         server::consensus::Consensus,
@@ -16,7 +17,6 @@ use {
         validator::{self, State, Validator},
         GovernanceKey, IdentityKey,
     },
-    rand_core::OsRng,
     tap::Tap,
 };
 

@@ -10,6 +10,7 @@ use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisE
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa as rdsa;
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use shieldd_sdk_app::stateless_cache::TxArtifact;
 use shieldd_sdk_fee::Fee;
 use shieldd_sdk_proof_aggregation::{
@@ -19,7 +20,6 @@ use shieldd_sdk_proof_aggregation::{
 use shieldd_sdk_proof_params::batch::BatchItem;
 use shieldd_sdk_transaction::{Action, DetectionData, Transaction, TransactionParameters};
 use shieldd_sdk_txhash::AuthorizingData;
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 struct SquareCircuit {
     x: Option<Fq>,

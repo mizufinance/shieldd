@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::event::{EventAssetRegistered, EventUserRegistered};
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_proto::{
@@ -13,7 +14,6 @@ use shieldd_sdk_tct::{
     builder::{block, epoch},
     StateCommitment,
 };
-use serde::{Deserialize, Serialize};
 
 use super::StatePayload;
 

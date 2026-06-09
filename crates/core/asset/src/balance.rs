@@ -2,8 +2,8 @@ use anyhow::anyhow;
 use ark_r1cs_std::prelude::*;
 use ark_r1cs_std::uint8::UInt8;
 use ark_relations::r1cs::SynthesisError;
-use shieldd_sdk_num::{Amount, AmountVar};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_num::{Amount, AmountVar};
 use std::{
     collections::{btree_map, BTreeMap},
     fmt::{self, Debug, Formatter},
@@ -470,9 +470,9 @@ mod test {
     use ark_ff::Zero;
     use decaf377::Fr;
     use once_cell::sync::Lazy;
-    use shieldd_sdk_proto::core::num::v1::Amount as ProtoAmount;
     use proptest::prelude::*;
     use rand_core::OsRng;
+    use shieldd_sdk_proto::core::num::v1::Amount as ProtoAmount;
 
     use super::*;
 

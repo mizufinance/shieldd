@@ -2,6 +2,7 @@ use anyhow::{anyhow, ensure, Error};
 use decaf377::Fq;
 use decaf377::Fr;
 use decaf377_rdsa::{Signature, SpendAuth};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, Balance};
 use shieldd_sdk_keys::symmetric::PayloadKey;
 use shieldd_sdk_keys::FullViewingKey;
@@ -9,7 +10,6 @@ use shieldd_sdk_keys::{symmetric::WrappedMemoKey, Address};
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
-use serde::{Deserialize, Serialize};
 
 use crate::note_reshape::dummy_spend_auth_sig;
 use crate::note_reshape::dummy_state_commitment_proof;
@@ -649,10 +649,10 @@ mod tests {
 
     use decaf377::Fr;
     use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
+    use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_txhash::EffectingData;
-    use rand_core::OsRng;
 
     use super::*;
     use crate::Note;

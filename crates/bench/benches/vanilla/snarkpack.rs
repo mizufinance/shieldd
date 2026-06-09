@@ -5,13 +5,13 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_snark::SNARK;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use decaf377::{Bls12_377, Fq};
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use shieldd_sdk_proof_aggregation::{
     aggregate_family, pad_items_to_power_of_two, srs_id, verify_family_aggregate,
     AggregateStatement, DevSrs, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
 };
 use shieldd_sdk_proof_params::batch::BatchItem;
 use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use std::path::PathBuf;
 
 #[derive(Clone)]

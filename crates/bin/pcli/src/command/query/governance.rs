@@ -5,6 +5,8 @@ use std::{
 
 use anyhow::{Context, Result};
 use futures::TryStreamExt;
+use serde::Serialize;
+use serde_json::json;
 use shieldd_sdk_governance::Vote;
 use shieldd_sdk_proto::core::component::governance::v1::{
     query_service_client::QueryServiceClient as GovernanceQueryServiceClient, ProposalDataRequest,
@@ -12,8 +14,6 @@ use shieldd_sdk_proto::core::component::governance::v1::{
     VotingPowerAtProposalStartRequest,
 };
 use shieldd_sdk_validator::IdentityKey;
-use serde::Serialize;
-use serde_json::json;
 
 use crate::App;
 

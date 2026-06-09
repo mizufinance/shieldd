@@ -101,8 +101,8 @@ mod tests {
     use crate::issuer_keys::DetectionKey;
     use crate::test_helpers::make_address;
     use crate::transfer::encrypt_transfer;
-    use shieldd_sdk_asset::Value;
     use rand_core::OsRng;
+    use shieldd_sdk_asset::Value;
 
     fn derive_ack(
         ring_pk: &decaf377::Element,

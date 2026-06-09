@@ -1,5 +1,5 @@
-use shieldd_sdk_proto::{custody::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{custody::v1 as pb, DomainType};
 
 /// A pre-authorization packet.  This allows a custodian to delegate (partial)
 /// signing authority to other authorization mechanisms.  Details of how a

@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Result};
 use decaf377_fmd::Precision;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{
     core::component::shielded_pool::v1::{self as pb},
     DomainType,
 };
-use serde::{Deserialize, Serialize};
 
 pub mod state_key;
 

@@ -2,14 +2,14 @@
 
 use anyhow::Result;
 use decaf377_fmd::Precision;
+use rand::{CryptoRng, Rng};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{Address, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, TransferPlan};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
-use rand::{CryptoRng, Rng};
-use serde::{Deserialize, Serialize};
 
 mod action;
 mod auth;
@@ -328,6 +328,7 @@ mod tests {
     use decaf377::Fr;
     use ibc_types::core::channel::ChannelId;
     use ibc_types::core::client::Height as IbcHeight;
+    use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_keys::test_keys;
@@ -335,7 +336,6 @@ mod tests {
         Ics20Withdrawal, Note, Rseed, ShieldedIcs20WithdrawalFamilyId, ShieldedInputPlan,
         ShieldedOutputPlan,
     };
-    use rand_core::OsRng;
     use std::{ops::Deref, str::FromStr};
 
     #[test]

@@ -2,10 +2,10 @@ use anyhow::Result;
 use decaf377::Fq;
 use decaf377_frost as frost;
 use ed25519_consensus::{SigningKey, VerificationKey};
-use shieldd_sdk_keys::{keys::NullifierKey, FullViewingKey};
 use rand_core::CryptoRngCore;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::Uppercase, hex::Hex, DisplayFromStr, TryFromInto};
+use shieldd_sdk_keys::{keys::NullifierKey, FullViewingKey};
 use std::collections::{HashMap, HashSet};
 
 /// A shim to serialize frost::keys::SigningShare

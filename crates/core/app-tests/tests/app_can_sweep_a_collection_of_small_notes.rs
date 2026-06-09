@@ -3,6 +3,7 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     futures::StreamExt,
+    rand_core::OsRng,
     shieldd_sdk_app::{
         genesis::{AppState, Content},
         server::consensus::Consensus,
@@ -21,7 +22,6 @@ use {
     shieldd_sdk_shielded_pool::genesis::Allocation,
     shieldd_sdk_view::ViewClient,
     shieldd_sdk_wallet::plan,
-    rand_core::OsRng,
     std::ops::Deref,
     tap::{Tap, TapFallible},
     tokio::time,

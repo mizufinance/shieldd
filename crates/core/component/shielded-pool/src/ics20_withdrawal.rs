@@ -1,4 +1,5 @@
 use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{
     asset::{self, Metadata},
     Balance, Value,
@@ -10,7 +11,6 @@ use shieldd_sdk_proto::{
     DomainType,
 };
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 #[cfg(feature = "component")]

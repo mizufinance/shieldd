@@ -18,8 +18,8 @@
 //! - **Binding**: Counterparty relationship is cryptographically enforced
 
 use decaf377::{Fq, Fr};
-use shieldd_sdk_tct::StateCommitment;
 use poseidon377::hash_3;
+use shieldd_sdk_tct::StateCommitment;
 
 /// Domain separator for sender/self leaf binding.
 pub const DOMAIN_SEP_SENDER: &[u8] = b"shieldd.leaf_binding.sender";

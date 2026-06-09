@@ -184,37 +184,38 @@ impl TransactionViewExt for TransactionView {
                         ["Transfer", &action]
                     }
                 },
-                shieldd_sdk_transaction::ActionView::Consolidate(consolidate) => match consolidate
-                {
-                    shieldd_sdk_transaction::view::action_view::ConsolidateView::Visible {
-                        consolidate: _,
-                        spent_notes: _,
-                        created_notes,
-                        payload_key: _,
-                    } => {
-                        if let Some(created_note) = created_notes.first() {
-                            action = format!(
-                                "{} -> {}",
-                                format_value_view(&created_note.value),
-                                format_address_view(&created_note.address),
-                            );
-                        } else {
-                            action = "<empty consolidate>".to_string();
+                shieldd_sdk_transaction::ActionView::Consolidate(consolidate) => {
+                    match consolidate {
+                        shieldd_sdk_transaction::view::action_view::ConsolidateView::Visible {
+                            consolidate: _,
+                            spent_notes: _,
+                            created_notes,
+                            payload_key: _,
+                        } => {
+                            if let Some(created_note) = created_notes.first() {
+                                action = format!(
+                                    "{} -> {}",
+                                    format_value_view(&created_note.value),
+                                    format_address_view(&created_note.address),
+                                );
+                            } else {
+                                action = "<empty consolidate>".to_string();
+                            }
+                            ["Consolidate", &action]
                         }
-                        ["Consolidate", &action]
-                    }
-                    shieldd_sdk_transaction::view::action_view::ConsolidateView::Opaque {
-                        consolidate,
-                    } => {
-                        if let Some(first_output) = consolidate.body.outputs.first() {
-                            let bytes = first_output.note_payload.encrypted_note.0;
-                            action = format_opaque_bytes(&bytes);
-                        } else {
-                            action = "<empty consolidate>".to_string();
+                        shieldd_sdk_transaction::view::action_view::ConsolidateView::Opaque {
+                            consolidate,
+                        } => {
+                            if let Some(first_output) = consolidate.body.outputs.first() {
+                                let bytes = first_output.note_payload.encrypted_note.0;
+                                action = format_opaque_bytes(&bytes);
+                            } else {
+                                action = "<empty consolidate>".to_string();
+                            }
+                            ["Consolidate", &action]
                         }
-                        ["Consolidate", &action]
                     }
-                },
+                }
                 shieldd_sdk_transaction::ActionView::Split(split) => match split {
                     shieldd_sdk_transaction::view::action_view::SplitView::Visible {
                         split: _,
@@ -291,9 +292,7 @@ impl TransactionViewExt for TransactionView {
                     action = format!("Register user for asset {}", x.leaf.asset_id);
                     ["Compliance: Register User", &action]
                 }
-                shieldd_sdk_transaction::ActionView::AggregateBundle(_) => {
-                    ["Aggregate Bundle", ""]
-                }
+                shieldd_sdk_transaction::ActionView::AggregateBundle(_) => ["Aggregate Bundle", ""],
             };
 
             actions_table.add_row(row);

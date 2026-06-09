@@ -207,9 +207,9 @@ pub fn default_user_proof(
 #[cfg(any(test, feature = "test-helpers"))]
 pub mod test_helpers {
     use decaf377::{Fq, Fr};
+    use rand_core::{OsRng, RngCore};
     use shieldd_sdk_keys::keys::Diversifier;
     use shieldd_sdk_keys::Address;
-    use rand_core::{OsRng, RngCore};
 
     use crate::indexed_tree::{IndexedLeaf, FQ_MAX};
 
@@ -378,9 +378,9 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_compliance_path_generation() {
         use crate::transfer::{encrypt_transfer, TRANSFER_WIRE_BYTES};
+        use rand_core::OsRng;
         use shieldd_sdk_asset::Value;
         use shieldd_sdk_num::Amount;
-        use rand_core::OsRng;
 
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
@@ -485,6 +485,7 @@ mod tests {
         use crate::crypto::derive_compliance_scalar;
         use crate::issuer_keys::DetectionKey;
         use crate::transfer::encrypt_transfer;
+        use rand_core::OsRng;
         use shieldd_sdk_asset::Value;
         use shieldd_sdk_num::Amount;
         use shieldd_sdk_proto::core::component::shielded_pool::v1::{
@@ -493,7 +494,6 @@ mod tests {
         use shieldd_sdk_proto::core::transaction::v1::{
             action::Action, Action as ActionProto, Transaction as ProtoTransaction, TransactionBody,
         };
-        use rand_core::OsRng;
 
         let issuer_dk = DetectionKey::demo();
         let issuer_dk_pub = issuer_dk.public_key();

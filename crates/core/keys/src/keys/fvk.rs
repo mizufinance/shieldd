@@ -6,7 +6,7 @@ use poseidon377::hash_2;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 
-use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, serializers::bech32str, DomainType};
+use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::keys::v1 as pb, DomainType};
 
 use crate::keys::wallet_id::WalletId;
 use crate::PositionMetadataKey;

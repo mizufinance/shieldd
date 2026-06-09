@@ -1,12 +1,12 @@
 use decaf377::{Fq, Fr};
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_proto::shieldd::core::component::compliance::v1 as pb;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_tct::StateCommitment;
-use serde::{Deserialize, Serialize};
 
 /// Compliance plaintext layout constants.
 /// These define the byte sizes for each field in the compliance plaintext that gets encrypted.

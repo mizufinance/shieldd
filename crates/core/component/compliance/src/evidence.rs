@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use decaf377::Fq;
-use shieldd_sdk_asset::asset;
 use sha2::{Digest, Sha256};
+use shieldd_sdk_asset::asset;
 
 use crate::{
     decode_object::{
@@ -388,9 +388,9 @@ impl<'a> EvidenceReader<'a> {
 pub(crate) mod tests {
     use super::*;
     use decaf377::{Element, Fr};
+    use rand_core::OsRng;
     use shieldd_sdk_asset::Value;
     use shieldd_sdk_num::Amount;
-    use rand_core::OsRng;
 
     use crate::{
         crypto::derive_compliance_scalar,

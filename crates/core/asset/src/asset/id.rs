@@ -4,9 +4,9 @@ use ark_serialize::CanonicalDeserialize;
 use base64::Engine;
 use decaf377::Fq;
 use once_cell::sync::Lazy;
-use shieldd_sdk_num::Amount;
-use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, serializers::bech32str, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::asset::v1 as pb, DomainType};
 
 /// An identifier for an IBC asset type.
 ///

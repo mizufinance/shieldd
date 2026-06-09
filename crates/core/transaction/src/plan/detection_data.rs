@@ -1,8 +1,8 @@
 use crate::DetectionData;
 
 use super::CluePlan;
-use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(try_from = "pb::DetectionDataPlan", into = "pb::DetectionDataPlan")]

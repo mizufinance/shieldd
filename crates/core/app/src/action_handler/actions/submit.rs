@@ -201,12 +201,12 @@ impl AppActionHandler for ProposalSubmit {
 #[cfg(test)]
 mod test {
     use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+    use rand_core::OsRng;
     use shieldd_sdk_governance::{
         change::ParameterChange, Proposal, ProposalPayload, ProposalSubmit, ProposalSubmitBody,
     };
     use shieldd_sdk_proto::{DomainType, Message};
     use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
-    use rand_core::OsRng;
 
     use crate::action_handler::AppActionHandler;
 

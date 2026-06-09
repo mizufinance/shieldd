@@ -121,8 +121,8 @@ impl Proof {
     }
 }
 
-use shieldd_sdk_proto::shieldd::crypto::tct::v1 as pb;
 use rand::Rng;
+use shieldd_sdk_proto::shieldd::crypto::tct::v1 as pb;
 
 impl From<Proof> for pb::StateCommitmentProof {
     fn from(proof: Proof) -> Self {

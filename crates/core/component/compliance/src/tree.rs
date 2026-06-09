@@ -1,8 +1,8 @@
 use anyhow::{bail, Result};
 use decaf377::Fq;
 use once_cell::sync::Lazy;
-use shieldd_sdk_tct::StateCommitment;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_tct::StateCommitment;
 use std::collections::BTreeMap;
 
 /// The default depth of the Quad Merkle Tree.

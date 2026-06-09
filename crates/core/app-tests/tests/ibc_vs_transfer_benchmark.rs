@@ -4,6 +4,9 @@ use {
     common::ibc_tests::{MockRelayer, TestNodeWithIBC, TestStorage, ValidatorKeys},
     decaf377::Fr,
     decaf377_rdsa::VerificationKey,
+    rand_core::OsRng,
+    serde::{Deserialize, Serialize},
+    sha2::Digest as _,
     shieldd_sdk_app::{
         app::{
             candidate_digest_from_hashes, App, CandidateEnvelope, ExecutionBlockProfile,
@@ -27,9 +30,6 @@ use {
         memo::MemoPlaintext, plan::MemoPlan, Action, ActionPlan, Transaction,
         TransactionParameters, TransactionPlan,
     },
-    rand_core::OsRng,
-    serde::{Deserialize, Serialize},
-    sha2::Digest as _,
     std::{
         collections::BTreeSet,
         fs,
@@ -2018,8 +2018,7 @@ fn corpus_fingerprint(tx_count: usize) -> Result<String> {
 
 fn transfer_verifying_key_digest() -> Result<String> {
     let mut bytes = Vec::new();
-    shieldd_sdk_proof_params::transfer_proof_verification_key()
-        .serialize_compressed(&mut bytes)?;
+    shieldd_sdk_proof_params::transfer_proof_verification_key().serialize_compressed(&mut bytes)?;
     Ok(bytes_digest(&bytes))
 }
 

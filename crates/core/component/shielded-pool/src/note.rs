@@ -6,14 +6,14 @@ use decaf377::Fq;
 use decaf377_fmd as fmd;
 use decaf377_ka as ka;
 use once_cell::sync::Lazy;
+use rand::{CryptoRng, Rng};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::{
     keys::{Diversifier, FullViewingKey, IncomingViewingKey, OutgoingViewingKey},
     symmetric::{OutgoingCipherKey, OvkWrappedKey, PayloadKey, PayloadKind},
     Address, AddressView,
 };
 use shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1 as pb;
-use rand::{CryptoRng, Rng};
-use serde::{Deserialize, Serialize};
 use thiserror;
 
 mod r1cs;

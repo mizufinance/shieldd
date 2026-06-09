@@ -1,6 +1,6 @@
+use sha2::{Digest, Sha256};
 use shieldd_sdk_proto::{core::transaction::v1::Transaction as ProtoTransaction, Message};
 use shieldd_sdk_txhash::TransactionId;
-use sha2::{Digest, Sha256};
 
 /// Compute the scanner's transaction id from canonical Shieldd transaction
 /// protobuf bytes.

@@ -18,6 +18,7 @@ use tokio::{
 use tracing::{error_span, Instrument};
 use url::Url;
 
+use sct::TreeStore;
 use shieldd_sdk_app::params::AppParameters;
 use shieldd_sdk_asset::{asset, asset::Id, asset::Metadata, Value};
 use shieldd_sdk_fee::GasPrices;
@@ -33,7 +34,6 @@ use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::{fmd, note, Note, Rseed};
 use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
 use shieldd_sdk_transaction::Transaction;
-use sct::TreeStore;
 use tct::StateCommitment;
 
 use crate::{sync::FilteredBlock, SpendableNoteRecord};

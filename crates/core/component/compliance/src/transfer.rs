@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Context, Result};
 use decaf377::{Element, Fq, Fr};
+use rand_core::{CryptoRng, RngCore};
 use shieldd_sdk_asset::Value;
 use shieldd_sdk_keys::Address;
-use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     crypto::{

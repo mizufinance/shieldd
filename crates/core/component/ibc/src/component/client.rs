@@ -339,9 +339,7 @@ pub trait StateReadExt: StateRead {
         // it's not in the same path namespace.
         self.get(&format!("shieldd_consensus_states/{height}"))
             .await?
-            .ok_or_else(|| {
-                anyhow::anyhow!("shieldd consensus state not found for height {height}")
-            })
+            .ok_or_else(|| anyhow::anyhow!("shieldd consensus state not found for height {height}"))
     }
 
     async fn get_verified_consensus_state(

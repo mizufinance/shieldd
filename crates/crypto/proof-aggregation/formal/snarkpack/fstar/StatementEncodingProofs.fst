@@ -321,25 +321,25 @@ let atom_bytes (f: t_Slice u8 {Seq.length f <= 4294967295}) : Seq.seq u8 =
 /// A fixed 32-byte array is a slice whose length trivially fits u32.
 let arr32_as_slice (a: t_Array u8 (mk_usize 32)) : (f: t_Slice u8 {Seq.length f <= 4294967295}) = a
 
-/// The 47 bytes of the padding-rule domain separator, matching the hax model
-/// of v_PADDING_RULE_DOMAIN (`array_of_list 47 padding_list`).
+/// The 46 bytes of the padding-rule domain separator, matching the hax model
+/// of v_PADDING_RULE_DOMAIN (`array_of_list 46 padding_list`).
 let padding_list : list u8 =
   [
-    mk_u8 112; mk_u8 101; mk_u8 110; mk_u8 117; mk_u8 109; mk_u8 98; mk_u8 114; mk_u8 97;
-    mk_u8 46; mk_u8 115; mk_u8 110; mk_u8 97; mk_u8 114; mk_u8 107; mk_u8 112; mk_u8 97;
-    mk_u8 99; mk_u8 107; mk_u8 46; mk_u8 112; mk_u8 97; mk_u8 100; mk_u8 100; mk_u8 105;
-    mk_u8 110; mk_u8 103; mk_u8 46; mk_u8 114; mk_u8 101; mk_u8 112; mk_u8 101; mk_u8 97;
-    mk_u8 116; mk_u8 45; mk_u8 102; mk_u8 105; mk_u8 110; mk_u8 97; mk_u8 108; mk_u8 45;
-    mk_u8 114; mk_u8 111; mk_u8 119; mk_u8 46; mk_u8 118; mk_u8 49; mk_u8 0
+    mk_u8 115; mk_u8 104; mk_u8 105; mk_u8 101; mk_u8 108; mk_u8 100; mk_u8 100; mk_u8 46;
+    mk_u8 115; mk_u8 110; mk_u8 97; mk_u8 114; mk_u8 107; mk_u8 112; mk_u8 97; mk_u8 99;
+    mk_u8 107; mk_u8 46; mk_u8 112; mk_u8 97; mk_u8 100; mk_u8 100; mk_u8 105; mk_u8 110;
+    mk_u8 103; mk_u8 46; mk_u8 114; mk_u8 101; mk_u8 112; mk_u8 101; mk_u8 97; mk_u8 116;
+    mk_u8 45; mk_u8 102; mk_u8 105; mk_u8 110; mk_u8 97; mk_u8 108; mk_u8 45; mk_u8 114;
+    mk_u8 111; mk_u8 119; mk_u8 46; mk_u8 118; mk_u8 49; mk_u8 0
   ]
 
-/// The padding-rule domain separator is a fixed 47-byte slice. Its hax model
+/// The padding-rule domain separator is a fixed 46-byte slice. Its hax model
 /// unfolds (the let is reducible, array_of_list is `unfold`) to
 /// `seq_of_list padding_list`, whose return type gives
-/// `length s == List.length padding_list`; the latter normalizes to 47.
+/// `length s == List.length padding_list`; the latter normalizes to 46.
 let lemma_padding_len ()
-    : Lemma (Seq.length Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN == 47)
-= assert_norm (FStar.List.Tot.length padding_list == 47);
+    : Lemma (Seq.length Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN == 46)
+= assert_norm (FStar.List.Tot.length padding_list == 46);
   assert (Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN ==
           Seq.seq_of_list padding_list)
 

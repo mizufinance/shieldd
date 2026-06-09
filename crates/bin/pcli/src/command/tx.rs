@@ -24,6 +24,7 @@ use rand_core::OsRng;
 use regex::Regex;
 
 use compliance::ComplianceCmd;
+use proposal::ProposalCmd;
 use shieldd_sdk_asset::{asset, asset::Metadata, Value};
 use shieldd_sdk_fee::FeeTier;
 use shieldd_sdk_governance::{proposal::ProposalToml, ProposalSubmit, ProposalSubmitBody};
@@ -49,7 +50,6 @@ use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, Ics20Withdrawal};
 use shieldd_sdk_transaction::Transaction;
 use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
 use shieldd_sdk_view::{NoteManager, TransferPlanningResult, ViewClient};
-use proposal::ProposalCmd;
 use tonic::transport::{Channel, ClientTlsConfig};
 use url::Url;
 

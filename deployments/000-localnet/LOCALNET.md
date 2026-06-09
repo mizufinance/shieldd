@@ -20,7 +20,7 @@ docker compose -f deployments/compose/docker-compose.yml up -d
 
 **Address:**
 ```
-shieldd19lf99grquvn8yufxswy9yasux5xhew2adjefmwdk7pnnd6za6ardtce0d9z7suzwz94cjclz6rwqqn5qeta4pn4j7y59k38za5yhmkt66tngw3txh90rm0vrhelx68lcsk9yqk
+shieldd19lf99grquvn8yufxswy9yasux5xhew2adjefmwdk7pnnd6za6ardtce0d9z7suzwz94cjclz6rwqqn5qeta4pn4j7y59k38za5yhmkt66tngw3txh90rm0vrhelx68lcdd0ejt
 ```
 
 **Mnemonic:**

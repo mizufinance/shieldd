@@ -32,29 +32,31 @@ let challenge_context_spec (statement_digest:t_Array u8 (mk_usize 32)) : Seq.seq
 
 let challenge_domain_list : list u8 =
   [
-    mk_u8 112; mk_u8 101; mk_u8 110; mk_u8 117; mk_u8 109; mk_u8 98; mk_u8 114; mk_u8 97;
-    mk_u8 46; mk_u8 115; mk_u8 110; mk_u8 97; mk_u8 114; mk_u8 107; mk_u8 112; mk_u8 97;
-    mk_u8 99; mk_u8 107; mk_u8 46; mk_u8 99; mk_u8 104; mk_u8 97; mk_u8 108; mk_u8 108;
-    mk_u8 101; mk_u8 110; mk_u8 103; mk_u8 101; mk_u8 46; mk_u8 118; mk_u8 49; mk_u8 0
+    mk_u8 115; mk_u8 104; mk_u8 105; mk_u8 101; mk_u8 108; mk_u8 100; mk_u8 100;
+    mk_u8 46; mk_u8 115; mk_u8 110; mk_u8 97; mk_u8 114; mk_u8 107; mk_u8 112;
+    mk_u8 97; mk_u8 99; mk_u8 107; mk_u8 46; mk_u8 99; mk_u8 104; mk_u8 97;
+    mk_u8 108; mk_u8 108; mk_u8 101; mk_u8 110; mk_u8 103; mk_u8 101; mk_u8 46;
+    mk_u8 118; mk_u8 49; mk_u8 0
   ]
 
 let challenge_context_domain_list : list u8 =
   [
-    mk_u8 112; mk_u8 101; mk_u8 110; mk_u8 117; mk_u8 109; mk_u8 98; mk_u8 114; mk_u8 97;
-    mk_u8 46; mk_u8 115; mk_u8 110; mk_u8 97; mk_u8 114; mk_u8 107; mk_u8 112; mk_u8 97;
-    mk_u8 99; mk_u8 107; mk_u8 46; mk_u8 99; mk_u8 104; mk_u8 97; mk_u8 108; mk_u8 108;
-    mk_u8 101; mk_u8 110; mk_u8 103; mk_u8 101; mk_u8 95; mk_u8 99; mk_u8 111; mk_u8 110;
-    mk_u8 116; mk_u8 101; mk_u8 120; mk_u8 116; mk_u8 46; mk_u8 118; mk_u8 49; mk_u8 0
+    mk_u8 115; mk_u8 104; mk_u8 105; mk_u8 101; mk_u8 108; mk_u8 100; mk_u8 100;
+    mk_u8 46; mk_u8 115; mk_u8 110; mk_u8 97; mk_u8 114; mk_u8 107; mk_u8 112;
+    mk_u8 97; mk_u8 99; mk_u8 107; mk_u8 46; mk_u8 99; mk_u8 104; mk_u8 97;
+    mk_u8 108; mk_u8 108; mk_u8 101; mk_u8 110; mk_u8 103; mk_u8 101; mk_u8 95;
+    mk_u8 99; mk_u8 111; mk_u8 110; mk_u8 116; mk_u8 101; mk_u8 120; mk_u8 116;
+    mk_u8 46; mk_u8 118; mk_u8 49; mk_u8 0
   ]
 
 let lemma_challenge_domain_len ()
-    : Lemma (Seq.length C.v_CHALLENGE_DOMAIN == 32)
-= assert_norm (FStar.List.Tot.length challenge_domain_list == 32);
+    : Lemma (Seq.length C.v_CHALLENGE_DOMAIN == 31)
+= assert_norm (FStar.List.Tot.length challenge_domain_list == 31);
   assert (C.v_CHALLENGE_DOMAIN == Seq.seq_of_list challenge_domain_list)
 
 let lemma_challenge_context_domain_len ()
-    : Lemma (Seq.length C.v_CHALLENGE_CONTEXT_DOMAIN == 40)
-= assert_norm (FStar.List.Tot.length challenge_context_domain_list == 40);
+    : Lemma (Seq.length C.v_CHALLENGE_CONTEXT_DOMAIN == 39)
+= assert_norm (FStar.List.Tot.length challenge_context_domain_list == 39);
   assert (C.v_CHALLENGE_CONTEXT_DOMAIN == Seq.seq_of_list challenge_context_domain_list)
 
 let label_len (stage_label:t_Slice u8) : u32 =

@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{
     ConsolidateFamilyId, ShieldedIcs20WithdrawalFamilyId, SplitFamilyId,
 };
-use serde::{Deserialize, Serialize};
 
 const PROOF_FAMILY_TRANSFER: u32 = pb::ProofFamilyId::Transfer as u32;
 const PROOF_FAMILY_CONSOLIDATE: u32 = pb::ProofFamilyId::Consolidate as u32;

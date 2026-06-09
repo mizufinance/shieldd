@@ -3,6 +3,8 @@ use {anyhow::Result, std::time::Duration};
 mod relayer;
 use anyhow::Context as _;
 use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+#[allow(unused_imports)]
+pub use relayer::{MockRelayer, SendPacketEvent};
 use shieldd_sdk_app::{
     app::{MAX_BLOCK_TXS_PAYLOAD_BYTES, MAX_EVIDENCE_SIZE_BYTES},
     genesis,
@@ -11,8 +13,6 @@ use shieldd_sdk_keys::keys::{SpendKey, SpendKeyBytes};
 use shieldd_sdk_mock_consensus::TestNode;
 use shieldd_sdk_proto::core::component::validator::v1::Validator;
 use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
-#[allow(unused_imports)]
-pub use relayer::{MockRelayer, SendPacketEvent};
 
 mod node;
 pub use node::{TestNodeWithIBC, TestStorage};

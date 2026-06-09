@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
+use rusqlite::{params, OptionalExtension};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::Address;
-use rusqlite::{params, OptionalExtension};
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 

@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::shieldd::core::component::sct::v1 as pb;
 use shieldd_sdk_proto::DomainType;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Serialize, Deserialize)]
 #[serde(try_from = "pb::Epoch", into = "pb::Epoch")]

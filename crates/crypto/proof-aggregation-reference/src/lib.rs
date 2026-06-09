@@ -23,6 +23,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use blake2::Blake2b;
 use decaf377::{Bls12_377, Fq};
 use digest::Digest;
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use shieldd_sdk_proof_aggregation::{
     encode_wrapped_aggregate_proof, preflight_aggregate_verify, srs_id, AggregatePreflightInput,
     AggregateStatement, DevSrs, ProofFamilyId, DEFAULT_MAX_PADDED_PROOF_COUNT,
@@ -32,7 +33,6 @@ pub use shieldd_sdk_proof_aggregation_trace_schema::{
     TracePolicy, TRACE_POLICIES,
 };
 use shieldd_sdk_proof_params::batch::BatchItem;
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 type P = Bls12_377;
 type G1 = <P as Pairing>::G1;
@@ -1458,6 +1458,7 @@ mod tests {
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
     use ark_snark::SNARK;
+    use proptest::prelude::*;
     use shieldd_sdk_proof_aggregation::{
         aggregate_family, aggregate_family_with_trace, decode_wrapped_aggregate_proof,
         encode_wrapped_aggregate_proof, pad_items_to_power_of_two, verify_family_aggregate,
@@ -1465,7 +1466,6 @@ mod tests {
     };
     use shieldd_sdk_proof_params::batch;
     use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
-    use proptest::prelude::*;
 
     #[derive(Clone)]
     struct SquareCircuit {

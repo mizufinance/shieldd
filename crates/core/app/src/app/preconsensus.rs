@@ -7,14 +7,14 @@ use anyhow::{Context, Result};
 use ark_groth16::Proof;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use decaf377::Bls12_377;
+use serde::{Deserialize, Serialize};
+use sha2::Digest as _;
 use shieldd_sdk_proof_aggregation::ProofFamilyId;
 use shieldd_sdk_proof_params::batch::BatchItem;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_transaction::Transaction;
-use serde::{Deserialize, Serialize};
-use sha2::Digest as _;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CheckTxProfile {

@@ -1,7 +1,7 @@
 use bitvec::prelude::*;
 
-use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
 
 /// Records information on a validator's uptime.
 ///

@@ -31,10 +31,10 @@ use ibc_types::core::{
 
 use ibc_types::DomainType as IbcTypesDomainType;
 
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::shieldd::core::component::ibc::v1::{self as pb};
 use shieldd_sdk_proto::{DomainType, Name};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "pb::IbcRelay", into = "pb::IbcRelay")]

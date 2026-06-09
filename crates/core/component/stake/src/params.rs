@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::core::component::validator::v1 as pb;
 use shieldd_sdk_proto::DomainType;
-use serde::{Deserialize, Serialize};
 
 /// Equal-weight voting power assigned to every validator in the supported validator set.
 pub const EQUAL_VALIDATOR_VOTING_POWER: u64 = 1_000_000;

@@ -10,10 +10,10 @@ use anyhow::Context;
 use ark_serialize::CanonicalDeserialize;
 use decaf377::Fq;
 use f4jumble::{f4jumble, f4jumble_inv};
-use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, serializers::bech32str, DomainType};
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::keys::v1 as pb, DomainType};
 
 mod r1cs;
 pub use r1cs::AddressVar;

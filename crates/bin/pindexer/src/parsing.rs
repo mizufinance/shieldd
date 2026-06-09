@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context as _};
-use shieldd_sdk_app::genesis::{AppState, Content};
 use serde_json::Value;
+use shieldd_sdk_app::genesis::{AppState, Content};
 
 const GENESIS_NO_CONTENT_ERROR: &'static str = r#"
 Error: using an upgrade genesis file instead of an initial genesis file.

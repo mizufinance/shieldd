@@ -16,10 +16,10 @@ use std::path::PathBuf;
 
 use assert_cmd::Command;
 use directories::UserDirs;
-use shieldd_sdk_validator::validator::ValidatorToml;
 use predicates::prelude::*;
 use regex::Regex;
 use serde_json::Value;
+use shieldd_sdk_validator::validator::ValidatorToml;
 use tempfile::{tempdir, NamedTempFile, TempDir};
 use url::Url;
 

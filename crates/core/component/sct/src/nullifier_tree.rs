@@ -7,8 +7,8 @@ use jmt::{
     storage::{LeafNode, Node, NodeKey, TreeReader},
     KeyHash, RootHash, Sha256Jmt, Version,
 };
-use shieldd_sdk_proto::DomainType as _;
 use sha2::Sha256;
+use shieldd_sdk_proto::DomainType as _;
 use std::{collections::BTreeMap, future::Future};
 
 use crate::{state_key, NullificationInfo, Nullifier};

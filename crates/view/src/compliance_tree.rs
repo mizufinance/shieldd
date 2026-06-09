@@ -467,8 +467,8 @@ mod tests {
     #[test]
     fn asset_tree_persist_writes_only_dirty_positions_and_reloads_root() {
         use decaf377::Fq;
-        use shieldd_sdk_compliance::indexed_tree::{LeafParams, LeafRing, FQ_MAX};
         use r2d2_sqlite::rusqlite::Connection;
+        use shieldd_sdk_compliance::indexed_tree::{LeafParams, LeafRing, FQ_MAX};
 
         let mut db = Connection::open_in_memory().unwrap();
         db.execute_batch(include_str!("storage/schema.sql"))

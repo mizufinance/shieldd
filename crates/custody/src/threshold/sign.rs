@@ -5,8 +5,8 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use ed25519_consensus::{Signature, SigningKey, VerificationKey};
-use shieldd_sdk_keys::FullViewingKey;
 use rand_core::CryptoRngCore;
+use shieldd_sdk_keys::FullViewingKey;
 
 use decaf377_frost as frost;
 use frost::round1::SigningCommitments;

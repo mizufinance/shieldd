@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use shieldd_sdk_proto::{shieldd::core::txhash::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::txhash::v1 as pb, DomainType};
 
 /// A transaction ID (hash), the Sha256 hash used by Tendermint to identify transactions.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]

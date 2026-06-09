@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_proto::{
     core::{
@@ -15,7 +16,6 @@ use shieldd_sdk_proto::{
     Message as _,
 };
 use shieldd_sdk_transaction::plan::ActionPlan;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     AuthorizeProposalSubmitRequest, AuthorizeRequest, AuthorizeValidatorDefinitionRequest,
@@ -322,6 +322,7 @@ impl Policy for PreAuthorizationPolicy {
 mod tests {
     use super::*;
     use decaf377::Fr;
+    use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_ibc::IbcRelay;
     use shieldd_sdk_keys::{
@@ -332,7 +333,6 @@ mod tests {
         Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
     use shieldd_sdk_transaction::TransactionPlan;
-    use rand_core::OsRng;
 
     fn test_address(index: u32) -> Address {
         let seed = SeedPhrase::from_randomness(&[index as u8; 32]);

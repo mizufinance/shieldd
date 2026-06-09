@@ -11,6 +11,8 @@ use ibc_types::{
     },
     timestamp::Timestamp,
 };
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
 use shieldd_sdk_ibc::component::ChannelStateWriteExt as _;
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
@@ -21,8 +23,6 @@ use shieldd_sdk_shielded_pool::{
     },
     Ics20Withdrawal, ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProof,
 };
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 
 fn configured_sizes(var: &str, default: &[usize]) -> Vec<usize> {
     std::env::var(var)

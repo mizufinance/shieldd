@@ -1,6 +1,6 @@
 use anyhow::anyhow;
-use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
 
 /// The state of a validator in the validator state machine.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Serialize, Deserialize)]

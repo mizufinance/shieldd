@@ -174,11 +174,8 @@ impl AllocVar<ComplianceLeaf, Fq> for ComplianceLeafVar {
         let leaf = f()?;
         let leaf_ref = leaf.borrow();
 
-        let address = shieldd_sdk_keys::AddressVar::new_variable(
-            cs.clone(),
-            || Ok(&leaf_ref.address),
-            mode,
-        )?;
+        let address =
+            shieldd_sdk_keys::AddressVar::new_variable(cs.clone(), || Ok(&leaf_ref.address), mode)?;
         let asset_id_fq = leaf_ref.asset_id.0;
         let asset_id = FqVar::new_variable(cs.clone(), || Ok(asset_id_fq), mode)?;
         let slot_id = FqVar::new_variable(cs.clone(), || Ok(Fq::from(leaf_ref.slot_id)), mode)?;
@@ -1440,10 +1437,10 @@ mod tests {
     use crate::IndexedMerkleTree;
     use ark_relations::r1cs::ConstraintSystem;
     use decaf377::{Element, Fr};
+    use rand_core::OsRng;
     use shieldd_sdk_asset::asset;
     use shieldd_sdk_keys::keys::Diversifier;
     use shieldd_sdk_keys::Address;
-    use rand_core::OsRng;
 
     fn test_policy() -> AssetPolicy {
         AssetPolicy::default_unregulated()

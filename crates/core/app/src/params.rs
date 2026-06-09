@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::params::ComplianceParameters;
 use shieldd_sdk_fee::FeeParameters;
 use shieldd_sdk_governance::params::GovernanceParameters;
@@ -8,7 +9,6 @@ use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_sct::params::SctParameters;
 use shieldd_sdk_shielded_pool::params::ShieldedPoolParameters;
 use shieldd_sdk_validator::params::ValidatorParameters;
-use serde::{Deserialize, Serialize};
 
 pub mod change;
 

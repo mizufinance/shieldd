@@ -1832,10 +1832,8 @@ impl ViewService for ViewServer {
                                 layers: p
                                     .layers
                                     .into_iter()
-                                    .map(|layer| {
-                                        shieldd_sdk_compliance::structs::MerklePathLayer {
-                                            siblings: layer.siblings,
-                                        }
+                                    .map(|layer| shieldd_sdk_compliance::structs::MerklePathLayer {
+                                        siblings: layer.siblings,
                                     })
                                     .collect(),
                             })

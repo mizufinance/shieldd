@@ -1,6 +1,6 @@
 use anyhow::Context;
-use shieldd_sdk_proto::{shieldd::core::component::fee::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::component::fee::v1 as pb, DomainType};
 
 use crate::params::FeeParameters;
 

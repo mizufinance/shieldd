@@ -1,12 +1,12 @@
 use anyhow::Context;
 use decaf377_rdsa::{Binding, Signature};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_keys::AddressView;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
 use shieldd_sdk_shielded_pool::{
     ConsolidateView, ShieldedIcs20WithdrawalView, SplitView, TransferView,
 };
-use serde::{Deserialize, Serialize};
 
 pub mod action_view;
 mod transaction_perspective;

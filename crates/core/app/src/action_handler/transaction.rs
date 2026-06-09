@@ -1076,6 +1076,7 @@ mod tests {
 
     use anyhow::Result;
     use decaf377::Fr;
+    use rand_core::OsRng;
     use shieldd_sdk_asset::{asset, Value, BASE_ASSET_ID};
     use shieldd_sdk_compliance::{ComplianceLeaf, IndexedMerkleTree, MerklePath, QuadTree};
     use shieldd_sdk_fee::Fee;
@@ -1086,7 +1087,6 @@ mod tests {
         plan::{CluePlan, DetectionDataPlan, TransactionPlan},
         TransactionParameters, WitnessData,
     };
-    use rand_core::OsRng;
 
     use crate::AppActionHandler;
 

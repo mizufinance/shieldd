@@ -2,6 +2,7 @@
 //! presents as an asynchronous signer.
 
 use decaf377_rdsa::{Signature, SpendAuth};
+use rand_core::OsRng;
 use shieldd_sdk_proto::{
     core::component::{
         governance::v1::ProposalSubmitBody as ProtoProposalSubmitBody,
@@ -12,7 +13,6 @@ use shieldd_sdk_proto::{
     Message as _,
 };
 use shieldd_sdk_transaction::AuthorizationData;
-use rand_core::OsRng;
 use tonic::{async_trait, Request, Response, Status};
 
 use crate::{

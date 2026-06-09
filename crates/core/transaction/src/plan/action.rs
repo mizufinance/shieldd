@@ -5,6 +5,7 @@ use anyhow::anyhow;
 use anyhow::{Context, Result};
 use ark_ff::Zero;
 use decaf377::Fr;
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
@@ -15,7 +16,6 @@ use shieldd_sdk_shielded_pool::{
     ConsolidatePlan, ShieldedIcs20WithdrawalPlan, SplitPlan, TransferPlan,
 };
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
-use serde::{Deserialize, Serialize};
 
 /// A declaration of a planned [`Action`], for use in transaction creation.
 #[derive(Clone, Debug, Deserialize, Serialize)]

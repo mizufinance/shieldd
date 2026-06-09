@@ -7,9 +7,9 @@ use aes::Aes128;
 
 use anyhow::Context;
 use derivative::Derivative;
-use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 use rand::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 
 use decaf377::Fq;
 

@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
-use shieldd_sdk_transaction::AuthorizationData;
 use rand_core::OsRng;
 use serde::Serialize;
+use shieldd_sdk_transaction::AuthorizationData;
 use tonic::{async_trait, Request, Response, Status};
 
 use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};

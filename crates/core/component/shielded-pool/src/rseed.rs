@@ -1,7 +1,7 @@
 use decaf377::{Fq, Fr};
 use decaf377_ka as ka;
-use shieldd_sdk_keys::prf;
 use rand::{CryptoRng, RngCore};
+use shieldd_sdk_keys::prf;
 
 /// The rseed is a uniformly random 32-byte sequence included in the note plaintext.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

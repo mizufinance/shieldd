@@ -10,6 +10,10 @@ use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use clap::Parser;
 use directories::ProjectDirs;
+use reqwest;
+use rpassword::prompt_password;
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use shieldd_sdk_custody::policy::{AuthPolicy, PreAuthorizationPolicy};
 use shieldd_sdk_custody::soft_kms::{self, SoftKms};
 use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
@@ -22,10 +26,6 @@ use shieldd_sdk_proto::{
     view::v1::view_service_server::ViewServiceServer,
 };
 use shieldd_sdk_view::{Storage, ViewServer};
-use reqwest;
-use rpassword::prompt_password;
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
 use tempfile::NamedTempFile;
 
 use std::fs;

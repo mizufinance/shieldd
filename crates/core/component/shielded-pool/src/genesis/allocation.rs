@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{
     asset::{self, Metadata, Unit},
     Value,
@@ -5,7 +6,6 @@ use shieldd_sdk_asset::{
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
-use serde::{Deserialize, Serialize};
 
 /// A (transparent) genesis allocation.
 #[derive(Clone, Serialize, Deserialize)]

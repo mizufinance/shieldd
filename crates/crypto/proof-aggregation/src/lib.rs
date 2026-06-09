@@ -32,11 +32,11 @@ pub use backend::{
 pub use bundle::{AggregateBundle, FamilyAggregate, ProofFamilyId};
 pub use padding::PADDING_RULE_DOMAIN;
 pub use padding::{pad_items_to_power_of_two, prepare_verify_inputs, PreparedVerifyInputs};
-pub use shieldd_sdk_proof_aggregation_trace_schema as trace_schema;
 pub use preflight::{
     preflight_aggregate_verify, AggregatePreflightInput, VerifiedAggregateBackendCall,
     VerifiedChallengeContext, VerifiedInnerProofBytes,
 };
+pub use shieldd_sdk_proof_aggregation_trace_schema as trace_schema;
 pub use srs::{
     srs_id, srs_report, DevSrs, DevSrsReport, DEFAULT_DEV_SRS_ID, DEFAULT_MAX_PADDED_PROOF_COUNT,
     DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID, DEV_SRS_VERSION,

@@ -1,11 +1,11 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 #[cfg(feature = "ledger")]
 use shieldd_sdk_custody_ledger_usb::Config as LedgerConfig;
 use shieldd_sdk_validator::GovernanceKey;
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
 use url::Url;
 
 use shieldd_sdk_custody::{

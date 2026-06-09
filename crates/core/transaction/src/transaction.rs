@@ -7,6 +7,7 @@ use anyhow::{Context, Error};
 use ark_ff::Zero;
 use decaf377::Fr;
 use decaf377_rdsa::{Binding, Signature, VerificationKey, VerificationKeyBytes};
+use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
@@ -22,7 +23,6 @@ use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_txhash::{
     AuthHash, AuthorizingData, EffectHash, EffectingData, TransactionContext, TransactionId,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{
     fee_funding::FeeFunding,

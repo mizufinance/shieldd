@@ -4,8 +4,8 @@ use std::{
 };
 
 use anyhow::anyhow;
-use shieldd_sdk_proto::{shieldd::core::component::governance::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::component::governance::v1 as pb, DomainType};
 
 /// A vote on a proposal.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, Eq, PartialEq)]

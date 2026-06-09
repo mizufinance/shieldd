@@ -4,6 +4,8 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use clap::Parser;
+use serde::Serialize;
+use sha2::Digest as _;
 use shieldd_sdk_app::app::{
     candidate_digest_from_hashes, App, CandidateEnvelope, ExecutionBlockProfile,
     PrepareProposalProfile, ProcessProposalProfile, ProposalArtifactSidecar,
@@ -13,8 +15,6 @@ use shieldd_sdk_bench_support::proof_txs::{
     build_proof_tx_pool, build_proof_tx_workload, default_pool_dir, load_proof_tx_pool,
     save_proof_tx_pool, setup_proof_storage, ProofTxPool, ProofTxPoolMetadata,
 };
-use serde::Serialize;
-use sha2::Digest as _;
 use tendermint::v0_37::abci::{request, response};
 use tendermint::{account, block, Hash, Time};
 

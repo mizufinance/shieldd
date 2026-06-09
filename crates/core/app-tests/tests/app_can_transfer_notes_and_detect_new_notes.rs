@@ -4,6 +4,7 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     decaf377::Fr,
+    rand_core::OsRng,
     shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
@@ -19,7 +20,6 @@ use {
     shieldd_sdk_transaction::{
         memo::MemoPlaintext, plan::MemoPlan, TransactionParameters, TransactionPlan,
     },
-    rand_core::OsRng,
     tap::TapFallible,
 };
 

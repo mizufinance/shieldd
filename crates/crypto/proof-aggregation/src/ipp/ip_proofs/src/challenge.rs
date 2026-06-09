@@ -1,10 +1,10 @@
 use std::convert::TryFrom;
 
 use digest::{Digest, Output};
+use sha2::Sha256;
 use shieldd_sdk_proof_aggregation_trace_schema::{
     TraceComparisonLevel, TraceEvent, TraceEventKind,
 };
-use sha2::Sha256;
 
 const CHALLENGE_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge.v1\0";
 const CHALLENGE_CONTEXT_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge_context.v1\0";

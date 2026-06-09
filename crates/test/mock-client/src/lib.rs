@@ -1,5 +1,6 @@
 use anyhow::Error;
 use cnidarium::StateRead;
+use rand_core::OsRng;
 use shieldd_sdk_compact_block::{component::StateReadExt as _, CompactBlock, StatePayload};
 use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, MerklePath};
 use shieldd_sdk_keys::{keys::SpendKey, FullViewingKey};
@@ -15,7 +16,6 @@ use shieldd_sdk_transaction::{
     AuthorizationData, Transaction, TransactionPlan, WitnessData,
 };
 use shieldd_sdk_view::enrich_plan_with_compliance;
-use rand_core::OsRng;
 use std::collections::BTreeMap;
 use tracing;
 
@@ -175,10 +175,7 @@ impl MockClient {
         self.notes.get(commitment).cloned()
     }
 
-    pub fn position(
-        &self,
-        commitment: note::StateCommitment,
-    ) -> Option<shieldd_sdk_tct::Position> {
+    pub fn position(&self, commitment: note::StateCommitment) -> Option<shieldd_sdk_tct::Position> {
         self.sct.witness(commitment).map(|proof| proof.position())
     }
 
@@ -606,6 +603,7 @@ impl<S: StateRead + Send + Sync> shieldd_sdk_compliance::ComplianceProofProvider
 mod tests {
     use super::MockClient;
     use decaf377::{Fq, Fr};
+    use rand_core::OsRng;
     use shieldd_sdk_asset::{asset, Value};
     use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_shielded_pool::{
@@ -613,7 +611,6 @@ mod tests {
     };
     use shieldd_sdk_tct::Witness;
     use shieldd_sdk_transaction::{ActionPlan, TransactionPlan};
-    use rand_core::OsRng;
 
     #[test]
     fn witness_plan_includes_hidden_arity_transfer_spend_proof() {

@@ -1,5 +1,7 @@
 use {
     decaf377_rdsa::VerificationKey,
+    rand::Rng,
+    rand_core::OsRng,
     shieldd_sdk_app::genesis::AppState,
     shieldd_sdk_keys::keys::{SpendKey, SpendKeyBytes},
     shieldd_sdk_mock_consensus::builder::Builder,
@@ -7,8 +9,6 @@ use {
         core::keys::v1::{GovernanceKey, IdentityKey},
         shieldd::core::component::validator::v1::Validator as ShielddValidator,
     },
-    rand::Rng,
-    rand_core::OsRng,
     tracing::trace,
 };
 
