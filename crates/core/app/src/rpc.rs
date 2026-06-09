@@ -8,7 +8,7 @@ mod query;
 // then just add that to the gRPC server.
 use {
     self::query::AppQueryServer,
-    crate::PenumbraHost,
+    crate::ShielddHost,
     anyhow::Context,
     cnidarium::{
         proto::v1::query_service_server::QueryServiceServer as StorageQueryServiceServer,
@@ -25,11 +25,11 @@ use {
             },
         },
     },
-    penumbra_sdk_compact_block::component::rpc::Server as CompactBlockServer,
-    penumbra_sdk_compliance::component::RpcServer as ComplianceServer,
-    penumbra_sdk_fee::component::rpc::Server as FeeServer,
-    penumbra_sdk_governance::component::rpc::Server as GovernanceServer,
-    penumbra_sdk_proto::{
+    shieldd_sdk_compact_block::component::rpc::Server as CompactBlockServer,
+    shieldd_sdk_compliance::component::RpcServer as ComplianceServer,
+    shieldd_sdk_fee::component::rpc::Server as FeeServer,
+    shieldd_sdk_governance::component::rpc::Server as GovernanceServer,
+    shieldd_sdk_proto::{
         core::{
             app::v1::query_service_server::QueryServiceServer as AppQueryServiceServer,
             component::{
@@ -49,9 +49,9 @@ use {
             },
         },
     },
-    penumbra_sdk_sct::component::rpc::Server as SctServer,
-    penumbra_sdk_shielded_pool::component::rpc::Server as ShieldedPoolServer,
-    penumbra_sdk_validator::component::rpc::Server as StakeServer,
+    shieldd_sdk_sct::component::rpc::Server as SctServer,
+    shieldd_sdk_shielded_pool::component::rpc::Server as ShieldedPoolServer,
+    shieldd_sdk_validator::component::rpc::Server as StakeServer,
     tonic::service::{Routes, RoutesBuilder},
     tonic_web::enable as we,
 };
@@ -60,7 +60,7 @@ fn add_common_routes(
     builder: &mut RoutesBuilder,
     storage: &cnidarium::Storage,
 ) -> anyhow::Result<()> {
-    let ibc = penumbra_sdk_ibc::component::rpc::IbcQuery::<PenumbraHost>::new(storage.clone());
+    let ibc = shieldd_sdk_ibc::component::rpc::IbcQuery::<ShielddHost>::new(storage.clone());
 
     builder
         // As part of #2932, we are disabling all timeouts until we circle back to our
@@ -108,7 +108,7 @@ fn add_common_routes(
         .add_service(we(ChannelQueryServer::new(ibc.clone())))
         .add_service(we(ConnectionQueryServer::new(ibc.clone())))
         .add_service(we(tonic_reflection::server::Builder::configure()
-            .register_encoded_file_descriptor_set(penumbra_sdk_proto::FILE_DESCRIPTOR_SET)
+            .register_encoded_file_descriptor_set(shieldd_sdk_proto::FILE_DESCRIPTOR_SET)
             .build_v1()
             .with_context(|| "could not configure grpc reflection service")?));
     Ok(())

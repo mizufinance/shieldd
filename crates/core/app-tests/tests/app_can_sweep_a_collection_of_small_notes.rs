@@ -3,25 +3,25 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     futures::StreamExt,
-    penumbra_sdk_app::{
+    rand_core::OsRng,
+    shieldd_sdk_app::{
         genesis::{AppState, Content},
         server::consensus::Consensus,
     },
-    penumbra_sdk_asset::{BASE_ASSET_DENOM, BASE_ASSET_ID},
-    penumbra_sdk_keys::{keys::AddressIndex, test_keys},
-    penumbra_sdk_mock_client::MockClient,
-    penumbra_sdk_mock_consensus::TestNode,
-    penumbra_sdk_proto::{
+    shieldd_sdk_asset::{BASE_ASSET_DENOM, BASE_ASSET_ID},
+    shieldd_sdk_keys::{keys::AddressIndex, test_keys},
+    shieldd_sdk_mock_client::MockClient,
+    shieldd_sdk_mock_consensus::TestNode,
+    shieldd_sdk_proto::{
         view::v1::{
             view_service_client::ViewServiceClient, view_service_server::ViewServiceServer,
             StatusRequest,
         },
         DomainType,
     },
-    penumbra_sdk_shielded_pool::genesis::Allocation,
-    penumbra_sdk_view::ViewClient,
-    penumbra_sdk_wallet::plan,
-    rand_core::OsRng,
+    shieldd_sdk_shielded_pool::genesis::Allocation,
+    shieldd_sdk_view::ViewClient,
+    shieldd_sdk_wallet::plan,
     std::ops::Deref,
     tap::{Tap, TapFallible},
     tokio::time,
@@ -32,7 +32,7 @@ mod common;
 const COUNT: usize = 5;
 
 async fn wait_for_view_sync(
-    view_client: &mut ViewServiceClient<ViewServiceServer<penumbra_sdk_view::ViewServer>>,
+    view_client: &mut ViewServiceClient<ViewServiceServer<shieldd_sdk_view::ViewServer>>,
     min_height: u64,
 ) -> anyhow::Result<()> {
     let mut status_stream = ViewClient::status_stream(view_client).await?;
@@ -52,8 +52,8 @@ async fn wait_for_view_sync(
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn app_can_sweep_a_collection_of_small_notes() -> anyhow::Result<()> {
     let guard = common::set_tracing_subscriber_with_env_filter("info".into());
-    let storage = TempStorage::new_with_penumbra_prefixes().await?;
-    let proxy = penumbra_sdk_mock_tendermint_proxy::TestNodeProxy::new::<Consensus>();
+    let storage = TempStorage::new_with_shieldd_prefixes().await?;
+    let proxy = shieldd_sdk_mock_tendermint_proxy::TestNodeProxy::new::<Consensus>();
 
     let allocations = {
         let dust = Allocation {
@@ -67,7 +67,7 @@ async fn app_can_sweep_a_collection_of_small_notes() -> anyhow::Result<()> {
     let mut test_node = {
         let content = Content {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
-            shielded_pool_content: penumbra_sdk_shielded_pool::genesis::Content {
+            shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
                 allocations,
                 ..Default::default()
             },
@@ -104,7 +104,7 @@ async fn app_can_sweep_a_collection_of_small_notes() -> anyhow::Result<()> {
         .tap(|url| tracing::debug!(%url, "parsed grpc url"));
 
     {
-        let make_svc = penumbra_sdk_app::rpc::routes(storage.as_ref(), proxy, false)?
+        let make_svc = shieldd_sdk_app::rpc::routes(storage.as_ref(), proxy, false)?
             .into_axum_router()
             .layer(tower_http::cors::CorsLayer::permissive())
             .into_make_service();
@@ -115,7 +115,7 @@ async fn app_can_sweep_a_collection_of_small_notes() -> anyhow::Result<()> {
 
     time::sleep(time::Duration::from_millis(50)).await;
 
-    let view_server = penumbra_sdk_view::ViewServer::load_or_initialize(
+    let view_server = shieldd_sdk_view::ViewServer::load_or_initialize(
         None::<&camino::Utf8Path>,
         None::<&camino::Utf8Path>,
         &*test_keys::FULL_VIEWING_KEY,

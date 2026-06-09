@@ -17,9 +17,9 @@ use {
     anyhow::{ensure, Result},
     async_trait::async_trait,
     cnidarium::StateWrite,
-    penumbra_sdk_num::Amount,
-    penumbra_sdk_proto::{DomainType as _, StateWriteProto},
-    penumbra_sdk_sct::component::{
+    shieldd_sdk_num::Amount,
+    shieldd_sdk_proto::{DomainType as _, StateWriteProto},
+    shieldd_sdk_sct::component::{
         clock::{EpochManager, EpochRead},
         StateReadExt as _,
     },

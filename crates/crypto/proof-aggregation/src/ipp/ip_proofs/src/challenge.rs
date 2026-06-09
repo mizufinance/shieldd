@@ -1,13 +1,13 @@
 use std::convert::TryFrom;
 
 use digest::{Digest, Output};
-use penumbra_sdk_proof_aggregation_trace_schema::{
+use sha2::Sha256;
+use shieldd_sdk_proof_aggregation_trace_schema::{
     TraceComparisonLevel, TraceEvent, TraceEventKind,
 };
-use sha2::Sha256;
 
-const CHALLENGE_DOMAIN: &[u8] = b"penumbra.snarkpack.challenge.v1\0";
-const CHALLENGE_CONTEXT_DOMAIN: &[u8] = b"penumbra.snarkpack.challenge_context.v1\0";
+const CHALLENGE_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge.v1\0";
+const CHALLENGE_CONTEXT_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge_context.v1\0";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChallengeContext {
@@ -77,7 +77,7 @@ impl ChallengeTraceSink for VecChallengeTraceSink {
         let stage_label_str = trace_stage_label(stage_label);
         self.entries.push(TraceEvent {
             spec_row_id: "fs.stage-labels",
-            primary_level: TraceComparisonLevel::PenumbraByte,
+            primary_level: TraceComparisonLevel::ShielddByte,
             event_kind: TraceEventKind::ChallengePreimage,
             stage_label: stage_label_str,
             nonce: Some(nonce),
@@ -88,7 +88,7 @@ impl ChallengeTraceSink for VecChallengeTraceSink {
         });
         self.entries.push(TraceEvent {
             spec_row_id: "fs.challenge-preimage",
-            primary_level: TraceComparisonLevel::PenumbraByte,
+            primary_level: TraceComparisonLevel::ShielddByte,
             event_kind: TraceEventKind::ChallengePreimage,
             stage_label: stage_label_str,
             nonce: Some(nonce),
@@ -99,7 +99,7 @@ impl ChallengeTraceSink for VecChallengeTraceSink {
         });
         self.entries.push(TraceEvent {
             spec_row_id: trace_spec_row_id(stage_label),
-            primary_level: TraceComparisonLevel::PenumbraByte,
+            primary_level: TraceComparisonLevel::ShielddByte,
             event_kind: TraceEventKind::ChallengeDigest,
             stage_label: stage_label_str,
             nonce: Some(nonce),

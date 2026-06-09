@@ -5,17 +5,17 @@ use anyhow::anyhow;
 use anyhow::{Context, Result};
 use ark_ff::Zero;
 use decaf377::Fr;
-use penumbra_sdk_asset::Balance;
-use penumbra_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
-use penumbra_sdk_governance::{ProposalSubmit, ValidatorVote};
-use penumbra_sdk_ibc::IbcRelay;
-use penumbra_sdk_keys::{symmetric::PayloadKey, FullViewingKey};
-use penumbra_sdk_proto::{core::transaction::v1 as pb_t, DomainType};
-use penumbra_sdk_shielded_pool::{
+use serde::{Deserialize, Serialize};
+use shieldd_sdk_asset::Balance;
+use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
+use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
+use shieldd_sdk_ibc::IbcRelay;
+use shieldd_sdk_keys::{symmetric::PayloadKey, FullViewingKey};
+use shieldd_sdk_proto::{core::transaction::v1 as pb_t, DomainType};
+use shieldd_sdk_shielded_pool::{
     ConsolidatePlan, ShieldedIcs20WithdrawalPlan, SplitPlan, TransferPlan,
 };
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
-use serde::{Deserialize, Serialize};
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 /// A declaration of a planned [`Action`], for use in transaction creation.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -28,7 +28,7 @@ pub enum ActionPlan {
     Consolidate(ConsolidatePlan),
     /// Describes a same-address note split.
     Split(SplitPlan),
-    ValidatorDefinition(penumbra_sdk_validator::validator::Definition),
+    ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
     IbcAction(IbcRelay),
     ProposalSubmit(ProposalSubmit),
     ValidatorVote(ValidatorVote),
@@ -229,20 +229,20 @@ impl ActionPlan {
 
         let effect_hash = match self {
             Transfer(plan) => plan
-                .transfer_body(fvk, memo_key, penumbra_sdk_tct::Tree::default().root())
+                .transfer_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
             Consolidate(plan) => plan
-                .consolidate_body(fvk, memo_key, penumbra_sdk_tct::Tree::default().root())
+                .consolidate_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
             Split(plan) => plan
-                .split_body(fvk, memo_key, penumbra_sdk_tct::Tree::default().root())
+                .split_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
             ValidatorDefinition(plan) => plan.effect_hash(),
             IbcAction(plan) => plan.effect_hash(),
             ProposalSubmit(plan) => plan.effect_hash(),
             ValidatorVote(plan) => plan.effect_hash(),
             ShieldedIcs20Withdrawal(plan) => plan
-                .action_body(fvk, memo_key, penumbra_sdk_tct::Tree::default().root())
+                .action_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
             ComplianceRegisterAsset(plan) => plan.effect_hash(),
             ComplianceRegisterUser(plan) => plan.effect_hash(),
@@ -270,8 +270,8 @@ impl From<SplitPlan> for ActionPlan {
     }
 }
 
-impl From<penumbra_sdk_validator::validator::Definition> for ActionPlan {
-    fn from(inner: penumbra_sdk_validator::validator::Definition) -> ActionPlan {
+impl From<shieldd_sdk_validator::validator::Definition> for ActionPlan {
+    fn from(inner: shieldd_sdk_validator::validator::Definition) -> ActionPlan {
         ActionPlan::ValidatorDefinition(inner)
     }
 }

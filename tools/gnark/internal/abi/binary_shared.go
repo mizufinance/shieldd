@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/circuits"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/compliance"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 const (

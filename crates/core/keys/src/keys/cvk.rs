@@ -4,8 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use penumbra_sdk_proto::penumbra::core::component::compliance::v1 as pb;
-use penumbra_sdk_proto::DomainType;
+use shieldd_sdk_proto::shieldd::core::component::compliance::v1 as pb;
+use shieldd_sdk_proto::DomainType;
 
 pub const CVK_LEN_BYTES: usize = 32;
 

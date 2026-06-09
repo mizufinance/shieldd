@@ -18,7 +18,7 @@ use crate::component::{
     client::StateReadExt as _,
     connection::{StateReadExt as _, StateWriteExt as _},
     connection_counter::SUPPORTED_VERSIONS,
-    ics02_validation::validate_penumbra_sdk_client_state,
+    ics02_validation::validate_shieldd_sdk_client_state,
     MsgHandler,
 };
 
@@ -39,9 +39,9 @@ impl MsgHandler for MsgConnectionOpenTry {
         // counterparty is in INIT state, and we are in TRYOPEN state.
         //
         // In order to verify a ConnectionOpenTry, we need to check that the counterparty chain has
-        // committed a _valid_ Penumbra consensus state, that the counterparty chain has committed
+        // committed a _valid_ Shieldd consensus state, that the counterparty chain has committed
         // the expected Connection to its state (in the INIT state), and that the counterparty has
-        // committed a correct Penumbra client state to its state.
+        // committed a correct Shieldd client state to its state.
         //
         // Here we are Chain B.
         // CHAINS:          (A, B)
@@ -51,9 +51,9 @@ impl MsgHandler for MsgConnectionOpenTry {
 
         consensus_height_is_correct::<&S, HI>(&mut state, self).await?;
 
-        // verify that the client state (which is a Penumbra client) is well-formed for a
-        // penumbra client.
-        penumbra_sdk_client_state_is_well_formed::<&S, HI>(&mut state, self).await?;
+        // verify that the client state (which is a Shieldd client) is well-formed for a
+        // shieldd client.
+        shieldd_sdk_client_state_is_well_formed::<&S, HI>(&mut state, self).await?;
 
         // TODO(erwan): how to handle this with ibc-rs@0.23.0?
         // if this msg provides a previous_connection_id to resume from, then check that the
@@ -134,10 +134,10 @@ impl MsgHandler for MsgConnectionOpenTry {
         .context("couldn't verify client state")?;
 
         let expected_consensus = state
-            .get_penumbra_sdk_consensus_state(self.consensus_height_of_b_on_a)
+            .get_shieldd_sdk_consensus_state(self.consensus_height_of_b_on_a)
             .await?;
 
-        // 3. verify that the counterparty chain stored the correct consensus state of Penumbra at
+        // 3. verify that the counterparty chain stored the correct consensus state of Shieldd at
         //    the given consensus height
         let proof_consensus_state_of_b_on_a = self.proof_consensus_state_of_b_on_a.clone();
         proof_verification::verify_client_consensus_state(
@@ -210,13 +210,13 @@ async fn consensus_height_is_correct<S: StateRead, HI: HostInterface>(
 
     Ok(())
 }
-async fn penumbra_sdk_client_state_is_well_formed<S: StateRead, HI: HostInterface>(
+async fn shieldd_sdk_client_state_is_well_formed<S: StateRead, HI: HostInterface>(
     state: S,
     msg: &MsgConnectionOpenTry,
 ) -> anyhow::Result<()> {
     let height = HI::get_block_height(&state).await?;
     let chain_id = HI::get_chain_id(&state).await?;
-    validate_penumbra_sdk_client_state(msg.client_state_of_b_on_a.clone(), &chain_id, height)?;
+    validate_shieldd_sdk_client_state(msg.client_state_of_b_on_a.clone(), &chain_id, height)?;
 
     Ok(())
 }

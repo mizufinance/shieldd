@@ -1,6 +1,4 @@
-//! An implementation of [Fuzzy Message Detection][fmd].
-//!
-//! [fmd]: https://protocol.penumbra.zone/main/crypto/fmd.html
+//! An implementation of Fuzzy Message Detection.
 #![deny(clippy::unwrap_used)]
 // Requires nightly.
 #![cfg_attr(docsrs, feature(doc_cfg))]

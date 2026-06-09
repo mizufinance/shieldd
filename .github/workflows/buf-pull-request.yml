@@ -30,11 +30,11 @@ jobs:
         run: |
           cd proto
           for attempt in 1 2 3; do
-              if buf dep update penumbra; then
+              if buf dep update shieldd; then
                   break
               fi
               if [[ "$attempt" -eq 3 ]]; then
-                  echo "ERROR: 'buf dep update penumbra' failed after ${attempt} attempts"
+                  echo "ERROR: 'buf dep update shieldd' failed after ${attempt} attempts"
                   exit 1
               fi
               echo "buf dep update failed on attempt ${attempt}, retrying..."
@@ -54,7 +54,7 @@ jobs:
       #   uses: bufbuild/buf-breaking-action@v1
       #   with:
       #     input: "proto"
-      #     against: "https://github.com/mizufinance/penumbra.git#branch=dev,subdir=proto"
+      #     against: "https://github.com/mizufinance/shieldd.git#branch=dev,subdir=proto"
 
       - name: Install protobuf compiler
         shell: bash
@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           ./deployments/scripts/protobuf-codegen
-          # https://github.com/mizufinance/penumbra/issues/3038#issuecomment-1722534133
+          # https://github.com/mizufinance/shieldd/issues/3038#issuecomment-1722534133
           git checkout crates/proto/src/gen/proto_descriptor.bin.no_lfs
           s="$(git status --porcelain)"
           if [[ -n "$s" ]]; then

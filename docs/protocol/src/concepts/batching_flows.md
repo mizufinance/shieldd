@@ -1,13 +1,13 @@
 # Batching Flows
 
-Penumbra's ledger records value as it moves between different economic roles –
+Shieldd's ledger records value as it moves between different economic roles –
 for instance, movement between shielded notes and outbound IBC withdrawals, or
 movement between different shielded asset positions. This creates a tension
 between the need to reveal the total amount of value in each role as part of the
 public chain state, and the desire to shield value amounts in individual
 transactions.
 
-To address this tension, Penumbra provides a mechanism to aggregate value flows
+To address this tension, Shieldd provides a mechanism to aggregate value flows
 across a batch of transactions, revealing only the total amount and not the
 value contributed by each individual transaction.  This mechanism is built using
 an integer-valued homomorphic encryption scheme that supports threshold
@@ -22,7 +22,7 @@ decrypt it and commit it to the chain.
 This mechanism doesn't require any coordination between the users whose
 transactions are batched, but it does require that the validators create and
 publish a threshold decryption key.  To allow batching across block boundaries,
-Penumbra organizes blocks into epochs, and applies changes to the validator set
+Shieldd organizes blocks into epochs, and applies changes to the validator set
 only at epoch boundaries.  Decryption keys live for the duration of the epoch,
 allowing value flows to be batched over any time interval from 1 block up to the
 length of an epoch. We propose epoch boundaries on the order of 1-3 days.

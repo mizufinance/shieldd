@@ -1,10 +1,10 @@
-//! Penumbra-side helpers for Orbis PRE interoperability.
+//! Shieldd-side helpers for Orbis PRE interoperability.
 //!
 //! This module intentionally does not model Orbis as an in-process service.
-//! Penumbra owns the deterministic math needed to:
-//! - verify the canonical Penumbra transfer-tier DLEQ material,
+//! Shieldd owns the deterministic math needed to:
+//! - verify the canonical Shieldd transfer-tier DLEQ material,
 //! - recover transfer seeds from Orbis re-encryption commitments when needed for
-//!   Penumbra-side validation.
+//!   Shieldd-side validation.
 
 use anyhow::Result;
 use decaf377::{Element, Fq, Fr};
@@ -38,7 +38,7 @@ pub fn compute_reencrypt_commitment(
     (*pk_issuer + *epk_tier) * (d_fr * *sk_ring)
 }
 
-/// Verify the canonical Penumbra transfer-tier DLEQ for one PRE request.
+/// Verify the canonical Shieldd transfer-tier DLEQ for one PRE request.
 pub fn verify_reencrypt_proof(
     ack_tier: &Element,
     epk_tier: &Element,

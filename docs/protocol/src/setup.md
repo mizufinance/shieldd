@@ -30,7 +30,7 @@ $$
 $$
 We also have designated generator elements $G_1, G_2, G_T$
 for each of the respective groups, with $G_T = G_1 \odot G_2$.
-In the case of Penumbra, the concrete groups used are from [BLS12-377](https://neuromancer.sk/std/bls/BLS12-377).
+In the case of Shieldd, the concrete groups used are from [BLS12-377](https://neuromancer.sk/std/bls/BLS12-377).
 
 We take the convention that lowercase letters (e.g. $x, a$)
 are taken to be scalars in $\mathbb{F}$,

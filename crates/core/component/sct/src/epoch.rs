@@ -1,6 +1,6 @@
-use penumbra_sdk_proto::penumbra::core::component::sct::v1 as pb;
-use penumbra_sdk_proto::DomainType;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::shieldd::core::component::sct::v1 as pb;
+use shieldd_sdk_proto::DomainType;
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Serialize, Deserialize)]
 #[serde(try_from = "pb::Epoch", into = "pb::Epoch")]

@@ -1,11 +1,10 @@
 [package]
-name = "penumbra-sdk-test-subscriber"
+name = "shieldd-sdk-test-subscriber"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Subscriber for Penumbra app tests"
+description = "Subscriber for Shieldd app tests"
 edition.workspace = true
 version.workspace = true
-homepage.workspace = true
 license.workspace = true
 publish = true
 

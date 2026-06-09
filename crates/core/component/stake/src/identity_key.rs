@@ -1,10 +1,10 @@
-use penumbra_sdk_proto::{
+use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{
     // TODO: why is this not in the keys crate?
     core::keys::v1 as pb,
     serializers::bech32str::{self, validator_identity_key::BECH32_PREFIX},
     DomainType,
 };
-use serde::{Deserialize, Serialize};
 
 use decaf377_rdsa::{SpendAuth, VerificationKeyBytes};
 

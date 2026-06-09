@@ -10,9 +10,9 @@ import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/test"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/abi"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/circuits"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/testfixtures"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/abi"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
 type circuitFamily struct {

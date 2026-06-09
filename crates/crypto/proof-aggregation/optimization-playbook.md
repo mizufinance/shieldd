@@ -1,6 +1,6 @@
 # SnarkPack Optimization Playbook
 
-How to find, judge, implement, and land optimizations of the Penumbra-owned
+How to find, judge, implement, and land optimizations of the Shieldd-owned
 RIPP backend without changing protocol bytes silently, without shipping
 microbench fiction, and without paying complexity that the measured benefit
 does not justify.
@@ -17,7 +17,7 @@ follows it.
 | **3 — transcript / Fiat-Shamir input** | Yes (transcript bytes) | A *protocol* change, not an optimization | **Forbidden through this loop.** |
 
 A category-1 optimization computes the identical element, so the on-the-wire
-aggregate bytes and the PenumbraByte transcript are unchanged — the golden
+aggregate bytes and the ShielddByte transcript are unchanged — the golden
 baselines pass without anyone thinking about it, and `AGGREGATE_PROTOCOL_VERSION`
 stays put.
 
@@ -153,12 +153,12 @@ end-to-end path in the *same release build*, use the `bench-baseline` feature
 
    ```sh
    # optimized (default)
-   cargo build --release -p penumbra-sdk-bench --bench snarkpack
+   cargo build --release -p shieldd-sdk-bench --bench snarkpack
    ./target/release/deps/snarkpack-* --bench --warm-up-time 1 --measurement-time 4 "snarkpack verify"
 
    # pre-optimization baseline
-   cargo build --release -p penumbra-sdk-bench --bench snarkpack \
-     --features penumbra-sdk-proof-aggregation/bench-baseline
+   cargo build --release -p shieldd-sdk-bench --bench snarkpack \
+     --features shieldd-sdk-proof-aggregation/bench-baseline
    SNARKPACK... ./target/release/deps/snarkpack-* --bench ... "snarkpack verify"
    ```
 
@@ -240,22 +240,22 @@ Two optimizations can work against each other:
 ### Category 2 (wire encoding only)
 1. Bump `AGGREGATE_PROTOCOL_VERSION` (`statement.rs`).
 2. Regenerate both golden baselines via the `--ignored` helpers:
-   - `cargo test -p penumbra-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`
-   - `cargo test -p penumbra-sdk-proof-aggregation-reference regenerate_penumbra_byte_trace_baseline -- --ignored`
+   - `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`
+   - `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`
 3. Add one `adaptation-register.md` row (deviation class `performance` or
    `mechanical`) plus the matching `adaptation-scope.txt` entry. The invariants
    script enforces the bijection and field validity.
 
 ## 6. VALIDATE — the gate set (all green before done)
 
-- `cargo test -p penumbra-sdk-proof-aggregation --lib` — byte baseline,
+- `cargo test -p shieldd-sdk-proof-aggregation --lib` — byte baseline,
   determinism (`aggregation_is_deterministic_for_fixed_inputs`), Groth16 oracle
   agreement (`snarkpack_matches_single_and_batch_groth16_oracles`).
-- `cargo test -p penumbra-sdk-proof-aggregation-reference --lib` — trace
+- `cargo test -p shieldd-sdk-proof-aggregation-reference --lib` — trace
   baseline, trace equivalence
   (`production_and_reference_traces_match_declared_levels`), input + verifier
   mutation matrices (`*_mutant_matrix_is_declared_per_byte_binding_row`,
-  `mutation_matrices_cover_penumbra_byte_trace_rows`).
+  `mutation_matrices_cover_shieldd_byte_trace_rows`).
 - `just snarkpack-fuzz-smoke` — 6 targets, zero crashes.
 - `just snarkpack-invariants`, `just snarkpack-filecoin-shape`,
   `just snarkpack-formal` — no regression.
@@ -441,7 +441,7 @@ it is never slower than the three-pairing form. The PPE is a fixed-cost stage
 **Category 1, byte- and trace-stable.** Verifier-side arithmetic only: same
 accept/reject decision, no wire or Fiat-Shamir byte touched, version unchanged. The
 reference oracle has its own `verify_ppe` and the PPE emits no challenge-trace
-events, so the PenumbraByte trace baseline is unaffected. Equivalence is asserted by
+events, so the ShielddByte trace baseline is unaffected. Equivalence is asserted by
 `ppe_optimized_matches_baseline_gt_value` (the optimized expression equals the
 three-pairing GT value over random inputs); end-to-end correctness is additionally
 gated by `snarkpack_matches_single_and_batch_groth16_oracles` and the byte/trace

@@ -6,7 +6,7 @@ import (
 
 	"github.com/consensys/gnark/frontend"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	TransferSaltDomain          = transferSaltConstant("penumbra.transfer.compliance.salt")
+	TransferSaltDomain          = transferSaltConstant("shieldd.transfer.compliance.salt")
 	TransferDetectionSaltLabel  = transferSaltConstant("detection")
 	TransferSenderCoreSaltLabel = transferSaltConstant("sender_core")
 	TransferSenderExtSaltLabel  = transferSaltConstant("sender_ext")

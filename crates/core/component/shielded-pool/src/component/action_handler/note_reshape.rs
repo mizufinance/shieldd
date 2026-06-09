@@ -1,13 +1,13 @@
 use anyhow::{Context, Result};
 use cnidarium::StateWrite;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
-use penumbra_sdk_proto::{DomainType as _, StateWriteProto as _};
-use penumbra_sdk_sct::component::{
+use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
+use shieldd_sdk_sct::component::{
     source::SourceContext,
     tree::{SctManager, VerificationExt},
 };
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_txhash::TransactionContext;
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_txhash::TransactionContext;
 
 use crate::{component::NoteManager, event, NotePayload};
 
@@ -17,7 +17,7 @@ pub(crate) struct NoteReshapeInputPublicParts {
 }
 
 pub(crate) struct NoteReshapeOutputPublicParts {
-    pub note_commitment: penumbra_sdk_tct::StateCommitment,
+    pub note_commitment: shieldd_sdk_tct::StateCommitment,
 }
 
 enum Padded<'a, T> {

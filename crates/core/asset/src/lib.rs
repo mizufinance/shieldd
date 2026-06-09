@@ -15,8 +15,8 @@ pub use value::{Value, ValueVar, ValueView};
 
 pub static BASE_ASSET_DENOM: Lazy<asset::Metadata> = Lazy::new(|| {
     asset::Cache::with_known_assets()
-        .get_unit("upenumbra")
-        .expect("unable to get upenumbra denom, which should be hardcoded")
+        .get_unit("ushieldd")
+        .expect("unable to get ushieldd denom, which should be hardcoded")
         .base()
 });
 pub static BASE_ASSET_ID: Lazy<asset::Id> = Lazy::new(|| BASE_ASSET_DENOM.id());

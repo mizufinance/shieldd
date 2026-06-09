@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
-use penumbra_sdk_transaction::{Action, Transaction};
-use penumbra_sdk_txhash::AuthorizingData;
+use shieldd_sdk_transaction::{Action, Transaction};
+use shieldd_sdk_txhash::AuthorizingData;
 
 fn note_creating_output_count(tx: &Transaction) -> usize {
     let action_outputs = tx

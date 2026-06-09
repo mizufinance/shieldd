@@ -1,16 +1,16 @@
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
-use penumbra_sdk_governance::{ProposalSubmit, ValidatorVote};
-use penumbra_sdk_ibc::IbcRelay;
-use penumbra_sdk_proof_aggregation::AggregateBundle;
-use penumbra_sdk_shielded_pool::{
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
+use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
+use shieldd_sdk_ibc::IbcRelay;
+use shieldd_sdk_proof_aggregation::AggregateBundle;
+use shieldd_sdk_shielded_pool::{
     Consolidate, ConsolidateView, Note, ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalView,
     Split, SplitView, Transfer, TransferView,
 };
 
 use crate::{ActionView, TransactionPerspective};
 
-/// Common behavior between Penumbra actions.
+/// Common behavior between Shieldd actions.
 pub trait IsAction {
     fn balance_commitment(&self) -> balance::Commitment;
     fn view_from_perspective(&self, txp: &TransactionPerspective) -> ActionView;
@@ -86,7 +86,7 @@ impl IsAction for Transfer {
                     transfer: self.to_owned(),
                 });
             };
-            if note.amount() == penumbra_sdk_num::Amount::zero() && note.address() == sender_address
+            if note.amount() == shieldd_sdk_num::Amount::zero() && note.address() == sender_address
             {
                 continue;
             }
@@ -334,7 +334,7 @@ impl IsAction for ShieldedIcs20Withdrawal {
     }
 }
 
-impl IsAction for penumbra_sdk_validator::validator::Definition {
+impl IsAction for shieldd_sdk_validator::validator::Definition {
     fn balance_commitment(&self) -> balance::Commitment {
         Default::default()
     }

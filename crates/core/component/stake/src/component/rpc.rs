@@ -2,7 +2,7 @@ use std::pin::Pin;
 
 use cnidarium::Storage;
 use futures::{StreamExt, TryStreamExt};
-use penumbra_sdk_proto::{
+use shieldd_sdk_proto::{
     core::component::validator::v1::{
         self as pb_validator, query_service_server::QueryService as ValidatorQueryService,
     },

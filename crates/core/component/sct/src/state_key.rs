@@ -89,7 +89,7 @@ pub mod tree {
         "sct/tree/incremental/hash/"
     }
 
-    pub fn incremental_hash(position: penumbra_sdk_tct::Position, height: u8) -> String {
+    pub fn incremental_hash(position: shieldd_sdk_tct::Position, height: u8) -> String {
         format!(
             "{}{:020}/{:03}",
             incremental_hash_prefix(),
@@ -102,7 +102,7 @@ pub mod tree {
         "sct/tree/incremental/commitment/"
     }
 
-    pub fn incremental_commitment(position: penumbra_sdk_tct::Position) -> String {
+    pub fn incremental_commitment(position: shieldd_sdk_tct::Position) -> String {
         format!(
             "{}{:020}",
             incremental_commitment_prefix(),
@@ -114,11 +114,11 @@ pub mod tree {
         format!("sct/tree/anchor_by_height/{}", height)
     }
 
-    pub fn anchor_lookup(anchor: penumbra_sdk_tct::Root) -> String {
+    pub fn anchor_lookup(anchor: shieldd_sdk_tct::Root) -> String {
         format!("sct/tree/anchor_lookup/{}", anchor)
     }
 
-    pub fn note_source(note_commitment: &penumbra_sdk_tct::StateCommitment) -> String {
+    pub fn note_source(note_commitment: &shieldd_sdk_tct::StateCommitment) -> String {
         format!("sct/tree/note_source/{}", note_commitment)
     }
 }

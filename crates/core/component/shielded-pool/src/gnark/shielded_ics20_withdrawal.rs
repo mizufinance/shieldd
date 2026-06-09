@@ -24,23 +24,22 @@ use crate::{
     ShieldedIcs20WithdrawalFamilyId,
 };
 
-const SHIELDED_ICS20_WITHDRAWAL_LIB_BASENAME: &str = "libpenumbra_gnark_shielded_ics20_withdrawal";
+const SHIELDED_ICS20_WITHDRAWAL_LIB_BASENAME: &str = "libshieldd_gnark_shielded_ics20_withdrawal";
 const SHIELDED_ICS20_WITHDRAWAL_ENV_ARTIFACT_DIR: &str =
-    "PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR";
-const SHIELDED_ICS20_WITHDRAWAL_ENV_LIB: &str = "PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB";
-const SHIELDED_ICS20_WITHDRAWAL_ENV_DAEMON: &str =
-    "PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_DAEMON";
+    "SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR";
+const SHIELDED_ICS20_WITHDRAWAL_ENV_LIB: &str = "SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB";
+const SHIELDED_ICS20_WITHDRAWAL_ENV_DAEMON: &str = "SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_DAEMON";
 
 const SHIELDED_ICS20_WITHDRAWAL_INIT_SYMBOL: &[u8] =
-    b"penumbra_gnark_shielded_ics20_withdrawal_init";
+    b"shieldd_gnark_shielded_ics20_withdrawal_init";
 const SHIELDED_ICS20_WITHDRAWAL_INIT_FROM_BYTES_SYMBOL: &[u8] =
-    b"penumbra_gnark_shielded_ics20_withdrawal_init_from_bytes";
+    b"shieldd_gnark_shielded_ics20_withdrawal_init_from_bytes";
 const SHIELDED_ICS20_WITHDRAWAL_PROVE_SYMBOL: &[u8] =
-    b"penumbra_gnark_shielded_ics20_withdrawal_prove";
+    b"shieldd_gnark_shielded_ics20_withdrawal_prove";
 const SHIELDED_ICS20_WITHDRAWAL_FREE_SYMBOL: &[u8] =
-    b"penumbra_gnark_shielded_ics20_withdrawal_free";
+    b"shieldd_gnark_shielded_ics20_withdrawal_free";
 const SHIELDED_ICS20_WITHDRAWAL_SHUTDOWN_SYMBOL: &[u8] =
-    b"penumbra_gnark_shielded_ics20_withdrawal_shutdown";
+    b"shieldd_gnark_shielded_ics20_withdrawal_shutdown";
 
 static SHIELDED_ICS20_WITHDRAWAL_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     family: "shielded_ics20_withdrawal",
@@ -209,7 +208,7 @@ impl GnarkShieldedIcs20WithdrawalClient {
     }
 
     pub fn bundled_lib_path() -> Option<PathBuf> {
-        penumbra_sdk_proof_params::GNARK_SHIELDED_ICS20_WITHDRAWAL_BUNDLED_LIBRARY_PATH
+        shieldd_sdk_proof_params::GNARK_SHIELDED_ICS20_WITHDRAWAL_BUNDLED_LIBRARY_PATH
             .map(PathBuf::from)
     }
 
@@ -275,7 +274,7 @@ pub fn translate_shielded_ics20_withdrawal_proof_result(
     proof.serialize_compressed(&mut proof_bytes)?;
     let proof =
         ShieldedIcs20WithdrawalProof::try_from(
-            penumbra_sdk_proto::penumbra::core::component::shielded_pool::v1::ZkShieldedIcs20WithdrawalProof {
+            shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1::ZkShieldedIcs20WithdrawalProof {
                 inner: proof_bytes,
             },
         )?;

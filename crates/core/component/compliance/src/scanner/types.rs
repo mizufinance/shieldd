@@ -1,4 +1,4 @@
-use penumbra_sdk_asset::asset;
+use shieldd_sdk_asset::asset;
 
 pub use crate::audit_status::{
     AUDIT_STATUS_AUDIT_COMPLETE, AUDIT_STATUS_DECRYPT_FAILED, AUDIT_STATUS_EVIDENCE_INVALID,
@@ -37,7 +37,7 @@ pub struct ClearFlowEvent {
     pub output_ref: OutputRef,
     pub kind: ClearFlowKind,
     pub asset_id: asset::Id,
-    pub amount: penumbra_sdk_num::Amount,
+    pub amount: shieldd_sdk_num::Amount,
     pub self_address: Option<String>,
     pub counterparty: Option<String>,
     pub public_address: Option<String>,

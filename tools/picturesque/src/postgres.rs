@@ -13,7 +13,7 @@ const VENDOR_SQL: &'static str = include_str!(concat!(
     "/../../crates/util/cometindex/vendor/schema.sql"
 ));
 
-const DB_NAME: &'static str = "penumbra_raw";
+const DB_NAME: &'static str = "shieldd_raw";
 
 #[derive(Clone, Debug)]
 struct Context {

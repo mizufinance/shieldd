@@ -1,11 +1,11 @@
 use anyhow::Result;
 use cnidarium::{StateDelta, Storage};
 use jmt::RootHash;
-use penumbra_sdk_app::app::StateReadExt as _;
-use penumbra_sdk_app::app_version::migrate_app_version;
-use penumbra_sdk_app::SUBSTORE_PREFIXES;
-use penumbra_sdk_governance::StateWriteExt;
-use penumbra_sdk_sct::component::clock::{EpochManager, EpochRead};
+use shieldd_sdk_app::app::StateReadExt as _;
+use shieldd_sdk_app::app_version::migrate_app_version;
+use shieldd_sdk_app::SUBSTORE_PREFIXES;
+use shieldd_sdk_governance::StateWriteExt;
+use shieldd_sdk_sct::component::clock::{EpochManager, EpochRead};
 use std::path::PathBuf;
 use tracing::instrument;
 
@@ -102,7 +102,7 @@ pub trait Migration {
         let chain_id = state.get_chain_id().await?;
         storage.release().await;
 
-        let app_state = penumbra_sdk_app::genesis::Content {
+        let app_state = shieldd_sdk_app::genesis::Content {
             chain_id,
             ..Default::default()
         };

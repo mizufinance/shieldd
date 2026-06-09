@@ -1,6 +1,6 @@
 //! Consensus proof-family aggregation transport and backend facade.
 //!
-//! The aggregation backend is Penumbra-owned SnarkPack implementation code
+//! The aggregation backend is Shieldd-owned SnarkPack implementation code
 //! forked from `arkworks-rs/ripp`.
 
 mod aggregate_proof_wrapper;
@@ -16,7 +16,7 @@ mod transfer_family_dispatch;
 use anyhow::Result;
 use ark_groth16::PreparedVerifyingKey;
 use decaf377::Bls12_377;
-use penumbra_sdk_proof_params::batch::BatchItem;
+use shieldd_sdk_proof_params::batch::BatchItem;
 
 pub use aggregate_proof_wrapper::{
     decode_wrapped_aggregate_proof, decode_wrapped_aggregate_proof_inner_range,
@@ -32,11 +32,11 @@ pub use backend::{
 pub use bundle::{AggregateBundle, FamilyAggregate, ProofFamilyId};
 pub use padding::PADDING_RULE_DOMAIN;
 pub use padding::{pad_items_to_power_of_two, prepare_verify_inputs, PreparedVerifyInputs};
-pub use penumbra_sdk_proof_aggregation_trace_schema as trace_schema;
 pub use preflight::{
     preflight_aggregate_verify, AggregatePreflightInput, VerifiedAggregateBackendCall,
     VerifiedChallengeContext, VerifiedInnerProofBytes,
 };
+pub use shieldd_sdk_proof_aggregation_trace_schema as trace_schema;
 pub use srs::{
     srs_id, srs_report, DevSrs, DevSrsReport, DEFAULT_DEV_SRS_ID, DEFAULT_MAX_PADDED_PROOF_COUNT,
     DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID, DEV_SRS_VERSION,

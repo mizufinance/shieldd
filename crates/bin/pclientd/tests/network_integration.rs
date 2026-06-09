@@ -1,6 +1,6 @@
 //! Basic integration testing of `pclientd` versus a target testnet.
 //!
-//! Tests against the network in the `PENUMBRA_NODE_PD_URL` environment variable.
+//! Tests against the network in the `SHIELDD_NODE_PD_URL` environment variable.
 //!
 //! Tests assume that the initial state of the test account is after genesis,
 //! where no tokens have been delegated, and the address with index 0
@@ -12,22 +12,22 @@ use anyhow::Context;
 use assert_cmd::cargo::CommandCargoExt;
 use assert_cmd::Command as AssertCommand;
 use futures::{FutureExt, StreamExt, TryStreamExt};
-use penumbra_sdk_keys::keys::AddressIndex;
+use shieldd_sdk_keys::keys::AddressIndex;
 use tempfile::{tempdir, TempDir};
 use tokio::process::Command as TokioCommand;
 
-use penumbra_sdk_asset::{asset, Value};
-use penumbra_sdk_keys::test_keys;
-use penumbra_sdk_proto::{
+use shieldd_sdk_asset::{asset, Value};
+use shieldd_sdk_keys::test_keys;
+use shieldd_sdk_proto::{
     custody::v1::{custody_service_client::CustodyServiceClient, AuthorizeRequest},
-    penumbra::view::v1::view_service_client::ViewServiceClient,
+    shieldd::view::v1::view_service_client::ViewServiceClient,
     view::v1::{
         broadcast_transaction_response::Status as BroadcastStatus,
         witness_and_build_response::Status as WitnessAndBuildStatus, BroadcastTransactionRequest,
         TransactionPlannerRequest, WitnessAndBuildRequest,
     },
 };
-use penumbra_sdk_view::ViewClient;
+use shieldd_sdk_view::ViewClient;
 
 // Generate a working pclientd config in the target directory.
 fn generate_custody_config(home_dir: &TempDir) -> anyhow::Result<()> {
@@ -40,7 +40,7 @@ fn generate_custody_config(home_dir: &TempDir) -> anyhow::Result<()> {
             "--bind-addr",
             "127.0.0.1:8081",
             "--grpc-url",
-            std::env::var("PENUMBRA_NODE_PD_URL")
+            std::env::var("SHIELDD_NODE_PD_URL")
                 .unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned())
                 .as_str(),
         ])
@@ -94,10 +94,10 @@ async fn transaction_send_flow() -> anyhow::Result<()> {
     }
 
     // 5. Try building a transaction using the simplified flow.
-    // Here we don't want to use the Penumbra Rust libraries much, because
+    // Here we don't want to use the Shieldd Rust libraries much, because
     // we're executing as if we were a Go program that had to construct all these
-    // protos manually, with no access to Penumbra crypto.
-    use penumbra_sdk_proto::view::v1::transaction_planner_request as tpr;
+    // protos manually, with no access to Shieldd crypto.
+    use shieldd_sdk_proto::view::v1::transaction_planner_request as tpr;
 
     let test_usd = asset::REGISTRY.parse_unit("test_usd").id();
     let source = AddressIndex::new(0);

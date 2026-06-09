@@ -4,15 +4,15 @@ use ark_groth16::PreparedVerifyingKey;
 use ark_ip_proofs::challenge::ChallengeContext;
 use ark_serialize::CanonicalSerialize;
 use decaf377::{Bls12_377, Fq};
-use penumbra_sdk_proto::core::transaction::v1 as pb;
 use sha2::{Digest as _, Sha256};
+use shieldd_sdk_proto::core::transaction::v1 as pb;
 
 use crate::{padding::PADDING_RULE_DOMAIN, ProofFamilyId, DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID};
 
 pub const AGGREGATE_PROTOCOL_VERSION: u32 = 1;
 
-const STATEMENT_DIGEST_DOMAIN: &[u8] = b"penumbra.snarkpack.statement_digest.v1\0";
-const VK_DIGEST_DOMAIN: &[u8] = b"penumbra.snarkpack.vk_digest.v1\0";
+const STATEMENT_DIGEST_DOMAIN: &[u8] = b"shieldd.snarkpack.statement_digest.v1\0";
+const VK_DIGEST_DOMAIN: &[u8] = b"shieldd.snarkpack.vk_digest.v1\0";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AggregateStatementError {
@@ -1151,7 +1151,7 @@ mod tests {
 
         let preimage = challenge_preimage(&context, stage, nonce, &messages);
         let mut expected = Vec::new();
-        expected.extend_from_slice(b"penumbra.snarkpack.challenge.v1\0");
+        expected.extend_from_slice(b"shieldd.snarkpack.challenge.v1\0");
         expected.extend_from_slice(&(stage.len() as u32).to_le_bytes());
         expected.extend_from_slice(stage);
         expected.extend_from_slice(context.as_bytes());

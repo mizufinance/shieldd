@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Context, Result};
 use decaf377::{Element, Fq, Fr};
-use penumbra_sdk_asset::Value;
-use penumbra_sdk_keys::Address;
 use rand_core::{CryptoRng, RngCore};
+use shieldd_sdk_asset::Value;
+use shieldd_sdk_keys::Address;
 
 use crate::{
     crypto::{
@@ -250,7 +250,7 @@ impl TransferComplianceDleqProofs {
 
 pub fn derive_transfer_salt(root: Fr, label: &[u8]) -> Fq {
     let domain = Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"penumbra.transfer.compliance.salt").as_bytes(),
+        blake2b_simd::blake2b(b"shieldd.transfer.compliance.salt").as_bytes(),
     );
     let label_fq = Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label).as_bytes());
     poseidon377::hash_2(

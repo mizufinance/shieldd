@@ -1,7 +1,7 @@
 use crate::asset::Metadata;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{penumbra::core::asset::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 
 /// An equivalent value in terms of a different numeraire.
 ///

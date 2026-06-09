@@ -3,16 +3,16 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey},
-    penumbra_sdk_app::{
+    rand_core::OsRng,
+    shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
     },
-    penumbra_sdk_keys::test_keys,
-    penumbra_sdk_mock_client::MockClient,
-    penumbra_sdk_mock_consensus::TestNode,
-    penumbra_sdk_proto::DomainType,
-    penumbra_sdk_validator::{validator::Validator, GovernanceKey, IdentityKey},
-    rand_core::OsRng,
+    shieldd_sdk_keys::test_keys,
+    shieldd_sdk_mock_client::MockClient,
+    shieldd_sdk_mock_consensus::TestNode,
+    shieldd_sdk_proto::DomainType,
+    shieldd_sdk_validator::{validator::Validator, GovernanceKey, IdentityKey},
     tap::Tap,
     tracing::{error_span, info, Instrument},
 };
@@ -24,7 +24,7 @@ mod common;
 async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::Result<()> {
     // Install a test logger, and acquire some temporary storage.
     let guard = common::set_tracing_subscriber();
-    let storage = TempStorage::new_with_penumbra_prefixes().await?;
+    let storage = TempStorage::new_with_shieldd_prefixes().await?;
 
     // Start the test node.
     let mut node = {
@@ -34,7 +34,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
         );
         TestNode::builder()
             .single_validator()
-            .with_penumbra_auto_app_state(app_state)?
+            .with_shieldd_auto_app_state(app_state)?
             .init_chain(consensus)
             .await
     }?;
@@ -57,7 +57,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
         .tap(|c| info!(client.notes = %c.notes.len(), "mock client synced to test storage"));
 
     // To define a validator, we need to define two keypairs: an identity key
-    // for the Penumbra application and a consensus key for cometbft.
+    // for the Shieldd application and a consensus key for cometbft.
     let new_validator_id_sk = SigningKey::<SpendAuth>::new(OsRng);
     let new_validator_id = IdentityKey(VerificationKey::from(&new_validator_id_sk).into());
     let new_validator_consensus_sk = ed25519_consensus::SigningKey::new(OsRng);
@@ -91,9 +91,9 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
     // Make a transaction that defines a new validator, providing an invalid signature.
     let plan = {
         use {
-            penumbra_sdk_transaction::{ActionPlan, TransactionParameters, TransactionPlan},
-            penumbra_sdk_validator::validator,
             rand_core::OsRng,
+            shieldd_sdk_transaction::{ActionPlan, TransactionParameters, TransactionPlan},
+            shieldd_sdk_validator::validator,
         };
         let bytes = new_validator.encode_to_vec();
         // NB: we do NOT use the validator's signing key here. this transaction will contain an

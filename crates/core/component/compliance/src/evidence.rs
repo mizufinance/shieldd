@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use decaf377::Fq;
-use penumbra_sdk_asset::asset;
 use sha2::{Digest, Sha256};
+use shieldd_sdk_asset::asset;
 
 use crate::{
     decode_object::{
@@ -171,7 +171,7 @@ impl ComplianceEvidenceObject {
             None
         };
         let tx_index = reader.read_u32()?;
-        let tx_hash = penumbra_sdk_txhash::TransactionId(reader.read_array::<32>()?);
+        let tx_hash = shieldd_sdk_txhash::TransactionId(reader.read_array::<32>()?);
         let action_index = reader.read_u32()?;
         let output_index = reader.read_u32()?;
         let asset_id = asset::Id(
@@ -388,9 +388,9 @@ impl<'a> EvidenceReader<'a> {
 pub(crate) mod tests {
     use super::*;
     use decaf377::{Element, Fr};
-    use penumbra_sdk_asset::Value;
-    use penumbra_sdk_num::Amount;
     use rand_core::OsRng;
+    use shieldd_sdk_asset::Value;
+    use shieldd_sdk_num::Amount;
 
     use crate::{
         crypto::derive_compliance_scalar,
@@ -401,7 +401,7 @@ pub(crate) mod tests {
         upload_package::build_orbis_encrypted_seed_upload_package_with_randomness,
     };
 
-    fn derive_ack(ring_pk: &Element, address: &penumbra_sdk_keys::Address) -> Element {
+    fn derive_ack(ring_pk: &Element, address: &shieldd_sdk_keys::Address) -> Element {
         let b_d_fq = address.diversified_generator().vartime_compress_to_field();
         let d = derive_compliance_scalar(b_d_fq);
         let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
@@ -618,7 +618,7 @@ pub(crate) mod tests {
                         block_time_unix: Some(12345),
                     },
                     tx_index: 1,
-                    tx_hash: penumbra_sdk_txhash::TransactionId([8u8; 32]),
+                    tx_hash: shieldd_sdk_txhash::TransactionId([8u8; 32]),
                 },
                 action_index: 2,
             },

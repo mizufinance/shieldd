@@ -3,10 +3,10 @@ package abi
 import (
 	"fmt"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/circuits"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/compliance"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/generated"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 func NewTransferCircuitAssignmentFromWitnessV1(payload []byte) (*circuits.TransferCircuit, generated.TransferFamilySpec, error) {

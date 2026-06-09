@@ -1,5 +1,5 @@
 use decaf377::Element;
-use penumbra_sdk_compliance::OrbisSecretEnvelope;
+use shieldd_sdk_compliance::OrbisSecretEnvelope;
 
 #[derive(Debug, Clone)]
 pub struct DkgResult {

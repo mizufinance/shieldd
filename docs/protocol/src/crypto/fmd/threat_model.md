@@ -12,13 +12,13 @@ detection keys.
 This is appropriate for a messaging application using a single centralized server
 where FMD is a requirement at the protocol-level.
 
-However, Penumbra operates in what we will call the *open world* setting in which:
+However, Shieldd operates in what we will call the *open world* setting in which:
 
 * Multiple untrusted servers perform FMD on behalf of users, i.e. there is no
 single centralized detection server with all detection keys.
-* Not all users use FMD: in Penumbra FMD is opt-in. A fraction of Penumbra users will download all messages, and never provide detection keys to a third party.
+* Not all users use FMD: in Shieldd FMD is opt-in. A fraction of Shieldd users will download all messages, and never provide detection keys to a third party.
 
-A further difference in Penumbra is that the total number of distinct *users* is
+A further difference in Shieldd is that the total number of distinct *users* is
 unknown. Each user can create multiple addresses, and they choose whether or not
 to derive a detection key for a given address.
 

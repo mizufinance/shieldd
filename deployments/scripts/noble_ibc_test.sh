@@ -9,7 +9,7 @@ set -euo pipefail
 
 # Constants
 NOBLE_CHAIN_ID="grand-1"
-PENUMBRA_CHAIN_ID="penumbra-testnet-phobos-2"
+SHIELDD_CHAIN_ID="shieldd-testnet-phobos-2"
 NODE_URL="https://noble-testnet-rpc.polkachu.com:443"
 ESCAPED_URL=$(echo "$NODE_URL" | sed 's/\//\\\//g')
 
@@ -72,8 +72,8 @@ if [ "$INITIAL_NOBLE_BALANCE" -eq 0 ]; then
     echo "The address $NOBLE_ADDRESS has no funds. Please send some funds to this address and try again." && exit 1
 fi
 
-# Check Penumbra starting balance
-INITIAL_PENUMBRA_BALANCE=$(pcli view balance | grep uusdc | awk '{ print $3 }' | \
+# Check Shieldd starting balance
+INITIAL_SHIELDD_BALANCE=$(pcli view balance | grep uusdc | awk '{ print $3 }' | \
 awk '
 {
     match($0, /^[0-9]+/)
@@ -83,11 +83,11 @@ END {
     print sum
 }')
 
-echo "Initial Penumbra balance: $INITIAL_PENUMBRA_BALANCE"
+echo "Initial Shieldd balance: $INITIAL_SHIELDD_BALANCE"
 
 # There are probably many client IDs created for this chain ID.
 # Grab the last (highest numbered) unfrozen one.
-CLIENT_ID=$(./build query ibc client states --node "$NODE_URL" --limit 10000 --output json | jq --arg chain_id "$PENUMBRA_CHAIN_ID" '[.client_states[] | select(
+CLIENT_ID=$(./build query ibc client states --node "$NODE_URL" --limit 10000 --output json | jq --arg chain_id "$SHIELDD_CHAIN_ID" '[.client_states[] | select(
     (.client_state.chain_id? | strings | contains($chain_id)) and
     .client_state.frozen_height.revision_number == "0" and
     .client_state.frozen_height.revision_height == "0"
@@ -104,41 +104,41 @@ CHANNEL_ID="$(./build query ibc channel connections "$CONNECTION_ID" --node "$NO
     .state == "STATE_OPEN" and
     .port_id == "transfer"
 ) | .channel_id] | last' | sed 's/"//g')"
-# Find the counterparty (Penumbra) channel ID associated with the connection ID
+# Find the counterparty (Shieldd) channel ID associated with the connection ID
 COUNTERPARTY_CHANNEL_ID="$(./build query ibc channel connections "$CONNECTION_ID" --node "$NODE_URL" --limit 10000 --output json | jq '[.channels[] | select(
     .state == "STATE_OPEN" and
     .port_id == "transfer"
 ) | .counterparty.channel_id] | last' | sed 's/"//g')"
 
 # Get both compat address and normal address, and test both
-PENUMBRA_COMPAT_ADDRESS="$(pcli view address --compat)"
-PENUMBRA_ADDRESS="$(pcli view address)"
+SHIELDD_COMPAT_ADDRESS="$(pcli view address --compat)"
+SHIELDD_ADDRESS="$(pcli view address)"
 
 # Send a test transfer to the normal address
-echo -e "Submitting IBC transfer to $PENUMBRA_ADDRESS...\n"
-./build tx ibc-transfer transfer transfer "$CHANNEL_ID" "$PENUMBRA_ADDRESS" 1uusdc --from "$NOBLE_ADDRESS" --chain-id "$NOBLE_CHAIN_ID" -y | tee /dev/stderr | grep -q "code: 0" || {
-    echo -e "Submitting test transfer transaction to $PENUMBRA_ADDRESS failed"
+echo -e "Submitting IBC transfer to $SHIELDD_ADDRESS...\n"
+./build tx ibc-transfer transfer transfer "$CHANNEL_ID" "$SHIELDD_ADDRESS" 1uusdc --from "$NOBLE_ADDRESS" --chain-id "$NOBLE_CHAIN_ID" -y | tee /dev/stderr | grep -q "code: 0" || {
+    echo -e "Submitting test transfer transaction to $SHIELDD_ADDRESS failed"
     exit 1
 }
 echo -e "\nSuccessfully submitted transaction\n"
 
 sleep 5
 
-echo -e "Submitting IBC transfer to $PENUMBRA_COMPAT_ADDRESS...\n"
+echo -e "Submitting IBC transfer to $SHIELDD_COMPAT_ADDRESS...\n"
 # Send a test transfer to the compat address
-./build tx ibc-transfer transfer transfer "$CHANNEL_ID" "$PENUMBRA_COMPAT_ADDRESS" 1uusdc --from "$NOBLE_ADDRESS" --chain-id "$NOBLE_CHAIN_ID" -y | tee /dev/stderr | grep -q "code: 0" || {
-    echo -e "Submitting test transfer transaction to $PENUMBRA_COMPAT_ADDRESS failed"
+./build tx ibc-transfer transfer transfer "$CHANNEL_ID" "$SHIELDD_COMPAT_ADDRESS" 1uusdc --from "$NOBLE_ADDRESS" --chain-id "$NOBLE_CHAIN_ID" -y | tee /dev/stderr | grep -q "code: 0" || {
+    echo -e "Submitting test transfer transaction to $SHIELDD_COMPAT_ADDRESS failed"
     exit 1
 }
 echo -e "\nSuccessfully submitted transaction\n"
 
 sleep 20
 
-# Check the final balances of Noble and Penumbra
+# Check the final balances of Noble and Shieldd
 FINAL_NOBLE_BALANCE=$(./build query bank balance "$NOBLE_ADDRESS" uusdc --output json | jq '.balance.amount' | sed 's/"//g')
 echo -e "Final Balance of Noble address: $FINAL_NOBLE_BALANCE\n"
 
-FINAL_PENUMBRA_BALANCE=$(pcli view balance | grep uusdc | awk '{ print $3 }' | \
+FINAL_SHIELDD_BALANCE=$(pcli view balance | grep uusdc | awk '{ print $3 }' | \
 awk '
 {
     match($0, /^[0-9]+/)
@@ -148,33 +148,33 @@ END {
     print sum
 }')
 
-echo "Final Penumbra balance: $FINAL_PENUMBRA_BALANCE"
+echo "Final Shieldd balance: $FINAL_SHIELDD_BALANCE"
 
 
 if ((FINAL_NOBLE_BALANCE != INITIAL_NOBLE_BALANCE - 2)); then
     echo "FINAL_NOBLE_BALANCE must be 2 less than INITIAL_NOBLE_BALANCE" && exit 1
 fi
 
-if ((FINAL_PENUMBRA_BALANCE != INITIAL_PENUMBRA_BALANCE + 2)); then
-    echo "FINAL_PENUMBRA_BALANCE must be 2 greater than INITIAL_PENUMBRA_BALANCE" && exit 1
+if ((FINAL_SHIELDD_BALANCE != INITIAL_SHIELDD_BALANCE + 2)); then
+    echo "FINAL_SHIELDD_BALANCE must be 2 greater than INITIAL_SHIELDD_BALANCE" && exit 1
 fi
 
-# Now try transferring back in the other direction (Penumbra -> Noble)
+# Now try transferring back in the other direction (Shieldd -> Noble)
 
 # Initial balance for this test is the final we just obtained
 INITIAL_NOBLE_BALANCE=$FINAL_NOBLE_BALANCE
-INITIAL_PENUMBRA_BALANCE=$FINAL_PENUMBRA_BALANCE
+INITIAL_SHIELDD_BALANCE=$FINAL_SHIELDD_BALANCE
 unset FINAL_NOBLE_BALANCE
-unset FINAL_PENUMBRA_BALANCE
+unset FINAL_SHIELDD_BALANCE
 
-PENUMBRA_CHANNEL_NUMBER=${COUNTERPARTY_CHANNEL_ID#*-}
-pcli tx withdraw --to "$NOBLE_ADDRESS" --channel "$PENUMBRA_CHANNEL_NUMBER" "1transfer/${COUNTERPARTY_CHANNEL_ID}/uusdc"
+SHIELDD_CHANNEL_NUMBER=${COUNTERPARTY_CHANNEL_ID#*-}
+pcli tx withdraw --to "$NOBLE_ADDRESS" --channel "$SHIELDD_CHANNEL_NUMBER" "1transfer/${COUNTERPARTY_CHANNEL_ID}/uusdc"
 
 sleep 20
 
 # Ensure the transfer landed on the Noble side:
 FINAL_NOBLE_BALANCE=$(./build query bank balance "$NOBLE_ADDRESS" uusdc --output json | jq '.balance.amount' | sed 's/"//g')
-echo -e "Final Balance of Noble address after transfer from Penumbra: $FINAL_NOBLE_BALANCE\n"
+echo -e "Final Balance of Noble address after transfer from Shieldd: $FINAL_NOBLE_BALANCE\n"
 
 if ((FINAL_NOBLE_BALANCE != INITIAL_NOBLE_BALANCE + 1)); then
     echo "FINAL_NOBLE_BALANCE must be 1 more than INITIAL_NOBLE_BALANCE" && exit 1

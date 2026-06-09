@@ -2,9 +2,9 @@ use anyhow::{anyhow, bail, Result};
 use ark_ff::{BigInteger, PrimeField};
 use decaf377::Fq;
 use once_cell::sync::Lazy;
-use penumbra_sdk_proto::{core::component::compliance::v1 as pb, DomainType};
-use penumbra_sdk_tct::StateCommitment;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType};
+use shieldd_sdk_tct::StateCommitment;
 use std::collections::BTreeMap;
 
 use crate::structs::{canonical_route_policy_string, AssetParams, AssetPolicy, RingData};
@@ -56,7 +56,7 @@ pub static IMT_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
     Fq::from_le_bytes_mod_order(hash.as_bytes())
 });
 
-/// Domain separator for params sub-hash (Penumbra-decided: dk_pub, threshold, slot count, IBC route policy).
+/// Domain separator for params sub-hash (Shieldd-decided: dk_pub, threshold, slot count, IBC route policy).
 pub static PARAMS_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
     let hash = blake2b_simd::Params::default()
         .personal(b"pen.imt.params__")
@@ -96,7 +96,7 @@ pub fn route_policy_to_fq(params: &AssetParams) -> Fq {
 
 // --- Policy sub-structs ---
 
-/// Penumbra-decided policy fields bound into the IMT leaf.
+/// Shieldd-decided policy fields bound into the IMT leaf.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LeafParams {
     pub dk_pub: decaf377::Element,
@@ -237,7 +237,7 @@ pub struct IndexedLeaf {
     pub next_index: u64,
     /// The value at next_index (for efficient gap verification).
     pub next_value: Fq,
-    /// Penumbra-decided policy (dk_pub, threshold, IBC routes).
+    /// Shieldd-decided policy (dk_pub, threshold, IBC routes).
     pub params: LeafParams,
     /// Orbis-decided policy (ring_pk, ring_id, policy_id, permission, resource).
     pub ring: LeafRing,

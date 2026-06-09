@@ -34,7 +34,7 @@ impl IncomingViewingKey {
         let pk_d = self.ivk.diversified_public(&g_d);
 
         let dtk_d = fmd::DetectionKey::from_field(Fr::from_le_bytes_mod_order(
-            prf::expand(b"PenumbraExpndFMD", &self.ivk.to_bytes(), d.as_ref()).as_bytes(),
+            prf::expand(b"ShielddExpandFMD", &self.ivk.to_bytes(), d.as_ref()).as_bytes(),
         ));
         let ck_d = dtk_d.clue_key();
 

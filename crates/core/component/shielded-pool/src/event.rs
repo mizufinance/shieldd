@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Context};
-use penumbra_sdk_asset::Value;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_sct::Nullifier;
 use prost::Name as _;
+use shieldd_sdk_asset::Value;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_sct::Nullifier;
 
 use crate::note::StateCommitment;
 

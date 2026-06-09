@@ -3,9 +3,9 @@
 //! The `refs` module maps chain data into stable block, transaction, action,
 //! and output references. `TxRef` carries the canonical `TransactionId` so
 //! scanner, evidence, and audit rows use the same transaction identity as the
-//! rest of Penumbra.
+//! rest of Shieldd.
 
-use penumbra_sdk_txhash::TransactionId;
+use shieldd_sdk_txhash::TransactionId;
 
 /// Reference to a block by height, hash, parent hash, and optional Unix
 /// timestamp.

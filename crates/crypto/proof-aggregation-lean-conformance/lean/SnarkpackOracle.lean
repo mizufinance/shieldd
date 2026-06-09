@@ -11,7 +11,7 @@ KZG opening.
 -/
 
 inductive Level where
-  | penumbraByte
+  | shielddByte
   | abstractTrace
 deriving Repr, BEq
 
@@ -32,7 +32,7 @@ structure Event where
 deriving Repr, BEq
 
 def Level.render : Level → String
-  | Level.penumbraByte => "penumbra-byte"
+  | Level.shielddByte => "shieldd-byte"
   | Level.abstractTrace => "abstract-trace"
 
 def Kind.render : Kind → String
@@ -73,7 +73,7 @@ def roundCount (count : Nat) : Nat :=
 def contextEvent : Event :=
   {
     specRowId := "fs.context-constructor",
-    level := Level.penumbraByte,
+    level := Level.shielddByte,
     kind := Kind.challengeContext,
     stageLabel := "statement",
     nonce := none,
@@ -108,7 +108,7 @@ def challengeEvents (specRow stage : String) (nonce : Nat) : List Event :=
   [
     {
       specRowId := "fs.stage-labels",
-      level := Level.penumbraByte,
+      level := Level.shielddByte,
       kind := Kind.challengePreimage,
       stageLabel := stage,
       nonce := some nonce,
@@ -116,7 +116,7 @@ def challengeEvents (specRow stage : String) (nonce : Nat) : List Event :=
     },
     {
       specRowId := "fs.challenge-preimage",
-      level := Level.penumbraByte,
+      level := Level.shielddByte,
       kind := Kind.challengePreimage,
       stageLabel := stage,
       nonce := some nonce,
@@ -124,7 +124,7 @@ def challengeEvents (specRow stage : String) (nonce : Nat) : List Event :=
     },
     {
       specRowId := specRow,
-      level := Level.penumbraByte,
+      level := Level.shielddByte,
       kind := Kind.challengeDigest,
       stageLabel := stage,
       nonce := some nonce,

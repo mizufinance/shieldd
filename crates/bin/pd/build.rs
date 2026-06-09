@@ -78,7 +78,7 @@ fn setup_testnet_config() -> anyhow::Result<()> {
             let validators_path = testnets_path.join("validators-ci.json");
             if validators_path.exists() {
                 (
-                    "penumbra-localnet".to_string(),
+                    "shieldd-localnet".to_string(),
                     testnets_path.clone(),
                     validators_path,
                     testnets_path.join("allocations.csv"),
@@ -165,7 +165,7 @@ fn latest_testnet(testnets_path: impl AsRef<Path>) -> anyhow::Result<(String, St
     testnets
         .into_iter()
         .max_by_key(|(index, _, _)| *index)
-        .map(|(_, name, dir_name)| ("penumbra-testnet-".to_string() + &name, dir_name))
+        .map(|(_, name, dir_name)| ("shieldd-testnet-".to_string() + &name, dir_name))
         .ok_or_else(|| {
             anyhow::anyhow!(
                 "no numbered testnets found in directory {:?}",

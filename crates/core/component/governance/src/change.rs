@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use anyhow::Context;
-use penumbra_sdk_proto::{core::component::governance::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{core::component::governance::v1 as pb, DomainType};
 
 /// An encoded parameter.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -204,7 +204,7 @@ mod tests {
 
     const SAMPLE_JSON_PARAMETERS: &'static str = r#"
     {
-        "chainId": "penumbra-testnet-deimos-6-b295771a",
+        "chainId": "shieldd-testnet-deimos-6-b295771a",
         "sctParams": {
           "epochDuration": "719"
         },

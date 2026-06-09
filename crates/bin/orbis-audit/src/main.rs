@@ -13,21 +13,21 @@ use extract::{extract_transfer_data, TransferExtraction};
 use match_rows::{candidate_to_entry, AddressData, TransferMatch};
 use orbis_authn::JwtSigner;
 use orbis_common::blockchain::{ChainConfig, SourceHubClient, TxSigner, TEST_ACCOUNT_HEX_KEY};
-use penumbra_orbis_client::OrbisClient;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_compliance::{
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use shieldd_orbis_client::OrbisClient;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_compliance::{
     decrypt_orbis_reencrypted_seed, decrypt_tier_bytes, AuditDetectedRef, AuditScanExport,
     ComplianceLeaf, OrbisAuditEntry, OrbisEncryptedSeedUploadPackage, TransferComplianceCiphertext,
     TransferOrbisUploadBundle,
 };
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_num::Amount;
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_num::Amount;
 use tonic::transport::Channel;
 use url::Url;
 
-use penumbra_orbis_client::ORBIS_NAMESPACE;
+use shieldd_orbis_client::ORBIS_NAMESPACE;
 const ORBIS_READER_RELATION: &str = "reader";
 const ORBIS_DEMO_READER_DID_PK: &str = "test_jwt";
 
@@ -46,7 +46,7 @@ struct Args {
     #[clap(long)]
     dk_hex: String,
 
-    #[clap(long, env = "PENUMBRA_NODE_PD_URL")]
+    #[clap(long, env = "SHIELDD_NODE_PD_URL")]
     node: Url,
 
     #[clap(long, default_value = "/tmp/alice-audit.json")]
@@ -420,7 +420,7 @@ async fn resolve_subject_slot_derivations(
     subject_inputs: &[SubjectInput],
     scan: &AuditScanExport,
 ) -> Result<Vec<SubjectData>> {
-    use penumbra_sdk_proto::core::component::compliance::v1::{
+    use shieldd_sdk_proto::core::component::compliance::v1::{
         query_service_client::QueryServiceClient as ComplianceQueryServiceClient,
         ComplianceUserLeafRequest,
     };
@@ -882,8 +882,8 @@ async fn connect_to_node(node_url: &Url) -> Result<Channel> {
 async fn fetch_transactions(
     channel: Channel,
     height: u64,
-) -> Result<Vec<penumbra_sdk_proto::core::transaction::v1::Transaction>> {
-    use penumbra_sdk_proto::core::app::v1::{
+) -> Result<Vec<shieldd_sdk_proto::core::transaction::v1::Transaction>> {
+    use shieldd_sdk_proto::core::app::v1::{
         query_service_client::QueryServiceClient as AppQueryServiceClient,
         TransactionsByHeightRequest,
     };
@@ -904,16 +904,16 @@ mod tests {
     use super::*;
     use crate::extract::ExtractionSkip;
     use decaf377::{Element, Fr};
-    use penumbra_sdk_asset::{asset, Value};
-    use penumbra_sdk_compliance::transfer::encrypt_transfer;
-    use penumbra_sdk_compliance::DecryptedVia;
-    use penumbra_sdk_compliance::{derive_compliance_scalar, issuer_keys::DetectionKey};
-    use penumbra_sdk_keys::{keys::AddressIndex, test_keys};
-    use penumbra_sdk_num::Amount;
-    use penumbra_sdk_proto::core::component::shielded_pool::v1::{
+    use shieldd_sdk_asset::{asset, Value};
+    use shieldd_sdk_compliance::transfer::encrypt_transfer;
+    use shieldd_sdk_compliance::DecryptedVia;
+    use shieldd_sdk_compliance::{derive_compliance_scalar, issuer_keys::DetectionKey};
+    use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
+    use shieldd_sdk_num::Amount;
+    use shieldd_sdk_proto::core::component::shielded_pool::v1::{
         Consolidate, ConsolidateBody, Split, SplitBody, Transfer, TransferBody, TransferOutputBody,
     };
-    use penumbra_sdk_proto::core::transaction::v1::action::Action;
+    use shieldd_sdk_proto::core::transaction::v1::action::Action;
     use std::collections::HashSet;
 
     fn derive_ack(ring_pk: &Element, slot_derivation: decaf377::Fq) -> Element {
@@ -979,13 +979,13 @@ mod tests {
 
     #[test]
     fn extract_transfer_data_ignores_non_transfer_actions() {
-        let split_action = penumbra_sdk_proto::core::transaction::v1::Action {
+        let split_action = shieldd_sdk_proto::core::transaction::v1::Action {
             action: Some(Action::Split(Split {
                 body: Some(SplitBody::default()),
                 ..Default::default()
             })),
         };
-        let consolidate_action = penumbra_sdk_proto::core::transaction::v1::Action {
+        let consolidate_action = shieldd_sdk_proto::core::transaction::v1::Action {
             action: Some(Action::Consolidate(Consolidate {
                 body: Some(ConsolidateBody::default()),
                 ..Default::default()
@@ -1023,17 +1023,17 @@ mod tests {
         let output_ext_salt = decaf377::Fq::from(14u64);
 
         let bundle = TransferOrbisUploadBundle {
-            sender_core: penumbra_sdk_compliance::build_orbis_encrypted_seed_upload_package(
+            sender_core: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
                 decaf377::Fq::from(21u64),
-                penumbra_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
+                shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     sender_slot_derivation,
                     ring_id,
                     policy_id,
                     resource,
                     permission,
-                    penumbra_sdk_compliance::TransferTierKind::SenderCore,
+                    shieldd_sdk_compliance::TransferTierKind::SenderCore,
                     timestamp,
                     sender_core_salt,
                 ),
@@ -1041,22 +1041,22 @@ mod tests {
                 policy_id,
                 resource,
                 permission,
-                penumbra_sdk_compliance::TransferTierKind::SenderCore,
+                shieldd_sdk_compliance::TransferTierKind::SenderCore,
                 timestamp,
                 sender_core_salt,
             )
             .expect("sender_core package should build"),
-            sender_ext: penumbra_sdk_compliance::build_orbis_encrypted_seed_upload_package(
+            sender_ext: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
                 decaf377::Fq::from(22u64),
-                penumbra_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
+                shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     sender_slot_derivation,
                     ring_id,
                     policy_id,
                     resource,
                     permission,
-                    penumbra_sdk_compliance::TransferTierKind::SenderExt,
+                    shieldd_sdk_compliance::TransferTierKind::SenderExt,
                     timestamp,
                     sender_ext_salt,
                 ),
@@ -1064,22 +1064,22 @@ mod tests {
                 policy_id,
                 resource,
                 permission,
-                penumbra_sdk_compliance::TransferTierKind::SenderExt,
+                shieldd_sdk_compliance::TransferTierKind::SenderExt,
                 timestamp,
                 sender_ext_salt,
             )
             .expect("sender_ext package should build"),
-            output_core: penumbra_sdk_compliance::build_orbis_encrypted_seed_upload_package(
+            output_core: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
                 decaf377::Fq::from(23u64),
-                penumbra_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
+                shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     receiver_slot_derivation,
                     ring_id,
                     policy_id,
                     resource,
                     permission,
-                    penumbra_sdk_compliance::TransferTierKind::OutputCore,
+                    shieldd_sdk_compliance::TransferTierKind::OutputCore,
                     timestamp,
                     output_core_salt,
                 ),
@@ -1087,22 +1087,22 @@ mod tests {
                 policy_id,
                 resource,
                 permission,
-                penumbra_sdk_compliance::TransferTierKind::OutputCore,
+                shieldd_sdk_compliance::TransferTierKind::OutputCore,
                 timestamp,
                 output_core_salt,
             )
             .expect("output_core package should build"),
-            output_ext: penumbra_sdk_compliance::build_orbis_encrypted_seed_upload_package(
+            output_ext: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
                 decaf377::Fq::from(24u64),
-                penumbra_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
+                shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     receiver_slot_derivation,
                     ring_id,
                     policy_id,
                     resource,
                     permission,
-                    penumbra_sdk_compliance::TransferTierKind::OutputExt,
+                    shieldd_sdk_compliance::TransferTierKind::OutputExt,
                     timestamp,
                     output_ext_salt,
                 ),
@@ -1110,7 +1110,7 @@ mod tests {
                 policy_id,
                 resource,
                 permission,
-                penumbra_sdk_compliance::TransferTierKind::OutputExt,
+                shieldd_sdk_compliance::TransferTierKind::OutputExt,
                 timestamp,
                 output_ext_salt,
             )
@@ -1123,7 +1123,7 @@ mod tests {
     fn extract_transfer_data_reads_requested_transfer_output() {
         let ciphertext_bytes = make_transfer_ciphertext_bytes();
         let bundle_bytes = make_upload_bundle_bytes();
-        let transfer_action = penumbra_sdk_proto::core::transaction::v1::Action {
+        let transfer_action = shieldd_sdk_proto::core::transaction::v1::Action {
             action: Some(Action::Transfer(Transfer {
                 body: Some(TransferBody {
                     outputs: vec![
@@ -1156,7 +1156,7 @@ mod tests {
 
     #[test]
     fn extract_transfer_data_classifies_malformed_ciphertext() {
-        let transfer_action = penumbra_sdk_proto::core::transaction::v1::Action {
+        let transfer_action = shieldd_sdk_proto::core::transaction::v1::Action {
             action: Some(Action::Transfer(Transfer {
                 body: Some(TransferBody {
                     outputs: vec![TransferOutputBody {
@@ -1185,7 +1185,7 @@ mod tests {
             output_index: 2,
             asset_id: "asset".to_string(),
             is_flagged: false,
-            flow_type: penumbra_sdk_compliance::FlowType::PrivateTransfer,
+            flow_type: shieldd_sdk_compliance::FlowType::PrivateTransfer,
         };
         let self_tk = "aa".repeat(32);
         let counterparty_tk = "bb".repeat(32);

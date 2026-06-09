@@ -2,11 +2,11 @@ use std::convert::TryInto;
 
 use anyhow::{Context, Error};
 use decaf377_rdsa::{Signature, SpendAuth};
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_tct as tct;
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_tct as tct;
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use crate::{
     shielded_ics20_withdrawal::ShieldedIcs20WithdrawalProof, Ics20Withdrawal, TransferInputBody,

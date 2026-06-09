@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, HashMap};
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use penumbra_sdk_sct::{
+use shieldd_sdk_sct::{
     component::tree::SctRead as _, nullifier_tree, NullificationInfo, Nullifier,
 };
 
 fn configured_sizes() -> Vec<usize> {
-    std::env::var("PENUMBRA_NULLIFIER_BENCH_SIZES")
+    std::env::var("SHIELDD_NULLIFIER_BENCH_SIZES")
         .ok()
         .map(|value| {
             value

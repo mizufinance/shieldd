@@ -7,7 +7,7 @@ struct GeneratedConsolidateProofFamily {
 }
 
 static CONSOLIDATE2X1_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("PENUMBRA_GNARK_CONSOLIDATE2X1_ARTIFACT_DIR") {
+    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_CONSOLIDATE2X1_ARTIFACT_DIR") {
         return load_verifying_key_json_artifact(Path::new(&dir), "consolidate2x1")
             .expect("can deserialize consolidate2x1 VerifyingKey")
             .into();
@@ -40,7 +40,7 @@ static CONSOLIDATE2X1_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
 ));
 
 static CONSOLIDATE4X1_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("PENUMBRA_GNARK_CONSOLIDATE4X1_ARTIFACT_DIR") {
+    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_CONSOLIDATE4X1_ARTIFACT_DIR") {
         return load_verifying_key_json_artifact(Path::new(&dir), "consolidate4x1")
             .expect("can deserialize consolidate4x1 VerifyingKey")
             .into();
@@ -73,7 +73,7 @@ static CONSOLIDATE4X1_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
 ));
 
 static CONSOLIDATE8X1_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("PENUMBRA_GNARK_CONSOLIDATE8X1_ARTIFACT_DIR") {
+    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_CONSOLIDATE8X1_ARTIFACT_DIR") {
         return load_verifying_key_json_artifact(Path::new(&dir), "consolidate8x1")
             .expect("can deserialize consolidate8x1 VerifyingKey")
             .into();

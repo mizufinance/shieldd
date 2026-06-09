@@ -5,7 +5,6 @@ authors = {workspace = true}
 edition = {workspace = true}
 description = "Experimental tool for integration testing"
 repository = {workspace = true}
-homepage = {workspace = true}
 license = {workspace = true}
 publish = false
 rust-version = "1.65"
@@ -16,7 +15,7 @@ dist = true
 [dependencies]
 anyhow = {workspace = true}
 clap = {workspace = true, features = ["derive", "env", "color"]}
-penumbra-sdk-keys = {workspace = true, default-features = false}
+shieldd-sdk-keys = {workspace = true, default-features = false}
 tokio = {workspace = true, features = ["full"]}
 toml = {workspace = true}
 tracing = {workspace = true}

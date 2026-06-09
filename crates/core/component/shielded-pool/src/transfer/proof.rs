@@ -4,16 +4,16 @@ use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_compliance::{
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_compliance::{
     ComplianceLeaf, IndexedLeaf, MerklePath, OrbisEncryptedSeedUploadPackage,
     TransferTierMetadataStatement,
 };
-use penumbra_sdk_keys::keys::NullifierKey;
-use penumbra_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_keys::keys::NullifierKey;
+use shieldd_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_tct as tct;
 
 use crate::{
     public_input_hash::{transfer_statement_hash_from_public, StatementHashError},
@@ -192,11 +192,11 @@ impl TransferProof {
     pub fn to_batch_item(
         &self,
         public: &TransferProofPublic,
-    ) -> anyhow::Result<penumbra_sdk_proof_params::batch::BatchItem> {
+    ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
         let proof = self.decoded_proof()?;
         let statement_hash = public.statement_hash()?;
 
-        Ok(penumbra_sdk_proof_params::batch::BatchItem {
+        Ok(shieldd_sdk_proof_params::batch::BatchItem {
             proof,
             public_inputs: vec![statement_hash],
         })
@@ -205,7 +205,7 @@ impl TransferProof {
     pub fn verify(&self, public: &TransferProofPublic) -> anyhow::Result<()> {
         self.verify_with_prepared_vk(
             public,
-            penumbra_sdk_proof_params::transfer_proof_verification_key(),
+            shieldd_sdk_proof_params::transfer_proof_verification_key(),
         )
     }
 
@@ -289,15 +289,15 @@ mod tests {
     };
     use crate::{Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
     use decaf377::Fr;
-    use penumbra_sdk_asset::{Value, BASE_ASSET_ID};
-    use penumbra_sdk_compliance::{ComplianceLeaf, MerklePath, QuadTree};
-    use penumbra_sdk_keys::test_keys;
-    use penumbra_sdk_num::Amount;
-    use penumbra_sdk_tct as tct;
+    use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
+    use shieldd_sdk_compliance::{ComplianceLeaf, MerklePath, QuadTree};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_num::Amount;
+    use shieldd_sdk_tct as tct;
 
     static TRANSFER_PROOF_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
-    fn compliance_leaf_for(address: &penumbra_sdk_keys::Address) -> ComplianceLeaf {
+    fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
         let slot_derivation = address.diversified_generator().vartime_compress_to_field();
         ComplianceLeaf::new(address.clone(), *BASE_ASSET_ID, slot_derivation)
     }
@@ -512,7 +512,7 @@ mod tests {
         let anchor = sct.root();
 
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            penumbra_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
+            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
             sender_leaf,
             recipient_leaf,
@@ -615,7 +615,7 @@ mod tests {
         let anchor = sct.root();
 
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            penumbra_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
+            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
             sender_leaf,
             recipient_leaf,
@@ -705,7 +705,7 @@ mod tests {
         let anchor = sct.root();
 
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            penumbra_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
+            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
             sender_leaf,
             recipient_leaf,
@@ -795,7 +795,7 @@ mod tests {
         let anchor = sct.root();
 
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            penumbra_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
+            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
             sender_leaf,
             recipient_leaf,
@@ -1054,8 +1054,8 @@ mod tests {
             .proof
             .to_batch_item(&extracted_public)
             .expect("build batch item from extracted transfer public");
-        penumbra_sdk_proof_params::batch::batch_verify(
-            penumbra_sdk_proof_params::transfer_proof_verification_key(),
+        shieldd_sdk_proof_params::batch::batch_verify(
+            shieldd_sdk_proof_params::transfer_proof_verification_key(),
             std::slice::from_ref(&item),
         )
         .expect("single-item batch verification should succeed with extracted public");

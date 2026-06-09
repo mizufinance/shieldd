@@ -1,21 +1,21 @@
 use anyhow::Error;
 use cnidarium::StateRead;
-use penumbra_sdk_compact_block::{component::StateReadExt as _, CompactBlock, StatePayload};
-use penumbra_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, MerklePath};
-use penumbra_sdk_keys::{keys::SpendKey, FullViewingKey};
-use penumbra_sdk_sct::{
+use rand_core::OsRng;
+use shieldd_sdk_compact_block::{component::StateReadExt as _, CompactBlock, StatePayload};
+use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, MerklePath};
+use shieldd_sdk_keys::{keys::SpendKey, FullViewingKey};
+use shieldd_sdk_sct::{
     component::{clock::EpochRead, tree::SctRead},
     Nullifier,
 };
-use penumbra_sdk_shielded_pool::{note, Note};
-use penumbra_sdk_tct as tct;
-use penumbra_sdk_transaction::{
+use shieldd_sdk_shielded_pool::{note, Note};
+use shieldd_sdk_tct as tct;
+use shieldd_sdk_transaction::{
     memo::MemoPlaintext,
     plan::{ActionPlan, MemoPlan},
     AuthorizationData, Transaction, TransactionPlan, WitnessData,
 };
-use penumbra_sdk_view::enrich_plan_with_compliance;
-use rand_core::OsRng;
+use shieldd_sdk_view::enrich_plan_with_compliance;
 use std::collections::BTreeMap;
 use tracing;
 
@@ -29,7 +29,7 @@ pub struct MockClient {
     pub nullifiers: BTreeMap<note::StateCommitment, Nullifier>,
     /// Whether a note was spent or not.
     pub spent_notes: BTreeMap<note::StateCommitment, ()>,
-    pub sct: penumbra_sdk_tct::Tree,
+    pub sct: shieldd_sdk_tct::Tree,
 }
 
 impl MockClient {
@@ -101,7 +101,7 @@ impl MockClient {
     }
 
     pub fn scan_block(&mut self, block: CompactBlock) -> anyhow::Result<()> {
-        use penumbra_sdk_tct::Witness::*;
+        use shieldd_sdk_tct::Witness::*;
 
         if self.latest_height.wrapping_add(1) != block.height {
             anyhow::bail!(
@@ -167,7 +167,7 @@ impl MockClient {
         Ok(())
     }
 
-    pub fn latest_height_and_sct_root(&self) -> (u64, penumbra_sdk_tct::Root) {
+    pub fn latest_height_and_sct_root(&self) -> (u64, shieldd_sdk_tct::Root) {
         (self.latest_height, self.sct.root())
     }
 
@@ -175,10 +175,7 @@ impl MockClient {
         self.notes.get(commitment).cloned()
     }
 
-    pub fn position(
-        &self,
-        commitment: note::StateCommitment,
-    ) -> Option<penumbra_sdk_tct::Position> {
+    pub fn position(&self, commitment: note::StateCommitment) -> Option<shieldd_sdk_tct::Position> {
         self.sct.witness(commitment).map(|proof| proof.position())
     }
 
@@ -196,7 +193,7 @@ impl MockClient {
     pub fn witness_commitment(
         &self,
         commitment: note::StateCommitment,
-    ) -> Option<penumbra_sdk_tct::Proof> {
+    ) -> Option<shieldd_sdk_tct::Proof> {
         self.sct.witness(commitment)
     }
 
@@ -308,7 +305,7 @@ impl MockClient {
 
     pub fn notes_by_asset(
         &self,
-        asset_id: penumbra_sdk_asset::asset::Id,
+        asset_id: shieldd_sdk_asset::asset::Id,
     ) -> impl Iterator<Item = &Note> + '_ {
         self.notes
             .values()
@@ -321,7 +318,7 @@ impl MockClient {
 
     pub fn spendable_notes_by_asset(
         &self,
-        asset_id: penumbra_sdk_asset::asset::Id,
+        asset_id: shieldd_sdk_asset::asset::Id,
     ) -> impl Iterator<Item = &Note> + '_ {
         self.notes
             .values()
@@ -342,7 +339,7 @@ impl<S> StateReadComplianceProvider<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvider
+impl<S: StateRead + Send + Sync> shieldd_sdk_compliance::ComplianceProofProvider
     for StateReadComplianceProvider<S>
 {
     async fn get_compliance_anchor(&self) -> anyhow::Result<tct::StateCommitment> {
@@ -357,8 +354,8 @@ impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvide
 
     async fn get_asset_proof(
         &self,
-        asset_id: penumbra_sdk_asset::asset::Id,
-    ) -> anyhow::Result<penumbra_sdk_compliance::AssetProofData> {
+        asset_id: shieldd_sdk_asset::asset::Id,
+    ) -> anyhow::Result<shieldd_sdk_compliance::AssetProofData> {
         // Use the IMT-based get_asset_proof_data for proper indexed leaf
         let proof_data = self.state.get_asset_proof_data(asset_id).await?;
 
@@ -367,12 +364,12 @@ impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvide
                 .auth_path
                 .layers
                 .into_iter()
-                .map(|layer| penumbra_sdk_compliance::MerklePathLayer {
+                .map(|layer| shieldd_sdk_compliance::MerklePathLayer {
                     siblings: layer.siblings,
                 })
                 .collect(),
         };
-        Ok(penumbra_sdk_compliance::AssetProofData {
+        Ok(shieldd_sdk_compliance::AssetProofData {
             auth_path: path,
             position: proof_data.position,
             indexed_leaf: proof_data.indexed_leaf,
@@ -382,16 +379,16 @@ impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvide
 
     async fn get_asset_policy(
         &self,
-        asset_id: penumbra_sdk_asset::asset::Id,
-    ) -> anyhow::Result<Option<penumbra_sdk_compliance::AssetPolicy>> {
+        asset_id: shieldd_sdk_asset::asset::Id,
+    ) -> anyhow::Result<Option<shieldd_sdk_compliance::AssetPolicy>> {
         self.state.get_asset_policy(asset_id).await
     }
 
     async fn get_user_proof(
         &self,
-        address: &penumbra_sdk_keys::Address,
-        asset_id: penumbra_sdk_asset::asset::Id,
-    ) -> anyhow::Result<penumbra_sdk_compliance::UserProofData> {
+        address: &shieldd_sdk_keys::Address,
+        asset_id: shieldd_sdk_asset::asset::Id,
+    ) -> anyhow::Result<shieldd_sdk_compliance::UserProofData> {
         if let Some(position) = self.state.get_user_leaf_position(address, asset_id).await? {
             let path_layers = self.state.get_user_auth_path(position).await?;
             let leaf = self
@@ -409,13 +406,13 @@ impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvide
             let path = MerklePath {
                 layers: path_layers
                     .into_iter()
-                    .map(|siblings| penumbra_sdk_compliance::MerklePathLayer {
+                    .map(|siblings| shieldd_sdk_compliance::MerklePathLayer {
                         siblings: siblings.iter().map(|s| s.0.to_bytes().to_vec()).collect(),
                     })
                     .collect(),
             };
 
-            return Ok(penumbra_sdk_compliance::UserProofData {
+            return Ok(shieldd_sdk_compliance::UserProofData {
                 auth_path: path,
                 position,
                 leaf,
@@ -426,7 +423,7 @@ impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvide
         let asset_proof = self.get_asset_proof(asset_id).await?;
         if !asset_proof.is_regulated {
             let synthetic_leaf = ComplianceLeaf::synthetic_unregulated(address.clone(), asset_id);
-            return Ok(penumbra_sdk_compliance::UserProofData {
+            return Ok(shieldd_sdk_compliance::UserProofData {
                 auth_path: MerklePath::default(),
                 position: 0,
                 leaf: synthetic_leaf,
@@ -448,9 +445,9 @@ impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvide
     /// serialization issues or timing).
     async fn get_batch_proofs(
         &self,
-        queries: &[(penumbra_sdk_keys::Address, penumbra_sdk_asset::asset::Id)],
-    ) -> anyhow::Result<penumbra_sdk_compliance::BatchComplianceData> {
-        use penumbra_sdk_compliance::{
+        queries: &[(shieldd_sdk_keys::Address, shieldd_sdk_asset::asset::Id)],
+    ) -> anyhow::Result<shieldd_sdk_compliance::BatchComplianceData> {
+        use shieldd_sdk_compliance::{
             AssetProofData, BatchComplianceData, IndexedMerkleTree, UserProofData,
         };
         use std::collections::BTreeMap;
@@ -556,7 +553,7 @@ impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvide
                     let path = MerklePath {
                         layers: auth_path
                             .into_iter()
-                            .map(|siblings| penumbra_sdk_compliance::MerklePathLayer {
+                            .map(|siblings| shieldd_sdk_compliance::MerklePathLayer {
                                 siblings: siblings
                                     .iter()
                                     .map(|s| s.0.to_bytes().to_vec())
@@ -606,14 +603,14 @@ impl<S: StateRead + Send + Sync> penumbra_sdk_compliance::ComplianceProofProvide
 mod tests {
     use super::MockClient;
     use decaf377::{Fq, Fr};
-    use penumbra_sdk_asset::{asset, Value};
-    use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
-    use penumbra_sdk_shielded_pool::{
+    use rand_core::OsRng;
+    use shieldd_sdk_asset::{asset, Value};
+    use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+    use shieldd_sdk_shielded_pool::{
         Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
-    use penumbra_sdk_tct::Witness;
-    use penumbra_sdk_transaction::{ActionPlan, TransactionPlan};
-    use rand_core::OsRng;
+    use shieldd_sdk_tct::Witness;
+    use shieldd_sdk_transaction::{ActionPlan, TransactionPlan};
 
     #[test]
     fn witness_plan_includes_hidden_arity_transfer_spend_proof() {

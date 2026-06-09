@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use penumbra_sdk_proto::{penumbra::core::component::governance::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::core::component::governance::v1 as pb, DomainType};
 
 use crate::{params::GovernanceParameters, proposal_state::Outcome as StateOutcome, vote::Vote};
 

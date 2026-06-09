@@ -1,8 +1,8 @@
 use anyhow::Result;
 use colored_json::prelude::*;
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_sct::{CommitmentSource, NullificationInfo, Nullifier};
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_sct::{CommitmentSource, NullificationInfo, Nullifier};
+use shieldd_sdk_tct::StateCommitment;
 
 #[derive(Debug, clap::Subcommand)]
 pub enum ShieldedPool {
@@ -29,7 +29,7 @@ pub enum ShieldedPool {
 
 impl ShieldedPool {
     pub fn key(&self) -> String {
-        use penumbra_sdk_sct::state_key as sct_state_key;
+        use shieldd_sdk_sct::state_key as sct_state_key;
         match self {
             ShieldedPool::Anchor { height } => sct_state_key::tree::anchor_by_height(*height),
             ShieldedPool::CompactBlock { .. } => {
@@ -43,7 +43,7 @@ impl ShieldedPool {
     pub fn display_value(&self, bytes: &[u8]) -> Result<()> {
         let json = match self {
             ShieldedPool::Anchor { .. } => {
-                let anchor = penumbra_sdk_tct::Root::decode(bytes)?;
+                let anchor = shieldd_sdk_tct::Root::decode(bytes)?;
                 serde_json::to_string_pretty(&anchor)?
             }
             ShieldedPool::CompactBlock { .. } => {

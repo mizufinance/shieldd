@@ -24,12 +24,13 @@ use rand_core::OsRng;
 use regex::Regex;
 
 use compliance::ComplianceCmd;
-use penumbra_sdk_asset::{asset, asset::Metadata, Value};
-use penumbra_sdk_fee::FeeTier;
-use penumbra_sdk_governance::{proposal::ProposalToml, ProposalSubmit, ProposalSubmitBody};
-use penumbra_sdk_keys::{keys::AddressIndex, Address};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{
+use proposal::ProposalCmd;
+use shieldd_sdk_asset::{asset, asset::Metadata, Value};
+use shieldd_sdk_fee::FeeTier;
+use shieldd_sdk_governance::{proposal::ProposalToml, ProposalSubmit, ProposalSubmitBody};
+use shieldd_sdk_keys::{keys::AddressIndex, Address};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{
     core::component::governance::v1::{
         query_service_client::QueryServiceClient as GovernanceQueryServiceClient,
         NextProposalIdRequest,
@@ -45,11 +46,10 @@ use penumbra_sdk_proto::{
     view::v1::GasPricesRequest,
     Message, Name as _,
 };
-use penumbra_sdk_shielded_pool::{ConsolidateFamilyId, Ics20Withdrawal};
-use penumbra_sdk_transaction::Transaction;
-use penumbra_sdk_validator::{GovernanceKey, IdentityKey};
-use penumbra_sdk_view::{NoteManager, TransferPlanningResult, ViewClient};
-use proposal::ProposalCmd;
+use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, Ics20Withdrawal};
+use shieldd_sdk_transaction::Transaction;
+use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
+use shieldd_sdk_view::{NoteManager, TransferPlanningResult, ViewClient};
 use tonic::transport::{Channel, ClientTlsConfig};
 use url::Url;
 
@@ -102,13 +102,13 @@ impl TxCmdWithOptions {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum TxCmd {
-    /// Transfer funds to a Penumbra address.
+    /// Transfer funds to a Shieldd address.
     #[clap(name = "transfer", display_order = 100)]
     Transfer {
         /// The destination address to transfer funds to.
         #[clap(long, display_order = 100)]
         to: String,
-        /// The amounts to transfer, written as typed values 1.87penumbra, 12cubes, etc.
+        /// The amounts to transfer, written as typed values 1.87shieldd, 12cubes, etc.
         values: Vec<String>,
         /// Only spend funds originally received by the given account.
         #[clap(long, default_value = "0", display_order = 300)]
@@ -157,7 +157,7 @@ pub enum TxCmd {
     /// Compliance-related transactions (asset and user registration).
     #[clap(display_order = 550, subcommand)]
     Compliance(ComplianceCmd),
-    /// Perform a shielded ICS-20 withdrawal, moving funds from the Penumbra chain
+    /// Perform a shielded ICS-20 withdrawal, moving funds from the Shieldd chain
     /// to a counterparty chain.
     ///
     /// For a withdrawal to be processed on the counterparty, IBC packets must be relayed between
@@ -169,9 +169,9 @@ pub enum TxCmd {
         /// chain will be discovered automatically, based on the `--channel` setting.
         #[clap(long)]
         to: String,
-        /// The value to withdraw, eg "1000upenumbra"
+        /// The value to withdraw, eg "1000ushieldd"
         value: String,
-        /// The IBC channel on the primary Penumbra chain to use for performing the withdrawal.
+        /// The IBC channel on the primary Shieldd chain to use for performing the withdrawal.
         /// This channel must already exist, as configured by a relayer client.
         /// You can search for channels via e.g. `pcli query ibc channel transfer 0`.
         #[clap(long)]
@@ -187,7 +187,7 @@ pub enum TxCmd {
         /// invalid if not already relayed.
         #[clap(long, default_value = "0", display_order = 150)]
         timeout_timestamp: u64,
-        /// Only withdraw funds from the specified wallet id within Penumbra.
+        /// Only withdraw funds from the specified wallet id within Shieldd.
         #[clap(long, default_value = "0", display_order = 200)]
         source: u32,
         /// Optional. Set the IBC ICS-20 packet memo field to the provided text.
@@ -211,7 +211,7 @@ pub enum TxCmd {
         /// The Noble IBC channel to use for forwarding.
         #[clap(long)]
         channel: String,
-        /// The Penumbra address or address index to receive forwarded funds.
+        /// The Shieldd address or address index to receive forwarded funds.
         #[clap(long)]
         address_or_index: String,
         /// Whether or not to use an ephemeral address.
@@ -252,13 +252,13 @@ pub enum VoteCmd {
     },
 }
 
-impl From<VoteCmd> for (u64, penumbra_sdk_governance::Vote) {
-    fn from(cmd: VoteCmd) -> (u64, penumbra_sdk_governance::Vote) {
+impl From<VoteCmd> for (u64, shieldd_sdk_governance::Vote) {
+    fn from(cmd: VoteCmd) -> (u64, shieldd_sdk_governance::Vote) {
         match cmd {
-            VoteCmd::Yes { proposal_id } => (proposal_id, penumbra_sdk_governance::Vote::Yes),
-            VoteCmd::No { proposal_id } => (proposal_id, penumbra_sdk_governance::Vote::No),
+            VoteCmd::Yes { proposal_id } => (proposal_id, shieldd_sdk_governance::Vote::Yes),
+            VoteCmd::No { proposal_id } => (proposal_id, shieldd_sdk_governance::Vote::No),
             VoteCmd::Abstain { proposal_id } => {
-                (proposal_id, penumbra_sdk_governance::Vote::Abstain)
+                (proposal_id, shieldd_sdk_governance::Vote::Abstain)
             }
         }
     }
@@ -404,7 +404,7 @@ impl TxCmd {
                 fee_tier,
             } => {
                 let note_commitment =
-                    penumbra_sdk_shielded_pool::note::StateCommitment::parse_hex(note_commitment)
+                    shieldd_sdk_shielded_pool::note::StateCommitment::parse_hex(note_commitment)
                         .map_err(|e| anyhow::anyhow!("invalid note commitment: {e}"))?;
                 let note_record =
                     ViewClient::note_by_commitment(app.view(), note_commitment).await?;
@@ -480,7 +480,7 @@ impl TxCmd {
                     .context("can't read proposal file")?;
                 let proposal_toml: ProposalToml =
                     toml::from_str(&proposal_string).context("can't parse proposal file")?;
-                let proposal: penumbra_sdk_governance::Proposal = proposal_toml
+                let proposal: shieldd_sdk_governance::Proposal = proposal_toml
                     .try_into()
                     .context("can't parse proposal file")?;
 
@@ -756,7 +756,7 @@ impl TxCmd {
                 let noble_address = address.noble_forwarding_address(channel);
 
                 println!(
-                    "registering Noble forwarding account with address {} to forward to Penumbra address {}...",
+                    "registering Noble forwarding account with address {} to forward to Shieldd address {}...",
                     noble_address, address
                 );
 

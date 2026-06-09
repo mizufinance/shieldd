@@ -5,11 +5,11 @@ use anyhow::Context;
 use async_stream::try_stream;
 use cnidarium::Storage;
 use futures::{StreamExt, TryStreamExt};
-use penumbra_sdk_proto::core::component::governance::v1::NextProposalIdRequest;
-use penumbra_sdk_proto::core::component::governance::v1::NextProposalIdResponse;
-use penumbra_sdk_proto::core::component::governance::v1::VotingPowerAtProposalStartRequest;
-use penumbra_sdk_proto::core::component::governance::v1::VotingPowerAtProposalStartResponse;
-use penumbra_sdk_proto::{
+use shieldd_sdk_proto::core::component::governance::v1::NextProposalIdRequest;
+use shieldd_sdk_proto::core::component::governance::v1::NextProposalIdResponse;
+use shieldd_sdk_proto::core::component::governance::v1::VotingPowerAtProposalStartRequest;
+use shieldd_sdk_proto::core::component::governance::v1::VotingPowerAtProposalStartResponse;
+use shieldd_sdk_proto::{
     core::component::governance::v1::{
         query_service_server::QueryService, ProposalDataRequest, ProposalDataResponse,
         ProposalInfoRequest, ProposalInfoResponse, ProposalListRequest, ProposalListResponse,
@@ -17,7 +17,7 @@ use penumbra_sdk_proto::{
     },
     StateReadProto,
 };
-use penumbra_sdk_validator::IdentityKey;
+use shieldd_sdk_validator::IdentityKey;
 use tonic::Status;
 use tracing::instrument;
 

@@ -1,4 +1,4 @@
-use penumbra_sdk_compliance::{AuditDetectedRef, AuditScanExport, OrbisAuditEntry};
+use shieldd_sdk_compliance::{AuditDetectedRef, AuditScanExport, OrbisAuditEntry};
 
 #[test]
 fn audit_dtos_importable_from_crate_root() {

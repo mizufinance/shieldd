@@ -121,8 +121,8 @@ impl Proof {
     }
 }
 
-use penumbra_sdk_proto::penumbra::crypto::tct::v1 as pb;
 use rand::Rng;
+use shieldd_sdk_proto::shieldd::crypto::tct::v1 as pb;
 
 impl From<Proof> for pb::StateCommitmentProof {
     fn from(proof: Proof) -> Self {
@@ -138,6 +138,6 @@ impl TryFrom<pb::StateCommitmentProof> for Proof {
     }
 }
 
-impl penumbra_sdk_proto::DomainType for Proof {
+impl shieldd_sdk_proto::DomainType for Proof {
     type Proto = pb::StateCommitmentProof;
 }

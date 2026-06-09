@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use ark_ec::{AffineRepr, CurveGroup};
-use penumbra_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
+use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
 
 use crate::gnark::binary::{put_bytes, put_u32, BinaryCursor, MAX_MERKLE_PATH_LAYERS};
 

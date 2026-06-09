@@ -1,6 +1,6 @@
 use anyhow::Result;
 use comfy_table::{presets, Table};
-use penumbra_sdk_view::{SpendableNoteRecord, ViewClient};
+use shieldd_sdk_view::{SpendableNoteRecord, ViewClient};
 
 #[derive(Debug, clap::Args)]
 pub struct NotesCmd {
@@ -21,7 +21,7 @@ pub struct NotesCmd {
 struct NoteRow {
     asset_label: String,
     value_label: String,
-    amount: penumbra_sdk_num::Amount,
+    amount: shieldd_sdk_num::Amount,
     note_commitment_hex: String,
     record: SpendableNoteRecord,
 }

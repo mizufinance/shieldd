@@ -2,8 +2,8 @@ use ark_ff::{BigInteger, PrimeField, ToConstraintField};
 use ark_r1cs_std::{prelude::*, uint64::UInt64};
 use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
 use decaf377::{Fq, Fr};
-use penumbra_sdk_proto::{penumbra::core::num::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::num::v1 as pb, DomainType};
 use std::{fmt::Display, iter::Sum, num::NonZeroU128, ops};
 
 use crate::fixpoint::{bit_constrain, U128x128, U128x128Var};
@@ -553,9 +553,9 @@ impl Sum for Amount {
 #[cfg(test)]
 mod test {
     use crate::Amount;
-    use penumbra_sdk_proto::penumbra::core::num::v1 as pb;
     use rand::RngCore;
     use rand_core::OsRng;
+    use shieldd_sdk_proto::shieldd::core::num::v1 as pb;
 
     fn encode_decode(value: u128) -> u128 {
         let amount = Amount { inner: value };

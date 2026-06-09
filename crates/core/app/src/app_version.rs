@@ -1,4 +1,4 @@
-/// Representation of the Penumbra application version. Notably, this is distinct
+/// Representation of the Shieldd application version. Notably, this is distinct
 /// from the crate version(s). This number should only ever be incremented.
 pub const APP_VERSION: u64 = 12;
 

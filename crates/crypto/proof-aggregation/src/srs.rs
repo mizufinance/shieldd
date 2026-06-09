@@ -18,7 +18,7 @@ pub const DEV_SRS_VERSION: u32 = 1;
 pub const DEV_SRS_CURVE_ID: &str = "bls12-377";
 pub const DEV_SRS_BACKEND_ID: &str = "ripp-snarkpack";
 const DEFAULT_DEV_SRS_ID_PREFIX: &[u8] =
-    b"penumbra.proof_aggregation.srs.v1:backend=ripp-snarkpack:curve=bls12-377:max_padded_count=32768";
+    b"shieldd.proof_aggregation.srs.v1:backend=ripp-snarkpack:curve=bls12-377:max_padded_count=32768";
 pub const DEFAULT_DEV_SRS_ID: [u8; 32] = [
     0x59, 0x95, 0xc6, 0x3d, 0xcc, 0x9f, 0xa5, 0xff, 0x52, 0x73, 0xff, 0x4a, 0x43, 0x10, 0x44, 0x0c,
     0xbf, 0x24, 0xf2, 0x68, 0x2a, 0x05, 0x93, 0x94, 0x36, 0x1f, 0x1b, 0x9f, 0xc4, 0x4c, 0x61, 0xb1,
@@ -152,7 +152,7 @@ fn compute_srs_id(srs: &DevSrs) -> [u8; 32] {
     } else {
         hasher.update(
             format!(
-                "penumbra.proof_aggregation.srs.v{DEV_SRS_VERSION}:backend={DEV_SRS_BACKEND_ID}:curve={DEV_SRS_CURVE_ID}:max_padded_count={}",
+                "shieldd.proof_aggregation.srs.v{DEV_SRS_VERSION}:backend={DEV_SRS_BACKEND_ID}:curve={DEV_SRS_CURVE_ID}:max_padded_count={}",
                 srs.max_padded_count
             )
             .as_bytes(),
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn default_srs_id_prefix_matches_declared_fields() {
         let expected = format!(
-            "penumbra.proof_aggregation.srs.v{DEV_SRS_VERSION}:backend={DEV_SRS_BACKEND_ID}:curve={DEV_SRS_CURVE_ID}:max_padded_count={DEFAULT_MAX_PADDED_PROOF_COUNT}"
+            "shieldd.proof_aggregation.srs.v{DEV_SRS_VERSION}:backend={DEV_SRS_BACKEND_ID}:curve={DEV_SRS_CURVE_ID}:max_padded_count={DEFAULT_MAX_PADDED_PROOF_COUNT}"
         );
 
         assert_eq!(DEFAULT_DEV_SRS_ID_PREFIX, expected.as_bytes());

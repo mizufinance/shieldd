@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-poc-preconsensus"
+name = "shieldd-sdk-poc-preconsensus"
 authors = { workspace = true }
 repository = { workspace = true }
-description = "POC pre-consensus runtime helpers for Penumbra benchmarks"
+description = "POC pre-consensus runtime helpers for Shieldd benchmarks"
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -11,10 +11,10 @@ publish = false
 [dependencies]
 anyhow = { workspace = true }
 parking_lot = { workspace = true }
-penumbra-sdk-app = { workspace = true, default-features = true }
-penumbra-sdk-asset = { workspace = true, default-features = true }
-penumbra-sdk-num = { workspace = true, default-features = true }
-penumbra-sdk-proto = { workspace = true, default-features = true }
-penumbra-sdk-sct = { workspace = true, default-features = true }
+shieldd-sdk-app = { workspace = true, default-features = true }
+shieldd-sdk-asset = { workspace = true, default-features = true }
+shieldd-sdk-num = { workspace = true, default-features = true }
+shieldd-sdk-proto = { workspace = true, default-features = true }
+shieldd-sdk-sct = { workspace = true, default-features = true }
 sha2 = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }

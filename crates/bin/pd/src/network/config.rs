@@ -1,13 +1,13 @@
 use anyhow::Context;
 use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use directories::UserDirs;
-use penumbra_sdk_app::genesis::AppState;
-use penumbra_sdk_custody::soft_kms::Config as SoftKmsConfig;
-use penumbra_sdk_keys::keys::{SpendKey, SpendKeyBytes};
 use rand::Rng;
 use rand_core::OsRng;
 use regex::{Captures, Regex};
 use serde::Deserialize;
+use shieldd_sdk_app::genesis::AppState;
+use shieldd_sdk_custody::soft_kms::Config as SoftKmsConfig;
+use shieldd_sdk_keys::keys::{SpendKey, SpendKeyBytes};
 use std::{
     env::current_dir,
     fs::{self, File},
@@ -157,11 +157,11 @@ pub fn parse_tm_address(
     }
 }
 
-/// Collection of all keypairs required for a Penumbra validator.
+/// Collection of all keypairs required for a Shieldd validator.
 /// Used to generate a stable identity for a [`NetworkValidator`].
 #[derive(Deserialize)]
 pub struct ValidatorKeys {
-    /// Penumbra spending key and viewing key for this node.
+    /// Shieldd spending key and viewing key for this node.
     pub validator_id_sk: SigningKey<SpendAuth>,
     pub validator_id_vk: VerificationKey<SpendAuth>,
     pub validator_spend_key: SpendKeyBytes,
@@ -327,12 +327,12 @@ pub fn canonicalize_path(input: &str) -> PathBuf {
 }
 
 /// Convert an optional CLI arg into a [`PathBuf`], defaulting to
-/// `~/.penumbra/network_data`.
+/// `~/.shieldd/network_data`.
 pub fn get_network_dir(network_dir: Option<PathBuf>) -> PathBuf {
-    // By default output directory will be in `~/.penumbra/network_data/`
+    // By default output directory will be in `~/.shieldd/network_data/`
     match network_dir {
         Some(o) => o,
-        None => canonicalize_path("~/.penumbra/network_data"),
+        None => canonicalize_path("~/.shieldd/network_data"),
     }
 }
 

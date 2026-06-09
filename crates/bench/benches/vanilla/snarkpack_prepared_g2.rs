@@ -6,7 +6,7 @@
 //! never beat it. See optimization-playbook.md §11.
 //!
 //! Harness-free (`harness = false`): manual `Instant` timing, prints a table.
-//! Run: `cargo run --release -p penumbra-sdk-bench --bench snarkpack_prepared_g2`
+//! Run: `cargo run --release -p shieldd-sdk-bench --bench snarkpack_prepared_g2`
 //! Work floor: prefix with `RAYON_NUM_THREADS=1`.
 
 use ark_ec::pairing::Pairing;
@@ -17,12 +17,12 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_snark::SNARK;
 use ark_std::UniformRand;
 use decaf377::{Bls12_377, Fq};
-use penumbra_sdk_proof_aggregation::{
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use shieldd_sdk_proof_aggregation::{
     aggregate_family, pad_items_to_power_of_two, srs_id, verify_family_aggregate,
     AggregateStatement, DevSrs, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
 };
-use penumbra_sdk_proof_params::batch::BatchItem;
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use shieldd_sdk_proof_params::batch::BatchItem;
 use std::path::PathBuf;
 use std::time::Instant;
 

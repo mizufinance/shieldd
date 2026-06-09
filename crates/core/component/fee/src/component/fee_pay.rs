@@ -1,15 +1,15 @@
 use anyhow::{ensure, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
-use penumbra_sdk_asset::Value;
-use penumbra_sdk_proto::core::component::fee::v1 as pb;
-use penumbra_sdk_proto::state::StateWriteProto as _;
+use shieldd_sdk_asset::Value;
+use shieldd_sdk_proto::core::component::fee::v1 as pb;
+use shieldd_sdk_proto::state::StateWriteProto as _;
 
 use crate::{Fee, Gas};
 
 use super::view::{StateReadExt, StateWriteExt};
 
-const BLOCK_FEE_PRICE_CACHE_KEY: &str = "penumbra.fee.block_fee_price_cache";
+const BLOCK_FEE_PRICE_CACHE_KEY: &str = "shieldd.fee.block_fee_price_cache";
 
 #[derive(Clone, Debug)]
 struct BlockFeePriceCache {
@@ -40,7 +40,7 @@ pub trait FeePay: StateWrite {
             };
 
         ensure!(
-            fee.asset_id() == *penumbra_sdk_asset::BASE_ASSET_ID,
+            fee.asset_id() == *shieldd_sdk_asset::BASE_ASSET_ID,
             "only base-asset fees are supported, found {}",
             fee.asset_id(),
         );

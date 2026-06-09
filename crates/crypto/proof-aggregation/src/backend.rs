@@ -18,11 +18,11 @@ use ark_ip_proofs::challenge::{
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use decaf377::{Bls12_377, Fq};
 use digest::Digest;
-use penumbra_sdk_proof_aggregation_trace_schema::{
+use shieldd_sdk_proof_aggregation_trace_schema::{
     TraceComparisonLevel, TraceEvent, TraceEventKind,
 };
-use penumbra_sdk_proof_params::batch::BatchItem;
-use penumbra_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
+use shieldd_sdk_proof_params::batch::BatchItem;
+use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
 
 use crate::{
     aggregate_proof_wrapper::{
@@ -1144,7 +1144,7 @@ fn complete_snarkpack_trace(
 fn trace_context_event(statement: &AggregateStatement) -> TraceEvent {
     TraceEvent {
         spec_row_id: "fs.context-constructor",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
         event_kind: TraceEventKind::ChallengeContext,
         stage_label: "statement",
         nonce: None,
@@ -1242,10 +1242,10 @@ mod tests {
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
     use ark_snark::SNARK;
     use decaf377::Fq;
-    use penumbra_sdk_proof_params::batch;
-    use penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
     use proptest::prelude::*;
     use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+    use shieldd_sdk_proof_params::batch;
+    use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
 
     use crate::transcript::TransferTranscriptDigest;
     use crate::{
@@ -1364,8 +1364,8 @@ mod tests {
     fn parity_families() -> [ProofFamilyId; 4] {
         [
             ProofFamilyId::Transfer,
-            ProofFamilyId::Consolidate(penumbra_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
-            ProofFamilyId::Split(penumbra_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
+            ProofFamilyId::Consolidate(shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
+            ProofFamilyId::Split(shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
             ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
         ]
     }
@@ -2254,7 +2254,7 @@ mod tests {
     fn render_byte_baseline() -> String {
         let mut out = String::new();
         out.push_str("# SnarkPack aggregate-proof byte baseline (Stage 9 byte-trace lock).\n");
-        out.push_str("# Regenerate: cargo test -p penumbra-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored\n");
+        out.push_str("# Regenerate: cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored\n");
         out.push_str("# Row: <index> <family> count=<n> seed=<n> <hex_aggregate_bytes>\n");
         out.push_str(&format!("version {AGGREGATE_PROTOCOL_VERSION}\n"));
         for (index, (family_id, count, seed)) in baseline_vectors().into_iter().enumerate() {
@@ -2278,7 +2278,7 @@ mod tests {
     #[test]
     fn aggregate_bytes_match_committed_baseline() {
         let committed = std::fs::read_to_string(BYTE_BASELINE_PATH).unwrap_or_else(|e| {
-            panic!("missing aggregate byte baseline at {BYTE_BASELINE_PATH}: {e}; regenerate with `cargo test -p penumbra-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`")
+            panic!("missing aggregate byte baseline at {BYTE_BASELINE_PATH}: {e}; regenerate with `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`")
         });
 
         // Version-drift guard: a committed baseline from a different protocol
@@ -2287,13 +2287,13 @@ mod tests {
         assert_eq!(
             committed_version,
             Some(AGGREGATE_PROTOCOL_VERSION),
-            "byte baseline version tag does not match AGGREGATE_PROTOCOL_VERSION ({AGGREGATE_PROTOCOL_VERSION}); if the byte change is intentional, bump the version and regenerate via `cargo test -p penumbra-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`"
+            "byte baseline version tag does not match AGGREGATE_PROTOCOL_VERSION ({AGGREGATE_PROTOCOL_VERSION}); if the byte change is intentional, bump the version and regenerate via `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`"
         );
 
         let current = render_byte_baseline();
         assert_eq!(
             committed, current,
-            "aggregate-proof bytes drifted from the committed baseline. An optimization must preserve bytes or take the protocol-version path: bump AGGREGATE_PROTOCOL_VERSION, regenerate via `cargo test -p penumbra-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`, and add an adaptation-register row."
+            "aggregate-proof bytes drifted from the committed baseline. An optimization must preserve bytes or take the protocol-version path: bump AGGREGATE_PROTOCOL_VERSION, regenerate via `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`, and add an adaptation-register row."
         );
     }
 

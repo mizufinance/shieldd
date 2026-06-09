@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::Range;
 
-pub const AGGREGATE_PROOF_WRAPPER_DOMAIN: &[u8] = b"penumbra.snarkpack.aggregate_proof.v1\0";
+pub const AGGREGATE_PROOF_WRAPPER_DOMAIN: &[u8] = b"shieldd.snarkpack.aggregate_proof.v1\0";
 
 // Consensus-relevant bound: changing this cap changes which aggregate bundle
 // bytes validators accept and requires protocol/security review.

@@ -265,7 +265,7 @@ seed_mode = false
 private_peer_ids = ""
 
 # Toggle to disable guard against peers connecting from the same ip.
-# On Penumbra testnets, we permit reuse of IP addresses to aid in peering.
+# On Shieldd testnets, we permit reuse of IP addresses to aid in peering.
 # On mainnet, this option should retain its default value of "false".
 allow_duplicate_ip = true
 

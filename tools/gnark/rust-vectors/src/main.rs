@@ -130,7 +130,7 @@ fn compute_metadata_hash(
     target_timestamp: Fq,
     salt: Fq,
 ) -> Fq {
-    let domain = blake2b_fq(b"penumbra.compliance.dleq_metadata");
+    let domain = blake2b_fq(b"shieldd.compliance.dleq_metadata");
     poseidon377::hash_6(
         &domain,
         (
@@ -210,10 +210,10 @@ fn poseidon_rate_vectors<
 }
 
 fn main() {
-    let spend_domain = blake2b_fq(b"penumbra.shielded_pool.spend.public_input_hash.v1");
-    let spend_pad_0 = blake2b_fq(b"penumbra.shielded_pool.spend.public_input_hash.pad0");
-    let spend_pad_1 = blake2b_fq(b"penumbra.shielded_pool.spend.public_input_hash.pad1");
-    let hash7_domain = blake2b_fq(b"penumbra.gnark.prototype.poseidon377.hash7.v1");
+    let spend_domain = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.v1");
+    let spend_pad_0 = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.pad0");
+    let spend_pad_1 = blake2b_fq(b"shieldd.shielded_pool.spend.public_input_hash.pad1");
+    let hash7_domain = blake2b_fq(b"shieldd.gnark.prototype.poseidon377.hash7.v1");
     let hash7_inputs = [1u64, 2, 3, 4, 5, 6, 7].map(Fq::from);
     let hash7_output = poseidon377::hash_7(
         &hash7_domain,
@@ -338,19 +338,19 @@ fn main() {
             spend_domain: spend_domain.to_string(),
             spend_pad_0: spend_pad_0.to_string(),
             spend_pad_1: spend_pad_1.to_string(),
-            note_commit_domain: blake2b_fq(b"penumbra.notecommit").to_string(),
-            nullifier_domain: blake2b_fq(b"penumbra.nullifier").to_string(),
-            value_generator_domain: blake2b_fq(b"penumbra.value.generator").to_string(),
-            ivk_domain: Fq::from_le_bytes_mod_order(b"penumbra.derive.ivk").to_string(),
-            tct_domain: blake2b_fq(b"penumbra.tct").to_string(),
+            note_commit_domain: blake2b_fq(b"shieldd.notecommit").to_string(),
+            nullifier_domain: blake2b_fq(b"shieldd.nullifier").to_string(),
+            value_generator_domain: blake2b_fq(b"shieldd.value.generator").to_string(),
+            ivk_domain: Fq::from_le_bytes_mod_order(b"shieldd.derive.ivk").to_string(),
+            tct_domain: blake2b_fq(b"shieldd.tct").to_string(),
             sender_leaf_domain: Fq::from_le_bytes_mod_order(
-                blake2b_simd::blake2b(b"penumbra.leaf_binding.sender").as_bytes(),
+                blake2b_simd::blake2b(b"shieldd.leaf_binding.sender").as_bytes(),
             )
             .to_string(),
-            compliance_leaf_domain: blake2b_fq(b"penumbra.compliance.leaf").to_string(),
-            issuer_detection_domain: blake2b_fq(b"penumbra.compliance.issuer_detection")
+            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf").to_string(),
+            issuer_detection_domain: blake2b_fq(b"shieldd.compliance.issuer_detection")
                 .to_string(),
-            dleq_metadata_domain: blake2b_fq(b"penumbra.compliance.dleq_metadata").to_string(),
+            dleq_metadata_domain: blake2b_fq(b"shieldd.compliance.dleq_metadata").to_string(),
             imt_leaf_domain: personalized_blake2b_fq(b"pen.imt.leaf____").to_string(),
             imt_params_domain: personalized_blake2b_fq(b"pen.imt.params__").to_string(),
             imt_ring_domain: personalized_blake2b_fq(b"pen.imt.ring____").to_string(),

@@ -5,9 +5,9 @@ use std::{
 };
 
 use anyhow::Context;
-use penumbra_sdk_compact_block::CompactBlock;
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_proto::core::{
+use shieldd_sdk_compact_block::CompactBlock;
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_proto::core::{
     app::v1::{
         query_service_client::QueryServiceClient as AppQueryServiceClient,
         TransactionsByHeightRequest,
@@ -23,8 +23,8 @@ use penumbra_sdk_proto::core::{
         },
     },
 };
-use penumbra_sdk_sct::{CommitmentSource, Nullifier};
-use penumbra_sdk_transaction::Transaction;
+use shieldd_sdk_sct::{CommitmentSource, Nullifier};
+use shieldd_sdk_transaction::Transaction;
 use tap::Tap;
 use tokio::sync::{watch, RwLock};
 use tonic::transport::Channel;
@@ -41,7 +41,7 @@ const MAX_CB_SIZE_BYTES: usize = 64 * 1024 * 1024;
 
 pub struct Worker {
     storage: Storage,
-    sct: Arc<RwLock<penumbra_sdk_tct::Tree>>,
+    sct: Arc<RwLock<shieldd_sdk_tct::Tree>>,
     fvk: FullViewingKey, // TODO: notifications (see TODOs on ViewService)
     error_slot: Arc<Mutex<Option<anyhow::Error>>>,
     sync_height_tx: watch::Sender<u64>,
@@ -69,7 +69,7 @@ impl Worker {
     ) -> Result<
         (
             Self,
-            Arc<RwLock<penumbra_sdk_tct::Tree>>,
+            Arc<RwLock<shieldd_sdk_tct::Tree>>,
             Arc<Mutex<Option<anyhow::Error>>>,
             watch::Receiver<u64>,
             Arc<RwLock<ComplianceUserTree>>,
@@ -402,7 +402,7 @@ impl Worker {
                     let ovk = self.fvk.outgoing();
                     for action in transaction.actions() {
                         let outputs: Vec<_> = match action {
-                            penumbra_sdk_transaction::Action::Transfer(transfer) => transfer
+                            shieldd_sdk_transaction::Action::Transfer(transfer) => transfer
                                 .body
                                 .outputs
                                 .iter()
@@ -416,7 +416,7 @@ impl Worker {
                                     )
                                 })
                                 .collect(),
-                            penumbra_sdk_transaction::Action::Consolidate(consolidate) => {
+                            shieldd_sdk_transaction::Action::Consolidate(consolidate) => {
                                 consolidate
                                     .body
                                     .outputs
@@ -432,7 +432,7 @@ impl Worker {
                                     })
                                     .collect()
                             }
-                            penumbra_sdk_transaction::Action::Split(split) => split
+                            shieldd_sdk_transaction::Action::Split(split) => split
                                 .body
                                 .outputs
                                 .iter()
@@ -451,7 +451,7 @@ impl Worker {
 
                         for (encrypted_note, ovk_wrapped_key, note_commitment, cv, epk) in outputs {
                             if let Ok(decrypted_note) =
-                                penumbra_sdk_shielded_pool::Note::decrypt_outgoing(
+                                shieldd_sdk_shielded_pool::Note::decrypt_outgoing(
                                     encrypted_note,
                                     ovk_wrapped_key,
                                     note_commitment,
@@ -600,11 +600,11 @@ async fn fetch_transactions(
 async fn sct_divergence_check(
     channel: Channel,
     height: u64,
-    actual_root: penumbra_sdk_tct::Root,
+    actual_root: shieldd_sdk_tct::Root,
 ) -> anyhow::Result<()> {
     use cnidarium::proto::v1::query_service_client::QueryServiceClient;
-    use penumbra_sdk_proto::DomainType;
-    use penumbra_sdk_sct::state_key as sct_state_key;
+    use shieldd_sdk_proto::DomainType;
+    use shieldd_sdk_sct::state_key as sct_state_key;
 
     let mut client = QueryServiceClient::new(channel);
     tracing::info!(?height, "fetching anchor @ height");
@@ -620,7 +620,7 @@ async fn sct_divergence_check(
         .value
         .context("sct state not found")?;
 
-    let expected_root = penumbra_sdk_tct::Root::decode(value.value.as_slice())?;
+    let expected_root = shieldd_sdk_tct::Root::decode(value.value.as_slice())?;
 
     if actual_root == expected_root {
         tracing::info!(?height, ?actual_root, ?expected_root, "sct roots match");

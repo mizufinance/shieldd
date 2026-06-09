@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CI script for checking that the Penumbra monorepo does not accidentally
+# CI script for checking that the Shieldd monorepo does not accidentally
 # break compatibility with downstream web APIs, via the WASM crate.
 # Historically, this breakage has taken the form of inadvertently introducing
 # dependencies on std, e.g. via `mio`.
@@ -18,31 +18,31 @@ run_cargo() {
 
 # Consider checking the web repo's wasm Cargo.toml periodically:
 #
-#   ❯ rg ^penumbra packages/wasm/crate/Cargo.toml --no-line-number | cut -f1 -d' '  | sort
+#   ❯ rg ^shieldd packages/wasm/crate/Cargo.toml --no-line-number | cut -f1 -d' '  | sort
 #
 # to make sure at least all of those crates are tracked here.
 
 packages=(
-    penumbra-sdk-asset
-    penumbra-sdk-compact-block
-    penumbra-sdk-fee
-    penumbra-sdk-governance
-    penumbra-sdk-ibc
-    penumbra-sdk-keys
-    penumbra-sdk-sct
-    penumbra-sdk-shielded-pool
-    penumbra-sdk-validator
-    penumbra-sdk-tct
-    penumbra-sdk-transaction
-    penumbra-sdk-txhash
+    shieldd-sdk-asset
+    shieldd-sdk-compact-block
+    shieldd-sdk-fee
+    shieldd-sdk-governance
+    shieldd-sdk-ibc
+    shieldd-sdk-keys
+    shieldd-sdk-sct
+    shieldd-sdk-shielded-pool
+    shieldd-sdk-validator
+    shieldd-sdk-tct
+    shieldd-sdk-transaction
+    shieldd-sdk-txhash
     # N.B. we can't include those ones because they rely on `getrandom`,
     # but there's a `js` feature...
     # decaf377-fmd
     # decaf377-frost
     # decaf377-ka
-    # penumbra-num
-    # penumbra-proof-params
-    # penumbra-proto
+    # shieldd-num
+    # shieldd-proof-params
+    # shieldd-proto
 )
 
 # We intentionally loop over the packages one by one to make error-reporting clearer.

@@ -1,6 +1,6 @@
-//! Ledger USB custody for Penumbra.
+//! Ledger USB custody for Shieldd.
 //!
-//! This crate implements Penumbra custody support for Ledger hardware wallets via USB.
+//! This crate implements Shieldd custody support for Ledger hardware wallets via USB.
 
 /// Abstraction layer over the ledger libraries for device interaction.
 mod device;
@@ -8,11 +8,11 @@ mod device;
 use std::{ops::DerefMut, sync::Arc};
 
 use device::Device;
-use penumbra_sdk_custody::AuthorizeRequest;
-use penumbra_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
-use penumbra_sdk_proto::custody::v1::{self as pb, AuthorizeResponse};
-use penumbra_sdk_transaction::{AuthorizationData, TransactionPlan};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_custody::AuthorizeRequest;
+use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
+use shieldd_sdk_proto::custody::v1::{self as pb, AuthorizeResponse};
+use shieldd_sdk_transaction::{AuthorizationData, TransactionPlan};
 use tokio::sync::{Mutex, MutexGuard};
 use tonic::{async_trait, Request, Response, Status};
 

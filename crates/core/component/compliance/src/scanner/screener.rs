@@ -1,4 +1,4 @@
-use penumbra_sdk_asset::asset;
+use shieldd_sdk_asset::asset;
 
 use super::types::{DetectionEvent, ExtractedComplianceCiphertext, InvalidCiphertext};
 use crate::{issuer_keys::DetectionKey, transfer::TransferComplianceCiphertext};
@@ -66,13 +66,13 @@ mod tests {
     use crate::crypto::derive_compliance_scalar;
     use crate::test_helpers::make_address;
     use crate::transfer::encrypt_transfer;
-    use penumbra_sdk_asset::Value;
-    use penumbra_sdk_num::Amount;
     use rand_core::OsRng;
+    use shieldd_sdk_asset::Value;
+    use shieldd_sdk_num::Amount;
 
     fn derive_ack(
         ring_pk: &decaf377::Element,
-        address: &penumbra_sdk_keys::Address,
+        address: &shieldd_sdk_keys::Address,
     ) -> decaf377::Element {
         let b_d_fq = address.diversified_generator().vartime_compress_to_field();
         let d = derive_compliance_scalar(b_d_fq);
@@ -81,7 +81,7 @@ mod tests {
     }
 
     fn make_extracted(raw_bytes: Vec<u8>, asset_id: asset::Id) -> ExtractedComplianceCiphertext {
-        use penumbra_sdk_txhash::TransactionId;
+        use shieldd_sdk_txhash::TransactionId;
 
         let block = super::super::types::BlockRef {
             height: 100,
@@ -113,8 +113,8 @@ mod tests {
     fn make_ciphertext(
         dk_pub: &decaf377::Element,
         ring_pk: &decaf377::Element,
-        sender_address: &penumbra_sdk_keys::Address,
-        receiver_address: &penumbra_sdk_keys::Address,
+        sender_address: &shieldd_sdk_keys::Address,
+        receiver_address: &shieldd_sdk_keys::Address,
         asset_id: asset::Id,
         amount: Amount,
         is_flagged: bool,

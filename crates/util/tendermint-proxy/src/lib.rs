@@ -3,10 +3,10 @@
 
 //! Facilities for proxying gRPC requests to an upstream Tendermint/CometBFT RPC.
 //!
-//! Most importantly, this crate provides [`TendermintProxy`], which implements Penumbra's
+//! Most importantly, this crate provides [`TendermintProxy`], which implements Shieldd's
 //! [`tendermint_proxy`][proxy-proto] RPC.
 //!
-//! [proxy-proto]: https://buf.build/mizufinance/penumbra/docs/main:penumbra.util.tendermint_proxy.v1
+//! [proxy-proto]: https://buf.build/mizufinance/shieldd/docs/main:shieldd.util.tendermint_proxy.v1
 
 mod tendermint_proxy;
 

@@ -1,6 +1,6 @@
 # Transaction Cryptography
 
-This section describes the transaction-level cryptography that is used in Penumbra
+This section describes the transaction-level cryptography that is used in Shieldd
 actions to symmetrically encrypt and decrypt notes and memos.
 
 For the symmetric encryption described in this section, we use ChaCha20-Poly1305 ([RFC-8439]).
@@ -50,10 +50,10 @@ This allows both sender and recipient to generate the shared secret based on the
 ### [Per-action Payload Key: Notes and Memo Keys](#per-action-payload-note-memo-key)
 
 The symmetric per-action payload key is a 32-byte key derived from the `shared_secret`, the $epk$ and
-personalization string "Penumbra_Payload":
+personalization string "Shieldd_Payload":
 
 ```
-action_payload_key = BLAKE2b-512("Penumbra_Payload", shared_secret, epk)
+action_payload_key = BLAKE2b-512("Shieldd_Payload", shared_secret, epk)
 ```
 
 This symmetric key is then used with the nonces specified above to encrypt a memo key or note.
@@ -70,10 +70,10 @@ should be able to decrypt the per-transaction memo.
 
 The symmetric outgoing cipher key is a 32-byte key derived from the sender's outgoing viewing key
 $ovk$, the balance commitment $cv$, the note commitment $cm$, the ephemeral
-public key $epk$, and personalization string "Penumbra_OutCiph":
+public key $epk$, and personalization string "Shieldd_OutCiph":
 
 ```
-outgoing_cipher_key = BLAKE2b-512("Penumbra_OutCiph", ovk, cv, cm, epk)
+outgoing_cipher_key = BLAKE2b-512("Shieldd_OutCiph", ovk, cv, cm, epk)
 ```
 
 All inputs except the outgoing viewing key are public. The intention of the

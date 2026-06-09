@@ -1,7 +1,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use penumbra_sdk_proof_aggregation::decode_wrapped_aggregate_proof_inner_range;
+use shieldd_sdk_proof_aggregation::decode_wrapped_aggregate_proof_inner_range;
 
 fuzz_target!(|data: &[u8]| {
     let mut digest = [0u8; 32];

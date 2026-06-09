@@ -1,6 +1,6 @@
 # Primitives
 
-Penumbra uses the following cryptographic primitives, described in the following sections:
+Shieldd uses the following cryptographic primitives, described in the following sections:
 
 - The [Proof System](./crypto/proofs.md) section describes the choice of proving
 curve (BLS12-377) and proof system (Groth16, and potentially PLONK in the

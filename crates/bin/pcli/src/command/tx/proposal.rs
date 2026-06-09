@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-use penumbra_sdk_app::params::AppParameters;
-use penumbra_sdk_governance::{change::ParameterChange, Proposal, ProposalPayload};
+use shieldd_sdk_app::params::AppParameters;
+use shieldd_sdk_governance::{change::ParameterChange, Proposal, ProposalPayload};
 
 use super::FeeTier;
 

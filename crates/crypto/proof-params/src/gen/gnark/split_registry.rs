@@ -7,7 +7,7 @@ struct GeneratedSplitProofFamily {
 }
 
 static SPLIT1X4_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("PENUMBRA_GNARK_SPLIT1X4_ARTIFACT_DIR") {
+    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_SPLIT1X4_ARTIFACT_DIR") {
         return load_verifying_key_json_artifact(Path::new(&dir), "split1x4")
             .expect("can deserialize split1x4 VerifyingKey")
             .into();
@@ -40,7 +40,7 @@ static SPLIT1X4_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
 ));
 
 static SPLIT1X8_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("PENUMBRA_GNARK_SPLIT1X8_ARTIFACT_DIR") {
+    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_SPLIT1X8_ARTIFACT_DIR") {
         return load_verifying_key_json_artifact(Path::new(&dir), "split1x8")
             .expect("can deserialize split1x8 VerifyingKey")
             .into();

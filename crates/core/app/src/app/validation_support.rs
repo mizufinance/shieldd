@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use penumbra_sdk_proof_aggregation::AggregateBundle;
-use penumbra_sdk_sct::Nullifier;
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
+use shieldd_sdk_proof_aggregation::AggregateBundle;
+use shieldd_sdk_sct::Nullifier;
 
 use super::preconsensus::ProposalArtifactSidecarRecord;
 use crate::stateless_cache::TxArtifact;
@@ -149,8 +149,8 @@ pub struct EnvelopeValidationResult {
 impl CandidateEnvelope {
     pub fn aggregate_bundle(&self) -> anyhow::Result<Option<AggregateBundle>> {
         use anyhow::Context as _;
-        use penumbra_sdk_proto::DomainType as _;
-        use penumbra_sdk_transaction::Transaction;
+        use shieldd_sdk_proto::DomainType as _;
+        use shieldd_sdk_transaction::Transaction;
 
         let Some(bundle_tx_bytes) = &self.aggregate_bundle_tx_bytes else {
             return Ok(None);

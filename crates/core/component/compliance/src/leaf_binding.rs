@@ -18,14 +18,14 @@
 //! - **Binding**: Counterparty relationship is cryptographically enforced
 
 use decaf377::{Fq, Fr};
-use penumbra_sdk_tct::StateCommitment;
 use poseidon377::hash_3;
+use shieldd_sdk_tct::StateCommitment;
 
 /// Domain separator for sender/self leaf binding.
-pub const DOMAIN_SEP_SENDER: &[u8] = b"penumbra.leaf_binding.sender";
+pub const DOMAIN_SEP_SENDER: &[u8] = b"shieldd.leaf_binding.sender";
 
 /// Domain separator for counterparty leaf binding.
-pub const DOMAIN_SEP_COUNTERPARTY: &[u8] = b"penumbra.leaf_binding.counterparty";
+pub const DOMAIN_SEP_COUNTERPARTY: &[u8] = b"shieldd.leaf_binding.counterparty";
 
 /// Compute a blinded leaf hash commitment for sender/self.
 ///

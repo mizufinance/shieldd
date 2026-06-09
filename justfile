@@ -73,19 +73,19 @@ go-check: go-fmt-check go-build go-test go-vet
 # Run the fast inner-loop gnark validation suite.
 gnark-proof-tests-fast:
     just go-check
-    cargo test -p penumbra-sdk-shielded-pool gnark:: --lib
-    cargo test -p penumbra-sdk-shielded-pool public_input_hash:: --lib
+    cargo test -p shieldd-sdk-shielded-pool gnark:: --lib
+    cargo test -p shieldd-sdk-shielded-pool public_input_hash:: --lib
 
 # Run the slow end-to-end gnark proof-generation suite.
 gnark-proof-tests-slow:
-    cargo test --release -p penumbra-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib
-    cargo test --release -p penumbra-sdk-shielded-pool --lib
+    cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib
+    cargo test --release -p shieldd-sdk-shielded-pool --lib
 
 # Run ignored slow SnarkPack parity tests.
 snarkpack-slow:
-    cargo test -p penumbra-sdk-proof-aggregation snarkpack_matches_legacy_batch_across_families_and_counts_slow --lib -- --ignored
-    cargo test -p penumbra-sdk-proof-aggregation snarkpack_matches_single_and_batch_groth16_oracles_slow --lib -- --ignored
-    cargo test -p penumbra-sdk-proof-aggregation-reference reference_property_matches_production_and_batch_oracles_slow --lib -- --ignored
+    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_legacy_batch_across_families_and_counts_slow --lib -- --ignored
+    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_single_and_batch_groth16_oracles_slow --lib -- --ignored
+    cargo test -p shieldd-sdk-proof-aggregation-reference reference_property_matches_production_and_batch_oracles_slow --lib -- --ignored
 
 # Run bounded SnarkPack fuzz harness smoke tests.
 snarkpack-fuzz-smoke:
@@ -105,7 +105,7 @@ snarkpack-formal:
 
 # Enforce SnarkPack valid-vs-adversarial DoS latency and size thresholds.
 snarkpack-dos-gate:
-    cargo test --release -p penumbra-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture
+    cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture
 
 # Run the Lean-derived SnarkPack transcript/folding conformance oracle.
 snarkpack-lean-conformance:
@@ -171,9 +171,9 @@ ci-preflight:
       just smoke; \
     fi
 
-# Bring up Penumbra infra for the Orbis compliance flow.
-penumbra-up:
-    ./scripts/penumbra-up.sh
+# Bring up Shieldd infra for the Orbis compliance flow.
+shieldd-up:
+    ./scripts/shieldd-up.sh
 
 # Validate local dependencies for the Orbis integration flow.
 orbis-integration-preflight:
@@ -203,19 +203,19 @@ orbis-integration-debug:
     just orbis-integration-preflight-bringup
     ./target/release/orbis-integration run --keep-on-fail
 
-# Build and run the full one-shot Penumbra + Orbis integration flow.
+# Build and run the full one-shot Shieldd + Orbis integration flow.
 orbis-integration:
     just orbis-integration-build
     just orbis-integration-run
 
-# Bring up Penumbra and Orbis for phased local debugging.
+# Bring up Shieldd and Orbis for phased local debugging.
 orbis-integration-up:
     just orbis-integration-build
     just orbis-integration-preflight-bringup
-    ./scripts/penumbra-up.sh
+    ./scripts/shieldd-up.sh
     ./scripts/orbis-stack.sh up
 
-# Run the seed phase against an already running Penumbra + Orbis stack.
+# Run the seed phase against an already running Shieldd + Orbis stack.
 orbis-integration-seed:
     just orbis-integration-preflight-binaries
     ./target/release/orbis-integration seed
@@ -228,7 +228,7 @@ orbis-integration-verify:
 # Tear down the Orbis integration stack.
 orbis-integration-down:
     ./scripts/orbis-stack.sh down
-    ./scripts/penumbra-down.sh
+    ./scripts/shieldd-down.sh
 
 # Print Docker logs for the Orbis stack.
 orbis-integration-logs:
@@ -295,7 +295,7 @@ integration-pd:
 
 # Build the container image locally
 container:
-    docker build -t ghcr.io/mizufinance/penumbra:local -f ./deployments/containerfiles/Dockerfile .
+    docker build -t ghcr.io/mizufinance/shieldd:local -f ./deployments/containerfiles/Dockerfile .
 
 # Run the testnet locally entirely
 testnet:
@@ -305,4 +305,4 @@ testnet:
 # clean up the testnet, removing all volumes
 testnet-clean:
     docker compose -f deployments/compose/docker-compose.yml down --volumes
-    docker volume rm compose_penumbra-pd-node0 --force || true
+    docker volume rm compose_shieldd-pd-node0 --force || true

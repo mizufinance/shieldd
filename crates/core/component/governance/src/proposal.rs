@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 use crate::change::ParameterChange;
-use penumbra_sdk_compliance::UpdateAssetIbcPolicy;
-use penumbra_sdk_proto::{penumbra::core::component::governance::v1 as pb, DomainType};
+use shieldd_sdk_compliance::UpdateAssetIbcPolicy;
+use shieldd_sdk_proto::{shieldd::core::component::governance::v1 as pb, DomainType};
 
 /// A governance proposal.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

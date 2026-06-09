@@ -5,7 +5,7 @@ mod common;
 use std::sync::{Arc, OnceLock};
 
 use libfuzzer_sys::fuzz_target;
-use penumbra_sdk_app::app::App;
+use shieldd_sdk_app::app::App;
 
 static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
 

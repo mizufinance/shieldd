@@ -12,8 +12,8 @@ fail() {
 check_no_match() {
   local description="$1"
   shift
-  if rg -n "$@" > /tmp/penumbra-reduced-surface-check.txt; then
-    cat /tmp/penumbra-reduced-surface-check.txt >&2
+  if rg -n "$@" > /tmp/shieldd-reduced-surface-check.txt; then
+    cat /tmp/shieldd-reduced-surface-check.txt >&2
     fail "$description"
   fi
 }
@@ -21,7 +21,7 @@ check_no_match() {
 check_no_match \
   "legacy tx command surface is still present" \
   'SendMulti|Sweep|TxCmd::Send\b|TxCmd::Withdraw\b|InitTopSubCmd::Spend|InitType::SpendKey|min_validator_funding|Invalid swap commitment|swap claim outputs|note_reshape_2x2' \
-  crates/bin/pcli crates/core/app crates/core/component/stake crates/core/component/shielded-pool crates/view proto/penumbra poc \
+  crates/bin/pcli crates/core/app crates/core/component/stake crates/core/component/shielded-pool crates/view proto/shieldd poc \
   -g '!crates/bin/pcli/tests/cli_surface.rs'
 
 check_no_match \

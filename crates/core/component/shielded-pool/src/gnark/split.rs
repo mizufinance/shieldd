@@ -21,16 +21,16 @@ use crate::{
     SplitFamilyId,
 };
 
-const SPLIT_LIB_BASENAME: &str = "libpenumbra_gnark_split";
-const SPLIT_ENV_ARTIFACT_DIR: &str = "PENUMBRA_GNARK_SPLIT_ARTIFACT_DIR";
-const SPLIT_ENV_LIB: &str = "PENUMBRA_GNARK_SPLIT_LIB";
-const SPLIT_ENV_DAEMON: &str = "PENUMBRA_GNARK_SPLIT_DAEMON";
+const SPLIT_LIB_BASENAME: &str = "libshieldd_gnark_split";
+const SPLIT_ENV_ARTIFACT_DIR: &str = "SHIELDD_GNARK_SPLIT_ARTIFACT_DIR";
+const SPLIT_ENV_LIB: &str = "SHIELDD_GNARK_SPLIT_LIB";
+const SPLIT_ENV_DAEMON: &str = "SHIELDD_GNARK_SPLIT_DAEMON";
 
-const SPLIT_INIT_SYMBOL: &[u8] = b"penumbra_gnark_split_init";
-const SPLIT_INIT_FROM_BYTES_SYMBOL: &[u8] = b"penumbra_gnark_split_init_from_bytes";
-const SPLIT_PROVE_SYMBOL: &[u8] = b"penumbra_gnark_split_prove";
-const SPLIT_FREE_SYMBOL: &[u8] = b"penumbra_gnark_split_free";
-const SPLIT_SHUTDOWN_SYMBOL: &[u8] = b"penumbra_gnark_split_shutdown";
+const SPLIT_INIT_SYMBOL: &[u8] = b"shieldd_gnark_split_init";
+const SPLIT_INIT_FROM_BYTES_SYMBOL: &[u8] = b"shieldd_gnark_split_init_from_bytes";
+const SPLIT_PROVE_SYMBOL: &[u8] = b"shieldd_gnark_split_prove";
+const SPLIT_FREE_SYMBOL: &[u8] = b"shieldd_gnark_split_free";
+const SPLIT_SHUTDOWN_SYMBOL: &[u8] = b"shieldd_gnark_split_shutdown";
 
 static SPLIT_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     family: "split1x4",
@@ -208,7 +208,7 @@ impl GnarkSplitClient {
     }
 
     pub fn bundled_lib_path() -> Option<PathBuf> {
-        penumbra_sdk_proof_params::GNARK_SPLIT_BUNDLED_LIBRARY_PATH.map(PathBuf::from)
+        shieldd_sdk_proof_params::GNARK_SPLIT_BUNDLED_LIBRARY_PATH.map(PathBuf::from)
     }
 
     #[cfg(any(unix, windows))]
@@ -257,7 +257,7 @@ pub fn translate_split_proof_result(
     let mut proof_bytes = Vec::new();
     proof.serialize_compressed(&mut proof_bytes)?;
     let proof = crate::split::SplitProof::try_from(
-        penumbra_sdk_proto::penumbra::core::component::shielded_pool::v1::ZkSplitProof {
+        shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1::ZkSplitProof {
             inner: proof_bytes,
         },
     )?;

@@ -1,7 +1,7 @@
 use crate::policy::AuthPolicy;
-use penumbra_sdk_keys::keys::SpendKey;
 use serde::{Deserialize, Serialize};
 use serde_with::DisplayFromStr;
+use shieldd_sdk_keys::keys::SpendKey;
 
 /// Configuration data for the [`SoftKms`](super::SoftKms).
 ///
@@ -38,7 +38,7 @@ fn is_default<T: Default + Eq>(value: &T) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase};
+    use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase};
 
     use crate::policy::PreAuthorizationPolicy;
 

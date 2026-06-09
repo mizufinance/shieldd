@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
-use penumbra_sdk_proto::{util::tendermint_proxy::v1::GetTxRequest, DomainType};
-use penumbra_sdk_transaction::Transaction;
-use penumbra_sdk_view::{TransactionInfo, ViewClient};
+use shieldd_sdk_proto::{util::tendermint_proxy::v1::GetTxRequest, DomainType};
+use shieldd_sdk_transaction::Transaction;
+use shieldd_sdk_view::{TransactionInfo, ViewClient};
 
 use crate::App;
 

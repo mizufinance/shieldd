@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-transaction"
+name = "shieldd-sdk-transaction"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Core transaction data structures for Penumbra"
+description = "Core transaction data structures for Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -12,11 +12,11 @@ default = ["std", "parallel"]
 std = ["ark-ff/std", "ibc-types/std"]
 parallel = [
     "tokio",
-    "penumbra-sdk-shielded-pool/parallel",
-    "penumbra-sdk-governance/parallel",
-    "penumbra-sdk-validator/parallel",
+    "shieldd-sdk-shielded-pool/parallel",
+    "shieldd-sdk-governance/parallel",
+    "shieldd-sdk-validator/parallel",
 ]
-download-proving-keys = ["penumbra-sdk-proof-params/download-proving-keys"]
+download-proving-keys = ["shieldd-sdk-proof-params/download-proving-keys"]
 
 [dependencies]
 anyhow = {workspace = true}
@@ -38,21 +38,21 @@ ibc-types = {workspace = true, default-features = false}
 num-bigint = {workspace = true}
 once_cell = {workspace = true}
 pbjson-types = {workspace = true}
-penumbra-sdk-asset = {workspace = true, default-features = false}
-penumbra-sdk-compliance = {workspace = true, default-features = false}
-penumbra-sdk-fee = {workspace = true, default-features = false}
-penumbra-sdk-governance = {workspace = true, default-features = false}
-penumbra-sdk-ibc = {workspace = true, default-features = false}
-penumbra-sdk-keys = {workspace = true, default-features = false}
-penumbra-sdk-num = {workspace = true, default-features = false}
-penumbra-sdk-proof-params = {workspace = true, default-features = true}
-penumbra-sdk-proof-aggregation = {workspace = true, default-features = true}
-penumbra-sdk-proto = {workspace = true, default-features = true}
-penumbra-sdk-sct = {workspace = true, default-features = false}
-penumbra-sdk-shielded-pool = {workspace = true, default-features = false}
-penumbra-sdk-validator = {workspace = true, default-features = false}
-penumbra-sdk-tct = {workspace = true, default-features = true }
-penumbra-sdk-txhash = {workspace = true, default-features = false}
+shieldd-sdk-asset = {workspace = true, default-features = false}
+shieldd-sdk-compliance = {workspace = true, default-features = false}
+shieldd-sdk-fee = {workspace = true, default-features = false}
+shieldd-sdk-governance = {workspace = true, default-features = false}
+shieldd-sdk-ibc = {workspace = true, default-features = false}
+shieldd-sdk-keys = {workspace = true, default-features = false}
+shieldd-sdk-num = {workspace = true, default-features = false}
+shieldd-sdk-proof-params = {workspace = true, default-features = true}
+shieldd-sdk-proof-aggregation = {workspace = true, default-features = true}
+shieldd-sdk-proto = {workspace = true, default-features = true}
+shieldd-sdk-sct = {workspace = true, default-features = false}
+shieldd-sdk-shielded-pool = {workspace = true, default-features = false}
+shieldd-sdk-validator = {workspace = true, default-features = false}
+shieldd-sdk-tct = {workspace = true, default-features = true }
+shieldd-sdk-txhash = {workspace = true, default-features = false}
 poseidon377 = {workspace = true, features = ["r1cs"]}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
@@ -70,4 +70,4 @@ proptest-derive = {workspace = true}
 serde_json = {workspace = true}
 tendermint = {workspace = true}
 ed25519-consensus = {workspace = true}
-penumbra-sdk-tct = {workspace = true, default-features = true, features = ["arbitrary"] }
+shieldd-sdk-tct = {workspace = true, default-features = true, features = ["arbitrary"] }

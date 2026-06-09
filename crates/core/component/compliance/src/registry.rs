@@ -4,10 +4,10 @@ use cnidarium::{StateRead, StateWrite};
 use decaf377::Fq;
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use futures::StreamExt;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_proto::{StateReadProto, StateWriteProto};
-use penumbra_sdk_sct::component::clock::EpochRead;
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_tct::StateCommitment;
 use std::collections::BTreeMap;
 
 use crate::{
@@ -542,7 +542,7 @@ pub trait ComplianceRegistryRead: StateRead {
     /// Returns `Some(position)` if the user is registered for this asset, `None` otherwise.
     async fn get_user_leaf_position(
         &self,
-        address: &penumbra_sdk_keys::Address,
+        address: &shieldd_sdk_keys::Address,
         asset_id: asset::Id,
     ) -> Result<Option<u64>> {
         let lookup_key = state_key::user_leaf_position(address, &asset_id);
@@ -563,10 +563,10 @@ pub trait ComplianceRegistryRead: StateRead {
     /// Returns `Some(ComplianceLeaf)` if the user is registered for this asset, `None` otherwise.
     async fn get_user_leaf(
         &self,
-        address: &penumbra_sdk_keys::Address,
+        address: &shieldd_sdk_keys::Address,
         asset_id: asset::Id,
     ) -> Result<Option<ComplianceLeaf>> {
-        use penumbra_sdk_proto::DomainType;
+        use shieldd_sdk_proto::DomainType;
 
         let lookup_key = state_key::user_leaf_data(address, &asset_id);
         match self.get_raw(&lookup_key).await? {
@@ -622,12 +622,12 @@ pub trait ComplianceRegistryRead: StateRead {
         channel_id: &str,
         packet_seq: u64,
     ) -> Result<Option<crate::ibc::IbcComplianceMetadata>> {
-        use penumbra_sdk_proto::core::component::compliance::v1 as pb;
+        use shieldd_sdk_proto::core::component::compliance::v1 as pb;
         let key = state_key::ibc_compliance_metadata(channel_id, packet_seq);
         match self.get_raw(&key).await? {
             Some(bytes) => {
                 let proto: pb::IbcComplianceMetadata =
-                    penumbra_sdk_proto::Message::decode(bytes.as_slice()).map_err(|e| {
+                    shieldd_sdk_proto::Message::decode(bytes.as_slice()).map_err(|e| {
                         anyhow::anyhow!("failed to decode IBC compliance metadata: {e}")
                     })?;
                 let meta = crate::ibc::IbcComplianceMetadata::from_proto_public(proto)?;
@@ -999,7 +999,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
 
         // Store the full leaf data for later retrieval during proof generation
         // Use proto encoding since ComplianceLeaf has serde(try_from/into proto) attributes
-        use penumbra_sdk_proto::DomainType;
+        use shieldd_sdk_proto::DomainType;
         let leaf_data_key = state_key::user_leaf_data(&leaf.address, &leaf.asset_id);
         let leaf_bytes = leaf.encode_to_vec();
         self.put_raw(leaf_data_key, leaf_bytes);
@@ -1368,7 +1368,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         packet_seq: u64,
         metadata: &crate::ibc::IbcComplianceMetadata,
     ) {
-        use penumbra_sdk_proto::Message as _;
+        use shieldd_sdk_proto::Message as _;
         let key = state_key::ibc_compliance_metadata(channel_id, packet_seq);
         let proto = metadata.to_proto_public();
         let bytes = proto.encode_to_vec();
@@ -1454,8 +1454,8 @@ mod tests {
     use cnidarium::TempStorage;
     use decaf377::Fq;
     use futures::StreamExt;
-    use penumbra_sdk_keys::Address;
-    use penumbra_sdk_sct::component::clock::EpochManager;
+    use shieldd_sdk_keys::Address;
+    use shieldd_sdk_sct::component::clock::EpochManager;
     use std::collections::BTreeMap;
 
     async fn nv_count(
@@ -2138,11 +2138,11 @@ mod tests {
             empty_imt.root().0
         );
 
-        // Native asset (penumbra) - unregulated (NOT in IMT)
-        let penumbra_asset_id = asset::Id(Fq::from(1u64));
+        // Native asset (shieldd) - unregulated (NOT in IMT)
+        let shieldd_asset_id = asset::Id(Fq::from(1u64));
         // Don't register - unregulated assets are proven via non-membership
-        let penumbra_proof = state.get_asset_proof_data(penumbra_asset_id).await.unwrap();
-        assert!(!penumbra_proof.is_regulated);
+        let shieldd_proof = state.get_asset_proof_data(shieldd_asset_id).await.unwrap();
+        assert!(!shieldd_proof.is_regulated);
 
         // Multiple wallets for same user
         let wallet1 = Address::dummy(&mut rng);

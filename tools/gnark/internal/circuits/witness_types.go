@@ -2,7 +2,7 @@ package circuits
 
 import (
 	"github.com/consensys/gnark/frontend"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/compliance"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 )
 
 type NoteFields struct {

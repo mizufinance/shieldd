@@ -3,10 +3,10 @@ use ark_ff::Zero;
 use decaf377::Fr;
 use decaf377_rdsa as rdsa;
 #[cfg(all(feature = "parallel", any(unix, windows)))]
-use penumbra_sdk_keys::symmetric::PayloadKey;
+use shieldd_sdk_keys::symmetric::PayloadKey;
 #[cfg(any(unix, windows))]
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_txhash::{AuthorizingData, EffectingData};
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_txhash::{AuthorizingData, EffectingData};
 #[cfg(all(feature = "parallel", any(unix, windows)))]
 use tokio::sync::oneshot;
 
@@ -212,10 +212,10 @@ impl TransactionPlan {
         self.apply_auth_data(auth_data, tx)
     }
 
-    pub fn witness_data(&self, sct: &penumbra_sdk_tct::Tree) -> Result<WitnessData, anyhow::Error> {
+    pub fn witness_data(&self, sct: &shieldd_sdk_tct::Tree) -> Result<WitnessData, anyhow::Error> {
         let anchor = sct.root();
 
-        let witness_note = |spend: &penumbra_sdk_shielded_pool::ShieldedInputPlan| {
+        let witness_note = |spend: &shieldd_sdk_shielded_pool::ShieldedInputPlan| {
             let commitment = spend.note.commit();
             sct.witness(commitment)
                 .ok_or_else(|| anyhow::anyhow!("commitment should exist in tree"))

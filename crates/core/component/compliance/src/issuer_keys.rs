@@ -10,13 +10,13 @@
 use ark_ff::Zero;
 use decaf377::{Element, Fq, Fr};
 use once_cell::sync::Lazy;
-use penumbra_sdk_asset::asset;
+use shieldd_sdk_asset::asset;
 
 /// Domain separator for detection tier encryption seed derivation.
 /// Must match ISSUER_DETECTION_DOMAIN in crypto.rs for encryption/decryption compatibility.
 static DETECTION_TIER_DOMAIN: Lazy<Fq> = Lazy::new(|| {
     Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"penumbra.compliance.issuer_detection").as_bytes(),
+        blake2b_simd::blake2b(b"shieldd.compliance.issuer_detection").as_bytes(),
     )
 });
 
@@ -80,7 +80,7 @@ impl MasterComplianceKey {
     /// Derive MCK from a seed (for deterministic testing).
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn from_seed(seed: &[u8; 32]) -> Self {
-        let personal = b"penumbra_mck_der";
+        let personal = b"shieldd_mck_der";
         let hash = blake2b_simd::Params::new()
             .hash_length(64)
             .personal(personal)
@@ -139,7 +139,7 @@ impl DetectionKey {
     /// This allows different assets to have different DKs in tests.
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn demo_for_asset(asset_id: &asset::Id) -> Self {
-        let personal = b"penumbra_dk_demo";
+        let personal = b"shieldd_dk_demo";
         let hash = blake2b_simd::Params::new()
             .hash_length(64)
             .personal(personal)
@@ -151,7 +151,7 @@ impl DetectionKey {
     /// Derive DK from a seed (for deterministic testing).
     #[cfg(any(test, feature = "test-helpers"))]
     pub fn from_seed(seed: &[u8; 32]) -> Self {
-        let personal = b"penumbra_dk_seed";
+        let personal = b"shieldd_dk_seed";
         let hash = blake2b_simd::Params::new()
             .hash_length(64)
             .personal(personal)

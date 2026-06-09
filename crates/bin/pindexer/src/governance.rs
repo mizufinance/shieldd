@@ -4,10 +4,10 @@ use cometindex::{
     index::{EventBatch, EventBatchContext},
     sqlx, AppView, ContextualizedEvent, PgTransaction,
 };
-use penumbra_sdk_governance::{
+use shieldd_sdk_governance::{
     proposal::ProposalPayloadToml, proposal_state, Proposal, ValidatorVote,
 };
-use penumbra_sdk_proto::{
+use shieldd_sdk_proto::{
     core::component::governance::v1::{self as pb},
     event::ProtoEvent,
 };
@@ -15,11 +15,11 @@ use penumbra_sdk_proto::{
 #[derive(Debug)]
 pub struct GovernanceProposals {}
 
-const EVENT_PROPOSAL_SUBMIT: &str = "penumbra.core.component.governance.v1.EventProposalSubmit";
-const EVENT_VALIDATOR_VOTE: &str = "penumbra.core.component.governance.v1.EventValidatorVote";
-const EVENT_PROPOSAL_PASSED: &str = "penumbra.core.component.governance.v1.EventProposalPassed";
-const EVENT_PROPOSAL_FAILED: &str = "penumbra.core.component.governance.v1.EventProposalFailed";
-const EVENT_PROPOSAL_SLASHED: &str = "penumbra.core.component.governance.v1.EventProposalSlashed";
+const EVENT_PROPOSAL_SUBMIT: &str = "shieldd.core.component.governance.v1.EventProposalSubmit";
+const EVENT_VALIDATOR_VOTE: &str = "shieldd.core.component.governance.v1.EventValidatorVote";
+const EVENT_PROPOSAL_PASSED: &str = "shieldd.core.component.governance.v1.EventProposalPassed";
+const EVENT_PROPOSAL_FAILED: &str = "shieldd.core.component.governance.v1.EventProposalFailed";
+const EVENT_PROPOSAL_SLASHED: &str = "shieldd.core.component.governance.v1.EventProposalSlashed";
 
 impl GovernanceProposals {
     async fn index_event(

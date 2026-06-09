@@ -7,7 +7,7 @@ set -euo pipefail
 
 if [[ -z "${IN_NIX_SHELL:-}" ]] ; then
     >&2 echo "WARNING: nix environment not active, dependencies may be missing. Did you forget to run 'nix develop'?"
-    >&2 printf '\tSee developer docs at https://guide.penumbra.zone for more info\n'
+    >&2 printf '\tSee developer docs for more info\n'
     # Sleep to ensure warning is visible; presumably we're calling this script in dev tooling,
     # immediately preceding a TUI-grabbing app like process-compose.
     sleep_duration_seconds="5"

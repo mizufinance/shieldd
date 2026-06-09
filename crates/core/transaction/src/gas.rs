@@ -1,16 +1,16 @@
-use penumbra_sdk_fee::Gas;
-use penumbra_sdk_ibc::IbcRelay;
-use penumbra_sdk_shielded_pool::{ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalPlan};
-use penumbra_sdk_validator::validator::Definition as ValidatorDefinition;
+use shieldd_sdk_fee::Gas;
+use shieldd_sdk_ibc::IbcRelay;
+use shieldd_sdk_shielded_pool::{ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalPlan};
+use shieldd_sdk_validator::validator::Definition as ValidatorDefinition;
 
-use penumbra_sdk_governance::{ProposalSubmit, ValidatorVote};
+use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 
 use crate::{
     plan::{ActionPlan, TransactionPlan},
     Action, Transaction,
 };
 
-use penumbra_sdk_proto::DomainType;
+use shieldd_sdk_proto::DomainType;
 
 const NULLIFIER_SIZE: u64 = 2 + 32;
 const NOTEPAYLOAD_SIZE: u64 = 32 + 32 + 176;
@@ -115,19 +115,19 @@ impl GasCost for Action {
     }
 }
 
-impl GasCost for penumbra_sdk_shielded_pool::Transfer {
+impl GasCost for shieldd_sdk_shielded_pool::Transfer {
     fn gas_cost(&self) -> Gas {
         transfer_gas_cost()
     }
 }
 
-impl GasCost for penumbra_sdk_shielded_pool::Consolidate {
+impl GasCost for shieldd_sdk_shielded_pool::Consolidate {
     fn gas_cost(&self) -> Gas {
         consolidate_gas_cost()
     }
 }
 
-impl GasCost for penumbra_sdk_shielded_pool::Split {
+impl GasCost for shieldd_sdk_shielded_pool::Split {
     fn gas_cost(&self) -> Gas {
         split_gas_cost()
     }

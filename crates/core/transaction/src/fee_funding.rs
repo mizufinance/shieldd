@@ -1,12 +1,12 @@
 #[cfg(any(unix, windows))]
 use anyhow::Context;
 use anyhow::{anyhow, Error, Result};
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_proto::{core::transaction::v1 as pbt, DomainType};
-use penumbra_sdk_shielded_pool::{Transfer, TransferPlan, TransferView};
-use penumbra_sdk_txhash::{EffectHash, EffectingData, TransactionContext};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
+use shieldd_sdk_shielded_pool::{Transfer, TransferPlan, TransferView};
+use shieldd_sdk_txhash::{EffectHash, EffectingData, TransactionContext};
 
 #[cfg(any(unix, windows))]
 use crate::WitnessData;
@@ -30,7 +30,7 @@ impl FeeFundingPlan {
         &self,
         fvk: &FullViewingKey,
         witness_data: &WitnessData,
-        memo_key: &penumbra_sdk_keys::symmetric::PayloadKey,
+        memo_key: &shieldd_sdk_keys::symmetric::PayloadKey,
     ) -> Result<FeeFunding> {
         let auth_paths = self
             .transfer
@@ -60,7 +60,7 @@ impl FeeFundingPlan {
         Ok(FeeFunding { transfer })
     }
 
-    pub fn balance(&self) -> penumbra_sdk_asset::Balance {
+    pub fn balance(&self) -> shieldd_sdk_asset::Balance {
         self.transfer.balance()
     }
 
@@ -71,10 +71,10 @@ impl FeeFundingPlan {
     pub fn effect_hash(
         &self,
         fvk: &FullViewingKey,
-        memo_key: &penumbra_sdk_keys::symmetric::PayloadKey,
+        memo_key: &shieldd_sdk_keys::symmetric::PayloadKey,
     ) -> Result<EffectHash> {
         self.transfer
-            .transfer_body(fvk, memo_key, penumbra_sdk_tct::Tree::default().root())
+            .transfer_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
             .map(|body| body.effect_hash())
     }
 }
@@ -108,7 +108,7 @@ impl FeeFunding {
 
     pub fn context(
         &self,
-        anchor: penumbra_sdk_tct::Root,
+        anchor: shieldd_sdk_tct::Root,
         effect_hash: EffectHash,
     ) -> TransactionContext {
         TransactionContext {

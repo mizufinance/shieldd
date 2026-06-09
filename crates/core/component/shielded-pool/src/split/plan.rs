@@ -1,12 +1,12 @@
 use anyhow::{anyhow, ensure, Context, Error};
 use decaf377::{Fq, Fr};
 use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
-use penumbra_sdk_asset::Balance;
-use penumbra_sdk_keys::symmetric::PayloadKey;
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_tct as tct;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_asset::Balance;
+use shieldd_sdk_keys::symmetric::PayloadKey;
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_tct as tct;
 use std::convert::{TryFrom, TryInto};
 
 use crate::{ShieldedInputPlan, ShieldedOutputPlan};
@@ -119,12 +119,12 @@ impl SplitPlan {
         spends: &[ShieldedInputPlan],
         outputs: &[ShieldedOutputPlan],
         family_id: SplitFamilyId,
-        balance_commitment: penumbra_sdk_asset::balance::Commitment,
+        balance_commitment: shieldd_sdk_asset::balance::Commitment,
     ) -> SplitBody {
         let inputs = spends
             .iter()
             .map(|_| SplitInputBody {
-                nullifier: penumbra_sdk_sct::Nullifier(Fq::from(0u64)),
+                nullifier: shieldd_sdk_sct::Nullifier(Fq::from(0u64)),
                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(Fr::from(0u64))),
                 encrypted_backref: crate::EncryptedBackref::dummy(),
             })
@@ -133,8 +133,8 @@ impl SplitPlan {
             .iter()
             .map(|output| SplitOutputBody {
                 note_payload: output.output_note().payload(),
-                wrapped_memo_key: penumbra_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: penumbra_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
+                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
             })
             .collect();
 

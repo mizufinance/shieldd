@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use penumbra_sdk_proof_aggregation_lean_conformance::{
+use shieldd_sdk_proof_aggregation_lean_conformance::{
     lean_oracle_shapes_for_counts, smoke_counts, write_oracle_shapes_json,
 };
 

@@ -1,18 +1,18 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-#[cfg(feature = "ledger")]
-use penumbra_sdk_custody_ledger_usb::Config as LedgerConfig;
-use penumbra_sdk_validator::GovernanceKey;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
+#[cfg(feature = "ledger")]
+use shieldd_sdk_custody_ledger_usb::Config as LedgerConfig;
+use shieldd_sdk_validator::GovernanceKey;
 use url::Url;
 
-use penumbra_sdk_custody::{
+use shieldd_sdk_custody::{
     encrypted::Config as EncryptedConfig, soft_kms::Config as SoftKmsConfig,
     threshold::Config as ThresholdConfig,
 };
-use penumbra_sdk_keys::FullViewingKey;
+use shieldd_sdk_keys::FullViewingKey;
 
 /// Configuration data for `pcli`.
 #[serde_as]
@@ -120,12 +120,12 @@ mod tests {
     #[test]
     fn toml_config() {
         let config = PcliConfig {
-            grpc_url: Url::parse("https://grpc.testnet.penumbra.zone").unwrap(),
+            grpc_url: Url::parse("http://127.0.0.1:8080").unwrap(),
             disable_warning: false,
             view_url: None,
-            full_viewing_key: penumbra_sdk_keys::test_keys::FULL_VIEWING_KEY.clone(),
+            full_viewing_key: shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.clone(),
             custody: CustodyConfig::SoftKms(SoftKmsConfig::from(
-                penumbra_sdk_keys::test_keys::SPEND_KEY.clone(),
+                shieldd_sdk_keys::test_keys::SPEND_KEY.clone(),
             )),
             governance_custody: None,
         };

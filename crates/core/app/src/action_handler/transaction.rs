@@ -7,25 +7,25 @@ use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::{Snapshot, StateRead, StateWrite};
 use cnidarium_component::ActionHandler as _;
-use penumbra_sdk_compact_block::StatePayload;
-use penumbra_sdk_compliance::params::StateReadExt as _;
-use penumbra_sdk_compliance::registry::{check_timestamp_freshness, ComplianceRegistryRead as _};
-use penumbra_sdk_fee::component::FeePay as _;
-use penumbra_sdk_sct::component::clock::EpochRead;
-use penumbra_sdk_sct::component::source::SourceContext;
-use penumbra_sdk_sct::component::tree::VerificationExt as _;
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_shielded_pool::component::{ClueManager, Ics20Transfer, StateReadExt as _};
-use penumbra_sdk_shielded_pool::fmd;
-use penumbra_sdk_tct::StateCommitment;
-use penumbra_sdk_transaction::{gas::GasCost as _, Action, Transaction};
-use penumbra_sdk_txhash::TransactionId;
+use shieldd_sdk_compact_block::StatePayload;
+use shieldd_sdk_compliance::params::StateReadExt as _;
+use shieldd_sdk_compliance::registry::{check_timestamp_freshness, ComplianceRegistryRead as _};
+use shieldd_sdk_fee::component::FeePay as _;
+use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::source::SourceContext;
+use shieldd_sdk_sct::component::tree::VerificationExt as _;
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_shielded_pool::component::{ClueManager, Ics20Transfer, StateReadExt as _};
+use shieldd_sdk_shielded_pool::fmd;
+use shieldd_sdk_tct::StateCommitment;
+use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
+use shieldd_sdk_txhash::TransactionId;
 use tokio::sync::OnceCell;
 use tokio::task::JoinSet;
 use tracing::{instrument, Instrument};
 
 use super::AppActionHandler;
-use crate::{app::StateReadExt as _, PenumbraHost};
+use crate::{app::StateReadExt as _, ShielddHost};
 
 mod stateful;
 pub(crate) mod stateless;
@@ -85,7 +85,7 @@ pub(crate) struct PreparedCandidateRead {
 }
 
 type AnchorValidationKey = (StateCommitment, StateCommitment, u64, u64);
-type ClaimedAnchorKey = penumbra_sdk_tct::Root;
+type ClaimedAnchorKey = shieldd_sdk_tct::Root;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct HistoricalCheckProfile {
@@ -243,7 +243,7 @@ impl HistoricalCheckContext {
 async fn check_nullifier_read_only<S>(
     state: &S,
     _context: &HistoricalCheckContext,
-    nullifier: penumbra_sdk_sct::Nullifier,
+    nullifier: shieldd_sdk_sct::Nullifier,
 ) -> Result<f64>
 where
     S: StateRead,
@@ -354,7 +354,7 @@ fn check_nullifier_read_only_sync(
     handle: &tokio::runtime::Handle,
     snapshot: &Snapshot,
     _context: &HistoricalCheckContext,
-    nullifier: penumbra_sdk_sct::Nullifier,
+    nullifier: shieldd_sdk_sct::Nullifier,
 ) -> Result<f64> {
     let committed_check_start = Instant::now();
     handle.block_on(snapshot.check_nullifier_unspent(nullifier))?;
@@ -388,13 +388,13 @@ fn validate_compliance_anchors_read_only_sync(
         .clone()
         .block_on(cell.get_or_init(|| async move {
             let user_anchor_height = snapshot
-                .get_raw(&penumbra_sdk_compliance::state_key::anchor::user_anchor_lookup(
+                .get_raw(&shieldd_sdk_compliance::state_key::anchor::user_anchor_lookup(
                     &user_anchor,
                 ))
                 .await
                 .map_err(|e| e.to_string())?
                 .map(|bytes| {
-                    <u64 as penumbra_sdk_proto::Message>::decode(bytes.as_slice())
+                    <u64 as shieldd_sdk_proto::Message>::decode(bytes.as_slice())
                         .map_err(|e| anyhow::anyhow!(e).to_string())
                 })
                 .transpose()?
@@ -409,13 +409,13 @@ fn validate_compliance_anchors_read_only_sync(
             }
 
             let asset_anchor_height = snapshot
-                .get_raw(&penumbra_sdk_compliance::state_key::anchor::asset_anchor_lookup(
+                .get_raw(&shieldd_sdk_compliance::state_key::anchor::asset_anchor_lookup(
                     &asset_anchor,
                 ))
                 .await
                 .map_err(|e| e.to_string())?
                 .map(|bytes| {
-                    <u64 as penumbra_sdk_proto::Message>::decode(bytes.as_slice())
+                    <u64 as shieldd_sdk_proto::Message>::decode(bytes.as_slice())
                         .map_err(|e| anyhow::anyhow!(e).to_string())
                 })
                 .transpose()?
@@ -460,11 +460,11 @@ fn validate_claimed_anchor_read_only_sync(
                 return Ok(());
             }
             if snapshot
-                .get_raw(&penumbra_sdk_sct::state_key::tree::anchor_lookup(anchor))
+                .get_raw(&shieldd_sdk_sct::state_key::tree::anchor_lookup(anchor))
                 .await
                 .map_err(|e| e.to_string())?
                 .map(|bytes| {
-                    <u64 as penumbra_sdk_proto::Message>::decode(bytes.as_slice())
+                    <u64 as shieldd_sdk_proto::Message>::decode(bytes.as_slice())
                         .map_err(|e| anyhow::anyhow!(e).to_string())
                 })
                 .transpose()?
@@ -596,7 +596,7 @@ where
         let action_start = Instant::now();
         match action {
             Action::IbcRelay(action) => {
-                let relay = action.clone().with_handler::<Ics20Transfer, PenumbraHost>();
+                let relay = action.clone().with_handler::<Ics20Transfer, ShielddHost>();
                 let execute = relay.check_and_execute(&mut state);
                 if action_spans_enabled {
                     let span = Action::IbcRelay(action.clone()).create_span(i);
@@ -990,7 +990,7 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
 
 fn check_action_timestamp_freshness(target_timestamp: u64, block_timestamp: u64) -> Result<()> {
     if target_timestamp == 0
-        && std::env::var_os("PENUMBRA_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP").is_some()
+        && std::env::var_os("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP").is_some()
     {
         return Ok(());
     }
@@ -1068,7 +1068,7 @@ impl AppActionHandler for Transaction {
 mod tests {
     use std::sync::Arc;
 
-    // Serializes tests that read/write PENUMBRA_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP to
+    // Serializes tests that read/write SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP to
     // prevent env-var races when tests run in parallel.
     static TIMESTAMP_ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
@@ -1076,17 +1076,17 @@ mod tests {
 
     use anyhow::Result;
     use decaf377::Fr;
-    use penumbra_sdk_asset::{asset, Value, BASE_ASSET_ID};
-    use penumbra_sdk_compliance::{ComplianceLeaf, IndexedMerkleTree, MerklePath, QuadTree};
-    use penumbra_sdk_fee::Fee;
-    use penumbra_sdk_keys::{test_keys, Address};
-    use penumbra_sdk_shielded_pool::{Note, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
-    use penumbra_sdk_tct as tct;
-    use penumbra_sdk_transaction::{
+    use rand_core::OsRng;
+    use shieldd_sdk_asset::{asset, Value, BASE_ASSET_ID};
+    use shieldd_sdk_compliance::{ComplianceLeaf, IndexedMerkleTree, MerklePath, QuadTree};
+    use shieldd_sdk_fee::Fee;
+    use shieldd_sdk_keys::{test_keys, Address};
+    use shieldd_sdk_shielded_pool::{Note, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
+    use shieldd_sdk_tct as tct;
+    use shieldd_sdk_transaction::{
         plan::{CluePlan, DetectionDataPlan, TransactionPlan},
         TransactionParameters, WitnessData,
     };
-    use rand_core::OsRng;
 
     use crate::AppActionHandler;
 
@@ -1131,7 +1131,7 @@ mod tests {
     #[tokio::test]
     async fn claimed_anchor_validation_cache_counts_shared_anchor_once() -> Result<()> {
         let cache = Arc::new(ClaimedAnchorValidationCache::default());
-        let anchor = penumbra_sdk_tct::Tree::new().root();
+        let anchor = shieldd_sdk_tct::Tree::new().root();
 
         let mut tasks = tokio::task::JoinSet::new();
         for _ in 0..8 {
@@ -1486,16 +1486,16 @@ mod tests {
     #[test]
     fn zero_timestamp_requires_benchmark_override() {
         let _guard = TIMESTAMP_ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("PENUMBRA_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP");
+        std::env::remove_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP");
         assert!(super::check_action_timestamp_freshness(0, 1_700_000_000).is_err());
     }
 
     #[test]
     fn zero_timestamp_is_allowed_when_benchmark_override_is_set() {
         let _guard = TIMESTAMP_ENV_MUTEX.lock().unwrap();
-        std::env::set_var("PENUMBRA_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP", "1");
+        std::env::set_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP", "1");
         let result = super::check_action_timestamp_freshness(0, 1_700_000_000);
-        std::env::remove_var("PENUMBRA_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP");
+        std::env::remove_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP");
         assert!(result.is_ok());
     }
 

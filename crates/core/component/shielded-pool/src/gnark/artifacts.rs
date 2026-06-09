@@ -4,9 +4,9 @@ use anyhow::{anyhow, bail, Context, Result};
 use ark_ec::{pairing::Pairing, AffineRepr};
 use ark_groth16::{prepare_verifying_key, PreparedVerifyingKey, VerifyingKey};
 use decaf377::Bls12_377;
-use penumbra_sdk_proof_params::VerifyingKeyExt;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use shieldd_sdk_proof_params::VerifyingKeyExt;
 
 type ProofG1 = <Bls12_377 as Pairing>::G1Affine;
 type ProofG2 = <Bls12_377 as Pairing>::G2Affine;

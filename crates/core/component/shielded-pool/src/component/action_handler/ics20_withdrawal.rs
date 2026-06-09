@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{ensure, Result};
 use cnidarium::{StateRead, StateWrite};
-use penumbra_sdk_ibc::{component::HostInterface, StateReadExt as _};
+use shieldd_sdk_ibc::{component::HostInterface, StateReadExt as _};
 
 use crate::component::transfer::{Ics20TransferExecutionExt as _, Ics20TransferWriteExt as _};
 use crate::component::Ics20WithdrawalWithHandler;

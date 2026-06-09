@@ -17,7 +17,7 @@ import (
 
 	groth16bls "github.com/consensys/gnark/backend/groth16/bls12-377"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/artifacts"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/artifacts"
 )
 
 const (

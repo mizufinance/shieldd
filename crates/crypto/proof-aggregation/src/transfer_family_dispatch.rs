@@ -2,7 +2,7 @@ use anyhow::Result;
 use ark_groth16::PreparedVerifyingKey;
 use ark_ip_proofs::challenge::ChallengeContext;
 use decaf377::{Bls12_377, Fq};
-use penumbra_sdk_proof_params::batch::BatchItem;
+use shieldd_sdk_proof_params::batch::BatchItem;
 
 use crate::{
     backend::{AggregateBuildBackendProfile, AggregateVerificationProfile, AggregateVerifyError},

@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-tct"
+name = "shieldd-sdk-tct"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "The tiered commitment tree for Penumbra"
+description = "The tiered commitment tree for Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -30,7 +30,7 @@ hex = {workspace = true}
 im = {workspace = true, features = ["serde"]}
 once_cell = {workspace = true}
 parking_lot = {workspace = true}
-penumbra-sdk-proto = {workspace = true, default-features = true}
+shieldd-sdk-proto = {workspace = true, default-features = true}
 poseidon377 = {workspace = true, features = ["r1cs"]}
 proptest = {workspace = true, optional = true}
 proptest-derive = {workspace = true, optional = true}

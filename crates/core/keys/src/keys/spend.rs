@@ -3,8 +3,8 @@ use std::convert::TryFrom;
 
 use hmac::Hmac;
 use pbkdf2::pbkdf2;
-use penumbra_sdk_proto::{penumbra::core::keys::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 
 use super::{
     bip44::Bip44Path,
@@ -66,8 +66,8 @@ impl From<SpendKey> for pb::SpendKey {
 
 impl From<SpendKeyBytes> for SpendKey {
     fn from(seed: SpendKeyBytes) -> Self {
-        let ask = SigningKey::new_from_field(prf::expand_ff(b"Penumbra_ExpndSd", &seed.0, &[0; 1]));
-        let nk = NullifierKey(prf::expand_ff(b"Penumbra_ExpndSd", &seed.0, &[1; 1]));
+        let ask = SigningKey::new_from_field(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[0; 1]));
+        let nk = NullifierKey(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[1; 1]));
         let fvk = FullViewingKey::from_components(ask.into(), nk);
 
         Self { seed, ask, fvk }
@@ -173,7 +173,7 @@ impl TryFrom<&[u8]> for SpendKeyBytes {
 
 impl std::fmt::Display for SpendKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use penumbra_sdk_proto::serializers::bech32str;
+        use shieldd_sdk_proto::serializers::bech32str;
         let proto = pb::SpendKey::from(self.clone());
         f.write_str(&bech32str::encode(
             &proto.inner,
@@ -187,7 +187,7 @@ impl std::str::FromStr for SpendKey {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use penumbra_sdk_proto::serializers::bech32str;
+        use shieldd_sdk_proto::serializers::bech32str;
         pb::SpendKey {
             inner: bech32str::decode(s, bech32str::spend_key::BECH32_PREFIX, bech32str::Bech32m)?,
         }

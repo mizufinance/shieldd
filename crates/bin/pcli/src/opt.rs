@@ -7,26 +7,26 @@ use crate::{
 use anyhow::Result;
 use camino::Utf8PathBuf;
 use clap::Parser;
-use penumbra_sdk_custody::{null_kms::NullKms, soft_kms::SoftKms};
-use penumbra_sdk_proto::box_grpc_svc;
-use penumbra_sdk_proto::{
+use shieldd_sdk_custody::{null_kms::NullKms, soft_kms::SoftKms};
+use shieldd_sdk_proto::box_grpc_svc;
+use shieldd_sdk_proto::{
     custody::v1::{
         custody_service_client::CustodyServiceClient, custody_service_server::CustodyServiceServer,
     },
     view::v1::{view_service_client::ViewServiceClient, view_service_server::ViewServiceServer},
 };
-use penumbra_sdk_view::ViewServer;
+use shieldd_sdk_view::ViewServer;
 use std::io::IsTerminal as _;
 use tracing_subscriber::EnvFilter;
 use url::Url;
 
 #[derive(Debug, Parser)]
-#[clap(name = "pcli", about = "The Penumbra command-line interface.", version)]
+#[clap(name = "pcli", about = "The Shieldd command-line interface.", version)]
 pub struct Opt {
     #[clap(subcommand)]
     pub cmd: Command,
     /// The home directory used to store configuration and data.
-    #[clap(long, default_value_t = default_home(), env = "PENUMBRA_PCLI_HOME")]
+    #[clap(long, default_value_t = default_home(), env = "SHIELDD_PCLI_HOME")]
     pub home: Utf8PathBuf,
     /// Override the GRPC URL that will be used to connect to a fullnode.
     ///
@@ -82,7 +82,7 @@ impl Opt {
             }
             CustodyConfig::Threshold(config) => {
                 tracing::info!("using manual threshold custody service");
-                let threshold_kms = penumbra_sdk_custody::threshold::Threshold::new(
+                let threshold_kms = shieldd_sdk_custody::threshold::Threshold::new(
                     config.clone(),
                     ActualTerminal {
                         fvk: Some(fvk.clone()),
@@ -93,7 +93,7 @@ impl Opt {
             }
             CustodyConfig::Encrypted(config) => {
                 tracing::info!("using encrypted custody service");
-                let encrypted_kms = penumbra_sdk_custody::encrypted::Encrypted::new(
+                let encrypted_kms = shieldd_sdk_custody::encrypted::Encrypted::new(
                     config.clone(),
                     ActualTerminal {
                         fvk: Some(fvk.clone()),
@@ -105,7 +105,7 @@ impl Opt {
             #[cfg(feature = "ledger")]
             CustodyConfig::Ledger(config) => {
                 tracing::info!("using ledger custody service");
-                let service = penumbra_sdk_custody_ledger_usb::Service::new(config.clone());
+                let service = shieldd_sdk_custody_ledger_usb::Service::new(config.clone());
                 let custody_svc = CustodyServiceServer::new(service);
                 CustodyServiceClient::new(box_grpc_svc::local(custody_svc))
             }
@@ -126,7 +126,7 @@ impl Opt {
                     tracing::info!(
                         "using separate manual threshold custody service for validator voting"
                     );
-                    let threshold_kms = penumbra_sdk_custody::threshold::Threshold::new(
+                    let threshold_kms = shieldd_sdk_custody::threshold::Threshold::new(
                         config.clone(),
                         ActualTerminal { fvk: Some(fvk) },
                     );
@@ -135,7 +135,7 @@ impl Opt {
                 }
                 GovernanceCustodyConfig::Encrypted { config, .. } => {
                     tracing::info!("using separate encrypted custody service for validator voting");
-                    let encrypted_kms = penumbra_sdk_custody::encrypted::Encrypted::new(
+                    let encrypted_kms = shieldd_sdk_custody::encrypted::Encrypted::new(
                         config.clone(),
                         ActualTerminal { fvk: Some(fvk) },
                     );

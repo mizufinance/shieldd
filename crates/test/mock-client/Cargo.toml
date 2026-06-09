@@ -1,11 +1,10 @@
 [package]
-name = "penumbra-sdk-mock-client"
+name = "shieldd-sdk-mock-client"
 authors = {workspace = true}
 repository = {workspace = true}
 description = "Mock a client to build end-to-end tests"
 edition.workspace = true
 version.workspace = true
-homepage.workspace = true
 license.workspace = true
 
 [dependencies]
@@ -13,18 +12,18 @@ anyhow = {workspace = true}
 async-trait = {workspace = true}
 cnidarium = {workspace = true, default-features = true}
 decaf377 = {workspace = true, default-features = true}
-penumbra-sdk-asset = {workspace = true}
+shieldd-sdk-asset = {workspace = true}
 poseidon377 = {workspace = true}
-penumbra-sdk-compact-block = {workspace = true, default-features = true}
-penumbra-sdk-compliance = {workspace = true, features = ["component"], default-features = true}
-penumbra-sdk-keys = {workspace = true, default-features = true}
-penumbra-sdk-sct = {workspace = true, default-features = true}
-penumbra-sdk-shielded-pool = {workspace = true, features = [
+shieldd-sdk-compact-block = {workspace = true, default-features = true}
+shieldd-sdk-compliance = {workspace = true, features = ["component"], default-features = true}
+shieldd-sdk-keys = {workspace = true, default-features = true}
+shieldd-sdk-sct = {workspace = true, default-features = true}
+shieldd-sdk-shielded-pool = {workspace = true, features = [
     "bundled-proving-keys",
     "component",
 ], default-features = true}
-penumbra-sdk-tct = {workspace = true, default-features = true}
-penumbra-sdk-transaction = {workspace = true, default-features = true}
-penumbra-sdk-view = {workspace = true, default-features = true}
+shieldd-sdk-tct = {workspace = true, default-features = true}
+shieldd-sdk-transaction = {workspace = true, default-features = true}
+shieldd-sdk-view = {workspace = true, default-features = true}
 rand_core = {workspace = true}
 tracing = {workspace = true}

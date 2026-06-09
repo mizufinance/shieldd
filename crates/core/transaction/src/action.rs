@@ -1,27 +1,27 @@
 use anyhow::anyhow;
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
-use penumbra_sdk_proof_aggregation::AggregateBundle;
-use penumbra_sdk_proto::{core::transaction::v1 as pb, DomainType, Message as _};
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
+use shieldd_sdk_proof_aggregation::AggregateBundle;
+use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType, Message as _};
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 use std::convert::{TryFrom, TryInto};
 
 use crate::{ActionView, IsAction, TransactionPerspective};
 
-/// An action performed by a Penumbra transaction.
+/// An action performed by a Shieldd transaction.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(try_from = "pb::Action", into = "pb::Action")]
 #[allow(clippy::large_enum_variant)]
 pub enum Action {
-    Transfer(penumbra_sdk_shielded_pool::Transfer),
-    Consolidate(penumbra_sdk_shielded_pool::Consolidate),
-    Split(penumbra_sdk_shielded_pool::Split),
-    ValidatorDefinition(penumbra_sdk_validator::validator::Definition),
-    IbcRelay(penumbra_sdk_ibc::IbcRelay),
-    ProposalSubmit(penumbra_sdk_governance::ProposalSubmit),
-    ValidatorVote(penumbra_sdk_governance::ValidatorVote),
-    ShieldedIcs20Withdrawal(penumbra_sdk_shielded_pool::ShieldedIcs20Withdrawal),
+    Transfer(shieldd_sdk_shielded_pool::Transfer),
+    Consolidate(shieldd_sdk_shielded_pool::Consolidate),
+    Split(shieldd_sdk_shielded_pool::Split),
+    ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
+    IbcRelay(shieldd_sdk_ibc::IbcRelay),
+    ProposalSubmit(shieldd_sdk_governance::ProposalSubmit),
+    ValidatorVote(shieldd_sdk_governance::ValidatorVote),
+    ShieldedIcs20Withdrawal(shieldd_sdk_shielded_pool::ShieldedIcs20Withdrawal),
     ComplianceRegisterAsset(MsgRegisterAsset),
     ComplianceRegisterUser(MsgRegisterUser),
     AggregateBundle(AggregateBundle),
@@ -44,7 +44,7 @@ impl EffectingData for Action {
                 let bytes = pb::AggregateBundle::from(bundle.clone()).encode_to_vec();
                 EffectHash(
                     blake2b_simd::Params::new()
-                        .personal(b"PenumbraAgBH")
+                        .personal(b"ShielddAgBH")
                         .hash(&bytes)
                         .as_bytes()[0..32]
                         .try_into()

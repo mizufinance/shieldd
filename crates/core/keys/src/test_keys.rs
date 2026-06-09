@@ -14,9 +14,9 @@ use crate::{
 pub const SEED_PHRASE: &str = "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate";
 
 /// These addresses both correspond to the test wallet above.
-pub const ADDRESS_0_STR: &str = "penumbra147mfall0zr6am5r45qkwht7xqqrdsp50czde7empv7yq2nk3z8yyfh9k9520ddgswkmzar22vhz9dwtuem7uxw0qytfpv7lk3q9dp8ccaw2fn5c838rfackazmgf3ahh09cxmz";
+pub const ADDRESS_0_STR: &str = "shieldd1072tem53f9z7nr45egssuuuq7zgn406e4ps75ksh6t2pf3k5smtvp93fv52u7dlasfgfxhzkkc2mmgjhwrc8w2q388qfkg5tp35pws7h6ud85yl23fnaprgnk9zskpzwykl2lh";
 /// These addresses both correspond to the test wallet above.
-pub const ADDRESS_1_STR: &str = "penumbra1vmmz304hjlkjq6xv4al5dqumvgk3ek82rneagj07vdqkudjvl6y7zxzr5k6qq24yc7yyyekpu9qm7ef3acg2u8p950hs6hu3e73guq5pfmmvm63qudfx4qmg8h7fdweyw3ektn";
+pub const ADDRESS_1_STR: &str = "shieldd1dh5nej4z5upx9cwafuhwn40v90nyct6xmhgleafech2tv6lq4dpxqn94s8relz2knt0x402pwzll20zukv97jmqtx83rruwqmalwnzrgvteq7a9hm86m45w2t2p3pz3g8q88ta";
 
 pub static ADDRESS_0: Lazy<Address> = Lazy::new(|| {
     ADDRESS_0_STR
@@ -40,7 +40,7 @@ pub static SPEND_KEY: Lazy<SpendKey> = Lazy::new(|| {
 });
 
 /// The test account's full viewing key, as a string.
-pub const FULL_VIEWING_KEY_STR: &str = "penumbrafullviewingkey1vzfytwlvq067g2kz095vn7sgcft47hga40atrg5zu2crskm6tyyjysm28qg5nth2fqmdf5n0q530jreumjlsrcxjwtfv6zdmfpe5kqsa5lg09";
+pub const FULL_VIEWING_KEY_STR: &str = "shielddfullviewingkey1m3409f50z92qajpkw93wp7d5yumdyfvqqz2pj5h8dp0v28z8svzqh7awek4q262g500pswwd5fmg6u4dv0n4rnag0mvcwjudr5p3grqnhg43u";
 
 /// The test account's full viewing key.
 pub static FULL_VIEWING_KEY: Lazy<FullViewingKey> = Lazy::new(|| {

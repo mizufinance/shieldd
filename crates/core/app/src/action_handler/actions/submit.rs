@@ -7,17 +7,17 @@ use ibc_types::core::client::ClientId;
 use crate::app::StateReadExt;
 use crate::{action_handler::AppActionHandler, params::change::ParameterChangeExt as _};
 use cnidarium::StateWrite;
-use penumbra_sdk_governance::{
+use shieldd_sdk_governance::{
     component::{StateReadExt as _, StateWriteExt as _},
     event,
     proposal::{Proposal, ProposalPayload},
     proposal_state::State as ProposalState,
     ProposalSubmit, ProposalSubmitBody,
 };
-use penumbra_sdk_ibc::component::ClientStateReadExt;
-use penumbra_sdk_proto::{DomainType, Message as _, StateWriteProto as _};
-use penumbra_sdk_sct::component::clock::EpochRead;
-use penumbra_sdk_sct::component::tree::SctRead;
+use shieldd_sdk_ibc::component::ClientStateReadExt;
+use shieldd_sdk_proto::{DomainType, Message as _, StateWriteProto as _};
+use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::tree::SctRead;
 
 // IMPORTANT: these length limits are enforced by consensus! Changing them will change which
 // transactions are accepted by the network, and so they *cannot* be changed without a network
@@ -58,7 +58,7 @@ impl AppActionHandler for ProposalSubmit {
             );
         }
 
-        use penumbra_sdk_governance::ProposalPayload::*;
+        use shieldd_sdk_governance::ProposalPayload::*;
         match payload {
             Signaling { commit: _ } => { /* all signaling proposals are valid */ }
             Emergency { halt_chain: _ } => { /* all emergency proposals are valid */ }
@@ -141,7 +141,7 @@ impl AppActionHandler for ProposalSubmit {
                 let _ = state.get_client_state(client_id).await?;
             }
             ProposalPayload::UpdateAssetIbcPolicy(update) => {
-                use penumbra_sdk_compliance::ComplianceRegistryRead as _;
+                use shieldd_sdk_compliance::ComplianceRegistryRead as _;
                 state
                     .get_asset_policy(update.asset_id)
                     .await?
@@ -201,12 +201,12 @@ impl AppActionHandler for ProposalSubmit {
 #[cfg(test)]
 mod test {
     use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
-    use penumbra_sdk_governance::{
+    use rand_core::OsRng;
+    use shieldd_sdk_governance::{
         change::ParameterChange, Proposal, ProposalPayload, ProposalSubmit, ProposalSubmitBody,
     };
-    use penumbra_sdk_proto::{DomainType, Message};
-    use penumbra_sdk_validator::{GovernanceKey, IdentityKey};
-    use rand_core::OsRng;
+    use shieldd_sdk_proto::{DomainType, Message};
+    use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
 
     use crate::action_handler::AppActionHandler;
 

@@ -1,32 +1,32 @@
 //! Logic for creating a new testnet configuration.
 //! Used for deploying (approximately weekly) testnets
-//! for Penumbra.
+//! for Shieldd.
 use crate::network::config::{get_network_dir, NetworkTendermintConfig, ValidatorKeys};
 use anyhow::{Context, Result};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
-use penumbra_sdk_app::{
+use serde::{de, Deserialize};
+use shieldd_sdk_app::{
     app::{MAX_BLOCK_TXS_PAYLOAD_BYTES, MAX_EVIDENCE_SIZE_BYTES},
     params::AppParameters,
 };
-use penumbra_sdk_asset::BASE_ASSET_ID;
-use penumbra_sdk_compliance::genesis::Content as ComplianceContent;
-use penumbra_sdk_fee::genesis::Content as FeeContent;
-use penumbra_sdk_governance::genesis::Content as GovernanceContent;
-use penumbra_sdk_keys::{
+use shieldd_sdk_asset::BASE_ASSET_ID;
+use shieldd_sdk_compliance::genesis::Content as ComplianceContent;
+use shieldd_sdk_fee::genesis::Content as FeeContent;
+use shieldd_sdk_governance::genesis::Content as GovernanceContent;
+use shieldd_sdk_keys::{
     keys::{Bip44Path, SeedPhrase, SpendKey},
     test_keys, Address,
 };
-use penumbra_sdk_sct::genesis::Content as SctContent;
-use penumbra_sdk_sct::params::SctParameters;
-use penumbra_sdk_shielded_pool::{
+use shieldd_sdk_sct::genesis::Content as SctContent;
+use shieldd_sdk_sct::params::SctParameters;
+use shieldd_sdk_shielded_pool::{
     genesis::{self as shielded_pool_genesis, Allocation, Content as ShieldedPoolContent},
     params::ShieldedPoolParameters,
 };
-use penumbra_sdk_validator::{
+use shieldd_sdk_validator::{
     genesis::Content as ValidatorContent, params::ValidatorParameters, validator::Validator,
     GovernanceKey, IdentityKey,
 };
-use serde::{de, Deserialize};
 use std::{
     fmt,
     fs::File,
@@ -40,13 +40,13 @@ use tendermint::consensus::params::AbciParams;
 use tendermint::{node, public_key::Algorithm, Genesis, Time};
 use tendermint_config::net::Address as TendermintAddress;
 
-/// Represents a Penumbra network config, including initial validators
+/// Represents a Shieldd network config, including initial validators
 /// and allocations at genesis time.
 pub struct NetworkConfig {
     /// The name of the network
     pub name: String,
     /// The Tendermint genesis for initial chain state.
-    pub genesis: Genesis<penumbra_sdk_app::genesis::AppState>,
+    pub genesis: Genesis<shieldd_sdk_app::genesis::AppState>,
     /// Path to local directory where config files will be written to
     pub network_dir: PathBuf,
     /// Set of validators at genesis. Uses the convenient wrapper type
@@ -69,7 +69,7 @@ pub struct NetworkConfig {
 
 impl NetworkConfig {
     /// Create a new testnet configuration, optionally customizing the allocations and validator
-    /// set. By default, will use the prepared Discord allocations and Penumbra Labs CI validator
+    /// set. By default, will use the prepared Discord allocations and Shieldd Labs CI validator
     /// configs.
     #[allow(clippy::too_many_arguments)]
     pub fn generate(
@@ -104,7 +104,7 @@ impl NetworkConfig {
             tracing::info!(%address, "adding dynamic allocation to genesis");
             allocations.extend(NetworkAllocation::simple(address));
         }
-        // Convert to domain type, for use with other Penumbra interfaces.
+        // Convert to domain type, for use with other Shieldd interfaces.
         // We do this conversion once and store it in the struct for convenience.
         let validators: anyhow::Result<Vec<Validator>> =
             network_validators.iter().map(|v| v.try_into()).collect();
@@ -136,7 +136,7 @@ impl NetworkConfig {
     }
 
     /// Prepare set of initial validators present at genesis. Optionally reads config values from a
-    /// JSON file, otherwise falls back to the Penumbra Labs CI validator configs used for
+    /// JSON file, otherwise falls back to the Shieldd Labs CI validator configs used for
     /// testnets.
     fn collect_validators(
         validators_input_file: Option<PathBuf>,
@@ -174,7 +174,7 @@ impl NetworkConfig {
 
     /// Prepare a set of initial [Allocation]s present at genesis. Optionally reads allocation
     /// files a CSV file, otherwise falls back to the historical requests of the testnet faucet
-    /// in the Penumbra Discord channel.
+    /// in the Shieldd Discord channel.
     fn collect_allocations(
         allocations_input_file: Option<PathBuf>,
     ) -> anyhow::Result<Vec<Allocation>> {
@@ -210,10 +210,10 @@ impl NetworkConfig {
         proposal_voting_blocks: Option<u64>,
         gas_price_simple: Option<u64>,
         compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
-    ) -> anyhow::Result<penumbra_sdk_app::genesis::Content> {
-        let default_gov_params = penumbra_sdk_governance::params::GovernanceParameters::default();
+    ) -> anyhow::Result<shieldd_sdk_app::genesis::Content> {
+        let default_gov_params = shieldd_sdk_governance::params::GovernanceParameters::default();
 
-        let gov_params = penumbra_sdk_governance::params::GovernanceParameters {
+        let gov_params = shieldd_sdk_governance::params::GovernanceParameters {
             proposal_voting_blocks: proposal_voting_blocks
                 .unwrap_or(default_gov_params.proposal_voting_blocks),
             ..default_gov_params
@@ -224,7 +224,7 @@ impl NetworkConfig {
 
         let gas_price_simple = gas_price_simple.unwrap_or_default();
 
-        let app_state = penumbra_sdk_app::genesis::Content {
+        let app_state = shieldd_sdk_app::genesis::Content {
             chain_id: chain_id.to_string(),
             validator_content: ValidatorContent {
                 validators: validators.into_iter().map(Into::into).collect(),
@@ -235,8 +235,8 @@ impl NetworkConfig {
                 },
             },
             fee_content: FeeContent {
-                fee_params: penumbra_sdk_fee::params::FeeParameters {
-                    fixed_gas_prices: penumbra_sdk_fee::GasPrices {
+                fee_params: shieldd_sdk_fee::params::FeeParameters {
+                    fixed_gas_prices: shieldd_sdk_fee::GasPrices {
                         block_space_price: gas_price_simple,
                         compact_block_space_price: gas_price_simple,
                         verification_price: gas_price_simple,
@@ -271,10 +271,10 @@ impl NetworkConfig {
         Ok(app_state)
     }
 
-    /// Build Tendermint genesis data, based on Penumbra initial application state.
+    /// Build Tendermint genesis data, based on Shieldd initial application state.
     pub(crate) fn make_genesis(
-        app_state: penumbra_sdk_app::genesis::Content,
-    ) -> anyhow::Result<Genesis<penumbra_sdk_app::genesis::AppState>> {
+        app_state: shieldd_sdk_app::genesis::Content,
+    ) -> anyhow::Result<Genesis<shieldd_sdk_app::genesis::AppState>> {
         // Use now as genesis time
         let genesis_time = Time::from_unix_timestamp(
             SystemTime::now()
@@ -298,7 +298,7 @@ impl NetworkConfig {
                 block: tendermint::block::Size {
                     // 1MB
                     max_bytes: MAX_BLOCK_TXS_PAYLOAD_BYTES as u64,
-                    // Set to infinity since a chain running Penumbra won't use
+                    // Set to infinity since a chain running Shieldd won't use
                     // cometbft's notion of gas.
                     max_gas: -1,
                     // Minimum time increment between consecutive blocks.
@@ -319,7 +319,7 @@ impl NetworkConfig {
             },
             // always empty in genesis json
             app_hash: tendermint::AppHash::default(),
-            app_state: penumbra_sdk_app::genesis::AppState::Content(app_state),
+            app_state: shieldd_sdk_app::genesis::AppState::Content(app_state),
             // Set empty validator set for Tendermint config, which falls back to reading
             // validators from the AppState, via ResponseInitChain:
             // https://docs.tendermint.com/v0.32/tendermint-core/using-tendermint.html
@@ -329,12 +329,12 @@ impl NetworkConfig {
     }
 
     pub(crate) fn make_checkpoint(
-        genesis: Genesis<penumbra_sdk_app::genesis::AppState>,
+        genesis: Genesis<shieldd_sdk_app::genesis::AppState>,
         checkpoint: Option<Vec<u8>>,
-    ) -> Genesis<penumbra_sdk_app::genesis::AppState> {
+    ) -> Genesis<shieldd_sdk_app::genesis::AppState> {
         match checkpoint {
             Some(checkpoint) => Genesis {
-                app_state: penumbra_sdk_app::genesis::AppState::Checkpoint(checkpoint),
+                app_state: shieldd_sdk_app::genesis::AppState::Checkpoint(checkpoint),
                 ..genesis
             },
             None => genesis,
@@ -382,7 +382,7 @@ impl NetworkConfig {
 
 /// Create a new testnet definition, including genesis and at least one
 /// validator config. Write all configs to the target testnet dir,
-/// defaulting to `~/.penumbra/<chain_id>`.
+/// defaulting to `~/.shieldd/<chain_id>`.
 #[allow(clippy::too_many_arguments)]
 pub fn network_generate(
     network_dir: Option<PathBuf>,
@@ -475,16 +475,16 @@ impl NetworkAllocation {
         vec![
             Allocation {
                 address: address.clone(),
-                raw_denom: "upenumbra".into(),
-                // The `upenumbra` base denom is millionths, so `10^6 * n`
-                // results in `n` `penumbra` tokens. Split the base allocation
+                raw_denom: "ushieldd".into(),
+                // The `ushieldd` base denom is millionths, so `10^6 * n`
+                // results in `n` `shieldd` tokens. Split the base allocation
                 // across two genesis notes so nonzero-fee base-asset sends can
                 // dedicate one note to tx-level fee funding.
                 raw_amount: (99_000 * 10u128.pow(6)).into(),
             },
             Allocation {
                 address: address.clone(),
-                raw_denom: "upenumbra".into(),
+                raw_denom: "ushieldd".into(),
                 raw_amount: (1_000 * 10u128.pow(6)).into(),
             },
             Allocation {
@@ -642,7 +642,7 @@ impl Default for NetworkValidator {
     }
 }
 
-// The core Penumbra logic deals with `Validator`s, to make sure our convenient
+// The core Shieldd logic deals with `Validator`s, to make sure our convenient
 // wrapper type can resolve as a `Validator` when needed.
 impl TryFrom<&NetworkValidator> for Validator {
     type Error = anyhow::Error;
@@ -743,21 +743,21 @@ mod tests {
     fn parse_allocations_from_good_csv() -> anyhow::Result<()> {
         let csv_content = r#"
 "amount","denom","address"
-"100000","upenumbra","penumbra1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4zc8kjjk"
-"100000","upenumbra","penumbra1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7e9wkrg"
-"100000","upenumbra","penumbra100zd92fg6x27wc0mlu48cd6phq420u7ep59kzdalg2cq66mjkyl0xr54z0c64gectnj44mv5k2vyjjsz5gyd5gq33a6wnqzvgu2fz7namz7usazsl6p8wza83gcpwt8q76rc4y"
-"100000","upenumbra","penumbra1xap8sgefy9rl2nfvsse0h4y6c25hy2n20ymr5w7hs28m9xemt3tmz88atyulswumc32sv7h937wnfhyct282de66zm75nk6ywq3d4r32p5ju0cnscj2rraesnrxr9lvk6hcazp"
+"100000","ushieldd","shieldd1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4z9uu0qt"
+"100000","ushieldd","shieldd1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7y7yt34"
+"100000","ushieldd","shieldd100zd92fg6x27wc0mlu48cd6phq420u7ep59kzdalg2cq66mjkyl0xr54z0c64gectnj44mv5k2vyjjsz5gyd5gq33a6wnqzvgu2fz7namz7usazsl6p8wza83gcpwt8qrpf98e"
+"100000","ushieldd","shieldd1xap8sgefy9rl2nfvsse0h4y6c25hy2n20ymr5w7hs28m9xemt3tmz88atyulswumc32sv7h937wnfhyct282de66zm75nk6ywq3d4r32p5ju0cnscj2rraesnrxr9lvk8vjqsu"
 "#;
         let allos = NetworkAllocation::from_reader(csv_content.as_bytes())?;
 
         let a1 = &allos[0];
-        assert!(a1.raw_denom == "upenumbra");
-        assert!(a1.address == Address::from_str("penumbra1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4zc8kjjk")?);
+        assert!(a1.raw_denom == "ushieldd");
+        assert!(a1.address == Address::from_str("shieldd1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4z9uu0qt")?);
         assert!(a1.raw_amount.value() == 100000);
 
         let a2 = &allos[1];
-        assert!(a2.raw_denom == "upenumbra");
-        assert!(a2.address == Address::from_str("penumbra1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7e9wkrg")?);
+        assert!(a2.raw_denom == "ushieldd");
+        assert!(a2.address == Address::from_str("shieldd1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7y7yt34")?);
         assert!(a2.raw_amount.value() == 100000);
 
         Ok(())
@@ -766,7 +766,7 @@ mod tests {
     #[test]
     fn parse_allocations_from_bad_csv() -> anyhow::Result<()> {
         let csv_content = r#"
-"amount","denom","address"\n"100000","upenumbra","penumbra1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4zc8kjjk"\n"100000","upenumbra","penumbra1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7e9wkrg"\n"100000","upenumbra","penumbra100zd92fg6x27wc0mlu48cd6phq420u7ep59kzdalg2cq66mjkyl0xr54z0c64gectnj44mv5k2vyjjsz5gyd5gq33a6wnqzvgu2fz7namz7usazsl6p8wza83gcpwt8q76rc4y"\n"100000","upenumbra","penumbra1xap8sgefy9rl2nfvsse0h4y6c25hy2n20ymr5w7hs28m9xemt3tmz88atyulswumc32sv7h937wnfhyct282de66zm75nk6ywq3d4r32p5ju0cnscj2rraesnrxr9lvk6hcazp"\n
+"amount","denom","address"\n"100000","ushieldd","shieldd1rqcd3hfvkvc04c4c9vc0ac87lh4y0z8l28k4xp6d0cnd5jc6f6k0neuzp6zdwtpwyfpswtdzv9jzqtpjn5t6wh96pfx3flq2dhqgc42u7c06kj57dl39w2xm6tg0wh4z9uu0qt"\n"100000","ushieldd","shieldd1xq2e9x7uhfzezwunvazdamlxepf4jr5htsuqnzlsahuayyqxjjwg9lk0aytwm6wfj3jy29rv2kdpen57903s8wxv3jmqwj6m6v5jgn6y2cypfd03rke652k8wmavxra7y7yt34"\n"100000","ushieldd","shieldd100zd92fg6x27wc0mlu48cd6phq420u7ep59kzdalg2cq66mjkyl0xr54z0c64gectnj44mv5k2vyjjsz5gyd5gq33a6wnqzvgu2fz7namz7usazsl6p8wza83gcpwt8qrpf98e"\n"100000","ushieldd","shieldd1xap8sgefy9rl2nfvsse0h4y6c25hy2n20ymr5w7hs28m9xemt3tmz88atyulswumc32sv7h937wnfhyct282de66zm75nk6ywq3d4r32p5ju0cnscj2rraesnrxr9lvk8vjqsu"\n
 "#;
         let result = NetworkAllocation::from_reader(csv_content.as_bytes());
         assert!(result.is_err());
@@ -798,7 +798,7 @@ mod tests {
         assert_eq!(testnet_config.genesis.validators.len(), 0);
         // When no validators_input_file is provided, validators are loaded from
         // PD_LATEST_TESTNET_VALIDATORS (testnets/validators-ci.json) which has 2 validators.
-        let penumbra_sdk_app::genesis::AppState::Content(app_state) =
+        let shieldd_sdk_app::genesis::AppState::Content(app_state) =
             testnet_config.genesis.app_state
         else {
             unimplemented!("TODO: support checkpointed app state")
@@ -840,7 +840,7 @@ mod tests {
         )?;
         assert_eq!(testnet_config.name, "test-chain-4567");
         assert_eq!(testnet_config.genesis.validators.len(), 0);
-        let penumbra_sdk_app::genesis::AppState::Content(app_state) =
+        let shieldd_sdk_app::genesis::AppState::Content(app_state) =
             testnet_config.genesis.app_state
         else {
             unimplemented!("TODO: support checkpointed app state")

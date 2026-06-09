@@ -1,7 +1,7 @@
-use penumbra_sdk_proto::penumbra::core::component::shielded_pool::v1 as pb;
+use shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1 as pb;
 
-use penumbra_sdk_proto::DomainType;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::DomainType;
 
 use crate::fmd;
 

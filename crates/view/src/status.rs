@@ -1,4 +1,4 @@
-use penumbra_sdk_proto::{view::v1 as pb, DomainType};
+use shieldd_sdk_proto::{view::v1 as pb, DomainType};
 
 #[derive(Clone, Copy, Debug)]
 pub struct StatusStreamResponse {

@@ -6,7 +6,7 @@ pub fn ibc_params() -> &'static str {
     "ibc/params"
 }
 
-// these are internal helpers that are used by penumbra-ibc, but not part of the IBC spec (that is,
+// these are internal helpers that are used by shieldd-ibc, but not part of the IBC spec (that is,
 // counterparties don't expect to verify proofs about them)
 pub fn client_processed_heights(client_id: &ClientId, height: &Height) -> String {
     format!("ibc/clients/{client_id}/processedHeights/{height}")
@@ -20,7 +20,7 @@ pub fn counter() -> &'static str {
 
 pub mod ics20_value_balance {
     use ibc_types::core::channel::ChannelId;
-    use penumbra_sdk_asset::asset;
+    use shieldd_sdk_asset::asset;
 
     pub fn prefix() -> &'static str {
         "ibc/ics20-value-balance/"

@@ -16,11 +16,11 @@ pub use metrics::*;
 /// Registers all metrics used by this crate.
 pub fn register_metrics() {
     cnidarium::register_metrics();
-    penumbra_sdk_validator::component::register_metrics();
+    shieldd_sdk_validator::component::register_metrics();
     // TODO: this should be under component::
-    penumbra_sdk_governance::register_metrics();
-    penumbra_sdk_ibc::component::register_metrics();
-    penumbra_sdk_shielded_pool::component::register_metrics();
+    shieldd_sdk_governance::register_metrics();
+    shieldd_sdk_ibc::component::register_metrics();
+    shieldd_sdk_shielded_pool::component::register_metrics();
 
     describe_counter!(
         MEMPOOL_CHECKTX_TOTAL,
@@ -94,17 +94,17 @@ pub fn register_metrics() {
     );
 }
 
-pub const MEMPOOL_CHECKTX_TOTAL: &str = "penumbra_pd_mempool_checktx_total";
-pub const MEMPOOL_CHECKTX_DURATION: &str = "penumbra_pd_mempool_checktx_duration_seconds";
-pub const MEMPOOL_CHECKTX_PENDING: &str = "penumbra_pd_mempool_checktx_pending";
-pub const MEMPOOL_CHECKTX_IN_FLIGHT: &str = "penumbra_pd_mempool_checktx_in_flight";
-pub const STATELESS_CACHE_HIT_VALID_TOTAL: &str = "penumbra_pd_stateless_cache_hit_valid_total";
-pub const STATELESS_CACHE_HIT_INVALID_TOTAL: &str = "penumbra_pd_stateless_cache_hit_invalid_total";
-pub const STATELESS_CACHE_MISS_TOTAL: &str = "penumbra_pd_stateless_cache_miss_total";
-pub const STATELESS_CACHE_EVICTION_TOTAL: &str = "penumbra_pd_stateless_cache_eviction_total";
-pub const TX_ARTIFACT_BUILD_TOTAL: &str = "penumbra_pd_tx_artifact_build_total";
-pub const TX_ARTIFACT_BUILD_DURATION: &str = "penumbra_pd_tx_artifact_build_duration_seconds";
-pub const TX_ARTIFACT_REUSE_TOTAL: &str = "penumbra_pd_tx_artifact_reuse_total";
-pub const CONSENSUS_PHASE_DURATION: &str = "penumbra_pd_consensus_phase_duration_seconds";
-pub const CONSENSUS_BLOCK_TX_COUNT: &str = "penumbra_pd_consensus_block_tx_count";
-pub const CONSENSUS_BLOCK_IDLE_GAP: &str = "penumbra_pd_consensus_block_idle_gap_seconds";
+pub const MEMPOOL_CHECKTX_TOTAL: &str = "shieldd_pd_mempool_checktx_total";
+pub const MEMPOOL_CHECKTX_DURATION: &str = "shieldd_pd_mempool_checktx_duration_seconds";
+pub const MEMPOOL_CHECKTX_PENDING: &str = "shieldd_pd_mempool_checktx_pending";
+pub const MEMPOOL_CHECKTX_IN_FLIGHT: &str = "shieldd_pd_mempool_checktx_in_flight";
+pub const STATELESS_CACHE_HIT_VALID_TOTAL: &str = "shieldd_pd_stateless_cache_hit_valid_total";
+pub const STATELESS_CACHE_HIT_INVALID_TOTAL: &str = "shieldd_pd_stateless_cache_hit_invalid_total";
+pub const STATELESS_CACHE_MISS_TOTAL: &str = "shieldd_pd_stateless_cache_miss_total";
+pub const STATELESS_CACHE_EVICTION_TOTAL: &str = "shieldd_pd_stateless_cache_eviction_total";
+pub const TX_ARTIFACT_BUILD_TOTAL: &str = "shieldd_pd_tx_artifact_build_total";
+pub const TX_ARTIFACT_BUILD_DURATION: &str = "shieldd_pd_tx_artifact_build_duration_seconds";
+pub const TX_ARTIFACT_REUSE_TOTAL: &str = "shieldd_pd_tx_artifact_reuse_total";
+pub const CONSENSUS_PHASE_DURATION: &str = "shieldd_pd_consensus_phase_duration_seconds";
+pub const CONSENSUS_BLOCK_TX_COUNT: &str = "shieldd_pd_consensus_block_tx_count";
+pub const CONSENSUS_BLOCK_IDLE_GAP: &str = "shieldd_pd_consensus_block_idle_gap_seconds";

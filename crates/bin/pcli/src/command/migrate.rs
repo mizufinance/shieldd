@@ -1,12 +1,12 @@
 use crate::App;
 use anyhow::{anyhow, Context, Result};
 use futures::TryStreamExt;
-use penumbra_sdk_asset::{asset, Value, BASE_ASSET_ID};
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::view::v1::{AssetsRequest, GasPricesRequest};
-use penumbra_sdk_view::ViewClient;
-use penumbra_sdk_wallet::plan::Planner;
+use shieldd_sdk_asset::{asset, Value, BASE_ASSET_ID};
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::view::v1::{AssetsRequest, GasPricesRequest};
+use shieldd_sdk_view::ViewClient;
+use shieldd_sdk_wallet::plan::Planner;
 use rand_core::OsRng;
 use std::{collections::HashMap, io::Write};
 use termion::input::TermRead;
@@ -184,7 +184,7 @@ impl MigrateCmd {
                     .await?;
 
                 // Build asset cache from the response
-                let mut asset_cache = penumbra_sdk_asset::asset::Cache::default();
+                let mut asset_cache = shieldd_sdk_asset::asset::Cache::default();
                 let assets_stream = assets_response.into_inner();
                 let assets = assets_stream
                     .try_collect::<Vec<_>>()
@@ -298,7 +298,7 @@ impl MigrateCmd {
                 let mut total_outputs = 0;
                 for (asset_id, total_amount) in &asset_summary {
                     if *total_amount > Amount::zero() {
-                        let value = penumbra_sdk_asset::Value {
+                        let value = shieldd_sdk_asset::Value {
                             asset_id: *asset_id,
                             amount: *total_amount,
                         };

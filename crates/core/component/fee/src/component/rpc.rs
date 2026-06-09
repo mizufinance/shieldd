@@ -1,8 +1,6 @@
 use async_trait::async_trait;
 use cnidarium::Storage;
-use penumbra_sdk_proto::core::component::fee::v1::{
-    self as pb, query_service_server::QueryService,
-};
+use shieldd_sdk_proto::core::component::fee::v1::{self as pb, query_service_server::QueryService};
 
 use super::StateReadExt;
 

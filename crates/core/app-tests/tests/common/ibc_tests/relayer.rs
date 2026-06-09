@@ -42,23 +42,23 @@ use {
         timestamp::Timestamp,
         DomainType as _,
     },
-    penumbra_sdk_asset::{asset::Cache, Value},
-    penumbra_sdk_ibc::{
-        component::{ChannelStateReadExt as _, ConnectionStateReadExt as _},
-        IbcRelay, IbcToken, IBC_COMMITMENT_PREFIX, IBC_PROOF_SPECS,
-    },
-    penumbra_sdk_keys::keys::AddressIndex,
-    penumbra_sdk_num::Amount,
-    penumbra_sdk_proto::{util::tendermint_proxy::v1::GetBlockByHeightRequest, DomainType},
-    penumbra_sdk_shielded_pool::{
-        Ics20Withdrawal, ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan,
-        ShieldedInputPlan, ShieldedOutputPlan,
-    },
-    penumbra_sdk_transaction::{TransactionParameters, TransactionPlan},
     prost::Message as _,
     rand::SeedableRng as _,
     rand_chacha::ChaCha12Core,
     sha2::Digest,
+    shieldd_sdk_asset::{asset::Cache, Value},
+    shieldd_sdk_ibc::{
+        component::{ChannelStateReadExt as _, ConnectionStateReadExt as _},
+        IbcRelay, IbcToken, IBC_COMMITMENT_PREFIX, IBC_PROOF_SPECS,
+    },
+    shieldd_sdk_keys::keys::AddressIndex,
+    shieldd_sdk_num::Amount,
+    shieldd_sdk_proto::{util::tendermint_proxy::v1::GetBlockByHeightRequest, DomainType},
+    shieldd_sdk_shielded_pool::{
+        Ics20Withdrawal, ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan,
+        ShieldedInputPlan, ShieldedOutputPlan,
+    },
+    shieldd_sdk_transaction::{TransactionParameters, TransactionPlan},
     std::{
         str::FromStr as _,
         sync::Arc,
@@ -168,7 +168,7 @@ impl MockRelayer {
         let mut notes = chain_a_client
             .notes
             .values()
-            .filter(|n| n.asset_id() == *penumbra_sdk_asset::BASE_ASSET_ID)
+            .filter(|n| n.asset_id() == *shieldd_sdk_asset::BASE_ASSET_ID)
             .cloned()
             .take(count)
             .collect::<Vec<_>>();
@@ -181,7 +181,7 @@ impl MockRelayer {
 
         let asset_cache = Cache::with_known_assets();
         let denom = asset_cache
-            .get(&penumbra_sdk_asset::BASE_ASSET_ID)
+            .get(&shieldd_sdk_asset::BASE_ASSET_ID)
             .expect("base asset ID should exist in asset cache")
             .clone();
         let destination_chain_address = chain_b_client.fvk.payment_address(AddressIndex::new(0)).0;
@@ -344,7 +344,7 @@ impl MockRelayer {
             };
 
             let plan = {
-                let ics20_msg = penumbra_sdk_transaction::ActionPlan::IbcAction(
+                let ics20_msg = shieldd_sdk_transaction::ActionPlan::IbcAction(
                     IbcRelay::RecvPacket(msg_recv_packet),
                 )
                 .into();
@@ -631,7 +631,7 @@ impl MockRelayer {
                         // The latest_height is for chain B
                         latest_height: chain_b_ibc.get_latest_height().await?,
                         // The ICS02 validation is hardcoded to expect 2 proof specs
-                        // (root and substore, see [`penumbra_sdk_ibc::component::ics02_validation`]).
+                        // (root and substore, see [`shieldd_sdk_ibc::component::ics02_validation`]).
                         proof_specs: IBC_PROOF_SPECS.to_vec(),
                         upgrade_path: vec!["upgrade".to_string(), "upgradedIBCState".to_string()],
                         allow_update: AllowUpdate {
@@ -1729,7 +1729,7 @@ impl MockRelayer {
         let chain_a_note = chain_a_client
             .notes
             .values()
-            .filter(|n| n.asset_id() == *penumbra_sdk_asset::BASE_ASSET_ID)
+            .filter(|n| n.asset_id() == *shieldd_sdk_asset::BASE_ASSET_ID)
             .cloned()
             .next()
             .ok_or_else(|| anyhow!("mock client had no base-asset note"))?;
@@ -1806,7 +1806,7 @@ impl MockRelayer {
             // TODO: this is fine to hardcode for now but should ultimately move
             // to the mock relayer and be based on the handshake
             source_channel: ChannelId::from_str("channel-0")?,
-            // Penumbra <-> Penumbra so false
+            // Shieldd <-> Shieldd so false
             use_compat_address: false,
             use_transparent_address: false,
             ics20_memo: "".to_string(),
@@ -1949,7 +1949,7 @@ impl MockRelayer {
                 };
 
                 let plan = {
-                    let ics20_msg = penumbra_sdk_transaction::ActionPlan::IbcAction(
+                    let ics20_msg = shieldd_sdk_transaction::ActionPlan::IbcAction(
                         IbcRelay::RecvPacket(msg_recv_packet),
                     )
                     .into();
@@ -2070,7 +2070,7 @@ impl MockRelayer {
                 };
 
                 let plan = {
-                    let ics20_msg = penumbra_sdk_transaction::ActionPlan::IbcAction(
+                    let ics20_msg = shieldd_sdk_transaction::ActionPlan::IbcAction(
                         IbcRelay::Acknowledgement(msg_ack),
                     )
                     .into();
@@ -2134,7 +2134,7 @@ async fn _build_update_client_tx(
     chain_b_ibc: &mut TestNodeWithIBC,
 ) -> Result<(Vec<u8>, Height)> {
     let chain_b_height = chain_b_ibc.get_latest_height().await?;
-    let chain_b_latest_block: penumbra_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse =
+    let chain_b_latest_block: shieldd_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse =
         chain_b_ibc
             .tendermint_proxy_service_client
             .get_block_by_height(GetBlockByHeightRequest {

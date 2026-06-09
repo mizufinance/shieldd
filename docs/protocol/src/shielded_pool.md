@@ -1,6 +1,6 @@
 # Multi-Asset Shielded Pool
 
-Penumbra records value in a single, *multi-asset shielded pool*. Value is
+Shieldd records value in a single, *multi-asset shielded pool*. Value is
 recorded in _notes_, which hold a typed quantity of value together with the
 keys required to spend or detect that value.
 

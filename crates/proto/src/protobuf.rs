@@ -38,10 +38,10 @@ where
 // Implementations on foreign types.
 //
 // This should only be done here in cases where the domain type lives in a crate
-// that shouldn't depend on the Penumbra proto framework.
+// that shouldn't depend on the Shieldd proto framework.
 
-use crate::penumbra::core::component::ibc::v1::IbcRelay;
-use crate::penumbra::crypto::decaf377_rdsa::v1::{
+use crate::shieldd::core::component::ibc::v1::IbcRelay;
+use crate::shieldd::crypto::decaf377_rdsa::v1::{
     BindingSignature, SpendAuthSignature, SpendVerificationKey,
 };
 
@@ -103,7 +103,7 @@ impl TryFrom<SpendVerificationKey> for VerificationKey<SpendAuth> {
 }
 
 // Fuzzy Message Detection
-use crate::penumbra::crypto::decaf377_fmd::v1::Clue as ProtoClue;
+use crate::shieldd::crypto::decaf377_fmd::v1::Clue as ProtoClue;
 use decaf377_fmd::Clue;
 
 impl DomainType for Clue {
@@ -131,13 +131,13 @@ impl TryFrom<ProtoClue> for Clue {
 // The tendermint-rs PublicKey type already has a tendermint-proto type;
 // this redefines its proto, because the encodings are consensus-critical
 // and we don't vendor all of the tendermint protos.
-use crate::penumbra::core::keys::v1::ConsensusKey;
+use crate::shieldd::core::keys::v1::ConsensusKey;
 
 impl DomainType for tendermint::PublicKey {
     type Proto = ConsensusKey;
 }
 
-impl From<tendermint::PublicKey> for crate::penumbra::core::keys::v1::ConsensusKey {
+impl From<tendermint::PublicKey> for crate::shieldd::core::keys::v1::ConsensusKey {
     fn from(v: tendermint::PublicKey) -> Self {
         Self {
             inner: v.to_bytes(),

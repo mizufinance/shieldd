@@ -7,11 +7,11 @@ use {
     camino::Utf8PathBuf,
     directories::ProjectDirs,
     futures::StreamExt,
-    penumbra_sdk_proto::{
+    shieldd_sdk_proto::{
         box_grpc_svc::BoxGrpcService, custody::v1::custody_service_client::CustodyServiceClient,
         view::v1::view_service_client::ViewServiceClient,
     },
-    penumbra_sdk_view::ViewClient,
+    shieldd_sdk_view::ViewClient,
     std::path::PathBuf,
 };
 
@@ -84,7 +84,7 @@ impl App {
 }
 
 pub fn default_home() -> Utf8PathBuf {
-    let path = ProjectDirs::from("zone", "penumbra", "pcli")
+    let path = ProjectDirs::from("zone", "shieldd", "pcli")
         .expect("Failed to get platform data dir")
         .data_dir()
         .to_path_buf();

@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 
 pub static SUBSTORE_PREFIXES: Lazy<Vec<String>> = Lazy::new(|| {
     vec![
-        penumbra_sdk_ibc::IBC_SUBSTORE_PREFIX.to_string(),
+        shieldd_sdk_ibc::IBC_SUBSTORE_PREFIX.to_string(),
         COMETBFT_SUBSTORE_PREFIX.to_string(),
     ]
 });
@@ -30,11 +30,11 @@ cfg_if::cfg_if! {
         pub mod stateless_cache;
 
         mod action_handler;
-        mod penumbra_host_chain;
+        mod shieldd_host_chain;
 
         pub use crate::{
             action_handler::AppActionHandler, app::StateWriteExt,
-            metrics::register_metrics, penumbra_host_chain::PenumbraHost,
+            metrics::register_metrics, shieldd_host_chain::ShielddHost,
         };
 
         /// Temporary compat wrapper for duplicate trait impls

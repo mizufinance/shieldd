@@ -10,15 +10,15 @@ pub mod proof_test_helpers {
     pub const UNREGULATED_ASSET_ID: u64 = 2;
 
     use decaf377::{Fq, Fr};
-    use penumbra_sdk_asset::{asset, Balance, Value};
-    use penumbra_sdk_compliance::{IndexedLeaf, IndexedMerkleTree, MerklePath};
-    use penumbra_sdk_keys::{
+    use shieldd_sdk_asset::{asset, Balance, Value};
+    use shieldd_sdk_compliance::{IndexedLeaf, IndexedMerkleTree, MerklePath};
+    use shieldd_sdk_keys::{
         keys::{Bip44Path, SeedPhrase, SpendKey},
         PayloadKey,
     };
-    use penumbra_sdk_num::Amount;
-    use penumbra_sdk_tct as tct;
-    use penumbra_sdk_txhash::TransactionContext;
+    use shieldd_sdk_num::Amount;
+    use shieldd_sdk_tct as tct;
+    use shieldd_sdk_txhash::TransactionContext;
 
     use crate::{
         Note, Rseed, ShieldedIcs20WithdrawalChangePrivate, ShieldedIcs20WithdrawalChangePublic,
@@ -34,16 +34,16 @@ pub mod proof_test_helpers {
     pub fn create_imt_non_membership_proof(
         asset_id: Fq,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
-        penumbra_sdk_compliance::create_default_imt_proof(asset_id)
+        shieldd_sdk_compliance::create_default_imt_proof(asset_id)
     }
 
     /// Create valid user tree (QuadTree) proof data.
     ///
     /// Returns (compliance_anchor, merkle_path, position) that satisfy circuit constraints.
     pub fn create_user_tree_proof(
-        user_leaf: &penumbra_sdk_compliance::ComplianceLeaf,
+        user_leaf: &shieldd_sdk_compliance::ComplianceLeaf,
     ) -> (tct::StateCommitment, MerklePath, u64) {
-        penumbra_sdk_compliance::default_user_proof(user_leaf)
+        shieldd_sdk_compliance::default_user_proof(user_leaf)
     }
 
     /// Create valid IMT proof data for a regulated asset.
@@ -56,10 +56,10 @@ pub mod proof_test_helpers {
         dk_pub: decaf377::Element,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
         let mut tree = IndexedMerkleTree::new();
-        let policy = penumbra_sdk_compliance::AssetPolicy::new(
+        let policy = shieldd_sdk_compliance::AssetPolicy::new(
             dk_pub,
             u128::MAX,
-            penumbra_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
+            shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![],
             None,
             "test-ring-id".to_string(),
@@ -87,14 +87,14 @@ pub mod proof_test_helpers {
     /// Shared fixture layer used by all proof-family test builders.
     pub struct BaseTestData {
         pub note: Note,
-        pub address: penumbra_sdk_keys::Address,
-        pub value: penumbra_sdk_asset::Value,
+        pub address: shieldd_sdk_keys::Address,
+        pub value: shieldd_sdk_asset::Value,
         pub balance_blinding: Fr,
-        pub fvk: penumbra_sdk_keys::keys::FullViewingKey,
+        pub fvk: shieldd_sdk_keys::keys::FullViewingKey,
         pub sk: SpendKey,
-        pub user_leaf: penumbra_sdk_compliance::ComplianceLeaf,
-        pub sender_address: penumbra_sdk_keys::Address,
-        pub counterparty_leaf: penumbra_sdk_compliance::ComplianceLeaf,
+        pub user_leaf: shieldd_sdk_compliance::ComplianceLeaf,
+        pub sender_address: shieldd_sdk_keys::Address,
+        pub counterparty_leaf: shieldd_sdk_compliance::ComplianceLeaf,
         pub ring_pk: decaf377::Element,
         pub dk_pub: decaf377::Element,
         pub ack_receiver: decaf377::Element,
@@ -108,7 +108,7 @@ pub mod proof_test_helpers {
         pub compliance_position: u64,
         pub salt: Fq,
         pub target_timestamp: u64,
-        pub asset_policy: penumbra_sdk_compliance::AssetPolicy,
+        pub asset_policy: shieldd_sdk_compliance::AssetPolicy,
     }
 
     /// Generate the shared fixture data used by all proof-family tests.
@@ -127,7 +127,7 @@ pub mod proof_test_helpers {
         amount: u64,
         is_regulated: bool,
     ) -> BaseTestData {
-        use penumbra_sdk_num::Amount;
+        use shieldd_sdk_num::Amount;
 
         // Receiver identity
         let seed_phrase = SeedPhrase::generate(&mut *rng);
@@ -159,8 +159,8 @@ pub mod proof_test_helpers {
             (ring_pk, decaf377::Element::GENERATOR)
         } else {
             (
-                *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK,
-                *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
             )
         };
 
@@ -171,10 +171,10 @@ pub mod proof_test_helpers {
             create_imt_non_membership_proof(asset_id_fq)
         };
         let asset_policy = if is_regulated {
-            penumbra_sdk_compliance::AssetPolicy::new(
+            shieldd_sdk_compliance::AssetPolicy::new(
                 dk_pub,
                 asset_indexed_leaf.params.threshold,
-                penumbra_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
+                shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 vec![],
                 None,
                 "test-ring-id".to_string(),
@@ -184,12 +184,12 @@ pub mod proof_test_helpers {
                 "document".to_string(),
             )
         } else {
-            penumbra_sdk_compliance::AssetPolicy::default_unregulated()
+            shieldd_sdk_compliance::AssetPolicy::default_unregulated()
         };
 
         // Receiver ACK
         let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let d = penumbra_sdk_compliance::derive_compliance_scalar(b_d_fq);
+        let d = shieldd_sdk_compliance::derive_compliance_scalar(b_d_fq);
         let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
         let ack_receiver = ring_pk * d_fr;
 
@@ -197,14 +197,14 @@ pub mod proof_test_helpers {
         let sender_b_d_fq = sender_address
             .diversified_generator()
             .vartime_compress_to_field();
-        let sender_d = penumbra_sdk_compliance::derive_compliance_scalar(sender_b_d_fq);
+        let sender_d = shieldd_sdk_compliance::derive_compliance_scalar(sender_b_d_fq);
         let sender_d_fr = Fr::from_le_bytes_mod_order(&sender_d.to_bytes());
         let ack_sender = ring_pk * sender_d_fr;
 
         let user_leaf =
-            penumbra_sdk_compliance::ComplianceLeaf::new(address.clone(), value.asset_id, b_d_fq);
+            shieldd_sdk_compliance::ComplianceLeaf::new(address.clone(), value.asset_id, b_d_fq);
 
-        let counterparty_leaf = penumbra_sdk_compliance::ComplianceLeaf::new(
+        let counterparty_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
             sender_address.clone(),
             value.asset_id,
             sender_b_d_fq,
@@ -245,8 +245,8 @@ pub mod proof_test_helpers {
         is_regulated: bool,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         use crate::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
-        use penumbra_sdk_asset::{asset, Value};
-        use penumbra_sdk_num::Amount;
+        use shieldd_sdk_asset::{asset, Value};
+        use shieldd_sdk_num::Amount;
 
         let base = generate_base_test_data(rng, 1, 100, is_regulated);
 
@@ -381,7 +381,7 @@ pub mod proof_test_helpers {
         is_regulated: bool,
         send_to_self: bool,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
-        use penumbra_sdk_asset::asset;
+        use shieldd_sdk_asset::asset;
 
         build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
             rng,
@@ -393,14 +393,14 @@ pub mod proof_test_helpers {
 
     pub(crate) fn build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
         rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
-        asset_id: penumbra_sdk_asset::asset::Id,
+        asset_id: shieldd_sdk_asset::asset::Id,
         is_regulated: bool,
         send_to_self: bool,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         use crate::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
-        use penumbra_sdk_asset::Value;
-        use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
-        use penumbra_sdk_num::Amount;
+        use shieldd_sdk_asset::Value;
+        use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+        use shieldd_sdk_num::Amount;
 
         let base = generate_base_test_data_for_asset(rng, asset_id, 100, is_regulated);
 
@@ -457,7 +457,7 @@ pub mod proof_test_helpers {
         let recipient_b_d_fq = recipient_address
             .diversified_generator()
             .vartime_compress_to_field();
-        let recipient_leaf = penumbra_sdk_compliance::ComplianceLeaf::new(
+        let recipient_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
             recipient_address.clone(),
             asset_id,
             recipient_b_d_fq,
@@ -477,7 +477,7 @@ pub mod proof_test_helpers {
                 base.compliance_position,
             )
         } else {
-            let mut user_tree = penumbra_sdk_compliance::QuadTree::new();
+            let mut user_tree = shieldd_sdk_compliance::QuadTree::new();
             user_tree
                 .update(base.compliance_position, base.user_leaf.commit())
                 .expect("insert hidden-arity sender compliance leaf");
@@ -545,7 +545,7 @@ pub mod proof_test_helpers {
         TransactionContext,
     ) {
         use crate::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
-        use penumbra_sdk_asset::{asset, Value};
+        use shieldd_sdk_asset::{asset, Value};
 
         let mut rng = rand::thread_rng();
         let base = generate_base_test_data(&mut rng, 1, 100, is_regulated);
@@ -694,8 +694,8 @@ pub mod proof_test_helpers {
         crate::ConsolidateProofPrivate,
     ) {
         use crate::{ConsolidatePlan, ShieldedInputPlan, ShieldedOutputPlan};
-        use penumbra_sdk_asset::{asset, Value};
-        use penumbra_sdk_num::Amount;
+        use shieldd_sdk_asset::{asset, Value};
+        use shieldd_sdk_num::Amount;
 
         let base = generate_base_test_data(rng, 1, 100, false);
         let input_total = 100u64
@@ -774,8 +774,8 @@ pub mod proof_test_helpers {
         family_id: crate::SplitFamilyId,
     ) -> (crate::SplitProofPublic, crate::SplitProofPrivate) {
         use crate::{ShieldedInputPlan, ShieldedOutputPlan, SplitPlan};
-        use penumbra_sdk_asset::{asset, Value};
-        use penumbra_sdk_num::Amount;
+        use shieldd_sdk_asset::{asset, Value};
+        use shieldd_sdk_num::Amount;
 
         let base = generate_base_test_data(rng, 1, 100, false);
         let input_total = 100u64
@@ -1016,7 +1016,7 @@ pub mod proof_test_helpers {
         eprintln!("[transfer roundtrip] start mode={mode}");
 
         let phase_started = Instant::now();
-        let expected_pvk = penumbra_sdk_proof_params::transfer_proof_verification_key();
+        let expected_pvk = shieldd_sdk_proof_params::transfer_proof_verification_key();
         let (public, private) = build_transfer_roundtrip_inputs(is_regulated);
         eprintln!(
             "[transfer roundtrip] mode={mode} built inputs in {:.2}s",
@@ -1044,7 +1044,7 @@ pub mod proof_test_helpers {
 
         let phase_started = Instant::now();
         proof.verify(&public).expect("proof should verify");
-        penumbra_sdk_proof_params::batch::batch_verify(expected_pvk, std::slice::from_ref(&item))
+        shieldd_sdk_proof_params::batch::batch_verify(expected_pvk, std::slice::from_ref(&item))
             .expect("single-item batch verification should succeed");
         eprintln!(
             "[transfer roundtrip] mode={mode} verified in {:.2}s",

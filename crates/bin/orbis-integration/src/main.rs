@@ -29,13 +29,13 @@ use demo_state::{
     StatusDocument, UserState,
 };
 use orbis_common::blockchain::SourceHubClient;
-use penumbra_orbis_client::{NodeInfo, OrbisClient};
-use penumbra_sdk_compliance::{
+use serde::Deserialize;
+use shieldd_orbis_client::{NodeInfo, OrbisClient};
+use shieldd_sdk_compliance::{
     decrypt_flagged_rows, export_ledger_rows_json, export_scan_json, import_orbis_audit_entries,
     mark_row_audited, record_address_alias, scanner_health_json, AuditScanExport, DetectionKey,
     OrbisAuditEntry, SqliteScannerStore,
 };
-use serde::Deserialize;
 
 mod command;
 mod demo_auth;
@@ -59,7 +59,7 @@ fn compliance_slot_derivation_hex(label: &str) -> String {
 #[derive(Parser, Debug)]
 #[clap(
     name = "orbis-integration",
-    about = "Typed Penumbra <-> Orbis integration flow"
+    about = "Typed Shieldd <-> Orbis integration flow"
 )]
 struct Args {
     #[clap(subcommand)]
@@ -70,11 +70,11 @@ struct Args {
 enum CommandKind {
     /// Run the full bring-up, seed, verify, and teardown flow.
     Run {
-        /// Keep the Penumbra and Orbis stacks running if the flow fails.
+        /// Keep the Shieldd and Orbis stacks running if the flow fails.
         #[clap(long)]
         keep_on_fail: bool,
     },
-    /// Seed an already running Penumbra + Orbis stack.
+    /// Seed an already running Shieldd + Orbis stack.
     Seed,
     /// Run the read-only verification phase against a seeded stack.
     Verify,
@@ -95,7 +95,7 @@ enum CommandKind {
 enum AuditDemoCommand {
     /// Idempotently register regulated BRL and issuer demo subjects.
     Setup,
-    /// Follow Penumbra blocks and continuously import regulated transfer detections.
+    /// Follow Shieldd blocks and continuously import regulated transfer detections.
     Scanner,
     /// Audit one issuer subject by name.
     AuditUser {
@@ -221,11 +221,11 @@ async fn setup_ring(output_json: &Path) -> Result<()> {
 }
 
 async fn run_full_flow(repo: &RepoPaths, keep_on_fail: bool) -> Result<()> {
-    let mut started_penumbra = false;
+    let mut started_shieldd = false;
     let mut started_orbis = false;
     let result = async {
-        run_script_with_env(repo, "scripts/penumbra-up.sh", &[], &compliance_dev_env())?;
-        started_penumbra = true;
+        run_script_with_env(repo, "scripts/shieldd-up.sh", &[], &compliance_dev_env())?;
+        started_shieldd = true;
 
         run_script_with_args(repo, "scripts/orbis-stack.sh", &["up"])?;
         started_orbis = true;
@@ -239,15 +239,15 @@ async fn run_full_flow(repo: &RepoPaths, keep_on_fail: bool) -> Result<()> {
     if result.is_err() {
         let _ = capture_orbis_logs(repo);
         if keep_on_fail {
-            eprintln!("orbis-integration: preserving Penumbra and Orbis stacks for debugging");
+            eprintln!("orbis-integration: preserving Shieldd and Orbis stacks for debugging");
             return result;
         }
     }
     if started_orbis {
         let _ = run_script_with_args(repo, "scripts/orbis-stack.sh", &["down"]);
     }
-    if started_penumbra {
-        let _ = run_script(repo, "scripts/penumbra-down.sh");
+    if started_shieldd {
+        let _ = run_script(repo, "scripts/shieldd-down.sh");
     }
 
     result
@@ -259,7 +259,7 @@ async fn seed(repo: &RepoPaths) -> Result<()> {
         "run `just orbis-integration-up` before `just orbis-integration-seed`",
     )?;
     let (node1_endpoint, node2_endpoint, node3_endpoint) = node_endpoints();
-    wait_for_tcp_endpoint(env.get("PENUMBRA_NODE_PD_URL")?, 30, Duration::from_secs(1))?;
+    wait_for_tcp_endpoint(env.get("SHIELDD_NODE_PD_URL")?, 30, Duration::from_secs(1))?;
     wait_for_tcp_endpoint(&node1_endpoint, 60, Duration::from_secs(2))?;
     wait_for_tcp_endpoint(&node2_endpoint, 60, Duration::from_secs(2))?;
     wait_for_tcp_endpoint(&node3_endpoint, 60, Duration::from_secs(2))?;
@@ -519,7 +519,7 @@ async fn seed(repo: &RepoPaths) -> Result<()> {
             "transfer",
             "--to",
             &alice_address_1,
-            "1000000upenumbra",
+            "1000000ushieldd",
         ],
     )?;
     run_pcli(
@@ -779,7 +779,7 @@ async fn verify(repo: &RepoPaths) -> Result<()> {
             "--scan-asset-id",
             "regulated_usd",
             "--node",
-            env.get("PENUMBRA_NODE_PD_URL")?,
+            env.get("SHIELDD_NODE_PD_URL")?,
             "--db",
             repo.scanner_db_file.to_str().with_context(|| {
                 format!(
@@ -883,7 +883,7 @@ fn run_orbis_audit(
             .arg("--dk-hex")
             .arg(issuer.get("REGULATED_DK")?)
             .arg("--node")
-            .arg(env.get("PENUMBRA_NODE_PD_URL")?)
+            .arg(env.get("SHIELDD_NODE_PD_URL")?)
             .arg("--output")
             .arg(output)
             .arg("--object-cache")
@@ -1117,7 +1117,7 @@ async fn wait_for_node_info(client: &OrbisClient, label: &str) -> Result<NodeInf
         .with_context(|| format!("timed out waiting for {label} info endpoint"))
 }
 
-async fn wait_for_latest_ring(client: &SourceHubClient) -> Result<penumbra_orbis_client::RingInfo> {
+async fn wait_for_latest_ring(client: &SourceHubClient) -> Result<shieldd_orbis_client::RingInfo> {
     let mut last_error = None;
     for _ in 0..60 {
         match OrbisClient::get_latest_ring(client, ORBIS_NAMESPACE).await {
@@ -1183,7 +1183,7 @@ struct AuditDemo {
     scanner_health_file: PathBuf,
     asset: String,
     threshold: String,
-    penumbra_grpc: String,
+    shieldd_grpc: String,
     orbis_endpoint: String,
 }
 
@@ -1211,11 +1211,11 @@ impl AuditDemo {
             asset: env::var("AUDIT_DEMO_ASSET")
                 .unwrap_or_else(|_| "transfer/channel-0/ubrl".to_string()),
             threshold: env::var("AUDIT_DEMO_THRESHOLD").unwrap_or_else(|_| "500000000".to_string()),
-            penumbra_grpc: env::var("PENUMBRA_GRPC")
-                .or_else(|_| env::var("PENUMBRA_NODE_PD_URL"))
+            shieldd_grpc: env::var("SHIELDD_GRPC")
+                .or_else(|_| env::var("SHIELDD_NODE_PD_URL"))
                 .unwrap_or_else(|_| {
                     let port =
-                        env::var("PENUMBRA_PD_GRPC_PORT").unwrap_or_else(|_| "8080".to_string());
+                        env::var("SHIELDD_PD_GRPC_PORT").unwrap_or_else(|_| "8080".to_string());
                     format!("http://127.0.0.1:{port}")
                 }),
             orbis_endpoint: env::var("ORBIS_ENDPOINT")
@@ -1270,7 +1270,7 @@ impl AuditDemo {
                 "scan",
                 "run",
                 "--node",
-                &self.penumbra_grpc,
+                &self.shieldd_grpc,
                 "--dk-hex",
                 &dk,
                 "--scan-asset-id",
@@ -1529,7 +1529,7 @@ impl AuditDemo {
             let address = self.address_for(slug, 0)?;
             self.run_pcli(
                 "alice",
-                ["tx", "transfer", "--to", &address, "50000upenumbra"],
+                ["tx", "transfer", "--to", &address, "50000ushieldd"],
             )?;
             self.sync_wallet(slug)?;
         }
@@ -1610,7 +1610,7 @@ impl AuditDemo {
         }
         let mut child = self
             .pcli_command(slug)
-            .args(["init", "--grpc-url", &self.penumbra_grpc, "soft-kms"])
+            .args(["init", "--grpc-url", &self.shieldd_grpc, "soft-kms"])
             .arg(if phrase.is_some() {
                 "import-phrase"
             } else {
@@ -1672,7 +1672,7 @@ impl AuditDemo {
             .arg("--dk-hex")
             .arg(self.issuer_dk()?)
             .arg("--node")
-            .arg(&self.penumbra_grpc)
+            .arg(&self.shieldd_grpc)
             .arg("--output")
             .arg(output)
             .arg("--timings-json")
@@ -1826,7 +1826,7 @@ impl AuditDemo {
         write_json(
             &self.state_file,
             &AuditDemoState::new(
-                self.penumbra_grpc.clone(),
+                self.shieldd_grpc.clone(),
                 self.asset.clone(),
                 self.threshold.clone(),
             ),
@@ -1891,8 +1891,8 @@ impl AuditDemo {
         let mut command = Command::new("pcli");
         command
             .current_dir(&self.root)
-            .env("HOME", "/home/penumbra")
-            .env("PENUMBRA_PCLI_HOME", self.wallet_home_abs(slug));
+            .env("HOME", "/home/shieldd")
+            .env("SHIELDD_PCLI_HOME", self.wallet_home_abs(slug));
         command
     }
 

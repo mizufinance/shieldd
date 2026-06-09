@@ -11,10 +11,10 @@ use std::{
 };
 
 use anyhow::Context;
-use penumbra_sdk_num::{Amount, AmountVar};
-use penumbra_sdk_proto::{penumbra::core::asset::v1 as pb, DomainType};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_num::{Amount, AmountVar};
+use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 
 use crate::EquivalentValue;
 use crate::{
@@ -401,7 +401,7 @@ impl FromStr for Value {
             Ok(Value { amount, asset_id })
         } else {
             Err(anyhow::anyhow!(
-                "could not parse {} as a value; provide both a numeric value and denomination, e.g. 1penumbra",
+                "could not parse {} as a value; provide both a numeric value and denomination, e.g. 1shieldd",
                 s
             ))
         }
@@ -420,7 +420,7 @@ mod tests {
     #[test]
     fn sum_balance_commitments() {
         let pen_denom = crate::asset::Cache::with_known_assets()
-            .get_unit("upenumbra")
+            .get_unit("ushieldd")
             .unwrap()
             .base();
         let atom_denom = crate::asset::Cache::with_known_assets()
@@ -498,27 +498,27 @@ mod tests {
 
     #[test]
     fn value_parsing_happy() {
-        let upenumbra_sdk_base_denom = crate::asset::Cache::with_known_assets()
-            .get_unit("upenumbra")
+        let ushieldd_sdk_base_denom = crate::asset::Cache::with_known_assets()
+            .get_unit("ushieldd")
             .unwrap()
             .base();
         let nala_base_denom = crate::asset::Cache::with_known_assets()
             .get_unit("unala")
             .unwrap()
             .base();
-        let cache = [upenumbra_sdk_base_denom.clone(), nala_base_denom.clone()]
+        let cache = [ushieldd_sdk_base_denom.clone(), nala_base_denom.clone()]
             .into_iter()
             .collect::<Cache>();
 
-        let v1: Value = "1823.298penumbra".parse().unwrap();
+        let v1: Value = "1823.298shieldd".parse().unwrap();
         assert_eq!(v1.amount, 1823298000u64.into());
-        assert_eq!(v1.asset_id, upenumbra_sdk_base_denom.id());
+        assert_eq!(v1.asset_id, ushieldd_sdk_base_denom.id());
         // Check that we can also parse the output of try_format
         assert_eq!(v1, v1.format(&cache).parse().unwrap());
 
-        let v2: Value = "3930upenumbra".parse().unwrap();
+        let v2: Value = "3930ushieldd".parse().unwrap();
         assert_eq!(v2.amount, 3930u64.into());
-        assert_eq!(v2.asset_id, upenumbra_sdk_base_denom.id());
+        assert_eq!(v2.asset_id, ushieldd_sdk_base_denom.id());
         assert_eq!(v2, v2.format(&cache).parse().unwrap());
 
         let v1: Value = "1unala".parse().unwrap();
@@ -535,18 +535,18 @@ mod tests {
 
     #[test]
     fn format_picks_best_unit() {
-        let upenumbra_sdk_base_denom = crate::asset::Cache::with_known_assets()
-            .get_unit("upenumbra")
+        let ushieldd_sdk_base_denom = crate::asset::Cache::with_known_assets()
+            .get_unit("ushieldd")
             .unwrap()
             .base();
-        let cache = [upenumbra_sdk_base_denom].into_iter().collect::<Cache>();
+        let cache = [ushieldd_sdk_base_denom].into_iter().collect::<Cache>();
 
-        let v1: Value = "999upenumbra".parse().unwrap();
-        let v2: Value = "1000upenumbra".parse().unwrap();
-        let v3: Value = "4000000upenumbra".parse().unwrap();
+        let v1: Value = "999ushieldd".parse().unwrap();
+        let v2: Value = "1000ushieldd".parse().unwrap();
+        let v3: Value = "4000000ushieldd".parse().unwrap();
 
-        assert_eq!(v1.format(&cache), "999upenumbra");
-        assert_eq!(v2.format(&cache), "1mpenumbra");
-        assert_eq!(v3.format(&cache), "4penumbra");
+        assert_eq!(v1.format(&cache), "999ushieldd");
+        assert_eq!(v2.format(&cache), "1mshieldd");
+        assert_eq!(v3.format(&cache), "4shieldd");
     }
 }

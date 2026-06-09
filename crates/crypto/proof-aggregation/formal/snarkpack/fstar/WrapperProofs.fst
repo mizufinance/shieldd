@@ -1,7 +1,7 @@
 module WrapperProofs
 #set-options "--fuel 1 --ifuel 1 --z3rlimit 100"
 
-module W = Penumbra_sdk_proof_aggregation.Aggregate_proof_wrapper
+module W = Shieldd_sdk_proof_aggregation.Aggregate_proof_wrapper
 module V = Alloc.Vec
 module Seq = FStar.Seq
 module Num = Core_models.Num
@@ -18,7 +18,7 @@ open Core_models
 
 let bo (b: V.t_Vec u8 Alloc.Alloc.t_Global) : Seq.seq u8 = b._0
 
-let wrapper_header_len () : usize = mk_usize 74
+let wrapper_header_len () : usize = mk_usize 73
 
 let wrapper_spec
       (statement_digest:t_Array u8 (mk_usize 32))
@@ -31,16 +31,16 @@ let wrapper_spec
 
 let wrapper_domain_list : list u8 =
   [
-    mk_u8 112; mk_u8 101; mk_u8 110; mk_u8 117; mk_u8 109; mk_u8 98; mk_u8 114; mk_u8 97;
-    mk_u8 46; mk_u8 115; mk_u8 110; mk_u8 97; mk_u8 114; mk_u8 107; mk_u8 112; mk_u8 97;
-    mk_u8 99; mk_u8 107; mk_u8 46; mk_u8 97; mk_u8 103; mk_u8 103; mk_u8 114; mk_u8 101;
-    mk_u8 103; mk_u8 97; mk_u8 116; mk_u8 101; mk_u8 95; mk_u8 112; mk_u8 114; mk_u8 111;
-    mk_u8 111; mk_u8 102; mk_u8 46; mk_u8 118; mk_u8 49; mk_u8 0
+    mk_u8 115; mk_u8 104; mk_u8 105; mk_u8 101; mk_u8 108; mk_u8 100; mk_u8 100; mk_u8 46;
+    mk_u8 115; mk_u8 110; mk_u8 97; mk_u8 114; mk_u8 107; mk_u8 112; mk_u8 97; mk_u8 99;
+    mk_u8 107; mk_u8 46; mk_u8 97; mk_u8 103; mk_u8 103; mk_u8 114; mk_u8 101; mk_u8 103;
+    mk_u8 97; mk_u8 116; mk_u8 101; mk_u8 95; mk_u8 112; mk_u8 114; mk_u8 111; mk_u8 111;
+    mk_u8 102; mk_u8 46; mk_u8 118; mk_u8 49; mk_u8 0
   ]
 
 let lemma_wrapper_domain_len ()
-    : Lemma (Seq.length W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN == 38)
-= assert_norm (FStar.List.Tot.length wrapper_domain_list == 38);
+    : Lemma (Seq.length W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN == 37)
+= assert_norm (FStar.List.Tot.length wrapper_domain_list == 37);
   assert (W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN == Seq.seq_of_list wrapper_domain_list)
 
 let lemma_usize_to_u32_ok (len:usize)
@@ -210,8 +210,8 @@ let lemma_wrapper_roundtrip
   Core_models.Slice.impl__starts_with_append #u8 W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN rest;
   let digest_start = Core_models.Slice.impl__len #u8 W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN in
   let digest_end = digest_start +! mk_usize 32 in
-  assert (digest_start == mk_usize 38);
-  assert (digest_end == mk_usize 70);
+  assert (digest_start == mk_usize 37);
+  assert (digest_end == mk_usize 69);
   Core_models.Slice.impl__get_middle_append3 #u8
     W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN
     statement_digest
@@ -310,8 +310,8 @@ let lemma_wrapper_digest_mismatch_before_range
   Core_models.Slice.impl__starts_with_append #u8 W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN rest;
   let digest_start = Core_models.Slice.impl__len #u8 W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN in
   let digest_end = digest_start +! mk_usize 32 in
-  assert (digest_start == mk_usize 38);
-  assert (digest_end == mk_usize 70);
+  assert (digest_start == mk_usize 37);
+  assert (digest_end == mk_usize 69);
   Core_models.Slice.impl__get_middle_append3 #u8
     W.v_AGGREGATE_PROOF_WRAPPER_DOMAIN
     statement_digest

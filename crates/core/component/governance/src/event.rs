@@ -1,4 +1,4 @@
-use penumbra_sdk_proto::penumbra::core::component::governance::v1 as pb;
+use shieldd_sdk_proto::shieldd::core::component::governance::v1 as pb;
 
 use crate::{Proposal, ProposalSubmit, ValidatorVote};
 

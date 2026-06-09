@@ -1,14 +1,14 @@
 # SnarkPack RIPP Refinement Map
 
 Status: refined review artifact. This document is the required audit map
-between Penumbra-owned RIPP/SnarkPack Rust and the algorithm whose algebraic
+between Shieldd-owned RIPP/SnarkPack Rust and the algorithm whose algebraic
 soundness is assumed. It is not a mechanized proof.
 
 Review each row against `ripp-spec.md`. That file states the
-Penumbra-local algorithm spec, imports Filecoin v2 transcript bug-class
+Shieldd-local algorithm spec, imports Filecoin v2 transcript bug-class
 discipline, assigns one primary comparison level per spec row, and records the
 minimum evidence required for each deviation class. Intentional
-Filecoin-to-Penumbra differences are tracked separately in
+Filecoin-to-Shieldd differences are tracked separately in
 `adaptation-register.md`.
 
 Rows are keyed by `symbol_id`, and every symbol in
@@ -38,7 +38,7 @@ resolved.
 
 | symbol_id | algorithm reference | local behavior summary | deviation class | evidence | status | reviewer |
 | --- | --- | --- | --- | --- | --- | --- |
-| `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs:ChallengeContext::from_statement_digest` | `fs.context-constructor` | Derives Penumbra-local context from the statement digest with a fixed domain. | `security-binding` | `challenge.rs:17`; formal handoff row `challenge context constructor derives from statement digest`; adaptation row `hash.challenge-context`. | `refined` | codex-review, 2026-06-01 |
+| `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs:ChallengeContext::from_statement_digest` | `fs.context-constructor` | Derives Shieldd-local context from the statement digest with a fixed domain. | `security-binding` | `challenge.rs:17`; formal handoff row `challenge context constructor derives from statement digest`; adaptation row `hash.challenge-context`. | `refined` | codex-review, 2026-06-01 |
 | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs:ChallengeContext::as_bytes` | `fs.context-constructor` | Exposes only the fixed 32-byte context bytes to challenge framing. | `security-binding` | `challenge.rs:27`; invariant guard rejects `Default`, tuple constructors, and TLS challenge context state. | `refined` | codex-review, 2026-06-01 |
 | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs:challenge_digest` | `fs.challenge-preimage`; `fs.stage-labels` | Hashes domain, stage label, statement-bound context, nonce, and messages before scalar conversion. | `security-binding` | `challenge.rs:114`; `backend.rs:1660` prover/verifier stream parity; formal challenge-preimage row; adaptation rows `hash.challenge-preimage`, `hash.family-transcript`. | `refined` | codex-review, 2026-06-01 |
 | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs:challenge_preimage` | `fs.challenge-preimage`; `fs.filecoin-bug-class` | Canonically frames domain, stage, statement-bound context, nonce, and message bytes for challenge queries. | `security-binding` | `challenge.rs:131`; `challenge_preimage_layout_golden`; `challenge_preimage_changes_on_stage_context_nonce_or_messages`; formal layout/injectivity rows; `filecoin-divergence-findings.md`. | `refined` | codex-review, 2026-06-02 |

@@ -1,14 +1,14 @@
-use penumbra_sdk_compliance::params::ComplianceParameters;
-use penumbra_sdk_fee::FeeParameters;
-use penumbra_sdk_governance::params::GovernanceParameters;
-use penumbra_sdk_ibc::params::IBCParameters;
-use penumbra_sdk_proto::core::app::v1 as pb;
-use penumbra_sdk_proto::view::v1 as pb_view;
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_sct::params::SctParameters;
-use penumbra_sdk_shielded_pool::params::ShieldedPoolParameters;
-use penumbra_sdk_validator::params::ValidatorParameters;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_compliance::params::ComplianceParameters;
+use shieldd_sdk_fee::FeeParameters;
+use shieldd_sdk_governance::params::GovernanceParameters;
+use shieldd_sdk_ibc::params::IBCParameters;
+use shieldd_sdk_proto::core::app::v1 as pb;
+use shieldd_sdk_proto::view::v1 as pb_view;
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_sct::params::SctParameters;
+use shieldd_sdk_shielded_pool::params::ShieldedPoolParameters;
+use shieldd_sdk_validator::params::ValidatorParameters;
 
 pub mod change;
 

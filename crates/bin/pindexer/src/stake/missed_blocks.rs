@@ -5,8 +5,8 @@ use cometindex::{
     sqlx, AppView, PgTransaction,
 };
 
-use penumbra_sdk_proto::{core::component::validator::v1 as pb, event::ProtoEvent};
-use penumbra_sdk_validator::IdentityKey;
+use shieldd_sdk_proto::{core::component::validator::v1 as pb, event::ProtoEvent};
+use shieldd_sdk_validator::IdentityKey;
 
 #[derive(Debug)]
 pub struct MissedBlocks {}

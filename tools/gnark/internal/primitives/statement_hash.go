@@ -100,7 +100,7 @@ func outputStatementHashConstant(label string) *big.Int {
 }
 
 func transferStatementHashConstant(label, suffix string) *big.Int {
-	return outputStatementHashConstant("penumbra.shielded_pool." + label + ".public_input_hash." + suffix)
+	return outputStatementHashConstant("shieldd.shielded_pool." + label + ".public_input_hash." + suffix)
 }
 
 func transferStatementHash(
@@ -206,9 +206,9 @@ func ShieldedIcs20WithdrawalStatementHashForShape(
 func OutputStatementHash(api frontend.API, fields []frontend.Variable) (frontend.Variable, error) {
 	return hashStatementFields(
 		api,
-		outputStatementHashConstant("penumbra.shielded_pool.output.public_input_hash.v1"),
-		outputStatementHashConstant("penumbra.shielded_pool.output.public_input_hash.pad0"),
-		outputStatementHashConstant("penumbra.shielded_pool.output.public_input_hash.pad1"),
+		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.v1"),
+		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad0"),
+		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad1"),
 		fields,
 		OutputStatementFieldCount,
 	)
@@ -278,9 +278,9 @@ func OutputStatementHashNative(fields []*big.Int) (*big.Int, error) {
 		return nil, errors.New("invalid output statement field count")
 	}
 
-	domain := outputStatementHashConstant("penumbra.shielded_pool.output.public_input_hash.v1")
-	pad0 := outputStatementHashConstant("penumbra.shielded_pool.output.public_input_hash.pad0")
-	pad1 := outputStatementHashConstant("penumbra.shielded_pool.output.public_input_hash.pad1")
+	domain := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.v1")
+	pad0 := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad0")
+	pad1 := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad1")
 	first := [7]*big.Int{pad0, pad1, pad0, pad1, pad0, pad1, pad0}
 	for i := 0; i < len(first) && i < len(fields); i++ {
 		first[i] = fields[i]

@@ -17,10 +17,10 @@ use ibc_proto::cosmos::bank::v1beta1::{
     QuerySpendableBalanceByDenomResponse, QuerySpendableBalancesRequest,
     QuerySpendableBalancesResponse, QuerySupplyOfRequest, QuerySupplyOfResponse,
 };
-use penumbra_sdk_asset::asset::{self, Metadata};
-use penumbra_sdk_ibc::component::state_key as ibc_state_key;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::StateReadProto as _;
+use shieldd_sdk_asset::asset::{self, Metadata};
+use shieldd_sdk_ibc::component::state_key as ibc_state_key;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::StateReadProto as _;
 use tracing::instrument;
 
 use crate::component::AssetRegistryRead as _;
@@ -60,7 +60,7 @@ fn ibc_amount_item(
 #[async_trait]
 impl BankQuery for Server {
     /// Returns the total supply for all IBC assets.
-    /// Internally-minted assets (Penumbra tokens and other chain-native assets)
+    /// Internally-minted assets (Shieldd tokens and other chain-native assets)
     /// are also included but the supplies are will only reflect what has been transferred out.
     ///
     /// TODO: Implement a way to fetch the total supply for these assets.
@@ -139,7 +139,7 @@ impl BankQuery for Server {
         _: tonic::Request<QueryBalanceRequest>,
     ) -> std::result::Result<tonic::Response<QueryBalanceResponse>, tonic::Status> {
         Err(tonic::Status::unimplemented(
-            "not implemented, penumbra is a shielded chain",
+            "not implemented, shieldd is a shielded chain",
         ))
     }
 
@@ -148,7 +148,7 @@ impl BankQuery for Server {
         _: tonic::Request<QueryAllBalancesRequest>,
     ) -> std::result::Result<tonic::Response<QueryAllBalancesResponse>, tonic::Status> {
         Err(tonic::Status::unimplemented(
-            "not implemented, penumbra is a shielded chain",
+            "not implemented, shieldd is a shielded chain",
         ))
     }
 
@@ -157,7 +157,7 @@ impl BankQuery for Server {
         _: tonic::Request<QuerySpendableBalancesRequest>,
     ) -> std::result::Result<tonic::Response<QuerySpendableBalancesResponse>, tonic::Status> {
         Err(tonic::Status::unimplemented(
-            "not implemented, penumbra is a shielded chain",
+            "not implemented, shieldd is a shielded chain",
         ))
     }
 
@@ -167,7 +167,7 @@ impl BankQuery for Server {
     ) -> std::result::Result<tonic::Response<QuerySpendableBalanceByDenomResponse>, tonic::Status>
     {
         Err(tonic::Status::unimplemented(
-            "not implemented, penumbra is a shielded chain",
+            "not implemented, shieldd is a shielded chain",
         ))
     }
 

@@ -4,22 +4,22 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     decaf377::Fr,
-    penumbra_sdk_app::{
+    rand_core::OsRng,
+    shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
     },
-    penumbra_sdk_asset::{Value, BASE_ASSET_ID},
-    penumbra_sdk_keys::test_keys,
-    penumbra_sdk_mock_client::MockClient,
-    penumbra_sdk_mock_consensus::TestNode,
-    penumbra_sdk_num::Amount,
-    penumbra_sdk_proto::DomainType,
-    penumbra_sdk_sct::component::tree::SctRead as _,
-    penumbra_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan},
-    penumbra_sdk_transaction::{
+    shieldd_sdk_asset::{Value, BASE_ASSET_ID},
+    shieldd_sdk_keys::test_keys,
+    shieldd_sdk_mock_client::MockClient,
+    shieldd_sdk_mock_consensus::TestNode,
+    shieldd_sdk_num::Amount,
+    shieldd_sdk_proto::DomainType,
+    shieldd_sdk_sct::component::tree::SctRead as _,
+    shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan},
+    shieldd_sdk_transaction::{
         memo::MemoPlaintext, plan::MemoPlan, TransactionParameters, TransactionPlan,
     },
-    rand_core::OsRng,
     tap::TapFallible,
 };
 
@@ -28,7 +28,7 @@ mod common;
 #[tokio::test]
 async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
     let guard = common::set_tracing_subscriber();
-    let storage = TempStorage::new_with_penumbra_prefixes().await?;
+    let storage = TempStorage::new_with_shieldd_prefixes().await?;
     let mut test_node = {
         let app_state = AppState::Content(
             genesis::Content::default().with_chain_id(TestNode::<()>::CHAIN_ID.to_string()),
@@ -36,7 +36,7 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
         let consensus = Consensus::new(storage.as_ref().clone());
         TestNode::builder()
             .single_validator()
-            .with_penumbra_auto_app_state(app_state)?
+            .with_shieldd_auto_app_state(app_state)?
             .init_chain(consensus)
             .await
             .tap_ok(|e| tracing::info!(hash = %e.last_app_hash_hex(), "finished init chain"))?

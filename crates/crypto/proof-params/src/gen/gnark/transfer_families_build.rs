@@ -11,5 +11,5 @@ pub const GENERATED_TRANSFER_FAMILIES: &[GeneratedTransferFamily] = &[GeneratedT
     artifact_name: "transfer",
     n_in: 2,
     n_out: 2,
-    bundled_lib_basename: "libpenumbra_gnark_transfer",
+    bundled_lib_basename: "libshieldd_gnark_transfer",
 }];

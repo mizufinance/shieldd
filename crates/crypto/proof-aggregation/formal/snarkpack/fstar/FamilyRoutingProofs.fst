@@ -1,6 +1,6 @@
 module FamilyRoutingProofs
 
-module B = Penumbra_sdk_proof_aggregation.Bundle
+module B = Shieldd_sdk_proof_aggregation.Bundle
 open Core_models
 
 (*

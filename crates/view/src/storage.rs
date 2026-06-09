@@ -18,22 +18,22 @@ use tokio::{
 use tracing::{error_span, Instrument};
 use url::Url;
 
-use penumbra_sdk_app::params::AppParameters;
-use penumbra_sdk_asset::{asset, asset::Id, asset::Metadata, Value};
-use penumbra_sdk_fee::GasPrices;
-use penumbra_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{
+use sct::TreeStore;
+use shieldd_sdk_app::params::AppParameters;
+use shieldd_sdk_asset::{asset, asset::Id, asset::Metadata, Value};
+use shieldd_sdk_fee::GasPrices;
+use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{
     core::app::v1::{
         query_service_client::QueryServiceClient as AppQueryServiceClient, AppParametersRequest,
     },
     DomainType,
 };
-use penumbra_sdk_sct::{CommitmentSource, Nullifier};
-use penumbra_sdk_shielded_pool::{fmd, note, Note, Rseed};
-use penumbra_sdk_tct::{self as tct, builder::epoch::Root};
-use penumbra_sdk_transaction::Transaction;
-use sct::TreeStore;
+use shieldd_sdk_sct::{CommitmentSource, Nullifier};
+use shieldd_sdk_shielded_pool::{fmd, note, Note, Rseed};
+use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
+use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
 
 use crate::{sync::FilteredBlock, SpendableNoteRecord};
@@ -798,7 +798,7 @@ impl Storage {
         &self,
         include_spent: bool,
         asset_id: Option<asset::Id>,
-        address_index: Option<penumbra_sdk_keys::keys::AddressIndex>,
+        address_index: Option<shieldd_sdk_keys::keys::AddressIndex>,
         amount_to_spend: Option<Amount>,
     ) -> anyhow::Result<Vec<SpendableNoteRecord>> {
         // If set, return spent notes as well as unspent notes.
@@ -1496,7 +1496,7 @@ impl Storage {
     /// Record compliance leaf data for an address in the sync scope.
     pub async fn record_compliance_leaf_data(
         &self,
-        leaf: &penumbra_sdk_compliance::ComplianceLeaf,
+        leaf: &shieldd_sdk_compliance::ComplianceLeaf,
         position: u64,
         commitment: StateCommitment,
     ) -> anyhow::Result<()> {
@@ -1533,7 +1533,7 @@ impl Storage {
     /// Record a counterparty address for tracking.
     pub async fn record_counterparty(
         &self,
-        address: &penumbra_sdk_keys::Address,
+        address: &shieldd_sdk_keys::Address,
         height: u64,
     ) -> anyhow::Result<()> {
         let pool = self.pool.clone();
@@ -1558,7 +1558,7 @@ impl Storage {
     pub async fn is_address_in_compliance_scope(
         &self,
         fvk: &FullViewingKey,
-        address: &penumbra_sdk_keys::Address,
+        address: &shieldd_sdk_keys::Address,
     ) -> anyhow::Result<bool> {
         // First check if it's one of our own addresses
         if fvk.address_index(address).is_some() {
@@ -1586,7 +1586,7 @@ impl Storage {
     /// Returns full leaf slot data if available, None if not in scope.
     pub async fn get_compliance_leaf_data(
         &self,
-        address: &penumbra_sdk_keys::Address,
+        address: &shieldd_sdk_keys::Address,
         asset_id: &asset::Id,
     ) -> anyhow::Result<Option<compliance::UserLeafData>> {
         let pool = self.pool.clone();
@@ -1609,7 +1609,7 @@ impl Storage {
     pub async fn store_asset_policy(
         &self,
         asset_id: &asset::Id,
-        policy: &penumbra_sdk_compliance::structs::AssetPolicy,
+        policy: &shieldd_sdk_compliance::structs::AssetPolicy,
     ) -> anyhow::Result<()> {
         let pool = self.pool.clone();
         let asset_bytes = asset_id.to_bytes().to_vec();
@@ -1630,7 +1630,7 @@ impl Storage {
     pub async fn get_asset_policy(
         &self,
         asset_id: &asset::Id,
-    ) -> anyhow::Result<Option<penumbra_sdk_compliance::structs::AssetPolicy>> {
+    ) -> anyhow::Result<Option<shieldd_sdk_compliance::structs::AssetPolicy>> {
         let pool = self.pool.clone();
         let asset_bytes = asset_id.to_bytes().to_vec();
 
@@ -1646,7 +1646,7 @@ impl Storage {
 
             match result {
                 Some(policy_bytes) => Ok(Some(
-                    penumbra_sdk_compliance::structs::AssetPolicy::from_bytes(&policy_bytes)?,
+                    shieldd_sdk_compliance::structs::AssetPolicy::from_bytes(&policy_bytes)?,
                 )),
                 None => Ok(None),
             }

@@ -994,7 +994,7 @@ mod tests {
     fn append_csv_upserts_and_keeps_stable_order() {
         let mut path = std::env::temp_dir();
         path.push(format!(
-            "penumbra-bench-runner-test-{}-{}.csv",
+            "shieldd-bench-runner-test-{}-{}.csv",
             std::process::id(),
             std::thread::current().name().unwrap_or("t")
         ));
@@ -1043,7 +1043,7 @@ mod tests {
     fn append_csv_scoped_upserts_only_matching_scope() {
         let mut path = std::env::temp_dir();
         path.push(format!(
-            "penumbra-bench-runner-scoped-test-{}-{}.csv",
+            "shieldd-bench-runner-scoped-test-{}-{}.csv",
             std::process::id(),
             std::thread::current().name().unwrap_or("t")
         ));

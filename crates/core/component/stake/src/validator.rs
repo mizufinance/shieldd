@@ -1,8 +1,8 @@
-//! Penumbra validators and related structures.
+//! Shieldd validators and related structures.
 
-use penumbra_sdk_proto::{penumbra::core::component::validator::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
+use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
 
 use crate::{GovernanceKey, IdentityKey};
 
@@ -16,7 +16,7 @@ pub use info::Info;
 pub use state::State;
 pub use status::Status;
 
-/// Describes a Penumbra validator's configuration data.
+/// Describes a Shieldd validator's configuration data.
 ///
 /// This data is unauthenticated; the [`Definition`] action includes
 /// a signature over the transaction with the validator's identity key.

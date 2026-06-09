@@ -1,6 +1,6 @@
 # Chain Scope
 
-This is a lightweight Penumbra deployment with a deliberately smaller action surface.
+This is a lightweight Shieldd deployment with a deliberately smaller action surface.
 Most application logic such as staking and DeFi lives on BankD.
 This chain's sole purpose is to provide a shielded transfer layer with compliance
 visibility for regulated assets.

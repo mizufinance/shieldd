@@ -1,6 +1,6 @@
-use penumbra_sdk_proto::penumbra::core::component::sct::v1 as pb;
-use penumbra_sdk_proto::DomainType;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::shieldd::core::component::sct::v1 as pb;
+use shieldd_sdk_proto::DomainType;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(try_from = "pb::SctParameters", into = "pb::SctParameters")]

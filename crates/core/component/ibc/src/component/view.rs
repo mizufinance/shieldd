@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
-use penumbra_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 
 use crate::params::IBCParameters;
 

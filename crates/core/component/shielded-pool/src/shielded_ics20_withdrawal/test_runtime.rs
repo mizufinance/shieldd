@@ -8,7 +8,7 @@ use crate::ShieldedIcs20WithdrawalFamilyId;
 pub(super) fn should_skip_shielded_ics20_withdrawal_proof_roundtrip_tests() -> bool {
     if cfg!(debug_assertions) {
         eprintln!(
-            "skipping shielded ICS-20 withdrawal gnark roundtrip tests in debug builds: use `cargo test --release -p penumbra-sdk-shielded-pool --features bundled-proving-keys shielded_ics20_withdrawal_proof_roundtrip --lib` for real bundled proving"
+            "skipping shielded ICS-20 withdrawal gnark roundtrip tests in debug builds: use `cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys shielded_ics20_withdrawal_proof_roundtrip --lib` for real bundled proving"
         );
         return true;
     }

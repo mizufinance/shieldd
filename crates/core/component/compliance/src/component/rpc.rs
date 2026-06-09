@@ -1,19 +1,19 @@
 use cnidarium::Storage;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_proto::core::component::compliance::v1::{
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_proto::core::component::compliance::v1::{
     query_service_server::QueryService, ComplianceAnchorsRequest, ComplianceAnchorsResponse,
     ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
     ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
     ComplianceMerkleProofsRequest, ComplianceMerkleProofsResponse, ComplianceUserLeafRequest,
     ComplianceUserLeafResponse, IndexedLeafData, MerklePath, MerklePathLayer,
 };
-use penumbra_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::clock::EpochRead;
 use tonic::Status;
 use tracing::instrument;
 
 use crate::registry::{ComplianceRegistryRead, MAX_ANCHOR_SEARCH_DEPTH_BLOCKS};
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_tct::StateCommitment;
 
 /// Maximum number of queries allowed in a batch compliance request.
 /// This prevents resource exhaustion from excessively large batch requests.
@@ -470,7 +470,7 @@ mod tests {
     use crate::params::{ComplianceParameters, StateWriteExt as _};
     use crate::registry::ComplianceRegistryWrite as _;
     use cnidarium::TempStorage;
-    use penumbra_sdk_sct::component::clock::EpochManager as _;
+    use shieldd_sdk_sct::component::clock::EpochManager as _;
 
     #[tokio::test]
     async fn find_most_recent_anchors_searches_within_recent_window() {

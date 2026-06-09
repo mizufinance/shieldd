@@ -1,5 +1,5 @@
 #![cfg(feature = "integration-testnet")]
-//! Performs read-only operations against the public Penumbra testnet.
+//! Performs read-only operations against the public Shieldd testnet.
 //! Useful to validate that HTTPS support is working.
 
 use std::process::Command as StdCommand;
@@ -11,9 +11,9 @@ use futures::StreamExt;
 use tempfile::{tempdir, TempDir};
 use tokio::process::Command as TokioCommand;
 
-use penumbra_sdk_keys::test_keys;
-use penumbra_sdk_proto::view::v1::view_service_client::ViewServiceClient;
-use penumbra_sdk_view::ViewClient;
+use shieldd_sdk_keys::test_keys;
+use shieldd_sdk_proto::view::v1::view_service_client::ViewServiceClient;
+use shieldd_sdk_view::ViewClient;
 
 const NODE_URL: &str = "https://testnet.plinfra.net";
 

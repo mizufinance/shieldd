@@ -1,5 +1,5 @@
 [package]
-name = "penumbra-orbis-client"
+name = "shieldd-orbis-client"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
@@ -20,7 +20,7 @@ tokio = { workspace = true, features = ["full"] }
 aes-gcm = "0.10"
 hkdf = "0.12"
 
-penumbra-sdk-compliance = { workspace = true, default-features = false }
+shieldd-sdk-compliance = { workspace = true, default-features = false }
 
 orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "e20d30232b4fa65b196d6c0ac7c7d862731a96e8" }
 orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "e20d30232b4fa65b196d6c0ac7c7d862731a96e8" }

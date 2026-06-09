@@ -7,8 +7,8 @@ import (
 	curves "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
-	. "github.com/mizufinance/penumbra/tools/gnark/internal/compliance"
-	. "github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	. "github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
+	. "github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 func Nullifier(

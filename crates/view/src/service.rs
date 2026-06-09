@@ -19,14 +19,14 @@ use tonic::{async_trait, transport::Channel, Request, Response, Status};
 use tracing::{instrument, Instrument};
 use url::Url;
 
-use penumbra_sdk_asset::{asset, asset::Metadata, Value};
-use penumbra_sdk_keys::{
+use shieldd_sdk_asset::{asset, asset::Metadata, Value};
+use shieldd_sdk_keys::{
     keys::WalletId,
     keys::{AddressIndex, FullViewingKey},
     Address, AddressView,
 };
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{
     core::component::compliance::v1 as compliance_pb,
     util::tendermint_proxy::v1::{
         tendermint_proxy_service_client::TendermintProxyServiceClient, BroadcastTxSyncRequest,
@@ -44,8 +44,8 @@ use penumbra_sdk_proto::{
     },
     DomainType,
 };
-use penumbra_sdk_tct::{Proof, StateCommitment};
-use penumbra_sdk_transaction::{
+use shieldd_sdk_tct::{Proof, StateCommitment};
+use shieldd_sdk_transaction::{
     plan::ActionPlan, AuthorizationData, Transaction, TransactionPerspective, TransactionPlan,
     WitnessData,
 };
@@ -81,7 +81,7 @@ pub struct ViewServer {
     // rather than a Tokio Mutex because it should be uncontended.
     error_slot: Arc<Mutex<Option<anyhow::Error>>>,
     // A copy of the SCT used by the worker task.
-    state_commitment_tree: Arc<RwLock<penumbra_sdk_tct::Tree>>,
+    state_commitment_tree: Arc<RwLock<shieldd_sdk_tct::Tree>>,
     // The Url for the pd gRPC endpoint on remote node.
     node: Url,
     /// Used to watch for changes to the sync height.
@@ -534,7 +534,7 @@ impl ViewService for ViewServer {
                 ));
             }
 
-            let withdrawal: penumbra_sdk_shielded_pool::Ics20Withdrawal = prq
+            let withdrawal: shieldd_sdk_shielded_pool::Ics20Withdrawal = prq
                 .ics20_withdrawals
                 .into_iter()
                 .next()
@@ -784,7 +784,7 @@ impl ViewService for ViewServer {
         // Next, extend the TxP with the openings of commitments known to our view server
         // but not included in the transaction body, for instance spent notes.
         for action in tx.actions() {
-            use penumbra_sdk_transaction::Action;
+            use shieldd_sdk_transaction::Action;
             match action {
                 Action::Transfer(transfer) => {
                     for input in &transfer.body.inputs {
@@ -841,24 +841,24 @@ impl ViewService for ViewServer {
         let mut address_views = BTreeMap::new();
         let mut asset_ids = BTreeSet::new();
         for action_view in min_view.action_views() {
-            use penumbra_sdk_transaction::view::action_view::ActionView;
+            use shieldd_sdk_transaction::view::action_view::ActionView;
             match action_view {
                 ActionView::Transfer(
-                    penumbra_sdk_transaction::view::action_view::TransferView::Visible {
+                    shieldd_sdk_transaction::view::action_view::TransferView::Visible {
                         spent_notes,
                         created_notes,
                         ..
                     },
                 )
                 | ActionView::Consolidate(
-                    penumbra_sdk_transaction::view::action_view::ConsolidateView::Visible {
+                    shieldd_sdk_transaction::view::action_view::ConsolidateView::Visible {
                         spent_notes,
                         created_notes,
                         ..
                     },
                 )
                 | ActionView::Split(
-                    penumbra_sdk_transaction::view::action_view::SplitView::Visible {
+                    shieldd_sdk_transaction::view::action_view::SplitView::Visible {
                         spent_notes,
                         created_notes,
                         ..
@@ -876,7 +876,7 @@ impl ViewService for ViewServer {
                     }
                 }
                 ActionView::ShieldedIcs20Withdrawal(
-                    penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalView::Visible {
+                    shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView::Visible {
                         spent_notes,
                         change_note,
                         ..
@@ -1324,9 +1324,9 @@ impl ViewService for ViewServer {
                 });
 
         fn action_spend_notes(
-            action: &penumbra_sdk_transaction::ActionPlan,
-        ) -> &[penumbra_sdk_shielded_pool::ShieldedInputPlan] {
-            use penumbra_sdk_transaction::ActionPlan;
+            action: &shieldd_sdk_transaction::ActionPlan,
+        ) -> &[shieldd_sdk_shielded_pool::ShieldedInputPlan] {
+            use shieldd_sdk_transaction::ActionPlan;
             match action {
                 ActionPlan::Transfer(p) => &p.spends,
                 ActionPlan::Consolidate(p) => &p.spends,
@@ -1643,7 +1643,7 @@ impl ViewService for ViewServer {
             .ok_or_else(|| tonic::Status::invalid_argument("missing asset_id"))?;
 
         // Parse asset_id to check against local tree
-        let asset_id: penumbra_sdk_asset::asset::Id = asset_id_proto
+        let asset_id: shieldd_sdk_asset::asset::Id = asset_id_proto
             .clone()
             .try_into()
             .map_err(|e| tonic::Status::invalid_argument(format!("invalid asset_id: {e}")))?;
@@ -1712,14 +1712,14 @@ impl ViewService for ViewServer {
         let request_inner = request.into_inner();
 
         // Parse address and asset_id
-        let address: penumbra_sdk_keys::Address = request_inner
+        let address: shieldd_sdk_keys::Address = request_inner
             .address
             .clone()
             .ok_or_else(|| tonic::Status::invalid_argument("missing address"))?
             .try_into()
             .map_err(|e| tonic::Status::invalid_argument(format!("invalid address: {e}")))?;
 
-        let asset_id: penumbra_sdk_asset::asset::Id = request_inner
+        let asset_id: shieldd_sdk_asset::asset::Id = request_inner
             .asset_id
             .clone()
             .ok_or_else(|| tonic::Status::invalid_argument("missing asset_id"))?
@@ -1782,7 +1782,7 @@ impl ViewService for ViewServer {
                     // Local storage miss - fall back to gRPC for leaf data
                     tracing::debug!(?address, ?asset_id, "local storage miss, fetching from pd");
 
-                    use penumbra_sdk_proto::core::component::compliance::v1::{
+                    use shieldd_sdk_proto::core::component::compliance::v1::{
                         query_service_client::QueryServiceClient as ComplianceQueryServiceClient,
                         ComplianceUserLeafRequest,
                     };
@@ -1809,13 +1809,13 @@ impl ViewService for ViewServer {
                         (
                             false,
                             0,
-                            penumbra_sdk_compliance::structs::MerklePath::default(),
+                            shieldd_sdk_compliance::structs::MerklePath::default(),
                             None,
                         )
                     } else {
                         // Got leaf from pd, need to get position and compute path locally
                         // For now, fall back to full gRPC proof since we don't have position
-                        use penumbra_sdk_proto::core::component::compliance::v1::ComplianceMerkleProofsRequest;
+                        use shieldd_sdk_proto::core::component::compliance::v1::ComplianceMerkleProofsRequest;
 
                         let proof_request = ComplianceMerkleProofsRequest {
                             address: request_inner.address.clone(),
@@ -1828,14 +1828,12 @@ impl ViewService for ViewServer {
 
                         let path = proof_response
                             .compliance_path
-                            .map(|p| penumbra_sdk_compliance::structs::MerklePath {
+                            .map(|p| shieldd_sdk_compliance::structs::MerklePath {
                                 layers: p
                                     .layers
                                     .into_iter()
-                                    .map(|layer| {
-                                        penumbra_sdk_compliance::structs::MerklePathLayer {
-                                            siblings: layer.siblings,
-                                        }
+                                    .map(|layer| shieldd_sdk_compliance::structs::MerklePathLayer {
+                                        siblings: layer.siblings,
                                     })
                                     .collect(),
                             })
@@ -1906,14 +1904,14 @@ impl ViewService for ViewServer {
         let request_inner = request.into_inner();
 
         // Parse address and asset_id
-        let address: penumbra_sdk_keys::Address = request_inner
+        let address: shieldd_sdk_keys::Address = request_inner
             .address
             .clone()
             .ok_or_else(|| tonic::Status::invalid_argument("missing address"))?
             .try_into()
             .map_err(|e| tonic::Status::invalid_argument(format!("invalid address: {e}")))?;
 
-        let asset_id: penumbra_sdk_asset::asset::Id = request_inner
+        let asset_id: shieldd_sdk_asset::asset::Id = request_inner
             .asset_id
             .clone()
             .ok_or_else(|| tonic::Status::invalid_argument("missing asset_id"))?
@@ -1948,7 +1946,7 @@ impl ViewService for ViewServer {
         // Local storage miss - fall back to gRPC
         tracing::debug!(?address, ?asset_id, "local storage miss, fetching from pd");
 
-        use penumbra_sdk_proto::core::component::compliance::v1::{
+        use shieldd_sdk_proto::core::component::compliance::v1::{
             query_service_client::QueryServiceClient as ComplianceQueryServiceClient,
             ComplianceUserLeafRequest as ComplianceRequest,
         };
@@ -2012,7 +2010,7 @@ impl ViewService for ViewServer {
         let mut results = Vec::with_capacity(request_inner.queries.len());
 
         // Lazy gRPC client - only created if we have cache misses
-        use penumbra_sdk_proto::core::component::compliance::v1::{
+        use shieldd_sdk_proto::core::component::compliance::v1::{
             query_service_client::QueryServiceClient as ComplianceQueryServiceClient,
             ComplianceMerkleProofsRequest, ComplianceUserLeafRequest,
         };
@@ -2020,14 +2018,14 @@ impl ViewService for ViewServer {
 
         for query in request_inner.queries {
             // Parse address and asset_id
-            let address: penumbra_sdk_keys::Address = query
+            let address: shieldd_sdk_keys::Address = query
                 .address
                 .clone()
                 .ok_or_else(|| tonic::Status::invalid_argument("missing address in query"))?
                 .try_into()
                 .map_err(|e| tonic::Status::invalid_argument(format!("invalid address: {e}")))?;
 
-            let asset_id: penumbra_sdk_asset::asset::Id = query
+            let asset_id: shieldd_sdk_asset::asset::Id = query
                 .asset_id
                 .clone()
                 .ok_or_else(|| tonic::Status::invalid_argument("missing asset_id in query"))?
@@ -2125,7 +2123,7 @@ impl ViewService for ViewServer {
                             (
                                 false,
                                 0,
-                                penumbra_sdk_compliance::structs::MerklePath::default(),
+                                shieldd_sdk_compliance::structs::MerklePath::default(),
                                 None,
                             )
                         } else {
@@ -2140,12 +2138,12 @@ impl ViewService for ViewServer {
 
                             let path = proof_response
                                 .compliance_path
-                                .map(|p| penumbra_sdk_compliance::structs::MerklePath {
+                                .map(|p| shieldd_sdk_compliance::structs::MerklePath {
                                     layers: p
                                         .layers
                                         .into_iter()
                                         .map(|layer| {
-                                            penumbra_sdk_compliance::structs::MerklePathLayer {
+                                            shieldd_sdk_compliance::structs::MerklePathLayer {
                                                 siblings: layer.siblings,
                                             }
                                         })

@@ -13,19 +13,19 @@ use sqlx::{PgPool, Row};
 use tokio::time::{sleep, Duration};
 
 fn postgres_port() -> String {
-    std::env::var("PENUMBRA_POSTGRES_PORT").unwrap_or_else(|_| "5432".to_string())
+    std::env::var("SHIELDD_POSTGRES_PORT").unwrap_or_else(|_| "5432".to_string())
 }
 
 fn cometbft_database_url() -> String {
     format!(
-        "postgresql://penumbra:penumbra@127.0.0.1:{}/penumbra_cometbft?sslmode=disable",
+        "postgresql://shieldd:shieldd@127.0.0.1:{}/shieldd_cometbft?sslmode=disable",
         postgres_port()
     )
 }
 
 fn pindexer_database_url() -> String {
     format!(
-        "postgresql://penumbra:penumbra@127.0.0.1:{}/penumbra_pindexer?sslmode=disable",
+        "postgresql://shieldd:shieldd@127.0.0.1:{}/shieldd_pindexer?sslmode=disable",
         postgres_port()
     )
 }
@@ -42,7 +42,7 @@ async fn get_db_handle(database_url: &str) -> anyhow::Result<PgPool> {
 async fn get_current_height() -> anyhow::Result<u64> {
     let client = reqwest::Client::new();
     let cmt_url =
-        std::env::var("PENUMBRA_NODE_CMT_URL").unwrap_or("http://localhost:16657".to_string());
+        std::env::var("SHIELDD_NODE_CMT_URL").unwrap_or("http://localhost:16657".to_string());
     let r = client.get(format!("{}/status", cmt_url)).send().await?;
 
     assert_eq!(r.status(), reqwest::StatusCode::OK);

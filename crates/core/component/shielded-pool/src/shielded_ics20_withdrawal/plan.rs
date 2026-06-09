@@ -2,14 +2,14 @@ use anyhow::{anyhow, ensure, Error};
 use decaf377::Fq;
 use decaf377::Fr;
 use decaf377_rdsa::{Signature, SpendAuth};
-use penumbra_sdk_asset::{asset, Balance};
-use penumbra_sdk_keys::symmetric::PayloadKey;
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_keys::{symmetric::WrappedMemoKey, Address};
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_tct as tct;
-use penumbra_sdk_txhash::EffectingData;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_asset::{asset, Balance};
+use shieldd_sdk_keys::symmetric::PayloadKey;
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_keys::{symmetric::WrappedMemoKey, Address};
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_tct as tct;
+use shieldd_sdk_txhash::EffectingData;
 
 use crate::note_reshape::dummy_spend_auth_sig;
 use crate::note_reshape::dummy_state_commitment_proof;
@@ -109,7 +109,7 @@ impl ShieldedIcs20WithdrawalPlan {
                 change_output: ShieldedIcs20WithdrawalChangeBody {
                     note_payload: spends[0].note.payload(),
                     wrapped_memo_key: WrappedMemoKey([0u8; 48]),
-                    ovk_wrapped_key: penumbra_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                    ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
                 },
                 target_timestamp: spends[0].target_timestamp,
                 compliance_anchor: spends[0].compliance_anchor,
@@ -165,15 +165,15 @@ impl ShieldedIcs20WithdrawalPlan {
             sender_address: self.sender_address(),
             asset_id: self.withdrawal_asset_id(),
             nullifier_domain_sep_label:
-                b"penumbra.shielded_ics20_withdrawal.synthetic_dummy.nullifier",
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier",
             nullifier_seed_label:
-                b"penumbra.shielded_ics20_withdrawal.synthetic_dummy.nullifier_seed",
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier_seed",
             spend_auth_key_label:
-                b"penumbra.shielded_ics20_withdrawal.synthetic_dummy.spend_auth_key",
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.spend_auth_key",
             spend_auth_randomizer_label:
-                b"penumbra.shielded_ics20_withdrawal.synthetic_dummy.spend_auth_randomizer",
-            input_note_label: b"penumbra.shielded_ics20_withdrawal.synthetic_dummy.input_note",
-            output_note_label: b"penumbra.shielded_ics20_withdrawal.synthetic_dummy.output_note",
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.spend_auth_randomizer",
+            input_note_label: b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.input_note",
+            output_note_label: b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.output_note",
         }
     }
 
@@ -258,7 +258,7 @@ impl ShieldedIcs20WithdrawalPlan {
             .spends
             .iter()
             .map(|_spend| TransferInputBody {
-                nullifier: penumbra_sdk_sct::Nullifier(decaf377::Fq::from(0u64)),
+                nullifier: shieldd_sdk_sct::Nullifier(decaf377::Fq::from(0u64)),
                 rk: decaf377_rdsa::VerificationKey::from(decaf377_rdsa::SigningKey::<
                     decaf377_rdsa::SpendAuth,
                 >::from(Fr::from(0u64))),
@@ -281,14 +281,14 @@ impl ShieldedIcs20WithdrawalPlan {
             ShieldedIcs20WithdrawalChangeBody {
                 note_payload: output_note.payload(),
                 wrapped_memo_key: WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: penumbra_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
             }
         } else {
             let dummy_note = padder.synthetic_dummy_output_note(1);
             ShieldedIcs20WithdrawalChangeBody {
                 note_payload: dummy_note.payload(),
                 wrapped_memo_key: WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: penumbra_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
             }
         };
 
@@ -305,10 +305,10 @@ impl ShieldedIcs20WithdrawalPlan {
         }
     }
 
-    fn sender_leaf(&self) -> penumbra_sdk_compliance::ComplianceLeaf {
+    fn sender_leaf(&self) -> shieldd_sdk_compliance::ComplianceLeaf {
         let spend = self.first_spend();
         spend.compliance_leaf.clone().unwrap_or_else(|| {
-            penumbra_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+            shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
                 spend.note.address().clone(),
                 spend.note.asset_id(),
             )
@@ -649,10 +649,10 @@ mod tests {
 
     use decaf377::Fr;
     use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
-    use penumbra_sdk_asset::{Value, BASE_ASSET_DENOM};
-    use penumbra_sdk_keys::test_keys;
-    use penumbra_sdk_txhash::EffectingData;
     use rand_core::OsRng;
+    use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_txhash::EffectingData;
 
     use super::*;
     use crate::Note;
@@ -703,7 +703,7 @@ mod tests {
             .action_body(
                 &test_keys::FULL_VIEWING_KEY,
                 &[7u8; 32].into(),
-                penumbra_sdk_tct::Tree::default().root(),
+                shieldd_sdk_tct::Tree::default().root(),
             )
             .expect("body should build");
         assert_eq!(body.inputs.len(), 2);

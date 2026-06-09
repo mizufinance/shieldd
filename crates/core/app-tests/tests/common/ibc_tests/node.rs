@@ -23,28 +23,28 @@ use {
             consensus_state::ConsensusState, header::Header as TendermintHeader,
         },
     },
-    penumbra_sdk_app::{
+    rand::SeedableRng as _,
+    shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
         SUBSTORE_PREFIXES,
     },
-    penumbra_sdk_asset::{asset, BASE_ASSET_DENOM},
-    penumbra_sdk_compliance::{
+    shieldd_sdk_asset::{asset, BASE_ASSET_DENOM},
+    shieldd_sdk_compliance::{
         structs::{AssetRegistrationGrant, UserRegistrationGrant, UserRegistrationGrantBody},
         ComplianceLeaf, IbcAssetOrigin, IbcRoute, MsgRegisterAsset, MsgRegisterUser,
     },
-    penumbra_sdk_ibc::{component::ClientStateReadExt as _, IBC_COMMITMENT_PREFIX},
-    penumbra_sdk_keys::{test_keys, Address},
-    penumbra_sdk_mock_client::MockClient,
-    penumbra_sdk_mock_consensus::{NodeResumeState, TestNode},
-    penumbra_sdk_proto::{
+    shieldd_sdk_ibc::{component::ClientStateReadExt as _, IBC_COMMITMENT_PREFIX},
+    shieldd_sdk_keys::{test_keys, Address},
+    shieldd_sdk_mock_client::MockClient,
+    shieldd_sdk_mock_consensus::{NodeResumeState, TestNode},
+    shieldd_sdk_proto::{
         util::tendermint_proxy::v1::{
             tendermint_proxy_service_client::TendermintProxyServiceClient, GetStatusRequest,
         },
         DomainType as _,
     },
-    penumbra_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters},
-    rand::SeedableRng as _,
+    shieldd_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters},
     std::{
         error::Error,
         fs,
@@ -71,7 +71,7 @@ pub struct TestStorage {
 }
 
 impl TestStorage {
-    pub async fn new_with_penumbra_prefixes() -> Result<Self> {
+    pub async fn new_with_shieldd_prefixes() -> Result<Self> {
         let dir = tempfile::tempdir()?;
         Self::load_from_root(dir.path().to_path_buf(), Some(dir)).await
     }
@@ -216,7 +216,7 @@ impl TestNodeWithIBC {
         registrar_vk: RdsaVerificationKey<SpendAuth>,
         storage_root: Option<&Path>,
     ) -> Result<Self, anyhow::Error> {
-        let allocations = std::iter::repeat(penumbra_sdk_shielded_pool::genesis::Allocation {
+        let allocations = std::iter::repeat(shieldd_sdk_shielded_pool::genesis::Allocation {
             raw_amount: 1_000_000u128.into(),
             raw_denom: BASE_ASSET_DENOM.deref().base_denom().denom,
             address: test_keys::ADDRESS_0.to_owned(),
@@ -224,11 +224,11 @@ impl TestNodeWithIBC {
         .take(allocation_count)
         .collect();
         let content = genesis::Content {
-            compliance_content: penumbra_sdk_compliance::genesis::Content {
+            compliance_content: shieldd_sdk_compliance::genesis::Content {
                 compliance_registrar_vk: vec![registrar_vk],
                 ..Default::default()
             },
-            shielded_pool_content: penumbra_sdk_shielded_pool::genesis::Content {
+            shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
                 allocations,
                 ..Default::default()
             },
@@ -258,10 +258,10 @@ impl TestNodeWithIBC {
         // Use the correct substores
         let storage = match storage_root {
             Some(root) => TestStorage::new_persistent(root).await?,
-            None => TestStorage::new_with_penumbra_prefixes().await?,
+            None => TestStorage::new_with_shieldd_prefixes().await?,
         };
         // Instantiate a mock tendermint proxy, which we will connect to the test node.
-        let proxy = penumbra_sdk_mock_tendermint_proxy::TestNodeProxy::new::<Consensus>();
+        let proxy = shieldd_sdk_mock_tendermint_proxy::TestNodeProxy::new::<Consensus>();
 
         let node = {
             let app_state = AppState::Content(content.with_chain_id(chain_id.clone()));
@@ -270,7 +270,7 @@ impl TestNodeWithIBC {
                 .with_keys(vec![keys])
                 .single_validator()
                 .with_initial_timestamp(start_time)
-                .with_penumbra_auto_app_state(app_state)?
+                .with_shieldd_auto_app_state(app_state)?
                 .on_block(proxy.on_block_callback())
                 .init_chain(consensus)
                 .await
@@ -282,7 +282,7 @@ impl TestNodeWithIBC {
         tracing::info!("spawning gRPC...");
         // Spawn the node's RPC server.
         let rpc_server = {
-            let make_svc = penumbra_sdk_app::rpc::routes(
+            let make_svc = shieldd_sdk_app::rpc::routes(
                 storage.as_ref(),
                 proxy,
                 false, /*enable_expensive_rpc*/
@@ -329,7 +329,7 @@ impl TestNodeWithIBC {
         resume_state: NodeResumeState,
     ) -> Result<Self, anyhow::Error> {
         let chain_id = format!("{}-{}", TestNode::<()>::CHAIN_ID, suffix);
-        let proxy = penumbra_sdk_mock_tendermint_proxy::TestNodeProxy::new::<Consensus>();
+        let proxy = shieldd_sdk_mock_tendermint_proxy::TestNodeProxy::new::<Consensus>();
         let consensus = Consensus::new(storage.as_ref().clone());
         let node = TestNode::builder()
             .with_keys(vec![keys])
@@ -340,7 +340,7 @@ impl TestNodeWithIBC {
         let (listener, grpc_url) = bind_rpc_listener()?;
 
         let rpc_server = {
-            let make_svc = penumbra_sdk_app::rpc::routes(
+            let make_svc = shieldd_sdk_app::rpc::routes(
                 storage.as_ref(),
                 proxy,
                 false, /*enable_expensive_rpc*/
@@ -495,7 +495,7 @@ impl TestNodeWithIBC {
         let tx = Transaction {
             transaction_body,
             binding_sig: [0u8; 64].into(), // No binding sig needed (no value balance)
-            anchor: penumbra_sdk_tct::Tree::new().root(), // Default empty tree anchor
+            anchor: shieldd_sdk_tct::Tree::new().root(), // Default empty tree anchor
         };
 
         self.node
@@ -525,7 +525,7 @@ impl TestNodeWithIBC {
             is_regulated: true,
             dk_pub: Some(decaf377::Element::GENERATOR),
             threshold: None,
-            slot_count: penumbra_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
+            slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             allowed_ibc_routes,
             ibc_origin,
             ring_pk: None,
@@ -583,7 +583,7 @@ impl TestNodeWithIBC {
         let tx = Transaction {
             transaction_body,
             binding_sig: [0u8; 64].into(),
-            anchor: penumbra_sdk_tct::Tree::new().root(),
+            anchor: shieldd_sdk_tct::Tree::new().root(),
         };
 
         self.node
@@ -596,7 +596,7 @@ impl TestNodeWithIBC {
     }
 
     pub async fn get_latest_height(&mut self) -> Result<Height, anyhow::Error> {
-        let status: penumbra_sdk_proto::util::tendermint_proxy::v1::GetStatusResponse = self
+        let status: shieldd_sdk_proto::util::tendermint_proxy::v1::GetStatusResponse = self
             .tendermint_proxy_service_client
             .get_status(GetStatusRequest {})
             .await?
@@ -615,10 +615,10 @@ impl TestNodeWithIBC {
     pub fn create_tendermint_header(
         &self,
         trusted_height: Option<Height>,
-        penumbra_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse {
+        shieldd_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse {
             block_id: _,
             block,
-        }: penumbra_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse,
+        }: shieldd_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse,
     ) -> Result<TendermintHeader> {
         let pk = self
             .node

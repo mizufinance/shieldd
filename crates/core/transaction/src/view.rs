@@ -1,18 +1,18 @@
 use anyhow::Context;
 use decaf377_rdsa::{Binding, Signature};
-use penumbra_sdk_asset::Balance;
-use penumbra_sdk_keys::AddressView;
-use penumbra_sdk_proto::{core::transaction::v1 as pbt, DomainType};
-use penumbra_sdk_shielded_pool::{
+use serde::{Deserialize, Serialize};
+use shieldd_sdk_asset::Balance;
+use shieldd_sdk_keys::AddressView;
+use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
+use shieldd_sdk_shielded_pool::{
     ConsolidateView, ShieldedIcs20WithdrawalView, SplitView, TransferView,
 };
-use serde::{Deserialize, Serialize};
 
 pub mod action_view;
 mod transaction_perspective;
 
 pub use action_view::ActionView;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_tct as tct;
 pub use transaction_perspective::TransactionPerspective;
 
 use crate::{
@@ -158,19 +158,19 @@ impl TransactionView {
 }
 
 trait NoteFlowView {
-    fn spent_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]>;
-    fn created_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]>;
+    fn spent_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]>;
+    fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]>;
 }
 
 impl NoteFlowView for TransferView {
-    fn spent_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]> {
+    fn spent_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             TransferView::Visible { spent_notes, .. } => Some(spent_notes),
             TransferView::Opaque { .. } => None,
         }
     }
 
-    fn created_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]> {
+    fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             TransferView::Visible { created_notes, .. } => Some(created_notes),
             TransferView::Opaque { .. } => None,
@@ -179,14 +179,14 @@ impl NoteFlowView for TransferView {
 }
 
 impl NoteFlowView for ConsolidateView {
-    fn spent_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]> {
+    fn spent_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             ConsolidateView::Visible { spent_notes, .. } => Some(spent_notes),
             ConsolidateView::Opaque { .. } => None,
         }
     }
 
-    fn created_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]> {
+    fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             ConsolidateView::Visible { created_notes, .. } => Some(created_notes),
             ConsolidateView::Opaque { .. } => None,
@@ -195,14 +195,14 @@ impl NoteFlowView for ConsolidateView {
 }
 
 impl NoteFlowView for SplitView {
-    fn spent_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]> {
+    fn spent_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             SplitView::Visible { spent_notes, .. } => Some(spent_notes),
             SplitView::Opaque { .. } => None,
         }
     }
 
-    fn created_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]> {
+    fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             SplitView::Visible { created_notes, .. } => Some(created_notes),
             SplitView::Opaque { .. } => None,
@@ -211,14 +211,14 @@ impl NoteFlowView for SplitView {
 }
 
 impl NoteFlowView for ShieldedIcs20WithdrawalView {
-    fn spent_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]> {
+    fn spent_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             ShieldedIcs20WithdrawalView::Visible { spent_notes, .. } => Some(spent_notes),
             ShieldedIcs20WithdrawalView::Opaque { .. } => None,
         }
     }
 
-    fn created_notes(&self) -> Option<&[penumbra_sdk_shielded_pool::NoteView]> {
+    fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             ShieldedIcs20WithdrawalView::Visible { change_note, .. } => {
                 Some(std::slice::from_ref(change_note))
@@ -259,19 +259,19 @@ mod tests {
     use decaf377::{Fq, Fr};
     use decaf377_rdsa::{SigningKey, SpendAuth};
     use ibc_types::{core::channel::ChannelId, core::client::Height};
-    use penumbra_sdk_asset::{Balance, Value, ValueView, BASE_ASSET_DENOM, BASE_ASSET_ID};
-    use penumbra_sdk_keys::{
+    use shieldd_sdk_asset::{Balance, Value, ValueView, BASE_ASSET_DENOM, BASE_ASSET_ID};
+    use shieldd_sdk_keys::{
         symmetric::{OvkWrappedKey, PayloadKey, WrappedMemoKey},
         AddressView,
     };
-    use penumbra_sdk_num::Amount;
-    use penumbra_sdk_sct::Nullifier;
-    use penumbra_sdk_shielded_pool::{
+    use shieldd_sdk_num::Amount;
+    use shieldd_sdk_sct::Nullifier;
+    use shieldd_sdk_shielded_pool::{
         EncryptedBackref, Ics20Withdrawal, Note, NotePayload, NoteView, Rseed,
         ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalBody, ShieldedIcs20WithdrawalChangeBody,
         ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalView, TransferInputBody,
     };
-    use penumbra_sdk_tct::{StateCommitment, Tree};
+    use shieldd_sdk_tct::{StateCommitment, Tree};
 
     use super::{ActionView, TransactionBodyView, TransactionView};
 
@@ -291,7 +291,7 @@ mod tests {
     #[test]
     fn summary_includes_visible_shielded_ics20_withdrawal_note_flow() {
         let spent_note = Note::from_parts(
-            penumbra_sdk_keys::test_keys::ADDRESS_0.clone(),
+            shieldd_sdk_keys::test_keys::ADDRESS_0.clone(),
             Value {
                 amount: Amount::from(10u64),
                 asset_id: *BASE_ASSET_ID,
@@ -300,7 +300,7 @@ mod tests {
         )
         .expect("valid spent note");
         let change_note = Note::from_parts(
-            penumbra_sdk_keys::test_keys::ADDRESS_0.clone(),
+            shieldd_sdk_keys::test_keys::ADDRESS_0.clone(),
             Value {
                 amount: Amount::from(3u64),
                 asset_id: *BASE_ASSET_ID,
@@ -315,7 +315,7 @@ mod tests {
                     ShieldedIcs20WithdrawalView::Visible {
                         withdrawal: ShieldedIcs20Withdrawal {
                             body: ShieldedIcs20WithdrawalBody {
-                                family_id: penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical,
+                                family_id: shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical,
                                 anchor: Tree::default().root(),
                                 balance_commitment: Balance::default().commit(Fr::from(1u64)),
                                 inputs: vec![TransferInputBody {
@@ -332,7 +332,7 @@ mod tests {
                                     amount: Amount::from(7u64),
                                     timeout_height: Height::new(1, 10).expect("valid height"),
                                     timeout_time: 10,
-                                    return_address: penumbra_sdk_keys::test_keys::ADDRESS_0.clone(),
+                                    return_address: shieldd_sdk_keys::test_keys::ADDRESS_0.clone(),
                                     source_channel: "channel-0".parse::<ChannelId>().expect("valid channel"),
                                     use_compat_address: false,
                                     ics20_memo: String::new(),

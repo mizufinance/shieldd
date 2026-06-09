@@ -67,22 +67,22 @@ mod repo_local_demo_library_tests {
             (
                 "transfer",
                 "artifacts/transfer",
-                b"penumbra_gnark_transfer_init" as &[u8],
+                b"shieldd_gnark_transfer_init" as &[u8],
             ),
             (
                 "split",
                 "artifacts/split1x4",
-                b"penumbra_gnark_split_init" as &[u8],
+                b"shieldd_gnark_split_init" as &[u8],
             ),
             (
                 "consolidate",
                 "artifacts/consolidate2x1",
-                b"penumbra_gnark_consolidate_init" as &[u8],
+                b"shieldd_gnark_consolidate_init" as &[u8],
             ),
             (
                 "shielded_ics20_withdrawal",
                 "artifacts/shielded_ics20_withdrawal",
-                b"penumbra_gnark_shielded_ics20_withdrawal_init" as &[u8],
+                b"shieldd_gnark_shielded_ics20_withdrawal_init" as &[u8],
             ),
         ];
 
@@ -93,7 +93,7 @@ mod repo_local_demo_library_tests {
                     family,
                     artifact_dir,
                     init_symbol,
-                    gnark_dir.join(format!("libpenumbra_gnark_{family}.{}", shared_lib_ext())),
+                    gnark_dir.join(format!("libshieldd_gnark_{family}.{}", shared_lib_ext())),
                 )
             })
             .filter(|(_, _, _, lib_path)| lib_path.exists())

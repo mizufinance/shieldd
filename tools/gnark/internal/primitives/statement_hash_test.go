@@ -7,7 +7,7 @@ import (
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/generated"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 )
 
 type transferStatementHashCircuit struct {

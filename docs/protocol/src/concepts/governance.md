@@ -1,6 +1,6 @@
 # Governance
 
-Penumbra uses validator-managed on-chain governance.
+Shieldd uses validator-managed on-chain governance.
 
 - proposals are introduced with `ProposalSubmit`
 - validators vote transparently with `ValidatorVote`

@@ -2,11 +2,11 @@ use std::io::{IsTerminal, Read, Write};
 
 use anyhow::Result;
 use decaf377_rdsa::{Domain, Signature};
-use penumbra_sdk_asset::asset::Cache;
-use penumbra_sdk_custody::threshold::{SigningRequest, Terminal};
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_tct::structure::Hash;
-use penumbra_sdk_transaction::{view, ActionPlan, ActionView, TransactionPlan, TransactionView};
+use shieldd_sdk_asset::asset::Cache;
+use shieldd_sdk_custody::threshold::{SigningRequest, Terminal};
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_tct::structure::Hash;
+use shieldd_sdk_transaction::{view, ActionPlan, ActionView, TransactionPlan, TransactionView};
 use termion::{color, input::TermRead};
 use tonic::async_trait;
 
@@ -73,7 +73,7 @@ fn pretty_print_transaction_plan(
     let cache = Cache::with_known_assets();
 
     let view = TransactionView {
-        anchor: penumbra_sdk_tct::Root(Hash::zero()),
+        anchor: shieldd_sdk_tct::Root(Hash::zero()),
         binding_sig: dummy_sig(),
         body_view: view::TransactionBodyView {
             action_views: plan

@@ -1,7 +1,7 @@
 use anyhow::anyhow;
-use penumbra_sdk_proto::{core::component::sct::v1 as pb, DomainType};
-use penumbra_sdk_txhash::TransactionId;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{core::component::sct::v1 as pb, DomainType};
+use shieldd_sdk_txhash::TransactionId;
 
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 #[serde(try_from = "pb::CommitmentSource", into = "pb::CommitmentSource")]

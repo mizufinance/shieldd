@@ -7,7 +7,7 @@ async fn main() -> Result<()> {
     let opts = Options::parse();
     Indexer::new(opts.cometindex.clone())
         .with_default_tracing()
-        .with_default_penumbra_app_views(&opts)
+        .with_default_shieldd_app_views(&opts)
         .run()
         .await?;
 

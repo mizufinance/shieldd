@@ -2,9 +2,9 @@
 
 use anyhow::Result;
 use decaf377::{Fq, Fr};
-use penumbra_sdk_compliance::ComplianceLeaf;
-use penumbra_sdk_proto::core::component::compliance::v1 as compliance_pb;
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_compliance::ComplianceLeaf;
+use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
+use shieldd_sdk_tct::StateCommitment;
 
 /// Convert a `ComplianceLeaf` to its proto representation.
 pub fn compliance_leaf_to_proto(leaf: &ComplianceLeaf) -> compliance_pb::ComplianceLeaf {
@@ -28,7 +28,7 @@ pub fn compliance_leaf_from_proto(
 
 /// Convert an `IndexedLeaf` to its proto representation.
 pub fn indexed_leaf_to_proto(
-    leaf: &penumbra_sdk_compliance::IndexedLeaf,
+    leaf: &shieldd_sdk_compliance::IndexedLeaf,
 ) -> compliance_pb::IndexedLeafData {
     leaf.clone().into()
 }
@@ -61,7 +61,7 @@ pub fn parse_tx_blinding_nonce(bytes: &[u8]) -> Result<Option<Fr>> {
 
 /// Parse a StateCommitment from an optional proto.
 pub fn parse_state_commitment(
-    proto: Option<penumbra_sdk_proto::penumbra::crypto::tct::v1::StateCommitment>,
+    proto: Option<shieldd_sdk_proto::shieldd::crypto::tct::v1::StateCommitment>,
 ) -> Result<Option<StateCommitment>> {
     proto.map(|c| c.try_into().map_err(Into::into)).transpose()
 }
@@ -69,16 +69,16 @@ pub fn parse_state_commitment(
 /// Parse a MerklePath from an optional proto.
 pub fn parse_merkle_path(
     proto: Option<compliance_pb::MerklePath>,
-) -> Result<Option<penumbra_sdk_compliance::MerklePath>> {
+) -> Result<Option<shieldd_sdk_compliance::MerklePath>> {
     proto.map(|p| p.try_into()).transpose()
 }
 
 /// Parse an IndexedLeaf from an optional proto.
 pub fn parse_indexed_leaf(
     proto: Option<compliance_pb::IndexedLeafData>,
-) -> Result<Option<penumbra_sdk_compliance::IndexedLeaf>> {
+) -> Result<Option<shieldd_sdk_compliance::IndexedLeaf>> {
     proto
-        .map(penumbra_sdk_compliance::IndexedLeaf::try_from)
+        .map(shieldd_sdk_compliance::IndexedLeaf::try_from)
         .transpose()
 }
 
@@ -86,10 +86,10 @@ pub fn default_state_commitment() -> StateCommitment {
     StateCommitment(Fq::from(0u64))
 }
 
-pub fn default_indexed_leaf() -> penumbra_sdk_compliance::IndexedLeaf {
-    penumbra_sdk_compliance::IndexedLeaf::with_default_policy(
+pub fn default_indexed_leaf() -> shieldd_sdk_compliance::IndexedLeaf {
+    shieldd_sdk_compliance::IndexedLeaf::with_default_policy(
         Fq::from(0u64),
         0,
-        penumbra_sdk_compliance::indexed_tree::FQ_MAX.clone(),
+        shieldd_sdk_compliance::indexed_tree::FQ_MAX.clone(),
     )
 }

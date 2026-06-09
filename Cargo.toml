@@ -81,7 +81,7 @@ shared-version = true
 # Format spec for the auto-generated git tag, based on new version for release.
 tag-name = "v{{version}}"
 # The message is required for an annotated tag to be created.
-tag-message                = "Penumbra version {{version}}"
+tag-message                = "Shieldd version {{version}}"
 pre-release-commit-message = "chore: release version {{version}}"
 # Permit publishing to crates.io; local developers should run `cargo release --no-publish`
 # to prepare the git info, then pushing to remote with tag will trigger crates.io publication.
@@ -98,11 +98,10 @@ rate-limit = { existing-packages = 50 }
 allow-branch = ["*"]
 
 [workspace.package]
-authors    = ["Penumbra Labs <team@penumbralabs.xyz"]
+authors    = ["Shieldd Labs <team@shielddlabs.xyz"]
 edition    = "2021"
 version    = "2.1.0"
-repository = "https://github.com/mizufinance/penumbra"
-homepage   = "https://penumbra.zone"
+repository = "https://github.com/mizufinance/shieldd"
 license    = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
@@ -173,35 +172,35 @@ once_cell                        = { version = "1.8" }
 parking_lot                      = { version = "0.12.1" }
 pbjson                           = { version = "0.7.0" }
 pbjson-types                     = { version = "0.7.0" }
-penumbra-sdk-app                     = { default-features = false, version = "2.1.0", path = "crates/core/app" }
-penumbra-sdk-asset                   = { default-features = false, version = "2.1.0", path = "crates/core/asset" }
-penumbra-sdk-compact-block           = { default-features = false, version = "2.1.0", path = "crates/core/component/compact-block" }
-penumbra-sdk-custody                 = { version = "2.1.0", path = "crates/custody" }
-penumbra-sdk-custody-ledger-usb      = { version = "2.1.0", path = "crates/custody-ledger-usb" }
-penumbra-sdk-fee                     = { default-features = false, version = "2.1.0", path = "crates/core/component/fee" }
-penumbra-sdk-governance              = { default-features = false, version = "2.1.0", path = "crates/core/component/governance" }
-penumbra-sdk-ibc                     = { default-features = false, version = "2.1.0", path = "crates/core/component/ibc" }
-penumbra-sdk-keys                    = { default-features = false, version = "2.1.0", path = "crates/core/keys" }
-penumbra-sdk-mock-client             = { version = "2.1.0", path = "crates/test/mock-client" }
-penumbra-sdk-mock-consensus          = { version = "2.1.0", path = "crates/test/mock-consensus" }
-penumbra-sdk-mock-tendermint-proxy   = { version = "2.1.0", path = "crates/test/mock-tendermint-proxy" }
-penumbra-sdk-num                     = { default-features = false, version = "2.1.0", path = "crates/core/num" }
-penumbra-sdk-proof-params            = { default-features = false, version = "2.1.0", path = "crates/crypto/proof-params" }
-penumbra-sdk-proof-aggregation       = { default-features = false, version = "2.1.0", path = "crates/crypto/proof-aggregation" }
-penumbra-sdk-proof-aggregation-trace-schema = { version = "2.1.0", path = "crates/crypto/proof-aggregation-trace-schema" }
-penumbra-sdk-proto                   = { default-features = false, version = "2.1.0", path = "crates/proto" }
-penumbra-sdk-sct                     = { default-features = false, version = "2.1.0", path = "crates/core/component/sct" }
-penumbra-sdk-compliance              = { default-features = false, version = "2.1.0", path = "crates/core/component/compliance" }
-penumbra-sdk-shielded-pool           = { default-features = false, version = "2.1.0", path = "crates/core/component/shielded-pool" }
-penumbra-sdk-validator                = { default-features = false, version = "2.1.0", path = "crates/core/component/stake" }
-penumbra-sdk-tct                     = { default-features = false, version = "2.1.0", path = "crates/crypto/tct" }
-penumbra-sdk-test-subscriber         = { version = "2.1.0", path = "crates/test/tracing-subscriber" }
-penumbra-sdk-tower-trace             = { version = "2.1.0", path = "crates/util/tower-trace" }
-penumbra-sdk-transaction             = { default-features = false, version = "2.1.0", path = "crates/core/transaction" }
-penumbra-sdk-txhash                  = { default-features = false, version = "2.1.0", path = "crates/core/txhash" }
-penumbra-sdk-view                    = { version = "2.1.0", path = "crates/view" }
-penumbra-sdk-wallet                  = { version = "2.1.0", path = "crates/wallet" }
-penumbra-orbis-client                = { version = "2.1.0", path = "crates/util/orbis-client" }
+shieldd-sdk-app                     = { default-features = false, version = "2.1.0", path = "crates/core/app" }
+shieldd-sdk-asset                   = { default-features = false, version = "2.1.0", path = "crates/core/asset" }
+shieldd-sdk-compact-block           = { default-features = false, version = "2.1.0", path = "crates/core/component/compact-block" }
+shieldd-sdk-custody                 = { version = "2.1.0", path = "crates/custody" }
+shieldd-sdk-custody-ledger-usb      = { version = "2.1.0", path = "crates/custody-ledger-usb" }
+shieldd-sdk-fee                     = { default-features = false, version = "2.1.0", path = "crates/core/component/fee" }
+shieldd-sdk-governance              = { default-features = false, version = "2.1.0", path = "crates/core/component/governance" }
+shieldd-sdk-ibc                     = { default-features = false, version = "2.1.0", path = "crates/core/component/ibc" }
+shieldd-sdk-keys                    = { default-features = false, version = "2.1.0", path = "crates/core/keys" }
+shieldd-sdk-mock-client             = { version = "2.1.0", path = "crates/test/mock-client" }
+shieldd-sdk-mock-consensus          = { version = "2.1.0", path = "crates/test/mock-consensus" }
+shieldd-sdk-mock-tendermint-proxy   = { version = "2.1.0", path = "crates/test/mock-tendermint-proxy" }
+shieldd-sdk-num                     = { default-features = false, version = "2.1.0", path = "crates/core/num" }
+shieldd-sdk-proof-params            = { default-features = false, version = "2.1.0", path = "crates/crypto/proof-params" }
+shieldd-sdk-proof-aggregation       = { default-features = false, version = "2.1.0", path = "crates/crypto/proof-aggregation" }
+shieldd-sdk-proof-aggregation-trace-schema = { version = "2.1.0", path = "crates/crypto/proof-aggregation-trace-schema" }
+shieldd-sdk-proto                   = { default-features = false, version = "2.1.0", path = "crates/proto" }
+shieldd-sdk-sct                     = { default-features = false, version = "2.1.0", path = "crates/core/component/sct" }
+shieldd-sdk-compliance              = { default-features = false, version = "2.1.0", path = "crates/core/component/compliance" }
+shieldd-sdk-shielded-pool           = { default-features = false, version = "2.1.0", path = "crates/core/component/shielded-pool" }
+shieldd-sdk-validator                = { default-features = false, version = "2.1.0", path = "crates/core/component/stake" }
+shieldd-sdk-tct                     = { default-features = false, version = "2.1.0", path = "crates/crypto/tct" }
+shieldd-sdk-test-subscriber         = { version = "2.1.0", path = "crates/test/tracing-subscriber" }
+shieldd-sdk-tower-trace             = { version = "2.1.0", path = "crates/util/tower-trace" }
+shieldd-sdk-transaction             = { default-features = false, version = "2.1.0", path = "crates/core/transaction" }
+shieldd-sdk-txhash                  = { default-features = false, version = "2.1.0", path = "crates/core/txhash" }
+shieldd-sdk-view                    = { version = "2.1.0", path = "crates/view" }
+shieldd-sdk-wallet                  = { version = "2.1.0", path = "crates/wallet" }
+shieldd-orbis-client                = { version = "2.1.0", path = "crates/util/orbis-client" }
 pin-project                      = { version = "1.0.12" }
 pin-project-lite                 = { version = "0.2.9" }
 poseidon377                      = { version = "1.2.0" }

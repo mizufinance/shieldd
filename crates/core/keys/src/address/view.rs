@@ -2,13 +2,13 @@ use std::cmp::Ordering;
 
 use serde::{Deserialize, Serialize};
 
-use penumbra_sdk_proto::{penumbra::core::keys::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 
 use crate::keys::{AddressIndex, WalletId};
 
 use super::Address;
 
-/// A view of a Penumbra address, either an opaque payment address or an address
+/// A view of a Shieldd address, either an opaque payment address or an address
 /// with known structure.
 ///
 /// This type allows working with addresses and address indexes without knowing

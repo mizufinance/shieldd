@@ -11,18 +11,18 @@ use ibc_types::{
     },
     timestamp::Timestamp,
 };
-use penumbra_sdk_ibc::component::ChannelStateWriteExt as _;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::penumbra::core::component::ibc::v1::FungibleTokenPacketData;
-use penumbra_sdk_shielded_pool::{
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
+use shieldd_sdk_ibc::component::ChannelStateWriteExt as _;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::shieldd::core::component::ibc::v1::FungibleTokenPacketData;
+use shieldd_sdk_shielded_pool::{
     benchmark_helpers::{
         benchmark_parse_ics20_receive_context, benchmark_shielded_ics20_withdrawal_roundtrip_inputs,
     },
     Ics20Withdrawal, ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProof,
 };
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 
 fn configured_sizes(var: &str, default: &[usize]) -> Vec<usize> {
     std::env::var(var)
@@ -58,9 +58,9 @@ fn transfer_packet(sequence: u64, data: Vec<u8>) -> Packet {
 
 fn packet_data(returned_to_source: bool, receiver: &Address) -> Vec<u8> {
     let denom = if returned_to_source {
-        "transfer/channel-0/upenumbra"
+        "transfer/channel-0/ushieldd"
     } else {
-        "upenumbra"
+        "ushieldd"
     };
     let data = FungibleTokenPacketData {
         denom: denom.to_string(),
@@ -89,7 +89,7 @@ fn plain_withdrawal() -> Ics20Withdrawal {
     let mut rng = ChaCha20Rng::seed_from_u64(11);
     Ics20Withdrawal {
         amount: Amount::from(12345u64),
-        denom: "upenumbra".try_into().expect("valid benchmark denom"),
+        denom: "ushieldd".try_into().expect("valid benchmark denom"),
         destination_chain_address: "bankd1benchmarkreceiver".to_string(),
         return_address: Address::dummy(&mut rng),
         timeout_height: Height::new(0, 1_000_000).expect("valid timeout height"),
@@ -176,8 +176,8 @@ fn bench_outbound_plain(c: &mut Criterion) {
 
 fn bench_receipt_commit_curve(c: &mut Criterion) {
     let runtime = tokio::runtime::Runtime::new().expect("create benchmark runtime");
-    let historical_counts = configured_sizes("PENUMBRA_IBC_BENCH_RECEIPT_HISTORY", &[0, 10_000]);
-    let packet_counts = configured_sizes("PENUMBRA_IBC_BENCH_BLOCK_PACKETS", &[100]);
+    let historical_counts = configured_sizes("SHIELDD_IBC_BENCH_RECEIPT_HISTORY", &[0, 10_000]);
+    let packet_counts = configured_sizes("SHIELDD_IBC_BENCH_BLOCK_PACKETS", &[100]);
     let mut group = c.benchmark_group("ibc_jmt_receipt_commit_curve");
 
     for historical_receipts in historical_counts {
@@ -212,7 +212,7 @@ fn bench_receipt_commit_curve(c: &mut Criterion) {
 }
 
 fn bench_shielded_withdrawal(c: &mut Criterion) {
-    if std::env::var("PENUMBRA_IBC_BENCH_SHIELDED_PROOF").as_deref() != Ok("1") {
+    if std::env::var("SHIELDD_IBC_BENCH_SHIELDED_PROOF").as_deref() != Ok("1") {
         return;
     }
 

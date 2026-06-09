@@ -1,14 +1,14 @@
-use penumbra_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
-use penumbra_sdk_governance::{ProposalSubmit, ValidatorVote};
-use penumbra_sdk_ibc::IbcRelay;
-use penumbra_sdk_proof_aggregation::AggregateBundle;
-use penumbra_sdk_proto::{core::transaction::v1 as pbt, DomainType};
-use penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalView;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
+use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
+use shieldd_sdk_ibc::IbcRelay;
+use shieldd_sdk_proof_aggregation::AggregateBundle;
+use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
+use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView;
 
-pub use penumbra_sdk_shielded_pool::ConsolidateView;
-pub use penumbra_sdk_shielded_pool::SplitView;
-pub use penumbra_sdk_shielded_pool::TransferView;
+pub use shieldd_sdk_shielded_pool::ConsolidateView;
+pub use shieldd_sdk_shielded_pool::SplitView;
+pub use shieldd_sdk_shielded_pool::TransferView;
 
 use crate::Action;
 
@@ -19,7 +19,7 @@ pub enum ActionView {
     Transfer(TransferView),
     Consolidate(ConsolidateView),
     Split(SplitView),
-    ValidatorDefinition(penumbra_sdk_validator::validator::Definition),
+    ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
     IbcRelay(IbcRelay),
     ProposalSubmit(ProposalSubmit),
     ValidatorVote(ValidatorVote),

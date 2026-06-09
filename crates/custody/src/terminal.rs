@@ -1,9 +1,9 @@
 use anyhow::Result;
-use penumbra_sdk_governance::{ProposalSubmitBody, ValidatorVoteBody};
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_transaction::TransactionPlan;
-use penumbra_sdk_validator::validator::Validator;
 use serde::de::DeserializeOwned;
+use shieldd_sdk_governance::{ProposalSubmitBody, ValidatorVoteBody};
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_transaction::TransactionPlan;
+use shieldd_sdk_validator::validator::Validator;
 use tonic::async_trait;
 
 #[derive(Debug, Clone)]

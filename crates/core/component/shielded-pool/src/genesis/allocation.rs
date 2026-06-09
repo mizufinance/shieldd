@@ -1,11 +1,11 @@
-use penumbra_sdk_asset::{
+use serde::{Deserialize, Serialize};
+use shieldd_sdk_asset::{
     asset::{self, Metadata, Unit},
     Value,
 };
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{penumbra::core::component::shielded_pool::v1 as pb, DomainType};
-use serde::{Deserialize, Serialize};
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
 
 /// A (transparent) genesis allocation.
 #[derive(Clone, Serialize, Deserialize)]

@@ -1,5 +1,5 @@
-use penumbra_sdk_compliance::{AuditDetectedRef, DecryptedVia, OrbisAuditEntry};
-use penumbra_sdk_num::Amount;
+use shieldd_sdk_compliance::{AuditDetectedRef, DecryptedVia, OrbisAuditEntry};
+use shieldd_sdk_num::Amount;
 
 #[derive(Clone, Debug)]
 pub struct AddressData {

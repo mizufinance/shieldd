@@ -5,13 +5,13 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_snark::SNARK;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use decaf377::{Bls12_377, Fq};
-use penumbra_sdk_proof_aggregation::{
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use shieldd_sdk_proof_aggregation::{
     aggregate_family, pad_items_to_power_of_two, srs_id, verify_family_aggregate,
     AggregateStatement, DevSrs, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
 };
-use penumbra_sdk_proof_params::batch::BatchItem;
-use penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use shieldd_sdk_proof_params::batch::BatchItem;
+use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
 use std::path::PathBuf;
 
 #[derive(Clone)]
@@ -155,8 +155,8 @@ fn snarkpack_bench(c: &mut Criterion) {
     let counts = [1usize, 2, 4, 8, 64];
     let families = [
         ProofFamilyId::Transfer,
-        ProofFamilyId::Consolidate(penumbra_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
-        ProofFamilyId::Split(penumbra_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
+        ProofFamilyId::Consolidate(shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
+        ProofFamilyId::Split(shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
         ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
     ];
 

@@ -6,9 +6,9 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_tct::StateCommitment;
 use std::collections::BTreeMap;
 
 use crate::{indexed_tree::IndexedLeaf, structs::AssetPolicy, ComplianceLeaf, MerklePath};

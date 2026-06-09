@@ -1,24 +1,24 @@
 use anyhow::{anyhow, Context, Result};
 use decaf377::Fr;
-use penumbra_sdk_asset::{asset, Balance, Value, BASE_ASSET_ID};
-use penumbra_sdk_fee::{Fee, FeeTier, GasPrices};
-use penumbra_sdk_keys::{keys::AddressIndex, Address};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::view::v1::NotesRequest;
-use penumbra_sdk_shielded_pool::{
+use rand::CryptoRng;
+use rand_core::RngCore;
+use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_ID};
+use shieldd_sdk_fee::{Fee, FeeTier, GasPrices};
+use shieldd_sdk_keys::{keys::AddressIndex, Address};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::view::v1::NotesRequest;
+use shieldd_sdk_shielded_pool::{
     note, ConsolidateFamilyId, ConsolidatePlan, Ics20Withdrawal, ShieldedIcs20WithdrawalFamilyId,
     ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, SplitFamilyId, SplitPlan,
     TransferPlan,
 };
-use penumbra_sdk_transaction::{
+use shieldd_sdk_transaction::{
     check_transaction_plan_enabled,
     gas::GasCost,
     memo::MemoPlaintext,
     plan::{ActionPlan, MemoPlan, TransactionPlan},
     FeeFundingPlan, TransactionParameters,
 };
-use rand::CryptoRng;
-use rand_core::RngCore;
 use std::collections::BTreeSet;
 
 use crate::{
@@ -1493,26 +1493,26 @@ mod tests {
     use decaf377::Fq;
     use futures::{FutureExt, Stream};
     use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
-    use penumbra_sdk_app::params::AppParameters;
-    use penumbra_sdk_asset::BASE_ASSET_ID;
-    use penumbra_sdk_fee::GasPrices;
-    use penumbra_sdk_governance::{
+    use rand_core::OsRng;
+    use shieldd_sdk_app::params::AppParameters;
+    use shieldd_sdk_asset::BASE_ASSET_ID;
+    use shieldd_sdk_fee::GasPrices;
+    use shieldd_sdk_governance::{
         Proposal, ProposalPayload, ProposalSubmit, ProposalSubmitBody, ValidatorVote,
         ValidatorVoteBody, ValidatorVoteReason, Vote,
     };
-    use penumbra_sdk_ibc::IbcRelay;
-    use penumbra_sdk_keys::keys::SeedPhrase;
-    use penumbra_sdk_keys::keys::{AddressIndex, Bip44Path, SpendKey};
-    use penumbra_sdk_proto::core::component::compliance::v1 as compliance_pb;
-    use penumbra_sdk_proto::view::v1 as pb;
-    use penumbra_sdk_proto::{DomainType, Message as _};
-    use penumbra_sdk_sct::{CommitmentSource, Nullifier};
-    use penumbra_sdk_shielded_pool::{fmd, note, Note, Rseed};
-    use penumbra_sdk_transaction::{
+    use shieldd_sdk_ibc::IbcRelay;
+    use shieldd_sdk_keys::keys::SeedPhrase;
+    use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SpendKey};
+    use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
+    use shieldd_sdk_proto::view::v1 as pb;
+    use shieldd_sdk_proto::{DomainType, Message as _};
+    use shieldd_sdk_sct::{CommitmentSource, Nullifier};
+    use shieldd_sdk_shielded_pool::{fmd, note, Note, Rseed};
+    use shieldd_sdk_transaction::{
         plan::ActionPlan, txhash::TransactionId, AuthorizationData, Transaction, WitnessData,
     };
-    use penumbra_sdk_validator::{validator, GovernanceKey, IdentityKey};
-    use rand_core::OsRng;
+    use shieldd_sdk_validator::{validator, GovernanceKey, IdentityKey};
     use std::collections::BTreeMap;
     use std::future::Future;
     use std::pin::Pin;
@@ -1583,7 +1583,7 @@ mod tests {
     fn test_ics20_withdrawal(amount: u64, return_address: Address) -> Ics20Withdrawal {
         Ics20Withdrawal {
             amount: amount.into(),
-            denom: penumbra_sdk_asset::asset::Metadata::try_from("upenumbra")
+            denom: shieldd_sdk_asset::asset::Metadata::try_from("ushieldd")
                 .expect("valid base-asset metadata"),
             destination_chain_address: "cosmos1deadbeefdeadbeefdeadbeefdeadbeef7a8n3x".to_string(),
             return_address,
@@ -1601,7 +1601,7 @@ mod tests {
 
     fn test_ibc_action() -> IbcRelay {
         IbcRelay::Unknown(pbjson_types::Any {
-            type_url: "/penumbra.test.ibc".to_owned(),
+            type_url: "/shieldd.test.ibc".to_owned(),
             value: vec![1, 2, 3].into(),
         })
     }
@@ -1688,7 +1688,7 @@ mod tests {
             dk_pub: vec![0u8; 32],
             threshold: u128::MAX.to_le_bytes().to_vec(),
             route_policy_hash: vec![],
-            slot_count: penumbra_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT
+            slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT
                 .to_le_bytes()
                 .to_vec(),
             ring_pk: vec![0u8; 32],
@@ -1940,8 +1940,8 @@ mod tests {
             Box<
                 dyn Future<
                         Output = Result<(
-                            penumbra_sdk_tct::StateCommitment,
-                            penumbra_sdk_tct::StateCommitment,
+                            shieldd_sdk_tct::StateCommitment,
+                            shieldd_sdk_tct::StateCommitment,
                         )>,
                     > + Send
                     + 'static,
@@ -1949,8 +1949,8 @@ mod tests {
         > {
             async move {
                 Ok((
-                    penumbra_sdk_tct::StateCommitment(Fq::from(0u64)),
-                    penumbra_sdk_tct::StateCommitment(Fq::from(0u64)),
+                    shieldd_sdk_tct::StateCommitment(Fq::from(0u64)),
+                    shieldd_sdk_tct::StateCommitment(Fq::from(0u64)),
                 ))
             }
             .boxed()
@@ -2318,8 +2318,8 @@ mod tests {
 
         let slot_derivation = address.diversified_generator().vartime_compress_to_field();
         let leaf =
-            penumbra_sdk_compliance::ComplianceLeaf::new(address, *BASE_ASSET_ID, slot_derivation);
-        let msg = penumbra_sdk_compliance::structs::MsgRegisterUser { leaf, grant: None };
+            shieldd_sdk_compliance::ComplianceLeaf::new(address, *BASE_ASSET_ID, slot_derivation);
+        let msg = shieldd_sdk_compliance::structs::MsgRegisterUser { leaf, grant: None };
 
         let mut note_manager = NoteManager::new(OsRng);
         note_manager.set_gas_prices(GasPrices::zero());

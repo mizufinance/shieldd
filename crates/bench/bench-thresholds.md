@@ -12,9 +12,9 @@ for diagnosis, but the hard gate is `just snarkpack-dos-gate`.
 - CI gate:
   `just snarkpack-dos-gate`
 - size report:
-  `cargo test -p penumbra-sdk-proof-aggregation aggregate_proof_size_report --lib -- --ignored --nocapture`
+  `cargo test -p shieldd-sdk-proof-aggregation aggregate_proof_size_report --lib -- --ignored --nocapture`
 - optional release benchmarks:
-  `cargo bench -p penumbra-sdk-bench --bench snarkpack`
+  `cargo bench -p shieldd-sdk-bench --bench snarkpack`
 
 ## Size Gate
 

@@ -4,12 +4,12 @@ use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_keys::keys::NullifierKey;
-use penumbra_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_keys::keys::NullifierKey;
+use shieldd_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_tct as tct;
 
 use crate::{
     public_input_hash::{split_statement_hash_from_public, StatementHashError},
@@ -20,15 +20,15 @@ use super::SplitFamilyId;
 
 impl SplitFamilyId {
     pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        penumbra_sdk_proof_params::split_proof_verification_key(self.get())
+        shieldd_sdk_proof_params::split_proof_verification_key(self.get())
     }
 
     pub fn proving_key_bytes(self) -> &'static [u8] {
-        penumbra_sdk_proof_params::split_proving_key_bytes(self.get())
+        shieldd_sdk_proof_params::split_proving_key_bytes(self.get())
     }
 
     pub fn circuit_metadata_bytes(self) -> &'static [u8] {
-        penumbra_sdk_proof_params::split_circuit_metadata(self.get())
+        shieldd_sdk_proof_params::split_circuit_metadata(self.get())
     }
 }
 
@@ -142,11 +142,11 @@ impl SplitProof {
     pub fn to_batch_item(
         &self,
         public: &SplitProofPublic,
-    ) -> anyhow::Result<penumbra_sdk_proof_params::batch::BatchItem> {
+    ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
         let proof = self.decoded_proof()?;
         let statement_hash = public.statement_hash()?;
 
-        Ok(penumbra_sdk_proof_params::batch::BatchItem {
+        Ok(shieldd_sdk_proof_params::batch::BatchItem {
             proof,
             public_inputs: vec![statement_hash],
         })

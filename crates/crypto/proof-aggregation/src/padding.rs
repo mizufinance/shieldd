@@ -1,8 +1,8 @@
 use anyhow::{anyhow, ensure, Result};
 use decaf377::Fq;
-use penumbra_sdk_proof_params::batch::BatchItem;
+use shieldd_sdk_proof_params::batch::BatchItem;
 
-pub const PADDING_RULE_DOMAIN: &[u8] = b"penumbra.snarkpack.padding.repeat-final-row.v1\0";
+pub const PADDING_RULE_DOMAIN: &[u8] = b"shieldd.snarkpack.padding.repeat-final-row.v1\0";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreparedVerifyInputs {
@@ -77,7 +77,7 @@ pub fn prepare_verify_inputs(
 mod tests {
     use ark_groth16::Proof;
     use decaf377::Fq;
-    use penumbra_sdk_proof_params::batch::BatchItem;
+    use shieldd_sdk_proof_params::batch::BatchItem;
 
     use super::{pad_items_to_power_of_two, prepare_verify_inputs};
 

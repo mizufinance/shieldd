@@ -2,14 +2,14 @@
 
 use anyhow::Result;
 use decaf377_fmd::Precision;
-use penumbra_sdk_governance::{ProposalSubmit, ValidatorVote};
-use penumbra_sdk_ibc::IbcRelay;
-use penumbra_sdk_keys::{Address, FullViewingKey, PayloadKey};
-use penumbra_sdk_proto::{core::transaction::v1 as pb, DomainType};
-use penumbra_sdk_shielded_pool::{Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, TransferPlan};
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
+use shieldd_sdk_ibc::IbcRelay;
+use shieldd_sdk_keys::{Address, FullViewingKey, PayloadKey};
+use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
+use shieldd_sdk_shielded_pool::{Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, TransferPlan};
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 mod action;
 mod auth;
@@ -46,7 +46,7 @@ impl TransactionPlan {
 
     pub fn effect_hash(&self, fvk: &FullViewingKey) -> Result<EffectHash> {
         let mut state = blake2b_simd::Params::new()
-            .personal(b"PenumbraEfHs")
+            .personal(b"ShielddEfHs")
             .to_state();
 
         let parameters_hash = self.transaction_parameters.effect_hash();
@@ -102,7 +102,7 @@ impl TransactionPlan {
 
     pub fn validator_definitions(
         &self,
-    ) -> impl Iterator<Item = &penumbra_sdk_validator::validator::Definition> {
+    ) -> impl Iterator<Item = &shieldd_sdk_validator::validator::Definition> {
         self.actions.iter().filter_map(|action| {
             if let ActionPlan::ValidatorDefinition(definition) = action {
                 Some(definition)
@@ -328,14 +328,14 @@ mod tests {
     use decaf377::Fr;
     use ibc_types::core::channel::ChannelId;
     use ibc_types::core::client::Height as IbcHeight;
-    use penumbra_sdk_asset::{Value, BASE_ASSET_ID};
-    use penumbra_sdk_keys::keys::{AddressIndex, Bip44Path, SeedPhrase, SpendKey};
-    use penumbra_sdk_keys::test_keys;
-    use penumbra_sdk_shielded_pool::{
+    use rand_core::OsRng;
+    use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
+    use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SeedPhrase, SpendKey};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_shielded_pool::{
         Ics20Withdrawal, Note, Rseed, ShieldedIcs20WithdrawalFamilyId, ShieldedInputPlan,
         ShieldedOutputPlan,
     };
-    use rand_core::OsRng;
     use std::{ops::Deref, str::FromStr};
 
     #[test]
@@ -417,7 +417,7 @@ mod tests {
         );
         let withdrawal = Ics20Withdrawal {
             amount: 40_000u64.into(),
-            denom: penumbra_sdk_asset::BASE_ASSET_DENOM.clone(),
+            denom: shieldd_sdk_asset::BASE_ASSET_DENOM.clone(),
             destination_chain_address: "cosmos1destination".to_string(),
             return_address: test_keys::ADDRESS_0.deref().clone(),
             timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
@@ -471,7 +471,7 @@ mod tests {
         let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
         let withdrawal = Ics20Withdrawal {
             amount: 40_000u64.into(),
-            denom: penumbra_sdk_asset::BASE_ASSET_DENOM.clone(),
+            denom: shieldd_sdk_asset::BASE_ASSET_DENOM.clone(),
             destination_chain_address: "cosmos1destination".to_string(),
             return_address: test_keys::ADDRESS_0.deref().clone(),
             timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),

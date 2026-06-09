@@ -1,7 +1,7 @@
 use decaf377_rdsa::{Signature, SpendAuth};
-use penumbra_sdk_proto::{penumbra::core::component::validator::v1 as pb, DomainType};
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use crate::validator::Validator;
 

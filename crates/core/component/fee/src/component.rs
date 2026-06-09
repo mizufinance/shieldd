@@ -8,8 +8,8 @@ use crate::{event::EventBlockFees, genesis, Fee};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::Component;
-use penumbra_sdk_proto::state::StateWriteProto as _;
-use penumbra_sdk_proto::DomainType as _;
+use shieldd_sdk_proto::state::StateWriteProto as _;
+use shieldd_sdk_proto::DomainType as _;
 use tendermint::abci;
 use tracing::instrument;
 
@@ -54,7 +54,7 @@ impl Component for FeeComponent {
         let fees = state_ref.accumulated_base_fees_and_tips();
 
         let (swapped_base, swapped_tip) = fees
-            .get(&penumbra_sdk_asset::BASE_ASSET_ID)
+            .get(&shieldd_sdk_asset::BASE_ASSET_ID)
             .cloned()
             .unwrap_or_default();
 

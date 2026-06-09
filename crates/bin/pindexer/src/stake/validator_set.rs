@@ -5,10 +5,10 @@ use cometindex::{
     sqlx, AppView, ContextualizedEvent, PgTransaction,
 };
 
-use penumbra_sdk_app::genesis::Content;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{core::component::validator::v1 as pb, event::ProtoEvent};
-use penumbra_sdk_validator::{
+use shieldd_sdk_app::genesis::Content;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{core::component::validator::v1 as pb, event::ProtoEvent};
+use shieldd_sdk_validator::{
     validator::{self, Validator},
     IdentityKey,
 };
@@ -25,7 +25,7 @@ impl ValidatorSet {
         event: ContextualizedEvent<'_>,
     ) -> Result<(), anyhow::Error> {
         match event.event.kind.as_str() {
-            "penumbra.core.component.validator.v1.EventValidatorDefinitionUpload" => {
+            "shieldd.core.component.validator.v1.EventValidatorDefinitionUpload" => {
                 let pe = pb::EventValidatorDefinitionUpload::from_event(event.as_ref())?;
                 let val = Validator::try_from(
                     pe.validator
@@ -34,7 +34,7 @@ impl ValidatorSet {
 
                 handle_upload(dbtx, val).await?;
             }
-            "penumbra.core.component.validator.v1.EventValidatorVotingPowerChange" => {
+            "shieldd.core.component.validator.v1.EventValidatorVotingPowerChange" => {
                 let pe = pb::EventValidatorVotingPowerChange::from_event(event.as_ref())?;
                 let ik = IdentityKey::try_from(
                     pe.identity_key
@@ -46,7 +46,7 @@ impl ValidatorSet {
                 )?;
                 handle_voting_power_change(dbtx, ik, voting_power).await?;
             }
-            "penumbra.core.component.validator.v1.EventValidatorStateChange" => {
+            "shieldd.core.component.validator.v1.EventValidatorStateChange" => {
                 let pe = pb::EventValidatorStateChange::from_event(event.as_ref())?;
                 let ik = IdentityKey::try_from(
                     pe.identity_key
@@ -117,7 +117,7 @@ async fn add_genesis_validators<'a>(dbtx: &mut PgTransaction<'a>, content: &Cont
         // FIXME: this shouldn't be a proto type but now that has been propagated
         // all through the rest of the code for no reason
         let val = Validator::try_from(val.clone())?;
-        let voting_power = penumbra_sdk_validator::params::equal_validator_voting_power();
+        let voting_power = shieldd_sdk_validator::params::equal_validator_voting_power();
 
         // insert sql
         sqlx::query(

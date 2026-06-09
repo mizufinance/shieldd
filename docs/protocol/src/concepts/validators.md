@@ -1,6 +1,6 @@
 # Validators
 
-Penumbra validators are managed directly through `ValidatorDefinition` actions and
+Shieldd validators are managed directly through `ValidatorDefinition` actions and
 participate in consensus with equal voting power once they are active.
 
 ## States

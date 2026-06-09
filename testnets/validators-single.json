@@ -1,7 +1,7 @@
 [
     {
-        "name": "Penumbra Local Dev",
-        "website": "https://penumbra.zone",
+        "name": "Shieldd Local Dev",
+        "website": "https://github.com/mizufinance/shieldd",
         "description": "Single validator for local development",
         "funding_streams": [],
         "sequence_number": 0

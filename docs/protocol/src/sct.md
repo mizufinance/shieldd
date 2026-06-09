@@ -1,6 +1,6 @@
 # State Commitment Tree
 
-Penumbra makes an explicit separation between two different kinds of state:
+Shieldd makes an explicit separation between two different kinds of state:
 
 * Public shared state, recorded on-chain in a key-value store;
 * Private per-user state, recorded on end-user devices and only committed to on-chain.
@@ -29,7 +29,7 @@ Private execution involves a role reversal relative to the conventional use of
 Merkle trees in blockchains, because it is the _client_ that makes a proof to
 the _full node_, rather than the other way around.  This means that every client
 must synchronize a local instance of the state commitment tree, in order to have
-the data required to form proofs.  Penumbra's state commitment tree is
+the data required to form proofs.  Shieldd's state commitment tree is
 instantiated using the _tiered commitment tree_ (TCT), an append-only,
 ZK-friendly Merkle tree designed primarily for efficient, filterable
 synchronization.  We use the term SCT to refer to the part of the protocol that

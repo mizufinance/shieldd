@@ -15,8 +15,8 @@ use anyhow::Context;
 use ark_ff::Zero;
 use decaf377::{Element, Fq, Fr};
 use once_cell::sync::Lazy;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_num::Amount;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_num::Amount;
 
 use sha2::{Digest, Sha256};
 
@@ -24,7 +24,7 @@ use crate::issuer_keys::DETECTION_TIER_BYTES;
 use crate::structs::{ComplianceCiphertext, DleqProof};
 
 #[cfg(test)]
-use penumbra_sdk_keys::Address;
+use shieldd_sdk_keys::Address;
 
 /// Domain separator for SHA256 derivation — matches Orbis `DERIVATION_DOMAIN` exactly.
 const DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
@@ -49,7 +49,7 @@ pub fn derive_compliance_scalar(slot_derivation: Fq) -> Fq {
 /// Domain separator for Poseidon stream cipher seed derivation.
 pub static COMPLIANCE_STREAM_CIPHER_DOMAIN: Lazy<Fq> = Lazy::new(|| {
     Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"penumbra.compliance.poseidon_stream").as_bytes(),
+        blake2b_simd::blake2b(b"shieldd.compliance.poseidon_stream").as_bytes(),
     )
 });
 
@@ -63,14 +63,14 @@ fn derive_unregulated_sink_point(domain_sep: &[u8]) -> Element {
 /// This preserves a uniform transfer ciphertext shape without requiring a
 /// real issuer detection key for unregulated assets.
 pub static UNREGULATED_SINK_DK_PUB: Lazy<Element> =
-    Lazy::new(|| derive_unregulated_sink_point(b"penumbra.compliance.unregulated.dk-pub.v1"));
+    Lazy::new(|| derive_unregulated_sink_point(b"shieldd.compliance.unregulated.dk-pub.v1"));
 
 /// Trapdoorless ring/ACK sink for unregulated assets.
 ///
 /// This preserves uniform ACK-derived encryption routing without reusing the
 /// detection sink point or requiring any Orbis-managed ring for unregulated assets.
 pub static UNREGULATED_SINK_RING_PK: Lazy<Element> =
-    Lazy::new(|| derive_unregulated_sink_point(b"penumbra.compliance.unregulated.ring-pk.v1"));
+    Lazy::new(|| derive_unregulated_sink_point(b"shieldd.compliance.unregulated.ring-pk.v1"));
 
 /// Decrypted compliance data.
 #[derive(Clone, Debug)]
@@ -86,21 +86,21 @@ pub struct DecryptedComplianceData {
 /// Domain separator for issuer detection tier encryption.
 pub static ISSUER_DETECTION_DOMAIN: Lazy<Fq> = Lazy::new(|| {
     Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"penumbra.compliance.issuer_detection").as_bytes(),
+        blake2b_simd::blake2b(b"shieldd.compliance.issuer_detection").as_bytes(),
     )
 });
 
 /// Domain separator for DLEQ metadata hash: M = Poseidon_6(domain, fields...).
 pub static DLEQ_METADATA_DOMAIN: Lazy<Fq> = Lazy::new(|| {
     Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"penumbra.compliance.dleq_metadata").as_bytes(),
+        blake2b_simd::blake2b(b"shieldd.compliance.dleq_metadata").as_bytes(),
     )
 });
 
 /// Domain separator for DLEQ Fiat-Shamir challenge: c = Poseidon_6(domain, points...).
 pub static DLEQ_CHALLENGE_DOMAIN: Lazy<Fq> = Lazy::new(|| {
     Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"penumbra.compliance.dleq_challenge").as_bytes(),
+        blake2b_simd::blake2b(b"shieldd.compliance.dleq_challenge").as_bytes(),
     )
 });
 
@@ -699,8 +699,8 @@ mod tests {
             let scalar = Fr::rand(&mut rng);
             let point = Element::GENERATOR * scalar;
 
-            // Penumbra method
-            let fq_penumbra = point.vartime_compress_to_field();
+            // Shieldd method
+            let fq_shieldd = point.vartime_compress_to_field();
 
             // Orbis method: serialize_compressed → from_le_bytes_mod_order
             let mut bytes = Vec::with_capacity(32);
@@ -710,8 +710,8 @@ mod tests {
             let fq_orbis = Fq::from_le_bytes_mod_order(&bytes);
 
             assert_eq!(
-                fq_penumbra, fq_orbis,
-                "Penumbra and Orbis point→Fq encoding must match"
+                fq_shieldd, fq_orbis,
+                "Shieldd and Orbis point→Fq encoding must match"
             );
         }
     }
@@ -878,8 +878,8 @@ mod tests {
 
     #[test]
     fn test_unregulated_sink_keys_are_hash_to_curve_points() {
-        let legacy_dk_hash = blake2b_simd::blake2b(b"penumbra.compliance.unregulated.dk-pub.v1");
-        let legacy_ring_hash = blake2b_simd::blake2b(b"penumbra.compliance.unregulated.ring-pk.v1");
+        let legacy_dk_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.dk-pub.v1");
+        let legacy_ring_hash = blake2b_simd::blake2b(b"shieldd.compliance.unregulated.ring-pk.v1");
         let legacy_dk_scalar = Fr::from_le_bytes_mod_order(legacy_dk_hash.as_bytes());
         let legacy_ring_scalar = Fr::from_le_bytes_mod_order(legacy_ring_hash.as_bytes());
 

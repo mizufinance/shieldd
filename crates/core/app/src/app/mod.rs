@@ -33,48 +33,48 @@ use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa as rdsa;
 use ibc_types::core::connection::ChainId;
 use jmt::RootHash;
-use penumbra_sdk_compact_block::{component::CompactBlockManager, StatePayload};
-use penumbra_sdk_compliance::params::{StateReadExt as _, StateWriteExt as _};
-use penumbra_sdk_compliance::registry::ComplianceRegistryRead as _;
-use penumbra_sdk_compliance::Compliance;
-use penumbra_sdk_fee::component::{
+use prost::bytes::Bytes;
+use prost::Message as _;
+use serde::{Deserialize, Serialize};
+use shieldd_sdk_compact_block::{component::CompactBlockManager, StatePayload};
+use shieldd_sdk_compliance::params::{StateReadExt as _, StateWriteExt as _};
+use shieldd_sdk_compliance::registry::ComplianceRegistryRead as _;
+use shieldd_sdk_compliance::Compliance;
+use shieldd_sdk_fee::component::{
     clear_block_fee_price_cache, FeeComponent, FeePay as _, StateReadExt as _, StateWriteExt as _,
 };
-use penumbra_sdk_fee::{Fee, Gas, GasPrices};
-use penumbra_sdk_governance::component::{Governance, StateReadExt as _, StateWriteExt as _};
-use penumbra_sdk_ibc::component::{Ibc, StateWriteExt as _};
-use penumbra_sdk_ibc::StateReadExt as _;
-use penumbra_sdk_proof_aggregation::{
+use shieldd_sdk_fee::{Fee, Gas, GasPrices};
+use shieldd_sdk_governance::component::{Governance, StateReadExt as _, StateWriteExt as _};
+use shieldd_sdk_ibc::component::{Ibc, StateWriteExt as _};
+use shieldd_sdk_ibc::StateReadExt as _;
+use shieldd_sdk_proof_aggregation::{
     aggregate_family_profiled, pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
     verify_family_aggregate_profiled_status, AggregateBuildBackendProfile, AggregateBundle,
     AggregateStatement, AggregateVerificationProfile, DevSrs, FamilyAggregate, ProofFamilyId,
     AGGREGATE_PROTOCOL_VERSION, DEFAULT_DEV_SRS_ID,
 };
-use penumbra_sdk_proof_params::batch::{self, BatchItem};
-use penumbra_sdk_proto::core::app::v1::TransactionsByHeightResponse;
-use penumbra_sdk_proto::{DomainType, StateWriteProto as _};
-use penumbra_sdk_sct::component::clock::EpochRead;
-use penumbra_sdk_sct::component::sct::Sct;
-use penumbra_sdk_sct::component::source::SourceContext as _;
-use penumbra_sdk_sct::component::tree::SctManager as _;
-use penumbra_sdk_sct::component::tree::SctRead as _;
-use penumbra_sdk_sct::component::{StateReadExt as _, StateWriteExt as _};
-use penumbra_sdk_sct::epoch::Epoch;
-use penumbra_sdk_sct::{CommitmentSource, Nullifier};
-use penumbra_sdk_shielded_pool::component::ClueManager as _;
-use penumbra_sdk_shielded_pool::component::{
+use shieldd_sdk_proof_params::batch::{self, BatchItem};
+use shieldd_sdk_proto::core::app::v1::TransactionsByHeightResponse;
+use shieldd_sdk_proto::{DomainType, StateWriteProto as _};
+use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::sct::Sct;
+use shieldd_sdk_sct::component::source::SourceContext as _;
+use shieldd_sdk_sct::component::tree::SctManager as _;
+use shieldd_sdk_sct::component::tree::SctRead as _;
+use shieldd_sdk_sct::component::{StateReadExt as _, StateWriteExt as _};
+use shieldd_sdk_sct::epoch::Epoch;
+use shieldd_sdk_sct::{CommitmentSource, Nullifier};
+use shieldd_sdk_shielded_pool::component::ClueManager as _;
+use shieldd_sdk_shielded_pool::component::{
     transfer_extract_public, transfer_to_batch_item, NoteManager as _, ShieldedPool,
     StateReadExt as _, StateWriteExt as _,
 };
-use penumbra_sdk_transaction::gas::GasCost as _;
-use penumbra_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters};
-use penumbra_sdk_txhash::AuthorizingData as _;
-use penumbra_sdk_validator::component::{
+use shieldd_sdk_transaction::gas::GasCost as _;
+use shieldd_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters};
+use shieldd_sdk_txhash::AuthorizingData as _;
+use shieldd_sdk_validator::component::{
     stake::ConsensusUpdateRead, Staking, StateReadExt as _, StateWriteExt as _,
 };
-use prost::bytes::Bytes;
-use prost::Message as _;
-use serde::{Deserialize, Serialize};
 use tendermint::abci::{self, Event};
 use tendermint::v0_37::abci::{request, response};
 use tendermint::validator::Update;
@@ -95,10 +95,10 @@ use crate::params::change::ParameterChangeExt as _;
 
 use crate::params::AppParameters;
 use crate::stateless_cache::{CacheEntry, HistoricalValidationStamp, StatelessCache, TxArtifact};
-use crate::{metrics, PenumbraHost};
-#[cfg(feature = "benchmark-helpers")]
-use penumbra_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
+use crate::{metrics, ShielddHost};
 use sha2::Digest as _;
+#[cfg(feature = "benchmark-helpers")]
+use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
 use std::sync::OnceLock;
 
 pub mod state_key;
@@ -116,7 +116,7 @@ pub const MAX_TRANSACTION_SIZE_BYTES: usize = 96 * 1024;
 pub const MAX_EVIDENCE_SIZE_BYTES: usize = 30 * 1024;
 
 const MAX_PADDED_PROOF_COUNT: usize = 32_768;
-const AGGREGATE_DEBUG_DIR_ENV: &str = "PENUMBRA_AGGREGATE_DEBUG_DIR";
+const AGGREGATE_DEBUG_DIR_ENV: &str = "SHIELDD_AGGREGATE_DEBUG_DIR";
 static AGGREGATE_DEBUG_SEQ: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Debug)]
@@ -157,7 +157,7 @@ fn proof_verification_key_for_family(
     family_id: ProofFamilyId,
 ) -> &'static PreparedVerifyingKey<Bls12_377> {
     match family_id {
-        ProofFamilyId::Transfer => penumbra_sdk_proof_params::transfer_proof_verification_key(),
+        ProofFamilyId::Transfer => shieldd_sdk_proof_params::transfer_proof_verification_key(),
         ProofFamilyId::Consolidate(family_id) => family_id.proof_verification_key(),
         ProofFamilyId::Split(family_id) => family_id.proof_verification_key(),
         ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.proof_verification_key(),
@@ -166,7 +166,7 @@ fn proof_verification_key_for_family(
 
 fn proof_family_label(family_id: ProofFamilyId) -> &'static str {
     match family_id {
-        ProofFamilyId::Transfer => penumbra_sdk_shielded_pool::TRANSFER_PROOF_LABEL,
+        ProofFamilyId::Transfer => shieldd_sdk_shielded_pool::TRANSFER_PROOF_LABEL,
         ProofFamilyId::Consolidate(family_id) => family_id.label(),
         ProofFamilyId::Split(family_id) => family_id.label(),
         ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.label(),
@@ -290,7 +290,7 @@ const AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER: usize = 24 * 1024;
 fn max_transaction_size_bytes() -> usize {
     static OVERRIDE: OnceLock<usize> = OnceLock::new();
     *OVERRIDE.get_or_init(|| {
-        std::env::var("PENUMBRA_MAX_TRANSACTION_SIZE_BYTES")
+        std::env::var("SHIELDD_MAX_TRANSACTION_SIZE_BYTES")
             .ok()
             .and_then(|value| value.parse::<usize>().ok())
             .filter(|value| *value > 0)
@@ -726,7 +726,7 @@ impl ArtifactBuildBreakdown {
 
 #[derive(Clone, Debug)]
 pub struct CheckTxSharedContext {
-    pub(crate) sct_base_position: penumbra_sdk_tct::Position,
+    pub(crate) sct_base_position: shieldd_sdk_tct::Position,
     pub(crate) base_gas_prices: GasPrices,
     pub(crate) historical_check_context: Arc<HistoricalCheckContext>,
 }
@@ -751,7 +751,7 @@ impl CheckTxSharedContext {
 
     fn gas_prices_for_fee(&self, fee: Fee) -> Result<GasPrices> {
         anyhow::ensure!(
-            fee.asset_id() == *penumbra_sdk_asset::BASE_ASSET_ID,
+            fee.asset_id() == *shieldd_sdk_asset::BASE_ASSET_ID,
             "only base-asset fees are supported, found {}",
             fee.asset_id(),
         );
@@ -761,17 +761,17 @@ impl CheckTxSharedContext {
 
 #[derive(Clone, Debug, Default)]
 struct BlockSctAppendLog {
-    base_position: Option<penumbra_sdk_tct::Position>,
+    base_position: Option<shieldd_sdk_tct::Position>,
     next_offset: u64,
-    entries: Vec<(penumbra_sdk_tct::Position, StatePayload)>,
+    entries: Vec<(shieldd_sdk_tct::Position, StatePayload)>,
 }
 
 impl BlockSctAppendLog {
-    async fn reserve_positions<S: penumbra_sdk_sct::component::tree::SctRead>(
+    async fn reserve_positions<S: shieldd_sdk_sct::component::tree::SctRead>(
         &mut self,
         state: &S,
         payloads: Vec<StatePayload>,
-    ) -> Result<Vec<(penumbra_sdk_tct::Position, StatePayload)>> {
+    ) -> Result<Vec<(shieldd_sdk_tct::Position, StatePayload)>> {
         #[cfg(feature = "benchmark-helpers")]
         let reserve_start = Instant::now();
         if payloads.is_empty() {
@@ -794,7 +794,7 @@ impl BlockSctAppendLog {
         let start = base_position_u64 + self.next_offset;
         let mut positioned = Vec::with_capacity(payloads.len());
         for (offset, payload) in payloads.into_iter().enumerate() {
-            let position = penumbra_sdk_tct::Position::from(start + offset as u64);
+            let position = shieldd_sdk_tct::Position::from(start + offset as u64);
             positioned.push((position, payload));
         }
         self.next_offset += positioned.len() as u64;
@@ -805,11 +805,11 @@ impl BlockSctAppendLog {
         Ok(positioned)
     }
 
-    fn append_positioned(&mut self, entries: Vec<(penumbra_sdk_tct::Position, StatePayload)>) {
+    fn append_positioned(&mut self, entries: Vec<(shieldd_sdk_tct::Position, StatePayload)>) {
         self.entries.extend(entries);
     }
 
-    fn take_entries(&mut self) -> Vec<(penumbra_sdk_tct::Position, StatePayload)> {
+    fn take_entries(&mut self) -> Vec<(shieldd_sdk_tct::Position, StatePayload)> {
         self.base_position = None;
         self.next_offset = 0;
         std::mem::take(&mut self.entries)
@@ -822,7 +822,7 @@ impl BlockSctAppendLog {
     }
 }
 
-/// The Penumbra application, written as a bundle of [`Component`]s.
+/// The Shieldd application, written as a bundle of [`Component`]s.
 ///
 /// The [`App`] is not a [`Component`], but
 /// it constructs the components and exposes a [`commit`](App::commit) that
@@ -832,7 +832,7 @@ pub struct App {
     committed_snapshot: Snapshot,
     snapshot_version: u64,
     block_tx_indexing_mode: BlockTxIndexingMode,
-    deferred_block_transactions: Vec<penumbra_sdk_proto::core::transaction::v1::Transaction>,
+    deferred_block_transactions: Vec<shieldd_sdk_proto::core::transaction::v1::Transaction>,
     pending_sct_append_log: BlockSctAppendLog,
     checktx_shared_context: Option<Arc<CheckTxSharedContext>>,
     aggregate_retry_cache: Option<CachedProposalAggregate>,
@@ -934,17 +934,17 @@ impl App {
     fn proof_family_ids() -> Vec<ProofFamilyId> {
         let mut family_ids = vec![ProofFamilyId::Transfer];
         family_ids.extend(
-            penumbra_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS
+            shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS
                 .into_iter()
                 .map(|spec| ProofFamilyId::Consolidate(spec.id)),
         );
         family_ids.extend(
-            penumbra_sdk_shielded_pool::SPLIT_FAMILY_SPECS
+            shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS
                 .into_iter()
                 .map(|spec| ProofFamilyId::Split(spec.id)),
         );
         family_ids.extend(
-            penumbra_sdk_shielded_pool::SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS
+            shieldd_sdk_shielded_pool::SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS
                 .into_iter()
                 .map(|spec| ProofFamilyId::ShieldedIcs20Withdrawal(spec.id)),
         );
@@ -1084,7 +1084,7 @@ impl App {
             .unwrap_or(1)
             .max(1);
 
-        std::env::var("PENUMBRA_PREPARE_PROPOSAL_FILTER_CONCURRENCY")
+        std::env::var("SHIELDD_PREPARE_PROPOSAL_FILTER_CONCURRENCY")
             .ok()
             .and_then(|value| value.parse::<usize>().ok())
             .map(|value| value.max(1))
@@ -1313,12 +1313,12 @@ impl App {
             base_fee.amount(),
         );
 
-        let tip = Fee(penumbra_sdk_asset::Value {
+        let tip = Fee(shieldd_sdk_asset::Value {
             amount: fee.amount() - base_fee.amount(),
             asset_id: fee.asset_id(),
         });
 
-        state.record_proto(penumbra_sdk_proto::core::component::fee::v1::EventPaidFee {
+        state.record_proto(shieldd_sdk_proto::core::component::fee::v1::EventPaidFee {
             fee: Some(fee.into()),
             base_fee: Some(base_fee.into()),
             gas_used: Some(gas_used.into()),
@@ -1376,7 +1376,7 @@ impl App {
             num_clues_equal_to_num_outputs, valid_binding_signature,
         };
         use cnidarium_component::ActionHandler as _;
-        use penumbra_sdk_shielded_pool::component::Ics20Transfer;
+        use shieldd_sdk_shielded_pool::component::Ics20Transfer;
 
         let mut proof_items = Self::empty_proof_items();
         let mut artifacts = Vec::with_capacity(txs.len());
@@ -1422,7 +1422,7 @@ impl App {
                     Action::ShieldedIcs20Withdrawal(withdrawal) => {
                         let t1 = Instant::now();
                         let public =
-                            penumbra_sdk_shielded_pool::component::shielded_ics20_withdrawal_extract_public(
+                            shieldd_sdk_shielded_pool::component::shielded_ics20_withdrawal_extract_public(
                                 withdrawal,
                                 &context,
                             )
@@ -1431,7 +1431,7 @@ impl App {
 
                         let t2 = Instant::now();
                         let item =
-                            penumbra_sdk_shielded_pool::component::shielded_ics20_withdrawal_to_batch_item(
+                            shieldd_sdk_shielded_pool::component::shielded_ics20_withdrawal_to_batch_item(
                                 withdrawal,
                                 public,
                             )
@@ -1457,7 +1457,7 @@ impl App {
                         };
                         let t1 = Instant::now();
                         let public =
-                            penumbra_sdk_shielded_pool::component::consolidate_extract_public(
+                            shieldd_sdk_shielded_pool::component::consolidate_extract_public(
                                 consolidate,
                                 &context,
                             )
@@ -1465,12 +1465,11 @@ impl App {
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
 
                         let t2 = Instant::now();
-                        let item =
-                            penumbra_sdk_shielded_pool::component::consolidate_to_batch_item(
-                                consolidate,
-                                public,
-                            )
-                            .context("consolidate to_batch_item failed")?;
+                        let item = shieldd_sdk_shielded_pool::component::consolidate_to_batch_item(
+                            consolidate,
+                            public,
+                        )
+                        .context("consolidate to_batch_item failed")?;
                         profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id = action_family_id(&Action::Consolidate(consolidate.clone()))
                             .expect("consolidate has a proof family");
@@ -1490,14 +1489,14 @@ impl App {
                             _ => unreachable!(),
                         };
                         let t1 = Instant::now();
-                        let public = penumbra_sdk_shielded_pool::component::split_extract_public(
+                        let public = shieldd_sdk_shielded_pool::component::split_extract_public(
                             split, &context,
                         )
                         .context("split extract public failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
 
                         let t2 = Instant::now();
-                        let item = penumbra_sdk_shielded_pool::component::split_to_batch_item(
+                        let item = shieldd_sdk_shielded_pool::component::split_to_batch_item(
                             split, public,
                         )
                         .context("split to_batch_item failed")?;
@@ -1520,7 +1519,7 @@ impl App {
                     Action::IbcRelay(action) => {
                         action
                             .clone()
-                            .with_handler::<Ics20Transfer, PenumbraHost>()
+                            .with_handler::<Ics20Transfer, ShielddHost>()
                             .check_stateless(())
                             .await?
                     }
@@ -1863,7 +1862,7 @@ impl App {
                 memo: None,
             },
             binding_sig: [0; 64].into(),
-            anchor: penumbra_sdk_tct::Root(penumbra_sdk_tct::structure::Hash::zero()),
+            anchor: shieldd_sdk_tct::Root(shieldd_sdk_tct::structure::Hash::zero()),
         };
 
         tx.encode_to_vec().len()
@@ -2448,10 +2447,10 @@ impl App {
         envelope: &CandidateEnvelope,
         nullifier_cache: Option<&ValidationNullifierCache>,
     ) -> Result<(ValidationVerdict, ValidationProfile)> {
-        use penumbra_sdk_proto::core::transaction::v1::action::Action as ProtoAction;
-        use penumbra_sdk_proto::core::transaction::v1::Transaction as ProtoTransaction;
-        use penumbra_sdk_proto::DomainType as _;
-        use penumbra_sdk_transaction::Transaction;
+        use shieldd_sdk_proto::core::transaction::v1::action::Action as ProtoAction;
+        use shieldd_sdk_proto::core::transaction::v1::Transaction as ProtoTransaction;
+        use shieldd_sdk_proto::DomainType as _;
+        use shieldd_sdk_transaction::Transaction;
 
         let mut verdict = ValidationVerdict::default();
         let mut profile = ValidationProfile {
@@ -2911,9 +2910,9 @@ impl App {
     }
 
     fn extract_spend_nullifiers_from_proto(
-        proto_tx: &penumbra_sdk_proto::core::transaction::v1::Transaction,
+        proto_tx: &shieldd_sdk_proto::core::transaction::v1::Transaction,
     ) -> Result<Vec<Nullifier>> {
-        use penumbra_sdk_proto::core::transaction::v1::action::Action as ProtoAction;
+        use shieldd_sdk_proto::core::transaction::v1::action::Action as ProtoAction;
 
         fn push_nullifiers<'a, I>(
             out: &mut Vec<Nullifier>,
@@ -2921,7 +2920,7 @@ impl App {
             label: &'static str,
         ) -> Result<()>
         where
-            I: IntoIterator<Item = &'a penumbra_sdk_proto::core::component::sct::v1::Nullifier>,
+            I: IntoIterator<Item = &'a shieldd_sdk_proto::core::component::sct::v1::Nullifier>,
         {
             for n in nullifiers {
                 out.push(Nullifier::try_from(n.clone()).context(label)?);
@@ -3737,7 +3736,7 @@ impl App {
         if state.is_chain_halted().await {
             return false;
         }
-        if let Err(error) = penumbra_sdk_sct::nullifier_tree::verify_committed_root(&state).await {
+        if let Err(error) = shieldd_sdk_sct::nullifier_tree::verify_committed_root(&state).await {
             tracing::error!(?error, "nullifier tree root check failed");
             return false;
         }
@@ -3820,7 +3819,7 @@ impl App {
         // This means that indexers are responsible for parsing genesis data and bootstrapping
         // their initial state before processing chronological events.
         //
-        // See: https://github.com/mizufinance/penumbra/pull/4449#discussion_r1636868800
+        // See: https://github.com/mizufinance/shieldd/pull/4449#discussion_r1636868800
 
         state_tx.apply();
     }
@@ -4531,7 +4530,7 @@ impl App {
         let mut arc_state_tx = Arc::new(state_tx);
         Sct::begin_block(&mut arc_state_tx, begin_block).await;
         ShieldedPool::begin_block(&mut arc_state_tx, begin_block).await;
-        Ibc::begin_block::<PenumbraHost, StateDelta<Arc<StateDelta<cnidarium::Snapshot>>>>(
+        Ibc::begin_block::<ShielddHost, StateDelta<Arc<StateDelta<cnidarium::Snapshot>>>>(
             &mut arc_state_tx,
             begin_block,
         )
@@ -5359,7 +5358,7 @@ impl App {
         for nullifier in &prepared.effects.spend_nullifiers {
             let event_emit_start = Instant::now();
             state_tx.record_proto(
-                penumbra_sdk_shielded_pool::event::EventNullifierSpent {
+                shieldd_sdk_shielded_pool::event::EventNullifierSpent {
                     nullifier: *nullifier,
                 }
                 .to_proto(),
@@ -5374,7 +5373,7 @@ impl App {
             if let StatePayload::Note { note, .. } = payload {
                 let event_emit_start = Instant::now();
                 state_tx.record_proto(
-                    penumbra_sdk_shielded_pool::event::EventNoteCreated {
+                    shieldd_sdk_shielded_pool::event::EventNoteCreated {
                         note_commitment: note.note_commitment,
                     }
                     .to_proto(),
@@ -5392,8 +5391,8 @@ impl App {
             let base_position_u64: u64 = context.sct_base_position.into();
             for (offset, payload) in prepared.effects.sct_payloads.iter().enumerate() {
                 let commitment_event_start = Instant::now();
-                let position = penumbra_sdk_tct::Position::from(base_position_u64 + offset as u64);
-                state_tx.record_proto(penumbra_sdk_sct::event::commitment(
+                let position = shieldd_sdk_tct::Position::from(base_position_u64 + offset as u64);
+                state_tx.record_proto(shieldd_sdk_sct::event::commitment(
                     *payload.commitment(),
                     position,
                     payload.source().clone(),
@@ -5409,7 +5408,7 @@ impl App {
                 .context("reserving deferred SCT positions")?;
             for (position, payload) in &positioned_sct_payloads {
                 let commitment_event_start = Instant::now();
-                state_tx.record_proto(penumbra_sdk_sct::event::commitment(
+                state_tx.record_proto(shieldd_sdk_sct::event::commitment(
                     *payload.commitment(),
                     *position,
                     payload.source().clone(),
@@ -5550,7 +5549,7 @@ impl App {
         for nullifier in &prepared.effects.spend_nullifiers {
             let event_emit_start = Instant::now();
             state_tx.record_proto(
-                penumbra_sdk_shielded_pool::event::EventNullifierSpent {
+                shieldd_sdk_shielded_pool::event::EventNullifierSpent {
                     nullifier: *nullifier,
                 }
                 .to_proto(),
@@ -5565,7 +5564,7 @@ impl App {
             if let StatePayload::Note { note, .. } = payload {
                 let event_emit_start = Instant::now();
                 state_tx.record_proto(
-                    penumbra_sdk_shielded_pool::event::EventNoteCreated {
+                    shieldd_sdk_shielded_pool::event::EventNoteCreated {
                         note_commitment: note.note_commitment,
                     }
                     .to_proto(),
@@ -5594,7 +5593,7 @@ impl App {
             .context("reserving deferred SCT positions")?;
         for (position, payload) in &positioned_sct_payloads {
             let commitment_event_start = Instant::now();
-            state_tx.record_proto(penumbra_sdk_sct::event::commitment(
+            state_tx.record_proto(shieldd_sdk_sct::event::commitment(
                 *payload.commitment(),
                 *position,
                 payload.source().clone(),
@@ -5799,7 +5798,7 @@ impl App {
     async fn append_block_transaction_to_state<S>(
         state_tx: &mut S,
         height: u64,
-        transaction: penumbra_sdk_proto::core::transaction::v1::Transaction,
+        transaction: shieldd_sdk_proto::core::transaction::v1::Transaction,
     ) -> Result<BlockTxIndexWriteProfile>
     where
         S: StateWrite + StateReadExt,
@@ -5824,8 +5823,8 @@ impl App {
     async fn materialize_pending_sct_append_log<S>(&mut self, state_tx: &mut S) -> Result<()>
     where
         S: StateWrite
-            + penumbra_sdk_sct::component::tree::SctManager
-            + penumbra_sdk_shielded_pool::component::NoteManager,
+            + shieldd_sdk_sct::component::tree::SctManager
+            + shieldd_sdk_shielded_pool::component::NoteManager,
     {
         #[cfg(feature = "benchmark-helpers")]
         let materialize_start = Instant::now();
@@ -5868,11 +5867,11 @@ impl App {
         #[cfg(feature = "benchmark-helpers")]
         let pending_payload_start = Instant::now();
         state_tx.object_put(
-            penumbra_sdk_shielded_pool::state_key::pending_notes(),
+            shieldd_sdk_shielded_pool::state_key::pending_notes(),
             note_payloads,
         );
         state_tx.object_put(
-            penumbra_sdk_shielded_pool::state_key::pending_rolled_up_payloads(),
+            shieldd_sdk_shielded_pool::state_key::pending_rolled_up_payloads(),
             rolled_up_payloads,
         );
         #[cfg(feature = "benchmark-helpers")]
@@ -6104,7 +6103,7 @@ impl App {
                 .expect("must be able to finish compact block");
 
             // set the epoch for the next block
-            penumbra_sdk_sct::component::clock::EpochManager::put_epoch_by_height(
+            shieldd_sdk_sct::component::clock::EpochManager::put_epoch_by_height(
                 &mut state_tx,
                 current_height + 1,
                 Epoch {
@@ -6116,7 +6115,7 @@ impl App {
             self.apply(state_tx)
         } else {
             // set the epoch for the next block
-            penumbra_sdk_sct::component::clock::EpochManager::put_epoch_by_height(
+            shieldd_sdk_sct::component::clock::EpochManager::put_epoch_by_height(
                 &mut state_tx,
                 current_height + 1,
                 current_epoch,
@@ -6305,11 +6304,11 @@ pub trait StateReadExt: StateRead {
 
 impl<
         T: StateRead
-            + penumbra_sdk_validator::StateReadExt
-            + penumbra_sdk_governance::component::StateReadExt
-            + penumbra_sdk_fee::component::StateReadExt
-            + penumbra_sdk_sct::component::clock::EpochRead
-            + penumbra_sdk_ibc::component::StateReadExt
+            + shieldd_sdk_validator::StateReadExt
+            + shieldd_sdk_governance::component::StateReadExt
+            + shieldd_sdk_fee::component::StateReadExt
+            + shieldd_sdk_sct::component::clock::EpochRead
+            + shieldd_sdk_ibc::component::StateReadExt
             + ?Sized,
     > StateReadExt for T
 {
@@ -6329,7 +6328,7 @@ pub trait StateWriteExt: StateWrite {
     async fn put_block_transaction(
         &mut self,
         height: u64,
-        transaction: penumbra_sdk_proto::core::transaction::v1::Transaction,
+        transaction: shieldd_sdk_proto::core::transaction::v1::Transaction,
     ) -> Result<()> {
         // Extend the existing transactions with the new one.
         let mut transactions_response = self.transactions_by_height(height).await?;
@@ -6366,7 +6365,7 @@ pub trait StateWriteExt: StateWrite {
         // Ignore writes to the chain_id
         // TODO(erwan): we are momentarily not supporting chain_id changes
         // until the IBC host chain changes land.
-        // See: https://github.com/mizufinance/penumbra/issues/3617#issuecomment-1917708221
+        // See: https://github.com/mizufinance/shieldd/issues/3617#issuecomment-1917708221
         std::mem::drop(chain_id);
 
         self.put_fee_params(fee_params);
@@ -6393,40 +6392,40 @@ mod tests {
     use decaf377::{Fq, Fr};
     use decaf377_rdsa as rdsa;
     use futures::StreamExt as _;
-    use penumbra_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
-    use penumbra_sdk_compact_block::StatePayload;
-    use penumbra_sdk_compliance::registry::ComplianceRegistryWrite as _;
-    use penumbra_sdk_compliance::{AssetPolicy, ComplianceLeaf};
-    use penumbra_sdk_fee::Fee;
-    use penumbra_sdk_keys::{test_keys, Address};
-    use penumbra_sdk_mock_client::MockClient;
-    use penumbra_sdk_mock_consensus::TestNode;
-    use penumbra_sdk_num::Amount;
-    use penumbra_sdk_proof_aggregation::{
+    use proptest::prelude::*;
+    use rand_core::OsRng;
+    use sha2::Digest as _;
+    use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
+    use shieldd_sdk_compact_block::StatePayload;
+    use shieldd_sdk_compliance::registry::ComplianceRegistryWrite as _;
+    use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
+    use shieldd_sdk_fee::Fee;
+    use shieldd_sdk_keys::{test_keys, Address};
+    use shieldd_sdk_mock_client::MockClient;
+    use shieldd_sdk_mock_consensus::TestNode;
+    use shieldd_sdk_num::Amount;
+    use shieldd_sdk_proof_aggregation::{
         AggregateBundle, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
         DEFAULT_DEV_SRS_ID,
     };
-    use penumbra_sdk_proto::DomainType;
-    use penumbra_sdk_sct::component::clock::{EpochManager as _, EpochRead as _};
-    use penumbra_sdk_sct::component::tree::{SctManager as _, SctRead as _};
-    use penumbra_sdk_sct::component::StateWriteExt as _;
-    use penumbra_sdk_sct::epoch::Epoch;
-    use penumbra_sdk_sct::params::SctParameters;
-    use penumbra_sdk_sct::{CommitmentSource, NullificationInfo, Nullifier};
-    use penumbra_sdk_shielded_pool::component::NoteManager as _;
-    use penumbra_sdk_shielded_pool::{
+    use shieldd_sdk_proto::DomainType;
+    use shieldd_sdk_sct::component::clock::{EpochManager as _, EpochRead as _};
+    use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _};
+    use shieldd_sdk_sct::component::StateWriteExt as _;
+    use shieldd_sdk_sct::epoch::Epoch;
+    use shieldd_sdk_sct::params::SctParameters;
+    use shieldd_sdk_sct::{CommitmentSource, NullificationInfo, Nullifier};
+    use shieldd_sdk_shielded_pool::component::NoteManager as _;
+    use shieldd_sdk_shielded_pool::{
         genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
-    use penumbra_sdk_tct as tct;
-    use penumbra_sdk_transaction::{
+    use shieldd_sdk_tct as tct;
+    use shieldd_sdk_transaction::{
         memo::{MemoCiphertext, MemoPlaintext, MEMO_CIPHERTEXT_LEN_BYTES},
         plan::MemoPlan,
         Action, DetectionData, Transaction, TransactionParameters, TransactionPlan,
     };
-    use penumbra_sdk_txhash::AuthorizingData;
-    use proptest::prelude::*;
-    use rand_core::OsRng;
-    use sha2::Digest as _;
+    use shieldd_sdk_txhash::AuthorizingData;
     use tendermint::v0_37::abci::{request, response};
     use tendermint::{account, block, Hash, Time};
 
@@ -6489,7 +6488,7 @@ mod tests {
 
         let app_state_bytes = serde_json::to_vec(&AppState::Content(Content {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
-            shielded_pool_content: penumbra_sdk_shielded_pool::genesis::Content {
+            shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
                 allocations,
                 ..Default::default()
             },
@@ -6884,11 +6883,11 @@ mod tests {
 
     fn aggregate_bundle_shape_test_tx(bundle: AggregateBundle, mode: u8) -> Transaction {
         let mut tx = Transaction {
-            transaction_body: penumbra_sdk_transaction::TransactionBody {
+            transaction_body: shieldd_sdk_transaction::TransactionBody {
                 actions: vec![Action::AggregateBundle(bundle.clone())],
                 transaction_parameters: TransactionParameters {
                     expiry_height: 0,
-                    chain_id: "penumbra-test-chain".to_owned(),
+                    chain_id: "shieldd-test-chain".to_owned(),
                     fee: Fee::default(),
                 },
                 fee_funding: None,
@@ -6896,7 +6895,7 @@ mod tests {
                 memo: None,
             },
             binding_sig: [0; 64].into(),
-            anchor: penumbra_sdk_tct::Root(penumbra_sdk_tct::structure::Hash::zero()),
+            anchor: shieldd_sdk_tct::Root(shieldd_sdk_tct::structure::Hash::zero()),
         };
 
         match mode % 6 {
@@ -6940,7 +6939,7 @@ mod tests {
             let bundle = AggregateBundle {
                 version,
                 srs_id,
-                families: vec![penumbra_sdk_proof_aggregation::FamilyAggregate {
+                families: vec![shieldd_sdk_proof_aggregation::FamilyAggregate {
                     family_id: ProofFamilyId::Transfer,
                     real_count,
                     padded_count,
@@ -7314,7 +7313,7 @@ mod tests {
     async fn app_readiness_fails_on_corrupted_nullifier_tree_nv() -> Result<()> {
         let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
-        penumbra_sdk_sct::nullifier_tree::insert_batch(
+        shieldd_sdk_sct::nullifier_tree::insert_batch(
             &mut state,
             [(
                 Nullifier(Fq::from(91u64)),
@@ -7329,9 +7328,10 @@ mod tests {
         assert!(App::is_ready(storage.latest_snapshot()).await);
 
         let mut corrupt = StateDelta::new(storage.latest_snapshot());
-        let mut stream = corrupt.nonverifiable_prefix_raw(
-            penumbra_sdk_sct::state_key::nullifier_set::tree_node_prefix(),
-        );
+        let mut stream =
+            corrupt.nonverifiable_prefix_raw(
+                shieldd_sdk_sct::state_key::nullifier_set::tree_node_prefix(),
+            );
         let mut keys = Vec::new();
         while let Some(item) = stream.next().await {
             let (key, _) = item?;
@@ -7379,7 +7379,7 @@ mod tests {
         let mut corrupt = StateDelta::new(storage.latest_snapshot());
         delete_nv_prefix(
             &mut corrupt,
-            penumbra_sdk_sct::state_key::tree::incremental_prefix().as_bytes(),
+            shieldd_sdk_sct::state_key::tree::incremental_prefix().as_bytes(),
         )
         .await?;
         storage.commit(corrupt).await?;
@@ -7416,7 +7416,7 @@ mod tests {
         let mut corrupt = StateDelta::new(storage.latest_snapshot());
         delete_nv_prefix(
             &mut corrupt,
-            penumbra_sdk_compliance::state_key::tree_storage::user_node_prefix().as_bytes(),
+            shieldd_sdk_compliance::state_key::tree_storage::user_node_prefix().as_bytes(),
         )
         .await?;
         storage.commit(corrupt).await?;
@@ -7664,7 +7664,7 @@ mod tests {
 
     #[test]
     fn aggregate_bundle_size_estimate_is_monotonic() {
-        let chain_id = "penumbra-test";
+        let chain_id = "shieldd-test";
         let small = vec![
             AggregateBundleFamilyEstimate {
                 family_id: ProofFamilyId::Transfer,
@@ -7674,7 +7674,7 @@ mod tests {
             },
             AggregateBundleFamilyEstimate {
                 family_id: ProofFamilyId::Consolidate(
-                    penumbra_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id,
+                    shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id,
                 ),
                 real_count: 8,
                 padded_count: 8,
@@ -7690,7 +7690,7 @@ mod tests {
             },
             AggregateBundleFamilyEstimate {
                 family_id: ProofFamilyId::Consolidate(
-                    penumbra_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id,
+                    shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id,
                 ),
                 real_count: 256,
                 padded_count: 256,

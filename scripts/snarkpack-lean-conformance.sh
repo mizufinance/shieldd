@@ -38,7 +38,7 @@ fi
 oracle_json="${SNARKPACK_LEAN_ORACLE_SHAPES:-$ROOT/target/snarkpack-lean-conformance/oracle-shapes.json}"
 mkdir -p "$(dirname "$oracle_json")"
 
-LEAN_BIN="$LEAN" cargo run -p penumbra-sdk-proof-aggregation-lean-conformance \
+LEAN_BIN="$LEAN" cargo run -p shieldd-sdk-proof-aggregation-lean-conformance \
   --bin snarkpack_lean_oracle -- "$oracle_json"
 
 # Smoke band: deterministic exhaustive enumeration over round depths 0..=7 and
@@ -46,6 +46,6 @@ LEAN_BIN="$LEAN" cargo run -p penumbra-sdk-proof-aggregation-lean-conformance \
 # and small, so it is enumerated, not fuzzed. The full sweep to 2^15 is the
 # release-gated #[ignore]d test `lean_oracle_matches_all_shapes_to_max`.
 LEAN_BIN="$LEAN" SNARKPACK_REQUIRE_LEAN=1 SNARKPACK_LEAN_ORACLE_SHAPES="$oracle_json" \
-  cargo test -p penumbra-sdk-proof-aggregation-lean-conformance --lib
+  cargo test -p shieldd-sdk-proof-aggregation-lean-conformance --lib
 
 echo "snarkpack lean conformance ok"

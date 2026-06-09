@@ -1,4 +1,4 @@
-//! The Penumbra shielded pool [`Component`] and [`ActionHandler`] implementations.
+//! The Shieldd shielded pool [`Component`] and [`ActionHandler`] implementations.
 
 mod action_handler;
 mod assets;

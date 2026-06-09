@@ -19,7 +19,7 @@ use orbis_tonic::transport::Endpoint;
 use serde::Deserialize;
 
 use crate::types::{DkgResult, NodeInfo, PreResult, RingInfo, StoreSecretResult};
-use penumbra_sdk_compliance::{OrbisEncryptedSeedUploadPackage, OrbisSecretEnvelope};
+use shieldd_sdk_compliance::{OrbisEncryptedSeedUploadPackage, OrbisSecretEnvelope};
 
 #[derive(Debug, Deserialize)]
 struct RingPayload {

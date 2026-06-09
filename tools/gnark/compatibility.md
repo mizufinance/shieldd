@@ -5,7 +5,7 @@ shielded-action proving stack possible.
 
 ## What is established
 
-- `BLS12-377` `R1CS -> Groth16` proving works in gnark for the Penumbra
+- `BLS12-377` `R1CS -> Groth16` proving works in gnark for the Shieldd
   transfer, split, and consolidate circuits.
 - The required `decaf377` companion-curve constants and quotient behavior used
   by the current circuits have been implemented and validated.

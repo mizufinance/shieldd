@@ -1,4 +1,4 @@
-//! An implementation of [flow encryption][protocol-batching].
+//! An implementation of flow encryption.
 //!
 //! Current status:
 //! - [x] Encryption
@@ -10,7 +10,6 @@
 //! - [ ] Serialization
 //! - [ ] Encryption Proofs
 //!
-//! [protocol-batching]: https://protocol.penumbra.zone/main/concepts/batching_flows.html
 #![deny(clippy::unwrap_used)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 

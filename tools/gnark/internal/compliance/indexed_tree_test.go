@@ -10,7 +10,7 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/consensys/gnark/test"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 type indexedLeafCommitmentCircuit struct {

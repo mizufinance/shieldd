@@ -3,7 +3,7 @@
     {
       "label": "transfer",
       "artifact_name": "transfer",
-      "bundled_lib_basename": "libpenumbra_gnark_transfer",
+      "bundled_lib_basename": "libshieldd_gnark_transfer",
       "n_in": 2,
       "n_out": 2
     }

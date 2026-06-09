@@ -42,7 +42,7 @@ jobs:
               - 'justfile'
               - 'scripts/lib/**'
               - 'scripts/orbis-*.sh'
-              - 'scripts/penumbra-*.sh'
+              - 'scripts/shieldd-*.sh'
               - 'testnets/validators-single.json'
               - 'tools/gnark/**'
 
@@ -52,10 +52,10 @@ jobs:
     runs-on: blacksmith-16vcpu-ubuntu-2404
     env:
       COMPLIANCE_TMP: /tmp/orbis-${{ github.run_id }}-${{ github.run_attempt }}
-      PENUMBRA_PD_GRPC_PORT: "28080"
-      PENUMBRA_COMETBFT_RPC_PORT: "27657"
-      PENUMBRA_COMETBFT_P2P_PORT: "27656"
-      PENUMBRA_PCLIENTD_PORT_BASE: "28081"
+      SHIELDD_PD_GRPC_PORT: "28080"
+      SHIELDD_COMETBFT_RPC_PORT: "27657"
+      SHIELDD_COMETBFT_P2P_PORT: "27656"
+      SHIELDD_PCLIENTD_PORT_BASE: "28081"
       ORBIS_COMPOSE_PROJECT_NAME: orbis-${{ github.run_id }}-${{ github.run_attempt }}
       ORBIS_SOURCEHUB_RPC_PORT: "36657"
       ORBIS_SOURCEHUB_P2P_PORT: "36656"
@@ -74,20 +74,20 @@ jobs:
       ORBIS_NODE2_ENDPOINT: http://127.0.0.1:35052
       ORBIS_NODE3_ENDPOINT: http://127.0.0.1:35053
     steps:
-      - name: Checkout Penumbra
+      - name: Checkout Shieldd
         uses: actions/checkout@v4
         with:
-          path: penumbra
+          path: shieldd
           lfs: true
 
-      - uses: ./penumbra/.github/actions/setup-nix-rust
+      - uses: ./shieldd/.github/actions/setup-nix-rust
         with:
           free-disk: "true"
-          nix-cache-glob: "penumbra/**/*.nix"
-          rust-workspaces: "penumbra"
+          nix-cache-glob: "shieldd/**/*.nix"
+          rust-workspaces: "shieldd"
 
-      - name: Run Penumbra Orbis integration flow
-        working-directory: penumbra
+      - name: Run Shieldd Orbis integration flow
+        working-directory: shieldd
         run: nix develop --command just orbis-integration
 
       # NOTE: docker logs are captured by orbis-integration itself before it

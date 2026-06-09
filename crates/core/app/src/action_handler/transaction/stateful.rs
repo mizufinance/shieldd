@@ -1,8 +1,8 @@
 use anyhow::{ensure, Result};
 use cnidarium::StateRead;
-use penumbra_sdk_sct::component::tree::VerificationExt;
-use penumbra_sdk_shielded_pool::fmd;
-use penumbra_sdk_transaction::{Transaction, TransactionParameters};
+use shieldd_sdk_sct::component::tree::VerificationExt;
+use shieldd_sdk_shielded_pool::fmd;
+use shieldd_sdk_transaction::{Transaction, TransactionParameters};
 
 use super::HistoricalCheckContext;
 

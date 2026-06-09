@@ -37,7 +37,7 @@ func (c *poseidon377Hash7Circuit) Define(api frontend.API) error {
 	return nil
 }
 
-func TestPoseidon377Hash7MatchesPenumbraVectors(t *testing.T) {
+func TestPoseidon377Hash7MatchesShielddVectors(t *testing.T) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		t.Fatalf("load vectors: %v", err)
@@ -112,7 +112,7 @@ func (c *decaf377EncodeToCurveCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func TestDecaf377CompressToFieldMatchesPenumbraVectors(t *testing.T) {
+func TestDecaf377CompressToFieldMatchesShielddVectors(t *testing.T) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		t.Fatalf("load vectors: %v", err)
@@ -141,7 +141,7 @@ func TestDecaf377CompressToFieldMatchesPenumbraVectors(t *testing.T) {
 	}
 }
 
-func TestDecaf377EncodeToCurveMatchesPenumbraVectors(t *testing.T) {
+func TestDecaf377EncodeToCurveMatchesShielddVectors(t *testing.T) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		t.Fatalf("load vectors: %v", err)
@@ -171,7 +171,7 @@ func TestDecaf377EncodeToCurveMatchesPenumbraVectors(t *testing.T) {
 	}
 }
 
-func TestDecaf377EncodeToCurveNativeMatchesPenumbraVectors(t *testing.T) {
+func TestDecaf377EncodeToCurveNativeMatchesShielddVectors(t *testing.T) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		t.Fatalf("load vectors: %v", err)

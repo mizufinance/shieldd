@@ -1,6 +1,6 @@
 # Tiered Commitment Tree
 
-The Penumbra protocol's [state commitment tree (SCT)](../sct.md) stores
+The Shieldd protocol's [state commitment tree (SCT)](../sct.md) stores
 cryptographic commitments to shielded state, such as note and swap commitments.
 The SCT is instantiated using the _tiered commitment tree_ (TCT) data structure,
 an append-only, ZK-friendly Merkle tree. The unique features of the TCT are

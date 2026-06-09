@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Helper script to prepare a localhost postgres instance,
-# provisioned via nix, for ingesting ABCI events from CometBFT for Penumbra.
+# provisioned via nix, for ingesting ABCI events from CometBFT for Shieldd.
 set -euo pipefail
 
-penumbra_devnet_home="${PENUMBRA_DEVNET_HOME:-$HOME/.penumbra}"
+shieldd_devnet_home="${SHIELDD_DEVNET_HOME:-$HOME/.shieldd}"
 
 # Set up a write-friendly directory for postgres state.
 # The nix store is read-only by default, so add write capability to copy.
-postgres_config_dir="${penumbra_devnet_home}/network_data/postgresql"
+postgres_config_dir="${shieldd_devnet_home}/network_data/postgresql"
 # While debugging it may be useful to nuke the dir between runs.
 # rm -rf "$postgres_config_dir"
 mkdir -p "${postgres_config_dir}"

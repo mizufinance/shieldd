@@ -2,7 +2,7 @@
 
 //! Dev-only independent SnarkPack reference path.
 //!
-//! This crate stays outside `penumbra-sdk-proof-aggregation` so Cargo prevents
+//! This crate stays outside `shieldd-sdk-proof-aggregation` so Cargo prevents
 //! it from importing private production aggregation modules. It re-implements
 //! the slow aggregation equations and decodes production bytes into
 //! reference-owned proof structs.
@@ -23,16 +23,16 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use blake2::Blake2b;
 use decaf377::{Bls12_377, Fq};
 use digest::Digest;
-use penumbra_sdk_proof_aggregation::{
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use shieldd_sdk_proof_aggregation::{
     encode_wrapped_aggregate_proof, preflight_aggregate_verify, srs_id, AggregatePreflightInput,
     AggregateStatement, DevSrs, ProofFamilyId, DEFAULT_MAX_PADDED_PROOF_COUNT,
 };
-pub use penumbra_sdk_proof_aggregation_trace_schema::{
+pub use shieldd_sdk_proof_aggregation_trace_schema::{
     FilecoinBugClass, TraceComparisonLevel, TraceEvent, TraceEventError, TraceEventKind,
     TracePolicy, TRACE_POLICIES,
 };
-use penumbra_sdk_proof_params::batch::BatchItem;
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use shieldd_sdk_proof_params::batch::BatchItem;
 
 type P = Bls12_377;
 type G1 = <P as Pairing>::G1;
@@ -40,8 +40,8 @@ type G2 = <P as Pairing>::G2;
 type Fr = <P as Pairing>::ScalarField;
 
 const DEV_SRS_SEED: [u8; 32] = [0x50; 32];
-const CHALLENGE_DOMAIN: &[u8] = b"penumbra.snarkpack.challenge.v1\0";
-const CHALLENGE_CONTEXT_DOMAIN: &[u8] = b"penumbra.snarkpack.challenge_context.v1\0";
+const CHALLENGE_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge.v1\0";
+const CHALLENGE_CONTEXT_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge_context.v1\0";
 
 pub type ReferenceResult<T> = Result<T, ReferencePathError>;
 pub type ReferenceTraceEntry = TraceEvent;
@@ -217,7 +217,7 @@ impl ReferenceTraceCollector {
     fn record_context(&mut self, statement_digest: [u8; 32]) {
         self.events.push(TraceEvent {
             spec_row_id: "fs.context-constructor",
-            primary_level: TraceComparisonLevel::PenumbraByte,
+            primary_level: TraceComparisonLevel::ShielddByte,
             event_kind: TraceEventKind::ChallengeContext,
             stage_label: "statement",
             nonce: None,
@@ -239,7 +239,7 @@ impl ReferenceTraceCollector {
         let stage_label = stage_label_str(stage_label);
         self.events.push(TraceEvent {
             spec_row_id: "fs.stage-labels",
-            primary_level: TraceComparisonLevel::PenumbraByte,
+            primary_level: TraceComparisonLevel::ShielddByte,
             event_kind: TraceEventKind::ChallengePreimage,
             stage_label,
             nonce: Some(nonce),
@@ -250,7 +250,7 @@ impl ReferenceTraceCollector {
         });
         self.events.push(TraceEvent {
             spec_row_id: "fs.challenge-preimage",
-            primary_level: TraceComparisonLevel::PenumbraByte,
+            primary_level: TraceComparisonLevel::ShielddByte,
             event_kind: TraceEventKind::ChallengePreimage,
             stage_label,
             nonce: Some(nonce),
@@ -261,7 +261,7 @@ impl ReferenceTraceCollector {
         });
         self.events.push(TraceEvent {
             spec_row_id,
-            primary_level: TraceComparisonLevel::PenumbraByte,
+            primary_level: TraceComparisonLevel::ShielddByte,
             event_kind: TraceEventKind::ChallengeDigest,
             stage_label,
             nonce: Some(nonce),
@@ -994,15 +994,15 @@ fn challenge_context_constructor_preimage(statement_digest: [u8; 32]) -> Vec<u8>
 
 fn transcript_family_domain(family_id: ProofFamilyId) -> Vec<u8> {
     match family_id {
-        ProofFamilyId::Transfer => b"penumbra.snarkpack.transfer.v1".to_vec(),
+        ProofFamilyId::Transfer => b"shieldd.snarkpack.transfer.v1".to_vec(),
         ProofFamilyId::Consolidate(family_id) => {
-            format!("penumbra.snarkpack.{}.v1", family_id.label()).into_bytes()
+            format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes()
         }
         ProofFamilyId::Split(family_id) => {
-            format!("penumbra.snarkpack.{}.v1", family_id.label()).into_bytes()
+            format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes()
         }
         ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => {
-            format!("penumbra.snarkpack.{}.v1", family_id.label()).into_bytes()
+            format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes()
         }
     }
 }
@@ -1058,10 +1058,10 @@ fn reference_srs_id(srs: &DevSrs, serialized_srs: &[u8]) -> [u8; 32] {
     sha2::Digest::update(
         &mut hasher,
         format!(
-            "penumbra.proof_aggregation.srs.v{}:backend={}:curve={}:max_padded_count={}",
-            penumbra_sdk_proof_aggregation::DEV_SRS_VERSION,
-            penumbra_sdk_proof_aggregation::DEV_SRS_BACKEND_ID,
-            penumbra_sdk_proof_aggregation::DEV_SRS_CURVE_ID,
+            "shieldd.proof_aggregation.srs.v{}:backend={}:curve={}:max_padded_count={}",
+            shieldd_sdk_proof_aggregation::DEV_SRS_VERSION,
+            shieldd_sdk_proof_aggregation::DEV_SRS_BACKEND_ID,
+            shieldd_sdk_proof_aggregation::DEV_SRS_CURVE_ID,
             srs.max_padded_count
         )
         .as_bytes(),
@@ -1458,14 +1458,14 @@ mod tests {
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
     use ark_snark::SNARK;
-    use penumbra_sdk_proof_aggregation::{
+    use proptest::prelude::*;
+    use shieldd_sdk_proof_aggregation::{
         aggregate_family, aggregate_family_with_trace, decode_wrapped_aggregate_proof,
         encode_wrapped_aggregate_proof, pad_items_to_power_of_two, verify_family_aggregate,
         verify_family_aggregate_with_trace, AGGREGATE_PROTOCOL_VERSION, MAX_AGGREGATE_PROOF_BYTES,
     };
-    use penumbra_sdk_proof_params::batch;
-    use penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
-    use proptest::prelude::*;
+    use shieldd_sdk_proof_params::batch;
+    use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
 
     #[derive(Clone)]
     struct SquareCircuit {
@@ -1571,8 +1571,8 @@ mod tests {
     fn parity_families() -> [ProofFamilyId; 4] {
         [
             ProofFamilyId::Transfer,
-            ProofFamilyId::Consolidate(penumbra_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
-            ProofFamilyId::Split(penumbra_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
+            ProofFamilyId::Consolidate(shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
+            ProofFamilyId::Split(shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
             ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
         ]
     }
@@ -1637,7 +1637,7 @@ mod tests {
         AggregateStatement::new(
             AGGREGATE_PROTOCOL_VERSION,
             ProofFamilyId::ShieldedIcs20Withdrawal(
-                penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical,
+                shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical,
             ),
             srs_id(srs),
             pvk,
@@ -1904,10 +1904,10 @@ mod tests {
         }
     }
 
-    fn penumbra_byte_trace_rows() -> BTreeSet<&'static str> {
+    fn shieldd_byte_trace_rows() -> BTreeSet<&'static str> {
         TRACE_POLICIES
             .iter()
-            .filter(|policy| policy.primary_level == TraceComparisonLevel::PenumbraByte)
+            .filter(|policy| policy.primary_level == TraceComparisonLevel::ShielddByte)
             .map(|policy| policy.spec_row_id)
             .collect()
     }
@@ -2069,14 +2069,14 @@ mod tests {
         assert_eq!(reference.prover_trace, production_report.trace);
     }
 
-    // Stage 9 byte-trace lock: the ordered PenumbraByte trace payloads for a
+    // Stage 9 byte-trace lock: the ordered ShielddByte trace payloads for a
     // fixed vector set must not change unless `AGGREGATE_PROTOCOL_VERSION` is
     // bumped. This complements the production-crate aggregate-byte baseline and
     // catches transcript-shape drift, not just final-byte drift.
 
     const TRACE_BASELINE_PATH: &str = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/penumbra_byte_trace_baseline.txt"
+        "/tests/fixtures/shieldd_byte_trace_baseline.txt"
     );
 
     fn trace_baseline_vectors() -> Vec<(ProofFamilyId, usize, u64)> {
@@ -2097,7 +2097,7 @@ mod tests {
             .collect()
     }
 
-    fn penumbra_byte_trace_for_vector(
+    fn shieldd_byte_trace_for_vector(
         family_id: ProofFamilyId,
         count: usize,
         seed: u64,
@@ -2123,20 +2123,20 @@ mod tests {
             .expect("aggregate with trace should succeed");
         events
             .into_iter()
-            .filter(|e| e.primary_level == TraceComparisonLevel::PenumbraByte)
+            .filter(|e| e.primary_level == TraceComparisonLevel::ShielddByte)
             .collect()
     }
 
     fn render_trace_baseline() -> String {
         let mut out = String::new();
         out.push_str(
-            "# SnarkPack PenumbraByte transcript-trace baseline (Stage 9 byte-trace lock).\n",
+            "# SnarkPack ShielddByte transcript-trace baseline (Stage 9 byte-trace lock).\n",
         );
-        out.push_str("# Regenerate: cargo test -p penumbra-sdk-proof-aggregation-reference regenerate_penumbra_byte_trace_baseline -- --ignored\n");
+        out.push_str("# Regenerate: cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored\n");
         out.push_str("# Row: <index> <family> count=<n> seed=<n> ev=<i> <spec_row_id> <event_kind> <hex_payload>\n");
         out.push_str(&format!("version {AGGREGATE_PROTOCOL_VERSION}\n"));
         for (index, (family_id, count, seed)) in trace_baseline_vectors().into_iter().enumerate() {
-            for (event_index, event) in penumbra_byte_trace_for_vector(family_id, count, seed)
+            for (event_index, event) in shieldd_byte_trace_for_vector(family_id, count, seed)
                 .into_iter()
                 .enumerate()
             {
@@ -2160,27 +2160,27 @@ mod tests {
     }
 
     #[test]
-    fn penumbra_byte_trace_matches_committed_baseline() {
+    fn shieldd_byte_trace_matches_committed_baseline() {
         let committed = std::fs::read_to_string(TRACE_BASELINE_PATH).unwrap_or_else(|e| {
-            panic!("missing PenumbraByte trace baseline at {TRACE_BASELINE_PATH}: {e}; regenerate with `cargo test -p penumbra-sdk-proof-aggregation-reference regenerate_penumbra_byte_trace_baseline -- --ignored`")
+            panic!("missing ShielddByte trace baseline at {TRACE_BASELINE_PATH}: {e}; regenerate with `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`")
         });
 
         assert_eq!(
             committed_trace_version(&committed),
             Some(AGGREGATE_PROTOCOL_VERSION),
-            "trace baseline version tag does not match AGGREGATE_PROTOCOL_VERSION ({AGGREGATE_PROTOCOL_VERSION}); if the transcript change is intentional, bump the version and regenerate via `cargo test -p penumbra-sdk-proof-aggregation-reference regenerate_penumbra_byte_trace_baseline -- --ignored`"
+            "trace baseline version tag does not match AGGREGATE_PROTOCOL_VERSION ({AGGREGATE_PROTOCOL_VERSION}); if the transcript change is intentional, bump the version and regenerate via `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`"
         );
 
         let current = render_trace_baseline();
         assert_eq!(
             committed, current,
-            "PenumbraByte transcript trace drifted from the committed baseline. An optimization must preserve the transcript or take the protocol-version path: bump AGGREGATE_PROTOCOL_VERSION, regenerate via `cargo test -p penumbra-sdk-proof-aggregation-reference regenerate_penumbra_byte_trace_baseline -- --ignored`, and add an adaptation-register row."
+            "ShielddByte transcript trace drifted from the committed baseline. An optimization must preserve the transcript or take the protocol-version path: bump AGGREGATE_PROTOCOL_VERSION, regenerate via `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`, and add an adaptation-register row."
         );
     }
 
     #[test]
     #[ignore = "writes the committed trace baseline; run intentionally after a sanctioned transcript change"]
-    fn regenerate_penumbra_byte_trace_baseline() {
+    fn regenerate_shieldd_byte_trace_baseline() {
         let rendered = render_trace_baseline();
         std::fs::write(TRACE_BASELINE_PATH, rendered).expect("write trace baseline");
     }
@@ -2247,8 +2247,8 @@ mod tests {
         let production = aggregate_family(&statement, &pvk, &items, &srs).expect("aggregate");
         for mutant in VERIFIER_MUTANTS {
             assert!(
-                penumbra_byte_trace_rows().contains(mutant.spec_row_id()),
-                "verifier mutant {mutant} must name a PenumbraByte trace row"
+                shieldd_byte_trace_rows().contains(mutant.spec_row_id()),
+                "verifier mutant {mutant} must name a ShielddByte trace row"
             );
             let report = reference_verify_family_aggregate_with_verifier_mutant(
                 &statement,
@@ -2287,8 +2287,8 @@ mod tests {
     }
 
     #[test]
-    fn mutation_matrices_cover_penumbra_byte_trace_rows() {
-        let expected = penumbra_byte_trace_rows();
+    fn mutation_matrices_cover_shieldd_byte_trace_rows() {
+        let expected = shieldd_byte_trace_rows();
         let covered = INPUT_MUTANTS
             .iter()
             .map(|mutant| mutant.spec_row_id)
@@ -2296,7 +2296,7 @@ mod tests {
             .collect::<BTreeSet<_>>();
         assert!(
             expected.is_subset(&covered),
-            "input/verifier mutation matrices must cover every PenumbraByte row: expected={expected:?}, covered={covered:?}"
+            "input/verifier mutation matrices must cover every ShielddByte row: expected={expected:?}, covered={covered:?}"
         );
     }
 

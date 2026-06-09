@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/circuits"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/generated"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 )
 
 const (

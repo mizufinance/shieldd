@@ -6,11 +6,11 @@
 
 use assert_cmd::Command;
 use http::StatusCode;
-use penumbra_sdk_proto::FILE_DESCRIPTOR_SET;
 use predicates::prelude::*;
 use prost_reflect::{DescriptorPool, ServiceDescriptor};
 use regex::Regex;
 use rstest::rstest;
+use shieldd_sdk_proto::FILE_DESCRIPTOR_SET;
 use url::Url;
 
 #[rstest]
@@ -22,9 +22,9 @@ use url::Url;
 #[case(r"^pd_async_sleep_drift_microseconds \d+")]
 #[case(r"^pd_process_cpu_seconds_total \d+")]
 #[case(r"^pd_process_open_fds \d+")]
-#[case(r#"^penumbra_stake_missed_blocks\{identity_key=".*"\} \d+"#)]
+#[case(r#"^shieldd_stake_missed_blocks\{identity_key=".*"\} \d+"#)]
 // TODO: re-enable once epoch duration is reduced for smoke tests
-// #[case(r"^penumbra_funding_streams_total_processing_time_milliseconds_count_milliseconds \d+")]
+// #[case(r"^shieldd_funding_streams_total_processing_time_milliseconds_count_milliseconds \d+")]
 #[tokio::test]
 #[ignore]
 /// Confirm that prometheus metrics are being exported for scraping.
@@ -33,7 +33,7 @@ use url::Url;
 /// for the preview environment post-deploy.
 async fn confirm_metrics_emission(#[case] pattern: &str) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
-    let metrics_url = std::env::var("PENUMBRA_NODE_PD_METRICS_URL")
+    let metrics_url = std::env::var("SHIELDD_NODE_PD_METRICS_URL")
         .unwrap_or("http://localhost:9000/metrics".to_string());
     let r = client.get(metrics_url).send().await?;
     let status = r.status();
@@ -56,7 +56,7 @@ async fn confirm_metrics_emission(#[case] pattern: &str) -> anyhow::Result<()> {
 async fn check_cors_headers() -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let pd_url =
-        std::env::var("PENUMBRA_NODE_PD_URL").unwrap_or("http://localhost:8080".to_string());
+        std::env::var("SHIELDD_NODE_PD_URL").unwrap_or("http://localhost:8080".to_string());
     let r = client.get(pd_url).send().await?;
     assert_eq!(r.headers().get("access-control-allow-origin").unwrap(), "*");
     assert_eq!(
@@ -76,7 +76,7 @@ async fn check_cors_headers() -> anyhow::Result<()> {
 async fn check_minifront_http_ok() -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let pd_url =
-        std::env::var("PENUMBRA_NODE_PD_URL").unwrap_or("http://localhost:8080".to_string());
+        std::env::var("SHIELDD_NODE_PD_URL").unwrap_or("http://localhost:8080".to_string());
     let r = client.get(pd_url).send().await?;
     assert_eq!(r.status(), StatusCode::OK);
     Ok(())
@@ -87,7 +87,7 @@ async fn check_minifront_http_ok() -> anyhow::Result<()> {
 /// Validate that gRPC server reflection is enabled and working, by calling out
 /// to `grpcurl` and verifying that it can view methods. See GH4392 for context.
 async fn check_grpc_server_reflection() -> anyhow::Result<()> {
-    let pd_url: Url = std::env::var("PENUMBRA_NODE_PD_URL")
+    let pd_url: Url = std::env::var("SHIELDD_NODE_PD_URL")
         .unwrap_or("http://localhost:8080".to_string())
         .parse()
         .unwrap();
@@ -111,7 +111,7 @@ async fn check_grpc_server_reflection() -> anyhow::Result<()> {
     // This ensures reflection is ostensibly working, and doesn't assume
     // that the FILE_DESCRIPTOR tonic-build logic is wired up.
     let methods = vec![
-        "penumbra.core.app.v1.QueryService",
+        "shieldd.core.app.v1.QueryService",
         // "grpc.reflection.v1alpha.ServerReflection",
         "grpc.reflection.v1.ServerReflection",
         "ibc.core.channel.v1.Query",
@@ -135,11 +135,11 @@ async fn check_grpc_server_reflection() -> anyhow::Result<()> {
 /// Returns a Vec<String> where each String is a fully qualified gRPC query service name,
 /// such as:
 ///
-///   - penumbra.core.component.governance.v1.QueryService
-///   - penumbra.view.v1.ViewService
-///   - penumbra.core.component.validator.v1.QueryService
+///   - shieldd.core.component.governance.v1.QueryService
+///   - shieldd.view.v1.ViewService
+///   - shieldd.core.component.validator.v1.QueryService
 ///
-/// The gRPC service names are read from the [penumbra_sdk_proto] crate's [FILE_DESCRIPTOR_SET],
+/// The gRPC service names are read from the [shieldd_sdk_proto] crate's [FILE_DESCRIPTOR_SET],
 /// which is exported at build time.
 fn get_all_grpc_services() -> anyhow::Result<Vec<String>> {
     // Intentionally verbose to be explicit.
