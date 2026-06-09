@@ -57,6 +57,117 @@ func (c *PoseidonHash4Gadget) Define(api frontend.API) error {
 	return nil
 }
 
+// verifyQuadPathN runs the VerifyQuadPath layer loop over a depth-N slice. It
+// mirrors compliance.VerifyQuadPath exactly (per-layer index decode, 4 Selects,
+// Poseidon377Hash4) but with a parametric depth so the whole-path verify-r1cs
+// scaling limit can be probed at depths 1/2/4/16 before authoring the full spec.
+// Position bits use 2*depth (enough for the layers used).
+//
+// The hash domain is threaded as a wire (`domain`) rather than the literal 0 the
+// shipped VerifyQuadPath uses, so gnark does not constant-fold the lane-0 S-box.
+// That keeps each layer's Hash4 sub-block structurally identical to the proved
+// standalone `gadget-poseidon-hash4` (71 S-boxes, same round-constant layout),
+// which is what lets the per-layer chains in the ACL2 proof reuse
+// `poseidon377-hash4-r1cs-axe` verbatim. The fixed domain value is supplied by
+// the witness at proving time.
+func verifyQuadPathN(api frontend.API, domain, leafHash frontend.Variable, path [][3]frontend.Variable, position frontend.Variable) (frontend.Variable, error) {
+	current := leafHash
+	posBits := api.ToBinary(position, 2*len(path))
+	for layerIdx := 0; layerIdx < len(path); layerIdx++ {
+		bit0 := posBits[layerIdx*2]
+		bit1 := posBits[layerIdx*2+1]
+		isIndex0 := api.Mul(api.Sub(1, bit0), api.Sub(1, bit1))
+		isIndex1 := api.Mul(bit0, api.Sub(1, bit1))
+		isIndex2 := api.Mul(api.Sub(1, bit0), bit1)
+		isIndex3 := api.Mul(bit0, bit1)
+
+		child0 := api.Select(isIndex0, current, path[layerIdx][0])
+		child1Not1 := api.Select(isIndex0, path[layerIdx][0], path[layerIdx][1])
+		child1 := api.Select(isIndex1, current, child1Not1)
+		child2Not2 := api.Select(bit1, path[layerIdx][2], path[layerIdx][1])
+		child2 := api.Select(isIndex2, current, child2Not2)
+		child3 := api.Select(isIndex3, current, path[layerIdx][2])
+
+		parent, err := Poseidon377Hash4(api, domain, [4]frontend.Variable{child0, child1, child2, child3})
+		if err != nil {
+			return nil, err
+		}
+		current = parent
+	}
+	return current, nil
+}
+
+// QuadPathNGadget probes the whole quad Merkle path at parametric depth N: given
+// a leaf hash, N layers of 3 siblings each, and a position, the claimed Root must
+// equal the iterated Hash4 path. Scope-only export target for verify-r1cs scaling.
+type QuadPath1Gadget struct {
+	Domain   frontend.Variable    `gnark:",public"`
+	LeafHash frontend.Variable    `gnark:",public"`
+	Position frontend.Variable    `gnark:",public"`
+	Path     [1][3]frontend.Variable
+	Root     frontend.Variable
+}
+
+func (c *QuadPath1Gadget) Define(api frontend.API) error {
+	root, err := verifyQuadPathN(api, c.Domain, c.LeafHash, c.Path[:], c.Position)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(root, c.Root)
+	return nil
+}
+
+type QuadPath2Gadget struct {
+	Domain   frontend.Variable    `gnark:",public"`
+	LeafHash frontend.Variable    `gnark:",public"`
+	Position frontend.Variable    `gnark:",public"`
+	Path     [2][3]frontend.Variable
+	Root     frontend.Variable
+}
+
+func (c *QuadPath2Gadget) Define(api frontend.API) error {
+	root, err := verifyQuadPathN(api, c.Domain, c.LeafHash, c.Path[:], c.Position)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(root, c.Root)
+	return nil
+}
+
+type QuadPath4Gadget struct {
+	Domain   frontend.Variable    `gnark:",public"`
+	LeafHash frontend.Variable    `gnark:",public"`
+	Position frontend.Variable    `gnark:",public"`
+	Path     [4][3]frontend.Variable
+	Root     frontend.Variable
+}
+
+func (c *QuadPath4Gadget) Define(api frontend.API) error {
+	root, err := verifyQuadPathN(api, c.Domain, c.LeafHash, c.Path[:], c.Position)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(root, c.Root)
+	return nil
+}
+
+type QuadPath16Gadget struct {
+	Domain   frontend.Variable    `gnark:",public"`
+	LeafHash frontend.Variable    `gnark:",public"`
+	Position frontend.Variable    `gnark:",public"`
+	Path     [16][3]frontend.Variable
+	Root     frontend.Variable
+}
+
+func (c *QuadPath16Gadget) Define(api frontend.API) error {
+	root, err := verifyQuadPathN(api, c.Domain, c.LeafHash, c.Path[:], c.Position)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(root, c.Root)
+	return nil
+}
+
 // NullifierGadget isolates nullifier derivation
 // `Poseidon377(domain, nk, stateCommitment, position)`, the gadget gating
 // NO-DOUBLE-SPEND. The claimed nullifier must equal the derived value.

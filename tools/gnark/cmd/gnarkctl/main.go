@@ -180,6 +180,14 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.PoseidonHash2Gadget{}, true
 	case "gadget-poseidon-hash4":
 		return &circuits.PoseidonHash4Gadget{}, true
+	case "gadget-quad-path-1":
+		return &circuits.QuadPath1Gadget{}, true
+	case "gadget-quad-path-2":
+		return &circuits.QuadPath2Gadget{}, true
+	case "gadget-quad-path-4":
+		return &circuits.QuadPath4Gadget{}, true
+	case "gadget-quad-path-16":
+		return &circuits.QuadPath16Gadget{}, true
 	case "gadget-nullifier":
 		return &circuits.NullifierGadget{}, true
 	case "gadget-iszero":
@@ -597,6 +605,18 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-poseidon-hash4":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash4Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-1":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath1Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-2":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath2Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-4":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath4Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-16":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath16Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-nullifier":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NullifierGadget{})
