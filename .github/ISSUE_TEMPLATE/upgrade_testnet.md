@@ -43,7 +43,7 @@ On release day:
 - [ ] Close faucet (chain halt will make it inoperative anyway)
 - [ ] Run migrations on all validators
 - [ ] Run migrations on all fullnodes
-- [ ] Update Galileo deployment, [following docs](https://github.com/shieldd-zone/galileo)
+- [ ] Update Galileo deployment
 - [ ] Make the announcement to Discord! 🎉🎉🎉
 
 Post-release cleanup tasks

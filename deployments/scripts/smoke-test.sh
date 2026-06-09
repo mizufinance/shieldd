@@ -49,7 +49,7 @@ mkdir -p "${SHIELDD_DEVNET_HOME}"
 # as part of the nix env.
 if ! hash cometbft > /dev/null 2>&1 ; then
     >&2 echo "ERROR: cometbft not found in PATH"
-    >&2 echo "See install guide: https://guide.shieldd.zone/main/pd/build.html"
+    >&2 echo "See the pd install guide"
     exit 1
 fi
 

@@ -102,7 +102,6 @@ authors    = ["Shieldd Labs <team@shielddlabs.xyz"]
 edition    = "2021"
 version    = "2.1.0"
 repository = "https://github.com/mizufinance/shieldd"
-homepage   = "https://shieldd.zone"
 license    = "MIT OR Apache-2.0"
 
 [workspace.dependencies]

@@ -5,7 +5,6 @@ authors = {workspace = true}
 edition = {workspace = true}
 description = "A library for building indexers for CometBFT events"
 repository = {workspace = true}
-homepage = {workspace = true}
 license = {workspace = true}
 publish = true
 

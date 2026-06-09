@@ -5,7 +5,6 @@ authors = {workspace = true}
 edition = {workspace = true}
 description = "The wallet software for the Shieldd Zone"
 repository = {workspace = true}
-homepage = {workspace = true}
 license = {workspace = true}
 publish = true
 

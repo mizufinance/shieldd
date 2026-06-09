@@ -128,7 +128,7 @@ fn write_app_version_safeguard<S: StateWriteProto>(s: &mut S, x: u64) {
 /// is uninitialized (pregenesis).
 ///
 /// # UIP:
-/// More context is available in the UIP-6 document: https://uips.shieldd.zone/uip-6.html
+/// More context is available in the UIP-6 document.
 pub async fn check_and_update_app_version(s: Storage) -> anyhow::Result<()> {
     // If the storage is not initialized, avoid touching it at all,
     // to avoid complaints about it already being initialized before the first genesis.

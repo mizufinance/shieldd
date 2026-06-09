@@ -1,7 +1,7 @@
 ![Shieldd logo](docs/images/shieldd-dark.svg#gh-dark-mode-only)
 ![Shieldd logo](docs/images/shieldd-light-bw.svg#gh-light-mode-only)
 
-[Shieldd] is a fully shielded zone for the Cosmos ecosystem, allowing anyone to securely transact,
+Shieldd is a fully shielded zone for the Cosmos ecosystem, allowing anyone to securely transact,
 stake, swap, or marketmake without broadcasting their personal information to the world.
 
 ## Getting involved
@@ -9,17 +9,17 @@ stake, swap, or marketmake without broadcasting their personal information to th
 The primary communication hub is our [Discord]; click the link to join the
 discussion there.
 
-The guide to using the Shieldd software and interacting with the testnets can be found at [guide.shieldd.zone][guide].
+The guide to using the Shieldd software and interacting with the testnets is in `docs/guide`.
 
-The (evolving) protocol spec is rendered at [protocol.shieldd.zone][protocol].
+The evolving protocol spec source is in `docs/protocol`.
 
-The (evolving) API documentation is rendered at [rustdoc.shieldd.zone][rustdoc].
+API documentation can be generated locally with `cargo doc --workspace --no-deps`.
 
 The (evolving) protobuf documentation is rendered at [buf.build/mizufinance/shieldd][protobuf].
 
-To participate in our test network, use Shieldd command line client [`pcli`][pcli].
+To participate in our test network, use Shieldd command line client `pcli`.
 
-To join the test network as a full node, follow setup instructions for Shieldd node implementation [`pd`][pd].
+To join the test network as a full node, follow setup instructions for Shieldd node implementation `pd`.
 
 ## Workspace layout
 
@@ -50,13 +50,7 @@ For a high-level view of current work-in-progress and future items, check out ou
 [Tracking]: https://github.com/orgs/mizufinance/projects/23/views/4
 [Backlog]: https://github.com/orgs/mizufinance/projects/23/views/1
 [Discord]: https://discord.gg/hKvkrqa3zC
-[Shieldd]: https://shieldd.zone
-[protocol]: https://protocol.shieldd.zone
-[guide]: https://guide.shieldd.zone
-[pcli]: https://guide.shieldd.zone/main/pcli.html
-[pd]: https://guide.shieldd.zone/main/pd.html
 [mdBook]: https://github.com/rust-lang/mdBook
-[rustdoc]: https://rustdoc.shieldd.zone
 [protobuf]: https://buf.build/mizufinance/shieldd
 [tm-install]: https://github.com/tendermint/tendermint/blob/master/docs/introduction/install.md#from-source
 

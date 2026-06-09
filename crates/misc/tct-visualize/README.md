@@ -1,6 +1,6 @@
 # Visualizing the Tiered Commitment Tree
 
-Shieldd's [Tiered Commitment Tree](https://rustdoc.shieldd.zone/main/shieldd_tct/index.html)
+Shieldd's Tiered Commitment Tree
 is a merkle quadtree used to store cryptographic commitments to shielded state. This crate provides
 interactive visualizations for understanding how the tree works. To see a talk using these visualizations
 to demonstrate the functionality of the tree, see: https://www.youtube.com/watch?v=mHoe7lQMcxU.

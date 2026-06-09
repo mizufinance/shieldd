@@ -375,7 +375,7 @@ pub struct PositionMetadataKey(pub Key);
 impl PositionMetadataKey {
     /// Derives a PositionMetadataKey from an OutgoingViewingKey.
     ///
-    /// See [UIP-9](https://uips.shieldd.zone/uip-9.html) for more details.
+    /// See UIP-9 for more details.
     pub fn derive(ovk: &OutgoingViewingKey) -> Self {
         let mut kdf_params = blake2b_simd::Params::new();
         kdf_params.personal(b"Shieldd_PosMeta");

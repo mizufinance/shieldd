@@ -5,7 +5,6 @@ name = "shieldd-proto-compiler"
 authors    = ["Shieldd Labs <team@shielddlabs.xyz"]
 description = "The Shieldd Protobuf Compilation Helper"
 edition = "2021"
-homepage   = "https://shieldd.zone"
 license    = "MIT OR Apache-2.0"
 publish = false
 repository = "https://github.com/mizufinance/shieldd"

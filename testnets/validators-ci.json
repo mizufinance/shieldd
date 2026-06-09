@@ -1,14 +1,14 @@
 [
     {
         "name": "Shieldd Labs CI 1",
-        "website": "https://shieldd.zone",
+        "website": "https://github.com/mizufinance/shieldd",
         "description": "This is a validator run by Shieldd Labs, using testnets as a public CI",
         "funding_streams": [],
         "sequence_number": 0
     },
     {
         "name": "Shieldd Labs CI 2",
-        "website": "https://shieldd.zone",
+        "website": "https://github.com/mizufinance/shieldd",
         "description": "This is a validator run by Shieldd Labs, using testnets as a public CI",
         "funding_streams": [],
         "sequence_number": 0

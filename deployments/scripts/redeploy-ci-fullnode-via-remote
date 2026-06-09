@@ -15,11 +15,16 @@ SHIELDD_VERSION="${1:-}"
 SHIELDD_ENVIRONMENT="${2:-}"
 shift 2
 if [[ "$SHIELDD_ENVIRONMENT" = "shieldd-preview" ]] ; then
-    pd_bootstrap_url="https://rpc.testnet-preview.shieldd.zone"
+    pd_bootstrap_url="${SHIELDD_PREVIEW_BOOTSTRAP_URL:-}"
 elif [[ "$SHIELDD_ENVIRONMENT" = "shieldd-testnet" ]] ; then
-    pd_bootstrap_url="https://rpc.testnet.shieldd.zone"
+    pd_bootstrap_url="${SHIELDD_TESTNET_BOOTSTRAP_URL:-}"
 else
     >&2 echo "ERROR: unsupported SHIELDD_ENVIRONMENT: '$SHIELDD_ENVIRONMENT'"
+    exit 2
+fi
+if [[ -z "$pd_bootstrap_url" ]] ; then
+    >&2 echo "ERROR: bootstrap URL not set for SHIELDD_ENVIRONMENT: '$SHIELDD_ENVIRONMENT'"
+    >&2 echo "Set SHIELDD_PREVIEW_BOOTSTRAP_URL or SHIELDD_TESTNET_BOOTSTRAP_URL."
     exit 2
 fi
 

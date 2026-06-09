@@ -4,7 +4,7 @@ FROM docker.io/rust:1-slim-bookworm AS build-env
 ARG TARGETARCH
 
 # Install build dependencies. These packages should match what's recommended on
-# https://guide.shieldd.zone/main/pcli/install.html
+# the pcli install guide.
 # We don't install git-lfs, because the git artifacts are copied in from the build host.
 # In order to build pcli with ledger support, add `libdbus-1-dev` & `libusb-1.0-0-dev`.
 RUN apt-get update && apt-get install -y \

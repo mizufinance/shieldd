@@ -65,4 +65,4 @@ the [Addresses and Keys](../addresses_keys.md) chapter.
 
 ### Privacy Implications
 
-Users should be aware that giving out multiple detection keys to a detection entity can carry a subset of the privacy implications, described in [Addresses and Detection Keys](https://protocol.shieldd.zone/main/addresses_keys/addresses.html#detection-keys).
+Users should be aware that giving out multiple detection keys to a detection entity can carry a subset of the privacy implications, described in [Addresses and Detection Keys](../addresses_keys/addresses.md#detection-keys).

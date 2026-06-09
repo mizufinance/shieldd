@@ -2,7 +2,7 @@
 # docker-compose file for running a Shieldd node.
 # Stores the node config in a docker "volume", which should be
 # reset between testnets: `docker volume rm compose_shieldd-pd-node0` or similar.
-# See docs for details:  https://guide.shieldd.zone/main/pd/join-testnet.html
+# See node join docs for details.
 #
 # N.B. the "latest" tag for Shieldd container images maps to the latest
 # tagged release; use "main" tag for tracking the rolling preview networks.
@@ -17,7 +17,7 @@ services:
       pd --version &&
       if ! test -e /pd/testnet_data/node0/cometbft/config/config.toml ; then
         >&2 printf 'WARN: testnet config not found. Creating fresh node identity.'
-        >&2 echo ' See docs for details: https://guide.shieldd.zone/main/pd/join-testnet.html'
+        >&2 echo ' See node join docs for details.'
         /bin/pd testnet --testnet-dir /pd/testnet_data generate
       else
         >&2 echo 'Node config already found, using it'

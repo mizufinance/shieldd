@@ -5,7 +5,6 @@ authors = {workspace = true}
 edition = {workspace = true}
 description = "The command-line interface for the Shieldd Zone"
 repository = {workspace = true}
-homepage = {workspace = true}
 license = {workspace = true}
 publish = false
 

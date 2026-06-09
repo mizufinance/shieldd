@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn toml_config() {
         let config = PcliConfig {
-            grpc_url: Url::parse("https://grpc.testnet.shieldd.zone").unwrap(),
+            grpc_url: Url::parse("http://127.0.0.1:8080").unwrap(),
             disable_warning: false,
             view_url: None,
             full_viewing_key: shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.clone(),

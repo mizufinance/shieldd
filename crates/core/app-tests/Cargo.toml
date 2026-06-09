@@ -7,7 +7,6 @@ version     = { workspace = true }
 authors     = { workspace = true }
 edition     = { workspace = true}
 repository  = { workspace = true }
-homepage    = { workspace = true }
 license     = { workspace = true }
 description = "Tests for the Shieldd app"
 publish     = false

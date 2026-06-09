@@ -198,7 +198,6 @@
                 cargoExtraArgs = "-p pd -p pcli -p pclientd -p pindexer";
                 meta = {
                   description = "A fully private proof-of-stake network and decentralized exchange for the Cosmos ecosystem";
-                  homepage = "https://shieldd.zone";
                   license = [ licenses.mit licenses.asl20 ];
                 };
               }).overrideAttrs (_: { doCheck = false; });

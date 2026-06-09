@@ -5,7 +5,6 @@ authors = {workspace = true}
 edition = {workspace = true}
 description = "Automatic HTTPS management for Shieldd"
 repository = {workspace = true}
-homepage = {workspace = true}
 license = {workspace = true}
 publish = true
 
