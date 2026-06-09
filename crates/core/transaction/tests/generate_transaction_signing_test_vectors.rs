@@ -12,7 +12,7 @@ use proptest::prelude::*;
 use proptest::strategy::ValueTree;
 use proptest::test_runner::{Config, TestRunner};
 use rand_core::OsRng;
-use shieldd_sdk_asset::{asset::Id, BASE_ASSET_DENOM};
+use shieldd_sdk_asset::{asset::Id, Value, BASE_ASSET_DENOM};
 use shieldd_sdk_fee::Fee;
 use shieldd_sdk_governance::{
     Proposal, ProposalPayload, ProposalSubmit, ProposalSubmitBody, ValidatorVote,
@@ -74,11 +74,6 @@ fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedIn
 
     (tct_strategy, note_strategy)
         .prop_map(|(tct_pos, note)| ShieldedInputPlan::new(&mut OsRng, note, tct_pos))
-}
-
-fn output_plan_strategy() -> impl Strategy<Value = ShieldedOutputPlan> {
-    (value_strategy(), address_strategy())
-        .prop_map(|(value, address)| ShieldedOutputPlan::new(&mut OsRng, value, address))
 }
 
 fn identity_key_strategy() -> impl Strategy<Value = IdentityKey> {
@@ -271,10 +266,35 @@ fn shielded_ics20_withdrawal_plan_strategy(
 }
 
 fn transfer_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = TransferPlan> {
-    (spend_plan_strategy(fvk), output_plan_strategy()).prop_map(|(spend, output)| {
-        TransferPlan::from_spend_output(spend.into(), output.into(), Fr::rand(&mut OsRng))
-            .expect("valid transfer plan")
-    })
+    (
+        spend_plan_strategy(fvk),
+        amount_strategy(),
+        address_strategy(),
+    )
+        .prop_map(|(spend, amount, dest_address)| {
+            let mut output = ShieldedOutputPlan::new(
+                &mut OsRng,
+                Value {
+                    amount,
+                    asset_id: spend.note.asset_id(),
+                },
+                dest_address,
+            );
+            output.asset_anchor = spend.asset_anchor;
+            output.asset_path = spend.asset_path.clone();
+            output.asset_position = spend.asset_position;
+            output.asset_indexed_leaf = spend.asset_indexed_leaf.clone();
+            output.compliance_anchor = spend.compliance_anchor;
+            output.compliance_path = spend.compliance_path.clone();
+            output.compliance_position = spend.compliance_position;
+            output.tx_blinding_nonce = spend.tx_blinding_nonce;
+            output.target_timestamp = spend.target_timestamp;
+            output.is_regulated = spend.is_regulated;
+            output.asset_policy = spend.asset_policy.clone();
+
+            TransferPlan::from_spend_output(spend, output, Fr::rand(&mut OsRng))
+                .expect("valid transfer plan")
+        })
 }
 
 fn consolidate_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ConsolidatePlan> {
