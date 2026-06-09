@@ -178,6 +178,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 	switch label {
 	case "gadget-poseidon2":
 		return &circuits.PoseidonHash2Gadget{}, true
+	case "gadget-poseidon-hash4":
+		return &circuits.PoseidonHash4Gadget{}, true
 	case "gadget-nullifier":
 		return &circuits.NullifierGadget{}, true
 	case "gadget-iszero":
@@ -592,6 +594,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 	switch circuit {
 	case "gadget-poseidon2":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash2Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon-hash4":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash4Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-nullifier":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NullifierGadget{})

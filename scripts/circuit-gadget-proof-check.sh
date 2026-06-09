@@ -24,6 +24,7 @@ ISZERO_PROOF=iszero-proof
 POSEIDON2_SMOKE_PROOF=poseidon2-lift-smoke
 NULLIFIER_SMOKE_PROOF=nullifier-lift-smoke
 POSEIDON2_PROOF=poseidon2-proof
+HASH4_PROOF=hash4-proof
 NULLIFIER_PROOF=nullifier-proof
 ASSET_REGISTRY_GAP_OUTPUT_PROOF=asset-registry-gap-output
 BOOL_SELECT_LEAN=tools/gnark/lean/PenumbraGnarkFormal/Extracted/BoolSelect.lean
@@ -184,13 +185,14 @@ check_lean_artifact_stamp() {
 ) || fail "ACL2/gnark parity or Axe export fidelity failed — proof models a different circuit"
 
 tmp_poseidon2="$(mktemp)"
+tmp_hash4="$(mktemp)"
 tmp_nullifier="$(mktemp)"
 tmp_iszero="$(mktemp)"
 tmp_poseidon_spec="$(mktemp)"
 tmp_bool_select_lean="$(mktemp)"
 tmp_iszero_lean="$(mktemp)"
 tmp_nullifier_lean="$(mktemp)"
-trap 'rm -f "$tmp_poseidon2" "$tmp_nullifier" "$tmp_iszero" "$tmp_poseidon_spec" "$tmp_bool_select_lean" "$tmp_iszero_lean" "$tmp_nullifier_lean"' EXIT
+trap 'rm -f "$tmp_poseidon2" "$tmp_hash4" "$tmp_nullifier" "$tmp_iszero" "$tmp_poseidon_spec" "$tmp_bool_select_lean" "$tmp_iszero_lean" "$tmp_nullifier_lean"' EXIT
 (
   cd tools/gnark
   go run ./cmd/gnarkctl export-r1cs \
@@ -200,6 +202,16 @@ trap 'rm -f "$tmp_poseidon2" "$tmp_nullifier" "$tmp_iszero" "$tmp_poseidon_spec"
 ) || fail "failed to regenerate gadget-poseidon2 Axe Lisp"
 diff -u "$GENERATED_DIR/gadget-poseidon2-r1cs.lisp" "$tmp_poseidon2" \
   || fail "checked-in gadget-poseidon2 Axe Lisp is stale"
+
+(
+  cd tools/gnark
+  go run ./cmd/gnarkctl export-r1cs \
+    --circuit gadget-poseidon-hash4 \
+    --format axe-lisp \
+    --out "$tmp_hash4"
+) || fail "failed to regenerate gadget-poseidon-hash4 Axe Lisp"
+diff -u "$GENERATED_DIR/gadget-poseidon-hash4-r1cs.lisp" "$tmp_hash4" \
+  || fail "checked-in gadget-poseidon-hash4 Axe Lisp is stale"
 
 (
   cd tools/gnark
@@ -268,6 +280,8 @@ certify_with_cert_pl generated/gadget-poseidon2-r1cs
 certify_with_cert_pl generated/poseidon377-spec
 certify_with_cert_pl "$POSEIDON2_SMOKE_PROOF"
 certify_with_cert_pl "$POSEIDON2_PROOF"
+certify_with_cert_pl generated/gadget-poseidon-hash4-r1cs
+certify_with_cert_pl "$HASH4_PROOF"
 certify_with_cert_pl generated/gadget-nullifier-r1cs
 certify_with_cert_pl "$NULLIFIER_SMOKE_PROOF"
 certify_with_cert_pl "$NULLIFIER_PROOF"
@@ -298,6 +312,7 @@ check_artifact_stamp "$BOOL_SELECT_PROOF"
 check_artifact_stamp "$ISZERO_PROOF"
 check_artifact_stamp "$POSEIDON2_SMOKE_PROOF"
 check_artifact_stamp "$POSEIDON2_PROOF"
+check_artifact_stamp "$HASH4_PROOF"
 check_artifact_stamp "$NULLIFIER_PROOF"
 check_artifact_stamp "$ASSET_REGISTRY_GAP_OUTPUT_PROOF"
 

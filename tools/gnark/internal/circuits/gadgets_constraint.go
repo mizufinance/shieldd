@@ -36,6 +36,27 @@ func (c *PoseidonHash2Gadget) Define(api frontend.API) error {
 	return nil
 }
 
+// PoseidonHash4Gadget isolates the four-input Poseidon377 permutation (rate-4,
+// t=5), the per-layer hash of the quad Merkle path (VerifyQuadPath). Same shape
+// as PoseidonHash2Gadget, wider permutation.
+type PoseidonHash4Gadget struct {
+	Domain frontend.Variable `gnark:",public"`
+	In0    frontend.Variable `gnark:",public"`
+	In1    frontend.Variable `gnark:",public"`
+	In2    frontend.Variable `gnark:",public"`
+	In3    frontend.Variable `gnark:",public"`
+	Out    frontend.Variable
+}
+
+func (c *PoseidonHash4Gadget) Define(api frontend.API) error {
+	out, err := Poseidon377Hash4(api, c.Domain, [4]frontend.Variable{c.In0, c.In1, c.In2, c.In3})
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out, c.Out)
+	return nil
+}
+
 // NullifierGadget isolates nullifier derivation
 // `Poseidon377(domain, nk, stateCommitment, position)`, the gadget gating
 // NO-DOUBLE-SPEND. The claimed nullifier must equal the derived value.

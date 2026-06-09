@@ -35,6 +35,21 @@ func TestAxeExportFidelityPoseidon2(t *testing.T) {
 	assertAxeExportMatchesSolvedWitness(t, &PoseidonHash2Gadget{}, assignment)
 }
 
+func TestAxeExportFidelityPoseidonHash4(t *testing.T) {
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		t.Fatal(err)
+	}
+	domain := primitives.MustBigInt(vectors.Poseidon377.IVKDomain)
+	in := [4]*big.Int{big.NewInt(7), big.NewInt(11), big.NewInt(13), big.NewInt(17)}
+	out, err := primitives.Poseidon377Hash4Native(domain, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assignment := &PoseidonHash4Gadget{Domain: domain, In0: in[0], In1: in[1], In2: in[2], In3: in[3], Out: out}
+	assertAxeExportMatchesSolvedWitness(t, &PoseidonHash4Gadget{}, assignment)
+}
+
 func TestAxeExportFidelityNullifier(t *testing.T) {
 	vectors, err := primitives.LoadPrototypeVectors()
 	if err != nil {
