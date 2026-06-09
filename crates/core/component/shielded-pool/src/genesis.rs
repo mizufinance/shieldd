@@ -1,4 +1,4 @@
-use penumbra_sdk_proto::{penumbra::core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 
 mod allocation;
@@ -54,10 +54,10 @@ impl Default for Content {
             allocations: vec![
                 Allocation {
                     raw_amount: 1000u128.into(),
-                    raw_denom: "penumbra"
+                    raw_denom: "shieldd"
                         .parse()
-                        .expect("hardcoded \"penumbra\" denom should be parseable"),
-                    address: penumbra_sdk_keys::test_keys::ADDRESS_0_STR
+                        .expect("hardcoded \"shieldd\" denom should be parseable"),
+                    address: shieldd_sdk_keys::test_keys::ADDRESS_0_STR
                         .parse()
                         .expect("hardcoded test address should be valid"),
                 },
@@ -66,7 +66,7 @@ impl Default for Content {
                     raw_denom: "test_usd"
                         .parse()
                         .expect("hardcoded \"test_usd\" denom should be parseable"),
-                    address: penumbra_sdk_keys::test_keys::ADDRESS_0_STR
+                    address: shieldd_sdk_keys::test_keys::ADDRESS_0_STR
                         .parse()
                         .expect("hardcoded test address should be valid"),
                 },
@@ -75,7 +75,7 @@ impl Default for Content {
                     raw_denom: "gm"
                         .parse()
                         .expect("hardcoded \"gm\" denom should be parseable"),
-                    address: penumbra_sdk_keys::test_keys::ADDRESS_1_STR
+                    address: shieldd_sdk_keys::test_keys::ADDRESS_1_STR
                         .parse()
                         .expect("hardcoded test address should be valid"),
                 },
@@ -84,7 +84,7 @@ impl Default for Content {
                     raw_denom: "gn"
                         .parse()
                         .expect("hardcoded \"gn\" denom should be parseable"),
-                    address: penumbra_sdk_keys::test_keys::ADDRESS_1_STR
+                    address: shieldd_sdk_keys::test_keys::ADDRESS_1_STR
                         .parse()
                         .expect("hardcoded test address should be valid"),
                 },

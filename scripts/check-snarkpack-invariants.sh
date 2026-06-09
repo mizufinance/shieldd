@@ -21,7 +21,7 @@ markdown_field() {
 
 is_comparison_level() {
   case "$1" in
-    '`penumbra-byte`'|'`abstract-trace`'|'`filecoin-shape`'|'`penumbra-local`'|'`assumption`') return 0 ;;
+    '`shieldd-byte`'|'`abstract-trace`'|'`filecoin-shape`'|'`shieldd-local`'|'`assumption`') return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -120,7 +120,7 @@ check_reference_crate_boundary() {
     || fail "reference crate must be listed as a workspace member"
   rg -n '^publish = false$' "$manifest" >/dev/null \
     || fail "reference crate must be marked publish = false"
-  rg -n '^penumbra-sdk-proof-aggregation = ' "$manifest" >/dev/null \
+  rg -n '^shieldd-sdk-proof-aggregation = ' "$manifest" >/dev/null \
     || fail "reference crate must use the public proof-aggregation crate boundary"
 
   local forbidden_deps
@@ -134,7 +134,7 @@ check_reference_crate_boundary() {
 
   local production_reference_imports
   production_reference_imports="$(
-    rg -n 'penumbra-sdk-proof-aggregation-reference|proof_aggregation_reference|proof-aggregation-reference' \
+    rg -n 'shieldd-sdk-proof-aggregation-reference|proof_aggregation_reference|proof-aggregation-reference' \
       Cargo.toml crates \
       | rg -v '^Cargo.toml:|^crates/crypto/proof-aggregation-reference/|^crates/crypto/proof-aggregation-fuzz/|\.md:|\.txt:' || true
   )"
@@ -158,11 +158,11 @@ check_fuzz_crate_boundary() {
     || fail "fuzz crate must be marked as a cargo-fuzz package"
   rg -n '^libfuzzer-sys = ' "$manifest" >/dev/null \
     || fail "fuzz crate must depend on libfuzzer-sys"
-  rg -n '^penumbra-sdk-proof-aggregation = ' "$manifest" >/dev/null \
+  rg -n '^shieldd-sdk-proof-aggregation = ' "$manifest" >/dev/null \
     || fail "fuzz crate must use the public proof-aggregation crate boundary"
-  rg -n '^penumbra-sdk-proof-aggregation-reference = ' "$manifest" >/dev/null \
+  rg -n '^shieldd-sdk-proof-aggregation-reference = ' "$manifest" >/dev/null \
     || fail "fuzz crate must use the reference oracle crate as a dev-only boundary"
-  rg -n '^penumbra-sdk-proof-aggregation-trace-schema = ' "$manifest" >/dev/null \
+  rg -n '^shieldd-sdk-proof-aggregation-trace-schema = ' "$manifest" >/dev/null \
     || fail "fuzz crate must use the shared trace schema boundary"
 
   local forbidden_deps
@@ -202,7 +202,7 @@ check_lean_conformance_boundary() {
     || fail "Lean conformance crate must be listed as a workspace member"
   rg -n '^publish = false$' "$manifest" >/dev/null \
     || fail "Lean conformance crate must be marked publish = false"
-  rg -n '^penumbra-sdk-proof-aggregation = ' "$manifest" >/dev/null \
+  rg -n '^shieldd-sdk-proof-aggregation = ' "$manifest" >/dev/null \
     || fail "Lean conformance crate must use the public proof-aggregation API"
 
   local forbidden_deps
@@ -251,7 +251,7 @@ check_trace_schema() {
 
   rg -F '"crates/crypto/proof-aggregation-trace-schema"' Cargo.toml >/dev/null \
     || fail "trace schema crate must be listed as a workspace member"
-  rg -n '^penumbra-sdk-proof-aggregation-trace-schema[[:space:]]*=' Cargo.toml >/dev/null \
+  rg -n '^shieldd-sdk-proof-aggregation-trace-schema[[:space:]]*=' Cargo.toml >/dev/null \
     || fail "trace schema crate must be a workspace dependency"
   if rg -n '^\[dependencies\]' "$manifest"; then
     fail "trace schema crate must remain dependency-free"
@@ -260,10 +260,10 @@ check_trace_schema() {
     || fail "trace schema crate must be no_std"
   rg -n '^extern crate alloc;$' "$schema" >/dev/null \
     || fail "trace schema crate may use alloc, but not std"
-  rg -n '^penumbra-sdk-proof-aggregation-trace-schema[[:space:]]*=' \
+  rg -n '^shieldd-sdk-proof-aggregation-trace-schema[[:space:]]*=' \
     crates/crypto/proof-aggregation/Cargo.toml >/dev/null \
     || fail "production proof-aggregation crate must depend on trace schema"
-  rg -n '^penumbra-sdk-proof-aggregation-trace-schema[[:space:]]*=' \
+  rg -n '^shieldd-sdk-proof-aggregation-trace-schema[[:space:]]*=' \
     crates/crypto/proof-aggregation-reference/Cargo.toml >/dev/null \
     || fail "reference crate must depend on trace schema"
 
@@ -293,10 +293,10 @@ check_trace_schema() {
     sub(/[,} ].*/, "", level)
   }
   /^[[:space:]]*\},/ && id != "" {
-    if (level == "PenumbraByte") level = "penumbra-byte"
+    if (level == "ShielddByte") level = "shieldd-byte"
     else if (level == "AbstractTrace") level = "abstract-trace"
     else if (level == "FilecoinShape") level = "filecoin-shape"
-    else if (level == "PenumbraLocal") level = "penumbra-local"
+    else if (level == "ShielddLocal") level = "shieldd-local"
     else level = "invalid:" level
     print id "|" level
   }' "$schema" | sort > "$schema_rows"
@@ -311,7 +311,7 @@ check_trace_schema() {
   rm -rf "$tmpdir"
 
   rg -n 'MissingBytePayload' "$schema" >/dev/null \
-    || fail "trace schema must reject penumbra-byte events without byte payloads"
+    || fail "trace schema must reject shieldd-byte events without byte payloads"
   rg -n 'MissingAbstractPayload' "$schema" >/dev/null \
     || fail "trace schema must reject abstract-trace events without abstract payloads"
   rg -n 'MissingFilecoinBugClass' "$schema" >/dev/null \

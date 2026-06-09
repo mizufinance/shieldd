@@ -1,12 +1,12 @@
 use std::convert::TryFrom;
 
 use anyhow::{Context, Result};
-use penumbra_sdk_proto::penumbra::core::component::compact_block::v1::{self as pb};
-use penumbra_sdk_shielded_pool::{note, NotePayload};
+use shieldd_sdk_proto::shieldd::core::component::compact_block::v1::{self as pb};
+use shieldd_sdk_shielded_pool::{note, NotePayload};
 
 use serde::{Deserialize, Serialize};
 
-use penumbra_sdk_sct::CommitmentSource;
+use shieldd_sdk_sct::CommitmentSource;
 
 /// A note payload annotated with the source of the note.
 #[derive(Clone, Debug, Serialize, Deserialize)]

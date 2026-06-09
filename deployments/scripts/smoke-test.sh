@@ -22,7 +22,7 @@ pcli_tx_cmd() {
 repo_root="$(git rev-parse --show-toplevel)"
 cd "${repo_root}"
 source "${repo_root}/scripts/lib/common.sh"
-smoke_test_dir="$(mktemp -d "${TMPDIR:-/tmp}/penumbra-smoke.XXXXXX")"
+smoke_test_dir="$(mktemp -d "${TMPDIR:-/tmp}/shieldd-smoke.XXXXXX")"
 temp_root="${TMPDIR:-/tmp}"
 temp_root="${temp_root%/}"
 devnet_pid=""
@@ -33,15 +33,15 @@ compliance_dev_registrar_vk_hex="${COMPLIANCE_DEV_REGISTRAR_VK_HEX:-080000000000
 compliance_dev_authority_sk_hex="${COMPLIANCE_DEV_AUTHORITY_SK_HEX:-0200000000000000000000000000000000000000000000000000000000000000}"
 compliance_dev_authority_vk_hex="${COMPLIANCE_DEV_AUTHORITY_VK_HEX:-b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506}"
 compliance_grant_valid_until_unix="${COMPLIANCE_GRANT_VALID_UNTIL_UNIX:-4102444800}"
-if [ "${PENUMBRA_PRODUCTION:-0}" = "1" ]; then
-    >&2 echo "ERROR: smoke-test.sh uses dev-only compliance keys and must not run with PENUMBRA_PRODUCTION=1"
+if [ "${SHIELDD_PRODUCTION:-0}" = "1" ]; then
+    >&2 echo "ERROR: smoke-test.sh uses dev-only compliance keys and must not run with SHIELDD_PRODUCTION=1"
     exit 1
 fi
 
-# Run the full smoke environment against an isolated Penumbra state directory so
+# Run the full smoke environment against an isolated Shieldd state directory so
 # local developer state does not interfere with the devnet/process-compose paths.
-export PENUMBRA_DEVNET_HOME="${smoke_test_dir}/penumbra-home"
-mkdir -p "${PENUMBRA_DEVNET_HOME}"
+export SHIELDD_DEVNET_HOME="${smoke_test_dir}/shieldd-home"
+mkdir -p "${SHIELDD_DEVNET_HOME}"
 
 "${repo_root}/deployments/scripts/warn-about-pd-state"
 
@@ -49,7 +49,7 @@ mkdir -p "${PENUMBRA_DEVNET_HOME}"
 # as part of the nix env.
 if ! hash cometbft > /dev/null 2>&1 ; then
     >&2 echo "ERROR: cometbft not found in PATH"
-    >&2 echo "See install guide: https://guide.penumbra.zone/main/pd/build.html"
+    >&2 echo "See install guide: https://guide.shieldd.zone/main/pd/build.html"
     exit 1
 fi
 
@@ -96,8 +96,8 @@ require_address_output() {
     local value="$2"
     local command_name="$3"
 
-    if [ -z "${value//[[:space:]]/}" ] || [[ ! "$value" =~ ^penumbra[a-z0-9]+$ ]]; then
-        >&2 echo "ERROR: $name from '$command_name' is empty or not a Penumbra address"
+    if [ -z "${value//[[:space:]]/}" ] || [[ ! "$value" =~ ^shieldd[a-z0-9]+$ ]]; then
+        >&2 echo "ERROR: $name from '$command_name' is empty or not a Shieldd address"
         >&2 echo "  $name=$value"
         exit 1
     fi
@@ -154,10 +154,10 @@ cleanup_smoke() {
         wait "$devnet_pid" 2>/dev/null || true
     fi
 
-    unset PENUMBRA_DEVNET_HOME
+    unset SHIELDD_DEVNET_HOME
 
     case "${smoke_test_dir:-}" in
-        "$temp_root"/penumbra-smoke.*)
+        "$temp_root"/shieldd-smoke.*)
             if [ -n "${smoke_test_dir}" ] && [ -d "${smoke_test_dir}" ]; then
                 rm -rf "${smoke_test_dir}"
             fi
@@ -195,7 +195,7 @@ max_attempts=120
 attempt=0
 while true; do
     # Query the latest block height via the tendermint RPC
-    height_response=$(curl -s "${PENUMBRA_NODE_CMT_URL}/status" 2>&1) || true
+    height_response=$(curl -s "${SHIELDD_NODE_CMT_URL}/status" 2>&1) || true
     # Extract the block height from the JSON response
     height=$(echo "$height_response" | grep -o '"latest_block_height":"[0-9]*"' | grep -o '[0-9]*' | head -1) || true
 
@@ -224,7 +224,7 @@ sleep 10
 pcli_test_home="${smoke_test_dir}/pcli-test"
 mkdir -p "$pcli_test_home"
 echo "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate" | \
-    cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" init --grpc-url "$PENUMBRA_NODE_PD_URL" soft-kms import-phrase
+    cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" init --grpc-url "$SHIELDD_NODE_PD_URL" soft-kms import-phrase
 
 # --- Compliance smoke test setup ---
 # Use regulated_usd (already allocated in genesis) as the unified regulated token.
@@ -334,9 +334,9 @@ bash "${repo_root}/deployments/scripts/check-reduced-surface.sh"
 # Export devnet parameters for integration tests.
 # Must match values in run-local-devnet.sh.
 export UNBONDING_DELAY=201
-export PENUMBRA_REDUCED_ACTION_SURFACE=1
-export PENUMBRA_NODE_PD_URL
-export PENUMBRA_NODE_CMT_URL
+export SHIELDD_REDUCED_ACTION_SURFACE=1
+export SHIELDD_NODE_PD_URL
+export SHIELDD_NODE_CMT_URL
 
 # Run the integration tests. Using `just` targets so that the exact
 # invocations are easily reusable on the CLI in dev loops.

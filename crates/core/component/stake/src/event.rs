@@ -3,8 +3,8 @@ use crate::{
     IdentityKey,
 };
 use anyhow::{anyhow, Context as _};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{core::component::validator::v1 as pb, DomainType, Name as _};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{core::component::validator::v1 as pb, DomainType, Name as _};
 use tendermint::abci::types::Misbehavior;
 
 #[derive(Clone, Debug)]

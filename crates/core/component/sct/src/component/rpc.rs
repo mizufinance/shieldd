@@ -1,12 +1,12 @@
 use cnidarium::Storage;
 use pbjson_types::Timestamp;
-use penumbra_sdk_proto::core::component::sct::v1::query_service_server::QueryService;
-use penumbra_sdk_proto::core::component::sct::v1::{
+use shieldd_sdk_proto::core::component::sct::v1::query_service_server::QueryService;
+use shieldd_sdk_proto::core::component::sct::v1::{
     AnchorByHeightRequest, AnchorByHeightResponse, EpochByHeightRequest, EpochByHeightResponse,
     NullifierRequest, NullifierResponse, SctFrontierRequest, SctFrontierResponse,
     TimestampByHeightRequest, TimestampByHeightResponse,
 };
-use penumbra_sdk_proto::crypto::tct::v1 as pb_tct;
+use shieldd_sdk_proto::crypto::tct::v1 as pb_tct;
 use tonic::Status;
 use tracing::instrument;
 
@@ -119,7 +119,7 @@ impl QueryService for Server {
             };
 
             let proto_anchor: pb_tct::MerkleRoot = pb_tct::MerkleRoot { inner: raw_anchor };
-            let anchor: penumbra_sdk_tct::Root = proto_anchor
+            let anchor: shieldd_sdk_tct::Root = proto_anchor
                 .try_into()
                 .map_err(|_| tonic::Status::internal("failed to parse anchor"))?;
             (anchor, Some(proof.into()))

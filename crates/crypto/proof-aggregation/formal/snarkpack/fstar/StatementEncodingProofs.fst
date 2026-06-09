@@ -1,7 +1,7 @@
 module StatementEncodingProofs
 #set-options "--fuel 2 --ifuel 1 --z3rlimit 400"
 
-module S = Penumbra_sdk_proof_aggregation.Statement
+module S = Shieldd_sdk_proof_aggregation.Statement
 module V = Alloc.Vec
 module Seq = FStar.Seq
 module Num = Core_models.Num
@@ -338,14 +338,14 @@ let padding_list : list u8 =
 /// `seq_of_list padding_list`, whose return type gives
 /// `length s == List.length padding_list`; the latter normalizes to 47.
 let lemma_padding_len ()
-    : Lemma (Seq.length Penumbra_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN == 47)
+    : Lemma (Seq.length Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN == 47)
 = assert_norm (FStar.List.Tot.length padding_list == 47);
-  assert (Penumbra_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN ==
+  assert (Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN ==
           Seq.seq_of_list padding_list)
 
 let padding_domain : (f: t_Slice u8 {Seq.length f <= 4294967295}) =
   lemma_padding_len ();
-  Penumbra_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN
+  Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN
 
 /// Right-nested concatenation of a list of byte segments.
 let rec nest_right (l: list (Seq.seq u8)) : Seq.seq u8 =
@@ -431,8 +431,8 @@ let lemma_encode_statement_content (x: S.t_StatementEncodingInput {wf_input x})
   let b3 = fst (S.append_bytes_field b2 (Alloc.Vec.impl_1__as_slice x.f_backend_id)) in
   lemma_append_bytes_field_ok b2 (Alloc.Vec.impl_1__as_slice x.f_backend_id);
   lemma_padding_len ();
-  let b4 = fst (S.append_bytes_field b3 Penumbra_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN) in
-  lemma_append_bytes_field_ok b3 Penumbra_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN;
+  let b4 = fst (S.append_bytes_field b3 Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN) in
+  lemma_append_bytes_field_ok b3 Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN;
   let b5 = S.append_u32_field b4 x.f_proof_family_id in
   lemma_append_u32_field_content b4 x.f_proof_family_id;
   let b6 = S.append_u32_field b5 x.f_consolidate_family_id in

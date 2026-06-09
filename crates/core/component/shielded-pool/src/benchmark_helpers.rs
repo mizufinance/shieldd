@@ -4,8 +4,8 @@ pub use crate::test_proof_helpers::proof_test_helpers::{
 
 use anyhow::Result;
 use ibc_types::core::channel::msgs::MsgRecvPacket;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_num::Amount;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_num::Amount;
 
 use crate::{
     ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProofPrivate,

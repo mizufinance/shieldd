@@ -1,8 +1,8 @@
 module DigestBindingProofs
 #set-options "--fuel 2 --ifuel 1 --z3rlimit 300"
 
-module R = Penumbra_sdk_proof_aggregation.Srs
-module S = Penumbra_sdk_proof_aggregation.Statement
+module R = Shieldd_sdk_proof_aggregation.Srs
+module S = Shieldd_sdk_proof_aggregation.Statement
 module V = Alloc.Vec
 module Seq = FStar.Seq
 module Num = Core_models.Num

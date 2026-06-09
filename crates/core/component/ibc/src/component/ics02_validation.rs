@@ -80,9 +80,9 @@ pub fn get_tendermint_client_state(client_state: Any) -> Result<TendermintClient
     }
 }
 
-// validate the parameters of an AnyClientState, verifying that it is a valid Penumbra client
+// validate the parameters of an AnyClientState, verifying that it is a valid Shieldd client
 // state.
-pub fn validate_penumbra_sdk_client_state(
+pub fn validate_shieldd_sdk_client_state(
     client_state: Any,
     chain_id: &str,
     current_height: u64,
@@ -112,7 +112,7 @@ pub fn validate_penumbra_sdk_client_state(
         );
     }
 
-    // check client proof specs match penumbra proof specs
+    // check client proof specs match shieldd proof specs
     if IBC_PROOF_SPECS.clone() != tm_client_state.proof_specs {
         // allow legacy proof specs without prehash_key_before_comparison
         let mut spec_with_prehash_key = tm_client_state.proof_specs.clone();

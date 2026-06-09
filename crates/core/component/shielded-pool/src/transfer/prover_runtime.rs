@@ -94,14 +94,14 @@ fn init_gnark_transfer_client() -> Result<GnarkTransferClient, crate::ProofError
                 "gnark transfer library not found (checked bundled path and executable-adjacent locations)".to_string(),
             )
         })?;
-    let pk_bytes = penumbra_sdk_proof_params::transfer_proving_key_bytes();
+    let pk_bytes = shieldd_sdk_proof_params::transfer_proving_key_bytes();
     if pk_bytes.is_empty() {
         return Err(crate::ProofError::ProofGenerationFailed(format!(
             "gnark transfer proving key not bundled (enable bundled-proving-keys feature)",
         )));
     }
-    let pvk = penumbra_sdk_proof_params::transfer_proof_verification_key().clone();
-    let metadata = penumbra_sdk_proof_params::transfer_circuit_metadata();
+    let pvk = shieldd_sdk_proof_params::transfer_proof_verification_key().clone();
+    let metadata = shieldd_sdk_proof_params::transfer_circuit_metadata();
     crate::gnark::GnarkTransferClient::from_bundled(&lib_path, pk_bytes, pvk, metadata)
         .map_err(|e| crate::ProofError::ProofGenerationFailed(format!("gnark transfer init: {e}")))
 }

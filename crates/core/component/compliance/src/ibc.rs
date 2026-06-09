@@ -2,16 +2,16 @@
 //!
 //! Encodes compliance metadata in the ICS-20 memo field so regulated assets
 //! can cross IBC channels. The metadata is base64-encoded protobuf wrapped
-//! in a JSON object: `{"penumbra_compliance": "<base64>", "memo": "..."}`.
+//! in a JSON object: `{"shieldd_compliance": "<base64>", "memo": "..."}`.
 
 use anyhow::{Context, Result};
 use base64::Engine as _;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_proto::core::component::compliance::v1 as pb;
-use penumbra_sdk_proto::Message as _;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_proto::core::component::compliance::v1 as pb;
+use shieldd_sdk_proto::Message as _;
 
 /// Prefix key used to identify compliance metadata in the ICS-20 memo JSON.
-const MEMO_KEY: &str = "penumbra_compliance";
+const MEMO_KEY: &str = "shieldd_compliance";
 
 /// Compliance metadata for IBC transfers of regulated assets.
 ///
@@ -96,7 +96,7 @@ impl IbcComplianceMetadata {
             .ok_or_else(|| anyhow::anyhow!("regulated IBC memo must be a JSON object"))?;
         anyhow::ensure!(
             obj.len() == 1 && obj.contains_key(MEMO_KEY),
-            "regulated IBC memo may only contain Penumbra compliance metadata"
+            "regulated IBC memo may only contain Shieldd compliance metadata"
         );
         Self::from_memo(memo)?.ok_or_else(|| anyhow::anyhow!("missing compliance metadata"))?;
         Ok(())

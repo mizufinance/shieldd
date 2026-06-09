@@ -9,7 +9,7 @@ use anyhow::{ensure, Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use decaf377_rdsa::VerificationKey;
-use penumbra_sdk_proto::DomainType;
+use shieldd_sdk_proto::DomainType;
 
 #[async_trait]
 impl ActionHandler for validator::Definition {

@@ -1,8 +1,8 @@
 use anyhow::Context;
 use decaf377_rdsa::{Signature, SpendAuth};
 use futures::{FutureExt, TryStreamExt};
-use penumbra_sdk_governance::{ProposalSubmitBody, ValidatorVoteBody};
-use penumbra_sdk_proto::{
+use shieldd_sdk_governance::{ProposalSubmitBody, ValidatorVoteBody};
+use shieldd_sdk_proto::{
     custody::v1::{
         AuthorizeProposalSubmitRequest, AuthorizeValidatorDefinitionRequest,
         AuthorizeValidatorVoteRequest,
@@ -11,9 +11,9 @@ use penumbra_sdk_proto::{
     view::v1::broadcast_transaction_response::Status as BroadcastStatus,
     DomainType,
 };
-use penumbra_sdk_transaction::{txhash::TransactionId, Transaction, TransactionPlan};
-use penumbra_sdk_validator::validator::Validator;
-use penumbra_sdk_view::{ViewClient, ViewServer};
+use shieldd_sdk_transaction::{txhash::TransactionId, Transaction, TransactionPlan};
+use shieldd_sdk_validator::validator::Validator;
+use shieldd_sdk_view::{ViewClient, ViewServer};
 use std::{fs, future::Future};
 use tonic::transport::Channel;
 use tracing::instrument;
@@ -45,7 +45,7 @@ impl App {
             plan.num_proofs(),
         );
         let start = std::time::Instant::now();
-        let tx = penumbra_sdk_wallet::build_transaction(
+        let tx = shieldd_sdk_wallet::build_transaction(
             &self.config.full_viewing_key,
             self.view.as_mut().expect("view service initialized"),
             &mut self.custody,

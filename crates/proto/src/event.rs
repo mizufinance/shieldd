@@ -83,7 +83,7 @@ mod tests {
         let abci_spend = proto_spend.into_event();
 
         let expected_abci_spend = abci::Event::new(
-            "penumbra.core.component.shielded_pool.v1.EventNullifierSpent",
+            "shieldd.core.component.shielded_pool.v1.EventNullifierSpent",
             [abci::EventAttribute::V037(abci::v0_37::EventAttribute {
                 key: "nullifier".to_string(),
                 value: "{\"inner\":\"lL6VF1ZxmJFo8o6i6e+JjYyktGKaN6j/o+SzsBoZ29M=\"}".to_string(),
@@ -109,7 +109,7 @@ mod tests {
         let abci_output = proto_output.into_event();
 
         let expected_abci_output = abci::Event::new(
-            "penumbra.core.component.shielded_pool.v1.EventNoteCreated",
+            "shieldd.core.component.shielded_pool.v1.EventNoteCreated",
             [abci::EventAttribute::V037(abci::v0_37::EventAttribute {
                 // note: attribute keys become camelCase because ProtoJSON...
                 key: "noteCommitment".to_string(),

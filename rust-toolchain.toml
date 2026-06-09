@@ -4,5 +4,5 @@
 channel = "1.89"
 components = [ "rustfmt", "rust-analyzer" ]
 # Include wasm toolchain, for CI tests to check wasm32 build targets still work,
-# to avoid downstream breakage in `penumbra-wasm` crate, in the web repo.
+# to avoid downstream breakage in `shieldd-wasm` crate, in the web repo.
 targets = [ "wasm32-unknown-unknown" ]

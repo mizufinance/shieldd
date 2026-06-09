@@ -179,20 +179,20 @@ impl Builder {
 pub static REGISTRY: Lazy<Registry> = Lazy::new(|| {
     Builder::default()
         .add_asset(
-            "^upenumbra$",
-            &["^penumbra$", "^mpenumbra$"],
+            "^ushieldd$",
+            &["^shieldd$", "^mshieldd$"],
             (|data: &str| {
                 assert!(data.is_empty());
                 denom_metadata::Inner::new(
-                    "upenumbra".to_string(),
+                    "ushieldd".to_string(),
                     vec![
                         denom_metadata::BareDenomUnit {
                             exponent: 6,
-                            denom: "penumbra".to_string(),
+                            denom: "shieldd".to_string(),
                         },
                         denom_metadata::BareDenomUnit {
                             exponent: 3,
-                            denom: "mpenumbra".to_string(),
+                            denom: "mshieldd".to_string(),
                         },
                     ],
                 )

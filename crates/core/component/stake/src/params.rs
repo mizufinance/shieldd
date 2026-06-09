@@ -1,6 +1,6 @@
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::core::component::validator::v1 as pb;
-use penumbra_sdk_proto::DomainType;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::core::component::validator::v1 as pb;
+use shieldd_sdk_proto::DomainType;
 use serde::{Deserialize, Serialize};
 
 /// Equal-weight voting power assigned to every validator in the supported validator set.

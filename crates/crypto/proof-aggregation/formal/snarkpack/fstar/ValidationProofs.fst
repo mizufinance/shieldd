@@ -1,6 +1,6 @@
 module ValidationProofs
 
-module S = Penumbra_sdk_proof_aggregation.Statement
+module S = Shieldd_sdk_proof_aggregation.Statement
 module Seq = FStar.Seq
 module V = Alloc.Vec
 module Int = Rust_primitives.Integers

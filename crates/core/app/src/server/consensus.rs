@@ -73,7 +73,7 @@ impl Consensus {
         let mut app = App::new(storage.latest_snapshot());
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let force_process_proposal_profile =
-            std::env::var("PENUMBRA_FORCE_PROCESS_PROPOSAL_PROFILE")
+            std::env::var("SHIELDD_FORCE_PROCESS_PROPOSAL_PROFILE")
                 .ok()
                 .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "True"))
                 .unwrap_or(false);

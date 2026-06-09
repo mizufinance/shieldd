@@ -5,19 +5,19 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use ed25519_consensus::{Signature, SigningKey, VerificationKey};
-use penumbra_sdk_keys::FullViewingKey;
+use shieldd_sdk_keys::FullViewingKey;
 use rand_core::CryptoRngCore;
 
 use decaf377_frost as frost;
 use frost::round1::SigningCommitments;
-use penumbra_sdk_proto::core::component::{
+use shieldd_sdk_proto::core::component::{
     governance::v1::ProposalSubmitBody as ProtoProposalSubmitBody,
     governance::v1::ValidatorVoteBody as ProtoValidatorVoteBody,
     validator::v1::Validator as ProtoValidator,
 };
-use penumbra_sdk_proto::{penumbra::custody::threshold::v1 as pb, DomainType, Message};
-use penumbra_sdk_transaction::{AuthorizationData, TransactionPlan};
-use penumbra_sdk_txhash::EffectHash;
+use shieldd_sdk_proto::{shieldd::custody::threshold::v1 as pb, DomainType, Message};
+use shieldd_sdk_transaction::{AuthorizationData, TransactionPlan};
+use shieldd_sdk_txhash::EffectHash;
 
 use crate::terminal::SigningRequest;
 
@@ -340,22 +340,22 @@ fn spend_randomizers(plan: &TransactionPlan) -> impl Iterator<Item = decaf377::F
     plan.actions
         .iter()
         .flat_map(|action| match action {
-            penumbra_sdk_transaction::ActionPlan::Transfer(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::Transfer(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
-            penumbra_sdk_transaction::ActionPlan::Consolidate(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::Consolidate(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
-            penumbra_sdk_transaction::ActionPlan::Split(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::Split(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
-            penumbra_sdk_transaction::ActionPlan::ShieldedIcs20Withdrawal(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::ShieldedIcs20Withdrawal(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)

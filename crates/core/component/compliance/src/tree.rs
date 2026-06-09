@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use decaf377::Fq;
 use once_cell::sync::Lazy;
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_tct::StateCommitment;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 

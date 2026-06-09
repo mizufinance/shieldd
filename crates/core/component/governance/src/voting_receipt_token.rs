@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-use penumbra_sdk_asset::asset;
+use shieldd_sdk_asset::asset;
 
 /// Voting receipt tokens represent proof of participation in a governance vote.
 ///

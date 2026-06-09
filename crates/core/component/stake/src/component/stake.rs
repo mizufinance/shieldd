@@ -9,8 +9,8 @@ use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use cnidarium_component::Component;
 use futures::{StreamExt, TryStreamExt};
-use penumbra_sdk_proto::{StateReadProto, StateWriteProto};
-use penumbra_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_sct::component::clock::EpochRead;
 use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -34,7 +34,7 @@ pub struct Staking {}
 impl Component for Staking {
     type AppState = (
         crate::genesis::Content,
-        penumbra_sdk_shielded_pool::genesis::Content,
+        shieldd_sdk_shielded_pool::genesis::Content,
     );
 
     #[instrument(name = "validator", skip(state, app_state))]

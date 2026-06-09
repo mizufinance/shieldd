@@ -2,8 +2,8 @@ use anyhow::{anyhow, ensure, Context, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use futures::{Stream, StreamExt};
-use penumbra_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
+use shieldd_sdk_tct as tct;
 use std::{
     ops::{Range, RangeFrom},
     pin::Pin,
@@ -726,7 +726,7 @@ mod tests {
     };
     use cnidarium::TempStorage;
     use futures::StreamExt;
-    use penumbra_sdk_proto::StateReadProto;
+    use shieldd_sdk_proto::StateReadProto;
     use std::str::FromStr;
 
     async fn delete_nv_prefix<S>(state: &mut S, prefix: &[u8])

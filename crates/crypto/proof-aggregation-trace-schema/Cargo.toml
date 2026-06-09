@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-proof-aggregation-trace-schema"
+name = "shieldd-sdk-proof-aggregation-trace-schema"
 authors = { workspace = true }
 repository = { workspace = true }
-description = "Shared trace schema for Penumbra SnarkPack proof aggregation"
+description = "Shared trace schema for Shieldd SnarkPack proof aggregation"
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }

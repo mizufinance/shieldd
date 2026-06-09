@@ -1,6 +1,6 @@
 use bitvec::prelude::*;
 
-use penumbra_sdk_proto::{penumbra::core::component::validator::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::core::component::validator::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 
 /// Records information on a validator's uptime.

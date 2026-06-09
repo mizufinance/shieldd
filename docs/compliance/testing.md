@@ -38,12 +38,12 @@ pd network unsafe-reset-all
 Use these when changing issuer compliance scanning:
 
 ```bash
-cargo test -p penumbra-sdk-compliance --lib scanner::
-cargo test -p penumbra-sdk-compliance --lib audit::
-cargo test -p penumbra-sdk-compliance --lib evidence::
-cargo test -p penumbra-sdk-compliance --lib audit_validation::
-cargo test -p penumbra-sdk-transaction compliance_scanner_transaction_id_matches_canonical_transaction_id --lib
-cargo check -p penumbra-sdk-compliance -p penumbra-sdk-transaction -p pcli -p orbis-audit -p orbis-integration
+cargo test -p shieldd-sdk-compliance --lib scanner::
+cargo test -p shieldd-sdk-compliance --lib audit::
+cargo test -p shieldd-sdk-compliance --lib evidence::
+cargo test -p shieldd-sdk-compliance --lib audit_validation::
+cargo test -p shieldd-sdk-transaction compliance_scanner_transaction_id_matches_canonical_transaction_id --lib
+cargo check -p shieldd-sdk-compliance -p shieldd-sdk-transaction -p pcli -p orbis-audit -p orbis-integration
 cd tools/gnark && go test ./internal/circuits ./internal/compliance
 ```
 
@@ -54,7 +54,7 @@ Proof-generating Rust round trips still require a release build with real
 proving keys:
 
 ```bash
-cargo test --release -p penumbra-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib
+cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib
 ```
 
 If a CI lane does not provide bundled proving keys, treat that command as

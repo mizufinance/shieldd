@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_keys::Address;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::Address;
 use rusqlite::{params, OptionalExtension};
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -994,7 +994,7 @@ mod tests {
     use crate::scanner::{DetectionEvent, ExtractedComplianceCiphertext, ScannerStore};
 
     #[test]
-    fn alias_records_transmission_key_for_penumbra_address() {
+    fn alias_records_transmission_key_for_shieldd_address() {
         let store = SqliteScannerStore::new(":memory:").unwrap();
         let address = crate::test_helpers::make_address(88);
         record_address_alias(&store, &address.to_string(), "Alice").unwrap();

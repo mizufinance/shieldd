@@ -4,9 +4,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::{ActionHandler, Component};
-use penumbra_sdk_asset::BASE_ASSET_ID;
-use penumbra_sdk_proto::{StateReadProto, StateWriteProto};
-use penumbra_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_asset::BASE_ASSET_ID;
+use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_sct::component::clock::EpochRead;
 use tendermint::v0_37::abci;
 use tracing::instrument;
 
@@ -434,9 +434,9 @@ mod tests {
     use cnidarium::{StateRead, TempStorage};
     use decaf377::Fq;
     use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
-    use penumbra_sdk_asset::{asset, BASE_ASSET_ID};
-    use penumbra_sdk_keys::Address;
-    use penumbra_sdk_sct::component::clock::EpochManager;
+    use shieldd_sdk_asset::{asset, BASE_ASSET_ID};
+    use shieldd_sdk_keys::Address;
+    use shieldd_sdk_sct::component::clock::EpochManager;
     use rand_core::OsRng;
 
     use crate::genesis::NativeAssetRegistration;

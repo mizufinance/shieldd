@@ -15,7 +15,7 @@ pub use query::query;
 mod control;
 pub use control::control;
 
-use penumbra_sdk_tct::Tree;
+use shieldd_sdk_tct::Tree;
 
 /// Combine the [`control`], [`query`], and [`view`] endpoints into a single [`Router`].
 ///

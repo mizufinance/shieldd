@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use decaf377::{Encoding, Fq};
-use penumbra_sdk_compliance::TransferTierMetadataStatement;
+use shieldd_sdk_compliance::TransferTierMetadataStatement;
 
 use crate::{
     gnark::typed::{
@@ -358,11 +358,11 @@ impl TransferWitnessV1 {
             ak_affine: point_affine_bytes(verification_key_point(private.ak, "ak")?)?,
             asset_indexed_leaf_dk_pub_affine: point_affine_bytes_with_fallback(
                 private.asset_indexed_leaf.params.dk_pub,
-                *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
             )?,
             asset_indexed_leaf_ring_pk_affine: point_affine_bytes_with_fallback(
                 private.asset_indexed_leaf.ring.ring_pk,
-                *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
             )?,
             sender_diversified_generator_affine: point_affine_bytes(
                 *private.sender_leaf.address.diversified_generator(),

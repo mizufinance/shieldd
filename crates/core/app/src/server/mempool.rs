@@ -27,7 +27,7 @@ use crate::{
 const DEFAULT_MAX_IN_FLIGHT_CHECKTX: usize = 8;
 
 fn max_in_flight_checktx() -> usize {
-    std::env::var("PENUMBRA_MEMPOOL_CHECKTX_CONCURRENCY")
+    std::env::var("SHIELDD_MEMPOOL_CHECKTX_CONCURRENCY")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|value| *value > 0)
@@ -39,7 +39,7 @@ fn max_in_flight_checktx() -> usize {
 }
 
 fn max_in_flight_checktx_heavywork() -> usize {
-    std::env::var("PENUMBRA_MEMPOOL_CHECKTX_HEAVYWORK_CONCURRENCY")
+    std::env::var("SHIELDD_MEMPOOL_CHECKTX_HEAVYWORK_CONCURRENCY")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|value| *value > 0)

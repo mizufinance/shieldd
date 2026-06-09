@@ -45,8 +45,8 @@ mod vendored {
     }
 }
 
-/// The ICS23 proof spec for penumbra's IBC state; this can be used to verify proofs
-/// for other substores in the penumbra state, provided that the data is indeed inside a substore
+/// The ICS23 proof spec for shieldd's IBC state; this can be used to verify proofs
+/// for other substores in the shieldd state, provided that the data is indeed inside a substore
 /// (as opposed to directly in the root store.)
 pub static IBC_PROOF_SPECS: Lazy<Vec<ics23::ProofSpec>> =
     Lazy::new(|| vec![vendored::ics23_spec(), vendored::ics23_spec()]);

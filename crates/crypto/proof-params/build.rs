@@ -1,4 +1,4 @@
-//! The Penumbra proving and verification key files are binary
+//! The Shieldd proving and verification key files are binary
 //! data that must be provided at build time, so that the key material
 //! can be injected into Rust types. The key material is too large, however,
 //! for uploading to crates.io (with the keys the crate weights ~100MB).
@@ -151,12 +151,12 @@ fn write_bundled_gnark_runtime_paths() -> anyhow::Result<()> {
         .join(format!("{target_os}-{target_arch}"));
     std::fs::create_dir_all(&gnark_out_dir).context("create bundled gnark output directory")?;
 
-    let transfer_lib_path = gnark_out_dir.join(format!("libpenumbra_gnark_transfer.{lib_ext}"));
+    let transfer_lib_path = gnark_out_dir.join(format!("libshieldd_gnark_transfer.{lib_ext}"));
     let consolidate_lib_path =
-        gnark_out_dir.join(format!("libpenumbra_gnark_consolidate.{lib_ext}"));
-    let split_lib_path = gnark_out_dir.join(format!("libpenumbra_gnark_split.{lib_ext}"));
+        gnark_out_dir.join(format!("libshieldd_gnark_consolidate.{lib_ext}"));
+    let split_lib_path = gnark_out_dir.join(format!("libshieldd_gnark_split.{lib_ext}"));
     let shielded_ics20_withdrawal_lib_path = gnark_out_dir.join(format!(
-        "libpenumbra_gnark_shielded_ics20_withdrawal.{lib_ext}"
+        "libshieldd_gnark_shielded_ics20_withdrawal.{lib_ext}"
     ));
 
     build_gnark_library(
@@ -400,7 +400,7 @@ mod downloads {
 
     /// The Git LFS server to use.
     static GIT_LFS_SERVER: &str =
-        "https://github.com/mizufinance/penumbra.git/info/lfs/objects/batch";
+        "https://github.com/mizufinance/shieldd.git/info/lfs/objects/batch";
 
     /// Represents a Git LFS pointer.
     pub struct GitLFSPointer {

@@ -6,16 +6,16 @@ use std::{
 use anyhow::anyhow;
 
 use decaf377_ka as ka;
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_keys::{
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_keys::{
     address::ADDRESS_LEN_BYTES,
     keys::OutgoingViewingKey,
     symmetric::{OvkWrappedKey, PayloadKey, PayloadKind, WrappedMemoKey},
     Address,
 };
-use penumbra_sdk_proto::{core::transaction::v1 as pbt, DomainType};
-use penumbra_sdk_shielded_pool::{note, Note};
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
+use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
+use shieldd_sdk_shielded_pool::{note, Note};
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 pub const MEMO_CIPHERTEXT_LEN_BYTES: usize = 528;
 
@@ -264,8 +264,8 @@ mod tests {
 
     use super::*;
     use decaf377::Fr;
-    use penumbra_sdk_asset::{asset, Value};
-    use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+    use shieldd_sdk_asset::{asset, Value};
+    use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 
     use proptest::prelude::*;
 
@@ -322,7 +322,7 @@ mod tests {
         let value = Value {
             amount: 10u64.into(),
             asset_id: asset::Cache::with_known_assets()
-                .get_unit("upenumbra")
+                .get_unit("ushieldd")
                 .unwrap()
                 .id(),
         };

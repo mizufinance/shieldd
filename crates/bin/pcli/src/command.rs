@@ -57,7 +57,7 @@ pub enum Command {
     /// Manage a validator.
     #[clap(subcommand, display_order = 800)]
     Validator(ValidatorCmd),
-    /// Display information related to diagnosing problems running Penumbra
+    /// Display information related to diagnosing problems running Shieldd
     #[clap(subcommand, display_order = 999)]
     Debug(DebugCmd),
 }

@@ -1,9 +1,9 @@
 use anyhow::{Context, Error};
 
 use decaf377::Fq;
-use penumbra_sdk_keys::keys::FullViewingKey;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{penumbra::core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_keys::keys::FullViewingKey;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 
 use crate::{note, Note, NoteCiphertext};

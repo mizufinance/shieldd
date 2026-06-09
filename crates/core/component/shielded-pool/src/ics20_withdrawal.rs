@@ -1,15 +1,15 @@
 use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
-use penumbra_sdk_asset::{
+use shieldd_sdk_asset::{
     asset::{self, Metadata},
     Balance, Value,
 };
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{
-    penumbra::core::component::ibc::v1::{self as pb, FungibleTokenPacketData},
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{
+    shieldd::core::component::ibc::v1::{self as pb, FungibleTokenPacketData},
     DomainType,
 };
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -17,7 +17,7 @@ use std::str::FromStr;
 use ibc_types::core::channel::PortId;
 
 #[cfg(feature = "component")]
-use penumbra_sdk_ibc::component::packet::{IBCPacket, Unchecked};
+use shieldd_sdk_ibc::component::packet::{IBCPacket, Unchecked};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "pb::Ics20Withdrawal", into = "pb::Ics20Withdrawal")]
@@ -27,10 +27,10 @@ pub struct Ics20Withdrawal {
     pub denom: asset::Metadata,
     // the address on the destination chain to send the transfer to
     pub destination_chain_address: String,
-    // a "sender" penumbra address to use to return funds from this withdrawal.
+    // a "sender" shieldd address to use to return funds from this withdrawal.
     // this should be an ephemeral address
     pub return_address: Address,
-    // the height (on Penumbra) at which this transfer expires (and funds are sent
+    // the height (on Shieldd) at which this transfer expires (and funds are sent
     // back to the return address?). NOTE: if funds are sent back to the sender,
     // we MUST verify a nonexistence proof before accepting the timeout, to
     // prevent relayer censorship attacks. The core IBC implementation does this

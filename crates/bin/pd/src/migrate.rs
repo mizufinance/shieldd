@@ -1,6 +1,6 @@
 //! Logic for handling chain upgrades.
 //!
-//! When consensus-breaking changes are made to the Penumbra software,
+//! When consensus-breaking changes are made to the Shieldd software,
 //! node operators must coordinate to perform a chain upgrade.
 //! This module declares how local `pd` state should be altered, if at all,
 //! in order to be compatible with the network post-chain-upgrade.
@@ -10,9 +10,9 @@ use migrate2::framework::Migration as MigrationTrait;
 
 use anyhow::{ensure, Context};
 use cnidarium::{StateDelta, Storage};
-use penumbra_sdk_app::SUBSTORE_PREFIXES;
-use penumbra_sdk_governance::{StateReadExt, StateWriteExt as _};
-use penumbra_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_app::SUBSTORE_PREFIXES;
+use shieldd_sdk_governance::{StateReadExt, StateWriteExt as _};
+use shieldd_sdk_sct::component::clock::EpochRead;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
 

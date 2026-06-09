@@ -1,6 +1,6 @@
 use anyhow::Context;
-use penumbra_sdk_proto::core::component::governance::v1 as pb;
-use penumbra_sdk_proto::DomainType;
+use shieldd_sdk_proto::core::component::governance::v1 as pb;
+use shieldd_sdk_proto::DomainType;
 use serde::{Deserialize, Serialize};
 
 use crate::tally::Ratio;

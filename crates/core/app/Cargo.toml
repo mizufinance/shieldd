@@ -1,39 +1,39 @@
 [package]
-name        = "penumbra-sdk-app"
+name        = "shieldd-sdk-app"
 version     = { workspace = true }
 authors     = { workspace = true }
 edition     = { workspace = true}
 repository  = { workspace = true }
 homepage    = { workspace = true }
 license     = { workspace = true }
-description = "A stack of components implementing the Penumbra protocol"
+description = "A stack of components implementing the Shieldd protocol"
 publish     = true
 
 [features]
 component = [
   "dep:cnidarium",
   "dep:cnidarium-component",
-  "penumbra-sdk-proto/cnidarium",
-  "penumbra-sdk-compact-block/component",
-  "penumbra-sdk-compliance/component",
-  "penumbra-sdk-fee/component",
-  "penumbra-sdk-governance/component",
-  "penumbra-sdk-ibc/component",
-  "penumbra-sdk-ibc/rpc",
-  "penumbra-sdk-sct/component",
-  "penumbra-sdk-shielded-pool/component",
-  "penumbra-sdk-validator/component",
+  "shieldd-sdk-proto/cnidarium",
+  "shieldd-sdk-compact-block/component",
+  "shieldd-sdk-compliance/component",
+  "shieldd-sdk-fee/component",
+  "shieldd-sdk-governance/component",
+  "shieldd-sdk-ibc/component",
+  "shieldd-sdk-ibc/rpc",
+  "shieldd-sdk-sct/component",
+  "shieldd-sdk-shielded-pool/component",
+  "shieldd-sdk-validator/component",
   "dep:tonic",
   "dep:tonic-reflection",
   "dep:tonic-web"
 ]
 parallel = [
   "ark-ff/parallel",
-  "penumbra-sdk-proof-params/parallel",
+  "shieldd-sdk-proof-params/parallel",
 ]
 benchmark-helpers = [
-  "penumbra-sdk-ibc/benchmark-helpers",
-  "penumbra-sdk-shielded-pool/benchmark-helpers",
+  "shieldd-sdk-ibc/benchmark-helpers",
+  "shieldd-sdk-shielded-pool/benchmark-helpers",
 ]
 default = ["std", "component"]
 fuzzing = []
@@ -65,24 +65,24 @@ jmt                              = { workspace = true }
 metrics                          = { workspace = true }
 once_cell                        = { workspace = true }
 parking_lot                      = { workspace = true }
-penumbra-sdk-asset                   = { workspace = true, default-features = true }
-penumbra-sdk-compact-block           = { workspace = true, default-features = false }
-penumbra-sdk-compliance              = { workspace = true, default-features = false }
-penumbra-sdk-fee                     = { workspace = true, default-features = false }
-penumbra-sdk-governance              = { workspace = true, default-features = false }
-penumbra-sdk-ibc                     = { workspace = true, default-features = false }
-penumbra-sdk-keys                    = { workspace = true, default-features = true }
-penumbra-sdk-num                     = { workspace = true, default-features = true }
-penumbra-sdk-proof-params            = { workspace = true, default-features = false }
-penumbra-sdk-proof-aggregation       = { workspace = true, default-features = true }
-penumbra-sdk-proto                   = { workspace = true, default-features = true }
-penumbra-sdk-sct                     = { workspace = true, default-features = false }
-penumbra-sdk-shielded-pool           = { workspace = true, default-features = false }
-penumbra-sdk-validator                   = { workspace = true, default-features = false }
-penumbra-sdk-tct                     = { workspace = true, default-features = true }
-penumbra-sdk-tower-trace             = { workspace = true }
-penumbra-sdk-transaction             = { workspace = true, features = ["parallel"], default-features = true }
-penumbra-sdk-txhash                  = { workspace = true, default-features = true }
+shieldd-sdk-asset                   = { workspace = true, default-features = true }
+shieldd-sdk-compact-block           = { workspace = true, default-features = false }
+shieldd-sdk-compliance              = { workspace = true, default-features = false }
+shieldd-sdk-fee                     = { workspace = true, default-features = false }
+shieldd-sdk-governance              = { workspace = true, default-features = false }
+shieldd-sdk-ibc                     = { workspace = true, default-features = false }
+shieldd-sdk-keys                    = { workspace = true, default-features = true }
+shieldd-sdk-num                     = { workspace = true, default-features = true }
+shieldd-sdk-proof-params            = { workspace = true, default-features = false }
+shieldd-sdk-proof-aggregation       = { workspace = true, default-features = true }
+shieldd-sdk-proto                   = { workspace = true, default-features = true }
+shieldd-sdk-sct                     = { workspace = true, default-features = false }
+shieldd-sdk-shielded-pool           = { workspace = true, default-features = false }
+shieldd-sdk-validator                   = { workspace = true, default-features = false }
+shieldd-sdk-tct                     = { workspace = true, default-features = true }
+shieldd-sdk-tower-trace             = { workspace = true }
+shieldd-sdk-transaction             = { workspace = true, features = ["parallel"], default-features = true }
+shieldd-sdk-txhash                  = { workspace = true, default-features = true }
 prost                            = { workspace = true }
 rand_chacha                      = { workspace = true }
 regex                            = { workspace = true }
@@ -113,9 +113,9 @@ url                              = { workspace = true }
 [dev-dependencies]
 decaf377-fmd                     = { workspace = true, default-features = true }
 ed25519-consensus                = { workspace = true }
-penumbra-sdk-mock-client         = { workspace = true }
-penumbra-sdk-mock-consensus      = { workspace = true }
-penumbra-sdk-proto               = { workspace = true, features = ["box-grpc"] }
+shieldd-sdk-mock-client         = { workspace = true }
+shieldd-sdk-mock-consensus      = { workspace = true }
+shieldd-sdk-proto               = { workspace = true, features = ["box-grpc"] }
 proptest                         = { workspace = true }
 rand                             = { workspace = true }
 rand_chacha                      = { workspace = true }
@@ -127,5 +127,5 @@ tower-http                       = { workspace = true, features = ["cors"] }
 tracing-subscriber               = { workspace = true }
 url                              = { workspace = true }
 
-[dev-dependencies.penumbra-sdk-proof-params]
+[dev-dependencies.shieldd-sdk-proof-params]
 workspace = true

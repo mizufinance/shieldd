@@ -19,11 +19,11 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/logger"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/abi"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/artifacts"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/circuits"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/generated"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/abi"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/artifacts"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 const (

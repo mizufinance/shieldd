@@ -3,11 +3,11 @@ use std::convert::TryInto;
 use anyhow::{Context, Error};
 use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use super::generated::{transfer_auth_sig_count, transfer_input_count, transfer_output_count};
 use crate::{
@@ -48,13 +48,13 @@ impl TransferOutputBody {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(try_from = "pb::TransferBody", into = "pb::TransferBody")]
 pub struct TransferBody {
-    pub anchor: penumbra_sdk_tct::Root,
+    pub anchor: shieldd_sdk_tct::Root,
     pub balance_commitment: balance::Commitment,
     pub inputs: Vec<TransferInputBody>,
     pub outputs: Vec<TransferOutputBody>,
     pub target_timestamp: u64,
-    pub compliance_anchor: penumbra_sdk_tct::StateCommitment,
-    pub asset_anchor: penumbra_sdk_tct::StateCommitment,
+    pub compliance_anchor: shieldd_sdk_tct::StateCommitment,
+    pub asset_anchor: shieldd_sdk_tct::StateCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -90,7 +90,7 @@ impl EffectingData for TransferBody {
         // keeping it out of the effect hash makes `TransferPlan` and the finalized
         // transaction action hash the same effecting data even when the real anchor
         // is filled in later during build/proving.
-        effecting.anchor = penumbra_sdk_tct::Tree::default().root();
+        effecting.anchor = shieldd_sdk_tct::Tree::default().root();
         // Transfer compliance bytes are constructed during body assembly and are not
         // part of the user-selected economic effect of the transfer action. Clearing
         // them keeps the effect hash stable across repeated body construction while

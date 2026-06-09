@@ -55,7 +55,7 @@ jobs:
           args: deploy
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          PROJECT_ID: penumbra-protocol
+          PROJECT_ID: shieldd-protocol
           PROJECT_PATH: docs/protocol
 
       - name: Build rustdocs
@@ -76,5 +76,5 @@ jobs:
           args: deploy
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          PROJECT_ID: penumbra-doc
+          PROJECT_ID: shieldd-doc
           PROJECT_PATH: docs/rustdoc

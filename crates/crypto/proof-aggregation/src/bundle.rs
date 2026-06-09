@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
-use penumbra_sdk_proto::{core::transaction::v1 as pb, DomainType};
-use penumbra_sdk_shielded_pool::{
+use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
+use shieldd_sdk_shielded_pool::{
     ConsolidateFamilyId, ShieldedIcs20WithdrawalFamilyId, SplitFamilyId,
 };
 use serde::{Deserialize, Serialize};
@@ -289,8 +289,8 @@ impl TryFrom<pb::FamilyAggregate> for FamilyAggregate {
 #[cfg(test)]
 mod tests {
     use super::{AggregateBundle, FamilyAggregate, ProofFamilyId};
-    use penumbra_sdk_proto::DomainType;
-    use penumbra_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
+    use shieldd_sdk_proto::DomainType;
+    use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
 
     #[test]
     fn aggregate_bundle_proto_round_trip() {
@@ -320,11 +320,11 @@ mod tests {
 
     #[test]
     fn aggregate_bundle_decode_rejects_unspecified_family() {
-        let proto = penumbra_sdk_proto::core::transaction::v1::AggregateBundle {
+        let proto = shieldd_sdk_proto::core::transaction::v1::AggregateBundle {
             version: 1,
             srs_id: vec![0; 32],
-            families: vec![penumbra_sdk_proto::core::transaction::v1::FamilyAggregate {
-                family_id: penumbra_sdk_proto::core::transaction::v1::ProofFamilyId::Unspecified
+            families: vec![shieldd_sdk_proto::core::transaction::v1::FamilyAggregate {
+                family_id: shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::Unspecified
                     as i32,
                 consolidate_family_id: 0,
                 split_family_id: 0,

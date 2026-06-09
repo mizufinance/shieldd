@@ -27,14 +27,14 @@ pub struct AuditDemoState {
 }
 
 impl AuditDemoState {
-    pub fn new(penumbra_grpc: String, denom: String, threshold: String) -> Self {
+    pub fn new(shieldd_grpc: String, denom: String, threshold: String) -> Self {
         Self {
             setup: SetupState {
                 initialized: false,
                 asset_registered: false,
                 updated_at: Some(now_string()),
             },
-            endpoints: EndpointState { penumbra_grpc },
+            endpoints: EndpointState { shieldd_grpc },
             asset: AssetState { denom, threshold },
             users: Vec::new(),
             scan: ScanState::default(),
@@ -71,7 +71,7 @@ pub struct SetupState {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EndpointState {
-    pub penumbra_grpc: String,
+    pub shieldd_grpc: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -432,7 +432,7 @@ mod tests {
             "Alice",
             "alice",
             ".localnet/audit-demo/wallets/alice".to_string(),
-            "penumbra1example".to_string(),
+            "shieldd1example".to_string(),
         ));
         let encoded = serde_json::to_vec(&state).expect("state should encode");
         let decoded: AuditDemoState =

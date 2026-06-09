@@ -77,7 +77,7 @@ pub mod validator_identity_key {
     use super::*;
 
     /// The Bech32 prefix used for validator identity keys.
-    pub const BECH32_PREFIX: &str = "penumbravalid";
+    pub const BECH32_PREFIX: &str = "shielddvalid";
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
@@ -99,7 +99,7 @@ pub mod validator_governance_key {
     use super::*;
 
     /// The Bech32 prefix used for validator governance keys.
-    pub const BECH32_PREFIX: &str = "penumbragovern";
+    pub const BECH32_PREFIX: &str = "shielddgovern";
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
@@ -121,7 +121,7 @@ pub mod address {
     use super::*;
 
     /// The Bech32 prefix used for addresses.
-    pub const BECH32_PREFIX: &str = "penumbra";
+    pub const BECH32_PREFIX: &str = "shieldd";
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
@@ -143,7 +143,7 @@ pub mod compat_address {
     use super::*;
 
     /// The Bech32 prefix used for compat addresses (Bech32, not Bech32m, addresses).
-    pub const BECH32_PREFIX: &str = "penumbracompat1";
+    pub const BECH32_PREFIX: &str = "shielddcompat1";
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
@@ -187,7 +187,7 @@ pub mod full_viewing_key {
     use super::*;
 
     /// The Bech32 prefix used for full viewing keys.
-    pub const BECH32_PREFIX: &str = "penumbrafullviewingkey";
+    pub const BECH32_PREFIX: &str = "shielddfullviewingkey";
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
@@ -209,7 +209,7 @@ pub mod wallet_id {
     use super::*;
 
     /// The Bech32 prefix used for wallet ids.
-    pub const BECH32_PREFIX: &str = "penumbrawalletid";
+    pub const BECH32_PREFIX: &str = "shielddwalletid";
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
@@ -231,7 +231,7 @@ pub mod spend_key {
     use super::*;
 
     /// The Bech32 prefix used for spend keys.
-    pub const BECH32_PREFIX: &str = "penumbraspendkey";
+    pub const BECH32_PREFIX: &str = "shielddspendkey";
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use colored_json::prelude::*;
-use penumbra_sdk_proto::{util::tendermint_proxy::v1::GetTxRequest, DomainType};
-use penumbra_sdk_transaction::Transaction;
+use shieldd_sdk_proto::{util::tendermint_proxy::v1::GetTxRequest, DomainType};
+use shieldd_sdk_transaction::Transaction;
 
 use crate::App;
 

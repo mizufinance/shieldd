@@ -5,26 +5,26 @@
 # --- Repo-local tmp directory for all artifacts ---
 COMPLIANCE_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPLIANCE_TMP="${COMPLIANCE_TMP:-$COMPLIANCE_REPO_ROOT/tmp}"
-COMPLIANCE_STACK_HOME="${PENUMBRA_ORBIS_HOME:-$COMPLIANCE_TMP/penumbra-home}"
+COMPLIANCE_STACK_HOME="${SHIELDD_ORBIS_HOME:-$COMPLIANCE_TMP/shieldd-home}"
 COMPLIANCE_NETWORK_DATA_DIR="${COMPLIANCE_STACK_HOME}/network_data"
 mkdir -p "$COMPLIANCE_TMP"
 
-PENUMBRA_PD_GRPC_PORT="${PENUMBRA_PD_GRPC_PORT:-8080}"
-PENUMBRA_COMETBFT_RPC_PORT="${PENUMBRA_COMETBFT_RPC_PORT:-16657}"
-PENUMBRA_COMETBFT_P2P_PORT="${PENUMBRA_COMETBFT_P2P_PORT:-16656}"
-PENUMBRA_POSTGRES_PORT="${PENUMBRA_POSTGRES_PORT:-5432}"
-PENUMBRA_PCLIENTD_PORT_BASE="${PENUMBRA_PCLIENTD_PORT_BASE:-18081}"
-PENUMBRA_NODE_PD_URL="${PENUMBRA_NODE_PD_URL:-http://127.0.0.1:$PENUMBRA_PD_GRPC_PORT}"
-PENUMBRA_NODE_CMT_URL="${PENUMBRA_NODE_CMT_URL:-http://127.0.0.1:$PENUMBRA_COMETBFT_RPC_PORT}"
+SHIELDD_PD_GRPC_PORT="${SHIELDD_PD_GRPC_PORT:-8080}"
+SHIELDD_COMETBFT_RPC_PORT="${SHIELDD_COMETBFT_RPC_PORT:-16657}"
+SHIELDD_COMETBFT_P2P_PORT="${SHIELDD_COMETBFT_P2P_PORT:-16656}"
+SHIELDD_POSTGRES_PORT="${SHIELDD_POSTGRES_PORT:-5432}"
+SHIELDD_PCLIENTD_PORT_BASE="${SHIELDD_PCLIENTD_PORT_BASE:-18081}"
+SHIELDD_NODE_PD_URL="${SHIELDD_NODE_PD_URL:-http://127.0.0.1:$SHIELDD_PD_GRPC_PORT}"
+SHIELDD_NODE_CMT_URL="${SHIELDD_NODE_CMT_URL:-http://127.0.0.1:$SHIELDD_COMETBFT_RPC_PORT}"
 
 export COMPLIANCE_TMP
-export PENUMBRA_PD_GRPC_PORT
-export PENUMBRA_COMETBFT_RPC_PORT
-export PENUMBRA_COMETBFT_P2P_PORT
-export PENUMBRA_POSTGRES_PORT
-export PENUMBRA_PCLIENTD_PORT_BASE
-export PENUMBRA_NODE_PD_URL
-export PENUMBRA_NODE_CMT_URL
+export SHIELDD_PD_GRPC_PORT
+export SHIELDD_COMETBFT_RPC_PORT
+export SHIELDD_COMETBFT_P2P_PORT
+export SHIELDD_POSTGRES_PORT
+export SHIELDD_PCLIENTD_PORT_BASE
+export SHIELDD_NODE_PD_URL
+export SHIELDD_NODE_CMT_URL
 
 gnark_lib_ext() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -40,19 +40,19 @@ export_demo_gnark_env() {
     local ext
     ext="$(gnark_lib_ext)"
 
-    export PENUMBRA_GNARK_TRANSFER_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libpenumbra_gnark_transfer.${ext}"
-    export PENUMBRA_GNARK_TRANSFER_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/transfer"
+    export SHIELDD_GNARK_TRANSFER_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_transfer.${ext}"
+    export SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/transfer"
 
-    export PENUMBRA_GNARK_SPLIT_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libpenumbra_gnark_split.${ext}"
-    export PENUMBRA_GNARK_SPLIT_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/split1x4"
-    export PENUMBRA_GNARK_SPLIT1X4_ARTIFACT_DIR="$PENUMBRA_GNARK_SPLIT_ARTIFACT_DIR"
+    export SHIELDD_GNARK_SPLIT_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_split.${ext}"
+    export SHIELDD_GNARK_SPLIT_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/split1x4"
+    export SHIELDD_GNARK_SPLIT1X4_ARTIFACT_DIR="$SHIELDD_GNARK_SPLIT_ARTIFACT_DIR"
 
-    export PENUMBRA_GNARK_CONSOLIDATE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libpenumbra_gnark_consolidate.${ext}"
-    export PENUMBRA_GNARK_CONSOLIDATE_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/consolidate2x1"
-    export PENUMBRA_GNARK_CONSOLIDATE2X1_ARTIFACT_DIR="$PENUMBRA_GNARK_CONSOLIDATE_ARTIFACT_DIR"
+    export SHIELDD_GNARK_CONSOLIDATE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_consolidate.${ext}"
+    export SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/consolidate2x1"
+    export SHIELDD_GNARK_CONSOLIDATE2X1_ARTIFACT_DIR="$SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR"
 
-    export PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libpenumbra_gnark_shielded_ics20_withdrawal.${ext}"
-    export PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/shielded_ics20_withdrawal"
+    export SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_shielded_ics20_withdrawal.${ext}"
+    export SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/shielded_ics20_withdrawal"
 }
 
 export_compliance_rust_log() {
@@ -102,10 +102,10 @@ build_demo_gnark_libs() {
 
     (
         cd "$COMPLIANCE_REPO_ROOT/tools/gnark"
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libpenumbra_gnark_split.$(gnark_lib_ext)" ./cmd/splitlib
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libpenumbra_gnark_transfer.$(gnark_lib_ext)" ./cmd/transferlib
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libpenumbra_gnark_consolidate.$(gnark_lib_ext)" ./cmd/consolidatelib
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libpenumbra_gnark_shielded_ics20_withdrawal.$(gnark_lib_ext)" ./cmd/shieldedics20withdrawallib
+        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_split.$(gnark_lib_ext)" ./cmd/splitlib
+        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_transfer.$(gnark_lib_ext)" ./cmd/transferlib
+        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_consolidate.$(gnark_lib_ext)" ./cmd/consolidatelib
+        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_shielded_ics20_withdrawal.$(gnark_lib_ext)" ./cmd/shieldedics20withdrawallib
     )
 }
 
@@ -116,14 +116,14 @@ ensure_demo_gnark_libs() {
     local lib_path
 
     for spec in \
-        "split:penumbra_gnark_split_init" \
-        "transfer:penumbra_gnark_transfer_init" \
-        "consolidate:penumbra_gnark_consolidate_init" \
-        "shielded_ics20_withdrawal:penumbra_gnark_shielded_ics20_withdrawal_init"
+        "split:shieldd_gnark_split_init" \
+        "transfer:shieldd_gnark_transfer_init" \
+        "consolidate:shieldd_gnark_consolidate_init" \
+        "shielded_ics20_withdrawal:shieldd_gnark_shielded_ics20_withdrawal_init"
     do
         local family="${spec%%:*}"
         local symbol="${spec#*:}"
-        lib_path="$COMPLIANCE_REPO_ROOT/tools/gnark/libpenumbra_gnark_${family}.${ext}"
+        lib_path="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_${family}.${ext}"
         if ! validate_demo_gnark_lib "$lib_path" "$symbol"; then
             log_warning "demo gnark runtime is missing or invalid: $lib_path"
             needs_rebuild=1
@@ -139,14 +139,14 @@ ensure_demo_gnark_libs() {
     fi
 
     for spec in \
-        "split:penumbra_gnark_split_init" \
-        "transfer:penumbra_gnark_transfer_init" \
-        "consolidate:penumbra_gnark_consolidate_init" \
-        "shielded_ics20_withdrawal:penumbra_gnark_shielded_ics20_withdrawal_init"
+        "split:shieldd_gnark_split_init" \
+        "transfer:shieldd_gnark_transfer_init" \
+        "consolidate:shieldd_gnark_consolidate_init" \
+        "shielded_ics20_withdrawal:shieldd_gnark_shielded_ics20_withdrawal_init"
     do
         local family="${spec%%:*}"
         local symbol="${spec#*:}"
-        lib_path="$COMPLIANCE_REPO_ROOT/tools/gnark/libpenumbra_gnark_${family}.${ext}"
+        lib_path="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_${family}.${ext}"
         validate_demo_gnark_lib "$lib_path" "$symbol" || {
             log_error "demo gnark runtime failed validation: $lib_path"
             return 1
@@ -196,7 +196,7 @@ ensure_ports_available() {
     done
 
     if [ "$has_conflict" -eq 1 ]; then
-        log_error "Free the conflicting ports or run ./scripts/penumbra-down.sh and ./scripts/orbis-stack.sh down"
+        log_error "Free the conflicting ports or run ./scripts/shieldd-down.sh and ./scripts/orbis-stack.sh down"
         return 1
     fi
 }
@@ -488,7 +488,7 @@ run_orbis_compose() {
     shift
     local flavor
     flavor="$(docker_compose_flavor)" || return 1
-    local project_name="${ORBIS_COMPOSE_PROJECT_NAME:-penumbra-orbis-integration}"
+    local project_name="${ORBIS_COMPOSE_PROJECT_NAME:-shieldd-orbis-integration}"
     case "$flavor" in
         docker-compose-v2)
             docker compose -p "$project_name" -f "$compose_file" "$@"
@@ -506,9 +506,9 @@ wait_for_orbis_stack() {
     wait_for_tcp_port "${ORBIS_NODE3_GRPC_PORT:-50053}" 60 2 || return 1
 }
 
-wait_for_penumbra_stack() {
-    wait_for_penumbra "$PENUMBRA_COMETBFT_RPC_PORT" 45 2 5 || return 1
-    wait_for_tcp_port "$PENUMBRA_PD_GRPC_PORT" 30 1 || return 1
+wait_for_shieldd_stack() {
+    wait_for_shieldd "$SHIELDD_COMETBFT_RPC_PORT" 45 2 5 || return 1
+    wait_for_tcp_port "$SHIELDD_PD_GRPC_PORT" 30 1 || return 1
 }
 
 kill_tracked_pids() {
@@ -529,8 +529,8 @@ kill_tracked_pids() {
     rm -f "$pid_file"
 }
 
-# --- Wait for Penumbra node to be fully ready (blocks producing) ---
-wait_for_penumbra() {
+# --- Wait for Shieldd node to be fully ready (blocks producing) ---
+wait_for_shieldd() {
     local cometbft_port="${1:-16657}"
     local max_attempts="${2:-45}"
     local interval="${3:-2}"
@@ -545,10 +545,10 @@ wait_for_penumbra() {
             return 0
         fi
         if [ "$attempt" -eq "$max_attempts" ]; then
-            log_error "Penumbra did not reach height $min_height within $((max_attempts * interval))s"
+            log_error "Shieldd did not reach height $min_height within $((max_attempts * interval))s"
             return 1
         fi
-        echo "    ... waiting for Penumbra height >= $min_height ($attempt/$max_attempts)"
+        echo "    ... waiting for Shieldd height >= $min_height ($attempt/$max_attempts)"
         sleep "$interval"
     done
 }
@@ -637,11 +637,11 @@ print_phase() {
 }
 
 maybe_enable_demo_gnark_env() {
-    if [ "${PENUMBRA_ORBIS_USE_DEMO_GNARK:-0}" != "1" ]; then
+    if [ "${SHIELDD_ORBIS_USE_DEMO_GNARK:-0}" != "1" ]; then
         return 0
     fi
 
-    log_info "PENUMBRA_ORBIS_USE_DEMO_GNARK=1 enabled; validating demo gnark runtimes"
+    log_info "SHIELDD_ORBIS_USE_DEMO_GNARK=1 enabled; validating demo gnark runtimes"
     ensure_demo_gnark_libs
     export_demo_gnark_env
 }

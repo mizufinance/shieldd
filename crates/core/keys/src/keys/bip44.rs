@@ -1,6 +1,6 @@
-/// Penumbra's registered coin type.
+/// Shieldd's registered coin type.
 /// See: https://github.com/satoshilabs/slips/pull/1592
-const PENUMBRA_COIN_TYPE: u32 = 6532;
+const SHIELDD_COIN_TYPE: u32 = 6532;
 
 /// Represents a BIP44 derivation path.
 ///
@@ -17,11 +17,11 @@ pub struct Bip44Path {
 }
 
 impl Bip44Path {
-    /// Create a new BIP44 path for a Penumbra wallet.
+    /// Create a new BIP44 path for a Shieldd wallet.
     pub fn new(account: u32) -> Self {
         Self {
             purpose: 44,
-            coin_type: PENUMBRA_COIN_TYPE,
+            coin_type: SHIELDD_COIN_TYPE,
             account,
             change: None,
             address_index: None,

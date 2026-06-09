@@ -1,13 +1,13 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 
 use crate::{params::FeeParameters, state_key, Fee, GasPrices};
 
-/// This trait provides read access to fee-related parts of the Penumbra
+/// This trait provides read access to fee-related parts of the Shieldd
 /// state store.
 #[async_trait]
 pub trait StateReadExt: StateRead {

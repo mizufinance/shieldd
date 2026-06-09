@@ -2,9 +2,9 @@ use {
     anyhow::anyhow,
     common::ibc_tests::{MockRelayer, TestNodeWithIBC, ValidatorKeys},
     once_cell::sync::Lazy,
-    penumbra_sdk_asset::{asset::Cache, Value, BASE_ASSET_ID},
-    penumbra_sdk_ibc::IbcToken,
-    penumbra_sdk_num::Amount,
+    shieldd_sdk_asset::{asset::Cache, Value, BASE_ASSET_ID},
+    shieldd_sdk_ibc::IbcToken,
+    shieldd_sdk_num::Amount,
     std::time::Duration,
     tap::Tap as _,
 };

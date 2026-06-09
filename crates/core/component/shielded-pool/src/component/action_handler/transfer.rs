@@ -2,15 +2,15 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::ActionHandler;
-use penumbra_sdk_compliance::registry::ComplianceRegistryRead;
-use penumbra_sdk_proof_params::batch::{self, BatchItem};
-use penumbra_sdk_proto::{DomainType as _, StateWriteProto as _};
-use penumbra_sdk_sct::component::{
+use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
+use shieldd_sdk_proof_params::batch::{self, BatchItem};
+use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
+use shieldd_sdk_sct::component::{
     clock::EpochRead,
     source::SourceContext,
     tree::{SctManager, VerificationExt},
 };
-use penumbra_sdk_txhash::TransactionContext;
+use shieldd_sdk_txhash::TransactionContext;
 
 use crate::transfer::compliance::{
     parse_transfer_output_compliance, transfer_compliance_public_from_parts,
@@ -122,7 +122,7 @@ impl ActionHandler for Transfer {
     async fn check_stateless(&self, context: TransactionContext) -> Result<()> {
         let item = transfer_check_stateless_and_extract(self, &context)?;
         batch::batch_verify(
-            penumbra_sdk_proof_params::transfer_proof_verification_key(),
+            shieldd_sdk_proof_params::transfer_proof_verification_key(),
             std::slice::from_ref(&item),
         )
         .map_err(|e| anyhow::anyhow!("transfer proof did not verify: {e}"))?;
@@ -139,7 +139,7 @@ impl ActionHandler for Transfer {
         let block_unix = block_time.unix_timestamp();
         anyhow::ensure!(block_unix >= 0, "block timestamp is negative");
         let block_timestamp = block_unix as u64;
-        penumbra_sdk_compliance::registry::check_timestamp_freshness(
+        shieldd_sdk_compliance::registry::check_timestamp_freshness(
             self.body.target_timestamp,
             block_timestamp,
         )?;

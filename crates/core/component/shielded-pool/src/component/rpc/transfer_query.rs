@@ -7,8 +7,8 @@ use ibc_proto::ibc::apps::transfer::v1::{
     QueryEscrowAddressRequest, QueryEscrowAddressResponse, QueryParamsRequest, QueryParamsResponse,
     QueryTotalEscrowForDenomRequest, QueryTotalEscrowForDenomResponse,
 };
-use penumbra_sdk_asset::asset::Metadata;
-use penumbra_sdk_proto::StateReadProto as _;
+use shieldd_sdk_asset::asset::Metadata;
+use shieldd_sdk_proto::StateReadProto as _;
 
 use crate::state_key;
 

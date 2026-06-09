@@ -1,5 +1,5 @@
 {
-  description = "A nix development shell and build environment for penumbra";
+  description = "A nix development shell and build environment for shieldd";
 
   inputs = {
     # nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -20,8 +20,8 @@
     flake-utils.lib.eachDefaultSystem
       (system:
         let
-          # Define versions of Penumbra and CometBFT
-          penumbraRelease = null; # Use the local working copy
+          # Define versions of Shieldd and CometBFT
+          shielddRelease = null; # Use the local working copy
           # To update the cometbft hash values, run:
           # nix-prefetch-git --url https://github.com/cometbft/cometbft --rev <tag>
           # and review the output.
@@ -44,7 +44,7 @@
             rev = "483f037ec98b89200353c696d990324318f8df98";
           };
 
-          # Set up for Rust builds, pinned to the Rust toolchain version in the Penumbra repository
+          # Set up for Rust builds, pinned to the Rust toolchain version in the Shieldd repository
           overlays = [ (import rust-overlay) ];
           pkgs = import nixpkgs { inherit system overlays; };
           # Add nightly Rust toolchain, required for building the rustdocs with combined index landing page.
@@ -121,7 +121,7 @@
               pkgs.stdenv.cc.cc
               pkgs.zstd
             ]}:''${LD_LIBRARY_PATH:-}
-            export RUST_LOG="info,network_integration=debug,pclientd=debug,pcli=info,pd=info,penumbra=info"
+            export RUST_LOG="info,network_integration=debug,pclientd=debug,pcli=info,pd=info,shieldd=info"
           '';
 
           # CometBFT
@@ -163,19 +163,19 @@
           }).overrideAttrs (_: { doCheck = false; }); # Disable tests to improve build times
         in rec {
           packages = {
-            penumbra =
+            shieldd =
               let
                 rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
                 craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
               in
               (craneLib.buildPackage {
-                pname = "penumbra";
+                pname = "shieldd";
                 src = cleanSourceWith {
-                  src = if penumbraRelease == null then craneLib.path ./. else fetchFromGitHub {
+                  src = if shielddRelease == null then craneLib.path ./. else fetchFromGitHub {
                     owner = "mizufinance";
-                    repo = "penumbra";
-                    rev = "v${penumbraRelease.version}";
-                    sha256 = "${penumbraRelease.sha256}";
+                    repo = "shieldd";
+                    rev = "v${shielddRelease.version}";
+                    sha256 = "${shielddRelease.sha256}";
                   };
                   filter = path: type:
                     # Retain non-rust asset files as build inputs:
@@ -198,7 +198,7 @@
                 cargoExtraArgs = "-p pd -p pcli -p pclientd -p pindexer";
                 meta = {
                   description = "A fully private proof-of-stake network and decentralized exchange for the Cosmos ecosystem";
-                  homepage = "https://penumbra.zone";
+                  homepage = "https://shieldd.zone";
                   license = [ licenses.mit licenses.asl20 ];
                 };
               }).overrideAttrs (_: { doCheck = false; });
@@ -206,19 +206,19 @@
           };
           apps = {
             pd.type = "app";
-            pd.program = "${packages.penumbra}/bin/pd";
+            pd.program = "${packages.shieldd}/bin/pd";
             pcli.type = "app";
-            pcli.program = "${packages.penumbra}/bin/pcli";
+            pcli.program = "${packages.shieldd}/bin/pcli";
             pclientd.type = "app";
-            pclientd.program = "${packages.penumbra}/bin/pclientd";
+            pclientd.program = "${packages.shieldd}/bin/pclientd";
             pindexer.type = "app";
-            pindexer.program = "${packages.penumbra}/bin/pindexer";
+            pindexer.program = "${packages.shieldd}/bin/pindexer";
             cometbft.type = "app";
             cometbft.program = "${cometbft}/bin/cometbft";
           };
           defaultPackage = symlinkJoin {
-            name = "penumbra-and-cometbft";
-            paths = [ packages.penumbra cometbft ];
+            name = "shieldd-and-cometbft";
+            paths = [ packages.shieldd cometbft ];
           };
           devShells = {
             default =

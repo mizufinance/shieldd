@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-num"
+name = "shieldd-sdk-num"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Numerical data structures and implementations used by Penumbra"
+description = "Numerical data structures and implementations used by Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -33,7 +33,7 @@ hex = {workspace = true}
 ibig = {workspace = true}
 num-bigint = {workspace = true}
 once_cell = {workspace = true}
-penumbra-sdk-proto = {workspace = true, default-features = true}
+shieldd-sdk-proto = {workspace = true, default-features = true}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
 regex = {workspace = true}

@@ -10,7 +10,7 @@ import (
 	"github.com/consensys/gnark/std/conversion"
 	"github.com/consensys/gnark/std/hash/sha2"
 	"github.com/consensys/gnark/std/math/uints"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 var derivationDomainBytes = []byte("elgamal-derivation-v1\x00\x00")

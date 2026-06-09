@@ -5,21 +5,21 @@ use futures::{FutureExt, Stream, StreamExt, TryStreamExt};
 use tonic::{codegen::Bytes, Streaming};
 use tracing::instrument;
 
-use penumbra_sdk_app::params::AppParameters;
-use penumbra_sdk_asset::{
+use shieldd_sdk_app::params::AppParameters;
+use shieldd_sdk_asset::{
     asset::{self, Id, Metadata},
     ValueView,
 };
-use penumbra_sdk_fee::GasPrices;
-use penumbra_sdk_keys::{keys::AddressIndex, Address};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::view::v1::{
+use shieldd_sdk_fee::GasPrices;
+use shieldd_sdk_keys::{keys::AddressIndex, Address};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::view::v1::{
     self as pb, view_service_client::ViewServiceClient, BalancesResponse,
     BroadcastTransactionResponse, WitnessRequest,
 };
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_shielded_pool::{fmd, note};
-use penumbra_sdk_transaction::{
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_shielded_pool::{fmd, note};
+use shieldd_sdk_transaction::{
     txhash::TransactionId, AuthorizationData, Transaction, TransactionPlan, WitnessData,
 };
 
@@ -311,8 +311,8 @@ pub trait ViewClient {
         Box<
             dyn Future<
                     Output = Result<(
-                        penumbra_sdk_tct::StateCommitment,
-                        penumbra_sdk_tct::StateCommitment,
+                        shieldd_sdk_tct::StateCommitment,
+                        shieldd_sdk_tct::StateCommitment,
                     )>,
                 > + Send
                 + 'static,
@@ -936,8 +936,8 @@ where
         Box<
             dyn Future<
                     Output = Result<(
-                        penumbra_sdk_tct::StateCommitment,
-                        penumbra_sdk_tct::StateCommitment,
+                        shieldd_sdk_tct::StateCommitment,
+                        shieldd_sdk_tct::StateCommitment,
                     )>,
                 > + Send
                 + 'static,
@@ -953,12 +953,12 @@ where
                     .into_inner();
 
             // Parse the anchors from bytes
-            let compliance_anchor: penumbra_sdk_tct::StateCommitment = response
+            let compliance_anchor: shieldd_sdk_tct::StateCommitment = response
                 .user_tree_root
                 .as_slice()
                 .try_into()
                 .map_err(|e| anyhow::anyhow!("invalid user_tree_root: {:?}", e))?;
-            let asset_anchor: penumbra_sdk_tct::StateCommitment = response
+            let asset_anchor: shieldd_sdk_tct::StateCommitment = response
                 .asset_tree_root
                 .as_slice()
                 .try_into()

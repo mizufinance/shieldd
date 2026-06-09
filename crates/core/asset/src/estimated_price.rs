@@ -1,5 +1,5 @@
 use crate::asset;
-use penumbra_sdk_proto::{penumbra::core::asset::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 
 /// The estimated price of one asset in terms of another.

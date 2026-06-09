@@ -8,8 +8,8 @@ import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/compliance"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/generated"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 )
 
 type noteCommitmentProfileCircuit struct {

@@ -1,4 +1,4 @@
-# Block Aggregation: How Penumbra Uses SnarkPack
+# Block Aggregation: How Shieldd Uses SnarkPack
 
 Status: **exploratory ideas, not implemented.** Block building is not settled;
 this records the design space so we can return to it. It is about *how we use*
@@ -31,7 +31,7 @@ aggregate message. Filecoin gives us the primitive and the transcript discipline
 not block orchestration. (They also added a batch-balancer fee to price the
 fixed overhead — an economic question we will eventually face too.)
 
-## Why Penumbra needs something Filecoin doesn't
+## Why Shieldd needs something Filecoin doesn't
 
 - **Heterogeneous proofs.** A block mixes families — `Transfer`, `Consolidate`
   (`*_BY_ONE`), `Split` (`ONE_BY_*`), `ShieldedIcs20Withdrawal`

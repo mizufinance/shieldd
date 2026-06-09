@@ -1,6 +1,6 @@
 # gnark Proof Runtime
 
-This directory contains the gnark proving runtime for Penumbra's supported
+This directory contains the gnark proving runtime for Shieldd's supported
 shielded proof families:
 
 - `Transfer`
@@ -43,21 +43,21 @@ development can use the plain commands directly.
 Rust proving selects the gnark backend when the corresponding artifact
 directory is configured and one transport is selected for that circuit:
 
-- `PENUMBRA_GNARK_TRANSFER_ARTIFACT_DIR`
-- `PENUMBRA_GNARK_TRANSFER_LIB` or `PENUMBRA_GNARK_TRANSFER_DAEMON`
-- `PENUMBRA_GNARK_SPLIT_ARTIFACT_DIR`
-- `PENUMBRA_GNARK_SPLIT_LIB` or `PENUMBRA_GNARK_SPLIT_DAEMON`
-- `PENUMBRA_GNARK_CONSOLIDATE_ARTIFACT_DIR`
-- `PENUMBRA_GNARK_CONSOLIDATE_LIB` or `PENUMBRA_GNARK_CONSOLIDATE_DAEMON`
-- `PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
-- `PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB` or `PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_DAEMON`
+- `SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR`
+- `SHIELDD_GNARK_TRANSFER_LIB` or `SHIELDD_GNARK_TRANSFER_DAEMON`
+- `SHIELDD_GNARK_SPLIT_ARTIFACT_DIR`
+- `SHIELDD_GNARK_SPLIT_LIB` or `SHIELDD_GNARK_SPLIT_DAEMON`
+- `SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR`
+- `SHIELDD_GNARK_CONSOLIDATE_LIB` or `SHIELDD_GNARK_CONSOLIDATE_DAEMON`
+- `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
+- `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB` or `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_DAEMON`
 
 Verifier-key overrides for Rust verification and aggregation use:
 
-- `PENUMBRA_GNARK_TRANSFER_ARTIFACT_DIR`
-- `PENUMBRA_GNARK_SPLIT_ARTIFACT_DIR`
-- `PENUMBRA_GNARK_CONSOLIDATE_ARTIFACT_DIR`
-- `PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
+- `SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR`
+- `SHIELDD_GNARK_SPLIT_ARTIFACT_DIR`
+- `SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR`
+- `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
 
 The supported families share runtime plumbing where that reduces duplication,
 but each family still has its own artifact registry entry and transport target.
@@ -88,8 +88,8 @@ rebuild and test:
 
 ```bash
 just go-test
-cargo check -p penumbra-sdk-shielded-pool
-cargo check -p penumbra-sdk-proof-aggregation
+cargo check -p shieldd-sdk-shielded-pool
+cargo check -p shieldd-sdk-proof-aggregation
 ```
 
 The family registries and runtime configuration should be generated from the
@@ -136,7 +136,7 @@ Files:
 
 - `phase0_test.go`: gnark compatibility and Phase 0.5 tests
 - `crypto_primitives_test.go`: exact-match tests for `poseidon377::hash_7` and `decaf377::compress_to_field`
-- `internal/primitives/poseidon377.go`: gnark implementation of exact Penumbra `poseidon377` `hash_7`
+- `internal/primitives/poseidon377.go`: gnark implementation of exact Shieldd `poseidon377` `hash_7`
 - `internal/primitives/decaf377.go`: gnark implementation of the minimal `decaf377` quotient gadget used in this spike
 - `internal/compliance/dleq.go`: gnark implementation of the minimal transfer-relevant DLEQ verifier fragment
 - `dleq_test.go`: Rust-fixture-backed tests for the gnark DLEQ verifier fragment
@@ -155,8 +155,8 @@ Files:
 - `cmd/splitlib/main.go`: C-shared gnark prover for `split`
 - `cmd/proverdaemon/main.go`: long-lived stdin/stdout gnark prover daemon for supported shielded actions
 - `compatibility.md`: explicit Phase 0 / 0.5 verdict
-- `artifact-mapping.md`: current Penumbra transfer artifact boundary
+- `artifact-mapping.md`: current Shieldd transfer artifact boundary
 - `run-verify-bench.sh`: local orchestrator for the gnark-vs-Arkworks verifier comparison
-- `internal/primitives/vectors/phase05_vectors.json`: reference vectors generated from Penumbra Rust code
+- `internal/primitives/vectors/phase05_vectors.json`: reference vectors generated from Shieldd Rust code
 - `internal/primitives/vectors/transfer_witness_v1.bin`: deterministic regulated `TransferWitnessV1` payload generated from Rust
 - `rust-vectors/`: standalone Rust utility that generates the reference vectors

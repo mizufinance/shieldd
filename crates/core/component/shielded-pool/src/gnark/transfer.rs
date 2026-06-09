@@ -19,16 +19,16 @@ use crate::{
     transfer::{TransferProof, TransferProofPrivate, TransferProofPublic},
 };
 
-const TRANSFER_LIB_BASENAME: &str = "libpenumbra_gnark_transfer";
-const TRANSFER_ENV_ARTIFACT_DIR: &str = "PENUMBRA_GNARK_TRANSFER_ARTIFACT_DIR";
-const TRANSFER_ENV_LIB: &str = "PENUMBRA_GNARK_TRANSFER_LIB";
-const TRANSFER_ENV_DAEMON: &str = "PENUMBRA_GNARK_TRANSFER_DAEMON";
+const TRANSFER_LIB_BASENAME: &str = "libshieldd_gnark_transfer";
+const TRANSFER_ENV_ARTIFACT_DIR: &str = "SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR";
+const TRANSFER_ENV_LIB: &str = "SHIELDD_GNARK_TRANSFER_LIB";
+const TRANSFER_ENV_DAEMON: &str = "SHIELDD_GNARK_TRANSFER_DAEMON";
 
-const TRANSFER_INIT_SYMBOL: &[u8] = b"penumbra_gnark_transfer_init";
-const TRANSFER_INIT_FROM_BYTES_SYMBOL: &[u8] = b"penumbra_gnark_transfer_init_from_bytes";
-const TRANSFER_PROVE_SYMBOL: &[u8] = b"penumbra_gnark_transfer_prove";
-const TRANSFER_FREE_SYMBOL: &[u8] = b"penumbra_gnark_transfer_free";
-const TRANSFER_SHUTDOWN_SYMBOL: &[u8] = b"penumbra_gnark_transfer_shutdown";
+const TRANSFER_INIT_SYMBOL: &[u8] = b"shieldd_gnark_transfer_init";
+const TRANSFER_INIT_FROM_BYTES_SYMBOL: &[u8] = b"shieldd_gnark_transfer_init_from_bytes";
+const TRANSFER_PROVE_SYMBOL: &[u8] = b"shieldd_gnark_transfer_prove";
+const TRANSFER_FREE_SYMBOL: &[u8] = b"shieldd_gnark_transfer_free";
+const TRANSFER_SHUTDOWN_SYMBOL: &[u8] = b"shieldd_gnark_transfer_shutdown";
 
 static TRANSFER_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     family: "transfer",
@@ -176,7 +176,7 @@ impl GnarkTransferClient {
     }
 
     pub fn bundled_lib_path() -> Option<PathBuf> {
-        penumbra_sdk_proof_params::GNARK_TRANSFER_BUNDLED_LIBRARY_PATH.map(PathBuf::from)
+        shieldd_sdk_proof_params::GNARK_TRANSFER_BUNDLED_LIBRARY_PATH.map(PathBuf::from)
     }
 
     #[cfg(any(unix, windows))]
@@ -201,7 +201,7 @@ impl GnarkTransferClient {
                 None
             }
         });
-        lib_path.is_some() && !penumbra_sdk_proof_params::transfer_proving_key_bytes().is_empty()
+        lib_path.is_some() && !shieldd_sdk_proof_params::transfer_proving_key_bytes().is_empty()
     }
 
     pub fn prove(
@@ -235,7 +235,7 @@ pub fn translate_transfer_proof_result(payload: &[u8]) -> Result<(Fq, TransferPr
     let mut proof_bytes = Vec::new();
     proof.serialize_compressed(&mut proof_bytes)?;
     let proof = TransferProof::try_from(
-        penumbra_sdk_proto::penumbra::core::component::shielded_pool::v1::ZkTransferProof {
+        shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1::ZkTransferProof {
             inner: proof_bytes,
         },
     )?;
@@ -261,7 +261,7 @@ mod tests {
 
     /// Write canonical transfer witness fixtures for the active transfer family.
     /// Run with:
-    /// `cargo test -p penumbra-sdk-shielded-pool -- --ignored bless_transfer_witness_v1_fixtures`
+    /// `cargo test -p shieldd-sdk-shielded-pool -- --ignored bless_transfer_witness_v1_fixtures`
     #[test]
     #[ignore = "bless: regenerate transfer witness fixtures for gnark parity tests"]
     fn bless_transfer_witness_v1_fixtures() {

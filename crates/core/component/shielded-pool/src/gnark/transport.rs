@@ -16,7 +16,7 @@ use decaf377::Bls12_377;
 #[cfg(any(unix, windows))]
 use libloading::Library;
 #[cfg(any(unix, windows))]
-use penumbra_sdk_proof_params::VerifyingKeyExt;
+use shieldd_sdk_proof_params::VerifyingKeyExt;
 
 use crate::gnark::artifacts::{
     load_artifact_metadata, load_prepared_vk, validate_artifact_hashes, validate_artifact_metadata,
@@ -29,7 +29,7 @@ use crate::gnark::runtime::{
 };
 
 #[repr(C)]
-pub(crate) struct PenumbraGnarkInitResult {
+pub(crate) struct ShielddGnarkInitResult {
     pub handle: u64,
     pub init_ms: f64,
     pub err_ptr: *mut c_void,
@@ -37,29 +37,29 @@ pub(crate) struct PenumbraGnarkInitResult {
 }
 
 #[repr(C)]
-pub(crate) struct PenumbraGnarkBytesResult {
+pub(crate) struct ShielddGnarkBytesResult {
     pub ptr: *mut c_void,
     pub len: usize,
     pub status: u32,
     pub prove_ms: f64,
 }
 
-pub(crate) type PenumbraGnarkInit =
-    unsafe extern "C" fn(*const c_char, usize, *mut PenumbraGnarkInitResult);
-pub(crate) type PenumbraGnarkInitFromBytes =
-    unsafe extern "C" fn(*const c_void, usize, *const c_void, usize, *mut PenumbraGnarkInitResult);
-pub(crate) type PenumbraGnarkProve =
-    unsafe extern "C" fn(u64, *const c_void, usize, *mut PenumbraGnarkBytesResult);
-pub(crate) type PenumbraGnarkFree = unsafe extern "C" fn(*mut c_void, usize);
-pub(crate) type PenumbraGnarkShutdown = unsafe extern "C" fn(u64);
+pub(crate) type ShielddGnarkInit =
+    unsafe extern "C" fn(*const c_char, usize, *mut ShielddGnarkInitResult);
+pub(crate) type ShielddGnarkInitFromBytes =
+    unsafe extern "C" fn(*const c_void, usize, *const c_void, usize, *mut ShielddGnarkInitResult);
+pub(crate) type ShielddGnarkProve =
+    unsafe extern "C" fn(u64, *const c_void, usize, *mut ShielddGnarkBytesResult);
+pub(crate) type ShielddGnarkFree = unsafe extern "C" fn(*mut c_void, usize);
+pub(crate) type ShielddGnarkShutdown = unsafe extern "C" fn(u64);
 
 pub(crate) enum GnarkTransport {
     #[cfg(any(unix, windows))]
     Library {
         _library: Library,
-        prove: PenumbraGnarkProve,
-        free: PenumbraGnarkFree,
-        shutdown: PenumbraGnarkShutdown,
+        prove: ShielddGnarkProve,
+        free: ShielddGnarkFree,
+        shutdown: ShielddGnarkShutdown,
         handle: u64,
         prove_mutex: Mutex<()>,
     },
@@ -99,14 +99,14 @@ pub(crate) fn load_library_transport(
         )
     })?;
     let (init, prove, free, shutdown) = unsafe {
-        let init: PenumbraGnarkInit = *library.get(config.init_symbol)?;
-        let prove: PenumbraGnarkProve = *library.get(config.prove_symbol)?;
-        let free: PenumbraGnarkFree = *library.get(config.free_symbol)?;
-        let shutdown: PenumbraGnarkShutdown = *library.get(config.shutdown_symbol)?;
+        let init: ShielddGnarkInit = *library.get(config.init_symbol)?;
+        let prove: ShielddGnarkProve = *library.get(config.prove_symbol)?;
+        let free: ShielddGnarkFree = *library.get(config.free_symbol)?;
+        let shutdown: ShielddGnarkShutdown = *library.get(config.shutdown_symbol)?;
         (init, prove, free, shutdown)
     };
 
-    let mut init_result = PenumbraGnarkInitResult {
+    let mut init_result = ShielddGnarkInitResult {
         handle: 0,
         init_ms: 0.0,
         err_ptr: ptr::null_mut(),
@@ -213,15 +213,15 @@ pub(crate) fn load_bundled_transport(
         )
     })?;
     let (init_from_bytes, prove, free, shutdown) = unsafe {
-        let init_from_bytes: PenumbraGnarkInitFromBytes =
+        let init_from_bytes: ShielddGnarkInitFromBytes =
             *library.get(config.init_from_bytes_symbol)?;
-        let prove: PenumbraGnarkProve = *library.get(config.prove_symbol)?;
-        let free: PenumbraGnarkFree = *library.get(config.free_symbol)?;
-        let shutdown: PenumbraGnarkShutdown = *library.get(config.shutdown_symbol)?;
+        let prove: ShielddGnarkProve = *library.get(config.prove_symbol)?;
+        let free: ShielddGnarkFree = *library.get(config.free_symbol)?;
+        let shutdown: ShielddGnarkShutdown = *library.get(config.shutdown_symbol)?;
         (init_from_bytes, prove, free, shutdown)
     };
 
-    let mut init_result = PenumbraGnarkInitResult {
+    let mut init_result = ShielddGnarkInitResult {
         handle: 0,
         init_ms: 0.0,
         err_ptr: ptr::null_mut(),
@@ -275,7 +275,7 @@ pub(crate) fn prove_with_transport(
             let _guard = prove_mutex
                 .lock()
                 .map_err(|_| anyhow!("gnark {family} library mutex poisoned"))?;
-            let mut prove_result = PenumbraGnarkBytesResult {
+            let mut prove_result = ShielddGnarkBytesResult {
                 ptr: ptr::null_mut(),
                 len: 0,
                 status: 0,

@@ -1,4 +1,4 @@
-//! Facilities related to the Penumbra app's ABCI server.
+//! Facilities related to the Shieldd app's ABCI server.
 
 use std::sync::Arc;
 
@@ -9,7 +9,7 @@ use {
     },
     crate::stateless_cache::StatelessCache,
     cnidarium::Storage,
-    penumbra_sdk_tower_trace::trace::request_span,
+    shieldd_sdk_tower_trace::trace::request_span,
     tendermint::v0_37::abci::{
         ConsensusRequest, ConsensusResponse, MempoolRequest, MempoolResponse,
     },
@@ -50,7 +50,7 @@ pub fn new(
 
     let consensus = tower::ServiceBuilder::new()
         .layer(request_span::layer(|req: &ConsensusRequest| {
-            use penumbra_sdk_tower_trace::v037::RequestExt;
+            use shieldd_sdk_tower_trace::v037::RequestExt;
             req.create_span()
         }))
         .layer(EventIndexLayer::index_all())
@@ -60,7 +60,7 @@ pub fn new(
         ));
     let mempool = tower::ServiceBuilder::new()
         .layer(request_span::layer(|req: &MempoolRequest| {
-            use penumbra_sdk_tower_trace::v037::RequestExt;
+            use shieldd_sdk_tower_trace::v037::RequestExt;
             req.create_span()
         }))
         .service(tower_actor::Actor::new(10, {

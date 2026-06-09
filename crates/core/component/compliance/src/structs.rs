@@ -1,11 +1,11 @@
 use decaf377::{Fq, Fr};
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use once_cell::sync::Lazy;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_proto::penumbra::core::component::compliance::v1 as pb;
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_proto::shieldd::core::component::compliance::v1 as pb;
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_tct::StateCommitment;
 use serde::{Deserialize, Serialize};
 
 /// Compliance plaintext layout constants.
@@ -43,8 +43,8 @@ pub const TRANSFER_OUTPUT_CIPHERTEXT_FQS: usize =
 
 pub const DEFAULT_COMPLIANCE_SLOT_COUNT: u32 = 10;
 
-const ASSET_REGISTRATION_GRANT_DOMAIN: &[u8] = b"penumbra.compliance.asset_registration_grant.v1";
-const USER_REGISTRATION_GRANT_DOMAIN: &[u8] = b"penumbra.compliance.user_registration_grant.v1";
+const ASSET_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.asset_registration_grant.v1";
+const USER_REGISTRATION_GRANT_DOMAIN: &[u8] = b"shieldd.compliance.user_registration_grant.v1";
 
 fn grant_signing_bytes(domain: &[u8], body_bytes: Vec<u8>) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(domain.len() + 1 + body_bytes.len());
@@ -117,7 +117,7 @@ impl DleqProof {
 
 /// The domain separator used to generate compliance leaf commitments.
 pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"penumbra.compliance.leaf").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf").as_bytes())
 });
 
 /// A compliance leaf in the public on-chain registry for regulated assets.
@@ -1270,9 +1270,9 @@ impl MsgRegisterAsset {
     }
 }
 
-impl penumbra_sdk_txhash::EffectingData for MsgRegisterAsset {
-    fn effect_hash(&self) -> penumbra_sdk_txhash::EffectHash {
-        penumbra_sdk_txhash::EffectHash::from_proto_effecting_data::<pb::MsgRegisterAsset>(
+impl shieldd_sdk_txhash::EffectingData for MsgRegisterAsset {
+    fn effect_hash(&self) -> shieldd_sdk_txhash::EffectHash {
+        shieldd_sdk_txhash::EffectHash::from_proto_effecting_data::<pb::MsgRegisterAsset>(
             &self.clone().into(),
         )
     }
@@ -1374,9 +1374,9 @@ impl From<MsgRegisterUser> for pb::MsgRegisterUser {
     }
 }
 
-impl penumbra_sdk_txhash::EffectingData for MsgRegisterUser {
-    fn effect_hash(&self) -> penumbra_sdk_txhash::EffectHash {
-        penumbra_sdk_txhash::EffectHash::from_proto_effecting_data::<pb::MsgRegisterUser>(
+impl shieldd_sdk_txhash::EffectingData for MsgRegisterUser {
+    fn effect_hash(&self) -> shieldd_sdk_txhash::EffectHash {
+        shieldd_sdk_txhash::EffectHash::from_proto_effecting_data::<pb::MsgRegisterUser>(
             &self.clone().into(),
         )
     }

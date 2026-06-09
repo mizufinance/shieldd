@@ -24,7 +24,7 @@ impl MsgHandler for MsgCreateClient {
     // execute IBC CreateClient.
     //
     //  we compute the client's ID (a concatenation of a monotonically increasing integer, the
-    //  number of clients on Penumbra, and the client type) and commit the following to our state:
+    //  number of clients on Shieldd, and the client type) and commit the following to our state:
     // - client type
     // - consensus state
     // - processed time and height

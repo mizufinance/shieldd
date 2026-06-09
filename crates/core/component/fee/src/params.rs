@@ -1,7 +1,7 @@
 use anyhow::ensure;
-use penumbra_sdk_asset::BASE_ASSET_ID;
-use penumbra_sdk_proto::penumbra::core::component::fee::v1 as pb;
-use penumbra_sdk_proto::DomainType;
+use shieldd_sdk_asset::BASE_ASSET_ID;
+use shieldd_sdk_proto::shieldd::core::component::fee::v1 as pb;
+use shieldd_sdk_proto::DomainType;
 use serde::{Deserialize, Serialize};
 
 use crate::GasPrices;

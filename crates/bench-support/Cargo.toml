@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-bench-support"
+name = "shieldd-sdk-bench-support"
 authors = { workspace = true }
 repository = { workspace = true }
-description = "Shared benchmark support utilities for Penumbra benches"
+description = "Shared benchmark support utilities for Shieldd benches"
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -17,17 +17,17 @@ decaf377 = { workspace = true }
 decaf377-rdsa = { workspace = true }
 hex = { workspace = true }
 once_cell = { workspace = true }
-penumbra-sdk-app = { workspace = true, features = ["benchmark-helpers"], default-features = true }
-penumbra-sdk-asset = { workspace = true, default-features = true }
-penumbra-sdk-compliance = { workspace = true, default-features = false }
-penumbra-sdk-keys = { workspace = true, default-features = true }
-penumbra-sdk-mock-client = { workspace = true }
-penumbra-sdk-mock-consensus = { workspace = true }
-penumbra-sdk-num = { workspace = true, default-features = true }
-penumbra-sdk-proto = { workspace = true, default-features = true, features = ["rpc"] }
-penumbra-sdk-proof-params = { workspace = true, default-features = true }
-penumbra-sdk-shielded-pool = { workspace = true, default-features = true, features = ["benchmark-helpers"] }
-penumbra-sdk-transaction = { workspace = true, default-features = true }
+shieldd-sdk-app = { workspace = true, features = ["benchmark-helpers"], default-features = true }
+shieldd-sdk-asset = { workspace = true, default-features = true }
+shieldd-sdk-compliance = { workspace = true, default-features = false }
+shieldd-sdk-keys = { workspace = true, default-features = true }
+shieldd-sdk-mock-client = { workspace = true }
+shieldd-sdk-mock-consensus = { workspace = true }
+shieldd-sdk-num = { workspace = true, default-features = true }
+shieldd-sdk-proto = { workspace = true, default-features = true, features = ["rpc"] }
+shieldd-sdk-proof-params = { workspace = true, default-features = true }
+shieldd-sdk-shielded-pool = { workspace = true, default-features = true, features = ["benchmark-helpers"] }
+shieldd-sdk-transaction = { workspace = true, default-features = true }
 rand_core = { workspace = true, features = ["getrandom"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

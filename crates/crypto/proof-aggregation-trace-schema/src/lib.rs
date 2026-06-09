@@ -13,19 +13,19 @@ use alloc::vec::Vec;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TraceComparisonLevel {
-    PenumbraByte,
+    ShielddByte,
     AbstractTrace,
     FilecoinShape,
-    PenumbraLocal,
+    ShielddLocal,
 }
 
 impl TraceComparisonLevel {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::PenumbraByte => "penumbra-byte",
+            Self::ShielddByte => "shieldd-byte",
             Self::AbstractTrace => "abstract-trace",
             Self::FilecoinShape => "filecoin-shape",
-            Self::PenumbraLocal => "penumbra-local",
+            Self::ShielddLocal => "shieldd-local",
         }
     }
 }
@@ -78,7 +78,7 @@ pub enum TraceEventError {
 impl TraceEvent {
     pub fn validate(&self) -> Result<(), TraceEventError> {
         match self.primary_level {
-            TraceComparisonLevel::PenumbraByte if self.byte_payload.is_empty() => {
+            TraceComparisonLevel::ShielddByte if self.byte_payload.is_empty() => {
                 Err(TraceEventError::MissingBytePayload)
             }
             TraceComparisonLevel::AbstractTrace if self.abstract_payload.is_none() => {
@@ -95,15 +95,15 @@ impl TraceEvent {
 pub const TRACE_POLICIES: &[TracePolicy] = &[
     TracePolicy {
         spec_row_id: "fs.context-constructor",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
     },
     TracePolicy {
         spec_row_id: "fs.challenge-preimage",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
     },
     TracePolicy {
         spec_row_id: "fs.stage-labels",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
     },
     TracePolicy {
         spec_row_id: "fs.filecoin-bug-class",
@@ -119,7 +119,7 @@ pub const TRACE_POLICIES: &[TracePolicy] = &[
     },
     TracePolicy {
         spec_row_id: "gipa.challenge-dependency",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
     },
     TracePolicy {
         spec_row_id: "gipa.verifier-folding",
@@ -131,7 +131,7 @@ pub const TRACE_POLICIES: &[TracePolicy] = &[
     },
     TracePolicy {
         spec_row_id: "tipp-mipp.x0-seed",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
     },
     TracePolicy {
         spec_row_id: "tipp-mipp.gipa",
@@ -139,11 +139,11 @@ pub const TRACE_POLICIES: &[TracePolicy] = &[
     },
     TracePolicy {
         spec_row_id: "tipp-mipp.final-bridge",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
     },
     TracePolicy {
         spec_row_id: "tipp-mipp.kzg-challenge",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
     },
     TracePolicy {
         spec_row_id: "tipp-mipp.kzg-equations",
@@ -159,7 +159,7 @@ pub const TRACE_POLICIES: &[TracePolicy] = &[
     },
     TracePolicy {
         spec_row_id: "groth16.randomizer",
-        primary_level: TraceComparisonLevel::PenumbraByte,
+        primary_level: TraceComparisonLevel::ShielddByte,
     },
     TracePolicy {
         spec_row_id: "groth16.folded-inputs",
@@ -176,10 +176,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn penumbra_byte_events_require_bytes() {
+    fn shieldd_byte_events_require_bytes() {
         let event = TraceEvent {
             spec_row_id: "fs.challenge-preimage",
-            primary_level: TraceComparisonLevel::PenumbraByte,
+            primary_level: TraceComparisonLevel::ShielddByte,
             event_kind: TraceEventKind::ChallengePreimage,
             stage_label: "aggregate.randomizer",
             nonce: Some(0),

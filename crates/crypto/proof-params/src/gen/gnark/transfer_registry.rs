@@ -6,7 +6,7 @@ struct GeneratedTransferProofFamily {
 }
 
 static TRANSFER_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("PENUMBRA_GNARK_TRANSFER_ARTIFACT_DIR") {
+    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR") {
         return load_verifying_key_json_artifact(Path::new(&dir), "transfer")
             .expect("can deserialize transfer VerifyingKey")
             .into();

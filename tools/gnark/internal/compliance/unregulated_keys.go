@@ -8,12 +8,12 @@ import (
 
 	"github.com/consensys/gnark/frontend"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 const (
-	unregulatedDKPubDomain  = "penumbra.compliance.unregulated.dk-pub.v1"
-	unregulatedRingPKDomain = "penumbra.compliance.unregulated.ring-pk.v1"
+	unregulatedDKPubDomain  = "shieldd.compliance.unregulated.dk-pub.v1"
+	unregulatedRingPKDomain = "shieldd.compliance.unregulated.ring-pk.v1"
 )
 
 func deriveUnregulatedSinkPoint(domain string) (gnarkte.Point, error) {

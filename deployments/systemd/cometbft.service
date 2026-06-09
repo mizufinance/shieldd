@@ -1,10 +1,10 @@
 [Unit]
-Description=CometBFT for Penumbra
+Description=CometBFT for Shieldd
 
 [Service]
-ExecStart=/usr/local/bin/cometbft start --home /home/penumbra/.penumbra/network_data/node0/cometbft
+ExecStart=/usr/local/bin/cometbft start --home /home/shieldd/.shieldd/network_data/node0/cometbft
 Restart=no
-User=penumbra
+User=shieldd
 # Raise filehandle limit for RPC and P2P connections.
 LimitNOFILE=65536
 

@@ -4,13 +4,13 @@ use anyhow::bail;
 use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
-use penumbra_sdk_shielded_pool::component::Ics20Transfer;
-use penumbra_sdk_transaction::Action;
-use penumbra_sdk_txhash::TransactionContext;
+use shieldd_sdk_shielded_pool::component::Ics20Transfer;
+use shieldd_sdk_transaction::Action;
+use shieldd_sdk_txhash::TransactionContext;
 
 mod submit;
 
-use crate::PenumbraHost;
+use crate::ShielddHost;
 
 use super::AppActionHandler;
 use cnidarium_component::ActionHandler as _;
@@ -30,7 +30,7 @@ impl AppActionHandler for Action {
             Action::IbcRelay(action) => {
                 action
                     .clone()
-                    .with_handler::<Ics20Transfer, PenumbraHost>()
+                    .with_handler::<Ics20Transfer, ShielddHost>()
                     .check_stateless(())
                     .await
             }
@@ -54,7 +54,7 @@ impl AppActionHandler for Action {
             Action::IbcRelay(action) => {
                 action
                     .clone()
-                    .with_handler::<Ics20Transfer, PenumbraHost>()
+                    .with_handler::<Ics20Transfer, ShielddHost>()
                     .check_historical(state)
                     .await
             }
@@ -78,7 +78,7 @@ impl AppActionHandler for Action {
             Action::IbcRelay(action) => {
                 action
                     .clone()
-                    .with_handler::<Ics20Transfer, PenumbraHost>()
+                    .with_handler::<Ics20Transfer, ShielddHost>()
                     .check_and_execute(state)
                     .await
             }
@@ -97,10 +97,10 @@ mod tests {
     use std::sync::Arc;
 
     use cnidarium::{StateDelta, TempStorage};
-    use penumbra_sdk_proof_aggregation::AggregateBundle;
-    use penumbra_sdk_tct as tct;
-    use penumbra_sdk_transaction::Action;
-    use penumbra_sdk_txhash::{EffectHash, TransactionContext};
+    use shieldd_sdk_proof_aggregation::AggregateBundle;
+    use shieldd_sdk_tct as tct;
+    use shieldd_sdk_transaction::Action;
+    use shieldd_sdk_txhash::{EffectHash, TransactionContext};
 
     use super::AppActionHandler;
     use crate::SUBSTORE_PREFIXES;

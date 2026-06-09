@@ -4,7 +4,7 @@ use crate::{event, genesis};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
-use penumbra_sdk_proto::StateWriteProto as _;
+use shieldd_sdk_proto::StateWriteProto as _;
 use tendermint::v0_37::abci;
 use tracing::instrument;
 
@@ -19,7 +19,7 @@ pub mod rpc;
 pub use view::StateReadExt;
 pub use view::StateWriteExt;
 
-use penumbra_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::clock::EpochRead;
 
 pub struct Governance {}
 

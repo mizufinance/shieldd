@@ -1049,8 +1049,8 @@ mod tests {
     use crate::scanner::{
         ActionRef, ClearFlowEvent, ClearFlowKind, ExtractedComplianceCiphertext, OutputRef, TxRef,
     };
-    use penumbra_sdk_asset::asset;
-    use penumbra_sdk_txhash::TransactionId;
+    use shieldd_sdk_asset::asset;
+    use shieldd_sdk_txhash::TransactionId;
     use tempfile::NamedTempFile;
 
     fn block(height: u64) -> BlockRef {
@@ -1450,9 +1450,9 @@ mod tests {
             output_ref: output_ref(height, 1, 2, output_index),
             kind,
             asset_id: asset::Id(decaf377::Fq::from(7u64)),
-            amount: penumbra_sdk_num::Amount::from(100u64),
-            self_address: Some("penumbra1self".to_string()),
-            counterparty: Some("penumbra1counter".to_string()),
+            amount: shieldd_sdk_num::Amount::from(100u64),
+            self_address: Some("shieldd1self".to_string()),
+            counterparty: Some("shieldd1counter".to_string()),
             public_address: None,
         }
     }

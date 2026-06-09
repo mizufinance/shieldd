@@ -37,7 +37,7 @@ assumptions](#standing-assumptions)); these references pin down which algorithm
 our code must refine, and the tools below verify it does.
 
 #### ALG-M1 — Local algorithm spec (`ripp-spec.md`)
-- **What:** the Penumbra-local, row-indexed spec of GIPA/TIPA/SSM and the Groth16
+- **What:** the Shieldd-local, row-indexed spec of GIPA/TIPA/SSM and the Groth16
   adapter, checked against Filecoin v2 transcript bug classes.
 - **Why:** the reference every implementation check and the trace-schema policy
   table compare against. Without it, "matches the algorithm" is unanchored.
@@ -120,7 +120,7 @@ code would be circular). This is the explicit oracle TXN-I2/TXN-I3 check against
 #### TXN-M1 — Filecoin v2 discipline + adaptation register
 - **What:** the audited Filecoin Bellperson v2 transcript discipline — bind every
   input, fixed order, domain-separated — borrowed as a *principle* (not bytes;
-  different curve and stack). Every intentional Filecoin→Penumbra difference is
+  different curve and stack). Every intentional Filecoin→Shieldd difference is
   recorded in the adaptation register, bijective with `adaptation-scope.txt`.
 - **Why:** our hand-rolled Fiat-Shamir must not reopen a v2 omission/reordering
   bug class on our own bytes.
@@ -159,7 +159,7 @@ bridge, and for failing the combined-round cross-binding; all must reject valid
 proofs.
 
 Library-generic labels can still exist for non-aggregation callers, but they are
-not part of the Penumbra aggregate transcript reference set. The coverage
+not part of the Shieldd aggregate transcript reference set. The coverage
 assertion fails if the Groth16 aggregation path routes through a generic or split
 label instead of the `tipp-mipp.*` stages above.
 
@@ -181,7 +181,7 @@ Therefore:
   `padded_count` set.
 - The **one-real-proof** aggregate (`real_count = 1`, padded up to a power of two
   with copies of that one proof) is sound by the same argument — it is just
-  "verify one proof." This is why Penumbra safely permits it where Filecoin's
+  "verify one proof." This is why Shieldd safely permits it where Filecoin's
   `< 2` rejection is a production *policy*, not a missing security fix.
 
 **Verifying-key allowlisting.** The verifier never trusts a VK carried in the
@@ -235,7 +235,7 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
   public-input value/order, padding, counts, SRS id) and asserts the verifier
   rejects; a **verifier-mutant** matrix builds verifiers that omit/reorder
   challenge inputs and asserts they reject valid proofs. Coverage assertions force
-  both matrices to cover every Penumbra byte-trace row.
+  both matrices to cover every Shieldd byte-trace row.
 - **Why:** directly executes the SnarkPack v2 bug classes — a field that looks
   bound but isn't, and a transcript step that doesn't matter. Every *traced* input
   is proven load-bearing.
@@ -255,14 +255,14 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
 
 #### TXN-I4 — Byte-equivalence golden baselines
 - **What:** two committed, version-tagged golden artifacts — an aggregate-proof
-  byte baseline (`aggregate_bytes_match_committed_baseline`) and a PenumbraByte
-  transcript-trace baseline (`penumbra_byte_trace_matches_committed_baseline`).
+  byte baseline (`aggregate_bytes_match_committed_baseline`) and a ShielddByte
+  transcript-trace baseline (`shieldd_byte_trace_matches_committed_baseline`).
   Both regenerate deterministically from fixed `(family, count, seed)` vectors and
   fail on any drift; each version tag must equal `AGGREGATE_PROTOCOL_VERSION`.
 - **Why:** makes silently changing wire/transcript bytes impossible — "preserve
   bytes vs version the protocol" becomes a mechanical gate (the optimization
   byte-lock, X3).
-- **State:** implemented. *Scope:* Penumbra-reference vs Penumbra-optimized only —
+- **State:** implemented. *Scope:* Shieldd-reference vs Shieldd-optimized only —
   no cross-curve byte equivalence to Filecoin (BLS12-381 vs BLS12-377).
 
 #### TXN-I5 — Filecoin-shape static check
@@ -315,7 +315,7 @@ Not tied to one domain; they protect the whole stack.
 - **Fixture:** [formal-handoff.md](../../crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md).
 
 ### X3 — Optimization byte-lock
-- **What:** any optimization must preserve the Penumbra byte trace (TXN-I4
+- **What:** any optimization must preserve the Shieldd byte trace (TXN-I4
   baselines) or explicitly version the protocol — never silently change transcript
   bytes. Category 1/2/3 rule in [design.md](design.md#optimization-byte-lock).
 - **Why:** the optimization loop and refactors cannot drift the protocol.

@@ -1,4 +1,4 @@
-# Filecoin-to-Penumbra SnarkPack adaptation touch points that must be mapped in
+# Filecoin-to-Shieldd SnarkPack adaptation touch points that must be mapped in
 # adaptation-register.md.
 #
 # Format: adaptation.id|relative/file/path:grep-pattern

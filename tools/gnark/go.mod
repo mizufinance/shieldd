@@ -1,4 +1,4 @@
-module github.com/mizufinance/penumbra/tools/gnark
+module github.com/mizufinance/shieldd/tools/gnark
 
 go 1.25.4
 

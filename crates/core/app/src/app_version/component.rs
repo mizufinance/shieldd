@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 
 use anyhow::{anyhow, Context};
 use cnidarium::{StateDelta, Storage};
-use penumbra_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 
 use super::APP_VERSION;
 
@@ -48,10 +48,10 @@ fn check_version(ctx: CheckContext, expected: u64, found: Option<u64>) -> anyhow
             error.push_str("app version mismatch:\n");
             write!(
                 &mut error,
-                "  expected {} (penumbra {})\n",
+                "  expected {} (shieldd {})\n",
                 expected, expected_name
             )?;
-            write!(&mut error, "  found {} (penumbra {})\n", found, found_name)?;
+            write!(&mut error, "  found {} (shieldd {})\n", found, found_name)?;
             write!(&mut error, "Are you using the right node directory?\n")?;
             // For a greater difference, the wrong directory is probably being used.
             if found == expected - 1 {
@@ -64,7 +64,7 @@ fn check_version(ctx: CheckContext, expected: u64, found: Option<u64>) -> anyhow
             } else {
                 write!(
                     &mut error,
-                    "make sure you're running penumbra {}",
+                    "make sure you're running shieldd {}",
                     expected_name
                 )?;
             }
@@ -85,13 +85,13 @@ fn check_version(ctx: CheckContext, expected: u64, found: Option<u64>) -> anyhow
             error.push_str("app version mismatch:\n");
             write!(
                 &mut error,
-                "  expected {} (penumbra {})\n",
+                "  expected {} (shieldd {})\n",
                 expected, expected_name
             )?;
-            write!(&mut error, "  found {} (penumbra {})\n", found, found_name)?;
+            write!(&mut error, "  found {} (shieldd {})\n", found, found_name)?;
             write!(
                 &mut error,
-                "this migration should be run with penumbra {} instead",
+                "this migration should be run with shieldd {} instead",
                 version_to_software_version(expected + 1)
             )?;
             Err(anyhow!(error))
@@ -128,7 +128,7 @@ fn write_app_version_safeguard<S: StateWriteProto>(s: &mut S, x: u64) {
 /// is uninitialized (pregenesis).
 ///
 /// # UIP:
-/// More context is available in the UIP-6 document: https://uips.penumbra.zone/uip-6.html
+/// More context is available in the UIP-6 document: https://uips.shieldd.zone/uip-6.html
 pub async fn check_and_update_app_version(s: Storage) -> anyhow::Result<()> {
     // If the storage is not initialized, avoid touching it at all,
     // to avoid complaints about it already being initialized before the first genesis.
@@ -157,7 +157,7 @@ pub async fn check_and_update_app_version(s: Storage) -> anyhow::Result<()> {
 /// This is the recommended way to change the app version, and should be called during a migration
 /// with breaking consensus logic.
 pub async fn migrate_app_version<S: StateWriteProto>(s: &mut S, to: u64) -> anyhow::Result<()> {
-    anyhow::ensure!(to > 1, "you can't migrate to the first penumbra version!");
+    anyhow::ensure!(to > 1, "you can't migrate to the first shieldd version!");
     let found = read_app_version_safeguard(s).await?;
     check_version(CheckContext::Migration, to - 1, found)?;
     write_app_version_safeguard(s, to);

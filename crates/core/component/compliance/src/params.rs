@@ -4,10 +4,10 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 #[cfg(feature = "component")]
 use cnidarium::{StateRead, StateWrite};
-use penumbra_sdk_proto::penumbra::core::component::compliance::v1 as pb;
-use penumbra_sdk_proto::DomainType;
+use shieldd_sdk_proto::shieldd::core::component::compliance::v1 as pb;
+use shieldd_sdk_proto::DomainType;
 #[cfg(feature = "component")]
-use penumbra_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "component")]

@@ -3,7 +3,7 @@
 //! These tests are marked with `#[ignore]`, but can be run with:
 //! `cargo test --package pcli -- --ignored --test-threads 1`
 //!
-//! Tests against the network in the `PENUMBRA_NODE_PD_URL` environment variable.
+//! Tests against the network in the `SHIELDD_NODE_PD_URL` environment variable.
 //!
 //! Tests assume that the initial state of the test account is after genesis,
 //! where no tokens have been delegated, and the address with index 0
@@ -16,16 +16,16 @@ use std::path::PathBuf;
 
 use assert_cmd::Command;
 use directories::UserDirs;
-use penumbra_sdk_validator::validator::ValidatorToml;
+use shieldd_sdk_validator::validator::ValidatorToml;
 use predicates::prelude::*;
 use regex::Regex;
 use serde_json::Value;
 use tempfile::{tempdir, NamedTempFile, TempDir};
 use url::Url;
 
-use penumbra_sdk_keys::test_keys::{ADDRESS_0_STR, ADDRESS_1_STR, SEED_PHRASE};
-use penumbra_sdk_proto::core::transaction::v1::TransactionView as ProtoTransactionView;
-use penumbra_sdk_transaction::view::TransactionView;
+use shieldd_sdk_keys::test_keys::{ADDRESS_0_STR, ADDRESS_1_STR, SEED_PHRASE};
+use shieldd_sdk_proto::core::transaction::v1::TransactionView as ProtoTransactionView;
+use shieldd_sdk_transaction::view::TransactionView;
 
 // The number "1020" is chosen so that this is bigger than u64::MAX
 // when accounting for the 10e18 scaling factor from the base denom.
@@ -43,10 +43,10 @@ fn load_wallet_into_tmpdir() -> TempDir {
 fn load_wallet_phrase_into_tmpdir(seed_phrase: &str) -> TempDir {
     let tmpdir = tempdir().unwrap();
 
-    let grpc_url: Url = std::env::var("PENUMBRA_NODE_PD_URL")
+    let grpc_url: Url = std::env::var("SHIELDD_NODE_PD_URL")
         .unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned())
         .parse()
-        .expect("failed to parse PENUMBRA_NODE_PD_URL");
+        .expect("failed to parse SHIELDD_NODE_PD_URL");
 
     let mut setup_cmd = Command::cargo_bin("pcli").unwrap();
     setup_cmd
@@ -114,7 +114,7 @@ fn balance_for_account(tmpdir: &TempDir, account_index: u32, denom: &str) -> u64
 }
 
 /// Look up a currently active validator on the testnet.
-/// Will return the most bonded, which means the Penumbra Labs CI validator.
+/// Will return the most bonded, which means the Shieldd Labs CI validator.
 fn get_validator(tmpdir: &TempDir) -> String {
     let mut validator_cmd = Command::cargo_bin("pcli").unwrap();
     validator_cmd
@@ -130,7 +130,7 @@ fn get_validator(tmpdir: &TempDir) -> String {
 
     // Pull out one of the validators from stdout.
     let stdout_vec = validator_cmd.unwrap().stdout;
-    let validator_regex = Regex::new(r"penumbravalid1\w{58}").unwrap();
+    let validator_regex = Regex::new(r"shielddvalid1\w{58}").unwrap();
     let captures = validator_regex.captures(std::str::from_utf8(&stdout_vec).unwrap());
 
     // We retrieve the first match via index 0, which results in most trusted.
@@ -204,7 +204,7 @@ fn transaction_send_from_addr_0_to_addr_1() {
 
     assert!(matches!(
         &tv.body_view.action_views[0],
-        penumbra_sdk_transaction::ActionView::Transfer(_)
+        shieldd_sdk_transaction::ActionView::Transfer(_)
     ));
 
     // Inspect the TransactionView and ensure that we can read the memo text.
@@ -213,12 +213,12 @@ fn transaction_send_from_addr_0_to_addr_1() {
         .memo_view
         .expect("can find MemoView in TransactionView");
     match mv {
-        penumbra_sdk_transaction::MemoView::Visible { plaintext, .. } => {
+        shieldd_sdk_transaction::MemoView::Visible { plaintext, .. } => {
             tracing::info!(?plaintext, "plaintext memo");
             tracing::info!(?memo_text, "expected memo text");
             assert!(plaintext.text == memo_text);
         }
-        penumbra_sdk_transaction::MemoView::Opaque { .. } => {
+        shieldd_sdk_transaction::MemoView::Opaque { .. } => {
             panic!("MemoView for transaction was Opaque! We should be able to read this memo.");
         }
     }
@@ -399,11 +399,11 @@ fn mismatched_consensus_key_update_fails() {
     // Now we retrieve the actual cometbft consensus key from the network data dir.
     // Doing so assumes that the generated data was previously put in place,
     // which is a reasonable assumption in the context of running smoketest suite.
-    // Respect PENUMBRA_DEVNET_HOME if set (smoke tests use a temp dir).
-    let devnet_home = std::env::var("PENUMBRA_DEVNET_HOME").unwrap_or_else(|_| {
+    // Respect SHIELDD_DEVNET_HOME if set (smoke tests use a temp dir).
+    let devnet_home = std::env::var("SHIELDD_DEVNET_HOME").unwrap_or_else(|_| {
         let userdir = UserDirs::new().unwrap();
         let homedir = userdir.home_dir().to_str().unwrap().to_string();
-        format!("{homedir}/.penumbra")
+        format!("{homedir}/.shieldd")
     });
     let tm_key_filepath: PathBuf = [
         &devnet_home,

@@ -14,7 +14,7 @@ var TransferFamilies = []TransferFamilySpec{
 		ArtifactName:       "transfer",
 		NIn:                2,
 		NOut:               2,
-		BundledLibBasename: "libpenumbra_gnark_transfer",
+		BundledLibBasename: "libshieldd_gnark_transfer",
 	},
 }
 

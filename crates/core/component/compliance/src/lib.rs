@@ -170,7 +170,7 @@ pub use orbis_interop::{
 pub fn create_default_imt_proof(
     asset_id: decaf377::Fq,
 ) -> (
-    penumbra_sdk_tct::StateCommitment,
+    shieldd_sdk_tct::StateCommitment,
     IndexedLeaf,
     MerklePath,
     u64,
@@ -180,7 +180,7 @@ pub fn create_default_imt_proof(
         .non_membership_proof(asset_id)
         .expect("can generate non-membership proof for any asset");
     let merkle_path = MerklePath::from_auth_path(auth_path);
-    let anchor = penumbra_sdk_tct::StateCommitment(tree.root().0);
+    let anchor = shieldd_sdk_tct::StateCommitment(tree.root().0);
     (anchor, indexed_leaf, merkle_path, position)
 }
 
@@ -189,7 +189,7 @@ pub fn create_default_imt_proof(
 /// Returns (compliance_anchor, merkle_path, position) that satisfy circuit constraints.
 pub fn default_user_proof(
     user_leaf: &ComplianceLeaf,
-) -> (penumbra_sdk_tct::StateCommitment, MerklePath, u64) {
+) -> (shieldd_sdk_tct::StateCommitment, MerklePath, u64) {
     let mut tree = QuadTree::new();
     let leaf_commitment = user_leaf.commit();
     let position = 0u64;
@@ -199,7 +199,7 @@ pub fn default_user_proof(
         .auth_path(position)
         .expect("can get auth path for inserted leaf");
     let merkle_path = MerklePath::from_auth_path(auth_path);
-    let anchor = penumbra_sdk_tct::StateCommitment(tree.root().0);
+    let anchor = shieldd_sdk_tct::StateCommitment(tree.root().0);
     (anchor, merkle_path, position)
 }
 
@@ -207,8 +207,8 @@ pub fn default_user_proof(
 #[cfg(any(test, feature = "test-helpers"))]
 pub mod test_helpers {
     use decaf377::{Fq, Fr};
-    use penumbra_sdk_keys::keys::Diversifier;
-    use penumbra_sdk_keys::Address;
+    use shieldd_sdk_keys::keys::Diversifier;
+    use shieldd_sdk_keys::Address;
     use rand_core::{OsRng, RngCore};
 
     use crate::indexed_tree::{IndexedLeaf, FQ_MAX};
@@ -238,9 +238,9 @@ mod tests {
     use super::*;
     use cnidarium::{StateDelta, TempStorage};
     use decaf377::Fq;
-    use penumbra_sdk_asset::asset;
-    use penumbra_sdk_keys::Address;
-    use penumbra_sdk_tct::StateCommitment;
+    use shieldd_sdk_asset::asset;
+    use shieldd_sdk_keys::Address;
+    use shieldd_sdk_tct::StateCommitment;
 
     #[tokio::test]
     async fn test_compliance_path_generation() {
@@ -378,8 +378,8 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_compliance_path_generation() {
         use crate::transfer::{encrypt_transfer, TRANSFER_WIRE_BYTES};
-        use penumbra_sdk_asset::Value;
-        use penumbra_sdk_num::Amount;
+        use shieldd_sdk_asset::Value;
+        use shieldd_sdk_num::Amount;
         use rand_core::OsRng;
 
         let storage = TempStorage::new().await.unwrap();
@@ -485,12 +485,12 @@ mod tests {
         use crate::crypto::derive_compliance_scalar;
         use crate::issuer_keys::DetectionKey;
         use crate::transfer::encrypt_transfer;
-        use penumbra_sdk_asset::Value;
-        use penumbra_sdk_num::Amount;
-        use penumbra_sdk_proto::core::component::shielded_pool::v1::{
+        use shieldd_sdk_asset::Value;
+        use shieldd_sdk_num::Amount;
+        use shieldd_sdk_proto::core::component::shielded_pool::v1::{
             Transfer, TransferBody, TransferOutputBody,
         };
-        use penumbra_sdk_proto::core::transaction::v1::{
+        use shieldd_sdk_proto::core::transaction::v1::{
             action::Action, Action as ActionProto, Transaction as ProtoTransaction, TransactionBody,
         };
         use rand_core::OsRng;

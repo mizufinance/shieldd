@@ -5,7 +5,7 @@ use anyhow::Result;
 pub(super) fn should_skip_transfer_proof_roundtrip_tests() -> bool {
     if cfg!(debug_assertions) {
         eprintln!(
-            "skipping transfer gnark roundtrip tests in debug builds: use `cargo test --release -p penumbra-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib` for real bundled transfer proving"
+            "skipping transfer gnark roundtrip tests in debug builds: use `cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib` for real bundled transfer proving"
         );
         return true;
     }

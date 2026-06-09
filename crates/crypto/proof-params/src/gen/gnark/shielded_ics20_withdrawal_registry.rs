@@ -9,7 +9,7 @@ struct GeneratedShieldedIcs20WithdrawalProofFamily {
 static SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFICATION_KEY: Lazy<
     PreparedVerifyingKey<Bls12_377>,
 > = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("PENUMBRA_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR") {
+    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR") {
         return load_verifying_key_json_artifact(Path::new(&dir), "shielded_ics20_withdrawal")
             .expect("can deserialize shielded_ics20_withdrawal VerifyingKey")
             .into();

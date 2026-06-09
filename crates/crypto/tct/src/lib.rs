@@ -1,4 +1,4 @@
-//! The tiered commitment tree for Penumbra.
+//! The tiered commitment tree for Shieldd.
 //!
 //! ```ascii,no_run
 //! Eternity┃           ╱╲ ◀───────────── Anchor

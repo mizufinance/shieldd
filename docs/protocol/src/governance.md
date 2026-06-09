@@ -1,6 +1,6 @@
 # Governance
 
-Penumbra uses validator-managed on-chain governance. The reduced governance
+Shieldd uses validator-managed on-chain governance. The reduced governance
 surface keeps proposal submission and validator voting, and removes the legacy
 proposal deposit, withdrawal, claim, and proposal-NFT flows.
 

@@ -1,6 +1,6 @@
 # SnarkPack RIPP Review Spec
 
-Status: Penumbra-local implementation spec, checked against Filecoin v2
+Status: Shieldd-local implementation spec, checked against Filecoin v2
 transcript bug classes and used by `ripp-refinement.md`.
 This is not a mechanized proof and not an independently invented SnarkPack
 specification.
@@ -15,7 +15,7 @@ Bellperson `v0.21.0` at peeled commit
 `62c362fd46ca2139747b8770bae53ce6f1e42bb1`; rust-fil-proofs
 `filecoin-proofs-v11.1.0` at commit
 `004d7b4244c469e0d9aeebf15f9a81ef60308ba3` is production-consumer evidence
-for the Filecoin Network v16 Skyr release. The Penumbra-local spec is
+for the Filecoin Network v16 Skyr release. The Shieldd-local spec is
 authoritative for BLS12-377, hash/domain choices, statement binding, padding,
 SRS/VK binding, and aggregate-bundle integration. No cross-curve byte-level
 equivalence to Filecoin is claimed.
@@ -28,27 +28,27 @@ The shared trace policy table in
 `crates/crypto/proof-aggregation-trace-schema` must match the Spec Row Index
 below.
 
-- `penumbra-byte`: exact bytes hashed or serialized by Penumbra; required
-  between Penumbra reference and optimized paths.
+- `shieldd-byte`: exact bytes hashed or serialized by Shieldd; required
+  between Shieldd reference and optimized paths.
 - `abstract-trace`: typed event order, labels, challenge dependencies, round
   schedule, object roles, and verifier equation roles.
 - `filecoin-shape`: abstract dependency-shape comparison against Filecoin v2
   bug classes only.
-- `penumbra-local`: Penumbra-only integration behavior with no Filecoin
+- `shieldd-local`: Shieldd-only integration behavior with no Filecoin
   comparison target.
 
 Default primary-level policy:
 
-- Penumbra challenge preimages, statement bytes, wrapper bytes, SRS/VK digest
-  inputs, and public-input framing use `penumbra-byte`.
+- Shieldd challenge preimages, statement bytes, wrapper bytes, SRS/VK digest
+  inputs, and public-input framing use `shieldd-byte`.
 - GIPA/TIPA/Groth16 round structure and verifier equation roles use
-  `abstract-trace` unless exact Penumbra bytes are hashed at that step.
+  `abstract-trace` unless exact Shieldd bytes are hashed at that step.
 - Filecoin-specific bug-class checks use `filecoin-shape`.
-- Penumbra-only app integration and aggregate-bundle routing use
-  `penumbra-local` evidence in the refinement/adaptation maps.
+- Shieldd-only app integration and aggregate-bundle routing use
+  `shieldd-local` evidence in the refinement/adaptation maps.
 
 Rows whose primary level is `abstract-trace` may consume objects whose byte
-binding is established by upstream `penumbra-byte` rows. In that case, the
+binding is established by upstream `shieldd-byte` rows. In that case, the
 abstract row gates only the equation or event role; the upstream byte rows gate
 canonical framing and byte-to-object binding.
 
@@ -59,8 +59,8 @@ This complements the deviation-class table in [Minimum Evidence Per Refinement
 Row](#minimum-evidence-per-refinement-row): that table says what evidence a
 refinement row needs; this says what tool checks a spec row at each level.
 
-- `penumbra-byte` — **golden byte baselines** (the recorded trace fixtures in
-  `proof-aggregation-reference`, e.g. `penumbra_byte_trace_baseline.txt`) plus,
+- `shieldd-byte` — **golden byte baselines** (the recorded trace fixtures in
+  `proof-aggregation-reference`, e.g. `shieldd_byte_trace_baseline.txt`) plus,
   where extracted, **F\* boundary proofs** of preimage layout and injectivity.
   Any byte drift breaks a baseline.
 - `abstract-trace` — the **Lean shape oracle** in
@@ -72,8 +72,8 @@ refinement row needs; this says what tool checks a spec row at each level.
 - `filecoin-shape` — review against the pinned Bellperson `v0.21.0` source,
   recorded in `filecoin-divergence-findings.md`. No byte or trace equality is
   claimed.
-- `penumbra-local` — integration tests and adaptation/refinement evidence. **No
-  RIPP row in this spec uses this level**; Penumbra-only app-integration rows
+- `shieldd-local` — integration tests and adaptation/refinement evidence. **No
+  RIPP row in this spec uses this level**; Shieldd-only app-integration rows
   (bundle routing, preflight, action rejection) live in the adaptation register,
   not here.
 
@@ -99,7 +99,7 @@ obligations, each tagged with the row id(s) it discharges. A check that spans
 several rows names all of them; a `(precondition)` check is one this section does
 not perform but is allowed to assume because an earlier layer (preflight, arity,
 wrapper decode) already enforced it. So a row's level lives in one place and its
-obligations in another, joined by the id; a `penumbra-byte` row with no tagged
+obligations in another, joined by the id; a `shieldd-byte` row with no tagged
 byte-equality check is a visible gap.
 
 ## Groth16 Aggregation Adapter Spec
@@ -107,12 +107,12 @@ byte-equality check is a visible gap.
 Implementation file:
 `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs`.
 
-Source basis: paper algebra plus Penumbra public-input, family, and transcript
+Source basis: paper algebra plus Shieldd public-input, family, and transcript
 adaptations.
 
 Primary comparison levels:
 
-- `groth16.randomizer`: `penumbra-byte`
+- `groth16.randomizer`: `shieldd-byte`
 - `groth16.folded-inputs`: `abstract-trace`
 - `groth16.ppe`: `abstract-trace`
 
@@ -185,7 +185,7 @@ Required checks:
   under one shared challenge stream
 - (`groth16.ppe`) the final bridge is derived before the KZG challenge and binds
   final keys plus final base messages
-- (`groth16.folded-inputs`, consuming upstream statement `penumbra-byte` rows)
+- (`groth16.folded-inputs`, consuming upstream statement `shieldd-byte` rows)
   byte binding of public inputs to field elements is covered upstream; this
   section checks only the folding equation
 - (precondition) confirm every path into this backend passes the preflight arity
@@ -202,16 +202,16 @@ KZG helper primitives live in
 `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs`.
 
 Source basis: SnarkPack paper algebra plus Bellperson v2's combined
-TIPP/MIPP transcript discipline, adapted to Penumbra SRS, curve, and challenge
+TIPP/MIPP transcript discipline, adapted to Shieldd SRS, curve, and challenge
 framing.
 
 Primary comparison levels:
 
 - `tipa.srs`: `abstract-trace`
-- `tipp-mipp.x0-seed`: `penumbra-byte`
+- `tipp-mipp.x0-seed`: `shieldd-byte`
 - `tipp-mipp.gipa`: `abstract-trace`
-- `tipp-mipp.final-bridge`: `penumbra-byte`
-- `tipp-mipp.kzg-challenge`: `penumbra-byte`
+- `tipp-mipp.final-bridge`: `shieldd-byte`
+- `tipp-mipp.kzg-challenge`: `shieldd-byte`
 - `tipp-mipp.kzg-equations`: `abstract-trace`
 - `tipp-mipp.power-sequence`: `abstract-trace`
 - `tipp-mipp.base-equations`: `abstract-trace`
@@ -311,7 +311,7 @@ Primary comparison levels:
 
 - `gipa.input-relation`: `abstract-trace`
 - `gipa.round-folding`: `abstract-trace`
-- `gipa.challenge-dependency`: `penumbra-byte`
+- `gipa.challenge-dependency`: `shieldd-byte`
 - `gipa.verifier-folding`: `abstract-trace`
 
 Input relation:
@@ -403,26 +403,26 @@ Required checks:
 Implementation file:
 `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs`.
 
-Source basis: Penumbra adaptation plus Filecoin v2 transcript omission and
+Source basis: Shieldd adaptation plus Filecoin v2 transcript omission and
 ordering bug classes.
 
 Primary comparison levels:
 
-- `fs.context-constructor`: `penumbra-byte`
-- `fs.challenge-preimage`: `penumbra-byte`
-- `fs.stage-labels`: `penumbra-byte`
+- `fs.context-constructor`: `shieldd-byte`
+- `fs.challenge-preimage`: `shieldd-byte`
+- `fs.stage-labels`: `shieldd-byte`
 - `fs.filecoin-bug-class`: `filecoin-shape`
 
 Context:
 
-- `ChallengeContext = SHA256("penumbra.snarkpack.challenge_context.v1\0" ||
+- `ChallengeContext = SHA256("shieldd.snarkpack.challenge_context.v1\0" ||
   statement_digest)`.
 - The context has no public constructor except `from_statement_digest`.
 
 Challenge preimage:
 
 ```text
-"penumbra.snarkpack.challenge.v1\0"
+"shieldd.snarkpack.challenge.v1\0"
 || u32_le(stage_label.len())
 || stage_label
 || challenge_context[32]
@@ -493,24 +493,24 @@ the gate-checked source the trace-schema policy table must match.
 
 | spec_row_id | source basis | primary_required_comparison_level | required evidence |
 | --- | --- | --- | --- |
-| `fs.context-constructor` | Penumbra adaptation; Filecoin v2 transcript context bug class | `penumbra-byte` | F* challenge-context row; invariant guard against alternate constructors |
-| `fs.challenge-preimage` | Penumbra adaptation; Filecoin v2 ordered transcript-input bug class | `penumbra-byte` | F* challenge-preimage row; golden layout test |
-| `fs.stage-labels` | Penumbra adaptation; Filecoin v2 domain-separation discipline | `penumbra-byte` | prover/verifier trace parity and stage-label review |
+| `fs.context-constructor` | Shieldd adaptation; Filecoin v2 transcript context bug class | `shieldd-byte` | F* challenge-context row; invariant guard against alternate constructors |
+| `fs.challenge-preimage` | Shieldd adaptation; Filecoin v2 ordered transcript-input bug class | `shieldd-byte` | F* challenge-preimage row; golden layout test |
+| `fs.stage-labels` | Shieldd adaptation; Filecoin v2 domain-separation discipline | `shieldd-byte` | prover/verifier trace parity and stage-label review |
 | `fs.filecoin-bug-class` | Bellperson `v0.21.0` Filecoin v2 transcript hardening, with rust-fil-proofs `filecoin-proofs-v11.1.0` as production-consumer evidence | `filecoin-shape` | `filecoin-divergence-findings.md` review against pinned Filecoin v1/v2 sources |
 | `gipa.input-relation` | paper algebra and local implementation | `abstract-trace` | equation review and unit/property evidence |
 | `gipa.round-folding` | paper algebra and local implementation | `abstract-trace` | equation review and prover/verifier trace evidence |
-| `gipa.challenge-dependency` | Penumbra challenge helper and Filecoin v2 transcript-input discipline | `penumbra-byte` | trace parity over exact Penumbra challenge bytes |
+| `gipa.challenge-dependency` | Shieldd challenge helper and Filecoin v2 transcript-input discipline | `shieldd-byte` | trace parity over exact Shieldd challenge bytes |
 | `gipa.verifier-folding` | paper algebra and local implementation | `abstract-trace` | equation review and mutation rejection evidence |
-| `tipa.srs` | paper algebra and Penumbra SRS adaptation | `abstract-trace` | SRS dimension tests and refinement review |
-| `tipp-mipp.x0-seed` | SnarkPack paper and Bellperson v2 combined transcript seed | `penumbra-byte` | trace parity over exact Penumbra seed bytes and x0-omission mutant |
+| `tipa.srs` | paper algebra and Shieldd SRS adaptation | `abstract-trace` | SRS dimension tests and refinement review |
+| `tipp-mipp.x0-seed` | SnarkPack paper and Bellperson v2 combined transcript seed | `shieldd-byte` | trace parity over exact Shieldd seed bytes and x0-omission mutant |
 | `tipp-mipp.gipa` | paper algebra and local combined TIPP/MIPP implementation | `abstract-trace` | combined GIPA trace/equation evidence |
-| `tipp-mipp.final-bridge` | Bellperson v2 final-randomness link | `penumbra-byte` | trace parity over exact Penumbra bridge bytes and final-bridge mutant |
-| `tipp-mipp.kzg-challenge` | Penumbra challenge helper and Filecoin v2 transcript-input discipline | `penumbra-byte` | trace parity over exact Penumbra combined KZG challenge bytes |
+| `tipp-mipp.final-bridge` | Bellperson v2 final-randomness link | `shieldd-byte` | trace parity over exact Shieldd bridge bytes and final-bridge mutant |
+| `tipp-mipp.kzg-challenge` | Shieldd challenge helper and Filecoin v2 transcript-input discipline | `shieldd-byte` | trace parity over exact Shieldd combined KZG challenge bytes |
 | `tipp-mipp.kzg-equations` | paper algebra and local implementation | `abstract-trace` | shared-key KZG equation review and mutation tests |
 | `tipp-mipp.power-sequence` | paper algebra and local implementation | `abstract-trace` | structured-power tests and equation review |
 | `tipp-mipp.base-equations` | paper algebra and local implementation | `abstract-trace` | combined base-equation review and mutation tests |
-| `groth16.randomizer` | Penumbra challenge helper and Filecoin v2 final-randomness bug class | `penumbra-byte` | randomizer trace parity and Filecoin bug-class review |
-| `groth16.folded-inputs` | Penumbra public-input adaptation and paper algebra; byte binding is covered by `curve.field.public-input` and `serialization.public-input-fields` adaptation rows | `abstract-trace` | public-input mutation tests and equation review |
+| `groth16.randomizer` | Shieldd challenge helper and Filecoin v2 final-randomness bug class | `shieldd-byte` | randomizer trace parity and Filecoin bug-class review |
+| `groth16.folded-inputs` | Shieldd public-input adaptation and paper algebra; byte binding is covered by `curve.field.public-input` and `serialization.public-input-fields` adaptation rows | `abstract-trace` | public-input mutation tests and equation review |
 | `groth16.ppe` | paper algebra and local implementation | `abstract-trace` | PPE mutation tests and equation review |
 
 ## Minimum Evidence Per Refinement Row

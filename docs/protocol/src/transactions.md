@@ -1,6 +1,6 @@
 # Transaction Model
 
-A Penumbra transaction is a bundle of _actions_ that effect changes to the chain
+A Shieldd transaction is a bundle of _actions_ that effect changes to the chain
 state, together with additional data controlling how those actions are executed
 or providing additional metadata. All actions in the transaction are executed together, and the transaction succeeds or fails atomically. A transaction body has four parts:
 

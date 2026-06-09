@@ -1,6 +1,6 @@
 module PreflightProofs
 
-module P = Penumbra_sdk_proof_aggregation.Preflight
+module P = Shieldd_sdk_proof_aggregation.Preflight
 
 (*
   Proof target, extracted from Rust with hax:

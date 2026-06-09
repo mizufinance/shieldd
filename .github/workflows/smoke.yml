@@ -42,10 +42,10 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || needs.paths.outputs.smoke == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
     env:
-      PENUMBRA_PD_GRPC_PORT: "18080"
-      PENUMBRA_COMETBFT_RPC_PORT: "17657"
-      PENUMBRA_COMETBFT_P2P_PORT: "17656"
-      PENUMBRA_POSTGRES_PORT: "15432"
+      SHIELDD_PD_GRPC_PORT: "18080"
+      SHIELDD_COMETBFT_RPC_PORT: "17657"
+      SHIELDD_COMETBFT_P2P_PORT: "17656"
+      SHIELDD_POSTGRES_PORT: "15432"
     steps:
       - uses: actions/checkout@v4
         with:

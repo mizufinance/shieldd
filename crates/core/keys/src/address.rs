@@ -10,7 +10,7 @@ use anyhow::Context;
 use ark_serialize::CanonicalDeserialize;
 use decaf377::Fq;
 use f4jumble::{f4jumble, f4jumble_inv};
-use penumbra_sdk_proto::{penumbra::core::keys::v1 as pb, serializers::bech32str, DomainType};
+use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, serializers::bech32str, DomainType};
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -23,7 +23,7 @@ pub use view::AddressView;
 
 use crate::{fmd, ka, keys::Diversifier};
 
-pub const TRANSPARENT_ADDRESS_BECH32_PREFIX: &str = "tpenumbra";
+pub const TRANSPARENT_ADDRESS_BECH32_PREFIX: &str = "tshieldd";
 
 /// The length of an [`Address`] in bytes.
 pub const ADDRESS_LEN_BYTES: usize = 80;
@@ -202,7 +202,7 @@ impl Address {
     /// Short form suitable for displaying in a UI.
     pub fn display_short_form(&self) -> String {
         let full_address = format!("{self}");
-        // Fixed prefix is `penumbrav2t` plus the Bech32m separator `1`.
+        // Fixed prefix is `shielddv2t` plus the Bech32m separator `1`.
         let fixed_prefix = format!("{}{}", bech32str::address::BECH32_PREFIX, '1');
         let num_chars_to_display = fixed_prefix.len() + ADDRESS_NUM_CHARS_SHORT_FORM;
 
@@ -471,7 +471,7 @@ mod tests {
 
         let addr = Address::from_str(&bech32m_addr).expect("can decode valid address");
 
-        use penumbra_sdk_proto::Message;
+        use shieldd_sdk_proto::Message;
 
         let proto_addr = dest.encode_to_vec();
         let proto_addr_bech32m = pb::Address {

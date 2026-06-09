@@ -2,7 +2,7 @@
 //!
 //! These tests are marked with `#[ignore]` and run as part of `just integration-pcli`
 //! (invoked by `just smoke`). They require:
-//! - A running devnet (PENUMBRA_NODE_PD_URL env var)
+//! - A running devnet (SHIELDD_NODE_PD_URL env var)
 //! - Compliance env vars set by smoke-test.sh (COMPLIANCE_DK_HEX, etc.)
 //!
 //! Run manually:
@@ -11,12 +11,12 @@
 //! ```
 
 use assert_cmd::Command;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_keys::{
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::{
     test_keys::{ADDRESS_1_STR, SEED_PHRASE},
     Address,
 };
-use penumbra_sdk_proto::core::component::compliance::v1::{
+use shieldd_sdk_proto::core::component::compliance::v1::{
     query_service_client::QueryServiceClient, ComplianceAssetStatusRequest,
     ComplianceUserLeafRequest,
 };
@@ -39,7 +39,7 @@ const TEST_SLOT_DERIVATION_HEX: &str =
 fn load_wallet_into_tmpdir() -> TempDir {
     let tmpdir = tempdir().unwrap();
 
-    let grpc_url = std::env::var("PENUMBRA_NODE_PD_URL")
+    let grpc_url = std::env::var("SHIELDD_NODE_PD_URL")
         .unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned());
 
     let mut setup_cmd = Command::cargo_bin("pcli").unwrap();
@@ -72,7 +72,7 @@ fn sync(tmpdir: &TempDir) {
 }
 
 fn grpc_url() -> String {
-    std::env::var("PENUMBRA_NODE_PD_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned())
+    std::env::var("SHIELDD_NODE_PD_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned())
 }
 
 fn wallet_address(tmpdir: &TempDir, index: u32) -> Address {
@@ -182,7 +182,7 @@ fn sign_user_grant(tmpdir: &TempDir, asset_denom: &str, address: Address) -> Str
 
 fn query_asset_status(
     asset_denom: &str,
-) -> penumbra_sdk_proto::core::component::compliance::v1::ComplianceAssetStatusResponse {
+) -> shieldd_sdk_proto::core::component::compliance::v1::ComplianceAssetStatusResponse {
     let asset_id = asset::REGISTRY.parse_unit(asset_denom).id();
     let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
     rt.block_on(async {

@@ -6,10 +6,10 @@ CREATE TABLE IF NOT EXISTS ibc_transfer (
   asset BYTEA NOT NULL,
   -- The amount being transf
   amount NUMERIC(39, 0) NOT NULL,
-  -- The address on the penumbra side.
+  -- The address on the shieldd side.
   --
   -- This may be the sender or the receiver, depending on if this inflow or outflow.
-  penumbra_addr BYTEA NOT NULL,
+  shieldd_addr BYTEA NOT NULL,
   -- The address on the other side.
   foreign_addr TEXT NOT NULL,
   -- What kind of transfer this is.

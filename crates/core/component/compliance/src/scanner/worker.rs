@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_proto::core::{
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_proto::core::{
     app::v1::{
         query_service_client::QueryServiceClient as AppQueryServiceClient,
         TransactionsByHeightRequest,
@@ -11,7 +11,7 @@ use penumbra_sdk_proto::core::{
         CompactBlockRangeRequest,
     },
 };
-use penumbra_sdk_proto::util::tendermint_proxy::v1::{
+use shieldd_sdk_proto::util::tendermint_proxy::v1::{
     tendermint_proxy_service_client::TendermintProxyServiceClient, GetBlockByHeightRequest,
 };
 use std::sync::{Arc, Mutex};
@@ -481,7 +481,7 @@ impl IssuerComplianceWorker {
     async fn fetch_transactions(
         &self,
         height: u64,
-    ) -> Result<Vec<penumbra_sdk_proto::core::transaction::v1::Transaction>> {
+    ) -> Result<Vec<shieldd_sdk_proto::core::transaction::v1::Transaction>> {
         let mut client = AppQueryServiceClient::new(self.channel.clone());
 
         let response = client
@@ -510,7 +510,7 @@ struct PendingEvidenceWork {
 
 fn parse_block_ref(
     requested_height: u64,
-    response: penumbra_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse,
+    response: shieldd_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse,
 ) -> Result<BlockRef> {
     let block_id = response
         .block_id
@@ -562,7 +562,7 @@ fn parse_hash(bytes: &[u8], label: &str) -> Result<[u8; 32]> {
 mod tests {
     use super::*;
     use anyhow::bail;
-    use penumbra_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse;
+    use shieldd_sdk_proto::util::tendermint_proxy::v1::GetBlockByHeightResponse;
     use std::collections::HashMap;
 
     use crate::scanner::{NoopAuditAdviceProvider, SqliteScannerStore};
@@ -770,14 +770,14 @@ mod tests {
     #[test]
     fn parse_block_ref_rejects_malformed_hash() {
         let response = GetBlockByHeightResponse {
-            block_id: Some(penumbra_sdk_proto::tendermint::types::BlockId {
+            block_id: Some(shieldd_sdk_proto::tendermint::types::BlockId {
                 hash: vec![1, 2, 3],
                 part_set_header: None,
             }),
-            block: Some(penumbra_sdk_proto::tendermint::types::Block {
-                header: Some(penumbra_sdk_proto::tendermint::types::Header {
+            block: Some(shieldd_sdk_proto::tendermint::types::Block {
+                header: Some(shieldd_sdk_proto::tendermint::types::Header {
                     height: 2,
-                    last_block_id: Some(penumbra_sdk_proto::tendermint::types::BlockId {
+                    last_block_id: Some(shieldd_sdk_proto::tendermint::types::BlockId {
                         hash: vec![0u8; 32],
                         part_set_header: None,
                     }),

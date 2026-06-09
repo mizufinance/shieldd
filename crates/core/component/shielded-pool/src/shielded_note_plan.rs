@@ -1,16 +1,16 @@
 use decaf377::{Fq, Fr};
 use decaf377_ka as ka;
 use decaf377_rdsa::{SpendAuth, VerificationKey};
-use penumbra_sdk_asset::{Balance, Value};
-use penumbra_sdk_compliance::{AssetPolicy, MerklePath};
-use penumbra_sdk_keys::{
+use shieldd_sdk_asset::{Balance, Value};
+use shieldd_sdk_compliance::{AssetPolicy, MerklePath};
+use shieldd_sdk_keys::{
     keys::{IncomingViewingKey, OutgoingViewingKey},
     symmetric::{OvkWrappedKey, WrappedMemoKey},
     Address, FullViewingKey, PayloadKey,
 };
-use penumbra_sdk_proto::core::component::shielded_pool::v1 as pb;
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_tct as tct;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
@@ -36,7 +36,7 @@ pub struct ShieldedInputPlan {
     #[serde(skip)]
     pub compliance_ciphertext: Vec<u8>,
     #[serde(skip)]
-    pub compliance_leaf: Option<penumbra_sdk_compliance::ComplianceLeaf>,
+    pub compliance_leaf: Option<shieldd_sdk_compliance::ComplianceLeaf>,
     #[serde(skip)]
     pub compliance_ephemeral_secret: Option<Fr>,
     #[serde(skip)]
@@ -52,7 +52,7 @@ pub struct ShieldedInputPlan {
     #[serde(skip)]
     pub asset_position: u64,
     #[serde(skip)]
-    pub asset_indexed_leaf: penumbra_sdk_compliance::IndexedLeaf,
+    pub asset_indexed_leaf: shieldd_sdk_compliance::IndexedLeaf,
     #[serde(skip)]
     pub compliance_position: u64,
     #[serde(skip)]
@@ -92,8 +92,8 @@ impl ShieldedInputPlan {
             )
         } else {
             (
-                *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK,
-                *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
             )
         };
         let threshold = self.asset_indexed_leaf.params.threshold;
@@ -105,7 +105,7 @@ impl ShieldedInputPlan {
                 anyhow::anyhow!("regulated shielded input missing registered compliance leaf")
             })?
         } else {
-            penumbra_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+            shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
                 self.note.address().clone(),
                 self.note.asset_id(),
             )
@@ -125,18 +125,18 @@ impl ShieldedInputPlan {
         note: Note,
         position: tct::Position,
     ) -> ShieldedInputPlan {
-        let ring_pk = *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK;
-        let dk_pub = *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB;
+        let ring_pk = *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK;
+        let dk_pub = *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB;
 
-        let compliance_leaf = penumbra_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+        let compliance_leaf = shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
             note.address().clone(),
             note.asset_id(),
         );
 
         let (compliance_anchor, compliance_path, compliance_position) =
-            penumbra_sdk_compliance::default_user_proof(&compliance_leaf);
+            shieldd_sdk_compliance::default_user_proof(&compliance_leaf);
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            penumbra_sdk_compliance::create_default_imt_proof(note.asset_id().0);
+            shieldd_sdk_compliance::create_default_imt_proof(note.asset_id().0);
 
         ShieldedInputPlan {
             note,
@@ -213,7 +213,7 @@ pub struct ShieldedOutputPlan {
     #[serde(skip)]
     pub compliance_ciphertext: Vec<u8>,
     #[serde(skip)]
-    pub compliance_leaf: Option<penumbra_sdk_compliance::ComplianceLeaf>,
+    pub compliance_leaf: Option<shieldd_sdk_compliance::ComplianceLeaf>,
     #[serde(skip)]
     pub compliance_ephemeral_secret: Option<Fr>,
     #[serde(skip)]
@@ -225,7 +225,7 @@ pub struct ShieldedOutputPlan {
     #[serde(skip)]
     pub counterparty_address: Option<Address>,
     #[serde(skip)]
-    pub counterparty_leaf: Option<penumbra_sdk_compliance::ComplianceLeaf>,
+    pub counterparty_leaf: Option<shieldd_sdk_compliance::ComplianceLeaf>,
     #[serde(skip)]
     pub tx_blinding_nonce: Fr,
     #[serde(skip)]
@@ -237,7 +237,7 @@ pub struct ShieldedOutputPlan {
     #[serde(skip)]
     pub asset_position: u64,
     #[serde(skip)]
-    pub asset_indexed_leaf: penumbra_sdk_compliance::IndexedLeaf,
+    pub asset_indexed_leaf: shieldd_sdk_compliance::IndexedLeaf,
     #[serde(skip)]
     pub compliance_position: u64,
     #[serde(skip)]
@@ -281,8 +281,8 @@ impl ShieldedOutputPlan {
     pub fn set_compliance_details(
         &mut self,
         _rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
-        recipient_leaf: &penumbra_sdk_compliance::ComplianceLeaf,
-        sender_leaf: penumbra_sdk_compliance::ComplianceLeaf,
+        recipient_leaf: &shieldd_sdk_compliance::ComplianceLeaf,
+        sender_leaf: shieldd_sdk_compliance::ComplianceLeaf,
         tx_blinding_nonce: Fr,
     ) -> anyhow::Result<()> {
         let (ring_pk, dk_pub) = if self.is_regulated {
@@ -292,8 +292,8 @@ impl ShieldedOutputPlan {
             )
         } else {
             (
-                *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK,
-                *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
             )
         };
         let threshold = self.asset_indexed_leaf.params.threshold;
@@ -304,7 +304,7 @@ impl ShieldedOutputPlan {
         let compliance_leaf = if self.is_regulated {
             recipient_leaf.clone()
         } else {
-            penumbra_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+            shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
                 self.dest_address.clone(),
                 note.asset_id(),
             )
@@ -329,18 +329,18 @@ impl ShieldedOutputPlan {
     ) -> ShieldedOutputPlan {
         let rseed = Rseed::generate(rng);
         let value_blinding = Fr::rand(rng);
-        let ring_pk = *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK;
-        let dk_pub = *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB;
+        let ring_pk = *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK;
+        let dk_pub = *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB;
 
-        let compliance_leaf = penumbra_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+        let compliance_leaf = shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
             dest_address.clone(),
             value.asset_id,
         );
 
         let (compliance_anchor, compliance_path, compliance_position) =
-            penumbra_sdk_compliance::default_user_proof(&compliance_leaf);
+            shieldd_sdk_compliance::default_user_proof(&compliance_leaf);
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            penumbra_sdk_compliance::create_default_imt_proof(value.asset_id.0);
+            shieldd_sdk_compliance::create_default_imt_proof(value.asset_id.0);
         let tx_blinding_nonce = Fr::rand(rng);
 
         ShieldedOutputPlan {
@@ -513,16 +513,16 @@ impl TryFrom<pb::ShieldedInputPlan> for ShieldedInputPlan {
             ring_pk: if msg.ring_pk.len() == 32 {
                 decaf377::Encoding(msg.ring_pk.as_slice().try_into()?)
                     .vartime_decompress()
-                    .unwrap_or(*penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK)
+                    .unwrap_or(*shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK)
             } else {
-                *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK
+                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK
             },
             dk_pub: if msg.dk_pub.len() == 32 {
                 decaf377::Encoding(msg.dk_pub.as_slice().try_into()?)
                     .vartime_decompress()
-                    .unwrap_or(*penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB)
+                    .unwrap_or(*shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB)
             } else {
-                *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB
+                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB
             },
             threshold: parse_threshold(&msg.threshold)?,
             is_flagged: msg.is_flagged,
@@ -670,16 +670,16 @@ impl TryFrom<pb::ShieldedOutputPlan> for ShieldedOutputPlan {
             ring_pk: if msg.ring_pk.len() == 32 {
                 decaf377::Encoding(msg.ring_pk.as_slice().try_into()?)
                     .vartime_decompress()
-                    .unwrap_or(*penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK)
+                    .unwrap_or(*shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK)
             } else {
-                *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK
+                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK
             },
             dk_pub: if msg.dk_pub.len() == 32 {
                 decaf377::Encoding(msg.dk_pub.as_slice().try_into()?)
                     .vartime_decompress()
-                    .unwrap_or(*penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB)
+                    .unwrap_or(*shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB)
             } else {
-                *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB
+                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB
             },
             threshold: parse_threshold(&msg.threshold_bytes)?,
             is_flagged: msg.is_flagged,

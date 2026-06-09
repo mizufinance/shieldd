@@ -1,5 +1,5 @@
 use anyhow::Context;
-use penumbra_sdk_proto::{penumbra::core::component::ibc::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::core::component::ibc::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 
 use crate::params::IBCParameters;

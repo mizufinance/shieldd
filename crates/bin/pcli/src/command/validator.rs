@@ -9,22 +9,22 @@ use decaf377_rdsa::{Signature, SpendAuth};
 use rand_core::OsRng;
 use serde_json::Value;
 
-use penumbra_sdk_governance::{
+use shieldd_sdk_governance::{
     ValidatorVote, ValidatorVoteBody, ValidatorVoteReason, Vote, MAX_VALIDATOR_VOTE_REASON_LENGTH,
 };
-use penumbra_sdk_keys::keys::AddressIndex;
-use penumbra_sdk_proto::{view::v1::GasPricesRequest, DomainType};
-use penumbra_sdk_transaction::plan::ActionPlan;
-use penumbra_sdk_validator::{
+use shieldd_sdk_keys::keys::AddressIndex;
+use shieldd_sdk_proto::{view::v1::GasPricesRequest, DomainType};
+use shieldd_sdk_transaction::plan::ActionPlan;
+use shieldd_sdk_validator::{
     validator,
     validator::{Validator, ValidatorToml},
     IdentityKey,
 };
-use penumbra_sdk_view::{NoteManager, TransferPlanningResult};
+use shieldd_sdk_view::{NoteManager, TransferPlanningResult};
 
 use crate::App;
 
-use penumbra_sdk_fee::FeeTier;
+use shieldd_sdk_fee::FeeTier;
 
 #[derive(Debug, clap::Subcommand)]
 pub enum ValidatorCmd {
@@ -264,7 +264,7 @@ impl ValidatorCmd {
                         std::io::stdin().read_to_string(&mut buf)?;
                         signature = buf;
                     }
-                    <Signature<SpendAuth> as penumbra_sdk_proto::DomainType>::decode(
+                    <Signature<SpendAuth> as shieldd_sdk_proto::DomainType>::decode(
                         &URL_SAFE
                             .decode(signature)
                             .context("unable to decode signature as base64")?[..],
@@ -413,7 +413,7 @@ impl ValidatorCmd {
                         std::io::stdin().read_to_string(&mut buf)?;
                         signature = buf;
                     }
-                    <Signature<SpendAuth> as penumbra_sdk_proto::DomainType>::decode(
+                    <Signature<SpendAuth> as shieldd_sdk_proto::DomainType>::decode(
                         &URL_SAFE
                             .decode(signature)
                             .context("unable to decode signature as base64")?[..],

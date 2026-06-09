@@ -195,7 +195,7 @@ mod tests {
     #[test]
     fn tampered_tx_hash_is_invalid_evidence() {
         let mut input = valid_input();
-        input.evidence.output_ref.action.tx.tx_hash = penumbra_sdk_txhash::TransactionId([9u8; 32]);
+        input.evidence.output_ref.action.tx.tx_hash = shieldd_sdk_txhash::TransactionId([9u8; 32]);
         assert!(matches!(
             validate_audit_evidence(input),
             AuditValidationStatus::InvalidEvidence(_)

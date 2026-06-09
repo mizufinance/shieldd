@@ -2,23 +2,23 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result};
 use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_compliance::structs::{
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_compliance::structs::{
     AssetRegistrationGrant, AssetRegistrationGrantBody, IbcAssetOrigin, IbcRoute, MsgRegisterAsset,
     MsgRegisterUser, UserRegistrationGrant, UserRegistrationGrantBody,
     DEFAULT_COMPLIANCE_SLOT_COUNT,
 };
-use penumbra_sdk_compliance::{
+use shieldd_sdk_compliance::{
     issuer_keys::DetectionKey, ComplianceLeaf, IssuerComplianceWorker, RpcAuditAdviceProvider,
     SqliteScannerStore, TendermintProxyBlockIdentityProvider,
 };
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_proto::util::tendermint_proxy::v1::{
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_proto::util::tendermint_proxy::v1::{
     tendermint_proxy_service_client::TendermintProxyServiceClient, GetStatusRequest,
 };
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_transaction::{ActionPlan, TransactionPlan};
-use penumbra_sdk_view::{NoteManager, TransferPlanningResult};
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_transaction::{ActionPlan, TransactionPlan};
+use shieldd_sdk_view::{NoteManager, TransferPlanningResult};
 use tonic::transport::Channel;
 use url::Url;
 
@@ -85,7 +85,7 @@ pub enum ComplianceCmd {
     RegisterUser {
         /// The asset ID to register for (e.g., "uusdc").
         asset_id: String,
-        /// Penumbra address to register. If omitted, derives the address from
+        /// Shieldd address to register. If omitted, derives the address from
         /// this wallet using --address-index.
         #[clap(long)]
         address: Option<String>,
@@ -171,7 +171,7 @@ pub enum ComplianceCmd {
     SignUserGrant {
         /// The asset ID authorized by this grant.
         asset_id: String,
-        /// Penumbra address authorized by this grant.
+        /// Shieldd address authorized by this grant.
         #[clap(long)]
         address: Address,
         /// ACP-authorized compliance slot id for this address.
@@ -439,7 +439,7 @@ impl ComplianceCmd {
     pub async fn plan(
         &self,
         app: &mut crate::App,
-        gas_prices: penumbra_sdk_fee::GasPrices,
+        gas_prices: shieldd_sdk_fee::GasPrices,
     ) -> Result<TransactionPlan> {
         match self {
             ComplianceCmd::RegisterAsset {
@@ -532,7 +532,7 @@ impl ComplianceCmd {
                 plan_with_single_action(
                     &mut note_manager,
                     app,
-                    penumbra_sdk_keys::keys::AddressIndex::new(0),
+                    shieldd_sdk_keys::keys::AddressIndex::new(0),
                     ActionPlan::from(msg),
                 )
                 .await
@@ -549,9 +549,9 @@ impl ComplianceCmd {
             } => {
                 let asset_id = Self::parse_asset_id(asset_id)?;
                 let fvk = app.config.full_viewing_key.clone();
-                let address_index = penumbra_sdk_keys::keys::AddressIndex::new(*address_index);
+                let address_index = shieldd_sdk_keys::keys::AddressIndex::new(*address_index);
                 let address = match address {
-                    Some(address) => address.parse().context("invalid Penumbra address")?,
+                    Some(address) => address.parse().context("invalid Shieldd address")?,
                     None => {
                         let (address, _detection_key) = fvk.payment_address(address_index);
                         address
@@ -600,7 +600,7 @@ impl ComplianceCmd {
     }
 
     /// Helper to parse asset ID from string.
-    /// Accepts either a full asset ID or a unit name like "penumbra" or "upenumbra".
+    /// Accepts either a full asset ID or a unit name like "shieldd" or "ushieldd".
     fn parse_asset_id(asset_str: &str) -> Result<asset::Id> {
         if let Ok(asset_id) = asset_str.parse() {
             return Ok(asset_id);
@@ -738,7 +738,7 @@ pub enum ScanCmd {
     /// Follow the chain continuously, persisting scanner/audit state in SQLite.
     Run {
         /// The URL of the pd gRPC endpoint (e.g., http://localhost:8080).
-        #[clap(long, env = "PENUMBRA_NODE_PD_URL")]
+        #[clap(long, env = "SHIELDD_NODE_PD_URL")]
         node: Url,
 
         /// Path to the scanner SQLite database.
@@ -757,7 +757,7 @@ pub enum ScanCmd {
     /// Scan from stored progress to the node's current latest height, then exit.
     CatchUp {
         /// The URL of the pd gRPC endpoint (e.g., http://localhost:8080).
-        #[clap(long, env = "PENUMBRA_NODE_PD_URL")]
+        #[clap(long, env = "SHIELDD_NODE_PD_URL")]
         node: Url,
 
         /// Path to the scanner SQLite database.
@@ -777,7 +777,7 @@ pub enum ScanCmd {
 async fn plan_with_single_action<R>(
     note_manager: &mut NoteManager<R>,
     app: &mut crate::App,
-    address_index: penumbra_sdk_keys::keys::AddressIndex,
+    address_index: shieldd_sdk_keys::keys::AddressIndex,
     action: ActionPlan,
 ) -> Result<TransactionPlan>
 where
@@ -869,7 +869,7 @@ fn parse_dk_from_hex(hex: &str) -> Result<decaf377::Fr> {
     Ok(decaf377::Fr::from_le_bytes_mod_order(&arr))
 }
 
-/// Connect to a Penumbra node directly.
+/// Connect to a Shieldd node directly.
 async fn connect_to_node(node_url: &Url) -> Result<Channel> {
     let endpoint = tonic::transport::Endpoint::from_shared(node_url.to_string())
         .context("invalid node URL")?

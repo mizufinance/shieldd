@@ -1,6 +1,6 @@
 use anyhow::Context;
-use penumbra_sdk_keys::{symmetric::PayloadKey, Address};
-use penumbra_sdk_proto::{core::transaction::v1 as pb, DomainType};
+use shieldd_sdk_keys::{symmetric::PayloadKey, Address};
+use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 
 use rand::{CryptoRng, RngCore};
 

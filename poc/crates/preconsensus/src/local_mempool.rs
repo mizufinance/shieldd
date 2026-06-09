@@ -4,13 +4,13 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::{anyhow, Context, Result};
-use penumbra_sdk_asset::{asset, BASE_ASSET_ID};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_sct::Nullifier;
+use shieldd_sdk_asset::{asset, BASE_ASSET_ID};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_sct::Nullifier;
 use sha2::Digest as _;
 
-use penumbra_sdk_app::stateless_cache::TxArtifact;
+use shieldd_sdk_app::stateless_cache::TxArtifact;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FeeSource {
@@ -992,7 +992,7 @@ async fn run_mempool_task(
 mod tests {
     use super::*;
     use decaf377::Fq;
-    use penumbra_sdk_fee::Fee;
+    use shieldd_sdk_fee::Fee;
 
     fn dummy_nonstaking_asset(seed: u64) -> asset::Id {
         asset::Id(Fq::from(seed))
@@ -1011,10 +1011,10 @@ mod tests {
             tx_bytes: Arc::new(vec![0u8; tx_len]),
             tx_len,
             artifact: Arc::new(TxArtifact {
-                tx: Arc::new(penumbra_sdk_transaction::Transaction {
-                    transaction_body: penumbra_sdk_transaction::TransactionBody {
-                        transaction_parameters: penumbra_sdk_transaction::TransactionParameters {
-                            fee: Fee(penumbra_sdk_asset::Value {
+                tx: Arc::new(shieldd_sdk_transaction::Transaction {
+                    transaction_body: shieldd_sdk_transaction::TransactionBody {
+                        transaction_parameters: shieldd_sdk_transaction::TransactionParameters {
+                            fee: Fee(shieldd_sdk_asset::Value {
                                 amount: fee_amount,
                                 asset_id: fee_asset_id,
                             }),

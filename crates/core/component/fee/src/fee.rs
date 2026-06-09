@@ -1,11 +1,11 @@
 use anyhow::Context;
-use penumbra_sdk_proto::{penumbra::core::component::fee::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::core::component::fee::v1 as pb, DomainType};
 use std::fmt;
 use std::str::FromStr;
 
 use decaf377::Fr;
-use penumbra_sdk_asset::{asset, balance, Balance, Value, BASE_ASSET_ID};
-use penumbra_sdk_num::Amount;
+use shieldd_sdk_asset::{asset, balance, Balance, Value, BASE_ASSET_ID};
+use shieldd_sdk_num::Amount;
 
 // Each fee tier multiplier has an implicit 100 denominator.
 pub static FEE_TIER_LOW_MULTIPLIER: u32 = 105;
@@ -55,7 +55,7 @@ impl Fee {
 
     pub fn apply_tier(self, fee_tier: FeeTier) -> Self {
         // TODO: this could be fingerprinted since fees are public; it would be ideal to apply
-        // some sampling distribution, see https://github.com/mizufinance/penumbra/issues/3153
+        // some sampling distribution, see https://github.com/mizufinance/shieldd/issues/3153
         match fee_tier {
             FeeTier::Low => {
                 let amount = (self.amount() * FEE_TIER_LOW_MULTIPLIER.into()) / 100u32.into();

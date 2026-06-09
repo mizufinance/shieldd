@@ -6,14 +6,14 @@ use ledger_lib::{
     DEFAULT_TIMEOUT,
 };
 use ledger_proto::ApduHeader;
-use penumbra_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
-use penumbra_sdk_proto::DomainType as _;
-use penumbra_sdk_transaction::{txhash::EffectHash, AuthorizationData, TransactionPlan};
+use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
+use shieldd_sdk_proto::DomainType as _;
+use shieldd_sdk_transaction::{txhash::EffectHash, AuthorizationData, TransactionPlan};
 
-fn is_penumbra_app(info: &AppInfo) -> anyhow::Result<()> {
-    if info.name != "Penumbra" {
+fn is_shieldd_app(info: &AppInfo) -> anyhow::Result<()> {
+    if info.name != "Shieldd" {
         anyhow::bail!(
-            "unknown app: {}. Make sure to open the Penumbra app on your device.",
+            "unknown app: {}. Make sure to open the Shieldd app on your device.",
             &info.name
         );
     }
@@ -22,7 +22,7 @@ fn is_penumbra_app(info: &AppInfo) -> anyhow::Result<()> {
 
 /// Necessary because an extra byte is needed to optimize the case where there's no randomizer.
 ///
-/// c.f. https://github.com/Zondax/ledger-penumbra-js/blob/d0af0e447d73de9050a258d80db8082e32734046/src/app.ts#L272
+/// c.f. https://github.com/Zondax/ledger-shieldd-js/blob/d0af0e447d73de9050a258d80db8082e32734046/src/app.ts#L272
 fn address_index_to_weird_bytes(index: AddressIndex) -> [u8; 17] {
     let mut out = [0u8; 17];
     out[..4].copy_from_slice(&index.account.to_le_bytes());
@@ -151,7 +151,7 @@ impl Device {
         let mut handle = provider.connect(device_info).await?;
 
         let info = handle.app_info(DEFAULT_TIMEOUT).await?;
-        is_penumbra_app(&info)?;
+        is_shieldd_app(&info)?;
 
         tracing::debug!(?info, "connected to ledger device");
 
@@ -187,7 +187,7 @@ impl Device {
     }
 
     pub async fn get_fvk(&mut self) -> anyhow::Result<FullViewingKey> {
-        // https://github.com/Zondax/ledger-penumbra/blob/9f57b82ad3b843bc18e22ba841f971659bcd0fe8/docs/APDUSPEC.md#ins_get_fvk
+        // https://github.com/Zondax/ledger-shieldd/blob/9f57b82ad3b843bc18e22ba841f971659bcd0fe8/docs/APDUSPEC.md#ins_get_fvk
         let header = ApduHeader {
             cla: 0x80,
             ins: 0x03,
@@ -204,7 +204,7 @@ impl Device {
     }
 
     pub async fn confirm_addr(&mut self, index: AddressIndex) -> anyhow::Result<Address> {
-        // https://github.com/Zondax/ledger-penumbra/blob/9f57b82ad3b843bc18e22ba841f971659bcd0fe8/docs/APDUSPEC.md#ins_get_addr        todo!()
+        // https://github.com/Zondax/ledger-shieldd/blob/9f57b82ad3b843bc18e22ba841f971659bcd0fe8/docs/APDUSPEC.md#ins_get_addr        todo!()
         let header = ApduHeader {
             cla: 0x80,
             ins: 0x01,
@@ -222,7 +222,7 @@ impl Device {
     }
 
     pub async fn authorize(&mut self, plan: TransactionPlan) -> anyhow::Result<AuthorizationData> {
-        // c.f. https://github.com/Zondax/ledger-penumbra-js/blob/d0af0e447d73de9050a258d80db8082e32734046/src/app.ts#L116
+        // c.f. https://github.com/Zondax/ledger-shieldd-js/blob/d0af0e447d73de9050a258d80db8082e32734046/src/app.ts#L116
         let plan_bytes = plan.encode_to_vec();
 
         let start = vec_with_fixed_derivation_path(0);

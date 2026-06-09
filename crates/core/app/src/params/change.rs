@@ -2,15 +2,15 @@ use std::fmt::Display;
 
 use anyhow::Context;
 use anyhow::Result;
-use penumbra_sdk_asset::BASE_ASSET_ID;
-use penumbra_sdk_compliance::params::ComplianceParameters;
-use penumbra_sdk_fee::FeeParameters;
-use penumbra_sdk_governance::change::ParameterChange;
-use penumbra_sdk_governance::{params::GovernanceParameters, tally::Ratio};
-use penumbra_sdk_ibc::params::IBCParameters;
-use penumbra_sdk_sct::params::SctParameters;
-use penumbra_sdk_shielded_pool::params::ShieldedPoolParameters;
-use penumbra_sdk_validator::params::ValidatorParameters;
+use shieldd_sdk_asset::BASE_ASSET_ID;
+use shieldd_sdk_compliance::params::ComplianceParameters;
+use shieldd_sdk_fee::FeeParameters;
+use shieldd_sdk_governance::change::ParameterChange;
+use shieldd_sdk_governance::{params::GovernanceParameters, tally::Ratio};
+use shieldd_sdk_ibc::params::IBCParameters;
+use shieldd_sdk_sct::params::SctParameters;
+use shieldd_sdk_shielded_pool::params::ShieldedPoolParameters;
+use shieldd_sdk_validator::params::ValidatorParameters;
 
 use super::AppParameters;
 

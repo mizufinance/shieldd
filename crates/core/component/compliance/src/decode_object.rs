@@ -8,7 +8,7 @@ use crate::{
     structs::DleqProof,
 };
 
-/// Canonical Penumbra transfer-tier labels for DLEQ metadata binding.
+/// Canonical Shieldd transfer-tier labels for DLEQ metadata binding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u64)]
 #[serde(rename_all = "snake_case")]
@@ -34,7 +34,7 @@ impl TransferTierKind {
     }
 }
 
-/// Penumbra-owned canonical transfer metadata statement.
+/// Shieldd-owned canonical transfer metadata statement.
 ///
 /// This is the metadata that the transfer DLEQ binds to the ACK/EPK relation.
 /// It is distinct from the current Orbis anchor-object metadata used by
@@ -156,10 +156,10 @@ impl TransferTierMetadataStatement {
     }
 }
 
-/// Penumbra-owned public decode contract for one logical transfer tier.
+/// Shieldd-owned public decode contract for one logical transfer tier.
 ///
 /// This object is public-data-only and contains no seed material. It models the
-/// long-term object Penumbra wants Orbis to authorize over, while remaining
+/// long-term object Shieldd wants Orbis to authorize over, while remaining
 /// explicit that current live PRE operates on a separate Orbis-compatible
 /// encrypted-seed object.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -202,10 +202,10 @@ impl PublicTransferTierDecodeObject {
         Ok(())
     }
 
-    /// Validate the canonical Penumbra metadata binding for this tier object.
+    /// Validate the canonical Shieldd metadata binding for this tier object.
     ///
     /// This checks the transfer DLEQ only. It does not prove that `c2` encrypts
-    /// a valid seed; that remains a Penumbra zk-circuit responsibility.
+    /// a valid seed; that remains a Shieldd zk-circuit responsibility.
     pub fn validate(&self, ring_pk: &Element) -> Result<()> {
         self.validate_shape()?;
         let metadata_hash = self.statement.metadata_hash()?;

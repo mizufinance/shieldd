@@ -1,9 +1,9 @@
 use comfy_table::presets;
 use comfy_table::Table;
-use penumbra_sdk_asset::ValueView;
-use penumbra_sdk_fee::Fee;
-use penumbra_sdk_keys::AddressView;
-use penumbra_sdk_transaction::TransactionView;
+use shieldd_sdk_asset::ValueView;
+use shieldd_sdk_fee::Fee;
+use shieldd_sdk_keys::AddressView;
+use shieldd_sdk_transaction::TransactionView;
 
 // Issues identified:
 // TODO: FeeView
@@ -132,14 +132,14 @@ impl TransactionViewExt for TransactionView {
 
         if let Some(memo_view) = &self.body_view.memo_view {
             match memo_view {
-                penumbra_sdk_transaction::MemoView::Visible {
+                shieldd_sdk_transaction::MemoView::Visible {
                     plaintext,
                     ciphertext: _,
                 } => {
                     println!("Memo Sender: {}", &plaintext.return_address.address());
                     println!("Memo Text: \n{}\n", &plaintext.text);
                 }
-                penumbra_sdk_transaction::MemoView::Opaque { ciphertext } => {
+                shieldd_sdk_transaction::MemoView::Opaque { ciphertext } => {
                     println!("Encrypted Memo: \n{}\n", format_opaque_bytes(&ciphertext.0));
                 }
             }
@@ -154,8 +154,8 @@ impl TransactionViewExt for TransactionView {
             let action: String;
 
             let row = match action_view {
-                penumbra_sdk_transaction::ActionView::Transfer(transfer) => match transfer {
-                    penumbra_sdk_transaction::view::action_view::TransferView::Visible {
+                shieldd_sdk_transaction::ActionView::Transfer(transfer) => match transfer {
+                    shieldd_sdk_transaction::view::action_view::TransferView::Visible {
                         transfer: _,
                         spent_notes: _,
                         created_notes,
@@ -172,7 +172,7 @@ impl TransactionViewExt for TransactionView {
                         }
                         ["Transfer", &action]
                     }
-                    penumbra_sdk_transaction::view::action_view::TransferView::Opaque {
+                    shieldd_sdk_transaction::view::action_view::TransferView::Opaque {
                         transfer,
                     } => {
                         if let Some(first_output) = transfer.body.outputs.first() {
@@ -184,9 +184,9 @@ impl TransactionViewExt for TransactionView {
                         ["Transfer", &action]
                     }
                 },
-                penumbra_sdk_transaction::ActionView::Consolidate(consolidate) => match consolidate
+                shieldd_sdk_transaction::ActionView::Consolidate(consolidate) => match consolidate
                 {
-                    penumbra_sdk_transaction::view::action_view::ConsolidateView::Visible {
+                    shieldd_sdk_transaction::view::action_view::ConsolidateView::Visible {
                         consolidate: _,
                         spent_notes: _,
                         created_notes,
@@ -203,7 +203,7 @@ impl TransactionViewExt for TransactionView {
                         }
                         ["Consolidate", &action]
                     }
-                    penumbra_sdk_transaction::view::action_view::ConsolidateView::Opaque {
+                    shieldd_sdk_transaction::view::action_view::ConsolidateView::Opaque {
                         consolidate,
                     } => {
                         if let Some(first_output) = consolidate.body.outputs.first() {
@@ -215,8 +215,8 @@ impl TransactionViewExt for TransactionView {
                         ["Consolidate", &action]
                     }
                 },
-                penumbra_sdk_transaction::ActionView::Split(split) => match split {
-                    penumbra_sdk_transaction::view::action_view::SplitView::Visible {
+                shieldd_sdk_transaction::ActionView::Split(split) => match split {
+                    shieldd_sdk_transaction::view::action_view::SplitView::Visible {
                         split: _,
                         spent_notes: _,
                         created_notes,
@@ -233,7 +233,7 @@ impl TransactionViewExt for TransactionView {
                         }
                         ["Split", &action]
                     }
-                    penumbra_sdk_transaction::view::action_view::SplitView::Opaque { split } => {
+                    shieldd_sdk_transaction::view::action_view::SplitView::Opaque { split } => {
                         if let Some(first_output) = split.body.outputs.first() {
                             let bytes = first_output.note_payload.encrypted_note.0;
                             action = format_opaque_bytes(&bytes);
@@ -243,13 +243,13 @@ impl TransactionViewExt for TransactionView {
                         ["Split", &action]
                     }
                 },
-                penumbra_sdk_transaction::ActionView::ShieldedIcs20Withdrawal(withdrawal) => {
+                shieldd_sdk_transaction::ActionView::ShieldedIcs20Withdrawal(withdrawal) => {
                     let withdrawal = match withdrawal {
-                        penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalView::Visible {
+                        shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView::Visible {
                             withdrawal,
                             ..
                         } => &withdrawal.body.withdrawal,
-                        penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalView::Opaque {
+                        shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView::Opaque {
                             withdrawal,
                         } => &withdrawal.body.withdrawal,
                     };
@@ -263,19 +263,19 @@ impl TransactionViewExt for TransactionView {
                     );
                     ["Ics20 Withdrawal", &action]
                 }
-                penumbra_sdk_transaction::ActionView::ProposalSubmit(proposal_submit) => {
+                shieldd_sdk_transaction::ActionView::ProposalSubmit(proposal_submit) => {
                     action = format!(
                         "Submit Governance Proposal #{}",
                         proposal_submit.proposal().id
                     );
                     [&action, ""]
                 }
-                penumbra_sdk_transaction::ActionView::IbcRelay(_) => ["IBC Relay", ""],
-                penumbra_sdk_transaction::ActionView::ValidatorDefinition(_) => {
+                shieldd_sdk_transaction::ActionView::IbcRelay(_) => ["IBC Relay", ""],
+                shieldd_sdk_transaction::ActionView::ValidatorDefinition(_) => {
                     ["Upload Validator Definition", ""]
                 }
-                penumbra_sdk_transaction::ActionView::ValidatorVote(_) => ["Validator Vote", ""],
-                penumbra_sdk_transaction::ActionView::ComplianceRegisterAsset(x) => {
+                shieldd_sdk_transaction::ActionView::ValidatorVote(_) => ["Validator Vote", ""],
+                shieldd_sdk_transaction::ActionView::ComplianceRegisterAsset(x) => {
                     action = format!(
                         "Register asset {} as {}",
                         x.asset_id,
@@ -287,11 +287,11 @@ impl TransactionViewExt for TransactionView {
                     );
                     ["Compliance: Register Asset", &action]
                 }
-                penumbra_sdk_transaction::ActionView::ComplianceRegisterUser(x) => {
+                shieldd_sdk_transaction::ActionView::ComplianceRegisterUser(x) => {
                     action = format!("Register user for asset {}", x.leaf.asset_id);
                     ["Compliance: Register User", &action]
                 }
-                penumbra_sdk_transaction::ActionView::AggregateBundle(_) => {
+                shieldd_sdk_transaction::ActionView::AggregateBundle(_) => {
                     ["Aggregate Bundle", ""]
                 }
             };

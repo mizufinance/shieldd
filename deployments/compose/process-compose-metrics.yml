@@ -1,5 +1,5 @@
 ---
-# A process-compose configuration for running a Prometheus/Grafana metrics setup for Penumbra,
+# A process-compose configuration for running a Prometheus/Grafana metrics setup for Shieldd,
 # scraping metrics endpoints for a localhost-based fullnode.
 version: "0.5"
 log_level: info
@@ -11,8 +11,8 @@ processes:
     command: |-
       set -e
       ./deployments/scripts/prep-grafana-env
-      export GF_PATHS_PROVISIONING=${PENUMBRA_DEVNET_HOME}/network_data/grafana/conf/provisioning
-      grafana server --homepath ${PENUMBRA_DEVNET_HOME}/network_data/grafana --config ./deployments/config/grafana/grafana.ini
+      export GF_PATHS_PROVISIONING=${SHIELDD_DEVNET_HOME}/network_data/grafana/conf/provisioning
+      grafana server --homepath ${SHIELDD_DEVNET_HOME}/network_data/grafana --config ./deployments/config/grafana/grafana.ini
     readiness_probe:
       http_get:
         host: 127.0.0.1
@@ -30,8 +30,8 @@ processes:
   prometheus:
     command: |-
       set -e
-      mkdir -p ${PENUMBRA_DEVNET_HOME}/network_data/prometheus
-      prometheus --config.file ./deployments/config/prometheus/prometheus.yml --storage.tsdb.path ${PENUMBRA_DEVNET_HOME}/network_data/prometheus
+      mkdir -p ${SHIELDD_DEVNET_HOME}/network_data/prometheus
+      prometheus --config.file ./deployments/config/prometheus/prometheus.yml --storage.tsdb.path ${SHIELDD_DEVNET_HOME}/network_data/prometheus
     readiness_probe:
       http_get:
         host: 127.0.0.1

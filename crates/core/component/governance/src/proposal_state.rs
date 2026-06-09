@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use penumbra_sdk_proto::{penumbra::core::component::governance::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::core::component::governance::v1 as pb, DomainType};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(try_from = "pb::ProposalState", into = "pb::ProposalState")]

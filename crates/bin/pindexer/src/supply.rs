@@ -6,11 +6,11 @@ use cometindex::{
     index::{EventBatch, EventBatchContext},
     sqlx, AppView, ContextualizedEvent, PgTransaction,
 };
-use penumbra_sdk_app::genesis::Content;
-use penumbra_sdk_asset::{asset, BASE_ASSET_ID};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::event::ProtoEvent;
-use penumbra_sdk_proto::penumbra::core::component::fee::v1 as pb_fee;
+use shieldd_sdk_app::genesis::Content;
+use shieldd_sdk_asset::{asset, BASE_ASSET_ID};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::event::ProtoEvent;
+use shieldd_sdk_proto::shieldd::core::component::fee::v1 as pb_fee;
 use sqlx::{Postgres, Transaction};
 
 use crate::parsing::parse_content;
@@ -91,12 +91,12 @@ mod unstaked_supply {
 enum Event {
     BlockFees {
         height: u64,
-        total: penumbra_sdk_fee::Fee,
+        total: shieldd_sdk_fee::Fee,
     },
 }
 
 impl Event {
-    const NAMES: [&'static str; 1] = ["penumbra.core.component.fee.v1.EventBlockFees"];
+    const NAMES: [&'static str; 1] = ["shieldd.core.component.fee.v1.EventBlockFees"];
 
     async fn index<'d>(&self, dbtx: &mut Transaction<'d, Postgres>) -> anyhow::Result<()> {
         match self {

@@ -1,13 +1,13 @@
 use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::SynthesisError;
 use decaf377::{r1cs::FqVar, Fq};
-use penumbra_sdk_tct as tct;
-use penumbra_sdk_tct::{r1cs::StateCommitmentVar, StateCommitment};
+use shieldd_sdk_tct as tct;
+use shieldd_sdk_tct::{r1cs::StateCommitmentVar, StateCommitment};
 use poseidon377::hash_3;
 
 use once_cell::sync::Lazy;
-use penumbra_sdk_keys::keys::{NullifierKey, NullifierKeyVar};
-use penumbra_sdk_proto::{core::component::sct::v1 as pb, DomainType};
+use shieldd_sdk_keys::keys::{NullifierKey, NullifierKeyVar};
+use shieldd_sdk_proto::{core::component::sct::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -42,7 +42,7 @@ impl TryFrom<pb::Nullifier> for Nullifier {
 
 /// The domain separator used to derive nullifiers.
 pub static NULLIFIER_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"penumbra.nullifier").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.nullifier").as_bytes())
 });
 
 impl std::fmt::Display for Nullifier {
@@ -68,7 +68,7 @@ impl Nullifier {
     /// and [`Commitment`].
     pub fn derive(
         nk: &NullifierKey,
-        pos: penumbra_sdk_tct::Position,
+        pos: shieldd_sdk_tct::Position,
         state_commitment: &StateCommitment,
     ) -> Nullifier {
         Nullifier(hash_3(

@@ -9,7 +9,7 @@ import (
 	curves "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 func dleqChallengeDomain() *big.Int {
@@ -68,7 +68,7 @@ func AssertEqualIf(api frontend.API, left, right, cond frontend.Variable) {
 	api.AssertIsEqual(api.Mul(api.Sub(left, right), cond), 0)
 }
 
-// VerifyDLEQ mirrors Penumbra's verify_dleq_r1cs gadget for a single tier.
+// VerifyDLEQ mirrors Shieldd's verify_dleq_r1cs gadget for a single tier.
 func VerifyDLEQ(
 	api frontend.API,
 	r frontend.Variable,

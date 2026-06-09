@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use decaf377::Fq;
 use hash_hasher::HashedMap;
-use penumbra_sdk_proto::{penumbra::crypto::tct::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 
 use crate::error::epoch::*;

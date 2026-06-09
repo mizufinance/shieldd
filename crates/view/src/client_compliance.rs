@@ -55,22 +55,22 @@
 
 use anyhow::Result;
 use futures::FutureExt;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_compliance::ComplianceLeaf;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_proto::view::v1 as view_pb;
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_compliance::ComplianceLeaf;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_proto::view::v1 as view_pb;
+use shieldd_sdk_tct::StateCommitment;
 use std::{future::Future, pin::Pin};
 
 use crate::ViewClient;
 
 /// Convert a proto MerklePath to native MerklePath.
 fn parse_proto_merkle_path(
-    path: Option<penumbra_sdk_proto::core::component::compliance::v1::MerklePath>,
-) -> penumbra_sdk_compliance::structs::MerklePath {
-    use penumbra_sdk_compliance::structs::MerklePathLayer;
+    path: Option<shieldd_sdk_proto::core::component::compliance::v1::MerklePath>,
+) -> shieldd_sdk_compliance::structs::MerklePath {
+    use shieldd_sdk_compliance::structs::MerklePathLayer;
     match path {
-        Some(p) => penumbra_sdk_compliance::structs::MerklePath {
+        Some(p) => shieldd_sdk_compliance::structs::MerklePath {
             layers: p
                 .layers
                 .into_iter()
@@ -79,7 +79,7 @@ fn parse_proto_merkle_path(
                 })
                 .collect(),
         },
-        None => penumbra_sdk_compliance::structs::MerklePath { layers: vec![] },
+        None => shieldd_sdk_compliance::structs::MerklePath { layers: vec![] },
     }
 }
 
@@ -187,11 +187,11 @@ pub struct ComplianceMerkleProofsData {
     pub user_registered: bool,
     pub asset_registered: bool,
     pub is_regulated: bool,
-    pub compliance_path: penumbra_sdk_compliance::structs::MerklePath,
+    pub compliance_path: shieldd_sdk_compliance::structs::MerklePath,
     pub compliance_position: u64,
-    pub asset_path: penumbra_sdk_compliance::structs::MerklePath,
+    pub asset_path: shieldd_sdk_compliance::structs::MerklePath,
     pub asset_position: u64,
-    pub asset_indexed_leaf: penumbra_sdk_compliance::IndexedLeaf,
+    pub asset_indexed_leaf: shieldd_sdk_compliance::IndexedLeaf,
     pub compliance_anchor: StateCommitment,
     pub asset_anchor: StateCommitment,
 }
@@ -250,10 +250,10 @@ impl ComplianceMerkleProofsData {
 impl<T: ViewClient + ?Sized> ViewClientComplianceExt for T {}
 
 use decaf377::Fr;
-use penumbra_sdk_compliance::{
+use shieldd_sdk_compliance::{
     AssetPolicy, AssetProofData, ComplianceProofProvider, MerklePath, UserProofData,
 };
-use penumbra_sdk_transaction::plan::{ActionPlan, TransactionPlan};
+use shieldd_sdk_transaction::plan::{ActionPlan, TransactionPlan};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -371,9 +371,9 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
     async fn get_batch_proofs(
         &self,
         queries: &[(Address, asset::Id)],
-    ) -> Result<penumbra_sdk_compliance::BatchComplianceData> {
+    ) -> Result<shieldd_sdk_compliance::BatchComplianceData> {
         if queries.is_empty() {
-            return Ok(penumbra_sdk_compliance::BatchComplianceData::default());
+            return Ok(shieldd_sdk_compliance::BatchComplianceData::default());
         }
 
         // Make a single batch gRPC call
@@ -419,13 +419,13 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
 
         // Match results with queries - parse directly since individual results don't have anchors
         for (i, result) in batch_response.results.into_iter().enumerate() {
-            use penumbra_sdk_compliance::structs::MerklePathLayer;
+            use shieldd_sdk_compliance::structs::MerklePathLayer;
 
             let (address, asset_id) = &queries[i];
 
             // Parse compliance path
             let compliance_path = if let Some(path) = result.compliance_path {
-                penumbra_sdk_compliance::structs::MerklePath {
+                shieldd_sdk_compliance::structs::MerklePath {
                     layers: path
                         .layers
                         .into_iter()
@@ -435,12 +435,12 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
                         .collect(),
                 }
             } else {
-                penumbra_sdk_compliance::structs::MerklePath { layers: vec![] }
+                shieldd_sdk_compliance::structs::MerklePath { layers: vec![] }
             };
 
             // Parse asset path
             let asset_path = if let Some(path) = result.asset_path {
-                penumbra_sdk_compliance::structs::MerklePath {
+                shieldd_sdk_compliance::structs::MerklePath {
                     layers: path
                         .layers
                         .into_iter()
@@ -450,14 +450,14 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
                         .collect(),
                 }
             } else {
-                penumbra_sdk_compliance::structs::MerklePath { layers: vec![] }
+                shieldd_sdk_compliance::structs::MerklePath { layers: vec![] }
             };
 
             // Cache asset proof
             if !asset_proofs.contains_key(asset_id) {
                 // Parse indexed_leaf from proto response using TryFrom
                 let indexed_leaf = if let Some(leaf_data) = result.asset_indexed_leaf {
-                    penumbra_sdk_compliance::IndexedLeaf::try_from(leaf_data).map_err(|e| {
+                    shieldd_sdk_compliance::IndexedLeaf::try_from(leaf_data).map_err(|e| {
                         anyhow::anyhow!("invalid indexed_leaf for asset {}: {}", asset_id, e)
                     })?
                 } else {
@@ -539,7 +539,7 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
             }
         }
 
-        Ok(penumbra_sdk_compliance::BatchComplianceData {
+        Ok(shieldd_sdk_compliance::BatchComplianceData {
             compliance_anchor,
             asset_anchor,
             asset_proofs,
@@ -639,7 +639,7 @@ async fn fetch_batch_compliance_data<P: ComplianceProofProvider>(
     output_identities: &[(asset::Id, Address)],
 ) -> Result<
     Option<(
-        penumbra_sdk_compliance::BatchComplianceData,
+        shieldd_sdk_compliance::BatchComplianceData,
         Address,
         asset::Id,
     )>,
@@ -1190,11 +1190,11 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
 
         if first_spend.is_regulated
             && !first_spend.compliance_ciphertext.is_empty()
-            && !penumbra_sdk_compliance::IbcComplianceMetadata::is_compliance_memo(
+            && !shieldd_sdk_compliance::IbcComplianceMetadata::is_compliance_memo(
                 &withdrawal.withdrawal.ics20_memo,
             )
         {
-            let metadata = penumbra_sdk_compliance::IbcComplianceMetadata {
+            let metadata = shieldd_sdk_compliance::IbcComplianceMetadata {
                 compliance_ciphertext: first_spend.compliance_ciphertext.clone(),
                 asset_id: first_spend.note.asset_id(),
             };
@@ -1209,10 +1209,10 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
 }
 
 fn default_unregulated_asset_proof() -> AssetProofData {
-    let default_leaf = penumbra_sdk_compliance::IndexedLeaf::with_default_policy(
+    let default_leaf = shieldd_sdk_compliance::IndexedLeaf::with_default_policy(
         decaf377::Fq::from(0u64),
         0,
-        penumbra_sdk_compliance::indexed_tree::FQ_MAX.clone(),
+        shieldd_sdk_compliance::indexed_tree::FQ_MAX.clone(),
     );
     AssetProofData {
         indexed_leaf: default_leaf,

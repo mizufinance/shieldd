@@ -5,7 +5,7 @@ use blake2::{
     digest::{generic_array::GenericArray, FixedOutput, Reset, Update},
     Blake2b,
 };
-use penumbra_sdk_shielded_pool::{
+use shieldd_sdk_shielded_pool::{
     ConsolidateFamilyId, ShieldedIcs20WithdrawalFamilyId, SplitFamilyId,
 };
 
@@ -13,15 +13,15 @@ use crate::ProofFamilyId;
 
 pub fn transcript_family_domain(family_id: ProofFamilyId) -> Cow<'static, [u8]> {
     match family_id {
-        ProofFamilyId::Transfer => Cow::Borrowed(b"penumbra.snarkpack.transfer.v1"),
+        ProofFamilyId::Transfer => Cow::Borrowed(b"shieldd.snarkpack.transfer.v1"),
         ProofFamilyId::Consolidate(family_id) => {
-            Cow::Owned(format!("penumbra.snarkpack.{}.v1", family_id.label()).into_bytes())
+            Cow::Owned(format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes())
         }
         ProofFamilyId::Split(family_id) => {
-            Cow::Owned(format!("penumbra.snarkpack.{}.v1", family_id.label()).into_bytes())
+            Cow::Owned(format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes())
         }
         ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => {
-            Cow::Owned(format!("penumbra.snarkpack.{}.v1", family_id.label()).into_bytes())
+            Cow::Owned(format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes())
         }
     }
 }
@@ -193,7 +193,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use crate::ProofFamilyId;
-    use penumbra_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
+    use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
 
     use super::transcript_family_domain;
 

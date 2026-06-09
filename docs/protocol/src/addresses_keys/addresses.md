@@ -1,9 +1,9 @@
 # Addresses and Detection Keys
 
-Rather than having a single address for each spending authority, Penumbra allows
+Rather than having a single address for each spending authority, Shieldd allows
 the creation of many different publicly unlinkable *diversified addresses*.  An
 incoming viewing key can scan transactions to every diversified address
-simultaneously, so there is no per-address scanning cost.  In addition, Penumbra
+simultaneously, so there is no per-address scanning cost.  In addition, Shieldd
 attaches a *detection key* to each address, allowing a user to outsource
 probabilistic transaction detection to a relatively untrusted third-party
 scanning service.
@@ -30,7 +30,7 @@ $$B_d = H_{\mathbb G}^{\mathsf d}(d),$$
 where 
 $$H_{\mathbb G}^{\mathsf d} : \{0, 1\}^{128} \rightarrow \mathbb G$$
 performs [hash-to-group](../crypto/decaf377/group_hash.md) for `decaf377` as follows: first, apply BLAKE2b-512
-with personalization `b"Penumbra_Divrsfy"` to the input, then, interpret the
+with personalization `b"Shieldd_Divrsfy"` to the input, then, interpret the
 64-byte output as an integer in little-endian byte order and reduce it modulo
 $q$, and finally, use the resulting $\mathbb F_q$ element as input to the
 `decaf377` CDH map-to-group method.
@@ -51,7 +51,7 @@ personalization `label`, key `key`, and input `input`.  Define
 integer in little-endian order, and `to_le_bytes` as the function that encodes
 an integer to little-endian bytes.  Then
 ```
-dtk_d = from_le_bytes(prf_expand(b"PenumbraExpndFMD", to_le_bytes(ivk), d))
+dtk_d = from_le_bytes(prf_expand(b"ShielddExpndFMD", to_le_bytes(ivk), d))
 ```
 
 ## Addresses
@@ -87,8 +87,8 @@ scenario as well as [F4Jumble], which is a 4-round Feistel construction.
 This jumbled string is then encoded with [Bech32m] with the following
 human-readable prefixes:
 
-* `penumbra` for mainnet, and
-* `penumbra_tnXYZ_` for testnets, where XYZ is the current testnet number padded
+* `shieldd` for mainnet, and
+* `shieldd_tnXYZ_` for testnets, where XYZ is the current testnet number padded
   to three decimal places.
 
 ### Short Address Form

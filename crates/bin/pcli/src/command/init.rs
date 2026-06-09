@@ -5,10 +5,10 @@ use std::{
 
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
-use penumbra_sdk_custody::threshold;
+use shieldd_sdk_custody::threshold;
 #[cfg(feature = "ledger")]
-use penumbra_sdk_custody_ledger_usb as ledger;
-use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+use shieldd_sdk_custody_ledger_usb as ledger;
+use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 use rand_core::OsRng;
 use termion::screen::IntoAlternateScreen;
 use url::Url;
@@ -29,7 +29,7 @@ pub struct InitCmd {
         // pcli init inside of the test harness (where we override that)
         // will correctly set the URL, even though we don't subsequently
         // read it from the environment.
-        env = "PENUMBRA_NODE_PD_URL",
+        env = "SHIELDD_NODE_PD_URL",
         parse(try_from_str = Url::parse),
     )]
     grpc_url: Url,
@@ -315,9 +315,9 @@ impl InitCmd {
                     spend_key.full_viewing_key().clone(),
                     if self.encrypted {
                         let password = ActualTerminal::get_confirmed_password().await?;
-                        CustodyConfig::Encrypted(penumbra_sdk_custody::encrypted::Config::create(
+                        CustodyConfig::Encrypted(shieldd_sdk_custody::encrypted::Config::create(
                             &password,
-                            penumbra_sdk_custody::encrypted::InnerConfig::SoftKms(spend_key.into()),
+                            shieldd_sdk_custody::encrypted::InnerConfig::SoftKms(spend_key.into()),
                         )?)
                     } else {
                         CustodyConfig::SoftKms(spend_key.into())
@@ -338,9 +338,9 @@ impl InitCmd {
                 let fvk = config.fvk().clone();
                 let custody_config = if self.encrypted {
                     let password = ActualTerminal::get_confirmed_password().await?;
-                    CustodyConfig::Encrypted(penumbra_sdk_custody::encrypted::Config::create(
+                    CustodyConfig::Encrypted(shieldd_sdk_custody::encrypted::Config::create(
                         &password,
-                        penumbra_sdk_custody::encrypted::InnerConfig::Threshold(config),
+                        shieldd_sdk_custody::encrypted::InnerConfig::Threshold(config),
                     )?)
                 } else {
                     CustodyConfig::Threshold(config)
@@ -380,16 +380,16 @@ impl InitCmd {
                     x @ CustodyConfig::Encrypted(_) => x,
                     CustodyConfig::SoftKms(spend_key) => {
                         let password = ActualTerminal::get_confirmed_password().await?;
-                        CustodyConfig::Encrypted(penumbra_sdk_custody::encrypted::Config::create(
+                        CustodyConfig::Encrypted(shieldd_sdk_custody::encrypted::Config::create(
                             &password,
-                            penumbra_sdk_custody::encrypted::InnerConfig::SoftKms(spend_key),
+                            shieldd_sdk_custody::encrypted::InnerConfig::SoftKms(spend_key),
                         )?)
                     }
                     CustodyConfig::Threshold(c) => {
                         let password = ActualTerminal::get_confirmed_password().await?;
-                        CustodyConfig::Encrypted(penumbra_sdk_custody::encrypted::Config::create(
+                        CustodyConfig::Encrypted(shieldd_sdk_custody::encrypted::Config::create(
                             &password,
-                            penumbra_sdk_custody::encrypted::InnerConfig::Threshold(c),
+                            shieldd_sdk_custody::encrypted::InnerConfig::Threshold(c),
                         )?)
                     }
                     #[cfg(feature = "ledger")]

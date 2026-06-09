@@ -3,8 +3,8 @@ use std::pin::Pin;
 use async_stream::try_stream;
 use cnidarium::Storage;
 use futures::{StreamExt, TryStreamExt};
-use penumbra_sdk_asset::asset::{self};
-use penumbra_sdk_proto::core::component::shielded_pool::v1::{
+use shieldd_sdk_asset::asset::{self};
+use shieldd_sdk_proto::core::component::shielded_pool::v1::{
     query_service_server::QueryService, AssetMetadataByIdRequest, AssetMetadataByIdResponse,
     AssetMetadataByIdsRequest, AssetMetadataByIdsResponse,
 };

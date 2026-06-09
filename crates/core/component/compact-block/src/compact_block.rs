@@ -1,15 +1,15 @@
 use std::convert::TryFrom;
 
 use anyhow::Result;
-use penumbra_sdk_compliance::event::{EventAssetRegistered, EventUserRegistered};
-use penumbra_sdk_fee::GasPrices;
-use penumbra_sdk_proto::{
+use shieldd_sdk_compliance::event::{EventAssetRegistered, EventUserRegistered};
+use shieldd_sdk_fee::GasPrices;
+use shieldd_sdk_proto::{
     core::component::compact_block::v1::CompactBlockRangeResponse,
-    penumbra::core::component::compact_block::v1 as pb, DomainType,
+    shieldd::core::component::compact_block::v1 as pb, DomainType,
 };
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_shielded_pool::fmd;
-use penumbra_sdk_tct::{
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_shielded_pool::fmd;
+use shieldd_sdk_tct::{
     builder::{block, epoch},
     StateCommitment,
 };

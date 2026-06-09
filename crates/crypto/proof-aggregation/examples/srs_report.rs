@@ -1,4 +1,4 @@
-use penumbra_sdk_proof_aggregation::{srs_id, srs_report, DevSrs};
+use shieldd_sdk_proof_aggregation::{srs_id, srs_report, DevSrs};
 
 fn main() -> anyhow::Result<()> {
     let srs = DevSrs::default();
@@ -7,11 +7,11 @@ fn main() -> anyhow::Result<()> {
 
     println!(
         "backend: {}",
-        penumbra_sdk_proof_aggregation::DEV_SRS_BACKEND_ID
+        shieldd_sdk_proof_aggregation::DEV_SRS_BACKEND_ID
     );
     println!(
         "curve: {}",
-        penumbra_sdk_proof_aggregation::DEV_SRS_CURVE_ID
+        shieldd_sdk_proof_aggregation::DEV_SRS_CURVE_ID
     );
     println!("max_padded_count: {}", srs.max_padded_count);
     println!("generation_ms: {}", report.generation_ms);

@@ -8,27 +8,27 @@ use ibc_types::core::{
     commitment::MerkleProof,
 };
 use ibc_types::timestamp::Timestamp;
-use penumbra_sdk_asset::{asset::Id, BASE_ASSET_DENOM};
-use penumbra_sdk_fee::Fee;
-use penumbra_sdk_governance::{
+use shieldd_sdk_asset::{asset::Id, BASE_ASSET_DENOM};
+use shieldd_sdk_fee::Fee;
+use shieldd_sdk_governance::{
     Proposal, ProposalPayload, ProposalSubmit, ProposalSubmitBody, ValidatorVote,
     ValidatorVoteBody, ValidatorVoteReason, Vote,
 };
-use penumbra_sdk_ibc::IbcRelay;
-use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
-use penumbra_sdk_keys::test_keys::SEED_PHRASE;
-use penumbra_sdk_keys::{Address, FullViewingKey};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_shielded_pool::{
+use shieldd_sdk_ibc::IbcRelay;
+use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+use shieldd_sdk_keys::test_keys::SEED_PHRASE;
+use shieldd_sdk_keys::{Address, FullViewingKey};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_shielded_pool::{
     ConsolidateFamilyId, ConsolidatePlan, Ics20Withdrawal, Note, ShieldedIcs20WithdrawalFamilyId,
     ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, SplitFamilyId, SplitPlan,
     TransferPlan,
 };
-use penumbra_sdk_transaction::{
+use shieldd_sdk_transaction::{
     check_transaction_plan_enabled, ActionPlan, TransactionParameters, TransactionPlan,
 };
-use penumbra_sdk_validator::{validator, validator::Definition, GovernanceKey, IdentityKey};
+use shieldd_sdk_validator::{validator, validator::Definition, GovernanceKey, IdentityKey};
 use proptest::prelude::*;
 use proptest::strategy::ValueTree;
 use proptest::test_runner::{Config, TestRunner};
@@ -44,12 +44,12 @@ fn amount_strategy() -> impl Strategy<Value = Amount> {
 }
 
 fn asset_id_strategy() -> impl Strategy<Value = Id> {
-    Just(*penumbra_sdk_asset::BASE_ASSET_ID)
+    Just(*shieldd_sdk_asset::BASE_ASSET_ID)
 }
 
-fn value_strategy() -> impl Strategy<Value = penumbra_sdk_asset::Value> {
+fn value_strategy() -> impl Strategy<Value = shieldd_sdk_asset::Value> {
     (asset_id_strategy(), amount_strategy())
-        .prop_map(|(asset_id, amount)| penumbra_sdk_asset::Value { amount, asset_id })
+        .prop_map(|(asset_id, amount)| shieldd_sdk_asset::Value { amount, asset_id })
 }
 
 fn address_strategy() -> impl Strategy<Value = Address> {
@@ -69,7 +69,7 @@ fn note_strategy(addr: Address) -> impl Strategy<Value = Note> {
 }
 
 fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedInputPlan> {
-    let tct_strategy = any::<penumbra_sdk_tct::Position>();
+    let tct_strategy = any::<shieldd_sdk_tct::Position>();
     let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()).0);
 
     (tct_strategy, note_strategy)
@@ -234,7 +234,7 @@ fn shielded_ics20_withdrawal_plan_strategy(
     fvk: &FullViewingKey,
 ) -> impl Strategy<Value = ShieldedIcs20WithdrawalPlan> {
     let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()).0);
-    let position_strategy = any::<penumbra_sdk_tct::Position>();
+    let position_strategy = any::<shieldd_sdk_tct::Position>();
 
     (
         note_strategy,
@@ -281,15 +281,15 @@ fn consolidate_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Cons
     let addr = fvk.incoming().payment_address(0u32.into()).0;
     (
         note_strategy(addr.clone()),
-        any::<penumbra_sdk_tct::Position>(),
+        any::<shieldd_sdk_tct::Position>(),
         note_strategy(addr.clone()),
-        any::<penumbra_sdk_tct::Position>(),
+        any::<shieldd_sdk_tct::Position>(),
     )
         .prop_map(move |(note_1, pos_1, note_2, pos_2)| {
             let total_amount = note_1.amount() + note_2.amount();
             let output = ShieldedOutputPlan::new(
                 &mut OsRng,
-                penumbra_sdk_asset::Value {
+                shieldd_sdk_asset::Value {
                     amount: total_amount,
                     asset_id: note_1.asset_id(),
                 },
@@ -312,14 +312,14 @@ fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan>
     let addr = fvk.incoming().payment_address(0u32.into()).0;
     (
         note_strategy(addr.clone()),
-        any::<penumbra_sdk_tct::Position>(),
+        any::<shieldd_sdk_tct::Position>(),
     )
         .prop_map(move |(note, position)| {
             let quarter = note.amount() / Amount::from(4u64);
             let outputs = vec![
                 ShieldedOutputPlan::new(
                     &mut OsRng,
-                    penumbra_sdk_asset::Value {
+                    shieldd_sdk_asset::Value {
                         amount: quarter,
                         asset_id: note.asset_id(),
                     },
@@ -328,7 +328,7 @@ fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan>
                 .into(),
                 ShieldedOutputPlan::new(
                     &mut OsRng,
-                    penumbra_sdk_asset::Value {
+                    shieldd_sdk_asset::Value {
                         amount: quarter,
                         asset_id: note.asset_id(),
                     },
@@ -337,7 +337,7 @@ fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan>
                 .into(),
                 ShieldedOutputPlan::new(
                     &mut OsRng,
-                    penumbra_sdk_asset::Value {
+                    shieldd_sdk_asset::Value {
                         amount: quarter,
                         asset_id: note.asset_id(),
                     },
@@ -346,7 +346,7 @@ fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan>
                 .into(),
                 ShieldedOutputPlan::new(
                     &mut OsRng,
-                    penumbra_sdk_asset::Value {
+                    shieldd_sdk_asset::Value {
                         amount: note.amount() - quarter - quarter - quarter,
                         asset_id: note.asset_id(),
                     },

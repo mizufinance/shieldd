@@ -1,4 +1,4 @@
-//! `penumbra-mock-consensus` is a library for testing consensus-driven ABCI applications.
+//! `shieldd-mock-consensus` is a library for testing consensus-driven ABCI applications.
 //!
 //! # Overview
 //!
@@ -12,21 +12,21 @@
 //!
 //! This library is agnostic with respect to the replicable state transition machine that it
 //! is used to test. This means that, while it may be used to write integration tests for the
-//! [Penumbra][penumbra] network, it can also be used to test other decentralized applications.
+//! [Shieldd][shieldd] network, it can also be used to test other decentralized applications.
 //!
-//! See [`TestNode`] for more information about using `penumbra-mock-consensus`.
+//! See [`TestNode`] for more information about using `shieldd-mock-consensus`.
 //!
 //! # Alternatives
 //!
 //! Projects implemented in Go may wish to consider using [CometMock][cometmock].
-//! `penumbra-mock-consensus` is primarily oriented towards projects implemented in Rust that wish
+//! `shieldd-mock-consensus` is primarily oriented towards projects implemented in Rust that wish
 //! to use [`cargo test`][cargo-test] or [`cargo nextest`][cargo-nextest] as a test-runner.
 //!
 //! [cargo-nextest]: https://nexte.st/
 //! [cargo-test]: https://doc.rust-lang.org/cargo/commands/cargo-test.html
 //! [cometbft]: https://github.com/cometbft/cometbft
 //! [cometmock]: https://github.com/informalsystems/CometMock
-//! [penumbra]: https://github.com/mizufinance/penumbra
+//! [shieldd]: https://github.com/mizufinance/shieldd
 //! [tendermint]: https://github.com/tendermint/tendermint
 
 use {
@@ -128,7 +128,7 @@ pub struct NodeResumeState {
 /// Accessors.
 impl<C> TestNode<C> {
     /// A chain ID for use in tests.
-    pub const CHAIN_ID: &'static str = "penumbra-test-chain";
+    pub const CHAIN_ID: &'static str = "shieldd-test-chain";
 
     /// Returns the last `app_hash` value, represented as a slice of bytes.
     pub fn last_app_hash(&self) -> &[u8] {

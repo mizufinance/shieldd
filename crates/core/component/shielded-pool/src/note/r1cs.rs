@@ -5,9 +5,9 @@ use decaf377::{
     r1cs::{ElementVar, FqVar},
     Fq,
 };
-use penumbra_sdk_asset::ValueVar;
-use penumbra_sdk_keys::address::AddressVar;
-use penumbra_sdk_tct::r1cs::StateCommitmentVar;
+use shieldd_sdk_asset::ValueVar;
+use shieldd_sdk_keys::address::AddressVar;
+use shieldd_sdk_tct::r1cs::StateCommitmentVar;
 
 use crate::Note;
 

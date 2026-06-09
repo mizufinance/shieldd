@@ -16,7 +16,7 @@ dist = true
 [dependencies]
 anyhow = {workspace = true}
 clap = {workspace = true, features = ["derive", "env", "color"]}
-penumbra-sdk-keys = {workspace = true, default-features = false}
+shieldd-sdk-keys = {workspace = true, default-features = false}
 tokio = {workspace = true, features = ["full"]}
 toml = {workspace = true}
 tracing = {workspace = true}

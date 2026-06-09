@@ -4,7 +4,7 @@ use {
     common::ibc_tests::{MockRelayer, TestNodeWithIBC, TestStorage, ValidatorKeys},
     decaf377::Fr,
     decaf377_rdsa::VerificationKey,
-    penumbra_sdk_app::{
+    shieldd_sdk_app::{
         app::{
             candidate_digest_from_hashes, App, CandidateEnvelope, ExecutionBlockProfile,
             PrepareProposalProfile, ProcessProposalProfile, ProposalArtifactSidecar,
@@ -12,18 +12,18 @@ use {
         block_tx_indexing::BlockTxIndexingMode,
         stateless_cache::StatelessCache,
     },
-    penumbra_sdk_asset::{asset::Cache, Value, BASE_ASSET_ID},
-    penumbra_sdk_compliance::{IbcAssetOrigin, IbcRoute},
-    penumbra_sdk_ibc::{
+    shieldd_sdk_asset::{asset::Cache, Value, BASE_ASSET_ID},
+    shieldd_sdk_compliance::{IbcAssetOrigin, IbcRoute},
+    shieldd_sdk_ibc::{
         benchmarking::{self, InboundReceiveBreakdown, StageTiming},
         IbcToken,
     },
-    penumbra_sdk_keys::{keys::AddressIndex, test_keys},
-    penumbra_sdk_mock_consensus::NodeResumeState,
-    penumbra_sdk_num::Amount,
-    penumbra_sdk_proto::DomainType as _,
-    penumbra_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan},
-    penumbra_sdk_transaction::{
+    shieldd_sdk_keys::{keys::AddressIndex, test_keys},
+    shieldd_sdk_mock_consensus::NodeResumeState,
+    shieldd_sdk_num::Amount,
+    shieldd_sdk_proto::DomainType as _,
+    shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan},
+    shieldd_sdk_transaction::{
         memo::MemoPlaintext, plan::MemoPlan, Action, ActionPlan, Transaction,
         TransactionParameters, TransactionPlan,
     },
@@ -52,7 +52,7 @@ const SCHEMA_VERSION: u32 = 1;
 const SETUP_CACHE_SCHEMA_VERSION: u32 = 1;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
-#[ignore = "real benchmark; run explicitly with PENUMBRA_IBC_VS_TRANSFER_TX_COUNT=1000"]
+#[ignore = "real benchmark; run explicitly with SHIELDD_IBC_VS_TRANSFER_TX_COUNT=1000"]
 async fn ibc_vs_transfer_benchmark() -> Result<()> {
     let _guard = common::set_tracing_subscriber();
     let config = Config::from_env()?;
@@ -118,7 +118,7 @@ async fn ibc_vs_transfer_benchmark() -> Result<()> {
     }
     anyhow::ensure!(
         !scenarios.is_empty(),
-        "no scenarios selected; check PENUMBRA_IBC_VS_TRANSFER_SCENARIOS"
+        "no scenarios selected; check SHIELDD_IBC_VS_TRANSFER_SCENARIOS"
     );
 
     let report = BenchmarkReport {
@@ -161,14 +161,14 @@ struct Config {
 impl Config {
     fn from_env() -> Result<Self> {
         Ok(Self {
-            tx_count: env_usize("PENUMBRA_IBC_VS_TRANSFER_TX_COUNT", 1_000)?,
-            runs: env_usize("PENUMBRA_IBC_VS_TRANSFER_RUNS", 3)?,
-            rebuild_corpus: env_bool("PENUMBRA_IBC_VS_TRANSFER_REBUILD_CORPUS", false),
-            require_reuse: env_bool("PENUMBRA_IBC_VS_TRANSFER_REQUIRE_REUSE", false),
-            out_dir: std::env::var("PENUMBRA_IBC_VS_TRANSFER_OUT_DIR")
+            tx_count: env_usize("SHIELDD_IBC_VS_TRANSFER_TX_COUNT", 1_000)?,
+            runs: env_usize("SHIELDD_IBC_VS_TRANSFER_RUNS", 3)?,
+            rebuild_corpus: env_bool("SHIELDD_IBC_VS_TRANSFER_REBUILD_CORPUS", false),
+            require_reuse: env_bool("SHIELDD_IBC_VS_TRANSFER_REQUIRE_REUSE", false),
+            out_dir: std::env::var("SHIELDD_IBC_VS_TRANSFER_OUT_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| workspace_target_bench_dir()),
-            scenarios: std::env::var("PENUMBRA_IBC_VS_TRANSFER_SCENARIOS")
+            scenarios: std::env::var("SHIELDD_IBC_VS_TRANSFER_SCENARIOS")
                 .ok()
                 .map(|value| {
                     value
@@ -498,7 +498,7 @@ async fn load_or_build_corpus(config: &Config) -> Result<(BenchmarkCorpus, PathB
     let expected_fingerprint = corpus_fingerprint(config.tx_count)?;
     anyhow::ensure!(
         !(config.rebuild_corpus && config.require_reuse),
-        "PENUMBRA_IBC_VS_TRANSFER_REBUILD_CORPUS and PENUMBRA_IBC_VS_TRANSFER_REQUIRE_REUSE cannot both be set"
+        "SHIELDD_IBC_VS_TRANSFER_REBUILD_CORPUS and SHIELDD_IBC_VS_TRANSFER_REQUIRE_REUSE cannot both be set"
     );
     if !config.rebuild_corpus && path.exists() {
         let corpus: BenchmarkCorpus = serde_json::from_slice(&fs::read(&path)?)?;
@@ -527,7 +527,7 @@ async fn load_or_build_corpus(config: &Config) -> Result<(BenchmarkCorpus, PathB
 
     anyhow::ensure!(
         !config.require_reuse,
-        "PENUMBRA_IBC_VS_TRANSFER_REQUIRE_REUSE=1 but no reusable corpus was found for {} txs; expected an existing corpus such as {}",
+        "SHIELDD_IBC_VS_TRANSFER_REQUIRE_REUSE=1 but no reusable corpus was found for {} txs; expected an existing corpus such as {}",
         config.tx_count,
         workspace_target_bench_dir()
             .join("corpus")
@@ -783,12 +783,12 @@ async fn load_or_build_setup_cache(corpus: &BenchmarkCorpus) -> Result<Benchmark
     }
 
     anyhow::ensure!(
-        !std::env::var("PENUMBRA_IBC_VS_TRANSFER_REQUIRE_REUSE")
+        !std::env::var("SHIELDD_IBC_VS_TRANSFER_REQUIRE_REUSE")
             .ok()
             .map(|value| env_bool_value(&value))
             .transpose()?
             .unwrap_or(false),
-        "PENUMBRA_IBC_VS_TRANSFER_REQUIRE_REUSE=1 but no reusable setup cache was found for {} allocations; expected {}",
+        "SHIELDD_IBC_VS_TRANSFER_REQUIRE_REUSE=1 but no reusable setup cache was found for {} allocations; expected {}",
         corpus.state_setup_tx_count(),
         metadata_path.display()
     );
@@ -1014,7 +1014,7 @@ fn benchmark_compliance_policy_hash() -> String {
     let mut hasher = sha2::Sha256::new();
     hasher.update(b"chain-a:transfer/channel-0/connection-0/transfer/channel-0");
     hasher.update(b"chain-b:transfer/channel-0/connection-0/transfer/channel-0");
-    hasher.update(b"chain-b-origin:transfer/channel-0/connection-0/transfer/channel-0:upenumbra");
+    hasher.update(b"chain-b-origin:transfer/channel-0/connection-0/transfer/channel-0:ushieldd");
     hex::encode(hasher.finalize())
 }
 
@@ -1548,7 +1548,7 @@ async fn run_checktx_cold(chain: &TestNodeWithIBC, txs: &[Vec<u8>]) -> Result<f6
 async fn run_checktx_warm(
     chain: &TestNodeWithIBC,
     txs: &[Vec<u8>],
-    artifacts: &[Arc<penumbra_sdk_app::stateless_cache::TxArtifact>],
+    artifacts: &[Arc<shieldd_sdk_app::stateless_cache::TxArtifact>],
 ) -> Result<f64> {
     let cache = StatelessCache::new();
     for (tx, artifact) in txs.iter().zip(artifacts.iter()) {
@@ -1994,19 +1994,19 @@ fn corpus_fingerprint(tx_count: usize) -> Result<String> {
     hasher.update(env!("CARGO_PKG_VERSION").as_bytes());
     hasher.update(transfer_verifying_key_digest()?.as_bytes());
     hasher.update(shielded_ics20_verifying_key_digest()?.as_bytes());
-    hasher.update(bytes_digest(penumbra_sdk_proof_params::transfer_proving_key_bytes()).as_bytes());
+    hasher.update(bytes_digest(shieldd_sdk_proof_params::transfer_proving_key_bytes()).as_bytes());
     hasher.update(
         bytes_digest(
-            penumbra_sdk_proof_params::shielded_ics20_withdrawal_proving_key_bytes(
-                penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical.get(),
+            shieldd_sdk_proof_params::shielded_ics20_withdrawal_proving_key_bytes(
+                shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical.get(),
             ),
         )
         .as_bytes(),
     );
-    hasher.update(penumbra_sdk_proof_params::transfer_circuit_metadata());
+    hasher.update(shieldd_sdk_proof_params::transfer_circuit_metadata());
     hasher.update(
-        penumbra_sdk_proof_params::shielded_ics20_withdrawal_circuit_metadata(
-            penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical.get(),
+        shieldd_sdk_proof_params::shielded_ics20_withdrawal_circuit_metadata(
+            shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical.get(),
         ),
     );
     if let Some(commit) = git_commit() {
@@ -2018,15 +2018,15 @@ fn corpus_fingerprint(tx_count: usize) -> Result<String> {
 
 fn transfer_verifying_key_digest() -> Result<String> {
     let mut bytes = Vec::new();
-    penumbra_sdk_proof_params::transfer_proof_verification_key()
+    shieldd_sdk_proof_params::transfer_proof_verification_key()
         .serialize_compressed(&mut bytes)?;
     Ok(bytes_digest(&bytes))
 }
 
 fn shielded_ics20_verifying_key_digest() -> Result<String> {
     let mut bytes = Vec::new();
-    penumbra_sdk_proof_params::shielded_ics20_withdrawal_proof_verification_key(
-        penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical.get(),
+    shieldd_sdk_proof_params::shielded_ics20_withdrawal_proof_verification_key(
+        shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical.get(),
     )
     .serialize_compressed(&mut bytes)?;
     Ok(bytes_digest(&bytes))

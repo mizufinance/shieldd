@@ -10,18 +10,18 @@ use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use clap::Parser;
 use directories::ProjectDirs;
-use penumbra_sdk_custody::policy::{AuthPolicy, PreAuthorizationPolicy};
-use penumbra_sdk_custody::soft_kms::{self, SoftKms};
-use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_proto::{
+use shieldd_sdk_custody::policy::{AuthPolicy, PreAuthorizationPolicy};
+use shieldd_sdk_custody::soft_kms::{self, SoftKms};
+use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_proto::{
     core::app::v1::{
         query_service_client::QueryServiceClient as AppQueryServiceClient, AppParametersRequest,
     },
     custody::v1::custody_service_server::CustodyServiceServer,
     view::v1::view_service_server::ViewServiceServer,
 };
-use penumbra_sdk_view::{Storage, ViewServer};
+use shieldd_sdk_view::{Storage, ViewServer};
 use reqwest;
 use rpassword::prompt_password;
 use serde::{Deserialize, Serialize};
@@ -71,7 +71,7 @@ impl PclientdConfig {
 }
 
 pub fn default_home() -> Utf8PathBuf {
-    let path = ProjectDirs::from("zone", "penumbra", "pclientd")
+    let path = ProjectDirs::from("zone", "shieldd", "pclientd")
         .expect("Failed to get platform data dir")
         .data_dir()
         .to_path_buf();
@@ -79,13 +79,13 @@ pub fn default_home() -> Utf8PathBuf {
 }
 
 #[derive(Debug, Parser)]
-#[clap(name = "pclientd", about = "The Penumbra view daemon.", version)]
+#[clap(name = "pclientd", about = "The Shieldd view daemon.", version)]
 pub struct Opt {
     /// Command to run.
     #[clap(subcommand)]
     pub cmd: Command,
     /// The path used to store pclientd state and config files.
-    #[clap(long, default_value_t = default_home(), env = "PENUMBRA_PCLIENTD_HOME")]
+    #[clap(long, default_value_t = default_home(), env = "SHIELDD_PCLIENTD_HOME")]
     pub home: Utf8PathBuf,
 }
 
@@ -360,7 +360,7 @@ impl Opt {
                     .add_service(tonic_web::enable(
                         tonic_reflection::server::Builder::configure()
                             .register_encoded_file_descriptor_set(
-                                penumbra_sdk_proto::FILE_DESCRIPTOR_SET,
+                                shieldd_sdk_proto::FILE_DESCRIPTOR_SET,
                             )
                             .build_v1()
                             .with_context(|| "could not configure grpc reflection service")?,

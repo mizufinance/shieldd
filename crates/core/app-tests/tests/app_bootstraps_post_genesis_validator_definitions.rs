@@ -3,14 +3,14 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey},
-    penumbra_sdk_app::{
+    shieldd_sdk_app::{
         genesis::{self, AppState, Content},
         server::consensus::Consensus,
     },
-    penumbra_sdk_mock_client::MockClient,
-    penumbra_sdk_mock_consensus::TestNode,
-    penumbra_sdk_proto::DomainType,
-    penumbra_sdk_validator::{
+    shieldd_sdk_mock_client::MockClient,
+    shieldd_sdk_mock_consensus::TestNode,
+    shieldd_sdk_proto::DomainType,
+    shieldd_sdk_validator::{
         component::validator_handler::ValidatorDataRead as _,
         params::{equal_validator_voting_power, ValidatorParameters},
         validator::{self, State, Validator},
@@ -26,11 +26,11 @@ mod common;
 async fn app_activates_post_genesis_validator_definitions_with_equal_weight() -> anyhow::Result<()>
 {
     let guard = common::set_tracing_subscriber();
-    let storage = TempStorage::new_with_penumbra_prefixes().await?;
+    let storage = TempStorage::new_with_shieldd_prefixes().await?;
 
     let app_state = AppState::Content(Content {
         chain_id: TestNode::<()>::CHAIN_ID.to_string(),
-        validator_content: penumbra_sdk_validator::genesis::Content {
+        validator_content: shieldd_sdk_validator::genesis::Content {
             validator_params: ValidatorParameters::default(),
             ..Default::default()
         },
@@ -41,12 +41,12 @@ async fn app_activates_post_genesis_validator_definitions_with_equal_weight() ->
         let consensus = Consensus::new(storage.as_ref().clone());
         TestNode::builder()
             .single_validator()
-            .with_penumbra_auto_app_state(app_state)?
+            .with_shieldd_auto_app_state(app_state)?
             .init_chain(consensus)
             .await
     }?;
 
-    let client = MockClient::new(penumbra_sdk_keys::test_keys::SPEND_KEY.clone())
+    let client = MockClient::new(shieldd_sdk_keys::test_keys::SPEND_KEY.clone())
         .with_sync_to_storage(&storage)
         .await?;
 
@@ -68,7 +68,7 @@ async fn app_activates_post_genesis_validator_definitions_with_equal_weight() ->
     };
 
     let plan = {
-        use penumbra_sdk_transaction::{ActionPlan, TransactionParameters, TransactionPlan};
+        use shieldd_sdk_transaction::{ActionPlan, TransactionParameters, TransactionPlan};
 
         let bytes = new_validator.encode_to_vec();
         let auth_sig = validator_id_sk.sign(OsRng, &bytes);
@@ -111,7 +111,7 @@ async fn app_activates_post_genesis_validator_definitions_with_equal_weight() ->
         Some(equal_validator_voting_power()),
         "post-genesis validators should receive equal voting power"
     );
-    use penumbra_sdk_validator::component::ConsensusIndexRead;
+    use shieldd_sdk_validator::component::ConsensusIndexRead;
     let consensus_set = snapshot.get_consensus_set().await?;
     assert!(
         consensus_set.contains(&new_validator.identity_key),

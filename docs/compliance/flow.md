@@ -1,8 +1,8 @@
 # Compliance Flow
 
-Penumbra compliance gives issuers selective visibility into regulated-asset
+Shieldd compliance gives issuers selective visibility into regulated-asset
 activity while leaving unregulated assets on the normal private path. The chain
-still validates asset integrity with Penumbra circuits; Orbis/ACP/Defra are
+still validates asset integrity with Shieldd circuits; Orbis/ACP/Defra are
 confidentiality and authorization services, not balance-integrity authorities.
 
 External systems:
@@ -19,12 +19,12 @@ For low-level formats, schema, and source files, see `reference.md`.
 
 ```text
 Issuer -> Orbis DKG
-  -> ring_pk public on Penumbra
+  -> ring_pk public on Shieldd
   -> sk_ring threshold-shared inside Orbis
 ```
 
 2. **Asset registration**: issuer creates SourceHub policy metadata and submits
-   `RegisterAsset` on Penumbra.
+   `RegisterAsset` on Shieldd.
 
 ```text
 AssetPolicy {
@@ -48,7 +48,7 @@ in NV storage and is checked at readiness.
 
 3. **User registration**: user completes KYC with Defra, publishes a hidden-doc
    proof through SourceHub/Orbis, then registers a `(address, asset)` compliance
-   leaf on Penumbra. ACP assigns or authorizes a slot for the asset and supplies
+   leaf on Shieldd. ACP assigns or authorizes a slot for the asset and supplies
    canonical random slot derivation material.
 
 ```text
@@ -57,7 +57,7 @@ d   = SHA256("elgamal-derivation-v1\0\0" || slot_derivation)
 ACK = d * ring_pk
 ```
 
-Normal Penumbra address generation is unchanged. `slot_derivation` is opaque
+Normal Shieldd address generation is unchanged. `slot_derivation` is opaque
 canonical slot material, not an address diversifier. `ACK` means Audit
 Compliance Key: it is the per-slot key used for audit-tier encryption. `d` and
 `slot_derivation` are stored in the compliance leaf; `ACK` is derived from `d`
@@ -218,7 +218,7 @@ ACP grant
   -> Orbis validates stored encrypted-seed package and policy metadata
   -> issuer requests PRE for authorized tier
   -> issuer recovers tier seed
-  -> issuer decrypts Penumbra tier payload locally
+  -> issuer decrypts Shieldd tier payload locally
 ```
 
 Audit-demo and reports are exporters over the scanner DB. The frontend state

@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
-use penumbra_sdk_compact_block::{CompactBlock, StatePayload};
-use penumbra_sdk_fee::GasPrices;
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_shielded_pool::{fmd, Note, NotePayload};
-use penumbra_sdk_tct::{self as tct, StateCommitment};
+use shieldd_sdk_compact_block::{CompactBlock, StatePayload};
+use shieldd_sdk_fee::GasPrices;
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_shielded_pool::{fmd, Note, NotePayload};
+use shieldd_sdk_tct::{self as tct, StateCommitment};
 use tracing::Instrument;
 
 use crate::{SpendableNoteRecord, Storage};

@@ -7,7 +7,7 @@ use jmt::{
     storage::{LeafNode, Node, NodeKey, TreeReader},
     KeyHash, RootHash, Sha256Jmt, Version,
 };
-use penumbra_sdk_proto::DomainType as _;
+use shieldd_sdk_proto::DomainType as _;
 use sha2::Sha256;
 use std::{collections::BTreeMap, future::Future};
 

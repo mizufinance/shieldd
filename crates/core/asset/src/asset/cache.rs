@@ -31,15 +31,15 @@ impl Cache {
         let known_assets = vec![
             Metadata {
                 inner: Arc::new(denom_metadata::Inner::new(
-                    "upenumbra".to_string(),
+                    "ushieldd".to_string(),
                     vec![
                         denom_metadata::BareDenomUnit {
                             exponent: 6,
-                            denom: "penumbra".to_string(),
+                            denom: "shieldd".to_string(),
                         },
                         denom_metadata::BareDenomUnit {
                             exponent: 3,
-                            denom: "mpenumbra".to_string(),
+                            denom: "mshieldd".to_string(),
                         },
                     ],
                 )),

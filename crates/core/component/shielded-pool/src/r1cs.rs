@@ -15,7 +15,7 @@ use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
 use decaf377::{r1cs::FqVar, Fq};
 
 use decaf377::r1cs::ElementVar;
-use penumbra_sdk_compliance::{r1cs::verify_quad_path, structs::MerklePath};
+use shieldd_sdk_compliance::{r1cs::verify_quad_path, structs::MerklePath};
 
 // ============================================================================
 // Public Input Packing Helpers
@@ -88,7 +88,7 @@ pub fn verify_compliance_registry(
 
     let leaf_domain_sep = FqVar::new_constant(
         cs.clone(),
-        Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"penumbra.compliance.leaf").as_bytes()),
+        Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf").as_bytes()),
     )?;
 
     let g_d_fq = diversified_generator.compress_to_field()?;

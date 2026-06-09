@@ -1,4 +1,4 @@
-use penumbra_sdk_proto::{penumbra::core::txhash::v1 as pb, DomainType, Message, Name};
+use shieldd_sdk_proto::{shieldd::core::txhash::v1 as pb, DomainType, Message, Name};
 
 /// A hash of a transaction's _effecting data_, describing its effects on the
 /// chain state.

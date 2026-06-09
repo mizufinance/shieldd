@@ -1,4 +1,4 @@
-//! Data modeling for Penumbra transactions.
+//! Data modeling for Shieldd transactions.
 //!
 //! This crate defines data structures that provide modeling of shielded
 //! transactions through their entire lifecycle:
@@ -39,8 +39,8 @@ pub use error::Error;
 pub use fee_funding::{FeeFunding, FeeFundingPlan};
 pub use is_action::IsAction;
 pub use parameters::TransactionParameters;
-pub use penumbra_sdk_proof_aggregation::{AggregateBundle, FamilyAggregate, ProofFamilyId};
-pub use penumbra_sdk_txhash as txhash;
+pub use shieldd_sdk_proof_aggregation::{AggregateBundle, FamilyAggregate, ProofFamilyId};
+pub use shieldd_sdk_txhash as txhash;
 pub use plan::{ActionPlan, TransactionPlan};
 pub use transaction::{Transaction, TransactionBody, TransactionSummary};
 pub use view::{ActionView, MemoPlaintextView, MemoView, TransactionPerspective, TransactionView};

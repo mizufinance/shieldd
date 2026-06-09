@@ -2,8 +2,8 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::ActionHandler;
-use penumbra_sdk_proof_params::batch::{self, BatchItem};
-use penumbra_sdk_txhash::TransactionContext;
+use shieldd_sdk_proof_params::batch::{self, BatchItem};
+use shieldd_sdk_txhash::TransactionContext;
 
 use crate::{
     component::action_handler::note_reshape, Consolidate, ConsolidateInputBody,

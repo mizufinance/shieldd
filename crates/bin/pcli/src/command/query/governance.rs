@@ -5,13 +5,13 @@ use std::{
 
 use anyhow::{Context, Result};
 use futures::TryStreamExt;
-use penumbra_sdk_governance::Vote;
-use penumbra_sdk_proto::core::component::governance::v1::{
+use shieldd_sdk_governance::Vote;
+use shieldd_sdk_proto::core::component::governance::v1::{
     query_service_client::QueryServiceClient as GovernanceQueryServiceClient, ProposalDataRequest,
     ProposalListRequest, ProposalListResponse, ValidatorVotesRequest, ValidatorVotesResponse,
     VotingPowerAtProposalStartRequest,
 };
-use penumbra_sdk_validator::IdentityKey;
+use shieldd_sdk_validator::IdentityKey;
 use serde::Serialize;
 use serde_json::json;
 
@@ -167,7 +167,7 @@ impl GovernanceCmd {
                         }
 
                         // Combine the two mappings
-                        let mut total = penumbra_sdk_governance::Tally::default();
+                        let mut total = shieldd_sdk_governance::Tally::default();
                         let mut all_votes_and_power: BTreeMap<String, serde_json::Value> =
                             BTreeMap::new();
                         for (identity_key, (vote, power)) in validator_votes_and_power.into_iter() {
@@ -179,7 +179,7 @@ impl GovernanceCmd {
                                         vote.to_string(): power,
                                     }),
                                 );
-                                let sub_total = penumbra_sdk_governance::Tally::from((vote, power));
+                                let sub_total = shieldd_sdk_governance::Tally::from((vote, power));
                                 map.insert("sub_total".to_string(), json_tally(&sub_total));
                                 total += sub_total;
                                 map.into()
@@ -205,7 +205,7 @@ fn json<T: Serialize>(value: &T) -> Result<()> {
     Ok(())
 }
 
-fn json_tally(tally: &penumbra_sdk_governance::Tally) -> serde_json::Value {
+fn json_tally(tally: &shieldd_sdk_governance::Tally) -> serde_json::Value {
     let mut map = serde_json::Map::new();
     if tally.yes() > 0 {
         map.insert("yes".to_string(), tally.yes().into());

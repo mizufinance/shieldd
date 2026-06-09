@@ -1,13 +1,13 @@
 # IBC Protocol Implementation
 
-Penumbra supports the [IBC protocol](https://ibcprotocol.org/) for
-interoperating with other counterparty blockchains. Unlike most blockchains that currently deploy IBC, Penumbra is not based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk). IBC as a protocol supports replication of data between two communicating blockchains. It provides basic building blocks for building higher-level cross chain applications, as well as a protocol specification for the most commonly used IBC applications, the [ICS-20 transfer](https://github.com/cosmos/ibc/tree/master/spec/app/ics-020-fungible-token-transfer) protocol.
+Shieldd supports the [IBC protocol](https://ibcprotocol.org/) for
+interoperating with other counterparty blockchains. Unlike most blockchains that currently deploy IBC, Shieldd is not based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk). IBC as a protocol supports replication of data between two communicating blockchains. It provides basic building blocks for building higher-level cross chain applications, as well as a protocol specification for the most commonly used IBC applications, the [ICS-20 transfer](https://github.com/cosmos/ibc/tree/master/spec/app/ics-020-fungible-token-transfer) protocol.
 
-Penumbra implements the core IBC protocol building blocks: [ICS-23 compatible state inclusion proofs](https://github.com/cosmos/ibc/tree/master/spec/core/ics-023-vector-commitments), [connections](https://github.com/cosmos/ibc/tree/master/spec/core/ics-003-connection-semantics) as well as [channels and packets](https://github.com/cosmos/ibc/tree/master/spec/core/ics-004-channel-and-packet-semantics).
+Shieldd implements the core IBC protocol building blocks: [ICS-23 compatible state inclusion proofs](https://github.com/cosmos/ibc/tree/master/spec/core/ics-023-vector-commitments), [connections](https://github.com/cosmos/ibc/tree/master/spec/core/ics-003-connection-semantics) as well as [channels and packets](https://github.com/cosmos/ibc/tree/master/spec/core/ics-004-channel-and-packet-semantics).
 
 ## IBC Actions
 
-Penumbra exposes one relay-oriented IBC action, `IbcRelay`, which carries the
+Shieldd exposes one relay-oriented IBC action, `IbcRelay`, which carries the
 IBC datagrams needed to advance clients, connections, channels, and packets:
 
 ### ICS-003 Connections
@@ -32,7 +32,7 @@ IBC datagrams needed to advance clients, connections, channels, and packets:
 These datagrams are implemented as protocol buffers, with `IbcRelay` using a
 protobuf `oneof` to encapsulate the supported relay payloads.
 
-# Transfers into Penumbra
+# Transfers into Shieldd
 
 IBC transfer mechanics are specified in [ICS20]. The
 [`FungibleTokenPacketData`][ftpd] packet describes the transfer:
@@ -47,8 +47,8 @@ FungibleTokenPacketData {
 
 The `sender` and `receiver` fields are used to specify the sending account on
 the source chain and the receiving account on the destination chain. However,
-for inbound transfers, the destination chain is Penumbra, which has no
-accounts. Instead, token transfers into Penumbra are decoded into a shielded
+for inbound transfers, the destination chain is Shieldd, which has no
+accounts. Instead, token transfers into Shieldd are decoded into a shielded
 note owned by the destination address embedded in the packet payload.
 
 Outbound transfers use the dedicated `ShieldedIcs20Withdrawal` action, which
@@ -60,8 +60,8 @@ emit a sender-owned shielded change note.
 
 ## Handling Bridged Assets 
 
-Penumbra's native state model uses notes, which contain an amount of a
-particular asset. Amounts in Penumbra are 128-bit unsigned integers, in order
+Shieldd's native state model uses notes, which contain an amount of a
+particular asset. Amounts in Shieldd are 128-bit unsigned integers, in order
 to support assets which have potentially large base denoms (such as Ethereum).
 When receiving an IBC transfer, if the amount being transferred is greater than
 `u128`, we return an error. 

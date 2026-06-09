@@ -7,20 +7,20 @@ set -x
 
 # Unpack args. Different CI workflows can override these settings,
 # to determine whether we're targeting testnet or preview.
-PENUMBRA_VERSION="${PENUMBRA_VERSION:-main}"
-PENUMBRA_ENVIRONMENT="${PENUMBRA_ENVIRONMENT:-penumbra-preview}"
+SHIELDD_VERSION="${SHIELDD_VERSION:-main}"
+SHIELDD_ENVIRONMENT="${SHIELDD_ENVIRONMENT:-shieldd-preview}"
 
-if [[ -z "$PENUMBRA_VERSION" || -z "$PENUMBRA_ENVIRONMENT" ]] ; then
-    >&2 echo "ERROR: required env vars not set: PENUMBRA_VERSION, PENUMBRA_ENVIRONMENT"
+if [[ -z "$SHIELDD_VERSION" || -z "$SHIELDD_ENVIRONMENT" ]] ; then
+    >&2 echo "ERROR: required env vars not set: SHIELDD_VERSION, SHIELDD_ENVIRONMENT"
     exit 1
 fi
 
-if [[ "$PENUMBRA_ENVIRONMENT" = "penumbra-preview" ]] ; then
+if [[ "$SHIELDD_ENVIRONMENT" = "shieldd-preview" ]] ; then
     ci_ssh_host="solo-pd.testnet-preview.plinfra.net"
-elif [[ "$PENUMBRA_ENVIRONMENT" = "penumbra-testnet" ]] ; then
+elif [[ "$SHIELDD_ENVIRONMENT" = "shieldd-testnet" ]] ; then
     ci_ssh_host="solo-pd.testnet.plinfra.net"
 else
-    >&2 echo "ERROR: unsupported PENUMBRA_ENVIRONMENT: '$PENUMBRA_ENVIRONMENT'"
+    >&2 echo "ERROR: unsupported SHIELDD_ENVIRONMENT: '$SHIELDD_ENVIRONMENT'"
     exit 2
 fi
 
@@ -28,10 +28,10 @@ fi
 # The remote box has been provisioned with:
 #
 #   1) an ssh keypair assigned to admin user `ci`
-#   2) a normal user account `penumbra` for running services
+#   2) a normal user account `shieldd` for running services
 #   3) systemd service files for pd & cometbft
 #
 # As for the script that's being execute on the target, we'll copy that up from local context.
 scp ./deployments/scripts/redeploy-ci-fullnode-via-remote "ci@${ci_ssh_host}:"
 ssh -l ci "$ci_ssh_host" sudo mv redeploy-ci-fullnode-via-remote /usr/local/bin/redeploy-ci-fullnode-via-remote
-ssh -l ci "$ci_ssh_host" sudo /usr/local/bin/redeploy-ci-fullnode-via-remote "$PENUMBRA_VERSION" "$PENUMBRA_ENVIRONMENT"
+ssh -l ci "$ci_ssh_host" sudo /usr/local/bin/redeploy-ci-fullnode-via-remote "$SHIELDD_VERSION" "$SHIELDD_ENVIRONMENT"

@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Result};
-use penumbra_sdk_transaction::AuthorizationData;
+use shieldd_sdk_transaction::AuthorizationData;
 use rand_core::OsRng;
 use serde::Serialize;
 use tonic::{async_trait, Request, Response, Status};
 
-use penumbra_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
-use penumbra_sdk_proto::{custody::v1 as pb, DomainType};
+use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
+use shieldd_sdk_proto::{custody::v1 as pb, DomainType};
 
 use crate::{
     AuthorizeProposalSubmitRequest, AuthorizeRequest, AuthorizeValidatorDefinitionRequest,
@@ -396,7 +396,7 @@ impl<T: Terminal + Sync + Send + 'static> pb::custody_service_server::CustodySer
 mod test {
     use std::collections::HashMap;
 
-    use penumbra_sdk_transaction::TransactionPlan;
+    use shieldd_sdk_transaction::TransactionPlan;
 
     use tokio::sync;
 
@@ -580,22 +580,22 @@ mod test {
             .incoming()
             .payment_address(1u32.into())
             .0;
-        let value = penumbra_sdk_asset::Value {
+        let value = shieldd_sdk_asset::Value {
             amount: 1_000u64.into(),
-            asset_id: *penumbra_sdk_asset::BASE_ASSET_ID,
+            asset_id: *shieldd_sdk_asset::BASE_ASSET_ID,
         };
-        let note = penumbra_sdk_shielded_pool::Note::from_parts(
+        let note = shieldd_sdk_shielded_pool::Note::from_parts(
             sender.clone(),
-            penumbra_sdk_asset::Value {
+            shieldd_sdk_asset::Value {
                 amount: 2_000u64.into(),
-                asset_id: *penumbra_sdk_asset::BASE_ASSET_ID,
+                asset_id: *shieldd_sdk_asset::BASE_ASSET_ID,
             },
-            penumbra_sdk_shielded_pool::Rseed::generate(&mut OsRng),
+            shieldd_sdk_shielded_pool::Rseed::generate(&mut OsRng),
         )?;
         let spend =
-            penumbra_sdk_shielded_pool::ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+            shieldd_sdk_shielded_pool::ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
         let mut output =
-            penumbra_sdk_shielded_pool::ShieldedOutputPlan::new(&mut OsRng, value, recipient);
+            shieldd_sdk_shielded_pool::ShieldedOutputPlan::new(&mut OsRng, value, recipient);
         output.asset_anchor = spend.asset_anchor;
         output.compliance_anchor = spend.compliance_anchor;
         output.target_timestamp = spend.target_timestamp;
@@ -605,17 +605,17 @@ mod test {
         output.asset_path = spend.asset_path.clone();
         output.asset_position = spend.asset_position;
         output.asset_policy = spend.asset_policy.clone();
-        let transfer = penumbra_sdk_shielded_pool::TransferPlan::from_spend_output(
+        let transfer = shieldd_sdk_shielded_pool::TransferPlan::from_spend_output(
             spend,
             output,
             decaf377::Fr::rand(&mut OsRng),
         )?;
         let mut plan = TransactionPlan {
-            actions: vec![penumbra_sdk_transaction::ActionPlan::Transfer(transfer)],
+            actions: vec![shieldd_sdk_transaction::ActionPlan::Transfer(transfer)],
             memo: None,
             detection_data: None,
             fee_funding: None,
-            transaction_parameters: penumbra_sdk_transaction::TransactionParameters::default(),
+            transaction_parameters: shieldd_sdk_transaction::TransactionParameters::default(),
         };
         plan.populate_detection_data(OsRng, Default::default());
         let fvk = coordinator_config.fvk().clone();
@@ -633,22 +633,22 @@ mod test {
                 .expect("effect hash not present")
         );
         let spend_randomizers = plan.actions.iter().flat_map(|action| match action {
-            penumbra_sdk_transaction::ActionPlan::Transfer(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::Transfer(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
-            penumbra_sdk_transaction::ActionPlan::Consolidate(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::Consolidate(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
-            penumbra_sdk_transaction::ActionPlan::Split(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::Split(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
-            penumbra_sdk_transaction::ActionPlan::ShieldedIcs20Withdrawal(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::ShieldedIcs20Withdrawal(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)

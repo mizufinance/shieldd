@@ -1,15 +1,15 @@
 # Dev dependencies are considered circular.
-# Previously, this test suite was located in `penumbra-sdk-app`.
+# Previously, this test suite was located in `shieldd-sdk-app`.
 # 
 [package]
-name        = "penumbra-sdk-app-tests"
+name        = "shieldd-sdk-app-tests"
 version     = { workspace = true }
 authors     = { workspace = true }
 edition     = { workspace = true}
 repository  = { workspace = true }
 homepage    = { workspace = true }
 license     = { workspace = true }
-description = "Tests for the Penumbra app"
+description = "Tests for the Shieldd app"
 publish     = false
 # Disable auto-discovery so we can explicitly list tests
 autotests   = false
@@ -18,15 +18,15 @@ autotests   = false
 component = [
   "dep:cnidarium",
   "dep:cnidarium-component",
-  "penumbra-sdk-proto/cnidarium",
-  "penumbra-sdk-compact-block/component",
-  "penumbra-sdk-fee/component",
-  "penumbra-sdk-governance/component",
-  "penumbra-sdk-ibc/component",
-  "penumbra-sdk-ibc/rpc",
-  "penumbra-sdk-sct/component",
-  "penumbra-sdk-shielded-pool/component",
-  "penumbra-sdk-validator/component",
+  "shieldd-sdk-proto/cnidarium",
+  "shieldd-sdk-compact-block/component",
+  "shieldd-sdk-fee/component",
+  "shieldd-sdk-governance/component",
+  "shieldd-sdk-ibc/component",
+  "shieldd-sdk-ibc/rpc",
+  "shieldd-sdk-sct/component",
+  "shieldd-sdk-shielded-pool/component",
+  "shieldd-sdk-validator/component",
   "dep:tonic",
   "dep:tonic-reflection",
   "dep:tonic-web"
@@ -58,25 +58,25 @@ jmt                              = { workspace = true }
 metrics                          = { workspace = true }
 once_cell                        = { workspace = true }
 parking_lot                      = { workspace = true }
-penumbra-sdk-asset               = { workspace = true, default-features = true }
-penumbra-sdk-app                 = { workspace = true, features = ["benchmark-helpers"], default-features = true }
-penumbra-sdk-compact-block           = { workspace = true, default-features = false }
-penumbra-sdk-fee                     = { workspace = true, default-features = false }
-penumbra-sdk-governance              = { workspace = true, default-features = false }
-penumbra-sdk-ibc                     = { workspace = true, features = ["benchmark-helpers"], default-features = false }
-penumbra-sdk-keys                    = { workspace = true, default-features = true }
-penumbra-sdk-num                     = { workspace = true, default-features = true }
-penumbra-sdk-compliance              = { workspace = true, default-features = false }
-penumbra-sdk-proof-params            = { workspace = true, default-features = false }
-penumbra-sdk-proto                   = { workspace = true, default-features = true }
-penumbra-sdk-sct                     = { workspace = true, default-features = false }
-penumbra-sdk-shielded-pool           = { workspace = true, features = ["benchmark-helpers", "bundled-proving-keys"], default-features = false }
-penumbra-sdk-validator                   = { workspace = true, default-features = false }
-penumbra-sdk-tct                     = { workspace = true, default-features = true }
-penumbra-sdk-test-subscriber         = { workspace = true }
-penumbra-sdk-tower-trace             = { workspace = true }
-penumbra-sdk-transaction             = { workspace = true, features = ["parallel"], default-features = true }
-penumbra-sdk-txhash                  = { workspace = true, default-features = true }
+shieldd-sdk-asset               = { workspace = true, default-features = true }
+shieldd-sdk-app                 = { workspace = true, features = ["benchmark-helpers"], default-features = true }
+shieldd-sdk-compact-block           = { workspace = true, default-features = false }
+shieldd-sdk-fee                     = { workspace = true, default-features = false }
+shieldd-sdk-governance              = { workspace = true, default-features = false }
+shieldd-sdk-ibc                     = { workspace = true, features = ["benchmark-helpers"], default-features = false }
+shieldd-sdk-keys                    = { workspace = true, default-features = true }
+shieldd-sdk-num                     = { workspace = true, default-features = true }
+shieldd-sdk-compliance              = { workspace = true, default-features = false }
+shieldd-sdk-proof-params            = { workspace = true, default-features = false }
+shieldd-sdk-proto                   = { workspace = true, default-features = true }
+shieldd-sdk-sct                     = { workspace = true, default-features = false }
+shieldd-sdk-shielded-pool           = { workspace = true, features = ["benchmark-helpers", "bundled-proving-keys"], default-features = false }
+shieldd-sdk-validator                   = { workspace = true, default-features = false }
+shieldd-sdk-tct                     = { workspace = true, default-features = true }
+shieldd-sdk-test-subscriber         = { workspace = true }
+shieldd-sdk-tower-trace             = { workspace = true }
+shieldd-sdk-transaction             = { workspace = true, features = ["parallel"], default-features = true }
+shieldd-sdk-txhash                  = { workspace = true, default-features = true }
 prost                            = { workspace = true }
 rand_chacha                      = { workspace = true }
 regex                            = { workspace = true }
@@ -106,14 +106,14 @@ axum-server                      = { workspace = true }
 camino                           = { workspace = true }
 decaf377-fmd                     = { workspace = true, default-features = true }
 ed25519-consensus                = { workspace = true }
-penumbra-sdk-mock-client             = { workspace = true }
-penumbra-sdk-mock-consensus          = { workspace = true }
-penumbra-sdk-proto                   = { workspace = true, features = ["box-grpc"] }
-penumbra-sdk-test-subscriber         = { workspace = true }
-penumbra-sdk-mock-tendermint-proxy   = { workspace = true }
-penumbra-sdk-view                    = { workspace = true }
-penumbra-sdk-wallet                  = { workspace = true }
-penumbra-sdk-proof-aggregation       = { workspace = true }
+shieldd-sdk-mock-client             = { workspace = true }
+shieldd-sdk-mock-consensus          = { workspace = true }
+shieldd-sdk-proto                   = { workspace = true, features = ["box-grpc"] }
+shieldd-sdk-test-subscriber         = { workspace = true }
+shieldd-sdk-mock-tendermint-proxy   = { workspace = true }
+shieldd-sdk-view                    = { workspace = true }
+shieldd-sdk-wallet                  = { workspace = true }
+shieldd-sdk-proof-aggregation       = { workspace = true }
 rand                             = { workspace = true }
 rand_chacha                      = { workspace = true }
 rand_core                        = { workspace = true }
@@ -130,7 +130,7 @@ ark-snark                        = { workspace = true }
 sha2                             = { workspace = true }
 
 # Enable the feature flags to get proving keys when running tests.
-[dev-dependencies.penumbra-sdk-proof-params]
+[dev-dependencies.shieldd-sdk-proof-params]
 workspace = true
 features = [
     "bundled-proving-keys",

@@ -60,13 +60,13 @@ fi
 
 if [ "$check_ports_free" -eq 1 ]; then
     ensure_ports_available \
-        "$PENUMBRA_PD_GRPC_PORT" \
-        "$PENUMBRA_COMETBFT_P2P_PORT" \
-        "$PENUMBRA_COMETBFT_RPC_PORT" \
-        "$PENUMBRA_PCLIENTD_PORT_BASE" \
-        "$((PENUMBRA_PCLIENTD_PORT_BASE + 1))" \
-        "$((PENUMBRA_PCLIENTD_PORT_BASE + 2))" \
-        "$((PENUMBRA_PCLIENTD_PORT_BASE + 3))" \
+        "$SHIELDD_PD_GRPC_PORT" \
+        "$SHIELDD_COMETBFT_P2P_PORT" \
+        "$SHIELDD_COMETBFT_RPC_PORT" \
+        "$SHIELDD_PCLIENTD_PORT_BASE" \
+        "$((SHIELDD_PCLIENTD_PORT_BASE + 1))" \
+        "$((SHIELDD_PCLIENTD_PORT_BASE + 2))" \
+        "$((SHIELDD_PCLIENTD_PORT_BASE + 3))" \
         "${ORBIS_SOURCEHUB_RPC_PORT:-26657}" \
         "${ORBIS_SOURCEHUB_P2P_PORT:-26656}" \
         "${ORBIS_SOURCEHUB_REST_PORT:-1317}" \
@@ -80,8 +80,8 @@ if [ "$check_ports_free" -eq 1 ]; then
     log_success "Required TCP ports are available"
 fi
 
-if [ "${PENUMBRA_ORBIS_USE_DEMO_GNARK:-0}" = "1" ]; then
-    log_info "Demo gnark override mode enabled via PENUMBRA_ORBIS_USE_DEMO_GNARK=1"
+if [ "${SHIELDD_ORBIS_USE_DEMO_GNARK:-0}" = "1" ]; then
+    log_info "Demo gnark override mode enabled via SHIELDD_ORBIS_USE_DEMO_GNARK=1"
 else
     log_info "Using bundled gnark runtimes from the release binaries"
 fi

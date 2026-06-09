@@ -1,10 +1,10 @@
 # Flow Encryption
 
-**NOTE: Flow Encryption will not ship in Penumbra V1, because ABCI 2.0 was delayed. Instead, flow contributions will be in the clear until a future network upgrade.**
+**NOTE: Flow Encryption will not ship in Shieldd V1, because ABCI 2.0 was delayed. Instead, flow contributions will be in the clear until a future network upgrade.**
 
 **These notes are a work-in-progress and do not reflect the current protocol.**
 
-In Penumbra, we need some scheme to achieve privacy in a multi-party context,
+In Shieldd, we need some scheme to achieve privacy in a multi-party context,
 where knowledge from multiple participants is required. Traditional
 zero-knowledge proofs are not sufficient for this, since there is a global
 state that no individual participant can prove knowledge of if the global state

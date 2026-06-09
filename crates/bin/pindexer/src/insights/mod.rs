@@ -8,12 +8,12 @@ use cometindex::{
     index::{EventBatch, EventBatchContext},
     AppView, PgTransaction,
 };
-use penumbra_sdk_app::genesis::Content;
-use penumbra_sdk_asset::{asset, BASE_ASSET_ID};
-use penumbra_sdk_fee::event::EventBlockFees;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::event::EventDomainType;
-use penumbra_sdk_shielded_pool::event::{
+use shieldd_sdk_app::genesis::Content;
+use shieldd_sdk_asset::{asset, BASE_ASSET_ID};
+use shieldd_sdk_fee::event::EventBlockFees;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::event::EventDomainType;
+use shieldd_sdk_shielded_pool::event::{
     EventInboundFungibleTokenTransfer, EventOutboundFungibleTokenRefund,
     EventOutboundFungibleTokenTransfer,
 };

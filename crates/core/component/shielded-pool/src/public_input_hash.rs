@@ -1,10 +1,10 @@
 use ark_ff::ToConstraintField;
 use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
 use decaf377::{r1cs::FqVar, Fq};
-use penumbra_sdk_compliance::{
+use shieldd_sdk_compliance::{
     TRANSFER_CORE_CIPHERTEXT_FQS, TRANSFER_DETECTION_FQS, TRANSFER_EXT_CIPHERTEXT_FQS,
 };
-use penumbra_sdk_proof_params::statement_hash::{hash_statement_fields, hash_statement_fields_var};
+use shieldd_sdk_proof_params::statement_hash::{hash_statement_fields, hash_statement_fields_var};
 
 use crate::{
     consolidate::ConsolidateProofPublic,
@@ -52,25 +52,25 @@ pub const fn shielded_ics20_withdrawal_statement_field_count(n_in: usize) -> usi
 
 fn consolidate_statement_hash_constant(family_id: ConsolidateFamilyId, suffix: &str) -> Fq {
     let label = format!(
-        "penumbra.shielded_pool.{}.public_input_hash.{suffix}",
+        "shieldd.shielded_pool.{}.public_input_hash.{suffix}",
         family_id.label()
     );
     Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label.as_bytes()).as_bytes())
 }
 fn split_statement_hash_constant(family_id: SplitFamilyId, suffix: &str) -> Fq {
     let label = format!(
-        "penumbra.shielded_pool.{}.public_input_hash.{suffix}",
+        "shieldd.shielded_pool.{}.public_input_hash.{suffix}",
         family_id.label()
     );
     Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label.as_bytes()).as_bytes())
 }
 fn transfer_statement_hash_constant(suffix: &str) -> Fq {
-    let label = format!("penumbra.shielded_pool.{TRANSFER_PROOF_LABEL}.public_input_hash.{suffix}");
+    let label = format!("shieldd.shielded_pool.{TRANSFER_PROOF_LABEL}.public_input_hash.{suffix}");
     Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label.as_bytes()).as_bytes())
 }
 fn shielded_ics20_withdrawal_statement_hash_constant(suffix: &str) -> Fq {
     let label =
-        format!("penumbra.shielded_pool.shielded_ics20_withdrawal.public_input_hash.{suffix}");
+        format!("shieldd.shielded_pool.shielded_ics20_withdrawal.public_input_hash.{suffix}");
     Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label.as_bytes()).as_bytes())
 }
 
@@ -125,16 +125,16 @@ fn note_reshape_rk_element(
 }
 
 trait NoteReshapeInputPublic {
-    fn nullifier(&self) -> penumbra_sdk_sct::Nullifier;
+    fn nullifier(&self) -> shieldd_sdk_sct::Nullifier;
     fn rk(&self) -> decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth>;
 }
 
 trait NoteReshapeOutputPublic {
-    fn note_commitment(&self) -> penumbra_sdk_tct::StateCommitment;
+    fn note_commitment(&self) -> shieldd_sdk_tct::StateCommitment;
 }
 
 impl NoteReshapeInputPublic for crate::ConsolidateInputPublic {
-    fn nullifier(&self) -> penumbra_sdk_sct::Nullifier {
+    fn nullifier(&self) -> shieldd_sdk_sct::Nullifier {
         self.nullifier
     }
 
@@ -144,13 +144,13 @@ impl NoteReshapeInputPublic for crate::ConsolidateInputPublic {
 }
 
 impl NoteReshapeOutputPublic for crate::ConsolidateOutputPublic {
-    fn note_commitment(&self) -> penumbra_sdk_tct::StateCommitment {
+    fn note_commitment(&self) -> shieldd_sdk_tct::StateCommitment {
         self.note_commitment
     }
 }
 
 impl NoteReshapeInputPublic for crate::SplitInputPublic {
-    fn nullifier(&self) -> penumbra_sdk_sct::Nullifier {
+    fn nullifier(&self) -> shieldd_sdk_sct::Nullifier {
         self.nullifier
     }
 
@@ -160,7 +160,7 @@ impl NoteReshapeInputPublic for crate::SplitInputPublic {
 }
 
 impl NoteReshapeOutputPublic for crate::SplitOutputPublic {
-    fn note_commitment(&self) -> penumbra_sdk_tct::StateCommitment {
+    fn note_commitment(&self) -> shieldd_sdk_tct::StateCommitment {
         self.note_commitment
     }
 }
@@ -168,7 +168,7 @@ impl NoteReshapeOutputPublic for crate::SplitOutputPublic {
 impl NoteReshapeInputPublic
     for crate::shielded_ics20_withdrawal::ShieldedIcs20WithdrawalInputPublic
 {
-    fn nullifier(&self) -> penumbra_sdk_sct::Nullifier {
+    fn nullifier(&self) -> shieldd_sdk_sct::Nullifier {
         self.nullifier
     }
 
@@ -180,14 +180,14 @@ impl NoteReshapeInputPublic
 impl NoteReshapeOutputPublic
     for crate::shielded_ics20_withdrawal::ShieldedIcs20WithdrawalChangePublic
 {
-    fn note_commitment(&self) -> penumbra_sdk_tct::StateCommitment {
+    fn note_commitment(&self) -> shieldd_sdk_tct::StateCommitment {
         self.note_commitment
     }
 }
 
 fn note_reshape_statement_fields<I, O>(
-    anchor: penumbra_sdk_tct::Root,
-    balance_commitment: penumbra_sdk_asset::balance::Commitment,
+    anchor: shieldd_sdk_tct::Root,
+    balance_commitment: shieldd_sdk_asset::balance::Commitment,
     inputs: &[I],
     outputs: &[O],
     expected: usize,

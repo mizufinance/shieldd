@@ -20,7 +20,7 @@ as described in [BIP44]. The BIP44 specification describes an organizational
 hierarchy allowing a user to remember a single seed phrase for multiple
 cryptocurrencies. 
 
-The BIP44 path for Penumbra consists of:
+The BIP44 path for Shieldd consists of:
 
 ```
 m / purpose' / coin_type' / wallet_id'
@@ -31,17 +31,17 @@ m / purpose' / coin_type' / wallet_id'
 
 The purpose field is a constant set to `44'` to denote that BIP44 is being used.
 
-Penumbra's registered `coin_type` is defined in [SLIP-0044]:
+Shieldd's registered `coin_type` is defined in [SLIP-0044]:
 
 * Coin type: `6532`
 * Path component `coin_type' = 0x80001984`
 
-The default wallet ID is set to 0. A typical use case for Penumbra will involve
-generating the single default wallet, and then using multiple Penumbra accounts
+The default wallet ID is set to 0. A typical use case for Shieldd will involve
+generating the single default wallet, and then using multiple Shieldd accounts
 within that wallet which share a single viewing key.
 
 The BIP44 path is used with the seed phrase to derive the spend `seed` for use
-in Penumbra following the child key derivation specified in [BIP32].
+in Shieldd following the child key derivation specified in [BIP32].
 
 The root key material for a particular spend authority is the 32-byte
 `spend_key_bytes` derived as above from the seed phrase. The `spend_key_bytes` value is used to derive
@@ -54,8 +54,8 @@ personalization `label`, key `key`, and input `input`.  Define
 `from_le_bytes(bytes)` as the function that interprets its input bytes as an
 integer in little-endian order.  Then
 ```
-ask = from_le_bytes(prf_expand("Penumbra_ExpndSd", spend_key_bytes, 0)) mod r
-nk  = from_le_bytes(prf_expand("Penumbra_ExpndSd", spend_key_bytes, 1)) mod q
+ask = from_le_bytes(prf_expand("Shieldd_ExpndSd", spend_key_bytes, 0)) mod r
+nk  = from_le_bytes(prf_expand("Shieldd_ExpndSd", spend_key_bytes, 1)) mod q
 ```
 
 The *spending key* consists of `spend_key_bytes` and `ask`.  (Since `ask` is

@@ -18,13 +18,13 @@ use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq};
-use penumbra_sdk_proof_aggregation::trace_schema::{TraceEvent, TraceEventKind};
-use penumbra_sdk_proof_aggregation::{
+use shieldd_sdk_proof_aggregation::trace_schema::{TraceEvent, TraceEventKind};
+use shieldd_sdk_proof_aggregation::{
     aggregate_family_with_trace, pad_items_to_power_of_two, srs_id, AggregateStatement, DevSrs,
     ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
 };
-use penumbra_sdk_proof_params::batch::BatchItem;
-use penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
+use shieldd_sdk_proof_params::batch::BatchItem;
+use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use serde::{Deserialize, Serialize};
 
@@ -305,8 +305,8 @@ fn project_event_shape(event: &TraceEvent) -> EventShape {
 fn parity_families() -> [ProofFamilyId; 4] {
     [
         ProofFamilyId::Transfer,
-        ProofFamilyId::Consolidate(penumbra_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
-        ProofFamilyId::Split(penumbra_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
+        ProofFamilyId::Consolidate(shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
+        ProofFamilyId::Split(shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
         ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
     ]
 }

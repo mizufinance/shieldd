@@ -5,10 +5,10 @@ mod common;
 use std::sync::Arc;
 
 use libfuzzer_sys::fuzz_target;
-use penumbra_sdk_app::app::{
+use shieldd_sdk_app::app::{
     decode_batch_item_for_fuzz, ProposalArtifactSidecar, ProposalArtifactSidecarRecord,
 };
-use penumbra_sdk_transaction::Transaction;
+use shieldd_sdk_transaction::Transaction;
 
 fuzz_target!(|data: &[u8]| {
     let split = data.len() / 2;

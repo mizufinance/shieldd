@@ -1,0 +1,673 @@
+syntax = "proto3";
+package shieldd.core.component.shielded_pool.v1;
+
+import "shieldd/core/asset/v1/asset.proto";
+import "shieldd/core/component/compliance/v1/compliance.proto";
+import "shieldd/core/component/ibc/v1/ibc.proto";
+import "shieldd/core/component/sct/v1/sct.proto";
+import "shieldd/core/keys/v1/keys.proto";
+import "shieldd/core/num/v1/num.proto";
+import "shieldd/core/txhash/v1/txhash.proto";
+import "shieldd/crypto/decaf377_fmd/v1/decaf377_fmd.proto";
+import "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto";
+import "shieldd/crypto/tct/v1/tct.proto";
+
+// Configuration data for the shielded pool component.
+message ShieldedPoolParameters {
+  FmdParameters fixed_fmd_params = 1 [deprecated = true];
+  FmdMetaParameters fmd_meta_params = 2;
+}
+
+// Genesis data for the shielded pool component.
+message GenesisContent {
+  ShieldedPoolParameters shielded_pool_params = 1;
+  message Allocation {
+    shieldd.core.num.v1.Amount amount = 1;
+    string denom = 2;
+    shieldd.core.keys.v1.Address address = 3;
+  }
+
+  // The allocations present at genesis
+  repeated Allocation allocations = 3;
+}
+
+// The parameters which control how the FMD parameters evolve over time.
+message FmdMetaParameters {
+  // A sliding window algorithm for updating the parameters.
+  message AlgorithmSlidingWindow {
+    // The window size, in terms of the number of update periods.
+    //
+    // The update period is 16 blocks, by default, but can change with governance.
+    uint32 window_update_periods = 1;
+    // The number of detections we aim to see per window.
+    uint32 targeted_detections_per_window = 2;
+  }
+
+  // How much time users have to transition to new parameters.
+  uint64 fmd_grace_period_blocks = 1;
+  // The algorithm governing how the parameters change.
+  oneof algorithm {
+    uint32 fixed_precision_bits = 2;
+    AlgorithmSlidingWindow sliding_window = 3;
+  }
+}
+
+// Used to potentially store state for the FMD Meta Parameters algorithm.
+message FmdMetaParametersAlgorithmState {
+  // The state used for the fixed algorithm.
+  message FixedState {}
+
+  // The state used for the sliding window algorithm.
+  message SlidingWindowState {
+    // The number of clues previously observed, approximately.
+    uint32 approximate_clue_count = 1;
+  }
+
+  oneof state {
+    FixedState fixed = 1;
+    SlidingWindowState sliding_window = 2;
+  }
+}
+
+// Parameters for Fuzzy Message Detection
+message FmdParameters {
+  uint32 precision_bits = 1;
+  uint64 as_of_block_height = 2;
+}
+
+message Note {
+  asset.v1.Value value = 1;
+  bytes rseed = 2;
+  keys.v1.Address address = 3;
+}
+
+message NoteView {
+  asset.v1.ValueView value = 1;
+  bytes rseed = 2;
+  keys.v1.AddressView address = 3;
+}
+
+// An encrypted note.
+// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+message NoteCiphertext {
+  bytes inner = 1;
+}
+
+// The body of an output description, including only the minimal
+// data required to scan and process the output.
+message NotePayload {
+  // The note commitment for the output note. 32 bytes.
+  crypto.tct.v1.StateCommitment note_commitment = 1;
+  // The encoding of an ephemeral public key. 32 bytes.
+  bytes ephemeral_key = 2;
+  // An encryption of the newly created note.
+  // 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+  NoteCiphertext encrypted_note = 3;
+}
+
+// A Shieldd ZK transfer proof.
+message ZKTransferProof {
+  bytes inner = 1;
+}
+
+// A Shieldd ZK consolidate proof.
+message ZKConsolidateProof {
+  bytes inner = 1;
+}
+
+// A Shieldd ZK split proof.
+message ZKSplitProof {
+  bytes inner = 1;
+}
+
+// A Shieldd ZK shielded ICS-20 withdrawal proof.
+message ZKShieldedIcs20WithdrawalProof {
+  bytes inner = 1;
+}
+
+message TransferInputBody {
+  // The nullifier of the spent note.
+  sct.v1.Nullifier nullifier = 1;
+  // The randomized validating key for the spend authorization signature.
+  crypto.decaf377_rdsa.v1.SpendVerificationKey rk = 2;
+  // An encryption of the commitment of the input note to the sender's OVK.
+  bytes encrypted_backref = 3;
+  // Compliance ciphertext encrypting spent note details for the asset issuer.
+  bytes compliance_ciphertext = 4;
+}
+
+message TransferOutputBody {
+  // The minimal data required to scan and process the created note.
+  NotePayload note_payload = 1;
+  // An encrypted key for decrypting the memo.
+  bytes wrapped_memo_key = 2;
+  // The key material used for note encryption, wrapped to the sender's OVK.
+  bytes ovk_wrapped_key = 3;
+  // Compliance ciphertext encrypting created note details for the asset issuer.
+  bytes compliance_ciphertext = 4;
+  // Orbis-compatible encrypted-seed upload bundle for the receiver output only.
+  bytes orbis_upload_bundle = 5;
+}
+
+// Transfers shielded notes into new shielded notes as a single action.
+message Transfer {
+  // The effecting data of the transfer.
+  TransferBody body = 1;
+  // The authorizing signatures for each transfer input.
+  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The proof that the transfer is well-formed.
+  ZKTransferProof proof = 3;
+}
+
+// The body of a fused shielded transfer.
+message TransferBody {
+  // The state commitment tree anchor used during proof generation.
+  crypto.tct.v1.MerkleRoot anchor = 15;
+  // A commitment to the net balance of the action.
+  asset.v1.BalanceCommitment balance_commitment = 1;
+  // The transfer inputs.
+  repeated TransferInputBody inputs = 2;
+  // The transfer outputs.
+  repeated TransferOutputBody outputs = 3;
+  // Target timestamp for compliance verification (Unix UTC seconds).
+  uint64 target_timestamp = 4;
+  // Compliance tree anchor (user tree root) used during proof generation.
+  crypto.tct.v1.StateCommitment compliance_anchor = 5;
+  // Asset tree anchor used during proof generation.
+  crypto.tct.v1.StateCommitment asset_anchor = 6;
+}
+
+message TransferView {
+  message Visible {
+    Transfer transfer = 1;
+    repeated NoteView spent_notes = 2;
+    repeated NoteView created_notes = 3;
+    keys.v1.PayloadKey payload_key = 4;
+  }
+
+  message Opaque {
+    Transfer transfer = 1;
+  }
+
+  oneof transfer_view {
+    Visible visible = 1;
+    Opaque opaque = 2;
+  }
+}
+
+message TransferPlan {
+  // The public body this plan will produce.
+  TransferBody body = 1;
+  // The blinding factor to use for the net balance commitment.
+  bytes value_blinding = 2;
+  // The net action balance committed by the action body.
+  asset.v1.Balance balance = 3;
+  // The shielded input plans fused into this transfer.
+  repeated ShieldedInputPlan spends = 4;
+  // The shielded output plans fused into this transfer.
+  repeated ShieldedOutputPlan outputs = 5;
+}
+
+message ShieldedIcs20WithdrawalChangeBody {
+  // The minimal data required to scan and process the created change note.
+  NotePayload note_payload = 1;
+  // An encrypted key for decrypting the memo.
+  bytes wrapped_memo_key = 2;
+  // The key material used for note encryption, wrapped to the sender's OVK.
+  bytes ovk_wrapped_key = 3;
+}
+
+// Withdraws shielded funds over ICS-20 while keeping shielded change in the same action.
+message ShieldedIcs20Withdrawal {
+  // The effecting data of the withdrawal.
+  ShieldedIcs20WithdrawalBody body = 1;
+  // The authorizing signatures for each consumed input.
+  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The proof that the withdrawal is well-formed.
+  ZKShieldedIcs20WithdrawalProof proof = 3;
+}
+
+message ShieldedIcs20WithdrawalBody {
+  // The proving family this action uses.
+  uint32 family_id = 1;
+  // The state commitment tree anchor used during proof generation.
+  crypto.tct.v1.MerkleRoot anchor = 2;
+  // A commitment to the net balance of the action.
+  asset.v1.BalanceCommitment balance_commitment = 3;
+  // The consumed notes.
+  repeated TransferInputBody inputs = 4;
+  // The embedded outbound ICS-20 withdrawal payload.
+  shieldd.core.component.ibc.v1.Ics20Withdrawal withdrawal = 5;
+  // The sender-owned change note or sender-owned zero-value dummy.
+  ShieldedIcs20WithdrawalChangeBody change_output = 6;
+  // Target timestamp for compliance verification (Unix UTC seconds).
+  uint64 target_timestamp = 7;
+  // Compliance tree anchor (user tree root) used during proof generation.
+  crypto.tct.v1.StateCommitment compliance_anchor = 8;
+  // Asset tree anchor used during proof generation.
+  crypto.tct.v1.StateCommitment asset_anchor = 9;
+}
+
+message ShieldedIcs20WithdrawalView {
+  message Visible {
+    ShieldedIcs20Withdrawal withdrawal = 1;
+    repeated NoteView spent_notes = 2;
+    NoteView change_note = 3;
+    keys.v1.PayloadKey payload_key = 4;
+  }
+
+  message Opaque {
+    ShieldedIcs20Withdrawal withdrawal = 1;
+  }
+
+  oneof shielded_ics20_withdrawal_view {
+    Visible visible = 1;
+    Opaque opaque = 2;
+  }
+}
+
+message ShieldedIcs20WithdrawalPlan {
+  // The public body this plan will produce.
+  ShieldedIcs20WithdrawalBody body = 1;
+  // The blinding factor to use for the net balance commitment.
+  bytes value_blinding = 2;
+  // The net action balance committed by the action body.
+  asset.v1.Balance balance = 3;
+  // The shielded input plans fused into this withdrawal.
+  repeated ShieldedInputPlan spends = 4;
+  // The sender-owned change output, if any.
+  ShieldedOutputPlan change_output = 5;
+  // The embedded outbound ICS-20 withdrawal payload.
+  shieldd.core.component.ibc.v1.Ics20Withdrawal withdrawal = 6;
+}
+
+message ConsolidateInputBody {
+  // The nullifier of the spent note.
+  sct.v1.Nullifier nullifier = 1;
+  // The randomized validating key for the spend authorization signature.
+  crypto.decaf377_rdsa.v1.SpendVerificationKey rk = 2;
+  // An encryption of the commitment of the input note to the sender's OVK.
+  bytes encrypted_backref = 3;
+}
+
+message ConsolidateOutputBody {
+  // The minimal data required to scan and process the created note.
+  NotePayload note_payload = 1;
+  // An encrypted key for decrypting the memo.
+  bytes wrapped_memo_key = 2;
+  // The key material used for note encryption, wrapped to the sender's OVK.
+  bytes ovk_wrapped_key = 3;
+}
+
+// Consolidates multiple notes owned by one address into fewer notes owned by that same address.
+message Consolidate {
+  // The effecting data of the consolidate action.
+  ConsolidateBody body = 1;
+  // The authorizing signatures for each consumed input.
+  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The proof that the consolidate action is well-formed.
+  ZKConsolidateProof proof = 3;
+}
+
+message ConsolidateBody {
+  // The proving family this action uses.
+  uint32 family_id = 1;
+  // The state commitment tree anchor used during proof generation.
+  crypto.tct.v1.MerkleRoot anchor = 2;
+  // A commitment to the net balance of the action.
+  asset.v1.BalanceCommitment balance_commitment = 3;
+  // The consumed notes.
+  repeated ConsolidateInputBody inputs = 4;
+  // The created notes.
+  repeated ConsolidateOutputBody outputs = 5;
+}
+
+message ConsolidateView {
+  message Visible {
+    Consolidate consolidate = 1;
+    repeated NoteView spent_notes = 2;
+    repeated NoteView created_notes = 3;
+    keys.v1.PayloadKey payload_key = 4;
+  }
+
+  message Opaque {
+    Consolidate consolidate = 1;
+  }
+
+  oneof consolidate_view {
+    Visible visible = 1;
+    Opaque opaque = 2;
+  }
+}
+
+message ConsolidatePlan {
+  // The public body this plan will produce.
+  ConsolidateBody body = 1;
+  // The blinding factor to use for the net balance commitment.
+  bytes value_blinding = 2;
+  // The net action balance committed by the action body.
+  asset.v1.Balance balance = 3;
+  // The shielded input plans fused into this consolidation.
+  repeated ShieldedInputPlan spends = 4;
+  // The shielded output plans fused into this consolidation.
+  repeated ShieldedOutputPlan outputs = 5;
+}
+
+message SplitInputBody {
+  // The nullifier of the spent note.
+  sct.v1.Nullifier nullifier = 1;
+  // The randomized validating key for the spend authorization signature.
+  crypto.decaf377_rdsa.v1.SpendVerificationKey rk = 2;
+  // An encryption of the commitment of the input note to the sender's OVK.
+  bytes encrypted_backref = 3;
+}
+
+message SplitOutputBody {
+  // The minimal data required to scan and process the created note.
+  NotePayload note_payload = 1;
+  // An encrypted key for decrypting the memo.
+  bytes wrapped_memo_key = 2;
+  // The key material used for note encryption, wrapped to the sender's OVK.
+  bytes ovk_wrapped_key = 3;
+}
+
+// Split-style note reshaping action.
+// Current supported families consume one note and create multiple notes owned by the same address.
+message Split {
+  // The effecting data of the split action.
+  SplitBody body = 1;
+  // The authorizing signatures for each consumed input.
+  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The proof that the split action is well-formed.
+  ZKSplitProof proof = 3;
+}
+
+message SplitBody {
+  // The proving family this action uses.
+  uint32 family_id = 1;
+  // The state commitment tree anchor used during proof generation.
+  crypto.tct.v1.MerkleRoot anchor = 2;
+  // A commitment to the net balance of the action.
+  asset.v1.BalanceCommitment balance_commitment = 3;
+  // The consumed notes.
+  repeated SplitInputBody inputs = 4;
+  // The created notes.
+  repeated SplitOutputBody outputs = 5;
+}
+
+message SplitView {
+  message Visible {
+    Split split = 1;
+    repeated NoteView spent_notes = 2;
+    repeated NoteView created_notes = 3;
+    keys.v1.PayloadKey payload_key = 4;
+  }
+
+  message Opaque {
+    Split split = 1;
+  }
+
+  oneof split_view {
+    Visible visible = 1;
+    Opaque opaque = 2;
+  }
+}
+
+message SplitPlan {
+  // The public body this plan will produce.
+  SplitBody body = 1;
+  // The blinding factor to use for the net balance commitment.
+  bytes value_blinding = 2;
+  // The net action balance committed by the action body.
+  asset.v1.Balance balance = 3;
+  // The shielded input plans fused into this split.
+  repeated ShieldedInputPlan spends = 4;
+  // The shielded output plans fused into this split.
+  repeated ShieldedOutputPlan outputs = 5;
+}
+
+// ABCI Event recording a spent nullifier.
+message EventNullifierSpent {
+  core.component.sct.v1.Nullifier nullifier = 1;
+}
+
+// ABCI Event recording a created note commitment.
+message EventNoteCreated {
+  crypto.tct.v1.StateCommitment note_commitment = 1;
+}
+
+// ABCI Event recording a clue.
+message EventBroadcastClue {
+  crypto.decaf377_fmd.v1.Clue clue = 1;
+  txhash.v1.TransactionId tx = 2;
+}
+
+message ShieldedInputPlan {
+  // The plaintext note we plan to spend.
+  Note note = 1;
+  // The position of the note we plan to spend.
+  uint64 position = 2;
+  // The randomizer to use for the spend.
+  bytes randomizer = 3;
+  // The blinding factor to use for the value commitment.
+  bytes value_blinding = 4;
+  // The first blinding factor to use for the ZK spend proof.
+  bytes proof_blinding_r = 5;
+  // The second blinding factor to use for the ZK spend proof.
+  bytes proof_blinding_s = 6;
+  // Target timestamp for compliance verification (Unix UTC seconds).
+  uint64 target_timestamp = 7;
+  // Precomputed compliance ciphertext (352 bytes: 32 EPK + 32 EPK_G + 32 C2_core + 32 C2_ext + 224 payload).
+  // Empty when not yet generated. C2 fields are encrypted seeds for Orbis PRE.
+  bytes compliance_ciphertext = 8;
+  // Whether the asset is regulated (requires compliance).
+  bool is_regulated = 9;
+  // Compliance leaf for ZK proof (sender's registry entry).
+  compliance.v1.ComplianceLeaf compliance_leaf = 10;
+  // Ephemeral secret used in compliance ciphertext encryption (needed by circuit).
+  bytes compliance_ephemeral_secret = 12;
+  // Shared transaction blinding nonce (same for spend and output in one transaction).
+  bytes tx_blinding_nonce = 14;
+  // The compliance anchor (user tree root) for proof generation.
+  crypto.tct.v1.StateCommitment compliance_anchor = 15;
+  // The asset anchor (asset tree root) for proof generation.
+  crypto.tct.v1.StateCommitment asset_anchor = 16;
+  // Compliance Merkle path for proving user is in the compliance registry.
+  compliance.v1.MerklePath compliance_path = 17;
+  // Position of the user's compliance leaf in the compliance tree.
+  uint64 compliance_position = 18;
+  // Asset Merkle path for proving asset is in the asset registry.
+  compliance.v1.MerklePath asset_path = 19;
+  // Position of the asset in the asset registry tree.
+  uint64 asset_position = 20;
+  // Indexed leaf data for IMT proof verification (value, next_index, next_value).
+  compliance.v1.IndexedLeafData asset_indexed_leaf = 21;
+  // Whether this spend is flagged (amount >= threshold).
+  // Computed from threshold comparison and passed to circuit as witness.
+  bool is_flagged = 22;
+  // DLEQ proof salt (random Fq used in metadata hash).
+  bytes salt = 23;
+  // DLEQ proof blinding factor (random Fr).
+  bytes dleq_k = 24;
+  // DLEQ proof challenge (Fq).
+  bytes dleq_c = 25;
+  // DLEQ proof response (Fq).
+  bytes dleq_s = 26;
+  // Ring public key used for compliance encryption.
+  bytes ring_pk = 27;
+  // Issuer detection key public component.
+  bytes dk_pub = 28;
+  // Threshold for flagging (in base units).
+  bytes threshold = 29;
+  // Full compliance asset policy for regulated assets.
+  compliance.v1.AssetPolicy asset_policy = 30;
+}
+
+message ShieldedOutputPlan {
+  // The value to send to this output.
+  asset.v1.Value value = 1;
+  // The destination address to send it to.
+  keys.v1.Address dest_address = 2;
+  // The rseed to use for the new note.
+  bytes rseed = 3;
+  // The blinding factor to use for the value commitment.
+  bytes value_blinding = 4;
+  // The first blinding factor to use for the ZK output proof.
+  bytes proof_blinding_r = 5;
+  // The second blinding factor to use for the ZK output proof.
+  bytes proof_blinding_s = 6;
+  // Target timestamp for compliance verification (Unix UTC seconds).
+  uint64 target_timestamp = 7;
+  // Precomputed compliance ciphertext (352 bytes: 32 EPK + 32 EPK_G + 32 C2_core + 32 C2_ext + 224 payload).
+  // Empty when not yet generated. C2 fields are encrypted seeds for Orbis PRE.
+  bytes compliance_ciphertext = 8;
+  // Whether the asset is regulated (requires compliance).
+  bool is_regulated = 9;
+  // Compliance leaf for ZK proof (recipient's registry entry).
+  compliance.v1.ComplianceLeaf compliance_leaf = 10;
+  // Counterparty compliance leaf (sender's registry entry).
+  compliance.v1.ComplianceLeaf counterparty_leaf = 11;
+  // Ephemeral secret used in compliance ciphertext encryption (needed by circuit).
+  bytes compliance_ephemeral_secret = 12;
+  // Counterparty address (the sender of this output).
+  keys.v1.Address counterparty_address = 13;
+  // Shared transaction blinding nonce (same for spend and output in one transaction).
+  bytes tx_blinding_nonce = 14;
+  // The compliance anchor (user tree root) for proof generation.
+  crypto.tct.v1.StateCommitment compliance_anchor = 15;
+  // The asset anchor (asset tree root) for proof generation.
+  crypto.tct.v1.StateCommitment asset_anchor = 16;
+  // Compliance Merkle path for proving user is in the compliance registry.
+  compliance.v1.MerklePath compliance_path = 17;
+  // Position of the user's compliance leaf in the compliance tree.
+  uint64 compliance_position = 18;
+  // Asset Merkle path for proving asset is in the asset registry.
+  compliance.v1.MerklePath asset_path = 19;
+  // Position of the asset in the asset registry tree.
+  uint64 asset_position = 20;
+  // Indexed leaf data for IMT proof verification (value, next_index, next_value).
+  compliance.v1.IndexedLeafData asset_indexed_leaf = 21;
+  // Sender-encrypted ciphertext (96 bytes = 3 × 32, 3 Fq elements).
+  // Encrypts (recipient_gd, recipient_pk, amount) to sender's compliance ACK.
+  bytes sender_ciphertext = 22;
+  // DLEQ proof salt (random Fq used in metadata hash).
+  bytes salt = 23;
+  // DLEQ proof blinding factors (random Fr, one per EPK tier).
+  bytes dleq_k_1 = 24;
+  bytes dleq_k_2 = 25;
+  bytes dleq_k_3 = 26;
+  // DLEQ proof challenges and responses (Fq pairs, one per tier).
+  bytes dleq_c_1 = 27;
+  bytes dleq_s_1 = 28;
+  bytes dleq_c_2 = 29;
+  bytes dleq_s_2 = 30;
+  bytes dleq_c_3 = 31;
+  bytes dleq_s_3 = 32;
+  // Ring public key used for compliance encryption.
+  bytes ring_pk = 33;
+  // Issuer detection key public component.
+  bytes dk_pub = 34;
+  // Threshold for flagging (in base units).
+  bytes threshold_bytes = 35;
+  // Whether this output is flagged (amount >= threshold).
+  bool is_flagged = 36;
+  // Ephemeral secret for extension tier (r_2, needed by circuit).
+  bytes r_2 = 37;
+  // Ephemeral secret for spend extension tier (r_3, needed by circuit).
+  bytes r_3 = 38;
+  // Full compliance asset policy for regulated assets.
+  compliance.v1.AssetPolicy asset_policy = 39;
+}
+
+// Query operations for the shielded pool component.
+service QueryService {
+  rpc AssetMetadataById(AssetMetadataByIdRequest) returns (AssetMetadataByIdResponse);
+
+  // Requests a stream of asset metadata, given an array of asset IDs. Responses
+  // may be streamed in a different order from that of the asset IDs in the
+  // request, and asset IDs unknown to the node will not receive any response
+  // objects -- that is, the number of responses may be smaller than the length
+  // of the asset IDs array.
+  rpc AssetMetadataByIds(AssetMetadataByIdsRequest) returns (stream AssetMetadataByIdsResponse);
+}
+
+
+// Requests information on an asset by asset id
+message AssetMetadataByIdRequest {
+  // The asset id to request information on.
+  core.asset.v1.AssetId asset_id = 2;
+}
+
+message AssetMetadataByIdResponse {
+  // If present, information on the requested asset.
+  //
+  // If the requested asset was unknown, this field will not be present.
+  core.asset.v1.Metadata denom_metadata = 1;
+}
+
+// Requests information on an asset by multiple asset ids
+message AssetMetadataByIdsRequest {
+  // The asset IDs to request information on. Note that node is neither required
+  // nor expected to stream responses in the same order as this array.
+  repeated core.asset.v1.AssetId asset_id = 1;
+}
+
+message AssetMetadataByIdsResponse {
+  // A single asset metadata streamed from the node.
+  core.asset.v1.Metadata denom_metadata = 1;
+}
+
+// Metadata about the packet associated with the transfer.
+//
+// This allows identifying which specific packet is associated with the transfer.
+// Implicitly, both ports are going to be "transfer".
+message FungibleTokenTransferPacketMetadata {
+  // The identifier for the channel on *this* chain.
+  string channel = 1;
+  // Sequence number for the packet.
+  uint64 sequence = 2;
+}
+
+message EventOutboundFungibleTokenTransfer {
+  // The value being transferred out of the chain.
+  core.asset.v1.Value value = 1;
+  // The sending address on chain.
+  core.keys.v1.Address sender = 2;
+  // The receiving address, which we don't assume anything about.
+  string receiver = 3;
+  FungibleTokenTransferPacketMetadata meta = 4;
+}
+
+message EventOutboundFungibleTokenRefund {
+  enum Reason {
+    // No particular reason.
+    REASON_UNSPECIFIED = 0;
+    // The transfer timed out.
+    REASON_TIMEOUT = 1;
+    // The transfer was acknowledged with an error.
+    REASON_ERROR = 2;
+  }
+
+  // The value being refunded.
+  core.asset.v1.Value value = 1;
+  // The sender being refunded.
+  core.keys.v1.Address sender = 2;
+  // The address that attempted to receive the funds.
+  string receiver = 3;
+  // Why the refund is happening.
+  Reason reason = 4;
+  // This will be the metadata for the packet for the transfer being refunded.
+  //
+  // This allows linking a refund to the transfer.
+  FungibleTokenTransferPacketMetadata meta = 5;
+}
+
+message EventInboundFungibleTokenTransfer {
+  // The value being transferred in.
+  core.asset.v1.Value value = 1;
+  // The sender on the counterparty chain.
+  string sender = 2;
+  // The receiver on this chain.
+  core.keys.v1.Address receiver = 3;
+  FungibleTokenTransferPacketMetadata meta = 4;
+}

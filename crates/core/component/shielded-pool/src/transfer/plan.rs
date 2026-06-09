@@ -1,15 +1,15 @@
 use anyhow::{anyhow, ensure, Error};
 use decaf377::{Fq, Fr};
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
-use penumbra_sdk_asset::{asset, Balance};
-use penumbra_sdk_compliance::{AssetPolicy, ComplianceLeaf};
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_keys::{
+use shieldd_sdk_asset::{asset, Balance};
+use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_keys::{
     symmetric::{PayloadKey, WrappedMemoKey},
     FullViewingKey,
 };
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_tct as tct;
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 
@@ -120,7 +120,7 @@ impl TransferPlan {
         self.spends.iter().map(|spend| spend.randomizer)
     }
 
-    pub fn dest_addresses(&self) -> impl Iterator<Item = penumbra_sdk_keys::Address> + '_ {
+    pub fn dest_addresses(&self) -> impl Iterator<Item = shieldd_sdk_keys::Address> + '_ {
         self.outputs
             .iter()
             .map(|output| output.dest_address.clone())
@@ -166,12 +166,12 @@ impl TransferPlan {
             first_spend_randomizer: self.first_spend().randomizer,
             sender_address: self.sender_address(),
             asset_id: self.transfer_asset_id(),
-            nullifier_domain_sep_label: b"penumbra.transfer.synthetic_dummy.nullifier",
-            nullifier_seed_label: b"penumbra.transfer.synthetic_dummy.nullifier_seed",
-            spend_auth_key_label: b"penumbra.transfer.synthetic_dummy.spend_auth_key",
-            spend_auth_randomizer_label: b"penumbra.transfer.synthetic_dummy.spend_auth_randomizer",
-            input_note_label: b"penumbra.transfer.synthetic_dummy.input_note",
-            output_note_label: b"penumbra.transfer.synthetic_dummy.output_note",
+            nullifier_domain_sep_label: b"shieldd.transfer.synthetic_dummy.nullifier",
+            nullifier_seed_label: b"shieldd.transfer.synthetic_dummy.nullifier_seed",
+            spend_auth_key_label: b"shieldd.transfer.synthetic_dummy.spend_auth_key",
+            spend_auth_randomizer_label: b"shieldd.transfer.synthetic_dummy.spend_auth_randomizer",
+            input_note_label: b"shieldd.transfer.synthetic_dummy.input_note",
+            output_note_label: b"shieldd.transfer.synthetic_dummy.output_note",
         }
     }
 
@@ -187,7 +187,7 @@ impl TransferPlan {
         self.padder().synthetic_dummy_spend_auth_randomizer(slot)
     }
 
-    fn synthetic_dummy_nullifier(&self, slot: usize) -> penumbra_sdk_sct::Nullifier {
+    fn synthetic_dummy_nullifier(&self, slot: usize) -> shieldd_sdk_sct::Nullifier {
         self.padder().synthetic_dummy_nullifier(slot)
     }
 
@@ -216,7 +216,7 @@ impl TransferPlan {
             .spends
             .iter()
             .map(|_spend| TransferInputBody {
-                nullifier: penumbra_sdk_sct::Nullifier(Fq::from(0u64)),
+                nullifier: shieldd_sdk_sct::Nullifier(Fq::from(0u64)),
                 rk: decaf377_rdsa::VerificationKey::from(decaf377_rdsa::SigningKey::<
                     decaf377_rdsa::SpendAuth,
                 >::from(Fr::from(0u64))),
@@ -238,8 +238,8 @@ impl TransferPlan {
             .iter()
             .map(|output| TransferOutputBody {
                 note_payload: output.output_note().payload(),
-                wrapped_memo_key: penumbra_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: penumbra_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
+                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
                 compliance_ciphertext: Vec::new(),
                 orbis_upload_bundle: Vec::new(),
             })
@@ -247,8 +247,8 @@ impl TransferPlan {
         pad_to_len(&mut outputs, PADDED_TRANSFER_OUTPUTS, |slot| {
             TransferOutputBody {
                 note_payload: self.synthetic_dummy_output_note(slot).payload(),
-                wrapped_memo_key: penumbra_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: penumbra_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
+                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
                 compliance_ciphertext: Vec::new(),
                 orbis_upload_bundle: Vec::new(),
             }
@@ -456,7 +456,7 @@ impl TransferPlan {
                 // note commitment, but consensus/view code can identify padded outputs
                 // without relying on note commitment zeroing.
                 wrapped_memo_key: WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: penumbra_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
                 compliance_ciphertext: Vec::new(),
                 orbis_upload_bundle: Vec::new(),
             }
@@ -772,7 +772,7 @@ impl TryFrom<pb::TransferPlan> for TransferPlan {
 
 fn sender_leaf(spend: &ShieldedInputPlan) -> ComplianceLeaf {
     spend.compliance_leaf.clone().unwrap_or_else(|| {
-        penumbra_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+        shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
             spend.note.address().clone(),
             spend.note.asset_id(),
         )
@@ -781,7 +781,7 @@ fn sender_leaf(spend: &ShieldedInputPlan) -> ComplianceLeaf {
 
 fn recipient_leaf(output: &ShieldedOutputPlan, created_note: &crate::Note) -> ComplianceLeaf {
     output.compliance_leaf.clone().unwrap_or_else(|| {
-        penumbra_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
+        shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
             created_note.address().clone(),
             created_note.asset_id(),
         )
@@ -791,9 +791,9 @@ fn recipient_leaf(output: &ShieldedOutputPlan, created_note: &crate::Note) -> Co
 #[cfg(test)]
 mod tests {
     use super::*;
-    use penumbra_sdk_asset::{Value, BASE_ASSET_ID};
-    use penumbra_sdk_keys::test_keys;
-    use penumbra_sdk_num::Amount;
+    use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_num::Amount;
     use rand_core::OsRng;
 
     fn transfer_parts(

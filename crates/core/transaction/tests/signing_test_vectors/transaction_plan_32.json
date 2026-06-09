@@ -65,9 +65,9 @@
               "lo": "592371388938523825"
             },
             "denom": {
-              "denom": "upenumbra"
+              "denom": "ushieldd"
             },
-            "destinationChainAddress": "penumbra1zs4sc7t5d203wpffrvrurzjgmfv2hyk9utadl2z27cz0hf0l4kwklrhtm0zxw4t50hws0pdk9c4f59226dn5qnws7lxv5zrtwc60dvxw0dflqr5qylnuz4tktqequmm2uw8wmp",
+            "destinationChainAddress": "shieldd1zs4sc7t5d203wpffrvrurzjgmfv2hyk9utadl2z27cz0hf0l4kwklrhtm0zxw4t50hws0pdk9c4f59226dn5qnws7lxv5zrtwc60dvxw0dflqr5qylnuz4tktqequmm2uw8wmp",
             "returnAddress": {
               "inner": "FCsMeXRqnxcFKRsHwYpI2lirksXi+t+oSvYE+6X/rZ1vjuvbxGdVdH3dB4W2LiqaFUrTZ0BN0PfMyghrdjT2sM57U/AOgCfnwVV2WDIOb2o="
             },
@@ -396,9 +396,9 @@
             "lo": "592371388938523825"
           },
           "denom": {
-            "denom": "upenumbra"
+            "denom": "ushieldd"
           },
-          "destinationChainAddress": "penumbra1zs4sc7t5d203wpffrvrurzjgmfv2hyk9utadl2z27cz0hf0l4kwklrhtm0zxw4t50hws0pdk9c4f59226dn5qnws7lxv5zrtwc60dvxw0dflqr5qylnuz4tktqequmm2uw8wmp",
+          "destinationChainAddress": "shieldd1zs4sc7t5d203wpffrvrurzjgmfv2hyk9utadl2z27cz0hf0l4kwklrhtm0zxw4t50hws0pdk9c4f59226dn5qnws7lxv5zrtwc60dvxw0dflqr5qylnuz4tktqequmm2uw8wmp",
           "returnAddress": {
             "inner": "FCsMeXRqnxcFKRsHwYpI2lirksXi+t+oSvYE+6X/rZ1vjuvbxGdVdH3dB4W2LiqaFUrTZ0BN0PfMyghrdjT2sM57U/AOgCfnwVV2WDIOb2o="
           },

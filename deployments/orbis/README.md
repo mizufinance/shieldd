@@ -1,6 +1,6 @@
 # Orbis Runtime Contract
 
-Penumbra vendors the Orbis integration runtime contract here so local and CI
+Shieldd vendors the Orbis integration runtime contract here so local and CI
 flows do not depend on a manually maintained neighboring `orbis-rs` checkout or
 on `cli-tool`.
 
@@ -13,5 +13,5 @@ Current contract line:
 `./scripts/orbis-stack.sh up` prepares a local checkout of the pinned upstream
 `orbis-rs` ref under `tmp/orbis-rs` and points Docker Compose at that local
 build context. This avoids Docker BuildKit incompatibilities with remote git
-contexts on older CI runners while keeping Penumbra's supported runtime pinned
+contexts on older CI runners while keeping Shieldd's supported runtime pinned
 in repo.

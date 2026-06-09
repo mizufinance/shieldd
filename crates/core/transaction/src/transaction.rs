@@ -7,19 +7,19 @@ use anyhow::{Context, Error};
 use ark_ff::Zero;
 use decaf377::Fr;
 use decaf377_rdsa::{Binding, Signature, VerificationKey, VerificationKeyBytes};
-use penumbra_sdk_asset::Balance;
-use penumbra_sdk_governance::{ProposalSubmit, ValidatorVote};
-use penumbra_sdk_ibc::IbcRelay;
-use penumbra_sdk_keys::{AddressView, FullViewingKey, PayloadKey};
-use penumbra_sdk_proto::{
+use shieldd_sdk_asset::Balance;
+use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
+use shieldd_sdk_ibc::IbcRelay;
+use shieldd_sdk_keys::{AddressView, FullViewingKey, PayloadKey};
+use shieldd_sdk_proto::{
     core::transaction::v1::{self as pbt},
     DomainType, Message,
 };
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_shielded_pool::{Consolidate, Note, ShieldedIcs20WithdrawalView, Split, Transfer};
-use penumbra_sdk_tct as tct;
-use penumbra_sdk_tct::StateCommitment;
-use penumbra_sdk_txhash::{
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_shielded_pool::{Consolidate, Note, ShieldedIcs20WithdrawalView, Split, Transfer};
+use shieldd_sdk_tct as tct;
+use shieldd_sdk_tct::StateCommitment;
+use shieldd_sdk_txhash::{
     AuthHash, AuthorizingData, EffectHash, EffectingData, TransactionContext, TransactionId,
 };
 use serde::{Deserialize, Serialize};
@@ -59,7 +59,7 @@ pub struct TransactionEffect {
 impl EffectingData for TransactionBody {
     fn effect_hash(&self) -> EffectHash {
         let mut state = blake2b_simd::Params::new()
-            .personal(b"PenumbraEfHs")
+            .personal(b"ShielddEfHs")
             .to_state();
 
         let parameters_hash = self.transaction_parameters.effect_hash();
@@ -168,7 +168,7 @@ impl Transaction {
 
     pub fn aggregate_bundle_action(
         &self,
-    ) -> Option<&penumbra_sdk_proof_aggregation::AggregateBundle> {
+    ) -> Option<&shieldd_sdk_proof_aggregation::AggregateBundle> {
         self.actions().find_map(|action| {
             if let Action::AggregateBundle(bundle) = action {
                 Some(bundle)
@@ -462,7 +462,7 @@ impl Transaction {
 
     pub fn validator_definitions(
         &self,
-    ) -> impl Iterator<Item = &penumbra_sdk_validator::validator::Definition> {
+    ) -> impl Iterator<Item = &shieldd_sdk_validator::validator::Definition> {
         self.actions().filter_map(|action| {
             if let Action::ValidatorDefinition(definition) = action {
                 Some(definition)
@@ -647,7 +647,7 @@ impl Transaction {
 fn insert_payload_keys_for_outputs<Output>(
     result: &mut BTreeMap<StateCommitment, PayloadKey>,
     outputs: &[Output],
-    balance_commitment: penumbra_sdk_asset::balance::Commitment,
+    balance_commitment: shieldd_sdk_asset::balance::Commitment,
     fvk: &FullViewingKey,
 ) -> anyhow::Result<()>
 where
@@ -684,11 +684,11 @@ trait IntoOutputRef<'a> {
 }
 
 struct OutputRef<'a> {
-    note_payload: &'a penumbra_sdk_shielded_pool::NotePayload,
-    ovk_wrapped_key: &'a penumbra_sdk_keys::symmetric::OvkWrappedKey,
+    note_payload: &'a shieldd_sdk_shielded_pool::NotePayload,
+    ovk_wrapped_key: &'a shieldd_sdk_keys::symmetric::OvkWrappedKey,
 }
 
-impl<'a> IntoOutputRef<'a> for &'a penumbra_sdk_shielded_pool::TransferOutputBody {
+impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::TransferOutputBody {
     fn into_output_ref(self) -> OutputRef<'a> {
         OutputRef {
             note_payload: &self.note_payload,
@@ -697,7 +697,7 @@ impl<'a> IntoOutputRef<'a> for &'a penumbra_sdk_shielded_pool::TransferOutputBod
     }
 }
 
-impl<'a> IntoOutputRef<'a> for &'a penumbra_sdk_shielded_pool::ConsolidateOutputBody {
+impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::ConsolidateOutputBody {
     fn into_output_ref(self) -> OutputRef<'a> {
         OutputRef {
             note_payload: &self.note_payload,
@@ -706,7 +706,7 @@ impl<'a> IntoOutputRef<'a> for &'a penumbra_sdk_shielded_pool::ConsolidateOutput
     }
 }
 
-impl<'a> IntoOutputRef<'a> for &'a penumbra_sdk_shielded_pool::SplitOutputBody {
+impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::SplitOutputBody {
     fn into_output_ref(self) -> OutputRef<'a> {
         OutputRef {
             note_payload: &self.note_payload,
@@ -735,42 +735,42 @@ fn payload_key_from_view(action_view: &ActionView) -> Option<&PayloadKey> {
 #[cfg(test)]
 mod tests {
     use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
-    use penumbra_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM};
-    use penumbra_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
-    use penumbra_sdk_keys::Address;
-    use penumbra_sdk_sct::Nullifier;
-    use penumbra_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN;
+    use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
+    use shieldd_sdk_keys::Address;
+    use shieldd_sdk_sct::Nullifier;
+    use shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN;
 
     use super::{Action, Transaction, TransactionBody};
 
     #[test]
     fn transfer_counts_as_nullifier_and_state_commitment_source() {
-        let transfer = penumbra_sdk_shielded_pool::Transfer {
-            body: penumbra_sdk_shielded_pool::TransferBody {
-                anchor: penumbra_sdk_tct::Tree::default().root(),
+        let transfer = shieldd_sdk_shielded_pool::Transfer {
+            body: shieldd_sdk_shielded_pool::TransferBody {
+                anchor: shieldd_sdk_tct::Tree::default().root(),
                 balance_commitment: Balance::from(Value {
                     amount: 9u64.into(),
                     asset_id: asset::Id(decaf377::Fq::from(1u64)),
                 })
                 .commit(decaf377::Fr::from(2u64)),
                 inputs: vec![
-                    penumbra_sdk_shielded_pool::TransferInputBody {
+                    shieldd_sdk_shielded_pool::TransferInputBody {
                         nullifier: Nullifier(decaf377::Fq::from(3u64)),
                         rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                             decaf377::Fr::from(4u64),
                         )),
-                        encrypted_backref: penumbra_sdk_shielded_pool::EncryptedBackref::try_from(
+                        encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                             [1u8; ENCRYPTED_BACKREF_LEN],
                         )
                         .expect("valid encrypted backref"),
                         compliance_ciphertext: vec![1, 2, 3],
                     },
-                    penumbra_sdk_shielded_pool::TransferInputBody {
+                    shieldd_sdk_shielded_pool::TransferInputBody {
                         nullifier: Nullifier(decaf377::Fq::from(30u64)),
                         rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                             decaf377::Fr::from(40u64),
                         )),
-                        encrypted_backref: penumbra_sdk_shielded_pool::EncryptedBackref::try_from(
+                        encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                             [2u8; ENCRYPTED_BACKREF_LEN],
                         )
                         .expect("valid encrypted backref"),
@@ -778,26 +778,26 @@ mod tests {
                     },
                 ],
                 outputs: vec![
-                    penumbra_sdk_shielded_pool::TransferOutputBody {
-                        note_payload: penumbra_sdk_shielded_pool::NotePayload {
-                            note_commitment: penumbra_sdk_tct::StateCommitment(decaf377::Fq::from(
+                    shieldd_sdk_shielded_pool::TransferOutputBody {
+                        note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                            note_commitment: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(
                                 5u64,
                             )),
                             ephemeral_key: decaf377_ka::Public([6u8; 32]),
-                            encrypted_note: penumbra_sdk_shielded_pool::NoteCiphertext([7u8; 176]),
+                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([7u8; 176]),
                         },
                         wrapped_memo_key: WrappedMemoKey([8u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([9u8; 48]),
                         compliance_ciphertext: vec![4, 5, 6],
                         orbis_upload_bundle: vec![15, 16],
                     },
-                    penumbra_sdk_shielded_pool::TransferOutputBody {
-                        note_payload: penumbra_sdk_shielded_pool::NotePayload {
-                            note_commitment: penumbra_sdk_tct::StateCommitment(decaf377::Fq::from(
+                    shieldd_sdk_shielded_pool::TransferOutputBody {
+                        note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                            note_commitment: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(
                                 50u64,
                             )),
                             ephemeral_key: decaf377_ka::Public([60u8; 32]),
-                            encrypted_note: penumbra_sdk_shielded_pool::NoteCiphertext([70u8; 176]),
+                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([70u8; 176]),
                         },
                         wrapped_memo_key: WrappedMemoKey([80u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([90u8; 48]),
@@ -806,11 +806,11 @@ mod tests {
                     },
                 ],
                 target_timestamp: 10,
-                compliance_anchor: penumbra_sdk_tct::StateCommitment(decaf377::Fq::from(11u64)),
-                asset_anchor: penumbra_sdk_tct::StateCommitment(decaf377::Fq::from(12u64)),
+                compliance_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(11u64)),
+                asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(12u64)),
             },
             auth_sigs: vec![[17u8; 64].into(), [0u8; 64].into()],
-            proof: penumbra_sdk_shielded_pool::TransferProof::default(),
+            proof: shieldd_sdk_shielded_pool::TransferProof::default(),
         };
 
         let tx = Transaction {
@@ -828,9 +828,9 @@ mod tests {
     #[test]
     fn compliance_scanner_transaction_id_matches_canonical_transaction_id() {
         let tx = Transaction::default();
-        let proto: penumbra_sdk_proto::core::transaction::v1::Transaction = (&tx).into();
+        let proto: shieldd_sdk_proto::core::transaction::v1::Transaction = (&tx).into();
         assert_eq!(
-            penumbra_sdk_compliance::scanner_transaction_id_from_proto(&proto),
+            shieldd_sdk_compliance::scanner_transaction_id_from_proto(&proto),
             tx.id()
         );
     }
@@ -840,66 +840,66 @@ mod tests {
         let tx = Transaction {
             transaction_body: TransactionBody {
                 actions: vec![
-                    Action::Consolidate(penumbra_sdk_shielded_pool::Consolidate {
-                        body: penumbra_sdk_shielded_pool::ConsolidateBody {
-                            family_id: penumbra_sdk_shielded_pool::ConsolidateFamilyId::TwoByOne,
-                            anchor: penumbra_sdk_tct::Tree::default().root(),
+                    Action::Consolidate(shieldd_sdk_shielded_pool::Consolidate {
+                        body: shieldd_sdk_shielded_pool::ConsolidateBody {
+                            family_id: shieldd_sdk_shielded_pool::ConsolidateFamilyId::TwoByOne,
+                            anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
                             inputs: vec![
-                                penumbra_sdk_shielded_pool::ConsolidateInputBody {
+                                shieldd_sdk_shielded_pool::ConsolidateInputBody {
                                     nullifier: Nullifier(decaf377::Fq::from(2u64)),
                                     rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                                         decaf377::Fr::from(3u64),
                                     )),
                                     encrypted_backref:
-                                        penumbra_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                        shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                 },
-                                penumbra_sdk_shielded_pool::ConsolidateInputBody {
+                                shieldd_sdk_shielded_pool::ConsolidateInputBody {
                                     nullifier: Nullifier(decaf377::Fq::from(4u64)),
                                     rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                                         decaf377::Fr::from(5u64),
                                     )),
                                     encrypted_backref:
-                                        penumbra_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                        shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                 },
                             ],
-                            outputs: vec![penumbra_sdk_shielded_pool::ConsolidateOutputBody {
-                                note_payload: penumbra_sdk_shielded_pool::NotePayload {
-                                    note_commitment: penumbra_sdk_tct::StateCommitment(
+                            outputs: vec![shieldd_sdk_shielded_pool::ConsolidateOutputBody {
+                                note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                                    note_commitment: shieldd_sdk_tct::StateCommitment(
                                         decaf377::Fq::from(6u64),
                                     ),
                                     ephemeral_key: decaf377_ka::Public([7u8; 32]),
                                     encrypted_note:
-                                        penumbra_sdk_shielded_pool::NoteCiphertext([8u8; 176]),
+                                        shieldd_sdk_shielded_pool::NoteCiphertext([8u8; 176]),
                                 },
                                 wrapped_memo_key: WrappedMemoKey([9u8; 48]),
                                 ovk_wrapped_key: OvkWrappedKey([10u8; 48]),
                             }],
                         },
                         auth_sigs: vec![[11u8; 64].into(), [12u8; 64].into()],
-                        proof: penumbra_sdk_shielded_pool::ConsolidateProof::default(),
+                        proof: shieldd_sdk_shielded_pool::ConsolidateProof::default(),
                     }),
-                    Action::Split(penumbra_sdk_shielded_pool::Split {
-                        body: penumbra_sdk_shielded_pool::SplitBody {
-                            family_id: penumbra_sdk_shielded_pool::SplitFamilyId::OneByFour,
-                            anchor: penumbra_sdk_tct::Tree::default().root(),
+                    Action::Split(shieldd_sdk_shielded_pool::Split {
+                        body: shieldd_sdk_shielded_pool::SplitBody {
+                            family_id: shieldd_sdk_shielded_pool::SplitFamilyId::OneByFour,
+                            anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(decaf377::Fr::from(13u64)),
-                            inputs: vec![penumbra_sdk_shielded_pool::SplitInputBody {
+                            inputs: vec![shieldd_sdk_shielded_pool::SplitInputBody {
                                 nullifier: Nullifier(decaf377::Fq::from(14u64)),
                                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                                     decaf377::Fr::from(15u64),
                                 )),
                                 encrypted_backref:
-                                    penumbra_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                    shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                             }],
                             outputs: vec![
-                                penumbra_sdk_shielded_pool::SplitOutputBody {
-                                    note_payload: penumbra_sdk_shielded_pool::NotePayload {
-                                        note_commitment: penumbra_sdk_tct::StateCommitment(
+                                shieldd_sdk_shielded_pool::SplitOutputBody {
+                                    note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                                        note_commitment: shieldd_sdk_tct::StateCommitment(
                                             decaf377::Fq::from(16u64),
                                         ),
                                         ephemeral_key: decaf377_ka::Public([17u8; 32]),
-                                        encrypted_note: penumbra_sdk_shielded_pool::NoteCiphertext(
+                                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
                                             [18u8; 176],
                                         ),
                                     },
@@ -910,36 +910,36 @@ mod tests {
                             ],
                         },
                         auth_sigs: vec![[21u8; 64].into()],
-                        proof: penumbra_sdk_shielded_pool::SplitProof::default(),
+                        proof: shieldd_sdk_shielded_pool::SplitProof::default(),
                     }),
                     Action::ShieldedIcs20Withdrawal(
-                        penumbra_sdk_shielded_pool::ShieldedIcs20Withdrawal {
-                            body: penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalBody {
+                        shieldd_sdk_shielded_pool::ShieldedIcs20Withdrawal {
+                            body: shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalBody {
                                 family_id:
-                                    penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical,
-                                anchor: penumbra_sdk_tct::Tree::default().root(),
+                                    shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical,
+                                anchor: shieldd_sdk_tct::Tree::default().root(),
                                 balance_commitment: Balance::default().commit(decaf377::Fr::from(22u64)),
                                 inputs: vec![
-                                    penumbra_sdk_shielded_pool::TransferInputBody {
+                                    shieldd_sdk_shielded_pool::TransferInputBody {
                                         nullifier: Nullifier(decaf377::Fq::from(23u64)),
                                         rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                                             decaf377::Fr::from(24u64),
                                         )),
                                         encrypted_backref:
-                                            penumbra_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                            shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                         compliance_ciphertext: vec![],
                                     },
-                                    penumbra_sdk_shielded_pool::TransferInputBody {
+                                    shieldd_sdk_shielded_pool::TransferInputBody {
                                         nullifier: Nullifier(decaf377::Fq::from(25u64)),
                                         rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                                             decaf377::Fr::from(26u64),
                                         )),
                                         encrypted_backref:
-                                            penumbra_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                            shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                         compliance_ciphertext: vec![],
                                     },
                                 ],
-                                withdrawal: penumbra_sdk_shielded_pool::Ics20Withdrawal {
+                                withdrawal: shieldd_sdk_shielded_pool::Ics20Withdrawal {
                                     amount: 1u64.into(),
                                     denom: BASE_ASSET_DENOM.clone(),
                                     destination_chain_address: "cosmos1deadbeef".to_string(),
@@ -953,14 +953,14 @@ mod tests {
                                     use_transparent_address: false,
                                 },
                                 change_output:
-                                    penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalChangeBody {
-                                        note_payload: penumbra_sdk_shielded_pool::NotePayload {
-                                            note_commitment: penumbra_sdk_tct::StateCommitment(
+                                    shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalChangeBody {
+                                        note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                                            note_commitment: shieldd_sdk_tct::StateCommitment(
                                                 decaf377::Fq::from(27u64),
                                             ),
                                             ephemeral_key: decaf377_ka::Public([28u8; 32]),
                                             encrypted_note:
-                                                penumbra_sdk_shielded_pool::NoteCiphertext(
+                                                shieldd_sdk_shielded_pool::NoteCiphertext(
                                                     [29u8; 176],
                                                 ),
                                         },
@@ -968,13 +968,13 @@ mod tests {
                                         ovk_wrapped_key: OvkWrappedKey([31u8; 48]),
                                     },
                                 target_timestamp: 0,
-                                compliance_anchor: penumbra_sdk_tct::StateCommitment(
+                                compliance_anchor: shieldd_sdk_tct::StateCommitment(
                                     decaf377::Fq::from(32u64),
                                 ),
-                                asset_anchor: penumbra_sdk_tct::StateCommitment(decaf377::Fq::from(33u64)),
+                                asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(33u64)),
                             },
                             auth_sigs: vec![[34u8; 64].into(), [35u8; 64].into()],
-                            proof: penumbra_sdk_shielded_pool::ShieldedIcs20WithdrawalProof::default(),
+                            proof: shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalProof::default(),
                         },
                     ),
                 ],

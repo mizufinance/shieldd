@@ -1,6 +1,6 @@
 # SnarkPack: Fork & Modifications
 
-What Penumbra's proof-aggregation backend is, what upstream it descends from, and
+What Shieldd's proof-aggregation backend is, what upstream it descends from, and
 every deliberate change we made to that upstream, with rationale. Start here.
 
 The companion doc is [verification.md](verification.md): how we check that this
@@ -10,7 +10,7 @@ The authoritative, machine-checked detail lives next to the formal artifacts and
 is linked where relevant:
 
 - [ripp-spec.md](../../crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md) — row-by-row local algorithm spec.
-- [adaptation-register.md](../../crates/crypto/proof-aggregation/formal/snarkpack/adaptation-register.md) — every Filecoin→Penumbra difference, coverage-checked against `adaptation-scope.txt`.
+- [adaptation-register.md](../../crates/crypto/proof-aggregation/formal/snarkpack/adaptation-register.md) — every Filecoin→Shieldd difference, coverage-checked against `adaptation-scope.txt`.
 - [filecoin-divergence-findings.md](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md) — the behavioral review behind those differences.
 
 ## 1. What SnarkPack/RIPP is
@@ -51,7 +51,7 @@ Given `N` Groth16 proofs `(Aᵢ, Bᵢ, Cᵢ)`:
 - **Groth16 aggregation adapter** — derives `r`, drives the AB-path (TIPA) and the
   C-path (SSM), folds the public inputs, and assembles the final PPE.
 
-The Fiat-Shamir challenge stages on the Penumbra Groth16 path are
+The Fiat-Shamir challenge stages on the Shieldd Groth16 path are
 `aggregate.randomizer`, `tipp-mipp.x0`, `tipp-mipp.gipa.round`,
 `tipp-mipp.final-bridge`, and `tipp-mipp.kzg` — enumerated input-by-input in
 [verification.md](verification.md#transcript--model).
@@ -76,7 +76,7 @@ Each is an intentional divergence from the arkworks/Filecoin upstream, tracked
 row-by-row in [adaptation-register.md](../../crates/crypto/proof-aggregation/formal/snarkpack/adaptation-register.md).
 
 ### BLS12-377 curve swap
-Upstream targets BLS12-381; Penumbra runs on BLS12-377 to match the rest of the
+Upstream targets BLS12-381; Shieldd runs on BLS12-377 to match the rest of the
 proving stack. **Consequence:** no cross-curve byte equivalence to Filecoin is
 possible or claimed; Filecoin is a *discipline* reference, not a byte oracle.
 
@@ -126,7 +126,7 @@ as the last, unique bundle in a proposal. **Why:** aggregation is a
 consensus-pipeline operation, not a user-facing action.
 
 ### Optimization byte-lock
-Optimizations must preserve the Penumbra byte trace or explicitly version the
+Optimizations must preserve the Shieldd byte trace or explicitly version the
 protocol — never silently change transcript bytes. The rule:
 
 | Category | Touches bytes? | How to land |

@@ -8,8 +8,8 @@ use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use futures::{Future, FutureExt};
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{
     state::future::DomainFuture, DomainType, StateReadProto, StateWriteProto,
 };
 use std::pin::Pin;

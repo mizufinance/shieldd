@@ -2,8 +2,8 @@
 
 use std::collections::HashSet;
 
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_proto::{
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_proto::{
     core::{
         component::{
             governance::v1::ProposalSubmitBody as ProtoProposalSubmitBody,
@@ -14,7 +14,7 @@ use penumbra_sdk_proto::{
     },
     Message as _,
 };
-use penumbra_sdk_transaction::plan::ActionPlan;
+use shieldd_sdk_transaction::plan::ActionPlan;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -63,7 +63,7 @@ pub enum AuthPolicy {
     /// Intended for relayers, only allows `IbcAction` transactions plus at most
     /// one self-addressed transfer used to fund fees.
     OnlyIbcRelay,
-    /// Require specific pre-authorizations for submitted [`TransactionPlan`](penumbra_sdk_transaction::TransactionPlan)s.
+    /// Require specific pre-authorizations for submitted [`TransactionPlan`](shieldd_sdk_transaction::TransactionPlan)s.
     PreAuthorization(PreAuthorizationPolicy),
 }
 
@@ -136,7 +136,7 @@ impl PreAuthorizationPolicy {
 mod address_as_string {
     use std::str::FromStr;
 
-    use penumbra_sdk_keys::Address;
+    use shieldd_sdk_keys::Address;
 
     pub fn serialize<S: serde::Serializer>(
         addresses: &[Address],
@@ -322,16 +322,16 @@ impl Policy for PreAuthorizationPolicy {
 mod tests {
     use super::*;
     use decaf377::Fr;
-    use penumbra_sdk_asset::{Value, BASE_ASSET_ID};
-    use penumbra_sdk_ibc::IbcRelay;
-    use penumbra_sdk_keys::{
+    use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
+    use shieldd_sdk_ibc::IbcRelay;
+    use shieldd_sdk_keys::{
         keys::{Bip44Path, SeedPhrase, SpendKey},
         Address,
     };
-    use penumbra_sdk_shielded_pool::{
+    use shieldd_sdk_shielded_pool::{
         Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
-    use penumbra_sdk_transaction::TransactionPlan;
+    use shieldd_sdk_transaction::TransactionPlan;
     use rand_core::OsRng;
 
     fn test_address(index: u32) -> Address {
@@ -346,7 +346,7 @@ mod tests {
 
     fn test_ibc_action() -> IbcRelay {
         IbcRelay::Unknown(pbjson_types::Any {
-            type_url: "/penumbra.test.ibc".to_owned(),
+            type_url: "/shieldd.test.ibc".to_owned(),
             value: vec![1, 2, 3].into(),
         })
     }

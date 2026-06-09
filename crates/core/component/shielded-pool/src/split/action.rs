@@ -4,12 +4,12 @@ use anyhow::{Context, Error};
 #[cfg(feature = "component")]
 use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_tct as tct;
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_tct as tct;
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use super::{SplitFamilyId, SplitProof};
 use crate::{backref::ENCRYPTED_BACKREF_LEN, EncryptedBackref, NotePayload};
@@ -48,7 +48,7 @@ impl SplitOutputBody {
 #[serde(try_from = "pb::SplitBody", into = "pb::SplitBody")]
 pub struct SplitBody {
     pub family_id: SplitFamilyId,
-    pub anchor: penumbra_sdk_tct::Root,
+    pub anchor: shieldd_sdk_tct::Root,
     pub balance_commitment: balance::Commitment,
     pub inputs: Vec<SplitInputBody>,
     pub outputs: Vec<SplitOutputBody>,

@@ -8,8 +8,8 @@ import (
 	curves "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
-	. "github.com/mizufinance/penumbra/tools/gnark/internal/compliance"
-	. "github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	. "github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
+	. "github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -194,7 +194,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 }
 
 func shieldedIcs20WithdrawalSyntheticDummyNullifierDomain() *big.Int {
-	sum := blake2b.Sum512([]byte("penumbra.shielded_ics20_withdrawal.synthetic_dummy.nullifier"))
+	sum := blake2b.Sum512([]byte("shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier"))
 	return LittleEndianBytesToBigInt(sum[:])
 }
 

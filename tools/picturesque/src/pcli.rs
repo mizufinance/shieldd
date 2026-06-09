@@ -39,7 +39,7 @@ pub async fn init_with_test_keys(root: PathBuf) -> anyhow::Result<()> {
 
     let mut stdin = child.stdin.take().expect("child process should have stdin");
     stdin
-        .write_all(penumbra_sdk_keys::test_keys::SEED_PHRASE.as_bytes())
+        .write_all(shieldd_sdk_keys::test_keys::SEED_PHRASE.as_bytes())
         .await?;
     stdin.write_all("\n".as_bytes()).await?;
     drop(stdin);

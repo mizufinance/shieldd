@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-shielded-pool"
+name = "shieldd-sdk-shielded-pool"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Multi-asset shielded pool implementation for Penumbra"
+description = "Multi-asset shielded pool implementation for Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -11,24 +11,24 @@ edition = {workspace = true}
 component = [
     "cnidarium-component",
     "cnidarium",
-    "penumbra-sdk-compliance/component",
-    "penumbra-sdk-proto/cnidarium",
-    "penumbra-sdk-ibc/component",
-    "penumbra-sdk-sct/component",
+    "shieldd-sdk-compliance/component",
+    "shieldd-sdk-proto/cnidarium",
+    "shieldd-sdk-ibc/component",
+    "shieldd-sdk-sct/component",
     "tonic",
     "ibc-proto/server",
     "ibc-proto/transport",
 ]
-# proving-keys = ["penumbra-sdk-proof-params/proving-keys"]
+# proving-keys = ["shieldd-sdk-proof-params/proving-keys"]
 default = ["std", "component"]
 std = ["ark-ff/std"]
-bundled-proving-keys = ["penumbra-sdk-proof-params/bundled-proving-keys"]
+bundled-proving-keys = ["shieldd-sdk-proof-params/bundled-proving-keys"]
 download-proving-keys = [
     "bundled-proving-keys",
-    "penumbra-sdk-proof-params/download-proving-keys",
+    "shieldd-sdk-proof-params/download-proving-keys",
 ]
 parallel = [
-    "penumbra-sdk-tct/parallel",
+    "shieldd-sdk-tct/parallel",
     "ark-ff/parallel",
     "poseidon377/parallel",
     "decaf377-rdsa/parallel",
@@ -38,7 +38,7 @@ parallel = [
     "tonic",
 ]
 docsrs = []
-benchmark-helpers = ["component", "penumbra-sdk-ibc/benchmark-helpers"]
+benchmark-helpers = ["component", "shieldd-sdk-ibc/benchmark-helpers"]
 
 [dependencies]
 anyhow = {workspace = true}
@@ -70,16 +70,16 @@ jmt = {workspace = true}
 libloading = {workspace = true}
 metrics = {workspace = true}
 once_cell = {workspace = true}
-penumbra-sdk-asset = {workspace = true, default-features = false}
-penumbra-sdk-compliance = {workspace = true, default-features = false}
-penumbra-sdk-ibc = {workspace = true, default-features = false}
-penumbra-sdk-keys = {workspace = true, default-features = false}
-penumbra-sdk-num = {workspace = true, default-features = false}
-penumbra-sdk-proof-params = {workspace = true, default-features = false}
-penumbra-sdk-proto = {workspace = true, default-features = false}
-penumbra-sdk-sct = {workspace = true, default-features = false}
-penumbra-sdk-tct = {workspace = true, default-features = true}
-penumbra-sdk-txhash = {workspace = true, default-features = false}
+shieldd-sdk-asset = {workspace = true, default-features = false}
+shieldd-sdk-compliance = {workspace = true, default-features = false}
+shieldd-sdk-ibc = {workspace = true, default-features = false}
+shieldd-sdk-keys = {workspace = true, default-features = false}
+shieldd-sdk-num = {workspace = true, default-features = false}
+shieldd-sdk-proof-params = {workspace = true, default-features = false}
+shieldd-sdk-proto = {workspace = true, default-features = false}
+shieldd-sdk-sct = {workspace = true, default-features = false}
+shieldd-sdk-tct = {workspace = true, default-features = true}
+shieldd-sdk-txhash = {workspace = true, default-features = false}
 poseidon377 = {workspace = true, features = ["r1cs"]}
 prost = {workspace = true}
 rand = {workspace = true}
@@ -95,7 +95,7 @@ tonic = {workspace = true, optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
-penumbra-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}
-penumbra-sdk-proof-params = {workspace = true, default-features = false}
+shieldd-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}
+shieldd-sdk-proof-params = {workspace = true, default-features = false}
 proptest = {workspace = true}
 tokio = {workspace = true, features = ["rt-multi-thread", "macros"]}

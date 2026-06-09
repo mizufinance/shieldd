@@ -4,7 +4,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use ark_ec::{pairing::Pairing, AffineRepr};
 use ark_groth16::{prepare_verifying_key, PreparedVerifyingKey, VerifyingKey};
 use decaf377::Bls12_377;
-use penumbra_sdk_proof_params::VerifyingKeyExt;
+use shieldd_sdk_proof_params::VerifyingKeyExt;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 

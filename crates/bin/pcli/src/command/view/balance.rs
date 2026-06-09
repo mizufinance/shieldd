@@ -1,9 +1,9 @@
 use anyhow::Result;
 use comfy_table::{presets, Table};
 
-use penumbra_sdk_keys::AddressView;
-use penumbra_sdk_sct::CommitmentSource;
-use penumbra_sdk_view::ViewClient;
+use shieldd_sdk_keys::AddressView;
+use shieldd_sdk_sct::CommitmentSource;
+use shieldd_sdk_view::ViewClient;
 
 #[derive(Debug, clap::Args)]
 pub struct BalanceCmd {
@@ -96,7 +96,7 @@ fn format_source(source: &CommitmentSource) -> String {
     }
 }
 
-fn format_return_address(return_address: &Option<penumbra_sdk_keys::AddressView>) -> String {
+fn format_return_address(return_address: &Option<shieldd_sdk_keys::AddressView>) -> String {
     match return_address {
         None => "Unknown".to_owned(),
         Some(AddressView::Opaque { address }) => address.display_short_form(),

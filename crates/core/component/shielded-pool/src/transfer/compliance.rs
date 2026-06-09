@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use decaf377::Fr;
-use penumbra_sdk_asset::Value;
+use shieldd_sdk_asset::Value;
 #[cfg(feature = "component")]
-use penumbra_sdk_compliance::TRANSFER_WIRE_BYTES;
-use penumbra_sdk_compliance::{
+use shieldd_sdk_compliance::TRANSFER_WIRE_BYTES;
+use shieldd_sdk_compliance::{
     build_orbis_encrypted_seed_upload_package_with_randomness, derive_transfer_salt,
     encrypt_transfer, AssetPolicy, IndexedLeaf, TransferComplianceCiphertext,
     TransferCompliancePublicInputs, TransferOrbisUploadBundle, TransferTierKind,
@@ -54,7 +54,7 @@ fn transfer_orbis_upload_rng_seed(transfer_nonce_root: Fr) -> [u8; 32] {
 
 pub(crate) fn build_transfer_compliance(
     outputs: &[ShieldedOutputPlan],
-    sender_leaf: &penumbra_sdk_compliance::ComplianceLeaf,
+    sender_leaf: &shieldd_sdk_compliance::ComplianceLeaf,
     asset_policy: &AssetPolicy,
     asset_indexed_leaf: &IndexedLeaf,
     target_timestamp: u64,
@@ -72,12 +72,12 @@ pub(crate) fn build_transfer_compliance(
     let ring_pk = if receiver_output.is_regulated {
         asset_indexed_leaf.ring.ring_pk
     } else {
-        *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK
+        *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK
     };
     let dk_pub = if receiver_output.is_regulated {
         asset_indexed_leaf.params.dk_pub
     } else {
-        *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB
+        *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB
     };
 
     let receiver_amount: u128 = receiver_note.amount().into();

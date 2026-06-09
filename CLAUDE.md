@@ -1,4 +1,4 @@
-# Penumbra Engineering Instructions
+# Shieldd Engineering Instructions
 
 New prototype product, no stable contracts unless explicitly identified.
 Prefer the correct design over legacy shims.

@@ -1,6 +1,6 @@
-use penumbra_sdk_proto::{
+use shieldd_sdk_proto::{
     core::component::validator::v1::ValidatorInfoResponse,
-    penumbra::core::component::validator::v1 as pb, DomainType,
+    shieldd::core::component::validator::v1 as pb, DomainType,
 };
 use serde::{Deserialize, Serialize};
 

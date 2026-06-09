@@ -1,6 +1,6 @@
 # Addresses and Keys
 
-Value transferred on Penumbra is sent to *shielded payment addresses*; these
+Value transferred on Shieldd is sent to *shielded payment addresses*; these
 addresses are derived from *spending keys* through a sequence of intermediate
 keys that represent different levels of attenuated capability:
 
@@ -44,13 +44,13 @@ separate spend authority - can be derived from this root seed phrase.
 - the *outgoing viewing key* represents the capability to view only outgoing transactions, and is used to recover information about previously sent transactions;
 - the *incoming viewing key* represents the capability to view only incoming transactions, and is used to scan the block chain for incoming transactions.
 
-Penumbra allows the same account to present multiple, publicly
+Shieldd allows the same account to present multiple, publicly
 unlinkable addresses, keyed by an 16-byte *address index*.  Each choice of
 address index gives a distinct shielded payment address. Because these
 addresses share a common incoming viewing key, the cost of scanning the
 blockchain does not increase with the number of addresses in use.
 
-Finally, Penumbra also allows outsourcing *probabilistic* transaction detection
+Finally, Shieldd also allows outsourcing *probabilistic* transaction detection
 to third parties using [fuzzy message detection](../crypto/fmd.md).  Each
 address has a *detection key*; a third party can use this key to detect
 transactions that might be relevant to that key.  Like a Bloom filter, this
@@ -65,4 +65,4 @@ the [Addresses and Keys](../addresses_keys.md) chapter.
 
 ### Privacy Implications
 
-Users should be aware that giving out multiple detection keys to a detection entity can carry a subset of the privacy implications, described in [Addresses and Detection Keys](https://protocol.penumbra.zone/main/addresses_keys/addresses.html#detection-keys).
+Users should be aware that giving out multiple detection keys to a detection entity can carry a subset of the privacy implications, described in [Addresses and Detection Keys](https://protocol.shieldd.zone/main/addresses_keys/addresses.html#detection-keys).

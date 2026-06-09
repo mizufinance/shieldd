@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_proto::core::component::compliance::v1::{
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_proto::core::component::compliance::v1::{
     query_service_client::QueryServiceClient as ComplianceQueryServiceClient,
     ComplianceAssetStatusRequest,
 };

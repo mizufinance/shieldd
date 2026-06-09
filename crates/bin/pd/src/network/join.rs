@@ -380,7 +380,7 @@ pub fn parse_tm_address_listener(s: &str) -> Option<TendermintAddress> {
 mod tests {
     use super::*;
     // The '35.226.255.25' IPv4 address used throughout these tests is a reserved
-    // GCP IP, used by Penumbra Labs on the testnet cluster.
+    // GCP IP, used by Shieldd Labs on the testnet cluster.
     #[test]
     fn external_address_detection() {
         assert!(!address_could_be_external("127.0.0.1"));

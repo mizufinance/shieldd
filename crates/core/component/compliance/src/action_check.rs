@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::StateRead;
-use penumbra_sdk_asset::asset;
+use shieldd_sdk_asset::asset;
 
 use crate::registry::ComplianceRegistryRead;
 

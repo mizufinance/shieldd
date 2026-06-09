@@ -2,7 +2,7 @@
 //! presents as an asynchronous signer.
 
 use decaf377_rdsa::{Signature, SpendAuth};
-use penumbra_sdk_proto::{
+use shieldd_sdk_proto::{
     core::component::{
         governance::v1::ProposalSubmitBody as ProtoProposalSubmitBody,
         governance::v1::ValidatorVoteBody as ProtoValidatorVoteBody,
@@ -11,7 +11,7 @@ use penumbra_sdk_proto::{
     custody::v1::{self as pb, AuthorizeResponse},
     Message as _,
 };
-use penumbra_sdk_transaction::AuthorizationData;
+use shieldd_sdk_transaction::AuthorizationData;
 use rand_core::OsRng;
 use tonic::{async_trait, Request, Response, Status};
 
@@ -36,7 +36,7 @@ impl SoftKms {
         Self { config }
     }
 
-    /// Attempt to authorize the requested [`TransactionPlan`](penumbra_sdk_transaction::TransactionPlan).
+    /// Attempt to authorize the requested [`TransactionPlan`](shieldd_sdk_transaction::TransactionPlan).
     #[tracing::instrument(skip(self, request), name = "softhsm_sign")]
     pub fn sign(&self, request: &AuthorizeRequest) -> anyhow::Result<AuthorizationData> {
         tracing::debug!(?request.plan);

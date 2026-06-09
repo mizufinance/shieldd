@@ -6,7 +6,7 @@ use crate::gnark::typed::{MerklePathBinary, PointAffineBytes};
 
 pub(crate) const MAX_VEC32_LENGTH: usize = crate::transfer::TRANSFER_STATEMENT_FIELD_COUNT;
 pub(crate) const MAX_TRIPLE_PATH_LENGTH: usize = 24;
-pub(crate) const MAX_MERKLE_PATH_LAYERS: usize = penumbra_sdk_compliance::DEFAULT_DEPTH as usize;
+pub(crate) const MAX_MERKLE_PATH_LAYERS: usize = shieldd_sdk_compliance::DEFAULT_DEPTH as usize;
 pub(crate) const MAX_MERKLE_PATH_SIBLINGS: usize = 3;
 
 pub(crate) struct BinaryCursor<'a> {

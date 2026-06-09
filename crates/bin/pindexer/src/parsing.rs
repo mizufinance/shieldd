@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context as _};
-use penumbra_sdk_app::genesis::{AppState, Content};
+use shieldd_sdk_app::genesis::{AppState, Content};
 use serde_json::Value;
 
 const GENESIS_NO_CONTENT_ERROR: &'static str = r#"
@@ -19,7 +19,7 @@ Make sure that you're using the very first genesis file, before any upgrades.
 /// This has a nice error message, so you should use this.
 pub fn parse_content(data: Value) -> anyhow::Result<Content> {
     let app_state: AppState = serde_json::from_value(data)
-        .context("error decoding app_state json: make sure that this is a penumbra genesis file")?;
+        .context("error decoding app_state json: make sure that this is a shieldd genesis file")?;
     let content = app_state
         .content()
         .ok_or(anyhow!(GENESIS_NO_CONTENT_ERROR))?;

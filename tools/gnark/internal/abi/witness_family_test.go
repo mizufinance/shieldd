@@ -3,7 +3,7 @@ package abi
 import (
 	"testing"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/testfixtures"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
 type witnessFamily struct {

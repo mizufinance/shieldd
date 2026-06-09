@@ -1,5 +1,5 @@
 [package]
-name = "penumbra-sdk-tct-visualize"
+name = "shieldd-sdk-tct-visualize"
 authors = {workspace = true}
 repository = {workspace = true}
 description = "Visualize a TCT in action"
@@ -18,7 +18,7 @@ name = "tct-visualize"
 name = "tct-live-edit"
 
 [dependencies]
-penumbra-sdk-tct = {workspace = true, features = ["arbitrary"], default-features = true}
+shieldd-sdk-tct = {workspace = true, features = ["arbitrary"], default-features = true}
 decaf377 = {workspace = true}
 tokio = {workspace = true, features = ["full"]}
 tokio-util = {workspace = true, features = ["full"]}

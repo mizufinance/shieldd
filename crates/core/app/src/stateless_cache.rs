@@ -4,11 +4,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use crate::metrics;
-use penumbra_sdk_proof_aggregation::ProofFamilyId;
-use penumbra_sdk_proof_params::batch::BatchItem;
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_tct::{Root, StateCommitment};
-use penumbra_sdk_transaction::Transaction;
+use shieldd_sdk_proof_aggregation::ProofFamilyId;
+use shieldd_sdk_proof_params::batch::BatchItem;
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_tct::{Root, StateCommitment};
+use shieldd_sdk_transaction::Transaction;
 
 const MAX_ENTRIES: usize = 65_536;
 

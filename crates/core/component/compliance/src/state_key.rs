@@ -104,7 +104,7 @@ pub mod cache {
 
 /// State key for asset-specific compliance policy (dk_pub, threshold).
 /// This stores issuer-defined policies for threshold-based flagging.
-pub fn asset_policy(asset_id: &penumbra_sdk_asset::asset::Id) -> String {
+pub fn asset_policy(asset_id: &shieldd_sdk_asset::asset::Id) -> String {
     format!("compliance/asset_policy/{}", asset_id)
 }
 
@@ -120,8 +120,8 @@ pub fn ibc_origin_asset(base_denom: &str) -> String {
 /// State key for reverse lookup: (address, asset_id) -> position in user tree
 /// This enables O(1) lookup of a user's leaf position for merkle path generation
 pub fn user_leaf_position(
-    address: &penumbra_sdk_keys::Address,
-    asset_id: &penumbra_sdk_asset::asset::Id,
+    address: &shieldd_sdk_keys::Address,
+    asset_id: &shieldd_sdk_asset::asset::Id,
 ) -> String {
     format!("compliance/user_lookup/{}/{}", address, asset_id)
 }
@@ -129,8 +129,8 @@ pub fn user_leaf_position(
 /// State key for storing the full ComplianceLeaf data for a user
 /// This allows retrieving the complete leaf (including ACK) for proof generation
 pub fn user_leaf_data(
-    address: &penumbra_sdk_keys::Address,
-    asset_id: &penumbra_sdk_asset::asset::Id,
+    address: &shieldd_sdk_keys::Address,
+    asset_id: &shieldd_sdk_asset::asset::Id,
 ) -> String {
     format!("compliance/user_leaf/{}/{}", address, asset_id)
 }
@@ -164,7 +164,7 @@ pub fn ibc_compliance_metadata(channel_id: &str, packet_seq: u64) -> String {
 /// - anchor_by_height: height -> anchor (for querying current anchor)
 /// - anchor_lookup: anchor -> height (for validating historical anchors)
 pub mod anchor {
-    use penumbra_sdk_tct::StateCommitment;
+    use shieldd_sdk_tct::StateCommitment;
 
     /// State key for the greatest anchor height pruned from retention storage.
     pub fn pruned_through_height() -> &'static str {

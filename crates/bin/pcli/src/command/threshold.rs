@@ -1,5 +1,5 @@
 use anyhow::Result;
-use penumbra_sdk_custody::threshold::Terminal;
+use shieldd_sdk_custody::threshold::Terminal;
 
 use crate::{
     config::{CustodyConfig, GovernanceCustodyConfig},
@@ -39,7 +39,7 @@ impl ThresholdCmd {
         };
         match self {
             ThresholdCmd::Sign => {
-                penumbra_sdk_custody::threshold::follow(
+                shieldd_sdk_custody::threshold::follow(
                     config.as_ref(),
                     governance_config.as_ref(),
                     &ActualTerminal::default(),

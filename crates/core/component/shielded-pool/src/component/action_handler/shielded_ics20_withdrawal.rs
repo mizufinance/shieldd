@@ -4,11 +4,11 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use cnidarium_component::ActionHandler;
-use penumbra_sdk_compliance::registry::ComplianceRegistryRead;
-use penumbra_sdk_ibc::StateReadExt as _;
-use penumbra_sdk_proof_params::batch::{self, BatchItem};
-use penumbra_sdk_sct::component::clock::EpochRead;
-use penumbra_sdk_txhash::{EffectingData, TransactionContext};
+use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
+use shieldd_sdk_ibc::StateReadExt as _;
+use shieldd_sdk_proof_params::batch::{self, BatchItem};
+use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_txhash::{EffectingData, TransactionContext};
 
 use crate::{
     component::{
@@ -122,7 +122,7 @@ impl ActionHandler for ShieldedIcs20Withdrawal {
         let block_unix = block_time.unix_timestamp();
         anyhow::ensure!(block_unix >= 0, "block timestamp is negative");
         let block_timestamp = block_unix as u64;
-        penumbra_sdk_compliance::registry::check_timestamp_freshness(
+        shieldd_sdk_compliance::registry::check_timestamp_freshness(
             self.body.target_timestamp,
             block_timestamp,
         )?;

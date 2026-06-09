@@ -1,11 +1,11 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::StateWrite;
-use penumbra_sdk_asset::Value;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_sct::component::tree::SctManager;
-use penumbra_sdk_sct::CommitmentSource;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_asset::Value;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_sct::component::tree::SctManager;
+use shieldd_sdk_sct::CommitmentSource;
+use shieldd_sdk_tct as tct;
 use tct::StateCommitment;
 use tracing::instrument;
 
@@ -13,7 +13,7 @@ use crate::state_key;
 use crate::{Note, NotePayload, Rseed};
 
 #[cfg(feature = "benchmark-helpers")]
-use penumbra_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
+use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
 #[cfg(feature = "benchmark-helpers")]
 use std::time::Instant;
 
@@ -153,7 +153,7 @@ pub fn build_position_derived_mint_payload(
 fn mint_rseed(position: tct::Position) -> Result<Rseed> {
     let position_u64: u64 = position.into();
     let rseed_bytes: [u8; 32] = blake2b_simd::Params::default()
-        .personal(b"PenumbraMint")
+        .personal(b"ShielddMint")
         .to_state()
         .update(&position_u64.to_le_bytes())
         .finalize()
@@ -166,9 +166,9 @@ fn mint_rseed(position: tct::Position) -> Result<Rseed> {
 mod tests {
     use super::*;
     use cnidarium::{StateDelta, TempStorage};
-    use penumbra_sdk_asset::{Value, BASE_ASSET_ID};
-    use penumbra_sdk_keys::test_keys;
-    use penumbra_sdk_num::Amount;
+    use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_num::Amount;
     use std::ops::Deref as _;
 
     #[tokio::test]

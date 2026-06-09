@@ -6,13 +6,13 @@ use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
-use penumbra_sdk_keys::keys::NullifierKey;
-use penumbra_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
+use shieldd_sdk_keys::keys::NullifierKey;
+use shieldd_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_tct as tct;
 
 use crate::{public_input_hash::shielded_ics20_withdrawal_statement_hash_from_public, Note};
 
@@ -20,15 +20,15 @@ use super::ShieldedIcs20WithdrawalFamilyId;
 
 impl ShieldedIcs20WithdrawalFamilyId {
     pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        penumbra_sdk_proof_params::shielded_ics20_withdrawal_proof_verification_key(self.get())
+        shieldd_sdk_proof_params::shielded_ics20_withdrawal_proof_verification_key(self.get())
     }
 
     pub fn proving_key_bytes(self) -> &'static [u8] {
-        penumbra_sdk_proof_params::shielded_ics20_withdrawal_proving_key_bytes(self.get())
+        shieldd_sdk_proof_params::shielded_ics20_withdrawal_proving_key_bytes(self.get())
     }
 
     pub fn circuit_metadata_bytes(self) -> &'static [u8] {
-        penumbra_sdk_proof_params::shielded_ics20_withdrawal_circuit_metadata(self.get())
+        shieldd_sdk_proof_params::shielded_ics20_withdrawal_circuit_metadata(self.get())
     }
 }
 
@@ -142,11 +142,11 @@ impl ShieldedIcs20WithdrawalProof {
     pub fn to_batch_item(
         &self,
         public: &ShieldedIcs20WithdrawalProofPublic,
-    ) -> anyhow::Result<penumbra_sdk_proof_params::batch::BatchItem> {
+    ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
         let statement_hash = public.statement_hash()?;
         let proof = self.decoded_proof()?;
 
-        Ok(penumbra_sdk_proof_params::batch::BatchItem {
+        Ok(shieldd_sdk_proof_params::batch::BatchItem {
             proof,
             public_inputs: vec![statement_hash],
         })

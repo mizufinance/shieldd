@@ -21,20 +21,20 @@ use ibc_types::{
     },
     transfer::acknowledgement::TokenTransferAcknowledgement,
 };
-use penumbra_sdk_asset::{asset, asset::Metadata, Value};
-use penumbra_sdk_compliance::{ComplianceRegistryRead as _, IbcComplianceMetadata, IbcRoute};
-use penumbra_sdk_ibc::component::{ChannelStateReadExt, ConnectionStateReadExt};
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{
-    penumbra::core::component::ibc::v1::FungibleTokenPacketData, DomainType as _, StateReadProto,
+use shieldd_sdk_asset::{asset, asset::Metadata, Value};
+use shieldd_sdk_compliance::{ComplianceRegistryRead as _, IbcComplianceMetadata, IbcRoute};
+use shieldd_sdk_ibc::component::{ChannelStateReadExt, ConnectionStateReadExt};
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{
+    shieldd::core::component::ibc::v1::FungibleTokenPacketData, DomainType as _, StateReadProto,
     StateWriteProto,
 };
-use penumbra_sdk_sct::CommitmentSource;
+use shieldd_sdk_sct::CommitmentSource;
 
 #[cfg(feature = "benchmark-helpers")]
-use penumbra_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
-use penumbra_sdk_ibc::component::{
+use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
+use shieldd_sdk_ibc::component::{
     app_handler::{AppHandler, AppHandlerCheck, AppHandlerExecute},
     packet::{
         IBCPacket, SendPacketRead as _, SendPacketWrite as _, Unchecked, WriteAcknowledgement as _,
@@ -47,7 +47,7 @@ use tendermint::Time;
 // this logic is a bit tricky, and adapted from https://github.com/cosmos/ibc/tree/main/spec/app/ics-020-fungible-token-transfer (sendFungibleTokens).
 //
 // what we want to do is to determine if the denom being withdrawn is a native token (one
-// that originates from Penumbra) or a bridged token (one that was sent into penumbra from
+// that originates from Shieldd) or a bridged token (one that was sent into shieldd from
 // IBC).
 //
 // A simple way of doing this is by parsing the denom, looking for a prefix that is only
@@ -360,7 +360,7 @@ pub trait Ics20TransferWriteExt: StateWrite {
 
             // double check the value balance here.
             //
-            // for assets not originating from Penumbra, never transfer out more tokens than were
+            // for assets not originating from Shieldd, never transfer out more tokens than were
             // transferred in. (Our counterparties should be checking this anyways, since if we
             // were Byzantine we could lie to them).
             let value_balance: Amount = self
@@ -511,8 +511,8 @@ impl AppHandlerCheck for Ics20Transfer {
                 .await?
                 .unwrap_or_else(Amount::zero);
 
-            let amount_penumbra: Amount = packet_data.amount.try_into()?;
-            if value_balance < amount_penumbra {
+            let amount_shieldd: Amount = packet_data.amount.try_into()?;
+            if value_balance < amount_shieldd {
                 anyhow::bail!("insufficient balance to refund tokens to sender");
             }
         }
@@ -748,7 +748,7 @@ async fn recv_transfer_packet_inner<S: StateWrite>(
 
     // Store compliance metadata if present in memo.
     if let Some(metadata) = context.compliance_metadata {
-        use penumbra_sdk_compliance::ComplianceRegistryWrite as _;
+        use shieldd_sdk_compliance::ComplianceRegistryWrite as _;
         state.store_ibc_compliance_metadata(
             &msg.packet.chan_on_a.0,
             msg.packet.sequence.0,
@@ -778,7 +778,7 @@ async fn refund_tokens<S: StateWrite>(
         .context("couldn't decode amount in ics20 transfer timeout")?;
 
     // packet_data.sender is the original sender for this packet that was not committed on the
-    // other chain but was sent from penumbra. so, the penumbra refund receiver address is the
+    // other chain but was sent from shieldd. so, the shieldd refund receiver address is the
     // sender
     let receiver = Address::from_str(&packet_data.sender)
         .context("couldn't decode receiver address in ics20 timeout")?;
@@ -1015,22 +1015,22 @@ mod tests {
 
     #[test]
     fn receive_context_derives_sink_zone_voucher_denom() {
-        let msg = test_recv_packet("upenumbra");
+        let msg = test_recv_packet("ushieldd");
         let context = Ics20ReceiveContext::parse(&msg).expect("parse receive context");
 
         assert!(!context.returned_to_source);
         assert_eq!(
             context.received_denom.to_string(),
-            "transfer/channel-1/upenumbra"
+            "transfer/channel-1/ushieldd"
         );
     }
 
     #[test]
     fn receive_context_derives_return_source_base_denom() {
-        let msg = test_recv_packet("transfer/channel-0/upenumbra");
+        let msg = test_recv_packet("transfer/channel-0/ushieldd");
         let context = Ics20ReceiveContext::parse(&msg).expect("parse receive context");
 
         assert!(context.returned_to_source);
-        assert_eq!(context.received_denom.to_string(), "upenumbra");
+        assert_eq!(context.received_denom.to_string(), "ushieldd");
     }
 }

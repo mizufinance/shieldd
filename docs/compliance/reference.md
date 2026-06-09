@@ -65,7 +65,7 @@ OutputRef { action, output_index }
 ExtractedComplianceCiphertext { output_ref, raw_bytes, upload_bundle_bytes }
 ```
 
-`tx_hash` must match Penumbra `TransactionId`. If a helper computes it outside
+`tx_hash` must match Shieldd `TransactionId`. If a helper computes it outside
 the transaction crate, keep the transaction-crate parity test mandatory.
 
 ## Scanner DB Tables
@@ -148,7 +148,7 @@ Both flagged issuer-DK decrypt and unflagged Orbis PRE import require
 ## Transfer DLEQ
 
 Each audit tier has an in-circuit Chaum-Pedersen proof binding the tier to
-Penumbra metadata. `ACK = d * ring_pk`, where `d` comes from the registered
+Shieldd metadata. `ACK = d * ring_pk`, where `d` comes from the registered
 slot derivation, not from the address diversifier:
 
 ```text
@@ -178,7 +178,7 @@ Tier constants:
 | output_ext | 4 |
 
 The DLEQ binds ACK/EPK/shared-point metadata. `C2` correctness remains a
-Penumbra circuit property. Current Orbis PRE validates the encrypted-seed
+Shieldd circuit property. Current Orbis PRE validates the encrypted-seed
 upload package and its policy metadata; it does not consume the transfer DLEQ
 directly.
 

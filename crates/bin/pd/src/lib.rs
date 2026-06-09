@@ -1,4 +1,4 @@
-//! Source code for the Penumbra node software.
+//! Source code for the Shieldd node software.
 #![allow(clippy::clone_on_copy)]
 #![deny(clippy::unwrap_used)]
 #![recursion_limit = "512"]
@@ -13,7 +13,7 @@ pub mod network;
 pub mod zipserve;
 
 pub use crate::metrics::register_metrics;
-pub use penumbra_sdk_app::app::App;
+pub use shieldd_sdk_app::app::App;
 
 pub const MINIFRONT_ARCHIVE_BYTES: &[u8] = include_bytes!("../../../../assets/minifront.zip");
 

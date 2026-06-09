@@ -4,10 +4,10 @@ use anyhow::Context;
 use rand_core::{CryptoRng, RngCore};
 use tracing::instrument;
 
-use penumbra_sdk_keys::keys::AddressIndex;
-use penumbra_sdk_proto::view::v1::NotesRequest;
-use penumbra_sdk_transaction::TransactionPlan;
-use penumbra_sdk_view::{NoteManager, SpendableNoteRecord, TransferPlanningResult, ViewClient};
+use shieldd_sdk_keys::keys::AddressIndex;
+use shieldd_sdk_proto::view::v1::NotesRequest;
+use shieldd_sdk_transaction::TransactionPlan;
+use shieldd_sdk_view::{NoteManager, SpendableNoteRecord, TransferPlanningResult, ViewClient};
 
 #[instrument(skip(view, rng))]
 pub async fn sweep<V, R>(view: &mut V, mut rng: R) -> anyhow::Result<Vec<TransactionPlan>>

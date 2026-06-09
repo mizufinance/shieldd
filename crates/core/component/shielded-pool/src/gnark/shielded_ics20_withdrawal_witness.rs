@@ -255,11 +255,11 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             )?)?,
             asset_indexed_leaf_dk_pub_affine: point_affine_bytes_with_fallback(
                 private.asset_indexed_leaf.params.dk_pub,
-                *penumbra_sdk_compliance::UNREGULATED_SINK_DK_PUB,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
             )?,
             asset_indexed_leaf_ring_pk_affine: point_affine_bytes_with_fallback(
                 private.asset_indexed_leaf.ring.ring_pk,
-                *penumbra_sdk_compliance::UNREGULATED_SINK_RING_PK,
+                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
             )?,
             sender_diversified_generator_affine: point_affine_bytes(
                 *private.sender_leaf.address.diversified_generator(),

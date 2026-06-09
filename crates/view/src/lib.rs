@@ -1,4 +1,4 @@
-//! The view RPC library for the Penumbra Zone.
+//! The view RPC library for the Shieldd Zone.
 //!
 //! This crate provides a [`ViewClient`] and a [`ViewServer`]. These form a client-server pair to
 //! synchronize and interact with public chain state using one or more full viewing keys. See the

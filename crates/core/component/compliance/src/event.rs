@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context as _};
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_proto::{core::component::compliance::v1 as pb, DomainType, Name as _};
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType, Name as _};
+use shieldd_sdk_tct::StateCommitment;
 
 use crate::indexed_tree::IndexedLeaf;
 use crate::structs::{AssetPolicy, ComplianceLeaf};

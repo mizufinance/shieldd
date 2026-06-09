@@ -1,8 +1,8 @@
 use anyhow::Result;
 use comfy_table::{presets, Table};
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_transaction::MemoView;
-use penumbra_sdk_view::ViewClient;
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_transaction::MemoView;
+use shieldd_sdk_view::ViewClient;
 
 #[derive(Debug, clap::Args)]
 pub struct TransactionHashesCmd {

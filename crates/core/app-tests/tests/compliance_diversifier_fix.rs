@@ -4,27 +4,27 @@ use {
     cnidarium::{StateDelta, TempStorage},
     common::TempStorageExt as _,
     decaf377::Fr,
-    penumbra_sdk_app::{
+    shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
     },
-    penumbra_sdk_asset::asset::REGISTRY,
-    penumbra_sdk_compliance::{
+    shieldd_sdk_asset::asset::REGISTRY,
+    shieldd_sdk_compliance::{
         scanning::decrypt_full_flagged, structs::AssetPolicy, ComplianceRegistryWrite,
         DetectionKey, TransferComplianceCiphertext,
     },
-    penumbra_sdk_keys::{keys::AddressIndex, symmetric::PayloadKey, test_keys},
-    penumbra_sdk_mock_client::MockClient,
-    penumbra_sdk_mock_consensus::TestNode,
-    penumbra_sdk_shielded_pool::{
+    shieldd_sdk_keys::{keys::AddressIndex, symmetric::PayloadKey, test_keys},
+    shieldd_sdk_mock_client::MockClient,
+    shieldd_sdk_mock_consensus::TestNode,
+    shieldd_sdk_shielded_pool::{
         genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     },
-    penumbra_sdk_transaction::{
+    shieldd_sdk_transaction::{
         memo::MemoPlaintext,
         plan::{ActionPlan, MemoPlan},
         TransactionParameters, TransactionPlan,
     },
-    penumbra_sdk_view::enrich_plan_with_compliance,
+    shieldd_sdk_view::enrich_plan_with_compliance,
     rand_core::OsRng,
     std::ops::Deref,
     tap::{Tap, TapFallible},
@@ -37,7 +37,7 @@ mod common;
 async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfer(
 ) -> anyhow::Result<()> {
     let guard = common::set_tracing_subscriber();
-    let storage = TempStorage::new_with_penumbra_prefixes().await?;
+    let storage = TempStorage::new_with_shieldd_prefixes().await?;
     let regulated_denom = "test_regulated_asset";
     let regulated_asset_id = REGISTRY
         .parse_denom(regulated_denom)
@@ -62,7 +62,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         let consensus = Consensus::new(storage.as_ref().clone());
         TestNode::builder()
             .single_validator()
-            .with_penumbra_auto_app_state(app_state)?
+            .with_shieldd_auto_app_state(app_state)?
             .init_chain(consensus)
             .await
             .tap_ok(|e| info!(hash = %e.last_app_hash_hex(), "finished init chain"))?
@@ -129,7 +129,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     }
     .with_populated_detection_data(OsRng, Default::default());
 
-    let provider = penumbra_sdk_mock_client::StateReadComplianceProvider::new(build_state);
+    let provider = shieldd_sdk_mock_client::StateReadComplianceProvider::new(build_state);
     enrich_plan_with_compliance(&mut plan, &provider, &mut OsRng, None).await?;
 
     let witness_data = client.witness_plan(&plan)?;

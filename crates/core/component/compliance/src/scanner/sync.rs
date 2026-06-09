@@ -1,5 +1,5 @@
-use penumbra_sdk_proto::core::transaction::v1::Transaction as ProtoTransaction;
-use penumbra_sdk_proto::Message;
+use shieldd_sdk_proto::core::transaction::v1::Transaction as ProtoTransaction;
+use shieldd_sdk_proto::Message;
 
 use super::types::{
     ActionRef, ClearFlowEvent, ClearFlowKind, ExtractedComplianceCiphertext, OutputRef, TxRef,
@@ -9,7 +9,7 @@ pub fn extract_compliance_ciphertexts(
     tx_ref: &TxRef,
     tx: &ProtoTransaction,
 ) -> Vec<ExtractedComplianceCiphertext> {
-    use penumbra_sdk_proto::core::transaction::v1::action::Action;
+    use shieldd_sdk_proto::core::transaction::v1::action::Action;
 
     let Some(body) = &tx.body else {
         return vec![];
@@ -47,7 +47,7 @@ pub fn extract_compliance_ciphertexts(
 }
 
 pub fn extract_clear_flows(tx_ref: &TxRef, tx: &ProtoTransaction) -> Vec<ClearFlowEvent> {
-    use penumbra_sdk_proto::core::transaction::v1::action::Action;
+    use shieldd_sdk_proto::core::transaction::v1::action::Action;
 
     let Some(body) = &tx.body else {
         return vec![];
@@ -83,7 +83,7 @@ pub fn extract_clear_flows(tx_ref: &TxRef, tx: &ProtoTransaction) -> Vec<ClearFl
 
 fn extract_ibc_shield(
     output_ref: &OutputRef,
-    relay: &penumbra_sdk_proto::core::component::ibc::v1::IbcRelay,
+    relay: &shieldd_sdk_proto::core::component::ibc::v1::IbcRelay,
 ) -> Option<ClearFlowEvent> {
     let raw_action = relay.raw_action.as_ref()?;
     if !raw_action
@@ -95,11 +95,11 @@ fn extract_ibc_shield(
     let msg =
         ibc_proto::ibc::core::channel::v1::MsgRecvPacket::decode(raw_action.value.as_ref()).ok()?;
     let packet = msg.packet?;
-    let packet_data: penumbra_sdk_proto::core::component::ibc::v1::FungibleTokenPacketData =
+    let packet_data: shieldd_sdk_proto::core::component::ibc::v1::FungibleTokenPacketData =
         serde_json::from_slice(packet.data.as_slice()).ok()?;
-    let metadata: penumbra_sdk_asset::asset::Metadata =
+    let metadata: shieldd_sdk_asset::asset::Metadata =
         packet_data.denom.as_str().try_into().ok()?;
-    let amount: penumbra_sdk_num::Amount = packet_data.amount.try_into().ok()?;
+    let amount: shieldd_sdk_num::Amount = packet_data.amount.try_into().ok()?;
 
     Some(ClearFlowEvent {
         output_ref: output_ref.clone(),
@@ -114,17 +114,17 @@ fn extract_ibc_shield(
 
 fn extract_ics20_withdrawal(
     output_ref: &OutputRef,
-    withdrawal: &penumbra_sdk_proto::core::component::shielded_pool::v1::ShieldedIcs20Withdrawal,
+    withdrawal: &shieldd_sdk_proto::core::component::shielded_pool::v1::ShieldedIcs20Withdrawal,
 ) -> Option<ClearFlowEvent> {
     let body = withdrawal.body.as_ref()?;
     let payload = body.withdrawal.as_ref()?;
     let denom = payload.denom.clone()?;
-    let metadata: penumbra_sdk_asset::asset::Metadata = denom.denom.as_str().try_into().ok()?;
-    let amount: penumbra_sdk_num::Amount = payload.amount.clone()?.try_into().ok()?;
+    let metadata: shieldd_sdk_asset::asset::Metadata = denom.denom.as_str().try_into().ok()?;
+    let amount: shieldd_sdk_num::Amount = payload.amount.clone()?.try_into().ok()?;
     let return_address = payload
         .return_address
         .clone()
-        .and_then(|address| penumbra_sdk_keys::Address::try_from(address).ok())
+        .and_then(|address| shieldd_sdk_keys::Address::try_from(address).ok())
         .map(|address| address.to_string());
 
     Some(ClearFlowEvent {
@@ -141,13 +141,13 @@ fn extract_ics20_withdrawal(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use penumbra_sdk_proto::core::component::shielded_pool::v1::{
+    use shieldd_sdk_proto::core::component::shielded_pool::v1::{
         Consolidate, ConsolidateBody, Split, SplitBody, Transfer, TransferBody, TransferOutputBody,
     };
-    use penumbra_sdk_proto::core::transaction::v1::{
+    use shieldd_sdk_proto::core::transaction::v1::{
         action::Action, Action as ActionProto, TransactionBody,
     };
-    use penumbra_sdk_txhash::TransactionId;
+    use shieldd_sdk_txhash::TransactionId;
 
     fn tx_ref() -> TxRef {
         TxRef {

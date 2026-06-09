@@ -1,5 +1,5 @@
-use penumbra_sdk_keys::PayloadKey;
-use penumbra_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_keys::PayloadKey;
+use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
 
 use crate::{Consolidate, NoteView};

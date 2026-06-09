@@ -9,24 +9,24 @@ use anyhow::{Context, Result};
 use ark_serialize::CanonicalSerialize;
 use cnidarium::TempStorage;
 use decaf377_rdsa::VerificationKey;
-use penumbra_sdk_app::{
+use shieldd_sdk_app::{
     genesis::{AppState, Content},
     server::consensus::{Consensus, ConsensusService},
     APP_VERSION, SUBSTORE_PREFIXES,
 };
-use penumbra_sdk_asset::{Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
-use penumbra_sdk_compliance::{
+use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
+use shieldd_sdk_compliance::{
     genesis::NativeAssetRegistration, ComplianceLeaf, ComplianceRegistryWrite,
 };
-use penumbra_sdk_keys::test_keys;
-use penumbra_sdk_mock_client::MockClient;
-use penumbra_sdk_mock_consensus::TestNode;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_shielded_pool::{
+use shieldd_sdk_keys::test_keys;
+use shieldd_sdk_mock_client::MockClient;
+use shieldd_sdk_mock_consensus::TestNode;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_shielded_pool::{
     genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
-use penumbra_sdk_transaction::{
+use shieldd_sdk_transaction::{
     memo::MemoPlaintext, plan::MemoPlan, Transaction, TransactionParameters, TransactionPlan,
 };
 use rand_core::OsRng;
@@ -90,17 +90,17 @@ pub async fn setup_proof_storage(
     let authority_vk = VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
     let content = Content {
         chain_id: TestNode::<()>::CHAIN_ID.to_string(),
-        compliance_content: penumbra_sdk_compliance::genesis::Content {
+        compliance_content: shieldd_sdk_compliance::genesis::Content {
             native_assets: vec![NativeAssetRegistration {
                 asset_id: *BASE_ASSET_ID,
                 is_regulated: true,
                 dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
-                slot_count: penumbra_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
+                slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 registration_authority_vk: Some(authority_vk),
             }],
             ..Default::default()
         },
-        shielded_pool_content: penumbra_sdk_shielded_pool::genesis::Content {
+        shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
             allocations,
             ..Default::default()
         },
@@ -326,9 +326,9 @@ pub fn save_proof_tx_pool(out_dir: &Path, pool: &ProofTxPool) -> Result<ProofTxP
     }
 
     let verifying_key_digest = transfer_verifying_key_digest()?;
-    let proving_key_digest = bytes_digest(penumbra_sdk_proof_params::transfer_proving_key_bytes());
+    let proving_key_digest = bytes_digest(shieldd_sdk_proof_params::transfer_proving_key_bytes());
     let circuit_metadata_digest =
-        bytes_digest(penumbra_sdk_proof_params::transfer_circuit_metadata());
+        bytes_digest(shieldd_sdk_proof_params::transfer_circuit_metadata());
     let git_commit = git_commit();
     let git_tree_state = git_tree_state();
     let metadata = ProofTxPoolMetadata {
@@ -494,8 +494,8 @@ fn compatibility_fingerprint(tx_count: usize) -> Result<String> {
     hasher.update((tx_count as u64).to_le_bytes());
     hasher.update(env!("CARGO_PKG_VERSION").as_bytes());
     hasher.update(transfer_verifying_key_digest()?.as_bytes());
-    hasher.update(bytes_digest(penumbra_sdk_proof_params::transfer_proving_key_bytes()).as_bytes());
-    hasher.update(bytes_digest(penumbra_sdk_proof_params::transfer_circuit_metadata()).as_bytes());
+    hasher.update(bytes_digest(shieldd_sdk_proof_params::transfer_proving_key_bytes()).as_bytes());
+    hasher.update(bytes_digest(shieldd_sdk_proof_params::transfer_circuit_metadata()).as_bytes());
     if let Some(commit) = git_commit() {
         hasher.update(commit.as_bytes());
     }
@@ -505,7 +505,7 @@ fn compatibility_fingerprint(tx_count: usize) -> Result<String> {
 
 fn transfer_verifying_key_digest() -> Result<String> {
     let mut bytes = Vec::new();
-    penumbra_sdk_proof_params::transfer_proof_verification_key()
+    shieldd_sdk_proof_params::transfer_proof_verification_key()
         .serialize_compressed(&mut bytes)
         .context("serializing transfer verifying key")?;
     Ok(bytes_digest(&bytes))

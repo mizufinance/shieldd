@@ -4,12 +4,12 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use clap::Parser;
-use penumbra_sdk_app::app::{
+use shieldd_sdk_app::app::{
     candidate_digest_from_hashes, App, CandidateEnvelope, ExecutionBlockProfile,
     PrepareProposalProfile, ProcessProposalProfile, ProposalArtifactSidecar,
 };
-use penumbra_sdk_app::block_tx_indexing::BlockTxIndexingMode;
-use penumbra_sdk_bench_support::proof_txs::{
+use shieldd_sdk_app::block_tx_indexing::BlockTxIndexingMode;
+use shieldd_sdk_bench_support::proof_txs::{
     build_proof_tx_pool, build_proof_tx_workload, default_pool_dir, load_proof_tx_pool,
     save_proof_tx_pool, setup_proof_storage, ProofTxPool, ProofTxPoolMetadata,
 };
@@ -140,7 +140,7 @@ async fn main() -> Result<()> {
             | "outbound_shielded_ics20" => {
                 anyhow::bail!(
                     "scenario {scenario} is not supported by this binary because it cannot build \
-                     a real reusable IBC corpus from penumbra-sdk-bench. Run the ignored \
+                     a real reusable IBC corpus from shieldd-sdk-bench. Run the ignored \
                      app-test benchmark ibc_vs_transfer_benchmark for real IBC inbound/outbound \
                      corpora."
                 );

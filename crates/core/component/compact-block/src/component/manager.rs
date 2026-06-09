@@ -1,13 +1,13 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
-use penumbra_sdk_compliance::{ComplianceRegistryRead, ComplianceRegistryWrite};
-use penumbra_sdk_fee::component::StateReadExt as _;
-use penumbra_sdk_governance::StateReadExt as _;
-use penumbra_sdk_proto::DomainType;
-use penumbra_sdk_sct::component::clock::EpochRead;
-use penumbra_sdk_sct::component::tree::{SctManager as _, SctRead};
-use penumbra_sdk_shielded_pool::component::NoteManager as _;
+use shieldd_sdk_compliance::{ComplianceRegistryRead, ComplianceRegistryWrite};
+use shieldd_sdk_fee::component::StateReadExt as _;
+use shieldd_sdk_governance::StateReadExt as _;
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead};
+use shieldd_sdk_shielded_pool::component::NoteManager as _;
 use tracing::instrument;
 
 use crate::{state_key, CompactBlock};
@@ -31,7 +31,7 @@ impl<T: StateWrite + ?Sized> CompactBlockManager for T {}
 trait Inner: StateWrite {
     #[instrument(skip_all)]
     async fn finalize_compact_block(&mut self, end_epoch: bool) -> Result<()> {
-        use penumbra_sdk_shielded_pool::component::StateReadExt as _;
+        use shieldd_sdk_shielded_pool::component::StateReadExt as _;
         // Find out what our block height is (this is set even during the genesis block)
         let height = self
             .get_block_height()
@@ -50,7 +50,7 @@ trait Inner: StateWrite {
         app_parameters_updated = app_parameters_updated || height == 0;
 
         // Check to see if the gas prices have changed, and include them in the compact block
-        // if they have (this is signaled by `penumbra_sdk_fee::StateWriteExt::put_gas_prices`):
+        // if they have (this is signaled by `shieldd_sdk_fee::StateWriteExt::put_gas_prices`):
         let (gas_prices, alt_gas_prices) = if self.gas_prices_changed() || height == 0 {
             (
                 Some(

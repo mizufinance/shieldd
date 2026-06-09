@@ -7,16 +7,16 @@ pub use {
         temp_storage_ext::TempStorageExt, test_node_builder_ext::BuilderExt,
         test_node_ext::TestNodeExt, validator_read_ext::ValidatorDataReadExt,
     },
-    penumbra_sdk_test_subscriber::{
+    shieldd_sdk_test_subscriber::{
         set_tracing_subscriber, set_tracing_subscriber_with_env_filter,
     },
 };
 
 use cnidarium::StateWrite;
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, ComplianceRegistryWrite};
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan};
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, ComplianceRegistryWrite};
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan};
 
 #[allow(dead_code)]
 pub fn align_transfer_planning_metadata(
@@ -123,7 +123,7 @@ pub async fn state_with_compliance_for_build(
     Ok(delta)
 }
 
-/// Penumbra-specific extensions to the mock consensus builder.
+/// Shieldd-specific extensions to the mock consensus builder.
 ///
 /// See [`BuilderExt`].
 mod test_node_builder_ext;
@@ -131,14 +131,14 @@ mod test_node_builder_ext;
 /// Extensions to [`TempStorage`][cnidarium::TempStorage].
 mod temp_storage_ext;
 
-/// Penumbra-specific extensions to the mock consensus test node.
+/// Shieldd-specific extensions to the mock consensus test node.
 ///
 /// See [`TestNodeExt`].
 mod test_node_ext;
 
 /// Helpful additions for reading validator information.
 ///
-/// See [`ValidatorDataRead`][penumbra_sdk_validator::component::validator_handler::ValidatorDataRead],
+/// See [`ValidatorDataRead`][shieldd_sdk_validator::component::validator_handler::ValidatorDataRead],
 /// and [`ValidatorDataReadExt`].
 mod validator_read_ext;
 

@@ -3,22 +3,22 @@ use {
     anyhow::Context,
     cnidarium::TempStorage,
     common::TempStorageExt as _,
-    penumbra_sdk_app::{
+    shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
     },
-    penumbra_sdk_asset::BASE_ASSET_ID,
-    penumbra_sdk_keys::{keys::AddressIndex, test_keys},
-    penumbra_sdk_mock_client::MockClient,
-    penumbra_sdk_mock_consensus::TestNode,
-    penumbra_sdk_proto::{
+    shieldd_sdk_asset::BASE_ASSET_ID,
+    shieldd_sdk_keys::{keys::AddressIndex, test_keys},
+    shieldd_sdk_mock_client::MockClient,
+    shieldd_sdk_mock_consensus::TestNode,
+    shieldd_sdk_proto::{
         view::v1::{
             view_service_client::ViewServiceClient, view_service_server::ViewServiceServer,
             StatusRequest, StatusResponse,
         },
         DomainType,
     },
-    penumbra_sdk_view::{NoteManager, SpendableNoteRecord, TransferPlanningResult, ViewClient},
+    shieldd_sdk_view::{NoteManager, SpendableNoteRecord, TransferPlanningResult, ViewClient},
     tap::{Tap, TapFallible},
 };
 
@@ -27,8 +27,8 @@ mod common;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn view_server_can_be_served_on_localhost() -> anyhow::Result<()> {
     let guard = common::set_tracing_subscriber();
-    let storage = TempStorage::new_with_penumbra_prefixes().await?;
-    let proxy = penumbra_sdk_mock_tendermint_proxy::TestNodeProxy::new::<Consensus>();
+    let storage = TempStorage::new_with_shieldd_prefixes().await?;
+    let proxy = shieldd_sdk_mock_tendermint_proxy::TestNodeProxy::new::<Consensus>();
 
     let mut test_node = {
         let app_state = AppState::Content(
@@ -37,7 +37,7 @@ async fn view_server_can_be_served_on_localhost() -> anyhow::Result<()> {
         let consensus = Consensus::new(storage.as_ref().clone());
         TestNode::builder()
             .single_validator()
-            .with_penumbra_auto_app_state(app_state)?
+            .with_shieldd_auto_app_state(app_state)?
             .on_block(proxy.on_block_callback())
             .init_chain(consensus)
             .await
@@ -63,7 +63,7 @@ async fn view_server_can_be_served_on_localhost() -> anyhow::Result<()> {
         .tap(|url| tracing::debug!(%url, "parsed grpc url"));
 
     {
-        let make_svc = penumbra_sdk_app::rpc::routes(storage.as_ref(), proxy, false)?
+        let make_svc = shieldd_sdk_app::rpc::routes(storage.as_ref(), proxy, false)?
             .into_axum_router()
             .layer(tower_http::cors::CorsLayer::permissive())
             .into_make_service();
@@ -73,7 +73,7 @@ async fn view_server_can_be_served_on_localhost() -> anyhow::Result<()> {
     };
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    let view_server = penumbra_sdk_view::ViewServer::load_or_initialize(
+    let view_server = shieldd_sdk_view::ViewServer::load_or_initialize(
         None::<&camino::Utf8Path>,
         None::<&camino::Utf8Path>,
         &*test_keys::FULL_VIEWING_KEY,
@@ -140,7 +140,7 @@ async fn view_server_can_be_served_on_localhost() -> anyhow::Result<()> {
     let post_tx_snapshot = storage.latest_snapshot();
 
     for nf in tx.spent_nullifiers() {
-        use penumbra_sdk_sct::component::tree::SctRead as _;
+        use shieldd_sdk_sct::component::tree::SctRead as _;
         assert!(pre_tx_snapshot.spend_info(nf).await?.is_none());
         assert!(post_tx_snapshot.spend_info(nf).await?.is_some());
     }

@@ -1,5 +1,5 @@
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_validator::IdentityKey;
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_validator::IdentityKey;
 
 pub fn governance_params() -> &'static str {
     "governance/params"

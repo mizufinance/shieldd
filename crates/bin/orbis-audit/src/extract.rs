@@ -1,5 +1,5 @@
-use penumbra_sdk_compliance::{TransferComplianceCiphertext, TransferOrbisUploadBundle};
-use penumbra_sdk_proto::core::transaction::v1::{action::Action as ActionEnum, Action};
+use shieldd_sdk_compliance::{TransferComplianceCiphertext, TransferOrbisUploadBundle};
+use shieldd_sdk_proto::core::transaction::v1::{action::Action as ActionEnum, Action};
 
 #[derive(Debug)]
 pub struct ExtractedTransferData {

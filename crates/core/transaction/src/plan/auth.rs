@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rand::{CryptoRng, RngCore};
 
-use penumbra_sdk_keys::keys::SpendKey;
+use shieldd_sdk_keys::keys::SpendKey;
 
 use crate::{AuthorizationData, TransactionPlan};
 

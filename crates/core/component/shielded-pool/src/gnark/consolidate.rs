@@ -21,16 +21,16 @@ use crate::{
     ConsolidateFamilyId,
 };
 
-const CONSOLIDATE_LIB_BASENAME: &str = "libpenumbra_gnark_consolidate";
-const CONSOLIDATE_ENV_ARTIFACT_DIR: &str = "PENUMBRA_GNARK_CONSOLIDATE_ARTIFACT_DIR";
-const CONSOLIDATE_ENV_LIB: &str = "PENUMBRA_GNARK_CONSOLIDATE_LIB";
-const CONSOLIDATE_ENV_DAEMON: &str = "PENUMBRA_GNARK_CONSOLIDATE_DAEMON";
+const CONSOLIDATE_LIB_BASENAME: &str = "libshieldd_gnark_consolidate";
+const CONSOLIDATE_ENV_ARTIFACT_DIR: &str = "SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR";
+const CONSOLIDATE_ENV_LIB: &str = "SHIELDD_GNARK_CONSOLIDATE_LIB";
+const CONSOLIDATE_ENV_DAEMON: &str = "SHIELDD_GNARK_CONSOLIDATE_DAEMON";
 
-const CONSOLIDATE_INIT_SYMBOL: &[u8] = b"penumbra_gnark_consolidate_init";
-const CONSOLIDATE_INIT_FROM_BYTES_SYMBOL: &[u8] = b"penumbra_gnark_consolidate_init_from_bytes";
-const CONSOLIDATE_PROVE_SYMBOL: &[u8] = b"penumbra_gnark_consolidate_prove";
-const CONSOLIDATE_FREE_SYMBOL: &[u8] = b"penumbra_gnark_consolidate_free";
-const CONSOLIDATE_SHUTDOWN_SYMBOL: &[u8] = b"penumbra_gnark_consolidate_shutdown";
+const CONSOLIDATE_INIT_SYMBOL: &[u8] = b"shieldd_gnark_consolidate_init";
+const CONSOLIDATE_INIT_FROM_BYTES_SYMBOL: &[u8] = b"shieldd_gnark_consolidate_init_from_bytes";
+const CONSOLIDATE_PROVE_SYMBOL: &[u8] = b"shieldd_gnark_consolidate_prove";
+const CONSOLIDATE_FREE_SYMBOL: &[u8] = b"shieldd_gnark_consolidate_free";
+const CONSOLIDATE_SHUTDOWN_SYMBOL: &[u8] = b"shieldd_gnark_consolidate_shutdown";
 
 static CONSOLIDATE_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     family: "consolidate2x1",
@@ -217,7 +217,7 @@ impl GnarkConsolidateClient {
     }
 
     pub fn bundled_lib_path() -> Option<PathBuf> {
-        penumbra_sdk_proof_params::GNARK_CONSOLIDATE_BUNDLED_LIBRARY_PATH.map(PathBuf::from)
+        shieldd_sdk_proof_params::GNARK_CONSOLIDATE_BUNDLED_LIBRARY_PATH.map(PathBuf::from)
     }
 
     #[cfg(any(unix, windows))]
@@ -266,7 +266,7 @@ pub fn translate_consolidate_proof_result(
     let mut proof_bytes = Vec::new();
     proof.serialize_compressed(&mut proof_bytes)?;
     let proof = ConsolidateProof::try_from(
-        penumbra_sdk_proto::penumbra::core::component::shielded_pool::v1::ZkConsolidateProof {
+        shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1::ZkConsolidateProof {
             inner: proof_bytes,
         },
     )?;

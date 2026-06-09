@@ -75,13 +75,13 @@ mod tests {
     fn test_registry_native_token() {
         // We should be able to use `parse_base` with the valid base denomination.
         let base_denom = Cache::with_known_assets()
-            .get_unit("upenumbra")
+            .get_unit("ushieldd")
             .unwrap()
             .base();
-        assert_eq!(format!("{base_denom}"), "upenumbra".to_string());
+        assert_eq!(format!("{base_denom}"), "ushieldd".to_string());
 
         // If we try to use `parse_base` with a display denomination, we should get `None`.
-        let display_denoms = vec!["mpenumbra", "penumbra"];
+        let display_denoms = vec!["mshieldd", "shieldd"];
         for display_denom in &display_denoms {
             assert!(REGISTRY.parse_denom(display_denom).is_none());
         }
@@ -92,48 +92,48 @@ mod tests {
 
             assert_eq!(
                 format!("{}", parsed_display_denom.base()),
-                "upenumbra".to_string()
+                "ushieldd".to_string()
             );
 
             assert_eq!(format!("{parsed_display_denom}"), display_denom)
         }
 
-        // The base denomination (upenumbra) can also be used for display purposes.
-        let parsed_display_denom = REGISTRY.parse_unit("upenumbra");
+        // The base denomination (ushieldd) can also be used for display purposes.
+        let parsed_display_denom = REGISTRY.parse_unit("ushieldd");
         assert_eq!(
             format!("{}", parsed_display_denom.base()),
-            "upenumbra".to_string()
+            "ushieldd".to_string()
         );
     }
 
     #[test]
     fn test_displaydenom_format_value() {
         // with exponent 6, 1782000 formats to 1.782
-        let penumbra_sdk_display_denom = REGISTRY.parse_unit("penumbra");
+        let shieldd_sdk_display_denom = REGISTRY.parse_unit("shieldd");
         assert_eq!(
-            penumbra_sdk_display_denom.format_value(1782000u64.into()),
+            shieldd_sdk_display_denom.format_value(1782000u64.into()),
             "1.782"
         );
         assert_eq!(
-            penumbra_sdk_display_denom.format_value(6700001u64.into()),
+            shieldd_sdk_display_denom.format_value(6700001u64.into()),
             "6.700001"
         );
         assert_eq!(
-            penumbra_sdk_display_denom.format_value(1u64.into()),
+            shieldd_sdk_display_denom.format_value(1u64.into()),
             "0.000001"
         );
 
         // with exponent 3, 1782000 formats to 1782
-        let mpenumbra_sdk_display_denom = REGISTRY.parse_unit("mpenumbra");
+        let mshieldd_sdk_display_denom = REGISTRY.parse_unit("mshieldd");
         assert_eq!(
-            mpenumbra_sdk_display_denom.format_value(1782000u64.into()),
+            mshieldd_sdk_display_denom.format_value(1782000u64.into()),
             "1782"
         );
 
         // with exponent 0, 1782000 formats to 1782000
-        let upenumbra_sdk_display_denom = REGISTRY.parse_unit("upenumbra");
+        let ushieldd_sdk_display_denom = REGISTRY.parse_unit("ushieldd");
         assert_eq!(
-            upenumbra_sdk_display_denom.format_value(1782000u64.into()),
+            ushieldd_sdk_display_denom.format_value(1782000u64.into()),
             "1782000"
         );
     }
@@ -141,58 +141,58 @@ mod tests {
     #[test]
     fn best_unit_for() {
         let base_denom = Cache::with_known_assets()
-            .get_unit("upenumbra")
+            .get_unit("ushieldd")
             .unwrap()
             .base();
 
         assert_eq!(
             base_denom.best_unit_for(0u64.into()).to_string(),
-            "penumbra"
+            "shieldd"
         );
         assert_eq!(
             base_denom.best_unit_for(999u64.into()).to_string(),
-            "upenumbra"
+            "ushieldd"
         );
         assert_eq!(
             base_denom.best_unit_for(1_000u64.into()).to_string(),
-            "mpenumbra"
+            "mshieldd"
         );
         assert_eq!(
             base_denom.best_unit_for(999_999u64.into()).to_string(),
-            "mpenumbra"
+            "mshieldd"
         );
         assert_eq!(
             base_denom.best_unit_for(1_000_000u64.into()).to_string(),
-            "penumbra"
+            "shieldd"
         );
     }
 
     #[test]
     fn test_displaydenom_parse_value() {
-        let penumbra_sdk_display_denom = REGISTRY.parse_unit("penumbra");
-        assert!(penumbra_sdk_display_denom.parse_value("1.2.3").is_err());
+        let shieldd_sdk_display_denom = REGISTRY.parse_unit("shieldd");
+        assert!(shieldd_sdk_display_denom.parse_value("1.2.3").is_err());
 
         assert_eq!(
-            penumbra_sdk_display_denom.parse_value("1.782").unwrap(),
+            shieldd_sdk_display_denom.parse_value("1.782").unwrap(),
             1782000u64.into()
         );
         assert_eq!(
-            penumbra_sdk_display_denom.parse_value("6.700001").unwrap(),
+            shieldd_sdk_display_denom.parse_value("6.700001").unwrap(),
             6700001u64.into()
         );
 
-        let mpenumbra_sdk_display_denom = REGISTRY.parse_unit("mpenumbra");
+        let mshieldd_sdk_display_denom = REGISTRY.parse_unit("mshieldd");
         assert_eq!(
-            mpenumbra_sdk_display_denom.parse_value("1782").unwrap(),
+            mshieldd_sdk_display_denom.parse_value("1782").unwrap(),
             1782000u64.into()
         );
-        assert!(mpenumbra_sdk_display_denom
+        assert!(mshieldd_sdk_display_denom
             .parse_value("1782.0001")
             .is_err());
 
-        let upenumbra_sdk_display_denom = REGISTRY.parse_unit("upenumbra");
+        let ushieldd_sdk_display_denom = REGISTRY.parse_unit("ushieldd");
         assert_eq!(
-            upenumbra_sdk_display_denom.parse_value("1782000").unwrap(),
+            ushieldd_sdk_display_denom.parse_value("1782000").unwrap(),
             1782000u64.into()
         );
     }
@@ -209,14 +209,14 @@ mod tests {
         fn displaydenom_parsing_formatting_roundtrip(
             v: u128
         ) {
-            let penumbra_sdk_display_denom = REGISTRY.parse_unit("penumbra");
-            let formatted = penumbra_sdk_display_denom.format_value(v.into());
-            let parsed = penumbra_sdk_display_denom.parse_value(&formatted);
+            let shieldd_sdk_display_denom = REGISTRY.parse_unit("shieldd");
+            let formatted = shieldd_sdk_display_denom.format_value(v.into());
+            let parsed = shieldd_sdk_display_denom.parse_value(&formatted);
             assert_eq!(v, u128::from(parsed.unwrap()));
 
-            let mpenumbra_sdk_display_denom = REGISTRY.parse_unit("mpenumbra");
-            let formatted = mpenumbra_sdk_display_denom.format_value(v.into());
-            let parsed = mpenumbra_sdk_display_denom.parse_value(&formatted);
+            let mshieldd_sdk_display_denom = REGISTRY.parse_unit("mshieldd");
+            let formatted = mshieldd_sdk_display_denom.format_value(v.into());
+            let parsed = mshieldd_sdk_display_denom.parse_value(&formatted);
             assert_eq!(v, u128::from(parsed.unwrap()));
         }
     }

@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use decaf377_fmd::Precision;
-use penumbra_sdk_proto::{
+use shieldd_sdk_proto::{
     core::component::shielded_pool::v1::{self as pb},
     DomainType,
 };
@@ -19,7 +19,7 @@ pub fn should_update_fmd_params(fmd_grace_period_blocks: u64, height: u64) -> bo
 static BLACK_HOLE_DOMAIN_SEP: once_cell::sync::Lazy<decaf377::Fq> =
     once_cell::sync::Lazy::new(|| {
         decaf377::Fq::from_le_bytes_mod_order(
-            blake2b_simd::blake2b(b"penumbra.black_hole_key").as_bytes(),
+            blake2b_simd::blake2b(b"shieldd.black_hole_key").as_bytes(),
         )
     });
 

@@ -5,20 +5,20 @@ the (consensus-determined) application state. Transactions modify the
 application state directly, and participants check that the state changes are
 allowed by the application rules before coming to consensus on them.
 
-On a shielded blockchain like Penumbra, however, the state is fragmented across
+On a shielded blockchain like Shieldd, however, the state is fragmented across
 all users of the application, as each user has a view only of their "local"
 portion of the application state recording their funds. Transactions update a
 user's state fragments privately, and use a zero-knowledge proof to prove to all
 other participants that the update was allowed by the application rules.
 
-Penumbra's transaction model is derived from the Zcash shielded transaction
+Shieldd's transaction model is derived from the Zcash shielded transaction
 design, with [modifications][multi_asset] to support multiple asset types, and
 several extensions to support additional functionality.  The Zcash model is in
 turn derived from Bitcoin's unspent transaction output (UTXO) model, in which
 value is recorded in transaction outputs that record the conditions under which
 they can be spent.
 
-In Penumbra, value is recorded in *notes*, which function similarly to UTXOs.
+In Shieldd, value is recorded in *notes*, which function similarly to UTXOs.
 Each note specifies (either directly or indirectly) a *type* of value, an
 *amount* of value of that type, a *spending key* that authorizes spending the
 note's value, and a unique *nullifier* derived from the note's contents.

@@ -2,8 +2,8 @@
 
 use anyhow::{ensure, Context};
 use decaf377::{Element, Fr};
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_num::Amount;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_num::Amount;
 
 use crate::crypto::{decrypt_detection_tier, decrypt_tier_bytes};
 use crate::transfer::TransferComplianceCiphertext;
@@ -101,12 +101,12 @@ mod tests {
     use crate::issuer_keys::DetectionKey;
     use crate::test_helpers::make_address;
     use crate::transfer::encrypt_transfer;
-    use penumbra_sdk_asset::Value;
+    use shieldd_sdk_asset::Value;
     use rand_core::OsRng;
 
     fn derive_ack(
         ring_pk: &decaf377::Element,
-        address: &penumbra_sdk_keys::Address,
+        address: &shieldd_sdk_keys::Address,
     ) -> decaf377::Element {
         let b_d_fq = address.diversified_generator().vartime_compress_to_field();
         let d = derive_compliance_scalar(b_d_fq);

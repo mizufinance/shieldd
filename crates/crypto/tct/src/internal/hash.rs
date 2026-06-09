@@ -99,7 +99,7 @@ impl Debug for Hash {
 /// separators of nodes in the tree (nodes get a domain separator of the form `DOMAIN_SEPARATOR +
 /// HEIGHT`).
 pub static DOMAIN_SEPARATOR: Lazy<Fq> =
-    Lazy::new(|| Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"penumbra.tct").as_bytes()));
+    Lazy::new(|| Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.tct").as_bytes()));
 
 #[allow(unused)]
 impl Hash {

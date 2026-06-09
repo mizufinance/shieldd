@@ -4,9 +4,9 @@ use anyhow::{anyhow, Context, Error, Result};
 use colored::Colorize;
 use comfy_table::{presets, Table};
 use futures::TryStreamExt;
-use penumbra_sdk_app::params::AppParameters;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{
+use shieldd_sdk_app::params::AppParameters;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{
     core::{
         app::v1::{
             query_service_client::QueryServiceClient as AppQueryServiceClient, AppParametersRequest,
@@ -19,7 +19,7 @@ use penumbra_sdk_proto::{
     },
     DomainType,
 };
-use penumbra_sdk_validator::{
+use shieldd_sdk_validator::{
     validator::{self, Info, Status, Validator, ValidatorToml},
     IdentityKey, Uptime,
 };

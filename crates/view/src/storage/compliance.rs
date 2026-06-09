@@ -1,7 +1,7 @@
 use anyhow::Context as _;
 use r2d2_sqlite::rusqlite::{OptionalExtension, Transaction};
 
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_tct::StateCommitment;
 
 /// Asset indexed leaf data (mirrors IndexedLeaf struct with full policy).
 ///

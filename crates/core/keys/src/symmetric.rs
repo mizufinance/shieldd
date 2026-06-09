@@ -5,9 +5,9 @@ use chacha20poly1305::{
     ChaCha20Poly1305, Key, Nonce, XChaCha20Poly1305, XNonce,
 };
 use decaf377_ka as ka;
-use penumbra_sdk_asset::balance;
-use penumbra_sdk_proto::core::keys::v1::{self as pb};
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_asset::balance;
+use shieldd_sdk_proto::core::keys::v1::{self as pb};
+use shieldd_sdk_tct::StateCommitment;
 use rand::{CryptoRng, RngCore};
 
 pub const PAYLOAD_KEY_LEN_BYTES: usize = 32;
@@ -47,7 +47,7 @@ impl PayloadKey {
     /// Use Blake2b-256 to derive a `PayloadKey`.
     pub fn derive(shared_secret: &ka::SharedSecret, epk: &ka::Public) -> Self {
         let mut kdf_params = blake2b_simd::Params::new();
-        kdf_params.personal(b"Penumbra_Payload");
+        kdf_params.personal(b"Shieldd_Payload");
         kdf_params.hash_length(32);
         let mut kdf = kdf_params.to_state();
         kdf.update(&shared_secret.0);
@@ -96,7 +96,7 @@ impl PayloadKey {
         let cm_bytes: [u8; 32] = cm.into();
 
         let mut kdf_params = blake2b_simd::Params::new();
-        kdf_params.personal(b"Penumbra_Payswap");
+        kdf_params.personal(b"Shieldd_Payswap");
         kdf_params.hash_length(32);
         let mut kdf = kdf_params.to_state();
         kdf.update(&ovk.to_bytes());
@@ -189,7 +189,7 @@ impl OutgoingCipherKey {
 
         let mut kdf_params = blake2b_simd::Params::new();
         kdf_params.hash_length(32);
-        kdf_params.personal(b"Penumbra_OutCiph");
+        kdf_params.personal(b"Shieldd_OutCiph");
         let mut kdf = kdf_params.to_state();
         kdf.update(&ovk.to_bytes());
         kdf.update(&cv_bytes);
@@ -351,7 +351,7 @@ pub struct BackreferenceKey(pub Key);
 impl BackreferenceKey {
     pub fn derive(ovk: &OutgoingViewingKey) -> Self {
         let mut kdf_params = blake2b_simd::Params::new();
-        kdf_params.personal(b"Penumbra_Backref");
+        kdf_params.personal(b"Shieldd_Backref");
         kdf_params.hash_length(32);
         let mut kdf = kdf_params.to_state();
         kdf.update(&ovk.to_bytes());
@@ -375,10 +375,10 @@ pub struct PositionMetadataKey(pub Key);
 impl PositionMetadataKey {
     /// Derives a PositionMetadataKey from an OutgoingViewingKey.
     ///
-    /// See [UIP-9](https://uips.penumbra.zone/uip-9.html) for more details.
+    /// See [UIP-9](https://uips.shieldd.zone/uip-9.html) for more details.
     pub fn derive(ovk: &OutgoingViewingKey) -> Self {
         let mut kdf_params = blake2b_simd::Params::new();
-        kdf_params.personal(b"Penumbra_PosMeta");
+        kdf_params.personal(b"Shieldd_PosMeta");
         kdf_params.hash_length(32);
         let mut kdf = kdf_params.to_state();
         kdf.update(&ovk.to_bytes());

@@ -9,14 +9,14 @@ typedef struct {
 	double init_ms;
 	void* err_ptr;
 	size_t err_len;
-} PenumbraGnarkInitResult;
+} ShielddGnarkInitResult;
 
 typedef struct {
 	void* ptr;
 	size_t len;
 	uint32_t status;
 	double prove_ms;
-} PenumbraGnarkBytesResult;
+} ShielddGnarkBytesResult;
 */
 import "C"
 
@@ -32,12 +32,12 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/logger"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/abi"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/artifacts"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/circuits"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/cshared"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/generated"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/abi"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/artifacts"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/cshared"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 const splitProofResultMagic = "PLPR"
@@ -95,8 +95,8 @@ func initContext(circuit string, pk *groth16bls.ProvingKey, metadata *artifacts.
 	}, nil
 }
 
-//export penumbra_gnark_split_init
-func penumbra_gnark_split_init(artifactDir *C.char, artifactDirLen C.size_t, out *C.PenumbraGnarkInitResult) {
+//export shieldd_gnark_split_init
+func shieldd_gnark_split_init(artifactDir *C.char, artifactDirLen C.size_t, out *C.ShielddGnarkInitResult) {
 	if out == nil {
 		return
 	}
@@ -109,13 +109,13 @@ func penumbra_gnark_split_init(artifactDir *C.char, artifactDirLen C.size_t, out
 	))
 }
 
-//export penumbra_gnark_split_init_from_bytes
-func penumbra_gnark_split_init_from_bytes(
+//export shieldd_gnark_split_init_from_bytes
+func shieldd_gnark_split_init_from_bytes(
 	pkData unsafe.Pointer,
 	pkLen C.size_t,
 	metadataData unsafe.Pointer,
 	metadataLen C.size_t,
-	out *C.PenumbraGnarkInitResult,
+	out *C.ShielddGnarkInitResult,
 ) {
 	if out == nil {
 		return
@@ -132,8 +132,8 @@ func penumbra_gnark_split_init_from_bytes(
 	))
 }
 
-//export penumbra_gnark_split_prove
-func penumbra_gnark_split_prove(handle C.uint64_t, witnessPtr unsafe.Pointer, witnessLen C.size_t, out *C.PenumbraGnarkBytesResult) {
+//export shieldd_gnark_split_prove
+func shieldd_gnark_split_prove(handle C.uint64_t, witnessPtr unsafe.Pointer, witnessLen C.size_t, out *C.ShielddGnarkBytesResult) {
 	if out == nil {
 		return
 	}
@@ -179,18 +179,18 @@ func proveContext(ctx *proverContext, witnessPayload []byte) ([]byte, float64, e
 	return payload, proveMS, nil
 }
 
-//export penumbra_gnark_split_free
-func penumbra_gnark_split_free(ptr unsafe.Pointer, _ C.size_t) {
+//export shieldd_gnark_split_free
+func shieldd_gnark_split_free(ptr unsafe.Pointer, _ C.size_t) {
 	cshared.Free(ptr)
 }
 
-//export penumbra_gnark_split_shutdown
-func penumbra_gnark_split_shutdown(handle C.uint64_t) {
+//export shieldd_gnark_split_shutdown
+func shieldd_gnark_split_shutdown(handle C.uint64_t) {
 	contexts.Delete(uint64(handle))
 }
 
-func writeInitResult(out *C.PenumbraGnarkInitResult, result cshared.InitResult) {
-	*out = C.PenumbraGnarkInitResult{}
+func writeInitResult(out *C.ShielddGnarkInitResult, result cshared.InitResult) {
+	*out = C.ShielddGnarkInitResult{}
 	out.handle = C.uint64_t(result.Handle)
 	out.init_ms = C.double(result.InitMS)
 	if len(result.Err) == 0 {
@@ -204,8 +204,8 @@ func writeInitResult(out *C.PenumbraGnarkInitResult, result cshared.InitResult) 
 	out.err_len = C.size_t(n)
 }
 
-func writeBytesResult(out *C.PenumbraGnarkBytesResult, result cshared.BytesResult) {
-	*out = C.PenumbraGnarkBytesResult{}
+func writeBytesResult(out *C.ShielddGnarkBytesResult, result cshared.BytesResult) {
+	*out = C.ShielddGnarkBytesResult{}
 	out.status = C.uint32_t(result.Status)
 	out.prove_ms = C.double(result.ProveMS)
 	if len(result.Payload) == 0 {

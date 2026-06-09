@@ -9,12 +9,12 @@
 //! - Store full LEAF DATA only for addresses in scope (own + counterparties)
 
 use anyhow::Result;
-use penumbra_sdk_compliance::{
+use shieldd_sdk_compliance::{
     indexed_tree::{IndexedLeaf, IndexedMerkleTree},
     structs::MerklePath,
     tree::QuadTree,
 };
-use penumbra_sdk_tct::StateCommitment;
+use shieldd_sdk_tct::StateCommitment;
 use std::collections::BTreeSet;
 
 use crate::storage::compliance::{ComplianceTreeStore, IndexedLeafData};
@@ -148,7 +148,7 @@ impl ComplianceAssetTree {
     /// Loads full leaf data including policy (dk_pub, threshold) to ensure
     /// correct tree reconstruction with matching leaf commitments.
     pub fn from_store(store: &mut ComplianceTreeStore<'_, '_>) -> Result<Self> {
-        use penumbra_sdk_compliance::indexed_tree::{LeafParams, LeafRing};
+        use shieldd_sdk_compliance::indexed_tree::{LeafParams, LeafRing};
 
         let leaf_count = store.get_asset_tree_leaf_count()?;
 
@@ -308,7 +308,7 @@ impl ComplianceAssetTree {
     /// Get proof data for an asset (membership or non-membership).
     pub fn get_proof_data(
         &self,
-        asset_id: penumbra_sdk_asset::asset::Id,
+        asset_id: shieldd_sdk_asset::asset::Id,
     ) -> Result<(u64, IndexedLeaf, MerklePath, bool)> {
         let value = asset_id.0;
 
@@ -416,7 +416,7 @@ mod tests {
     #[test]
     fn asset_tree_sync_preserves_policy() {
         use decaf377::Fq;
-        use penumbra_sdk_compliance::indexed_tree::{LeafParams, LeafRing, FQ_MAX};
+        use shieldd_sdk_compliance::indexed_tree::{LeafParams, LeafRing, FQ_MAX};
 
         let mut tree = ComplianceAssetTree::new();
 
@@ -431,8 +431,8 @@ mod tests {
             params: LeafParams {
                 dk_pub,
                 threshold,
-                slot_count: penumbra_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
-                route_policy_hash: penumbra_sdk_compliance::indexed_tree::string_to_fq(""),
+                slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
+                route_policy_hash: shieldd_sdk_compliance::indexed_tree::string_to_fq(""),
             },
             ring: LeafRing::default(),
         };
@@ -454,7 +454,7 @@ mod tests {
         .unwrap();
 
         // Verify policy is preserved via membership proof
-        let asset_id = penumbra_sdk_asset::asset::Id(new_leaf.value);
+        let asset_id = shieldd_sdk_asset::asset::Id(new_leaf.value);
         let (position, retrieved_leaf, _path, is_regulated) =
             tree.get_proof_data(asset_id).unwrap();
 
@@ -467,7 +467,7 @@ mod tests {
     #[test]
     fn asset_tree_persist_writes_only_dirty_positions_and_reloads_root() {
         use decaf377::Fq;
-        use penumbra_sdk_compliance::indexed_tree::{LeafParams, LeafRing, FQ_MAX};
+        use shieldd_sdk_compliance::indexed_tree::{LeafParams, LeafRing, FQ_MAX};
         use r2d2_sqlite::rusqlite::Connection;
 
         let mut db = Connection::open_in_memory().unwrap();

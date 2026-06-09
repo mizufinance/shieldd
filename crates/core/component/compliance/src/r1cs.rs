@@ -125,7 +125,7 @@ pub fn verify_quad_path(
 /// Contains address, asset_id, slot metadata, and derivation scalar `d`.
 /// ACK = d × ring_pk, computed in-circuit.
 pub struct ComplianceLeafVar {
-    pub address: penumbra_sdk_keys::AddressVar,
+    pub address: shieldd_sdk_keys::AddressVar,
     pub asset_id: FqVar,
     pub slot_id: FqVar,
     pub slot_derivation: FqVar,
@@ -140,7 +140,7 @@ impl ComplianceLeafVar {
         let domain_sep = FqVar::new_constant(
             cs.clone(),
             Fq::from_le_bytes_mod_order(
-                blake2b_simd::blake2b(b"penumbra.compliance.leaf").as_bytes(),
+                blake2b_simd::blake2b(b"shieldd.compliance.leaf").as_bytes(),
             ),
         )?;
 
@@ -174,7 +174,7 @@ impl AllocVar<ComplianceLeaf, Fq> for ComplianceLeafVar {
         let leaf = f()?;
         let leaf_ref = leaf.borrow();
 
-        let address = penumbra_sdk_keys::AddressVar::new_variable(
+        let address = shieldd_sdk_keys::AddressVar::new_variable(
             cs.clone(),
             || Ok(&leaf_ref.address),
             mode,
@@ -224,7 +224,7 @@ pub struct IndexedLeafVar {
     pub value: FqVar,
     pub next_index: FqVar,
     pub next_value: FqVar,
-    // Penumbra-decided policy (bound by IMT proof)
+    // Shieldd-decided policy (bound by IMT proof)
     pub dk_pub: ElementVar,
     pub threshold: FqVar,
     pub slot_count: FqVar,
@@ -282,7 +282,7 @@ impl IndexedLeafVar {
         let params_domain = FqVar::new_constant(cs.clone(), *PARAMS_DOMAIN_SEP)?;
         let ring_domain = FqVar::new_constant(cs.clone(), *RING_DOMAIN_SEP)?;
 
-        // Sub-hash 1: Penumbra-decided params
+        // Sub-hash 1: Shieldd-decided params
         let dk_pub_fq = self.dk_pub.compress_to_field()?;
         let params_hash = poseidon377::r1cs::hash_4(
             cs.clone(),
@@ -1440,9 +1440,9 @@ mod tests {
     use crate::IndexedMerkleTree;
     use ark_relations::r1cs::ConstraintSystem;
     use decaf377::{Element, Fr};
-    use penumbra_sdk_asset::asset;
-    use penumbra_sdk_keys::keys::Diversifier;
-    use penumbra_sdk_keys::Address;
+    use shieldd_sdk_asset::asset;
+    use shieldd_sdk_keys::keys::Diversifier;
+    use shieldd_sdk_keys::Address;
     use rand_core::OsRng;
 
     fn test_policy() -> AssetPolicy {
@@ -1729,7 +1729,7 @@ mod tests {
     #[test]
     fn test_verify_asset_registry_imt_non_membership_large_asset_id() {
         use crate::IndexedMerkleTree;
-        use penumbra_sdk_asset::BASE_ASSET_ID;
+        use shieldd_sdk_asset::BASE_ASSET_ID;
 
         let cs = ConstraintSystem::<Fq>::new_ref();
 

@@ -3,7 +3,7 @@ name = "pcli"
 version = {workspace = true}
 authors = {workspace = true}
 edition = {workspace = true}
-description = "The command-line interface for the Penumbra Zone"
+description = "The command-line interface for the Shieldd Zone"
 repository = {workspace = true}
 homepage = {workspace = true}
 license = {workspace = true}
@@ -14,29 +14,29 @@ dist = true
 
 [features]
 default = ["std", "parallel", "demo"]
-demo = ["penumbra-sdk-keys/demo"]
+demo = ["shieldd-sdk-keys/demo"]
 integration-testnet = []
 bundled-proving-keys = [
-    "penumbra-sdk-proof-params/bundled-proving-keys",
-    "penumbra-sdk-shielded-pool/bundled-proving-keys",
+    "shieldd-sdk-proof-params/bundled-proving-keys",
+    "shieldd-sdk-shielded-pool/bundled-proving-keys",
 ]
 download-proving-keys = [
     "bundled-proving-keys",
-    "penumbra-sdk-proof-params/download-proving-keys",
-    "penumbra-sdk-shielded-pool/download-proving-keys",
+    "shieldd-sdk-proof-params/download-proving-keys",
+    "shieldd-sdk-shielded-pool/download-proving-keys",
 ]
-sct-divergence-check = ["penumbra-sdk-view/sct-divergence-check"]
+sct-divergence-check = ["shieldd-sdk-view/sct-divergence-check"]
 std = ["ark-ff/std", "ibc-types/std"]
 parallel = [
-    "penumbra-sdk-proof-params/parallel",
+    "shieldd-sdk-proof-params/parallel",
     "decaf377/parallel",
-    "penumbra-sdk-shielded-pool/parallel",
-    "penumbra-sdk-governance/parallel",
-    "penumbra-sdk-validator/parallel",
-    "penumbra-sdk-transaction/parallel",
-    "penumbra-sdk-wallet/parallel",
+    "shieldd-sdk-shielded-pool/parallel",
+    "shieldd-sdk-governance/parallel",
+    "shieldd-sdk-validator/parallel",
+    "shieldd-sdk-transaction/parallel",
+    "shieldd-sdk-wallet/parallel",
 ]
-ledger = ["penumbra-sdk-custody-ledger-usb"]
+ledger = ["shieldd-sdk-custody-ledger-usb"]
 
 [dependencies]
 anyhow = {workspace = true}
@@ -70,26 +70,26 @@ indicatif = {workspace = true}
 jmt = {workspace = true}
 ndarray = "0.15.6"
 once_cell = {workspace = true}
-penumbra-sdk-app = {workspace = true, default-features = false}
-penumbra-sdk-asset = {workspace = true, default-features = false}
-penumbra-sdk-compact-block = {workspace = true, default-features = false}
-penumbra-sdk-compliance = {workspace = true, default-features = true}
-penumbra-sdk-custody = {workspace = true}
-penumbra-sdk-custody-ledger-usb = {workspace = true, optional = true}
-penumbra-sdk-fee = {workspace = true, default-features = false}
-penumbra-sdk-governance = {workspace = true, default-features = false}
-penumbra-sdk-ibc = {workspace = true, default-features = false}
-penumbra-sdk-keys = {workspace = true, default-features = false}
-penumbra-sdk-num = {workspace = true, default-features = false}
-penumbra-sdk-proof-params = { workspace = true, default-features = true }
-penumbra-sdk-proto = {workspace = true, features = ["rpc", "box-grpc"], default-features = true}
-penumbra-sdk-sct = {workspace = true, default-features = false}
-penumbra-sdk-shielded-pool = {workspace = true, default-features = false}
-penumbra-sdk-validator = {workspace = true, default-features = false}
-penumbra-sdk-tct = {workspace = true, default-features = true}
-penumbra-sdk-transaction = {workspace = true, default-features = true}
-penumbra-sdk-view = {workspace = true}
-penumbra-sdk-wallet = {workspace = true}
+shieldd-sdk-app = {workspace = true, default-features = false}
+shieldd-sdk-asset = {workspace = true, default-features = false}
+shieldd-sdk-compact-block = {workspace = true, default-features = false}
+shieldd-sdk-compliance = {workspace = true, default-features = true}
+shieldd-sdk-custody = {workspace = true}
+shieldd-sdk-custody-ledger-usb = {workspace = true, optional = true}
+shieldd-sdk-fee = {workspace = true, default-features = false}
+shieldd-sdk-governance = {workspace = true, default-features = false}
+shieldd-sdk-ibc = {workspace = true, default-features = false}
+shieldd-sdk-keys = {workspace = true, default-features = false}
+shieldd-sdk-num = {workspace = true, default-features = false}
+shieldd-sdk-proof-params = { workspace = true, default-features = true }
+shieldd-sdk-proto = {workspace = true, features = ["rpc", "box-grpc"], default-features = true}
+shieldd-sdk-sct = {workspace = true, default-features = false}
+shieldd-sdk-shielded-pool = {workspace = true, default-features = false}
+shieldd-sdk-validator = {workspace = true, default-features = false}
+shieldd-sdk-tct = {workspace = true, default-features = true}
+shieldd-sdk-transaction = {workspace = true, default-features = true}
+shieldd-sdk-view = {workspace = true}
+shieldd-sdk-wallet = {workspace = true}
 pin-project = {workspace = true}
 rand = {workspace = true}
 rand_chacha = {workspace = true}
@@ -117,12 +117,12 @@ url = {workspace = true, features = ["serde"]}
 
 [dev-dependencies]
 assert_cmd = {workspace = true}
-penumbra-sdk-governance = {workspace = true, default-features = false}
+shieldd-sdk-governance = {workspace = true, default-features = false}
 predicates = "2.1"
 regex = {workspace = true}
 tempfile = {workspace = true}
 
-[dev-dependencies.penumbra-sdk-proof-params]
+[dev-dependencies.shieldd-sdk-proof-params]
 default-features = true
 workspace = true
 features = [

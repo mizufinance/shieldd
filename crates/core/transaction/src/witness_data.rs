@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use penumbra_sdk_proto::{core::transaction::v1 as pb, DomainType};
-use penumbra_sdk_shielded_pool::note;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
+use shieldd_sdk_shielded_pool::note;
+use shieldd_sdk_tct as tct;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -1,11 +1,11 @@
 use blake2b_simd;
 use decaf377::{Fq, Fr};
 use decaf377_rdsa::{Signature, SigningKey, SpendAuth, VerificationKey};
-use penumbra_sdk_asset::asset;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_tct as tct;
 
 use crate::{Note, Rseed};
 
@@ -93,7 +93,7 @@ impl HiddenArityPadder {
     fn synthetic_dummy_note(&self, slot: usize, label: &[u8]) -> Note {
         Note::from_parts(
             self.sender_address.clone(),
-            penumbra_sdk_asset::Value {
+            shieldd_sdk_asset::Value {
                 amount: Amount::zero(),
                 asset_id: self.asset_id,
             },
@@ -124,7 +124,7 @@ pub(crate) fn dummy_state_commitment_proof(commitment: tct::StateCommitment) -> 
     tct::Proof::new(
         commitment,
         0u64.into(),
-        [[penumbra_sdk_tct::structure::Hash::new(Fq::from(0u64)); 3]; 24],
+        [[shieldd_sdk_tct::structure::Hash::new(Fq::from(0u64)); 3]; 24],
     )
 }
 
