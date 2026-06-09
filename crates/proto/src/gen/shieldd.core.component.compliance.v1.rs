@@ -585,8 +585,7 @@ impl ::prost::Name for ComplianceBatchMerkleProofsRequest {
         "shieldd.core.component.compliance.v1.ComplianceBatchMerkleProofsRequest".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compliance.v1.ComplianceBatchMerkleProofsRequest"
-            .into()
+        "/shieldd.core.component.compliance.v1.ComplianceBatchMerkleProofsRequest".into()
     }
 }
 /// Response containing batch Merkle proofs and anchors.
@@ -608,8 +607,7 @@ impl ::prost::Name for ComplianceBatchMerkleProofsResponse {
     const NAME: &'static str = "ComplianceBatchMerkleProofsResponse";
     const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compliance.v1.ComplianceBatchMerkleProofsResponse"
-            .into()
+        "shieldd.core.component.compliance.v1.ComplianceBatchMerkleProofsResponse".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.ComplianceBatchMerkleProofsResponse"

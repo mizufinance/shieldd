@@ -173,8 +173,7 @@ impl ::prost::Name for FmdMetaParametersAlgorithmState {
         "shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState"
-            .into()
+        "/shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState".into()
     }
 }
 /// Parameters for Fuzzy Message Detection
@@ -1635,8 +1634,7 @@ impl ::prost::Name for EventOutboundFungibleTokenRefund {
     const NAME: &'static str = "EventOutboundFungibleTokenRefund";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenRefund"
-            .into()
+        "shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenRefund".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenRefund"

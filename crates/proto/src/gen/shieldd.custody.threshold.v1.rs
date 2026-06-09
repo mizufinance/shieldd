@@ -100,8 +100,7 @@ pub mod coordinator_round2 {
         const NAME: &'static str = "IdentifiedCommitments";
         const PACKAGE: &'static str = "shieldd.custody.threshold.v1";
         fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.custody.threshold.v1.CoordinatorRound2.IdentifiedCommitments"
-                .into()
+            "shieldd.custody.threshold.v1.CoordinatorRound2.IdentifiedCommitments".into()
         }
         fn type_url() -> ::prost::alloc::string::String {
             "/shieldd.custody.threshold.v1.CoordinatorRound2.IdentifiedCommitments"
@@ -122,8 +121,7 @@ pub mod coordinator_round2 {
         const NAME: &'static str = "PartialSigningPackage";
         const PACKAGE: &'static str = "shieldd.custody.threshold.v1";
         fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.custody.threshold.v1.CoordinatorRound2.PartialSigningPackage"
-                .into()
+            "shieldd.custody.threshold.v1.CoordinatorRound2.PartialSigningPackage".into()
         }
         fn type_url() -> ::prost::alloc::string::String {
             "/shieldd.custody.threshold.v1.CoordinatorRound2.PartialSigningPackage"

@@ -1622,9 +1622,7 @@ pub mod view_service_client {
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("shieldd.view.v1.ViewService", "AppParameters"),
-                );
+                .insert(GrpcMethod::new("shieldd.view.v1.ViewService", "AppParameters"));
             self.inner.unary(req, path, codec).await
         }
         /// Query for the current gas prices.
@@ -1674,9 +1672,7 @@ pub mod view_service_client {
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("shieldd.view.v1.ViewService", "FMDParameters"),
-                );
+                .insert(GrpcMethod::new("shieldd.view.v1.ViewService", "FMDParameters"));
             self.inner.unary(req, path, codec).await
         }
         /// Query for an address given an address index

@@ -217,9 +217,7 @@ pub mod node_service_client {
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("shieldd.util.node.v1.NodeService", "SubmitTx"),
-                );
+                .insert(GrpcMethod::new("shieldd.util.node.v1.NodeService", "SubmitTx"));
             self.inner.unary(req, path, codec).await
         }
         pub async fn get_status(

@@ -767,8 +767,7 @@ impl ::prost::Name for VotingPowerAtProposalStartResponse {
         "shieldd.core.component.governance.v1.VotingPowerAtProposalStartResponse".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.governance.v1.VotingPowerAtProposalStartResponse"
-            .into()
+        "/shieldd.core.component.governance.v1.VotingPowerAtProposalStartResponse".into()
     }
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
