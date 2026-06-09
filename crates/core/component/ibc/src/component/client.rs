@@ -17,7 +17,7 @@ use ibc_types::lightclients::tendermint::{
     consensus_state::ConsensusState as TendermintConsensusState,
     header::Header as TendermintHeader,
 };
-use penumbra_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 
 use crate::component::client_counter::{ClientCounter, VerifiedHeights};
 use crate::prefix::MerklePrefixExt;
@@ -215,24 +215,24 @@ pub trait StateWriteExt: StateWrite + StateReadExt {
     fn put_verified_heights(&mut self, client_id: &ClientId, verified_heights: VerifiedHeights) {
         self.put(
             format!(
-                // NOTE: this is an implementation detail of the Penumbra ICS2 implementation, so
+                // NOTE: this is an implementation detail of the Shieldd ICS2 implementation, so
                 // it's not in the same path namespace.
-                "penumbra_verified_heights/{client_id}/verified_heights"
+                "shieldd_verified_heights/{client_id}/verified_heights"
             ),
             verified_heights,
         );
     }
 
-    // returns the ConsensusState for the penumbra chain (this chain) at the given height
-    fn put_penumbra_sdk_consensus_state(
+    // returns the ConsensusState for the shieldd chain (this chain) at the given height
+    fn put_shieldd_sdk_consensus_state(
         &mut self,
         height: Height,
         consensus_state: TendermintConsensusState,
     ) {
-        // NOTE: this is an implementation detail of the Penumbra ICS2 implementation, so
+        // NOTE: this is an implementation detail of the Shieldd ICS2 implementation, so
         // it's not in the same path namespace.
         self.put(
-            format!("penumbra_consensus_states/{height}"),
+            format!("shieldd_consensus_states/{height}"),
             consensus_state,
         );
     }
@@ -280,7 +280,7 @@ pub trait StateReadExt: StateRead {
 
         // let _client_type = client_type.expect("client type is Ok");
         // IBC-Go has a check here to see if the client type is allowed.
-        // We don't have a similar allowlist in Penumbra, so we skip that check.
+        // We don't have a similar allowlist in Shieldd, so we skip that check.
         // https://github.com/cosmos/ibc-go/blob/main/modules/core/02-client/types/params.go#L34
 
         let client_state = self.get_client_state(client_id).await;
@@ -323,25 +323,23 @@ pub trait StateReadExt: StateRead {
 
     async fn get_verified_heights(&self, client_id: &ClientId) -> Result<Option<VerifiedHeights>> {
         self.get(&format!(
-            // NOTE: this is an implementation detail of the Penumbra ICS2 implementation, so
+            // NOTE: this is an implementation detail of the Shieldd ICS2 implementation, so
             // it's not in the same path namespace.
-            "penumbra_verified_heights/{client_id}/verified_heights"
+            "shieldd_verified_heights/{client_id}/verified_heights"
         ))
         .await
     }
 
-    // returns the ConsensusState for the penumbra chain (this chain) at the given height
-    async fn get_penumbra_sdk_consensus_state(
+    // returns the ConsensusState for the shieldd chain (this chain) at the given height
+    async fn get_shieldd_sdk_consensus_state(
         &self,
         height: Height,
     ) -> Result<TendermintConsensusState> {
-        // NOTE: this is an implementation detail of the Penumbra ICS2 implementation, so
+        // NOTE: this is an implementation detail of the Shieldd ICS2 implementation, so
         // it's not in the same path namespace.
-        self.get(&format!("penumbra_consensus_states/{height}"))
+        self.get(&format!("shieldd_consensus_states/{height}"))
             .await?
-            .ok_or_else(|| {
-                anyhow::anyhow!("penumbra consensus state not found for height {height}")
-            })
+            .ok_or_else(|| anyhow::anyhow!("shieldd consensus state not found for height {height}"))
     }
 
     async fn get_verified_consensus_state(
@@ -467,7 +465,7 @@ mod tests {
     use cnidarium::{ArcStateDeltaExt, StateDelta};
     use ibc_types::core::client::msgs::MsgUpdateClient;
     use ibc_types::{core::client::msgs::MsgCreateClient, DomainType};
-    use penumbra_sdk_sct::component::clock::{EpochManager as _, EpochRead};
+    use shieldd_sdk_sct::component::clock::{EpochManager as _, EpochRead};
     use std::str::FromStr;
     use tendermint::Time;
 
@@ -589,7 +587,7 @@ mod tests {
     // test that we can create and update a light client.
     #[tokio::test]
     async fn test_create_and_update_light_client() -> anyhow::Result<()> {
-        use penumbra_sdk_sct::epoch::Epoch;
+        use shieldd_sdk_sct::epoch::Epoch;
         // create a storage backend for testing
 
         // TODO(erwan): `apply_default_genesis` is not available here. We need a component

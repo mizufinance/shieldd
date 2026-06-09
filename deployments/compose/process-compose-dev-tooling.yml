@@ -1,6 +1,6 @@
 ---
 # A process-compose configuration for running a dev-centric debugging and introspection
-# tooling for Penumbra, such as gRPC UI, for exploring protobuf interfaces.
+# tooling for Shieldd, such as gRPC UI, for exploring protobuf interfaces.
 version: "0.5"
 log_level: info
 is_strict: true

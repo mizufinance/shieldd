@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 
 mod actions;
-mod transaction;
+pub(crate) mod transaction;
 
 /// Stub: to be replaced with impls of cnidarium_component::ActionHandler
 ///
@@ -20,7 +20,7 @@ mod transaction;
 /// Currently, there are only three impls, all of which are entangled with app-level data:
 ///
 /// - ProposalSubmit (which is entangled with the whole-application state)
-/// - Action (which needs to slot in the PenumbraHost for IBC action handling)
+/// - Action (which needs to slot in the ShielddHost for IBC action handling)
 /// - Transaction (which depends on the above)
 #[async_trait]
 pub trait AppActionHandler {

@@ -4,9 +4,9 @@ use chacha20poly1305::{
     ChaCha20Poly1305, Nonce,
 };
 
-use penumbra_sdk_keys::BackreferenceKey;
-use penumbra_sdk_sct::Nullifier;
-use penumbra_sdk_tct as tct;
+use shieldd_sdk_keys::BackreferenceKey;
+use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_tct as tct;
 
 pub const ENCRYPTED_BACKREF_LEN: usize = 48;
 
@@ -133,8 +133,8 @@ mod tests {
     use super::*;
     use proptest::prelude::*;
 
-    use penumbra_sdk_asset::{asset, Value};
-    use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+    use shieldd_sdk_asset::{asset, Value};
+    use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 
     use crate::{Note, Rseed};
 
@@ -152,14 +152,14 @@ mod tests {
             let value_to_send = Value {
                 amount: amount_to_send.into(),
                 asset_id: asset::Cache::with_known_assets()
-                    .get_unit("upenumbra")
+                    .get_unit("ushieldd")
                     .unwrap()
                     .id(),
             };
             let rseed = Rseed(rseed_randomness);
 
             let note = Note::from_parts(sender, value_to_send, rseed).expect("valid note");
-            let note_commitment: penumbra_sdk_tct::StateCommitment = note.commit();
+            let note_commitment: shieldd_sdk_tct::StateCommitment = note.commit();
             let nk = *sk.nullifier_key();
             let mut sct = tct::Tree::new();
 
@@ -191,14 +191,14 @@ mod tests {
             let value_to_send = Value {
                 amount: amount_to_send.into(),
                 asset_id: asset::Cache::with_known_assets()
-                    .get_unit("upenumbra")
+                    .get_unit("ushieldd")
                     .unwrap()
                     .id(),
             };
             let rseed = Rseed(rseed_randomness);
 
             let note = Note::from_parts(sender, value_to_send, rseed).expect("valid note");
-            let note_commitment: penumbra_sdk_tct::StateCommitment = note.commit();
+            let note_commitment: shieldd_sdk_tct::StateCommitment = note.commit();
             let nk = *sk.nullifier_key();
             let mut sct = tct::Tree::new();
 

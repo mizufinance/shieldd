@@ -31,7 +31,7 @@ an integer in little-endian order. The domain separator `ds` used for nullifier
 derivation is computed as:
 
 ```
-ds = from_le_bytes(BLAKE2b-512(b"penumbra.nullifier")) mod q
+ds = from_le_bytes(BLAKE2b-512(b"shieldd.nullifier")) mod q
 ```
 
 ## Nullifier Keys
@@ -61,7 +61,7 @@ properties as part of its proof statements:
 
 ## State Fragments
 
-These are the current types of state fragment recorded by Penumbra:
+These are the current types of state fragment recorded by Shieldd:
 
 ### Notes
 

@@ -1,4 +1,4 @@
-# docker-compose file for running a single-validator Penumbra local network.
+# docker-compose file for running a single-validator Shieldd local network.
 #
 # Genesis account mnemonic (for pcli wallet recovery):
 #   decorate bright ozone fork gallery riot bus exhaust worth way bone indoor
@@ -11,16 +11,16 @@
 #   docker compose -f deployments/compose/docker-compose.yml down -v
 
 networks:
-  penumbra:
+  shieldd:
     driver: bridge
 
 services:
 
   # Initialize network config
   pd-network-init:
-    image: ghcr.io/penumbra-zone/penumbra:local
+    image: ghcr.io/mizufinance/shieldd:local
     networks:
-      - penumbra
+      - shieldd
     command:
       - sh
       - -c
@@ -30,9 +30,9 @@ services:
           echo "WARN: network config not found. Creating fresh single-validator network."
           rm -rf /pd/network_data
           /bin/pd network --network-dir /pd/network_data generate \
-            --chain-id penumbra-local-devnet \
+            --chain-id shieldd-local-devnet \
             --preserve-chain-id \
-            --gas-price-simple 0 \
+            --gas-price-simple 1000 \
             --unbonding-delay 100 \
             --epoch-duration 100 \
             --proposal-voting-blocks 50 \
@@ -56,15 +56,15 @@ services:
         fi
     restart: on-failure
     volumes:
-      - penumbra-pd-node0:/pd
+      - shieldd-pd-node0:/pd
       - ../000-localnet:/localnet:ro
     user: "0"
 
-  # Penumbra daemon
+  # Shieldd daemon
   pd-node0:
-    image: ghcr.io/penumbra-zone/penumbra:local
+    image: ghcr.io/mizufinance/shieldd:local
     networks:
-      penumbra:
+      shieldd:
         aliases:
           - pd-node0
     command: >-
@@ -73,7 +73,7 @@ services:
       --cometbft-addr http://cometbft-node0:26657
     restart: on-failure
     volumes:
-      - penumbra-pd-node0:/pd
+      - shieldd-pd-node0:/pd
     user: "${UID:-1000}"
     stop_signal: SIGKILL
     depends_on:
@@ -87,7 +87,7 @@ services:
   cometbft-node0:
     image: "docker.io/cometbft/cometbft:v0.37.15"
     networks:
-      penumbra:
+      shieldd:
         aliases:
           - cometbft-node0
           - validator-0
@@ -95,7 +95,7 @@ services:
       - "26656:26656"
       - "26657:26657"
     volumes:
-      - penumbra-pd-node0:/cometbft
+      - shieldd-pd-node0:/cometbft
     user: "100"
     environment:
       CMTHOME: /cometbft/network_data/node0/cometbft
@@ -105,4 +105,4 @@ services:
       - pd-node0
 
 volumes:
-  penumbra-pd-node0: {}
+  shieldd-pd-node0: {}

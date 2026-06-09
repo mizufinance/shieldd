@@ -6,7 +6,7 @@ blockchain, the contents of the transaction are opaque. Ideally, using a private
 blockchain would enable a user to sign a transaction while also understanding
 what they are signing.
 
-To avoid the blind signing problem, in the Penumbra protocol we allow the user
+To avoid the blind signing problem, in the Shieldd protocol we allow the user
 to review a description of the transaction - the `TransactionPlan` - prior to
 signing. The `TransactionPlan` contains a declarative description of all details of the proposed transaction, including a plan of each action in a transparent
 form, the fee specified, the chain ID, and so on. From this plan, we authorize the and build the transaction. This has the additional advantage of allowing the signer to authorize the
@@ -26,7 +26,7 @@ signatures from the `AuthorizationData` are ready[^1]. This intermediate state
 of the transaction without the full authorizing data is referred to as the "**Unauthenticated Transaction**".
 1. Slot the `AuthorizationData` to replace the placeholder signatures to assemble the final `Transaction`.
 
-The Penumbra protocol was designed to only require the custodian, e.g. the hardware wallet
+The Shieldd protocol was designed to only require the custodian, e.g. the hardware wallet
 environment, to do signing, as the generation of ZKPs can be done without access to signing keys, requiring only witness data and viewing keys.
 
 A figure showing how these pieces fit together is shown below:
@@ -75,13 +75,13 @@ A figure showing how these pieces fit together is shown below:
 
 ```
 
-Transactions are signed used the [`decaf377-rdsa` construction](../crypto/decaf377-rdsa.md). As described briefly in that section, there are two signature domains used in Penumbra: `SpendAuth` signatures and `Binding` signatures.
+Transactions are signed used the [`decaf377-rdsa` construction](../crypto/decaf377-rdsa.md). As described briefly in that section, there are two signature domains used in Shieldd: `SpendAuth` signatures and `Binding` signatures.
 
 ## `SpendAuth` Signatures
 
-`SpendAuth` signatures are included on each `Spend` and `DelegatorVote` action
-(see [Multi-Asset Shielded Pool](../shielded_pool.md) and [Governance](../governance.md)
-for more details on `Spend` and `DelegatorVote` actions respectively).
+`SpendAuth` signatures are included on each shielded spend-bearing action
+(for instance `Transfer`, `Consolidate`, and `Split`), as well as actions such
+as `ValidatorVote` that use the same authorization domain.
 
 The `SpendAuth` signatures are created using a randomized signing key $rsk$ and the corresponding randomized verification key $rk$ provided on the action. The purpose of the randomization is to prevent linkage of verification keys across actions.
 
@@ -100,10 +100,11 @@ The data that is _not_ effecting data is *authorizing data*:
 
 >"Authorizing data" is the rest of the data within a transaction. It does not contribute to the effects of the transaction on global state, but allows those effects to take place. This data can be changed arbitrarily without resulting in a different transaction (but the changes may alter whether the transaction is allowed to be applied or not).
 
-For example, the nullifier on a `Spend` is effecting data, whereas the
-proofs or signatures associated with the `Spend` are authorizing data.
+For example, the nullifier on a shielded input inside a `Transfer`,
+`Consolidate`, `Split`, or `ShieldedIcs20Withdrawal` is effecting data, whereas
+the proofs or signatures associated with that action are authorizing data.
 
-In Penumbra, the effect hash of each transaction is computed using the BLAKE2b-512
+In Shieldd, the effect hash of each transaction is computed using the BLAKE2b-512
 hash function. The effect hash is derived from the proto-encoding of the action - in
 cases where the effecting data and authorizing data are the same, or the *body*
 of the action - in cases where the effecting data and authorizing data are different.
@@ -136,7 +137,7 @@ effect_hash = BLAKE2b-512(len(type_url) || type_url || eh(tx_params) || eh(fee) 
 
 where the `type_url` is the variable-length Type URL of the transaction body message, and `len(type_url)` is the length of that string encoded as 8 bytes in little-endian byte order.
 
-Test vectors for the effect hash computation for 100 randomly generated `TransactionPlan`s are available [here](https://github.com/penumbra-zone/penumbra/tree/main/crates/core/transaction/tests/signing_test_vectors). You can also use a tool in that same repository to re-generate those test vectors or generate additional random test vectors via:
+Test vectors for the effect hash computation for 100 randomly generated `TransactionPlan`s are available [here](https://github.com/mizufinance/shieldd/tree/main/crates/core/transaction/tests/signing_test_vectors). You can also use a tool in that same repository to re-generate those test vectors or generate additional random test vectors via:
 
 ```
 cargo test -- --ignored --test generate_transaction_signing_test_vectors

@@ -1,42 +1,48 @@
 [package]
-name        = "penumbra-sdk-app"
+name        = "shieldd-sdk-app"
 version     = { workspace = true }
 authors     = { workspace = true }
 edition     = { workspace = true}
 repository  = { workspace = true }
-homepage    = { workspace = true }
 license     = { workspace = true }
-description = "A stack of components implementing the Penumbra protocol"
+description = "A stack of components implementing the Shieldd protocol"
 publish     = true
 
 [features]
 component = [
   "dep:cnidarium",
   "dep:cnidarium-component",
-  "penumbra-sdk-proto/cnidarium",
-  "penumbra-sdk-auction/component",
-  "penumbra-sdk-community-pool/component",
-  "penumbra-sdk-compact-block/component",
-  "penumbra-sdk-dex/component",
-  "penumbra-sdk-distributions/component",
-  "penumbra-sdk-fee/component",
-  "penumbra-sdk-funding/component",
-  "penumbra-sdk-governance/component",
-  "penumbra-sdk-ibc/component",
-  "penumbra-sdk-ibc/rpc",
-  "penumbra-sdk-sct/component",
-  "penumbra-sdk-shielded-pool/component",
-  "penumbra-sdk-stake/component",
+  "shieldd-sdk-proto/cnidarium",
+  "shieldd-sdk-compact-block/component",
+  "shieldd-sdk-compliance/component",
+  "shieldd-sdk-fee/component",
+  "shieldd-sdk-governance/component",
+  "shieldd-sdk-ibc/component",
+  "shieldd-sdk-ibc/rpc",
+  "shieldd-sdk-sct/component",
+  "shieldd-sdk-shielded-pool/component",
+  "shieldd-sdk-validator/component",
   "dep:tonic",
   "dep:tonic-reflection",
   "dep:tonic-web"
 ]
+parallel = [
+  "ark-ff/parallel",
+  "shieldd-sdk-proof-params/parallel",
+]
+benchmark-helpers = [
+  "shieldd-sdk-ibc/benchmark-helpers",
+  "shieldd-sdk-shielded-pool/benchmark-helpers",
+]
 default = ["std", "component"]
+fuzzing = []
 std     = ["ark-ff/std", "ibc-types/std"]
 
 [dependencies]
 anyhow                           = { workspace = true }
 ark-ff                           = { workspace = true, default-features = false }
+ark-groth16                      = { workspace = true, default-features = false }
+ark-serialize                    = { workspace = true }
 async-trait                      = { workspace = true }
 base64                           = { workspace = true }
 bech32                           = { workspace = true }
@@ -58,35 +64,35 @@ jmt                              = { workspace = true }
 metrics                          = { workspace = true }
 once_cell                        = { workspace = true }
 parking_lot                      = { workspace = true }
-penumbra-sdk-asset                   = { workspace = true, default-features = true }
-penumbra-sdk-auction                 = { workspace = true, default-features = false }
-penumbra-sdk-community-pool          = { workspace = true, default-features = false }
-penumbra-sdk-compact-block           = { workspace = true, default-features = false }
-penumbra-sdk-dex                     = { workspace = true, default-features = false }
-penumbra-sdk-distributions           = { workspace = true, default-features = false }
-penumbra-sdk-fee                     = { workspace = true, default-features = false }
-penumbra-sdk-funding                 = { workspace = true, default-features = false }
-penumbra-sdk-governance              = { workspace = true, default-features = false }
-penumbra-sdk-ibc                     = { workspace = true, default-features = false }
-penumbra-sdk-keys                    = { workspace = true, default-features = true }
-penumbra-sdk-num                     = { workspace = true, default-features = true }
-penumbra-sdk-proof-params            = { workspace = true, default-features = false }
-penumbra-sdk-proto                   = { workspace = true, default-features = true }
-penumbra-sdk-sct                     = { workspace = true, default-features = false }
-penumbra-sdk-shielded-pool           = { workspace = true, default-features = false }
-penumbra-sdk-stake                   = { workspace = true, default-features = false }
-penumbra-sdk-tct                     = { workspace = true, default-features = true }
-penumbra-sdk-tower-trace             = { workspace = true }
-penumbra-sdk-transaction             = { workspace = true, features = ["parallel"], default-features = true }
-penumbra-sdk-txhash                  = { workspace = true, default-features = true }
+shieldd-sdk-asset                   = { workspace = true, default-features = true }
+shieldd-sdk-compact-block           = { workspace = true, default-features = false }
+shieldd-sdk-compliance              = { workspace = true, default-features = false }
+shieldd-sdk-fee                     = { workspace = true, default-features = false }
+shieldd-sdk-governance              = { workspace = true, default-features = false }
+shieldd-sdk-ibc                     = { workspace = true, default-features = false }
+shieldd-sdk-keys                    = { workspace = true, default-features = true }
+shieldd-sdk-num                     = { workspace = true, default-features = true }
+shieldd-sdk-proof-params            = { workspace = true, default-features = false }
+shieldd-sdk-proof-aggregation       = { workspace = true, default-features = true }
+shieldd-sdk-proto                   = { workspace = true, default-features = true }
+shieldd-sdk-sct                     = { workspace = true, default-features = false }
+shieldd-sdk-shielded-pool           = { workspace = true, default-features = false }
+shieldd-sdk-validator                   = { workspace = true, default-features = false }
+shieldd-sdk-tct                     = { workspace = true, default-features = true }
+shieldd-sdk-tower-trace             = { workspace = true }
+shieldd-sdk-transaction             = { workspace = true, features = ["parallel"], default-features = true }
+shieldd-sdk-txhash                  = { workspace = true, default-features = true }
 prost                            = { workspace = true }
 rand_chacha                      = { workspace = true }
 regex                            = { workspace = true }
+reqwest                          = { workspace = true }
+rayon                            = "1.10"
 serde                            = { workspace = true, features = ["derive"] }
 serde_json                       = { workspace = true }
 serde_unit_struct                = { workspace = true }
 serde_with                       = { workspace = true }
 sha2                             = { workspace = true }
+smallvec                         = { workspace = true }
 tempfile                         = { workspace = true }
 tendermint                       = { workspace = true }
 tendermint-light-client-verifier = { workspace = true }
@@ -106,7 +112,10 @@ url                              = { workspace = true }
 [dev-dependencies]
 decaf377-fmd                     = { workspace = true, default-features = true }
 ed25519-consensus                = { workspace = true }
-penumbra-sdk-proto               = { workspace = true, features = ["box-grpc"] }
+shieldd-sdk-mock-client         = { workspace = true }
+shieldd-sdk-mock-consensus      = { workspace = true }
+shieldd-sdk-proto               = { workspace = true, features = ["box-grpc"] }
+proptest                         = { workspace = true }
 rand                             = { workspace = true }
 rand_chacha                      = { workspace = true }
 rand_core                        = { workspace = true }
@@ -116,3 +125,6 @@ tendermint-config                = { workspace = true }
 tower-http                       = { workspace = true, features = ["cors"] }
 tracing-subscriber               = { workspace = true }
 url                              = { workspace = true }
+
+[dev-dependencies.shieldd-sdk-proof-params]
+workspace = true

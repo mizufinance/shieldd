@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
-use penumbra_sdk_proto::{penumbra::core::app::v1 as pb, DomainType};
 use prost::Name as _;
+use shieldd_sdk_proto::{shieldd::core::app::v1 as pb, DomainType};
 
 use crate::params::AppParameters;
 

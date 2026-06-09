@@ -1,66 +1,36 @@
 {
   "actions": [
     {
-      "undelegate": {
-        "validatorIdentity": {
-          "ik": "1edcSaV2YSnQlv4fYAk5qBsIeuxMDGgzctO2IOYZhP4="
-        },
-        "unbondedAmount": {
-          "lo": "652405107337655181"
-        },
-        "delegationAmount": {
-          "lo": "423191983562764026"
-        },
-        "fromEpoch": {
-          "index": "531",
-          "startHeight": "531"
+      "ibcRelayAction": {
+        "rawAction": {
+          "typeUrl": "/ibc.core.channel.v1.MsgRecvPacket",
+          "value": "CrMBCIrpu0YSC2RlZmF1bHRQb3J0GgljaGFubmVsLTAiC2RlZmF1bHRQb3J0KgljaGFubmVsLTAyZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6DAidgr3DARDo6K6bAkD4/eqq0rbd2xgSAgoAGgwInYK9wwEQ6OiumwIijgFzaGllbGRkMTNodnlkeTNkejB2NGpyMG01dnpjNjk2czJndDBhZ3hlOXY1NDdwdHhkdDVrMGpncXZtaDJ2ODA1eHF2cjcydjZlY245cjBtcGFkcXI3M2x6ZjN2OHoyY2pobWNhY3lzcmpyNGFqMmtuOWV3eTBqYzc2d3c2eDBkaHczczl4dHFwdnRzdzk4"
         }
       }
     },
     {
-      "positionOpen": {
-        "position": {
-          "phi": {
-            "component": {
-              "p": {
-                "lo": "405908343509531556"
-              },
-              "q": {
-                "lo": "286261227439288925"
-              }
-            },
-            "pair": {
-              "asset1": {
-                "inner": "KeqcLzNx9qSH5+lcJHBB9KNW+YPrBk5dKzvPMiypahA="
-              },
-              "asset2": {
-                "inner": "KeqcLzNx9qSH5+lcJHBB9KNW+YPrBk5dKzvPMiypahA="
-              }
-            }
+      "validatorDefinition": {
+        "validator": {
+          "identityKey": {
+            "ik": "IrvjKTgM6Aiod6f9onW4ooKsP8N4rZ1KzriY+y/5JAk="
           },
-          "nonce": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-          "state": {
-            "state": "POSITION_STATE_ENUM_CLOSED"
-          },
-          "reserves": {
-            "r1": {
-              "lo": "24069323774632283"
-            },
-            "r2": {
-              "lo": "870580343836603525"
-            }
-          },
-          "closeOnFill": true
-        }
+          "consensusKey": "UiBj8JkOOLZqoOTFix+iEKKaZYSE1WY9TMD+L8rwAII=",
+          "name": "test validator",
+          "enabled": true,
+          "governanceKey": {
+            "gk": "IrvjKTgM6Aiod6f9onW4ooKsP8N4rZ1KzriY+y/5JAk="
+          }
+        },
+        "authSig": "nvWfwbclK9hdh7grodC2hKEsUQXb0SIV4XKXdXuwwwyeEZlHuK+8nXkNlCO59XC8XEtyY8wvyTbLTGYISRjzAA=="
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "8897284399",
-    "chainId": "ylobq-86104941540550730124",
+    "expiryHeight": "1084485251",
+    "chainId": "dggkhbcvgvehjivxeebuemouhno-7784",
     "fee": {
       "amount": {
-        "lo": "667876737206031395"
+        "lo": "918605704440841142"
       }
     }
   }

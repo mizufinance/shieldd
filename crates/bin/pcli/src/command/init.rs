@@ -5,11 +5,11 @@ use std::{
 
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
-use penumbra_sdk_custody::threshold;
-#[cfg(feature = "ledger")]
-use penumbra_sdk_custody_ledger_usb as ledger;
-use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 use rand_core::OsRng;
+use shieldd_sdk_custody::threshold;
+#[cfg(feature = "ledger")]
+use shieldd_sdk_custody_ledger_usb as ledger;
+use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 use termion::screen::IntoAlternateScreen;
 use url::Url;
 
@@ -29,7 +29,7 @@ pub struct InitCmd {
         // pcli init inside of the test harness (where we override that)
         // will correctly set the URL, even though we don't subsequently
         // read it from the environment.
-        env = "PENUMBRA_NODE_PD_URL",
+        env = "SHIELDD_NODE_PD_URL",
         parse(try_from_str = Url::parse),
     )]
     grpc_url: Url,
@@ -43,7 +43,7 @@ pub struct InitCmd {
 #[derive(Debug, Clone, clap::Subcommand)]
 pub enum InitTopSubCmd {
     #[clap(flatten)]
-    Spend(InitSubCmd),
+    Wallet(InitSubCmd),
     /// Initialize `pcli` in view-only mode, without spending keys.
     #[clap(display_order = 200)]
     ViewOnly {},
@@ -232,7 +232,7 @@ fn exec_deal(
     for (i, (config, config_path)) in configs.into_iter().zip(home.iter()).enumerate() {
         let full_viewing_key = config.fvk().clone();
 
-        let config = if let InitType::SpendKey = init_type {
+        let config = if let InitType::WalletKey = init_type {
             PcliConfig {
                 custody: CustodyConfig::Threshold(config),
                 full_viewing_key,
@@ -263,8 +263,8 @@ fn exec_deal(
 /// Which kind of initialization are we doing?
 #[derive(Clone, Debug, Copy)]
 enum InitType {
-    /// Initialize from scratch with a spend key.
-    SpendKey,
+    /// Initialize from scratch with a full-access wallet key.
+    WalletKey,
     /// Add a governance key to an existing configuration.
     GovernanceKey,
 }
@@ -272,9 +272,9 @@ enum InitType {
 impl InitCmd {
     pub async fn exec(&self, home_dir: impl AsRef<camino::Utf8Path>) -> Result<()> {
         let (init_type, subcmd) = match self.subcmd.clone() {
-            InitTopSubCmd::Spend(subcmd) => (InitType::SpendKey, subcmd),
+            InitTopSubCmd::Wallet(subcmd) => (InitType::WalletKey, subcmd),
             InitTopSubCmd::ValidatorGovernanceSubkey(subcmd) => (InitType::GovernanceKey, subcmd),
-            InitTopSubCmd::ViewOnly {} => (InitType::SpendKey, InitSubCmd::ViewOnly),
+            InitTopSubCmd::ViewOnly {} => (InitType::WalletKey, InitSubCmd::ViewOnly),
             InitTopSubCmd::UnsafeWipe {} => {
                 println!("Deleting all data in {}...", home_dir.as_ref());
                 std::fs::remove_dir_all(home_dir.as_ref())?;
@@ -302,7 +302,7 @@ impl InitCmd {
             }
         };
         let relevant_config_exists = match &init_type {
-            InitType::SpendKey => existing_config.is_some(),
+            InitType::WalletKey => existing_config.is_some(),
             InitType::GovernanceKey => existing_config
                 .as_ref()
                 .is_some_and(|x| x.governance_custody.is_some()),
@@ -315,9 +315,9 @@ impl InitCmd {
                     spend_key.full_viewing_key().clone(),
                     if self.encrypted {
                         let password = ActualTerminal::get_confirmed_password().await?;
-                        CustodyConfig::Encrypted(penumbra_sdk_custody::encrypted::Config::create(
+                        CustodyConfig::Encrypted(shieldd_sdk_custody::encrypted::Config::create(
                             &password,
-                            penumbra_sdk_custody::encrypted::InnerConfig::SoftKms(spend_key.into()),
+                            shieldd_sdk_custody::encrypted::InnerConfig::SoftKms(spend_key.into()),
                         )?)
                     } else {
                         CustodyConfig::SoftKms(spend_key.into())
@@ -338,9 +338,9 @@ impl InitCmd {
                 let fvk = config.fvk().clone();
                 let custody_config = if self.encrypted {
                     let password = ActualTerminal::get_confirmed_password().await?;
-                    CustodyConfig::Encrypted(penumbra_sdk_custody::encrypted::Config::create(
+                    CustodyConfig::Encrypted(shieldd_sdk_custody::encrypted::Config::create(
                         &password,
-                        penumbra_sdk_custody::encrypted::InnerConfig::Threshold(config),
+                        shieldd_sdk_custody::encrypted::InnerConfig::Threshold(config),
                     )?)
                 } else {
                     CustodyConfig::Threshold(config)
@@ -350,7 +350,7 @@ impl InitCmd {
             (_, InitSubCmd::Threshold(ThresholdInitCmd::Deal { .. }), _) => {
                 unreachable!("this should already have been handled above")
             }
-            (InitType::SpendKey, InitSubCmd::ViewOnly {}, false) => {
+            (InitType::WalletKey, InitSubCmd::ViewOnly {}, false) => {
                 let full_viewing_key = prompt_for_password("Enter full viewing key: ")?
                     .parse()
                     .context("failed to parse input as FullViewingKey")?;
@@ -363,7 +363,7 @@ impl InitCmd {
                 let config = existing_config.expect("the config should exist in this branch");
                 let fvk = config.full_viewing_key;
                 let custody = match typ {
-                    InitType::SpendKey => config.custody,
+                    InitType::WalletKey => config.custody,
                     InitType::GovernanceKey => match config
                         .governance_custody
                         .expect("the governence custody should exist in this branch")
@@ -380,16 +380,16 @@ impl InitCmd {
                     x @ CustodyConfig::Encrypted(_) => x,
                     CustodyConfig::SoftKms(spend_key) => {
                         let password = ActualTerminal::get_confirmed_password().await?;
-                        CustodyConfig::Encrypted(penumbra_sdk_custody::encrypted::Config::create(
+                        CustodyConfig::Encrypted(shieldd_sdk_custody::encrypted::Config::create(
                             &password,
-                            penumbra_sdk_custody::encrypted::InnerConfig::SoftKms(spend_key),
+                            shieldd_sdk_custody::encrypted::InnerConfig::SoftKms(spend_key),
                         )?)
                     }
                     CustodyConfig::Threshold(c) => {
                         let password = ActualTerminal::get_confirmed_password().await?;
-                        CustodyConfig::Encrypted(penumbra_sdk_custody::encrypted::Config::create(
+                        CustodyConfig::Encrypted(shieldd_sdk_custody::encrypted::Config::create(
                             &password,
-                            penumbra_sdk_custody::encrypted::InnerConfig::Threshold(c),
+                            shieldd_sdk_custody::encrypted::InnerConfig::Threshold(c),
                         )?)
                     }
                     #[cfg(feature = "ledger")]
@@ -403,7 +403,7 @@ impl InitCmd {
                 anyhow::bail!("re-encrypt requires existing config to exist",);
             }
             #[cfg(feature = "ledger")]
-            (InitType::SpendKey, InitSubCmd::Ledger, false) => {
+            (InitType::WalletKey, InitSubCmd::Ledger, false) => {
                 let config = ledger::Config::initialize(ledger::InitOptions::default()).await?;
                 let service = ledger::Service::new(config.clone());
                 let fvk = service.impl_export_full_viewing_key().await?;
@@ -413,7 +413,7 @@ impl InitCmd {
             (InitType::GovernanceKey, InitSubCmd::Ledger, false) => {
                 anyhow::bail!("governance keys are not supported on ledger devices");
             }
-            (InitType::SpendKey, _, true) => {
+            (InitType::WalletKey, _, true) => {
                 anyhow::bail!(
                     "home directory {:?} is not empty; refusing to initialize",
                     home_dir
@@ -427,7 +427,7 @@ impl InitCmd {
             }
         };
 
-        let config = if let InitType::SpendKey = init_type {
+        let config = if let InitType::WalletKey = init_type {
             PcliConfig {
                 custody,
                 full_viewing_key,

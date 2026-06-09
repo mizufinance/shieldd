@@ -4,7 +4,7 @@ use std::{
 };
 
 use decaf377::Fq;
-use penumbra_sdk_proto::{penumbra::crypto::tct::v1 as pb, DomainType};
+use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
 
 use crate::error::*;
 use crate::prelude::{Witness as _, *};
@@ -750,7 +750,7 @@ impl Tree {
 
     /// Get a dynamic representation of the internal structure of the tree, which can be traversed
     /// and inspected arbitrarily.
-    pub fn structure(&self) -> structure::Node {
+    pub fn structure(&self) -> structure::Node<'_> {
         let _structure_span = trace_span!("structure");
         // TODO: use the structure span for instrumenting methods of the structure, as it is traversed
         Node::root(&*self.inner)

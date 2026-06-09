@@ -1,5 +1,5 @@
 #![cfg(feature = "integration-testnet")]
-//! Integration tests for communicating with the public Penumbra testnet.
+//! Integration tests for communicating with the public Shieldd testnet.
 //! These tests are off by default, given that they contact remote services,
 //! but are useful to verify functionality for e.g. HTTPS connectivity.
 use assert_cmd::Command;

@@ -8,10 +8,10 @@ use rustls::crypto::aws_lc_rs;
 use tracing::Instrument;
 use tracing_subscriber::EnvFilter;
 
-use penumbra_sdk_compact_block::CompactBlock;
-use penumbra_sdk_proto::{
+use shieldd_sdk_compact_block::CompactBlock;
+use shieldd_sdk_proto::{
     core::component::compact_block::v1::CompactBlockRequest,
-    penumbra::{
+    shieldd::{
         core::component::compact_block::v1::{
             query_service_client::QueryServiceClient as CompactBlockQueryServiceClient,
             CompactBlockRangeRequest,
@@ -22,7 +22,7 @@ use penumbra_sdk_proto::{
     },
     DomainType, Message,
 };
-use penumbra_sdk_view::ViewServer;
+use shieldd_sdk_view::ViewServer;
 
 use tonic::transport::Channel;
 use url::Url;
@@ -32,8 +32,8 @@ const MAX_CB_SIZE_BYTES: usize = 12 * 1024 * 1024;
 
 #[derive(Debug, Parser)]
 #[clap(
-    name = "penumbra-measure",
-    about = "A developer tool for measuring things about Penumbra.",
+    name = "shieldd-measure",
+    about = "A developer tool for measuring things about Shieldd.",
     version
 )]
 pub struct Opt {
@@ -41,7 +41,7 @@ pub struct Opt {
     #[clap(
         short,
         long,
-        env = "PENUMBRA_NODE_PD_URL",
+        env = "SHIELDD_NODE_PD_URL",
         parse(try_from_str = url::Url::parse)
     )]
     node: Url,
@@ -247,9 +247,7 @@ impl Opt {
                 let mut nf_count = 0;
                 let mut sp_rolled_up_count = 0;
                 let mut sp_note_count = 0;
-                let mut sp_swap_count = 0;
-
-                use penumbra_sdk_compact_block::StatePayload;
+                use shieldd_sdk_compact_block::StatePayload;
 
                 while let Some(block_rsp) = stream.message().await? {
                     cb_count += 1;
@@ -266,16 +264,11 @@ impl Opt {
                         .iter()
                         .filter(|sp| matches!(sp, StatePayload::Note { .. }))
                         .count();
-                    sp_swap_count += block
-                        .state_payloads
-                        .iter()
-                        .filter(|sp| matches!(sp, StatePayload::Swap { .. }))
-                        .count();
                     progress_bar.set_position(block.height);
                 }
                 progress_bar.finish();
 
-                let sp_count = sp_note_count + sp_swap_count + sp_rolled_up_count;
+                let sp_count = sp_note_count + sp_rolled_up_count;
                 println!(
                     "Fetched at least {}",
                     bytesize::to_string(bytes as u64, false)
@@ -284,7 +277,6 @@ impl Opt {
                 println!("\t{nf_count} nullifiers");
                 println!("\t{sp_count} state payloads, containing:");
                 println!("\t\t{sp_note_count} note payloads");
-                println!("\t\t{sp_swap_count} swap payloads");
                 println!("\t\t{sp_rolled_up_count} rolled up payloads");
             }
         }

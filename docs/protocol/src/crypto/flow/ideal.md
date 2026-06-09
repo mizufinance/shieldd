@@ -18,7 +18,7 @@ There are three *participants* in flow encryption:
 * *decryptors*, who aggregate encryptions posted to the ledger and decrypt the batched flow.
 
 In this description, we refer to *decryptors*, rather than *validators*, in
-order to more precisely name their role in flow encryption.  In Penumbra, the
+order to more precisely name their role in flow encryption.  In Shieldd, the
 decryptors are also the validators who perform BFT consensus to agree on the
 ledger state.  However, this is not a requirement of the construction; one could
 also imagine a set of decryptors who jointly decrypted data posted to a common,
@@ -82,7 +82,7 @@ this assumption requires some care to integrate with the process for coming to
 consensus on the block containing transactions to batch and decrypt, but this is
 out-of-scope for flow encryption itself.  See [Flow Encryption and
 Consensus](../flow-encryption/flow-consensus.md) for details on this aspect in
-Penumbra specifically.
+Shieldd specifically.
 
 ###### `FlowEnc/PreDecrypt`
 

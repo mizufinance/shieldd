@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-txhash"
+name = "shieldd-sdk-txhash"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Produce Penumbra tx effecting data and authorization hashes"
+description = "Produce Shieldd tx effecting data and authorization hashes"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -11,7 +11,7 @@ edition = {workspace = true}
 anyhow = {workspace = true}
 blake2b_simd = {workspace = true}
 hex = {workspace = true}
-penumbra-sdk-proto = {workspace = true, default-features = false}
-penumbra-sdk-tct = {workspace = true, default-features = true}
+shieldd-sdk-proto = {workspace = true, default-features = false}
+shieldd-sdk-tct = {workspace = true, default-features = true}
 serde = {workspace = true}
 getrandom = {workspace = true}

@@ -1,15 +1,16 @@
 use cnidarium::Storage;
 use pbjson_types::Timestamp;
-use penumbra_sdk_proto::core::component::sct::v1::query_service_server::QueryService;
-use penumbra_sdk_proto::core::component::sct::v1::{
+use shieldd_sdk_proto::core::component::sct::v1::query_service_server::QueryService;
+use shieldd_sdk_proto::core::component::sct::v1::{
     AnchorByHeightRequest, AnchorByHeightResponse, EpochByHeightRequest, EpochByHeightResponse,
-    SctFrontierRequest, SctFrontierResponse, TimestampByHeightRequest, TimestampByHeightResponse,
+    NullifierRequest, NullifierResponse, SctFrontierRequest, SctFrontierResponse,
+    TimestampByHeightRequest, TimestampByHeightResponse,
 };
-use penumbra_sdk_proto::crypto::tct::v1 as pb_tct;
+use shieldd_sdk_proto::crypto::tct::v1 as pb_tct;
 use tonic::Status;
 use tracing::instrument;
 
-use crate::state_key;
+use crate::{nullifier_tree, state_key, Nullifier};
 
 use super::clock::EpochRead;
 use super::tree::SctRead;
@@ -118,7 +119,7 @@ impl QueryService for Server {
             };
 
             let proto_anchor: pb_tct::MerkleRoot = pb_tct::MerkleRoot { inner: raw_anchor };
-            let anchor: penumbra_sdk_tct::Root = proto_anchor
+            let anchor: shieldd_sdk_tct::Root = proto_anchor
                 .try_into()
                 .map_err(|_| tonic::Status::internal("failed to parse anchor"))?;
             (anchor, Some(proof.into()))
@@ -140,6 +141,36 @@ impl QueryService for Server {
             anchor: Some(anchor.into()),
             compact_frontier: raw_frontier,
             proof: maybe_proof,
+        }))
+    }
+
+    #[instrument(skip(self, request))]
+    async fn nullifier(
+        &self,
+        request: tonic::Request<NullifierRequest>,
+    ) -> Result<tonic::Response<NullifierResponse>, Status> {
+        let state = self.storage.latest_snapshot();
+        let request = request.into_inner();
+        let nullifier = request
+            .nullifier
+            .ok_or_else(|| tonic::Status::invalid_argument("missing nullifier"))?;
+        let nullifier = Nullifier::try_from(nullifier)
+            .map_err(|e| tonic::Status::invalid_argument(format!("invalid nullifier: {e}")))?;
+        let lookup = nullifier_tree::lookup_with_proof(&state, nullifier)
+            .await
+            .map_err(|e| tonic::Status::unknown(format!("could not query nullifier: {e}")))?;
+        let proof = if request.with_proof {
+            borsh::to_vec(&lookup.proof)
+                .map_err(|e| tonic::Status::internal(format!("could not encode proof: {e}")))?
+        } else {
+            Vec::new()
+        };
+
+        Ok(tonic::Response::new(NullifierResponse {
+            spent: lookup.info.is_some(),
+            nullification_info: lookup.info.map(Into::into),
+            nullifier_root: lookup.root.0.to_vec(),
+            proof,
         }))
     }
 }

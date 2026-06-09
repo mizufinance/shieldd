@@ -1,6 +1,6 @@
 # Proving Considerations
 
-Penumbra needs SNARK proofs.  Because the choice of proving system and proving
+Shieldd needs SNARK proofs.  Because the choice of proving system and proving
 curve can't really be cleanly separated from the rest of the system choices
 (e.g., the native field of the proving system informs what embedded curve is
 available, and how circuit programming is done), large parts of the rest of the
@@ -10,7 +10,7 @@ system design block on making a choice of proving system.
 
 1.  *Near-term implementation availability*. We'd like to ship a useful product first, and iterate and expand it later.
 
-2.  *High performance for fixed functionality*.  Penumbra intends to support
+2.  *High performance for fixed functionality*.  Shieldd intends to support
 fixed functionality initially; programmability is a good future goal but isn't a
 near-term objective.  The fixed functionality should have as high performance as
 possible.
@@ -19,7 +19,7 @@ possible.
 future choices for later functionality.  More precisely, it should not impose
 high switching costs on future choices.
 
-4.  *Recursion capability*.  Penumbra doesn't currently make use of recursion,
+4.  *Recursion capability*.  Shieldd doesn't currently make use of recursion,
 but there are a lot of interesting applications it could be used for.
 
 Setup ceremonies are beneficial to avoid for *operational reasons*, but not for security reasons.  A decentralized setup procedure is sufficient for security.
@@ -80,12 +80,12 @@ Choosing BLS12-377 instead of BLS12-381 opens the possibility to do depth-1
 recursion later, without meaningfully restricting the near-term proving choices.
 For this reason, BLS12-377 seems like the best choice of proving curve.
 
-Penumbra's approach is to first create a useful set of fixed functionality, and
-generalize to custom, programmable functionality only later. Compared to
-Sapling, there is *more* functionality (not just `Spend` and `Output` but
-`Delegate`, `Undelegate`, `Vote`, ...), meaning that there are more proof
-statements.  Using Groth16 means that each of these statements needs to have its
-own proving and verification key, generated through a decentralized setup. 
+Shieldd's approach is to first create a useful set of fixed functionality, and
+generalize to custom, programmable functionality only later. The current proof
+surface is intentionally reduced to `Transfer`, `Split`, `Consolidate`, and
+`ShieldedIcs20Withdrawal`, plus supporting non-transaction proofs such as
+nullifier derivation. Using Groth16 means that each supported statement needs
+its own proving and verification key, generated through a decentralized setup.
 
 So the advantage of a universal setup (as in PLONK) over per-statement setup (as
 in Groth16) would be:
@@ -110,7 +110,7 @@ didn't, the choice of per-statement setup initially doesn't prevent the use of a
 universal setup later, as long as the new proof system can be implemented using
 the same curve.
 
-Because Penumbra plans to have an initial set of fixed functionality, and
+Because Shieldd plans to have an initial set of fixed functionality, and
 performance is a concern, Groth16 seems like a good choice, and leaves the door
 open for a future universal SNARK.  Using BLS12-377 opens the door to future
 recursion, albeit only of depth 1.

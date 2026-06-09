@@ -1,15 +1,15 @@
 [
     {
-        "name": "Penumbra Labs CI 1",
-        "website": "https://penumbra.zone",
-        "description": "This is a validator run by Penumbra Labs, using testnets as a public CI",
+        "name": "Shieldd Labs CI 1",
+        "website": "https://github.com/mizufinance/shieldd",
+        "description": "This is a validator run by Shieldd Labs, using testnets as a public CI",
         "funding_streams": [],
         "sequence_number": 0
     },
     {
-        "name": "Penumbra Labs CI 2",
-        "website": "https://penumbra.zone",
-        "description": "This is a validator run by Penumbra Labs, using testnets as a public CI",
+        "name": "Shieldd Labs CI 2",
+        "website": "https://github.com/mizufinance/shieldd",
+        "description": "This is a validator run by Shieldd Labs, using testnets as a public CI",
         "funding_streams": [],
         "sequence_number": 0
     }

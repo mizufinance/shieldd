@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
-use penumbra_sdk_proto::{DomainType, StateWriteProto as _};
+use shieldd_sdk_proto::{DomainType, StateWriteProto as _};
 
 use crate::component::StateWriteExt;
 use crate::event;
@@ -59,21 +59,6 @@ impl ActionHandler for ValidatorVote {
         state
             .check_governance_key_matches_validator(identity_key, governance_key)
             .await?;
-
-        let proposal_state = state
-            .proposal_state(*proposal)
-            .await?
-            .expect("proposal missing state");
-
-        // TODO(erwan): Keeping this guard here, because there was previously a
-        // comment stressing that we want to avoid enacting withdrawn proposals.
-        // However, note that this is already checked in the stateful check and
-        // we execute against the same snapshotted state, so this seem redundant.
-        // I will remove it once in the PR review once this is confirmed.
-        if proposal_state.is_withdrawn() {
-            tracing::debug!(validator_identity = %identity_key, proposal = %proposal, "cannot cast a vote for a withdrawn proposal");
-            return Ok(());
-        }
 
         tracing::debug!(validator_identity = %identity_key, proposal = %proposal, "cast validator vote");
         state.cast_validator_vote(*proposal, *identity_key, *vote, reason.clone());

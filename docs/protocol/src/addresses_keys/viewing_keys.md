@@ -47,7 +47,7 @@ that produces the $s$-value used to encode the provided `decaf377` element.
 Then
 
 ```
-hash_output = poseidon_hash_2(from_le_bytes(b"Penumbra_HashFVK"), nk, decaf377_s(ak))
+hash_output = poseidon_hash_2(from_le_bytes(b"Shieldd_HashFVK"), nk, decaf377_s(ak))
 wallet_id = hash_output.to_le_bytes()[0:32]
 ```
 
@@ -79,13 +79,13 @@ little-endian byte order.  Define `decaf377_encode(element)` as the function
 that produces the canonical encoding of a `decaf377` element. Then
 
 ```
-ovk  = prf_expand(b"Penumbra_DeriOVK", to_le_bytes(nk), decaf377_encode(ak))[0..32]
-dk = prf_expand(b"Penumbra_DerivDK", to_le_bytes(nk), decaf377_encode(ak))[0..16]
+ovk  = prf_expand(b"Shieldd_DeriOVK", to_le_bytes(nk), decaf377_encode(ak))[0..32]
+dk = prf_expand(b"Shieldd_DerivDK", to_le_bytes(nk), decaf377_encode(ak))[0..16]
 ```
 
 The $\mathsf {ivk}$ is intended to be derived in a circuit.  Then
 ```
-ivk = poseidon_hash_2(from_le_bytes(b"penumbra.derive.ivk"), nk, decaf377_s(ak)) mod r
+ivk = poseidon_hash_2(from_le_bytes(b"shieldd.derive.ivk"), nk, decaf377_s(ak)) mod r
 ```
 i.e., we treat the Poseidon output (an $\mathbb F_q$ element) as an integer, and
 reduce it modulo $r$ to get an element of $\mathbb F_r$.

@@ -2,7 +2,7 @@ use anyhow::{ensure, Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use ibc_types::core::client::{ClientId, Height};
-use penumbra_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::clock::EpochRead;
 
 use crate::component::{ConsensusStateWriteExt, HostInterface};
 
@@ -185,7 +185,7 @@ pub fn validate_client_id_format_ics07(client_id: &ClientId) -> Result<()> {
 /// healthy state.
 ///
 /// The Tendermint ClientState contains:
-/// ```
+/// ```text
 /// ClientState {
 ///     // IMMUTABLE
 ///     chain_id,          

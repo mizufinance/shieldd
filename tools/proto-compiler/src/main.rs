@@ -14,7 +14,7 @@ fn main() -> anyhow::Result<()> {
 
     println!("target_dir: {}", target_dir.display());
 
-    // https://github.com/penumbra-zone/penumbra/issues/3038#issuecomment-1722534133
+    // https://github.com/mizufinance/shieldd/issues/3038#issuecomment-1722534133
     // Using the "no_lfs" suffix prevents matching a catch-all LFS rule.
     let descriptor_file_name = "proto_descriptor.bin.no_lfs";
 
@@ -50,33 +50,28 @@ fn main() -> anyhow::Result<()> {
         .compile_protos_with_config(
             config,
             &[
-                "../../proto/penumbra/penumbra/core/app/v1/app.proto",
-                "../../proto/penumbra/penumbra/core/asset/v1/asset.proto",
-                "../../proto/penumbra/penumbra/core/txhash/v1/txhash.proto",
-                "../../proto/penumbra/penumbra/core/component/auction/v1/auction.proto",
-                "../../proto/penumbra/penumbra/core/component/compact_block/v1/compact_block.proto",
-                "../../proto/penumbra/penumbra/core/component/community_pool/v1/community_pool.proto",
-                "../../proto/penumbra/penumbra/core/component/dex/v1/dex.proto",
-                "../../proto/penumbra/penumbra/core/component/distributions/v1/distributions.proto",
-                "../../proto/penumbra/penumbra/core/component/funding/v1/funding.proto",
-                "../../proto/penumbra/penumbra/core/component/fee/v1/fee.proto",
-                "../../proto/penumbra/penumbra/core/component/governance/v1/governance.proto",
-                "../../proto/penumbra/penumbra/core/component/ibc/v1/ibc.proto",
-                "../../proto/penumbra/penumbra/core/component/sct/v1/sct.proto",
-                "../../proto/penumbra/penumbra/core/component/shielded_pool/v1/shielded_pool.proto",
-                "../../proto/penumbra/penumbra/core/component/stake/v1/stake.proto",
-                "../../proto/penumbra/penumbra/core/keys/v1/keys.proto",
-                "../../proto/penumbra/penumbra/core/num/v1/num.proto",
-                "../../proto/penumbra/penumbra/core/transaction/v1/transaction.proto",
-                "../../proto/penumbra/penumbra/crypto/decaf377_fmd/v1/decaf377_fmd.proto",
-                "../../proto/penumbra/penumbra/crypto/decaf377_frost/v1/decaf377_frost.proto",
-                "../../proto/penumbra/penumbra/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto",
-                "../../proto/penumbra/penumbra/crypto/tct/v1/tct.proto",
-                "../../proto/penumbra/penumbra/custody/v1/custody.proto",
-                "../../proto/penumbra/penumbra/custody/threshold/v1/threshold.proto",
-                "../../proto/penumbra/penumbra/tools/summoning/v1/summoning.proto",
-                "../../proto/penumbra/penumbra/util/tendermint_proxy/v1/tendermint_proxy.proto",
-                "../../proto/penumbra/penumbra/view/v1/view.proto",
+                "../../proto/shieldd/shieldd/core/app/v1/app.proto",
+                "../../proto/shieldd/shieldd/core/asset/v1/asset.proto",
+                "../../proto/shieldd/shieldd/core/txhash/v1/txhash.proto",
+                "../../proto/shieldd/shieldd/core/component/compact_block/v1/compact_block.proto",
+                "../../proto/shieldd/shieldd/core/component/compliance/v1/compliance.proto",
+                "../../proto/shieldd/shieldd/core/component/fee/v1/fee.proto",
+                "../../proto/shieldd/shieldd/core/component/governance/v1/governance.proto",
+                "../../proto/shieldd/shieldd/core/component/ibc/v1/ibc.proto",
+                "../../proto/shieldd/shieldd/core/component/sct/v1/sct.proto",
+                "../../proto/shieldd/shieldd/core/component/shielded_pool/v1/shielded_pool.proto",
+                "../../proto/shieldd/shieldd/core/keys/v1/keys.proto",
+                "../../proto/shieldd/shieldd/core/num/v1/num.proto",
+                "../../proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
+                "../../proto/shieldd/shieldd/crypto/decaf377_fmd/v1/decaf377_fmd.proto",
+                "../../proto/shieldd/shieldd/crypto/decaf377_frost/v1/decaf377_frost.proto",
+                "../../proto/shieldd/shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto",
+                "../../proto/shieldd/shieldd/crypto/tct/v1/tct.proto",
+                "../../proto/shieldd/shieldd/custody/v1/custody.proto",
+                "../../proto/shieldd/shieldd/custody/threshold/v1/threshold.proto",
+                "../../proto/shieldd/shieldd/util/node/v1/node.proto",
+                "../../proto/shieldd/shieldd/util/tendermint_proxy/v1/tendermint_proxy.proto",
+                "../../proto/shieldd/shieldd/view/v1/view.proto",
                 "../../proto/rust-vendored/tendermint/abci/types.proto",
                 "../../proto/rust-vendored/tendermint/types/validator.proto",
                 "../../proto/rust-vendored/tendermint/p2p/types.proto",
@@ -97,7 +92,7 @@ fn main() -> anyhow::Result<()> {
                 "../../proto/rust-vendored/noble/forwarding/v1/query.proto",
                 "../../proto/rust-vendored/noble/forwarding/v1/tx.proto",
             ],
-            &["../../proto/penumbra/", "../../proto/rust-vendored/"],
+            &["../../proto/shieldd/", "../../proto/rust-vendored/"],
         )?;
 
     // Finally, build pbjson Serialize, Deserialize impls:
@@ -111,11 +106,11 @@ fn main() -> anyhow::Result<()> {
         // so they use `tendermint` types that may not be Serialize/Deserialize,
         // and we don't need to serialize them with Serde anyways.
         .exclude([
-            ".penumbra.util.tendermint_proxy.v1.ABCIQueryResponse".to_owned(),
-            ".penumbra.util.tendermint_proxy.v1.GetBlockByHeightResponse".to_owned(),
-            ".penumbra.util.tendermint_proxy.v1.GetStatusResponse".to_owned(),
+            ".shieldd.util.tendermint_proxy.v1.ABCIQueryResponse".to_owned(),
+            ".shieldd.util.tendermint_proxy.v1.GetBlockByHeightResponse".to_owned(),
+            ".shieldd.util.tendermint_proxy.v1.GetStatusResponse".to_owned(),
         ])
-        .build(&[".penumbra"])?;
+        .build(&[".shieldd"])?;
 
     Ok(())
 }

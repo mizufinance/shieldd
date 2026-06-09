@@ -7,9 +7,9 @@ use std::{
 
 use anyhow::{ensure, Context};
 use decaf377::Fq;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{penumbra::core::asset::v1 as pb, view::v1::AssetsResponse, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, view::v1::AssetsResponse, DomainType};
 
 use crate::{
     asset::{Id, REGISTRY},
@@ -31,7 +31,7 @@ pub struct Metadata {
 // These are constructed by the asset registry.
 #[derive(Debug)]
 pub(super) struct Inner {
-    // The Penumbra asset ID
+    // The Shieldd asset ID
     id: Id,
     base_denom: String,
     description: String,
@@ -63,7 +63,7 @@ impl From<&Inner> for pb::Metadata {
             display: inner.units[inner.display_index].denom.clone(),
             name: inner.name.clone(),
             symbol: inner.symbol.clone(),
-            penumbra_asset_id: Some(inner.id.into()),
+            shieldd_asset_id: Some(inner.id.into()),
             denom_units: inner.units.clone().into_iter().map(|x| x.into()).collect(),
             images: inner.images.clone(),
             badges: inner.badges.clone(),
@@ -86,11 +86,11 @@ impl TryFrom<pb::Metadata> for Inner {
         // Compute the ID from the base denom to ensure we don't get confused.
         let id = Id::from_raw_denom(&base_denom);
         // If the ID was supplied, we should check that it's consistent with the base denom.
-        if let Some(supplied_id) = value.penumbra_asset_id {
+        if let Some(supplied_id) = value.shieldd_asset_id {
             let supplied_id = Id::try_from(supplied_id)?;
             ensure!(
                 id == supplied_id,
-                "denom metadata has mismatched penumbra asset ID"
+                "denom metadata has mismatched shieldd asset ID"
             );
         }
 
@@ -226,7 +226,7 @@ impl Inner {
     pub fn new(base_denom: String, mut units: Vec<BareDenomUnit>) -> Self {
         let id = Id(Fq::from_le_bytes_mod_order(
             blake2b_simd::Params::default()
-                .personal(b"Penumbra_AssetID")
+                .personal(b"Shieldd_AssetID")
                 .hash(base_denom.as_bytes())
                 .as_bytes(),
         ));
@@ -349,32 +349,6 @@ impl Metadata {
 
     pub fn default_for(denom: &Denom) -> Option<Metadata> {
         REGISTRY.parse_denom(&denom.denom)
-    }
-
-    pub fn is_auction_nft(&self) -> bool {
-        self.starts_with("auctionnft_")
-    }
-
-    pub fn is_withdrawn_auction_nft(&self) -> bool {
-        self.starts_with("auctionnft_2")
-    }
-
-    pub fn is_opened_position_nft(&self) -> bool {
-        let prefix = "lpnft_opened_".to_string();
-
-        self.starts_with(&prefix)
-    }
-
-    pub fn is_withdrawn_position_nft(&self) -> bool {
-        let prefix = "lpnft_withdrawn_".to_string();
-
-        self.starts_with(&prefix)
-    }
-
-    pub fn is_closed_position_nft(&self) -> bool {
-        let prefix = "lpnft_closed_".to_string();
-
-        self.starts_with(&prefix)
     }
 
     /// Returns the IBC transfer path and base denom
@@ -723,7 +697,7 @@ mod tests {
 
     #[test]
     fn encoding_round_trip_succeeds() {
-        let metadata = super::Metadata::try_from("upenumbra").unwrap();
+        let metadata = super::Metadata::try_from("ushieldd").unwrap();
 
         let proto = super::pb::Metadata::from(metadata.clone());
 
@@ -735,7 +709,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn changing_asset_id_without_changing_denom_fails_decoding() {
-        let mut metadata = super::Metadata::try_from("upenumbra").unwrap();
+        let mut metadata = super::Metadata::try_from("ushieldd").unwrap();
 
         let inner = Arc::get_mut(&mut metadata.inner).unwrap();
 

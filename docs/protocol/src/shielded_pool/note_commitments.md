@@ -9,7 +9,7 @@ We commit to:
 
 The note commitment is generated using rate-5 Poseidon hashing with domain separator $ds$ defined as the `Fq` element constructed using:
 
-`ds = from_le_bytes(BLAKE2b-512(b"penumbra.notecommit")) mod q`
+`ds = from_le_bytes(BLAKE2b-512(b"shieldd.notecommit")) mod q`
 
 The note commitment is then constructed using the above domain separator and
 hashing together the above contents along with the note blinding factor $rcm$:
@@ -21,11 +21,11 @@ note. Define `prf_expand(label, key, input)` as BLAKE2b-512 with
 personalization `label`, key `key`, and input `input`. The note blinding factor
 is derived as:
 
-`rcm = from_le_bytes(prf_expand(b"Penumbra_DeriRcm", rseed, 4)) mod q`
+`rcm = from_le_bytes(prf_expand(b"Shieldd_DeriRcm", rseed, 4)) mod q`
 
 We commit to the diversified basepoint and payment address instead of the
-diversifier itself, as in the circuit `OutputProof` when we verify the integrity of
-the derived ephemeral key $epk$, we need $B_d$:
+diversifier itself, because the note-creation circuits verify the integrity of
+the derived ephemeral key $epk$ using $B_d$ directly:
 
 $epk = [esk] B_d$.
 

@@ -1,0 +1,7 @@
+rust-vectors/target/
+.gocache/
+.tmp/
+libshieldd_gnark_*.dylib
+libshieldd_gnark_*.so
+libshieldd_gnark_*.dll
+libshieldd_gnark_*.h

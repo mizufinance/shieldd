@@ -1,5 +1,5 @@
 [package]
-name = "penumbra-sdk-ibc"
+name = "shieldd-sdk-ibc"
 authors = {workspace = true}
 repository = {workspace = true}
 description = "A production implementation of the IBC protocol"
@@ -10,13 +10,14 @@ edition = {workspace = true}
 [features]
 component = [
     "cnidarium",
-    "penumbra-sdk-proto/cnidarium",
-    "penumbra-sdk-sct/component",
+    "shieldd-sdk-proto/cnidarium",
+    "shieldd-sdk-sct/component",
 ]
 default = ["component", "std"]
 std = ["ibc-types/std"]
 docsrs = []
 rpc = ["dep:tonic", "ibc-proto/client", "ibc-proto/server"]
+benchmark-helpers = []
 
 [dependencies]
 anyhow = {workspace = true}
@@ -34,11 +35,11 @@ metrics = {workspace = true}
 num-traits = {workspace = true, default-features = false}
 once_cell = {workspace = true}
 pbjson-types = {workspace = true}
-penumbra-sdk-asset = {workspace = true, default-features = false}
-penumbra-sdk-num = {workspace = true, default-features = false}
-penumbra-sdk-proto = {workspace = true, default-features = false}
-penumbra-sdk-sct = {workspace = true, default-features = false}
-penumbra-sdk-txhash = {workspace = true, default-features = false}
+shieldd-sdk-asset = {workspace = true, default-features = false}
+shieldd-sdk-num = {workspace = true, default-features = false}
+shieldd-sdk-proto = {workspace = true, default-features = false}
+shieldd-sdk-sct = {workspace = true, default-features = false}
+shieldd-sdk-txhash = {workspace = true, default-features = false}
 prost = {workspace = true}
 regex = {workspace = true}
 serde = {workspace = true, features = ["derive"]}

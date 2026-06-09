@@ -1,6 +1,6 @@
 # Assets and Values
 
-Penumbra can record arbitrary assets.  These assets either originate on Penumbra
+Shieldd can record arbitrary assets.  These assets either originate on Shieldd
 itself, or, more commonly, originate on other IBC-connected chains.  To record
 arbitrary assets and enforce value balance between them, we draw on
 [ideas][multi_asset] originally proposed for Zcash and adapt them to the Cosmos
@@ -21,18 +21,18 @@ its provenance, such as:
 - `transfer/channelToA/denom` (chain B representation of chain A asset)
 - `transfer/channelToB/transfer/channelToA/denom` (chain C representation of chain B representation of chain A asset)
 
-However, Penumbra deviates slightly from ADR001 in the definition of the asset
+However, Shieldd deviates slightly from ADR001 in the definition of the asset
 ID. While ADR001 defines the IBC asset ID as the SHA-256 hash of the
-denomination trace, Penumbra hashes to a field element, so that asset IDs can be
+denomination trace, Shieldd hashes to a field element, so that asset IDs can be
 more easily used inside of a zk-SNARK circuit.  Specifically, define
 `from_le_bytes(bytes)` as the function that interprets its input bytes as an
 integer in little-endian order, and `hash(label, input)` as BLAKE2b-512 with
 personalization `label` on input `input`.  Then asset IDs are computed as
 ```
-asset_id = from_le_bytes(hash(b"Penumbra_AssetID", asset_type)) mod q
+asset_id = from_le_bytes(hash(b"Shieldd_AssetID", asset_type)) mod q
 ```
 
-In the future, Penumbra may have other asset IDs do not correspond to
+In the future, Shieldd may have other asset IDs do not correspond to
 denominations, but are computed as hashes of other state data.  By making the
 asset ID itself be a hash of extended state data, a note recording value of that
 type also binds to that extended data, even though it has the same size as any
@@ -41,7 +41,7 @@ denomination strings.
 
 ## Asset Metadata
 
-Penumbra also supports Cosmos-style `Metadata` for assets. The chain maintains
+Shieldd also supports Cosmos-style `Metadata` for assets. The chain maintains
 an on-chain lookup table of asset IDs to asset metadata, but the on-chain
 metadata is minimal and generally only includes the denomination string.  Client
 software is expected to be opinionated about asset metadata, supplying
@@ -55,7 +55,7 @@ Each asset ID $\mathsf a$ has an associated *value generator* $V_{\mathsf a} \in
 G}^{\mathsf v}(\mathsf a)$, where $H_{\mathbb G}^{\mathsf v} : \mathbb F_q
 \rightarrow \mathbb G$ is a hash-to-group function constructed by first applying
 rate-1 Poseidon hashing with domain separator
-`from_le_bytes(blake2b(b"penumbra.value.generator"))` and then the `decaf377` CDH
+`from_le_bytes(blake2b(b"shieldd.value.generator"))` and then the `decaf377` CDH
 map-to-group method.
 
 ## Homomorphic Balance Commitments

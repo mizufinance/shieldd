@@ -1,6 +1,11 @@
 #![allow(clippy::clone_on_copy)]
 #![deny(clippy::unwrap_used)]
 #![recursion_limit = "512"]
+
+#[cfg(not(feature = "benchmark-system-allocator"))]
+#[global_allocator]
+static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use std::io::IsTerminal as _;
 use std::{error::Error, process::exit};
 
@@ -9,6 +14,7 @@ use metrics_util::layers::Stack;
 
 use anyhow::{anyhow, Context};
 use cnidarium::Storage;
+use decaf377_rdsa::{SpendAuth, VerificationKey};
 use metrics_exporter_prometheus::PrometheusBuilder;
 use pd::{
     cli::{MigrateCommand, NetworkCommand, Opt, RootCommand},
@@ -19,12 +25,12 @@ use pd::{
         join::network_join,
     },
 };
-use penumbra_sdk_app::app_version::check_and_update_app_version;
-use penumbra_sdk_app::{APP_VERSION, SUBSTORE_PREFIXES};
-use penumbra_sdk_tower_trace::remote_addr;
 use rand::Rng;
 use rand_core::OsRng;
 use rustls::crypto::aws_lc_rs;
+use shieldd_sdk_app::app_version::check_and_update_app_version;
+use shieldd_sdk_app::{APP_VERSION, SUBSTORE_PREFIXES};
+use shieldd_sdk_tower_trace::remote_addr;
 use tendermint_config::net::Address as TendermintAddress;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
@@ -32,6 +38,33 @@ use tower_http::trace::TraceLayer;
 use tracing::Instrument as _;
 use tracing_subscriber::{prelude::*, EnvFilter};
 use url::Url;
+
+fn default_grpc_bind(
+    grpc_bind: Option<std::net::SocketAddr>,
+    grpc_auto_https: Option<&str>,
+) -> std::net::SocketAddr {
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+    const HTTP_DEFAULT: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    const HTTPS_DEFAULT: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 443);
+
+    grpc_bind.unwrap_or_else(|| {
+        if grpc_auto_https.is_some() {
+            HTTPS_DEFAULT
+        } else {
+            HTTP_DEFAULT
+        }
+    })
+}
+
+fn parse_spend_vk_hex(value: &str) -> anyhow::Result<VerificationKey<SpendAuth>> {
+    let bytes = hex::decode(value).context("invalid --compliance-registrar-vk-hex")?;
+    if bytes.len() != 32 {
+        anyhow::bail!("--compliance-registrar-vk-hex must be exactly 64 hex chars");
+    }
+    VerificationKey::<SpendAuth>::try_from(bytes.as_slice())
+        .map_err(|_| anyhow!("invalid --compliance-registrar-vk-hex encoding"))
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -73,24 +106,7 @@ async fn main() -> anyhow::Result<()> {
             cometbft_addr,
             enable_expensive_rpc,
         } => {
-            // Use the given `grpc_bind` address if one was specified. If not, we will choose a
-            // default depending on whether or not `grpc_auto_https` was set. See the
-            // `RootCommand::Start::grpc_bind` documentation above.
-            let grpc_bind = {
-                use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-                const HTTP_DEFAULT: SocketAddr =
-                    SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-                const HTTPS_DEFAULT: SocketAddr =
-                    SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 443);
-                let default = || {
-                    if grpc_auto_https.is_some() {
-                        HTTPS_DEFAULT
-                    } else {
-                        HTTP_DEFAULT
-                    }
-                };
-                grpc_bind.unwrap_or_else(default)
-            };
+            let grpc_bind = default_grpc_bind(grpc_bind, grpc_auto_https.as_deref());
 
             // Ensure we have all necessary parts in the URL
             if !url_has_necessary_parts(&cometbft_addr) {
@@ -127,7 +143,7 @@ async fn main() -> anyhow::Result<()> {
                 "starting pd"
             );
 
-            if penumbra_sdk_app::app::App::is_ready(storage.latest_snapshot()).await {
+            if shieldd_sdk_app::app::App::is_ready(storage.latest_snapshot()).await {
                 tracing::info!("application ready to start");
             } else {
                 tracing::warn!("application is halted, refusing to start");
@@ -135,13 +151,13 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let abci_server = tokio::task::spawn(
-                penumbra_sdk_app::server::new(storage.clone()).listen_tcp(abci_bind),
+                shieldd_sdk_app::server::new(storage.clone()).listen_tcp(abci_bind),
             );
 
-            let tm_proxy = penumbra_sdk_tendermint_proxy::TendermintProxy::new(cometbft_addr);
+            let tm_proxy = shieldd_sdk_tendermint_proxy::TendermintProxy::new(cometbft_addr);
 
             let grpc_routes =
-                penumbra_sdk_app::rpc::routes(&storage, tm_proxy, enable_expensive_rpc)?
+                shieldd_sdk_app::rpc::routes(&storage, tm_proxy, enable_expensive_rpc)?
                     .into_axum_router()
                     .layer(
                         ServiceBuilder::new().layer(TraceLayer::new_for_grpc().make_span_with(
@@ -183,7 +199,7 @@ async fn main() -> anyhow::Result<()> {
             let (grpc_server, acme_worker) = match grpc_auto_https {
                 Some(domain) => {
                     let (acceptor, acme_worker) =
-                        penumbra_sdk_auto_https::axum_acceptor(pd_home, domain, !acme_staging);
+                        shieldd_sdk_auto_https::axum_acceptor(pd_home, domain, !acme_staging);
                     let acme_worker = tokio::spawn(acme_worker);
                     let grpc_server =
                         tokio::task::spawn(grpc_server.acceptor(acceptor).serve(make_svc));
@@ -197,12 +213,8 @@ async fn main() -> anyhow::Result<()> {
             };
 
             // Configure a Prometheus recorder and exporter.
-            use penumbra_sdk_dex::component::metrics::PrometheusBuilderExt;
             let (recorder, exporter) = PrometheusBuilder::new()
                 .with_http_listener(metrics_bind)
-                // Set explicit buckets so that Prometheus endpoint emits true histograms, rather
-                // than the default distribution type summaries, for time-series data.
-                .set_buckets_for_dex_metrics()?
                 .build()
                 .map_err(|e| {
                     let msg = format!(
@@ -348,16 +360,18 @@ async fn main() -> anyhow::Result<()> {
                     peer_address_template,
                     timeout_commit,
                     epoch_duration,
-                    unbonding_delay,
                     active_validator_limit,
                     allocations_input_file,
                     allocation_address,
                     validators_input_file,
                     chain_id,
                     gas_price_simple,
+                    compliance_registrar_vk_hex,
                     preserve_chain_id,
                     external_addresses,
                     proposal_voting_blocks,
+                    tendermint_rpc_bind,
+                    tendermint_p2p_bind,
                 },
             network_dir,
         } => {
@@ -401,6 +415,10 @@ async fn main() -> anyhow::Result<()> {
                 };
 
             let external_addresses = external_addresses?;
+            let compliance_registrar_vk = compliance_registrar_vk_hex
+                .iter()
+                .map(|vk| parse_spend_vk_hex(vk))
+                .collect::<anyhow::Result<Vec<_>>>()?;
 
             // Build and write local configs based on input flags.
             tracing::info!(?chain_id, "Generating network config");
@@ -415,9 +433,11 @@ async fn main() -> anyhow::Result<()> {
                 timeout_commit,
                 active_validator_limit,
                 epoch_duration,
-                unbonding_delay,
                 proposal_voting_blocks,
                 gas_price_simple,
+                compliance_registrar_vk,
+                tendermint_rpc_bind,
+                tendermint_p2p_bind,
             )?;
             tracing::info!(
                 n_validators = t.validators.len(),

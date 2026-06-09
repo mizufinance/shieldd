@@ -10,15 +10,15 @@ use {
             StateReadExt as _,
         },
         event,
-        params::StakeParameters,
+        params::ValidatorParameters,
         validator, IdentityKey, Uptime,
     },
     anyhow::Result,
     async_trait::async_trait,
     cnidarium::StateWrite,
     futures::StreamExt as _,
-    penumbra_sdk_proto::{DomainType, StateWriteProto},
-    penumbra_sdk_sct::component::clock::EpochRead,
+    shieldd_sdk_proto::{DomainType, StateWriteProto},
+    shieldd_sdk_sct::component::clock::EpochRead,
     std::collections::BTreeMap,
     tap::Tap,
     tendermint::abci::types::CommitInfo,
@@ -154,7 +154,7 @@ pub trait ValidatorUptimeTracker: StateWrite {
         &mut self,
         (identity_key, consensus_key, mut uptime): ValidatorInformation,
         did_address_vote: &BTreeMap<Address, bool>,
-        params: &StakeParameters,
+        params: &ValidatorParameters,
         height: u64,
     ) -> anyhow::Result<()> {
         let addr = validator_address(&consensus_key);
@@ -163,7 +163,7 @@ pub trait ValidatorUptimeTracker: StateWrite {
             .cloned()
             // If the height is `1`, then the `LastCommitInfo` refers to the genesis block,
             // which has no signers -- so we'll mark all validators as having signed.
-            // https://github.com/penumbra-zone/penumbra/issues/1050
+            // https://github.com/mizufinance/shieldd/issues/1050
             .unwrap_or(height == 1);
 
         tracing::debug!(

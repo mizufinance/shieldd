@@ -1,6 +1,6 @@
 # Fuzzy Message Detection
 
-By design, privacy-preserving blockchains like Penumbra don't reveal metadata
+By design, privacy-preserving blockchains like Shieldd don't reveal metadata
 about the sender or receiver of a transaction.  However, this means that users
 must scan the entire chain to determine which transactions relate to their
 addresses.  This imposes large bandwidth and latency costs on users who do not
@@ -25,7 +25,7 @@ detection* (FMD), analyzed by Beck, Len, Miers, and Green in their paper [Fuzzy
 Message Detection][fmd-paper], which proposes a cryptographic definition of
 fuzzy message detection and three potential constructions.
 
-This section explores how Penumbra could make use of fuzzy message detection:
+This section explores how Shieldd could make use of fuzzy message detection:
 
 * In [Sender and Receiver FMD](./fmd/sender-receiver.md), we propose a
 generalization of the original definition where the false positive probability
@@ -40,8 +40,8 @@ using a variant of one of the original FMD constructions, and extend it in two w
 Unfortunately, these extensions are not mutually compatible, so we only use the
 first one, and record the second for posterity.
 
-* In [S-FMD Threat Model](./fmd/threat_model.md), we describe the threat model for S-FMD on Penumbra. 
-* In [S-FMD in Penumbra](./fmd/system_mapping.md), we describe how S-FMD is integrated into Penumbra.
+* In [S-FMD Threat Model](./fmd/threat_model.md), we describe the threat model for S-FMD on Shieldd. 
+* In [S-FMD in Shieldd](./fmd/system_mapping.md), we describe how S-FMD is integrated into Shieldd.
 * In [Parameter Considerations](./fmd/considerations.md), we discuss how the
 false positive rates should be chosen.
 

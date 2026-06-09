@@ -4,49 +4,43 @@
       "validatorDefinition": {
         "validator": {
           "identityKey": {
-            "ik": "Pn2+WdRhy7/26RR1ZS9OCRT5O7c8WnLOd7tMGB/pSgM="
+            "ik": "yFsTuwHdXGNmSVOaBPtLZgutBAzz1RpET9nosXUstwo="
           },
-          "consensusKey": "0nq54naGESkDBAYOJKBEsfYgwyIzJjNqTpwdAp0LThE=",
+          "consensusKey": "R1RcYii8kAyG5HcBC2tHtxEb58FDxujX48SZMVCSACw=",
           "name": "test validator",
           "enabled": true,
           "governanceKey": {
-            "gk": "Pn2+WdRhy7/26RR1ZS9OCRT5O7c8WnLOd7tMGB/pSgM="
+            "gk": "yFsTuwHdXGNmSVOaBPtLZgutBAzz1RpET9nosXUstwo="
           }
         },
-        "authSig": "2FG/4KxGPpQfdkl7pHBz5aAfOXQbPom76vQUNJVfDgFmIh9FI01PNwu6iIQW7Hc9s259HYPEGdsPFREbBOnlAQ=="
+        "authSig": "0Ni3FNiJq5cW9iERVeg91PItZ9Ls26NPhIdurSWtuAmuA7hSnDUaCDYlDHcvTYpGjwDUgYiVl4xlpguhaGVSAw=="
       }
     },
     {
       "proposalSubmit": {
         "proposal": {
-          "title": "ucmvcamks-140575015038568184878994589",
-          "description": "jqemouwcj-48421118",
+          "title": "sjoptkho-0773476272",
+          "description": "bdvcvistaiqyfgmwhaqkiau-4490606872078176110961737",
           "signaling": {}
         },
-        "depositAmount": {
-          "lo": "155626920557030080"
-        }
-      }
-    },
-    {
-      "communityPoolSpend": {
-        "value": {
-          "amount": {
-            "lo": "888407929484696457"
-          },
-          "assetId": {
-            "inner": "KeqcLzNx9qSH5+lcJHBB9KNW+YPrBk5dKzvPMiypahA="
-          }
+        "proposer": {
+          "ik": "W7a7Ha+/kLSkkvDZxuKK7KhEQxvLCSfgH0xhAqfbk4Y="
+        },
+        "governanceKey": {
+          "gk": "0mXqhdeZSfMJFdwHe3VLc91kHYvyrFWYiPT84OiuDhE="
+        },
+        "authSig": {
+          "inner": "8EsXudLqfiEnNvMUcmrwfLb9TMu43BJ7OBNm9tj9cwVmdeQTZONnAq6uLmVLepKkEHrII9PD6RH+MyI6Sg71AQ=="
         }
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "6984876858",
-    "chainId": "dadqbuydlzbxtetdbkcgfm-74914942237570976",
+    "expiryHeight": "8110243908",
+    "chainId": "ybxbbdogkgilwsnaiwdczqxhrr-094428",
     "fee": {
       "amount": {
-        "lo": "621955823525683618"
+        "lo": "692416243546405663"
       }
     }
   }

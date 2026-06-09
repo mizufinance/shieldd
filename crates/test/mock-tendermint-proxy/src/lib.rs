@@ -1,4 +1,4 @@
-//! [`TendermintProxyService`] implementations for use in [`penumbra-mock-consensus`] tests.
+//! [`TendermintProxyService`] implementations for use in [`shieldd-mock-consensus`] tests.
 
 mod proxy;
 mod stub;

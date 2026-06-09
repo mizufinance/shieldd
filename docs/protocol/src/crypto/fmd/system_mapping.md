@@ -1,11 +1,11 @@
-# S-FMD in Penumbra
+# S-FMD in Shieldd
 
 In the sections that follow we describe how S-FMD clue keys, detection keys, and
-clues are integrated into the Penumbra system.
+clues are integrated into the Shieldd system.
 
 ## Clue Keys
 
-Each Penumbra diversified address includes as part of the encoded address an
+Each Shieldd diversified address includes as part of the encoded address an
 S-FMD *clue key*. This key can be used to derive a *clue* for a given output.
 
 See the
@@ -13,14 +13,14 @@ See the
 
 ## Detection Keys
 
-Each Penumbra address has an associated S-FMD *detection key*. This key is what the
+Each Shieldd address has an associated S-FMD *detection key*. This key is what the
 user can optionally disclose to a third-party service for detection. Recall the
 detection key is used to examine each clue and return if there is a detection or
 not.
 
 ## Clues
 
-Each Penumbra transaction can have multiple outputs, to the same or different
+Each Shieldd transaction can have multiple outputs, to the same or different
 recipients. If a transaction contains $n$ outputs for the same recipient,
 then the FMD false positive rate $p$ will be $p^{n} << p$ if the detector uses
 the detection key that does not correspond to that recipient. To ensure that

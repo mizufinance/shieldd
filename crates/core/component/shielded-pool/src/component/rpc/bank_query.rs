@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use futures::StreamExt;
 use ibc_proto::cosmos::bank::v1beta1::{
@@ -17,10 +17,10 @@ use ibc_proto::cosmos::bank::v1beta1::{
     QuerySpendableBalanceByDenomResponse, QuerySpendableBalancesRequest,
     QuerySpendableBalancesResponse, QuerySupplyOfRequest, QuerySupplyOfResponse,
 };
-use penumbra_sdk_asset::asset::{self, Metadata};
-use penumbra_sdk_ibc::component::state_key as ibc_state_key;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::StateReadProto as _;
+use shieldd_sdk_asset::asset::{self, Metadata};
+use shieldd_sdk_ibc::component::state_key as ibc_state_key;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::StateReadProto as _;
 use tracing::instrument;
 
 use crate::component::AssetRegistryRead as _;
@@ -28,10 +28,39 @@ use crate::state_key;
 
 use super::Server;
 
+fn total_supply_denom_item(
+    item: anyhow::Result<(String, Metadata)>,
+) -> Option<anyhow::Result<(Metadata, Amount)>> {
+    match item {
+        Ok((_key, denom_metadata)) => Some(Ok((denom_metadata, Amount::from(0u32)))),
+        Err(error) => Some(Err(error.context("bad denom in state"))),
+    }
+}
+
+fn ibc_amount_item(
+    item: anyhow::Result<(String, Amount)>,
+) -> Option<anyhow::Result<(asset::Id, Amount)>> {
+    let (key, amount) = match item {
+        Ok(item) => item,
+        Err(error) => return Some(Err(error.context("bad amount in state"))),
+    };
+    let result = key
+        .split('/')
+        .next_back()
+        .ok_or_else(|| anyhow!("bad IBC ics20 value balance key in state"))
+        .and_then(|asset_id| {
+            asset_id
+                .parse::<asset::Id>()
+                .context("invalid IBC ics20 value balance asset ID in state")
+        })
+        .map(|asset_id| (asset_id, amount));
+    Some(result)
+}
+
 #[async_trait]
 impl BankQuery for Server {
     /// Returns the total supply for all IBC assets.
-    /// Internally-minted assets (Penumbra tokens, LP tokens, delegation tokens, etc.)
+    /// Internally-minted assets (Shieldd tokens and other chain-native assets)
     /// are also included but the supplies are will only reflect what has been transferred out.
     ///
     /// TODO: Implement a way to fetch the total supply for these assets.
@@ -47,13 +76,7 @@ impl BankQuery for Server {
         let s = snapshot.prefix(state_key::denom_metadata_by_asset::prefix());
         let mut total_supply = s
             .filter_map(move |i: anyhow::Result<(String, Metadata)>| async move {
-                if i.is_err() {
-                    return Some(Err(i.context("bad denom in state").err().unwrap()));
-                }
-                let (_key, denom_metadata) = i.expect("should not be an error");
-
-                // Return a hardcoded 0 supply for now
-                Some(Ok((denom_metadata, Amount::from(0u32))))
+                total_supply_denom_item(i)
             })
             .collect::<Vec<_>>()
             .await
@@ -65,34 +88,9 @@ impl BankQuery for Server {
 
         let s = snapshot.prefix(ibc_state_key::ics20_value_balance::prefix());
         let ibc_amounts = s
-            .filter_map(move |i: anyhow::Result<(String, Amount)>| async move {
-                if i.is_err() {
-                    return Some(Err(i.context("bad amount in state").err().unwrap()));
-                }
-                let (key, amount) = i.expect("should not be an error");
-
-                // Extract the asset ID from the key
-                let asset_id = key.split('/').last();
-                if asset_id.is_none() {
-                    return Some(Err(asset_id
-                        .context("bad IBC ics20 value balance key in state")
-                        .err()
-                        .unwrap()));
-                }
-                let asset_id = asset_id.expect("should not be an error");
-
-                // Parse the asset ID
-                let asset_id = asset_id.parse::<asset::Id>();
-                if asset_id.is_err() {
-                    return Some(Err(asset_id
-                        .context("invalid IBC ics20 value balance asset ID in state")
-                        .err()
-                        .unwrap()));
-                }
-                let asset_id = asset_id.expect("should not be an error");
-
-                Some(Ok((asset_id, amount)))
-            })
+            .filter_map(
+                move |i: anyhow::Result<(String, Amount)>| async move { ibc_amount_item(i) },
+            )
             .collect::<Vec<_>>()
             .await
             .into_iter()
@@ -101,13 +99,11 @@ impl BankQuery for Server {
 
         // Fetch the denoms associated with the IBC asset IDs
         for (asset_id, amount) in ibc_amounts {
-            let denom_metadata = snapshot.denom_metadata_by_asset(&asset_id).await;
-            if denom_metadata.is_none() {
+            let Some(denom_metadata) = snapshot.denom_metadata_by_asset(&asset_id).await else {
                 // This is likely an NFT asset that is intentionally
                 // not registered, so it is fine to exclude from the output.
                 continue;
-            }
-            let denom_metadata = denom_metadata.expect("should not be an error");
+            };
 
             // Add to the total supply seen for this denom.
             total_supply
@@ -143,7 +139,7 @@ impl BankQuery for Server {
         _: tonic::Request<QueryBalanceRequest>,
     ) -> std::result::Result<tonic::Response<QueryBalanceResponse>, tonic::Status> {
         Err(tonic::Status::unimplemented(
-            "not implemented, penumbra is a shielded chain",
+            "not implemented, shieldd is a shielded chain",
         ))
     }
 
@@ -152,7 +148,7 @@ impl BankQuery for Server {
         _: tonic::Request<QueryAllBalancesRequest>,
     ) -> std::result::Result<tonic::Response<QueryAllBalancesResponse>, tonic::Status> {
         Err(tonic::Status::unimplemented(
-            "not implemented, penumbra is a shielded chain",
+            "not implemented, shieldd is a shielded chain",
         ))
     }
 
@@ -161,7 +157,7 @@ impl BankQuery for Server {
         _: tonic::Request<QuerySpendableBalancesRequest>,
     ) -> std::result::Result<tonic::Response<QuerySpendableBalancesResponse>, tonic::Status> {
         Err(tonic::Status::unimplemented(
-            "not implemented, penumbra is a shielded chain",
+            "not implemented, shieldd is a shielded chain",
         ))
     }
 
@@ -171,7 +167,7 @@ impl BankQuery for Server {
     ) -> std::result::Result<tonic::Response<QuerySpendableBalanceByDenomResponse>, tonic::Status>
     {
         Err(tonic::Status::unimplemented(
-            "not implemented, penumbra is a shielded chain",
+            "not implemented, shieldd is a shielded chain",
         ))
     }
 
@@ -222,5 +218,29 @@ impl BankQuery for Server {
         _: tonic::Request<QueryDenomOwnersByQueryRequest>,
     ) -> Result<tonic::Response<QueryDenomOwnersByQueryResponse>, tonic::Status> {
         Err(tonic::Status::unimplemented("not implemented"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bank_query_stream_errors_propagate() {
+        let err = total_supply_denom_item(Err(anyhow!("storage failed")))
+            .expect("stream item should be retained")
+            .expect_err("storage error should propagate");
+        assert!(
+            err.to_string().contains("bad denom in state"),
+            "unexpected error: {err:#}"
+        );
+
+        let err = ibc_amount_item(Err(anyhow!("storage failed")))
+            .expect("stream item should be retained")
+            .expect_err("storage error should propagate");
+        assert!(
+            err.to_string().contains("bad amount in state"),
+            "unexpected error: {err:#}"
+        );
     }
 }

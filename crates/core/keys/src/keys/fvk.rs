@@ -6,7 +6,7 @@ use poseidon377::hash_2;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 
-use penumbra_sdk_proto::{penumbra::core::keys::v1 as pb, serializers::bech32str, DomainType};
+use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::keys::v1 as pb, DomainType};
 
 use crate::keys::wallet_id::WalletId;
 use crate::PositionMetadataKey;
@@ -21,10 +21,10 @@ use super::{AddressIndex, DiversifierKey, IncomingViewingKey, NullifierKey, Outg
 pub mod r1cs;
 
 pub(crate) static IVK_DOMAIN_SEP: Lazy<Fq> =
-    Lazy::new(|| Fq::from_le_bytes_mod_order(b"penumbra.derive.ivk"));
+    Lazy::new(|| Fq::from_le_bytes_mod_order(b"shieldd.derive.ivk"));
 
 static ACCOUNT_ID_DOMAIN_SEP: Lazy<Fq> =
-    Lazy::new(|| Fq::from_le_bytes_mod_order(b"Penumbra_HashFVK"));
+    Lazy::new(|| Fq::from_le_bytes_mod_order(b"Shieldd_HashFVK"));
 
 /// The root viewing capability for all data related to a given spend authority.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -75,14 +75,14 @@ impl FullViewingKey {
     /// Construct a full viewing key from its components.
     pub fn from_components(ak: VerificationKey<SpendAuth>, nk: NullifierKey) -> Self {
         let ovk = {
-            let hash_result = prf::expand(b"Penumbra_DeriOVK", &nk.0.to_bytes(), ak.as_ref());
+            let hash_result = prf::expand(b"ShielddDeriveOVK", &nk.0.to_bytes(), ak.as_ref());
             let mut ovk = [0; 32];
             ovk.copy_from_slice(&hash_result.as_bytes()[0..32]);
             ovk
         };
 
         let dk = {
-            let hash_result = prf::expand(b"Penumbra_DerivDK", &nk.0.to_bytes(), ak.as_ref());
+            let hash_result = prf::expand(b"Shieldd_DeriveDK", &nk.0.to_bytes(), ak.as_ref());
             let mut dk = [0; 16];
             dk.copy_from_slice(&hash_result.as_bytes()[0..16]);
             dk

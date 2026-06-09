@@ -1,12 +1,12 @@
 use crate::App;
 use anyhow::{anyhow, Context, Result};
 use futures::TryStreamExt;
-use penumbra_sdk_asset::{asset, Value, STAKING_TOKEN_ASSET_ID};
-use penumbra_sdk_keys::FullViewingKey;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::view::v1::{AssetsRequest, GasPricesRequest};
-use penumbra_sdk_view::ViewClient;
-use penumbra_sdk_wallet::plan::Planner;
+use shieldd_sdk_asset::{asset, Value, BASE_ASSET_ID};
+use shieldd_sdk_keys::FullViewingKey;
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::view::v1::{AssetsRequest, GasPricesRequest};
+use shieldd_sdk_view::ViewClient;
+use shieldd_sdk_wallet::plan::Planner;
 use rand_core::OsRng;
 use std::{collections::HashMap, io::Write};
 use termion::input::TermRead;
@@ -23,9 +23,7 @@ fn read_fvk() -> Result<FullViewingKey> {
 
 fn parse_range(s: &str) -> Result<std::ops::Range<u32>> {
     let parts: Vec<&str> = s.split("..").collect();
-    if parts.len() != 2 {
-        return Err(anyhow!("Invalid range format. Expected format: start..end"));
-    }
+    anyhow::ensure!(parts.len() == 2, "Invalid range format. Expected format: start..end");
 
     let start = parts[0]
         .parse::<u32>()
@@ -34,9 +32,7 @@ fn parse_range(s: &str) -> Result<std::ops::Range<u32>> {
         .parse::<u32>()
         .context("Invalid end value in range")?;
 
-    if start >= end {
-        return Err(anyhow!("Invalid range: start must be less than end"));
-    }
+    anyhow::ensure!(start < end, "Invalid range: start must be less than end");
 
     Ok(start..end)
 }
@@ -125,7 +121,7 @@ impl MigrateCmd {
                 // If this fails, then it won't be possible to migrate.
                 let (&(largest_account, _), _) = account_values
                     .iter()
-                    .filter(|((_, asset), _)| *asset == *STAKING_TOKEN_ASSET_ID)
+                    .filter(|((_, asset), _)| *asset == *BASE_ASSET_ID)
                     .max_by_key(|&(_, &amount)| amount)
                     .ok_or(anyhow!("no account with the ability to pay fees exists"))?;
 
@@ -182,16 +178,13 @@ impl MigrateCmd {
                     .assets(AssetsRequest {
                         filtered: false,
                         include_specific_denominations: vec![],
-                        include_lp_nfts: true,
-                        include_delegation_tokens: true,
-                        include_unbonding_tokens: true,
                         include_proposal_nfts: false,
                         include_voting_receipt_tokens: false,
                     })
                     .await?;
 
                 // Build asset cache from the response
-                let mut asset_cache = penumbra_sdk_asset::asset::Cache::default();
+                let mut asset_cache = shieldd_sdk_asset::asset::Cache::default();
                 let assets_stream = assets_response.into_inner();
                 let assets = assets_stream
                     .try_collect::<Vec<_>>()
@@ -240,7 +233,7 @@ impl MigrateCmd {
                 // Find the subaccount with the most fee token to pay fees
                 let (&(fee_account, _), _) = subaccount_values
                     .iter()
-                    .filter(|((_, asset), _)| *asset == *STAKING_TOKEN_ASSET_ID)
+                    .filter(|((_, asset), _)| *asset == *BASE_ASSET_ID)
                     .max_by_key(|&(_, &amount)| amount)
                     .ok_or(anyhow!(
                         "no subaccount in the range has the ability to pay fees"
@@ -257,7 +250,7 @@ impl MigrateCmd {
                     }
 
                     // For the fee account, the change will handle the remaining balance
-                    if account == fee_account && asset_id == *STAKING_TOKEN_ASSET_ID {
+                    if account == fee_account && asset_id == *BASE_ASSET_ID {
                         continue;
                     }
 
@@ -305,7 +298,7 @@ impl MigrateCmd {
                 let mut total_outputs = 0;
                 for (asset_id, total_amount) in &asset_summary {
                     if *total_amount > Amount::zero() {
-                        let value = penumbra_sdk_asset::Value {
+                        let value = shieldd_sdk_asset::Value {
                             asset_id: *asset_id,
                             amount: *total_amount,
                         };

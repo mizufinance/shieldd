@@ -1,11 +1,11 @@
 #![deny(clippy::unwrap_used)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 use once_cell::sync::Lazy;
 
 pub static SUBSTORE_PREFIXES: Lazy<Vec<String>> = Lazy::new(|| {
     vec![
-        penumbra_sdk_ibc::IBC_SUBSTORE_PREFIX.to_string(),
+        shieldd_sdk_ibc::IBC_SUBSTORE_PREFIX.to_string(),
         COMETBFT_SUBSTORE_PREFIX.to_string(),
     ]
 });
@@ -23,18 +23,18 @@ pub mod params;
 cfg_if::cfg_if! {
     if #[cfg(feature="component")] {
         pub mod app;
+        pub mod block_tx_indexing;
         pub mod metrics;
         pub mod rpc;
         pub mod server;
+        pub mod stateless_cache;
 
         mod action_handler;
-        mod community_pool_ext;
-        mod penumbra_host_chain;
+        mod shieldd_host_chain;
 
         pub use crate::{
             action_handler::AppActionHandler, app::StateWriteExt,
-            community_pool_ext::CommunityPoolStateReadExt, metrics::register_metrics,
-            penumbra_host_chain::PenumbraHost,
+            metrics::register_metrics, shieldd_host_chain::ShielddHost,
         };
 
         /// Temporary compat wrapper for duplicate trait impls

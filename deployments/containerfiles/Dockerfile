@@ -1,18 +1,27 @@
 # We use the latest stable version of the official Rust container,
 # delegating to the `rust-toolchain.toml` file to pick a specific Rust toolchain.
 FROM docker.io/rust:1-slim-bookworm AS build-env
+ARG TARGETARCH
 
 # Install build dependencies. These packages should match what's recommended on
-# https://guide.penumbra.zone/main/pcli/install.html
+# the pcli install guide.
 # We don't install git-lfs, because the git artifacts are copied in from the build host.
 # In order to build pcli with ledger support, add `libdbus-1-dev` & `libusb-1.0-0-dev`.
 RUN apt-get update && apt-get install -y \
         build-essential \
+        ca-certificates \
+        curl \
         pkg-config \
         libssl-dev \
-        clang
+        clang \
+        lld \
+        protobuf-compiler
 
-WORKDIR /usr/src/penumbra
+RUN curl -fsSL "https://go.dev/dl/go1.25.4.linux-${TARGETARCH}.tar.gz" \
+        | tar -C /usr/local -xz
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+WORKDIR /usr/src/shieldd
 # Add rust dependency lockfiles first, to cache downloads.
 COPY Cargo.lock Cargo.toml rust-toolchain.toml .
 
@@ -25,19 +34,21 @@ COPY assets ./assets
 COPY tools ./tools
 # Download all workspace dependencies specified in Cargo.toml
 RUN rustup install && cargo fetch
-# Build Penumbra binaries
+# Build Shieldd binaries
 COPY . .
 # Use `--bins` flag to force dependency resolution per-binary, rather than once for the workspace.
 # Doing so ensures the minimal feature set is used, leaving ledger support for pcli as off by default.
 RUN cargo build --release --bins
+RUN cd tools/gnark && go build -o /usr/src/shieldd/target/release/proverdaemon ./cmd/proverdaemon
 
 # Runtime image.
 FROM docker.io/debian:bookworm-slim
-ARG USERNAME=penumbra
+ARG USERNAME=shieldd
 ARG UID=1000
 ARG GID=1000
 # We add curl & jq so we can munge JSON during init steps for deployment.
 RUN apt-get update && apt-get install -y \
+        bash \
         curl \
         jq \
         libssl-dev
@@ -48,14 +59,24 @@ RUN groupadd --gid ${GID} ${USERNAME} \
 
 # Install chain binaries
 COPY --from=build-env \
-            /usr/src/penumbra/target/release/elcuity \
-            /usr/src/penumbra/target/release/pcli \
-            /usr/src/penumbra/target/release/pclientd \
-            /usr/src/penumbra/target/release/pd \
-            /usr/src/penumbra/target/release/pindexer \
-            /usr/src/penumbra/target/release/pmonitor \
-            /usr/src/penumbra/target/release/tct-live-edit \
+            /usr/src/shieldd/target/release/orbis-audit \
+            /usr/src/shieldd/target/release/orbis-integration \
+            /usr/src/shieldd/target/release/pcli \
+            /usr/src/shieldd/target/release/pclientd \
+            /usr/src/shieldd/target/release/pd \
+            /usr/src/shieldd/target/release/pindexer \
+            /usr/src/shieldd/target/release/proverdaemon \
+            /usr/src/shieldd/target/release/tct-live-edit \
             /usr/bin/
+
+# pcli loads gnark proof libraries from the compile-time OUT_DIR path.
+COPY --from=build-env \
+            /usr/src/shieldd/target/release/build \
+            /usr/src/shieldd/target/release/build
+
+COPY --from=build-env \
+            /usr/src/shieldd/tools/gnark/artifacts \
+            /usr/share/shieldd/gnark/artifacts
 
 WORKDIR /home/${USERNAME}
 USER ${USERNAME}

@@ -4,7 +4,7 @@ The following are test vectors for the `poseidon377` Poseidon instantiation.
 
 Each section is for a given rate of a fixed-width hash function, where
 capacity is 1.  Inputs and output are $F_q$ elements. The domain separator
-used in each case are the bytes `"Penumbra_TestVec"` decoded to an $F_q$ element,
+used in each case are the bytes `"Shieldd_TestVec"` decoded to an $F_q$ element,
 where we interpret these bytes in little-endian order.
 
 ## Rate 1

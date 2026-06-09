@@ -7,7 +7,7 @@ use {
 };
 
 #[derive(Debug, Parser)]
-#[clap(name = "pd", about = "The Penumbra daemon.", version)]
+#[clap(name = "pd", about = "The Shieldd daemon.", version)]
 pub struct Opt {
     /// Command to run.
     #[clap(subcommand)]
@@ -16,11 +16,11 @@ pub struct Opt {
 
 #[derive(Debug, Subcommand)]
 pub enum RootCommand {
-    /// Starts the Penumbra daemon.
+    /// Starts the Shieldd daemon.
     Start {
         /// The path used to store all `pd`-related data and configuration.
-        /// If unset, defaults to ~/.penumbra/network_data/node0/pd.
-        #[clap(long, env = "PENUMBRA_PD_HOME", display_order = 100)]
+        /// If unset, defaults to ~/.shieldd/network_data/node0/pd.
+        #[clap(long, env = "SHIELDD_PD_HOME", display_order = 100)]
         home: Option<PathBuf>,
         /// Bind the ABCI server to this socket.
         ///
@@ -28,7 +28,7 @@ pub enum RootCommand {
         #[clap(
             short,
             long,
-            env = "PENUMBRA_PD_ABCI_BIND",
+            env = "SHIELDD_PD_ABCI_BIND",
             default_value = "127.0.0.1:26658",
             display_order = 400
         )]
@@ -41,7 +41,7 @@ pub enum RootCommand {
         /// If `grpc_auto_https` is set, this defaults to `0.0.0.0:443` and uses HTTPS.
         ///
         /// If `grpc_auto_https` is not set, this defaults to `127.0.0.1:8080` without HTTPS.
-        #[clap(short, long, env = "PENUMBRA_PD_GRPC_BIND", display_order = 201)]
+        #[clap(short, long, env = "SHIELDD_PD_GRPC_BIND", display_order = 201)]
         grpc_bind: Option<SocketAddr>,
         /// If set, serve gRPC using auto-managed HTTPS with this domain name.
         ///
@@ -64,7 +64,7 @@ pub enum RootCommand {
         #[clap(
             short,
             long,
-            env = "PENUMBRA_PD_METRICS_BIND",
+            env = "SHIELDD_PD_METRICS_BIND",
             default_value = "127.0.0.1:9000",
             display_order = 300
         )]
@@ -79,7 +79,7 @@ pub enum RootCommand {
         #[clap(
             short,
             long,
-            env = "PENUMBRA_PD_COMETBFT_PROXY_URL",
+            env = "SHIELDD_PD_COMETBFT_PROXY_URL",
             default_value = "http://127.0.0.1:26657",
             display_order = 401,
             // Support old arg name for a while, as we migrate Tendermint -> CometBFT.
@@ -90,11 +90,10 @@ pub enum RootCommand {
         #[clap(short, long, display_order = 500)]
         enable_expensive_rpc: bool,
     },
-
     /// Generate, join, or reset a network.
     Network {
         /// Path to directory to store output in. Must not exist. Defaults to
-        /// ~/.penumbra/network_data".
+        /// ~/.shieldd/network_data".
         #[clap(long)]
         network_dir: Option<PathBuf>,
         #[clap(subcommand)]
@@ -104,7 +103,7 @@ pub enum RootCommand {
     /// Export the storage state the full node.
     Export {
         /// The home directory of the full node.
-        #[clap(long, env = "PENUMBRA_PD_HOME", display_order = 100)]
+        #[clap(long, env = "SHIELDD_PD_HOME", display_order = 100)]
         home: PathBuf,
         /// The directory where the exported node state will be written.
         #[clap(long, display_order = 200, alias = "export-path")]
@@ -123,7 +122,7 @@ pub enum RootCommand {
         /// The home directory of the full node.
         ///
         /// Migration is performed in-place on the home directory.
-        #[clap(long, env = "PENUMBRA_PD_HOME", display_order = 100)]
+        #[clap(long, env = "SHIELDD_PD_HOME", display_order = 100)]
         home: Option<PathBuf>,
         /// If set, also migrate the CometBFT state located in this home directory.
         /// If both `--home` and `--comet-home` are unset, will attempt to migrate
@@ -184,9 +183,6 @@ pub enum NetworkCommand {
         /// Number of blocks per epoch.
         #[clap(long)]
         epoch_duration: Option<u64>,
-        /// Number of blocks that must elapse before unbonding stake is released.
-        #[clap(long)]
-        unbonding_delay: Option<u64>,
         /// Maximum number of validators in the consensus set.
         #[clap(long)]
         active_validator_limit: Option<u64>,
@@ -196,12 +192,12 @@ pub enum NetworkCommand {
         /// Path to CSV file containing initial allocations [default: latest testnet].
         #[clap(long, parse(from_os_str))]
         allocations_input_file: Option<PathBuf>,
-        /// Penumbra wallet address to include in genesis allocations.
+        /// Shieldd wallet address to include in genesis allocations.
         /// Intended to make dev experience nicer on first run:
         /// generate a wallet, view its address, then generate a devnet
         /// with that address included in the base allocations.
         #[clap(long)]
-        allocation_address: Option<penumbra_sdk_keys::Address>,
+        allocation_address: Option<shieldd_sdk_keys::Address>,
         #[clap(long, parse(from_os_str))]
         /// Path to JSON file containing initial validator configs [default: latest testnet].
         validators_input_file: Option<PathBuf>,
@@ -216,9 +212,12 @@ pub enum NetworkCommand {
         /// Described as "simple" because the single value will be reused
         /// for all gas price types: block space, compact block space, verification, and execution.
         /// The numeric value is one-thousandths of the base unit of the fee token,
-        /// so `--gas-price-simple=1000` means all resources will have a cost of 1upenumbra.
+        /// so `--gas-price-simple=1000` means all resources will have a cost of 1ushieldd.
         #[clap(long)]
         gas_price_simple: Option<u64>,
+        /// Compliance registrar verification key to authorize asset registration grants.
+        #[clap(long = "compliance-registrar-vk-hex")]
+        compliance_registrar_vk_hex: Vec<String>,
         /// Base hostname for a validator's p2p service. If multiple validators
         /// exist in the genesis, e.g. via `--validators-input-file`, then
         /// numeric suffixes are automatically added, e.g. "-0", "-1", etc.
@@ -239,37 +238,43 @@ pub enum NetworkCommand {
         // TODO we should support DNS names here. However, there are complications:
         // https://github.com/tendermint/tendermint/issues/1521
         external_addresses: Option<String>,
+        /// When generating Tendermint config, use this socket to bind the Tendermint RPC service.
+        #[clap(long, env = "SHIELDD_PD_TM_RPC_BIND", default_value = "0.0.0.0:26657")]
+        tendermint_rpc_bind: SocketAddr,
+        /// When generating Tendermint config, use this socket to bind the Tendermint P2P service.
+        #[clap(long, env = "SHIELDD_PD_TM_P2P_BIND", default_value = "0.0.0.0:26656")]
+        tendermint_p2p_bind: SocketAddr,
     },
 
     /// Like `network generate`, but joins the network to which the specified node belongs.
     /// Requires a URL for the CometBFT RPC for the bootstrap node.
     Join {
         /// URL of the remote CometBFT RPC endpoint for bootstrapping connection.
-        #[clap(env = "PENUMBRA_PD_JOIN_URL")]
+        #[clap(env = "SHIELDD_PD_JOIN_URL")]
         node: Url,
         /// Optional URL of archived node state in .tar.gz format. The archive will be
         /// downloaded and extracted locally, allowing the node to join a network at a block height
         /// higher than 0. Supports loading the archive from a local file, if set with file scheme
         /// explicitly, e.g. `file:///path/to/archive.tar.gz`.
-        #[clap(long, env = "PENUMBRA_PD_ARCHIVE_URL")]
+        #[clap(long, env = "SHIELDD_PD_ARCHIVE_URL")]
         archive_url: Option<Url>,
         /// Human-readable name to identify node on network
         // Default: 'node-#'
-        #[clap(long, env = "PENUMBRA_PD_TM_EXTERNAL_ADDR")]
+        #[clap(long, env = "SHIELDD_PD_TM_EXTERNAL_ADDR")]
         moniker: Option<String>,
         /// Public URL to advertise for this node's Tendermint P2P service.
         /// Setting this option will instruct other nodes on the network to connect
         /// to yours. Must be in the form of a socket, e.g. "1.2.3.4:26656".
-        #[clap(long, env = "PENUMBRA_PD_TM_EXTERNAL_ADDR")]
+        #[clap(long, env = "SHIELDD_PD_TM_EXTERNAL_ADDR")]
         external_address: Option<SocketAddr>,
         /// When generating Tendermint config, use this socket to bind the Tendermint RPC service.
-        #[clap(long, env = "PENUMBRA_PD_TM_RPC_BIND", default_value = "0.0.0.0:26657")]
+        #[clap(long, env = "SHIELDD_PD_TM_RPC_BIND", default_value = "0.0.0.0:26657")]
         tendermint_rpc_bind: SocketAddr,
         /// When generating Tendermint config, use this socket to bind the Tendermint P2P service.
-        #[clap(long, env = "PENUMBRA_PD_TM_P2P_BIND", default_value = "0.0.0.0:26656")]
+        #[clap(long, env = "SHIELDD_PD_TM_P2P_BIND", default_value = "0.0.0.0:26656")]
         tendermint_p2p_bind: SocketAddr,
         /// Leave the downloaded archive file on disk after extraction.
-        #[clap(long, env = "PENUMBRA_PD_LEAVE_ARCHIVE", action)]
+        #[clap(long, env = "SHIELDD_PD_LEAVE_ARCHIVE", action)]
         leave_archive: bool,
     },
 

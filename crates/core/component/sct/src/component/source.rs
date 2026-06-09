@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use cnidarium::StateWrite;
-use penumbra_sdk_txhash::TransactionId;
+use shieldd_sdk_txhash::TransactionId;
 
 use crate::state_key;
 

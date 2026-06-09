@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-custody-ledger-usb"
+name = "shieldd-sdk-custody-ledger-usb"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Ledger USB custody for Penumbra"
+description = "Ledger USB custody for Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -13,10 +13,10 @@ publish = false
 anyhow = {workspace = true}
 ledger-lib = {workspace = true}
 ledger-proto = {workspace = true}
-penumbra-sdk-custody = {workspace = true}
-penumbra-sdk-keys = {workspace = true}
-penumbra-sdk-proto = {workspace = true}
-penumbra-sdk-transaction = {workspace = true}
+shieldd-sdk-custody = {workspace = true}
+shieldd-sdk-keys = {workspace = true}
+shieldd-sdk-proto = {workspace = true}
+shieldd-sdk-transaction = {workspace = true}
 tonic = {workspace = true}
 tracing = {workspace = true}
 serde = {workspace = true}

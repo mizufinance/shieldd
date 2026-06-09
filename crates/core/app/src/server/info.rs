@@ -6,7 +6,7 @@ use std::{
     vec,
 };
 
-use crate::PenumbraHost;
+use crate::ShielddHost;
 use anyhow::Context as _;
 use cnidarium::Storage;
 use futures::FutureExt;
@@ -28,11 +28,11 @@ use ibc_types::core::channel::{ChannelId, PortId};
 use ibc_types::core::client::ClientId;
 use ibc_types::core::connection::ConnectionId;
 use ibc_types::core::connection::IdentifiedConnectionEnd;
-use penumbra_sdk_ibc::component::ChannelStateReadExt as _;
-use penumbra_sdk_ibc::component::ClientStateReadExt as _;
-use penumbra_sdk_ibc::component::ConnectionStateReadExt as _;
-use penumbra_sdk_ibc::component::HostInterface;
 use prost::Message;
+use shieldd_sdk_ibc::component::ChannelStateReadExt as _;
+use shieldd_sdk_ibc::component::ClientStateReadExt as _;
+use shieldd_sdk_ibc::component::ConnectionStateReadExt as _;
+use shieldd_sdk_ibc::component::HostInterface;
 use std::str::FromStr;
 use tendermint::v0_37::abci::{
     request,
@@ -42,7 +42,7 @@ use tendermint::v0_37::abci::{
 use tower_abci::BoxError;
 use tracing::Instrument;
 
-use penumbra_sdk_tower_trace::v037::RequestExt;
+use shieldd_sdk_tower_trace::v037::RequestExt;
 
 const ABCI_INFO_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -72,7 +72,7 @@ impl Info {
         // block that occurs immediately after an upgrade. This block
         // has height 0. To support this case, we report back the height
         // that is stored in the state store.
-        let last_block_height = PenumbraHost::get_block_height(&state)
+        let last_block_height = ShielddHost::get_block_height(&state)
             .await
             // if we can't get the block height, we're in pregenesis
             // in that case we want to report 0 to cometbft.
@@ -86,7 +86,7 @@ impl Info {
         let last_block_app_hash = state.root_hash().await?.0.to_vec().try_into()?;
 
         Ok(response::Info {
-            data: "penumbra".to_string(),
+            data: "shieldd".to_string(),
             version: ABCI_INFO_VERSION.to_string(),
             app_version,
             last_block_height,

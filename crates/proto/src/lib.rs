@@ -1,4 +1,4 @@
-//! Protobuf definitions for Penumbra.
+//! Protobuf definitions for Shieldd.
 //!
 //! This crate only contains the `.proto` files and the Rust types generated
 //! from them.  These types only handle parsing the wire format; validation
@@ -7,7 +7,7 @@
 //!
 //! ```ascii
 //! ┌───────┐          ┌──────────────┐               ┌──────────────┐
-//! │encoded│ protobuf │penumbra_sdk_proto│ TryFrom/Into  │ domain types │
+//! │encoded│ protobuf │shieldd_sdk_proto│ TryFrom/Into  │ domain types │
 //! │ bytes │<──wire ─>│    types     │<─validation ─>│(other crates)│
 //! └───────┘  format  └──────────────┘   boundary    └──────────────┘
 //! ```
@@ -21,7 +21,7 @@
 #![allow(clippy::needless_borrow)]
 #![allow(clippy::unwrap_used)]
 #![allow(non_snake_case)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub use prost::{Message, Name};
 
@@ -43,169 +43,142 @@ pub use state::StateReadProto;
 #[cfg(feature = "cnidarium")]
 pub use state::StateWriteProto;
 
-pub use penumbra::*;
+pub use shieldd::*;
 
-pub mod penumbra {
+pub mod shieldd {
     /// Core protocol structures.
     pub mod core {
-        /// Top-level structures for the Penumbra application.
+        /// Top-level structures for the Shieldd application.
         pub mod app {
             pub mod v1 {
-                include!("gen/penumbra.core.app.v1.rs");
-                include!("gen/penumbra.core.app.v1.serde.rs");
+                include!("gen/shieldd.core.app.v1.rs");
+                include!("gen/shieldd.core.app.v1.serde.rs");
             }
         }
 
         pub mod asset {
             pub mod v1 {
-                include!("gen/penumbra.core.asset.v1.rs");
-                include!("gen/penumbra.core.asset.v1.serde.rs");
+                include!("gen/shieldd.core.asset.v1.rs");
+                include!("gen/shieldd.core.asset.v1.serde.rs");
             }
         }
 
         pub mod txhash {
             pub mod v1 {
-                include!("gen/penumbra.core.txhash.v1.rs");
-                include!("gen/penumbra.core.txhash.v1.serde.rs");
+                include!("gen/shieldd.core.txhash.v1.rs");
+                include!("gen/shieldd.core.txhash.v1.serde.rs");
             }
         }
 
-        /// Components of the Penumbra application.
+        /// Components of the Shieldd application.
         pub mod component {
-            pub mod auction {
-                pub mod v1 {
-                    include!("gen/penumbra.core.component.auction.v1.rs");
-                    include!("gen/penumbra.core.component.auction.v1.serde.rs");
-                }
-            }
             pub mod compact_block {
                 pub mod v1 {
-                    include!("gen/penumbra.core.component.compact_block.v1.rs");
-                    include!("gen/penumbra.core.component.compact_block.v1.serde.rs");
+                    include!("gen/shieldd.core.component.compact_block.v1.rs");
+                    include!("gen/shieldd.core.component.compact_block.v1.serde.rs");
                 }
             }
 
-            pub mod community_pool {
+            pub mod compliance {
                 pub mod v1 {
-                    include!("gen/penumbra.core.component.community_pool.v1.rs");
-                    include!("gen/penumbra.core.component.community_pool.v1.serde.rs");
-                }
-            }
-
-            pub mod dex {
-                pub mod v1 {
-                    include!("gen/penumbra.core.component.dex.v1.rs");
-                    include!("gen/penumbra.core.component.dex.v1.serde.rs");
-                }
-            }
-
-            pub mod distributions {
-                pub mod v1 {
-                    include!("gen/penumbra.core.component.distributions.v1.rs");
-                    include!("gen/penumbra.core.component.distributions.v1.serde.rs");
+                    include!("gen/shieldd.core.component.compliance.v1.rs");
+                    include!("gen/shieldd.core.component.compliance.v1.serde.rs");
                 }
             }
 
             pub mod fee {
                 pub mod v1 {
-                    include!("gen/penumbra.core.component.fee.v1.rs");
-                    include!("gen/penumbra.core.component.fee.v1.serde.rs");
-                }
-            }
-
-            pub mod funding {
-                pub mod v1 {
-                    include!("gen/penumbra.core.component.funding.v1.rs");
-                    include!("gen/penumbra.core.component.funding.v1.serde.rs");
+                    include!("gen/shieldd.core.component.fee.v1.rs");
+                    include!("gen/shieldd.core.component.fee.v1.serde.rs");
                 }
             }
 
             pub mod governance {
                 pub mod v1 {
-                    include!("gen/penumbra.core.component.governance.v1.rs");
-                    include!("gen/penumbra.core.component.governance.v1.serde.rs");
+                    include!("gen/shieldd.core.component.governance.v1.rs");
+                    include!("gen/shieldd.core.component.governance.v1.serde.rs");
                 }
             }
 
             pub mod ibc {
                 pub mod v1 {
-                    include!("gen/penumbra.core.component.ibc.v1.rs");
-                    include!("gen/penumbra.core.component.ibc.v1.serde.rs");
+                    include!("gen/shieldd.core.component.ibc.v1.rs");
+                    include!("gen/shieldd.core.component.ibc.v1.serde.rs");
+                }
+            }
+
+            pub mod validator {
+                pub mod v1 {
+                    include!("gen/shieldd.core.component.validator.v1.rs");
+                    include!("gen/shieldd.core.component.validator.v1.serde.rs");
                 }
             }
 
             pub mod sct {
                 pub mod v1 {
-                    include!("gen/penumbra.core.component.sct.v1.rs");
-                    include!("gen/penumbra.core.component.sct.v1.serde.rs");
+                    include!("gen/shieldd.core.component.sct.v1.rs");
+                    include!("gen/shieldd.core.component.sct.v1.serde.rs");
                 }
             }
 
             pub mod shielded_pool {
                 pub mod v1 {
-                    include!("gen/penumbra.core.component.shielded_pool.v1.rs");
-                    include!("gen/penumbra.core.component.shielded_pool.v1.serde.rs");
-                }
-            }
-
-            pub mod stake {
-                pub mod v1 {
-                    include!("gen/penumbra.core.component.stake.v1.rs");
-                    include!("gen/penumbra.core.component.stake.v1.serde.rs");
+                    include!("gen/shieldd.core.component.shielded_pool.v1.rs");
+                    include!("gen/shieldd.core.component.shielded_pool.v1.serde.rs");
                 }
             }
         }
 
         pub mod keys {
             pub mod v1 {
-                include!("gen/penumbra.core.keys.v1.rs");
-                include!("gen/penumbra.core.keys.v1.serde.rs");
+                include!("gen/shieldd.core.keys.v1.rs");
+                include!("gen/shieldd.core.keys.v1.serde.rs");
             }
         }
 
         pub mod num {
             pub mod v1 {
-                include!("gen/penumbra.core.num.v1.rs");
-                include!("gen/penumbra.core.num.v1.serde.rs");
+                include!("gen/shieldd.core.num.v1.rs");
+                include!("gen/shieldd.core.num.v1.serde.rs");
             }
         }
 
         /// Transaction structures.
         pub mod transaction {
             pub mod v1 {
-                include!("gen/penumbra.core.transaction.v1.rs");
-                include!("gen/penumbra.core.transaction.v1.serde.rs");
+                include!("gen/shieldd.core.transaction.v1.rs");
+                include!("gen/shieldd.core.transaction.v1.serde.rs");
             }
         }
     }
 
-    /// Cryptography primitives used by Penumbra.
+    /// Cryptography primitives used by Shieldd.
     pub mod crypto {
         pub mod decaf377_fmd {
             pub mod v1 {
-                include!("gen/penumbra.crypto.decaf377_fmd.v1.rs");
-                include!("gen/penumbra.crypto.decaf377_fmd.v1.serde.rs");
+                include!("gen/shieldd.crypto.decaf377_fmd.v1.rs");
+                include!("gen/shieldd.crypto.decaf377_fmd.v1.serde.rs");
             }
         }
 
         pub mod decaf377_frost {
             pub mod v1 {
-                include!("gen/penumbra.crypto.decaf377_frost.v1.rs");
-                include!("gen/penumbra.crypto.decaf377_frost.v1.serde.rs");
+                include!("gen/shieldd.crypto.decaf377_frost.v1.rs");
+                include!("gen/shieldd.crypto.decaf377_frost.v1.serde.rs");
             }
         }
 
         pub mod decaf377_rdsa {
             pub mod v1 {
-                include!("gen/penumbra.crypto.decaf377_rdsa.v1.rs");
-                include!("gen/penumbra.crypto.decaf377_rdsa.v1.serde.rs");
+                include!("gen/shieldd.crypto.decaf377_rdsa.v1.rs");
+                include!("gen/shieldd.crypto.decaf377_rdsa.v1.serde.rs");
             }
         }
 
         pub mod tct {
             pub mod v1 {
-                include!("gen/penumbra.crypto.tct.v1.rs");
-                include!("gen/penumbra.crypto.tct.v1.serde.rs");
+                include!("gen/shieldd.crypto.tct.v1.rs");
+                include!("gen/shieldd.crypto.tct.v1.serde.rs");
             }
         }
     }
@@ -214,31 +187,29 @@ pub mod penumbra {
     pub mod custody {
         pub mod threshold {
             pub mod v1 {
-                include!("gen/penumbra.custody.threshold.v1.rs");
-                include!("gen/penumbra.custody.threshold.v1.serde.rs");
+                include!("gen/shieldd.custody.threshold.v1.rs");
+                include!("gen/shieldd.custody.threshold.v1.serde.rs");
             }
         }
 
         pub mod v1 {
-            include!("gen/penumbra.custody.v1.rs");
-            include!("gen/penumbra.custody.v1.serde.rs");
+            include!("gen/shieldd.custody.v1.rs");
+            include!("gen/shieldd.custody.v1.serde.rs");
         }
     }
 
     pub mod util {
-        pub mod tendermint_proxy {
+        pub mod node {
             pub mod v1 {
-                include!("gen/penumbra.util.tendermint_proxy.v1.rs");
-                include!("gen/penumbra.util.tendermint_proxy.v1.serde.rs");
+                include!("gen/shieldd.util.node.v1.rs");
+                include!("gen/shieldd.util.node.v1.serde.rs");
             }
         }
-    }
 
-    pub mod tools {
-        pub mod summoning {
+        pub mod tendermint_proxy {
             pub mod v1 {
-                include!("gen/penumbra.tools.summoning.v1.rs");
-                include!("gen/penumbra.tools.summoning.v1.serde.rs");
+                include!("gen/shieldd.util.tendermint_proxy.v1.rs");
+                include!("gen/shieldd.util.tendermint_proxy.v1.serde.rs");
             }
         }
     }
@@ -246,8 +217,8 @@ pub mod penumbra {
     /// View protocol structures.
     pub mod view {
         pub mod v1 {
-            include!("gen/penumbra.view.v1.rs");
-            include!("gen/penumbra.view.v1.serde.rs");
+            include!("gen/shieldd.view.v1.rs");
+            include!("gen/shieldd.view.v1.serde.rs");
         }
     }
 }
@@ -342,5 +313,5 @@ pub mod cosmos {
 }
 
 #[cfg(feature = "rpc")]
-// https://github.com/penumbra-zone/penumbra/issues/3038#issuecomment-1722534133
+// https://github.com/mizufinance/shieldd/issues/3038#issuecomment-1722534133
 pub const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!("gen/proto_descriptor.bin.no_lfs");

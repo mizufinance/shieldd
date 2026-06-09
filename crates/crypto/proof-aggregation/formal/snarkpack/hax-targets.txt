@@ -1,0 +1,30 @@
+# Partial extraction targets for SnarkPack formal verification.
+#
+# hax extraction should keep the executed Rust functions as the source of truth.
+# Any duplicate formal-only traversal branch must be recorded in
+# hax-extraction-boundary.md and parity-tested under cfg(hax).
+
+shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
+shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow
+shieldd_sdk_proof_aggregation::statement::StatementPaddedRows
+shieldd_sdk_proof_aggregation::statement::StatementEncodingInput
+shieldd_sdk_proof_aggregation::statement::encode_statement
+shieldd_sdk_proof_aggregation::statement::vk_digest_preimage
+shieldd_sdk_proof_aggregation::statement::validate_counts
+shieldd_sdk_proof_aggregation::statement::validate_row_arity
+shieldd_sdk_proof_aggregation::statement::validate_repeat_final_padding
+shieldd_sdk_proof_aggregation::srs::dev_srs_supports_count
+shieldd_sdk_proof_aggregation::srs::default_dev_srs_id_preimage
+shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::encode_wrapped_aggregate_proof
+shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::decode_wrapped_aggregate_proof
+shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::decode_wrapped_aggregate_proof_inner_range
+shieldd_sdk_proof_aggregation::preflight::PreflightCheapChecks
+shieldd_sdk_proof_aggregation::preflight::PreflightWorkGate
+shieldd_sdk_proof_aggregation::preflight::preflight_work_gate
+shieldd_sdk_proof_aggregation::bundle::FamilyRouteKind
+shieldd_sdk_proof_aggregation::bundle::FamilyRoute
+shieldd_sdk_proof_aggregation::bundle::FamilyRouteError
+shieldd_sdk_proof_aggregation::bundle::family_route_from_proto_fields
+ark_ip_proofs::challenge::ChallengeContext
+ark_ip_proofs::challenge::challenge_context_preimage
+ark_ip_proofs::challenge::challenge_preimage

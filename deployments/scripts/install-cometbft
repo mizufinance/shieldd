@@ -1,5 +1,5 @@
 #!/bin/bash
-# Utility script to download a specific version of CometBFT for use with Penumbra.
+# Utility script to download a specific version of CometBFT for use with Shieldd.
 # Designed to be used in CI contexts, to bootstrap a testing setup quickly.
 set -euo pipefail
 

@@ -1,9 +1,9 @@
 # Randomizable Signatures
 
-Penumbra's signatures are provided by `decaf377-rdsa`, a variant of the Zcash
+Shieldd's signatures are provided by `decaf377-rdsa`, a variant of the Zcash
 RedDSA construction instantiated using the [`decaf377` group](./decaf377.md).
 These are Schnorr signatures, with two additional properties relevant to
-Penumbra:
+Shieldd:
 
 1. They support randomization of signing and verification keys.  Spending a note
 requires use of the signing key that controls its spend authorization, but if
@@ -57,7 +57,7 @@ it is not satisfied.
 
 ## `SpendAuth` signatures
 
-The first signature domain used in Penumbra is for spend authorization signatures.  The basepoint $B_{\mathsf{SpendAuth}}$ is the conventional `decaf377` basepoint `0x0800000...`.
+The first signature domain used in Shieldd is for spend authorization signatures.  The basepoint $B_{\mathsf{SpendAuth}}$ is the conventional `decaf377` basepoint `0x0800000...`.
 
 Spend authorization signatures support randomization:
 
@@ -73,11 +73,11 @@ Randomizing a signing key and then deriving the verification key associated to t
 
 ## Implementation
 
-An implementation of `decaf377-rdsa` can be found [here](https://github.com/penumbra-zone/decaf377-rdsa).
+An implementation of `decaf377-rdsa` can be found [here](https://github.com/mizufinance/decaf377-rdsa).
 
 ## `Binding` signatures
 
-The second signature domain used in Penumbra is for binding signatures.  The
+The second signature domain used in Shieldd is for binding signatures.  The
 basepoint $B_{\mathsf{Binding}}$ is the result of converting
 `blake2b(b"decaf377-rdsa-binding")` to an $\mathbb F_r$ element and applying
 `decaf377`'s CDH encode-to-curve method.
@@ -121,7 +121,7 @@ to derive the verification key $bvk$ based on their contribution to the balance:
 $bvk = cv_s - cv_o = [v_s - v_o] G_v + [rcv_s - rcv_o] G_{rcv}$
 
 If the transaction is valid, then the first term on the LHS ($[v_s - v_o] G_v$) is
-zero since for Penumbra all transactions should have zero value balance.
+zero since for Shieldd all transactions should have zero value balance.
 
 This leaves the verifier with the verification key:
 

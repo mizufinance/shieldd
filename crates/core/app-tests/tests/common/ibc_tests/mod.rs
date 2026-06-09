@@ -3,29 +3,28 @@ use {anyhow::Result, std::time::Duration};
 mod relayer;
 use anyhow::Context as _;
 use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
-use penumbra_sdk_app::{
+#[allow(unused_imports)]
+pub use relayer::{MockRelayer, SendPacketEvent};
+use shieldd_sdk_app::{
     app::{MAX_BLOCK_TXS_PAYLOAD_BYTES, MAX_EVIDENCE_SIZE_BYTES},
     genesis,
 };
-use penumbra_sdk_keys::keys::{SpendKey, SpendKeyBytes};
-use penumbra_sdk_mock_consensus::TestNode;
-use penumbra_sdk_proto::core::component::stake::v1::Validator;
-use penumbra_sdk_shielded_pool::genesis::Allocation;
-use penumbra_sdk_stake::{DelegationToken, GovernanceKey, IdentityKey};
-#[allow(unused_imports)]
-pub use relayer::MockRelayer;
+use shieldd_sdk_keys::keys::{SpendKey, SpendKeyBytes};
+use shieldd_sdk_mock_consensus::TestNode;
+use shieldd_sdk_proto::core::component::validator::v1::Validator;
+use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
 
 mod node;
-pub use node::TestNodeWithIBC;
+pub use node::{TestNodeWithIBC, TestStorage};
 use serde::Deserialize;
 use tendermint::{consensus::params::AbciParams, public_key::Algorithm, Genesis};
 
-/// Collection of all keypairs required for a Penumbra validator.
+/// Collection of all keypairs required for a Shieldd validator.
 /// Used to generate a stable identity for a [`NetworkValidator`].
 /// TODO: copied this from pd crate
 #[derive(Deserialize)]
 pub struct ValidatorKeys {
-    /// Penumbra spending key and viewing key for this node.
+    /// Shieldd spending key and viewing key for this node.
     /// These need to be real curve points.
     pub validator_id_sk: SigningKey<SpendAuth>,
     pub validator_id_vk: VerificationKey<SpendAuth>,
@@ -114,35 +113,15 @@ pub fn get_verified_genesis() -> Result<Genesis> {
         website: "https://example.com".to_string(),
         description: "test".to_string(),
         enabled: true,
-        funding_streams: vec![],
         sequence_number: 0,
     };
 
     // let's only do one validator per chain for now
     // since it's easier to validate against cometbft
     genesis_contents
-        .stake_content
+        .validator_content
         .validators
         .push(validator_a.clone());
-
-    // the validator needs some initial delegations
-    let identity_key_a: IdentityKey = IdentityKey(
-        spend_key_a
-            .full_viewing_key()
-            .spend_verification_key()
-            .clone()
-            .into(),
-    );
-    let delegation_id_a = DelegationToken::from(&identity_key_a).denom();
-    let ivk_a = spend_key_a.incoming_viewing_key();
-    genesis_contents
-        .shielded_pool_content
-        .allocations
-        .push(Allocation {
-            address: ivk_a.payment_address(0u32.into()).0,
-            raw_amount: (25_000 * 10u128.pow(6)).into(),
-            raw_denom: delegation_id_a.to_string(),
-        });
 
     let genesis = Genesis {
         genesis_time: start_time.clone(),
@@ -156,15 +135,14 @@ pub fn get_verified_genesis() -> Result<Genesis> {
             block: tendermint::block::Size {
                 // 1MB
                 max_bytes: MAX_BLOCK_TXS_PAYLOAD_BYTES as u64,
-                // Set to infinity since a chain running Penumbra won't use
+                // Set to infinity since a chain running Shieldd won't use
                 // cometbft's notion of gas.
                 max_gas: -1,
                 // Minimum time increment between consecutive blocks.
                 time_iota_ms: 500,
             },
             evidence: tendermint::evidence::Params {
-                // We should keep this in approximate sync with the recommended default for
-                // `StakeParameters::unbonding_delay`, this is roughly a week.
+                // Keep this roughly aligned with the intended evidence retention window.
                 max_age_num_blocks: 130000,
                 // Similarly, we set the max age duration for evidence to be a little over a week.
                 max_age_duration: tendermint::evidence::Duration(Duration::from_secs(650000)),
@@ -179,7 +157,7 @@ pub fn get_verified_genesis() -> Result<Genesis> {
         // always empty in genesis json
         app_hash: tendermint::AppHash::default(),
         // app_state: genesis_contents.into(),
-        app_state: serde_json::value::to_value(penumbra_sdk_app::genesis::AppState::Content(
+        app_state: serde_json::value::to_value(shieldd_sdk_app::genesis::AppState::Content(
             genesis_contents,
         ))
         .unwrap(),

@@ -2,8 +2,8 @@ use ark_ff::{BigInteger, PrimeField, ToConstraintField};
 use ark_r1cs_std::{prelude::*, uint64::UInt64};
 use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
 use decaf377::{Fq, Fr};
-use penumbra_sdk_proto::{penumbra::core::num::v1 as pb, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::num::v1 as pb, DomainType};
 use std::{fmt::Display, iter::Sum, num::NonZeroU128, ops};
 
 use crate::fixpoint::{bit_constrain, U128x128, U128x128Var};
@@ -123,8 +123,8 @@ pub fn is_bit_constrained(
     }
 
     // Construct an FqVar from those n Boolean constraints
-    let constructed_fqvar = Boolean::<Fq>::le_bits_to_fp_var(&boolean_constraints.to_bits_le()?)
-        .expect("can convert to bits");
+    let constructed_fqvar =
+        Boolean::<Fq>::le_bits_to_fp(&boolean_constraints).expect("can convert to bits");
     constructed_fqvar.is_eq(&value)
 }
 
@@ -161,7 +161,7 @@ impl AmountVar {
         // Constrain either quo_var or divisor_var to be 64 bits to guard against overflow
         let q_is_64_bits = is_bit_constrained(self.cs(), quo_var.amount.clone(), 64)?;
         let d_is_64_bits = is_bit_constrained(self.cs(), divisor_var.amount.clone(), 64)?;
-        let q_or_d_is_64_bits = q_is_64_bits.or(&d_is_64_bits)?;
+        let q_or_d_is_64_bits = Boolean::kary_or(&[q_is_64_bits, d_is_64_bits])?;
         q_or_d_is_64_bits.enforce_equal(&Boolean::constant(true))?;
 
         // Constrain: numerator = quo * divisor + rem
@@ -528,10 +528,18 @@ impl U128x128Var {
 impl From<U128x128Var> for AmountVar {
     fn from(value: U128x128Var) -> Self {
         let mut le_bits = Vec::new();
-        le_bits.extend_from_slice(&value.limbs[2].to_bits_le()[..]);
-        le_bits.extend_from_slice(&value.limbs[3].to_bits_le()[..]);
+        le_bits.extend(
+            value.limbs[2]
+                .to_bits_le()
+                .expect("limb bits are available"),
+        );
+        le_bits.extend(
+            value.limbs[3]
+                .to_bits_le()
+                .expect("limb bits are available"),
+        );
         Self {
-            amount: Boolean::<Fq>::le_bits_to_fp_var(&le_bits[..]).expect("can convert to bits"),
+            amount: Boolean::<Fq>::le_bits_to_fp(&le_bits).expect("can convert to bits"),
         }
     }
 }
@@ -545,9 +553,9 @@ impl Sum for Amount {
 #[cfg(test)]
 mod test {
     use crate::Amount;
-    use penumbra_sdk_proto::penumbra::core::num::v1 as pb;
     use rand::RngCore;
     use rand_core::OsRng;
+    use shieldd_sdk_proto::shieldd::core::num::v1 as pb;
 
     fn encode_decode(value: u128) -> u128 {
         let amount = Amount { inner: value };

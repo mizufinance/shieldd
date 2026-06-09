@@ -1,34 +1,56 @@
 {
   "actions": [
     {
-      "actionDutchAuctionEnd": {
-        "auctionId": {
-          "inner": "c0FVvT19ufQMNoZkw4KE4iOWdnMwkedavwgeysjoPWo="
+      "validatorVote": {
+        "body": {
+          "proposal": "78443062",
+          "vote": {
+            "vote": "VOTE_NO"
+          },
+          "identityKey": {
+            "ik": "9BQdE6yBB3qoOrdx1+/L5FGphRnh1QFIVGsdq3tRZzw="
+          },
+          "governanceKey": {
+            "gk": "eE85vIDU8uddZ/Z7ZPmnEwVbMLipWLrU4FLfPBcKmw0="
+          },
+          "reason": {
+            "reason": "BJFU4Nw9fsno6qi6dK1gz5u4"
+          }
+        },
+        "authSig": {
+          "inner": "5kmHAp2ItbvX7PJJTuTZPt0frySUNVxk85ciFqq2iQkPezNNUMHOpbXV5mBMAC77oThFABUwlqjP9U99gk1mAw=="
         }
       }
     },
     {
-      "communityPoolOutput": {
-        "value": {
-          "amount": {
-            "lo": "846711980480633701"
+      "validatorVote": {
+        "body": {
+          "proposal": "28661883",
+          "vote": {
+            "vote": "VOTE_NO"
           },
-          "assetId": {
-            "inner": "KeqcLzNx9qSH5+lcJHBB9KNW+YPrBk5dKzvPMiypahA="
+          "identityKey": {
+            "ik": "W6u8VG6HhbdGH/bE4czK6Cdiwfwh1ps12EBQnMn4vuc="
+          },
+          "governanceKey": {
+            "gk": "wFWVtAk2fGw3IJ6xXluT9LtD/0evIv29y1TbvPokrgg="
+          },
+          "reason": {
+            "reason": "LK9Xg774"
           }
         },
-        "address": {
-          "inner": "/5VVlhnPz2rN3eOjE8R+aD17ie1u7hqm75JOeHIhEGSFcSTAGnQLPS2eGZEa3Bn9flIgapaiKThFkSEeYMEaccv9m4rgaqaV5sKkiyAz1Mg="
+        "authSig": {
+          "inner": "sDFot1jl8j5RV4MvBFrku1Yy/rcKVQMOgAR4kUNKOg4QtsH+Z1lEt70zhes8iG1IOGXcWScWh0gPlcmGyHtSAA=="
         }
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "3827603787",
-    "chainId": "htxqbyniabeljdzvkagj-12379991737703822",
+    "expiryHeight": "7555280205",
+    "chainId": "nripysvgenf-851418749050313229251557474041",
     "fee": {
       "amount": {
-        "lo": "253952826649855945"
+        "lo": "705753046339580347"
       }
     }
   }

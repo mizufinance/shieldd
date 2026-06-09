@@ -1,16 +1,15 @@
 [package]
-name = "penumbra-sdk-mock-consensus"
+name = "shieldd-sdk-mock-consensus"
 authors = {workspace = true}
 repository = {workspace = true}
 description = "Mock consensus to build application tests"
 edition.workspace = true
 version.workspace = true
-homepage.workspace = true
 license.workspace = true
 
-# NB: to avoid circular dependencies: do not add other `penumbra-*` crates
+# NB: to avoid circular dependencies: do not add other `shieldd-*` crates
 # as dependencies, below. we should provide interfaces in terms of generic
-# types, and provide penumbra-specific helper functions via extension traits.
+# types, and provide shieldd-specific helper functions via extension traits.
 
 [dependencies]
 anyhow = { workspace = true }

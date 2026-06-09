@@ -1,4 +1,4 @@
-//! The tiered commitment tree for Penumbra.
+//! The tiered commitment tree for Shieldd.
 //!
 //! ```ascii,no_run
 //! Eternity┃           ╱╲ ◀───────────── Anchor
@@ -35,7 +35,7 @@
 
 #![deny(clippy::unwrap_used)]
 #![warn(missing_docs, rustdoc::broken_intra_doc_links)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[macro_use]
 extern crate derivative;

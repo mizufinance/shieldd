@@ -1,49 +1,54 @@
 {
   "actions": [
     {
-      "communityPoolOutput": {
-        "value": {
-          "amount": {
-            "lo": "857233367113877618"
-          },
-          "assetId": {
-            "inner": "KeqcLzNx9qSH5+lcJHBB9KNW+YPrBk5dKzvPMiypahA="
-          }
-        },
-        "address": {
-          "inner": "5CS/jDGX5WiwHQXOVXLSy+l4WbvMTMdKyB27bLQinuGwgMVreKo5GDW+rHYg93PeqVBzC5Sh/Rym3JSqHsRMAalg7x703Lt/XrDsD0edGxc="
+      "ibcRelayAction": {
+        "rawAction": {
+          "typeUrl": "/ibc.core.channel.v1.MsgRecvPacket",
+          "value": "CrMBCOqEpOgDEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgsIuKO6sAMQ2u6kdECozaTRzrbd2xgSAgoAGgsIuKO6sAMQ2u6kdCKOAXNoaWVsZGQxNGF3aDM3bjQ4bDQzeXY3a3ZzeGFhanlncGZlZjY4MGc3c2Q2cTd3aHowd3Jnczc0d21yMzl6YzhmbTV2YWg5bThweG1rNTRnbjczcjZ3ZmYwY2VmcHB4OWpzenFocTY2MnVmNXZjbHB4cHBnOTJubTZ1MGdxMjl5NzZnZ2pzeHpjM3EzcjI="
         }
       }
     },
     {
-      "undelegateClaim": {
-        "validatorIdentity": {
-          "ik": "E8r643GiUDmhgjxZoVJ8RrFhRebJC/QssQuDojpGvE8="
+      "proposalSubmit": {
+        "proposal": {
+          "title": "duosjcmsxvyshbzcqrjixsdvzvhcuuw-470181721856471",
+          "description": "uesifygvrscvzfsz-3422757624",
+          "signaling": {}
         },
-        "penalty": {
-          "inner": "AAAAAAAAAAAAAAAAAAAAAP8AaNuLrHEMspXp4bCJoCg="
+        "proposer": {
+          "ik": "VhTWfED7re4fLLyMBvcHxw37ou2JCSOSomU7tJRBkrI="
         },
-        "unbondingAmount": {
-          "lo": "775828966889612352"
+        "governanceKey": {
+          "gk": "BsskavAJUxqZOx5xuXr5qkhJKpqSAkCt3UCySa/vWQM="
         },
-        "balanceBlinding": "C0x/6wVXhGhkrK2b54UvGzp9fYfZtNg5yVAXA/t2dgA=",
-        "proofBlindingR": "Pz2wiVwZb47yjacmlRM5dp6cK4DsvLJpqZ7PxWi7Mgw=",
-        "proofBlindingS": "GyKsNT+L5zy4C0fRBrMOKL7mVsAbEDa43yBTet5CVwE=",
-        "unbondingStartHeight": "83616"
+        "authSig": {
+          "inner": "5I+fxY2bz25k42O1D36jxSpPLcE7NapdZ3lrwkxm3A8Nm07RpXsQr6yw2uMBhZkKOKtveALGr2T7PyD8Ir6sAA=="
+        }
       }
     },
     {
-      "proposalWithdraw": {
-        "proposal": "743914309"
+      "validatorDefinition": {
+        "validator": {
+          "identityKey": {
+            "ik": "ZCPvow4s/Bhhwd/LnNBwGR0siCvjziElrrdpt+IrZw8="
+          },
+          "consensusKey": "3tkTAMtoJUDUCrr7K3afPjlspiJ+cEwAoQQ0/Ys+28w=",
+          "name": "test validator",
+          "enabled": true,
+          "governanceKey": {
+            "gk": "ZCPvow4s/Bhhwd/LnNBwGR0siCvjziElrrdpt+IrZw8="
+          }
+        },
+        "authSig": "UpJq2lrLLpAhe0Bn0UVSwSkq2YPmEjwOt6w07Z4DVAv6oT31DG7QFl4xA/ubxeHGxqfQWmtKGhXiLEU2BPmeAg=="
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "7239103807",
-    "chainId": "enjyyeitvwmiuvtpazieqrmqucueofje-244819555081339748962007977",
+    "expiryHeight": "2444191624",
+    "chainId": "xwpyegdfu-647111576477877632334209473651",
     "fee": {
       "amount": {
-        "lo": "174740931029389935"
+        "lo": "52295473534254791"
       }
     }
   }

@@ -1,9 +1,12 @@
 *wallet.dat
+!CLAUDE.md
+.planning/
 wallet-next/pwalletd-db.sqlite
 wallet-next/pwalletd-db.sqlite-shm
 wallet-next/pwalletd-db.sqlite-wal
 
 *.DS_STORE
+.DS_Store
 
 # mdbook docs builds
 docs/*/book/*
@@ -25,6 +28,7 @@ result
 # will have compiled files and executables
 debug/
 target/
+poc/target/
 
 # We can't trust the ecosystem to use semver properly, so we have to check in a lockfile.
 # Cargo.lock
@@ -48,7 +52,7 @@ tools/parameter-setup/Cargo.lock
 
 # Relayer config referencing local devnet, will always be unique
 # to current host env.
-deployments/relayer/configs/penumbra-local.json
+deployments/relayer/configs/shieldd-local.json
 
 # Logs, and other files from smoke tests
 deployments/logs/
@@ -66,3 +70,37 @@ build
 # psql
 .data
 logfile
+
+# Claude Code local task tracking
+tasks/
+
+#script logs
+tmp/
+
+# Development artifacts
+deployments/.smoke-test-state/
+
+# Benchmark-generated artifacts
+crates/bench/benches/**/*.csv
+poc/crates/*-bench/benches/**/*.csv
+crates/bench/benches/**/*.log
+poc/crates/*-bench/benches/**/*.log
+crates/bench/benches/**/sections/
+poc/crates/*-bench/benches/**/sections/
+
+# Stage-bench TPS working trees
+poc/crates/stage-bench/benches/compliance/tps/{runs,microscope,admission,incremental}/
+crates/bench/benches/compliance/tps/{runs,microscope,admission,incremental}/
+
+# Android proof lab build artifacts
+**/android-proof-lab/target/
+
+# hax-generated formal extraction outputs
+crates/crypto/proof-aggregation/proofs/
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/
+crates/crypto/proof-aggregation/formal/snarkpack/.generated/
+
+# POC tool caches
+poc/tools/gnark-spend-prototype/.gocache/
+poc/tools/gnark-spend-prototype/.tmp/
+**/__pycache__/

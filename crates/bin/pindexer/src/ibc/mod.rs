@@ -4,9 +4,9 @@ use cometindex::{
     index::{EventBatch, EventBatchContext, Version},
     AppView, ContextualizedEvent, PgTransaction,
 };
-use penumbra_sdk_asset::Value;
-use penumbra_sdk_keys::Address;
-use penumbra_sdk_proto::{
+use shieldd_sdk_asset::Value;
+use shieldd_sdk_keys::Address;
+use shieldd_sdk_proto::{
     core::component::shielded_pool::v1::{
         self as pb, event_outbound_fungible_token_refund::Reason as RefundReason,
     },
@@ -25,13 +25,13 @@ impl EventKind {
     fn tag(&self) -> &'static str {
         match self {
             Self::InboundTransfer => {
-                "penumbra.core.component.shielded_pool.v1.EventInboundFungibleTokenTransfer"
+                "shieldd.core.component.shielded_pool.v1.EventInboundFungibleTokenTransfer"
             }
             Self::OutboundTransfer => {
-                "penumbra.core.component.shielded_pool.v1.EventOutboundFungibleTokenTransfer"
+                "shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenTransfer"
             }
             Self::OutboundRefund => {
-                "penumbra.core.component.shielded_pool.v1.EventOutboundFungibleTokenRefund"
+                "shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenRefund"
             }
         }
     }
@@ -113,7 +113,7 @@ impl TryFrom<ContextualizedEvent<'_>> for Event {
 /// The database's view of a transfer.
 #[derive(Debug)]
 struct DatabaseTransfer {
-    penumbra_addr: Address,
+    shieldd_addr: Address,
     foreign_addr: String,
     negate: bool,
     value: Value,
@@ -128,7 +128,7 @@ impl Event {
                 sender,
                 value,
             } => DatabaseTransfer {
-                penumbra_addr: receiver,
+                shieldd_addr: receiver,
                 foreign_addr: sender,
                 negate: false,
                 value,
@@ -139,7 +139,7 @@ impl Event {
                 receiver,
                 value,
             } => DatabaseTransfer {
-                penumbra_addr: sender,
+                shieldd_addr: sender,
                 foreign_addr: receiver,
                 negate: true,
                 value,
@@ -151,7 +151,7 @@ impl Event {
                 value,
                 reason,
             } => DatabaseTransfer {
-                penumbra_addr: sender,
+                shieldd_addr: sender,
                 foreign_addr: receiver,
                 negate: false,
                 value,
@@ -181,7 +181,7 @@ async fn create_transfer(
     sqlx::query("INSERT INTO ibc_transfer VALUES (DEFAULT, $7, $1, $6::NUMERIC(39, 0) * $2::NUMERIC(39, 0), $3, $4, $5, $8)")
         .bind(transfer.value.asset_id.to_bytes())
         .bind(transfer.value.amount.to_string())
-        .bind(transfer.penumbra_addr.to_vec())
+        .bind(transfer.shieldd_addr.to_vec())
         .bind(transfer.foreign_addr)
         .bind(transfer.kind)
         .bind(if transfer.negate { -1i32 } else { 1i32 })

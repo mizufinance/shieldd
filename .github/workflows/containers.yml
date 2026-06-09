@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
     tags:
       - '**[0-9]+.[0-9]+.[0-9]+*'
   workflow_call:
@@ -11,7 +12,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: mizufinance/penumbra
+  IMAGE_NAME: mizufinance/shieldd
 
 jobs:
   build_amd64:

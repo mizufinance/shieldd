@@ -1,4 +1,4 @@
-use penumbra_sdk_transaction::{
+use shieldd_sdk_transaction::{
     txhash::TransactionId, Transaction, TransactionPerspective, TransactionSummary, TransactionView,
 };
 

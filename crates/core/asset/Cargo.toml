@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-asset"
+name = "shieldd-sdk-asset"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Core asset data structures for Penumbra"
+description = "Core asset data structures for Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -39,8 +39,8 @@ hex = {workspace = true}
 ibig = {workspace = true}
 num-bigint = {workspace = true}
 once_cell = {workspace = true}
-penumbra-sdk-num = {workspace = true, default-features = true}
-penumbra-sdk-proto = {workspace = true, default-features = true}
+shieldd-sdk-num = {workspace = true, default-features = true}
+shieldd-sdk-proto = {workspace = true, default-features = true}
 poseidon377 = {workspace = true, features = ["r1cs"]}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}

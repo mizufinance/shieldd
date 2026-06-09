@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-fee"
+name = "shieldd-sdk-fee"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Multidimensional fee implementation for Penumbra"
+description = "Multidimensional fee implementation for Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -11,9 +11,9 @@ edition = {workspace = true}
 component = [
     "cnidarium-component",
     "cnidarium",
-    "penumbra-sdk-proto/cnidarium",
+    "shieldd-sdk-proto/cnidarium",
     "tonic",
-    "penumbra-sdk-proto/rpc"
+    "shieldd-sdk-proto/rpc"
 ]
 default = ["std", "component"]
 std = ["ark-ff/std"]
@@ -31,9 +31,9 @@ decaf377 = {workspace = true, default-features = true}
 decaf377-rdsa = {workspace = true}
 im = {workspace = true}
 metrics = {workspace = true}
-penumbra-sdk-asset = {workspace = true, default-features = false}
-penumbra-sdk-num = {workspace = true, default-features = false}
-penumbra-sdk-proto = {workspace = true, default-features = false}
+shieldd-sdk-asset = {workspace = true, default-features = false}
+shieldd-sdk-num = {workspace = true, default-features = false}
+shieldd-sdk-proto = {workspace = true, default-features = false}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
 serde = {workspace = true, features = ["derive"]}

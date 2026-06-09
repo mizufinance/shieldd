@@ -1,5 +1,5 @@
 #![cfg(feature = "integration-testnet")]
-//! Integration tests for communicating with the public Penumbra testnet.
+//! Integration tests for communicating with the public Shieldd testnet.
 //! These tests are off by default, given that they contact remote services,
 //! but are useful to verify functionality for e.g. HTTPS connectivity.
 //!
@@ -10,7 +10,7 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 use tempfile::{tempdir, TempDir};
 
-use penumbra_sdk_keys::test_keys::SEED_PHRASE;
+use shieldd_sdk_keys::test_keys::SEED_PHRASE;
 
 /// The URL for the public testnet pd endpoint.
 const NODE_URL: &str = "https://testnet.plinfra.net";
@@ -22,7 +22,7 @@ const TESTNET_TIMEOUT_COMMAND_SECONDS: u64 = 900;
 
 /// Run "pcli view sync" against the testnet endpoint.
 ///
-/// Mostly this test confirms that we have adequate Penumbra proving key and TLS config.
+/// Mostly this test confirms that we have adequate Shieldd proving key and TLS config.
 #[test]
 fn sync_wallet_on_public_testnet() {
     tracing_subscriber::fmt::try_init().ok();
@@ -32,7 +32,7 @@ fn sync_wallet_on_public_testnet() {
 
 /// Import the wallet from seed phrase into a temporary directory.
 ///
-/// Ignores the `PENUMBRA_PD_NODE_URL` env var, preferring an explicit
+/// Ignores the `SHIELDD_PD_NODE_URL` env var, preferring an explicit
 /// CLI flag instead.
 fn load_wallet_into_tmpdir_for_testnet() -> TempDir {
     let tmpdir = tempdir().unwrap();

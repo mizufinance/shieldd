@@ -1,7 +1,7 @@
-use penumbra_sdk_proto::custody::v1::{self as pb, AuthorizeResponse};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::Uppercase, hex::Hex};
+use shieldd_sdk_proto::custody::v1::{self as pb, AuthorizeResponse};
 use tokio::sync::OnceCell;
 use tonic::{async_trait, Request, Response, Status};
 
@@ -256,6 +256,16 @@ impl<T: Terminal + Clone + Send + Sync + 'static> pb::custody_service_server::Cu
         self.get_inner()
             .await?
             .authorize_validator_vote(request)
+            .await
+    }
+
+    async fn authorize_proposal_submit(
+        &self,
+        request: Request<pb::AuthorizeProposalSubmitRequest>,
+    ) -> Result<Response<pb::AuthorizeProposalSubmitResponse>, Status> {
+        self.get_inner()
+            .await?
+            .authorize_proposal_submit(request)
             .await
     }
 

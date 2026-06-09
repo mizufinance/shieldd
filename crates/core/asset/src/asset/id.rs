@@ -4,9 +4,9 @@ use ark_serialize::CanonicalDeserialize;
 use base64::Engine;
 use decaf377::Fq;
 use once_cell::sync::Lazy;
-use penumbra_sdk_num::Amount;
-use penumbra_sdk_proto::{penumbra::core::asset::v1 as pb, serializers::bech32str, DomainType};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_num::Amount;
+use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::asset::v1 as pb, DomainType};
 
 /// An identifier for an IBC asset type.
 ///
@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 /// - `transfer/channelToB/transfer/channelToA/denom` (chain C representation of chain B representation of chain A asset)
 ///
 /// ADR001 defines the IBC asset ID as the SHA-256 hash of the denomination
-/// trace.  Instead, Penumbra hashes to a field element, so that asset IDs can
+/// trace.  Instead, Shieldd hashes to a field element, so that asset IDs can
 /// be more easily used inside of a circuit.
 ///
 /// [ADR001]:
@@ -129,7 +129,7 @@ impl ToConstraintField<Fq> for Id {
 
 /// The domain separator used to hash asset ids to value generators.
 pub static VALUE_GENERATOR_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"penumbra.value.generator").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.value.generator").as_bytes())
 });
 
 impl Id {
@@ -158,7 +158,7 @@ impl Id {
         Id(Fq::from_le_bytes_mod_order(
             // XXX choice of hash function?
             blake2b_simd::Params::default()
-                .personal(b"Penumbra_AssetID")
+                .personal(b"Shieldd_AssetID")
                 .hash(base_denom.as_bytes())
                 .as_bytes(),
         ))
@@ -178,13 +178,13 @@ mod tests {
 
     #[test]
     fn asset_id_encoding() {
-        let id = Id::from_raw_denom("upenumbra");
+        let id = Id::from_raw_denom("ushieldd");
 
         let bech32m_id = format!("{id}");
 
         let id2 = Id::from_str(&bech32m_id).expect("can decode valid asset id");
 
-        use penumbra_sdk_proto::Message;
+        use shieldd_sdk_proto::Message;
 
         let proto = id.encode_to_vec();
         let proto2 = pb::AssetId {
@@ -193,7 +193,7 @@ mod tests {
         }
         .encode_to_vec();
         let proto3 = pb::AssetId {
-            alt_base_denom: "upenumbra".to_owned(),
+            alt_base_denom: "ushieldd".to_owned(),
             ..Default::default()
         }
         .encode_to_vec();

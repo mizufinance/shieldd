@@ -3,16 +3,16 @@ use {
     cnidarium::TempStorage,
     common::TempStorageExt as _,
     decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey},
-    penumbra_sdk_app::{
+    rand_core::OsRng,
+    shieldd_sdk_app::{
         genesis::{self, AppState},
         server::consensus::Consensus,
     },
-    penumbra_sdk_keys::test_keys,
-    penumbra_sdk_mock_client::MockClient,
-    penumbra_sdk_mock_consensus::TestNode,
-    penumbra_sdk_proto::DomainType,
-    penumbra_sdk_stake::{validator::Validator, FundingStreams, GovernanceKey, IdentityKey},
-    rand_core::OsRng,
+    shieldd_sdk_keys::test_keys,
+    shieldd_sdk_mock_client::MockClient,
+    shieldd_sdk_mock_consensus::TestNode,
+    shieldd_sdk_proto::DomainType,
+    shieldd_sdk_validator::{validator::Validator, GovernanceKey, IdentityKey},
     tap::Tap,
     tracing::{error_span, info, Instrument},
 };
@@ -24,7 +24,7 @@ mod common;
 async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::Result<()> {
     // Install a test logger, and acquire some temporary storage.
     let guard = common::set_tracing_subscriber();
-    let storage = TempStorage::new_with_penumbra_prefixes().await?;
+    let storage = TempStorage::new_with_shieldd_prefixes().await?;
 
     // Start the test node.
     let mut node = {
@@ -34,7 +34,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
         );
         TestNode::builder()
             .single_validator()
-            .with_penumbra_auto_app_state(app_state)?
+            .with_shieldd_auto_app_state(app_state)?
             .init_chain(consensus)
             .await
     }?;
@@ -57,7 +57,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
         .tap(|c| info!(client.notes = %c.notes.len(), "mock client synced to test storage"));
 
     // To define a validator, we need to define two keypairs: an identity key
-    // for the Penumbra application and a consensus key for cometbft.
+    // for the Shieldd application and a consensus key for cometbft.
     let new_validator_id_sk = SigningKey::<SpendAuth>::new(OsRng);
     let new_validator_id = IdentityKey(VerificationKey::from(&new_validator_id_sk).into());
     let new_validator_consensus_sk = ed25519_consensus::SigningKey::new(OsRng);
@@ -86,15 +86,14 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
         name: "test validator".to_string(),
         website: String::default(),
         description: String::default(),
-        funding_streams: FundingStreams::default(),
     };
 
     // Make a transaction that defines a new validator, providing an invalid signature.
     let plan = {
         use {
-            penumbra_sdk_stake::validator,
-            penumbra_sdk_transaction::{ActionPlan, TransactionParameters, TransactionPlan},
             rand_core::OsRng,
+            shieldd_sdk_transaction::{ActionPlan, TransactionParameters, TransactionPlan},
+            shieldd_sdk_validator::validator,
         };
         let bytes = new_validator.encode_to_vec();
         // NB: we do NOT use the validator's signing key here. this transaction will contain an
@@ -109,6 +108,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
             // Now fill out the remaining parts of the transaction needed for verification:
             memo: None,
             detection_data: None, // We'll set this automatically below
+            fee_funding: None,
             transaction_parameters: TransactionParameters {
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
@@ -120,13 +120,25 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
     let tx = client.witness_auth_build(&plan).await?;
 
     // Execute the transaction, applying it to the chain state.
-    node.block()
+    let err = node
+        .block()
         .add_tx(tx.encode_to_vec())
         .execute()
         .instrument(error_span!(
             "executing block with validator definition transaction"
         ))
-        .await?;
+        .await
+        .expect_err("invalid validator definition transaction should be rejected");
+    assert!(
+        err.to_string()
+            .contains("validator definition signature failed to verify"),
+        "unexpected validator definition rejection: {err:#}"
+    );
+
+    // Allow spawned verification tasks to complete cleanup after failed tx.
+    // When check_historical fails, JoinSet tasks may still hold Arc<State> briefly.
+    tokio::task::yield_now().await;
+
     let post_tx_snapshot = storage.latest_snapshot();
 
     // Assert that there is still only a single validator definition present, and that this

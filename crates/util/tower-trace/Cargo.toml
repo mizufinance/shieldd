@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-tower-trace"
+name = "shieldd-sdk-tower-trace"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "Penumbra's tower-trace layer"
+description = "Shieldd's tower-trace layer"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}

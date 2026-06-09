@@ -1,8 +1,8 @@
 use decaf377_rdsa::{Signature, SpendAuth};
-use penumbra_sdk_proto::{penumbra::core::component::governance::v1 as pb, DomainType};
-use penumbra_sdk_stake::{GovernanceKey, IdentityKey};
-use penumbra_sdk_txhash::{EffectHash, EffectingData};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{shieldd::core::component::governance::v1 as pb, DomainType};
+use shieldd_sdk_txhash::{EffectHash, EffectingData};
+use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
 
 use crate::{vote::Vote, MAX_VALIDATOR_VOTE_REASON_LENGTH};
 

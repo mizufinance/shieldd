@@ -1,5 +1,5 @@
 //! Methods and types used for generating testnet configurations.
-//! Mostly relevant until Penumbra reaches mainnet.
+//! Mostly relevant until Shieldd reaches mainnet.
 
 pub mod config;
 pub mod generate;

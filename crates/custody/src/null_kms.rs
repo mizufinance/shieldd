@@ -1,7 +1,7 @@
 //! A basic software key management system that stores keys in memory but
 //! presents as an asynchronous signer.
 
-use penumbra_sdk_proto::custody::v1::{self as pb};
+use shieldd_sdk_proto::custody::v1::{self as pb};
 use tonic::{async_trait, Request, Response, Status};
 
 /// A "null KMS" that has no keys and errors on any requests.
@@ -34,6 +34,15 @@ impl pb::custody_service_server::CustodyService for NullKms {
         &self,
         _request: Request<pb::AuthorizeValidatorVoteRequest>,
     ) -> Result<Response<pb::AuthorizeValidatorVoteResponse>, Status> {
+        Err(tonic::Status::failed_precondition(
+            "Got authorization request in view-only mode to null KMS.",
+        ))
+    }
+
+    async fn authorize_proposal_submit(
+        &self,
+        _request: Request<pb::AuthorizeProposalSubmitRequest>,
+    ) -> Result<Response<pb::AuthorizeProposalSubmitResponse>, Status> {
         Err(tonic::Status::failed_precondition(
             "Got authorization request in view-only mode to null KMS.",
         ))

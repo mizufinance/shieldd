@@ -1,14 +1,13 @@
 [package]
-name = "penumbra-proto-compiler"
+name = "shieldd-proto-compiler"
 # We don't use `{ workspace = true }` attributes, because the proto-compiler tool
 # is excluded from the workspace.
-authors    = ["Penumbra Labs <team@penumbralabs.xyz"]
-description = "The Penumbra Protobuf Compilation Helper"
+authors    = ["Shieldd Labs <team@shielddlabs.xyz"]
+description = "The Shieldd Protobuf Compilation Helper"
 edition = "2021"
-homepage   = "https://penumbra.zone"
 license    = "MIT OR Apache-2.0"
 publish = false
-repository = "https://github.com/penumbra-zone/penumbra"
+repository = "https://github.com/mizufinance/shieldd"
 version = "0.1.0"
 
 [dependencies]

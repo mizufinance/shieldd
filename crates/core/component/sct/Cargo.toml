@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-sct"
+name = "shieldd-sdk-sct"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "SCT component implementation for Penumbra"
+description = "SCT component implementation for Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -11,8 +11,9 @@ edition = {workspace = true}
 component = [
     "cnidarium",
     "cnidarium-component",
-    "penumbra-sdk-proto/cnidarium",
-    "penumbra-sdk-proto/rpc",
+    "shieldd-sdk-proto/cnidarium",
+    "shieldd-sdk-proto/rpc",
+    "tokio",
     "tonic",
 ]
 default = ["std", "component"]
@@ -28,28 +29,34 @@ ark-serialize = {workspace = true}
 async-trait = {workspace = true}
 bincode = {workspace = true}
 blake2b_simd = {workspace = true}
+borsh = {workspace = true}
 bytes = {workspace = true}
 cnidarium = {workspace = true, optional = true, default-features = true}
 cnidarium-component = {workspace = true, optional = true, default-features = true}
 decaf377 = {workspace = true, features = ["r1cs"], default-features = true}
 decaf377-rdsa = {workspace = true}
 hex = {workspace = true}
+futures = {workspace = true}
 im = {workspace = true}
+jmt = {workspace = true}
 metrics = {workspace = true}
 once_cell = {workspace = true}
 pbjson-types = {workspace = true}
-penumbra-sdk-keys = {workspace = true, default-features = false}
-penumbra-sdk-proto = {workspace = true, default-features = false}
-penumbra-sdk-tct = {workspace = true, default-features = true}
-penumbra-sdk-txhash = {workspace = true, default-features = false}
+shieldd-sdk-keys = {workspace = true, default-features = false}
+shieldd-sdk-proto = {workspace = true, default-features = false}
+shieldd-sdk-tct = {workspace = true, default-features = true}
+shieldd-sdk-txhash = {workspace = true, default-features = false}
 poseidon377 = {workspace = true, features = ["r1cs"]}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
 serde = {workspace = true, features = ["derive"]}
+sha2 = {workspace = true}
 tendermint = {workspace = true}
+tokio = {workspace = true, optional = true, features = ["rt"]}
 tonic = {workspace = true, optional = true}
 tracing = {workspace = true}
 chrono = { workspace = true, default-features = false, features = ["serde", "now"] }
 
 [dev-dependencies]
 getrandom = {workspace = true}
+tokio = {workspace = true, features = ["full"]}

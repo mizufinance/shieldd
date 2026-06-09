@@ -12,7 +12,7 @@ use crate::{
     component::{
         client::StateReadExt as _,
         connection::{StateReadExt as _, StateWriteExt as _},
-        ics02_validation::validate_penumbra_sdk_client_state,
+        ics02_validation::validate_shieldd_sdk_client_state,
         proof_verification, HostInterface, MsgHandler,
     },
     IBC_COMMITMENT_PREFIX,
@@ -31,9 +31,9 @@ impl MsgHandler for MsgConnectionOpenAck {
         // ConnectionOpenAck, we must have a prior connection to this chain in the INIT state.
         //
         // In order to verify a ConnectionOpenAck, we need to check that the counterparty chain has
-        // committed a _valid_ Penumbra consensus state, that the counterparty chain has committed
+        // committed a _valid_ Shieldd consensus state, that the counterparty chain has committed
         // the expected Connection to its state (in the TRYOPEN state) with the expected version,
-        // and that the counterparty has committed a correct Penumbra client state to its state.
+        // and that the counterparty has committed a correct Shieldd client state to its state.
         //
         // Here we are Chain A.
         // CHAINS:          (A, B)
@@ -44,7 +44,7 @@ impl MsgHandler for MsgConnectionOpenAck {
         consensus_height_is_correct::<&S, HI>(&state, self).await?;
 
         // verify that the client state is well formed
-        penumbra_sdk_client_state_is_well_formed::<&S, HI>(&state, self).await?;
+        shieldd_sdk_client_state_is_well_formed::<&S, HI>(&state, self).await?;
 
         // verify the previous connection that we're ACKing is in the correct state
         let connection = verify_previous_connection(&state, self).await?;
@@ -131,10 +131,10 @@ impl MsgHandler for MsgConnectionOpenAck {
         .context("couldn't verify client state")?;
 
         let expected_consensus = state
-            .get_penumbra_sdk_consensus_state(self.consensus_height_of_a_on_b)
+            .get_shieldd_sdk_consensus_state(self.consensus_height_of_a_on_b)
             .await?;
 
-        // 3. verify that the counterparty chain stored the correct consensus state of Penumbra at
+        // 3. verify that the counterparty chain stored the correct consensus state of Shieldd at
         //    the given consensus height
         let proof_consensus_state_of_a_on_b = self.proof_consensus_state_of_a_on_b.clone();
         proof_verification::verify_client_consensus_state(
@@ -204,13 +204,13 @@ async fn consensus_height_is_correct<S: StateRead, HI: HostInterface>(
     Ok(())
 }
 
-async fn penumbra_sdk_client_state_is_well_formed<S: StateRead, HI: HostInterface>(
+async fn shieldd_sdk_client_state_is_well_formed<S: StateRead, HI: HostInterface>(
     state: S,
     msg: &MsgConnectionOpenAck,
 ) -> anyhow::Result<()> {
     let height = HI::get_block_height(&state).await?;
     let chain_id = HI::get_chain_id(&state).await?;
-    validate_penumbra_sdk_client_state(msg.client_state_of_a_on_b.clone(), &chain_id, height)?;
+    validate_shieldd_sdk_client_state(msg.client_state_of_a_on_b.clone(), &chain_id, height)?;
 
     Ok(())
 }

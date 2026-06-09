@@ -1,8 +1,8 @@
 [package]
-name = "penumbra-sdk-tct"
+name = "shieldd-sdk-tct"
 authors = {workspace = true}
 repository = {workspace = true}
-description = "The tiered commitment tree for Penumbra"
+description = "The tiered commitment tree for Shieldd"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -14,7 +14,7 @@ r1cs = ["ark-r1cs-std", "ark-relations", "decaf377/r1cs", "poseidon377/r1cs"]
 parallel = ["ark-r1cs-std/parallel", "ark-ff/parallel", "decaf377/parallel", "poseidon377/parallel"]
 
 [dependencies]
-ark-ed-on-bls12-377 = "0.4"
+ark-ed-on-bls12-377 = { workspace = true }
 ark-ff = {workspace = true, default-features = false}
 ark-r1cs-std = {workspace = true, optional = true, default-features = false}
 ark-relations = {workspace = true, optional = true}
@@ -30,7 +30,7 @@ hex = {workspace = true}
 im = {workspace = true, features = ["serde"]}
 once_cell = {workspace = true}
 parking_lot = {workspace = true}
-penumbra-sdk-proto = {workspace = true, default-features = true}
+shieldd-sdk-proto = {workspace = true, default-features = true}
 poseidon377 = {workspace = true, features = ["r1cs"]}
 proptest = {workspace = true, optional = true}
 proptest-derive = {workspace = true, optional = true}

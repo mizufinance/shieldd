@@ -15,16 +15,16 @@ RUN cargo build --bin pd --release && \
     mkdir -p /out && \
     mv target/release/pd /out/pd
 
-# Install the penumbra daemon into the runtime image.
+# Install the shieldd daemon into the runtime image.
 
-# TODO(eliza): it would be nice to be able to run the Penumbra daemon in a
+# TODO(eliza): it would be nice to be able to run the Shieldd daemon in a
 # `scratch` image rather than Debian or Alpine. However, then we'd have to build
 # with a statically linked libc (read: musl), and musl's malloc exhibits
 # pathologically poor performance for Tokio applications...
 FROM debian:bullseye-slim as runtime
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
-WORKDIR /penumbra
+WORKDIR /shieldd
 COPY --from=build /out/pd /bin/pd
-ENV RUST_LOG=warn,pd=info,penumbra=info
+ENV RUST_LOG=warn,pd=info,shieldd=info
 CMD [ "/bin/pd" ]

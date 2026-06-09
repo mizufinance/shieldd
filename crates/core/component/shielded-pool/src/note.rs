@@ -6,30 +6,30 @@ use decaf377::Fq;
 use decaf377_fmd as fmd;
 use decaf377_ka as ka;
 use once_cell::sync::Lazy;
-use penumbra_sdk_keys::{
+use rand::{CryptoRng, Rng};
+use serde::{Deserialize, Serialize};
+use shieldd_sdk_keys::{
     keys::{Diversifier, FullViewingKey, IncomingViewingKey, OutgoingViewingKey},
     symmetric::{OutgoingCipherKey, OvkWrappedKey, PayloadKey, PayloadKind},
     Address, AddressView,
 };
-use penumbra_sdk_proto::penumbra::core::component::shielded_pool::v1 as pb;
-use rand::{CryptoRng, Rng};
-use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1 as pb;
 use thiserror;
 
 mod r1cs;
 pub use r1cs::NoteVar;
 
-pub use penumbra_sdk_tct::StateCommitment;
+pub use shieldd_sdk_tct::StateCommitment;
 
-use penumbra_sdk_asset::{asset, balance, Value, ValueView};
-use penumbra_sdk_num::Amount;
+use shieldd_sdk_asset::{asset, balance, Value, ValueView};
+use shieldd_sdk_num::Amount;
 
 use crate::{NotePayload, Rseed};
 
 pub const NOTE_LEN_BYTES: usize = 160;
 pub const NOTE_CIPHERTEXT_BYTES: usize = 176;
 
-/// A plaintext Penumbra note.
+/// A plaintext Shieldd note.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(into = "pb::Note", try_from = "pb::Note")]
 pub struct Note {
@@ -86,7 +86,7 @@ pub struct NoteCiphertext(pub [u8; NOTE_CIPHERTEXT_BYTES]);
 
 /// The domain separator used to generate note commitments.
 pub(crate) static NOTECOMMIT_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"penumbra.notecommit").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.notecommit").as_bytes())
 });
 
 #[derive(thiserror::Error, Debug)]
@@ -340,7 +340,7 @@ impl Note {
             .try_into()
             .map_err(|_| Error::DecryptionError)?;
 
-        // Ephemeral public key integrity check. See ZIP 212 or Penumbra issue #1688.
+        // Ephemeral public key integrity check. See ZIP 212 or Shieldd issue #1688.
         if note.ephemeral_public_key() != *epk {
             return Err(Error::DecryptionError);
         }
@@ -579,7 +579,7 @@ mod tests {
     use rand_core::OsRng;
 
     use super::*;
-    use penumbra_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+    use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 
     #[test]
     fn note_encryption_and_decryption() {
@@ -594,7 +594,7 @@ mod tests {
         let value = Value {
             amount: 10u64.into(),
             asset_id: asset::Cache::with_known_assets()
-                .get_unit("upenumbra")
+                .get_unit("ushieldd")
                 .unwrap()
                 .id(),
         };
@@ -630,7 +630,7 @@ mod tests {
         let value = Value {
             amount: 10u64.into(),
             asset_id: asset::Cache::with_known_assets()
-                .get_unit("upenumbra")
+                .get_unit("ushieldd")
                 .unwrap()
                 .id(),
         };
@@ -664,7 +664,7 @@ mod tests {
         let value = Value {
             amount: 10u64.into(),
             asset_id: asset::Cache::with_known_assets()
-                .get_unit("upenumbra")
+                .get_unit("ushieldd")
                 .unwrap()
                 .id(),
         };

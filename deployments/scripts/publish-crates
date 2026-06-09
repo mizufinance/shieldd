@@ -6,7 +6,7 @@
 #   2. env var CARGO_REGISTRY_TOKEN with sufficient rights
 #
 # The major contribution of this script is that it will munge the binary
-# proving keys from the `penumbra-sdk-proof-params` crate to be text-only
+# proving keys from the `shieldd-sdk-proof-params` crate to be text-only
 # Git LFS pointers, rather than the full binary files. We do this so that
 # publishing the `proof-params` crate to crates.io doesn't exceed the filesize
 # limit for crates (with binary data it'd be ~100MB).

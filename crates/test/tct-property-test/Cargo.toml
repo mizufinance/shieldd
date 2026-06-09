@@ -1,5 +1,5 @@
 [package]
-name = "penumbra-sdk-tct-property-test"
+name = "shieldd-sdk-tct-property-test"
 authors = {workspace = true}
 repository = {workspace = true}
 description = "Property testing for the TCT, as a library"
@@ -11,7 +11,7 @@ publish = false
 [dev-dependencies]
 anyhow = {workspace = true}
 futures = {workspace = true}
-penumbra-sdk-tct = {workspace = true, features = ["arbitrary"], default-features = true}
+shieldd-sdk-tct = {workspace = true, features = ["arbitrary"], default-features = true}
 proptest = {workspace = true}
 proptest-derive = {workspace = true}
 tokio = {workspace = true, features = ["full"]}

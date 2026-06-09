@@ -1,6 +1,6 @@
 # Distributed Key Generation
 
-A prerequisite for flow encryption in Penumbra is some distributed key
+A prerequisite for flow encryption in Shieldd is some distributed key
 generation algorithm. Our [threshold encryption](./threshold-encryption.md)
 scheme uses ElGamal and operates over the `decaf377` group, thus we must choose
 a DKG which operates over `decaf377` outputs a `decaf377` public key. 
@@ -105,7 +105,7 @@ to each counterparty, the round complexity of our DKG rises to 3 rounds.
 
 ### ABCI++ Implementation
 
-A prerequisite for implementing any DKG scheme in Penumbra is
+A prerequisite for implementing any DKG scheme in Shieldd is
 [ABCI++](https://github.com/tendermint/spec/blob/master/rfc/004-abci%2B%2B.md),
 the extension to Tendermint which adds additional hooks to the Tendermint state
 machine interface, most importantly vote extensions.

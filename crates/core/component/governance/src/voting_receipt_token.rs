@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-use penumbra_sdk_asset::asset;
+use shieldd_sdk_asset::asset;
 
 /// Voting receipt tokens represent proof of participation in a governance vote.
 ///
@@ -59,7 +59,7 @@ impl TryFrom<asset::Metadata> for VotingReceiptToken {
             .captures(base_string.as_ref())
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "base denom {} is not an unbonding token",
+                    "base denom {} is not a voting receipt token",
                     base_denom.to_string()
                 )
             })?;

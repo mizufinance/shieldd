@@ -1,16 +1,19 @@
 use anyhow::Context;
 use decaf377_rdsa::{Signature, SpendAuth};
 use futures::{FutureExt, TryStreamExt};
-use penumbra_sdk_governance::ValidatorVoteBody;
-use penumbra_sdk_proto::{
-    custody::v1::{AuthorizeValidatorDefinitionRequest, AuthorizeValidatorVoteRequest},
+use shieldd_sdk_governance::{ProposalSubmitBody, ValidatorVoteBody};
+use shieldd_sdk_proto::{
+    custody::v1::{
+        AuthorizeProposalSubmitRequest, AuthorizeValidatorDefinitionRequest,
+        AuthorizeValidatorVoteRequest,
+    },
     util::tendermint_proxy::v1::tendermint_proxy_service_client::TendermintProxyServiceClient,
     view::v1::broadcast_transaction_response::Status as BroadcastStatus,
     DomainType,
 };
-use penumbra_sdk_stake::validator::Validator;
-use penumbra_sdk_transaction::{txhash::TransactionId, Transaction, TransactionPlan};
-use penumbra_sdk_view::{ViewClient, ViewServer};
+use shieldd_sdk_transaction::{txhash::TransactionId, Transaction, TransactionPlan};
+use shieldd_sdk_validator::validator::Validator;
+use shieldd_sdk_view::{ViewClient, ViewServer};
 use std::{fs, future::Future};
 use tonic::transport::Channel;
 use tracing::instrument;
@@ -42,7 +45,7 @@ impl App {
             plan.num_proofs(),
         );
         let start = std::time::Instant::now();
-        let tx = penumbra_sdk_wallet::build_transaction(
+        let tx = shieldd_sdk_wallet::build_transaction(
             &self.config.full_viewing_key,
             self.view.as_mut().expect("view service initialized"),
             &mut self.custody,
@@ -97,6 +100,23 @@ impl App {
             .into_inner()
             .validator_vote_auth
             .ok_or_else(|| anyhow::anyhow!("missing validator vote auth"))?
+            .try_into()
+    }
+
+    pub async fn sign_proposal_submit(
+        &mut self,
+        proposal_submit: ProposalSubmitBody,
+    ) -> anyhow::Result<Signature<SpendAuth>> {
+        let request = AuthorizeProposalSubmitRequest {
+            proposal_submit: Some(proposal_submit.into()),
+            pre_authorizations: vec![],
+        };
+        self.governance_custody
+            .authorize_proposal_submit(request)
+            .await?
+            .into_inner()
+            .proposal_submit_auth
+            .ok_or_else(|| anyhow::anyhow!("missing proposal submit auth"))?
             .try_into()
     }
 

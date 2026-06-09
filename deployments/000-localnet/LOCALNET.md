@@ -1,4 +1,4 @@
-# Local 2-Validator Penumbra Network
+# Local 2-Validator Shieldd Network
 
 ## Quick Start
 
@@ -20,7 +20,7 @@ docker compose -f deployments/compose/docker-compose.yml up -d
 
 **Address:**
 ```
-penumbra19lf99grquvn8yufxswy9yasux5xhew2adjefmwdk7pnnd6za6ardtce0d9z7suzwz94cjclz6rwqqn5qeta4pn4j7y59k38za5yhmkt66tngw3txh90rm0vrhelx68lcsk9yqk
+shieldd19lf99grquvn8yufxswy9yasux5xhew2adjefmwdk7pnnd6za6ardtce0d9z7suzwz94cjclz6rwqqn5qeta4pn4j7y59k38za5yhmkt66tngw3txh90rm0vrhelx68lcdd0ejt
 ```
 
 **Mnemonic:**
@@ -32,7 +32,7 @@ decorate bright ozone fork gallery riot bus exhaust worth way bone indoor calm s
 
 | Token | Amount |
 |-------|--------|
-| penumbra | 1,000,000 |
+| shieldd | 1,000,000 |
 | gm | 20,000 |
 | gn | 20,000 |
 | test_usd | 500,000 |
@@ -48,7 +48,7 @@ decorate bright ozone fork gallery riot bus exhaust worth way bone indoor calm s
 
 | Parameter | Value |
 |-----------|-------|
-| Chain ID | penumbra-local-devnet |
+| Chain ID | shieldd-local-devnet |
 | Validators | 2 |
 | Epoch Duration | 100 blocks |
 | Unbonding Delay | 100 blocks |
@@ -124,9 +124,8 @@ deployments/
 ### 3. Validator Configuration
 
 - Add support for validator key generation with secure key management
-- Include validator funding stream configuration in JSON
+- Include validator metadata (logo, description, website) and key-rotation configuration in JSON
 - Add commission rate configuration
-- Support for validator metadata (logo, description, website)
 
 ### 4. Docker Compose Improvements
 
@@ -159,9 +158,9 @@ deployments/
 
 ### 8. Staking Token Customization
 
-The staking token (upenumbra) is hardcoded. To customize:
+The staking token (ushieldd) is hardcoded. To customize:
 
-1. Edit `crates/core/asset/src/lib.rs` - change `"upenumbra"` lookup
+1. Edit `crates/core/asset/src/lib.rs` - change `"ushieldd"` lookup
 2. Edit `crates/core/asset/src/asset/registry.rs` - add new asset
 3. Rebuild: `cargo build --release -p pd`
 

@@ -1,6 +1,6 @@
 # The `decaf377` group
 
-Penumbra, like many other zero-knowledge protocols, requires a cryptographic
+Shieldd, like many other zero-knowledge protocols, requires a cryptographic
 group that can be used inside of an arithmetic circuit.  This is accomplished by
 defining an "embedded" elliptic curve whose base field is the scalar field of
 the proving curve used by the proof system.
@@ -48,5 +48,5 @@ An implementation of `decaf377` can be found [here][impl].
 
 [why-ristretto]: https://ristretto.group/why_ristretto.html
 [Decaf]: https://www.shiftleft.org/papers/decaf/
-[impl]: https://github.com/penumbra-zone/decaf377
+[impl]: https://github.com/mizufinance/decaf377
 [Zexe]: https://eprint.iacr.org/2018/962
