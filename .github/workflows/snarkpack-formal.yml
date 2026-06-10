@@ -38,7 +38,7 @@ on:
       - 'scripts/snarkpack-formal.sh'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || 'sched' }}
   cancel-in-progress: true
 
 permissions:
@@ -48,10 +48,19 @@ jobs:
   formal:
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      # PR runs check out the PR head (single empty ref). Scheduled/dispatch runs
+      # only ever fire on the default branch, so explicitly exercise both main and
+      # dev by checking each out in a matrix leg.
+      matrix:
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
     env:
       SNARKPACK_FUZZ_TOOLCHAIN: nightly-2025-09-30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -107,7 +116,7 @@ jobs:
       - name: Install cargo-fuzz
         run: |
           rustup toolchain install "$SNARKPACK_FUZZ_TOOLCHAIN" --profile minimal
-          cargo install cargo-fuzz --locked
+          cargo +"$SNARKPACK_FUZZ_TOOLCHAIN" install cargo-fuzz --locked
 
       - name: Run SnarkPack fuzz smoke
         if: github.event_name == 'pull_request'

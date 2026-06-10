@@ -1,71 +1,45 @@
-![Shieldd logo](docs/images/shieldd-dark.svg#gh-dark-mode-only)
-![Shieldd logo](docs/images/shieldd-light-bw.svg#gh-light-mode-only)
+# Shieldd
 
-Shieldd is a fully shielded zone for the Cosmos ecosystem, allowing anyone to securely transact,
-stake, swap, or marketmake without broadcasting their personal information to the world.
+Shieldd is a lightweight, fully shielded transfer chain with privacy-preserving
+compliance for regulated assets. Transactions stay private by default; for
+regulated assets, the issuer can scan and audit activity involving their asset
+while everyone else sees nothing. Unregulated assets keep full privacy.
 
-## Getting involved
+> **Not production ready.** Shieldd is an active prototype.
 
-The primary communication hub is our [Discord]; click the link to join the
-discussion there.
+## Scope
 
-The guide to using the Shieldd software and interacting with the testnets is in `docs/guide`.
+The chain does one thing: shielded transfers with compliance visibility for
+regulated assets. Heavier application logic (DEX, staking rewards, community
+pool) lives on BankD, which connects over IBC.
 
-The evolving protocol spec source is in `docs/protocol`.
+Core actions are `Transfer`, `Consolidate`, and `Split`, alongside IBC,
+validator, governance, and compliance-registration actions. Compliance data is
+attached only to transfers.
 
-API documentation can be generated locally with `cargo doc --workspace --no-deps`.
+See [docs/compliance/chain-scope.md](docs/compliance/chain-scope.md) for the full
+action surface.
 
-The (evolving) protobuf documentation is rendered at [buf.build/mizufinance/shieldd][protobuf].
+## How compliance works
 
-To participate in our test network, use Shieldd command line client `pcli`.
+When a regulated asset moves, the transfer carries an encrypted compliance
+bundle that only the asset's issuer can open. Access is tiered, so an issuer can
+be granted just what they need:
 
-To join the test network as a full node, follow setup instructions for Shieldd node implementation `pd`.
+- **detection** — which asset, and whether the transfer is flagged
+- **core** — sender address and amount
+- **extension** — counterparty
 
-## Workspace layout
+Issuers hold a static detection key and can always scan for and read flagged
+transfers on their own. Reading the remaining tiers of an unflagged transfer
+requires threshold approval through Orbis (MPC), gated by on-chain policy — no
+single party can decrypt unilaterally.
 
-The root Cargo workspace is production-oriented.
+For the end-to-end walkthrough and details:
 
-- shipped crates, including the recursive verification / SnarkPack integration, build from the repo root
-- non-production runtime experiments, stage/TPS labs, and prototype tooling live under [`poc/`](/Users/antoinecyr/Documents/Source/shieldd/poc/README.md) as a separate nested workspace
-
-Build the production workspace from the repo root:
-
-```bash
-cargo build --workspace
-```
-
-Build the POC workspace separately:
-
-```bash
-cargo build --workspace --manifest-path poc/Cargo.toml
-```
-
-## Current work and roadmap
-
-For a high-level view of current work-in-progress and future items, check out our:
-
-- [Tracking issues][Tracking]
-- [Backlog][Backlog]
-
-[Tracking]: https://github.com/orgs/mizufinance/projects/23/views/4
-[Backlog]: https://github.com/orgs/mizufinance/projects/23/views/1
-[Discord]: https://discord.gg/hKvkrqa3zC
-[mdBook]: https://github.com/rust-lang/mdBook
-[protobuf]: https://buf.build/mizufinance/shieldd
-[tm-install]: https://github.com/tendermint/tendermint/blob/master/docs/introduction/install.md#from-source
+- [docs/compliance/flow.md](docs/compliance/flow.md) — walkthrough from issuer setup to audit
+- [docs/compliance/reference.md](docs/compliance/reference.md) — wire formats, registries, and proof details
 
 
-## Security
-If you believe you've found a security-related issue with Shieldd,
-please disclose responsibly by contacting the Shieldd Labs team at
-security@shielddlabs.xyz.
 
-## License
-
-By contributing to shieldd you agree that your contributions will be licensed
-under the terms of both the [LICENSE-Apache-2.0](LICENSE-Apache-2.0) and the
-[LICENSE-MIT](LICENSE-MIT) files in the root of this source tree.
-
-If you're using shieldd you are free to choose one of the provided licenses:
-
-`SPDX-License-Identifier: MIT OR Apache-2.0`
+_Building the future of institutional finance - sovereign, private, and compliant by design._
