@@ -3,8 +3,7 @@ compliance for regulated assets. Transactions stay private by default; for
 regulated assets, the issuer can scan and audit activity involving their asset
 while everyone else sees nothing. Unregulated assets keep full privacy.
 
-> **Not production ready.** Shieldd is an active prototype. Interfaces, on-chain
-> formats, and the consensus/validator model are still changing.
+> **Not production ready.** Shieldd is an active prototype.
 
 ## Scope
 
@@ -26,8 +25,8 @@ bundle that only the asset's issuer can open. Access is tiered, so an issuer can
 be granted just what they need:
 
 - **detection** — which asset, and whether the transfer is flagged
-- **core** — the amount
-- **extension** — the counterparty
+- **core** — sender address and amount
+- **extension** — counterparty
 
 Issuers hold a static detection key and can always scan for and read flagged
 transfers on their own. Reading the remaining tiers of an unflagged transfer
