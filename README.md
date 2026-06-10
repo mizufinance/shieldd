@@ -1,74 +1,43 @@
 Shieldd is a lightweight, fully shielded transfer chain with privacy-preserving
-compliance for regulated assets. Issuers can scan and audit transactions
-involving their assets; unregulated assets retain full vanilla privacy. Built on
-threshold MPC (Orbis), tiered encryption, in-circuit DLEQ proofs, and
-zero-knowledge membership proofs.
+compliance for regulated assets. Transactions stay private by default; for
+regulated assets, the issuer can scan and audit activity involving their asset
+while everyone else sees nothing. Unregulated assets keep full privacy.
+
+> **Not production ready.** Shieldd is an active prototype. Interfaces, on-chain
+> formats, and the consensus/validator model are still changing.
 
 ## Scope
 
-This chain's sole purpose is a shielded transfer layer with compliance
-visibility. Heavy application logic (DEX, staking rewards, community pool) lives
-on BankD; this chain connects via IBC.
+The chain does one thing: shielded transfers with compliance visibility for
+regulated assets. Heavier application logic (DEX, staking rewards, community
+pool) lives on BankD, which connects over IBC.
 
-**Supported:** `Transfer`, `Consolidate`, `Split`, `IbcRelay`,
-`ShieldedIcs20Withdrawal`, `ValidatorDefinition`, `ProposalSubmit`,
-`ValidatorVote`, `ComplianceRegisterAsset`, `ComplianceRegisterUser`,
-`AggregateBundle`.
+Core actions are `Transfer`, `Consolidate`, and `Split`, alongside IBC,
+validator, governance, and compliance-registration actions. Compliance data is
+attached only to transfers.
 
-**Removed:** legacy `Spend` / `Output` (replaced by a single `Transfer`
-action), DEX, delegation, community pool, delegator votes, proposal withdraw /
-deposit-claim.
+See [docs/compliance/chain-scope.md](docs/compliance/chain-scope.md) for the full
+action surface.
 
-**Compliance binding:** carried on `Transfer` only. `Split` and `Consolidate`
-carry no compliance ciphertext.
+## How compliance works
 
-See [docs/compliance/chain-scope.md](docs/compliance/chain-scope.md).
+When a regulated asset moves, the transfer carries an encrypted compliance
+bundle that only the asset's issuer can open. Access is tiered, so an issuer can
+be granted just what they need:
 
-## Compliance
+- **detection** — which asset, and whether the transfer is flagged
+- **core** — the amount
+- **extension** — the counterparty
 
-A unified compliance ciphertext rides the receiver leg of each regulated
-`Transfer`, bundling per-tier ElGamal envelopes plus a detection tag encrypted
-to the issuer's static `DK`. Access is tiered:
+Issuers hold a static detection key and can always scan for and read flagged
+transfers on their own. Reading the remaining tiers of an unflagged transfer
+requires threshold approval through Orbis (MPC), gated by on-chain policy — no
+single party can decrypt unilaterally.
 
-- **detection** → asset id + flag + salt (issuer decrypts directly, no Orbis)
-- **core** → amount
-- **extension** → counterparty address (independent sender / receiver views)
+For the end-to-end walkthrough and details:
 
-The issuer's ring key is produced by DKG with Orbis (`sk_ring` stays
-threshold-shared); the per-`(address, asset)` access key `ACK = d × ring_pk` is
-never stored on-chain. Unflagged tiers are recovered via Orbis PRE, gated by
-SourceHub ACP grants; notes at or above threshold flag and encrypt every tier
-directly to `DK` so the issuer needs no Orbis to audit them.
-
-Two on-chain registries, both emitting per-block historical anchors so in-flight
-proofs survive new registrations:
-
-- **Asset Registry (IMT):** sorted linked list; membership and gap proofs share
-  one circuit shape, so validators cannot distinguish them. Leaf carries
-  `AssetPolicy {dk_pub, ring_pk, threshold, allowed_channels, policy_id}`.
-- **User Registry (QuadTree):** arity-4, depth-16, Poseidon377. Leaf commits
-  `(address, asset_id)`.
-
-End-to-end walkthrough (DKG → registration → transfer → scan → PRE) and wire
-formats:
-
-- [docs/compliance/flow.md](docs/compliance/flow.md) — end-to-end walkthrough
-- [docs/compliance/reference.md](docs/compliance/reference.md) — wire formats, registry specs, DLEQ math
-- [docs/compliance/testing.md](docs/compliance/testing.md) — test commands and CI parity
-
-## IBC
-
-`IbcRelay` and `ShieldedIcs20Withdrawal` are supported. The per-asset channel
-whitelist is enforced first-hop only at withdrawal time and is immutable after
-registration (empty = IBC blocked). Outbound withdrawals embed a reduced
-single-tier compliance ciphertext in the ICS-20 memo, decryptable directly by
-the issuer's `DK`.
-
-## Validators & aggregation
-
-Permissionless `ValidatorDefinition`, no staking rewards. A validator-side
-`AggregateBundle` action carries proofs aggregated across the block via SnarkPack
-(internal, not user-facing).
+- [docs/compliance/flow.md](docs/compliance/flow.md) — walkthrough from issuer setup to audit
+- [docs/compliance/reference.md](docs/compliance/reference.md) — wire formats, registries, and proof details
 
 ## Workspace layout
 
@@ -88,22 +57,9 @@ API docs: `cargo doc --workspace --no-deps`. The protobuf docs render at
 To transact, use the command line client `pcli`. To join a test network as a
 full node, run the node implementation `pd`.
 
-## To do (before production)
-
-- **Real POA** — permissioned validator set; current `ValidatorDefinition` is a permissionless placeholder with no rewards.
-- **New protocol** — rebuild mempool, sequencing, block building, execution, and consensus around this chain's narrower action surface and aggregation model.
-- **Smarter note management** — planner-side note selection / change strategy beyond today's up-to-2-in / up-to-2-out `Transfer` shape; auto-integrate `Split` / `Consolidate`.
-- **Governance / ACP integration** — wire on-chain governance to SourceHub ACP grants so unflagged-tier PRE access is gated by real proposals.
-
 ## Getting involved
 
 The primary communication hub is our [Discord]; click the link to join.
-
-## Security
-
-If you believe you've found a security-related issue with Shieldd, please
-disclose responsibly by contacting the Shieldd Labs team at
-security@shielddlabs.xyz.
 
 ## License
 

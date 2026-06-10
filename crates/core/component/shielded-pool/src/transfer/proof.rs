@@ -377,6 +377,56 @@ mod tests {
     }
 
     #[test]
+    fn repro_unregulated_nonbase_test_usd() {
+        let _guard = TRANSFER_PROOF_TEST_MUTEX
+            .lock()
+            .expect("lock transfer test mutex");
+        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
+            return;
+        }
+        // test_usd real asset id (base denom wtest_usd).
+        let test_usd = shieldd_sdk_asset::asset::REGISTRY.parse_unit("test_usd").id();
+        eprintln!("test_usd id = {}", test_usd.0);
+        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
+                &mut rand::thread_rng(),
+                test_usd,
+                false,
+                false,
+            );
+        TransferProof::prove(public.clone(), private)
+            .expect("prove unregulated non-base test_usd transfer")
+            .verify(&public)
+            .expect("verify unregulated non-base test_usd transfer");
+    }
+
+    #[test]
+    fn repro_unregulated_nonbase_test_usd_populated_tree() {
+        let _guard = TRANSFER_PROOF_TEST_MUTEX
+            .lock()
+            .expect("lock transfer test mutex");
+        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
+            return;
+        }
+        let test_usd = shieldd_sdk_asset::asset::REGISTRY.parse_unit("test_usd").id();
+        // Predecessor (low) leaf is a regulated asset just below test_usd, mirroring
+        // the live registry gap; threshold = 5e20 like regulated_usd.
+        let low_asset_id = test_usd.0 - decaf377::Fq::from(1u64);
+        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
+                &mut rand::thread_rng(),
+                test_usd,
+                low_asset_id,
+                500_000_000_000_000_000_000u128,
+                false,
+            );
+        TransferProof::prove(public.clone(), private)
+            .expect("prove unregulated non-base test_usd transfer (populated tree)")
+            .verify(&public)
+            .expect("verify unregulated non-base test_usd transfer (populated tree)");
+    }
+
+    #[test]
     fn transfer_hidden_arity_1x1_roundtrip_sender_to_other() {
         let _guard = TRANSFER_PROOF_TEST_MUTEX
             .lock()

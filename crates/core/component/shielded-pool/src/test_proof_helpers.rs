@@ -78,6 +78,40 @@ pub mod proof_test_helpers {
         (anchor, indexed_leaf, merkle_path, position)
     }
 
+    /// Non-membership IMT proof against a POPULATED tree, where the predecessor
+    /// (low) leaf is a real regulated asset — mirroring the live registry where an
+    /// unregulated asset's gap predecessor is a registered asset's leaf, not the
+    /// empty-tree sentinel. Used to reproduce the orbis live-transfer constraint.
+    pub fn create_imt_non_membership_proof_populated(
+        asset_id: Fq,
+        low_asset_id: Fq,
+        low_ring_pk: decaf377::Element,
+        low_dk_pub: decaf377::Element,
+        low_threshold: u128,
+    ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
+        let mut tree = IndexedMerkleTree::new();
+        let policy = shieldd_sdk_compliance::AssetPolicy::new(
+            low_dk_pub,
+            low_threshold,
+            shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
+            vec![],
+            None,
+            "low-ring-id".to_string(),
+            low_ring_pk,
+            "low-policy-id".to_string(),
+            "read".to_string(),
+            "document".to_string(),
+        );
+        tree.insert(low_asset_id, &policy)
+            .expect("insert populated low asset");
+        let (low_pos, low_leaf, auth_path) = tree
+            .non_membership_proof(asset_id)
+            .expect("populated non-membership proof");
+        let merkle_path = MerklePath::from_auth_path(auth_path);
+        let anchor = tct::StateCommitment(tree.root().0);
+        (anchor, low_leaf, merkle_path, low_pos)
+    }
+
     /// Circuit type for unified testing
     #[derive(Debug, Clone, Copy)]
     pub enum CircuitType {
@@ -403,6 +437,51 @@ pub mod proof_test_helpers {
         use shieldd_sdk_num::Amount;
 
         let base = generate_base_test_data_for_asset(rng, asset_id, 100, is_regulated);
+        build_transfer_hidden_arity_from_base(rng, base, asset_id, is_regulated, send_to_self)
+    }
+
+    /// Reproduces the orbis live unregulated non-base transfer: identical to
+    /// [`build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng`] for an
+    /// unregulated asset, except the IMT non-membership predecessor is a real
+    /// regulated asset (populated tree) rather than the empty-tree sentinel.
+    pub(crate) fn build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
+        rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
+        asset_id: shieldd_sdk_asset::asset::Id,
+        low_asset_id: Fq,
+        low_threshold: u128,
+        send_to_self: bool,
+    ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
+        let mut base = generate_base_test_data_for_asset(rng, asset_id, 100, false);
+        // Real regulated predecessor leaf keys (distinct from the unregulated sink).
+        let low_ring_sk = Fr::rand(&mut *rng);
+        let low_ring_pk = decaf377::Element::GENERATOR * low_ring_sk;
+        let low_dk_pub = decaf377::Element::GENERATOR;
+        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
+            create_imt_non_membership_proof_populated(
+                asset_id.0,
+                low_asset_id,
+                low_ring_pk,
+                low_dk_pub,
+                low_threshold,
+            );
+        base.asset_anchor = asset_anchor;
+        base.asset_indexed_leaf = asset_indexed_leaf;
+        base.asset_path = asset_path;
+        base.asset_position = asset_position;
+        build_transfer_hidden_arity_from_base(rng, base, asset_id, false, send_to_self)
+    }
+
+    fn build_transfer_hidden_arity_from_base(
+        rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
+        base: BaseTestData,
+        asset_id: shieldd_sdk_asset::asset::Id,
+        is_regulated: bool,
+        send_to_self: bool,
+    ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
+        use crate::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
+        use shieldd_sdk_asset::Value;
+        use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
+        use shieldd_sdk_num::Amount;
 
         let recipient_address = if send_to_self {
             base.address.clone()
