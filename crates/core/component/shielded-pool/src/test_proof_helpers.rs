@@ -431,11 +431,6 @@ pub mod proof_test_helpers {
         is_regulated: bool,
         send_to_self: bool,
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
-        use crate::{ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
-        use shieldd_sdk_asset::Value;
-        use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
-        use shieldd_sdk_num::Amount;
-
         let base = generate_base_test_data_for_asset(rng, asset_id, 100, is_regulated);
         build_transfer_hidden_arity_from_base(rng, base, asset_id, is_regulated, send_to_self)
     }
