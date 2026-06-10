@@ -385,7 +385,9 @@ mod tests {
             return;
         }
         // test_usd real asset id (base denom wtest_usd).
-        let test_usd = shieldd_sdk_asset::asset::REGISTRY.parse_unit("test_usd").id();
+        let test_usd = shieldd_sdk_asset::asset::REGISTRY
+            .parse_unit("test_usd")
+            .id();
         eprintln!("test_usd id = {}", test_usd.0);
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
@@ -408,7 +410,9 @@ mod tests {
         if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
             return;
         }
-        let test_usd = shieldd_sdk_asset::asset::REGISTRY.parse_unit("test_usd").id();
+        let test_usd = shieldd_sdk_asset::asset::REGISTRY
+            .parse_unit("test_usd")
+            .id();
         // Predecessor (low) leaf is a regulated asset just below test_usd, mirroring
         // the live registry gap; threshold = 5e20 like regulated_usd.
         let low_asset_id = test_usd.0 - decaf377::Fq::from(1u64);
