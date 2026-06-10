@@ -1,3 +1,5 @@
+# Shieldd
+
 Shieldd is a lightweight, fully shielded transfer chain with privacy-preserving
 compliance for regulated assets. Transactions stay private by default; for
 regulated assets, the issuer can scan and audit activity involving their asset
@@ -40,15 +42,4 @@ For the end-to-end walkthrough and details:
 
 
 
-## License
-
-By contributing to shieldd you agree that your contributions will be licensed
-under the terms of both the [LICENSE-APACHE](LICENSE-APACHE) and the
-[LICENSE-MIT](LICENSE-MIT) files in the root of this source tree.
-
-If you're using shieldd you are free to choose one of the provided licenses:
-
-`SPDX-License-Identifier: MIT OR Apache-2.0`
-
-[Discord]: https://discord.gg/hKvkrqa3zC
-[protobuf]: https://buf.build/mizufinance/shieldd
+_Building the future of institutional finance - sovereign, private, and compliant by design._
