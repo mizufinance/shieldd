@@ -697,10 +697,14 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		expectedSalt frontend.Variable,
 	) (frontend.Variable, error) {
 		api.AssertIsEqual(proof.Statement.SubjectDerivation, expectedSubjectDerivation)
-		api.AssertIsEqual(proof.Statement.RingIDHash, shared.indexedLeaf.RingIDHash)
-		api.AssertIsEqual(proof.Statement.PolicyIDHash, shared.indexedLeaf.PolicyIDHash)
-		api.AssertIsEqual(proof.Statement.ResourceHash, shared.indexedLeaf.ResourceHash)
-		api.AssertIsEqual(proof.Statement.PermissionHash, shared.indexedLeaf.PermissionHash)
+		// Policy-hash binding applies only to regulated transfers. For unregulated
+		// transfers the asset is absent from the registry and `shared.indexedLeaf`
+		// is an unrelated non-membership gap predecessor, so binding the synthetic
+		// proof statement to its policy hashes is both wrong and a privacy leak.
+		AssertEqualIf(api, proof.Statement.RingIDHash, shared.indexedLeaf.RingIDHash, c.IsRegulated)
+		AssertEqualIf(api, proof.Statement.PolicyIDHash, shared.indexedLeaf.PolicyIDHash, c.IsRegulated)
+		AssertEqualIf(api, proof.Statement.ResourceHash, shared.indexedLeaf.ResourceHash, c.IsRegulated)
+		AssertEqualIf(api, proof.Statement.PermissionHash, shared.indexedLeaf.PermissionHash, c.IsRegulated)
 		api.AssertIsEqual(proof.Statement.Tier, expectedTier)
 		api.AssertIsEqual(proof.Statement.TargetTimestamp, c.TargetTimestamp)
 		api.AssertIsEqual(proof.Statement.Salt, expectedSalt)
