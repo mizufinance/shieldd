@@ -56,9 +56,6 @@ API docs: `cargo doc --workspace --no-deps`. The protobuf docs render at
 To transact, use the command line client `pcli`. To join a test network as a
 full node, run the node implementation `pd`.
 
-## Getting involved
-
-The primary communication hub is our [Discord]; click the link to join.
 
 ## License
 
