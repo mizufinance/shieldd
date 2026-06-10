@@ -38,23 +38,6 @@ For the end-to-end walkthrough and details:
 - [docs/compliance/flow.md](docs/compliance/flow.md) — walkthrough from issuer setup to audit
 - [docs/compliance/reference.md](docs/compliance/reference.md) — wire formats, registries, and proof details
 
-## Workspace layout
-
-The root Cargo workspace is production-oriented.
-
-- shipped crates, including the recursive verification / SnarkPack integration, build from the repo root
-- non-production runtime experiments, stage/TPS labs, and prototype tooling live under [`poc/`](poc/README.md) as a separate nested workspace
-
-```bash
-cargo build --workspace                                  # production workspace
-cargo build --workspace --manifest-path poc/Cargo.toml   # POC workspace
-```
-
-API docs: `cargo doc --workspace --no-deps`. The protobuf docs render at
-[buf.build/mizufinance/shieldd][protobuf].
-
-To transact, use the command line client `pcli`. To join a test network as a
-full node, run the node implementation `pd`.
 
 
 ## License
