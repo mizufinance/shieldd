@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 func runExportPoseidonACL2(args []string) error {

@@ -5,9 +5,9 @@ import (
 	"math/big"
 
 	decafgnark "github.com/mizufinance/decaf377-go/gnark"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/circuits"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/compliance"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 func bigIntToLE32(value *big.Int) ([32]byte, error) {

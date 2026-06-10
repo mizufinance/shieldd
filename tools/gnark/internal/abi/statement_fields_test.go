@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/mizufinance/penumbra/tools/gnark/internal/testfixtures"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
 func assertStatementFieldsMatch(t *testing.T, label string, reconstructed, rust [][32]byte) {

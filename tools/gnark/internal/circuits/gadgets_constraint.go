@@ -13,8 +13,8 @@ package circuits
 
 import (
 	"github.com/consensys/gnark/frontend"
-	. "github.com/mizufinance/penumbra/tools/gnark/internal/compliance"
-	. "github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	. "github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
+	. "github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 // PoseidonHash2Gadget isolates the two-input Poseidon377 permutation: given a

@@ -15,8 +15,8 @@ import (
 	cs "github.com/consensys/gnark/constraint/bls12-377"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/artifacts"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/artifacts"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 func TestAxeExportFidelityPoseidon2(t *testing.T) {

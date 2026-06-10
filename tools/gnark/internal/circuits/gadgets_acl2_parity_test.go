@@ -19,8 +19,8 @@ import (
 
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/artifacts"
-	"github.com/mizufinance/penumbra/tools/gnark/internal/primitives"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/artifacts"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 func TestBoolSelectAcl2ModelParity(t *testing.T) {
