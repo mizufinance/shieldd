@@ -8,6 +8,12 @@ that carry most soundness risk:
 - [Constraint-system assurance strategy](constraint-system-assurance.md)
 - [Soundness handoff ledger](soundness-handoff.md)
 
+Assessment and forward roadmap:
+
+- [Formal verification assessment — 2026](assessment-2026.md)
+- [Full protocol soundness roadmap](full-protocol-soundness-roadmap.md)
+- [Circuit FV first benchmark (Lean-first)](circuit-fv-benchmark.md)
+
 Machine-checked fixtures live next to the code:
 
 - `crates/core/component/compliance/formal/`

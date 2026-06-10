@@ -84,10 +84,15 @@ The whole-circuit property rows remain gated on whole-circuit artifacts.
    - Add public-input mutation tests.
    - Keep Picus/under-constraint checks on every decomposed gadget.
 
-9. **Keep Lean as corroboration for now**
-   - Use gnark→Lean extraction where it works.
-   - Do not make Lean a release gate until Poseidon and comparator extraction are
-     stable.
+9. **Lean drives the first whole-circuit benchmark** (superseded 2026-06-10)
+   - Earlier stance was "Lean as corroboration only, do not gate." Revised: ACL2
+     hit a composition wall (quad-path depth-2 control-stack overflow), so Lean
+     now leads the first attempt at full single-circuit coverage, on
+     consolidate2x1, via `proven-zk`. See
+     [circuit-fv-benchmark.md](circuit-fv-benchmark.md).
+   - ACL2/Axe remains the current `proved` gadget spine; the promotion standard
+     (stamped whole-circuit artifact) is unchanged.
+   - First blocker: de-opaque Poseidon377 in the Lean spec.
    - Treat Lean/R1CS disagreement as a finding.
 
 10. **Defer 248-bit asset IDs to an RFC**
