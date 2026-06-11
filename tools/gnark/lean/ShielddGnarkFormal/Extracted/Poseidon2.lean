@@ -12,9 +12,7 @@ variable [Fact (Nat.Prime Order)]
 abbrev F := ZMod Order
 abbrev Gates := GatesGnark9 Order
 
-
-
-def circuit (Domain: F) (In0: F) (In1: F) (Out: F): Prop :=
+def poseidonPerm2 (Domain: F) (In0: F) (In1: F) (k: F -> Prop): Prop :=
     ∃gate_0, gate_0 = Gates.add Domain (308026635595114235070436728341841505234226384644787941764356225291780075012:F) ∧
     ∃gate_1, gate_1 = Gates.add In0 (686850750308311448868354907988153221833589417264043199872750834851275630399:F) ∧
     ∃gate_2, gate_2 = Gates.add In1 (5458865526113744175375673481036999502881423789202235030915223710930508573500:F) ∧
@@ -992,7 +990,11 @@ def circuit (Domain: F) (In0: F) (In1: F) (Out: F): Prop :=
     ∃gate_974, gate_974 = Gates.add gate_972 gate_973 ∧
     ∃gate_975, gate_975 = Gates.mul (7238110070938603220784707090384182741179342287274911852515914390786350776321:F) gate_961 ∧
     ∃_ignored_, _ignored_ = Gates.add gate_974 gate_975 ∧
-    Gates.eq gate_971 Out ∧
+    k gate_971
+
+def circuit (Domain: F) (In0: F) (In1: F) (Out: F): Prop :=
+    poseidonPerm2 Domain In0 In1 fun gate_0 =>
+    Gates.eq gate_0 Out ∧
     True
 
 end Shieldd.GnarkFormal.Extracted.Poseidon2

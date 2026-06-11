@@ -12,13 +12,11 @@ variable [Fact (Nat.Prime Order)]
 abbrev F := ZMod Order
 abbrev Gates := GatesGnark9 Order
 
-
-
-def circuit (Nk: F) (StateCommitment: F) (Position: F) (Nullifier: F): Prop :=
-    ∃gate_0, gate_0 = Gates.add (8414456998312168765536290609671763166003140083093291047798055894678807643791:F) (507014295002340130094051641853152875478157627773318139164018329180924405874:F) ∧
-    ∃gate_1, gate_1 = Gates.add Nk (7491635671712014457226444359115925142756691872583683345054285850544197741427:F) ∧
-    ∃gate_2, gate_2 = Gates.add StateCommitment (6428238367987262728380227088231207564575448754570094797343562439968130973414:F) ∧
-    ∃gate_3, gate_3 = Gates.add Position (417784945642189241683731513330527942532284498692605186769747085266175822763:F) ∧
+def poseidonPerm3 (Domain: F) (In0: F) (In1: F) (In2: F) (k: F -> Prop): Prop :=
+    ∃gate_0, gate_0 = Gates.add Domain (507014295002340130094051641853152875478157627773318139164018329180924405874:F) ∧
+    ∃gate_1, gate_1 = Gates.add In0 (7491635671712014457226444359115925142756691872583683345054285850544197741427:F) ∧
+    ∃gate_2, gate_2 = Gates.add In1 (6428238367987262728380227088231207564575448754570094797343562439968130973414:F) ∧
+    ∃gate_3, gate_3 = Gates.add In2 (417784945642189241683731513330527942532284498692605186769747085266175822763:F) ∧
     ∃gate_4, gate_4 = Gates.mul gate_0 gate_0 ∧
     ∃gate_5, gate_5 = Gates.mul gate_4 gate_4 ∧
     ∃gate_6, gate_6 = Gates.mul gate_5 gate_5 ∧
@@ -1578,7 +1576,11 @@ def circuit (Nk: F) (StateCommitment: F) (Position: F) (Nullifier: F): Prop :=
     ∃gate_1560, gate_1560 = Gates.add gate_1558 gate_1559 ∧
     ∃gate_1561, gate_1561 = Gates.mul (7600015574485533381823942444903391878238309401638657445141710110325668315137:F) gate_1534 ∧
     ∃_ignored_, _ignored_ = Gates.add gate_1560 gate_1561 ∧
-    Gates.eq gate_1548 Nullifier ∧
+    k gate_1548
+
+def circuit (Nk: F) (StateCommitment: F) (Position: F) (Nullifier: F): Prop :=
+    poseidonPerm3 (8414456998312168765536290609671763166003140083093291047798055894678807643791:F) Nk StateCommitment Position fun gate_0 =>
+    Gates.eq gate_0 Nullifier ∧
     True
 
 end Shieldd.GnarkFormal.Extracted.Nullifier

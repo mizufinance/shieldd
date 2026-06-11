@@ -12,9 +12,7 @@ variable [Fact (Nat.Prime Order)]
 abbrev F := ZMod Order
 abbrev Gates := GatesGnark9 Order
 
-
-
-def circuit (Domain: F) (In0: F) (In1: F) (In2: F) (In3: F) (Out: F): Prop :=
+def poseidonPerm4 (Domain: F) (In0: F) (In1: F) (In2: F) (In3: F) (k: F -> Prop): Prop :=
     ∃gate_0, gate_0 = Gates.add Domain (3431064144647154854906922246941506182222173870772679525880648837636528462927:F) ∧
     ∃gate_1, gate_1 = Gates.add In0 (5974593340237813855065980531800418392229182384079544474645411722799919145826:F) ∧
     ∃gate_2, gate_2 = Gates.add In1 (8348426486881635683182335045339260090794248341687902711787330562710527330030:F) ∧
@@ -2320,7 +2318,11 @@ def circuit (Domain: F) (In0: F) (In1: F) (In2: F) (In3: F) (Out: F): Prop :=
     ∃gate_2302, gate_2302 = Gates.add gate_2300 gate_2301 ∧
     ∃gate_2303, gate_2303 = Gates.mul (7794887768703111160845069174259889105885445540142212764247907805462223912961:F) gate_2259 ∧
     ∃_ignored_, _ignored_ = Gates.add gate_2302 gate_2303 ∧
-    Gates.eq gate_2277 Out ∧
+    k gate_2277
+
+def circuit (Domain: F) (In0: F) (In1: F) (In2: F) (In3: F) (Out: F): Prop :=
+    poseidonPerm4 Domain In0 In1 In2 In3 fun gate_0 =>
+    Gates.eq gate_0 Out ∧
     True
 
 end Shieldd.GnarkFormal.Extracted.PoseidonHash4
