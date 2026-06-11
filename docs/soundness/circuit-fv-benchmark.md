@@ -128,14 +128,67 @@ gadget structuring used for `quadPathRound` to the Poseidon rounds (extract
 extracted term that pattern needs. M4 is therefore a port of an existing
 technique onto the concrete M1 spec, not new research.
 
+## Progress — M3/M4 (done)
+
+**M3 — quad-path circuit proved sound against an abstract recover spec.**
+[QuadPathSpec.lean](../../tools/gnark/lean/ShielddGnarkFormal/QuadPathSpec.lean)
+bridges the extracted depth-2 `QuadPath2.circuit` to a quaternary recover spec
+(proven-zk's `Merkle.recover` at arity 4, per-node hash `H4` left abstract):
+
+- `quadPathRound_sound` — one extracted layer forces `k (recoverStep …)`,
+  discharged structurally from the `Gates.select` value equations alone (the
+  `is_bool` flags are not needed for forward soundness).
+- `circuit_sound` — any satisfying `QuadPath2.circuit` assignment forces
+  `Root = recover2` of the leaf along the position bits, composing the round
+  lemma over both layers and pinning the root with the final `Gates.eq`.
+
+The hash is abstract so the path composition is proved independently of the
+Poseidon bridge; M4 supplies the concrete `H4` and discharges `Perm4Computes`.
+
+**M4 — extracted Poseidon (rate-2) proved to compute the de-opaqued M1 spec.**
+The flat-inlining wall is resolved exactly as predicted. First the extraction was
+round-structured: each Poseidon round is now an `abstractor.Call1` gadget
+(`poseidonFullRound` / `poseidonPartialRound`, returning the state vector),
+mirroring the `quadPathRound` structuring and Reilabs' `fullRound`/`halfRound`
+demo. `poseidonPerm2` dropped from a ~1000-line flat chain to a 39-round chain;
+the constraint system is byte-identical (`TestAxeExportFidelityPoseidon2/Hash4`
+and the hash parity tests pass).
+[Poseidon2Bridge.lean](../../tools/gnark/lean/ShielddGnarkFormal/Poseidon2Bridge.lean)
+then ports the `_uncps` technique onto that term. Because each extracted round is
+a flat `∃g,g=e∧…` chain with **no** side-conditions (unlike `Gates.select`), every
+round is an honest `↔`:
+
+- `fullRound_3_3_uncps` / `partialRound_3_3_uncps` — `round st cs k ↔ k (spec st cs)`,
+  closed by `simp [Gates, exists_eq_left]`. This is the sharing-preserving,
+  per-round structural proof the flat attempt could not reach: the simp keeps each
+  gate as a local equation and rewrites the continuation, so there is no
+  exponential inline blowup.
+- `perm2_uncps` — `poseidonPerm2 D a b k ↔ k (permSpec2 D a b)`, chaining the 39
+  round iffs to collapse the whole permutation to a closed computable spec. No
+  gate-level reasoning remains for downstream proofs.
+- `#guard` — `permSpec2` on the rate-2 ground-truth vector equals the M1 `hash2`
+  value, computational evidence that `permSpec2 = hash2` (the de-opaqued
+  Poseidon).
+
+**Verdict (so far).** Lean reaches the composition ACL2 could not: whole-permutation
+Poseidon soundness against a concrete spec, plus quad-path membership against an
+abstract recover — both as honest `↔`/implications, no `sorry`. The "flat
+extraction doesn't scale" finding was a usage artifact, not a tool limit; the
+round/layer gadget structuring + per-round `_uncps` is the scalable pattern.
+Remaining to a stamped whole-circuit consolidate2x1 property: lift the rate-2
+bridge to rate-4 to discharge M3's `Perm4Computes` symbolically (the technique is
+identical, only the width and constant tables change), extract/​bridge the
+still-unlabelled sub-circuits below, and compose.
+
 ### Extraction gap inventory (blocks whole-circuit consolidate2x1)
 
 | Gadget / sub-circuit | Status | Gap |
 | --- | --- | --- |
 | `bool-select`, `iszero` | extracted + bridged | — |
-| `nullifier` | extracted | bridge to `nullifierSpec` (same blowup wall as `poseidon2`) |
-| `poseidon2`, `poseidon-hash4` | extracted | bridge to `hash2`/`hash4` blocked by exponential inlining (see above); needs structural proof (M4) |
-| `quad-path-{1,2,4,16}` | extracted (structured) | per-layer `quadPathRound` gadget, depth-16 elaborates ~3.8 GB; not yet bridged to a path-membership spec (M3 — use `proven-zk` `Merkle.lean`) |
+| `nullifier` | extracted | bridge to `nullifierSpec` via the rate-2 `_uncps` (now unblocked by M4) |
+| `poseidon2` | extracted (round-structured) + **bridged** | `perm2_uncps`: `poseidonPerm2 D a b k ↔ k (permSpec2 …)`, `permSpec2 = hash2` by parity `#guard` (M4) |
+| `poseidon-hash4` | extracted (round-structured) | rate-4 bridge: same `_uncps` pattern as `poseidon2`, only width/constants differ; also discharges M3 `Perm4Computes` |
+| `quad-path-{1,2,4,16}` | extracted (structured) + **bridged (depth-2)** | `circuit_sound`: `QuadPath2.circuit → Root = recover2` against abstract `H4` (M3); deeper/​concrete-hash via the rate-4 Poseidon bridge |
 | `imt-gap` | **not extractable** | gnark-lean-extractor panics `implement me` (bit-decomp / range-check ops unsupported) |
 | `canonical-fq-bits` | **not extractable** | same extractor limitation (binary decomposition) |
 | `VerifyStateCommitmentPath` (anchor Merkle) | no gadget label | needs a `gadget-*` label or whole-circuit extraction (M3) |
