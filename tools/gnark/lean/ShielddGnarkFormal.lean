@@ -10,4 +10,5 @@ import ShielddGnarkFormal.Extracted.QuadPath2
 import ShielddGnarkFormal.Extracted.QuadPath4
 import ShielddGnarkFormal.Extracted.QuadPath16
 import ShielddGnarkFormal.QuadPathSpec
+import ShielddGnarkFormal.Poseidon2Bridge
 import ShielddGnarkFormal.ExtractedProofs
