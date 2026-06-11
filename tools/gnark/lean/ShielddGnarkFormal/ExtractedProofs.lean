@@ -1,14 +1,14 @@
-import PenumbraGnarkFormal.Specs
-import PenumbraGnarkFormal.Extracted.BoolSelect
-import PenumbraGnarkFormal.Extracted.IsZero
-import PenumbraGnarkFormal.Extracted.Nullifier
+import ShielddGnarkFormal.Specs
+import ShielddGnarkFormal.Extracted.BoolSelect
+import ShielddGnarkFormal.Extracted.IsZero
+import ShielddGnarkFormal.Extracted.Nullifier
 import ProvenZk.Gates
 
-namespace Penumbra
+namespace Shieldd
 namespace GnarkFormal
 
-namespace BoolSelect := Penumbra.GnarkFormal.Extracted.BoolSelect
-namespace IsZero := Penumbra.GnarkFormal.Extracted.IsZero
+namespace BoolSelect := Shieldd.GnarkFormal.Extracted.BoolSelect
+namespace IsZero := Shieldd.GnarkFormal.Extracted.IsZero
 
 theorem boolSelectExtracted_implies_select
     [Fact (Nat.Prime BoolSelect.Order)]
@@ -38,4 +38,4 @@ theorem isZeroExtracted_implies_is_zero
   simpa [hEq] using hIsZero
 
 end GnarkFormal
-end Penumbra
+end Shieldd

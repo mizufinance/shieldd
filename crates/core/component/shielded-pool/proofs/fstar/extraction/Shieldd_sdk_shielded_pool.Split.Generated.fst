@@ -1,4 +1,4 @@
-module Penumbra_sdk_shielded_pool.Split.Generated
+module Shieldd_sdk_shielded_pool.Split.Generated
 #set-options "--fuel 0 --ifuel 1 --z3rlimit 15"
 open FStar.Mul
 open Core_models

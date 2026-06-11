@@ -1,5 +1,0 @@
-import PenumbraGnarkFormal.Specs
-import PenumbraGnarkFormal.Extracted.BoolSelect
-import PenumbraGnarkFormal.Extracted.IsZero
-import PenumbraGnarkFormal.Extracted.Nullifier
-import PenumbraGnarkFormal.ExtractedProofs

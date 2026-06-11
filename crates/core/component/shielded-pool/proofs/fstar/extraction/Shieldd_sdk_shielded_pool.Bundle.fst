@@ -1,4 +1,4 @@
-module Penumbra_sdk_shielded_pool.Bundle
+module Shieldd_sdk_shielded_pool.Bundle
 #set-options "--fuel 0 --ifuel 1 --z3rlimit 15"
 open FStar.Mul
 open Core_models
@@ -15,7 +15,7 @@ let _ =
   let open Decaf377.Fields.Fq.Ops in
   let open Decaf377.Fields.Fq.U64.Wrapper in
   let open Decaf377_rdsa.Domain in
-  let open Penumbra_sdk_tct.Tree in
+  let open Shieldd_sdk_tct.Tree in
   ()
 
 let v_CONSOLIDATE_STATEMENT_BASE_FIELDS: usize = mk_usize 2
@@ -113,9 +113,9 @@ let note_reshape_rk_element
 
 class t_NoteReshapeInputPublic (v_Self: Type0) = {
   f_nullifier_pre:v_Self -> Type0;
-  f_nullifier_post:v_Self -> Penumbra_sdk_sct.Nullifier.t_Nullifier -> Type0;
+  f_nullifier_post:v_Self -> Shieldd_sdk_sct.Nullifier.t_Nullifier -> Type0;
   f_nullifier:x0: v_Self
-    -> Prims.Pure Penumbra_sdk_sct.Nullifier.t_Nullifier
+    -> Prims.Pure Shieldd_sdk_sct.Nullifier.t_Nullifier
         (f_nullifier_pre x0)
         (fun result -> f_nullifier_post x0 result);
   f_rk_pre:v_Self -> Type0;
@@ -132,126 +132,124 @@ class t_NoteReshapeInputPublic (v_Self: Type0) = {
 
 class t_NoteReshapeOutputPublic (v_Self: Type0) = {
   f_note_commitment_pre:v_Self -> Type0;
-  f_note_commitment_post:v_Self -> Penumbra_sdk_tct.Commitment.t_StateCommitment -> Type0;
+  f_note_commitment_post:v_Self -> Shieldd_sdk_tct.Commitment.t_StateCommitment -> Type0;
   f_note_commitment:x0: v_Self
-    -> Prims.Pure Penumbra_sdk_tct.Commitment.t_StateCommitment
+    -> Prims.Pure Shieldd_sdk_tct.Commitment.t_StateCommitment
         (f_note_commitment_pre x0)
         (fun result -> f_note_commitment_post x0 result)
 }
 
 [@@ FStar.Tactics.Typeclasses.tcinstance]
 let impl: t_NoteReshapeInputPublic
-Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic =
+Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic =
   {
     f_nullifier_pre
     =
-    (fun (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic) -> true);
+    (fun (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic) -> true);
     f_nullifier_post
     =
     (fun
-        (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic)
-        (out: Penumbra_sdk_sct.Nullifier.t_Nullifier)
+        (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic)
+        (out: Shieldd_sdk_sct.Nullifier.t_Nullifier)
         ->
         true);
     f_nullifier
     =
-    (fun (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic) ->
-        self.Penumbra_sdk_shielded_pool.Consolidate.Proof.f_nullifier);
+    (fun (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic) ->
+        self.Shieldd_sdk_shielded_pool.Consolidate.Proof.f_nullifier);
     f_rk_pre
     =
-    (fun (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic) -> true);
+    (fun (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic) -> true);
     f_rk_post
     =
     (fun
-        (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic)
+        (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic)
         (out: Decaf377_rdsa.Verification_key.t_VerificationKey Decaf377_rdsa.Domain.t_SpendAuth)
         ->
         true);
     f_rk
     =
-    fun (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic) ->
-      self.Penumbra_sdk_shielded_pool.Consolidate.Proof.f_rk
+    fun (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic) ->
+      self.Shieldd_sdk_shielded_pool.Consolidate.Proof.f_rk
   }
 
 [@@ FStar.Tactics.Typeclasses.tcinstance]
 let impl_1: t_NoteReshapeOutputPublic
-Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic =
+Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic =
   {
     f_note_commitment_pre
     =
-    (fun (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic) -> true);
+    (fun (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic) -> true);
     f_note_commitment_post
     =
     (fun
-        (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic)
-        (out: Penumbra_sdk_tct.Commitment.t_StateCommitment)
+        (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic)
+        (out: Shieldd_sdk_tct.Commitment.t_StateCommitment)
         ->
         true);
     f_note_commitment
     =
-    fun (self: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic) ->
-      self.Penumbra_sdk_shielded_pool.Consolidate.Proof.f_note_commitment
+    fun (self: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic) ->
+      self.Shieldd_sdk_shielded_pool.Consolidate.Proof.f_note_commitment
   }
 
 [@@ FStar.Tactics.Typeclasses.tcinstance]
-let impl_2: t_NoteReshapeInputPublic Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic =
+let impl_2: t_NoteReshapeInputPublic Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic =
   {
-    f_nullifier_pre
-    =
-    (fun (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic) -> true);
+    f_nullifier_pre = (fun (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic) -> true);
     f_nullifier_post
     =
     (fun
-        (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic)
-        (out: Penumbra_sdk_sct.Nullifier.t_Nullifier)
+        (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic)
+        (out: Shieldd_sdk_sct.Nullifier.t_Nullifier)
         ->
         true);
     f_nullifier
     =
-    (fun (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic) ->
-        self.Penumbra_sdk_shielded_pool.Split.Proof.f_nullifier);
-    f_rk_pre = (fun (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic) -> true);
+    (fun (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic) ->
+        self.Shieldd_sdk_shielded_pool.Split.Proof.f_nullifier);
+    f_rk_pre = (fun (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic) -> true);
     f_rk_post
     =
     (fun
-        (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic)
+        (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic)
         (out: Decaf377_rdsa.Verification_key.t_VerificationKey Decaf377_rdsa.Domain.t_SpendAuth)
         ->
         true);
     f_rk
     =
-    fun (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic) ->
-      self.Penumbra_sdk_shielded_pool.Split.Proof.f_rk
+    fun (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic) ->
+      self.Shieldd_sdk_shielded_pool.Split.Proof.f_rk
   }
 
 [@@ FStar.Tactics.Typeclasses.tcinstance]
-let impl_3: t_NoteReshapeOutputPublic Penumbra_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic =
+let impl_3: t_NoteReshapeOutputPublic Shieldd_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic =
   {
     f_note_commitment_pre
     =
-    (fun (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic) -> true);
+    (fun (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic) -> true);
     f_note_commitment_post
     =
     (fun
-        (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic)
-        (out: Penumbra_sdk_tct.Commitment.t_StateCommitment)
+        (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic)
+        (out: Shieldd_sdk_tct.Commitment.t_StateCommitment)
         ->
         true);
     f_note_commitment
     =
-    fun (self: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic) ->
-      self.Penumbra_sdk_shielded_pool.Split.Proof.f_note_commitment
+    fun (self: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic) ->
+      self.Shieldd_sdk_shielded_pool.Split.Proof.f_note_commitment
   }
 
 [@@ FStar.Tactics.Typeclasses.tcinstance]
 let impl_4: t_NoteReshapeInputPublic
-Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic =
+Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic =
   {
     f_nullifier_pre
     =
     (fun
         (self:
-          Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+          Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
         )
         ->
         true);
@@ -259,24 +257,24 @@ Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20Withdr
     =
     (fun
         (self:
-          Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+          Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
         )
-        (out: Penumbra_sdk_sct.Nullifier.t_Nullifier)
+        (out: Shieldd_sdk_sct.Nullifier.t_Nullifier)
         ->
         true);
     f_nullifier
     =
     (fun
         (self:
-          Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+          Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
         )
         ->
-        self.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_nullifier);
+        self.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_nullifier);
     f_rk_pre
     =
     (fun
         (self:
-          Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+          Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
         )
         ->
         true);
@@ -284,7 +282,7 @@ Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20Withdr
     =
     (fun
         (self:
-          Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+          Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
         )
         (out: Decaf377_rdsa.Verification_key.t_VerificationKey Decaf377_rdsa.Domain.t_SpendAuth)
         ->
@@ -293,21 +291,21 @@ Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20Withdr
     =
     fun
       (self:
-        Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+        Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
       )
       ->
-      self.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_rk
+      self.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_rk
   }
 
 [@@ FStar.Tactics.Typeclasses.tcinstance]
 let impl_5: t_NoteReshapeOutputPublic
-Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic =
+Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic =
   {
     f_note_commitment_pre
     =
     (fun
         (self:
-          Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
+          Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
         )
         ->
         true);
@@ -315,27 +313,27 @@ Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20Withdr
     =
     (fun
         (self:
-          Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
+          Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
         )
-        (out: Penumbra_sdk_tct.Commitment.t_StateCommitment)
+        (out: Shieldd_sdk_tct.Commitment.t_StateCommitment)
         ->
         true);
     f_note_commitment
     =
     fun
       (self:
-        Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
+        Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
       )
       ->
-      self.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_note_commitment
+      self.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_note_commitment
   }
 
 let note_reshape_statement_fields
       (#v_I #v_O: Type0)
       (#[FStar.Tactics.Typeclasses.tcresolve ()] i0: t_NoteReshapeInputPublic v_I)
       (#[FStar.Tactics.Typeclasses.tcresolve ()] i1: t_NoteReshapeOutputPublic v_O)
-      (anchor: Penumbra_sdk_tct.Tree.t_Root)
-      (balance_commitment: Penumbra_sdk_asset.Balance.Commitment.t_Commitment)
+      (anchor: Shieldd_sdk_tct.Tree.t_Root)
+      (balance_commitment: Shieldd_sdk_asset.Balance.Commitment.t_Commitment)
       (inputs: t_Slice v_I)
       (outputs: t_Slice v_O)
       (expected: usize)
@@ -355,7 +353,7 @@ let note_reshape_statement_fields
           #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
           #FStar.Tactics.Typeclasses.solve
           (Core_models.Convert.f_from #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
-              #Penumbra_sdk_tct.Tree.t_Root
+              #Shieldd_sdk_tct.Tree.t_Root
               #FStar.Tactics.Typeclasses.solve
               anchor
             <:
@@ -405,8 +403,8 @@ let note_reshape_statement_fields
                       #FStar.Tactics.Typeclasses.solve
                       (f_note_commitment #v_O #FStar.Tactics.Typeclasses.solve output
                         <:
-                        Penumbra_sdk_tct.Commitment.t_StateCommitment)
-                        .Penumbra_sdk_tct.Commitment._0
+                        Shieldd_sdk_tct.Commitment.t_StateCommitment)
+                        .Shieldd_sdk_tct.Commitment._0
                     <:
                     Core_models.Option.t_Option
                     (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global))
@@ -500,7 +498,7 @@ let note_reshape_statement_fields
             (Ark_ff.To_field_vec.f_to_field_elements #Decaf377.Ark_curve.Element.Projective.t_Element
                 #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                 #FStar.Tactics.Typeclasses.solve
-                balance_commitment.Penumbra_sdk_asset.Balance.Commitment._0
+                balance_commitment.Shieldd_sdk_asset.Balance.Commitment._0
               <:
               Core_models.Option.t_Option
               (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global))
@@ -548,8 +546,8 @@ let note_reshape_statement_fields
                             #FStar.Tactics.Typeclasses.solve
                             (f_nullifier #v_I #FStar.Tactics.Typeclasses.solve input
                               <:
-                              Penumbra_sdk_sct.Nullifier.t_Nullifier)
-                              .Penumbra_sdk_sct.Nullifier._0
+                              Shieldd_sdk_sct.Nullifier.t_Nullifier)
+                              .Shieldd_sdk_sct.Nullifier._0
                           <:
                           Core_models.Option.t_Option
                           (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global)
@@ -809,7 +807,7 @@ let note_reshape_statement_fields
       t_StatementHashError
 
 let consolidate_statement_fields
-      (public: Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateProofPublic)
+      (public: Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateProofPublic)
     : Core_models.Result.t_Result
       (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global)
       t_StatementHashError =
@@ -818,7 +816,7 @@ let consolidate_statement_fields
       #Anyhow.t_Error
       #t_StatementHashError
       #(Anyhow.t_Error -> t_StatementHashError)
-      (Penumbra_sdk_shielded_pool.Consolidate.Proof.impl_ConsolidateProofPublic__validate_shape public
+      (Shieldd_sdk_shielded_pool.Consolidate.Proof.impl_ConsolidateProofPublic__validate_shape public
 
         <:
         Core_models.Result.t_Result Prims.unit Anyhow.t_Error)
@@ -838,25 +836,25 @@ let consolidate_statement_fields
   with
   | Core_models.Result.Result_Ok _ ->
     let expected:usize =
-      consolidate_statement_field_count (Penumbra_sdk_shielded_pool.Consolidate.Generated.impl_ConsolidateFamilyId__input_count
-            public.Penumbra_sdk_shielded_pool.Consolidate.Proof.f_family_id
+      consolidate_statement_field_count (Shieldd_sdk_shielded_pool.Consolidate.Generated.impl_ConsolidateFamilyId__input_count
+            public.Shieldd_sdk_shielded_pool.Consolidate.Proof.f_family_id
           <:
           usize)
-        (Penumbra_sdk_shielded_pool.Consolidate.Generated.impl_ConsolidateFamilyId__output_count public
-              .Penumbra_sdk_shielded_pool.Consolidate.Proof.f_family_id
+        (Shieldd_sdk_shielded_pool.Consolidate.Generated.impl_ConsolidateFamilyId__output_count public
+              .Shieldd_sdk_shielded_pool.Consolidate.Proof.f_family_id
           <:
           usize)
     in
-    note_reshape_statement_fields #Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic
-      #Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic
-      public.Penumbra_sdk_shielded_pool.Consolidate.Proof.f_anchor
-      public.Penumbra_sdk_shielded_pool.Consolidate.Proof.f_balance_commitment
-      (Alloc.Vec.impl_1__as_slice public.Penumbra_sdk_shielded_pool.Consolidate.Proof.f_inputs
+    note_reshape_statement_fields #Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic
+      #Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic
+      public.Shieldd_sdk_shielded_pool.Consolidate.Proof.f_anchor
+      public.Shieldd_sdk_shielded_pool.Consolidate.Proof.f_balance_commitment
+      (Alloc.Vec.impl_1__as_slice public.Shieldd_sdk_shielded_pool.Consolidate.Proof.f_inputs
         <:
-        t_Slice Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic)
-      (Alloc.Vec.impl_1__as_slice public.Penumbra_sdk_shielded_pool.Consolidate.Proof.f_outputs
+        t_Slice Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateInputPublic)
+      (Alloc.Vec.impl_1__as_slice public.Shieldd_sdk_shielded_pool.Consolidate.Proof.f_outputs
         <:
-        t_Slice Penumbra_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic)
+        t_Slice Shieldd_sdk_shielded_pool.Consolidate.Proof.t_ConsolidateOutputPublic)
       expected
       consolidate_field_encoding_error
   | Core_models.Result.Result_Err err ->
@@ -866,7 +864,7 @@ let consolidate_statement_fields
       (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global)
       t_StatementHashError
 
-let split_statement_fields (public: Penumbra_sdk_shielded_pool.Split.Proof.t_SplitProofPublic)
+let split_statement_fields (public: Shieldd_sdk_shielded_pool.Split.Proof.t_SplitProofPublic)
     : Core_models.Result.t_Result
       (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global)
       t_StatementHashError =
@@ -875,7 +873,7 @@ let split_statement_fields (public: Penumbra_sdk_shielded_pool.Split.Proof.t_Spl
       #Anyhow.t_Error
       #t_StatementHashError
       #(Anyhow.t_Error -> t_StatementHashError)
-      (Penumbra_sdk_shielded_pool.Split.Proof.impl_SplitProofPublic__validate_shape public
+      (Shieldd_sdk_shielded_pool.Split.Proof.impl_SplitProofPublic__validate_shape public
         <:
         Core_models.Result.t_Result Prims.unit Anyhow.t_Error)
       (fun e ->
@@ -894,25 +892,25 @@ let split_statement_fields (public: Penumbra_sdk_shielded_pool.Split.Proof.t_Spl
   with
   | Core_models.Result.Result_Ok _ ->
     let expected:usize =
-      split_statement_field_count (Penumbra_sdk_shielded_pool.Split.Generated.impl_SplitFamilyId__input_count
-            public.Penumbra_sdk_shielded_pool.Split.Proof.f_family_id
+      split_statement_field_count (Shieldd_sdk_shielded_pool.Split.Generated.impl_SplitFamilyId__input_count
+            public.Shieldd_sdk_shielded_pool.Split.Proof.f_family_id
           <:
           usize)
-        (Penumbra_sdk_shielded_pool.Split.Generated.impl_SplitFamilyId__output_count public
-              .Penumbra_sdk_shielded_pool.Split.Proof.f_family_id
+        (Shieldd_sdk_shielded_pool.Split.Generated.impl_SplitFamilyId__output_count public
+              .Shieldd_sdk_shielded_pool.Split.Proof.f_family_id
           <:
           usize)
     in
-    note_reshape_statement_fields #Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic
-      #Penumbra_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic
-      public.Penumbra_sdk_shielded_pool.Split.Proof.f_anchor
-      public.Penumbra_sdk_shielded_pool.Split.Proof.f_balance_commitment
-      (Alloc.Vec.impl_1__as_slice public.Penumbra_sdk_shielded_pool.Split.Proof.f_inputs
+    note_reshape_statement_fields #Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic
+      #Shieldd_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic
+      public.Shieldd_sdk_shielded_pool.Split.Proof.f_anchor
+      public.Shieldd_sdk_shielded_pool.Split.Proof.f_balance_commitment
+      (Alloc.Vec.impl_1__as_slice public.Shieldd_sdk_shielded_pool.Split.Proof.f_inputs
         <:
-        t_Slice Penumbra_sdk_shielded_pool.Split.Proof.t_SplitInputPublic)
-      (Alloc.Vec.impl_1__as_slice public.Penumbra_sdk_shielded_pool.Split.Proof.f_outputs
+        t_Slice Shieldd_sdk_shielded_pool.Split.Proof.t_SplitInputPublic)
+      (Alloc.Vec.impl_1__as_slice public.Shieldd_sdk_shielded_pool.Split.Proof.f_outputs
         <:
-        t_Slice Penumbra_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic)
+        t_Slice Shieldd_sdk_shielded_pool.Split.Proof.t_SplitOutputPublic)
       expected
       split_field_encoding_error
   | Core_models.Result.Result_Err err ->
@@ -924,7 +922,7 @@ let split_statement_fields (public: Penumbra_sdk_shielded_pool.Split.Proof.t_Spl
 
 let shielded_ics20_withdrawal_statement_fields
       (public:
-          Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalProofPublic
+          Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalProofPublic
         )
     : Core_models.Result.t_Result
       (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global)
@@ -934,7 +932,7 @@ let shielded_ics20_withdrawal_statement_fields
       #Anyhow.t_Error
       #t_StatementHashError
       #(Anyhow.t_Error -> t_StatementHashError)
-      (Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.impl_ShieldedIcs20WithdrawalProofPublic__validate_shape
+      (Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.impl_ShieldedIcs20WithdrawalProofPublic__validate_shape
           public
         <:
         Core_models.Result.t_Result Prims.unit Anyhow.t_Error)
@@ -955,33 +953,33 @@ let shielded_ics20_withdrawal_statement_fields
   with
   | Core_models.Result.Result_Ok _ ->
     let expected:usize =
-      shielded_ics20_withdrawal_statement_field_count (Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__input_count
-            public.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_family_id
+      shielded_ics20_withdrawal_statement_field_count (Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__input_count
+            public.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_family_id
           <:
           usize)
     in
     (match
-        note_reshape_statement_fields #Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
-          #Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
-          public.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_anchor
-          public.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_balance_commitment
+        note_reshape_statement_fields #Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+          #Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
+          public.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_anchor
+          public.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_balance_commitment
           (Alloc.Vec.impl_1__as_slice public
-                .Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_inputs
+                .Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_inputs
             <:
             t_Slice
-            Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+            Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
           )
-          (Core_models.Slice.Raw.from_ref #Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
-              public.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_change_output
+          (Core_models.Slice.Raw.from_ref #Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
+              public.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_change_output
             <:
             t_Slice
-            Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
+            Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalChangePublic
           )
           ((mk_usize 2 +! mk_usize 1 <: usize) +!
             (mk_usize 2 *!
-              (Alloc.Vec.impl_1__len #Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
+              (Alloc.Vec.impl_1__len #Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.t_ShieldedIcs20WithdrawalInputPublic
                   #Alloc.Alloc.t_Global
-                  public.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_inputs
+                  public.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_inputs
                 <:
                 usize)
               <:
@@ -1014,8 +1012,8 @@ let shielded_ics20_withdrawal_statement_fields
               (Ark_ff.To_field_vec.f_to_field_elements #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                   #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                   #FStar.Tactics.Typeclasses.solve
-                  public.Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_asset_anchor
-                    .Penumbra_sdk_tct.Commitment._0
+                  public.Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_asset_anchor
+                    .Shieldd_sdk_tct.Commitment._0
                 <:
                 Core_models.Option.t_Option
                 (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global))
@@ -1057,8 +1055,8 @@ let shielded_ics20_withdrawal_statement_fields
                       #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                       #FStar.Tactics.Typeclasses.solve
                       public
-                        .Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_compliance_anchor
-                        .Penumbra_sdk_tct.Commitment._0
+                        .Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_compliance_anchor
+                        .Shieldd_sdk_tct.Commitment._0
                     <:
                     Core_models.Option.t_Option
                     (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global))
@@ -1101,7 +1099,7 @@ let shielded_ics20_withdrawal_statement_fields
                           #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                           #FStar.Tactics.Typeclasses.solve
                           public
-                            .Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_target_timestamp
+                            .Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_target_timestamp
 
                         <:
                         Core_models.Option.t_Option
@@ -1145,7 +1143,7 @@ let shielded_ics20_withdrawal_statement_fields
                               #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                               #FStar.Tactics.Typeclasses.solve
                               public
-                                .Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_outbound_asset_id
+                                .Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_outbound_asset_id
 
                             <:
                             Core_models.Option.t_Option
@@ -1191,7 +1189,7 @@ let shielded_ics20_withdrawal_statement_fields
                                   #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                                   #FStar.Tactics.Typeclasses.solve
                                   public
-                                    .Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_outbound_amount
+                                    .Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_outbound_amount
 
                                 <:
                                 Core_models.Option.t_Option
@@ -1239,9 +1237,9 @@ let shielded_ics20_withdrawal_statement_fields
                                 (let list =
                                     [
                                       public
-                                        .Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_withdrawal_effect_hash_lo;
+                                        .Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_withdrawal_effect_hash_lo;
                                       public
-                                        .Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_withdrawal_effect_hash_hi
+                                        .Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof.f_withdrawal_effect_hash_hi
                                     ]
                                   in
                                   FStar.Pervasives.assert_norm (Prims.eq2 (List.Tot.length list) 2);
@@ -1334,7 +1332,7 @@ let transfer_input_count (_: Prims.unit) : usize = v_PADDED_TRANSFER_INPUTS
 let transfer_output_count (_: Prims.unit) : usize = v_PADDED_TRANSFER_OUTPUTS
 
 type t_TransferSpendPublic = {
-  f_nullifier:Penumbra_sdk_sct.Nullifier.t_Nullifier;
+  f_nullifier:Shieldd_sdk_sct.Nullifier.t_Nullifier;
   f_rk:Decaf377_rdsa.Verification_key.t_VerificationKey Decaf377_rdsa.Domain.t_SpendAuth
 }
 
@@ -1357,10 +1355,10 @@ let transfer_rk_element (spend: t_TransferSpendPublic)
         Decaf377.Error.t_EncodingError)
     StatementHashError_DecompressRk
 
-type t_TransferOutputPublic = { f_note_commitment:Penumbra_sdk_tct.Commitment.t_StateCommitment }
+type t_TransferOutputPublic = { f_note_commitment:Shieldd_sdk_tct.Commitment.t_StateCommitment }
 
 type t_TransferComplianceProofPublic = {
-  f_statement:Penumbra_sdk_compliance.Decode_object.t_TransferTierMetadataStatement;
+  f_statement:Shieldd_sdk_compliance.Decode_object.t_TransferTierMetadataStatement;
   f_derived_pk:Decaf377.Ark_curve.Element.Projective.t_Element;
   f_enc_cmt:Decaf377.Ark_curve.Element.Projective.t_Element;
   f_shared_point:Decaf377.Ark_curve.Element.Projective.t_Element;
@@ -1384,10 +1382,10 @@ type t_TransferCompliancePublic = {
 }
 
 type t_TransferProofPublic = {
-  f_anchor:Penumbra_sdk_tct.Tree.t_Root;
-  f_balance_commitment:Penumbra_sdk_asset.Balance.Commitment.t_Commitment;
-  f_asset_anchor:Penumbra_sdk_tct.Commitment.t_StateCommitment;
-  f_compliance_anchor:Penumbra_sdk_tct.Commitment.t_StateCommitment;
+  f_anchor:Shieldd_sdk_tct.Tree.t_Root;
+  f_balance_commitment:Shieldd_sdk_asset.Balance.Commitment.t_Commitment;
+  f_asset_anchor:Shieldd_sdk_tct.Commitment.t_StateCommitment;
+  f_compliance_anchor:Shieldd_sdk_tct.Commitment.t_StateCommitment;
   f_target_timestamp:Decaf377.Fields.Fq.U64.Wrapper.t_Fq;
   f_inputs:Alloc.Vec.t_Vec t_TransferSpendPublic Alloc.Alloc.t_Global;
   f_outputs:Alloc.Vec.t_Vec t_TransferOutputPublic Alloc.Alloc.t_Global;
@@ -1526,7 +1524,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                         compliance.f_detection_ciphertext
                       <:
                       usize),
-                    Penumbra_sdk_compliance.Transfer.v_TRANSFER_DETECTION_FQS
+                    Shieldd_sdk_compliance.Transfer.v_TRANSFER_DETECTION_FQS
                     <:
                     (string & usize & usize);
                     "sender_core_ciphertext",
@@ -1535,7 +1533,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                         compliance.f_sender_core.f_ciphertext
                       <:
                       usize),
-                    Penumbra_sdk_compliance.Transfer.v_TRANSFER_CORE_CIPHERTEXT_FQS
+                    Shieldd_sdk_compliance.Transfer.v_TRANSFER_CORE_CIPHERTEXT_FQS
                     <:
                     (string & usize & usize);
                     "sender_ext_ciphertext",
@@ -1544,7 +1542,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                         compliance.f_sender_ext.f_ciphertext
                       <:
                       usize),
-                    Penumbra_sdk_compliance.Transfer.v_TRANSFER_EXT_CIPHERTEXT_FQS
+                    Shieldd_sdk_compliance.Transfer.v_TRANSFER_EXT_CIPHERTEXT_FQS
                     <:
                     (string & usize & usize);
                     "output_core_ciphertext",
@@ -1553,7 +1551,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                         compliance.f_output_core.f_ciphertext
                       <:
                       usize),
-                    Penumbra_sdk_compliance.Transfer.v_TRANSFER_CORE_CIPHERTEXT_FQS
+                    Shieldd_sdk_compliance.Transfer.v_TRANSFER_CORE_CIPHERTEXT_FQS
                     <:
                     (string & usize & usize);
                     "output_ext_ciphertext",
@@ -1562,7 +1560,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                         compliance.f_output_ext.f_ciphertext
                       <:
                       usize),
-                    Penumbra_sdk_compliance.Transfer.v_TRANSFER_EXT_CIPHERTEXT_FQS
+                    Shieldd_sdk_compliance.Transfer.v_TRANSFER_EXT_CIPHERTEXT_FQS
                     <:
                     (string & usize & usize)
                   ]
@@ -1636,7 +1634,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                 #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                 #FStar.Tactics.Typeclasses.solve
                 (Core_models.Convert.f_from #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
-                    #Penumbra_sdk_tct.Tree.t_Root
+                    #Shieldd_sdk_tct.Tree.t_Root
                     #FStar.Tactics.Typeclasses.solve
                     public.f_anchor
                   <:
@@ -1689,7 +1687,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                         (Ark_ff.To_field_vec.f_to_field_elements #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                             #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                             #FStar.Tactics.Typeclasses.solve
-                            output.f_note_commitment.Penumbra_sdk_tct.Commitment._0
+                            output.f_note_commitment.Shieldd_sdk_tct.Commitment._0
                           <:
                           Core_models.Option.t_Option
                           (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global)
@@ -1791,7 +1789,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                   (Ark_ff.To_field_vec.f_to_field_elements #Decaf377.Ark_curve.Element.Projective.t_Element
                       #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                       #FStar.Tactics.Typeclasses.solve
-                      public.f_balance_commitment.Penumbra_sdk_asset.Balance.Commitment._0
+                      public.f_balance_commitment.Shieldd_sdk_asset.Balance.Commitment._0
                     <:
                     Core_models.Option.t_Option
                     (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global))
@@ -1841,7 +1839,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                               (Ark_ff.To_field_vec.f_to_field_elements #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                                   #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                                   #FStar.Tactics.Typeclasses.solve
-                                  spend.f_nullifier.Penumbra_sdk_sct.Nullifier._0
+                                  spend.f_nullifier.Shieldd_sdk_sct.Nullifier._0
                                 <:
                                 Core_models.Option.t_Option
                                 (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq
@@ -2073,7 +2071,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                         (Ark_ff.To_field_vec.f_to_field_elements #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                             #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                             #FStar.Tactics.Typeclasses.solve
-                            public.f_asset_anchor.Penumbra_sdk_tct.Commitment._0
+                            public.f_asset_anchor.Shieldd_sdk_tct.Commitment._0
                           <:
                           Core_models.Option.t_Option
                           (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq Alloc.Alloc.t_Global)
@@ -2106,7 +2104,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                             (Ark_ff.To_field_vec.f_to_field_elements #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                                 #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                                 #FStar.Tactics.Typeclasses.solve
-                                public.f_compliance_anchor.Penumbra_sdk_tct.Commitment._0
+                                public.f_compliance_anchor.Shieldd_sdk_tct.Commitment._0
                               <:
                               Core_models.Option.t_Option
                               (Alloc.Vec.t_Vec Decaf377.Fields.Fq.U64.Wrapper.t_Fq
@@ -2516,7 +2514,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                           =
                                             temp_1_
                                           in
-                                          let statement:Penumbra_sdk_compliance.Decode_object.t_TransferTierMetadataStatement
+                                          let statement:Shieldd_sdk_compliance.Decode_object.t_TransferTierMetadataStatement
                                           =
                                             proof.f_statement
                                           in
@@ -2525,7 +2523,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                               #Anyhow.t_Error
                                               #t_StatementHashError
                                               #(Anyhow.t_Error -> t_StatementHashError)
-                                              (Penumbra_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__subject_derivation
+                                              (Shieldd_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__subject_derivation
                                                   statement
                                                 <:
                                                 Core_models.Result.t_Result
@@ -2588,7 +2586,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                                   #Anyhow.t_Error
                                                   #t_StatementHashError
                                                   #(Anyhow.t_Error -> t_StatementHashError)
-                                                  (Penumbra_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__ring_id_hash
+                                                  (Shieldd_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__ring_id_hash
                                                       statement
                                                     <:
                                                     Core_models.Result.t_Result
@@ -2649,7 +2647,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                                       #Anyhow.t_Error
                                                       #t_StatementHashError
                                                       #(Anyhow.t_Error -> t_StatementHashError)
-                                                      (Penumbra_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__policy_id_hash
+                                                      (Shieldd_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__policy_id_hash
                                                           statement
                                                         <:
                                                         Core_models.Result.t_Result
@@ -2717,7 +2715,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                                           #Anyhow.t_Error
                                                           #t_StatementHashError
                                                           #(Anyhow.t_Error -> t_StatementHashError)
-                                                          (Penumbra_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__resource_hash
+                                                          (Shieldd_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__resource_hash
                                                               statement
                                                             <:
                                                             Core_models.Result.t_Result
@@ -2789,7 +2787,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                                               #t_StatementHashError
                                                               #(Anyhow.t_Error
                                                                   -> t_StatementHashError)
-                                                              (Penumbra_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__permission_hash
+                                                              (Shieldd_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__permission_hash
                                                                   statement
                                                                 <:
                                                                 Core_models.Result.t_Result
@@ -2864,7 +2862,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                                                   #t_StatementHashError
                                                                   #(Anyhow.t_Error
                                                                       -> t_StatementHashError)
-                                                                  (Penumbra_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__salt
+                                                                  (Shieldd_sdk_compliance.Decode_object.impl_TransferTierMetadataStatement__salt
                                                                       statement
                                                                     <:
                                                                     Core_models.Result.t_Result
@@ -3571,9 +3569,9 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                                                                                   #Decaf377.Fields.Fq.U64.Wrapper.t_Fq
                                                                                                   #u64
                                                                                                   #FStar.Tactics.Typeclasses.solve
-                                                                                                  (Penumbra_sdk_compliance.Decode_object.impl_TransferTierKind__as_u64
+                                                                                                  (Shieldd_sdk_compliance.Decode_object.impl_TransferTierKind__as_u64
                                                                                                       statement
-                                                                                                        .Penumbra_sdk_compliance.Decode_object.f_tier
+                                                                                                        .Shieldd_sdk_compliance.Decode_object.f_tier
 
                                                                                                     <:
                                                                                                     u64
@@ -3735,7 +3733,7 @@ let transfer_statement_fields (public: t_TransferProofPublic)
                                                                                                       #u64
                                                                                                       #FStar.Tactics.Typeclasses.solve
                                                                                                       statement
-                                                                                                        .Penumbra_sdk_compliance.Decode_object.f_target_timestamp
+                                                                                                        .Shieldd_sdk_compliance.Decode_object.f_target_timestamp
 
                                                                                                     <:
                                                                                                     Decaf377.Fields.Fq.U64.Wrapper.t_Fq

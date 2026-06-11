@@ -1,4 +1,4 @@
-; Reducedness keystone, specialized to Penumbra's field (BLS12-377 Fr).
+; Reducedness keystone, specialized to Shieldd's field (BLS12-377 Fr).
 ;
 ; This book instantiates Kestrel's CERTIFIED range-check keystone
 ; `make-range-check-constraints-correct`

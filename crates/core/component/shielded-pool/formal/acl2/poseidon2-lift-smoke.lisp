@@ -1,6 +1,6 @@
 ; Axe lift smoke proof for the compiled gnark Poseidon2 gadget.
 ;
-; This proves the ingestion bridge can lift real Penumbra R1CS data and discharge
+; This proves the ingestion bridge can lift real Shieldd R1CS data and discharge
 ; a non-vacuous consequence of the first Poseidon round constraint.  It is not
 ; the semantic Poseidon permutation proof.
 

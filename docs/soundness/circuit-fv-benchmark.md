@@ -48,7 +48,7 @@ item 9. Context in [assessment-2026.md](assessment-2026.md).
 ## Next steps (ordered)
 
 1. **De-opaque Poseidon377 in the Lean spec.** Poseidon is currently opaque in
-   [Specs.lean](../../tools/gnark/lean/PenumbraGnarkFormal/Specs.lean); no
+   [Specs.lean](../../tools/gnark/lean/ShielddGnarkFormal/Specs.lean); no
    whole-circuit Lean claim is possible until it is concrete. This is the hard
    blocker and the first real test of the approach.
 2. **Extend gnark-lean-extractor coverage** from the current three gadgets

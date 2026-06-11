@@ -31,7 +31,7 @@ func transferSaltConstant(label string) *big.Int {
 }
 
 func complianceStreamCipherDomain() *big.Int {
-	sum := blake2b.Sum512([]byte("penumbra.compliance.poseidon_stream"))
+	sum := blake2b.Sum512([]byte("shieldd.compliance.poseidon_stream"))
 	return primitives.LittleEndianBytesToBigInt(sum[:])
 }
 

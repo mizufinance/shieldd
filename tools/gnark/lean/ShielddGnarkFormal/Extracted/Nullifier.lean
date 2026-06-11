@@ -5,7 +5,7 @@ set_option linter.unusedVariables false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
-namespace Penumbra.GnarkFormal.Extracted.Nullifier
+namespace Shieldd.GnarkFormal.Extracted.Nullifier
 
 def Order : ℕ := 0x12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001
 variable [Fact (Nat.Prime Order)]
@@ -15,7 +15,7 @@ abbrev Gates := GatesGnark9 Order
 
 
 def circuit (Nk: F) (StateCommitment: F) (Position: F) (Nullifier: F): Prop :=
-    ∃gate_0, gate_0 = Gates.add (5379060018020709603536552469582928598294319272435244111380218995696999540971:F) (507014295002340130094051641853152875478157627773318139164018329180924405874:F) ∧
+    ∃gate_0, gate_0 = Gates.add (8414456998312168765536290609671763166003140083093291047798055894678807643791:F) (507014295002340130094051641853152875478157627773318139164018329180924405874:F) ∧
     ∃gate_1, gate_1 = Gates.add Nk (7491635671712014457226444359115925142756691872583683345054285850544197741427:F) ∧
     ∃gate_2, gate_2 = Gates.add StateCommitment (6428238367987262728380227088231207564575448754570094797343562439968130973414:F) ∧
     ∃gate_3, gate_3 = Gates.add Position (417784945642189241683731513330527942532284498692605186769747085266175822763:F) ∧
@@ -1581,4 +1581,4 @@ def circuit (Nk: F) (StateCommitment: F) (Position: F) (Nullifier: F): Prop :=
     Gates.eq gate_1548 Nullifier ∧
     True
 
-end Penumbra.GnarkFormal.Extracted.Nullifier
+end Shieldd.GnarkFormal.Extracted.Nullifier

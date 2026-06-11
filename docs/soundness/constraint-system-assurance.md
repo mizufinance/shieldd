@@ -59,10 +59,10 @@ rows still require whole-circuit composition artifacts.
 | Tool | Disposition | Reason |
 | --- | --- | --- |
 | Picus | Landed at gadget scope (C2, CI-only). | Runs on the decomposed gadget `.sr1cs` in the nightly `provers` job; whole-circuit recorded `undischarged-by-design`. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
-| Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Penumbra needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
+| Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Shieldd needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
 | ACL2/Axe | Landed for bool-select, iszero, Poseidon2, nullifier, and AssetRegistryGap-backed `gadget-imt-gap` semantic gadget proofs. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |
-| Circomspect / Coda | Not applicable unless Circom circuits are introduced. | Penumbra production circuits are gnark; Circom source analyzers do not run on this codebase. |
+| Circomspect / Coda | Not applicable unless Circom circuits are introduced. | Shieldd production circuits are gnark; Circom source analyzers do not run on this codebase. |
 
 ## C3 — ACL2/Axe gadget theorems (the only route to `proved`)
 

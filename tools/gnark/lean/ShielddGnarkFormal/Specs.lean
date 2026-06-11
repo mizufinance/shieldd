@@ -1,4 +1,4 @@
-namespace Penumbra
+namespace Shieldd
 namespace GnarkFormal
 
 def bls12377ScalarFieldPrime : Nat :=
@@ -89,4 +89,4 @@ theorem noDoubleSpendNullifierSpec_intro
   exact h
 
 end GnarkFormal
-end Penumbra
+end Shieldd

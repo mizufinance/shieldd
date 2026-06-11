@@ -233,7 +233,7 @@ v0.14.0 — direct `go get` is not viable.
    Lean `Prop`. Confirm `lake build` in [tools/gnark/lean/](../../../../tools/gnark/lean/)
    accepts it alongside the existing spec.
 2. Replace the `opaque` Poseidon axioms in
-   `tools/gnark/lean/PenumbraGnarkFormal/Specs.lean` with the extracted models;
+   `tools/gnark/lean/ShielddGnarkFormal/Specs.lean` with the extracted models;
    port the shared spec of record (comparator `<`, gap predicate, nullifier =
    `Poseidon377(...)`, whole-circuit assertions) and prove the extracted `Prop`
    implies it with `proven-zk`. Add `proven-zk` to `lakefile.lean` +

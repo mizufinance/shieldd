@@ -141,10 +141,10 @@ cargo hax into -i "-** ${include_args[*]}" fstar \
 full_extraction_sha="$(find proofs/fstar/extraction -name '*.fst' -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
 
 count_include_args=(
-  +penumbra_sdk_shielded_pool::public_input_hash::consolidate_statement_field_count
-  +penumbra_sdk_shielded_pool::public_input_hash::split_statement_field_count
-  +penumbra_sdk_shielded_pool::public_input_hash::transfer_statement_field_count
-  +penumbra_sdk_shielded_pool::public_input_hash::shielded_ics20_withdrawal_statement_field_count
+  +shieldd_sdk_shielded_pool::public_input_hash::consolidate_statement_field_count
+  +shieldd_sdk_shielded_pool::public_input_hash::split_statement_field_count
+  +shieldd_sdk_shielded_pool::public_input_hash::transfer_statement_field_count
+  +shieldd_sdk_shielded_pool::public_input_hash::shielded_ics20_withdrawal_statement_field_count
 )
 cargo hax into -i "-** ${count_include_args[*]}" fstar \
   || fail "hax extraction failed for shielded-pool statement field-count boundary"
@@ -166,7 +166,7 @@ for proof in "$FORMAL_DIR"/fstar/*.fst; do
   "$FSTAR" "${FSTAR_FLAGS[@]}" "$proof"
 done
 
-proof_source_sha="$(find "$FORMAL_DIR/fstar" "$CRATE_DIR/proofs/fstar/extraction/Penumbra_sdk_shielded_pool.Public_input_hash.fst" -name '*.fst' -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
+proof_source_sha="$(find "$FORMAL_DIR/fstar" "$CRATE_DIR/proofs/fstar/extraction/Shieldd_sdk_shielded_pool.Public_input_hash.fst" -name '*.fst' -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
 {
   echo "tool: fstar"
   echo "hax: $hax_pin"

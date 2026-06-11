@@ -1,6 +1,6 @@
 # Compliance Ciphertext Threat Model
 
-This fixture models the adversary-facing obligations for Penumbra compliance
+This fixture models the adversary-facing obligations for Shieldd compliance
 ciphertexts. It is intentionally above the constraint level: R1CS satisfaction
 and symbolic-prover execution are follow-up work.
 

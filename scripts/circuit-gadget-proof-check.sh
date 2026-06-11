@@ -27,9 +27,9 @@ POSEIDON2_PROOF=poseidon2-proof
 HASH4_PROOF=hash4-proof
 NULLIFIER_PROOF=nullifier-proof
 ASSET_REGISTRY_GAP_OUTPUT_PROOF=asset-registry-gap-output
-BOOL_SELECT_LEAN=tools/gnark/lean/PenumbraGnarkFormal/Extracted/BoolSelect.lean
-ISZERO_LEAN=tools/gnark/lean/PenumbraGnarkFormal/Extracted/IsZero.lean
-NULLIFIER_LEAN=tools/gnark/lean/PenumbraGnarkFormal/Extracted/Nullifier.lean
+BOOL_SELECT_LEAN=tools/gnark/lean/ShielddGnarkFormal/Extracted/BoolSelect.lean
+ISZERO_LEAN=tools/gnark/lean/ShielddGnarkFormal/Extracted/IsZero.lean
+NULLIFIER_LEAN=tools/gnark/lean/ShielddGnarkFormal/Extracted/Nullifier.lean
 BOOL_SELECT_LEAN_ARTIFACT=tools/gnark/lean/bool-select-lean-artifact.txt
 
 fail() {
@@ -141,8 +141,8 @@ check_lean_artifact_stamp() {
   bool_select_sha="$(shasum -a 256 "$BOOL_SELECT_LEAN" | awk '{print $1}')"
   iszero_sha="$(shasum -a 256 "$ISZERO_LEAN" | awk '{print $1}')"
   nullifier_sha="$(shasum -a 256 "$NULLIFIER_LEAN" | awk '{print $1}')"
-  proof_sha="$(shasum -a 256 tools/gnark/lean/PenumbraGnarkFormal/ExtractedProofs.lean | awk '{print $1}')"
-  root_sha="$(shasum -a 256 tools/gnark/lean/PenumbraGnarkFormal.lean | awk '{print $1}')"
+  proof_sha="$(shasum -a 256 tools/gnark/lean/ShielddGnarkFormal/ExtractedProofs.lean | awk '{print $1}')"
+  root_sha="$(shasum -a 256 tools/gnark/lean/ShielddGnarkFormal.lean | awk '{print $1}')"
   lakefile_sha="$(shasum -a 256 tools/gnark/lean/lakefile.lean | awk '{print $1}')"
   manifest_sha="$(shasum -a 256 tools/gnark/lean/lake-manifest.json | awk '{print $1}')"
   toolchain_sha="$(shasum -a 256 tools/gnark/lean/lean-toolchain | awk '{print $1}')"
@@ -245,7 +245,7 @@ diff -u "$GENERATED_DIR/poseidon377-spec.lisp" "$tmp_poseidon_spec" \
   cd tools/gnark
   go run ./cmd/gnarkctl export-lean \
     --circuit gadget-bool-select \
-    --namespace Penumbra.GnarkFormal.Extracted.BoolSelect \
+    --namespace Shieldd.GnarkFormal.Extracted.BoolSelect \
     --out "$tmp_bool_select_lean"
 ) || fail "failed to regenerate gadget-bool-select Lean extraction"
 diff -u "$BOOL_SELECT_LEAN" "$tmp_bool_select_lean" \
@@ -255,7 +255,7 @@ diff -u "$BOOL_SELECT_LEAN" "$tmp_bool_select_lean" \
   cd tools/gnark
   go run ./cmd/gnarkctl export-lean \
     --circuit gadget-iszero \
-    --namespace Penumbra.GnarkFormal.Extracted.IsZero \
+    --namespace Shieldd.GnarkFormal.Extracted.IsZero \
     --out "$tmp_iszero_lean"
 ) || fail "failed to regenerate gadget-iszero Lean extraction"
 diff -u "$ISZERO_LEAN" "$tmp_iszero_lean" \
@@ -265,7 +265,7 @@ diff -u "$ISZERO_LEAN" "$tmp_iszero_lean" \
   cd tools/gnark
   go run ./cmd/gnarkctl export-lean \
     --circuit gadget-nullifier \
-    --namespace Penumbra.GnarkFormal.Extracted.Nullifier \
+    --namespace Shieldd.GnarkFormal.Extracted.Nullifier \
     --out "$tmp_nullifier_lean"
 ) || fail "failed to regenerate gadget-nullifier Lean extraction"
 diff -u "$NULLIFIER_LEAN" "$tmp_nullifier_lean" \

@@ -1,4 +1,4 @@
-module Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof
+module Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Proof
 #set-options "--fuel 0 --ifuel 1 --z3rlimit 15"
 open FStar.Mul
 open Core_models
@@ -7,24 +7,24 @@ let _ =
   (* This module has implicit dependencies, here we make them explicit. *)
   (* The implicit dependencies arise from typeclasses instances. *)
   let open Anyhow.__private.Not in
-  let open Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated in
+  let open Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated in
   ()
 
 type t_ShieldedIcs20WithdrawalInputPublic = {
-  f_nullifier:Penumbra_sdk_sct.Nullifier.t_Nullifier;
+  f_nullifier:Shieldd_sdk_sct.Nullifier.t_Nullifier;
   f_rk:Decaf377_rdsa.Verification_key.t_VerificationKey Decaf377_rdsa.Domain.t_SpendAuth
 }
 
 type t_ShieldedIcs20WithdrawalChangePublic = {
-  f_note_commitment:Penumbra_sdk_tct.Commitment.t_StateCommitment
+  f_note_commitment:Shieldd_sdk_tct.Commitment.t_StateCommitment
 }
 
 type t_ShieldedIcs20WithdrawalProofPublic = {
-  f_family_id:Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.t_ShieldedIcs20WithdrawalFamilyId;
-  f_anchor:Penumbra_sdk_tct.Tree.t_Root;
-  f_balance_commitment:Penumbra_sdk_asset.Balance.Commitment.t_Commitment;
-  f_asset_anchor:Penumbra_sdk_tct.Commitment.t_StateCommitment;
-  f_compliance_anchor:Penumbra_sdk_tct.Commitment.t_StateCommitment;
+  f_family_id:Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.t_ShieldedIcs20WithdrawalFamilyId;
+  f_anchor:Shieldd_sdk_tct.Tree.t_Root;
+  f_balance_commitment:Shieldd_sdk_asset.Balance.Commitment.t_Commitment;
+  f_asset_anchor:Shieldd_sdk_tct.Commitment.t_StateCommitment;
+  f_compliance_anchor:Shieldd_sdk_tct.Commitment.t_StateCommitment;
   f_target_timestamp:Decaf377.Fields.Fq.U64.Wrapper.t_Fq;
   f_inputs:Alloc.Vec.t_Vec t_ShieldedIcs20WithdrawalInputPublic Alloc.Alloc.t_Global;
   f_change_output:t_ShieldedIcs20WithdrawalChangePublic;
@@ -40,7 +40,7 @@ let impl_ShieldedIcs20WithdrawalProofPublic__validate_shape
   if
     Anyhow.__private.not #bool
       (self.f_family_id =.
-        Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__Canonical
+        Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__Canonical
         <:
         bool)
   then
@@ -61,7 +61,7 @@ let impl_ShieldedIcs20WithdrawalProofPublic__validate_shape
               self.f_inputs
             <:
             usize) =.
-          (Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__input_count
+          (Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__input_count
               self.f_family_id
             <:
             usize)
@@ -69,9 +69,9 @@ let impl_ShieldedIcs20WithdrawalProofPublic__validate_shape
           bool)
     then
       let args:(string & usize & usize) =
-        Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__label
+        Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__label
           self.f_family_id,
-        Penumbra_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__input_count
+        Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.impl_ShieldedIcs20WithdrawalFamilyId__input_count
           self.f_family_id,
         Alloc.Vec.impl_1__len #t_ShieldedIcs20WithdrawalInputPublic
           #Alloc.Alloc.t_Global

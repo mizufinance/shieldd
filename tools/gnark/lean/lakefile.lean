@@ -1,10 +1,10 @@
 import Lake
 open Lake DSL
 
-package penumbra_gnark_formal where
+package shieldd_gnark_formal where
 
 require «proven-zk» from git
   "https://github.com/reilabs/proven-zk.git" @ "4.15"
 
-lean_lib PenumbraGnarkFormal where
+lean_lib ShielddGnarkFormal where
   moreLeanArgs := #["--tstack=1000000"]

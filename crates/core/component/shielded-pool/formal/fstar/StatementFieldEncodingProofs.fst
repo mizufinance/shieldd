@@ -1,7 +1,7 @@
 module StatementFieldEncodingProofs
 #set-options "--fuel 1 --ifuel 1 --z3rlimit 100"
 
-module P = Penumbra_sdk_shielded_pool.Public_input_hash
+module P = Shieldd_sdk_shielded_pool.Public_input_hash
 module Int = Rust_primitives.Integers
 
 open Core_models

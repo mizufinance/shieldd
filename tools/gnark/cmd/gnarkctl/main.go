@@ -66,7 +66,7 @@ func usage() {
 func runExportLean(args []string) error {
 	fs := flag.NewFlagSet("export-lean", flag.ContinueOnError)
 	circuit := fs.String("circuit", "", "gadget-* label")
-	namespace := fs.String("namespace", "Penumbra.GnarkFormal.Extracted", "Lean namespace")
+	namespace := fs.String("namespace", "Shieldd.GnarkFormal.Extracted", "Lean namespace")
 	outPath := fs.String("out", "", "output Lean file")
 	if err := fs.Parse(args); err != nil {
 		return err

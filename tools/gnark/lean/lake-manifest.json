@@ -101,5 +101,5 @@
    "inputRev": "main",
    "inherited": true,
    "configFile": "lakefile.toml"}],
- "name": "penumbra_gnark_formal",
+ "name": "shieldd_gnark_formal",
  "lakeDir": ".lake"}
