@@ -175,20 +175,24 @@ Poseidon soundness against a concrete spec, plus quad-path membership against an
 abstract recover — both as honest `↔`/implications, no `sorry`. The "flat
 extraction doesn't scale" finding was a usage artifact, not a tool limit; the
 round/layer gadget structuring + per-round `_uncps` is the scalable pattern.
-Remaining to a stamped whole-circuit consolidate2x1 property: lift the rate-2
-bridge to rate-4 to discharge M3's `Perm4Computes` symbolically (the technique is
-identical, only the width and constant tables change), extract/​bridge the
-still-unlabelled sub-circuits below, and compose.
+The rate-3 (width-4) and rate-4 (width-5) bridges are now done by the same
+`_uncps` technique (`Poseidon3Bridge`/`Poseidon4Bridge`): the nullifier circuit
+is bridged to `nullifierSpec`, the `poseidon-hash4` gadget to `permSpec4`/`hash4`,
+and M3's `Perm4Computes` is discharged symbolically — `quadPath_circuit_sound`
+now states depth-2 quad-path soundness against the *concrete* Poseidon hash with
+no abstract `H4` remaining. Remaining to a stamped whole-circuit consolidate2x1
+property: deepen the quad path beyond depth-2, extract/​bridge the still-unlabelled
+sub-circuits below, and compose.
 
 ### Extraction gap inventory (blocks whole-circuit consolidate2x1)
 
 | Gadget / sub-circuit | Status | Gap |
 | --- | --- | --- |
 | `bool-select`, `iszero` | extracted + bridged | — |
-| `nullifier` | extracted | bridge to `nullifierSpec` via the rate-2 `_uncps` (now unblocked by M4) |
+| `nullifier` | extracted (round-structured) + **bridged** | `Poseidon3Bridge.circuit_sound`: `Nullifier = permSpec3 nullifierDomain …`; rate-3 `perm3_uncps`; `permSpec3 = hash3 = nullifierSpec` by parity `#guard` |
 | `poseidon2` | extracted (round-structured) + **bridged** | `perm2_uncps`: `poseidonPerm2 D a b k ↔ k (permSpec2 …)`, `permSpec2 = hash2` by parity `#guard` (M4) |
-| `poseidon-hash4` | extracted (round-structured) | rate-4 bridge: same `_uncps` pattern as `poseidon2`, only width/constants differ; also discharges M3 `Perm4Computes` |
-| `quad-path-{1,2,4,16}` | extracted (structured) + **bridged (depth-2)** | `circuit_sound`: `QuadPath2.circuit → Root = recover2` against abstract `H4` (M3); deeper/​concrete-hash via the rate-4 Poseidon bridge |
+| `poseidon-hash4` | extracted (round-structured) + **bridged** | `Poseidon4Bridge`: `perm4_uncps` + `circuit_sound` (`Out = permSpec4 …`), `permSpec4 = hash4` by parity `#guard`; `perm4Computes` discharges M3's `Perm4Computes` |
+| `quad-path-{1,2,4,16}` | extracted (structured) + **bridged (depth-2, concrete hash)** | `circuit_sound` against abstract `H4` (M3); `Poseidon4Bridge.quadPath_circuit_sound` specialises it to the concrete `permSpec4` via `perm4Computes` — no abstract hash remains at depth-2 |
 | `imt-gap` | **not extractable** | gnark-lean-extractor panics `implement me` (bit-decomp / range-check ops unsupported) |
 | `canonical-fq-bits` | **not extractable** | same extractor limitation (binary decomposition) |
 | `VerifyStateCommitmentPath` (anchor Merkle) | no gadget label | needs a `gadget-*` label or whole-circuit extraction (M3) |
