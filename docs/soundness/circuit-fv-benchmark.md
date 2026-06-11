@@ -76,24 +76,33 @@ test vectors are generated from `phase05_vectors.json` by a new
 hash2/hash3/hash7 vectors. `nullifierSpec_unfold` is now a real `rfl` theorem, not
 an axiom.
 
-**M2 — gadget extraction extended; both an elaboration wall and a composition
-wall surface.** Four previously unextracted gadgets now have checked-in,
-building Lean R1CS encodings under
+**M2 — gadget extraction extended to the full quad-path set, including depth-16.**
+Six previously unextracted gadgets now have checked-in, building Lean R1CS
+encodings under
 [Extracted/](../../tools/gnark/lean/ShielddGnarkFormal/Extracted): `poseidon2`,
-`poseidon-hash4`, `quad-path-1`, `quad-path-2`, all building under `lake build`.
+`poseidon-hash4`, and `quad-path-{1,2,4,16}`, all building under `lake build`.
 
-**Extraction-scale wall (new, verdict-relevant).** `quad-path-4` and
-`quad-path-16` extract to valid Lean source but **do not elaborate**: the flat
-R1CS gate-chain is super-linear in memory. `quad-path-4` (depth-4, ~9k gates)
-pins ~11 GB RSS without converging; `quad-path-16` (depth-16, ~37k gates) is
-OOM-killed (`lean` exit 137), even built solo with the whole machine. Only
-depth-1/2 fit. This is the sharpest M2 finding: the **depth-16 Merkle/IMT path
-is exactly the whole-circuit composition target** (the ACL2 failure point), and
-flat per-circuit extraction cannot even produce an elaborable term for it,
-before any bridge proof is attempted. A scalable path must extract structurally
-(per-level recursion reusing one depth-1 step) rather than as a flattened dump.
-Both files are therefore left unextracted in-tree and excluded from the root
-aggregator import.
+**Extraction-scale wall — diagnosed and fixed.** The first extraction of the
+deep paths flattened the entire circuit into one monolithic `∃gate_i …` chain:
+`quad-path-4` (~9k gates) pinned ~11 GB RSS without converging and `quad-path-16`
+(~37k gates) was OOM-killed (`lean` exit 137). Root cause: `gnarkctl export-lean`
+called `Poseidon377Hash4` and the per-layer logic as plain Go inside a `for`
+loop, so the extractor inlined every layer — the depth-16 path expanded to a
+single ~37k-gate term Lean cannot elaborate.
+
+The fix matches how Reilabs' own extractor handles Semaphore's Merkle path: make
+the repeated sub-circuit an **extractor gadget** (`quadPathRound`,
+[gadgets_constraint.go](../../tools/gnark/internal/circuits/gadgets_constraint.go))
+called via `abstractor.Call` in the loop. The extractor then emits **one
+reusable Lean `def quadPathRound` and one call per depth** instead of inlining.
+During proving the call runs `DefineGadget` inline, so the constraint system is
+byte-for-byte identical — no proving-path change. Result: every quad-path is now
+~2.3k lines *regardless of depth* (depth only adds call lines), and `quad-path-16`
+elaborates in seconds at ~3.8 GB peak RSS where the flat form OOM-killed. The
+"flat extraction doesn't scale" reading was a usage bug in our extractor, not a
+limit of Lean/`proven-zk` — Reilabs ships whole-circuit Semaphore (Merkle +
+Poseidon) on this exact stack. This unblocks the M3 Merkle-path composition: the
+deep path is now a tractable, structurally-factored term.
 
 The first composition bridge — proving the extracted rate-2 Poseidon circuit
 computes the concrete `hash2` spec — was attempted and **does not close under
@@ -109,6 +118,16 @@ per-round structural proof** that keeps gates as hypotheses rather than inlining
 them — promoted to M4 (composition). The spec's MDS `dot` already uses gnark's
 left-fold association to make that future proof definitional per round.
 
+The path for that proof is now identified, not open-ended: Reilabs' demo proves
+the same shape with a per-gadget `_uncps` lemma
+(`Poseidon2 a b k ↔ k (poseidon₂ vec![a,b])`) discharged by `simp` against a
+`poseidon_N_correct` lemma proved once, per round, in its `Poseidon/Correctness`
+module; whole-circuit proofs then chain the `_uncps` lemmas. Applying the same
+gadget structuring used for `quadPathRound` to the Poseidon rounds (extract
+`sbox`/`fullRound`/`partialRound` as gadgets) gives the round-structured
+extracted term that pattern needs. M4 is therefore a port of an existing
+technique onto the concrete M1 spec, not new research.
+
 ### Extraction gap inventory (blocks whole-circuit consolidate2x1)
 
 | Gadget / sub-circuit | Status | Gap |
@@ -116,8 +135,7 @@ left-fold association to make that future proof definitional per round.
 | `bool-select`, `iszero` | extracted + bridged | — |
 | `nullifier` | extracted | bridge to `nullifierSpec` (same blowup wall as `poseidon2`) |
 | `poseidon2`, `poseidon-hash4` | extracted | bridge to `hash2`/`hash4` blocked by exponential inlining (see above); needs structural proof (M4) |
-| `quad-path-{1,2}` | extracted | not yet bridged to a path-membership spec |
-| `quad-path-{4,16}` | **does not elaborate** | flat R1CS too large: depth-4 ~11 GB RSS no convergence, depth-16 OOM exit 137; needs structural per-level extraction (M3) |
+| `quad-path-{1,2,4,16}` | extracted (structured) | per-layer `quadPathRound` gadget, depth-16 elaborates ~3.8 GB; not yet bridged to a path-membership spec (M3 — use `proven-zk` `Merkle.lean`) |
 | `imt-gap` | **not extractable** | gnark-lean-extractor panics `implement me` (bit-decomp / range-check ops unsupported) |
 | `canonical-fq-bits` | **not extractable** | same extractor limitation (binary decomposition) |
 | `VerifyStateCommitmentPath` (anchor Merkle) | no gadget label | needs a `gadget-*` label or whole-circuit extraction (M3) |

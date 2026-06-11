@@ -13,6 +13,7 @@ package circuits
 
 import (
 	"github.com/consensys/gnark/frontend"
+	"github.com/reilabs/gnark-lean-extractor/v3/abstractor"
 	. "github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	. "github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
@@ -70,29 +71,56 @@ func (c *PoseidonHash4Gadget) Define(api frontend.API) error {
 // which is what lets the per-layer chains in the ACL2 proof reuse
 // `poseidon377-hash4-r1cs-axe` verbatim. The fixed domain value is supplied by
 // the witness at proving time.
+// quadPathRound is one VerifyQuadPath layer as an extractor gadget: index-decode
+// from the two position bits, four Selects to place `Current` among its three
+// siblings, then Poseidon377Hash4 of the ordered children. Calling it via
+// abstractor.Call makes the extractor emit a single reusable Lean `def` and one
+// call per depth, instead of inlining the whole layer N times — the latter does
+// not elaborate past a few layers (depth-16 OOMs). During proving the call runs
+// DefineGadget inline, so the constraint system is identical.
+type quadPathRound struct {
+	Domain  frontend.Variable
+	Current frontend.Variable
+	Sib0    frontend.Variable
+	Sib1    frontend.Variable
+	Sib2    frontend.Variable
+	Bit0    frontend.Variable
+	Bit1    frontend.Variable
+}
+
+func (g quadPathRound) DefineGadget(api frontend.API) interface{} {
+	isIndex0 := api.Mul(api.Sub(1, g.Bit0), api.Sub(1, g.Bit1))
+	isIndex1 := api.Mul(g.Bit0, api.Sub(1, g.Bit1))
+	isIndex2 := api.Mul(api.Sub(1, g.Bit0), g.Bit1)
+	isIndex3 := api.Mul(g.Bit0, g.Bit1)
+
+	child0 := api.Select(isIndex0, g.Current, g.Sib0)
+	child1Not1 := api.Select(isIndex0, g.Sib0, g.Sib1)
+	child1 := api.Select(isIndex1, g.Current, child1Not1)
+	child2Not2 := api.Select(g.Bit1, g.Sib2, g.Sib1)
+	child2 := api.Select(isIndex2, g.Current, child2Not2)
+	child3 := api.Select(isIndex3, g.Current, g.Sib2)
+
+	parent, err := Poseidon377Hash4(api, g.Domain, [4]frontend.Variable{child0, child1, child2, child3})
+	if err != nil {
+		panic(err)
+	}
+	return parent
+}
+
 func verifyQuadPathN(api frontend.API, domain, leafHash frontend.Variable, path [][3]frontend.Variable, position frontend.Variable) (frontend.Variable, error) {
 	current := leafHash
 	posBits := api.ToBinary(position, 2*len(path))
 	for layerIdx := 0; layerIdx < len(path); layerIdx++ {
-		bit0 := posBits[layerIdx*2]
-		bit1 := posBits[layerIdx*2+1]
-		isIndex0 := api.Mul(api.Sub(1, bit0), api.Sub(1, bit1))
-		isIndex1 := api.Mul(bit0, api.Sub(1, bit1))
-		isIndex2 := api.Mul(api.Sub(1, bit0), bit1)
-		isIndex3 := api.Mul(bit0, bit1)
-
-		child0 := api.Select(isIndex0, current, path[layerIdx][0])
-		child1Not1 := api.Select(isIndex0, path[layerIdx][0], path[layerIdx][1])
-		child1 := api.Select(isIndex1, current, child1Not1)
-		child2Not2 := api.Select(bit1, path[layerIdx][2], path[layerIdx][1])
-		child2 := api.Select(isIndex2, current, child2Not2)
-		child3 := api.Select(isIndex3, current, path[layerIdx][2])
-
-		parent, err := Poseidon377Hash4(api, domain, [4]frontend.Variable{child0, child1, child2, child3})
-		if err != nil {
-			return nil, err
-		}
-		current = parent
+		current = abstractor.Call(api, quadPathRound{
+			Domain:  domain,
+			Current: current,
+			Sib0:    path[layerIdx][0],
+			Sib1:    path[layerIdx][1],
+			Sib2:    path[layerIdx][2],
+			Bit0:    posBits[layerIdx*2],
+			Bit1:    posBits[layerIdx*2+1],
+		})
 	}
 	return current, nil
 }

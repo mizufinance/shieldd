@@ -5,7 +5,7 @@ set_option linter.unusedVariables false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
-namespace Shieldd.GnarkFormal.Extracted.QuadPath2
+namespace Shieldd.GnarkFormal.Extracted.QuadPath16
 
 def Order : ℕ := 0x12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001
 variable [Fact (Nat.Prime Order)]
@@ -2334,11 +2334,25 @@ def quadPathRound (Domain: F) (Current: F) (Sib0: F) (Sib1: F) (Sib2: F) (Bit0: 
     ∃_ignored_, _ignored_ = Gates.add gate_2316 gate_2317 ∧
     k gate_2291
 
-def circuit (Domain: F) (LeafHash: F) (Position: F) (Path: Vector (Vector F 3) 2) (Root: F): Prop :=
-    ∃gate_0, Gates.to_binary Position 4 gate_0 ∧
+def circuit (Domain: F) (LeafHash: F) (Position: F) (Path: Vector (Vector F 3) 16) (Root: F): Prop :=
+    ∃gate_0, Gates.to_binary Position 32 gate_0 ∧
     quadPathRound Domain LeafHash Path[0][0] Path[0][1] Path[0][2] gate_0[0] gate_0[1] fun gate_1 =>
     quadPathRound Domain gate_1 Path[1][0] Path[1][1] Path[1][2] gate_0[2] gate_0[3] fun gate_2 =>
-    Gates.eq gate_2 Root ∧
+    quadPathRound Domain gate_2 Path[2][0] Path[2][1] Path[2][2] gate_0[4] gate_0[5] fun gate_3 =>
+    quadPathRound Domain gate_3 Path[3][0] Path[3][1] Path[3][2] gate_0[6] gate_0[7] fun gate_4 =>
+    quadPathRound Domain gate_4 Path[4][0] Path[4][1] Path[4][2] gate_0[8] gate_0[9] fun gate_5 =>
+    quadPathRound Domain gate_5 Path[5][0] Path[5][1] Path[5][2] gate_0[10] gate_0[11] fun gate_6 =>
+    quadPathRound Domain gate_6 Path[6][0] Path[6][1] Path[6][2] gate_0[12] gate_0[13] fun gate_7 =>
+    quadPathRound Domain gate_7 Path[7][0] Path[7][1] Path[7][2] gate_0[14] gate_0[15] fun gate_8 =>
+    quadPathRound Domain gate_8 Path[8][0] Path[8][1] Path[8][2] gate_0[16] gate_0[17] fun gate_9 =>
+    quadPathRound Domain gate_9 Path[9][0] Path[9][1] Path[9][2] gate_0[18] gate_0[19] fun gate_10 =>
+    quadPathRound Domain gate_10 Path[10][0] Path[10][1] Path[10][2] gate_0[20] gate_0[21] fun gate_11 =>
+    quadPathRound Domain gate_11 Path[11][0] Path[11][1] Path[11][2] gate_0[22] gate_0[23] fun gate_12 =>
+    quadPathRound Domain gate_12 Path[12][0] Path[12][1] Path[12][2] gate_0[24] gate_0[25] fun gate_13 =>
+    quadPathRound Domain gate_13 Path[13][0] Path[13][1] Path[13][2] gate_0[26] gate_0[27] fun gate_14 =>
+    quadPathRound Domain gate_14 Path[14][0] Path[14][1] Path[14][2] gate_0[28] gate_0[29] fun gate_15 =>
+    quadPathRound Domain gate_15 Path[15][0] Path[15][1] Path[15][2] gate_0[30] gate_0[31] fun gate_16 =>
+    Gates.eq gate_16 Root ∧
     True
 
-end Shieldd.GnarkFormal.Extracted.QuadPath2
+end Shieldd.GnarkFormal.Extracted.QuadPath16

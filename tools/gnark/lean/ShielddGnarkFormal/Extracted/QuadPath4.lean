@@ -5,7 +5,7 @@ set_option linter.unusedVariables false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
-namespace Shieldd.GnarkFormal.Extracted.QuadPath2
+namespace Shieldd.GnarkFormal.Extracted.QuadPath4
 
 def Order : ℕ := 0x12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001
 variable [Fact (Nat.Prime Order)]
@@ -2334,11 +2334,13 @@ def quadPathRound (Domain: F) (Current: F) (Sib0: F) (Sib1: F) (Sib2: F) (Bit0: 
     ∃_ignored_, _ignored_ = Gates.add gate_2316 gate_2317 ∧
     k gate_2291
 
-def circuit (Domain: F) (LeafHash: F) (Position: F) (Path: Vector (Vector F 3) 2) (Root: F): Prop :=
-    ∃gate_0, Gates.to_binary Position 4 gate_0 ∧
+def circuit (Domain: F) (LeafHash: F) (Position: F) (Path: Vector (Vector F 3) 4) (Root: F): Prop :=
+    ∃gate_0, Gates.to_binary Position 8 gate_0 ∧
     quadPathRound Domain LeafHash Path[0][0] Path[0][1] Path[0][2] gate_0[0] gate_0[1] fun gate_1 =>
     quadPathRound Domain gate_1 Path[1][0] Path[1][1] Path[1][2] gate_0[2] gate_0[3] fun gate_2 =>
-    Gates.eq gate_2 Root ∧
+    quadPathRound Domain gate_2 Path[2][0] Path[2][1] Path[2][2] gate_0[4] gate_0[5] fun gate_3 =>
+    quadPathRound Domain gate_3 Path[3][0] Path[3][1] Path[3][2] gate_0[6] gate_0[7] fun gate_4 =>
+    Gates.eq gate_4 Root ∧
     True
 
-end Shieldd.GnarkFormal.Extracted.QuadPath2
+end Shieldd.GnarkFormal.Extracted.QuadPath4
