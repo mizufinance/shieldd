@@ -172,4 +172,16 @@ theorem quadPath_circuit_sound [Fact (Nat.Prime Order)] [Fact (Nat.Prime Extract
               domain leaf path bits :=
   QuadPath.circuit_sound perm4Computes domain leaf position root path
 
+/-- Concrete depth-16 (production-depth) quad-path soundness: `QuadPath16.circuit`
+forces `Root = recover16` of the leaf against the real Poseidon rate-4 hash
+`permSpec4`. M3's abstract per-node hash is discharged by `perm4Computes`. -/
+theorem quadPath16_circuit_sound [Fact (Nat.Prime Order)]
+    [Fact (Nat.Prime Extracted.QuadPath2.Order)] [Fact (Nat.Prime Extracted.QuadPath16.Order)]
+    (domain leaf position root : F) (path : List.Vector (List.Vector F 3) 16) :
+    Extracted.QuadPath16.circuit domain leaf position path root
+      → ∃ bits, Extracted.QuadPath16.Gates.to_binary position 32 bits
+          ∧ root = QuadPath.recover16 (fun d a b c e => permSpec4 d a b c e)
+              domain leaf path bits :=
+  QuadPath.circuit_sound16 perm4Computes domain leaf position root path
+
 end Shieldd.GnarkFormal.Poseidon4Bridge
