@@ -21,20 +21,18 @@ func TestAssetRegistryGapConstraintShape(t *testing.T) {
 	newN := newCS.GetNbConstraints()
 	t.Logf("gadget-imt-gap / AssetRegistryGap:     %d constraints", newN)
 	t.Logf("CanonicalFqBits253 (single operand):   %d constraints", bitsCS.GetNbConstraints())
-	// The Kestrel make-range-check-constraints constructor for c=p-1,n=253 has
-	// 340 R1CS constraints (1 pack + 87 boolean + 166 zero-bit a + 86 pi).
-	// gnark compiles each zero-bit a-constraint `(1-pi-a)*a=0` to TWO constraints
-	// (a product wire + an `out=0` identity equality — confirmed: AssertIsEqual
-	// of a Mul never folds to a single a*b=c), so the exported slice is
-	//   1 pack + 87 boolean + 166*2 zero-bit + 86 pi = 506.
-	// The 166 extra are trivial identity-wire equalities the Axe rewriter folds
-	// automatically; the normalized form is the Kestrel constructor shape. See
-	// circuit-gadget-proofs.md and the Part 2 hand-off.
-	const wantBits = 1 + 87 + 166*2 + 86 // = 506
+	// Native-ToBinary shape (Lean-optimal, see canonical_fq_bits.go): the
+	// decomposition is gnark's api.ToBinary(v, 253) — which itself emits the 253
+	// boolean constraints, the recomposition, and gnark's own `< modulus` guard —
+	// followed by the explicit MSB-first `<= p-1` ladder (one Mul per bit, plus a
+	// `prefixEqual*bit = 0` zero-bit constraint at each of the 166 zero positions).
+	// These counts are regression pins for that shape; ACL2 re-proves whatever
+	// ships on its own path (the two tracks are independent provers).
+	const wantBits = 1090
 	if got := bitsCS.GetNbConstraints(); got != wantBits {
 		t.Errorf("CanonicalFqBits253: expected %d, got %d", wantBits, got)
 	}
-	const wantAssetRegistryGap = 5568
+	const wantAssetRegistryGap = 5296
 	if got := newN; got != wantAssetRegistryGap {
 		t.Errorf("AssetRegistryGap: expected %d constraints, got %d", wantAssetRegistryGap, got)
 	}
