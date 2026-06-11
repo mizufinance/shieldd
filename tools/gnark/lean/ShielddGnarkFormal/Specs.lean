@@ -1,5 +1,9 @@
+import ShielddGnarkFormal.Poseidon377
+
 namespace Shieldd
 namespace GnarkFormal
+
+open Poseidon377 (F hash3 nullifierDomain)
 
 def bls12377ScalarFieldPrime : Nat :=
   8444461749428370424248824938781546531375899335154063827935233455917409239041
@@ -44,18 +48,15 @@ theorem assetMembershipValid_regulated_exact
     assetMembershipValidSpec true true leafValue assetId nextValue = true := by
   simp [assetMembershipValidSpec, selectSpec]
 
-def nullifierDomain : Nat :=
-  5379060018020709603536552469582928598294319272435244111380218995696999540971
+/-- Nullifier = Poseidon377 rate-3 hash of (nk, stateCommitment, position) under
+the nullifier domain separator. Concrete `ZMod P` definition (see
+`Poseidon377`); no longer opaque. -/
+def nullifierSpec (nk stateCommitment position : F) : F :=
+  hash3 nullifierDomain nk stateCommitment position
 
-opaque poseidon377Hash2 : Nat → Nat → Nat → Nat
-opaque poseidon377Hash3 : Nat → Nat → Nat → Nat → Nat
-
-def nullifierSpec (nk stateCommitment position : Nat) : Nat :=
-  poseidon377Hash3 nullifierDomain nk stateCommitment position
-
-theorem nullifierSpec_unfold (nk stateCommitment position : Nat) :
+theorem nullifierSpec_unfold (nk stateCommitment position : F) :
     nullifierSpec nk stateCommitment position =
-      poseidon377Hash3 nullifierDomain nk stateCommitment position := by
+      hash3 nullifierDomain nk stateCommitment position := by
   rfl
 
 structure RegulatedStatusInputs where
@@ -74,10 +75,10 @@ def regulatedStatusSoundnessSpec (i : RegulatedStatusInputs) : Prop :=
     i.nextValue = true
 
 structure NoDoubleSpendInputs where
-  nk : Nat
-  stateCommitment : Nat
-  position : Nat
-  claimedNullifier : Nat
+  nk : F
+  stateCommitment : F
+  position : F
+  claimedNullifier : F
 
 def noDoubleSpendNullifierSpec (i : NoDoubleSpendInputs) : Prop :=
   i.claimedNullifier = nullifierSpec i.nk i.stateCommitment i.position

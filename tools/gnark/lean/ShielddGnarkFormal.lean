@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.Poseidon377
 import ShielddGnarkFormal.Specs
 import ShielddGnarkFormal.Extracted.BoolSelect
 import ShielddGnarkFormal.Extracted.IsZero

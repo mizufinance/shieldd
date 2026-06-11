@@ -41,6 +41,8 @@ func main() {
 		err = runExtractBitInputs(os.Args[2:])
 	case "export-poseidon-acl2":
 		err = runExportPoseidonACL2(os.Args[2:])
+	case "export-poseidon-lean":
+		err = runExportPoseidonLean(os.Args[2:])
 	case "export-lean":
 		err = runExportLean(os.Args[2:])
 	case "prove":
@@ -60,7 +62,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|export-lean|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|prove|replay|verify-bench> [flags]")
 }
 
 func runExportLean(args []string) error {
