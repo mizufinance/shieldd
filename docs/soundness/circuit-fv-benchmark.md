@@ -235,8 +235,11 @@ Coverage reached in this slice:
   `DiversifiedTransmissionKey`, and net balance commitment.
 - The dedicated `scripts/check-lean-circuit-fv.sh` gate runs `lake build`,
   checks source hashes, rejects `sorry`/`admit`, whitelists exactly those decaf
-  axioms, runs `#print axioms`, and checks Lean/Go Define fidelity markers. It
-  does not depend on ACL2 scripts or ACL2 proof freshness.
+  axioms, runs `#print axioms`, and compares a canonical Go Define wiring
+  transcript against the Lean model transcript. This checks the ordered
+  call-site wiring of proved leaves and decaf boundary calls; it deliberately
+  does not attempt full whole-circuit R1CS transcript parity.
+  It does not depend on ACL2 scripts or ACL2 proof freshness.
 
 The benchmark verdict is positive for Lean as the first whole-circuit path:
 the extraction-scalability wall was avoided by reusable gadget calls, and the
@@ -248,3 +251,8 @@ is the forward soundness direction for the modelled accepted constraints; it is
 not a whole-circuit uniqueness or completeness theorem. That gap is the Lean
 analog of the Picus/LLZK under-constraint check and remains a separate assurance
 track before promoting broader circuit-family claims.
+
+The decaf377 boundary is also explicit. The five decaf assumptions remain named
+external gadget bridges in shieldd; tier-1 gadget proofs should eventually be
+imported from the decaf377-go repository, while full curve/group FV is outside
+this shieldd circuit benchmark.

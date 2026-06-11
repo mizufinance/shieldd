@@ -25,3 +25,4 @@ import ShielddGnarkFormal.ExtractedProofs
 import ShielddGnarkFormal.ImtGapBridge
 import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.Consolidate2x1
+import ShielddGnarkFormal.Consolidate2x1WiringTranscript

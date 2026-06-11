@@ -138,6 +138,15 @@ A circuit property row moves to `proved` only with a stamped whole-circuit
 artifact; the invariant gate rejects gadget artifacts as substitutes for that
 property-level claim.
 
+**Lean wiring fidelity.** The `consolidate2x1` Lean whole-circuit artifact uses a
+Go Define wiring transcript, not a full R1CS transcript comparison. The transcript
+records the ordered call-site composition of proved leaves and named decaf
+boundary calls with stable semantic wire names, then byte-compares that output
+against the Lean model transcript in `scripts/check-lean-circuit-fv.sh`. This
+catches dropped calls, miswired inputs, missing equality/equivalence checks, and
+statement-field order drift without re-materializing the full Poseidon/Merkle
+constraint system.
+
 **M6 Lean scaffold.** A Lean 4 project now lives in
 [tools/gnark/lean](../../tools/gnark/lean). The vendored
 `gnark-lean-extractor` port emits supported BoolSelect, IsZero, and Nullifier

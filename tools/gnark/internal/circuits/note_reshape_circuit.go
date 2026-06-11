@@ -15,9 +15,10 @@ type NoteReshapeOutputCircuitFields struct {
 }
 
 type NoteReshapeCircuit struct {
-	label string
-	nIn   int
-	nOut  int
+	label       string
+	nIn         int
+	nOut        int
+	wiringTrace *WiringTranscript
 
 	ClaimedStatementHash frontend.Variable `gnark:",public"`
 
@@ -63,6 +64,14 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	sharedDivGen := gnarkte.Point{X: c.Spends[0].Note.DivGen.X, Y: c.Spends[0].Note.DivGen.Y}
 	sharedTransmission := gnarkte.Point{X: c.Spends[0].Note.Transmission.X, Y: c.Spends[0].Note.Transmission.Y}
 	sharedAssetID := c.Spends[0].Note.AssetID
+	c.traceWiring(
+		"shared.bind",
+		"shared.ak=auth.ak",
+		"claimed.balance_commitment=balance_commitment",
+		"shared.div_gen=spend0.note.div_gen",
+		"shared.transmission=spend0.note.transmission",
+		"shared.asset_id=spend0.note.asset_id",
+	)
 
 	inputAmounts := make([]frontend.Variable, 0, c.nIn)
 	outputAmounts := make([]frontend.Variable, 0, c.nOut)
@@ -71,8 +80,11 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	nullifiersAndRKs := make([]frontend.Variable, 0, 2*c.nIn)
 
 	for i := range c.Spends {
+		spendName := fmt.Sprintf("spend%d", i)
+		c.traceWiring("spend.begin", spendName)
 		amount, nullifier, rkCompressed, err := c.verifyNoteReshapeSpend(
 			api,
+			spendName,
 			sharedAK,
 			sharedDivGen,
 			sharedTransmission,
@@ -82,13 +94,17 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		if err != nil {
 			return err
 		}
+		c.traceWiring("spend.collect", spendName, "amount->input_amounts", "nullifier->statement.nullifiers_and_rks", "rk_compressed->statement.nullifiers_and_rks")
 		inputAmounts = append(inputAmounts, amount)
 		nullifiersAndRKs = append(nullifiersAndRKs, nullifier, rkCompressed)
 	}
 
 	for i := range c.Outputs {
+		outputName := fmt.Sprintf("output%d", i)
+		c.traceWiring("output.begin", outputName)
 		amount, commitment, err := c.verifyNoteReshapeOutput(
 			api,
+			outputName,
 			sharedAK,
 			sharedDivGen,
 			sharedTransmission,
@@ -98,10 +114,12 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		if err != nil {
 			return err
 		}
+		c.traceWiring("output.collect", outputName, "amount->output_amounts", "commitment->statement.output_commitments")
 		outputAmounts = append(outputAmounts, amount)
 		outputCommitments = append(outputCommitments, commitment)
 	}
 
+	c.traceWiring("decaf.net_balance_commitment", "inputs=input_amounts", "outputs=output_amounts", "asset_id=shared.asset_id", "blinding=action_balance_blinding", "out=balance_commitment.computed")
 	balanceCommitmentPoint, err := computeTransferNetBalanceCommitment(
 		api,
 		inputAmounts,
@@ -112,21 +130,29 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.assert_equivalent", "lhs=balance_commitment.computed", "rhs=claimed.balance_commitment")
 	decafgnark.AssertEquivalent(api, balanceCommitmentPoint, claimedBalanceCommitment)
+	c.traceWiring("decaf.compress_to_field", "in=balance_commitment.computed", "out=balance_commitment.fq")
 	balanceCommitmentFq, err := decafgnark.CompressToField(api, balanceCommitmentPoint)
 	if err != nil {
 		return err
 	}
 
+	c.traceWiring("statement.append", "field=anchor")
 	statementFields = append(statementFields, c.Anchor)
+	c.traceWiring("statement.append_all", "fields=output_commitments")
 	statementFields = append(statementFields, outputCommitments...)
+	c.traceWiring("statement.append", "field=balance_commitment.fq")
 	statementFields = append(statementFields, balanceCommitmentFq)
+	c.traceWiring("statement.append_all", "fields=nullifiers_and_rks")
 	statementFields = append(statementFields, nullifiersAndRKs...)
 
+	c.traceWiring("statement.hash", "family="+c.label, "fields=statement_fields", "out=statement_hash")
 	statementHash, err := noteReshapeStatementHash(api, c.label, c.nIn, c.nOut, statementFields)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("assert.eq", "lhs=statement_hash", "rhs=claimed_statement_hash")
 	api.AssertIsEqual(statementHash, c.ClaimedStatementHash)
 	return nil
 }
@@ -149,6 +175,7 @@ func noteReshapeStatementHash(
 
 func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 	api frontend.API,
+	name string,
 	sharedAK gnarkte.Point,
 	sharedDivGen gnarkte.Point,
 	sharedTransmission gnarkte.Point,
@@ -159,10 +186,21 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 	spentTransmission := gnarkte.Point{X: spend.Note.Transmission.X, Y: spend.Note.Transmission.Y}
 	rkClaimed := gnarkte.Point{X: spend.RK.X, Y: spend.RK.Y}
 
+	c.traceWiring("decaf.compress_to_field", "in="+name+".note.div_gen", "out="+name+".note.div_gen_fq")
 	spentDivGenFq, err := decafgnark.CompressToField(api, spentDivGen)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.traceWiring(
+		"gadget.note_commitment",
+		"blinding="+name+".note.blinding",
+		"amount="+name+".note.amount",
+		"asset_id="+name+".note.asset_id",
+		"div_gen_fq="+name+".note.div_gen_fq",
+		"transmission_key_s="+name+".note.transmission_key_s",
+		"clue_key="+name+".note.clue_key",
+		"out="+name+".note.commitment.computed",
+	)
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		spend.Note.Blinding,
@@ -175,32 +213,41 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.traceWiring("assert.eq", "lhs="+name+".note.commitment.computed", "rhs="+name+".state_proof.commitment")
 	api.AssertIsEqual(spentCommitment, spend.StateProof.Commitment)
 
+	c.traceWiring("gadget.nullifier", "nk=auth.nk", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "out="+name+".nullifier.computed")
 	nullifier, err := Nullifier(api, c.Auth.NK, spend.StateProof.Commitment, spend.StateProof.Position)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.traceWiring("assert.eq", "lhs="+name+".nullifier.computed", "rhs="+name+".nullifier")
 	api.AssertIsEqual(nullifier, spend.Nullifier)
 
 	statePath := make([][3]frontend.Variable, len(spend.StateProof.Path))
 	copy(statePath, spend.StateProof.Path[:])
+	c.traceWiring("gadget.state_commitment_path", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "path="+name+".state_proof.path", "out="+name+".anchor.computed")
 	anchor, err := VerifyStateCommitmentPath(api, spend.StateProof.Commitment, spend.StateProof.Position, statePath)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.traceWiring("assert.eq", "lhs="+name+".anchor.computed", "rhs=anchor")
 	api.AssertIsEqual(anchor, c.Anchor)
 
+	c.traceWiring("decaf.randomized_verification_key", "ak=shared.ak", "randomizer="+name+".auth_randomizer", "out="+name+".rk.computed")
 	computedRK, err := RandomizedVerificationKey(api, sharedAK, spend.AuthRandomizer)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".rk.computed", "rhs="+name+".rk.claimed")
 	decafgnark.AssertEquivalent(api, computedRK, rkClaimed)
+	c.traceWiring("decaf.compress_to_field", "in="+name+".rk.claimed", "out="+name+".rk.compressed")
 	rkCompressed, err := decafgnark.CompressToField(api, rkClaimed)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen="+name+".note.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out="+name+".transmission.computed")
 	computedTransmission, err := DiversifiedTransmissionKey(
 		api,
 		c.Auth.NK,
@@ -212,9 +259,13 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission")
 	decafgnark.AssertEquivalent(api, computedTransmission, spentTransmission)
+	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")
 	decafgnark.AssertEquivalent(api, spentDivGen, sharedDivGen)
+	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
 	decafgnark.AssertEquivalent(api, spentTransmission, sharedTransmission)
+	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
 	api.AssertIsEqual(spend.Note.AssetID, sharedAssetID)
 
 	return spend.Note.Amount, nullifier, rkCompressed, nil
@@ -222,6 +273,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 
 func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	api frontend.API,
+	name string,
 	sharedAK gnarkte.Point,
 	sharedDivGen gnarkte.Point,
 	sharedTransmission gnarkte.Point,
@@ -231,10 +283,21 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	createdDivGen := gnarkte.Point{X: output.Note.DivGen.X, Y: output.Note.DivGen.Y}
 	createdTransmission := gnarkte.Point{X: output.Note.Transmission.X, Y: output.Note.Transmission.Y}
 
+	c.traceWiring("decaf.compress_to_field", "in="+name+".note.div_gen", "out="+name+".note.div_gen_fq")
 	createdDivGenFq, err := decafgnark.CompressToField(api, createdDivGen)
 	if err != nil {
 		return nil, nil, err
 	}
+	c.traceWiring(
+		"gadget.note_commitment",
+		"blinding="+name+".note.blinding",
+		"amount="+name+".note.amount",
+		"asset_id="+name+".note.asset_id",
+		"div_gen_fq="+name+".note.div_gen_fq",
+		"transmission_key_s="+name+".note.transmission_key_s",
+		"clue_key="+name+".note.clue_key",
+		"out="+name+".note.commitment.computed",
+	)
 	noteCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		output.Note.Blinding,
@@ -247,8 +310,10 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	if err != nil {
 		return nil, nil, err
 	}
+	c.traceWiring("assert.eq", "lhs="+name+".note.commitment.computed", "rhs="+name+".note_commitment")
 	api.AssertIsEqual(noteCommitment, output.NoteCommitment)
 
+	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen="+name+".note.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out="+name+".transmission.computed")
 	computedTransmission, err := DiversifiedTransmissionKey(
 		api,
 		c.Auth.NK,
@@ -260,9 +325,13 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	if err != nil {
 		return nil, nil, err
 	}
+	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission")
 	decafgnark.AssertEquivalent(api, computedTransmission, createdTransmission)
+	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")
 	decafgnark.AssertEquivalent(api, createdDivGen, sharedDivGen)
+	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
 	decafgnark.AssertEquivalent(api, createdTransmission, sharedTransmission)
+	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
 	api.AssertIsEqual(output.Note.AssetID, sharedAssetID)
 
 	return output.Note.Amount, noteCommitment, nil

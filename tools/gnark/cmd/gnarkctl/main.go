@@ -45,6 +45,8 @@ func main() {
 		err = runExportPoseidonLean(os.Args[2:])
 	case "export-lean":
 		err = runExportLean(os.Args[2:])
+	case "export-wiring-transcript":
+		err = runExportWiringTranscript(os.Args[2:])
 	case "prove":
 		err = runProve(os.Args[2:])
 	case "replay":
@@ -62,7 +64,34 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|export-wiring-transcript|prove|replay|verify-bench> [flags]")
+}
+
+func runExportWiringTranscript(args []string) error {
+	fs := flag.NewFlagSet("export-wiring-transcript", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "supported circuit label")
+	outPath := fs.String("out", "", "output canonical wiring transcript path")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *outPath == "" {
+		return fmt.Errorf("--circuit and --out are required")
+	}
+	if *circuit != "consolidate2x1" {
+		return fmt.Errorf("wiring transcript export is currently supported only for consolidate2x1, got %q", *circuit)
+	}
+	out, err := circuits.ExportConsolidate2x1WiringTranscript()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	if err := os.WriteFile(*outPath, []byte(out), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", *outPath, err)
+	}
+	fmt.Fprintf(os.Stderr, "wrote %s\n", *outPath)
+	return nil
 }
 
 func runExportLean(args []string) error {
