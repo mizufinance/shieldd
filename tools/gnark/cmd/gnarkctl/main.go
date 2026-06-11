@@ -178,10 +178,16 @@ func runExportR1CS(args []string) error {
 // false.
 func gadgetCircuit(label string) (frontend.Circuit, bool) {
 	switch label {
+	case "gadget-poseidon-hash1":
+		return &circuits.PoseidonHash1Gadget{}, true
 	case "gadget-poseidon2":
 		return &circuits.PoseidonHash2Gadget{}, true
 	case "gadget-poseidon-hash4":
 		return &circuits.PoseidonHash4Gadget{}, true
+	case "gadget-poseidon-hash6":
+		return &circuits.PoseidonHash6Gadget{}, true
+	case "gadget-poseidon-hash7":
+		return &circuits.PoseidonHash7Gadget{}, true
 	case "gadget-quad-path-1":
 		return &circuits.QuadPath1Gadget{}, true
 	case "gadget-quad-path-2":
@@ -190,6 +196,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.QuadPath4Gadget{}, true
 	case "gadget-quad-path-16":
 		return &circuits.QuadPath16Gadget{}, true
+	case "gadget-quad-path-24":
+		return &circuits.QuadPath24Gadget{}, true
 	case "gadget-nullifier":
 		return &circuits.NullifierGadget{}, true
 	case "gadget-iszero":
@@ -602,11 +610,20 @@ func runVerifyBench(args []string) error {
 func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error) {
 	compileStart := time.Now()
 	switch circuit {
+	case "gadget-poseidon-hash1":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash1Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-poseidon2":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash2Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-poseidon-hash4":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash4Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon-hash6":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash6Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon-hash7":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash7Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-quad-path-1":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath1Gadget{})

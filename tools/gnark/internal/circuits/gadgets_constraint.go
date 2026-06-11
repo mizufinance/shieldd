@@ -13,10 +13,27 @@ package circuits
 
 import (
 	"github.com/consensys/gnark/frontend"
-	"github.com/reilabs/gnark-lean-extractor/v3/abstractor"
 	. "github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	. "github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
+	"github.com/reilabs/gnark-lean-extractor/v3/abstractor"
 )
+
+// PoseidonHash1Gadget isolates the one-input Poseidon377 permutation used for
+// TCT leaf hashing before the quad state-commitment path.
+type PoseidonHash1Gadget struct {
+	Domain frontend.Variable `gnark:",public"`
+	In0    frontend.Variable `gnark:",public"`
+	Out    frontend.Variable
+}
+
+func (c *PoseidonHash1Gadget) Define(api frontend.API) error {
+	out, err := Poseidon377Hash1(api, c.Domain, c.In0)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out, c.Out)
+	return nil
+}
 
 // PoseidonHash2Gadget isolates the two-input Poseidon377 permutation: given a
 // domain separator and two field inputs, the claimed output must equal the
@@ -51,6 +68,51 @@ type PoseidonHash4Gadget struct {
 
 func (c *PoseidonHash4Gadget) Define(api frontend.API) error {
 	out, err := Poseidon377Hash4(api, c.Domain, [4]frontend.Variable{c.In0, c.In1, c.In2, c.In3})
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out, c.Out)
+	return nil
+}
+
+// PoseidonHash6Gadget isolates the six-input Poseidon377 permutation used by
+// note commitments.
+type PoseidonHash6Gadget struct {
+	Domain frontend.Variable `gnark:",public"`
+	In0    frontend.Variable `gnark:",public"`
+	In1    frontend.Variable `gnark:",public"`
+	In2    frontend.Variable `gnark:",public"`
+	In3    frontend.Variable `gnark:",public"`
+	In4    frontend.Variable `gnark:",public"`
+	In5    frontend.Variable `gnark:",public"`
+	Out    frontend.Variable
+}
+
+func (c *PoseidonHash6Gadget) Define(api frontend.API) error {
+	out, err := Poseidon377Hash6(api, c.Domain, [6]frontend.Variable{c.In0, c.In1, c.In2, c.In3, c.In4, c.In5})
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out, c.Out)
+	return nil
+}
+
+// PoseidonHash7Gadget isolates the seven-input Poseidon377 permutation used by
+// consolidate/split statement hashes.
+type PoseidonHash7Gadget struct {
+	Domain frontend.Variable `gnark:",public"`
+	In0    frontend.Variable `gnark:",public"`
+	In1    frontend.Variable `gnark:",public"`
+	In2    frontend.Variable `gnark:",public"`
+	In3    frontend.Variable `gnark:",public"`
+	In4    frontend.Variable `gnark:",public"`
+	In5    frontend.Variable `gnark:",public"`
+	In6    frontend.Variable `gnark:",public"`
+	Out    frontend.Variable
+}
+
+func (c *PoseidonHash7Gadget) Define(api frontend.API) error {
+	out, err := Poseidon377Hash7(api, c.Domain, [7]frontend.Variable{c.In0, c.In1, c.In2, c.In3, c.In4, c.In5, c.In6})
 	if err != nil {
 		return err
 	}
@@ -129,9 +191,9 @@ func verifyQuadPathN(api frontend.API, domain, leafHash frontend.Variable, path 
 // a leaf hash, N layers of 3 siblings each, and a position, the claimed Root must
 // equal the iterated Hash4 path. Scope-only export target for verify-r1cs scaling.
 type QuadPath1Gadget struct {
-	Domain   frontend.Variable    `gnark:",public"`
-	LeafHash frontend.Variable    `gnark:",public"`
-	Position frontend.Variable    `gnark:",public"`
+	Domain   frontend.Variable `gnark:",public"`
+	LeafHash frontend.Variable `gnark:",public"`
+	Position frontend.Variable `gnark:",public"`
 	Path     [1][3]frontend.Variable
 	Root     frontend.Variable
 }
@@ -146,9 +208,9 @@ func (c *QuadPath1Gadget) Define(api frontend.API) error {
 }
 
 type QuadPath2Gadget struct {
-	Domain   frontend.Variable    `gnark:",public"`
-	LeafHash frontend.Variable    `gnark:",public"`
-	Position frontend.Variable    `gnark:",public"`
+	Domain   frontend.Variable `gnark:",public"`
+	LeafHash frontend.Variable `gnark:",public"`
+	Position frontend.Variable `gnark:",public"`
 	Path     [2][3]frontend.Variable
 	Root     frontend.Variable
 }
@@ -163,9 +225,9 @@ func (c *QuadPath2Gadget) Define(api frontend.API) error {
 }
 
 type QuadPath4Gadget struct {
-	Domain   frontend.Variable    `gnark:",public"`
-	LeafHash frontend.Variable    `gnark:",public"`
-	Position frontend.Variable    `gnark:",public"`
+	Domain   frontend.Variable `gnark:",public"`
+	LeafHash frontend.Variable `gnark:",public"`
+	Position frontend.Variable `gnark:",public"`
 	Path     [4][3]frontend.Variable
 	Root     frontend.Variable
 }
@@ -180,14 +242,31 @@ func (c *QuadPath4Gadget) Define(api frontend.API) error {
 }
 
 type QuadPath16Gadget struct {
-	Domain   frontend.Variable    `gnark:",public"`
-	LeafHash frontend.Variable    `gnark:",public"`
-	Position frontend.Variable    `gnark:",public"`
+	Domain   frontend.Variable `gnark:",public"`
+	LeafHash frontend.Variable `gnark:",public"`
+	Position frontend.Variable `gnark:",public"`
 	Path     [16][3]frontend.Variable
 	Root     frontend.Variable
 }
 
 func (c *QuadPath16Gadget) Define(api frontend.API) error {
+	root, err := verifyQuadPathN(api, c.Domain, c.LeafHash, c.Path[:], c.Position)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(root, c.Root)
+	return nil
+}
+
+type QuadPath24Gadget struct {
+	Domain   frontend.Variable `gnark:",public"`
+	LeafHash frontend.Variable `gnark:",public"`
+	Position frontend.Variable `gnark:",public"`
+	Path     [24][3]frontend.Variable
+	Root     frontend.Variable
+}
+
+func (c *QuadPath24Gadget) Define(api frontend.API) error {
 	root, err := verifyQuadPathN(api, c.Domain, c.LeafHash, c.Path[:], c.Position)
 	if err != nil {
 		return err

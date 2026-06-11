@@ -253,20 +253,33 @@ func poseidonHashNative(cfg poseidonRateConfig, domainSeparator *big.Int, inputs
 }
 
 func Poseidon377Hash1(api frontend.API, domainSeparator frontend.Variable, input frontend.Variable) (frontend.Variable, error) {
-	cfg, err := loadPoseidonRateParams(1)
-	if err != nil {
-		return nil, err
-	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{input})
+	return abstractor.Call(api, poseidonPerm1{Domain: domainSeparator, In0: input}), nil
 }
 
-// poseidonPerm{2,3,4} wrap one Poseidon377 permutation at a fixed rate as an
+// poseidonPerm{1,2,3,4,6,7} wrap one Poseidon377 permutation at a fixed rate as an
 // extractor gadget so the Lean extraction emits a single reusable `def
 // poseidonPerm{N}` plus one call per hash site, instead of inlining ~600–2300
 // gates at every call. The rate config is loaded inside DefineGadget because the
 // extractor clones gadgets with copystructure, which drops unexported fields —
 // so nothing rate-specific may be carried on the struct. During proving the call
 // runs DefineGadget inline, so the constraint system is unchanged.
+type poseidonPerm1 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+}
+
+func (g poseidonPerm1) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(1)
+	if err != nil {
+		panic(err)
+	}
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
 type poseidonPerm2 struct {
 	Domain frontend.Variable
 	In0    frontend.Variable
@@ -324,6 +337,51 @@ func (g poseidonPerm4) DefineGadget(api frontend.API) interface{} {
 	return out
 }
 
+type poseidonPerm6 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+	In2    frontend.Variable
+	In3    frontend.Variable
+	In4    frontend.Variable
+	In5    frontend.Variable
+}
+
+func (g poseidonPerm6) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(6)
+	if err != nil {
+		panic(err)
+	}
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0, g.In1, g.In2, g.In3, g.In4, g.In5})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+type poseidonPerm7 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+	In2    frontend.Variable
+	In3    frontend.Variable
+	In4    frontend.Variable
+	In5    frontend.Variable
+	In6    frontend.Variable
+}
+
+func (g poseidonPerm7) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(7)
+	if err != nil {
+		panic(err)
+	}
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0, g.In1, g.In2, g.In3, g.In4, g.In5, g.In6})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
 func Poseidon377Hash2(api frontend.API, domainSeparator frontend.Variable, inputs [2]frontend.Variable) (frontend.Variable, error) {
 	return abstractor.Call(api, poseidonPerm2{Domain: domainSeparator, In0: inputs[0], In1: inputs[1]}), nil
 }
@@ -345,11 +403,15 @@ func Poseidon377Hash5(api frontend.API, domainSeparator frontend.Variable, input
 }
 
 func Poseidon377Hash6(api frontend.API, domainSeparator frontend.Variable, inputs [6]frontend.Variable) (frontend.Variable, error) {
-	cfg, err := loadPoseidonRateParams(6)
-	if err != nil {
-		return nil, err
-	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], inputs[5]})
+	return abstractor.Call(api, poseidonPerm6{
+		Domain: domainSeparator,
+		In0:    inputs[0],
+		In1:    inputs[1],
+		In2:    inputs[2],
+		In3:    inputs[3],
+		In4:    inputs[4],
+		In5:    inputs[5],
+	}), nil
 }
 
 func Poseidon377Hash7(
@@ -357,19 +419,16 @@ func Poseidon377Hash7(
 	domainSeparator frontend.Variable,
 	inputs [7]frontend.Variable,
 ) (frontend.Variable, error) {
-	cfg, err := loadPoseidonRateParams(7)
-	if err != nil {
-		return nil, err
-	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{
-		inputs[0],
-		inputs[1],
-		inputs[2],
-		inputs[3],
-		inputs[4],
-		inputs[5],
-		inputs[6],
-	})
+	return abstractor.Call(api, poseidonPerm7{
+		Domain: domainSeparator,
+		In0:    inputs[0],
+		In1:    inputs[1],
+		In2:    inputs[2],
+		In3:    inputs[3],
+		In4:    inputs[4],
+		In5:    inputs[5],
+		In6:    inputs[6],
+	}), nil
 }
 
 func Poseidon377Hash1Native(domainSeparator, input *big.Int) (*big.Int, error) {

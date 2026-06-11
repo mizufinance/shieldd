@@ -212,3 +212,39 @@ an upstream extractor fix or a hand-modelled spec; (b) several sub-circuits have
 - gnark→LLZK ingestion: no path exists today; watch only.
 - Retiring ACL2: not until Lean demonstrably reaches coverage.
 - The other three circuits: scale up only after a consolidate2x1 verdict.
+
+## Verdict — consolidate2x1 Lean whole-circuit slice
+
+Lean now has a stamped whole-circuit artifact for the checked-in
+`consolidate2x1` note-reshape Define-model:
+[consolidate2x1-whole-circuit-lean-artifact.txt](../../crates/core/component/shielded-pool/formal/consolidate2x1-whole-circuit-lean-artifact.txt).
+The theorem is
+`Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound`.
+
+Coverage reached in this slice:
+
+- Poseidon rate-1 TCT leaf hash wrapper, rate-3 nullifier, rate-6 note
+  commitment wrapper, and rate-7 statement hash wrapper are extracted and
+  included in the Lean compose model.
+- The anchor path is the production depth-24 quad path. The path bridge proves
+  the extracted depth-24 gadget recovers the public anchor from the leaf hash,
+  position bits, and path using the concrete rate-4 Poseidon bridge.
+- The five decaf377 external operations used by note reshape are named
+  assumptions with ledger rows and are whitelisted by the Lean checker:
+  `CompressToField`, `AssertEquivalent`, `RandomizedVerificationKey`,
+  `DiversifiedTransmissionKey`, and net balance commitment.
+- The dedicated `scripts/check-lean-circuit-fv.sh` gate runs `lake build`,
+  checks source hashes, rejects `sorry`/`admit`, whitelists exactly those decaf
+  axioms, runs `#print axioms`, and checks Lean/Go Define fidelity markers. It
+  does not depend on ACL2 scripts or ACL2 proof freshness.
+
+The benchmark verdict is positive for Lean as the first whole-circuit path:
+the extraction-scalability wall was avoided by reusable gadget calls, and the
+compose theorem builds as a single Lean artifact. ACL2 remains independent and
+gadget-owned.
+
+The remaining under-constraint / uniqueness gap is explicit. The current theorem
+is the forward soundness direction for the modelled accepted constraints; it is
+not a whole-circuit uniqueness or completeness theorem. That gap is the Lean
+analog of the Picus/LLZK under-constraint check and remains a separate assurance
+track before promoting broader circuit-family claims.

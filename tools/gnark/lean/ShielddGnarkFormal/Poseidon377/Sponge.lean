@@ -14,7 +14,13 @@ def hash3 (domain in0 in1 in2 : F) : F :=
 def hash4 (domain in0 in1 in2 in3 : F) : F :=
   hashRate rate4Arc rate4Mds domain [in0, in1, in2, in3]
 
+def hash1 (domain in0 : F) : F :=
+  hashRate rate1Arc rate1Mds domain [in0]
+
 def hash6 (domain in0 in1 in2 in3 in4 in5 : F) : F :=
   hashRate rate6Arc rate6Mds domain [in0, in1, in2, in3, in4, in5]
+
+def hash7 (domain in0 in1 in2 in3 in4 in5 in6 : F) : F :=
+  hashRate rate7Arc rate7Mds domain [in0, in1, in2, in3, in4, in5, in6]
 
 end Shieldd.GnarkFormal.Poseidon377

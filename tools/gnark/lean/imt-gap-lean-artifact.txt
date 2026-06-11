@@ -1,0 +1,32 @@
+B1 Lean imt-gap bridge artifact
+
+scope: B1 AssetRegistryGap / ImtGap bridge only; not a whole-circuit artifact
+lean_toolchain: leanprover/lean4:v4.15.0
+gnark_lean_extractor_revision: 663768cd712c3d71796a612859fd47c06665511d
+proven_zk_revision: 5c483bde5177b560c9095e5babc05d3dbed6951e
+mathlib_revision: 9837ca9d65d9de6fad1ef4381750ca688774e608
+
+imt_gap_extracted_source: ShielddGnarkFormal/Extracted/ImtGap.lean
+imt_gap_extracted_source_sha256: 04ec24f4d80f187dba4cd56522486c74aad0365f27dd08d0278f438fea498cb9
+canonical_bridge_source: ShielddGnarkFormal/CanonicalFqBitsBridge.lean
+canonical_bridge_source_sha256: 92091babb6e009fd84ab9566eb329d96e6e0e4a788975ebb5e9275b0817d8667
+lex_less_bridge_source: ShielddGnarkFormal/LexLessLadder.lean
+lex_less_bridge_source_sha256: d9c646596745eb0521a022f1965f7d564ba303445ba46bcc19f1e240f04eeaa0
+imt_gap_bridge_source: ShielddGnarkFormal/ImtGapBridge.lean
+imt_gap_bridge_source_sha256: e243046555d5a0243fe4ef0cb147f4b6b608fcdae10d16274f21aca7e9198340
+spec_source: ShielddGnarkFormal/Specs.lean
+spec_source_sha256: 6cd710cd68968779dbdaa2d7de5fe69f700283c850d4eddc0b3ff9a70ac861f6
+root_source_sha256: f6b3621189807d19804e6b8f2b50d6ffa8deee62af195c9d83697e27ec85346d
+lakefile_sha256: b0d57eb3232f42b3e97989f5055a9eb27b081b56cd81b509745323447704b774
+lake_manifest_sha256: 0f2d34a4a838f7532887a6f0bc0b134c5b55aa026158eff6721c81d51511cd7f
+lean_toolchain_sha256: aff3a276fcd1daa6f311e07baf168d5c0c89a3ddad4cd4e8de3e2ec779504e46
+
+checked_by: scripts/check-lean-circuit-fv.sh
+theorem: Shieldd.GnarkFormal.Extracted.ImtGap.canonicalFqBitsGadget_canonical
+theorem: Shieldd.GnarkFormal.Extracted.ImtGap.lexLess253Gadget_sound
+theorem: Shieldd.GnarkFormal.Extracted.ImtGap.circuit_sound
+axiom_baseline: propext, Classical.choice, Quot.sound
+
+NOTE this artifact proves the extracted ImtGap gadget implies
+assetMembershipValidSpec for recovered canonical Nat representatives. It does
+not promote a consolidate2x1 whole-circuit property row by itself.
