@@ -107,6 +107,49 @@ func mixLayerMDSNative(state []*big.Int, mds []*big.Int, modulus *big.Int) []*bi
 	return next
 }
 
+// poseidonFullRound / poseidonPartialRound wrap one Poseidon377 round as an
+// extractor gadget so the Lean extraction emits one reusable `def` per round
+// kind plus one call per round, instead of inlining every round's gates at every
+// hash site. Each round consumes the state and this round's `width` constants and
+// returns the new state. The rate's MDS is loaded inside DefineGadget (the
+// extractor clones gadgets with copystructure, which drops unexported fields, so
+// nothing rate-specific may be carried on the struct beyond the exported slices).
+// During proving the call inlines, so the constraint system is byte-identical.
+type poseidonFullRound struct {
+	State  []frontend.Variable
+	Consts []frontend.Variable
+}
+
+func (g poseidonFullRound) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(len(g.State) - 1)
+	if err != nil {
+		panic(err)
+	}
+	st := make([]frontend.Variable, len(g.State))
+	for i := range g.State {
+		st[i] = pow17(api, api.Add(g.State[i], g.Consts[i]))
+	}
+	return mixLayerMDS(api, st, cfg.mds)
+}
+
+type poseidonPartialRound struct {
+	State  []frontend.Variable
+	Consts []frontend.Variable
+}
+
+func (g poseidonPartialRound) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(len(g.State) - 1)
+	if err != nil {
+		panic(err)
+	}
+	st := make([]frontend.Variable, len(g.State))
+	for i := range g.State {
+		st[i] = api.Add(g.State[i], g.Consts[i])
+	}
+	st[0] = pow17(api, st[0])
+	return mixLayerMDS(api, st, cfg.mds)
+}
+
 func poseidonHash(api frontend.API, cfg poseidonRateConfig, domainSeparator frontend.Variable, inputs []frontend.Variable) (frontend.Variable, error) {
 	if cfg.alpha != 17 {
 		return nil, fmt.Errorf("unexpected poseidon alpha %d", cfg.alpha)
@@ -128,33 +171,25 @@ func poseidonHash(api frontend.API, cfg poseidonRateConfig, domainSeparator fron
 
 	roundConstantIndex := 0
 	fullHalf := cfg.fullRounds / 2
-	applyRoundConstants := func() {
-		for i := range state {
-			state[i] = api.Add(state[i], cfg.arc[roundConstantIndex])
+	nextConsts := func() []frontend.Variable {
+		c := make([]frontend.Variable, cfg.width)
+		for i := 0; i < cfg.width; i++ {
+			c[i] = cfg.arc[roundConstantIndex]
 			roundConstantIndex++
 		}
+		return c
 	}
 
 	for round := 0; round < fullHalf; round++ {
-		applyRoundConstants()
-		for i := range state {
-			state[i] = pow17(api, state[i])
-		}
-		state = mixLayerMDS(api, state, cfg.mds)
+		state = abstractor.Call1(api, poseidonFullRound{State: state, Consts: nextConsts()})
 	}
 
 	for round := 0; round < cfg.partialRounds; round++ {
-		applyRoundConstants()
-		state[0] = pow17(api, state[0])
-		state = mixLayerMDS(api, state, cfg.mds)
+		state = abstractor.Call1(api, poseidonPartialRound{State: state, Consts: nextConsts()})
 	}
 
 	for round := 0; round < fullHalf; round++ {
-		applyRoundConstants()
-		for i := range state {
-			state[i] = pow17(api, state[i])
-		}
-		state = mixLayerMDS(api, state, cfg.mds)
+		state = abstractor.Call1(api, poseidonFullRound{State: state, Consts: nextConsts()})
 	}
 
 	return state[1], nil

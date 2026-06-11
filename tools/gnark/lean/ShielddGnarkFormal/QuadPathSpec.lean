@@ -68,7 +68,7 @@ theorem quadPathRound_sound
 leaf upward, one layer per 2-bit index slice. Mirrors `proven-zk`'s `Merkle.recover`
 at arity 4 with the per-node hash `H4` abstract. -/
 def recover2 (H4 : F → F → F → F → F → F) (domain leaf : F)
-    (path : Vector (Vector F 3) 2) (bits : List.Vector F 4) : F :=
+    (path : List.Vector (List.Vector F 3) 2) (bits : List.Vector F 4) : F :=
   let r1 := recoverStep H4 domain leaf path[0][0] path[0][1] path[0][2] bits[0] bits[1]
   recoverStep H4 domain r1 path[1][0] path[1][1] path[1][2] bits[2] bits[3]
 
@@ -78,7 +78,7 @@ the extracted `QuadPath2.circuit` forces the claimed `Root` to equal the abstrac
 over both layers; the final `Gates.eq` pins the root. -/
 theorem circuit_sound
     {H4 : F → F → F → F → F → F} (hP : Perm4Computes H4)
-    (domain leaf position root : F) (path : Vector (Vector F 3) 2) :
+    (domain leaf position root : F) (path : List.Vector (List.Vector F 3) 2) :
     circuit domain leaf position path root
       → ∃ bits, Extracted.QuadPath2.Gates.to_binary position 4 bits
           ∧ root = recover2 H4 domain leaf path bits := by
