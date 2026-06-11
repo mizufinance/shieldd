@@ -44,9 +44,13 @@ def sboxPartial (st : List F) : List F :=
   | [] => []
   | x :: rest => pow17 x :: rest
 
-/-- Inner product of an MDS row with the state (`poseidon377-dot`). -/
+/-- Inner product of an MDS row with the state. Left-fold with no leading zero,
+matching gnark's `mixLayerMDS` association exactly so the extracted-circuit gate
+tree is definitionally equal to this spec. -/
 def dot (row st : List F) : F :=
-  (List.zipWith (· * ·) row st).sum
+  match List.zipWith (· * ·) row st with
+  | [] => 0
+  | p :: ps => ps.foldl (· + ·) p
 
 /-- MDS mixing layer: one `dot` per row (`poseidon377-mix`). -/
 def mix (mds : List (List F)) (st : List F) : List F :=

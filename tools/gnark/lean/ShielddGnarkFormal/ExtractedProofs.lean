@@ -7,8 +7,7 @@ import ProvenZk.Gates
 namespace Shieldd
 namespace GnarkFormal
 
-namespace BoolSelect := Shieldd.GnarkFormal.Extracted.BoolSelect
-namespace IsZero := Shieldd.GnarkFormal.Extracted.IsZero
+open Shieldd.GnarkFormal.Extracted
 
 theorem boolSelectExtracted_implies_select
     [Fact (Nat.Prime BoolSelect.Order)]
@@ -26,7 +25,9 @@ theorem boolSelectExtracted_bool_condition
     (h : BoolSelect.circuit (if cond then (1 : BoolSelect.F) else 0) ifTrue ifFalse valid) :
     valid = if cond then ifTrue else ifFalse := by
   have hSelect := boolSelectExtracted_implies_select h
-  cases cond <;> simp [GatesDef.select, GatesDef.is_bool] at hSelect ⊢
+  obtain ⟨_, hv⟩ := hSelect
+  rw [hv]
+  cases cond <;> simp
 
 theorem isZeroExtracted_implies_is_zero
     [Fact (Nat.Prime IsZero.Order)]

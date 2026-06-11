@@ -9,4 +9,5 @@ import ShielddGnarkFormal.Extracted.QuadPath1
 import ShielddGnarkFormal.Extracted.QuadPath2
 import ShielddGnarkFormal.Extracted.QuadPath4
 import ShielddGnarkFormal.Extracted.QuadPath16
+import ShielddGnarkFormal.QuadPathSpec
 import ShielddGnarkFormal.ExtractedProofs
