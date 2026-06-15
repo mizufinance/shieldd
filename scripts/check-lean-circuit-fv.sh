@@ -50,7 +50,10 @@ for artifact in "$B1_ARTIFACT" "$WHOLE_ARTIFACT"; do
 done
 
 echo "==> lake build"
-(cd "$LEAN_DIR" && lake build ShielddGnarkFormal.Consolidate2x1WiringTranscript && lake build)
+# Fetch prebuilt Mathlib oleans from the upstream cache so CI compiles only the
+# project's own modules. Without this a clean checkout rebuilds all of Mathlib
+# from source and the runner is reclaimed before it finishes.
+(cd "$LEAN_DIR" && lake exe cache get && lake build ShielddGnarkFormal.Consolidate2x1WiringTranscript && lake build)
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
