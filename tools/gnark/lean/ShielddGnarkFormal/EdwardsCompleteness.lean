@@ -339,4 +339,59 @@ theorem double_onCurve (p : Point) (hp : onCurve p) : onCurve (doubleF p) := by
   rw [double_eq_addF_self p hp]
   exact add_onCurve p p hp hp
 
-end Shieldd.GnarkFormal.EdwardsBridge
+/-- Over `F`, the decaf cross-ratio `p.x*q.y = q.x*p.y` together with both points
+on-curve forces `q` to be either `p` itself or its 2-torsion shift `(-p.x, -p.y)`.
+The remaining line-through-origin intersections would require `√d`, impossible
+since `d` is a non-square (`d_not_square`). No subgroup hypothesis is used. -/
+theorem crossRatio_pins_to_two_torsion (p q : Point)
+    (hp : onCurve p) (hq : onCurve q) (hcr : p.x * q.y = q.x * p.y) :
+    q = p ∨ q = ⟨-p.x, -p.y⟩ := by
+  obtain ⟨px, py⟩ := p
+  obtain ⟨qx, qy⟩ := q
+  simp only [onCurve] at hp hq
+  simp only [Point.mk.injEq]
+  by_cases hpx : px = 0
+  · subst hpx
+    have hpy2 : py * py = 1 := by linear_combination hp
+    have hpy_ne : py ≠ 0 := fun h => by simp [h] at hpy2
+    have hqx : qx = 0 := by
+      have h0 : qx * py = 0 := by linear_combination -hcr
+      exact (mul_eq_zero.mp h0).resolve_right hpy_ne
+    subst hqx
+    have hqy2 : qy * qy = 1 := by linear_combination hq
+    have hfac : (qy - py) * (qy + py) = 0 := by linear_combination hqy2 - hpy2
+    rcases mul_eq_zero.mp hfac with h | h
+    · left; exact ⟨rfl, by linear_combination h⟩
+    · right; exact ⟨by ring, by linear_combination h⟩
+  · -- px ≠ 0: write q = λ·p and use that d is a non-square.
+    set lam := qx / px with hlam
+    have hqx_eq : qx = lam * px := by rw [hlam]; field_simp
+    have hqy_eq : qy = lam * py := by
+      have : px * qy = lam * px * py := by rw [hcr, hqx_eq]
+      have hcancel : qy = lam * py := by
+        apply mul_left_cancel₀ hpx; rw [this]; ring
+      exact hcancel
+    rw [hqx_eq, hqy_eq] at hq
+    have hfactor :
+        (lam * lam - 1) * (1 - d * (px * px) * (py * py) * (lam * lam)) = 0 := by
+      linear_combination hq - lam * lam * hp
+    rcases mul_eq_zero.mp hfactor with h | h
+    · -- λ² = 1 ⟹ λ = 1 or λ = -1
+      have h2 : (lam - 1) * (lam + 1) = 0 := by linear_combination h
+      rcases mul_eq_zero.mp h2 with h1 | h1
+      · left
+        have : lam = 1 := by linear_combination h1
+        exact ⟨by rw [hqx_eq, this]; ring, by rw [hqy_eq, this]; ring⟩
+      · right
+        have : lam = -1 := by linear_combination h1
+        exact ⟨by rw [hqx_eq, this]; ring, by rw [hqy_eq, this]; ring⟩
+    · -- d·(px·py·λ)² = 1 ⟹ d is a square, contradiction
+      exfalso
+      have hprod : d * ((px * py * lam) * (px * py * lam)) = 1 := by
+        linear_combination -h
+      have hne : px * py * lam ≠ 0 := by
+        intro h0; rw [h0] at hprod; simp at hprod
+      apply d_not_square
+      refine ⟨(px * py * lam)⁻¹, ?_⟩
+      field_simp
+      linear_combination hprod

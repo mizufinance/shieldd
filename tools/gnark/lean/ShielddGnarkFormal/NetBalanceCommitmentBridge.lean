@@ -376,11 +376,16 @@ theorem nbLadder {nBits : ℕ} {scalar : F} {base : EdwardsBridge.Point}
 
 /-! ### Final soundness -/
 
-theorem nb_circuit_sound
+/-- The circuit output both lies on the curve and equals the spec commitment.
+Proved together because the on-curve fact falls out of the same add-chain
+threading used for the equality; `nb_circuit_sound` and `nb_circuit_onCurve`
+project the two conjuncts. -/
+private theorem nb_circuit_eq_and_onCurve
     (Input0Amount Input1Amount OutputAmount AssetID BalanceBlinding
       EncodeWasSquare EncodeInvSqrt OutX OutY : F)
     (h : Extracted.NetBalanceCommitment.circuit Input0Amount Input1Amount OutputAmount
         AssetID BalanceBlinding EncodeWasSquare EncodeInvSqrt OutX OutY) :
+    EdwardsBridge.onCurve ⟨OutX, OutY⟩ ∧
     Decaf377Assumptions.Point.mk OutX OutY =
       Decaf377Assumptions.netBalanceCommit Input0Amount Input1Amount OutputAmount
         AssetID BalanceBlinding := by
@@ -430,6 +435,9 @@ theorem nb_circuit_sound
   have hA3on : EdwardsBridge.onCurve ⟨a3x, a3y⟩ :=
     hA3 ▸ EdwardsBridge.add_onCurve _ _ hA2on hnegP3on
   have hOut := EdwardsBridge.addSpec_eq ⟨a3x, a3y⟩ P4 ⟨OutX, OutY⟩ hA3on hP4on hfinal
+  have hOutOn : EdwardsBridge.onCurve ⟨OutX, OutY⟩ :=
+    hOut ▸ EdwardsBridge.add_onCurve _ _ hA3on hP4on
+  refine ⟨hOutOn, ?_⟩
   -- assemble
   have hbg : toA (⟨(4661681602708190761543544705274244814260880986867766715334030151044279151219 : F),
       (4337336842509898676347982752646772244181661588533917621717979456142867120378 : F)⟩ :
@@ -441,6 +449,24 @@ theorem nb_circuit_sound
     toA_addF, hS0eq, hP1eq, hP2eq, hP3eq, hP4eq, hbg]
   simp only [Decaf377Assumptions.netBalanceCommit, Decaf377Assumptions.valueGeneratorDomain,
     hvgEq, toA]
+
+theorem nb_circuit_sound
+    (Input0Amount Input1Amount OutputAmount AssetID BalanceBlinding
+      EncodeWasSquare EncodeInvSqrt OutX OutY : F)
+    (h : Extracted.NetBalanceCommitment.circuit Input0Amount Input1Amount OutputAmount
+        AssetID BalanceBlinding EncodeWasSquare EncodeInvSqrt OutX OutY) :
+    Decaf377Assumptions.Point.mk OutX OutY =
+      Decaf377Assumptions.netBalanceCommit Input0Amount Input1Amount OutputAmount
+        AssetID BalanceBlinding :=
+  (nb_circuit_eq_and_onCurve _ _ _ _ _ _ _ _ _ h).2
+
+theorem nb_circuit_onCurve
+    (Input0Amount Input1Amount OutputAmount AssetID BalanceBlinding
+      EncodeWasSquare EncodeInvSqrt OutX OutY : F)
+    (h : Extracted.NetBalanceCommitment.circuit Input0Amount Input1Amount OutputAmount
+        AssetID BalanceBlinding EncodeWasSquare EncodeInvSqrt OutX OutY) :
+    EdwardsBridge.onCurve ⟨OutX, OutY⟩ :=
+  (nb_circuit_eq_and_onCurve _ _ _ _ _ _ _ _ _ h).1
 
 /-- `Decaf377Assumptions` predicate-level wrapper. -/
 theorem decaf377_netBalanceCommitment_sound
@@ -454,5 +480,15 @@ theorem decaf377_netBalanceCommitment_sound
     ews einv out.x out.y hcircuit
   show out = Decaf377Assumptions.netBalanceCommit input0 input1 output assetID balanceBlinding
   cases out; exact hsound
+
+/-- `Decaf377Assumptions` predicate-level on-curve wrapper. -/
+theorem decaf377_netBalanceCommitment_onCurve
+    (input0 input1 output assetID balanceBlinding : F) (out : Decaf377Assumptions.Point)
+    (h : Decaf377Assumptions.NetBalanceCommitmentCircuit
+      input0 input1 output assetID balanceBlinding out) :
+    EdwardsBridge.onCurve ⟨out.x, out.y⟩ := by
+  obtain ⟨ews, einv, hcircuit⟩ := h
+  exact nb_circuit_onCurve input0 input1 output assetID balanceBlinding
+    ews einv out.x out.y hcircuit
 
 end Shieldd.GnarkFormal.NetBalanceCommitmentBridge

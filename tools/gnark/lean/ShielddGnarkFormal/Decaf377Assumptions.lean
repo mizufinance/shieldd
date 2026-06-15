@@ -216,4 +216,152 @@ theorem decaf377_assertEquivalent_sound :
 -- `decaf377_netBalanceCommitment_sound` is proved in `NetBalanceCommitmentBridge`
 -- (it depends on the extracted-circuit bridge, which imports this file).
 
+/-- A prime-order (odd-order) subgroup of the decaf377 curve, supplied as a
+membership predicate together with the single algebraic property the soundness
+argument needs: no member is the 2-torsion shift `(-x, -y)` of another member.
+
+This is the honest residual assumption for the decaf coset-equality argument
+(P7). It is TRUE: the 2-torsion shift of `p` is `p + (0,-1)`, and `(0,-1)` is the
+unique point of order 2; an odd-order subgroup contains no point of order 2, so a
+member and its shift cannot both be members. Only `noTwoTorsionShift` is assumed;
+`cosetEq_of_mem` is then PROVED from it and the unconditional
+`EdwardsBridge.crossRatio_pins_to_two_torsion`. Carried as a hypothesis (not a
+kernel axiom), so it surfaces in `consolidate2x1_circuit_sound`'s statement. -/
+structure PrimeOrderSubgroup where
+  mem : Point → Prop
+  memZero : mem identity
+  memAdd : ∀ p q : Point, mem p → mem q → mem (add p q)
+  memDouble : ∀ p : Point, mem p → mem (double p)
+  memNeg : ∀ p : Point, mem p → mem (neg p)
+  memGenerator : mem generator
+  memValueBlindingGenerator : mem valueBlindingGenerator
+  memEncode : ∀ r : F, mem (encodeToCurve r)
+  noTwoTorsionShift : ∀ p : Point, mem p → mem ⟨-p.x, -p.y⟩ → False
+
+theorem PrimeOrderSubgroup.mem_select (S : PrimeOrderSubgroup) (b : Bool)
+    (whenTrue whenFalse : Point)
+    (htrue : S.mem whenTrue) (hfalse : S.mem whenFalse) :
+    S.mem (select b whenTrue whenFalse) := by
+  cases b
+  · simpa [select] using hfalse
+  · simpa [select] using htrue
+
+theorem PrimeOrderSubgroup.mem_scalarMulLEFrom (S : PrimeOrderSubgroup) (scalar : F) :
+    ∀ fuel bitIndex result current,
+      S.mem result → S.mem current →
+      S.mem (scalarMulLEFrom scalar fuel bitIndex result current) := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro bitIndex result current hresult hcurrent
+      simpa [scalarMulLEFrom] using hresult
+  | succ fuel ih =>
+      intro bitIndex result current hresult hcurrent
+      simp only [scalarMulLEFrom]
+      exact ih (bitIndex + 1)
+        (select (scalar.val.testBit bitIndex) (add result current) result)
+        (double current)
+        (S.mem_select (scalar.val.testBit bitIndex) (add result current) result
+          (S.memAdd result current hresult hcurrent) hresult)
+        (S.memDouble current hcurrent)
+
+theorem PrimeOrderSubgroup.mem_scalarMulLE (S : PrimeOrderSubgroup)
+    (nBits : Nat) (base : Point) (scalar : F) (hbase : S.mem base) :
+    S.mem (scalarMulLE nBits base scalar) := by
+  simpa [scalarMulLE] using
+    S.mem_scalarMulLEFrom scalar nBits 0 identity base S.memZero hbase
+
+theorem PrimeOrderSubgroup.mem_rvk (S : PrimeOrderSubgroup)
+    (ak : Point) (randomizer : F) (hak : S.mem ak) :
+    S.mem (rvk ak randomizer) := by
+  unfold rvk
+  exact S.memAdd ak (scalarMulLE 251 generator randomizer) hak
+    (S.mem_scalarMulLE 251 generator randomizer S.memGenerator)
+
+theorem PrimeOrderSubgroup.mem_dtk (S : PrimeOrderSubgroup)
+    (nk : F) (ak divGen : Point) (ivkReduced ivkQuotientA : F)
+    (hdivGen : S.mem divGen) :
+    S.mem (dtk nk ak divGen ivkReduced ivkQuotientA) := by
+  unfold dtk
+  exact S.mem_scalarMulLE 251 divGen ivkReduced hdivGen
+
+theorem PrimeOrderSubgroup.mem_netBalanceCommit (S : PrimeOrderSubgroup)
+    (input0 input1 output assetID balanceBlinding : F) :
+    S.mem (netBalanceCommit input0 input1 output assetID balanceBlinding) := by
+  unfold netBalanceCommit
+  exact
+    S.memAdd
+      (add
+        (add
+          (add
+            (scalarMulLE 128 (encodeToCurve
+              (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) 0)
+            (scalarMulLE 128 (encodeToCurve
+              (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) input0))
+          (scalarMulLE 128 (encodeToCurve
+            (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) input1))
+        (neg (scalarMulLE 128 (encodeToCurve
+          (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) output)))
+      (scalarMulLE 251 valueBlindingGenerator balanceBlinding)
+      (S.memAdd
+        (add
+          (add
+            (scalarMulLE 128 (encodeToCurve
+              (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) 0)
+            (scalarMulLE 128 (encodeToCurve
+              (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) input0))
+          (scalarMulLE 128 (encodeToCurve
+            (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) input1))
+        (neg (scalarMulLE 128 (encodeToCurve
+          (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) output))
+        (S.memAdd
+          (add
+            (scalarMulLE 128 (encodeToCurve
+              (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) 0)
+            (scalarMulLE 128 (encodeToCurve
+              (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) input0))
+          (scalarMulLE 128 (encodeToCurve
+            (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) input1)
+          (S.memAdd
+            (scalarMulLE 128 (encodeToCurve
+              (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) 0)
+            (scalarMulLE 128 (encodeToCurve
+              (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) input0)
+            (S.mem_scalarMulLE 128
+              (encodeToCurve (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID))
+              0 (S.memEncode _))
+            (S.mem_scalarMulLE 128
+              (encodeToCurve (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID))
+              input0 (S.memEncode _)))
+          (S.mem_scalarMulLE 128
+            (encodeToCurve (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID))
+            input1 (S.memEncode _)))
+        (S.memNeg
+          (scalarMulLE 128 (encodeToCurve
+            (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID)) output)
+          (S.mem_scalarMulLE 128
+            (encodeToCurve (Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID))
+            output (S.memEncode _))))
+      (S.mem_scalarMulLE 251 valueBlindingGenerator balanceBlinding
+        S.memValueBlindingGenerator)
+
+/-- Decaf coset-equality, now a THEOREM (not an assumption): two on-curve members
+of a prime-order subgroup satisfying the `AssertEquivalent` cross-ratio gate are
+equal. The cross-ratio + on-curve pins `q` to `{p, (-p.x,-p.y)}` (no third
+solution, since `d` is a non-square); subgroup membership rules out the 2-torsion
+shift, leaving `q = p`. -/
+theorem PrimeOrderSubgroup.cosetEq_of_mem (S : PrimeOrderSubgroup) (p q : Point)
+    (hp : EdwardsBridge.onCurve ⟨p.x, p.y⟩) (hq : EdwardsBridge.onCurve ⟨q.x, q.y⟩)
+    (hmp : S.mem p) (hmq : S.mem q) (hcr : AssertEquivalentSpec p q) : p = q := by
+  rcases EdwardsBridge.crossRatio_pins_to_two_torsion ⟨p.x, p.y⟩ ⟨q.x, q.y⟩ hp hq hcr
+    with h | h
+  · have hx : q.x = p.x := congrArg EdwardsBridge.Point.x h
+    have hy : q.y = p.y := congrArg EdwardsBridge.Point.y h
+    cases p; cases q; simp_all
+  · exfalso
+    have hx : q.x = -p.x := congrArg EdwardsBridge.Point.x h
+    have hy : q.y = -p.y := congrArg EdwardsBridge.Point.y h
+    have hqeq : q = (⟨-p.x, -p.y⟩ : Point) := by cases q; simp_all
+    exact S.noTwoTorsionShift p hmp (hqeq ▸ hmq)
+
 end Shieldd.GnarkFormal.Decaf377Assumptions

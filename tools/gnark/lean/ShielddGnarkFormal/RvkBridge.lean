@@ -248,4 +248,12 @@ theorem decaf377_randomizedVerificationKey_sound
   show out = Decaf377Assumptions.rvk ak r
   cases ak; cases out; exact hsound
 
+/-- The RVK output point is on-curve, given `ak` on-curve. -/
+theorem decaf377_randomizedVerificationKey_onCurve
+    (ak : Decaf377Assumptions.Point) (r : F) (out : Decaf377Assumptions.Point)
+    (hak : EdwardsBridge.onCurve ⟨ak.x, ak.y⟩)
+    (h : Decaf377Assumptions.RandomizedVerificationKeyCircuit ak r out) :
+    EdwardsBridge.onCurve ⟨out.x, out.y⟩ :=
+  rvk_circuit_onCurve ak.x ak.y r out.x out.y hak h
+
 end Shieldd.GnarkFormal.RvkBridge

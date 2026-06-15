@@ -140,17 +140,23 @@ property-level claim.
 
 **Lean wiring fidelity.** The `consolidate2x1` Lean whole-circuit artifact uses a
 Go Define wiring transcript, not a full R1CS transcript comparison. The transcript
-records the ordered call-site composition of proved leaves and named decaf
-boundary calls with stable semantic wire names, then byte-compares that output
+records the ordered call-site composition of proved leaves and decaf gadget
+bridges with stable semantic wire names, then byte-compares that output
 against the Lean model transcript in `scripts/check-lean-circuit-fv.sh`. This
 catches dropped calls, miswired inputs, missing equality/equivalence checks, and
 statement-field order drift without re-materializing the full Poseidon/Merkle
 constraint system.
 
+The Decaf377 boundary for this artifact is now constraint-derived in Lean:
+compress, assert-equivalent, encode-to-curve, RVK, DTK, scalar ladders, Edwards
+closure, and net-balance composition are bridged against extracted gadgets. The
+whole-circuit theorem still takes explicit protocol-layer hypotheses naming the
+accepted prime-order subgroup and raw witness membership for bare decaf field
+coordinates; those are accepted-language obligations, not Lean axioms.
+
 **M6 Lean scaffold.** A Lean 4 project now lives in
 [tools/gnark/lean](../../tools/gnark/lean). The vendored
 `gnark-lean-extractor` port emits supported BoolSelect, IsZero, and Nullifier
-models, and `lake build` checks the extracted files plus small BoolSelect/IsZero
-implication proofs. Poseidon remains opaque in the shared Lean spec, and no
-property row cites a Lean artifact until source-level whole-circuit extraction
-and proof integration land.
+models, and `lake build ShielddGnarkFormal` checks the extracted files,
+Poseidon bridge leaves, Decaf377 gadget bridges, and the stamped
+`consolidate2x1` whole-circuit composition theorem.

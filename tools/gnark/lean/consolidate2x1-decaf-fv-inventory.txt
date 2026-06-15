@@ -2,7 +2,7 @@ schema: shieldd.decaf-fv-inventory.v1
 circuit: consolidate2x1
 
 proved:
-- decaf.assert_equivalent: extracted DecafAssertEquivalent circuit proves cross-ratio equality
+- decaf.assert_equivalent: extracted DecafAssertEquivalent circuit proves cross-ratio equality; all 8 consolidate2x1 call sites (rk/transmission/divGen equivalences + top-level balance-commitment) are upgraded to genuine point equality (p = q) in SoundSpec under PrimeOrderSubgroup membership + DecafWitnessOnCurve hypotheses
 - decaf.ivk_mod_r: extracted IvkModR circuit proves exact Euclidean decomposition
 - decaf.compress_to_field: extracted hint-free DecafCompressToField mirror proves compress relation
 - decaf.edwards.add: extracted hint-free mirror proves the checked Edwards add formula relation
@@ -18,10 +18,18 @@ proved:
 - decaf.diversified_transmission_key: extracted DecafDtk circuit proves out = [ivkReduced]divGen and asserts ak on-curve (divGen on-curve discharged by the compress gadget's curve assertion)
 - decaf.diversified_transmission_key.ivk_provenance: extracted DecafDtk circuit proves ivkReduced/ivkQuotient come from Poseidon2(domain, nk, compress(ak)) mod r
 - decaf.on_curve_threading: compress and DTK mirrors prove their input points satisfy the curve equation; consolidate2x1 threads these into the RVK/DTK soundness calls
+- decaf.on_curve_threading.nb_output: NetBalanceCommitment mirror proves its output point is on-curve (last add-chain rung), threaded into the top-level balance-commitment point-equality discharge
 - decaf.net_balance_commitment: extracted NetBalanceCommitment circuit proves out = add(add(add(add 0 [in0]VG) [in1]VG) (neg [out]VG)) [blind]VBG, where VG = encodeToCurve(permSpec1(valueGeneratorDomain, assetID)); composes the rate-1 asset hash, encode-to-curve, four 128-bit value ladders, neg/add chain, and 251-bit blinding ladder
+- decaf.coset_equality_principle: DecafCosetPrinciple deleted; EdwardsBridge.crossRatio_pins_to_two_torsion proves on-curve cross-ratio pins q to p or the 2-torsion shift, and PrimeOrderSubgroup.cosetEq_of_mem proves equality for subgroup members by ruling out the shift
+- decaf.prime_order_subgroup_closure: PrimeOrderSubgroup carries identity/add/double/neg/generator/value-blinding-generator/encode membership, noTwoTorsionShift, and spec-level membership lemmas for select, scalarMulLEFrom, scalarMulLE, RVK, DTK, and netBalanceCommit
+- decaf.raw_witness_membership_threading: DecafWitnessOnCurve now carries on-curve facts plus PrimeOrderSubgroup membership for raw decaf witness points; consolidate2x1 derives computed-point membership for RVK, DTK, and net-balance outputs and discharges all AssertEquivalent sites with PrimeOrderSubgroup.cosetEq_of_mem
 
 open:
-(none)
+- none
 
-closure_claim: partial
-# P6 (on-curve audit of AssertEquivalent call sites) and P7 (closure) pending
+residual_external_hypotheses:
+- PrimeOrderSubgroup (Decaf377Assumptions): explicit theorem parameter providing the accepted decaf prime-order subgroup membership predicate, closure facts for model operations/generators/encode, and noTwoTorsionShift. This is a Prop hypothesis, not a kernel axiom.
+- DecafWitnessOnCurve (Consolidate2x1): explicit theorem parameter providing curve membership and PrimeOrderSubgroup membership for raw decaf witness coordinates that the circuit receives as bare field elements. This is a Prop hypothesis, not a kernel axiom.
+
+closure_claim: full
+# P7 done: the false standalone DecafCosetPrinciple assumption has been replaced by a proved theorem over PrimeOrderSubgroup membership.

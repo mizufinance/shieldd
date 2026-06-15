@@ -2162,6 +2162,19 @@ theorem decaf377_diversifiedTransmissionKey_sound
   · show out = Decaf377Assumptions.dtk nk ak divGen ivkReduced ivkQuotientA
     cases ak; cases divGen; cases out; exact hsound
 
+/-- The DTK output point is on-curve (last rung of the div-gen ladder),
+given `divGen` on-curve. -/
+theorem decaf377_diversifiedTransmissionKey_onCurve
+    (nk : F) (ak divGen : Decaf377Assumptions.Point) (ivkReduced ivkQuotientA : F)
+    (out : Decaf377Assumptions.Point)
+    (hdiv : EdwardsBridge.onCurve ⟨divGen.x, divGen.y⟩)
+    (h : Decaf377Assumptions.DiversifiedTransmissionKeyCircuit
+      nk ak divGen ivkReduced ivkQuotientA out) :
+    EdwardsBridge.onCurve ⟨out.x, out.y⟩ := by
+  obtain ⟨ws, sr, h⟩ := h
+  exact dtk_circuit_onCurve nk ak.x ak.y divGen.x divGen.y ws sr
+    ivkReduced ivkQuotientA out.x out.y hdiv h
+
 /-- The DTK constraint set asserts the shared `ak` is on-curve. -/
 theorem decaf377_diversifiedTransmissionKey_ak_onCurve
     (nk : F) (ak divGen : Decaf377Assumptions.Point) (ivkReduced ivkQuotientA : F)

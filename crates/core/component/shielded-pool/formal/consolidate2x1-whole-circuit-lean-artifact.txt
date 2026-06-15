@@ -6,8 +6,10 @@ theorem: Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound
 model: compose-in-Lean against tools/gnark/internal/circuits/note_reshape_circuit.go, with Go Define call-site wiring checked against the Lean transcript
 
 axiom_baseline: propext, Classical.choice, Quot.sound
-named_external_assumptions: none
-decaf_fv_status: partial
+named_external_assumptions:
+- PrimeOrderSubgroup (Decaf377Assumptions): explicit theorem parameter naming the accepted decaf prime-order subgroup, with closure under model identity/add/double/neg/scalar-derived operations, generator/value-blinding-generator/encode membership, and noTwoTorsionShift. Modeled as a Prop hypothesis, not a Lean axiom — axiom baseline stays standard.
+- DecafWitnessOnCurve (Consolidate2x1): the raw decaf witness coordinates received as bare fields are on-curve where the circuit cannot derive it and are members of PrimeOrderSubgroup. Modeled as a Prop hypothesis, not a Lean axiom.
+decaf_fv_status: full
 decaf_fv_inventory: tools/gnark/lean/consolidate2x1-decaf-fv-inventory.txt
 
 covered_flow:
@@ -18,17 +20,18 @@ covered_flow:
 - DiversifiedTransmissionKey via extracted DecafDtk circuit composition theorem (ak on-curve assertion, compress/Poseidon2/IVK-mod-r provenance, and divGen ladder)
 - computeTransferNetBalanceCommitment via extracted NetBalanceCommitment circuit composition theorem (rate-1 asset hash, encode-to-curve, four 128-bit value ladders, neg/add chain, 251-bit blinding ladder)
 - decafgnark.EncodeToCurve via extracted hint-free mirror semantic relation and output curve equation
-- decafgnark.AssertEquivalent via extracted cross-ratio gadget theorem
+- decafgnark.AssertEquivalent via extracted cross-ratio gadget theorem, upgraded to genuine point equality at all 8 consolidate2x1 call sites by PrimeOrderSubgroup.cosetEq_of_mem plus DecafWitnessOnCurve membership facts
 - decafgnark.CompressToField via extracted hint-free mirror constraint relation
 - ConsolidateStatementHashForShape via extracted Poseidon rate-7 wrapper for the consolidate2x1 field vector
 known_limitations:
-- The current standard-only axiom baseline is not, by itself, a full decaf FV
-  closure claim. The decaf FV inventory records which decaf sub-obligations are
-  proved and which remain open.
+- The decaf gadget FV obligations in the inventory are closed. The whole-circuit
+  theorem still carries explicit Prop hypotheses for accepted prime-order
+  subgroup membership and for raw witness coordinates supplied as bare fields;
+  these are protocol-layer accepted-language obligations, not Lean axioms.
 
-whole_circuit_model_source_sha256: 1f6114facb4b46c069a238bcb4c33d03cd1b0cf14ab6fdebdf35e258cac7d6ce
-decaf_assumptions_source_sha256: 00c3aeab8f27f65528bb5ac7bd004d71fbc10715c5cdaf952c2420e3b1d3722e
-decaf_fv_inventory_sha256: 530468dd1b26671750a934e7c60280dbf8c7ac2c33d09e7e48ff888b10e5edce
+whole_circuit_model_source_sha256: ce30b3e0808f64afcbdce75cb404d9e367d6e7789a5b6028e6d0ab7fe08fc011
+decaf_assumptions_source_sha256: 7567688be3c1bf9ebe62930daf07981b31434785accaca0f2875d508362930ca
+decaf_fv_inventory_sha256: a1e414caf55e8903f5afc357d8cea154c2bbe79e6083f57eddf3dd1e1013b715
 wiring_transcript_source_sha256: e38a95ffa70978315d7849787e0cf9d3553ba42b5a85912d00bfddbed4f26f11
 go_wiring_transcript_sha256: 644ecc02f41ac5ec28cdef7a34bc8484117dd2427d05842f0067df49a7076d02
 lean_wiring_transcript_sha256: 644ecc02f41ac5ec28cdef7a34bc8484117dd2427d05842f0067df49a7076d02
