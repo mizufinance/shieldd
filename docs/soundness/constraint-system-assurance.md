@@ -8,12 +8,26 @@ strategy is therefore layered: a gnark-native baseline over the whole circuit
 hard gate that allows a circuit property to become `proved` only when it cites a
 stamped whole-circuit artifact.
 
-This is heavy prover work. The `soundness-formal` PR workflow runs the cheap
-deterministic ledger gate plus the hard Lean whole-circuit FV gate. Nightly cron
-and `workflow_dispatch` additionally run the heavy prover stack. The ACL2/Axe
-certification leg is advisory while its generated proof drift is being repaired;
-Lean FV, Picus, Tamarin, F*/hax, and invariant stamp drift remain hard failures
-for the jobs that run them.
+This is heavy prover work, so the `soundness-formal` workflow is tiered by cost.
+The Lean whole-circuit FV gate (`scripts/check-lean-circuit-fv.sh`) runs in two
+modes:
+
+- **`stamps` (pull requests)** — hygiene (no `sorry`/`admit`/`axiom`), stamp
+  integrity (every pinned source sha256 matches the committed file), and
+  Go↔Lean wiring-transcript fidelity. It builds only the zero-import transcript
+  module, so it needs no Mathlib cache and never elaborates the multi-GB
+  whole-circuit proofs. Because the stamps are produced by running `full`
+  locally, a stale stamp means a circuit or proof source changed without being
+  re-verified, and the PR goes red.
+- **`full` (nightly cron + `workflow_dispatch`)** — everything `stamps` checks,
+  plus a clean-room `lake build` of the proof modules and the `#print axioms`
+  baseline that proves the theorems are axiom-clean. This is the source of truth
+  and is too expensive (and memory-heavy) to run per PR.
+
+Nightly additionally runs the heavy prover stack (Tamarin, F*/hax, Picus, ACL2).
+The ACL2/Axe certification leg is advisory while its generated proof drift is
+being repaired; Lean FV (`full`), Picus, Tamarin, F*/hax, and invariant stamp
+drift remain hard failures for the jobs that run them.
 
 ## C0 — gnark-native baseline (whole circuit, evidence)
 

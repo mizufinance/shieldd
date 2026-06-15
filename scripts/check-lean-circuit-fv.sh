@@ -1,6 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Lean whole-circuit FV gate, in two cost tiers selected by the first argument:
+#
+#   stamps  (PR tier)  Hygiene, stamp integrity, and wiring-transcript fidelity.
+#                      Builds only the zero-import wiring-transcript module, so it
+#                      needs no Mathlib cache and never elaborates the heavy
+#                      whole-circuit proofs. Catches: sorry/axiom drift, a source
+#                      changed without re-verifying (stale stamp), and Go<->Lean
+#                      circuit-wiring divergence.
+#
+#   full    (nightly)  Everything in `stamps`, plus a clean-room `lake build` of
+#                      the heavy proof modules and the `#print axioms` baseline
+#                      that proves the theorems are axiom-clean. This is the
+#                      source of truth and is expensive (loads multi-GB proof
+#                      terms); it runs on the nightly schedule, not on PRs.
+#
+# Default is `full` so a local run verifies everything. The stamps a `full` run
+# checks are produced by running `full` locally, so the cheap PR tier enforces
+# "every verified artifact was re-verified by whoever touched it" and nightly
+# independently confirms it on clean infrastructure.
+MODE="${1:-full}"
+case "$MODE" in
+  stamps | full) ;;
+  *)
+    echo "usage: $(basename "$0") [stamps|full]" >&2
+    exit 2
+    ;;
+esac
+
 fail() {
   echo "check-lean-circuit-fv failed: $*" >&2
   exit 1
@@ -9,9 +37,7 @@ fail() {
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LEAN_DIR="$ROOT/tools/gnark/lean"
 B1_ARTIFACT="$LEAN_DIR/imt-gap-lean-artifact.txt"
-B1_ARTIFACT_SHA="$B1_ARTIFACT.sha256"
 WHOLE_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-whole-circuit-lean-artifact.txt"
-WHOLE_ARTIFACT_SHA="$WHOLE_ARTIFACT.sha256"
 GO_DEFINE="$ROOT/tools/gnark/internal/circuits/note_reshape_circuit.go"
 WIRING_TRANSCRIPT_SOURCE="$LEAN_DIR/ShielddGnarkFormal/Consolidate2x1WiringTranscript.lean"
 DECAF_FV_INVENTORY="$LEAN_DIR/consolidate2x1-decaf-fv-inventory.txt"
@@ -30,6 +56,7 @@ require_artifact_line() {
     || fail "artifact $artifact $label is stale or missing (expected $value)"
 }
 
+# --- hygiene (both tiers) ---------------------------------------------------
 scratch_files="$(find "$LEAN_DIR/ShielddGnarkFormal" -maxdepth 1 -type f \( -name 'SP*.lean' -o -name 'Probe*.lean' \) -print)"
 [[ -z "$scratch_files" ]] || fail "scratch Lean files present: $scratch_files"
 
@@ -49,18 +76,17 @@ for artifact in "$B1_ARTIFACT" "$WHOLE_ARTIFACT"; do
   [[ "$want" == "$have" ]] || fail "artifact stamp mismatch: $artifact ($have != $want)"
 done
 
-echo "==> lake build"
-# Fetch prebuilt Mathlib oleans from the upstream cache so CI compiles only the
-# project's own modules. Without this a clean checkout rebuilds all of Mathlib
-# from source and the runner is reclaimed before it finishes.
-(cd "$LEAN_DIR" && lake exe cache get && lake build ShielddGnarkFormal.Consolidate2x1WiringTranscript && lake build)
+# --- wiring-transcript fidelity (both tiers) --------------------------------
+# The transcript module has no imports, so building it needs neither the Mathlib
+# cache nor the heavy proof closure. This is the only build the PR tier performs.
+echo "==> wiring transcript fidelity"
+(cd "$LEAN_DIR" && lake build ShielddGnarkFormal.Consolidate2x1WiringTranscript)
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 GO_WIRING_TRANSCRIPT="$tmp_dir/go-consolidate2x1.wiring"
 LEAN_WIRING_TRANSCRIPT="$tmp_dir/lean-consolidate2x1.wiring"
 
-echo "==> wiring transcript fidelity"
 (
   cd "$ROOT/tools/gnark"
   go run ./cmd/gnarkctl export-wiring-transcript \
@@ -79,6 +105,7 @@ if ! cmp -s "$GO_WIRING_TRANSCRIPT" "$LEAN_WIRING_TRANSCRIPT"; then
   fail "Go Define wiring transcript does not match Lean Define-model transcript"
 fi
 
+# --- stamp integrity (both tiers) -------------------------------------------
 require_artifact_line "$B1_ARTIFACT" "imt_gap_extracted_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Extracted/ImtGap.lean")"
 require_artifact_line "$B1_ARTIFACT" "canonical_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/CanonicalFqBitsBridge.lean")"
 require_artifact_line "$B1_ARTIFACT" "lex_less_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/LexLessLadder.lean")"
@@ -116,6 +143,23 @@ require_artifact_line "$WHOLE_ARTIFACT" "lean_check_script_sha256" "$(sha256_fil
 rg -F "whole-circuit" "$WHOLE_ARTIFACT" >/dev/null \
   || fail "whole-circuit artifact must state whole-circuit scope"
 
+if [[ "$MODE" == "stamps" ]]; then
+  echo "lean circuit fv ok (stamps): sha256:$(sha256_file "$WHOLE_ARTIFACT")"
+  exit 0
+fi
+
+# --- whole-circuit axiom verification (full tier only) ----------------------
+# Fetch prebuilt Mathlib oleans from the upstream cache so a clean checkout
+# compiles only the project's own modules instead of all of Mathlib. Build only
+# the modules the gate verifies (and their transitive closure); the whole-lib
+# build co-elaborates unrelated multi-GB circuit modules this gate never imports
+# and the concurrent peak OOMs the runner.
+echo "==> lake build (full)"
+(cd "$LEAN_DIR" && lake exe cache get \
+  && lake build \
+       ShielddGnarkFormal.ImtGapBridge \
+       ShielddGnarkFormal.Consolidate2x1)
+
 echo "==> #print axioms"
 axioms_out="$(
   cd "$LEAN_DIR"
@@ -142,4 +186,4 @@ whole_expected="'Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound
 [[ "$flat_axioms" == *"$whole_expected"* ]] \
   || fail "unexpected axiom baseline for consolidate2x1_circuit_sound"
 
-echo "lean circuit fv ok: sha256:$(sha256_file "$WHOLE_ARTIFACT")"
+echo "lean circuit fv ok (full): sha256:$(sha256_file "$WHOLE_ARTIFACT")"

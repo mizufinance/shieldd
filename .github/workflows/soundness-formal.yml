@@ -84,8 +84,16 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
           sh /tmp/elan-init.sh -y --default-toolchain leanprover/lean4:v4.15.0
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      # PRs run the cheap `stamps` tier (hygiene + stamp integrity + wiring
+      # transcript); the nightly schedule/dispatch runs the expensive `full`
+      # tier that elaborates the whole-circuit proofs and checks axioms.
       - name: Run Lean whole-circuit FV gate
-        run: bash scripts/check-lean-circuit-fv.sh
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            bash scripts/check-lean-circuit-fv.sh stamps
+          else
+            bash scripts/check-lean-circuit-fv.sh full
+          fi
 
   # Heavy provers (Tamarin symbolic + hax/F* injectivity). Schedule/dispatch
   # only; PRs keep this check green with an explicit policy note. The ACL2
