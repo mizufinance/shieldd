@@ -8,10 +8,12 @@ strategy is therefore layered: a gnark-native baseline over the whole circuit
 hard gate that allows a circuit property to become `proved` only when it cites a
 stamped whole-circuit artifact.
 
-This is heavy prover work. It runs in the `soundness-formal` CI `provers` job
-(nightly cron + `workflow_dispatch`), guarded `if: github.event_name !=
-'pull_request'`. It does **not** run before merging a PR — pre-merge only the
-cheap deterministic ledger gate runs. Same cadence as the snarkpack nightly.
+This is heavy prover work. The `soundness-formal` PR workflow runs the cheap
+deterministic ledger gate plus the hard Lean whole-circuit FV gate. Nightly cron
+and `workflow_dispatch` additionally run the heavy prover stack. The ACL2/Axe
+certification leg is advisory while its generated proof drift is being repaired;
+Lean FV, Picus, Tamarin, F*/hax, and invariant stamp drift remain hard failures
+for the jobs that run them.
 
 ## C0 — gnark-native baseline (whole circuit, evidence)
 
@@ -70,7 +72,8 @@ C3 proves a gadget's R1CS *implies* an ACL2 spec predicate (Axe lifts the R1CS,
 the Axe Prover discharges `R1CS ⟹ spec`; composition uses the sparse-R1CS
 constraint-list `append` idiom). Only
 this reaches `proved`, scoped to the gadget — it never promotes a whole-circuit
-property row. Heavy, nightly CI only. Toolchain pinned in
+property row. Heavy, nightly advisory CI only until the current generated-proof
+drift is repaired. Toolchain pinned in
 [toolchain.toml](../../crates/core/component/shielded-pool/formal/toolchain.toml)
 `[constraints]`. Full plan: `.claude/plans/soundness-phase-c3-acl2-axe-gadget-theorems.md`.
 
@@ -105,7 +108,8 @@ tied to the *actual compiled gadget* wire-for-wire by
 ([gadgets_acl2_parity_test.go](../../tools/gnark/internal/circuits/gadgets_acl2_parity_test.go)),
 so the proof cannot drift onto a different circuit.
 [scripts/circuit-gadget-proof-check.sh](../../scripts/circuit-gadget-proof-check.sh)
-re-runs parity -> certify -> stamp in the nightly `provers` job, and a stamped
+re-runs parity -> certify -> stamp in the nightly `provers` job as advisory
+evidence while ACL2 drift is open, and a stamped
 [bool-select-proof-artifact.txt](../../crates/core/component/shielded-pool/formal/acl2/bool-select-proof-artifact.txt)
 gates the `proved` row.
 

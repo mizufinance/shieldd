@@ -4,7 +4,6 @@ use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::{ActionHandler, Component};
-use shieldd_sdk_asset::BASE_ASSET_ID;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use tendermint::v0_37::abci;
@@ -81,32 +80,6 @@ impl Component for Compliance {
 
         // Genesis starts clean; modifications during init/register calls will set this.
         state.clear_compliance_trees_modified();
-
-        // Seed the neutral base asset into the IMT as an explicit unregulated asset.
-        //
-        // This keeps the chain-native asset on a stable membership-proof path
-        // without treating it as regulated.
-        if let Some(result) = state
-            .register_asset_in_imt(
-                *BASE_ASSET_ID,
-                crate::structs::AssetPolicy::default_unregulated(),
-                false,
-            )
-            .await
-            .expect("must be able to register base asset at genesis")
-        {
-            let event = crate::event::EventAssetRegistered {
-                asset_id: *BASE_ASSET_ID,
-                is_regulated: false,
-                position: result.position,
-                indexed_leaf: result.indexed_leaf,
-                low_leaf_position: result.low_leaf_position,
-                updated_low_leaf: result.updated_low_leaf,
-                asset_policy: crate::structs::AssetPolicy::default_unregulated(),
-            };
-
-            state.emit_asset_registered(event);
-        }
 
         // Register native assets from genesis configuration.
         if let Some(genesis) = app_state {
@@ -548,15 +521,16 @@ mod tests {
         let asset_imt = state.get_asset_imt().await.unwrap();
 
         assert_eq!(user_tree.depth(), 16);
-        // IMT contains the sentinel plus the neutral base asset registration.
-        assert_eq!(asset_imt.leaf_count(), 2);
+        // IMT contains only the sentinel until regulated assets are registered.
+        assert_eq!(asset_imt.leaf_count(), 1);
 
         let proof_data = state.get_asset_proof_data(*BASE_ASSET_ID).await.unwrap();
-        assert_eq!(proof_data.indexed_leaf.value, BASE_ASSET_ID.0);
         assert!(
             !proof_data.is_regulated,
-            "the seeded base asset must stay explicitly unregulated"
+            "the base asset must be proven unregulated by non-membership"
         );
+        assert!(proof_data.indexed_leaf.value < BASE_ASSET_ID.0);
+        assert!(BASE_ASSET_ID.0 < proof_data.indexed_leaf.next_value);
     }
 
     #[tokio::test]

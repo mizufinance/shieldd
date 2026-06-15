@@ -153,4 +153,5 @@ Status model (gadget rows):
 `bash scripts/circuit-gadget-proof-check.sh` runs the parity/fidelity tests,
 regenerates the checked-in Poseidon2 Axe Lisp export, certifies the ACL2/Axe
 books with the parallel `acl2p` image, and checks the stamped artifacts. Heavy
-prover work — it runs in the soundness-formal CI `provers` job, not on PRs.
+prover work — it runs as an advisory leg in the soundness-formal CI `provers`
+job, not on PRs, until the current generated-proof drift is repaired.

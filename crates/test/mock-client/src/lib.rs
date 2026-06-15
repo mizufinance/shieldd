@@ -17,7 +17,6 @@ use shieldd_sdk_transaction::{
 };
 use shieldd_sdk_view::enrich_plan_with_compliance;
 use std::collections::BTreeMap;
-use tracing;
 
 /// A bare-bones mock client for use exercising the state machine.
 pub struct MockClient {
@@ -447,9 +446,7 @@ impl<S: StateRead + Send + Sync> shieldd_sdk_compliance::ComplianceProofProvider
         &self,
         queries: &[(shieldd_sdk_keys::Address, shieldd_sdk_asset::asset::Id)],
     ) -> anyhow::Result<shieldd_sdk_compliance::BatchComplianceData> {
-        use shieldd_sdk_compliance::{
-            AssetProofData, BatchComplianceData, IndexedMerkleTree, UserProofData,
-        };
+        use shieldd_sdk_compliance::{AssetProofData, BatchComplianceData, UserProofData};
         use std::collections::BTreeMap;
 
         // Read trees ONCE to ensure consistency between anchors and proofs
@@ -465,40 +462,17 @@ impl<S: StateRead + Send + Sync> shieldd_sdk_compliance::ComplianceProofProvider
         let mut user_proofs = BTreeMap::new();
 
         for (address, asset_id) in queries {
-            // Generate asset proof from the SAME tree we got the anchor from
+            // Generate asset proof with the same membership/non-membership
+            // semantics enforced by the circuit.
             if !asset_proofs.contains_key(asset_id) {
                 let value = asset_id.0;
                 let is_regulated = self.state.is_asset_regulated(*asset_id).await?;
 
-                let (path, position, indexed_leaf) = if asset_tree.contains(value) {
-                    // Explicitly present asset - use membership proof regardless of regulation.
+                let (path, position, indexed_leaf) = if is_regulated {
                     let (pos, leaf, auth_path) = asset_tree.membership_proof(value)?;
                     (MerklePath::from_auth_path(auth_path), pos, leaf)
                 } else {
-                    // Asset absent from the IMT - use non-membership proof.
                     let (pos, leaf, auth_path) = asset_tree.non_membership_proof(value)?;
-
-                    // DEBUG: Verify the proof before returning
-                    let verified = IndexedMerkleTree::verify_auth_path(
-                        pos,
-                        &leaf,
-                        &auth_path,
-                        asset_tree.root(),
-                        asset_tree.depth(),
-                    );
-                    tracing::debug!(
-                        ?asset_id,
-                        pos,
-                        ?leaf.value,
-                        ?leaf.next_value,
-                        path_len = auth_path.len(),
-                        verified,
-                        "non-membership proof"
-                    );
-                    if !verified {
-                        tracing::error!("IMT non-membership proof verification FAILED");
-                    }
-
                     (MerklePath::from_auth_path(auth_path), pos, leaf)
                 };
 

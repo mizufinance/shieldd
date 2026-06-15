@@ -4,8 +4,8 @@ import (
 	"math/big"
 
 	"github.com/consensys/gnark/frontend"
-	"github.com/reilabs/gnark-lean-extractor/v3/abstractor"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
+	"github.com/reilabs/gnark-lean-extractor/v3/abstractor"
 )
 
 // Canonical field-element decomposition, native-ToBinary shape.

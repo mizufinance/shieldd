@@ -3,10 +3,8 @@
 //! This module defines the genesis content structure for configuring
 //! compliance asset entries at chain initialization.
 //!
-//! The IMT always contains a structural sentinel leaf and the protocol also
-//! seeds the neutral base asset as an explicit unregulated entry. Additional
-//! regulated assets may be configured here, while other unregulated assets
-//! continue to use IMT non-membership proofs.
+//! The IMT always contains a structural sentinel leaf. Regulated assets may be
+//! configured here; unregulated assets use IMT non-membership proofs.
 
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
@@ -18,8 +16,8 @@ use crate::params::ComplianceParameters;
 /// Genesis content for the compliance component.
 ///
 /// This allows configuring additional compliance asset entries at genesis.
-/// The IMT already contains a structural sentinel and a seeded unregulated base
-/// asset; entries listed here are added on top of that baseline.
+/// The IMT already contains a structural sentinel; entries listed here are
+/// regulated additions on top of that baseline.
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Content {
     /// Compliance component parameters at genesis.

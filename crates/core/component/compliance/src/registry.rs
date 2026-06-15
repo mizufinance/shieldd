@@ -400,7 +400,11 @@ pub trait ComplianceRegistryRead: StateRead {
         let is_regulated = self.is_asset_regulated(asset_id).await?;
         let root = self.get_asset_imt_root_direct().await?;
 
-        if let Some(position) = self.read_asset_position_by_value(value).await? {
+        if is_regulated {
+            let position = self
+                .read_asset_position_by_value(value)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("regulated asset has no IMT membership leaf"))?;
             let indexed_leaf = self.read_asset_leaf(position).await?;
             anyhow::ensure!(
                 indexed_leaf.value == value,
@@ -426,6 +430,11 @@ pub trait ComplianceRegistryRead: StateRead {
                 is_regulated,
             });
         }
+
+        anyhow::ensure!(
+            self.read_asset_position_by_value(value).await?.is_none(),
+            "unregulated asset has an explicit IMT leaf; unregulated proofs require non-membership"
+        );
 
         let position = self
             .read_low_asset_position(value)
@@ -1009,25 +1018,28 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
 
     /// Register an asset in the IMT.
     ///
-    /// This method is idempotent: if the asset is already present, it returns
-    /// `Ok(None)`. Regulation status is tracked separately via the stored policy
-    /// entry, so callers can insert an explicit unregulated asset with the
-    /// default policy and `is_regulated = false`.
+    /// This method is idempotent: if the regulated asset is already present, it
+    /// returns `Ok(None)`. Unregulated assets are not inserted; they are proven
+    /// by non-membership in the IMT.
     async fn register_asset_in_imt(
         &mut self,
         asset_id: asset::Id,
         policy: AssetPolicy,
         is_regulated: bool,
     ) -> Result<Option<indexed_tree::InsertResult>> {
+        if !is_regulated {
+            tracing::debug!(?asset_id, "unregulated asset uses IMT non-membership");
+            return Ok(None);
+        }
+
         self.ensure_asset_tree_initialized().await?;
         let value = asset_id.0;
         if value == Fq::from(0u64) {
             anyhow::bail!("IMT insert failed: zero value is reserved for sentinel leaf");
         }
 
-        // Check if already exists. IBC assets can be seen before the issuer
-        // registers them, which inserts an explicit unregulated leaf. In that
-        // case, allow the issuer to attach the regulated policy later.
+        // Check if already exists. If a stale unregulated leaf from an older
+        // state exists without a policy, attach the regulated policy in place.
         if let Some(position) = self.read_asset_position_by_value(value).await? {
             if is_regulated && self.get_asset_policy(asset_id).await?.is_none() {
                 self.set_ibc_origin_asset(asset_id, &policy).await?;
@@ -1107,9 +1119,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
             updated_low_leaf: updated_low_leaf.clone(),
         };
 
-        if is_regulated {
-            self.set_ibc_origin_asset(asset_id, &policy).await?;
-        }
+        self.set_ibc_origin_asset(asset_id, &policy).await?;
 
         // Save touched leaves and paths.
         self.put_asset_imt_leaf(result.position, &result.indexed_leaf)?;
@@ -1129,10 +1139,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         self.object_delete(state_key::cache::cached_asset_imt());
         self.mark_compliance_trees_modified();
 
-        // Only regulated assets need an asset-policy entry for later lookup and gating.
-        if is_regulated {
-            self.set_asset_policy(asset_id, policy)?;
-        }
+        self.set_asset_policy(asset_id, policy)?;
 
         // Update the persisted asset count
         let new_count = leaf_count + 1;
