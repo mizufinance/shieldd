@@ -237,6 +237,30 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.CanonicalFqBitsGadget{}, true
 	case "gadget-bool-select":
 		return &circuits.BoolSelectGadget{}, true
+	case "gadget-decaf-assert-equivalent":
+		return &circuits.AssertEquivalentGadget{}, true
+	case "gadget-decaf-compress-to-field":
+		return &circuits.CompressToFieldGadget{}, true
+	case "gadget-decaf-encode-to-curve":
+		return &circuits.EncodeToCurveGadget{}, true
+	case "gadget-decaf-edwards-add":
+		return &circuits.EdwardsAddGadget{}, true
+	case "gadget-decaf-edwards-double":
+		return &circuits.EdwardsDoubleGadget{}, true
+	case "gadget-decaf-edwards-neg":
+		return &circuits.EdwardsNegGadget{}, true
+	case "gadget-ivk-mod-r":
+		return &circuits.IvkModRGadget{}, true
+	case "gadget-scalar-mul-le-251":
+		return &circuits.ScalarMulLE251Gadget{}, true
+	case "gadget-scalar-mul-le-128":
+		return &circuits.ScalarMulLE128Gadget{}, true
+	case "gadget-rvk":
+		return &circuits.DecafRvkGadget{}, true
+	case "gadget-dtk":
+		return &circuits.DecafDtkGadget{}, true
+	case "gadget-net-balance-commitment":
+		return &circuits.NetBalanceCommitmentGadget{}, true
 	default:
 		return nil, false
 	}

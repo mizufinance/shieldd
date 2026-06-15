@@ -23,6 +23,17 @@ import ShielddGnarkFormal.Poseidon7Bridge
 import ShielddGnarkFormal.AnchorMerkleSpec
 import ShielddGnarkFormal.ExtractedProofs
 import ShielddGnarkFormal.ImtGapBridge
+import ShielddGnarkFormal.CompressToFieldBridge
+import ShielddGnarkFormal.EdwardsBridge
+import ShielddGnarkFormal.EdwardsCompleteness
+import ShielddGnarkFormal.EncodeToCurveBridge
+import ShielddGnarkFormal.IvkModRBridge
+import ShielddGnarkFormal.Extracted.ScalarMulLE128
+import ShielddGnarkFormal.Extracted.ScalarMulLE251
+import ShielddGnarkFormal.Extracted.NetBalanceCommitment
+import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.RvkBridge
+import ShielddGnarkFormal.DtkBridge
 import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.Consolidate2x1
 import ShielddGnarkFormal.Consolidate2x1WiringTranscript

@@ -14,6 +14,7 @@ WHOLE_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-
 WHOLE_ARTIFACT_SHA="$WHOLE_ARTIFACT.sha256"
 GO_DEFINE="$ROOT/tools/gnark/internal/circuits/note_reshape_circuit.go"
 WIRING_TRANSCRIPT_SOURCE="$LEAN_DIR/ShielddGnarkFormal/Consolidate2x1WiringTranscript.lean"
+DECAF_FV_INVENTORY="$LEAN_DIR/consolidate2x1-decaf-fv-inventory.txt"
 
 sha256_file() {
   if command -v sha256sum >/dev/null 2>&1; then
@@ -37,16 +38,7 @@ rg -n '\bsorry\b|\badmit\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGna
 
 axiom_lines="$(rg -n '^\s*axiom\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" || true)"
 if [[ -n "$axiom_lines" ]]; then
-  while IFS= read -r line; do
-    case "$line" in
-      *"Decaf377Assumptions.lean:"*"axiom decaf377_compressToField_sound :"*) ;;
-      *"Decaf377Assumptions.lean:"*"axiom decaf377_assertEquivalent_sound :"*) ;;
-      *"Decaf377Assumptions.lean:"*"axiom decaf377_randomizedVerificationKey_sound :"*) ;;
-      *"Decaf377Assumptions.lean:"*"axiom decaf377_diversifiedTransmissionKey_sound :"*) ;;
-      *"Decaf377Assumptions.lean:"*"axiom decaf377_netBalanceCommitment_sound :"*) ;;
-      *) fail "unexpected Lean axiom: $line" ;;
-    esac
-  done <<< "$axiom_lines"
+  fail "unexpected Lean axiom: $axiom_lines"
 fi
 
 for artifact in "$B1_ARTIFACT" "$WHOLE_ARTIFACT"; do
@@ -96,6 +88,7 @@ require_artifact_line "$B1_ARTIFACT" "lean_toolchain_sha256" "$(sha256_file "$LE
 
 require_artifact_line "$WHOLE_ARTIFACT" "whole_circuit_model_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Consolidate2x1.lean")"
 require_artifact_line "$WHOLE_ARTIFACT" "decaf_assumptions_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Decaf377Assumptions.lean")"
+require_artifact_line "$WHOLE_ARTIFACT" "decaf_fv_inventory_sha256" "$(sha256_file "$DECAF_FV_INVENTORY")"
 require_artifact_line "$WHOLE_ARTIFACT" "wiring_transcript_source_sha256" "$(sha256_file "$WIRING_TRANSCRIPT_SOURCE")"
 require_artifact_line "$WHOLE_ARTIFACT" "go_wiring_transcript_sha256" "$(sha256_file "$GO_WIRING_TRANSCRIPT")"
 require_artifact_line "$WHOLE_ARTIFACT" "lean_wiring_transcript_sha256" "$(sha256_file "$LEAN_WIRING_TRANSCRIPT")"
@@ -142,7 +135,7 @@ for theorem in \
     || fail "unexpected axiom baseline for $theorem"
 done
 
-whole_expected="'Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound' depends on axioms: [propext, Classical.choice, Quot.sound, Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound, Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_compressToField_sound, Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_diversifiedTransmissionKey_sound, Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_netBalanceCommitment_sound, Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_randomizedVerificationKey_sound]"
+whole_expected="'Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound' depends on axioms: [propext, Classical.choice, Quot.sound]"
 [[ "$flat_axioms" == *"$whole_expected"* ]] \
   || fail "unexpected axiom baseline for consolidate2x1_circuit_sound"
 

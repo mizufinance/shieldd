@@ -174,37 +174,37 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 253625, public: 2, secret: 542, internal: 226281},
+			stats:   circuitStats{constraints: 252613, public: 2, secret: 542, internal: 225603},
 		},
 		{
 			name:    "consolidate2x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(2) },
-			stats:   circuitStats{constraints: 59463, public: 2, secret: 199, internal: 54962},
+			stats:   circuitStats{constraints: 57945, public: 2, secret: 199, internal: 53945},
 		},
 		{
 			name:    "consolidate4x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(4) },
-			stats:   circuitStats{constraints: 104529, public: 2, secret: 379, internal: 97078},
+			stats:   circuitStats{constraints: 101999, public: 2, secret: 379, internal: 95383},
 		},
 		{
 			name:    "consolidate8x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(8) },
-			stats:   circuitStats{constraints: 194221, public: 2, secret: 739, internal: 180870},
+			stats:   circuitStats{constraints: 189667, public: 2, secret: 739, internal: 177819},
 		},
 		{
 			name:    "split1x4",
 			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(4) },
-			stats:   circuitStats{constraints: 67950, public: 2, secret: 139, internal: 61831},
+			stats:   circuitStats{constraints: 65420, public: 2, secret: 139, internal: 60136},
 		},
 		{
 			name:    "split1x8",
 			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
-			stats:   circuitStats{constraints: 108430, public: 2, secret: 179, internal: 98187},
+			stats:   circuitStats{constraints: 103876, public: 2, secret: 179, internal: 95136},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 92876, public: 2, secret: 327, internal: 85853},
+			stats:   circuitStats{constraints: 91358, public: 2, secret: 327, internal: 84836},
 		},
 	}
 }

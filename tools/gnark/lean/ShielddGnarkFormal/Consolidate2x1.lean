@@ -4,6 +4,8 @@ import ShielddGnarkFormal.Poseidon6Bridge
 import ShielddGnarkFormal.Poseidon7Bridge
 import ShielddGnarkFormal.AnchorMerkleSpec
 import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.RvkBridge
+import ShielddGnarkFormal.DtkBridge
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
@@ -14,7 +16,9 @@ set_option linter.unusedSectionVars false
 
 `export-lean` is gadget-scope, so this file models the ordered whole-circuit
 call graph and consumes the extracted per-gadget bridges. The fidelity gate
-checks these marker names against `note_reshape_circuit.go`.
+diffs the Go-emitted wiring transcript against
+`Consolidate2x1WiringTranscript.canonical`; that certifies gadget call order
+and wiring names, not this file's Prop structure.
 -/
 
 namespace Shieldd.GnarkFormal.Consolidate2x1
@@ -30,17 +34,12 @@ variable [Fact (Nat.Prime Extracted.Nullifier.Order)]
 variable [Fact (Nat.Prime Extracted.QuadPath2.Order)]
 variable [Fact (Nat.Prime Extracted.QuadPath24.Order)]
 variable [Fact (Nat.Prime Extracted.PoseidonHash4.Order)]
-
-def defineFidelityMarkers : List String :=
-  ["NoteCommitmentWithCompressedDivGen",
-   "Nullifier",
-   "VerifyStateCommitmentPath",
-   "RandomizedVerificationKey",
-   "DiversifiedTransmissionKey",
-   "computeTransferNetBalanceCommitment",
-   "decafgnark.AssertEquivalent",
-   "decafgnark.CompressToField",
-   "ConsolidateStatementHashForShape"]
+variable [Fact (Nat.Prime Extracted.DecafAssertEquivalent.Order)]
+variable [Fact (Nat.Prime Extracted.DecafCompressToField.Order)]
+variable [Fact (Nat.Prime Extracted.DecafEncodeToCurve.Order)]
+variable [Fact (Nat.Prime Extracted.DecafRvk.Order)]
+variable [Fact (Nat.Prime Extracted.DecafDtk.Order)]
+variable [Fact (Nat.Prime Extracted.DecafEdwardsAdd.Order)]
 
 structure Note where
   blinding : F
@@ -85,7 +84,8 @@ structure Inputs where
   ivkReduced : F
   ivkQuotientA : F
   actionBalanceBlinding : F
-  balanceCommitmentPoint : Point
+  balanceCommitmentComputed : Point
+  balanceCommitmentClaimed : Point
   balanceCommitmentFq : F
   outputCommitment : F
   spend0 : Spend
@@ -102,6 +102,7 @@ def statementHashCircuit (i : Inputs) : Prop :=
     i.spend1.nullifier i.spend1.rkCompressed i.claimedStatementHash
 
 def spendCircuit (i : Inputs) (s : Spend) : Prop :=
+  Decaf377Assumptions.CompressToFieldCircuit s.spentDivGen s.note.divGenCompressed ∧
   noteCommitmentCircuit i.noteCommitDomain s.note ∧
   Extracted.PoseidonHash1.circuit i.tctLeafDomain s.note.commitment s.leafHash ∧
   Extracted.Nullifier.circuit i.nk s.note.commitment s.position s.nullifier ∧
@@ -117,6 +118,7 @@ def spendCircuit (i : Inputs) (s : Spend) : Prop :=
   s.note.assetID = i.spend0.note.assetID
 
 def outputCircuit (i : Inputs) (o : Output) : Prop :=
+  Decaf377Assumptions.CompressToFieldCircuit o.createdDivGen o.note.divGenCompressed ∧
   noteCommitmentCircuit i.noteCommitDomain o.note ∧
   o.note.commitment = i.outputCommitment ∧
   Decaf377Assumptions.DiversifiedTransmissionKeyCircuit i.nk i.sharedAK o.createdDivGen
@@ -132,14 +134,16 @@ structure DefineModel (i : Inputs) : Prop where
   output0 : outputCircuit i i.output0
   netBalance : Decaf377Assumptions.NetBalanceCommitmentCircuit
     i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
-    i.actionBalanceBlinding i.balanceCommitmentPoint
+    i.actionBalanceBlinding i.balanceCommitmentComputed
   balanceEquivalent : Decaf377Assumptions.AssertEquivalentCircuit
-    i.balanceCommitmentPoint i.balanceCommitmentPoint
+    i.balanceCommitmentComputed i.balanceCommitmentClaimed
   balanceCompressed : Decaf377Assumptions.CompressToFieldCircuit
-    i.balanceCommitmentPoint i.balanceCommitmentFq
+    i.balanceCommitmentComputed i.balanceCommitmentFq
   statementHash : statementHashCircuit i
 
 structure SpendSound (i : Inputs) (s : Spend) : Prop where
+  divGenCompressed :
+    Decaf377Assumptions.CompressToFieldSpec s.spentDivGen s.note.divGenCompressed
   noteCommitment :
     Extracted.PoseidonHash6.poseidonPerm6 i.noteCommitDomain s.note.blinding s.note.amount
       s.note.assetID s.note.divGenCompressed s.note.transmissionKeyS s.note.clueKey
@@ -173,6 +177,8 @@ structure SpendSound (i : Inputs) (s : Spend) : Prop where
   assetShared : s.note.assetID = i.spend0.note.assetID
 
 structure OutputSound (i : Inputs) (o : Output) : Prop where
+  divGenCompressed :
+    Decaf377Assumptions.CompressToFieldSpec o.createdDivGen o.note.divGenCompressed
   noteCommitment :
     Extracted.PoseidonHash6.poseidonPerm6 i.noteCommitDomain o.note.blinding o.note.amount
       o.note.assetID o.note.divGenCompressed o.note.transmissionKeyS o.note.clueKey
@@ -196,11 +202,11 @@ structure SoundSpec (i : Inputs) : Prop where
   netBalance :
     Decaf377Assumptions.NetBalanceCommitmentSpec
       i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
-      i.actionBalanceBlinding i.balanceCommitmentPoint
+      i.actionBalanceBlinding i.balanceCommitmentComputed
   balanceEquivalent :
-    Decaf377Assumptions.AssertEquivalentSpec i.balanceCommitmentPoint i.balanceCommitmentPoint
+    Decaf377Assumptions.AssertEquivalentSpec i.balanceCommitmentComputed i.balanceCommitmentClaimed
   balanceCompressed :
-    Decaf377Assumptions.CompressToFieldSpec i.balanceCommitmentPoint i.balanceCommitmentFq
+    Decaf377Assumptions.CompressToFieldSpec i.balanceCommitmentComputed i.balanceCommitmentFq
   statementHash :
     Extracted.PoseidonHash7.poseidonPerm7 i.statementDomain i.anchor i.outputCommitment
       i.balanceCommitmentFq i.spend0.nullifier i.spend0.rkCompressed
@@ -212,9 +218,11 @@ private theorem spend_sound
     spendCircuit i s → SpendSound i s := by
   intro h
   rcases h with
-    ⟨hNote, hLeaf, hNullifier, hAnchor, hRVK, hRKEq, hRKCompressed, hDTK,
+    ⟨hDivGenFq, hNote, hLeaf, hNullifier, hAnchor, hRVK, hRKEq, hRKCompressed, hDTK,
       hTransmissionEq, hDivGenShared, hTransmissionShared, hAsset⟩
   exact {
+    divGenCompressed := Decaf377Assumptions.decaf377_compressToField_sound s.spentDivGen
+      s.note.divGenCompressed hDivGenFq
     noteCommitment := Poseidon6Bridge.circuit_sound i.noteCommitDomain s.note.blinding
       s.note.amount s.note.assetID s.note.divGenCompressed s.note.transmissionKeyS
       s.note.clueKey s.note.commitment (by simpa [noteCommitmentCircuit] using hNote)
@@ -223,15 +231,21 @@ private theorem spend_sound
     anchor := AnchorMerkle.concrete_circuit_sound24 i.tctNodeDomain s.leafHash s.position i.anchor
       s.path hAnchor
     randomizedVerificationKey :=
-      Decaf377Assumptions.decaf377_randomizedVerificationKey_sound i.sharedAK s.authRandomizer
-        s.computedRK hRVK
+      RvkBridge.decaf377_randomizedVerificationKey_sound i.sharedAK s.authRandomizer
+        s.computedRK
+        (DtkBridge.decaf377_diversifiedTransmissionKey_ak_onCurve i.nk i.sharedAK
+          s.spentDivGen i.ivkReduced i.ivkQuotientA s.computedTransmission hDTK)
+        hRVK
     rkEquivalent := Decaf377Assumptions.decaf377_assertEquivalent_sound s.computedRK
       s.rkClaimed hRKEq
     rkCompressed := Decaf377Assumptions.decaf377_compressToField_sound s.rkClaimed
       s.rkCompressed hRKCompressed
     diversifiedTransmissionKey :=
-      Decaf377Assumptions.decaf377_diversifiedTransmissionKey_sound i.nk i.sharedAK
-        s.spentDivGen i.ivkReduced i.ivkQuotientA s.computedTransmission hDTK
+      DtkBridge.decaf377_diversifiedTransmissionKey_sound i.nk i.sharedAK
+        s.spentDivGen i.ivkReduced i.ivkQuotientA s.computedTransmission
+        (DtkBridge.decaf377_compressToField_onCurve s.spentDivGen
+          s.note.divGenCompressed hDivGenFq)
+        hDTK
     transmissionEquivalent := Decaf377Assumptions.decaf377_assertEquivalent_sound
       s.computedTransmission s.spentTransmission hTransmissionEq
     divGenShared := Decaf377Assumptions.decaf377_assertEquivalent_sound s.spentDivGen
@@ -246,15 +260,20 @@ private theorem output_sound
     outputCircuit i o → OutputSound i o := by
   intro h
   rcases h with
-    ⟨hNote, hPublished, hDTK, hTransmissionEq, hDivGenShared, hTransmissionShared, hAsset⟩
+    ⟨hDivGenFq, hNote, hPublished, hDTK, hTransmissionEq, hDivGenShared, hTransmissionShared, hAsset⟩
   exact {
+    divGenCompressed := Decaf377Assumptions.decaf377_compressToField_sound o.createdDivGen
+      o.note.divGenCompressed hDivGenFq
     noteCommitment := Poseidon6Bridge.circuit_sound i.noteCommitDomain o.note.blinding
       o.note.amount o.note.assetID o.note.divGenCompressed o.note.transmissionKeyS
       o.note.clueKey o.note.commitment (by simpa [noteCommitmentCircuit] using hNote)
     publishedCommitment := hPublished
     diversifiedTransmissionKey :=
-      Decaf377Assumptions.decaf377_diversifiedTransmissionKey_sound i.nk i.sharedAK
-        o.createdDivGen i.ivkReduced i.ivkQuotientA o.computedTransmission hDTK
+      DtkBridge.decaf377_diversifiedTransmissionKey_sound i.nk i.sharedAK
+        o.createdDivGen i.ivkReduced i.ivkQuotientA o.computedTransmission
+        (DtkBridge.decaf377_compressToField_onCurve o.createdDivGen
+          o.note.divGenCompressed hDivGenFq)
+        hDTK
     transmissionEquivalent := Decaf377Assumptions.decaf377_assertEquivalent_sound
       o.computedTransmission o.createdTransmission hTransmissionEq
     divGenShared := Decaf377Assumptions.decaf377_assertEquivalent_sound o.createdDivGen
@@ -274,11 +293,11 @@ theorem consolidate2x1_circuit_sound
     output0 := output_sound i i.output0 h.output0
     netBalance := Decaf377Assumptions.decaf377_netBalanceCommitment_sound
       i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
-      i.actionBalanceBlinding i.balanceCommitmentPoint h.netBalance
+      i.actionBalanceBlinding i.balanceCommitmentComputed h.netBalance
     balanceEquivalent := Decaf377Assumptions.decaf377_assertEquivalent_sound
-      i.balanceCommitmentPoint i.balanceCommitmentPoint h.balanceEquivalent
+      i.balanceCommitmentComputed i.balanceCommitmentClaimed h.balanceEquivalent
     balanceCompressed := Decaf377Assumptions.decaf377_compressToField_sound
-      i.balanceCommitmentPoint i.balanceCommitmentFq h.balanceCompressed
+      i.balanceCommitmentComputed i.balanceCommitmentFq h.balanceCompressed
     statementHash := Poseidon7Bridge.circuit_sound i.statementDomain i.anchor i.outputCommitment
       i.balanceCommitmentFq i.spend0.nullifier i.spend0.rkCompressed i.spend1.nullifier
       i.spend1.rkCompressed i.claimedStatementHash (by simpa [statementHashCircuit] using h.statementHash)

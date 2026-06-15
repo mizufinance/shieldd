@@ -54,6 +54,27 @@ func IncomingViewingKey(
 		return nil, err
 	}
 
+	if err := IVKModRDecomposition(api, ivkModQ, quotientA, ivkReduced); err != nil {
+		return nil, err
+	}
+
+	return ivkReduced, nil
+}
+
+// IVKModRDecomposition pins ivkModQ = r*quotientA + ivkReduced with
+// quotientA in {0..4}, ivkReduced < r, and (when quotientA = 4)
+// ivkReduced < q - 4r so the split cannot wrap mod q.
+func IVKModRDecomposition(
+	api frontend.API,
+	ivkModQ frontend.Variable,
+	quotientA frontend.Variable,
+	ivkReduced frontend.Variable,
+) error {
+	vectors, err := LoadPrototypeVectors()
+	if err != nil {
+		return err
+	}
+
 	rModulus := MustBigInt(vectors.Decaf377CompanionCurve.Order)
 	api.AssertIsEqual(ivkModQ, api.Add(api.Mul(rModulus, quotientA), ivkReduced))
 
@@ -63,21 +84,16 @@ func IncomingViewingKey(
 	}
 	api.AssertIsEqual(poly, 0)
 
-	isLess, err := decafgnark.IsLessThanConstant(api, ivkReduced, rModulus)
-	if err != nil {
-		return nil, err
-	}
+	bits := api.ToBinary(ivkReduced, 253)
+	isLess := LessThanConstant253(api, bits, rModulus)
 	api.AssertIsEqual(isLess, 1)
 
 	qMinus4R := new(big.Int).Sub(ScalarField(), new(big.Int).Mul(big.NewInt(4), rModulus))
-	isLessThanQMinus4R, err := decafgnark.IsLessThanConstant(api, ivkReduced, qMinus4R)
-	if err != nil {
-		return nil, err
-	}
+	isLessThanQMinus4R := LessThanConstant253(api, bits, qMinus4R)
 	isA4 := api.IsZero(api.Sub(quotientA, 4))
 	api.AssertIsEqual(api.Mul(isA4, api.Sub(1, isLessThanQMinus4R)), 0)
 
-	return ivkReduced, nil
+	return nil
 }
 
 func DiversifiedTransmissionKey(

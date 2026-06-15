@@ -1,0 +1,25 @@
+schema: shieldd.decaf-fv-inventory.v1
+circuit: consolidate2x1
+
+proved:
+- decaf.assert_equivalent: extracted DecafAssertEquivalent circuit proves cross-ratio equality
+- decaf.ivk_mod_r: extracted IvkModR circuit proves exact Euclidean decomposition
+- decaf.compress_to_field: extracted hint-free DecafCompressToField mirror proves compress relation
+- decaf.edwards.add: extracted hint-free mirror proves the checked Edwards add formula relation
+- decaf.edwards.double: extracted hint-free mirror proves the checked Edwards double formula relation
+- decaf.edwards.neg: extracted hint-free mirror proves point negation relation
+- decaf.encode_to_curve.extracted_relation: extracted hint-free mirror has a Lean relation bridge
+- decaf.edwards.completeness: d proven non-square, add/double denominators proven nonzero on curve points
+- decaf.edwards.functional_bridge: addSpec/doubleSpec/negSpec proven equal to the Decaf377Assumptions add/double/neg formulas
+- decaf.edwards.closure: add/double/neg proven to preserve the curve equation; identity on curve
+- decaf.scalar_mul_le: extracted ScalarMulLE128/251 mirrors prove little-endian ladder soundness and on-curve closure
+- decaf.encode_to_curve.semantic: extracted hint-free EncodeToCurve mirror proves the decaf map arithmetic relation and output curve equation
+- decaf.randomized_verification_key: extracted DecafRvk circuit proves out = ak + [r]generator (given ak on-curve, discharged by the DTK gadget's on-curve assertion on the shared ak)
+- decaf.diversified_transmission_key: extracted DecafDtk circuit proves out = [ivkReduced]divGen and asserts ak on-curve (divGen on-curve discharged by the compress gadget's curve assertion)
+- decaf.diversified_transmission_key.ivk_provenance: extracted DecafDtk circuit proves ivkReduced/ivkQuotient come from Poseidon2(domain, nk, compress(ak)) mod r
+- decaf.on_curve_threading: compress and DTK mirrors prove their input points satisfy the curve equation; consolidate2x1 threads these into the RVK/DTK soundness calls
+
+open:
+- decaf.net_balance_commitment: needs asset hash, EncodeToCurve, scalar-muls, neg/add composition
+
+closure_claim: partial
