@@ -18,8 +18,10 @@ proved:
 - decaf.diversified_transmission_key: extracted DecafDtk circuit proves out = [ivkReduced]divGen and asserts ak on-curve (divGen on-curve discharged by the compress gadget's curve assertion)
 - decaf.diversified_transmission_key.ivk_provenance: extracted DecafDtk circuit proves ivkReduced/ivkQuotient come from Poseidon2(domain, nk, compress(ak)) mod r
 - decaf.on_curve_threading: compress and DTK mirrors prove their input points satisfy the curve equation; consolidate2x1 threads these into the RVK/DTK soundness calls
+- decaf.net_balance_commitment: extracted NetBalanceCommitment circuit proves out = add(add(add(add 0 [in0]VG) [in1]VG) (neg [out]VG)) [blind]VBG, where VG = encodeToCurve(permSpec1(valueGeneratorDomain, assetID)); composes the rate-1 asset hash, encode-to-curve, four 128-bit value ladders, neg/add chain, and 251-bit blinding ladder
 
 open:
-- decaf.net_balance_commitment: needs asset hash, EncodeToCurve, scalar-muls, neg/add composition
+(none)
 
 closure_claim: partial
+# P6 (on-curve audit of AssertEquivalent call sites) and P7 (closure) pending

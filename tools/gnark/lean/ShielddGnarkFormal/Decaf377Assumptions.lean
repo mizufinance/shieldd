@@ -5,6 +5,7 @@ import ShielddGnarkFormal.Extracted.DecafAssertEquivalent
 import ShielddGnarkFormal.Extracted.DecafCompressToField
 import ShielddGnarkFormal.Extracted.DecafRvk
 import ShielddGnarkFormal.Extracted.DecafDtk
+import ShielddGnarkFormal.Extracted.NetBalanceCommitment
 import ShielddGnarkFormal.CompressToFieldBridge
 import ShielddGnarkFormal.EncodeToCurveBridge
 import ShielddGnarkFormal.IvkModRBridge
@@ -30,6 +31,7 @@ variable [Fact (Nat.Prime Extracted.DecafCompressToField.Order)]
 variable [Fact (Nat.Prime Extracted.DecafEncodeToCurve.Order)]
 variable [Fact (Nat.Prime Extracted.DecafRvk.Order)]
 variable [Fact (Nat.Prime Extracted.DecafDtk.Order)]
+variable [Fact (Nat.Prime Extracted.NetBalanceCommitment.Order)]
 
 structure Point where
   x : F
@@ -114,7 +116,7 @@ def dtkIvkModQ (nk akCompressed : F) : F :=
   Poseidon2Bridge.permSpec2 Poseidon377.ivkDomain nk akCompressed
 
 noncomputable def netBalanceCommit (input0 input1 output assetID balanceBlinding : F) : Point :=
-  let assetHash := Poseidon1Bridge.hash1Spec valueGeneratorDomain assetID
+  let assetHash := Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID
   let valueGenerator := encodeToCurve assetHash
   let zero := scalarMulLE 128 valueGenerator 0
   let in0 := scalarMulLE 128 valueGenerator input0
@@ -152,9 +154,15 @@ def DiversifiedTransmissionKeyCircuit
     Extracted.DecafDtk.circuit nk ak.x ak.y divGen.x divGen.y
       wasSquare sqrtRatio ivkReduced ivkQuotientA out.x out.y
 
+/-- The exact constraint set of the extracted NetBalanceCommitment gadget: a
+rate-1 Poseidon asset hash, a decaf377 encode-to-curve, four 128-bit value
+ladders, the Edwards add chain, a 251-bit blinding ladder, and a final add
+pinned to `out`. -/
 def NetBalanceCommitmentCircuit
     (input0 input1 output assetID balanceBlinding : F) (out : Point) : Prop :=
-  out = netBalanceCommit input0 input1 output assetID balanceBlinding
+  ∃ encodeWasSquare encodeInvSqrt,
+    Extracted.NetBalanceCommitment.circuit input0 input1 output assetID balanceBlinding
+      encodeWasSquare encodeInvSqrt out.x out.y
 
 def CompressToFieldSpec (p : Point) (out : F) : Prop :=
   Extracted.DecafCompressToField.Relation p.x p.y out
@@ -205,11 +213,7 @@ theorem decaf377_assertEquivalent_sound :
   simpa [AssertEquivalentSpec, hg0, hg1, Extracted.DecafAssertEquivalent.Gates,
     GatesGnark9, GatesGnark8, GatesDef.mul, GatesDef.eq] using heq
 
-theorem decaf377_netBalanceCommitment_sound :
-    ∀ input0 input1 output assetID balanceBlinding out,
-      NetBalanceCommitmentCircuit input0 input1 output assetID balanceBlinding out →
-        NetBalanceCommitmentSpec input0 input1 output assetID balanceBlinding out := by
-  intro input0 input1 output assetID balanceBlinding out h
-  exact h
+-- `decaf377_netBalanceCommitment_sound` is proved in `NetBalanceCommitmentBridge`
+-- (it depends on the extracted-circuit bridge, which imports this file).
 
 end Shieldd.GnarkFormal.Decaf377Assumptions

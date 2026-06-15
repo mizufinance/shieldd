@@ -6,6 +6,7 @@ import ShielddGnarkFormal.AnchorMerkleSpec
 import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.RvkBridge
 import ShielddGnarkFormal.DtkBridge
+import ShielddGnarkFormal.NetBalanceCommitmentBridge
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
@@ -291,7 +292,7 @@ theorem consolidate2x1_circuit_sound
     spend0 := spend_sound i i.spend0 h.spend0
     spend1 := spend_sound i i.spend1 h.spend1
     output0 := output_sound i i.output0 h.output0
-    netBalance := Decaf377Assumptions.decaf377_netBalanceCommitment_sound
+    netBalance := NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound
       i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
       i.actionBalanceBlinding i.balanceCommitmentComputed h.netBalance
     balanceEquivalent := Decaf377Assumptions.decaf377_assertEquivalent_sound
