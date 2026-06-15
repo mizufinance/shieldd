@@ -226,9 +226,8 @@ required_files=(
   "$CIRCUIT_FORMAL/circuit-gadget-proofs.md"
   "$HANDOFF"
   docs/soundness/index.md
-  docs/soundness/compliance-ciphertext.md
-  docs/soundness/zk-circuits.md
   docs/soundness/constraint-system-assurance.md
+  docs/soundness/formal-verification-plan.md
 )
 
 for file in "${required_files[@]}"; do

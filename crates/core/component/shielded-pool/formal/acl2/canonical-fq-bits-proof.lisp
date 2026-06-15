@@ -18,7 +18,7 @@
 ; reconciling the boolean strategy -- the 87 one-bit positions carry standalone
 ; boolean constraints, the 166 zero-bit positions are pinned boolean as a
 ; consequence of the range-check shape) is the remaining gadget-level obligation
-; recorded in ASSET-REGISTRY-GAP-HANDOFF.md.  The Axe lift of the real export is
+; recorded in circuit-gadget-proofs.md.  The Axe lift of the real export is
 ; the certified checkpoint canonical-fq-bits-lift.lisp.
 
 (in-package "R1CS")

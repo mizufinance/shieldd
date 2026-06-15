@@ -25,6 +25,8 @@ themselves. `gadget-bool-select`, `gadget-iszero`, `gadget-poseidon2`,
 `gadget-nullifier`, and `gadget-imt-gap` now have stamped gadget-scope semantic
 proofs. See `docs/soundness/constraint-system-assurance.md`
 and `crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md`.
+The forward work order is tracked in
+`docs/soundness/formal-verification-plan.md`.
 
 | ID | Kind | Source | Status | Evidence | Removal path |
 | --- | --- | --- | --- | --- | --- |
@@ -43,7 +45,7 @@ and `crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md`.
 | `CIPHERTEXT-CORRECTNESS` | property | zk-circuits | `composed` | Compliance encryption/DLEQ checks are tied to Track A (`proved-symbolic`). | Add gadget-scope R1CS verification for encryption and DLEQ gadgets. |
 | `STATEMENT-INTEGRITY` | property | zk-circuits | `composed` | Rust/Go differential plus F* field-count injectivity (`crates/core/component/shielded-pool/formal/statement-field-formal-artifact.txt`); full encoder injectivity is not yet proved. | Prove full Rust encoder injectivity and mechanize the Go-side correspondence. |
 | `CONSOLIDATE2X1-LEAN-SOUNDNESS` | property | zk-circuits | `proved` | Lean theorem `Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound` in `crates/core/component/shielded-pool/formal/consolidate2x1-whole-circuit-lean-artifact.txt`; scope is `whole-circuit` for the consolidate2x1 note-reshape Define-model, with Go Define call-site wiring byte-checked against the Lean transcript. Decaf gadget calls are constraint-derived in Lean, including compress, assert-equivalent, RVK, DTK, encode-to-curve, and net-balance; the theorem carries explicit protocol-layer `PrimeOrderSubgroup` and `DecafWitnessOnCurve` hypotheses for accepted subgroup membership of bare witness coordinates. | Discharge the remaining protocol-layer subgroup/witness hypotheses in the accepted-language theorem. |
-| `CC-FIND-C2-MALLEABILITY` | finding | compliance | `resolved` | `validate_c2_seed` checks `c2 == seed + compress(shared_point)` on the standalone decode path; `compliance-ciphertext.md` documents that DLEQ does not authenticate `c2`. | — |
+| `CC-FIND-C2-MALLEABILITY` | finding | compliance | `resolved` | `validate_c2_seed` checks `c2 == seed + compress(shared_point)` on the standalone decode path; the formal ledger records that DLEQ does not authenticate `c2` by itself. | — |
 | `CC-FIND-UNUSED-STREAM-DOMAIN` | finding | compliance | `resolved` | The stream cipher now uses `COMPLIANCE_STREAM_CIPHER_DOMAIN` via `compliance_stream_block` across Rust-native, Rust-R1CS, and Go circuit; fixtures re-blessed. | — |
 | `CC-FIND-DESIGNATED-VERIFIER-CLAIM` | finding | compliance | `resolved` | The designated-decryptability claim is now a Tamarin lemma (`DESIGNATED_DECRYPTABILITY verified`) with a stamped artifact; see the `DESIGNATED-DECRYPTABILITY` property row. | — |
 | `ZK-FIND-GO-UNREGULATED-NONMEMBERSHIP` | finding | zk-circuits | `resolved` | `VerifyAssetRegistryIMT` enforces `Select(IsRegulated, exactMatch, inGap)` through AssetRegistryGap in both transfer and shielded ICS-20 circuits; reproducing regression tests in `transfer_metamorphic_test.go`. | — |

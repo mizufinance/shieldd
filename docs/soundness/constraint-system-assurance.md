@@ -152,7 +152,10 @@ compress, assert-equivalent, encode-to-curve, RVK, DTK, scalar ladders, Edwards
 closure, and net-balance composition are bridged against extracted gadgets. The
 whole-circuit theorem still takes explicit protocol-layer hypotheses naming the
 accepted prime-order subgroup and raw witness membership for bare decaf field
-coordinates; those are accepted-language obligations, not Lean axioms.
+coordinates; those are accepted-language obligations, not Lean axioms. The staged
+path from this single-circuit artifact to family-wide and protocol-wide coverage
+is tracked in
+[formal-verification-plan.md](formal-verification-plan.md).
 
 **M6 Lean scaffold.** A Lean 4 project now lives in
 [tools/gnark/lean](../../tools/gnark/lean). The vendored
