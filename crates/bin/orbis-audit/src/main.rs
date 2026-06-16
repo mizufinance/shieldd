@@ -27,7 +27,6 @@ use shieldd_sdk_num::Amount;
 use tonic::transport::Channel;
 use url::Url;
 
-use shieldd_orbis_client::ORBIS_NAMESPACE;
 const ORBIS_READER_RELATION: &str = "reader";
 const ORBIS_DEMO_READER_DID_PK: &str = "test_jwt";
 
@@ -762,7 +761,7 @@ async fn ensure_package_object(
     let started = Instant::now();
     let stored = ctx
         .cli
-        .store_encrypted_seed_package(ORBIS_NAMESPACE, ring_id, &package, jwt_signer)
+        .store_encrypted_seed_package(ring_id, &package, jwt_signer)
         .await?;
     timings.package_store_ms += started.elapsed().as_millis();
     let started = Instant::now();
@@ -815,7 +814,6 @@ async fn pre_package_seed(
     let mut pre_result = ctx
         .cli
         .start_pre(
-            ORBIS_NAMESPACE,
             &hex::encode(ctx.dk_pub.vartime_compress().0),
             &object.object_id,
             &hex::encode(object.package.derivation_bytes()),
@@ -832,7 +830,6 @@ async fn pre_package_seed(
         pre_result = ctx
             .cli
             .start_pre(
-                ORBIS_NAMESPACE,
                 &hex::encode(ctx.dk_pub.vartime_compress().0),
                 &object.object_id,
                 &hex::encode(object.package.derivation_bytes()),
