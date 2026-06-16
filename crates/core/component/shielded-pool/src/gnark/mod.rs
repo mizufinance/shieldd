@@ -134,3 +134,83 @@ mod repo_local_demo_library_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod soundness_fixture_tests {
+    use std::path::PathBuf;
+
+    use rand::SeedableRng;
+
+    use crate::{
+        gnark::{
+            encode_consolidate_witness_v1, encode_shielded_ics20_withdrawal_witness_v1,
+            encode_split_witness_v1, encode_transfer_witness_v1,
+        },
+        test_proof_helpers::proof_test_helpers,
+        ConsolidateFamilyId, ShieldedIcs20WithdrawalFamilyId, SplitFamilyId,
+    };
+
+    fn fixture_dir() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../../tools/gnark/internal/testfixtures/vectors")
+    }
+
+    fn write_fixture(filename: &str, bytes: Vec<u8>) {
+        let dir = fixture_dir();
+        std::fs::create_dir_all(&dir)
+            .unwrap_or_else(|e| panic!("create soundness fixture dir {dir:?}: {e}"));
+        let path = dir.join(filename);
+        std::fs::write(&path, &bytes)
+            .unwrap_or_else(|e| panic!("write soundness fixture {path:?}: {e}"));
+        eprintln!("wrote {} bytes to {path:?}", bytes.len());
+    }
+
+    #[test]
+    #[ignore = "debug: refresh Rust-emitted gnark soundness fixtures"]
+    fn bless_soundness_gnark_witness_fixtures() {
+        let mut transfer_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0054_5832_5832);
+        let (transfer_public, transfer_private) =
+            proof_test_helpers::build_transfer_roundtrip_inputs_with_rng(&mut transfer_rng, true);
+        write_fixture(
+            "transfer_witness_v1.bin",
+            encode_transfer_witness_v1(&transfer_public, &transfer_private)
+                .expect("encode transfer witness"),
+        );
+
+        let mut consolidate_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0043_3258_3101);
+        let (consolidate_public, consolidate_private) =
+            proof_test_helpers::build_consolidate_roundtrip_inputs_with_rng(
+                &mut consolidate_rng,
+                ConsolidateFamilyId::TwoByOne,
+            );
+        write_fixture(
+            "consolidate2x1_witness_v1.bin",
+            encode_consolidate_witness_v1(&consolidate_public, &consolidate_private)
+                .expect("encode consolidate witness"),
+        );
+
+        let mut split_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0053_3158_3401);
+        let (split_public, split_private) =
+            proof_test_helpers::build_split_roundtrip_inputs_with_rng(
+                &mut split_rng,
+                SplitFamilyId::OneByFour,
+            );
+        write_fixture(
+            "split1x4_witness_v1.bin",
+            encode_split_witness_v1(&split_public, &split_private).expect("encode split witness"),
+        );
+
+        let mut withdrawal_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0049_4353_3201);
+        let (withdrawal_public, withdrawal_private) =
+            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng(
+                &mut withdrawal_rng,
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+            );
+        write_fixture(
+            "shielded_ics20_withdrawal_witness_v1.bin",
+            encode_shielded_ics20_withdrawal_witness_v1(&withdrawal_public, &withdrawal_private)
+                .expect("encode shielded ICS-20 withdrawal witness"),
+        );
+    }
+}

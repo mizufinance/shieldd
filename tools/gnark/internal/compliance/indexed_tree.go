@@ -269,3 +269,29 @@ func VerifyQuadPath(
 	}
 	return current, nil
 }
+
+func VerifyAssetRegistryIMT(
+	api frontend.API,
+	noteAssetID frontend.Variable,
+	isRegulated frontend.Variable,
+	indexedLeaf IndexedLeafInputs,
+	assetPath [ComplianceQuadTreeDepth][3]frontend.Variable,
+	assetPosition frontend.Variable,
+	assetAnchor frontend.Variable,
+) error {
+	api.AssertIsBoolean(isRegulated)
+
+	assetLeafCommitment, err := IndexedLeafCommitment(api, indexedLeaf)
+	if err != nil {
+		return err
+	}
+	assetRoot, err := VerifyQuadPath(api, assetLeafCommitment, assetPath, assetPosition)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(assetRoot, assetAnchor)
+
+	validProof := AssetRegistryGap(api, noteAssetID, isRegulated, indexedLeaf.Value, indexedLeaf.NextValue)
+	api.AssertIsEqual(validProof, 1)
+	return nil
+}

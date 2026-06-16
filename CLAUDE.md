@@ -56,3 +56,16 @@ They are not migration promises.
 - Docs succinct and factual: module ≤8 lines, public type ≤3, function ≤2 unless real protocol nuance. Do not force docs, some things do not need it.
 - Document ownership, invariants, inputs, outputs, failure modes. Do not restate names or history.
 - Define docs once; reference elsewhere.
+
+## Lean Circuit Proofs
+
+- Never prove semantics of an extracted constraint chain in one monolithic
+  tactic walk. Elaboration cost is quadratic in chain length: each
+  `obtain`/destructuring step re-substitutes the entire remaining term.
+- Hard limit: ≤60 gates per definition/lemma/tactic block. Slice longer
+  circuits into segment predicates ending in an opaque continuation
+  (`k : Prop` or `k : Vector F n → Prop`), prove each segment's semantics
+  separately, and compose. Repeated rung patterns (ladders, lt-chains) get a
+  fuel-recursive definition plus one induction lemma, never an unrolled walk.
+- If a single Lean compile exceeds ~10 minutes, kill it and restructure;
+  do not wait it out.

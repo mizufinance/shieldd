@@ -205,7 +205,8 @@ impl PublicTransferTierDecodeObject {
     /// Validate the canonical Shieldd metadata binding for this tier object.
     ///
     /// This checks the transfer DLEQ only. It does not prove that `c2` encrypts
-    /// a valid seed; that remains a Shieldd zk-circuit responsibility.
+    /// a valid seed; use `validate_c2_seed` after seed decryption, or rely on a
+    /// circuit-backed transfer statement.
     pub fn validate(&self, ring_pk: &Element) -> Result<()> {
         self.validate_shape()?;
         let metadata_hash = self.statement.metadata_hash()?;
@@ -214,6 +215,14 @@ impl PublicTransferTierDecodeObject {
         let shared_point = self.shared_point()?;
         let proof = self.dleq_proof()?;
         verify_dleq_native(&ack, &epk, &shared_point, &proof.c, &proof.s, metadata_hash)
+    }
+
+    pub fn validate_c2_seed(&self, seed: Fq) -> Result<()> {
+        let expected_c2 = seed + self.shared_point()?.vartime_compress_to_field();
+        if self.c2()? != expected_c2 {
+            bail!("tier c2 does not match decrypted seed and shared point");
+        }
+        Ok(())
     }
 
     pub fn epk(&self) -> Result<Element> {
@@ -261,7 +270,7 @@ mod tests {
 
     use crate::crypto::compute_dleq_native;
 
-    fn valid_decode_object() -> (PublicTransferTierDecodeObject, Element) {
+    fn valid_decode_object() -> (PublicTransferTierDecodeObject, Element, Fq) {
         let mut rng = OsRng;
         let sk_ring = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * sk_ring;
@@ -283,7 +292,8 @@ mod tests {
         let k = Fr::rand(&mut rng);
         let epk = Element::GENERATOR * r;
         let shared_point = ack * r;
-        let c2 = Fq::from(1234u64);
+        let seed = Fq::from(1234u64);
+        let c2 = seed + shared_point.vartime_compress_to_field();
         let metadata_hash = statement
             .metadata_hash()
             .expect("metadata hash should compute");
@@ -292,12 +302,13 @@ mod tests {
         (
             PublicTransferTierDecodeObject::new(statement, &epk, c2, &shared_point, &proof),
             ring_pk,
+            seed,
         )
     }
 
     #[test]
     fn transfer_tier_decode_object_roundtrips_json() {
-        let (object, ring_pk) = valid_decode_object();
+        let (object, ring_pk, seed) = valid_decode_object();
         let json = object.to_json().expect("object should serialize");
         let decoded =
             PublicTransferTierDecodeObject::from_json(&json).expect("object should deserialize");
@@ -306,11 +317,14 @@ mod tests {
         decoded
             .validate(&ring_pk)
             .expect("roundtripped object should stay valid");
+        decoded
+            .validate_c2_seed(seed)
+            .expect("roundtripped c2 should match seed");
     }
 
     #[test]
     fn transfer_tier_decode_object_rejects_wrong_tier() {
-        let (mut object, ring_pk) = valid_decode_object();
+        let (mut object, ring_pk, _) = valid_decode_object();
         object.statement.tier = TransferTierKind::OutputExt;
 
         let error = object
@@ -321,7 +335,7 @@ mod tests {
 
     #[test]
     fn transfer_tier_decode_object_rejects_wrong_timestamp() {
-        let (mut object, ring_pk) = valid_decode_object();
+        let (mut object, ring_pk, _) = valid_decode_object();
         object.statement.target_timestamp += 1;
 
         let error = object
@@ -332,7 +346,7 @@ mod tests {
 
     #[test]
     fn transfer_tier_decode_object_rejects_wrong_subject_linkage() {
-        let (mut object, ring_pk) = valid_decode_object();
+        let (mut object, ring_pk, _) = valid_decode_object();
         object.statement.subject_derivation_bytes = Fq::from(999u64).to_bytes();
 
         let error = object
@@ -343,7 +357,7 @@ mod tests {
 
     #[test]
     fn transfer_tier_decode_object_rejects_tampered_dleq() {
-        let (mut object, ring_pk) = valid_decode_object();
+        let (mut object, ring_pk, _) = valid_decode_object();
         object.dleq_challenge_bytes = Fq::from(5u64).to_bytes();
 
         let error = object
@@ -353,8 +367,22 @@ mod tests {
     }
 
     #[test]
+    fn transfer_tier_decode_object_rejects_c2_malleability_with_seed() {
+        let (mut object, ring_pk, seed) = valid_decode_object();
+        object.c2_bytes = (object.c2().expect("valid c2") + Fq::from(1u64)).to_bytes();
+
+        object
+            .validate(&ring_pk)
+            .expect("DLEQ does not authenticate c2 by itself");
+        let error = object
+            .validate_c2_seed(seed)
+            .expect_err("seed-aware validation should reject c2 mutation");
+        assert!(error.to_string().contains("c2"));
+    }
+
+    #[test]
     fn transfer_tier_decode_object_rejects_invalid_point_encoding() {
-        let (mut object, _) = valid_decode_object();
+        let (mut object, _, _) = valid_decode_object();
         object.epk_bytes = [0xff; 32];
 
         let error = object

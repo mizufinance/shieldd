@@ -1,0 +1,11 @@
+; Portcullis + certify flags for a generated Kestrel R1CS book.
+;
+; The constraint literal is large enough that SBCL's file compiler can overflow
+; a (SIGNED-BYTE 19) offset while building the .fasl. Certify interpreted
+; (compile-flg nil): the book is pure generated constraint data, no proof work to
+; compile and no runtime cost that matters for downstream composition proofs.
+
+(ld "rtl/rel11/package.lsp" :dir :system)
+(include-book "kestrel/crypto/r1cs/portcullis" :dir :system)
+
+; cert-flags: ? nil

@@ -1,0 +1,193 @@
+name: soundness-formal
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Nightly heavy formal run: symbolic compliance, hax/F*, Picus, advisory ACL2,
+    # and the Lean whole-circuit FV gate.
+    - cron: '41 9 * * *'
+  pull_request:
+    paths:
+      - '.gitignore'
+      - '.github/workflows/soundness-formal.yml'
+      - 'docs/soundness/**'
+      - 'crates/core/component/compliance/formal/**'
+      - 'crates/core/component/compliance/src/crypto.rs'
+      - 'crates/core/component/compliance/src/decode_object.rs'
+      - 'crates/core/component/compliance/src/r1cs.rs'
+      - 'crates/core/component/shielded-pool/formal/**'
+      - 'crates/core/component/shielded-pool/proofs/fstar/**'
+      - 'crates/core/component/shielded-pool/src/public_input_hash.rs'
+      - 'tools/gnark/go.mod'
+      - 'tools/gnark/go.sum'
+      - 'tools/gnark/lean/**'
+      - 'tools/gnark/cmd/gnarkctl/**'
+      - 'tools/gnark/internal/artifacts/**'
+      - 'tools/gnark/internal/circuits/**'
+      - 'tools/gnark/internal/compliance/**'
+      - 'tools/gnark/internal/abi/**'
+      - 'scripts/check-lean-circuit-fv.sh'
+      - 'scripts/check-soundness-invariants.sh'
+      - 'scripts/compliance-symbolic.sh'
+      - 'scripts/shielded-pool-formal.sh'
+      - 'scripts/circuit-constraint-check.sh'
+      - 'scripts/circuit-gadget-proof-check.sh'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Cheap, deterministic gate: kind-aware ledger statuses, scope bindings,
+  # and stamped-artifact references. Runs on every triggering PR.
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Check soundness invariants
+        run: bash scripts/check-soundness-invariants.sh
+
+  lean-circuit-fv:
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/gnark/go.mod
+          cache-dependency-path: tools/gnark/go.sum
+      - name: Install pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain leanprover/lean4:v4.15.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      # PRs run the cheap `stamps` tier (hygiene + stamp integrity + wiring
+      # transcript); the nightly schedule/dispatch runs the expensive `full`
+      # tier that elaborates the whole-circuit proofs and checks axioms.
+      - name: Run Lean whole-circuit FV gate
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            bash scripts/check-lean-circuit-fv.sh stamps
+          else
+            bash scripts/check-lean-circuit-fv.sh full
+          fi
+
+  # Heavy provers (Tamarin symbolic + hax/F* injectivity). Schedule/dispatch
+  # only; PRs keep this check green with an explicit policy note. The ACL2
+  # certification leg is advisory because local ACL2 proof drift must not block
+  # the required pipeline while the independent Lean gate stays hard-required.
+  provers:
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
+    steps:
+      - name: PR prover policy
+        if: github.event_name == 'pull_request'
+        run: echo "Heavy formal provers run on nightly schedule and workflow_dispatch; PRs run gate + lean-circuit-fv."
+
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request'
+        with:
+          ref: ${{ matrix.ref }}
+
+      - uses: ./.github/actions/setup-nix-rust
+        if: github.event_name != 'pull_request'
+        with:
+          rust-cache-prefix: soundness-formal
+
+      - name: Install pinned Z3
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -L \
+            -o /tmp/z3-4.14.1.zip \
+            https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
+          unzip -q /tmp/z3-4.14.1.zip -d "$HOME/.local/opt"
+          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned F*
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -L \
+            -o /tmp/fstar-v2026.05.24.tar.gz \
+            https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
+          tar -xzf /tmp/fstar-v2026.05.24.tar.gz -C "$HOME/.local/opt"
+          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned hax
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$HOME/.local/opt/hax-v0.3.7"
+          nix profile install \
+            "$HOME/.local/opt/hax-v0.3.7#hax" \
+            "$HOME/.local/opt/hax-v0.3.7#hax-engine"
+          echo "HAX_PROOF_LIBS_HOME=$HOME/.local/opt/hax-v0.3.7/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
+
+      - name: Run compliance symbolic gate (Tamarin)
+        if: github.event_name != 'pull_request'
+        run: nix shell nixpkgs#tamarin-prover nixpkgs#maude --command bash scripts/compliance-symbolic.sh
+
+      - name: Run shielded-pool F* injectivity gate
+        if: github.event_name != 'pull_request'
+        run: bash scripts/shielded-pool-formal.sh
+
+      - name: Install Picus (Veridise under-constraint checker)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/Veridise/Picus "$HOME/.local/opt/picus"
+          ( cd "$HOME/.local/opt/picus" && raco pkg install --auto --batch || true )
+          echo "PICUS_BIN=$HOME/.local/opt/picus/run-picus" >> "$GITHUB_ENV"
+
+      - name: Run gadget-scope R1CS under-constraint check (Picus)
+        if: github.event_name != 'pull_request'
+        run: nix shell nixpkgs#z3 --command bash scripts/circuit-constraint-check.sh
+
+      # C3 gadget theorems — the only route to `proved`. Certifies the ACL2
+      # `R1CS => spec` proof, verifies the gnark parity tie, and checks the
+      # stamped artifact. nixpkgs#acl2 ships its community books (arithmetic-5)
+      # certified under its own image, so the serial `acl2` certifies cleanly.
+      # The same script also runs the M6 Lean spec scaffold (`lake build`).
+      - name: Run C3 gadget theorem certification (ACL2)
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        run: nix shell nixpkgs#acl2 nixpkgs#lean4 --command bash scripts/circuit-gadget-proof-check.sh
+
+      - name: Check soundness invariants (post-prover, stamp drift)
+        if: github.event_name != 'pull_request'
+        run: nix develop --command bash scripts/check-soundness-invariants.sh

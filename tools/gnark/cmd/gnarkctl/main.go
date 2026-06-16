@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/consensys/gnark-crypto/ecc"
 	curve "github.com/consensys/gnark-crypto/ecc/bls12-377"
 	"github.com/consensys/gnark/backend/groth16"
 	groth16bls "github.com/consensys/gnark/backend/groth16/bls12-377"
@@ -21,6 +22,7 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
+	"github.com/reilabs/gnark-lean-extractor/v3/extractor"
 )
 
 func main() {
@@ -33,6 +35,18 @@ func main() {
 	switch os.Args[1] {
 	case "setup":
 		err = runSetup(os.Args[2:])
+	case "export-r1cs":
+		err = runExportR1CS(os.Args[2:])
+	case "extract-bit-inputs":
+		err = runExtractBitInputs(os.Args[2:])
+	case "export-poseidon-acl2":
+		err = runExportPoseidonACL2(os.Args[2:])
+	case "export-poseidon-lean":
+		err = runExportPoseidonLean(os.Args[2:])
+	case "export-lean":
+		err = runExportLean(os.Args[2:])
+	case "export-wiring-transcript":
+		err = runExportWiringTranscript(os.Args[2:])
 	case "prove":
 		err = runProve(os.Args[2:])
 	case "replay":
@@ -50,7 +64,206 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|export-wiring-transcript|prove|replay|verify-bench> [flags]")
+}
+
+func runExportWiringTranscript(args []string) error {
+	fs := flag.NewFlagSet("export-wiring-transcript", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "supported circuit label")
+	outPath := fs.String("out", "", "output canonical wiring transcript path")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *outPath == "" {
+		return fmt.Errorf("--circuit and --out are required")
+	}
+	if *circuit != "consolidate2x1" {
+		return fmt.Errorf("wiring transcript export is currently supported only for consolidate2x1, got %q", *circuit)
+	}
+	out, err := circuits.ExportConsolidate2x1WiringTranscript()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	if err := os.WriteFile(*outPath, []byte(out), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", *outPath, err)
+	}
+	fmt.Fprintf(os.Stderr, "wrote %s\n", *outPath)
+	return nil
+}
+
+func runExportLean(args []string) error {
+	fs := flag.NewFlagSet("export-lean", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "gadget-* label")
+	namespace := fs.String("namespace", "Shieldd.GnarkFormal.Extracted", "Lean namespace")
+	outPath := fs.String("out", "", "output Lean file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *outPath == "" {
+		return fmt.Errorf("--circuit and --out are required")
+	}
+	instance, ok := gadgetCircuit(*circuit)
+	if !ok {
+		return fmt.Errorf("Lean export is gadget-scope only; %q is not a gadget label", *circuit)
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	out, err := extractor.CircuitToLeanWithName(instance, ecc.BLS12_377, *namespace)
+	if err != nil {
+		return fmt.Errorf("extract Lean for %s: %w", *circuit, err)
+	}
+	if err := os.WriteFile(*outPath, []byte(out+"\n"), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", *outPath, err)
+	}
+	fmt.Fprintf(os.Stderr, "wrote %s\n", *outPath)
+	return nil
+}
+
+func runExtractBitInputs(args []string) error {
+	fs := flag.NewFlagSet("extract-bit-inputs", flag.ContinueOnError)
+	label := fs.String("label", "", "gadget label used for generated ACL2 constants")
+	inPath := fs.String("in", "", "input Axe Lisp R1CS file")
+	outPath := fs.String("out", "", "output ACL2 bit-input constants file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *label == "" || *inPath == "" || *outPath == "" {
+		return fmt.Errorf("--label, --in, and --out are required")
+	}
+	data, err := os.ReadFile(*inPath)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", *inPath, err)
+	}
+	symbols, err := artifacts.ExtractBooleanBitInputsFromAxeLisp(data)
+	if err != nil {
+		return err
+	}
+	runs, err := artifacts.ContiguousInternalRuns(symbols)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	if err := artifacts.WriteAxeLispBitInputs(*outPath, *label, symbols, runs); err != nil {
+		return err
+	}
+	fmt.Fprintln(os.Stderr, artifacts.FormatAxeBitInputsReport(symbols, runs))
+	return nil
+}
+
+func runExportR1CS(args []string) error {
+	fs := flag.NewFlagSet("export-r1cs", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, shielded-ics20-withdrawalN, or gadget-* label")
+	outPath := fs.String("out", "", "output path")
+	format := fs.String("format", "picus", "picus (.sr1cs sexpr), axe-json (named-wire R1CS), or axe-lisp (Kestrel sparse R1CS)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *outPath == "" {
+		return fmt.Errorf("--circuit and --out are required")
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	ccs, compileMS, err := compileCircuit(*circuit)
+	if err != nil {
+		return err
+	}
+	switch *format {
+	case "picus":
+		if err := artifacts.WriteConstraintSystem(*outPath, ccs); err != nil {
+			return err
+		}
+	case "axe-json":
+		instance, ok := gadgetCircuit(*circuit)
+		if !ok {
+			return fmt.Errorf("axe-json export is gadget-scope only; %q is not a gadget label", *circuit)
+		}
+		if err := artifacts.WriteAxeJSON(*outPath, ccs, instance); err != nil {
+			return err
+		}
+	case "axe-lisp":
+		instance, ok := gadgetCircuit(*circuit)
+		if !ok {
+			return fmt.Errorf("axe-lisp export is gadget-scope only; %q is not a gadget label", *circuit)
+		}
+		if err := artifacts.WriteAxeLisp(*outPath, *circuit, ccs, instance); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown --format %q (want picus, axe-json, or axe-lisp)", *format)
+	}
+	fmt.Fprintf(os.Stderr, "wrote %s (compile %.2fms)\n", *outPath, compileMS)
+	return nil
+}
+
+// gadgetCircuit returns the gadget circuit instance for schema-based wire
+// naming (axe-json export). Family circuits are not gadget-scope and return
+// false.
+func gadgetCircuit(label string) (frontend.Circuit, bool) {
+	switch label {
+	case "gadget-poseidon-hash1":
+		return &circuits.PoseidonHash1Gadget{}, true
+	case "gadget-poseidon2":
+		return &circuits.PoseidonHash2Gadget{}, true
+	case "gadget-poseidon-hash4":
+		return &circuits.PoseidonHash4Gadget{}, true
+	case "gadget-poseidon-hash6":
+		return &circuits.PoseidonHash6Gadget{}, true
+	case "gadget-poseidon-hash7":
+		return &circuits.PoseidonHash7Gadget{}, true
+	case "gadget-quad-path-1":
+		return &circuits.QuadPath1Gadget{}, true
+	case "gadget-quad-path-2":
+		return &circuits.QuadPath2Gadget{}, true
+	case "gadget-quad-path-4":
+		return &circuits.QuadPath4Gadget{}, true
+	case "gadget-quad-path-16":
+		return &circuits.QuadPath16Gadget{}, true
+	case "gadget-quad-path-24":
+		return &circuits.QuadPath24Gadget{}, true
+	case "gadget-nullifier":
+		return &circuits.NullifierGadget{}, true
+	case "gadget-iszero":
+		return &circuits.IsZeroGadget{}, true
+	case "gadget-imt-gap":
+		return &circuits.AssetRegistryGapGadget{}, true
+	case "gadget-canonical-fq-bits":
+		return &circuits.CanonicalFqBitsGadget{}, true
+	case "gadget-bool-select":
+		return &circuits.BoolSelectGadget{}, true
+	case "gadget-decaf-assert-equivalent":
+		return &circuits.AssertEquivalentGadget{}, true
+	case "gadget-decaf-compress-to-field":
+		return &circuits.CompressToFieldGadget{}, true
+	case "gadget-decaf-encode-to-curve":
+		return &circuits.EncodeToCurveGadget{}, true
+	case "gadget-decaf-edwards-add":
+		return &circuits.EdwardsAddGadget{}, true
+	case "gadget-decaf-edwards-double":
+		return &circuits.EdwardsDoubleGadget{}, true
+	case "gadget-decaf-edwards-neg":
+		return &circuits.EdwardsNegGadget{}, true
+	case "gadget-ivk-mod-r":
+		return &circuits.IvkModRGadget{}, true
+	case "gadget-scalar-mul-le-251":
+		return &circuits.ScalarMulLE251Gadget{}, true
+	case "gadget-scalar-mul-le-128":
+		return &circuits.ScalarMulLE128Gadget{}, true
+	case "gadget-rvk":
+		return &circuits.DecafRvkGadget{}, true
+	case "gadget-dtk":
+		return &circuits.DecafDtkGadget{}, true
+	case "gadget-net-balance-commitment":
+		return &circuits.NetBalanceCommitmentGadget{}, true
+	default:
+		return nil, false
+	}
 }
 
 func runSetup(args []string) error {
@@ -93,6 +306,9 @@ func runSetup(args []string) error {
 	vkJSONPath := filepath.Join(*outDir, "verifying_key.json")
 	if err := artifacts.WriteJSON(vkJSONPath, artifacts.EncodeVerifyingKeyJSON(vk)); err != nil {
 		return fmt.Errorf("write verifying key json: %w", err)
+	}
+	if err := artifacts.WriteConstraintSystem(filepath.Join(*outDir, *circuit+".sr1cs"), ccs); err != nil {
+		return fmt.Errorf("write constraint system: %w", err)
 	}
 
 	pkSize, err := artifacts.FileSize(pkPath)
@@ -447,6 +663,48 @@ func runVerifyBench(args []string) error {
 func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error) {
 	compileStart := time.Now()
 	switch circuit {
+	case "gadget-poseidon-hash1":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash1Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon2":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash2Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon-hash4":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash4Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon-hash6":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash6Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon-hash7":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash7Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-1":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath1Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-2":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath2Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-4":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath4Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-16":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath16Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-nullifier":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NullifierGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-iszero":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.IsZeroGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-imt-gap":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.AssetRegistryGapGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-canonical-fq-bits":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.CanonicalFqBitsGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-bool-select":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.BoolSelectGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {
 			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewTransferCircuit())

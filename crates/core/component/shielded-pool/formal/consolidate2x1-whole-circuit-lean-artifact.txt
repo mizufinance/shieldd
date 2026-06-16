@@ -1,0 +1,54 @@
+artifact: consolidate2x1-whole-circuit-lean
+scope: whole-circuit
+target: consolidate2x1 note reshape Define-model
+engine: Lean 4 / proven-zk
+theorem: Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound
+model: compose-in-Lean against tools/gnark/internal/circuits/note_reshape_circuit.go, with Go Define call-site wiring checked against the Lean transcript
+
+axiom_baseline: propext, Classical.choice, Quot.sound
+named_external_assumptions:
+- PrimeOrderSubgroup (Decaf377Assumptions): explicit theorem parameter naming the accepted decaf prime-order subgroup, with closure under model identity/add/double/neg/scalar-derived operations, generator/value-blinding-generator/encode membership, and noTwoTorsionShift. Modeled as a Prop hypothesis, not a Lean axiom — axiom baseline stays standard.
+- DecafWitnessOnCurve (Consolidate2x1): the raw decaf witness coordinates received as bare fields are on-curve where the circuit cannot derive it and are members of PrimeOrderSubgroup. Modeled as a Prop hypothesis, not a Lean axiom.
+decaf_fv_status: full
+decaf_fv_inventory: tools/gnark/lean/consolidate2x1-decaf-fv-inventory.txt
+
+covered_flow:
+- NoteCommitmentWithCompressedDivGen via extracted Poseidon rate-6 wrapper
+- Nullifier via existing extracted rate-3 bridge
+- VerifyStateCommitmentPath as rate-1 leaf hash plus extracted depth-24 quad path
+- RandomizedVerificationKey via extracted DecafRvk circuit composition theorem (generator ladder + Edwards add)
+- DiversifiedTransmissionKey via extracted DecafDtk circuit composition theorem (ak on-curve assertion, compress/Poseidon2/IVK-mod-r provenance, and divGen ladder)
+- computeTransferNetBalanceCommitment via extracted NetBalanceCommitment circuit composition theorem (rate-1 asset hash, encode-to-curve, four 128-bit value ladders, neg/add chain, 251-bit blinding ladder)
+- decafgnark.EncodeToCurve via extracted hint-free mirror semantic relation and output curve equation
+- decafgnark.AssertEquivalent via extracted cross-ratio gadget theorem, upgraded to genuine point equality at all 8 consolidate2x1 call sites by PrimeOrderSubgroup.cosetEq_of_mem plus DecafWitnessOnCurve membership facts
+- decafgnark.CompressToField via extracted hint-free mirror constraint relation
+- ConsolidateStatementHashForShape via extracted Poseidon rate-7 wrapper for the consolidate2x1 field vector
+known_limitations:
+- The decaf gadget FV obligations in the inventory are closed. The whole-circuit
+  theorem still carries explicit Prop hypotheses for accepted prime-order
+  subgroup membership and for raw witness coordinates supplied as bare fields;
+  these are protocol-layer accepted-language obligations, not Lean axioms.
+
+whole_circuit_model_source_sha256: ce30b3e0808f64afcbdce75cb404d9e367d6e7789a5b6028e6d0ab7fe08fc011
+decaf_assumptions_source_sha256: 7567688be3c1bf9ebe62930daf07981b31434785accaca0f2875d508362930ca
+decaf_fv_inventory_sha256: a1e414caf55e8903f5afc357d8cea154c2bbe79e6083f57eddf3dd1e1013b715
+wiring_transcript_source_sha256: e38a95ffa70978315d7849787e0cf9d3553ba42b5a85912d00bfddbed4f26f11
+go_wiring_transcript_sha256: 644ecc02f41ac5ec28cdef7a34bc8484117dd2427d05842f0067df49a7076d02
+lean_wiring_transcript_sha256: 644ecc02f41ac5ec28cdef7a34bc8484117dd2427d05842f0067df49a7076d02
+poseidon_hash1_bridge_source_sha256: bf1613cbcb23f1e5c5f92a025cbf86b9211172d10b0bd2566cf59cb6394f7e10
+poseidon_hash6_bridge_source_sha256: 215a73db48b3cf3d1b473602928e106e85af6d5e170fc9addcfc0cf5fdcce59b
+poseidon_hash7_bridge_source_sha256: cafdd4fa686b94f99356aa4a651a86880839d4c7ad594b66f9e1ddc83f955bfa
+anchor_merkle24_bridge_source_sha256: d3fb671316f1f275a6bfca42e5219f4d2590b08a6d6f09700717bda01b4f217c
+poseidon_hash1_extracted_source_sha256: f0467647a596b7d22d107587e04c314dcfe0f71895e5e36c676fcc043a793126
+poseidon_hash6_extracted_source_sha256: 88095095beab64cec742610bcb05b9f54aa42e3581e05c3b4dd0626e2dada912
+poseidon_hash7_extracted_source_sha256: 53facffce49c215377be2f7baa9497524204b632bbe62e65d65731aeb4cb9155
+quad_path24_extracted_source_sha256: bceed28248abc6fd0139b755d02a4b9be4f611b05087e2e346f9266eca3de1ea
+go_define_source_sha256: cbb82e5db8f4e833fdd6e4705f0b8807ccce7425c24d700ffdd63b2ea03aa7e7
+poseidon_go_source_sha256: 9b38fd2a758601d635629b19c645c1b2bfbbaa3c42e52c60dc0ff1435882a075
+gadget_labels_source_sha256: 464c4d20d8f3e461826fc0c09da4248703abdb5c9202e60adfb84222f8b996e8
+gnarkctl_source_sha256: b814fa79e0a8241eeea06eed57221c05f0fa959f1c86deb2fcae98b6c739626e
+root_source_sha256: ea858bfd49961a91c8be155a6cc1bf3947396429445ba84b34a6ee344ed6755f
+lakefile_sha256: 1b19a57ad2f40d474ed1fe13184eeff5428d7168523f9854e2615230530f5f8d
+lake_manifest_sha256: 0f2d34a4a838f7532887a6f0bc0b134c5b55aa026158eff6721c81d51511cd7f
+lean_toolchain_sha256: aff3a276fcd1daa6f311e07baf168d5c0c89a3ddad4cd4e8de3e2ec779504e46
+lean_check_script_sha256: 0063fa7a8f31b0746ec168af32b86f5ba010b4166e0fedd7b7d2c4b1543822d3

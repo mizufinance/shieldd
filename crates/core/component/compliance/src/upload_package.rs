@@ -185,6 +185,16 @@ impl OrbisEncryptedSeedUploadPackage {
             self.metadata_hash_fq()?,
         )
     }
+
+    pub fn validate_c2_seed(&self, c2: Fq, seed: Fq) -> Result<()> {
+        let expected_c2 = seed + self.shared_point()?.vartime_compress_to_field();
+        anyhow::ensure!(
+            c2 == expected_c2,
+            "{} c2 does not match decrypted seed and shared point",
+            self.statement.tier.label()
+        );
+        Ok(())
+    }
 }
 
 impl TransferOrbisUploadBundle {

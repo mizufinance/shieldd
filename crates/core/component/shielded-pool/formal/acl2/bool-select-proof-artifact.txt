@@ -1,0 +1,17 @@
+tool: acl2
+acl2: Version 8.7
+image: acl2p (ACL2(p) parallel)
+books: arithmetic-5/top; projects/bls12-377-curves/primes/bls12-377-prime; kestrel/number-theory/mod; kestrel/arithmetic-light/mod
+field_modulus: 8444461749428370424248824938781546531375899335154063827935233455917409239041
+proof_source_sha256: 2dcf93eeb3cf664cf66304467f0fd0ad08af74abf3df73961917c4caf2f9a16b
+proof_cert_sha256: ec658e8cf4a35af9e6c836ac9b5922bf908ec606199137c065aa94d6197c5d80
+arithmetic5_cert_sha256: fbdf8c40ce3743a44b7525eeb73375e404cc5c891f89e8993b07b3386951dca3
+bls12_377_prime_cert_sha256: b7d0c69ad79f9ae7e973b9385838a7c01ce0e264a12adef980767b4e5d250c11
+number_theory_mod_cert_sha256: 08193760afbece37b91b0422c8e2f6a26b72cf0b3dafd86681ab1e3c800f22d0
+parity_test: tools/gnark/internal/circuits/gadgets_acl2_parity_test.go::TestBoolSelectAcl2ModelParity
+THEOREM BOOL-SELECT-R1CS-IMPLIES-SPEC certified
+THEOREM COND-BOOLEAN-FROM-R1CS-C0 certified
+SCOPE gadget gadget-bool-select only (Valid = Select(Cond, IfTrue, IfFalse), Cond booleanity derived)
+NOTE booleanity of Cond is derived from c0: Cond*(1-Cond)=0 over BLS12-377 Fr
+NOTE via the checked BLS12-377 scalar-field prime certificate; no Cond booleanity hypothesis remains
+NOTE this theorem promotes no whole-circuit property row; it is gadget-scoped only

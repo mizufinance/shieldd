@@ -5,8 +5,8 @@ use shieldd_sdk_compliance::TransferTierMetadataStatement;
 use crate::{
     gnark::typed::{
         compliance_leaf_from_typed, indexed_leaf_from_typed, merkle_path_from_typed,
-        point_affine_bytes, point_affine_bytes_with_fallback, ComplianceLeafBinary,
-        IndexedLeafBinary, MerklePathBinary, PointAffineBytes,
+        point_affine_bytes, ComplianceLeafBinary, IndexedLeafBinary, MerklePathBinary,
+        PointAffineBytes,
     },
     public_input_hash::{transfer_statement_fields, transfer_statement_hash_from_public},
     transfer::{
@@ -356,13 +356,11 @@ impl TransferWitnessV1 {
             outputs,
             balance_commitment_affine: point_affine_bytes(public.balance_commitment.0)?,
             ak_affine: point_affine_bytes(verification_key_point(private.ak, "ak")?)?,
-            asset_indexed_leaf_dk_pub_affine: point_affine_bytes_with_fallback(
+            asset_indexed_leaf_dk_pub_affine: point_affine_bytes(
                 private.asset_indexed_leaf.params.dk_pub,
-                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
             )?,
-            asset_indexed_leaf_ring_pk_affine: point_affine_bytes_with_fallback(
+            asset_indexed_leaf_ring_pk_affine: point_affine_bytes(
                 private.asset_indexed_leaf.ring.ring_pk,
-                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
             )?,
             sender_diversified_generator_affine: point_affine_bytes(
                 *private.sender_leaf.address.diversified_generator(),

@@ -120,7 +120,7 @@ impl LeafParams {
 impl Default for LeafParams {
     fn default() -> Self {
         Self {
-            dk_pub: decaf377::Element::default(),
+            dk_pub: *crate::crypto::UNREGULATED_SINK_DK_PUB,
             threshold: u128::MAX,
             slot_count: 0,
             route_policy_hash: string_to_fq(""),
@@ -154,7 +154,7 @@ impl LeafRing {
 impl Default for LeafRing {
     fn default() -> Self {
         Self {
-            ring_pk: decaf377::Element::default(),
+            ring_pk: *crate::crypto::UNREGULATED_SINK_RING_PK,
             ring_id_hash: string_to_fq(""),
             policy_id_hash: string_to_fq(""),
             permission_hash: string_to_fq(""),

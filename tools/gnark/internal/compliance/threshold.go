@@ -3,10 +3,29 @@ package compliance
 import (
 	"math/big"
 
+	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 )
 
 const ThresholdAmountBits = 128
+
+func init() {
+	solver.RegisterHint(identityHint)
+}
+
+func identityHint(_ *big.Int, inputs []*big.Int, outputs []*big.Int) error {
+	outputs[0].Set(inputs[0])
+	return nil
+}
+
+func materialize(api frontend.API, v frontend.Variable) frontend.Variable {
+	wires, err := api.Compiler().NewHint(identityHint, 1, v)
+	if err != nil {
+		panic(err)
+	}
+	api.AssertIsEqual(wires[0], v)
+	return wires[0]
+}
 
 func flagBitFq() *big.Int {
 	return new(big.Int).Lsh(big.NewInt(1), 253)

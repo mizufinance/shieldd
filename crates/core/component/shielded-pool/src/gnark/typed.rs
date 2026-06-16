@@ -172,13 +172,3 @@ pub(crate) fn point_affine_bytes(point: decaf377::Element) -> Result<PointAffine
         y: y.to_bytes(),
     })
 }
-
-pub(crate) fn point_affine_bytes_with_fallback(
-    point: decaf377::Element,
-    fallback: decaf377::Element,
-) -> Result<PointAffineBytes> {
-    match point_affine_bytes(point) {
-        Ok(bytes) => Ok(bytes),
-        Err(_) => point_affine_bytes(fallback),
-    }
-}

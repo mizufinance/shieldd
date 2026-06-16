@@ -1,0 +1,11 @@
+# ID|file:fixed-string-pattern
+SECRECY|crates/core/component/compliance/src/crypto.rs:encrypt_tier_bytes
+DETECTION-CORRECTNESS|crates/core/component/compliance/src/r1cs.rs:verify_poseidon_encryption
+DESIGNATED-DECRYPTABILITY|crates/core/component/compliance/src/transfer.rs:*dk_pub * sender.core.r
+DLEQ-BINDING|crates/core/component/compliance/src/crypto.rs:verify_dleq_native
+REPLAY-RESISTANCE|crates/core/component/compliance/src/registry.rs:check_timestamp_freshness
+NO-KEY-CONFUSION|crates/core/component/compliance/src/crypto.rs:compute_metadata_hash
+ANCHOR-FRESHNESS|crates/core/component/compliance/src/registry.rs:validate_compliance_anchors
+CC-FIND-C2-MALLEABILITY|crates/core/component/shielded-pool/src/public_input_hash.rs:transfer_statement_fields
+CC-FIND-UNUSED-STREAM-DOMAIN|crates/core/component/compliance/src/crypto.rs:COMPLIANCE_STREAM_CIPHER_DOMAIN
+CC-FIND-DESIGNATED-VERIFIER-CLAIM|crates/core/component/compliance/src/crypto.rs:compute_dleq_native

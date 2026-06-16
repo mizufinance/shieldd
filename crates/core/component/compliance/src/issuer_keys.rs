@@ -7,10 +7,11 @@
 //!
 //! DK is standalone (not derived from MCK or any Orbis key). The issuer registers dk_pub on-chain.
 
-use ark_ff::Zero;
 use decaf377::{Element, Fq, Fr};
 use once_cell::sync::Lazy;
 use shieldd_sdk_asset::asset;
+
+use crate::crypto::compliance_stream_block;
 
 /// Domain separator for detection tier encryption seed derivation.
 /// Must match ISSUER_DETECTION_DOMAIN in crypto.rs for encryption/decryption compatibility.
@@ -208,21 +209,21 @@ impl DetectionKey {
         // 3. Decrypt via Fq subtraction: pt = ct - keystream
         // Detection tier layout: [asset_id+flag, salt, sender_slot_id, receiver_slot_id]
         let ct_fq = Fq::from_le_bytes_mod_order(&detection_ciphertext[..32]);
-        let keystream = poseidon377::hash_2(&seed, (Fq::zero(), seed));
+        let keystream = compliance_stream_block(seed, 0);
         let pt_fq = ct_fq - keystream;
 
         // 3b. Decrypt salt (second Fq element, counter=1)
         let ct_salt_fq = Fq::from_le_bytes_mod_order(&detection_ciphertext[32..64]);
-        let keystream_salt = poseidon377::hash_2(&seed, (Fq::from(1u64), seed));
+        let keystream_salt = compliance_stream_block(seed, 1);
         let salt = ct_salt_fq - keystream_salt;
 
         let ct_sender_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[64..96]);
-        let keystream_sender_slot = poseidon377::hash_2(&seed, (Fq::from(2u64), seed));
+        let keystream_sender_slot = compliance_stream_block(seed, 2);
         let sender_slot_id =
             slot_id_from_fq(ct_sender_slot - keystream_sender_slot, "sender_slot_id")?;
 
         let ct_receiver_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[96..128]);
-        let keystream_receiver_slot = poseidon377::hash_2(&seed, (Fq::from(3u64), seed));
+        let keystream_receiver_slot = compliance_stream_block(seed, 3);
         let receiver_slot_id = slot_id_from_fq(
             ct_receiver_slot - keystream_receiver_slot,
             "receiver_slot_id",
@@ -285,13 +286,13 @@ impl DetectionKey {
 
         // Encrypt: ct = pt + keystream (Fq addition, matches R1CS circuit)
         let pt_fq = detection_plaintext_fq(asset_id, is_flagged);
-        let keystream = poseidon377::hash_2(&seed, (Fq::zero(), seed));
+        let keystream = compliance_stream_block(seed, 0);
         let ct_fq = pt_fq + keystream;
 
         let mut detection_bytes = [0u8; DETECTION_TIER_BYTES];
         detection_bytes[..32].copy_from_slice(&ct_fq.to_bytes());
         for (counter, chunk) in (1u64..=3).zip(detection_bytes[32..].chunks_exact_mut(32)) {
-            let keystream = poseidon377::hash_2(&seed, (Fq::from(counter), seed));
+            let keystream = compliance_stream_block(seed, counter);
             chunk.copy_from_slice(&keystream.to_bytes());
         }
         (detection_bytes, epk)
@@ -365,6 +366,7 @@ impl MasterComplianceKeyPublic {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_ff::Zero;
     use rand_core::OsRng;
 
     #[test]

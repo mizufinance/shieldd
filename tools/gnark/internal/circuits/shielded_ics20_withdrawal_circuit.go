@@ -159,15 +159,17 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
 
-	assetLeafCommitment, err := IndexedLeafCommitment(api, shared.indexedLeaf)
-	if err != nil {
+	if err := VerifyAssetRegistryIMT(
+		api,
+		shared.sharedAssetID,
+		c.IsRegulated,
+		shared.indexedLeaf,
+		c.Asset.Path,
+		c.Asset.Position,
+		c.AssetAnchor,
+	); err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
-	assetRoot, err := VerifyQuadPath(api, assetLeafCommitment, c.Asset.Path, c.Asset.Position)
-	if err != nil {
-		return shieldedIcs20WithdrawalSharedContext{}, err
-	}
-	AssertEqualIf(api, assetRoot, c.AssetAnchor, c.IsRegulated)
 
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,

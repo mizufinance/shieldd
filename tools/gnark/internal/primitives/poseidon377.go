@@ -6,6 +6,7 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/frontend"
+	"github.com/reilabs/gnark-lean-extractor/v3/abstractor"
 )
 
 type poseidonRateConfig struct {
@@ -106,6 +107,49 @@ func mixLayerMDSNative(state []*big.Int, mds []*big.Int, modulus *big.Int) []*bi
 	return next
 }
 
+// poseidonFullRound / poseidonPartialRound wrap one Poseidon377 round as an
+// extractor gadget so the Lean extraction emits one reusable `def` per round
+// kind plus one call per round, instead of inlining every round's gates at every
+// hash site. Each round consumes the state and this round's `width` constants and
+// returns the new state. The rate's MDS is loaded inside DefineGadget (the
+// extractor clones gadgets with copystructure, which drops unexported fields, so
+// nothing rate-specific may be carried on the struct beyond the exported slices).
+// During proving the call inlines, so the constraint system is byte-identical.
+type poseidonFullRound struct {
+	State  []frontend.Variable
+	Consts []frontend.Variable
+}
+
+func (g poseidonFullRound) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(len(g.State) - 1)
+	if err != nil {
+		panic(err)
+	}
+	st := make([]frontend.Variable, len(g.State))
+	for i := range g.State {
+		st[i] = pow17(api, api.Add(g.State[i], g.Consts[i]))
+	}
+	return mixLayerMDS(api, st, cfg.mds)
+}
+
+type poseidonPartialRound struct {
+	State  []frontend.Variable
+	Consts []frontend.Variable
+}
+
+func (g poseidonPartialRound) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(len(g.State) - 1)
+	if err != nil {
+		panic(err)
+	}
+	st := make([]frontend.Variable, len(g.State))
+	for i := range g.State {
+		st[i] = api.Add(g.State[i], g.Consts[i])
+	}
+	st[0] = pow17(api, st[0])
+	return mixLayerMDS(api, st, cfg.mds)
+}
+
 func poseidonHash(api frontend.API, cfg poseidonRateConfig, domainSeparator frontend.Variable, inputs []frontend.Variable) (frontend.Variable, error) {
 	if cfg.alpha != 17 {
 		return nil, fmt.Errorf("unexpected poseidon alpha %d", cfg.alpha)
@@ -127,33 +171,25 @@ func poseidonHash(api frontend.API, cfg poseidonRateConfig, domainSeparator fron
 
 	roundConstantIndex := 0
 	fullHalf := cfg.fullRounds / 2
-	applyRoundConstants := func() {
-		for i := range state {
-			state[i] = api.Add(state[i], cfg.arc[roundConstantIndex])
+	nextConsts := func() []frontend.Variable {
+		c := make([]frontend.Variable, cfg.width)
+		for i := 0; i < cfg.width; i++ {
+			c[i] = cfg.arc[roundConstantIndex]
 			roundConstantIndex++
 		}
+		return c
 	}
 
 	for round := 0; round < fullHalf; round++ {
-		applyRoundConstants()
-		for i := range state {
-			state[i] = pow17(api, state[i])
-		}
-		state = mixLayerMDS(api, state, cfg.mds)
+		state = abstractor.Call1(api, poseidonFullRound{State: state, Consts: nextConsts()})
 	}
 
 	for round := 0; round < cfg.partialRounds; round++ {
-		applyRoundConstants()
-		state[0] = pow17(api, state[0])
-		state = mixLayerMDS(api, state, cfg.mds)
+		state = abstractor.Call1(api, poseidonPartialRound{State: state, Consts: nextConsts()})
 	}
 
 	for round := 0; round < fullHalf; round++ {
-		applyRoundConstants()
-		for i := range state {
-			state[i] = pow17(api, state[i])
-		}
-		state = mixLayerMDS(api, state, cfg.mds)
+		state = abstractor.Call1(api, poseidonFullRound{State: state, Consts: nextConsts()})
 	}
 
 	return state[1], nil
@@ -217,35 +253,145 @@ func poseidonHashNative(cfg poseidonRateConfig, domainSeparator *big.Int, inputs
 }
 
 func Poseidon377Hash1(api frontend.API, domainSeparator frontend.Variable, input frontend.Variable) (frontend.Variable, error) {
+	return abstractor.Call(api, poseidonPerm1{Domain: domainSeparator, In0: input}), nil
+}
+
+// poseidonPerm{1,2,3,4,6,7} wrap one Poseidon377 permutation at a fixed rate as an
+// extractor gadget so the Lean extraction emits a single reusable `def
+// poseidonPerm{N}` plus one call per hash site, instead of inlining ~600–2300
+// gates at every call. The rate config is loaded inside DefineGadget because the
+// extractor clones gadgets with copystructure, which drops unexported fields —
+// so nothing rate-specific may be carried on the struct. During proving the call
+// runs DefineGadget inline, so the constraint system is unchanged.
+type poseidonPerm1 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+}
+
+func (g poseidonPerm1) DefineGadget(api frontend.API) interface{} {
 	cfg, err := loadPoseidonRateParams(1)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{input})
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+type poseidonPerm2 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+}
+
+func (g poseidonPerm2) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(2)
+	if err != nil {
+		panic(err)
+	}
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0, g.In1})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+type poseidonPerm3 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+	In2    frontend.Variable
+}
+
+func (g poseidonPerm3) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(3)
+	if err != nil {
+		panic(err)
+	}
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0, g.In1, g.In2})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+type poseidonPerm4 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+	In2    frontend.Variable
+	In3    frontend.Variable
+}
+
+func (g poseidonPerm4) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(4)
+	if err != nil {
+		panic(err)
+	}
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0, g.In1, g.In2, g.In3})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+type poseidonPerm6 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+	In2    frontend.Variable
+	In3    frontend.Variable
+	In4    frontend.Variable
+	In5    frontend.Variable
+}
+
+func (g poseidonPerm6) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(6)
+	if err != nil {
+		panic(err)
+	}
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0, g.In1, g.In2, g.In3, g.In4, g.In5})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+type poseidonPerm7 struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+	In2    frontend.Variable
+	In3    frontend.Variable
+	In4    frontend.Variable
+	In5    frontend.Variable
+	In6    frontend.Variable
+}
+
+func (g poseidonPerm7) DefineGadget(api frontend.API) interface{} {
+	cfg, err := loadPoseidonRateParams(7)
+	if err != nil {
+		panic(err)
+	}
+	out, err := poseidonHash(api, cfg, g.Domain, []frontend.Variable{g.In0, g.In1, g.In2, g.In3, g.In4, g.In5, g.In6})
+	if err != nil {
+		panic(err)
+	}
+	return out
 }
 
 func Poseidon377Hash2(api frontend.API, domainSeparator frontend.Variable, inputs [2]frontend.Variable) (frontend.Variable, error) {
-	cfg, err := loadPoseidonRateParams(2)
-	if err != nil {
-		return nil, err
-	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{inputs[0], inputs[1]})
+	return abstractor.Call(api, poseidonPerm2{Domain: domainSeparator, In0: inputs[0], In1: inputs[1]}), nil
 }
 
 func Poseidon377Hash3(api frontend.API, domainSeparator frontend.Variable, inputs [3]frontend.Variable) (frontend.Variable, error) {
-	cfg, err := loadPoseidonRateParams(3)
-	if err != nil {
-		return nil, err
-	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{inputs[0], inputs[1], inputs[2]})
+	return abstractor.Call(api, poseidonPerm3{Domain: domainSeparator, In0: inputs[0], In1: inputs[1], In2: inputs[2]}), nil
 }
 
 func Poseidon377Hash4(api frontend.API, domainSeparator frontend.Variable, inputs [4]frontend.Variable) (frontend.Variable, error) {
-	cfg, err := loadPoseidonRateParams(4)
-	if err != nil {
-		return nil, err
-	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{inputs[0], inputs[1], inputs[2], inputs[3]})
+	return abstractor.Call(api, poseidonPerm4{Domain: domainSeparator, In0: inputs[0], In1: inputs[1], In2: inputs[2], In3: inputs[3]}), nil
 }
 
 func Poseidon377Hash5(api frontend.API, domainSeparator frontend.Variable, inputs [5]frontend.Variable) (frontend.Variable, error) {
@@ -257,11 +403,15 @@ func Poseidon377Hash5(api frontend.API, domainSeparator frontend.Variable, input
 }
 
 func Poseidon377Hash6(api frontend.API, domainSeparator frontend.Variable, inputs [6]frontend.Variable) (frontend.Variable, error) {
-	cfg, err := loadPoseidonRateParams(6)
-	if err != nil {
-		return nil, err
-	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], inputs[5]})
+	return abstractor.Call(api, poseidonPerm6{
+		Domain: domainSeparator,
+		In0:    inputs[0],
+		In1:    inputs[1],
+		In2:    inputs[2],
+		In3:    inputs[3],
+		In4:    inputs[4],
+		In5:    inputs[5],
+	}), nil
 }
 
 func Poseidon377Hash7(
@@ -269,19 +419,16 @@ func Poseidon377Hash7(
 	domainSeparator frontend.Variable,
 	inputs [7]frontend.Variable,
 ) (frontend.Variable, error) {
-	cfg, err := loadPoseidonRateParams(7)
-	if err != nil {
-		return nil, err
-	}
-	return poseidonHash(api, cfg, domainSeparator, []frontend.Variable{
-		inputs[0],
-		inputs[1],
-		inputs[2],
-		inputs[3],
-		inputs[4],
-		inputs[5],
-		inputs[6],
-	})
+	return abstractor.Call(api, poseidonPerm7{
+		Domain: domainSeparator,
+		In0:    inputs[0],
+		In1:    inputs[1],
+		In2:    inputs[2],
+		In3:    inputs[3],
+		In4:    inputs[4],
+		In5:    inputs[5],
+		In6:    inputs[6],
+	}), nil
 }
 
 func Poseidon377Hash1Native(domainSeparator, input *big.Int) (*big.Int, error) {

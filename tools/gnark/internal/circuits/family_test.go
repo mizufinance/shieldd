@@ -16,11 +16,11 @@ import (
 )
 
 type circuitFamily struct {
-	name             string
-	circuit          func() frontend.Circuit
-	assignment       func(t *testing.T) frontend.Circuit
-	mutateStatement  func(frontend.Circuit)
-	mutateCompliance func(frontend.Circuit)
+	name            string
+	circuit         func() frontend.Circuit
+	assignment      func(t *testing.T) frontend.Circuit
+	mutateStatement func(frontend.Circuit)
+	mutateSemantic  func(frontend.Circuit)
 }
 
 func mutateFieldByOne(value frontend.Variable) frontend.Variable {
@@ -46,6 +46,25 @@ func mutateFieldByOne(value frontend.Variable) frontend.Variable {
 	}
 }
 
+func variableIsOne(value frontend.Variable) bool {
+	switch v := value.(type) {
+	case string:
+		return v == "1"
+	case *big.Int:
+		return v.Cmp(big.NewInt(1)) == 0
+	case big.Int:
+		return v.Cmp(big.NewInt(1)) == 0
+	case int:
+		return v == 1
+	case int64:
+		return v == 1
+	case uint64:
+		return v == 1
+	default:
+		return false
+	}
+}
+
 func testCircuitFamilies() []circuitFamily {
 	return []circuitFamily{
 		{
@@ -64,20 +83,147 @@ func testCircuitFamilies() []circuitFamily {
 				a := assignment.(*circuits.TransferCircuit)
 				a.ClaimedStatementHash = mutateFieldByOne(a.ClaimedStatementHash)
 			},
-			mutateCompliance: func(assignment frontend.Circuit) {
+			mutateSemantic: func(assignment frontend.Circuit) {
 				a := assignment.(*circuits.TransferCircuit)
 				a.Compliance.SenderCore.Proof.Challenge = mutateFieldByOne(a.Compliance.SenderCore.Proof.Challenge)
+			},
+		},
+		{
+			name:    "consolidate2x1",
+			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(2) },
+			assignment: func(t *testing.T) frontend.Circuit {
+				t.Helper()
+				fixtureBytes := testfixtures.LoadConsolidateWitnessV1("consolidate2x1")
+				assignment, _, err := abi.NewConsolidateCircuitAssignmentFromWitnessV1(fixtureBytes)
+				if err != nil {
+					t.Fatalf("decode consolidate witness fixture: %v", err)
+				}
+				return assignment
+			},
+			mutateStatement: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.NoteReshapeCircuit)
+				a.ClaimedStatementHash = mutateFieldByOne(a.ClaimedStatementHash)
+			},
+			mutateSemantic: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.NoteReshapeCircuit)
+				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
+			},
+		},
+		{
+			name:    "split1x4",
+			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(4) },
+			assignment: func(t *testing.T) frontend.Circuit {
+				t.Helper()
+				fixtureBytes := testfixtures.LoadSplitWitnessV1("split1x4")
+				assignment, _, err := abi.NewSplitCircuitAssignmentFromWitnessV1(fixtureBytes)
+				if err != nil {
+					t.Fatalf("decode split witness fixture: %v", err)
+				}
+				return assignment
+			},
+			mutateStatement: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.NoteReshapeCircuit)
+				a.ClaimedStatementHash = mutateFieldByOne(a.ClaimedStatementHash)
+			},
+			mutateSemantic: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.NoteReshapeCircuit)
+				a.Outputs[0].NoteCommitment = mutateFieldByOne(a.Outputs[0].NoteCommitment)
+			},
+		},
+		{
+			name:    "shielded_ics20_withdrawal",
+			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
+			assignment: func(t *testing.T) frontend.Circuit {
+				t.Helper()
+				fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV1("shielded_ics20_withdrawal")
+				assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV1(fixtureBytes)
+				if err != nil {
+					t.Fatalf("decode shielded ICS-20 withdrawal witness fixture: %v", err)
+				}
+				return assignment
+			},
+			mutateStatement: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.ShieldedIcs20WithdrawalCircuit)
+				a.ClaimedStatementHash = mutateFieldByOne(a.ClaimedStatementHash)
+			},
+			mutateSemantic: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.ShieldedIcs20WithdrawalCircuit)
+				a.WithdrawalEffectHashLo = mutateFieldByOne(a.WithdrawalEffectHashLo)
 			},
 		},
 	}
 }
 
+type circuitStats struct {
+	constraints int
+	public      int
+	secret      int
+	internal    int
+}
+
+func compileCircuitFamilies() []struct {
+	name    string
+	circuit func() frontend.Circuit
+	stats   circuitStats
+} {
+	return []struct {
+		name    string
+		circuit func() frontend.Circuit
+		stats   circuitStats
+	}{
+		{
+			name:    "transfer",
+			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
+			stats:   circuitStats{constraints: 252613, public: 2, secret: 542, internal: 225603},
+		},
+		{
+			name:    "consolidate2x1",
+			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(2) },
+			stats:   circuitStats{constraints: 57945, public: 2, secret: 199, internal: 53945},
+		},
+		{
+			name:    "consolidate4x1",
+			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(4) },
+			stats:   circuitStats{constraints: 101999, public: 2, secret: 379, internal: 95383},
+		},
+		{
+			name:    "consolidate8x1",
+			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(8) },
+			stats:   circuitStats{constraints: 189667, public: 2, secret: 739, internal: 177819},
+		},
+		{
+			name:    "split1x4",
+			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(4) },
+			stats:   circuitStats{constraints: 65420, public: 2, secret: 139, internal: 60136},
+		},
+		{
+			name:    "split1x8",
+			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
+			stats:   circuitStats{constraints: 103876, public: 2, secret: 179, internal: 95136},
+		},
+		{
+			name:    "shielded_ics20_withdrawal",
+			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
+			stats:   circuitStats{constraints: 91358, public: 2, secret: 327, internal: 84836},
+		},
+	}
+}
+
 func TestCircuitFamiliesCompile(t *testing.T) {
-	for _, family := range testCircuitFamilies() {
+	for _, family := range compileCircuitFamilies() {
 		t.Run(family.name, func(t *testing.T) {
-			_, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, family.circuit())
+			ccs, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, family.circuit())
 			if err != nil {
 				t.Fatalf("compile %s circuit: %v", family.name, err)
+			}
+			stats := circuitStats{
+				constraints: ccs.GetNbConstraints(),
+				public:      ccs.GetNbPublicVariables(),
+				secret:      ccs.GetNbSecretVariables(),
+				internal:    ccs.GetNbInternalVariables(),
+			}
+			if stats != family.stats {
+				t.Fatalf("unexpected %s circuit stats: got %+v, want %+v", family.name, stats, family.stats)
 			}
 		})
 	}
@@ -118,7 +264,102 @@ func TestCircuitFamiliesRejectMutatedComplianceField(t *testing.T) {
 	for _, family := range testCircuitFamilies() {
 		t.Run(family.name, func(t *testing.T) {
 			assignment := family.assignment(t)
-			family.mutateCompliance(assignment)
+			family.mutateSemantic(assignment)
+
+			assert := test.NewAssert(t)
+			assert.CheckCircuit(
+				family.circuit(),
+				test.WithCurves(ecc.BLS12_377),
+				test.WithBackends(backend.GROTH16),
+				test.WithInvalidAssignment(assignment),
+			)
+		})
+	}
+}
+
+func TestCircuitFamiliesRejectMutatedBalanceCommitment(t *testing.T) {
+	for _, family := range testCircuitFamilies() {
+		t.Run(family.name, func(t *testing.T) {
+			assignment := family.assignment(t)
+			switch a := assignment.(type) {
+			case *circuits.TransferCircuit:
+				a.BalanceCommitment.X = mutateFieldByOne(a.BalanceCommitment.X)
+			case *circuits.NoteReshapeCircuit:
+				a.BalanceCommitment.X = mutateFieldByOne(a.BalanceCommitment.X)
+			case *circuits.ShieldedIcs20WithdrawalCircuit:
+				a.BalanceCommitment.X = mutateFieldByOne(a.BalanceCommitment.X)
+			default:
+				t.Fatalf("unsupported assignment type %T", assignment)
+			}
+
+			assert := test.NewAssert(t)
+			assert.CheckCircuit(
+				family.circuit(),
+				test.WithCurves(ecc.BLS12_377),
+				test.WithBackends(backend.GROTH16),
+				test.WithInvalidAssignment(assignment),
+			)
+		})
+	}
+}
+
+func TestCircuitFamiliesRejectMutatedNullifier(t *testing.T) {
+	for _, family := range testCircuitFamilies() {
+		t.Run(family.name, func(t *testing.T) {
+			assignment := family.assignment(t)
+			switch a := assignment.(type) {
+			case *circuits.TransferCircuit:
+				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
+			case *circuits.NoteReshapeCircuit:
+				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
+			case *circuits.ShieldedIcs20WithdrawalCircuit:
+				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
+			default:
+				t.Fatalf("unsupported assignment type %T", assignment)
+			}
+
+			assert := test.NewAssert(t)
+			assert.CheckCircuit(
+				family.circuit(),
+				test.WithCurves(ecc.BLS12_377),
+				test.WithBackends(backend.GROTH16),
+				test.WithInvalidAssignment(assignment),
+			)
+		})
+	}
+}
+
+func TestPaddedSpendCircuitsRejectMutatedDummyNullifierSeed(t *testing.T) {
+	for _, family := range testCircuitFamilies() {
+		if family.name != "transfer" && family.name != "shielded_ics20_withdrawal" {
+			continue
+		}
+		t.Run(family.name, func(t *testing.T) {
+			assignment := family.assignment(t)
+			mutated := false
+			switch a := assignment.(type) {
+			case *circuits.TransferCircuit:
+				for i := range a.Spends {
+					if variableIsOne(a.Spends[i].IsDummy) {
+						a.Spends[i].DummyNullifierSeed = mutateFieldByOne(a.Spends[i].DummyNullifierSeed)
+						mutated = true
+						break
+					}
+				}
+			case *circuits.ShieldedIcs20WithdrawalCircuit:
+				for i := range a.Spends {
+					if variableIsOne(a.Spends[i].IsDummy) {
+						a.Spends[i].DummyNullifierSeed = mutateFieldByOne(a.Spends[i].DummyNullifierSeed)
+						mutated = true
+						break
+					}
+				}
+			default:
+				t.Fatalf("unsupported assignment type %T", assignment)
+			}
+			if !mutated {
+				t.Skipf("%s fixture has no dummy spend to mutate", family.name)
+			}
 
 			assert := test.NewAssert(t)
 			assert.CheckCircuit(

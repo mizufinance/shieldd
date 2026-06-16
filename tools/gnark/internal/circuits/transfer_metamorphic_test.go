@@ -1,12 +1,15 @@
 package circuits_test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/test"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/abi"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
@@ -48,6 +51,140 @@ func assertTransferMutationRejected(t *testing.T, mutation transferMutation) {
 
 	if err := test.IsSolved(circuits.NewTransferCircuit(), assignment, ecc.BLS12_377.ScalarField()); err == nil {
 		t.Fatalf("expected transfer circuit to reject mutation %q", mutation.name)
+	}
+}
+
+func le32FromBigInt(t *testing.T, value *big.Int) [32]byte {
+	t.Helper()
+	var out [32]byte
+	if value.Sign() < 0 {
+		t.Fatalf("negative field value %s", value.String())
+	}
+	bytes := value.Bytes()
+	if len(bytes) > len(out) {
+		t.Fatalf("field value %s exceeds 32 bytes", value.String())
+	}
+	for i := range bytes {
+		out[i] = bytes[len(bytes)-1-i]
+	}
+	return out
+}
+
+func fieldElementStrings(fields [][32]byte) []*big.Int {
+	out := make([]*big.Int, 0, len(fields))
+	for i := range fields {
+		out = append(out, primitives.LittleEndianBytesToBigInt(fields[i][:]))
+	}
+	return out
+}
+
+func pointFromNative(t *testing.T, x, y *big.Int) circuits.Point2D {
+	t.Helper()
+	return circuits.Point2D{X: x.String(), Y: y.String()}
+}
+
+func transferAssignmentWithFalseRegulatedBranch(t *testing.T) *circuits.TransferCircuit {
+	t.Helper()
+
+	fixtureBytes := testfixtures.LoadTransferWitnessV1("transfer")
+	witness, _, err := abi.DecodeTransferWitnessV1(fixtureBytes)
+	if err != nil {
+		t.Fatalf("decode transfer witness fixture: %v", err)
+	}
+	if !witness.IsRegulated {
+		t.Fatalf("transfer fixture must start regulated for this regression")
+	}
+	if len(witness.Outputs) == 0 || !witness.Outputs[0].IsReceiver {
+		t.Fatalf("transfer fixture must expose receiver output first")
+	}
+
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV1(fixtureBytes)
+	if err != nil {
+		t.Fatalf("build transfer assignment: %v", err)
+	}
+
+	unregulatedRingPK, _, err := compliance.UnregulatedComplianceKeys()
+	if err != nil {
+		t.Fatalf("derive unregulated compliance keys: %v", err)
+	}
+	senderAck, err := compliance.DeriveACKFromLeafDNative(
+		unregulatedRingPK,
+		primitives.LittleEndianBytesToBigInt(witness.SenderD[:]),
+	)
+	if err != nil {
+		t.Fatalf("derive unregulated sender ACK: %v", err)
+	}
+	receiverAck, err := compliance.DeriveACKFromLeafDNative(
+		unregulatedRingPK,
+		primitives.LittleEndianBytesToBigInt(witness.Outputs[0].RecipientD[:]),
+	)
+	if err != nil {
+		t.Fatalf("derive unregulated receiver ACK: %v", err)
+	}
+
+	senderPoint := abi.PointAffineBinary{
+		X: le32FromBigInt(t, senderAck.X.(*big.Int)),
+		Y: le32FromBigInt(t, senderAck.Y.(*big.Int)),
+	}
+	receiverPoint := abi.PointAffineBinary{
+		X: le32FromBigInt(t, receiverAck.X.(*big.Int)),
+		Y: le32FromBigInt(t, receiverAck.Y.(*big.Int)),
+	}
+	witness.SenderCore.DerivedPKAffine = senderPoint
+	witness.SenderExt.DerivedPKAffine = senderPoint
+	witness.OutputCore.DerivedPKAffine = receiverPoint
+	witness.OutputExt.DerivedPKAffine = receiverPoint
+
+	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV1(witness)
+	if err != nil {
+		t.Fatalf("reconstruct transfer statement fields: %v", err)
+	}
+	statementHash, err := primitives.TransferStatementHashNativeForShape(
+		fieldElementStrings(fields),
+		circuits.TransferCircuitInputs,
+		circuits.TransferCircuitOutputs,
+	)
+	if err != nil {
+		t.Fatalf("compute transfer statement hash: %v", err)
+	}
+
+	assignment.IsRegulated = 0
+	assignment.ClaimedStatementHash = statementHash.String()
+	assignment.Compliance.SenderCore.Proof.DerivedPK = pointFromNative(t, senderAck.X.(*big.Int), senderAck.Y.(*big.Int))
+	assignment.Compliance.SenderExt.Proof.DerivedPK = pointFromNative(t, senderAck.X.(*big.Int), senderAck.Y.(*big.Int))
+	assignment.Compliance.OutputCore.Proof.DerivedPK = pointFromNative(t, receiverAck.X.(*big.Int), receiverAck.Y.(*big.Int))
+	assignment.Compliance.OutputExt.Proof.DerivedPK = pointFromNative(t, receiverAck.X.(*big.Int), receiverAck.Y.(*big.Int))
+	return assignment
+}
+
+func TestTransferCircuitRejectsRegulatedAssetRoutedAsUnregulated(t *testing.T) {
+	assignment := transferAssignmentWithFalseRegulatedBranch(t)
+	if err := test.IsSolved(circuits.NewTransferCircuit(), assignment, ecc.BLS12_377.ScalarField()); err == nil {
+		t.Fatalf("expected transfer circuit to reject regulated asset routed through unregulated branch")
+	}
+}
+
+func TestShieldedIcs20WithdrawalCircuitRejectsRegulatedAssetRoutedAsUnregulated(t *testing.T) {
+	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV1("shielded_ics20_withdrawal")
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV1(fixtureBytes)
+	if err != nil {
+		t.Fatalf("decode shielded ICS-20 withdrawal fixture: %v", err)
+	}
+	if !witness.IsRegulated {
+		t.Fatalf("shielded ICS-20 withdrawal fixture must start regulated for this regression")
+	}
+	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV1(fixtureBytes)
+	if err != nil {
+		t.Fatalf("build shielded ICS-20 withdrawal assignment: %v", err)
+	}
+	assignment.IsRegulated = 0
+
+	if err := test.IsSolved(
+		circuits.NewShieldedIcs20WithdrawalCircuit(family.NIn),
+		assignment,
+		ecc.BLS12_377.ScalarField(),
+	); err == nil {
+		t.Fatalf("expected shielded ICS-20 withdrawal circuit to reject regulated asset routed through unregulated branch")
 	}
 }
 
