@@ -21,7 +21,7 @@ use demo_config::{
     DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX, DEFAULT_COMPLIANCE_DEV_REGISTRAR_SK_HEX,
     DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX, NODE1_DIAL_HOST, NODE1_ENDPOINT, NODE2_DIAL_HOST,
     NODE3_DIAL_HOST, ORBIS_PERMISSION, ORBIS_POLICY_MARSHAL_TYPE_YAML, ORBIS_POLICY_YAML,
-    ORBIS_RESOURCE,
+    ORBIS_RESOURCE, ORBIS_RING_POLICY_RESOURCE,
 };
 use demo_state::{
     missing_ring, now_string, read_json, write_json, AuditDemoState, AuditRecord, AuditSubject,
@@ -172,6 +172,13 @@ async fn setup_ring(output_json: &Path) -> Result<()> {
         ORBIS_PERMISSION,
     )
     .await?;
+    OrbisClient::register_object(
+        &sourcehub,
+        &policy_id,
+        ORBIS_RING_POLICY_RESOURCE,
+        &policy_id,
+    )
+    .await?;
     authorize_orbis_nodes_for_policy(&sourcehub, &node_routes, &policy_id).await?;
     let dkg_signer = dkg_signer();
     let dkg = node1
@@ -262,6 +269,13 @@ async fn seed(repo: &RepoPaths) -> Result<()> {
         ORBIS_POLICY_MARSHAL_TYPE_YAML,
         ORBIS_RESOURCE,
         ORBIS_PERMISSION,
+    )
+    .await?;
+    OrbisClient::register_object(
+        &sourcehub,
+        &policy_id,
+        ORBIS_RING_POLICY_RESOURCE,
+        &policy_id,
     )
     .await?;
     authorize_orbis_nodes_for_policy(&sourcehub, &node_routes, &policy_id).await?;

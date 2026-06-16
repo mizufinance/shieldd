@@ -18,7 +18,8 @@ Runtime flow:
 
 1. Each Orbis node creates a SourceHub `x/orbis` `NodeInfo` keyed by its
    `node_key`.
-2. `orbis-integration` creates the ACP policy, rewrites each peer route for the
+2. `orbis-integration` creates the ACP policy, registers the policy as a
+   `ring_policy` object for `create_ring`, rewrites each peer route for the
    Docker network, and updates each node's `NodeInfo` with that peer route and
    policy whitelist.
 3. `orbis-integration` creates a blank SourceHub `x/orbis` ring from node keys

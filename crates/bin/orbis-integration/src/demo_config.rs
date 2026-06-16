@@ -12,10 +12,27 @@ pub const NODE3_DIAL_HOST: &str = "node3";
 
 pub const ORBIS_RESOURCE: &str = "document";
 pub const ORBIS_PERMISSION: &str = "read";
+pub const ORBIS_RING_POLICY_RESOURCE: &str = "ring_policy";
 pub const ORBIS_POLICY_MARSHAL_TYPE_YAML: i32 = 1;
 pub const ORBIS_POLICY_YAML: &str = r#"
 name: test-policy
 resources:
+  - name: ring_policy
+    relations:
+      - name: ring_creator
+        types:
+          - actor
+    permissions:
+      - name: create_ring
+        expr: ring_creator
+  - name: ring
+    relations:
+      - name: operator
+        types:
+          - actor
+    permissions:
+      - name: update_ring
+        expr: operator
   - name: document
     relations:
       - name: creator
