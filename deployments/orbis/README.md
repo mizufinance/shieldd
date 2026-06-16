@@ -8,7 +8,7 @@ Current contract line:
 
 - Orbis source ref: pinned in [crates/util/orbis-client/Cargo.toml](../../crates/util/orbis-client/Cargo.toml) (`orbis-rs` git revs). `scripts/lib/common.sh::orbis_pinned_rev_from_cargo` extracts this and feeds it to the Docker build context, so Cargo.toml is the single source of truth.
 - Crypto feature: `decaf377`
-- SourceHub image: pinned by digest in [docker-compose.yml](docker-compose.yml) and as `SOURCEHUB_IMAGE_DEFAULT` in [scripts/lib/common.sh](../../scripts/lib/common.sh). Override with `SOURCEHUB_IMAGE=<image>` for ad-hoc testing.
+- SourceHub source ref: pinned as `SOURCEHUB_REF_DEFAULT` in [scripts/lib/common.sh](../../scripts/lib/common.sh) and passed to Orbis's `docker/Dockerfile.sourcehub-integration`. This must expose the `x/orbis` module used by the pinned Orbis client.
 - Node controller key: each `orbis-node` must start with `--node-controller-key`.
   The default in [docker-compose.yml](docker-compose.yml) is the compressed
   public key for Orbis's `TEST_ACCOUNT_HEX_KEY`, matching the signer used by
