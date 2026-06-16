@@ -1,11 +1,11 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, future::Future, time::Duration};
 
 use anyhow::{anyhow, bail, Context, Result};
 use decaf377::Encoding;
 use orbis_authn::{create_authenticated_request, JwtSigner};
 use orbis_common::blockchain::{
     acp::{Actor, Object, Relationship, Subject, SubjectKind},
-    SourceHubClient,
+    BroadcastResult, SourceHubClient,
 };
 use orbis_proto::{
     info_service::{info_service_client::InfoServiceClient, GetNodeInfoRequest},
@@ -21,6 +21,8 @@ use serde::Deserialize;
 use crate::types::{DkgResult, NodeInfo, PreResult, RingInfo, StoreSecretResult};
 use shieldd_sdk_compliance::{OrbisEncryptedSeedUploadPackage, OrbisSecretEnvelope};
 
+const SOURCEHUB_TX_MAX_RETRIES: u32 = 30;
+
 #[derive(Debug, Deserialize)]
 struct PreResponse {
     xnc_cmt: String,
@@ -29,6 +31,106 @@ struct PreResponse {
 
 pub struct OrbisClient {
     endpoint: Endpoint,
+}
+
+async fn run_sourcehub_tx<F, Fut, E, AcceptsLog>(
+    client: &SourceHubClient,
+    action: &str,
+    accepts_log: AcceptsLog,
+    mut tx: F,
+) -> Result<()>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = std::result::Result<BroadcastResult, E>>,
+    E: std::fmt::Display,
+    AcceptsLog: Fn(&str) -> bool,
+{
+    let mut attempt = 0u32;
+    loop {
+        match tx().await {
+            Ok(result) if result.code == 0 || accepts_log(&result.log) => return Ok(()),
+            Ok(result) => {
+                if attempt < SOURCEHUB_TX_MAX_RETRIES
+                    && is_transient_sourcehub_tx_error(&result.log)
+                {
+                    retry_sourcehub_tx_after_nonce_resync(client, &mut attempt).await;
+                    continue;
+                }
+                bail!(
+                    "{action} tx failed: code={} log={}",
+                    result.code,
+                    result.log
+                );
+            }
+            Err(error) => {
+                let msg = error.to_string();
+                if accepts_log(&msg) {
+                    return Ok(());
+                }
+                if attempt < SOURCEHUB_TX_MAX_RETRIES && is_transient_sourcehub_tx_error(&msg) {
+                    retry_sourcehub_tx_after_nonce_resync(client, &mut attempt).await;
+                    continue;
+                }
+                return Err(anyhow!("failed to {action}: {error}"));
+            }
+        }
+    }
+}
+
+async fn retry_sourcehub_tx_after_nonce_resync(client: &SourceHubClient, attempt: &mut u32) {
+    *attempt += 1;
+    let _ = client.resync_nonce().await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
+}
+
+async fn create_orbis_ring_with_retry(
+    client: &SourceHubClient,
+    peer_node_keys: &[String],
+    threshold: u32,
+    policy_id: &str,
+) -> Result<String> {
+    let mut attempt = 0u32;
+    loop {
+        match client
+            .orbis_create_ring_get_id(peer_node_keys.to_vec(), threshold, None, policy_id, None, 0)
+            .await
+        {
+            Ok((result, ring_id)) if result.code == 0 => return Ok(ring_id),
+            Ok((result, _)) => {
+                if attempt < SOURCEHUB_TX_MAX_RETRIES
+                    && is_transient_sourcehub_tx_error(&result.log)
+                {
+                    retry_sourcehub_tx_after_nonce_resync(client, &mut attempt).await;
+                    continue;
+                }
+                bail!(
+                    "create SourceHub Orbis ring tx failed: code={} log={}",
+                    result.code,
+                    result.log
+                );
+            }
+            Err(error) => {
+                let msg = error.to_string();
+                if attempt < SOURCEHUB_TX_MAX_RETRIES && is_transient_sourcehub_tx_error(&msg) {
+                    retry_sourcehub_tx_after_nonce_resync(client, &mut attempt).await;
+                    continue;
+                }
+                return Err(anyhow!("failed to create SourceHub Orbis ring: {error}"));
+            }
+        }
+    }
+}
+
+fn is_transient_sourcehub_tx_error(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains("sequence mismatch")
+        || lower.contains("account not found")
+        || lower.contains("issuedidfromaccountaddr")
+}
+
+fn is_already_exists_sourcehub_error(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains("already registered") || lower.contains("already exists")
 }
 
 impl OrbisClient {
@@ -83,10 +185,8 @@ impl OrbisClient {
             .map_err(|e| anyhow!("failed to connect to Orbis DKG endpoint: {}", e))?;
         let mut client = DkgServiceClient::new(channel);
 
-        let (_, ring_id) = sourcehub
-            .orbis_create_ring_get_id(peer_node_keys.to_vec(), threshold, None, policy_id, None, 0)
-            .await
-            .map_err(|e| anyhow!("failed to create SourceHub Orbis ring: {}", e))?;
+        let ring_id =
+            create_orbis_ring_with_retry(sourcehub, peer_node_keys, threshold, policy_id).await?;
         let request = StartDkgRequest {
             ring_id: ring_id.clone(),
         };
@@ -150,17 +250,13 @@ impl OrbisClient {
             .map(|ids| ids.ids.into_iter().collect::<HashSet<_>>())
             .unwrap_or_default();
 
-        let create_result = client
-            .acp_create_policy(policy_yaml, marshal_type)
-            .await
-            .map_err(|e| anyhow!("failed to create policy: {}", e))?;
-        if create_result.code != 0 {
-            bail!(
-                "create policy tx failed: code={} log={}",
-                create_result.code,
-                create_result.log
-            );
-        }
+        run_sourcehub_tx(
+            client,
+            "create policy",
+            |_| false,
+            || client.acp_create_policy(policy_yaml, marshal_type),
+        )
+        .await?;
 
         let policy_ids = client
             .acp_list_policy_ids()
@@ -258,29 +354,13 @@ impl OrbisClient {
             id: object_id.to_string(),
         };
 
-        match client.acp_register_object(policy_id, document).await {
-            Ok(result) if result.code == 0 => Ok(()),
-            Ok(result) => {
-                let log = result.log;
-                if log.contains("object already registered") || log.contains("already exists") {
-                    Ok(())
-                } else {
-                    bail!(
-                        "register_object tx failed: code={} log={}",
-                        result.code,
-                        log
-                    );
-                }
-            }
-            Err(error) => {
-                let msg = error.to_string();
-                if msg.contains("object already registered") || msg.contains("already exists") {
-                    Ok(())
-                } else {
-                    Err(anyhow!("failed to register object in ACP: {}", error))
-                }
-            }
-        }
+        run_sourcehub_tx(
+            client,
+            "register object in ACP",
+            is_already_exists_sourcehub_error,
+            || client.acp_register_object(policy_id, document.clone()),
+        )
+        .await
     }
 
     pub async fn set_relationship(
@@ -304,29 +384,13 @@ impl OrbisClient {
             }),
         };
 
-        match client.acp_set_relationship(policy_id, relationship).await {
-            Ok(result) if result.code == 0 => Ok(()),
-            Ok(result) => {
-                let log = result.log;
-                if log.contains("relationship already exists") || log.contains("already exists") {
-                    Ok(())
-                } else {
-                    bail!(
-                        "set_relationship tx failed: code={} log={}",
-                        result.code,
-                        log
-                    );
-                }
-            }
-            Err(error) => {
-                let msg = error.to_string();
-                if msg.contains("relationship already exists") || msg.contains("already exists") {
-                    Ok(())
-                } else {
-                    Err(anyhow!("failed to set ACP relationship: {}", error))
-                }
-            }
-        }
+        run_sourcehub_tx(
+            client,
+            "set ACP relationship",
+            is_already_exists_sourcehub_error,
+            || client.acp_set_relationship(policy_id, relationship.clone()),
+        )
+        .await
     }
 
     pub async fn start_pre(
@@ -432,5 +496,30 @@ mod tests {
     #[test]
     fn invalid_endpoint_is_rejected() {
         assert!(OrbisClient::new("not a valid endpoint").is_err());
+    }
+
+    #[test]
+    fn sourcehub_sequence_errors_are_transient() {
+        assert!(is_transient_sourcehub_tx_error(
+            "account sequence mismatch, expected 1, got 0"
+        ));
+        assert!(is_transient_sourcehub_tx_error(
+            "account not found for address"
+        ));
+        assert!(is_transient_sourcehub_tx_error(
+            "issuedIDFromAccountAddr failed"
+        ));
+        assert!(!is_transient_sourcehub_tx_error("invalid policy yaml"));
+    }
+
+    #[test]
+    fn sourcehub_already_exists_errors_are_idempotent_successes() {
+        assert!(is_already_exists_sourcehub_error(
+            "object already registered"
+        ));
+        assert!(is_already_exists_sourcehub_error(
+            "relationship already exists"
+        ));
+        assert!(!is_already_exists_sourcehub_error("sequence mismatch"));
     }
 }
