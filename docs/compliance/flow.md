@@ -9,22 +9,32 @@ External systems:
 
 - **Orbis**: MPC ring key, encrypted-seed storage, and PRE for authorized audit.
 - **Defra**: off-chain KYC document storage.
-- **SourceHub**: ACP policies, bulletin board, and Defra proof verification.
+- **SourceHub**: ACP policies, Orbis `x/orbis` records, and Defra proof verification.
 
 For low-level formats, schema, and source files, see `reference.md`.
 
 ## Registration
 
-1. **Ring creation**: issuer creates an Orbis ring.
+1. **Ring creation**: issuer creates SourceHub policy metadata, authorizes the
+   Orbis nodes for that policy, creates a SourceHub `x/orbis` ring from Orbis
+   node keys, then starts DKG against that `ring_id`.
 
 ```text
-Issuer -> Orbis DKG
-  -> ring_pk public on Shieldd
+Orbis nodes -> NodeInfo(node_key, peer_id, controller_key)
+Issuer/controller -> ACP policy
+Issuer/controller -> UpdateNodeInfo(node_key, docker-reachable peer_id, policy_id)
+Issuer/controller -> CreateRing(peer_node_keys, threshold, policy_id) -> ring_id
+Issuer -> Orbis DKG(ring_id)
+  -> Orbis finalizes x/orbis Ring(ring_id, ring_pk)
+  -> ring_id and ring_pk public on Shieldd
   -> sk_ring threshold-shared inside Orbis
 ```
 
-2. **Asset registration**: issuer creates SourceHub policy metadata and submits
-   `RegisterAsset` on Shieldd.
+Orbis node keys are stable chain identities. Peer IDs are network routes and may
+be rewritten for Docker/local topology before they are written to each node's
+SourceHub `NodeInfo`.
+
+2. **Asset registration**: issuer submits `RegisterAsset` on Shieldd.
 
 ```text
 AssetPolicy {
@@ -97,9 +107,12 @@ planner:
   create one receiver-output compliance ciphertext
 ```
 
-The receiver output carries a unified transfer compliance ciphertext and a DLEQ
-(Discrete Logarithm Equality) bundle, which binds each audit tier to its
-metadata. Inputs and change outputs carry no compliance ciphertext.
+The receiver output carries a unified transfer compliance ciphertext and DLEQ
+(Discrete Logarithm Equality) material for each audit tier. The DLEQ material is
+for Orbis authorization-time binding: after ACP authorizes access to a specific
+policy/resource/permission/tier/timestamp tuple, Orbis verifies that the
+requested ciphertext was encrypted under matching metadata before running PRE.
+Inputs and change outputs carry no compliance ciphertext.
 
 | Tier | Content | Unflagged Encryption | Flagged Encryption |
 |------|---------|----------------------|--------------------|
@@ -121,7 +134,11 @@ from address metadata access.
 
 The transfer circuit owns value/nullifier/note/balance soundness. Compliance
 owns asset-policy binding, threshold flag correctness, ciphertext construction,
-detection tag correctness, tier metadata, and DLEQ binding. See:
+detection tag correctness, tier metadata, and DLEQ validity. The DLEQ does not
+protect Shieldd balances or nullifiers; it is in the transaction proof because
+the transaction sender is adversarial. Accepted transactions must carry valid
+DLEQ material so the issuer and Orbis can later rely on it when ACP authorizes
+PRE for a specific metadata tuple. See:
 
 - `docs/compliance/constraint-checklist.md`
 - `docs/transfer-circuit/constraint-checklist.md`
@@ -152,6 +169,14 @@ An upload bundle is the client-produced set of per-tier encrypted-seed upload
 packages: encrypted seed material, tier metadata, policy/ring binding, and
 proofs needed by Orbis storage/PRE. "Encrypted-seed upload package" refers to
 one tier inside the bundle. See `reference.md` for the canonical fields.
+
+Current Orbis storage no longer uses a Shieldd-facing bulletin namespace.
+`StoreSecret` posts a SourceHub-backed Orbis document record and returns its
+`object_id`; the record binds the encrypted document, proof, `ring_id`,
+`policy_id`, `resource`, `permission`, optional tier, and optional timestamp.
+PRE later reads that document by `object_id`, reads the ring by `ring_id`, checks
+ACP authorization against the document policy metadata, and returns the
+re-encrypted tier seed.
 
 ```text
 ExtractedComplianceCiphertext
@@ -215,8 +240,10 @@ PRE path.
 
 ```text
 ACP grant
-  -> Orbis validates stored encrypted-seed package and policy metadata
-  -> issuer requests PRE for authorized tier
+  -> Orbis reads stored encrypted-seed object and ring metadata
+  -> Orbis checks ACP against policy/resource/permission/tier/timestamp
+  -> Orbis verifies the ciphertext/proof binds to the authorized metadata
+  -> issuer requests PRE for authorized tier object_id
   -> issuer recovers tier seed
   -> issuer decrypts Shieldd tier payload locally
 ```

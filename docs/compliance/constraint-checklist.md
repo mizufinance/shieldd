@@ -67,6 +67,10 @@ or re-checks it, and where regressions should be caught.
 
 ### Tier Encryption And DLEQ Binding
 
+- Purpose: DLEQ binds tier ciphertext material to the metadata that Orbis ACP
+  authorizes for PRE. It is not a Shieldd balance/nullifier soundness condition,
+  but it is part of transaction validity because the transaction sender chooses
+  the ciphertext and proof.
 - Enforced in: transfer compliance circuit fields and DLEQ checks in
   `crates/core/component/compliance/src/r1cs.rs`.
 - Verified at: `validate_audit_evidence`,
@@ -75,8 +79,8 @@ or re-checks it, and where regressions should be caught.
 - Tested by: `audit_validation::*`, `decode_object::*`,
   `upload_package::*`, and
   `tools/gnark/internal/circuits/transfer_metamorphic_test.go`.
-- Violation: proof rejects, evidence is marked `evidence_invalid`, or Orbis
-  import/decryption is refused.
+- Violation: local preflight/evidence validation rejects, or Orbis PRE refuses
+  to decrypt after ACP authorization.
 
 ### Tier Metadata
 

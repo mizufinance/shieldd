@@ -20,8 +20,8 @@ use demo_config::{
     sourcehub_client, DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX,
     DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX, DEFAULT_COMPLIANCE_DEV_REGISTRAR_SK_HEX,
     DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX, NODE1_DIAL_HOST, NODE1_ENDPOINT, NODE2_DIAL_HOST,
-    NODE3_DIAL_HOST, ORBIS_NAMESPACE, ORBIS_PERMISSION, ORBIS_POLICY_MARSHAL_TYPE_YAML,
-    ORBIS_POLICY_YAML, ORBIS_RESOURCE,
+    NODE3_DIAL_HOST, ORBIS_PERMISSION, ORBIS_POLICY_MARSHAL_TYPE_YAML, ORBIS_POLICY_YAML,
+    ORBIS_RESOURCE, ORBIS_RING_POLICY_RESOURCE,
 };
 use demo_state::{
     missing_ring, now_string, read_json, write_json, AuditDemoState, AuditRecord, AuditSubject,
@@ -163,37 +163,7 @@ async fn setup_ring(output_json: &Path) -> Result<()> {
     let info3 = wait_for_node_info(&node3, "node3").await?;
 
     let sourcehub = sourcehub_client().await?;
-    OrbisClient::register_bulletin_namespace(&sourcehub, ORBIS_NAMESPACE).await?;
-    for info in [&info1, &info2, &info3] {
-        OrbisClient::add_bulletin_collaborator(&sourcehub, ORBIS_NAMESPACE, &info.public_address)
-            .await?;
-    }
-
-    let peer_ids = vec![
-        docker_peer_id(
-            &info1,
-            &node_dial_host("ORBIS_NODE1_DIAL_HOST", NODE1_DIAL_HOST),
-        )?,
-        docker_peer_id(
-            &info2,
-            &node_dial_host("ORBIS_NODE2_DIAL_HOST", NODE2_DIAL_HOST),
-        )?,
-        docker_peer_id(
-            &info3,
-            &node_dial_host("ORBIS_NODE3_DIAL_HOST", NODE3_DIAL_HOST),
-        )?,
-    ];
-    let dkg_signer = dkg_signer();
-    let dkg = node1
-        .start_dkg(2, &peer_ids, ORBIS_NAMESPACE, &dkg_signer)
-        .await?;
-    eprintln!(
-        "orbis-integration: DKG session started: {} ({})",
-        dkg.session_id, dkg.status
-    );
-    eprintln!("orbis-integration: DKG message: {}", dkg.message);
-
-    let ring = wait_for_latest_ring(&sourcehub).await?;
+    let (node_keys, node_routes) = orbis_node_routes(&info1, &info2, &info3)?;
     let policy_id = OrbisClient::add_policy(
         &sourcehub,
         ORBIS_POLICY_YAML,
@@ -202,6 +172,25 @@ async fn setup_ring(output_json: &Path) -> Result<()> {
         ORBIS_PERMISSION,
     )
     .await?;
+    OrbisClient::register_object(
+        &sourcehub,
+        &policy_id,
+        ORBIS_RING_POLICY_RESOURCE,
+        &policy_id,
+    )
+    .await?;
+    authorize_orbis_nodes_for_policy(&sourcehub, &node_routes, &policy_id).await?;
+    let dkg_signer = dkg_signer();
+    let dkg = node1
+        .start_dkg(2, &node_keys, &sourcehub, &policy_id, &dkg_signer)
+        .await?;
+    eprintln!(
+        "orbis-integration: DKG session started for ring {}: {} ({})",
+        dkg.ring_id, dkg.session_id, dkg.status
+    );
+    eprintln!("orbis-integration: DKG message: {}", dkg.message);
+
+    let ring = wait_for_ring(&sourcehub, &dkg.ring_id).await?;
     let output = RingState {
         ring_pk_hex: ring.ring_pk_hex,
         ring_id: ring.ring_id,
@@ -273,36 +262,7 @@ async fn seed(repo: &RepoPaths) -> Result<()> {
     let info3 = wait_for_node_info(&node3, "node3").await?;
 
     let sourcehub = sourcehub_client().await?;
-    OrbisClient::register_bulletin_namespace(&sourcehub, ORBIS_NAMESPACE).await?;
-    for info in [&info1, &info2, &info3] {
-        OrbisClient::add_bulletin_collaborator(&sourcehub, ORBIS_NAMESPACE, &info.public_address)
-            .await?;
-    }
-
-    let peer_ids = vec![
-        docker_peer_id(
-            &info1,
-            &node_dial_host("ORBIS_NODE1_DIAL_HOST", NODE1_DIAL_HOST),
-        )?,
-        docker_peer_id(
-            &info2,
-            &node_dial_host("ORBIS_NODE2_DIAL_HOST", NODE2_DIAL_HOST),
-        )?,
-        docker_peer_id(
-            &info3,
-            &node_dial_host("ORBIS_NODE3_DIAL_HOST", NODE3_DIAL_HOST),
-        )?,
-    ];
-    let dkg_signer = dkg_signer();
-    let dkg = node1
-        .start_dkg(2, &peer_ids, ORBIS_NAMESPACE, &dkg_signer)
-        .await?;
-    eprintln!(
-        "orbis-integration: DKG session started: {} ({})",
-        dkg.session_id, dkg.status
-    );
-    eprintln!("orbis-integration: DKG message: {}", dkg.message);
-    let ring = wait_for_latest_ring(&sourcehub).await?;
+    let (node_keys, node_routes) = orbis_node_routes(&info1, &info2, &info3)?;
     let policy_id = OrbisClient::add_policy(
         &sourcehub,
         ORBIS_POLICY_YAML,
@@ -311,6 +271,24 @@ async fn seed(repo: &RepoPaths) -> Result<()> {
         ORBIS_PERMISSION,
     )
     .await?;
+    OrbisClient::register_object(
+        &sourcehub,
+        &policy_id,
+        ORBIS_RING_POLICY_RESOURCE,
+        &policy_id,
+    )
+    .await?;
+    authorize_orbis_nodes_for_policy(&sourcehub, &node_routes, &policy_id).await?;
+    let dkg_signer = dkg_signer();
+    let dkg = node1
+        .start_dkg(2, &node_keys, &sourcehub, &policy_id, &dkg_signer)
+        .await?;
+    eprintln!(
+        "orbis-integration: DKG session started for ring {}: {} ({})",
+        dkg.ring_id, dkg.session_id, dkg.status
+    );
+    eprintln!("orbis-integration: DKG message: {}", dkg.message);
+    let ring = wait_for_ring(&sourcehub, &dkg.ring_id).await?;
     fs::write(
         &repo.ring_info_file,
         format!(
@@ -1117,10 +1095,133 @@ async fn wait_for_node_info(client: &OrbisClient, label: &str) -> Result<NodeInf
         .with_context(|| format!("timed out waiting for {label} info endpoint"))
 }
 
-async fn wait_for_latest_ring(client: &SourceHubClient) -> Result<shieldd_orbis_client::RingInfo> {
+fn orbis_node_routes(
+    info1: &NodeInfo,
+    info2: &NodeInfo,
+    info3: &NodeInfo,
+) -> Result<(Vec<String>, Vec<(String, String)>)> {
+    let routes = vec![
+        (
+            info1.node_key.clone(),
+            docker_peer_id(
+                info1,
+                &node_dial_host("ORBIS_NODE1_DIAL_HOST", NODE1_DIAL_HOST),
+            )?,
+        ),
+        (
+            info2.node_key.clone(),
+            docker_peer_id(
+                info2,
+                &node_dial_host("ORBIS_NODE2_DIAL_HOST", NODE2_DIAL_HOST),
+            )?,
+        ),
+        (
+            info3.node_key.clone(),
+            docker_peer_id(
+                info3,
+                &node_dial_host("ORBIS_NODE3_DIAL_HOST", NODE3_DIAL_HOST),
+            )?,
+        ),
+    ];
+    let node_keys = routes
+        .iter()
+        .map(|(node_key, _)| node_key.clone())
+        .collect();
+    Ok((node_keys, routes))
+}
+
+async fn authorize_orbis_nodes_for_policy(
+    client: &SourceHubClient,
+    routes: &[(String, String)],
+    policy_id: &str,
+) -> Result<()> {
+    for (node_key, peer_id) in routes {
+        wait_for_sourcehub_node_info(client, node_key).await?;
+        update_orbis_node_info(client, node_key, peer_id, policy_id).await?;
+    }
+    Ok(())
+}
+
+async fn wait_for_sourcehub_node_info(client: &SourceHubClient, node_key: &str) -> Result<()> {
     let mut last_error = None;
     for _ in 0..60 {
-        match OrbisClient::get_latest_ring(client, ORBIS_NAMESPACE).await {
+        match client.orbis_read_node_info(node_key).await {
+            Ok(Some(_)) => return Ok(()),
+            Ok(None) => {
+                last_error = Some(anyhow!("Orbis NodeInfo {node_key} not found on SourceHub"));
+            }
+            Err(error) => {
+                last_error = Some(anyhow!("failed to read Orbis NodeInfo {node_key}: {error}"));
+            }
+        }
+        tokio::time::sleep(Duration::from_secs(2)).await;
+    }
+    Err(last_error
+        .unwrap_or_else(|| anyhow!("timed out waiting for Orbis NodeInfo {node_key} on SourceHub")))
+    .with_context(|| format!("timed out waiting for Orbis NodeInfo {node_key} on SourceHub"))
+}
+
+async fn update_orbis_node_info(
+    client: &SourceHubClient,
+    node_key: &str,
+    peer_id: &str,
+    policy_id: &str,
+) -> Result<()> {
+    let mut attempt = 0u32;
+    loop {
+        let outcome = client
+            .orbis_update_node_info(
+                node_key,
+                Some(peer_id.to_string()),
+                vec![policy_id.to_string()],
+                vec![],
+            )
+            .await;
+        match outcome {
+            Ok(result) if result.code == 0 => return Ok(()),
+            Ok(result) => {
+                if attempt < 30 && is_transient_sourcehub_tx_error(&result.log) {
+                    attempt += 1;
+                    let _ = client.resync_nonce().await;
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    continue;
+                }
+                bail!(
+                    "update Orbis NodeInfo tx failed for {node_key}: code={} log={}",
+                    result.code,
+                    result.log
+                )
+            }
+            Err(error) => {
+                let msg = error.to_string();
+                if attempt < 30 && is_transient_sourcehub_tx_error(&msg) {
+                    attempt += 1;
+                    let _ = client.resync_nonce().await;
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    continue;
+                }
+                return Err(anyhow!(
+                    "failed to update Orbis NodeInfo {node_key}: {error}"
+                ));
+            }
+        }
+    }
+}
+
+fn is_transient_sourcehub_tx_error(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains("sequence mismatch")
+        || lower.contains("account not found")
+        || lower.contains("issuedidfromaccountaddr")
+}
+
+async fn wait_for_ring(
+    client: &SourceHubClient,
+    ring_id: &str,
+) -> Result<shieldd_orbis_client::RingInfo> {
+    let mut last_error = None;
+    for _ in 0..60 {
+        match OrbisClient::get_ring(client, ring_id).await {
             Ok(ring) => return Ok(ring),
             Err(error) => {
                 last_error = Some(error);
@@ -1128,8 +1229,8 @@ async fn wait_for_latest_ring(client: &SourceHubClient) -> Result<shieldd_orbis_
             }
         }
     }
-    Err(last_error.unwrap_or_else(|| anyhow!("timed out waiting for Orbis ring publication")))
-        .context("timed out waiting for Orbis ring publication")
+    Err(last_error.unwrap_or_else(|| anyhow!("timed out waiting for Orbis ring {ring_id}")))
+        .with_context(|| format!("timed out waiting for Orbis ring {ring_id}"))
 }
 
 fn parse_key_value_line(output: &str, prefix: &str) -> Result<String> {
@@ -2004,6 +2105,7 @@ mod tests {
     fn docker_peer_id_rewrites_host_only() {
         let info = NodeInfo {
             public_address: "sourcehub1abc".to_string(),
+            node_key: "node-key".to_string(),
             peer_id: "peerid".to_string(),
             p2p_address: "peerid@127.0.0.1:4001".to_string(),
         };

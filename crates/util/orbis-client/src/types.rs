@@ -3,6 +3,7 @@ use shieldd_sdk_compliance::OrbisSecretEnvelope;
 
 #[derive(Debug, Clone)]
 pub struct DkgResult {
+    pub ring_id: String,
     pub session_id: String,
     pub status: String,
     pub message: String,
@@ -11,6 +12,7 @@ pub struct DkgResult {
 #[derive(Debug, Clone)]
 pub struct NodeInfo {
     pub public_address: String,
+    pub node_key: String,
     pub peer_id: String,
     pub p2p_address: String,
 }

@@ -145,11 +145,15 @@ audit_complete -> audit_complete
 Both flagged issuer-DK decrypt and unflagged Orbis PRE import require
 `evidence_valid`.
 
-## Transfer DLEQ
+## Orbis Authorization Binding
 
-Each audit tier has an in-circuit Chaum-Pedersen proof binding the tier to
-Shieldd metadata. `ACK = d * ring_pk`, where `d` comes from the registered
-slot derivation, not from the address diversifier:
+Each audit tier carries Chaum-Pedersen/DLEQ material so Orbis can bind a PRE
+request to the metadata that ACP authorized. The proof is verified when the
+transaction is accepted because the transaction sender chooses the ciphertext
+and proof. Issuers can later use the accepted DLEQ material as evidence that
+the encrypted audit tier matches the authorized metadata. `ACK = d * ring_pk`,
+where `d` comes from the registered slot derivation, not from the address
+diversifier:
 
 ```text
 S  = r * ACK
@@ -177,10 +181,12 @@ Tier constants:
 | output_core | 3 |
 | output_ext | 4 |
 
-The DLEQ binds ACK/EPK/shared-point metadata. `C2` correctness remains a
-Shieldd circuit property. Current Orbis PRE validates the encrypted-seed
-upload package and its policy metadata; it does not consume the transfer DLEQ
-directly.
+The same proof material is authorization-critical in Orbis PRE: after JWT
+authentication and ACP authorization, Orbis verifies the stored encrypted-seed
+object's proof against the same policy/resource/permission/tier/timestamp
+metadata before running PRE. `C2` correctness remains separate: it is
+established by the transfer construction and by validating the decrypted seed
+against `C2` after PRE or issuer-DK decryption.
 
 ## Restrictions
 

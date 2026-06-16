@@ -423,10 +423,10 @@ orbis_pinned_rev_from_cargo() {
     printf '%s' "$revs"
 }
 
-# Pinned SourceHub image. Bumped in lockstep with the Orbis runtime ref above.
-# Override at the call site with SOURCEHUB_IMAGE=... for ad-hoc testing.
-SOURCEHUB_IMAGE_DEFAULT="ghcr.io/sourcenetwork/sourcehub@sha256:4f6b71d12a10eb6d433a4b73c7b8ab25d6d8a6242f673fed12da2e254e734f0e"
-export SOURCEHUB_IMAGE="${SOURCEHUB_IMAGE:-$SOURCEHUB_IMAGE_DEFAULT}"
+# SourceHub ref used by Orbis's integration Dockerfile. Keep this aligned with
+# the pinned Orbis runtime when Orbis updates its SourceHub contract.
+SOURCEHUB_REF_DEFAULT="f7eaa5db6a14975dcfd929660d1539964353072c"
+export SOURCEHUB_REF="${SOURCEHUB_REF:-$SOURCEHUB_REF_DEFAULT}"
 
 ensure_orbis_runtime_checkout() {
     local repo_url="${ORBIS_RUNTIME_REPO:-https://github.com/sourcenetwork/orbis-rs.git}"

@@ -1,6 +1,11 @@
 services:
   sourcehub:
-    image: ${SOURCEHUB_IMAGE:-ghcr.io/sourcenetwork/sourcehub@sha256:4f6b71d12a10eb6d433a4b73c7b8ab25d6d8a6242f673fed12da2e254e734f0e}
+    image: orbis-sourcehub-integration
+    build:
+      context: ${ORBIS_RUNTIME_CONTEXT:?set by scripts/orbis-stack.sh}/docker
+      dockerfile: Dockerfile.sourcehub-integration
+      args:
+        SOURCEHUB_REF: "${SOURCEHUB_REF:-f7eaa5db6a14975dcfd929660d1539964353072c}"
     platform: linux/amd64
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -39,7 +44,7 @@ services:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret1testsecret1
       - RUST_LOG=debug
-    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5"]
+    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
     ports:
       - "${ORBIS_NODE1_GRPC_PORT:-50051}:50051"
       - "${ORBIS_NODE1_METRICS_PORT:-9091}:9090"
@@ -66,7 +71,7 @@ services:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret2testsecret2
       - RUST_LOG=debug
-    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5"]
+    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
     ports:
       - "${ORBIS_NODE2_GRPC_PORT:-50052}:50051"
       - "${ORBIS_NODE2_METRICS_PORT:-9092}:9090"
@@ -93,7 +98,7 @@ services:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret3testsecret3
       - RUST_LOG=debug
-    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5"]
+    command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
     ports:
       - "${ORBIS_NODE3_GRPC_PORT:-50053}:50051"
       - "${ORBIS_NODE3_METRICS_PORT:-9093}:9090"
