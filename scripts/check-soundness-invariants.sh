@@ -37,14 +37,16 @@ table_rows() {
 
 # Kind-aware status model. Properties carry proof-progress statuses;
 # `proved-symbolic` is a Tamarin/ProVerif lemma discharged modulo cited
-# assumption-ledger idealizations. Findings carry remediation statuses.
-# Assumptions are always `assumed`.
+# assumption-ledger idealizations; `proved-computational` is a game-based
+# Lean/VCVio proof in the random-oracle model, likewise modulo cited residual
+# assumptions. Findings carry remediation statuses. Assumptions are always
+# `assumed`.
 status_allowed_for_kind() {
   local kind="$1" status="$2"
   case "$kind" in
     property)
       case "$status" in
-        open|composed|refined|assumed|proved|proved-symbolic) return 0 ;;
+        open|composed|refined|assumed|proved|proved-symbolic|proved-computational) return 0 ;;
       esac ;;
     finding)
       case "$status" in
@@ -130,6 +132,12 @@ check_proof_artifact() {
   local artifact
   for artifact in \
     "$COMPLIANCE_FORMAL/compliance-symbolic-artifact.txt" \
+    "$COMPLIANCE_FORMAL/compliance-active-symbolic-artifact.txt" \
+    "$COMPLIANCE_FORMAL/alloy-nullifier-imt-artifact.txt" \
+    "$COMPLIANCE_FORMAL/alloy-value-conservation-artifact.txt" \
+    "$COMPLIANCE_FORMAL/alloy-compliance-tiers-artifact.txt" \
+    "$COMPLIANCE_FORMAL/alloy-orbis-authorization-artifact.txt" \
+    "$COMPLIANCE_FORMAL/lean-dleq-artifact.txt" \
     "$CIRCUIT_FORMAL/statement-field-formal-artifact.txt"; do
     if [[ "$evidence" == *"$artifact"* ]]; then
       matched="$artifact"
@@ -144,14 +152,14 @@ check_proof_artifact() {
   done
   [[ -n "$matched" ]] \
     || fail "row $id has status $status but cites no stamped proof artifact in Evidence"
-  if [[ "$status" == "proved-symbolic" ]]; then
+  if [[ "$status" == "proved-symbolic" || "$status" == "proved-computational" ]]; then
     local cited=""
     while IFS= read -r aid; do
       [[ -z "$aid" ]] && continue
       [[ "$evidence" == *"$aid"* ]] && cited="$aid"
     done < <(printf '%s\n' "$assumption_ids")
     [[ -n "$cited" ]] \
-      || fail "proved-symbolic row $id must cite at least one assumption-ledger ID in Evidence"
+      || fail "$status row $id must cite at least one assumption-ledger ID in Evidence"
   fi
 }
 
@@ -279,7 +287,7 @@ while IFS= read -r row; do
   id="$(markdown_field "$row" 2 | strip_ticks)"
   status="$(markdown_field "$row" "$handoff_status_index" | strip_ticks)"
   case "$status" in
-    proved|proved-symbolic)
+    proved|proved-symbolic|proved-computational)
       evidence="$(markdown_field "$row" "$handoff_evidence_index")"
       kind="$(markdown_field "$row" "$handoff_kind_index" | strip_ticks)"
       source="$(markdown_field "$row" "$handoff_source_index" | strip_ticks)"

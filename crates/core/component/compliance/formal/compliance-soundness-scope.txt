@@ -6,6 +6,15 @@ DLEQ-BINDING|crates/core/component/compliance/src/crypto.rs:verify_dleq_native
 REPLAY-RESISTANCE|crates/core/component/compliance/src/registry.rs:check_timestamp_freshness
 NO-KEY-CONFUSION|crates/core/component/compliance/src/crypto.rs:compute_metadata_hash
 ANCHOR-FRESHNESS|crates/core/component/compliance/src/registry.rs:validate_compliance_anchors
+IMT-NULLIFIER-STATE|crates/core/component/compliance/formal/alloy/nullifier-imt.als:assert NoDoubleSpend
+TX-VALUE-CONSERVATION|crates/core/component/compliance/formal/alloy/value-conservation.als:assert BindingImpliesConservation
+COMPLIANCE-TIER-FSM|crates/core/component/compliance/formal/alloy/compliance-tiers.als:assert CompleteIsTerminal
+ORBIS-DESIGNATED-DECRYPT|crates/core/component/compliance/formal/alloy/orbis-authorization.als:assert OnlyDesignatedRecovers
+DLEQ-COMPLETENESS|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:sigma_complete
+DLEQ-SPECIAL-SOUNDNESS|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:sigma_speciallySound
+DLEQ-HVZK|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:sigma_hvzk
+DLEQ-CHALLENGE-TRUNCATION|crates/core/component/compliance/formal/lean-dleq/Dleq/Challenge.lean:emb_injective
+DLEQ-FS-KNOWLEDGE-SOUNDNESS|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:dleq_fs_knowledge_soundness
 CC-FIND-C2-MALLEABILITY|crates/core/component/shielded-pool/src/public_input_hash.rs:transfer_statement_fields
 CC-FIND-UNUSED-STREAM-DOMAIN|crates/core/component/compliance/src/crypto.rs:COMPLIANCE_STREAM_CIPHER_DOMAIN
 CC-FIND-DESIGNATED-VERIFIER-CLAIM|crates/core/component/compliance/src/crypto.rs:compute_dleq_native

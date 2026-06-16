@@ -1,0 +1,10 @@
+tool: tamarin-prover
+tamarin: 1.8.0 (local docker verification; nightly re-stamps under pinned 1.12.0)
+maude: 3.1
+model: crates/core/component/compliance/formal/compliance-active.spthy
+model_sha256: d44e7c9d7616a87690a93a83e4306963464d5f108fb262192b1f2a39ad9b86d3
+tamarin_output_sha256: 21210ada7224a15c5094cb674ffc0ad2afb9404ec400f0a22032bb9cf31aa2ab
+LEMMA DLEQ_BINDING verified
+LEMMA REPLAY_RESISTANCE verified
+LEMMA NO_KEY_CONFUSION verified
+LEMMA EXECUTABLE verified

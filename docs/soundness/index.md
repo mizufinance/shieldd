@@ -5,6 +5,7 @@ This directory contains the durable protocol-soundness entry points:
 - [Formal verification plan](formal-verification-plan.md)
 - [Constraint-system assurance strategy](constraint-system-assurance.md)
 - [Soundness handoff ledger](soundness-handoff.md)
+- [FV-hardening roadmap (Tamarin, Alloy, DLEQ)](fv-hardening-roadmap.md)
 
 Machine-checked fixtures live next to the code:
 

@@ -29,6 +29,8 @@ on:
       - 'scripts/check-lean-circuit-fv.sh'
       - 'scripts/check-soundness-invariants.sh'
       - 'scripts/compliance-symbolic.sh'
+      - 'scripts/compliance-alloy.sh'
+      - 'scripts/compliance-lean-dleq.sh'
       - 'scripts/shielded-pool-formal.sh'
       - 'scripts/circuit-constraint-check.sh'
       - 'scripts/circuit-gadget-proof-check.sh'
@@ -58,6 +60,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
         run: bash scripts/check-soundness-invariants.sh
+      # Lightweight DLEQ Lean/VCVio tier: hygiene + stamp integrity, no toolchain.
+      # The heavy `full` proof run (Sigma + FS-ROM) is nightly-only in `provers`.
+      - name: Check DLEQ Lean stamps
+        run: bash scripts/compliance-lean-dleq.sh stamps
 
   lean-circuit-fv:
     runs-on: blacksmith-16vcpu-ubuntu-2404
@@ -160,6 +166,25 @@ jobs:
       - name: Run compliance symbolic gate (Tamarin)
         if: github.event_name != 'pull_request'
         run: nix shell nixpkgs#tamarin-prover nixpkgs#maude --command bash scripts/compliance-symbolic.sh
+
+      - name: Run compliance Alloy state-invariant gate
+        if: github.event_name != 'pull_request'
+        run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
+
+      - name: Install pinned Lean (DLEQ / VCVio)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v elan >/dev/null 2>&1; then
+            curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+            sh /tmp/elan-init.sh -y --default-toolchain none
+            echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Run compliance DLEQ Lean/VCVio computational-soundness gate
+        if: github.event_name != 'pull_request'
+        run: bash scripts/compliance-lean-dleq.sh full
 
       - name: Run shielded-pool F* injectivity gate
         if: github.event_name != 'pull_request'
