@@ -1299,6 +1299,13 @@ def circuit (Input0Amount: F) (Input1Amount: F) (OutputAmount: F) (AssetID: F) (
     ∃gate_905, Gates.div_unchecked gate_902 gate_903 gate_905 ∧
     Gates.eq gate_904 OutX ∧
     Gates.eq gate_905 OutY ∧
+    ∃gate_908, gate_908 = Gates.mul OutX OutX ∧
+    ∃gate_909, gate_909 = Gates.mul OutY OutY ∧
+    ∃gate_910, gate_910 = Gates.sub gate_909 gate_908 ∧
+    ∃gate_911, gate_911 = Gates.mul (3021:F) gate_908 ∧
+    ∃gate_912, gate_912 = Gates.mul gate_911 gate_909 ∧
+    ∃gate_913, gate_913 = Gates.add (1:F) gate_912 ∧
+    Gates.eq gate_910 gate_913 ∧
     True
 
 end Shieldd.GnarkFormal.Extracted.NetBalanceCommitment

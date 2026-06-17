@@ -4,6 +4,7 @@ import ShielddGnarkFormal.Poseidon6Bridge
 import ShielddGnarkFormal.Poseidon7Bridge
 import ShielddGnarkFormal.AnchorMerkleSpec
 import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.RvkBridge
 import ShielddGnarkFormal.DtkBridge
 import ShielddGnarkFormal.NetBalanceCommitmentBridge

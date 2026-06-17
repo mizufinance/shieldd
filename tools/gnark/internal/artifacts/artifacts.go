@@ -132,7 +132,7 @@ func FillCircuitMetadataShape(metadata *CircuitMetadataJSON, ccs constraint.Cons
 	metadata.NbSecret = ccs.GetNbSecretVariables()
 }
 
-func WriteConstraintSystem(path string, ccs constraint.ConstraintSystem) error {
+func WriteConstraintSystem(path string, ccs constraint.ConstraintSystem, circuit ...frontend.Circuit) error {
 	if ccs == nil {
 		return fmt.Errorf("missing compiled constraint system")
 	}
@@ -153,14 +153,16 @@ func WriteConstraintSystem(path string, ccs constraint.ConstraintSystem) error {
 		return err
 	}
 
-	nbPublic := ccs.GetNbPublicVariables()
-	nbSecret := ccs.GetNbSecretVariables()
-	for wire := nbPublic; wire < nbPublic+nbSecret; wire++ {
+	inputs, outputs, err := picusWireRoles(ccs, circuit...)
+	if err != nil {
+		return err
+	}
+	for _, wire := range inputs {
 		if _, err := fmt.Fprintf(writer, "(in %d)\n", wire); err != nil {
 			return err
 		}
 	}
-	for wire := 1; wire < nbPublic; wire++ {
+	for _, wire := range outputs {
 		if _, err := fmt.Fprintf(writer, "(out %d)\n", wire); err != nil {
 			return err
 		}
@@ -190,6 +192,50 @@ func WriteConstraintSystem(path string, ccs constraint.ConstraintSystem) error {
 		}
 	}
 	return nil
+}
+
+func picusWireRoles(ccs constraint.ConstraintSystem, circuit ...frontend.Circuit) ([]int, []int, error) {
+	if len(circuit) == 0 || circuit[0] == nil {
+		nbPublic := ccs.GetNbPublicVariables()
+		nbSecret := ccs.GetNbSecretVariables()
+		inputs := make([]int, 0, nbSecret)
+		outputs := make([]int, 0, nbPublic-1)
+		for wire := nbPublic; wire < nbPublic+nbSecret; wire++ {
+			inputs = append(inputs, wire)
+		}
+		for wire := 1; wire < nbPublic; wire++ {
+			outputs = append(outputs, wire)
+		}
+		return inputs, outputs, nil
+	}
+
+	wires, err := axeWireManifest(ccs, circuit[0])
+	if err != nil {
+		return nil, nil, fmt.Errorf("build Picus wire roles: %w", err)
+	}
+	var inputs, outputs []int
+	for _, wire := range wires {
+		switch wire.Visibility {
+		case "public":
+			inputs = append(inputs, wire.Index)
+		case "secret":
+			if isPicusGadgetOutput(wire.Name) {
+				outputs = append(outputs, wire.Index)
+			} else {
+				inputs = append(inputs, wire.Index)
+			}
+		}
+	}
+	return inputs, outputs, nil
+}
+
+func isPicusGadgetOutput(name string) bool {
+	switch name {
+	case "Out", "OutX", "OutY", "Root", "Nullifier", "Valid", "IvkReduced":
+		return true
+	default:
+		return false
+	}
 }
 
 func writePicusLinearExpression(writer *bufio.Writer, resolver constraint.Resolver, expr constraint.LinearExpression) error {

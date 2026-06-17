@@ -16,6 +16,14 @@ import (
 // CircuitToLean(circuit abstractor.Circuit, field ecc.ID, namespace ...string) because the long term view
 // is to add an optional parameter to support custom `set_option` directives in the header.
 func CircuitToLeanWithName(circuit frontend.Circuit, field ecc.ID, namespace string) (out string, err error) {
+	return CircuitToLeanWithFold(circuit, field, namespace, nil)
+}
+
+// CircuitToLeanWithFold is CircuitToLeanWithName with ladder folding: any gadget
+// whose name is in foldGadgets has its maximal self-threading call-runs rendered
+// as a recursive `<gadget>_ladder` definition instead of being unrolled. This
+// changes only the Lean rendering, not the extracted constraints.
+func CircuitToLeanWithFold(circuit frontend.Circuit, field ecc.ID, namespace string, foldGadgets []string) (out string, err error) {
 	defer recoverError(&err)
 
 	schema, err := getSchema(circuit, field.ScalarField())
@@ -42,7 +50,11 @@ func CircuitToLeanWithName(circuit frontend.Circuit, field ecc.ID, namespace str
 		Code:    api.Code,
 		Field:   api.FieldID,
 	}
-	out = exportCircuit(extractorCircuit, namespace)
+	foldNames := map[string]bool{}
+	for _, n := range foldGadgets {
+		foldNames[n] = true
+	}
+	out = exportCircuit(extractorCircuit, namespace, foldNames)
 	return out, nil
 }
 

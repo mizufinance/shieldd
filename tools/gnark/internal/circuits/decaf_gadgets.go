@@ -28,6 +28,8 @@ type AssertEquivalentGadget struct {
 }
 
 func (c *AssertEquivalentGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.LX, Y: c.LY})
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.RX, Y: c.RY})
 	decafgnark.AssertEquivalent(api,
 		gnarkte.Point{X: c.LX, Y: c.LY},
 		gnarkte.Point{X: c.RX, Y: c.RY})
@@ -142,6 +144,8 @@ func (c *EncodeToCurveGadget) Define(api frontend.API) error {
 }
 
 func (c *EdwardsAddGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.LX, Y: c.LY})
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.RX, Y: c.RY})
 	out := edwardsAddMirror(
 		api,
 		gnarkte.Point{X: c.LX, Y: c.LY},
@@ -149,24 +153,30 @@ func (c *EdwardsAddGadget) Define(api frontend.API) error {
 	)
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
 func (c *EdwardsDoubleGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.X, Y: c.Y})
 	out := edwardsDoubleMirror(api, gnarkte.Point{X: c.X, Y: c.Y})
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
 func (c *EdwardsNegGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.X, Y: c.Y})
 	out := gnarkte.Point{X: api.Neg(c.X), Y: c.Y}
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
 func (c *DecafRvkGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.AkX, Y: c.AkY})
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		return err
@@ -179,10 +189,13 @@ func (c *DecafRvkGadget) Define(api frontend.API) error {
 	out := edwardsAddMirror(api, gnarkte.Point{X: c.AkX, Y: c.AkY}, randomizedPart)
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
 func (c *DecafDtkGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.AkX, Y: c.AkY})
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.DivGenX, Y: c.DivGenY})
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		return err
@@ -207,6 +220,7 @@ func (c *DecafDtkGadget) Define(api frontend.API) error {
 	)
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
@@ -226,7 +240,15 @@ func (c *NetBalanceCommitmentGadget) Define(api frontend.API) error {
 	}
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
+}
+
+func assertDecafPointOnCurve(api frontend.API, p gnarkte.Point) {
+	d := decaf377.CurveD()
+	xx := api.Mul(p.X, p.X)
+	yy := api.Mul(p.Y, p.Y)
+	api.AssertIsEqual(api.Sub(yy, xx), api.Add(1, api.Mul(api.Mul(d, xx), yy)))
 }
 
 func netBalanceCommitmentMirrorWithWitness(

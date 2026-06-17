@@ -3,9 +3,6 @@ import ShielddGnarkFormal.Poseidon1Bridge
 import ShielddGnarkFormal.Poseidon2Bridge
 import ShielddGnarkFormal.Extracted.DecafAssertEquivalent
 import ShielddGnarkFormal.Extracted.DecafCompressToField
-import ShielddGnarkFormal.Extracted.DecafRvk
-import ShielddGnarkFormal.Extracted.DecafDtk
-import ShielddGnarkFormal.Extracted.NetBalanceCommitment
 import ShielddGnarkFormal.CompressToFieldBridge
 import ShielddGnarkFormal.EncodeToCurveBridge
 import ShielddGnarkFormal.IvkModRBridge
@@ -29,9 +26,6 @@ abbrev F := Poseidon377.F
 variable [Fact (Nat.Prime Extracted.DecafAssertEquivalent.Order)]
 variable [Fact (Nat.Prime Extracted.DecafCompressToField.Order)]
 variable [Fact (Nat.Prime Extracted.DecafEncodeToCurve.Order)]
-variable [Fact (Nat.Prime Extracted.DecafRvk.Order)]
-variable [Fact (Nat.Prime Extracted.DecafDtk.Order)]
-variable [Fact (Nat.Prime Extracted.NetBalanceCommitment.Order)]
 
 structure Point where
   x : F
@@ -139,31 +133,6 @@ cross-ratio equation `p.x * q.y = q.x * p.y` (extracted, not assumed). -/
 def AssertEquivalentCircuit (p q : Point) : Prop :=
   Extracted.DecafAssertEquivalent.circuit p.x p.y q.x q.y
 
-/-- The exact constraint set of the extracted DecafRvk gadget: a 251-step
-generator scalar-mul ladder of the randomizer followed by an Edwards add of
-`ak`, with the result pinned to `out`. -/
-def RandomizedVerificationKeyCircuit (ak : Point) (r : F) (out : Point) : Prop :=
-  Extracted.DecafRvk.circuit ak.x ak.y r out.x out.y
-
-/-- The exact constraint set of the extracted DecafDtk gadget: `ak` on-curve
-assertion, compress/Poseidon/IVK-mod-r provenance constraints, and a 251-step
-`divGen` scalar-mul ladder of `ivkReduced` pinned to `out`. -/
-def DiversifiedTransmissionKeyCircuit
-    (nk : F) (ak divGen : Point) (ivkReduced ivkQuotientA : F) (out : Point) : Prop :=
-  ∃ wasSquare sqrtRatio,
-    Extracted.DecafDtk.circuit nk ak.x ak.y divGen.x divGen.y
-      wasSquare sqrtRatio ivkReduced ivkQuotientA out.x out.y
-
-/-- The exact constraint set of the extracted NetBalanceCommitment gadget: a
-rate-1 Poseidon asset hash, a decaf377 encode-to-curve, four 128-bit value
-ladders, the Edwards add chain, a 251-bit blinding ladder, and a final add
-pinned to `out`. -/
-def NetBalanceCommitmentCircuit
-    (input0 input1 output assetID balanceBlinding : F) (out : Point) : Prop :=
-  ∃ encodeWasSquare encodeInvSqrt,
-    Extracted.NetBalanceCommitment.circuit input0 input1 output assetID balanceBlinding
-      encodeWasSquare encodeInvSqrt out.x out.y
-
 def CompressToFieldSpec (p : Point) (out : F) : Prop :=
   Extracted.DecafCompressToField.Relation p.x p.y out
 
@@ -209,8 +178,10 @@ theorem decaf377_encodeToCurve_sound :
 theorem decaf377_assertEquivalent_sound :
     ∀ p q, AssertEquivalentCircuit p q → AssertEquivalentSpec p q := by
   intro p q h
-  obtain ⟨g0, hg0, g1, hg1, heq, -⟩ := h
-  simpa [AssertEquivalentSpec, hg0, hg1, Extracted.DecafAssertEquivalent.Gates,
+  obtain ⟨g0, hg0, g1, hg1, g2, hg2, g3, hg3, g4, hg4, g5, hg5, hcurveL,
+    g7, hg7, g8, hg8, g9, hg9, g10, hg10, g11, hg11, g12, hg12, hcurveR,
+    g14, hg14, g15, hg15, heq, -⟩ := h
+  simpa [AssertEquivalentSpec, hg14, hg15, Extracted.DecafAssertEquivalent.Gates,
     GatesGnark9, GatesGnark8, GatesDef.mul, GatesDef.eq] using heq
 
 -- `decaf377_netBalanceCommitment_sound` is proved in `NetBalanceCommitmentBridge`

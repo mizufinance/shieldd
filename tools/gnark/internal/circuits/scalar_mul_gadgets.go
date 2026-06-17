@@ -59,9 +59,11 @@ type ScalarMulLE251Gadget struct {
 }
 
 func (c *ScalarMulLE251Gadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.BaseX, Y: c.BaseY})
 	out := scalarMulLEMirror(api, gnarkte.Point{X: c.BaseX, Y: c.BaseY}, c.Scalar, 251)
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
@@ -74,8 +76,10 @@ type ScalarMulLE128Gadget struct {
 }
 
 func (c *ScalarMulLE128Gadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.BaseX, Y: c.BaseY})
 	out := scalarMulLEMirror(api, gnarkte.Point{X: c.BaseX, Y: c.BaseY}, c.Scalar, 128)
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }

@@ -112,7 +112,17 @@ func runExportLean(args []string) error {
 	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
 	}
-	out, err := extractor.CircuitToLeanWithName(instance, ecc.BLS12_377, *namespace)
+	// The bare scalar-mul gadgets carry a 251/128-rung scalarMulStep ladder that
+	// is intractable to cross as a flat continuation, so render it as a recursive
+	// `scalarMulStep_ladder`. Composite circuits (rvk/dtk/net-balance/consolidate)
+	// embed the same ladder but their bridge proofs already cross the flat form by
+	// definitional unfolding, so they stay flat.
+	var foldGadgets []string
+	switch *circuit {
+	case "gadget-scalar-mul-le-251", "gadget-scalar-mul-le-128":
+		foldGadgets = []string{"scalarMulStep"}
+	}
+	out, err := extractor.CircuitToLeanWithFold(instance, ecc.BLS12_377, *namespace, foldGadgets)
 	if err != nil {
 		return fmt.Errorf("extract Lean for %s: %w", *circuit, err)
 	}
@@ -176,7 +186,12 @@ func runExportR1CS(args []string) error {
 	}
 	switch *format {
 	case "picus":
-		if err := artifacts.WriteConstraintSystem(*outPath, ccs); err != nil {
+		if instance, ok := gadgetCircuit(*circuit); ok {
+			err = artifacts.WriteConstraintSystem(*outPath, ccs, instance)
+		} else {
+			err = artifacts.WriteConstraintSystem(*outPath, ccs)
+		}
+		if err != nil {
 			return err
 		}
 	case "axe-json":
@@ -307,7 +322,12 @@ func runSetup(args []string) error {
 	if err := artifacts.WriteJSON(vkJSONPath, artifacts.EncodeVerifyingKeyJSON(vk)); err != nil {
 		return fmt.Errorf("write verifying key json: %w", err)
 	}
-	if err := artifacts.WriteConstraintSystem(filepath.Join(*outDir, *circuit+".sr1cs"), ccs); err != nil {
+	if instance, ok := gadgetCircuit(*circuit); ok {
+		err = artifacts.WriteConstraintSystem(filepath.Join(*outDir, *circuit+".sr1cs"), ccs, instance)
+	} else {
+		err = artifacts.WriteConstraintSystem(filepath.Join(*outDir, *circuit+".sr1cs"), ccs)
+	}
+	if err != nil {
 		return fmt.Errorf("write constraint system: %w", err)
 	}
 
@@ -704,6 +724,45 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-bool-select":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.BoolSelectGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-24":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath24Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-decaf-assert-equivalent":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.AssertEquivalentGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-decaf-compress-to-field":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.CompressToFieldGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-decaf-encode-to-curve":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.EncodeToCurveGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-decaf-edwards-add":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.EdwardsAddGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-decaf-edwards-double":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.EdwardsDoubleGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-decaf-edwards-neg":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.EdwardsNegGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-ivk-mod-r":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.IvkModRGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-scalar-mul-le-251":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulLE251Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-scalar-mul-le-128":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulLE128Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-rvk":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.DecafRvkGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-dtk":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.DecafDtkGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-net-balance-commitment":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NetBalanceCommitmentGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {

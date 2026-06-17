@@ -17,7 +17,7 @@ assumed**. This is strategy — no code change is implied by the document itself
 | Protocol / symbolic (closed-world authorization) | **Tamarin** | `crates/core/component/compliance/formal/compliance.spthy` — 7 lemmas (SECRECY, DETECTION_CORRECTNESS, DESIGNATED_DECRYPTABILITY, DLEQ_BINDING, REPLAY_RESISTANCE, NO_KEY_CONFUSION, ANCHOR_FRESHNESS) |
 | Protocol / symbolic (active Dolev-Yao) | **Tamarin** | `crates/core/component/compliance/formal/compliance-active.spthy` — published transcript + attacker-driven verify, DLEQ soundness imported as `ProofSound`; 4 lemmas (DLEQ_BINDING, REPLAY_RESISTANCE, NO_KEY_CONFUSION, EXECUTABLE). Both models verified nightly via `scripts/compliance-symbolic.sh` |
 | Circuit relation (R1CS⇒spec) | **Lean** + **ACL2** | `tools/gnark/lean/` whole-circuit `consolidate2x1_circuit_sound` (axiom-clean); `crates/core/component/shielded-pool/formal/acl2/` 6 certified gadgets |
-| No under-constraint | **Picus** | `scripts/circuit-constraint-check.sh` (poseidon2, nullifier, imt-gap) |
+| No under-constraint | **Picus** | `scripts/circuit-constraint-check.sh` (expanded decomposed gadget set: Poseidon arities, nullifier/IMT, quad paths, Decaf377 group-law, scalar/key derivation, net-balance commitment) |
 | Impl ↔ spec | **F\*/hax** + parity | statement-encoding injectivity; snarkpack validation; Go↔Lean wiring transcript diff |
 | DLEQ Σ-protocol + Fiat-Shamir knowledge soundness | **Lean/VCVio** | `crates/core/component/compliance/formal/lean-dleq/` (`dleq_fs_knowledge_soundness`, axiom-clean modulo two residuals) |
 | Proof-system crypto (Groth16/SnarkPack/FS) | **Assumed** | `crates/core/component/compliance/formal/assumption-ledger.md` |

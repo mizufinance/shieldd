@@ -32,6 +32,7 @@ import ShielddGnarkFormal.Extracted.ScalarMulLE128
 import ShielddGnarkFormal.Extracted.ScalarMulLE251
 import ShielddGnarkFormal.Extracted.NetBalanceCommitment
 import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.RvkBridge
 import ShielddGnarkFormal.DtkBridge
 import ShielddGnarkFormal.Decaf377Assumptions
