@@ -1,12 +1,15 @@
 # Constraint-System Assurance Strategy
 
-No checked-in artifact currently verifies a *whole* transaction circuit. Picus
-timed out on the smallest family (consolidate2x1), the expected outcome for an
-SMT under-constraint checker on Poseidon + Merkle + Decaf377 in one system. The
-strategy is therefore layered: a gnark-native baseline over the whole circuit
-(evidence), certified theorem-prover work at **decomposed gadget scope**, and a
-hard gate that allows a circuit property to become `proved` only when it cites a
-stamped whole-circuit artifact.
+No checked-in Picus artifact currently verifies a *whole* transaction circuit.
+Bounded whole-family Picus attempts on `consolidate2x1`, `split1x4`, and
+`split1x8` all ended without a solver verdict before the process watchdog
+terminated them; the stamped attempt report is
+`crates/core/component/shielded-pool/formal/circuit-whole-picus-report.txt`.
+That is the expected outcome for an SMT under-constraint checker on Poseidon +
+Merkle + Decaf377 in one system. The strategy is therefore layered: a
+gnark-native baseline over the whole circuit (evidence), certified theorem-prover
+work at **decomposed gadget scope**, and a hard gate that allows a circuit
+property to become `proved` only when it cites a stamped whole-circuit artifact.
 
 This is heavy prover work, so the `soundness-formal` workflow is tiered by cost.
 The Lean whole-circuit FV gate (`scripts/check-lean-circuit-fv.sh`) runs in two
@@ -106,8 +109,10 @@ in the Lean DLEQ track.
 [circuit-constraint-check.sh](../../scripts/circuit-constraint-check.sh) runs
 Picus (`--solver cvc5`, finite-field theory) on the *leaf gadgets*, emitting a
 SHA-256-stamped `circuit-constraint-report.txt` under the shielded-pool
-`formal/` tree. Whole-circuit families are recorded as `undischarged-by-design`,
-not retried.
+`formal/` tree. The default gate remains leaf-scoped; separate bounded
+whole-family attempts are recorded in
+[circuit-whole-picus-report.txt](../../crates/core/component/shielded-pool/formal/circuit-whole-picus-report.txt)
+and do not promote any property row.
 
 The solver is cvc5 with its finite-field theory (the `-gpl` prebuilt bundles
 CoCoALib); z3 emits QF_NIA with no finite-field theory and cannot decide the
@@ -143,8 +148,9 @@ decomposition), never an unsound circuit.
 *assumption-relative*: their precondition files under `formal/picus-preconditions/`
 assert the Edwards completeness denominators (`1 ± d·v₀·v₁`) non-zero — a global
 curve theorem Picus cannot derive locally. The precondition `.json` sha256 is
-recorded per gadget in the report so the assumption is auditable. This carries the
-same role as the Lean `DecafWitnessOnCurve` hypothesis.
+recorded per gadget in the report so the assumption is auditable. The Lean
+artifact proves the corresponding curve-denominator obligations in
+`EdwardsCompleteness`.
 
 The report then records each iterated/composite gadget as `safe-by-composition`:
 `scalar-mul-le-128/251` (the rung folded over the boolean scalar decomposition),
@@ -166,7 +172,7 @@ rows still require whole-circuit composition artifacts.
 
 | Tool | Disposition | Reason |
 | --- | --- | --- |
-| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition`, whole-circuit remains `undischarged-by-design`. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
+| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5; whole-family attempts are stamped as undischarged timeouts. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition`. Bounded 180-second runs on `consolidate2x1`, `split1x4`, and `split1x8` produced no verdict before watchdog termination. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
 | Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Shieldd needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
 | ACL2/Axe | Landed for bool-select, iszero, Poseidon2, nullifier, and AssetRegistryGap-backed `gadget-imt-gap` semantic gadget proofs. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |
@@ -261,12 +267,13 @@ constraint system.
 
 The Decaf377 boundary for this artifact is now constraint-derived in Lean:
 compress, assert-equivalent, encode-to-curve, RVK, DTK, scalar ladders, Edwards
-closure, and net-balance composition are bridged against extracted gadgets. The
-whole-circuit theorem still takes explicit protocol-layer hypotheses naming the
-accepted prime-order subgroup and raw witness membership for bare decaf field
-coordinates; those are accepted-language obligations, not Lean axioms. The staged
-path from this single-circuit artifact to family-wide and protocol-wide coverage
-is tracked in
+closure, and net-balance composition are bridged against extracted gadgets.
+`AssertEquivalent` is exposed as Decaf quotient equality, not affine
+representative equality. Raw affine Decaf representatives that do not otherwise
+pass through compression now have explicit in-circuit curve-equation assertions,
+and the whole-circuit theorem has no named external Decaf assumptions. The
+staged path from this single-circuit artifact to family-wide and protocol-wide
+coverage is tracked in
 [formal-verification-plan.md](formal-verification-plan.md).
 
 **M6 Lean scaffold.** A Lean 4 project now lives in

@@ -232,6 +232,8 @@ required_files=(
   "$CIRCUIT_FORMAL/circuit-soundness-findings.md"
   "$CIRCUIT_FORMAL/circuit-soundness-scope.txt"
   "$CIRCUIT_FORMAL/circuit-gadget-proofs.md"
+  "$CIRCUIT_FORMAL/circuit-constraint-report.txt"
+  "$CIRCUIT_FORMAL/circuit-whole-picus-report.txt"
   "$HANDOFF"
   docs/soundness/index.md
   docs/soundness/constraint-system-assurance.md
@@ -424,6 +426,8 @@ done < <(table_rows "$CIRCUIT_FORMAL/external-check-map.md")
 
 rg -F "Picus" docs/soundness/constraint-system-assurance.md >/dev/null \
   || fail "constraint-system assurance strategy must mention Picus"
+check_stamped_artifact "PICUS-GADGET-REPORT" "$CIRCUIT_FORMAL/circuit-constraint-report.txt"
+check_stamped_artifact "PICUS-WHOLE-REPORT" "$CIRCUIT_FORMAL/circuit-whole-picus-report.txt"
 rg -F "Ecne" docs/soundness/constraint-system-assurance.md >/dev/null \
   || fail "constraint-system assurance strategy must mention Ecne"
 rg -F "ACL2/Axe" docs/soundness/constraint-system-assurance.md >/dev/null \

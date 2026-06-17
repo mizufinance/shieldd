@@ -120,8 +120,6 @@ require_artifact_line "$WHOLE_ARTIFACT" "whole_circuit_model_source_sha256" "$(s
 require_artifact_line "$WHOLE_ARTIFACT" "decaf_assumptions_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Decaf377Assumptions.lean")"
 require_artifact_line "$WHOLE_ARTIFACT" "edwards_completeness_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/EdwardsCompleteness.lean")"
 require_artifact_line "$WHOLE_ARTIFACT" "edwards_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/EdwardsBridge.lean")"
-require_artifact_line "$WHOLE_ARTIFACT" "edwards_group_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/EdwardsGroup.lean")"
-require_artifact_line "$WHOLE_ARTIFACT" "prime_order_subgroup_impl_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/PrimeOrderSubgroupImpl.lean")"
 require_artifact_line "$WHOLE_ARTIFACT" "decaf_fv_inventory_sha256" "$(sha256_file "$DECAF_FV_INVENTORY")"
 require_artifact_line "$WHOLE_ARTIFACT" "wiring_transcript_source_sha256" "$(sha256_file "$WIRING_TRANSCRIPT_SOURCE")"
 require_artifact_line "$WHOLE_ARTIFACT" "go_wiring_transcript_sha256" "$(sha256_file "$GO_WIRING_TRANSCRIPT")"
