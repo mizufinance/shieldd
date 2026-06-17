@@ -4,6 +4,7 @@ import ShielddGnarkFormal.Poseidon6Bridge
 import ShielddGnarkFormal.Poseidon7Bridge
 import ShielddGnarkFormal.AnchorMerkleSpec
 import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.PrimeOrderSubgroupImpl
 import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.RvkBridge
 import ShielddGnarkFormal.DtkBridge
@@ -364,8 +365,14 @@ private theorem output_sound
 
 theorem consolidate2x1_circuit_sound
     (i : Inputs)
-    (S : Decaf377Assumptions.PrimeOrderSubgroup) (hWit : DecafWitnessOnCurve S i) :
+    (hgen : Decaf377Assumptions.memTorsion Decaf377Assumptions.generator)
+    (hvbg : Decaf377Assumptions.memTorsion Decaf377Assumptions.valueBlindingGenerator)
+    (henc : ∀ r : Decaf377Assumptions.F,
+      Decaf377Assumptions.memTorsion (Decaf377Assumptions.encodeToCurve r))
+    (hWit : DecafWitnessOnCurve
+      (Decaf377Assumptions.consolidate2x1PrimeOrderSubgroup hgen hvbg henc) i) :
     DefineModel i → SoundSpec i := by
+  set S := Decaf377Assumptions.consolidate2x1PrimeOrderSubgroup hgen hvbg henc with hS
   intro h
   have hBalanceComputedOn := NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_onCurve
     i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
