@@ -1,0 +1,36 @@
+[
+ [
+  "edwards-denominator-1plus-w13-nonzero",
+  [
+   "rassert",
+   [
+    "rneq",
+    [
+     "rvar",
+     13
+    ],
+    [
+     "rint",
+     8444461749428370424248824938781546531375899335154063827935233455917409239040
+    ]
+   ]
+  ]
+ ],
+ [
+  "edwards-denominator-1minus-w13-nonzero",
+  [
+   "rassert",
+   [
+    "rneq",
+    [
+     "rvar",
+     13
+    ],
+    [
+     "rint",
+     1
+    ]
+   ]
+  ]
+ ]
+]

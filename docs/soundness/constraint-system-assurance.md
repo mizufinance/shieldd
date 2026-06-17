@@ -74,6 +74,26 @@ each exporting its own `.sr1cs` via `gnarkctl export-r1cs --circuit gadget-*`:
 | Scalar / keys | `gadget-dtk` | diversified transmission key | 7510 |
 | Balance | `gadget-net-balance-commitment` | transfer net-balance commitment | 9191 |
 
+Iterated and composite gadgets (the scalar ladders, the quad-path depths, the
+sqrt-ratio mirrors, and `rvk`/`dtk`/`net-balance-commitment`) are not checked
+monolithically — a whole-ladder per-signal SMT sweep does not scale. Each is
+decomposed to a leaf probe that Picus discharges in seconds, and the full
+gadget's determinism follows by composition (see C2). The probes are
+verification-only top-level circuits exposing a sub-segment the production gadget
+already contains; no production circuit changes, so the extracted Lean is
+untouched.
+
+| Family | Leaf probe | Folds to | Constraints |
+| --- | --- | --- | --- |
+| Decaf377 | `gadget-scalar-mul-step` | `scalar-mul-le-128`, `scalar-mul-le-251` | 18 |
+| Merkle / IMT | `gadget-quad-path-round` | `quad-path-1/2/4/16/24` | 372 |
+| Decaf377 | `gadget-decaf-compress-to-field-core` | `decaf-compress-to-field` | 36 |
+| Decaf377 | `gadget-decaf-encode-to-curve-core` | `decaf-encode-to-curve` | 43 |
+
+The `*-step`/`*-round` probes fold over a boolean decomposition
+(`gadget-canonical-fq-bits`, itself `safe`); the `*-core` probes factor the
+253-bit sign decomposition out to that same leaf.
+
 For gadget `.sr1cs`, public operands and auxiliary witness hints are Picus
 inputs. Claimed result wires (`Out`, `OutX`, `OutY`, `Root`, `Nullifier`,
 `Valid`, `IvkReduced`) are Picus outputs whose uniqueness it must decide. There
@@ -84,24 +104,56 @@ in the Lean DLEQ track.
 ## C2 — Picus under-constraint at gadget scope (CI-only)
 
 [circuit-constraint-check.sh](../../scripts/circuit-constraint-check.sh) runs
-Picus (`--solver z3`) on the *decomposed gadgets*, emitting a SHA-256-stamped
-`circuit-constraint-report.txt` under the shielded-pool `formal/` tree.
-Whole-circuit families are recorded as `undischarged-by-design`, not retried.
+Picus (`--solver cvc5`, finite-field theory) on the *leaf gadgets*, emitting a
+SHA-256-stamped `circuit-constraint-report.txt` under the shielded-pool
+`formal/` tree. Whole-circuit families are recorded as `undischarged-by-design`,
+not retried.
+
+The solver is cvc5 with its finite-field theory (the `-gpl` prebuilt bundles
+CoCoALib); z3 emits QF_NIA with no finite-field theory and cannot decide the
+decaf/division gadgets, so it is a fallback only (`PICUS_SOLVER=z3`).
 
 The current stamped report
 ([circuit-constraint-report.txt](../../crates/core/component/shielded-pool/formal/circuit-constraint-report.txt),
-SHA-256 `541f16469d8d3b759ff9c96d5b33c8b44a187cf69ee7b643bd8d655ace9d3b42`)
-uses `timeout_ms = 120000` and `total_timeout_seconds = 120`. Picus returned
-`safe` for `gadget-poseidon-hash1`, `gadget-poseidon2`,
-`gadget-poseidon-hash4`, `gadget-poseidon-hash6`,
-`gadget-poseidon-hash7`, `gadget-nullifier`, `gadget-imt-gap`,
-`gadget-decaf-assert-equivalent`, `gadget-decaf-edwards-neg`,
-`gadget-canonical-fq-bits`, `gadget-bool-select`, and `gadget-ivk-mod-r`.
-It recorded `undischarged` for `gadget-iszero`, all quad-path depths,
-`gadget-decaf-compress-to-field`, `gadget-decaf-encode-to-curve`,
-`gadget-decaf-edwards-add`, `gadget-decaf-edwards-double`, both scalar ladders,
-`gadget-rvk`, `gadget-dtk`, and `gadget-net-balance-commitment`. No gadget
-returned `underconstrained`.
+SHA-256 `e4a8e2e09a1e768723ff41e552c0574beea5435672ab0d6947e078a85364b769`)
+uses `timeout_ms = 120000` and `total_timeout_seconds = 150`. Picus returned
+`safe` for **every** leaf on the board: the five Poseidon arities,
+`gadget-nullifier`, `gadget-imt-gap`, `gadget-iszero`,
+`gadget-quad-path-round`, `gadget-decaf-assert-equivalent`,
+`gadget-decaf-edwards-add`, `gadget-decaf-edwards-double`,
+`gadget-decaf-edwards-neg`, `gadget-decaf-compress-to-field-core`,
+`gadget-decaf-encode-to-curve-core`, `gadget-canonical-fq-bits`,
+`gadget-bool-select`, `gadget-ivk-mod-r`, and `gadget-scalar-mul-step`. No
+gadget returned `undischarged` or `underconstrained`.
+
+**Prior finding (the check earned its keep).** The all-`safe` board above is the
+*post-fix* state. An earlier run of this same checker returned a real
+`underconstrained` verdict on the Decaf377 scalar-multiplication gadget: a
+multiplication result wire in the ladder was left untied to the constraint system,
+so a malicious prover could have satisfied the circuit with an incorrect product —
+a genuine soundness defect, not a tooling artifact. It was fixed by adding the
+missing output equality constraints (the `AssertIsEqual` ties now in
+[scalar_mul_gadgets.go](../../tools/gnark/internal/circuits/scalar_mul_gadgets.go)).
+This is the one and only real circuit bug the formal-verification effort has
+surfaced; every other `undischarged` result has been a solver-capability or
+SMT-scaling limitation (addressed by the cvc5 finite-field solver and leaf
+decomposition), never an unsound circuit.
+
+`gadget-decaf-edwards-add` and `gadget-scalar-mul-step` reach `safe`
+*assumption-relative*: their precondition files under `formal/picus-preconditions/`
+assert the Edwards completeness denominators (`1 ± d·v₀·v₁`) non-zero — a global
+curve theorem Picus cannot derive locally. The precondition `.json` sha256 is
+recorded per gadget in the report so the assumption is auditable. This carries the
+same role as the Lean `DecafWitnessOnCurve` hypothesis.
+
+The report then records each iterated/composite gadget as `safe-by-composition`:
+`scalar-mul-le-128/251` (the rung folded over the boolean scalar decomposition),
+`quad-path-1/2/4/16/24` (the round folded over the position decomposition),
+`decaf-compress-to-field` and `decaf-encode-to-curve` (core + canonical-fq-bits),
+and `rvk`/`dtk`/`net-balance-commitment` (chains of the leaves above). The
+composition lift — deterministic leaves compose to a deterministic gadget, with
+the boolean decomposition supplying the per-rung selector — is the one step Picus
+does **not** perform; it is the documented residual assumption of the C2 verdict.
 
 **Status honesty:** a Picus-clean gadget is under-constraint *evidence* for that
 gadget — necessary, not sufficient for the semantic property. There is no
@@ -114,7 +166,7 @@ rows still require whole-circuit composition artifacts.
 
 | Tool | Disposition | Reason |
 | --- | --- | --- |
-| Picus | Landed at expanded gadget scope (C2, CI-only). | Runs on Poseidon, nullifier/IMT, quad-path, Decaf377 group-law, scalar/key, and balance commitment `.sr1cs` exports in the nightly `provers` job; whole-circuit remains `undischarged-by-design`. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
+| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition`, whole-circuit remains `undischarged-by-design`. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
 | Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Shieldd needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
 | ACL2/Axe | Landed for bool-select, iszero, Poseidon2, nullifier, and AssetRegistryGap-backed `gadget-imt-gap` semantic gadget proofs. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |

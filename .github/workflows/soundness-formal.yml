@@ -139,6 +139,21 @@ jobs:
           unzip -q /tmp/z3-4.14.1.zip -d "$HOME/.local/opt"
           echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
 
+      - name: Install pinned cvc5 (finite-field theory, Picus solver)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          # The -gpl build bundles CoCoALib, which provides the finite-field
+          # theory Picus needs for the decaf/division gadgets. The non-gpl build
+          # has no FF and cannot decide them.
+          curl -L \
+            -o /tmp/cvc5-gpl.zip \
+            https://github.com/cvc5/cvc5/releases/download/cvc5-1.3.4/cvc5-Linux-x86_64-static-gpl.zip
+          unzip -q /tmp/cvc5-gpl.zip -d "$HOME/.local/opt"
+          echo "$HOME/.local/opt/cvc5-Linux-x86_64-static-gpl/bin" >> "$GITHUB_PATH"
+
       - name: Install pinned F*
         if: github.event_name != 'pull_request'
         shell: bash
@@ -199,9 +214,9 @@ jobs:
           ( cd "$HOME/.local/opt/picus" && raco pkg install --auto --batch || true )
           echo "PICUS_BIN=$HOME/.local/opt/picus/run-picus" >> "$GITHUB_ENV"
 
-      - name: Run gadget-scope R1CS under-constraint check (Picus)
+      - name: Run gadget-scope R1CS under-constraint check (Picus + cvc5)
         if: github.event_name != 'pull_request'
-        run: nix shell nixpkgs#z3 --command bash scripts/circuit-constraint-check.sh
+        run: bash scripts/circuit-constraint-check.sh
 
       # C3 gadget theorems — the only route to `proved`. Certifies the ACL2
       # `R1CS => spec` proof, verifies the gnark parity tie, and checks the

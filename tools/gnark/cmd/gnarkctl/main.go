@@ -232,6 +232,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.PoseidonHash6Gadget{}, true
 	case "gadget-poseidon-hash7":
 		return &circuits.PoseidonHash7Gadget{}, true
+	case "gadget-quad-path-round":
+		return &circuits.QuadPathRoundGadget{}, true
 	case "gadget-quad-path-1":
 		return &circuits.QuadPath1Gadget{}, true
 	case "gadget-quad-path-2":
@@ -256,8 +258,12 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.AssertEquivalentGadget{}, true
 	case "gadget-decaf-compress-to-field":
 		return &circuits.CompressToFieldGadget{}, true
+	case "gadget-decaf-compress-to-field-core":
+		return &circuits.CompressToFieldCoreGadget{}, true
 	case "gadget-decaf-encode-to-curve":
 		return &circuits.EncodeToCurveGadget{}, true
+	case "gadget-decaf-encode-to-curve-core":
+		return &circuits.EncodeToCurveCoreGadget{}, true
 	case "gadget-decaf-edwards-add":
 		return &circuits.EdwardsAddGadget{}, true
 	case "gadget-decaf-edwards-double":
@@ -266,6 +272,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.EdwardsNegGadget{}, true
 	case "gadget-ivk-mod-r":
 		return &circuits.IvkModRGadget{}, true
+	case "gadget-scalar-mul-step":
+		return &circuits.ScalarMulStepGadget{}, true
 	case "gadget-scalar-mul-le-251":
 		return &circuits.ScalarMulLE251Gadget{}, true
 	case "gadget-scalar-mul-le-128":
@@ -698,6 +706,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 	case "gadget-poseidon-hash7":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash7Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-round":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPathRoundGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-quad-path-1":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath1Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
@@ -734,8 +745,14 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 	case "gadget-decaf-compress-to-field":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.CompressToFieldGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-decaf-compress-to-field-core":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.CompressToFieldCoreGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-decaf-encode-to-curve":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.EncodeToCurveGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-decaf-encode-to-curve-core":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.EncodeToCurveCoreGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-decaf-edwards-add":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.EdwardsAddGadget{})
@@ -748,6 +765,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-ivk-mod-r":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.IvkModRGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-scalar-mul-step":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulStepGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-scalar-mul-le-251":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulLE251Gadget{})

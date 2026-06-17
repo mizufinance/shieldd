@@ -187,6 +187,39 @@ func verifyQuadPathN(api frontend.API, domain, leafHash frontend.Variable, path 
 	return current, nil
 }
 
+// QuadPathRoundGadget exposes one Merkle layer as a standalone circuit so Picus
+// discharges quad-path determinism compositionally: a depth-N path is this round
+// folded N times over a boolean position decomposition, so determinism of the
+// round (plus the already-`safe` bit decomposition) implies determinism of every
+// QuadPathNGadget. Picus cannot cross the unrolled depth-16/24 paths (per-signal
+// SMT over thousands of signals does not scale); the round is small.
+type QuadPathRoundGadget struct {
+	Domain  frontend.Variable `gnark:",public"`
+	Current frontend.Variable `gnark:",public"`
+	Sib0    frontend.Variable `gnark:",public"`
+	Sib1    frontend.Variable `gnark:",public"`
+	Sib2    frontend.Variable `gnark:",public"`
+	Bit0    frontend.Variable `gnark:",public"`
+	Bit1    frontend.Variable `gnark:",public"`
+	Parent  frontend.Variable
+}
+
+func (c *QuadPathRoundGadget) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.Bit0)
+	api.AssertIsBoolean(c.Bit1)
+	parent := abstractor.Call(api, quadPathRound{
+		Domain:  c.Domain,
+		Current: c.Current,
+		Sib0:    c.Sib0,
+		Sib1:    c.Sib1,
+		Sib2:    c.Sib2,
+		Bit0:    c.Bit0,
+		Bit1:    c.Bit1,
+	})
+	api.AssertIsEqual(parent, c.Parent)
+	return nil
+}
+
 // QuadPathNGadget probes the whole quad Merkle path at parametric depth N: given
 // a leaf hash, N layers of 3 siblings each, and a position, the claimed Root must
 // equal the iterated Hash4 path. Scope-only export target for verify-r1cs scaling.

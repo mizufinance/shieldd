@@ -50,6 +50,40 @@ func scalarMulLEMirror(api frontend.API, base gnarkte.Point, scalar frontend.Var
 	return acc
 }
 
+// ScalarMulStepGadget exposes one ladder rung as a standalone circuit so Picus
+// can discharge ladder determinism compositionally: the full ladder is this rung
+// folded nBits times over a boolean decomposition, so determinism of the rung
+// (plus the already-`safe` bit decomposition) implies determinism of the ladder.
+// Picus cannot check the unrolled ladder (per-signal SMT over hundreds of rungs
+// does not scale); the rung is small and discharges in seconds.
+type ScalarMulStepGadget struct {
+	Bit     frontend.Variable `gnark:",public"`
+	AccX    frontend.Variable `gnark:",public"`
+	AccY    frontend.Variable `gnark:",public"`
+	CurX    frontend.Variable `gnark:",public"`
+	CurY    frontend.Variable `gnark:",public"`
+	OutAccX frontend.Variable
+	OutAccY frontend.Variable
+	OutCurX frontend.Variable
+	OutCurY frontend.Variable
+}
+
+func (c *ScalarMulStepGadget) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.Bit)
+	state := abstractor.Call1(api, scalarMulStep{
+		Bit:  c.Bit,
+		AccX: c.AccX,
+		AccY: c.AccY,
+		CurX: c.CurX,
+		CurY: c.CurY,
+	})
+	api.AssertIsEqual(state[0], c.OutAccX)
+	api.AssertIsEqual(state[1], c.OutAccY)
+	api.AssertIsEqual(state[2], c.OutCurX)
+	api.AssertIsEqual(state[3], c.OutCurY)
+	return nil
+}
+
 type ScalarMulLE251Gadget struct {
 	BaseX  frontend.Variable `gnark:",public"`
 	BaseY  frontend.Variable `gnark:",public"`
