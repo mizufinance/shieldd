@@ -12,7 +12,7 @@ Current contract line:
 - Node controller key: each `orbis-node` must start with `--node-controller-key`.
   The default in [docker-compose.yml](docker-compose.yml) is the compressed
   public key for Orbis's `TEST_ACCOUNT_HEX_KEY`, matching the signer used by
-  `orbis-integration` to call `UpdateNodeInfo`.
+  `orbis-integration` to call `UpdateNodePeerId` / `AddNodeToWhitelist`.
 
 Runtime flow:
 

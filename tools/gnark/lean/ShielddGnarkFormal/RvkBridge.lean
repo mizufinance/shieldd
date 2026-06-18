@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.Extracted.DecafRvk
 import ProvenZk.Lemmas
 import ProvenZk.Ext.Vector
@@ -109,6 +110,13 @@ def rvkTailK (akX akY outX outY : F) (state : List.Vector F 4) : Prop :=
     ∃gate_267, Extracted.DecafRvk.Gates.div_unchecked gate_264 gate_265 gate_267 ∧
     Extracted.DecafRvk.Gates.eq gate_266 outX ∧
     Extracted.DecafRvk.Gates.eq gate_267 outY ∧
+    ∃gate_268, gate_268 = Extracted.DecafRvk.Gates.mul outX outX ∧
+    ∃gate_269, gate_269 = Extracted.DecafRvk.Gates.mul outY outY ∧
+    ∃gate_270, gate_270 = Extracted.DecafRvk.Gates.sub gate_269 gate_268 ∧
+    ∃gate_271, gate_271 = Extracted.DecafRvk.Gates.mul (3021:F) gate_268 ∧
+    ∃gate_272, gate_272 = Extracted.DecafRvk.Gates.mul gate_271 gate_269 ∧
+    ∃gate_273, gate_273 = Extracted.DecafRvk.Gates.add (1:F) gate_272 ∧
+    Extracted.DecafRvk.Gates.eq gate_270 gate_273 ∧
     True
 
 def rvkLadderK {n : ℕ} (bits : List.Vector F n) (k : List.Vector F 4 → Prop) :
@@ -122,10 +130,17 @@ def rvkLadderK {n : ℕ} (bits : List.Vector F n) (k : List.Vector F 4 → Prop)
 
 theorem rvk_circuit_eq_ladderK (akX akY randomizer outX outY : F) :
     Extracted.DecafRvk.circuit akX akY randomizer outX outY ↔
+      (∃gate_0, gate_0 = Extracted.DecafRvk.Gates.mul akX akX ∧
+       ∃gate_1, gate_1 = Extracted.DecafRvk.Gates.mul akY akY ∧
+       ∃gate_2, gate_2 = Extracted.DecafRvk.Gates.sub gate_1 gate_0 ∧
+       ∃gate_3, gate_3 = Extracted.DecafRvk.Gates.mul (3021:F) gate_0 ∧
+       ∃gate_4, gate_4 = Extracted.DecafRvk.Gates.mul gate_3 gate_1 ∧
+       ∃gate_5, gate_5 = Extracted.DecafRvk.Gates.add (1:F) gate_4 ∧
+       Extracted.DecafRvk.Gates.eq gate_2 gate_5 ∧
       ∃ bits, GatesDef.to_binary randomizer 251 bits ∧
         rvkLadderK bits (rvkTailK akX akY outX outY) 251 0 ⟨0, 1⟩
           ⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627 : F),
-           (6060471950081851567114691557659790004756535011754163002297540472747064943288 : F)⟩ := by
+           (6060471950081851567114691557659790004756535011754163002297540472747064943288 : F)⟩) := by
   unfold Extracted.DecafRvk.circuit rvkLadderK rvkTailK
   simp (config := { maxSteps := 1000000 }) only [Extracted.DecafRvk.Gates,
     GatesGnark9, GatesGnark8]
@@ -191,7 +206,7 @@ theorem rvk_circuit_sound (akX akY randomizer outX outY : F)
     Decaf377Assumptions.Point.mk outX outY =
       Decaf377Assumptions.rvk ⟨akX, akY⟩ randomizer := by
   rw [rvk_circuit_eq_ladderK] at h
-  rcases h with ⟨bits, hbin, hladder⟩
+  rcases h with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, bits, hbin, hladder⟩
   rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Order) pow251_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, rfl⟩
@@ -223,7 +238,7 @@ theorem rvk_circuit_onCurve (akX akY randomizer outX outY : F)
     (h : Extracted.DecafRvk.circuit akX akY randomizer outX outY) :
     EdwardsBridge.onCurve ⟨outX, outY⟩ := by
   rw [rvk_circuit_eq_ladderK] at h
-  rcases h with ⟨bits, hbin, hladder⟩
+  rcases h with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, bits, hbin, hladder⟩
   rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Order) pow251_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, rfl⟩

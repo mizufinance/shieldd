@@ -28,6 +28,8 @@ type AssertEquivalentGadget struct {
 }
 
 func (c *AssertEquivalentGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.LX, Y: c.LY})
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.RX, Y: c.RY})
 	decafgnark.AssertEquivalent(api,
 		gnarkte.Point{X: c.LX, Y: c.LY},
 		gnarkte.Point{X: c.RX, Y: c.RY})
@@ -128,6 +130,22 @@ type NetBalanceCommitmentGadget struct {
 	OutY            frontend.Variable
 }
 
+// NetBalanceCommitment2Gadget mirrors the transfer net-balance commitment:
+// two input amounts and two output amounts over the asset value generator. The
+// single-output gadget above is the consolidate (2-in-1-out) shape.
+type NetBalanceCommitment2Gadget struct {
+	Input0Amount    frontend.Variable `gnark:",public"`
+	Input1Amount    frontend.Variable `gnark:",public"`
+	Output0Amount   frontend.Variable `gnark:",public"`
+	Output1Amount   frontend.Variable `gnark:",public"`
+	AssetID         frontend.Variable `gnark:",public"`
+	BalanceBlinding frontend.Variable `gnark:",public"`
+	EncodeWasSquare frontend.Variable
+	EncodeInvSqrt   frontend.Variable
+	OutX            frontend.Variable
+	OutY            frontend.Variable
+}
+
 func (c *CompressToFieldGadget) Define(api frontend.API) error {
 	out := compressToFieldWithWitness(api, c.X, c.Y, c.WasSquare, c.SqrtRatio)
 	api.AssertIsEqual(out, c.Out)
@@ -142,6 +160,8 @@ func (c *EncodeToCurveGadget) Define(api frontend.API) error {
 }
 
 func (c *EdwardsAddGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.LX, Y: c.LY})
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.RX, Y: c.RY})
 	out := edwardsAddMirror(
 		api,
 		gnarkte.Point{X: c.LX, Y: c.LY},
@@ -149,24 +169,30 @@ func (c *EdwardsAddGadget) Define(api frontend.API) error {
 	)
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
 func (c *EdwardsDoubleGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.X, Y: c.Y})
 	out := edwardsDoubleMirror(api, gnarkte.Point{X: c.X, Y: c.Y})
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
 func (c *EdwardsNegGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.X, Y: c.Y})
 	out := gnarkte.Point{X: api.Neg(c.X), Y: c.Y}
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
 func (c *DecafRvkGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.AkX, Y: c.AkY})
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		return err
@@ -179,10 +205,13 @@ func (c *DecafRvkGadget) Define(api frontend.API) error {
 	out := edwardsAddMirror(api, gnarkte.Point{X: c.AkX, Y: c.AkY}, randomizedPart)
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
 func (c *DecafDtkGadget) Define(api frontend.API) error {
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.AkX, Y: c.AkY})
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.DivGenX, Y: c.DivGenY})
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		return err
@@ -207,6 +236,7 @@ func (c *DecafDtkGadget) Define(api frontend.API) error {
 	)
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
 }
 
@@ -226,7 +256,72 @@ func (c *NetBalanceCommitmentGadget) Define(api frontend.API) error {
 	}
 	api.AssertIsEqual(out.X, c.OutX)
 	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
 	return nil
+}
+
+func (c *NetBalanceCommitment2Gadget) Define(api frontend.API) error {
+	out, err := netBalanceCommitment2MirrorWithWitness(
+		api,
+		c.Input0Amount,
+		c.Input1Amount,
+		c.Output0Amount,
+		c.Output1Amount,
+		c.AssetID,
+		c.BalanceBlinding,
+		c.EncodeWasSquare,
+		c.EncodeInvSqrt,
+	)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out.X, c.OutX)
+	api.AssertIsEqual(out.Y, c.OutY)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.OutX, Y: c.OutY})
+	return nil
+}
+
+func netBalanceCommitment2MirrorWithWitness(
+	api frontend.API,
+	input0Amount, input1Amount, output0Amount, output1Amount, assetID, balanceBlinding frontend.Variable,
+	encodeWasSquare, encodeInvSqrt frontend.Variable,
+) (gnarkte.Point, error) {
+	vectors, err := LoadPrototypeVectors()
+	if err != nil {
+		return gnarkte.Point{}, err
+	}
+	hashedAssetID, err := Poseidon377Hash1(
+		api,
+		MustBigInt(vectors.Poseidon377.ValueGeneratorDomain),
+		assetID,
+	)
+	if err != nil {
+		return gnarkte.Point{}, err
+	}
+	valueGenerator := encodeToCurveWithWitness(api, hashedAssetID, encodeWasSquare, encodeInvSqrt)
+	valueBlindingGenerator := gnarkte.Point{
+		X: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
+		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
+	}
+
+	sum := scalarMulLEMirror(api, valueGenerator, 0, 128)
+	input0 := scalarMulLEMirror(api, valueGenerator, input0Amount, 128)
+	input1 := scalarMulLEMirror(api, valueGenerator, input1Amount, 128)
+	output0 := scalarMulLEMirror(api, valueGenerator, output0Amount, 128)
+	output1 := scalarMulLEMirror(api, valueGenerator, output1Amount, 128)
+	sum = edwardsAddMirror(api, sum, input0)
+	sum = edwardsAddMirror(api, sum, input1)
+	sum = edwardsAddMirror(api, sum, gnarkte.Point{X: api.Neg(output0.X), Y: output0.Y})
+	sum = edwardsAddMirror(api, sum, gnarkte.Point{X: api.Neg(output1.X), Y: output1.Y})
+	blindingPoint := scalarMulLEMirror(api, valueBlindingGenerator, balanceBlinding, 251)
+	return edwardsAddMirror(api, sum, blindingPoint), nil
+}
+
+func assertDecafPointOnCurve(api frontend.API, p gnarkte.Point) {
+	d := decaf377.CurveD()
+	xx := api.Mul(p.X, p.X)
+	yy := api.Mul(p.Y, p.Y)
+	api.AssertIsEqual(api.Sub(yy, xx), api.Add(1, api.Mul(api.Mul(d, xx), yy)))
 }
 
 func netBalanceCommitmentMirrorWithWitness(

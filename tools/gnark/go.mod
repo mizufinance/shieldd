@@ -4,7 +4,7 @@ go 1.25.4
 
 require (
 	github.com/consensys/gnark v0.14.0
-	github.com/consensys/gnark-crypto v0.19.0
+	github.com/consensys/gnark-crypto v0.19.2
 	github.com/reilabs/gnark-lean-extractor/v3 v3.0.0
 	golang.org/x/crypto v0.41.0
 )
@@ -25,7 +25,7 @@ require (
 	github.com/ingonyama-zk/icicle-gnark/v3 v3.2.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mizufinance/decaf377-go v0.1.0
+	github.com/mizufinance/decaf377-go v0.2.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/ronanh/intcomp v1.1.1 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect

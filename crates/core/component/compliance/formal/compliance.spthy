@@ -1,16 +1,22 @@
 theory ComplianceCiphertext
 begin
 
-builtins: diffie-hellman, hashing
-
-functions: dem/2, dleq/3, imt_member/2, imt_gap/2, metadata/4
+functions: dem/2
 
 /*
-  Symbolic model boundary:
-  - DH, DLEQ, DEM/Poseidon stream, IMT membership/gap checks, point compression,
-    and regulated/unregulated classification are idealized.
-  - The corresponding computational and representation assumptions remain in
-    assumption-ledger.md and are cited by proved-symbolic ledger rows.
+  Scope and idealization boundary:
+  - This is a closed-world authorization/control-flow model: it verifies the
+    regulated/unregulated state machine and the binding/correspondence structure
+    of compliance encryption. It does NOT model an active Dolev-Yao attacker
+    (no Out/In/K, no reveal rules), so it is not a message-secrecy proof.
+  - The cryptographic primitives are idealized as model facts, not term theories:
+      * DEM/Poseidon stream  -> the `dem/2` term (the only idealized constructor),
+      * DLEQ + metadata binding -> action facts `DleqBound` / `MetadataBound`,
+      * IMT membership          -> the persistent fact `!KeyInIMT`.
+    (IMT gap/absence is modeled separately in alloy/nullifier-imt.als.)
+  - The corresponding computational and representation assumptions live in
+    assumption-ledger.md and are cited by the proved-symbolic ledger rows. The
+    DLEQ binding is now mechanized in lean-dleq (DLEQ-FS-KNOWLEDGE-SOUNDNESS).
   - RULE_VerifyUnregulated encodes the fixed Phase-0 semantics: unregulated
     acceptance is a sink-key path, not issuer decryptability.
 */

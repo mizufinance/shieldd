@@ -123,7 +123,7 @@ pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
 /// A compliance leaf in the public on-chain registry for regulated assets.
 ///
 /// Contains address, asset_id, slot metadata, and derivation scalar `d`.
-/// `d = SHA256("elgamal-derivation-v1\0\0" || slot_derivation)` — matches Orbis derivation.
+/// `d = SHA512("elgamal-derivation-v1\0\0" || slot_derivation)` — matches Orbis derivation.
 /// ACK = d × ring_pk, computed in-circuit from the leaf's `d` value.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::ComplianceLeaf", into = "pb::ComplianceLeaf")]
@@ -136,7 +136,7 @@ pub struct ComplianceLeaf {
     pub slot_id: u32,
     /// Canonical random slot derivation material.
     pub slot_derivation: Fq,
-    /// Derivation scalar: d = SHA256_derive(slot_derivation). Verified at registration.
+    /// Derivation scalar: d = SHA512_derive(slot_derivation). Verified at registration.
     pub d: Fq,
 }
 

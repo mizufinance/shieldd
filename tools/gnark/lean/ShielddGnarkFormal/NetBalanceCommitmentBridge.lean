@@ -1,7 +1,7 @@
 import ShielddGnarkFormal.ScalarMulBridge
 import ShielddGnarkFormal.EncodeToCurveBridge
 import ShielddGnarkFormal.Poseidon1Bridge
-import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.Extracted.NetBalanceCommitment
 import ProvenZk.Lemmas
 import ProvenZk.Ext.Vector
@@ -289,6 +289,13 @@ def nbFinalK (px py qx qy outX outY : F) : Prop :=
     ∃ry, Extracted.NetBalanceCommitment.Gates.div_unchecked g12 g13 ry ∧
     Extracted.NetBalanceCommitment.Gates.eq rx outX ∧
     Extracted.NetBalanceCommitment.Gates.eq ry outY ∧
+    ∃g14, g14 = Extracted.NetBalanceCommitment.Gates.mul outX outX ∧
+    ∃g15, g15 = Extracted.NetBalanceCommitment.Gates.mul outY outY ∧
+    ∃g16, g16 = Extracted.NetBalanceCommitment.Gates.sub g15 g14 ∧
+    ∃g17, g17 = Extracted.NetBalanceCommitment.Gates.mul (3021:F) g14 ∧
+    ∃g18, g18 = Extracted.NetBalanceCommitment.Gates.mul g17 g15 ∧
+    ∃g19, g19 = Extracted.NetBalanceCommitment.Gates.add (1:F) g18 ∧
+    Extracted.NetBalanceCommitment.Gates.eq g16 g19 ∧
     True
 
 theorem nbFinalK_semantic (px py qx qy outX outY : F)

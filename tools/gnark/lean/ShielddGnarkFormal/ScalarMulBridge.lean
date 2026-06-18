@@ -98,6 +98,18 @@ def StepRel (bit : F) (acc cur acc' cur' : EdwardsBridge.Point) : Prop :=
     exact ⟨sumX, hsumX, sumY, hsumY, accX, hselX, accY, hselY, curX, hcurX,
       curY, hcurY, hk⟩
 
+/-- Vector η-expansion at width 4: a fixed-width state vector equals the literal
+of its components. Lets the fuel-0 rung of a `scalarMulStep_ladder` (which threads
+`st`) meet the Point-state ladders (which rebuild `vec![acc.x, acc.y, cur.x, cur.y]`). -/
+theorem vec4_eta (st : List.Vector F 4) :
+    st = vec![st[0], st[1], st[2], st[3]] := by
+  cases st using List.Vector.casesOn with | cons a st =>
+  cases st using List.Vector.casesOn with | cons b st =>
+  cases st using List.Vector.casesOn with | cons c st =>
+  cases st using List.Vector.casesOn with | cons d st =>
+  cases st using List.Vector.casesOn with | nil =>
+  rfl
+
 private theorem select_bool_value (b : Bool) (t f out : F)
     (h : GatesDef.select (toZMod b : F) t f out) :
     out = if b then t else f := by
@@ -149,6 +161,25 @@ theorem stepRel_semantic (b : Bool) (acc cur acc' cur' : EdwardsBridge.Point)
 def finalK (outX outY : F) (state : List.Vector F 4) : Prop :=
   GatesDef.eq state[0] outX ∧ GatesDef.eq state[1] outY ∧ True
 
+def outputCurveGates (outX outY : F) : Prop :=
+  ∃ xx, xx = GatesDef.mul outX outX ∧
+  ∃ yy, yy = GatesDef.mul outY outY ∧
+  ∃ lhs, lhs = GatesDef.sub yy xx ∧
+  ∃ dxx, dxx = GatesDef.mul (3021:F) xx ∧
+  ∃ rhs0, rhs0 = GatesDef.mul dxx yy ∧
+  ∃ rhs, rhs = GatesDef.add (1:F) rhs0 ∧
+  GatesDef.eq lhs rhs ∧
+  True
+
+def finalKWithOutputCurve (outX outY : F) (state : List.Vector F 4) : Prop :=
+  GatesDef.eq state[0] outX ∧ GatesDef.eq state[1] outY ∧ outputCurveGates outX outY
+
+theorem finalKWithOutputCurve_implies_finalK (outX outY : F) (state : List.Vector F 4) :
+    finalKWithOutputCurve outX outY state → finalK outX outY state := by
+  intro h
+  rcases h with ⟨hx, hy, -⟩
+  exact ⟨hx, hy, trivial⟩
+
 def ladderK {n : ℕ} (bits : List.Vector F n) (k : List.Vector F 4 → Prop) :
     ℕ → ℕ → EdwardsBridge.Point → EdwardsBridge.Point → Prop
   | 0, _, acc, cur => k vec![acc.x, acc.y, cur.x, cur.y]
@@ -157,14 +188,55 @@ def ladderK {n : ℕ} (bits : List.Vector F n) (k : List.Vector F 4 → Prop) :
         StepRel bits[bitIndex]! acc cur acc' cur' ∧
         ladderK bits k fuel (bitIndex + 1) acc' cur'
 
-theorem scalarMulLE128_eq_ladderK (baseX baseY scalar outX outY : F) :
-    Extracted.ScalarMulLE128.circuit baseX baseY scalar outX outY ↔
+theorem ladderK_mono {n : ℕ} {bits : List.Vector F n}
+    {k1 k2 : List.Vector F 4 → Prop}
+    (hk : ∀ state, k1 state → k2 state) :
+    ∀ fuel bitIndex acc cur,
+      ladderK bits k1 fuel bitIndex acc cur →
+      ladderK bits k2 fuel bitIndex acc cur := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro bitIndex acc cur h
+    exact hk _ h
+  | succ fuel ih =>
+    intro bitIndex acc cur h
+    rw [ladderK] at h ⊢
+    rcases h with ⟨acc', cur', hstep, htail⟩
+    exact ⟨acc', cur', hstep, ih (bitIndex + 1) acc' cur' htail⟩
+
+/-- The generated recursive `scalarMulStep_ladder` (raw, vector-threaded) implies
+the semantic `ladderK` (StepRel-threaded). One rung per fuel step, so the proof is
+linear: each step rewrites the rung through `scalarMulStep128_uncps`. -/
+theorem stepLadder128_to_ladderK {n : ℕ} (bits : List.Vector F n)
+    (k : List.Vector F 4 → Prop) :
+    ∀ fuel i (st : List.Vector F 4),
+      Extracted.ScalarMulLE128.scalarMulStep_ladder bits k fuel i st →
+      ladderK bits k fuel i ⟨st[0], st[1]⟩ ⟨st[2], st[3]⟩ := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro i st h
+    simp only [Extracted.ScalarMulLE128.scalarMulStep_ladder] at h
+    show k vec![st[0], st[1], st[2], st[3]]
+    rw [← vec4_eta]; exact h
+  | succ fuel ih =>
+    intro i st h
+    simp only [Extracted.ScalarMulLE128.scalarMulStep_ladder] at h
+    rw [scalarMulStep128_uncps] at h
+    rcases h with ⟨acc', cur', hrel, htail⟩
+    simp only [ladderK]
+    exact ⟨acc', cur', hrel, ih (i + 1) _ htail⟩
+
+theorem scalarMulLE128_ladderK_of_circuit (baseX baseY scalar outX outY : F) :
+    Extracted.ScalarMulLE128.circuit baseX baseY scalar outX outY →
       ∃ bits, GatesDef.to_binary scalar 128 bits ∧
-        ladderK bits (finalK outX outY) 128 0 ⟨0, 1⟩ ⟨baseX, baseY⟩ := by
-  unfold Extracted.ScalarMulLE128.circuit finalK
-  simp (config := { maxSteps := 10000000 }) only [scalarMulStep128_uncps,
-    Extracted.ScalarMulLE128.Gates, GatesGnark9, GatesGnark8, GatesDef.eq]
-  rfl
+        ladderK bits (finalKWithOutputCurve outX outY) 128 0 ⟨0, 1⟩ ⟨baseX, baseY⟩ := by
+  intro h
+  unfold Extracted.ScalarMulLE128.circuit at h
+  obtain ⟨g0, _, g1, _, g2, _, g3, _, g4, _, g5, _, _heq, gate_7, hbin, hladder⟩ := h
+  exact ⟨gate_7, hbin,
+    stepLadder128_to_ladderK gate_7 _ 128 0 vec![(0:F), (1:F), baseX, baseY] hladder⟩
 
 def extractedLadderK251 {n : ℕ} (bits : List.Vector F n) (k : List.Vector F 4 → Prop) :
     ℕ → ℕ → EdwardsBridge.Point → EdwardsBridge.Point → Prop
@@ -175,14 +247,59 @@ def extractedLadderK251 {n : ℕ} (bits : List.Vector F n) (k : List.Vector F 4 
           extractedLadderK251 bits k fuel (bitIndex + 1)
             ⟨state[0], state[1]⟩ ⟨state[2], state[3]⟩)
 
-theorem scalarMulLE251_eq_extractedLadderK (baseX baseY scalar outX outY : F) :
-    Extracted.ScalarMulLE251.circuit baseX baseY scalar outX outY ↔
+theorem extractedLadderK251_mono {n : ℕ} {bits : List.Vector F n}
+    {k1 k2 : List.Vector F 4 → Prop}
+    (hk : ∀ state, k1 state → k2 state) :
+    ∀ fuel bitIndex acc cur,
+      extractedLadderK251 bits k1 fuel bitIndex acc cur →
+      extractedLadderK251 bits k2 fuel bitIndex acc cur := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro bitIndex acc cur h
+    exact hk _ h
+  | succ fuel ih =>
+    intro bitIndex acc cur h
+    rw [extractedLadderK251] at h ⊢
+    rw [scalarMulStep251_uncps] at h ⊢
+    rcases h with ⟨acc', cur', hrel, htail⟩
+    exact ⟨acc', cur', hrel,
+      ih (bitIndex + 1) ⟨acc'.x, acc'.y⟩ ⟨cur'.x, cur'.y⟩ htail⟩
+
+/-- The generated recursive `scalarMulStep_ladder` (raw, vector-threaded) implies
+the raw Point-state `extractedLadderK251`. Linear in fuel: each step rewrites the
+rung through `scalarMulStep251_uncps`. -/
+theorem stepLadder251_to_extracted {n : ℕ} (bits : List.Vector F n)
+    (k : List.Vector F 4 → Prop) :
+    ∀ fuel i (st : List.Vector F 4),
+      Extracted.ScalarMulLE251.scalarMulStep_ladder bits k fuel i st →
+      extractedLadderK251 bits k fuel i ⟨st[0], st[1]⟩ ⟨st[2], st[3]⟩ := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro i st h
+    simp only [Extracted.ScalarMulLE251.scalarMulStep_ladder] at h
+    show k vec![st[0], st[1], st[2], st[3]]
+    rw [← vec4_eta]; exact h
+  | succ fuel ih =>
+    intro i st h
+    simp only [Extracted.ScalarMulLE251.scalarMulStep_ladder] at h
+    rw [scalarMulStep251_uncps] at h
+    rcases h with ⟨acc', cur', hrel, htail⟩
+    simp only [extractedLadderK251]
+    rw [scalarMulStep251_uncps]
+    exact ⟨acc', cur', hrel, ih (i + 1) _ htail⟩
+
+theorem scalarMulLE251_ladderK_of_circuit (baseX baseY scalar outX outY : F) :
+    Extracted.ScalarMulLE251.circuit baseX baseY scalar outX outY →
       ∃ bits, GatesDef.to_binary scalar 251 bits ∧
-        extractedLadderK251 bits (finalK outX outY) 251 0 ⟨0, 1⟩ ⟨baseX, baseY⟩ := by
-  unfold Extracted.ScalarMulLE251.circuit extractedLadderK251 finalK
-  simp (config := { maxSteps := 1000000 }) only [Extracted.ScalarMulLE251.Gates,
-    GatesGnark9, GatesGnark8, GatesDef.eq]
-  rfl
+        extractedLadderK251 bits (finalKWithOutputCurve outX outY) 251 0
+          ⟨0, 1⟩ ⟨baseX, baseY⟩ := by
+  intro h
+  unfold Extracted.ScalarMulLE251.circuit at h
+  obtain ⟨g0, _, g1, _, g2, _, g3, _, g4, _, g5, _, _heq, gate_7, hbin, hladder⟩ := h
+  exact ⟨gate_7, hbin,
+    stepLadder251_to_extracted gate_7 _ 251 0 vec![(0:F), (1:F), baseX, baseY] hladder⟩
 
 def scalarMulFromBits {n : ℕ} (bits : List.Vector Bool n) :
     ℕ → ℕ → EdwardsBridge.Point → EdwardsBridge.Point → EdwardsBridge.Point
@@ -349,8 +466,14 @@ theorem scalarMulLE128_sound
     (h : Extracted.ScalarMulLE128.circuit baseX baseY scalar outX outY) :
     Decaf377Assumptions.Point.mk outX outY =
       Decaf377Assumptions.scalarMulLE 128 ⟨baseX, baseY⟩ scalar := by
-  rw [scalarMulLE128_eq_ladderK] at h
-  rcases h with ⟨bits, hbin, hladder⟩
+  rcases scalarMulLE128_ladderK_of_circuit baseX baseY scalar outX outY h with
+    ⟨bits, hbin, hladderRaw⟩
+  have hladder := ladderK_mono
+    (bits := bits)
+    (k1 := finalKWithOutputCurve outX outY)
+    (k2 := finalK outX outY)
+    (finalKWithOutputCurve_implies_finalK outX outY)
+    128 0 ⟨0, 1⟩ ⟨baseX, baseY⟩ hladderRaw
   rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order) pow128_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, rfl⟩
@@ -373,8 +496,14 @@ theorem scalarMulLE128_onCurve
     (hbase : EdwardsBridge.onCurve ⟨baseX, baseY⟩)
     (h : Extracted.ScalarMulLE128.circuit baseX baseY scalar outX outY) :
     EdwardsBridge.onCurve ⟨outX, outY⟩ := by
-  rw [scalarMulLE128_eq_ladderK] at h
-  rcases h with ⟨bits, hbin, hladder⟩
+  rcases scalarMulLE128_ladderK_of_circuit baseX baseY scalar outX outY h with
+    ⟨bits, hbin, hladderRaw⟩
+  have hladder := ladderK_mono
+    (bits := bits)
+    (k1 := finalKWithOutputCurve outX outY)
+    (k2 := finalK outX outY)
+    (finalKWithOutputCurve_implies_finalK outX outY)
+    128 0 ⟨0, 1⟩ ⟨baseX, baseY⟩ hladderRaw
   rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order) pow128_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, rfl⟩
@@ -392,8 +521,14 @@ theorem scalarMulLE251_sound
     (h : Extracted.ScalarMulLE251.circuit baseX baseY scalar outX outY) :
     Decaf377Assumptions.Point.mk outX outY =
       Decaf377Assumptions.scalarMulLE 251 ⟨baseX, baseY⟩ scalar := by
-  rw [scalarMulLE251_eq_extractedLadderK] at h
-  rcases h with ⟨bits, hbin, hladder⟩
+  rcases scalarMulLE251_ladderK_of_circuit baseX baseY scalar outX outY h with
+    ⟨bits, hbin, hladderRaw⟩
+  have hladder := extractedLadderK251_mono
+    (bits := bits)
+    (k1 := finalKWithOutputCurve outX outY)
+    (k2 := finalK outX outY)
+    (finalKWithOutputCurve_implies_finalK outX outY)
+    251 0 ⟨0, 1⟩ ⟨baseX, baseY⟩ hladderRaw
   rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order) pow251_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, rfl⟩
@@ -417,8 +552,14 @@ theorem scalarMulLE251_onCurve
     (hbase : EdwardsBridge.onCurve ⟨baseX, baseY⟩)
     (h : Extracted.ScalarMulLE251.circuit baseX baseY scalar outX outY) :
     EdwardsBridge.onCurve ⟨outX, outY⟩ := by
-  rw [scalarMulLE251_eq_extractedLadderK] at h
-  rcases h with ⟨bits, hbin, hladder⟩
+  rcases scalarMulLE251_ladderK_of_circuit baseX baseY scalar outX outY h with
+    ⟨bits, hbin, hladderRaw⟩
+  have hladder := extractedLadderK251_mono
+    (bits := bits)
+    (k1 := finalKWithOutputCurve outX outY)
+    (k2 := finalK outX outY)
+    (finalKWithOutputCurve_implies_finalK outX outY)
+    251 0 ⟨0, 1⟩ ⟨baseX, baseY⟩ hladderRaw
   rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order) pow251_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, rfl⟩

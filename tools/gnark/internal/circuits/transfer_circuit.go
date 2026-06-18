@@ -44,6 +44,8 @@ const (
 )
 
 type TransferCircuit struct {
+	wiringTrace *WiringTranscript
+
 	ClaimedStatementHash frontend.Variable `gnark:",public"`
 
 	Anchor                frontend.Variable
@@ -94,29 +96,40 @@ func (c *TransferCircuit) Define(api frontend.API) error {
 	statementData := c.newTransferStatementData()
 
 	for i := range c.Spends {
+		c.traceWiring("spend.begin", fmt.Sprintf("spend%d", i))
 		if err := c.verifyTransferSpend(api, &shared, &statementData, &c.Spends[i], i); err != nil {
 			return err
 		}
+		c.traceWiring("spend.collect", fmt.Sprintf("spend%d", i), "amount->input_amounts", "nullifier->statement.nullifiers_and_rks", "rk_compressed->statement.nullifiers_and_rks")
 	}
+	c.traceWiring("output.begin", "output0")
 	if err := c.verifyTransferOutput(api, &shared, &statementData, &c.Outputs[0], 0); err != nil {
 		return err
 	}
+	c.traceWiring("output.collect", "output0", "amount->output_amounts", "commitment->statement.output_commitments", "ack->receiver_ack")
+	c.traceWiring("output.begin", "output1")
 	if err := c.verifyTransferOutput(api, &shared, &statementData, &c.Outputs[1], 1); err != nil {
 		return err
 	}
+	c.traceWiring("output.collect", "output1", "amount->output_amounts", "commitment->statement.output_commitments")
+	c.traceWiring("compliance.begin", "tiers=sender_core,sender_ext,output_core,output_ext")
 	if err := c.verifyTransferComplianceCiphertexts(api, &shared, &statementData); err != nil {
 		return err
 	}
+	c.traceWiring("compliance.collect", "detection_ciphertext->statement", "tier_ciphertexts->statement", "dleq_proofs->statement")
 
+	c.traceWiring("decaf.net_balance_commitment", "inputs=input_amounts", "outputs=output_amounts", "asset_id=shared.asset_id", "blinding=action_balance_blinding", "out=balance_commitment.computed")
 	balanceCommitmentFq, err := c.assertTransferNetBalanceCommitment(api, &shared, &statementData)
 	if err != nil {
 		return err
 	}
 
+	c.traceWiring("statement.assemble", "shape=transfer2x2", "fields=transfer_statement_fields")
 	fields, err := c.buildTransferStatementFields(api, balanceCommitmentFq, &statementData)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("statement.hash", "family=transfer", "fields=statement_fields", "out=statement_hash")
 	statementHash, err := TransferStatementHashForShape(
 		api,
 		TransferCircuitInputs,
@@ -126,6 +139,7 @@ func (c *TransferCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
+	c.traceWiring("assert.eq", "lhs=statement_hash", "rhs=claimed_statement_hash")
 	api.AssertIsEqual(statementHash, c.ClaimedStatementHash)
 	return nil
 }
@@ -207,6 +221,14 @@ func computeTransferNetBalanceCommitment(
 }
 
 func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transferSharedContext, error) {
+	c.traceWiring(
+		"shared.bind",
+		"claimed.balance_commitment=balance_commitment",
+		"shared.ak=auth.ak",
+		"shared.asset_id=spend0.note.asset_id",
+		"sender.div_gen=sender.div_gen",
+		"sender.transmission=sender.transmission",
+	)
 	shared := transferSharedContext{
 		claimedBalanceCommitment: gnarkte.Point{X: c.BalanceCommitment.X, Y: c.BalanceCommitment.Y},
 		ak:                       gnarkte.Point{X: c.Auth.AK.X, Y: c.Auth.AK.Y},
@@ -233,18 +255,23 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 	if err != nil {
 		return transferSharedContext{}, err
 	}
+	c.traceWiring("select.point", "cond=is_regulated", "if_true=asset.leaf.ring_pk", "if_false=unregulated.ring_pk", "out=effective.ring_pk")
 	shared.effectiveRingPK = SelectPoint(api, c.IsRegulated, shared.indexedLeaf.RingPK, unregulatedRingPK)
+	c.traceWiring("select.point", "cond=is_regulated", "if_true=asset.leaf.dk_pub", "if_false=unregulated.dk_pub", "out=effective.dk_pub")
 	shared.effectiveDKPub = SelectPoint(api, c.IsRegulated, shared.indexedLeaf.DKPub, unregulatedDKPub)
 
+	c.traceWiring("decaf.compress_to_field", "in=sender.div_gen", "out=sender.div_gen_fq")
 	shared.senderDivGenFq, err = decafgnark.CompressToField(api, shared.senderDivGen)
 	if err != nil {
 		return transferSharedContext{}, err
 	}
+	c.traceWiring("decaf.compress_to_field", "in=sender.transmission", "out=sender.transmission_fq")
 	shared.senderTransmissionFq, err = decafgnark.CompressToField(api, shared.senderTransmission)
 	if err != nil {
 		return transferSharedContext{}, err
 	}
 
+	c.traceWiring("gadget.asset_registry_imt", "asset_id=shared.asset_id", "is_regulated=is_regulated", "leaf=asset.leaf", "path=asset.path", "position=asset.position", "root=asset_anchor")
 	if err := VerifyAssetRegistryIMT(
 		api,
 		shared.sharedAssetID,
@@ -257,6 +284,7 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 		return transferSharedContext{}, err
 	}
 
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "asset_id=sender.asset_id", "slot_id=sender.slot_id", "slot_derivation=sender.slot_derivation", "d=sender.d", "out=sender.leaf_commitment")
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		shared.senderDivGenFq,
@@ -269,12 +297,15 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 	if err != nil {
 		return transferSharedContext{}, err
 	}
+	c.traceWiring("gadget.compliance_path", "leaf=sender.leaf_commitment", "path=sender.path", "position=sender.position", "out=sender.compliance_root")
 	senderComplianceRoot, err := VerifyQuadPath(api, senderLeafCommitment, c.Sender.Path, c.Sender.Position)
 	if err != nil {
 		return transferSharedContext{}, err
 	}
+	c.traceWiring("assert.eq_if", "lhs=sender.compliance_root", "rhs=compliance_anchor", "cond=is_regulated")
 	AssertEqualIf(api, senderComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
 
+	c.traceWiring("decaf.ack", "ring_pk=effective.ring_pk", "d=sender.d", "out=sender.ack")
 	shared.senderAck, err = DeriveACKFromLeafD(api, shared.effectiveRingPK, c.Sender.D)
 	if err != nil {
 		return transferSharedContext{}, err
@@ -359,12 +390,15 @@ func (c *TransferCircuit) verifyTransferSpend(
 	rkClaimed := gnarkte.Point{X: spend.RK.X, Y: spend.RK.Y}
 	api.AssertIsBoolean(spend.IsDummy)
 	isNotDummy := api.Sub(1, spend.IsDummy)
+	name := fmt.Sprintf("spend%d", index)
 
+	c.traceWiring("decaf.compress_to_field", "in="+name+".note.div_gen", "out="+name+".note.div_gen_fq")
 	spentDivGenFq, err := decafgnark.CompressToField(api, spentDivGen)
 	if err != nil {
 		return err
 	}
 
+	c.traceWiring("gadget.note_commitment", "blinding="+name+".note.blinding", "amount="+name+".note.amount", "asset_id="+name+".note.asset_id", "div_gen_fq="+name+".note.div_gen_fq", "transmission_key_s="+name+".note.transmission_key_s", "clue_key="+name+".note.clue_key", "out="+name+".note.commitment.computed")
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		spend.Note.Blinding,
@@ -377,8 +411,10 @@ func (c *TransferCircuit) verifyTransferSpend(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("assert.eq_if", "lhs="+name+".note.commitment.computed", "rhs="+name+".state_proof.commitment", "cond="+name+".is_not_dummy")
 	AssertEqualIf(api, spentCommitment, spend.StateProof.Commitment, isNotDummy)
 
+	c.traceWiring("gadget.nullifier", "nk=auth.nk", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "out="+name+".nullifier.real")
 	realNullifier, err := Nullifier(api, c.Auth.NK, spend.StateProof.Commitment, spend.StateProof.Position)
 	if err != nil {
 		return err
@@ -386,14 +422,17 @@ func (c *TransferCircuit) verifyTransferSpend(
 
 	statePath := make([][3]frontend.Variable, len(spend.StateProof.Path))
 	copy(statePath, spend.StateProof.Path[:])
+	c.traceWiring("gadget.state_commitment_path", "commitment="+name+".state_proof.commitment", "position="+name+".state_proof.position", "path="+name+".state_proof.path", "out="+name+".anchor.computed")
 	anchor, err := VerifyStateCommitmentPath(api, spend.StateProof.Commitment, spend.StateProof.Position, statePath)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("gadget.synthetic_dummy_nullifier", "seed="+name+".dummy_nullifier_seed", "randomizer="+name+".auth_randomizer", "slot="+name, "out="+name+".nullifier.synthetic")
 	syntheticNullifier, err := syntheticDummyNullifier(api, spend.DummyNullifierSeed, spend.AuthRandomizer, index)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("dummy.mux", "is_dummy="+name+".is_dummy", "real="+name+".nullifier.real", "synthetic="+name+".nullifier.synthetic", "out="+name+".nullifier")
 	api.AssertIsEqual(
 		spend.Nullifier,
 		api.Add(
@@ -401,19 +440,25 @@ func (c *TransferCircuit) verifyTransferSpend(
 			api.Mul(spend.IsDummy, syntheticNullifier),
 		),
 	)
+	c.traceWiring("assert.eq_if", "lhs="+name+".anchor.computed", "rhs=anchor", "cond="+name+".is_not_dummy")
 	AssertEqualIf(api, anchor, c.Anchor, isNotDummy)
 
+	c.traceWiring("decaf.randomized_verification_key", "ak=shared.ak", "randomizer="+name+".auth_randomizer", "out="+name+".rk.computed")
 	computedRK, err := RandomizedVerificationKey(api, shared.ak, spend.AuthRandomizer)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.randomized_verification_key.dummy", "spend_auth_key="+name+".dummy_spend_auth_key", "randomizer="+name+".auth_randomizer", "out="+name+".rk.dummy")
 	dummyRK, err := syntheticDummyVerificationKey(api, spend.DummySpendAuthKey, spend.AuthRandomizer)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".rk.computed", "rhs="+name+".rk.claimed", "cond="+name+".is_not_dummy")
 	decafgnark.AssertEquivalentIf(api, computedRK, rkClaimed, isNotDummy)
+	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".rk.dummy", "rhs="+name+".rk.claimed", "cond="+name+".is_dummy")
 	decafgnark.AssertEquivalentIf(api, dummyRK, rkClaimed, spend.IsDummy)
 
+	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen="+name+".note.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out="+name+".transmission.computed")
 	computedSpentTransmission, err := DiversifiedTransmissionKey(
 		api,
 		c.Auth.NK,
@@ -425,16 +470,23 @@ func (c *TransferCircuit) verifyTransferSpend(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission", "cond="+name+".is_not_dummy")
 	decafgnark.AssertEquivalentIf(api, computedSpentTransmission, spentTransmission, isNotDummy)
+	c.traceWiring("assert.eq_if", "lhs="+name+".note.amount", "rhs=0", "cond="+name+".is_dummy")
 	AssertEqualIf(api, spend.Note.Amount, 0, spend.IsDummy)
 
+	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
 	api.AssertIsEqual(spend.Note.AssetID, shared.sharedAssetID)
+	c.traceWiring("assert.eq", "lhs=sender.asset_id", "rhs="+name+".note.asset_id")
 	api.AssertIsEqual(c.Sender.AssetID, spend.Note.AssetID)
+	c.traceWiring("decaf.assert_equivalent_if", "lhs=sender.div_gen", "rhs="+name+".note.div_gen", "cond=1")
 	decafgnark.AssertEquivalentIf(api, shared.senderDivGen, spentDivGen, 1)
+	c.traceWiring("decaf.assert_equivalent_if", "lhs=sender.transmission", "rhs="+name+".note.transmission", "cond=1")
 	decafgnark.AssertEquivalentIf(api, shared.senderTransmission, spentTransmission, 1)
 
 	statementData.inputAmounts = append(statementData.inputAmounts, spend.Note.Amount)
 	statementData.nullifiersAndRKs = append(statementData.nullifiersAndRKs, spend.Nullifier)
+	c.traceWiring("decaf.compress_to_field", "in="+name+".rk.claimed", "out="+name+".rk.compressed")
 	rkFq, err := decafgnark.CompressToField(api, rkClaimed)
 	if err != nil {
 		return err
@@ -454,6 +506,7 @@ func (c *TransferCircuit) verifyTransferOutput(
 	createdTransmission := gnarkte.Point{X: output.Note.Transmission.X, Y: output.Note.Transmission.Y}
 	recipientDivGen := gnarkte.Point{X: output.Recipient.DivGen.X, Y: output.Recipient.DivGen.Y}
 	recipientTransmission := gnarkte.Point{X: output.Recipient.Transmission.X, Y: output.Recipient.Transmission.Y}
+	name := fmt.Sprintf("output%d", index)
 
 	expectedReceiver := 0
 	if index == 0 {
@@ -462,15 +515,18 @@ func (c *TransferCircuit) verifyTransferOutput(
 	api.AssertIsEqual(output.IsReceiver, expectedReceiver)
 	isDummy := api.IsZero(output.Note.Amount)
 
+	c.traceWiring("decaf.compress_to_field", "in="+name+".note.div_gen", "out="+name+".note.div_gen_fq")
 	createdDivGenFq, err := decafgnark.CompressToField(api, createdDivGen)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.compress_to_field", "in="+name+".note.transmission", "out="+name+".note.transmission_fq")
 	createdTransmissionFq, err := decafgnark.CompressToField(api, createdTransmission)
 	if err != nil {
 		return err
 	}
 
+	c.traceWiring("gadget.note_commitment", "blinding="+name+".note.blinding", "amount="+name+".note.amount", "asset_id="+name+".note.asset_id", "div_gen_fq="+name+".note.div_gen_fq", "transmission_key_s="+name+".note.transmission_key_s", "clue_key="+name+".note.clue_key", "out="+name+".note.commitment.computed")
 	createdCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		output.Note.Blinding,
@@ -483,13 +539,19 @@ func (c *TransferCircuit) verifyTransferOutput(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("assert.eq", "lhs="+name+".note.commitment.computed", "rhs="+name+".note_commitment")
 	api.AssertIsEqual(createdCommitment, output.NoteCommitment)
 
+	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
 	api.AssertIsEqual(output.Note.AssetID, shared.sharedAssetID)
+	c.traceWiring("assert.eq", "lhs="+name+".recipient.asset_id", "rhs="+name+".note.asset_id")
 	api.AssertIsEqual(output.Recipient.AssetID, output.Note.AssetID)
+	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".recipient.div_gen", "rhs="+name+".note.div_gen", "cond=1")
 	decafgnark.AssertEquivalentIf(api, recipientDivGen, createdDivGen, 1)
+	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".recipient.transmission", "rhs="+name+".note.transmission", "cond=1")
 	decafgnark.AssertEquivalentIf(api, recipientTransmission, createdTransmission, 1)
 
+	c.traceWiring("gadget.compliance_leaf", "div_gen_fq="+name+".note.div_gen_fq", "transmission_fq="+name+".note.transmission_fq", "asset_id="+name+".recipient.asset_id", "slot_id="+name+".recipient.slot_id", "slot_derivation="+name+".recipient.slot_derivation", "d="+name+".recipient.d", "out="+name+".recipient.leaf_commitment")
 	recipientLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		createdDivGenFq,
@@ -502,17 +564,21 @@ func (c *TransferCircuit) verifyTransferOutput(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("gadget.compliance_path", "leaf="+name+".recipient.leaf_commitment", "path="+name+".recipient.path", "position="+name+".recipient.position", "out="+name+".recipient.compliance_root")
 	recipientComplianceRoot, err := VerifyQuadPath(api, recipientLeafCommitment, output.Recipient.Path, output.Recipient.Position)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("assert.eq_if", "lhs="+name+".recipient.compliance_root", "rhs=compliance_anchor", "cond=is_regulated")
 	AssertEqualIf(api, recipientComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
 
 	statementData.outputAmounts = append(statementData.outputAmounts, output.Note.Amount)
 	statementData.outputCommitments = append(statementData.outputCommitments, output.NoteCommitment)
 
 	if index == 0 {
+		c.traceWiring("assert.eq", "lhs="+name+".is_dummy", "rhs=0")
 		api.AssertIsEqual(isDummy, 0)
+		c.traceWiring("decaf.ack", "ring_pk=effective.ring_pk", "d="+name+".recipient.d", "out=receiver.ack")
 		recipientAck, err := DeriveACKFromLeafD(api, shared.effectiveRingPK, output.Recipient.D)
 		if err != nil {
 			return err
@@ -526,9 +592,13 @@ func (c *TransferCircuit) verifyTransferOutput(
 		return nil
 	}
 
+	c.traceWiring("assert.eq", "lhs="+name+".recipient.asset_id", "rhs=sender.asset_id")
 	api.AssertIsEqual(output.Recipient.AssetID, c.Sender.AssetID)
+	c.traceWiring("assert.eq", "lhs="+name+".recipient.d", "rhs=sender.d")
 	api.AssertIsEqual(output.Recipient.D, c.Sender.D)
+	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".recipient.div_gen", "rhs=sender.div_gen", "cond=1")
 	decafgnark.AssertEquivalentIf(api, recipientDivGen, shared.senderDivGen, 1)
+	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".recipient.transmission", "rhs=sender.transmission", "cond=1")
 	decafgnark.AssertEquivalentIf(api, recipientTransmission, shared.senderTransmission, 1)
 	return nil
 }
@@ -538,6 +608,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	shared *transferSharedContext,
 	statementData *transferStatementData,
 ) error {
+	c.traceWiring("threshold.flag", "amount=receiver.amount", "threshold=asset.leaf.threshold", "out=is_flagged")
 	isFlagged := ThresholdFlag(api, statementData.receiverAmount, shared.indexedLeaf.Threshold)
 
 	senderCoreEPK := gnarkte.Point{X: c.Compliance.SenderCore.Epk.X, Y: c.Compliance.SenderCore.Epk.Y}
@@ -545,18 +616,22 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	outputCoreEPK := gnarkte.Point{X: c.Compliance.OutputCore.Epk.X, Y: c.Compliance.OutputCore.Epk.Y}
 	outputExtEPK := gnarkte.Point{X: c.Compliance.OutputExt.Epk.X, Y: c.Compliance.OutputExt.Epk.Y}
 
+	c.traceWiring("decaf.compress_to_field", "in=compliance.sender_core.epk", "out=compliance.sender_core.epk_fq")
 	senderCoreEPKFq, err := decafgnark.CompressToField(api, senderCoreEPK)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.compress_to_field", "in=compliance.sender_ext.epk", "out=compliance.sender_ext.epk_fq")
 	senderExtEPKFq, err := decafgnark.CompressToField(api, senderExtEPK)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.compress_to_field", "in=compliance.output_core.epk", "out=compliance.output_core.epk_fq")
 	outputCoreEPKFq, err := decafgnark.CompressToField(api, outputCoreEPK)
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.compress_to_field", "in=compliance.output_ext.epk", "out=compliance.output_ext.epk_fq")
 	outputExtEPKFq, err := decafgnark.CompressToField(api, outputExtEPK)
 	if err != nil {
 		return err
@@ -575,12 +650,14 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	}
 	salts := [5]frontend.Variable{}
 	for i, label := range saltLabels {
+		c.traceWiring("gadget.transfer_salt", fmt.Sprintf("label=salt%d", i), "nonce_root=compliance.transfer_nonce_root", fmt.Sprintf("out=salt%d", i))
 		salts[i], err = DeriveTransferSalt(api, c.Compliance.TransferNonceRoot, label)
 		if err != nil {
 			return err
 		}
 	}
 
+	c.traceWiring("decaf.shared_secret", "tier=sender_core", "esk=compliance.sender_r_core", "ack=sender.ack", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.sender_core.epk", "out=sender_core.shared")
 	ssDetection, _, senderCoreShared, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.SenderRCore,
@@ -592,6 +669,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.shared_secret", "tier=sender_ext", "esk=compliance.sender_r_ext", "ack=sender.ack", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.sender_ext.epk", "out=sender_ext.shared")
 	_, _, senderExtShared, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.SenderRExt,
@@ -603,6 +681,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.shared_secret", "tier=output_core", "esk=compliance.output_r_core", "ack=receiver.ack", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.output_core.epk", "out=output_core.shared")
 	_, _, outputCoreShared, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.OutputRCore,
@@ -614,6 +693,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.shared_secret", "tier=output_ext", "esk=compliance.output_r_ext", "ack=receiver.ack", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.output_ext.epk", "out=output_ext.shared")
 	_, _, outputExtShared, err := DeriveSharedSecretsSpend(
 		api,
 		c.Compliance.OutputRExt,
@@ -626,6 +706,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		return err
 	}
 
+	c.traceWiring("gadget.poseidon_encryption.detection", "regulated=is_regulated", "flag=is_flagged", "ss=sender_core.ss_detection", "epk_fq=compliance.sender_core.epk_fq", "salt=salt0", "asset_id=shared.asset_id", "sender_slot=sender.slot_id", "receiver_slot=receiver.slot_id", "out=compliance.detection_ciphertext")
 	if err := VerifyPoseidonEncryptionTransferDetection(
 		api,
 		c.IsRegulated,
@@ -640,6 +721,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
+	c.traceWiring("gadget.poseidon_encryption.amount", "tier=sender_core", "regulated=is_regulated", "ss=sender_core.shared", "c2=compliance.sender_core.c2", "amount=receiver.amount", "out=compliance.sender_core.ciphertext")
 	if err := VerifyPoseidonEncryptionTransferAmount(
 		api,
 		c.IsRegulated,
@@ -650,6 +732,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
+	c.traceWiring("gadget.poseidon_encryption.address", "tier=sender_ext", "regulated=is_regulated", "ss=sender_ext.shared", "c2=compliance.sender_ext.c2", "div_gen_fq=receiver.div_gen_fq", "transmission_fq=receiver.transmission_fq", "out=compliance.sender_ext.ciphertext")
 	if err := VerifyPoseidonEncryptionTransferAddress(
 		api,
 		c.IsRegulated,
@@ -661,6 +744,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
+	c.traceWiring("gadget.poseidon_encryption.amount", "tier=output_core", "regulated=is_regulated", "ss=output_core.shared", "c2=compliance.output_core.c2", "amount=receiver.amount", "out=compliance.output_core.ciphertext")
 	if err := VerifyPoseidonEncryptionTransferAmount(
 		api,
 		c.IsRegulated,
@@ -671,6 +755,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
+	c.traceWiring("gadget.poseidon_encryption.address", "tier=output_ext", "regulated=is_regulated", "ss=output_ext.shared", "c2=compliance.output_ext.c2", "div_gen_fq=sender.div_gen_fq", "transmission_fq=sender.transmission_fq", "out=compliance.output_ext.ciphertext")
 	if err := VerifyPoseidonEncryptionTransferAddress(
 		api,
 		c.IsRegulated,
@@ -683,13 +768,21 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		return err
 	}
 
+	c.traceWiring("decaf.assert_equivalent", "lhs=compliance.sender_core.epk", "rhs=compliance.sender_core.proof.enc_cmt")
 	decafgnark.AssertEquivalent(api, gnarkte.Point{X: c.Compliance.SenderCore.Epk.X, Y: c.Compliance.SenderCore.Epk.Y}, gnarkte.Point{X: c.Compliance.SenderCore.Proof.EncCmt.X, Y: c.Compliance.SenderCore.Proof.EncCmt.Y})
+	c.traceWiring("decaf.assert_equivalent", "lhs=compliance.sender_ext.epk", "rhs=compliance.sender_ext.proof.enc_cmt")
 	decafgnark.AssertEquivalent(api, gnarkte.Point{X: c.Compliance.SenderExt.Epk.X, Y: c.Compliance.SenderExt.Epk.Y}, gnarkte.Point{X: c.Compliance.SenderExt.Proof.EncCmt.X, Y: c.Compliance.SenderExt.Proof.EncCmt.Y})
+	c.traceWiring("decaf.assert_equivalent", "lhs=compliance.output_core.epk", "rhs=compliance.output_core.proof.enc_cmt")
 	decafgnark.AssertEquivalent(api, gnarkte.Point{X: c.Compliance.OutputCore.Epk.X, Y: c.Compliance.OutputCore.Epk.Y}, gnarkte.Point{X: c.Compliance.OutputCore.Proof.EncCmt.X, Y: c.Compliance.OutputCore.Proof.EncCmt.Y})
+	c.traceWiring("decaf.assert_equivalent", "lhs=compliance.output_ext.epk", "rhs=compliance.output_ext.proof.enc_cmt")
 	decafgnark.AssertEquivalent(api, gnarkte.Point{X: c.Compliance.OutputExt.Epk.X, Y: c.Compliance.OutputExt.Epk.Y}, gnarkte.Point{X: c.Compliance.OutputExt.Proof.EncCmt.X, Y: c.Compliance.OutputExt.Proof.EncCmt.Y})
+	c.traceWiring("decaf.assert_equivalent", "lhs=sender.ack", "rhs=compliance.sender_core.proof.derived_pk")
 	decafgnark.AssertEquivalent(api, shared.senderAck, gnarkte.Point{X: c.Compliance.SenderCore.Proof.DerivedPK.X, Y: c.Compliance.SenderCore.Proof.DerivedPK.Y})
+	c.traceWiring("decaf.assert_equivalent", "lhs=sender.ack", "rhs=compliance.sender_ext.proof.derived_pk")
 	decafgnark.AssertEquivalent(api, shared.senderAck, gnarkte.Point{X: c.Compliance.SenderExt.Proof.DerivedPK.X, Y: c.Compliance.SenderExt.Proof.DerivedPK.Y})
+	c.traceWiring("decaf.assert_equivalent", "lhs=receiver.ack", "rhs=compliance.output_core.proof.derived_pk")
 	decafgnark.AssertEquivalent(api, statementData.receiverAck, gnarkte.Point{X: c.Compliance.OutputCore.Proof.DerivedPK.X, Y: c.Compliance.OutputCore.Proof.DerivedPK.Y})
+	c.traceWiring("decaf.assert_equivalent", "lhs=receiver.ack", "rhs=compliance.output_ext.proof.derived_pk")
 	decafgnark.AssertEquivalent(api, statementData.receiverAck, gnarkte.Point{X: c.Compliance.OutputExt.Proof.DerivedPK.X, Y: c.Compliance.OutputExt.Proof.DerivedPK.Y})
 
 	verifyProofStatement := func(
@@ -730,6 +823,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("gadget.metadata_hash", "tier=sender_core", "out=sender_core.metadata_hash")
 	senderExtMetadataHash, err := verifyProofStatement(
 		c.Compliance.SenderExt.Proof,
 		c.Sender.SlotDerivation,
@@ -739,6 +833,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("gadget.metadata_hash", "tier=sender_ext", "out=sender_ext.metadata_hash")
 	outputCoreMetadataHash, err := verifyProofStatement(
 		c.Compliance.OutputCore.Proof,
 		statementData.receiverSlotDerivation,
@@ -748,6 +843,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("gadget.metadata_hash", "tier=output_core", "out=output_core.metadata_hash")
 	outputExtMetadataHash, err := verifyProofStatement(
 		c.Compliance.OutputExt.Proof,
 		statementData.receiverSlotDerivation,
@@ -757,7 +853,9 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("gadget.metadata_hash", "tier=output_ext", "out=output_ext.metadata_hash")
 
+	c.traceWiring("gadget.dleq", "tier=sender_core", "r=compliance.sender_r_core", "derived_pk=compliance.sender_core.proof.derived_pk", "shared_point=compliance.sender_core.proof.shared_point", "enc_cmt=compliance.sender_core.proof.enc_cmt", "metadata=sender_core.metadata_hash", "challenge=compliance.sender_core.proof.challenge", "response=compliance.sender_core.proof.response")
 	if err := VerifyDLEQ(
 		api,
 		c.Compliance.SenderRCore,
@@ -771,6 +869,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
+	c.traceWiring("gadget.dleq", "tier=sender_ext", "r=compliance.sender_r_ext", "derived_pk=compliance.sender_ext.proof.derived_pk", "shared_point=compliance.sender_ext.proof.shared_point", "enc_cmt=compliance.sender_ext.proof.enc_cmt", "metadata=sender_ext.metadata_hash", "challenge=compliance.sender_ext.proof.challenge", "response=compliance.sender_ext.proof.response")
 	if err := VerifyDLEQ(
 		api,
 		c.Compliance.SenderRExt,
@@ -784,6 +883,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
+	c.traceWiring("gadget.dleq", "tier=output_core", "r=compliance.output_r_core", "derived_pk=compliance.output_core.proof.derived_pk", "shared_point=compliance.output_core.proof.shared_point", "enc_cmt=compliance.output_core.proof.enc_cmt", "metadata=output_core.metadata_hash", "challenge=compliance.output_core.proof.challenge", "response=compliance.output_core.proof.response")
 	if err := VerifyDLEQ(
 		api,
 		c.Compliance.OutputRCore,
@@ -797,6 +897,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	); err != nil {
 		return err
 	}
+	c.traceWiring("gadget.dleq", "tier=output_ext", "r=compliance.output_r_ext", "derived_pk=compliance.output_ext.proof.derived_pk", "shared_point=compliance.output_ext.proof.shared_point", "enc_cmt=compliance.output_ext.proof.enc_cmt", "metadata=output_ext.metadata_hash", "challenge=compliance.output_ext.proof.challenge", "response=compliance.output_ext.proof.response")
 	if err := VerifyDLEQ(
 		api,
 		c.Compliance.OutputRExt,

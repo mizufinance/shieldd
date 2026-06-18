@@ -1,0 +1,16 @@
+artifact: transfer-decaf-fv-inventory
+circuit: transfer
+status: open: none
+
+closed:
+- decafgnark.CompressToField at transfer sender aliases, output aliases, asset registry points, compliance EPK/shared/proof points, ACK/DLEQ statement points, balance commitment, and statement assembly points via Decaf377Assumptions.decaf377_compressToField_sound.
+- decafgnark.AssertEquivalent and conditional AssertEquivalentIf at transfer spend/output/dummy aliases and balance-commitment equivalence via ThresholdRegulatedBridge.assert_equivalent_if_sound plus Decaf377Assumptions.decaf377_assertEquivalent_sound at the boundary.
+- RandomizedVerificationKey via RvkBridge.decaf377_randomizedVerificationKey_sound.
+- DiversifiedTransmissionKey via DtkBridge.decaf377_diversifiedTransmissionKey_sound.
+- NetBalanceCommitment2 (2-in-2-out) via NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound.
+- ACK derivation via AckBridge.ack_sound.
+- Compliance DLEQ via DleqBridge.dleq_sound.
+- Threshold/regulation branch selection and dummy mux via ThresholdRegulatedBridge.threshold_flag_sound, select_point_sound, assert_equivalent_if_sound, and dummy_mux_sound.
+- Transfer salts and Poseidon stream ciphertexts via TransferSaltBridge.transfer_salt_sound and PoseidonEncryptionBridge.{detection_sound,amount_sound,address_sound}.
+
+open: none

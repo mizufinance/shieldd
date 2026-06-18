@@ -2,8 +2,8 @@ tool: tamarin-prover
 tamarin: 1.12.0
 maude: 3.5.1
 model: crates/core/component/compliance/formal/compliance.spthy
-model_sha256: 5ca008162909d79bbe7b38d94d9dbddfbeafdf7df7c790ab84edf927bf03dc3f
-tamarin_output_sha256: 88dc0f4d4406cb11aa266a8a74297d4d49026e1b5fe14c0d559ffd322ec77988
+model_sha256: 1549c85fed15bd92b78b0a9fc9a9052cbea93e28b740e5334f8a682b05efbb02
+tamarin_output_sha256: bb4ee23eb3645a013e54aa1c3a0b895c359536543fdd9d2b0b9ceb2ff53548fe
 LEMMA SECRECY verified
 LEMMA DETECTION_CORRECTNESS verified
 LEMMA DESIGNATED_DECRYPTABILITY verified

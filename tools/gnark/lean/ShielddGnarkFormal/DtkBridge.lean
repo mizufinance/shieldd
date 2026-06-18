@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.Extracted.DecafDtk
 import ShielddGnarkFormal.CanonicalFqBitsBridge
 import ShielddGnarkFormal.Poseidon2Bridge
@@ -39,7 +40,7 @@ instance : Fact (Nat.Prime Extracted.CanonicalFqBits.Order) := ‹_›
 /-- Verbatim prefix of `DecafDtk.circuit` (gates 0-573: ak on-curve check,
 compress, Poseidon2 IVK, IvkModR decomposition, `< r` ladder) with the
 trailing scalar-mul ladder abstracted to `k`. -/
-def dtkCircuitK (Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient : F) (k : Prop) : Prop :=
+def dtkCircuitK (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient : F) (k : Prop) : Prop :=
     ∃gate_0, gate_0 = Extracted.DecafDtk.Gates.mul AkX AkX ∧
     ∃gate_1, gate_1 = Extracted.DecafDtk.Gates.mul AkY AkY ∧
     ∃gate_2, gate_2 = Extracted.DecafDtk.Gates.sub gate_1 gate_0 ∧
@@ -47,12 +48,26 @@ def dtkCircuitK (Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient : F) (k :
     ∃gate_4, gate_4 = Extracted.DecafDtk.Gates.mul gate_3 gate_1 ∧
     ∃gate_5, gate_5 = Extracted.DecafDtk.Gates.add (1:F) gate_4 ∧
     Extracted.DecafDtk.Gates.eq gate_2 gate_5 ∧
+    ∃gate_d0, gate_d0 = Extracted.DecafDtk.Gates.mul DivGenX DivGenX ∧
+    ∃gate_d1, gate_d1 = Extracted.DecafDtk.Gates.mul DivGenY DivGenY ∧
+    ∃gate_d2, gate_d2 = Extracted.DecafDtk.Gates.sub gate_d1 gate_d0 ∧
+    ∃gate_d3, gate_d3 = Extracted.DecafDtk.Gates.mul (3021:F) gate_d0 ∧
+    ∃gate_d4, gate_d4 = Extracted.DecafDtk.Gates.mul gate_d3 gate_d1 ∧
+    ∃gate_d5, gate_d5 = Extracted.DecafDtk.Gates.add (1:F) gate_d4 ∧
+    Extracted.DecafDtk.Gates.eq gate_d2 gate_d5 ∧
+    ∃gate_e0, gate_e0 = Extracted.DecafDtk.Gates.mul AkX AkX ∧
+    ∃gate_e1, gate_e1 = Extracted.DecafDtk.Gates.mul AkY AkY ∧
+    ∃gate_e2, gate_e2 = Extracted.DecafDtk.Gates.sub gate_e1 gate_e0 ∧
+    ∃gate_e3, gate_e3 = Extracted.DecafDtk.Gates.mul (3021:F) gate_e0 ∧
+    ∃gate_e4, gate_e4 = Extracted.DecafDtk.Gates.mul gate_e3 gate_e1 ∧
+    ∃gate_e5, gate_e5 = Extracted.DecafDtk.Gates.add (1:F) gate_e4 ∧
+    Extracted.DecafDtk.Gates.eq gate_e2 gate_e5 ∧
     ∃gate_7, gate_7 = Extracted.DecafDtk.Gates.mul AkX AkY ∧
     ∃gate_8, gate_8 = Extracted.DecafDtk.Gates.add AkX gate_7 ∧
     ∃gate_9, gate_9 = Extracted.DecafDtk.Gates.sub AkX gate_7 ∧
     ∃gate_10, gate_10 = Extracted.DecafDtk.Gates.mul gate_8 gate_9 ∧
     ∃gate_11, gate_11 = Extracted.DecafDtk.Gates.mul gate_10 8444461749428370424248824938781546531375899335154063827935233455917409236019 ∧
-    ∃gate_12, gate_12 = Extracted.DecafDtk.Gates.mul gate_11 gate_0 ∧
+    ∃gate_12, gate_12 = Extracted.DecafDtk.Gates.mul gate_11 gate_e0 ∧
     Extracted.DecafDtk.Gates.is_bool WasSquare ∧
     ∃gate_14, Extracted.DecafDtk.Gates.is_zero gate_12 gate_14 ∧
     ∃gate_15, Extracted.DecafDtk.Gates.select gate_14 (1:F) gate_12 gate_15 ∧
@@ -649,10 +664,10 @@ theorem dtk_circuit_eq
     (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient OutX OutY : F) :
     Extracted.DecafDtk.circuit Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio
         IvkReduced IvkQuotient OutX OutY ↔
-      dtkCircuitK Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient
+      dtkCircuitK Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient
         (∃ bits, GatesDef.to_binary IvkReduced 251 bits ∧
-          dtkLadderK bits (finalK OutX OutY) 251 0 ⟨0, 1⟩ ⟨DivGenX, DivGenY⟩) := by
-  unfold Extracted.DecafDtk.circuit dtkCircuitK dtkLadderK finalK
+          dtkLadderK bits (finalKWithOutputCurve OutX OutY) 251 0 ⟨0, 1⟩ ⟨DivGenX, DivGenY⟩) := by
+  unfold Extracted.DecafDtk.circuit dtkCircuitK dtkLadderK finalKWithOutputCurve outputCurveGates
   simp (config := { maxSteps := 1000000 }) only [Extracted.DecafDtk.Gates,
     GatesGnark9, GatesGnark8, GatesDef.eq]
   rfl
@@ -720,7 +735,7 @@ private theorem sqrt_zeta_case_mul (s inv den zeta : F)
 Each segment ends in an opaque continuation over the live cross-boundary
 variables, so pass lemmas elaborate over small terms. -/
 
-def dtkSeg0 (Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient : F)
+def dtkSeg0 (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient : F)
     (k : List.Vector F 253 → Prop) : Prop :=
     ∃gate_0, gate_0 = Extracted.DecafDtk.Gates.mul AkX AkX ∧
     ∃gate_1, gate_1 = Extracted.DecafDtk.Gates.mul AkY AkY ∧
@@ -729,12 +744,26 @@ def dtkSeg0 (Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient : F)
     ∃gate_4, gate_4 = Extracted.DecafDtk.Gates.mul gate_3 gate_1 ∧
     ∃gate_5, gate_5 = Extracted.DecafDtk.Gates.add (1:F) gate_4 ∧
     Extracted.DecafDtk.Gates.eq gate_2 gate_5 ∧
+    ∃gate_d0, gate_d0 = Extracted.DecafDtk.Gates.mul DivGenX DivGenX ∧
+    ∃gate_d1, gate_d1 = Extracted.DecafDtk.Gates.mul DivGenY DivGenY ∧
+    ∃gate_d2, gate_d2 = Extracted.DecafDtk.Gates.sub gate_d1 gate_d0 ∧
+    ∃gate_d3, gate_d3 = Extracted.DecafDtk.Gates.mul (3021:F) gate_d0 ∧
+    ∃gate_d4, gate_d4 = Extracted.DecafDtk.Gates.mul gate_d3 gate_d1 ∧
+    ∃gate_d5, gate_d5 = Extracted.DecafDtk.Gates.add (1:F) gate_d4 ∧
+    Extracted.DecafDtk.Gates.eq gate_d2 gate_d5 ∧
+    ∃gate_e0, gate_e0 = Extracted.DecafDtk.Gates.mul AkX AkX ∧
+    ∃gate_e1, gate_e1 = Extracted.DecafDtk.Gates.mul AkY AkY ∧
+    ∃gate_e2, gate_e2 = Extracted.DecafDtk.Gates.sub gate_e1 gate_e0 ∧
+    ∃gate_e3, gate_e3 = Extracted.DecafDtk.Gates.mul (3021:F) gate_e0 ∧
+    ∃gate_e4, gate_e4 = Extracted.DecafDtk.Gates.mul gate_e3 gate_e1 ∧
+    ∃gate_e5, gate_e5 = Extracted.DecafDtk.Gates.add (1:F) gate_e4 ∧
+    Extracted.DecafDtk.Gates.eq gate_e2 gate_e5 ∧
     ∃gate_7, gate_7 = Extracted.DecafDtk.Gates.mul AkX AkY ∧
     ∃gate_8, gate_8 = Extracted.DecafDtk.Gates.add AkX gate_7 ∧
     ∃gate_9, gate_9 = Extracted.DecafDtk.Gates.sub AkX gate_7 ∧
     ∃gate_10, gate_10 = Extracted.DecafDtk.Gates.mul gate_8 gate_9 ∧
     ∃gate_11, gate_11 = Extracted.DecafDtk.Gates.mul gate_10 8444461749428370424248824938781546531375899335154063827935233455917409236019 ∧
-    ∃gate_12, gate_12 = Extracted.DecafDtk.Gates.mul gate_11 gate_0 ∧
+    ∃gate_12, gate_12 = Extracted.DecafDtk.Gates.mul gate_11 gate_e0 ∧
     Extracted.DecafDtk.Gates.is_bool WasSquare ∧
     ∃gate_14, Extracted.DecafDtk.Gates.is_zero gate_12 gate_14 ∧
     ∃gate_15, Extracted.DecafDtk.Gates.select gate_14 (1:F) gate_12 gate_15 ∧
@@ -1786,9 +1815,9 @@ theorem dtkTailK_laddersTail (bits : List.Vector F 253) (IvkQuotient : F) (k : P
     exact dtkSeg14_pass gate_569 IvkQuotient k h13
 
 theorem dtkSeg0_pass
-    (Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient : F)
+    (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient : F)
     (k : List.Vector F 253 → Prop)
-    (h : dtkSeg0 Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient k) :
+    (h : dtkSeg0 Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient k) :
     EdwardsBridge.onCurve ⟨AkX, AkY⟩ ∧ ∃ v, k v := by
   unfold dtkSeg0 at h
   obtain ⟨g0, hg0, g1, hg1, g2, hg2, g3, hg3, g4, hg4, g5, hg5, hcurve, h⟩ := h
@@ -1799,7 +1828,7 @@ theorem dtkSeg0_pass
   · show -(AkX * AkX) + AkY * AkY = 1 + EdwardsBridge.d * (AkX * AkX) * (AkY * AkY)
     simp only [EdwardsBridge.d]
     linear_combination hcurve
-  · iterate 54 obtain ⟨_, h⟩ := h
+  · iterate 80 obtain ⟨_, h⟩ := h
     obtain ⟨_, h⟩ := canonical_pass h
     iterate 14 obtain ⟨_, h⟩ := h
     obtain ⟨_, h⟩ := canonical_pass h
@@ -1809,8 +1838,8 @@ theorem dtkSeg0_pass
     exact ⟨_, h⟩
 
 theorem dtkSeg0_provenance
-    (Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient : F) (k : Prop)
-    (h : dtkSeg0 Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient
+    (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient : F) (k : Prop)
+    (h : dtkSeg0 Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient
       (fun bits => dtkTailK bits IvkQuotient k)) :
     EdwardsBridge.onCurve ⟨AkX, AkY⟩ ∧
     Decaf377Assumptions.DiversifiedTransmissionKeyIvkProvenance
@@ -1818,13 +1847,15 @@ theorem dtkSeg0_provenance
     k := by
   unfold dtkSeg0 at h
   obtain ⟨g0, hg0, g1, hg1, g2, hg2, g3, hg3, g4, hg4, g5, hg5, hcurve,
+    gd0, hgd0, gd1, hgd1, gd2, hgd2, gd3, hgd3, gd4, hgd4, gd5, hgd5, hcurved,
+    ge0, hge0, ge1, hge1, ge2, hge2, ge3, hge3, ge4, hge4, ge5, hge5, hcurvee,
     g7, hg7, g8, hg8, g9, hg9, g10, hg10, g11, hg11, g12, hg12,
     hwsb, g14, hg14, g15, hg15, g16, hg16, g17, hg17, g18, hg18, h18z,
     g20, hg20, g21, hg21, g22, hg22, g23, hg23, g24, hg24, g25, hg25, h25z,
     g27, hg27, h27z, g29, hg29, g30, hg30, g31, hg31, h31z,
     g33, hg33, g34, hg34, h34, g36, hg36, habs1⟩ := h
   simp only [Extracted.DecafDtk.Gates, GatesGnark9, GatesGnark8, GatesDef.mul,
-    GatesDef.add, GatesDef.sub, GatesDef.eq] at hg0 hg1 hg2 hg3 hg4 hg5 hcurve
+    GatesDef.add, GatesDef.sub, GatesDef.eq] at hg0 hg1 hg2 hg3 hg4 hg5 hcurve hge0
   simp only [Extracted.DecafDtk.Gates, GatesGnark9, GatesGnark8, GatesDef.mul,
     GatesDef.add, GatesDef.sub, GatesDef.eq] at hg7 hg8 hg9 hg10 hg11 hg12 hg17
   simp only [Extracted.DecafDtk.Gates, GatesGnark9, GatesGnark8, GatesDef.mul,
@@ -1833,7 +1864,7 @@ theorem dtkSeg0_provenance
     GatesDef.add, GatesDef.sub, GatesDef.eq] at hg27 h27z hg29 hg30 hg31 h31z hg33
   simp only [Extracted.DecafDtk.Gates, GatesGnark9, GatesGnark8, GatesDef.mul,
     GatesDef.add, GatesDef.sub, GatesDef.eq] at hg34 h34 hg36
-  subst hg0 hg1 hg2 hg3 hg4 hg5 hg7 hg8 hg9 hg10 hg11 hg12 hg17 hg18
+  subst hg0 hg1 hg2 hg3 hg4 hg5 hge0 hg7 hg8 hg9 hg10 hg11 hg12 hg17 hg18
   subst hg20 hg21 hg24 hg25 hg27 hg29 hg30 hg31 hg33 hg34 hg36
   have honc : EdwardsBridge.onCurve ⟨AkX, AkY⟩ := by
     show -(AkX * AkX) + AkY * AkY = 1 + EdwardsBridge.d * (AkX * AkX) * (AkY * AkY)
@@ -1973,10 +2004,10 @@ theorem dtkSeg0_provenance
 /-- The prefix always passes through to its continuation and forces the
 curve equation on `ak`. Proven segmentwise to keep elaboration linear. -/
 theorem dtkCircuitK_semantic
-    (Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient : F) (k : Prop)
-    (h : dtkCircuitK Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient k) :
+    (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient : F) (k : Prop)
+    (h : dtkCircuitK Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient k) :
     EdwardsBridge.onCurve ⟨AkX, AkY⟩ ∧ k := by
-  have h0 : dtkSeg0 Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient (fun gate_62 =>
+  have h0 : dtkSeg0 Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient (fun gate_62 =>
       dtkSeg1 gate_62 (fun gate_100 =>
       dtkSeg2 gate_62 gate_100 (fun gate_139 =>
       dtkSeg3 gate_62 gate_139 (fun gate_177 =>
@@ -1991,7 +2022,7 @@ theorem dtkCircuitK_semantic
       dtkSeg12 gate_62 gate_486 (fun gate_527 =>
       dtkSeg13 gate_62 gate_527 (fun gate_569 =>
       dtkSeg14 gate_569 IvkQuotient k)))))))))))))) := h
-  obtain ⟨honc, gate_62, h⟩ := dtkSeg0_pass _ _ _ _ _ _ _ _ h0
+  obtain ⟨honc, gate_62, h⟩ := dtkSeg0_pass _ _ _ _ _ _ _ _ _ _ h0
   obtain ⟨gate_100, h⟩ := dtkSeg1_pass _ _ h
   obtain ⟨gate_139, h⟩ := dtkSeg2_pass _ _ _ h
   obtain ⟨gate_177, h⟩ := dtkSeg3_pass _ _ _ h
@@ -2006,6 +2037,24 @@ theorem dtkCircuitK_semantic
   obtain ⟨gate_527, h⟩ := dtkSeg12_pass _ _ _ h
   obtain ⟨gate_569, h⟩ := dtkSeg13_pass _ _ _ h
   exact ⟨honc, dtkSeg14_pass _ _ _ h⟩
+
+theorem dtkLadderK_mono {n : ℕ} {bits : List.Vector F n}
+    {k1 k2 : List.Vector F 4 → Prop} (hk : ∀ s, k1 s → k2 s) :
+    ∀ fuel bitIndex acc cur,
+      dtkLadderK bits k1 fuel bitIndex acc cur →
+      dtkLadderK bits k2 fuel bitIndex acc cur := by
+  intro fuel
+  induction fuel with
+  | zero => intro bitIndex acc cur h; exact hk _ h
+  | succ fuel ih =>
+    intro bitIndex acc cur h
+    rw [dtkLadderK, dtkStep_uncps] at h
+    rw [dtkLadderK, dtkStep_uncps]
+    obtain ⟨acc', cur', hrel, htail⟩ := h
+    refine ⟨acc', cur', hrel, ?_⟩
+    have htail1 : dtkLadderK bits k1 fuel (bitIndex + 1) acc' cur' := by simpa using htail
+    have htail2 := ih (bitIndex + 1) acc' cur' htail1
+    simpa using htail2
 
 theorem dtkLadderK_final_semantic {n : ℕ} (bits : List.Vector Bool n)
     (outX outY : F) :
@@ -2069,7 +2118,7 @@ theorem dtk_circuit_ak_onCurve
       IvkReduced IvkQuotient OutX OutY) :
     EdwardsBridge.onCurve ⟨AkX, AkY⟩ := by
   rw [dtk_circuit_eq] at h
-  exact (dtkCircuitK_semantic _ _ _ _ _ _ _ _ h).1
+  exact (dtkCircuitK_semantic _ _ _ _ _ _ _ _ _ _ h).1
 
 theorem dtk_circuit_ivk_provenance
     (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient OutX OutY : F)
@@ -2078,9 +2127,9 @@ theorem dtk_circuit_ivk_provenance
     Decaf377Assumptions.DiversifiedTransmissionKeyIvkProvenance
       Nk ⟨AkX, AkY⟩ IvkReduced IvkQuotient := by
   rw [dtk_circuit_eq] at h
-  exact (dtkSeg0_provenance Nk AkX AkY WasSquare SqrtRatio IvkReduced IvkQuotient
+  exact (dtkSeg0_provenance Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient
     (∃ bits, GatesDef.to_binary IvkReduced 251 bits ∧
-      dtkLadderK bits (finalK OutX OutY) 251 0 ⟨0, 1⟩ ⟨DivGenX, DivGenY⟩) h).2.1
+      dtkLadderK bits (finalKWithOutputCurve OutX OutY) 251 0 ⟨0, 1⟩ ⟨DivGenX, DivGenY⟩) h).2.1
 
 theorem dtk_circuit_sound
     (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient OutX OutY : F)
@@ -2090,13 +2139,15 @@ theorem dtk_circuit_sound
     Decaf377Assumptions.Point.mk OutX OutY =
       Decaf377Assumptions.dtk Nk ⟨AkX, AkY⟩ ⟨DivGenX, DivGenY⟩ IvkReduced IvkQuotient := by
   rw [dtk_circuit_eq] at h
-  obtain ⟨-, bits, hbin, hladder⟩ := dtkCircuitK_semantic _ _ _ _ _ _ _ _ h
+  obtain ⟨-, bits, hbin, hladder⟩ := dtkCircuitK_semantic _ _ _ _ _ _ _ _ _ _ h
   rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Order) pow251_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, rfl⟩
   let bitsBool := Fin.toBitsLE (⟨IvkReduced.val, hscalarLt⟩ : Fin (2 ^ 251))
+  have hladderF := dtkLadderK_mono (finalKWithOutputCurve_implies_finalK OutX OutY)
+    251 0 ⟨0, 1⟩ ⟨DivGenX, DivGenY⟩ hladder
   have hsem := dtkLadderK_final_semantic bitsBool OutX OutY 251 0 ⟨0, 1⟩
-    ⟨DivGenX, DivGenY⟩ (by omega) EdwardsBridge.identity_onCurve hdiv hladder
+    ⟨DivGenX, DivGenY⟩ (by omega) EdwardsBridge.identity_onCurve hdiv hladderF
   rcases hsem with ⟨-, hfinal⟩
   have hpoint : scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩ ⟨DivGenX, DivGenY⟩ =
       ⟨OutX, OutY⟩ := point_eq_of_finalK hfinal
@@ -2116,13 +2167,15 @@ theorem dtk_circuit_onCurve
       IvkReduced IvkQuotient OutX OutY) :
     EdwardsBridge.onCurve ⟨OutX, OutY⟩ := by
   rw [dtk_circuit_eq] at h
-  obtain ⟨-, bits, hbin, hladder⟩ := dtkCircuitK_semantic _ _ _ _ _ _ _ _ h
+  obtain ⟨-, bits, hbin, hladder⟩ := dtkCircuitK_semantic _ _ _ _ _ _ _ _ _ _ h
   rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
     (N := Order) pow251_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, rfl⟩
   let bitsBool := Fin.toBitsLE (⟨IvkReduced.val, hscalarLt⟩ : Fin (2 ^ 251))
+  have hladderF := dtkLadderK_mono (finalKWithOutputCurve_implies_finalK OutX OutY)
+    251 0 ⟨0, 1⟩ ⟨DivGenX, DivGenY⟩ hladder
   have hsem := dtkLadderK_final_semantic bitsBool OutX OutY 251 0 ⟨0, 1⟩
-    ⟨DivGenX, DivGenY⟩ (by omega) EdwardsBridge.identity_onCurve hdiv hladder
+    ⟨DivGenX, DivGenY⟩ (by omega) EdwardsBridge.identity_onCurve hdiv hladderF
   rcases hsem with ⟨hon, hfinal⟩
   have hpoint : scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩ ⟨DivGenX, DivGenY⟩ =
       ⟨OutX, OutY⟩ := point_eq_of_finalK hfinal

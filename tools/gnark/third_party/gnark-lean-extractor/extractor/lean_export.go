@@ -90,13 +90,21 @@ func exportGadgets(exGadgets []ExGadget) string {
 	return strings.Join(gadgets, "\n\n")
 }
 
-// exportCircuit generates the `circuit` function in Lean
-func exportCircuit(circuit ExCircuit, name string) string {
+// exportCircuit generates the `circuit` function in Lean. Gadget names in
+// foldNames have their self-threading call-runs rendered as recursive ladder
+// definitions (see ladder_fold.go); pass nil to disable folding.
+func exportCircuit(circuit ExCircuit, name string, foldNames map[string]bool) string {
 	gadgets := exportGadgets(circuit.Gadgets)
-	circ := fmt.Sprintf("def circuit %s: Prop :=\n%s", genArgs(circuit.Inputs), genCircuitBody(circuit))
+	body, ladderGadgets := genCircuitBodyFolded(circuit, foldNames)
+	circ := fmt.Sprintf("def circuit %s: Prop :=\n%s", genArgs(circuit.Inputs), body)
 	prelude := exportPrelude(name, circuit.Field.ScalarField())
 	footer := exportFooter(name)
-	return fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s", prelude, gadgets, circ, footer)
+	parts := []string{prelude, gadgets}
+	if defs := exportLadderDefs(ladderGadgets); defs != "" {
+		parts = append(parts, defs)
+	}
+	parts = append(parts, circ, footer)
+	return strings.Join(parts, "\n\n")
 }
 
 // circuitInit takes struct and a schema to populate all the

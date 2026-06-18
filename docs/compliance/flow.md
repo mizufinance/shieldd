@@ -22,7 +22,8 @@ For low-level formats, schema, and source files, see `reference.md`.
 ```text
 Orbis nodes -> NodeInfo(node_key, peer_id, controller_key)
 Issuer/controller -> ACP policy
-Issuer/controller -> UpdateNodeInfo(node_key, docker-reachable peer_id, policy_id)
+Issuer/controller -> UpdateNodePeerId(node_key, docker-reachable peer_id)
+Issuer/controller -> AddNodeToWhitelist(node_key, policy_id)
 Issuer/controller -> CreateRing(peer_node_keys, threshold, policy_id) -> ring_id
 Issuer -> Orbis DKG(ring_id)
   -> Orbis finalizes x/orbis Ring(ring_id, ring_pk)

@@ -215,6 +215,37 @@ def outOf (X Y s : F) : F :=
 def Relation (X Y Out : F) : Prop :=
   OnCurve X Y ∧ ∃ s, SqrtCase X Y s ∧ Out = outOf X Y s
 
+/-! ### Two-torsion invariance
+
+decaf377 affine representatives that denote the same group element differ by the
+order-2 point `T = (0, -1)`, i.e. by the map `(x, y) ↦ (-x, -y)`. Compression is
+defined on cosets, so the extracted `Relation` must be invariant under this map.
+Each ingredient is invariant: `x·y`, `x²`, and `u1 = (x + xy)(x - xy)` are
+unchanged (the sign flips cancel pairwise), so `den` and `SqrtCase` are unchanged;
+in `outOf` the lone surviving `·x` sign flip is absorbed by `absF` (`absF_neg`).
+This upgrades the cross-ratio quotient equality to genuine statement-field equality
+(`ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE`). -/
+
+theorem u1_neg (X Y : F) : u1 (-X) (-Y) = u1 X Y := by simp only [u1]; ring
+
+theorem den_neg (X Y : F) : den (-X) (-Y) = den X Y := by simp only [den, u1]; ring
+
+theorem onCurve_neg (X Y : F) : OnCurve (-X) (-Y) ↔ OnCurve X Y := by
+  simp only [OnCurve]; constructor <;> intro h <;> linear_combination h
+
+theorem sqrtCase_neg (X Y s : F) : SqrtCase (-X) (-Y) s ↔ SqrtCase X Y s := by
+  simp only [SqrtCase, den_neg]
+
+theorem outOf_neg (X Y s : F) : outOf (-X) (-Y) s = outOf X Y s := by
+  simp only [outOf, u1_neg, neg_mul_neg]
+  rw [show aMinusD * s * (absF (s * u1 X Y) - X * Y) * (-X)
+        = -(aMinusD * s * (absF (s * u1 X Y) - X * Y) * X) from by ring, absF_neg]
+
+/-- `Relation` is invariant under the order-2 shift `(X, Y) ↦ (-X, -Y)`. -/
+theorem Relation_neg_invariant (X Y Out : F) :
+    Relation (-X) (-Y) Out ↔ Relation X Y Out := by
+  simp only [Relation, onCurve_neg, sqrtCase_neg, outOf_neg]
+
 /-! ### Circuit soundness -/
 
 private theorem is_zero_cases (a out : F) (h : Gates.is_zero a out) :

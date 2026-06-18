@@ -4,6 +4,7 @@ import ShielddGnarkFormal.Poseidon6Bridge
 import ShielddGnarkFormal.Poseidon7Bridge
 import ShielddGnarkFormal.AnchorMerkleSpec
 import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.RvkBridge
 import ShielddGnarkFormal.DtkBridge
 import ShielddGnarkFormal.NetBalanceCommitmentBridge
@@ -93,39 +94,6 @@ structure Inputs where
   spend1 : Spend
   output0 : Output
 
-/-- Curve and prime-subgroup membership for raw decaf witness points.
-
-The circuit derives curve membership for compressed or computed points, but it
-cannot derive prime-order subgroup membership from bare coordinates. These
-fields are therefore explicit `Prop` hypotheses about the protocol-level decaf
-witnesses, not Lean axioms. -/
-structure DecafWitnessOnCurve
-    (S : Decaf377Assumptions.PrimeOrderSubgroup) (i : Inputs) : Prop where
-  sharedAKMem : S.mem i.sharedAK
-  balanceCommitmentClaimed :
-    EdwardsBridge.onCurve ⟨i.balanceCommitmentClaimed.x, i.balanceCommitmentClaimed.y⟩
-  balanceCommitmentClaimedMem : S.mem i.balanceCommitmentClaimed
-  sharedDivGen :
-    EdwardsBridge.onCurve ⟨i.sharedDivGen.x, i.sharedDivGen.y⟩
-  sharedDivGenMem : S.mem i.sharedDivGen
-  sharedTransmission :
-    EdwardsBridge.onCurve ⟨i.sharedTransmission.x, i.sharedTransmission.y⟩
-  sharedTransmissionMem : S.mem i.sharedTransmission
-  rkClaimed0Mem : S.mem i.spend0.rkClaimed
-  rkClaimed1Mem : S.mem i.spend1.rkClaimed
-  spentDivGen0Mem : S.mem i.spend0.spentDivGen
-  spentDivGen1Mem : S.mem i.spend1.spentDivGen
-  spentTransmission0 :
-    EdwardsBridge.onCurve ⟨i.spend0.spentTransmission.x, i.spend0.spentTransmission.y⟩
-  spentTransmission0Mem : S.mem i.spend0.spentTransmission
-  spentTransmission1 :
-    EdwardsBridge.onCurve ⟨i.spend1.spentTransmission.x, i.spend1.spentTransmission.y⟩
-  spentTransmission1Mem : S.mem i.spend1.spentTransmission
-  createdDivGen0Mem : S.mem i.output0.createdDivGen
-  createdTransmission0 :
-    EdwardsBridge.onCurve ⟨i.output0.createdTransmission.x, i.output0.createdTransmission.y⟩
-  createdTransmission0Mem : S.mem i.output0.createdTransmission
-
 def noteCommitmentCircuit (domain : F) (note : Note) : Prop :=
   Extracted.PoseidonHash6.circuit domain note.blinding note.amount note.assetID
     note.divGenCompressed note.transmissionKeyS note.clueKey note.commitment
@@ -146,6 +114,7 @@ def spendCircuit (i : Inputs) (s : Spend) : Prop :=
   Decaf377Assumptions.CompressToFieldCircuit s.rkClaimed s.rkCompressed ∧
   Decaf377Assumptions.DiversifiedTransmissionKeyCircuit i.nk i.sharedAK s.spentDivGen
     i.ivkReduced i.ivkQuotientA s.computedTransmission ∧
+  Decaf377Assumptions.OnCurveCircuit s.spentTransmission ∧
   Decaf377Assumptions.AssertEquivalentCircuit s.computedTransmission s.spentTransmission ∧
   Decaf377Assumptions.AssertEquivalentCircuit s.spentDivGen i.sharedDivGen ∧
   Decaf377Assumptions.AssertEquivalentCircuit s.spentTransmission i.sharedTransmission ∧
@@ -157,12 +126,19 @@ def outputCircuit (i : Inputs) (o : Output) : Prop :=
   o.note.commitment = i.outputCommitment ∧
   Decaf377Assumptions.DiversifiedTransmissionKeyCircuit i.nk i.sharedAK o.createdDivGen
     i.ivkReduced i.ivkQuotientA o.computedTransmission ∧
+  Decaf377Assumptions.OnCurveCircuit o.createdTransmission ∧
   Decaf377Assumptions.AssertEquivalentCircuit o.computedTransmission o.createdTransmission ∧
   Decaf377Assumptions.AssertEquivalentCircuit o.createdDivGen i.sharedDivGen ∧
   Decaf377Assumptions.AssertEquivalentCircuit o.createdTransmission i.sharedTransmission ∧
   o.note.assetID = i.spend0.note.assetID
 
 structure DefineModel (i : Inputs) : Prop where
+  balanceCommitmentClaimedOnCurve :
+    Decaf377Assumptions.OnCurveCircuit i.balanceCommitmentClaimed
+  sharedDivGenOnCurve :
+    Decaf377Assumptions.OnCurveCircuit i.sharedDivGen
+  sharedTransmissionOnCurve :
+    Decaf377Assumptions.OnCurveCircuit i.sharedTransmission
   spend0 : spendCircuit i i.spend0
   spend1 : spendCircuit i i.spend1
   output0 : outputCircuit i i.output0
@@ -196,18 +172,23 @@ structure SpendSound (i : Inputs) (s : Spend) : Prop where
   randomizedVerificationKey :
     Decaf377Assumptions.RandomizedVerificationKeySpec i.sharedAK s.authRandomizer s.computedRK
   rkEquivalent :
-    s.computedRK = s.rkClaimed
+    Decaf377Assumptions.DecafEquivalent s.computedRK s.rkClaimed
   rkCompressed :
     Decaf377Assumptions.CompressToFieldSpec s.rkClaimed s.rkCompressed
+  /-- The rk statement field is the compression of the honestly-computed RVK, not
+  merely of the prover-chosen representative: two-torsion invariance makes them
+  equal (discharges `ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE` for this seam). -/
+  rkCompressedCanonical :
+    Decaf377Assumptions.CompressToFieldSpec s.computedRK s.rkCompressed
   diversifiedTransmissionKey :
     Decaf377Assumptions.DiversifiedTransmissionKeySpec i.nk i.sharedAK s.spentDivGen
       i.ivkReduced i.ivkQuotientA s.computedTransmission
   transmissionEquivalent :
-    s.computedTransmission = s.spentTransmission
+    Decaf377Assumptions.DecafEquivalent s.computedTransmission s.spentTransmission
   divGenShared :
-    s.spentDivGen = i.sharedDivGen
+    Decaf377Assumptions.DecafEquivalent s.spentDivGen i.sharedDivGen
   transmissionShared :
-    s.spentTransmission = i.sharedTransmission
+    Decaf377Assumptions.DecafEquivalent s.spentTransmission i.sharedTransmission
   assetShared : s.note.assetID = i.spend0.note.assetID
 
 structure OutputSound (i : Inputs) (o : Output) : Prop where
@@ -222,11 +203,11 @@ structure OutputSound (i : Inputs) (o : Output) : Prop where
     Decaf377Assumptions.DiversifiedTransmissionKeySpec i.nk i.sharedAK o.createdDivGen
       i.ivkReduced i.ivkQuotientA o.computedTransmission
   transmissionEquivalent :
-    o.computedTransmission = o.createdTransmission
+    Decaf377Assumptions.DecafEquivalent o.computedTransmission o.createdTransmission
   divGenShared :
-    o.createdDivGen = i.sharedDivGen
+    Decaf377Assumptions.DecafEquivalent o.createdDivGen i.sharedDivGen
   transmissionShared :
-    o.createdTransmission = i.sharedTransmission
+    Decaf377Assumptions.DecafEquivalent o.createdTransmission i.sharedTransmission
   assetShared : o.note.assetID = i.spend0.note.assetID
 
 structure SoundSpec (i : Inputs) : Prop where
@@ -238,7 +219,7 @@ structure SoundSpec (i : Inputs) : Prop where
       i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
       i.actionBalanceBlinding i.balanceCommitmentComputed
   balanceEquivalent :
-    i.balanceCommitmentComputed = i.balanceCommitmentClaimed
+    Decaf377Assumptions.DecafEquivalent i.balanceCommitmentComputed i.balanceCommitmentClaimed
   balanceCompressed :
     Decaf377Assumptions.CompressToFieldSpec i.balanceCommitmentComputed i.balanceCommitmentFq
   statementHash :
@@ -249,16 +230,13 @@ structure SoundSpec (i : Inputs) : Prop where
 
 private theorem spend_sound
     (i : Inputs) (s : Spend)
-    (S : Decaf377Assumptions.PrimeOrderSubgroup) (hWit : DecafWitnessOnCurve S i)
-    (hSpentDivGenMem : S.mem s.spentDivGen)
-    (hRkClaimedMem : S.mem s.rkClaimed)
-    (hSpentTransOn : EdwardsBridge.onCurve ⟨s.spentTransmission.x, s.spentTransmission.y⟩)
-    (hSpentTransMem : S.mem s.spentTransmission) :
+    (hSharedDivGenOn : Decaf377Assumptions.OnCurveCircuit i.sharedDivGen)
+    (hSharedTransmissionOn : Decaf377Assumptions.OnCurveCircuit i.sharedTransmission) :
     spendCircuit i s → SpendSound i s := by
   intro h
   rcases h with
     ⟨hDivGenFq, hNote, hLeaf, hNullifier, hAnchor, hRVK, hRKEq, hRKCompressed, hDTK,
-      hTransmissionEq, hDivGenShared, hTransmissionShared, hAsset⟩
+      hSpentTransOn, hTransmissionEq, hDivGenShared, hTransmissionShared, hAsset⟩
   have hDivGenOn := DtkBridge.decaf377_compressToField_onCurve s.spentDivGen
     s.note.divGenCompressed hDivGenFq
   have hAkOn := DtkBridge.decaf377_diversifiedTransmissionKey_ak_onCurve i.nk i.sharedAK
@@ -276,12 +254,6 @@ private theorem spend_sound
     DtkBridge.decaf377_diversifiedTransmissionKey_sound i.nk i.sharedAK
       s.spentDivGen i.ivkReduced i.ivkQuotientA s.computedTransmission
       hDivGenOn hDTK
-  have hComputedRKMem : S.mem s.computedRK := by
-    rw [hRVKSpec]
-    exact S.mem_rvk i.sharedAK s.authRandomizer hWit.sharedAKMem
-  have hComputedTransmissionMem : S.mem s.computedTransmission := by
-    rw [hDTKSpec.2]
-    exact S.mem_dtk i.nk i.sharedAK s.spentDivGen i.ivkReduced i.ivkQuotientA hSpentDivGenMem
   exact {
     divGenCompressed := Decaf377Assumptions.decaf377_compressToField_sound s.spentDivGen
       s.note.divGenCompressed hDivGenFq
@@ -294,38 +266,40 @@ private theorem spend_sound
       s.path hAnchor
     randomizedVerificationKey :=
       hRVKSpec
-    rkEquivalent := S.cosetEq_of_mem s.computedRK s.rkClaimed hRKOn hRKClaimedOn
-      hComputedRKMem hRkClaimedMem
-      (Decaf377Assumptions.decaf377_assertEquivalent_sound s.computedRK s.rkClaimed hRKEq)
+    rkEquivalent := ⟨hRKOn, hRKClaimedOn,
+      Decaf377Assumptions.decaf377_assertEquivalent_sound s.computedRK s.rkClaimed hRKEq⟩
     rkCompressed := Decaf377Assumptions.decaf377_compressToField_sound s.rkClaimed
       s.rkCompressed hRKCompressed
+    rkCompressedCanonical :=
+      Decaf377Assumptions.compress_respects_decafEquivalent s.computedRK s.rkClaimed
+        s.rkCompressed
+        ⟨hRKOn, hRKClaimedOn,
+          Decaf377Assumptions.decaf377_assertEquivalent_sound s.computedRK s.rkClaimed hRKEq⟩
+        (Decaf377Assumptions.decaf377_compressToField_sound s.rkClaimed s.rkCompressed
+          hRKCompressed)
     diversifiedTransmissionKey :=
       hDTKSpec
-    transmissionEquivalent := S.cosetEq_of_mem s.computedTransmission s.spentTransmission
-      hTransOn hSpentTransOn hComputedTransmissionMem hSpentTransMem
-      (Decaf377Assumptions.decaf377_assertEquivalent_sound s.computedTransmission
-        s.spentTransmission hTransmissionEq)
-    divGenShared := S.cosetEq_of_mem s.spentDivGen i.sharedDivGen hDivGenOn hWit.sharedDivGen
-      hSpentDivGenMem hWit.sharedDivGenMem
-      (Decaf377Assumptions.decaf377_assertEquivalent_sound s.spentDivGen i.sharedDivGen
-        hDivGenShared)
-    transmissionShared := S.cosetEq_of_mem s.spentTransmission i.sharedTransmission
-      hSpentTransOn hWit.sharedTransmission hSpentTransMem hWit.sharedTransmissionMem
-      (Decaf377Assumptions.decaf377_assertEquivalent_sound s.spentTransmission
-        i.sharedTransmission hTransmissionShared)
+    transmissionEquivalent := ⟨hTransOn, hSpentTransOn,
+      Decaf377Assumptions.decaf377_assertEquivalent_sound s.computedTransmission
+        s.spentTransmission hTransmissionEq⟩
+    divGenShared := ⟨hDivGenOn, hSharedDivGenOn,
+      Decaf377Assumptions.decaf377_assertEquivalent_sound s.spentDivGen i.sharedDivGen
+        hDivGenShared⟩
+    transmissionShared := ⟨hSpentTransOn, hSharedTransmissionOn,
+      Decaf377Assumptions.decaf377_assertEquivalent_sound s.spentTransmission
+        i.sharedTransmission hTransmissionShared⟩
     assetShared := hAsset
   }
 
 private theorem output_sound
     (i : Inputs) (o : Output)
-    (S : Decaf377Assumptions.PrimeOrderSubgroup) (hWit : DecafWitnessOnCurve S i)
-    (hCreatedDivGenMem : S.mem o.createdDivGen)
-    (hCreatedTransOn : EdwardsBridge.onCurve ⟨o.createdTransmission.x, o.createdTransmission.y⟩)
-    (hCreatedTransMem : S.mem o.createdTransmission) :
+    (hSharedDivGenOn : Decaf377Assumptions.OnCurveCircuit i.sharedDivGen)
+    (hSharedTransmissionOn : Decaf377Assumptions.OnCurveCircuit i.sharedTransmission) :
     outputCircuit i o → OutputSound i o := by
   intro h
   rcases h with
-    ⟨hDivGenFq, hNote, hPublished, hDTK, hTransmissionEq, hDivGenShared, hTransmissionShared, hAsset⟩
+    ⟨hDivGenFq, hNote, hPublished, hDTK, hCreatedTransOn, hTransmissionEq,
+      hDivGenShared, hTransmissionShared, hAsset⟩
   have hDivGenOn := DtkBridge.decaf377_compressToField_onCurve o.createdDivGen
     o.note.divGenCompressed hDivGenFq
   have hTransOn := DtkBridge.decaf377_diversifiedTransmissionKey_onCurve i.nk i.sharedAK
@@ -334,9 +308,6 @@ private theorem output_sound
     DtkBridge.decaf377_diversifiedTransmissionKey_sound i.nk i.sharedAK
       o.createdDivGen i.ivkReduced i.ivkQuotientA o.computedTransmission
       hDivGenOn hDTK
-  have hComputedTransmissionMem : S.mem o.computedTransmission := by
-    rw [hDTKSpec.2]
-    exact S.mem_dtk i.nk i.sharedAK o.createdDivGen i.ivkReduced i.ivkQuotientA hCreatedDivGenMem
   exact {
     divGenCompressed := Decaf377Assumptions.decaf377_compressToField_sound o.createdDivGen
       o.note.divGenCompressed hDivGenFq
@@ -346,24 +317,20 @@ private theorem output_sound
     publishedCommitment := hPublished
     diversifiedTransmissionKey :=
       hDTKSpec
-    transmissionEquivalent := S.cosetEq_of_mem o.computedTransmission o.createdTransmission
-      hTransOn hCreatedTransOn hComputedTransmissionMem hCreatedTransMem
-      (Decaf377Assumptions.decaf377_assertEquivalent_sound o.computedTransmission
-        o.createdTransmission hTransmissionEq)
-    divGenShared := S.cosetEq_of_mem o.createdDivGen i.sharedDivGen hDivGenOn hWit.sharedDivGen
-      hCreatedDivGenMem hWit.sharedDivGenMem
-      (Decaf377Assumptions.decaf377_assertEquivalent_sound o.createdDivGen i.sharedDivGen
-        hDivGenShared)
-    transmissionShared := S.cosetEq_of_mem o.createdTransmission i.sharedTransmission
-      hCreatedTransOn hWit.sharedTransmission hCreatedTransMem hWit.sharedTransmissionMem
-      (Decaf377Assumptions.decaf377_assertEquivalent_sound o.createdTransmission
-        i.sharedTransmission hTransmissionShared)
+    transmissionEquivalent := ⟨hTransOn, hCreatedTransOn,
+      Decaf377Assumptions.decaf377_assertEquivalent_sound o.computedTransmission
+        o.createdTransmission hTransmissionEq⟩
+    divGenShared := ⟨hDivGenOn, hSharedDivGenOn,
+      Decaf377Assumptions.decaf377_assertEquivalent_sound o.createdDivGen i.sharedDivGen
+        hDivGenShared⟩
+    transmissionShared := ⟨hCreatedTransOn, hSharedTransmissionOn,
+      Decaf377Assumptions.decaf377_assertEquivalent_sound o.createdTransmission
+        i.sharedTransmission hTransmissionShared⟩
     assetShared := hAsset
   }
 
 theorem consolidate2x1_circuit_sound
-    (i : Inputs)
-    (S : Decaf377Assumptions.PrimeOrderSubgroup) (hWit : DecafWitnessOnCurve S i) :
+    (i : Inputs) :
     DefineModel i → SoundSpec i := by
   intro h
   have hBalanceComputedOn := NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_onCurve
@@ -372,23 +339,14 @@ theorem consolidate2x1_circuit_sound
   have hNetBalanceSpec := NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound
     i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
     i.actionBalanceBlinding i.balanceCommitmentComputed h.netBalance
-  have hBalanceComputedMem : S.mem i.balanceCommitmentComputed := by
-    rw [hNetBalanceSpec]
-    exact S.mem_netBalanceCommit i.spend0.note.amount i.spend1.note.amount
-      i.output0.note.amount i.spend0.note.assetID i.actionBalanceBlinding
   exact {
-    spend0 := spend_sound i i.spend0 S hWit hWit.spentDivGen0Mem hWit.rkClaimed0Mem
-      hWit.spentTransmission0 hWit.spentTransmission0Mem h.spend0
-    spend1 := spend_sound i i.spend1 S hWit hWit.spentDivGen1Mem hWit.rkClaimed1Mem
-      hWit.spentTransmission1 hWit.spentTransmission1Mem h.spend1
-    output0 := output_sound i i.output0 S hWit hWit.createdDivGen0Mem
-      hWit.createdTransmission0 hWit.createdTransmission0Mem h.output0
+    spend0 := spend_sound i i.spend0 h.sharedDivGenOnCurve h.sharedTransmissionOnCurve h.spend0
+    spend1 := spend_sound i i.spend1 h.sharedDivGenOnCurve h.sharedTransmissionOnCurve h.spend1
+    output0 := output_sound i i.output0 h.sharedDivGenOnCurve h.sharedTransmissionOnCurve h.output0
     netBalance := hNetBalanceSpec
-    balanceEquivalent := S.cosetEq_of_mem i.balanceCommitmentComputed i.balanceCommitmentClaimed
-      hBalanceComputedOn hWit.balanceCommitmentClaimed hBalanceComputedMem
-      hWit.balanceCommitmentClaimedMem
-      (Decaf377Assumptions.decaf377_assertEquivalent_sound i.balanceCommitmentComputed
-        i.balanceCommitmentClaimed h.balanceEquivalent)
+    balanceEquivalent := ⟨hBalanceComputedOn, h.balanceCommitmentClaimedOnCurve,
+      Decaf377Assumptions.decaf377_assertEquivalent_sound i.balanceCommitmentComputed
+        i.balanceCommitmentClaimed h.balanceEquivalent⟩
     balanceCompressed := Decaf377Assumptions.decaf377_compressToField_sound
       i.balanceCommitmentComputed i.balanceCommitmentFq h.balanceCompressed
     statementHash := Poseidon7Bridge.circuit_sound i.statementDomain i.anchor i.outputCommitment

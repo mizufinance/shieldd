@@ -6,6 +6,7 @@ import ShielddGnarkFormal.Extracted.Nullifier
 import ShielddGnarkFormal.Extracted.PoseidonHash1
 import ShielddGnarkFormal.Extracted.Poseidon2
 import ShielddGnarkFormal.Extracted.PoseidonHash4
+import ShielddGnarkFormal.Extracted.PoseidonHash5
 import ShielddGnarkFormal.Extracted.PoseidonHash6
 import ShielddGnarkFormal.Extracted.PoseidonHash7
 import ShielddGnarkFormal.Extracted.QuadPath1
@@ -17,6 +18,7 @@ import ShielddGnarkFormal.QuadPathSpec
 import ShielddGnarkFormal.Poseidon1Bridge
 import ShielddGnarkFormal.Poseidon2Bridge
 import ShielddGnarkFormal.Poseidon4Bridge
+import ShielddGnarkFormal.Poseidon5Bridge
 import ShielddGnarkFormal.Poseidon3Bridge
 import ShielddGnarkFormal.Poseidon6Bridge
 import ShielddGnarkFormal.Poseidon7Bridge
@@ -32,8 +34,17 @@ import ShielddGnarkFormal.Extracted.ScalarMulLE128
 import ShielddGnarkFormal.Extracted.ScalarMulLE251
 import ShielddGnarkFormal.Extracted.NetBalanceCommitment
 import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.RvkBridge
 import ShielddGnarkFormal.DtkBridge
 import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.AckBridge
+import ShielddGnarkFormal.SharedSecretBridge
+import ShielddGnarkFormal.TransferSaltBridge
+import ShielddGnarkFormal.PoseidonEncryptionBridge
+import ShielddGnarkFormal.DleqBridge
+import ShielddGnarkFormal.ThresholdRegulatedBridge
 import ShielddGnarkFormal.Consolidate2x1
 import ShielddGnarkFormal.Consolidate2x1WiringTranscript
+import ShielddGnarkFormal.Transfer
+import ShielddGnarkFormal.TransferWiringTranscript

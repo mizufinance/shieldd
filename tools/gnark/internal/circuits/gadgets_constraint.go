@@ -75,6 +75,27 @@ func (c *PoseidonHash4Gadget) Define(api frontend.API) error {
 	return nil
 }
 
+// PoseidonHash5Gadget isolates the five-input Poseidon377 permutation used by
+// asset-registry ring and leaf commitments in the transfer compliance path.
+type PoseidonHash5Gadget struct {
+	Domain frontend.Variable `gnark:",public"`
+	In0    frontend.Variable `gnark:",public"`
+	In1    frontend.Variable `gnark:",public"`
+	In2    frontend.Variable `gnark:",public"`
+	In3    frontend.Variable `gnark:",public"`
+	In4    frontend.Variable `gnark:",public"`
+	Out    frontend.Variable
+}
+
+func (c *PoseidonHash5Gadget) Define(api frontend.API) error {
+	out, err := Poseidon377Hash5(api, c.Domain, [5]frontend.Variable{c.In0, c.In1, c.In2, c.In3, c.In4})
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out, c.Out)
+	return nil
+}
+
 // PoseidonHash6Gadget isolates the six-input Poseidon377 permutation used by
 // note commitments.
 type PoseidonHash6Gadget struct {
@@ -185,6 +206,88 @@ func verifyQuadPathN(api frontend.API, domain, leafHash frontend.Variable, path 
 		})
 	}
 	return current, nil
+}
+
+// QuadPathRoundGadget exposes one Merkle layer as a standalone circuit so Picus
+// discharges quad-path determinism compositionally: a depth-N path is this round
+// folded N times over a boolean position decomposition, so determinism of the
+// round (plus the already-`safe` bit decomposition) implies determinism of every
+// QuadPathNGadget. Picus cannot cross the unrolled depth-16/24 paths (per-signal
+// SMT over thousands of signals does not scale); the round is small.
+type QuadPathRoundGadget struct {
+	Domain  frontend.Variable `gnark:",public"`
+	Current frontend.Variable `gnark:",public"`
+	Sib0    frontend.Variable `gnark:",public"`
+	Sib1    frontend.Variable `gnark:",public"`
+	Sib2    frontend.Variable `gnark:",public"`
+	Bit0    frontend.Variable `gnark:",public"`
+	Bit1    frontend.Variable `gnark:",public"`
+	Parent  frontend.Variable
+}
+
+func (c *QuadPathRoundGadget) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.Bit0)
+	api.AssertIsBoolean(c.Bit1)
+	parent := abstractor.Call(api, quadPathRound{
+		Domain:  c.Domain,
+		Current: c.Current,
+		Sib0:    c.Sib0,
+		Sib1:    c.Sib1,
+		Sib2:    c.Sib2,
+		Bit0:    c.Bit0,
+		Bit1:    c.Bit1,
+	})
+	api.AssertIsEqual(parent, c.Parent)
+	return nil
+}
+
+// QuadPathTwoRoundGadget chains two consecutive Merkle layers so Picus exercises
+// the composition boundary: the join wire (parent of layer i becomes Current of
+// layer i+1) plus the two independent position-bit pairs. A single
+// QuadPathRoundGadget proves one layer deterministic in isolation; this probe
+// confirms wiring two layers together adds no free signal at the seam — the
+// empirical anchor for the `safe-by-composition` lift of every QuadPathNGadget.
+type QuadPathTwoRoundGadget struct {
+	Domain      frontend.Variable `gnark:",public"`
+	Current     frontend.Variable `gnark:",public"`
+	L0Sib0      frontend.Variable `gnark:",public"`
+	L0Sib1      frontend.Variable `gnark:",public"`
+	L0Sib2      frontend.Variable `gnark:",public"`
+	L0Bit0      frontend.Variable `gnark:",public"`
+	L0Bit1      frontend.Variable `gnark:",public"`
+	L1Sib0      frontend.Variable `gnark:",public"`
+	L1Sib1      frontend.Variable `gnark:",public"`
+	L1Sib2      frontend.Variable `gnark:",public"`
+	L1Bit0      frontend.Variable `gnark:",public"`
+	L1Bit1      frontend.Variable `gnark:",public"`
+	Grandparent frontend.Variable
+}
+
+func (c *QuadPathTwoRoundGadget) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.L0Bit0)
+	api.AssertIsBoolean(c.L0Bit1)
+	api.AssertIsBoolean(c.L1Bit0)
+	api.AssertIsBoolean(c.L1Bit1)
+	parent := abstractor.Call(api, quadPathRound{
+		Domain:  c.Domain,
+		Current: c.Current,
+		Sib0:    c.L0Sib0,
+		Sib1:    c.L0Sib1,
+		Sib2:    c.L0Sib2,
+		Bit0:    c.L0Bit0,
+		Bit1:    c.L0Bit1,
+	})
+	grandparent := abstractor.Call(api, quadPathRound{
+		Domain:  c.Domain,
+		Current: parent,
+		Sib0:    c.L1Sib0,
+		Sib1:    c.L1Sib1,
+		Sib2:    c.L1Sib2,
+		Bit0:    c.L1Bit0,
+		Bit1:    c.L1Bit1,
+	})
+	api.AssertIsEqual(grandparent, c.Grandparent)
+	return nil
 }
 
 // QuadPathNGadget probes the whole quad Merkle path at parametric depth N: given

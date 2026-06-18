@@ -72,6 +72,12 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		"shared.transmission=spend0.note.transmission",
 		"shared.asset_id=spend0.note.asset_id",
 	)
+	c.traceWiring("decaf.assert_on_curve", "point=claimed.balance_commitment")
+	assertDecafPointOnCurve(api, claimedBalanceCommitment)
+	c.traceWiring("decaf.assert_on_curve", "point=shared.div_gen")
+	assertDecafPointOnCurve(api, sharedDivGen)
+	c.traceWiring("decaf.assert_on_curve", "point=shared.transmission")
+	assertDecafPointOnCurve(api, sharedTransmission)
 
 	inputAmounts := make([]frontend.Variable, 0, c.nIn)
 	outputAmounts := make([]frontend.Variable, 0, c.nOut)
@@ -259,6 +265,8 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	c.traceWiring("decaf.assert_on_curve", "point="+name+".note.transmission")
+	assertDecafPointOnCurve(api, spentTransmission)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission")
 	decafgnark.AssertEquivalent(api, computedTransmission, spentTransmission)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")
@@ -325,6 +333,8 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	if err != nil {
 		return nil, nil, err
 	}
+	c.traceWiring("decaf.assert_on_curve", "point="+name+".note.transmission")
+	assertDecafPointOnCurve(api, createdTransmission)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission")
 	decafgnark.AssertEquivalent(api, computedTransmission, createdTransmission)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")

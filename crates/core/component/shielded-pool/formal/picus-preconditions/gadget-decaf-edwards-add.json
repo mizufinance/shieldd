@@ -1,0 +1,7 @@
+[
+  ["edwards-add-denominator-1plus-dv0v1-nonzero",
+    ["rassert", ["rneq", ["rvar", 16],
+      ["rint", 8444461749428370424248824938781546531375899335154063827935233455917409239040]]]],
+  ["edwards-add-denominator-1minus-dv0v1-nonzero",
+    ["rassert", ["rneq", ["rvar", 16], ["rint", 1]]]]
+]
