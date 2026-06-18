@@ -3,7 +3,7 @@ solver: cvc5
 safety: weak
 scope: decomposed-gadget
 timeout_ms: 120000
-total_timeout_seconds: 1800
+total_timeout_seconds: 120
 GADGET gadget-poseidon-hash1 safe
   sr1cs_sha256: 7d2329fdfb1c417d326fc4b013b8daaa0f70c506e17da2dea4beae17e1634965
   precondition_sha256: none
@@ -14,6 +14,10 @@ GADGET gadget-poseidon2 safe
   picus_exit: 8
 GADGET gadget-poseidon-hash4 safe
   sr1cs_sha256: dbd2b99f3384e3c0e793f3bd38178349657e718254e51b8185911d156989faf6
+  precondition_sha256: none
+  picus_exit: 8
+GADGET gadget-poseidon-hash5 safe
+  sr1cs_sha256: de3f0be736c07a9ce0f752dbffe045522249594e342325f37c19481b76e1032f
   precondition_sha256: none
   picus_exit: 8
 GADGET gadget-poseidon-hash6 safe
@@ -88,6 +92,14 @@ GADGET gadget-scalar-mul-two-step safe
   sr1cs_sha256: b534afaf2cb440c928702e16eac50701306a732d1308d1355cdbc4d537394a9b
   precondition_sha256: d4b982c15ceef1392d42d5ea37b4b0c149f21a0d06fe6c4697a40d19456e1bd5
   picus_exit: 8
+GADGET gadget-ack-two-step safe
+  sr1cs_sha256: d71bad5e1f64edc04c82e21c8fa057524f95fb7a394a63b24ffafcedae66aac6
+  precondition_sha256: none
+  picus_exit: 8
+GADGET gadget-dleq safe
+  sr1cs_sha256: c3092671887725681649f0de59e68483428fc79a3e4c25f75bfad06c1b99eb74
+  precondition_sha256: none
+  picus_exit: 8
 COMPOSITE scalar-mul-le-128 safe-by-composition
   note: scalar-mul-step folded 128x over canonical-fq-bits boolean decomposition
   boundary_probe: gadget-scalar-mul-two-step (join seam safe)
@@ -96,6 +108,10 @@ COMPOSITE scalar-mul-le-251 safe-by-composition
   note: scalar-mul-step folded 251x over canonical-fq-bits boolean decomposition
   boundary_probe: gadget-scalar-mul-two-step (join seam safe)
   lean_lift: Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE251_sound
+COMPOSITE ack-derivation safe-by-composition
+  note: non-constant-base scalar-mul ladder over the asset ring public key
+  boundary_probe: gadget-ack-two-step (join seam safe)
+  lean_lift: Shieldd.GnarkFormal.AckBridge.ack_sound
 COMPOSITE quad-path-1/2/4/16/24 safe-by-composition
   note: quad-path-round folded per depth over canonical-fq-bits position decomposition
   boundary_probe: gadget-quad-path-two-round (join seam safe)
@@ -109,6 +125,10 @@ COMPOSITE dtk safe-by-composition
   note: compress-to-field + poseidon2 + ivk-mod-r + scalar-mul ladder leaves
 COMPOSITE net-balance-commitment safe-by-composition
   note: poseidon1 + encode-to-curve + scalar-mul + edwards-add leaves
+COMPOSITE transfer-dleq safe-by-composition
+  note: Poseidon7 challenge + paired scalar-mul response ladders + Decaf equivalence checks
+  boundary_probe: gadget-dleq (response join seam safe)
+  lean_lift: Shieldd.GnarkFormal.DleqBridge.dleq_sound
 FAMILY transfer undischarged-by-design
   note: whole-circuit Picus times out (Poseidon+Merkle+Decaf377); not retried
 FAMILY consolidate2x1 undischarged-by-design

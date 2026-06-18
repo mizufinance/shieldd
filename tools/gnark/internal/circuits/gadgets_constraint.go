@@ -75,6 +75,27 @@ func (c *PoseidonHash4Gadget) Define(api frontend.API) error {
 	return nil
 }
 
+// PoseidonHash5Gadget isolates the five-input Poseidon377 permutation used by
+// asset-registry ring and leaf commitments in the transfer compliance path.
+type PoseidonHash5Gadget struct {
+	Domain frontend.Variable `gnark:",public"`
+	In0    frontend.Variable `gnark:",public"`
+	In1    frontend.Variable `gnark:",public"`
+	In2    frontend.Variable `gnark:",public"`
+	In3    frontend.Variable `gnark:",public"`
+	In4    frontend.Variable `gnark:",public"`
+	Out    frontend.Variable
+}
+
+func (c *PoseidonHash5Gadget) Define(api frontend.API) error {
+	out, err := Poseidon377Hash5(api, c.Domain, [5]frontend.Variable{c.In0, c.In1, c.In2, c.In3, c.In4})
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out, c.Out)
+	return nil
+}
+
 // PoseidonHash6Gadget isolates the six-input Poseidon377 permutation used by
 // note commitments.
 type PoseidonHash6Gadget struct {
@@ -227,18 +248,18 @@ func (c *QuadPathRoundGadget) Define(api frontend.API) error {
 // confirms wiring two layers together adds no free signal at the seam — the
 // empirical anchor for the `safe-by-composition` lift of every QuadPathNGadget.
 type QuadPathTwoRoundGadget struct {
-	Domain    frontend.Variable `gnark:",public"`
-	Current   frontend.Variable `gnark:",public"`
-	L0Sib0    frontend.Variable `gnark:",public"`
-	L0Sib1    frontend.Variable `gnark:",public"`
-	L0Sib2    frontend.Variable `gnark:",public"`
-	L0Bit0    frontend.Variable `gnark:",public"`
-	L0Bit1    frontend.Variable `gnark:",public"`
-	L1Sib0    frontend.Variable `gnark:",public"`
-	L1Sib1    frontend.Variable `gnark:",public"`
-	L1Sib2    frontend.Variable `gnark:",public"`
-	L1Bit0    frontend.Variable `gnark:",public"`
-	L1Bit1    frontend.Variable `gnark:",public"`
+	Domain      frontend.Variable `gnark:",public"`
+	Current     frontend.Variable `gnark:",public"`
+	L0Sib0      frontend.Variable `gnark:",public"`
+	L0Sib1      frontend.Variable `gnark:",public"`
+	L0Sib2      frontend.Variable `gnark:",public"`
+	L0Bit0      frontend.Variable `gnark:",public"`
+	L0Bit1      frontend.Variable `gnark:",public"`
+	L1Sib0      frontend.Variable `gnark:",public"`
+	L1Sib1      frontend.Variable `gnark:",public"`
+	L1Sib2      frontend.Variable `gnark:",public"`
+	L1Bit0      frontend.Variable `gnark:",public"`
+	L1Bit1      frontend.Variable `gnark:",public"`
 	Grandparent frontend.Variable
 }
 

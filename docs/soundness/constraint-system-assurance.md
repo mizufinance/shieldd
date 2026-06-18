@@ -52,6 +52,7 @@ each exporting its own `.sr1cs` via `gnarkctl export-r1cs --circuit gadget-*`:
 | Poseidon377 | `gadget-poseidon-hash1` | one-input hash | 236 |
 | Poseidon377 | `gadget-poseidon2` | two-input hash | 276 |
 | Poseidon377 | `gadget-poseidon-hash4` | four-input hash / quad path layer | 356 |
+| Poseidon377 | `gadget-poseidon-hash5` | five-input transfer asset-registry hash | 396 |
 | Poseidon377 | `gadget-poseidon-hash6` | six-input note commitment hash | 436 |
 | Poseidon377 | `gadget-poseidon-hash7` | seven-input statement hash | 476 |
 | Merkle / IMT | `gadget-nullifier` | nullifier derivation | 311 |
@@ -89,6 +90,8 @@ untouched.
 | Family | Leaf probe | Folds to | Constraints |
 | --- | --- | --- | --- |
 | Decaf377 | `gadget-scalar-mul-step` | `scalar-mul-le-128`, `scalar-mul-le-251` | 18 |
+| Decaf377 | `gadget-ack-two-step` | non-constant-base ACK derivation seam | 30 |
+| Compliance | `gadget-dleq` | DLEQ response/challenge scalar seams | 116 |
 | Merkle / IMT | `gadget-quad-path-round` | `quad-path-1/2/4/16/24` | 372 |
 | Decaf377 | `gadget-decaf-compress-to-field-core` | `decaf-compress-to-field` | 36 |
 | Decaf377 | `gadget-decaf-encode-to-curve-core` | `decaf-encode-to-curve` | 43 |
@@ -110,10 +113,11 @@ has the same join shape.
 
 For gadget `.sr1cs`, public operands and auxiliary witness hints are Picus
 inputs. Claimed result wires (`Out`, `OutX`, `OutY`, `Root`, `Nullifier`,
-`Valid`, `IvkReduced`) are Picus outputs whose uniqueness it must decide. There
-is no dedicated DLEQ gadget wrapper; the DLEQ relation is built from the
-Decaf377 group-law and scalar gadgets above, with semantic DLEQ soundness handled
-in the Lean DLEQ track.
+`Valid`, `IvkReduced`) are Picus outputs whose uniqueness it must decide. The
+transfer DLEQ relation is exposed through `gadget-dleq`, a verification-only
+seam probe over the two response scalar-mul joins and Edwards adds; semantic
+DLEQ soundness is handled by the transfer Lean bridge
+`Shieldd.GnarkFormal.DleqBridge.dleq_sound`.
 
 ## C2 — Picus under-constraint at gadget scope (CI-only)
 
@@ -131,16 +135,17 @@ decaf/division gadgets, so it is a fallback only (`PICUS_SOLVER=z3`).
 
 The current stamped report
 ([circuit-constraint-report.txt](../../crates/core/component/shielded-pool/formal/circuit-constraint-report.txt),
-SHA-256 `e4a8e2e09a1e768723ff41e552c0574beea5435672ab0d6947e078a85364b769`)
-uses `timeout_ms = 120000` and `total_timeout_seconds = 150`. Picus returned
-`safe` for **every** leaf on the board: the five Poseidon arities,
+SHA-256 `7005a7cb735b765fe02ca66db0993a060dc2579d02f2774b1d599ad3b9ddf9a2`)
+uses `timeout_ms = 120000` and `total_timeout_seconds = 120`. Picus returned
+`safe` for **every** leaf on the board: the six Poseidon arities,
 `gadget-nullifier`, `gadget-imt-gap`, `gadget-iszero`,
 `gadget-quad-path-round`, `gadget-decaf-assert-equivalent`,
 `gadget-decaf-edwards-add`, `gadget-decaf-edwards-double`,
 `gadget-decaf-edwards-neg`, `gadget-decaf-compress-to-field-core`,
 `gadget-decaf-encode-to-curve-core`, `gadget-canonical-fq-bits`,
-`gadget-bool-select`, `gadget-ivk-mod-r`, and `gadget-scalar-mul-step`. No
-gadget returned `undischarged` or `underconstrained`.
+`gadget-bool-select`, `gadget-ivk-mod-r`, `gadget-scalar-mul-step`,
+`gadget-ack-two-step`, and `gadget-dleq`. No gadget returned `undischarged` or
+`underconstrained`.
 
 **Prior finding (the check earned its keep).** The all-`safe` board above is the
 *post-fix* state. An earlier run of this same checker returned a real
@@ -195,6 +200,26 @@ each cited bridge theorem actually exists in the extracted Lean sources. For
 circuit families not yet composed in Lean, the lift remains the residual C2
 assumption.
 
+**For `transfer`, the transfer-only C2 lift is likewise mechanized in Lean.**
+The axiom-clean `Shieldd.GnarkFormal.Transfer.transfer_circuit_sound` composes
+the shared Decaf/Poseidon/Merkle bridges above with transfer compliance bridges:
+
+| Transfer seam | Lean bridge theorem |
+| --- | --- |
+| arity-5 asset-registry hash | `Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound` |
+| non-constant-base ACK derivation | `Shieldd.GnarkFormal.AckBridge.ack_sound` |
+| shared secret derivation | `Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound` |
+| transfer salt derivation | `Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound` |
+| Poseidon detection ciphertext | `Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_sound` |
+| Poseidon amount ciphertext | `Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_sound` |
+| Poseidon address ciphertext | `Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_sound` |
+| DLEQ relation | `Shieldd.GnarkFormal.DleqBridge.dleq_sound` |
+| threshold and regulated branch selection | `Shieldd.GnarkFormal.ThresholdRegulatedBridge.threshold_flag_sound` / `select_point_sound` |
+| dummy mux / conditional equivalence | `Shieldd.GnarkFormal.ThresholdRegulatedBridge.dummy_mux_sound` / `assert_equivalent_if_sound` |
+
+The same invariant script checks that these bridge names are cited here and
+defined in the gnark Lean source tree.
+
 **Status honesty:** a Picus-clean gadget is under-constraint *evidence* for that
 gadget — necessary, not sufficient for the semantic property. There is no
 theorem connecting "no under-constraint found" to `NO-DOUBLE-SPEND` /
@@ -206,7 +231,7 @@ rows still require whole-circuit composition artifacts.
 
 | Tool | Disposition | Reason |
 | --- | --- | --- |
-| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5, plus two composition-boundary probes `safe`; whole-family attempts remain undischarged timeouts. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, the `*-two-step`/`*-two-round` join-seam probes, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition` with the lift mechanized in Lean for consolidate2x1. The whole-circuit attempt now runs with a real multi-hour budget (`scripts/run-whole-circuit-picus.sh`, nightly, non-gating) instead of the 180 s watchdog; `consolidate2x1`/`split1x4`/`split1x8` still wall out without a verdict and are recorded honestly. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
+| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5, plus scalar/ACK/DLEQ/Merkle composition-boundary probes `safe`; whole-family attempts remain undischarged timeouts. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, ACK/DLEQ seam probes, the `*-two-step`/`*-two-round` join-seam probes, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition` with the lift mechanized in Lean for consolidate2x1 and transfer. The whole-circuit attempt now runs with a real multi-hour budget (`scripts/run-whole-circuit-picus.sh`, nightly, non-gating) instead of the 180 s watchdog; `consolidate2x1`/`split1x4`/`split1x8` still wall out without a verdict and are recorded honestly. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
 | Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Shieldd needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
 | ACL2/Axe | Landed for bool-select, iszero, Poseidon2, nullifier, and AssetRegistryGap-backed `gadget-imt-gap` semantic gadget proofs. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |
@@ -290,29 +315,30 @@ A circuit property row moves to `proved` only with a stamped whole-circuit
 artifact; the invariant gate rejects gadget artifacts as substitutes for that
 property-level claim.
 
-**Lean wiring fidelity.** The `consolidate2x1` Lean whole-circuit artifact uses a
-Go Define wiring transcript, not a full R1CS transcript comparison. The transcript
-records the ordered call-site composition of proved leaves and decaf gadget
-bridges with stable semantic wire names, then byte-compares that output
-against the Lean model transcript in `scripts/check-lean-circuit-fv.sh`. This
-catches dropped calls, miswired inputs, missing equality/equivalence checks, and
-statement-field order drift without re-materializing the full Poseidon/Merkle
-constraint system.
+**Lean wiring fidelity.** The `consolidate2x1` and `transfer` Lean whole-circuit
+artifacts use Go Define wiring transcripts, not full R1CS transcript comparisons.
+Each transcript records the ordered call-site composition of proved leaves and
+decaf/compliance gadget bridges with stable semantic wire names, then
+byte-compares that output against the Lean model transcript in
+`scripts/check-lean-circuit-fv.sh`. This catches dropped calls, miswired inputs,
+missing equality/equivalence checks, and statement-field order drift without
+re-materializing the full Poseidon/Merkle/Decaf constraint system.
 
-The Decaf377 boundary for this artifact is now constraint-derived in Lean:
+The Decaf377 boundary for these artifacts is now constraint-derived in Lean:
 compress, assert-equivalent, encode-to-curve, RVK, DTK, scalar ladders, Edwards
 closure, and net-balance composition are bridged against extracted gadgets.
 `AssertEquivalent` is exposed as Decaf quotient equality, not affine
 representative equality. Raw affine Decaf representatives that do not otherwise
 pass through compression now have explicit in-circuit curve-equation assertions,
 and the whole-circuit theorem has no named external Decaf assumptions. The
-staged path from this single-circuit artifact to family-wide and protocol-wide
+staged path from these circuit artifacts to family-wide and protocol-wide
 coverage is tracked in
 [formal-verification-plan.md](formal-verification-plan.md).
 
 **M6 Lean scaffold.** A Lean 4 project now lives in
 [tools/gnark/lean](../../tools/gnark/lean). The vendored
-`gnark-lean-extractor` port emits supported BoolSelect, IsZero, and Nullifier
-models, and `lake build ShielddGnarkFormal` checks the extracted files,
-Poseidon bridge leaves, Decaf377 gadget bridges, and the stamped
-`consolidate2x1` whole-circuit composition theorem.
+`gnark-lean-extractor` port emits supported BoolSelect, IsZero, Nullifier, and
+Poseidon wrapper models, and `lake build ShielddGnarkFormal` checks the
+extracted files, Poseidon bridge leaves, Decaf377 gadget bridges, transfer
+compliance bridges, and the stamped `consolidate2x1` and `transfer`
+whole-circuit composition theorems.

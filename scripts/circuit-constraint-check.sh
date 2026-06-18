@@ -14,7 +14,8 @@ set -euo pipefail
 #   safe         - Picus proved the gadget properly constrained (under-constraint
 #                  *evidence*, not a semantic proof).
 #   underconstrained - real bug; hard-fails the script.
-#   undischarged - Picus could not decide within the timeout; recorded, not fatal.
+#   undischarged - Picus could not decide within the timeout or was misconfigured;
+#                  hard-fails unless PICUS_ALLOW_UNDISCHARGED=1 is set explicitly.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -69,6 +70,7 @@ if [ "${#gadgets[@]}" -eq 0 ]; then
   gadgets=(
     # Poseidon377 sponge (hash arities used across the circuits)
     gadget-poseidon-hash1 gadget-poseidon2 gadget-poseidon-hash4
+    gadget-poseidon-hash5
     gadget-poseidon-hash6 gadget-poseidon-hash7
     # Merkle / IMT (quad-path-round folds to every quad-path-N)
     gadget-nullifier gadget-imt-gap gadget-iszero
@@ -85,6 +87,8 @@ if [ "${#gadgets[@]}" -eq 0 ]; then
     gadget-scalar-mul-step
     # composition-boundary probe: two consecutive ladder rungs (join seam)
     gadget-scalar-mul-two-step
+    # transfer-only composition seams: ACK non-constant-base scalar mul and DLEQ responses
+    gadget-ack-two-step gadget-dleq
   )
 fi
 
@@ -93,7 +97,8 @@ mkdir -p "$WORK_DIR"
 
 tmp_report="$(mktemp)"
 underconstrained_files="$(mktemp)"
-trap 'rm -f "$tmp_report" "$underconstrained_files"' EXIT
+undischarged_gadgets="$(mktemp)"
+trap 'rm -f "$tmp_report" "$underconstrained_files" "$undischarged_gadgets"' EXIT
 
 {
   echo "tool: Picus"
@@ -135,9 +140,8 @@ for gadget in "${gadgets[@]}"; do
   elif rg -F "The circuit is properly constrained" "$output" >/dev/null; then
     result=safe
   else
-    # Timeout / cannot-determine on a gadget is recorded, not fatal: Picus is
-    # under-constraint evidence, not a required proof.
     result=undischarged
+    echo "$gadget" >>"$undischarged_gadgets"
   fi
 
   {
@@ -153,6 +157,11 @@ if rg -l -F "underconstrained" "$WORK_DIR"/*.picus.txt >"$underconstrained_files
   fail "Picus reported at least one gadget underconstrained"
 fi
 
+if [ -s "$undischarged_gadgets" ] && [ "${PICUS_ALLOW_UNDISCHARGED:-0}" != "1" ]; then
+  cat "$undischarged_gadgets" >&2
+  fail "Picus left gadget leaves undischarged; set PICUS_ALLOW_UNDISCHARGED=1 only for diagnostic runs"
+fi
+
 # Iterated/composite gadgets: discharged by composition of the leaf verdicts
 # above, not by a monolithic Picus run (which is a per-signal-SMT scaling dead
 # end). The composition lift is argued in docs/soundness.
@@ -165,6 +174,10 @@ fi
   echo "  note: scalar-mul-step folded 251x over canonical-fq-bits boolean decomposition"
   echo "  boundary_probe: gadget-scalar-mul-two-step (join seam safe)"
   echo "  lean_lift: Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE251_sound"
+  echo "COMPOSITE ack-derivation safe-by-composition"
+  echo "  note: non-constant-base scalar-mul ladder over the asset ring public key"
+  echo "  boundary_probe: gadget-ack-two-step (join seam safe)"
+  echo "  lean_lift: Shieldd.GnarkFormal.AckBridge.ack_sound"
   echo "COMPOSITE quad-path-1/2/4/16/24 safe-by-composition"
   echo "  note: quad-path-round folded per depth over canonical-fq-bits position decomposition"
   echo "  boundary_probe: gadget-quad-path-two-round (join seam safe)"
@@ -178,6 +191,10 @@ fi
   echo "  note: compress-to-field + poseidon2 + ivk-mod-r + scalar-mul ladder leaves"
   echo "COMPOSITE net-balance-commitment safe-by-composition"
   echo "  note: poseidon1 + encode-to-curve + scalar-mul + edwards-add leaves"
+  echo "COMPOSITE transfer-dleq safe-by-composition"
+  echo "  note: Poseidon7 challenge + paired scalar-mul response ladders + Decaf equivalence checks"
+  echo "  boundary_probe: gadget-dleq (response join seam safe)"
+  echo "  lean_lift: Shieldd.GnarkFormal.DleqBridge.dleq_sound"
 } >>"$tmp_report"
 
 # Whole-circuit families: recorded as attempted-and-undischarged by design. No

@@ -77,10 +77,16 @@ func runExportWiringTranscript(args []string) error {
 	if *circuit == "" || *outPath == "" {
 		return fmt.Errorf("--circuit and --out are required")
 	}
-	if *circuit != "consolidate2x1" {
-		return fmt.Errorf("wiring transcript export is currently supported only for consolidate2x1, got %q", *circuit)
+	var out string
+	var err error
+	switch *circuit {
+	case "consolidate2x1":
+		out, err = circuits.ExportConsolidate2x1WiringTranscript()
+	case "transfer":
+		out, err = circuits.ExportTransferWiringTranscript()
+	default:
+		return fmt.Errorf("unsupported wiring transcript circuit %q", *circuit)
 	}
-	out, err := circuits.ExportConsolidate2x1WiringTranscript()
 	if err != nil {
 		return err
 	}
@@ -228,6 +234,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.PoseidonHash2Gadget{}, true
 	case "gadget-poseidon-hash4":
 		return &circuits.PoseidonHash4Gadget{}, true
+	case "gadget-poseidon-hash5":
+		return &circuits.PoseidonHash5Gadget{}, true
 	case "gadget-poseidon-hash6":
 		return &circuits.PoseidonHash6Gadget{}, true
 	case "gadget-poseidon-hash7":
@@ -278,6 +286,10 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.ScalarMulStepGadget{}, true
 	case "gadget-scalar-mul-two-step":
 		return &circuits.ScalarMulTwoStepGadget{}, true
+	case "gadget-ack-two-step":
+		return &circuits.AckTwoStepGadget{}, true
+	case "gadget-dleq":
+		return &circuits.DLEQGadget{}, true
 	case "gadget-scalar-mul-le-251":
 		return &circuits.ScalarMulLE251Gadget{}, true
 	case "gadget-scalar-mul-le-128":
@@ -288,6 +300,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.DecafDtkGadget{}, true
 	case "gadget-net-balance-commitment":
 		return &circuits.NetBalanceCommitmentGadget{}, true
+	case "gadget-net-balance-commitment2":
+		return &circuits.NetBalanceCommitment2Gadget{}, true
 	default:
 		return nil, false
 	}
@@ -704,6 +718,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 	case "gadget-poseidon-hash4":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash4Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-poseidon-hash5":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash5Gadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-poseidon-hash6":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.PoseidonHash6Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
@@ -779,6 +796,12 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 	case "gadget-scalar-mul-two-step":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulTwoStepGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-ack-two-step":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.AckTwoStepGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-dleq":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.DLEQGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-scalar-mul-le-251":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulLE251Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
@@ -793,6 +816,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-net-balance-commitment":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NetBalanceCommitmentGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-net-balance-commitment2":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NetBalanceCommitment2Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {

@@ -120,6 +120,20 @@ noncomputable def netBalanceCommit (input0 input1 output assetID balanceBlinding
   let blind := scalarMulLE 251 valueBlindingGenerator balanceBlinding
   add (add (add (add zero in0) in1) (neg out)) blind
 
+/-- Transfer net-balance commitment: two input value ladders, two negated output
+value ladders, plus the blinding ladder. -/
+noncomputable def netBalanceCommit2
+    (input0 input1 output0 output1 assetID balanceBlinding : F) : Point :=
+  let assetHash := Poseidon1Bridge.permSpec1 valueGeneratorDomain assetID
+  let valueGenerator := encodeToCurve assetHash
+  let zero := scalarMulLE 128 valueGenerator 0
+  let in0 := scalarMulLE 128 valueGenerator input0
+  let in1 := scalarMulLE 128 valueGenerator input1
+  let out0 := scalarMulLE 128 valueGenerator output0
+  let out1 := scalarMulLE 128 valueGenerator output1
+  let blind := scalarMulLE 251 valueBlindingGenerator balanceBlinding
+  add (add (add (add (add zero in0) in1) (neg out0)) (neg out1)) blind
+
 /-- Extracted hint-free mirror constraints for decaf377 compression. -/
 def CompressToFieldCircuit (p : Point) (out : F) : Prop :=
   ∃ wasSquare sqrtRatio,
@@ -199,6 +213,10 @@ def DiversifiedTransmissionKeySpec
 def NetBalanceCommitmentSpec
     (input0 input1 output assetID balanceBlinding : F) (out : Point) : Prop :=
   out = netBalanceCommit input0 input1 output assetID balanceBlinding
+
+def NetBalanceCommitment2Spec
+    (input0 input1 output0 output1 assetID balanceBlinding : F) (out : Point) : Prop :=
+  out = netBalanceCommit2 input0 input1 output0 output1 assetID balanceBlinding
 
 theorem decaf377_compressToField_sound :
     ∀ p out, CompressToFieldCircuit p out → CompressToFieldSpec p out := by

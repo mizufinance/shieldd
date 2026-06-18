@@ -63,8 +63,20 @@ func (c *NoteReshapeCircuit) traceWiring(op string, args ...string) {
 	}
 }
 
+func (c *TransferCircuit) traceWiring(op string, args ...string) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.record(op, args...)
+	}
+}
+
 func noteReshapeCircuitWithTranscript(nIn int, transcript *WiringTranscript) frontend.Circuit {
 	circuit := NewConsolidateCircuit(nIn)
+	circuit.wiringTrace = transcript
+	return circuit
+}
+
+func transferCircuitWithTranscript(transcript *WiringTranscript) frontend.Circuit {
+	circuit := NewTransferCircuit()
 	circuit.wiringTrace = transcript
 	return circuit
 }
@@ -79,6 +91,20 @@ func ExportConsolidate2x1WiringTranscript() (string, error) {
 		noteReshapeCircuitWithTranscript(2, transcript),
 	); err != nil {
 		return "", fmt.Errorf("compile consolidate2x1 for wiring transcript: %w", err)
+	}
+	return transcript.canonical()
+}
+
+// ExportTransferWiringTranscript returns the canonical transcript for the
+// checked-in transfer Define path.
+func ExportTransferWiringTranscript() (string, error) {
+	transcript := newWiringTranscript("transfer", TransferCircuitInputs, TransferCircuitOutputs)
+	if _, err := frontend.Compile(
+		ecc.BLS12_377.ScalarField(),
+		r1cs.NewBuilder,
+		transferCircuitWithTranscript(transcript),
+	); err != nil {
+		return "", fmt.Errorf("compile transfer for wiring transcript: %w", err)
 	}
 	return transcript.canonical()
 }
