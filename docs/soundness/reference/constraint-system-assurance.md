@@ -333,7 +333,7 @@ pass through compression now have explicit in-circuit curve-equation assertions,
 and the whole-circuit theorem has no named external Decaf assumptions. The
 staged path from these circuit artifacts to family-wide and protocol-wide
 coverage is tracked in
-[formal-verification-plan.md](formal-verification-plan.md).
+[fv-hardening-roadmap.md](../fv-hardening-roadmap.md).
 
 **M6 Lean scaffold.** A Lean 4 project now lives in
 [tools/gnark/lean](../../tools/gnark/lean). The vendored

@@ -220,7 +220,7 @@ require_symbol() {
 
 COMPLIANCE_FORMAL=crates/core/component/compliance/formal
 CIRCUIT_FORMAL=crates/core/component/shielded-pool/formal
-HANDOFF=docs/soundness/soundness-handoff.md
+HANDOFF=docs/soundness/reference/soundness-handoff.md
 
 required_files=(
   "$COMPLIANCE_FORMAL/threat-model.md"
@@ -239,9 +239,9 @@ required_files=(
   "$CIRCUIT_FORMAL/circuit-constraint-report.txt"
   "$CIRCUIT_FORMAL/circuit-whole-picus-report.txt"
   "$HANDOFF"
-  docs/soundness/index.md
-  docs/soundness/constraint-system-assurance.md
-  docs/soundness/formal-verification-plan.md
+  docs/soundness/README.md
+  docs/soundness/reference/constraint-system-assurance.md
+  docs/soundness/fv-hardening-roadmap.md
 )
 
 for file in "${required_files[@]}"; do
@@ -440,7 +440,7 @@ transfer_bridge_theorems() {
   esac
 }
 
-ASSURANCE_DOC="docs/soundness/constraint-system-assurance.md"
+ASSURANCE_DOC="docs/soundness/reference/constraint-system-assurance.md"
 while IFS= read -r row; do
   [[ -z "$row" ]] && continue
   id="$(markdown_field "$row" 2 | strip_ticks)"
@@ -542,7 +542,7 @@ while IFS= read -r row; do
   require_symbol "external-check-map $id Go" "$go_symbol" tools/gnark
 done < <(table_rows "$CIRCUIT_FORMAL/external-check-map.md")
 
-rg -F "Picus" docs/soundness/constraint-system-assurance.md >/dev/null \
+rg -F "Picus" docs/soundness/reference/constraint-system-assurance.md >/dev/null \
   || fail "constraint-system assurance strategy must mention Picus"
 check_stamped_artifact "PICUS-GADGET-REPORT" "$CIRCUIT_FORMAL/circuit-constraint-report.txt"
 if rg -n '^GADGET .* undischarged$' "$CIRCUIT_FORMAL/circuit-constraint-report.txt" >/dev/null; then
@@ -553,9 +553,9 @@ for gadget in gadget-poseidon-hash5 gadget-ack-two-step gadget-dleq; do
     || fail "Picus gadget report must mark transfer probe $gadget safe"
 done
 check_stamped_artifact "PICUS-WHOLE-REPORT" "$CIRCUIT_FORMAL/circuit-whole-picus-report.txt"
-rg -F "Ecne" docs/soundness/constraint-system-assurance.md >/dev/null \
+rg -F "Ecne" docs/soundness/reference/constraint-system-assurance.md >/dev/null \
   || fail "constraint-system assurance strategy must mention Ecne"
-rg -F "ACL2/Axe" docs/soundness/constraint-system-assurance.md >/dev/null \
+rg -F "ACL2/Axe" docs/soundness/reference/constraint-system-assurance.md >/dev/null \
   || fail "constraint-system assurance strategy must mention ACL2/Axe"
 
 # Lemma-citation existence: every `lean-dleq/Dleq/<File>.lean::<symbol>`

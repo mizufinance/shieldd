@@ -64,7 +64,7 @@ fi
 #                               already-`safe` gadget-canonical-fq-bits leaf
 #   - rvk / dtk / net-balance   are chains of the leaves above + Poseidon + ivk-mod-r
 # Every leaf in this set reaches `safe`; the composition lift is argued in
-# docs/soundness/constraint-system-assurance.md (Picus does not perform it).
+# docs/soundness/reference/constraint-system-assurance.md (Picus does not perform it).
 gadgets=("$@")
 if [ "${#gadgets[@]}" -eq 0 ]; then
   gadgets=(

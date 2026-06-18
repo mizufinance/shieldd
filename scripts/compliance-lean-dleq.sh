@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Computational-soundness gate for the compliance DLEQ Lean/VCVio mechanization,
 # in two cost tiers selected by the first argument (mirrors
-# scripts/check-lean-circuit-fv.sh and the retired compliance-easycrypt.sh):
+# scripts/check-lean-circuit-fv.sh):
 #
 #   stamps  (PR / local tier)  Lightweight hygiene + stamp integrity. Needs NO
 #                              Lean toolchain: checks every module is present,

@@ -2,7 +2,7 @@ tool: alloy
 alloy: 6.2.0
 model: crates/core/component/compliance/formal/alloy/nullifier-imt.als
 model_sha256: 7b5ddbc354f0a6e7e28bb8dc9b688f7218b1313a027eea50fd271aa15a03b704
-alloy_output_sha256: 9088e67cefdb8f5ce2e333f758c9e1c6730058c4245ba086ce7cff25326c2639
+alloy_output_sha256: 0742e7f7f51fa5ddd203039905dffa247208d3d9f405f2dfd06b4d62cdd3ab30
 CHECK NoDoubleSpend no-counterexample
 CHECK GapImpliesAbsent no-counterexample
 CHECK InsertKeepsSorted no-counterexample

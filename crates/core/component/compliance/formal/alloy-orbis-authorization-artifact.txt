@@ -2,7 +2,7 @@ tool: alloy
 alloy: 6.2.0
 model: crates/core/component/compliance/formal/alloy/orbis-authorization.als
 model_sha256: a652b46965e678f80fea9e1f99fb54d15b05b8b85ff1f3969099d5e81ce43ca3
-alloy_output_sha256: a981bc4dc1784c509f16e6d69ab992c3faef9b7b8ad76b13bdb6841f91e75dbd
+alloy_output_sha256: b72de775697133fcac55b850ead581f90ed14a92a7fccc27cf931549071678f3
 CHECK CorrectIssuerRecovers no-counterexample
 CHECK OnlyDesignatedRecovers no-counterexample
 CHECK SingleBinding no-counterexample

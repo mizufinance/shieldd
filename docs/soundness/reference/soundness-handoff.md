@@ -29,10 +29,10 @@ Picus timeout report, and gadget-scope ACL2/Axe theorems (C3) are evidence for
 those rows but do not promote a property by themselves. `gadget-bool-select`,
 `gadget-iszero`, `gadget-poseidon2`, `gadget-nullifier`, and `gadget-imt-gap`
 now have stamped gadget-scope semantic proofs. See
-`docs/soundness/constraint-system-assurance.md`
+`docs/soundness/reference/constraint-system-assurance.md`
 and `crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md`.
 The forward work order is tracked in
-`docs/soundness/formal-verification-plan.md`.
+`docs/soundness/fv-hardening-roadmap.md`.
 
 | ID | Kind | Source | Status | Evidence | Removal path |
 | --- | --- | --- | --- | --- | --- |
