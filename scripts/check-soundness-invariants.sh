@@ -141,6 +141,7 @@ check_proof_artifact() {
     "$COMPLIANCE_FORMAL/alloy-value-conservation-artifact.txt" \
     "$COMPLIANCE_FORMAL/alloy-compliance-tiers-artifact.txt" \
     "$COMPLIANCE_FORMAL/alloy-orbis-authorization-artifact.txt" \
+    "$COMPLIANCE_FORMAL/alloy-ics20-supply-conservation-artifact.txt" \
     "$COMPLIANCE_FORMAL/lean-dleq-artifact.txt" \
     "$CIRCUIT_FORMAL/statement-field-formal-artifact.txt"; do
     if [[ "$evidence" == *"$artifact"* ]]; then

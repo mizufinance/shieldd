@@ -203,6 +203,11 @@ func computeTransferNetBalanceCommitment(
 		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
 	}
 
+	// The 128-bit width on every amount is the canonical note-amount range bound
+	// (ZK-ASSUME-AMOUNT-RANGE): ScalarMulLE's api.ToBinary(amount, 128) makes any
+	// amount >= 2^128 unsatisfiable, preventing field-overflow value inflation in
+	// the net-balance sum. Load-bearing for balance soundness; pinned by
+	// TestAmountRangeBoundIs128Bits.
 	sum := ScalarMulLE(api, curve, valueGenerator, 0, 128)
 	for _, amount := range inputAmounts {
 		sum = curve.Add(sum, ScalarMulLE(api, curve, valueGenerator, amount, 128))

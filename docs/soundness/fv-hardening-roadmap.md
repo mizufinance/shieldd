@@ -74,7 +74,17 @@ could slip through.
   lesson is that real exploits cluster in layers (1)–(frontend), which *are* in
   reach.
 
-## Focus 2b — IBC/ICS-20 value-bridge + supply accounting (P0)
+## Focus 2b — IBC/ICS-20 value-bridge + supply accounting (P0; supply + denom-trace LANDED on this branch)
+
+The supply-conservation and denom-trace obligations below landed on
+`fv/circuit-soundness-hardening`: the design-level Alloy turnstile
+`alloy/ics20-supply-conservation.als` (gated by `compliance-alloy.sh`), the
+denom-trace injectivity unit test `asset::id::tests::denom_trace_to_asset_id_is_injective`,
+and the ledger evidence on `ZK-ASSUME-ICS20-SUPPLY-CONSERVATION` citing the
+existing runtime turnstile in `transfer.rs`. The row stays `assumed` because the
+**residual** is the deferred whole-circuit R1CS proof of
+`shielded_ics20_withdrawal_circuit.go` (the Alloy model is design-level over the
+handler abstraction), which rides behind Focus 2's gnark-boundary extraction.
 
 Tools: Rust differential tests, Alloy, runtime invariants. ICS-20 is the only
 path where shielded value crosses the chain boundary, so a mint/burn or
@@ -98,32 +108,20 @@ promoted to P0** because they do not depend on the circuit proof landing.
   schedule the deferred `shielded_ics20_withdrawal_circuit` whole-circuit proof
   behind Focus 2's gnark-boundary extraction.
 
-## Focus 3 — Picus assurance integrity: extend `.sr1cs` fidelity to the new probes (MEDIUM)
+## Focus 3 — Picus assurance integrity: `.sr1cs` fidelity for the new probes (LANDED in #96)
 
-Tools: Go (gnark), Picus. The whole under-constraint argument rests on Picus
-reading the **same** constraint system the circuit actually compiles. A `.sr1cs`
-fidelity test **already exists**: `TestPicusExportFidelityAllGadgets` in
-`gadgets_axe_fidelity_test.go` parses the written `.sr1cs`, asserts
-`A(W)·B(W) == C(W)` for every constraint row against the gnark-solved witness,
-matches the constraint **count**, and checks the `(in)/(out)` wire roles via
-`assertPicusWireRoles`. The gap is **coverage**, not absence: the test's
-`allPicusFidelityCases` does not include the newer probe gadgets
-(`gadget-scalar-mul-step`, `-two-step`, `gadget-ack-two-step`, `gadget-dleq`,
-`gadget-net-balance-commitment2`, `-core` probes, `gadget-poseidon-hash5`), and
-those probes had a real wire-role mislabel (their `Out*` outputs were emitted as
-Picus `(in)`), since fixed in `isPicusGadgetOutput`.
-
-- **Add the new probes to `allPicusFidelityCases`** with real solved witnesses
-  (reuse the assignments in `decaf_gadgets_test.go` / `scalar_mul_gadgets_test.go`
-  — do not fabricate witnesses), so the role labeling and constraint fidelity of
-  every Picus-probed gadget is regression-guarded.
-- **Unify the wire-role oracle**: the test's `isPicusFidelityOutputName` is an
-  independent copy of the production allowlist; keep it independent but update it
-  to the same `Out*`-prefix rule so the two cannot silently drift.
-- **Gate it** in the `provers` job alongside `circuit-constraint-check.sh`; a
-  serializer regression then fails CI rather than silently weakening Picus.
-- No ledger row retires, but `picus_status = under-constraint-evidence-only` gains
-  a backing fidelity guarantee for the bytes Picus consumes.
+Done — recorded here for legibility, not as open work. Per the preamble, live
+status lives in the artifacts/ledger, not this roadmap. `TestPicusExportFidelityAllGadgets`
+in `gadgets_axe_fidelity_test.go` now covers every Picus-probed gadget: the newer
+probes (`gadget-scalar-mul-step`, `-two-step`, `gadget-ack-two-step`,
+`gadget-dleq`, `gadget-net-balance-commitment2`, `-core` probes,
+`gadget-poseidon-hash5`) are present in `allPicusFidelityCases` with real solved
+witnesses, the test parses the written `.sr1cs` and asserts `A(W)·B(W) == C(W)`
+per row, matches the constraint count, and checks `(in)/(out)` wire roles; the
+earlier `Out*`-emitted-as-`(in)` mislabel was fixed in `isPicusGadgetOutput`. No
+ledger row retired; `picus_status = under-constraint-evidence-only` gained a
+backing fidelity guarantee for the bytes Picus consumes. See
+`gadgets_axe_fidelity_test.go` for current coverage.
 
 ## Focus 4 — Cross-layer parity and field-range invariants (HIGH / MEDIUM)
 

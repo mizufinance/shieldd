@@ -2,5 +2,5 @@ tool: alloy
 alloy: 6.2.0
 model: crates/core/component/compliance/formal/alloy/value-conservation.als
 model_sha256: a256831cb79b1f9471eaa472e9d2b85733ccbed9856cca591fc4381877a1a60b
-alloy_output_sha256: 30fc779fd9a0cdbb322a7dac886061f75f13c0a980b87a0c7db2f77966ded638
+alloy_output_sha256: b28892153db4a8f3d15f3ebd2d14c202dcfeae7a166c0e76d10a568417059004
 CHECK BindingImpliesConservation no-counterexample

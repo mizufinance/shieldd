@@ -208,6 +208,51 @@ mod tests {
         assert_eq!(id5, id);
     }
 
+    /// Backs ZK-ASSUME-ICS20-SUPPLY-CONSERVATION: the denom-trace -> asset-id
+    /// derivation must be injective, or two distinct source denoms would alias
+    /// one shielded asset id and share a single `ics20_value_balance` counter,
+    /// breaking per-denom supply accounting. `from_raw_denom` is a pure function
+    /// of the exact (prefixed) denom string, so distinct multi-hop traces must
+    /// yield distinct ids and a prefixed trace must never collide with its base.
+    #[test]
+    fn denom_trace_to_asset_id_is_injective() {
+        // Representative corpus: bases, single-hop and multi-hop ICS-20 traces,
+        // and adversarial near-collisions (channel-index boundary, base that
+        // itself contains path separators).
+        let denoms = [
+            "uatom",
+            "uosmo",
+            "transfer/channel-0/uatom",
+            "transfer/channel-1/uatom",
+            "transfer/channel-10/uatom",
+            "transfer/channel-0/uosmo",
+            "transfer/channel-0/transfer/channel-1/uatom",
+            "transfer/channel-1/transfer/channel-0/uatom",
+            "transfer/channel-0/uatom-with-suffix",
+        ];
+
+        let mut seen: std::collections::HashMap<[u8; 32], &str> = std::collections::HashMap::new();
+        for denom in denoms {
+            // Determinism: the derivation is a pure function of the string.
+            assert_eq!(
+                Id::from_raw_denom(denom).to_bytes(),
+                Id::from_raw_denom(denom).to_bytes(),
+                "asset-id derivation must be deterministic for {denom}"
+            );
+            let id = Id::from_raw_denom(denom).to_bytes();
+            if let Some(prev) = seen.insert(id, denom) {
+                panic!("denom-trace asset-id collision: {prev:?} and {denom:?} map to the same id");
+            }
+        }
+
+        // A prefixed trace must not alias its inner base denom.
+        assert_ne!(
+            Id::from_raw_denom("uatom").to_bytes(),
+            Id::from_raw_denom("transfer/channel-0/uatom").to_bytes(),
+            "prefixed trace must derive a different asset id than its base denom"
+        );
+    }
+
     #[test]
     fn hex_to_bech32() {
         let hex_strings = [

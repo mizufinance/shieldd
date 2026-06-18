@@ -108,3 +108,4 @@ run_model nullifier-imt       NoDoubleSpend GapImpliesAbsent InsertKeepsSorted
 run_model value-conservation  BindingImpliesConservation
 run_model compliance-tiers    CompleteIsTerminal CompleteReachableFromAll NoPendingShortcut FourCanonicalTiers
 run_model orbis-authorization CorrectIssuerRecovers OnlyDesignatedRecovers SingleBinding
+run_model ics20-supply-conservation SupplyBackedByEscrow

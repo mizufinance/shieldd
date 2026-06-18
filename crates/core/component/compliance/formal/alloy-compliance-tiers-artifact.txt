@@ -2,7 +2,7 @@ tool: alloy
 alloy: 6.2.0
 model: crates/core/component/compliance/formal/alloy/compliance-tiers.als
 model_sha256: 27fc509259c256ed9ad50af044080f53a977a28988a5dfd00c474c2c10a8653c
-alloy_output_sha256: 6785859bc895f1a92a850a8435f5f343c63b9eae12571bac50b18f5da4a067a6
+alloy_output_sha256: a5ed299bedeadb25b01e19f1ffaa59c8d6a0b121479d4ec1989c02e22a70b613
 CHECK CompleteIsTerminal no-counterexample
 CHECK CompleteReachableFromAll no-counterexample
 CHECK NoPendingShortcut no-counterexample
