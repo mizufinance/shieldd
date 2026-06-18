@@ -82,6 +82,9 @@ sha256_file() {
   fi
 }
 
+# ripgrep is used throughout for source scanning and stamp checks.
+command -v rg >/dev/null 2>&1 || fail "ripgrep (rg) is not installed"
+
 # --- hygiene (both tiers) ---------------------------------------------------
 echo "==> hygiene"
 for src in "${SOURCES[@]}"; do

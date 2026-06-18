@@ -9,8 +9,6 @@ paths). Whole-circuit Picus stays `undischarged-by-design` (SMT capacity) — do
 NOT touch that. Semantics policy is unchanged: a Picus `safe` verdict is
 under-constraint *evidence*, not a semantic proof.
 
-Full plan: `/Users/antoinecyr/.claude/plans/review-current-implementation-of-dreamy-music.md`
-
 ## DONE (verified locally)
 
 1. **`tools/gnark/cmd/gnarkctl/main.go` — `compileCircuit()`**: added `case`

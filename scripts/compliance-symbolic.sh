@@ -22,6 +22,17 @@ require_command() {
   command -v "$cmd" >/dev/null 2>&1 || fail "$cmd is not installed"
 }
 
+# sha256 portably: Linux ships sha256sum, macOS ships shasum.
+sha256_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
+  fi
+}
+
+require_command rg
+
 if [ -n "${MAUDE_BIN:-}" ]; then
   [ -x "$MAUDE_BIN" ] || fail "MAUDE_BIN is set but not executable: $MAUDE_BIN"
   export PATH="$(dirname "$MAUDE_BIN"):$PATH"
@@ -83,8 +94,8 @@ prove_model() {
   done
 
   local model_sha output_sha
-  model_sha="$(shasum -a 256 "$model" | awk '{print $1}')"
-  output_sha="$(shasum -a 256 "$tmp" | awk '{print $1}')"
+  model_sha="$(sha256_file "$model")"
+  output_sha="$(sha256_file "$tmp")"
   {
     echo "tool: tamarin-prover"
     echo "tamarin: $tamarin_pin"
@@ -97,7 +108,7 @@ prove_model() {
     done
   } >"$artifact"
 
-  shasum -a 256 "$artifact" | awk '{print $1}' >"$artifact_sha"
+  sha256_file "$artifact" >"$artifact_sha"
   rm -f "$tmp"
   echo "  $model ok: sha256:$(cat "$artifact_sha")"
 }

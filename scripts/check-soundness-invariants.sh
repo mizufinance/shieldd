@@ -392,7 +392,8 @@ decaf_bridge_theorem() {
     ZK-ASSUME-DECAF377-RVK) echo "decaf377_randomizedVerificationKey_sound" ;;
     ZK-ASSUME-DECAF377-DTK) echo "decaf377_diversifiedTransmissionKey_sound" ;;
     ZK-ASSUME-DECAF377-NET-BALANCE) echo "decaf377_netBalanceCommitment_sound" ;;
-    ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE) echo "Relation_neg_invariant" ;;
+    ZK-ASSUME-DECAF377-ASSERT-EQUIVALENT) echo "decaf377_assertEquivalent_sound" ;;
+    ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE) echo "compress_respects_decafEquivalent" ;;
     *) echo "" ;;
   esac
 }
@@ -421,7 +422,7 @@ while IFS= read -r row; do
   if [[ "$id" == "ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE" ]]; then
     two_torsion_seen=1
     [[ "$status" == "discharged" ]] \
-      || fail "ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE must be discharged (mechanized via Relation_neg_invariant), got $status"
+      || fail "ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE must be discharged (mechanized via compress_respects_decafEquivalent), got $status"
   fi
 done < <(table_rows "$assumption_file")
 [[ "${two_torsion_seen:-0}" == "1" ]] \
@@ -433,7 +434,7 @@ transfer_bridge_theorems() {
     ZK-ASSUME-ACK-DERIVATION) printf '%s\n' "ack_sound" ;;
     ZK-ASSUME-COMPLIANCE-CIPHERTEXT)
       printf '%s\n' "shared_secrets_sound" "transfer_salt_sound" "detection_sound" "amount_sound" "address_sound" ;;
-    ZK-ASSUME-POSEIDON5) printf '%s\n' "Poseidon5Bridge" "circuit_sound" ;;
+    ZK-ASSUME-POSEIDON5) printf '%s\n' "Poseidon5Bridge.circuit_sound" ;;
     ZK-ASSUME-DUMMY-MUX) printf '%s\n' "dummy_mux_sound" "assert_equivalent_if_sound" ;;
     ZK-ASSUME-THRESHOLD-REGULATED) printf '%s\n' "threshold_flag_sound" "select_point_sound" ;;
     *) return 1 ;;

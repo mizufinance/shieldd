@@ -98,6 +98,5 @@ No silent layer inversion found.
   non-malleability base. No `sorry`/`admit` anywhere.
 - No `assumed` row is silently relied on as `proved` by a higher layer.
 - The three open items (gnark boundary, ACP↔Orbis Tamarin model, raising Alloy
-  scope) are tracked in the roadmap; Tamarin remains install-blocked.
-</content>
-</invoke>
+  scope) are tracked in the roadmap; the Tamarin ACP↔Orbis model is still to be
+  authored (Tamarin itself is installed and the base gate passes).
