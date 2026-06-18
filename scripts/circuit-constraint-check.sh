@@ -55,6 +55,10 @@ fi
 # by composition (see the COMPOSITE-COVERAGE section emitted in the report):
 #   - gadget-scalar-mul-step    folds to scalar-mul-le-128 / scalar-mul-le-251
 #   - gadget-quad-path-round    folds to quad-path-1 / -2 / -4 / -16 / -24
+# The single-rung probes show each rung deterministic in isolation; the *-two-step
+# / *-two-round probes additionally exercise the composition boundary (the join
+# wire between two consecutive rungs/layers), empirically confirming the seam
+# introduces no free signal — the condition the by-composition lift relies on.
 #   - *-core (compress/encode)  factor the 253-bit decomposition out to the
 #                               already-`safe` gadget-canonical-fq-bits leaf
 #   - rvk / dtk / net-balance   are chains of the leaves above + Poseidon + ivk-mod-r
@@ -69,6 +73,8 @@ if [ "${#gadgets[@]}" -eq 0 ]; then
     # Merkle / IMT (quad-path-round folds to every quad-path-N)
     gadget-nullifier gadget-imt-gap gadget-iszero
     gadget-quad-path-round
+    # composition-boundary probe: two consecutive Merkle layers (join seam)
+    gadget-quad-path-two-round
     # decaf377 group law
     gadget-decaf-assert-equivalent gadget-decaf-edwards-add
     gadget-decaf-edwards-double gadget-decaf-edwards-neg
@@ -77,6 +83,8 @@ if [ "${#gadgets[@]}" -eq 0 ]; then
     # scalar / key derivation (scalar-mul-step folds to scalar-mul-le-N)
     gadget-canonical-fq-bits gadget-bool-select gadget-ivk-mod-r
     gadget-scalar-mul-step
+    # composition-boundary probe: two consecutive ladder rungs (join seam)
+    gadget-scalar-mul-two-step
   )
 fi
 
@@ -151,10 +159,15 @@ fi
 {
   echo "COMPOSITE scalar-mul-le-128 safe-by-composition"
   echo "  note: scalar-mul-step folded 128x over canonical-fq-bits boolean decomposition"
+  echo "  boundary_probe: gadget-scalar-mul-two-step (join seam safe)"
+  echo "  lean_lift: Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE128_sound"
   echo "COMPOSITE scalar-mul-le-251 safe-by-composition"
   echo "  note: scalar-mul-step folded 251x over canonical-fq-bits boolean decomposition"
+  echo "  boundary_probe: gadget-scalar-mul-two-step (join seam safe)"
+  echo "  lean_lift: Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE251_sound"
   echo "COMPOSITE quad-path-1/2/4/16/24 safe-by-composition"
   echo "  note: quad-path-round folded per depth over canonical-fq-bits position decomposition"
+  echo "  boundary_probe: gadget-quad-path-two-round (join seam safe)"
   echo "COMPOSITE decaf-compress-to-field safe-by-composition"
   echo "  note: compress-to-field-core + canonical-fq-bits (253-bit sign decomposition)"
   echo "COMPOSITE decaf-encode-to-curve safe-by-composition"

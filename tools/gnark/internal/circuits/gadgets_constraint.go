@@ -220,6 +220,55 @@ func (c *QuadPathRoundGadget) Define(api frontend.API) error {
 	return nil
 }
 
+// QuadPathTwoRoundGadget chains two consecutive Merkle layers so Picus exercises
+// the composition boundary: the join wire (parent of layer i becomes Current of
+// layer i+1) plus the two independent position-bit pairs. A single
+// QuadPathRoundGadget proves one layer deterministic in isolation; this probe
+// confirms wiring two layers together adds no free signal at the seam — the
+// empirical anchor for the `safe-by-composition` lift of every QuadPathNGadget.
+type QuadPathTwoRoundGadget struct {
+	Domain    frontend.Variable `gnark:",public"`
+	Current   frontend.Variable `gnark:",public"`
+	L0Sib0    frontend.Variable `gnark:",public"`
+	L0Sib1    frontend.Variable `gnark:",public"`
+	L0Sib2    frontend.Variable `gnark:",public"`
+	L0Bit0    frontend.Variable `gnark:",public"`
+	L0Bit1    frontend.Variable `gnark:",public"`
+	L1Sib0    frontend.Variable `gnark:",public"`
+	L1Sib1    frontend.Variable `gnark:",public"`
+	L1Sib2    frontend.Variable `gnark:",public"`
+	L1Bit0    frontend.Variable `gnark:",public"`
+	L1Bit1    frontend.Variable `gnark:",public"`
+	Grandparent frontend.Variable
+}
+
+func (c *QuadPathTwoRoundGadget) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.L0Bit0)
+	api.AssertIsBoolean(c.L0Bit1)
+	api.AssertIsBoolean(c.L1Bit0)
+	api.AssertIsBoolean(c.L1Bit1)
+	parent := abstractor.Call(api, quadPathRound{
+		Domain:  c.Domain,
+		Current: c.Current,
+		Sib0:    c.L0Sib0,
+		Sib1:    c.L0Sib1,
+		Sib2:    c.L0Sib2,
+		Bit0:    c.L0Bit0,
+		Bit1:    c.L0Bit1,
+	})
+	grandparent := abstractor.Call(api, quadPathRound{
+		Domain:  c.Domain,
+		Current: parent,
+		Sib0:    c.L1Sib0,
+		Sib1:    c.L1Sib1,
+		Sib2:    c.L1Sib2,
+		Bit0:    c.L1Bit0,
+		Bit1:    c.L1Bit1,
+	})
+	api.AssertIsEqual(grandparent, c.Grandparent)
+	return nil
+}
+
 // QuadPathNGadget probes the whole quad Merkle path at parametric depth N: given
 // a leaf hash, N layers of 3 siblings each, and a position, the claimed Root must
 // equal the iterated Hash4 path. Scope-only export target for verify-r1cs scaling.

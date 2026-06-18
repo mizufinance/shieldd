@@ -118,6 +118,7 @@ require_artifact_line "$B1_ARTIFACT" "lean_toolchain_sha256" "$(sha256_file "$LE
 
 require_artifact_line "$WHOLE_ARTIFACT" "whole_circuit_model_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Consolidate2x1.lean")"
 require_artifact_line "$WHOLE_ARTIFACT" "decaf_assumptions_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Decaf377Assumptions.lean")"
+require_artifact_line "$WHOLE_ARTIFACT" "compress_to_field_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/CompressToFieldBridge.lean")"
 require_artifact_line "$WHOLE_ARTIFACT" "edwards_completeness_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/EdwardsCompleteness.lean")"
 require_artifact_line "$WHOLE_ARTIFACT" "edwards_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/EdwardsBridge.lean")"
 require_artifact_line "$WHOLE_ARTIFACT" "decaf_fv_inventory_sha256" "$(sha256_file "$DECAF_FV_INVENTORY")"

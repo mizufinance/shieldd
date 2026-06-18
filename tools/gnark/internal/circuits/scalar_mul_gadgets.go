@@ -84,6 +84,51 @@ func (c *ScalarMulStepGadget) Define(api frontend.API) error {
 	return nil
 }
 
+// ScalarMulTwoStepGadget chains two consecutive ladder rungs so Picus exercises
+// the *composition boundary* itself: the join wires (intermediate acc/cur output
+// of rung i fed as input to rung i+1) and the per-rung bit selectors. A single
+// `ScalarMulStepGadget` proves one rung deterministic in isolation; this probe
+// confirms that wiring two rungs together introduces no free signal at the seam,
+// which is the empirical anchor for the `safe-by-composition` lift of the full
+// ladder (rung folded n times). Two rungs suffice: every interior seam in the
+// ladder is the same join shape.
+type ScalarMulTwoStepGadget struct {
+	Bit0    frontend.Variable `gnark:",public"`
+	Bit1    frontend.Variable `gnark:",public"`
+	AccX    frontend.Variable `gnark:",public"`
+	AccY    frontend.Variable `gnark:",public"`
+	CurX    frontend.Variable `gnark:",public"`
+	CurY    frontend.Variable `gnark:",public"`
+	OutAccX frontend.Variable
+	OutAccY frontend.Variable
+	OutCurX frontend.Variable
+	OutCurY frontend.Variable
+}
+
+func (c *ScalarMulTwoStepGadget) Define(api frontend.API) error {
+	api.AssertIsBoolean(c.Bit0)
+	api.AssertIsBoolean(c.Bit1)
+	s0 := abstractor.Call1(api, scalarMulStep{
+		Bit:  c.Bit0,
+		AccX: c.AccX,
+		AccY: c.AccY,
+		CurX: c.CurX,
+		CurY: c.CurY,
+	})
+	s1 := abstractor.Call1(api, scalarMulStep{
+		Bit:  c.Bit1,
+		AccX: s0[0],
+		AccY: s0[1],
+		CurX: s0[2],
+		CurY: s0[3],
+	})
+	api.AssertIsEqual(s1[0], c.OutAccX)
+	api.AssertIsEqual(s1[1], c.OutAccY)
+	api.AssertIsEqual(s1[2], c.OutCurX)
+	api.AssertIsEqual(s1[3], c.OutCurY)
+	return nil
+}
+
 type ScalarMulLE251Gadget struct {
 	BaseX  frontend.Variable `gnark:",public"`
 	BaseY  frontend.Variable `gnark:",public"`

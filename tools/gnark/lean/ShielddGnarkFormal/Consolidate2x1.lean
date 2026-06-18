@@ -175,6 +175,11 @@ structure SpendSound (i : Inputs) (s : Spend) : Prop where
     Decaf377Assumptions.DecafEquivalent s.computedRK s.rkClaimed
   rkCompressed :
     Decaf377Assumptions.CompressToFieldSpec s.rkClaimed s.rkCompressed
+  /-- The rk statement field is the compression of the honestly-computed RVK, not
+  merely of the prover-chosen representative: two-torsion invariance makes them
+  equal (discharges `ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE` for this seam). -/
+  rkCompressedCanonical :
+    Decaf377Assumptions.CompressToFieldSpec s.computedRK s.rkCompressed
   diversifiedTransmissionKey :
     Decaf377Assumptions.DiversifiedTransmissionKeySpec i.nk i.sharedAK s.spentDivGen
       i.ivkReduced i.ivkQuotientA s.computedTransmission
@@ -265,6 +270,13 @@ private theorem spend_sound
       Decaf377Assumptions.decaf377_assertEquivalent_sound s.computedRK s.rkClaimed hRKEq⟩
     rkCompressed := Decaf377Assumptions.decaf377_compressToField_sound s.rkClaimed
       s.rkCompressed hRKCompressed
+    rkCompressedCanonical :=
+      Decaf377Assumptions.compress_respects_decafEquivalent s.computedRK s.rkClaimed
+        s.rkCompressed
+        ⟨hRKOn, hRKClaimedOn,
+          Decaf377Assumptions.decaf377_assertEquivalent_sound s.computedRK s.rkClaimed hRKEq⟩
+        (Decaf377Assumptions.decaf377_compressToField_sound s.rkClaimed s.rkCompressed
+          hRKCompressed)
     diversifiedTransmissionKey :=
       hDTKSpec
     transmissionEquivalent := ⟨hTransOn, hSpentTransOn,

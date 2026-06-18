@@ -4,6 +4,7 @@ import ShielddGnarkFormal.Poseidon2Bridge
 import ShielddGnarkFormal.Extracted.DecafAssertEquivalent
 import ShielddGnarkFormal.Extracted.DecafCompressToField
 import ShielddGnarkFormal.CompressToFieldBridge
+import ShielddGnarkFormal.EdwardsCompleteness
 import ShielddGnarkFormal.EncodeToCurveBridge
 import ShielddGnarkFormal.IvkModRBridge
 
@@ -156,6 +157,29 @@ def DecafEquivalent (p q : Point) : Prop :=
   EdwardsBridge.onCurve ⟨p.x, p.y⟩ ∧
   EdwardsBridge.onCurve ⟨q.x, q.y⟩ ∧
   AssertEquivalentSpec p q
+
+/-- Discharges `ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE`: if `p` and `q` are
+Decaf-equivalent (cross-ratio equal, both on-curve) and `q` compresses to `out`,
+then `p` compresses to the same `out`. So compressing a prover-chosen affine
+representative yields the canonical field value of the honestly-computed point,
+upgrading quotient equality to statement-field equality. Proof: the cross-ratio
+plus on-curveness pins `q` to `p` or its 2-torsion shift `(-p.x, -p.y)`
+(`crossRatio_pins_to_two_torsion`), and `Relation` is invariant under that shift
+(`Relation_neg_invariant`). -/
+theorem compress_respects_decafEquivalent (p q : Point) (out : F)
+    (heq : DecafEquivalent p q) (hc : CompressToFieldSpec q out) :
+    CompressToFieldSpec p out := by
+  obtain ⟨hpOn, hqOn, hcr⟩ := heq
+  rcases EdwardsBridge.crossRatio_pins_to_two_torsion ⟨p.x, p.y⟩ ⟨q.x, q.y⟩ hpOn hqOn hcr with
+    h | h
+  · simp only [EdwardsBridge.Point.mk.injEq] at h
+    obtain ⟨hx, hy⟩ := h
+    rw [CompressToFieldSpec, hx, hy] at hc
+    exact hc
+  · simp only [EdwardsBridge.Point.mk.injEq] at h
+    obtain ⟨hx, hy⟩ := h
+    rw [CompressToFieldSpec, hx, hy] at hc
+    exact (Extracted.DecafCompressToField.Relation_neg_invariant p.x p.y out).mp hc
 
 def RandomizedVerificationKeySpec (ak : Point) (r : F) (out : Point) : Prop :=
   out = rvk ak r

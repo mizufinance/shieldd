@@ -3,7 +3,7 @@ solver: cvc5
 safety: weak
 scope: decomposed-gadget
 timeout_ms: 120000
-total_timeout_seconds: 150
+total_timeout_seconds: 1800
 GADGET gadget-poseidon-hash1 safe
   sr1cs_sha256: 7d2329fdfb1c417d326fc4b013b8daaa0f70c506e17da2dea4beae17e1634965
   precondition_sha256: none
@@ -38,6 +38,10 @@ GADGET gadget-iszero safe
   picus_exit: 8
 GADGET gadget-quad-path-round safe
   sr1cs_sha256: 7fb49a7aa7985529ce4ecb598156db1f9cbc26b7da7d20fc60a5650d111e803a
+  precondition_sha256: none
+  picus_exit: 8
+GADGET gadget-quad-path-two-round safe
+  sr1cs_sha256: 26fe77826b28a9ba467dd0b9df387f0a83b882e24a1983392273eb35bd2a7a24
   precondition_sha256: none
   picus_exit: 8
 GADGET gadget-decaf-assert-equivalent safe
@@ -80,12 +84,21 @@ GADGET gadget-scalar-mul-step safe
   sr1cs_sha256: dea8004618cac9c3e1a3bdf1cea50eeba2880484d3f569c43587d5f5ceac8f97
   precondition_sha256: 2793d0ca29fa32d84fb38d9c6bc4dbe086f72bf7c96bd7bb4debf4c8e45b9972
   picus_exit: 8
+GADGET gadget-scalar-mul-two-step safe
+  sr1cs_sha256: b534afaf2cb440c928702e16eac50701306a732d1308d1355cdbc4d537394a9b
+  precondition_sha256: d4b982c15ceef1392d42d5ea37b4b0c149f21a0d06fe6c4697a40d19456e1bd5
+  picus_exit: 8
 COMPOSITE scalar-mul-le-128 safe-by-composition
   note: scalar-mul-step folded 128x over canonical-fq-bits boolean decomposition
+  boundary_probe: gadget-scalar-mul-two-step (join seam safe)
+  lean_lift: Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE128_sound
 COMPOSITE scalar-mul-le-251 safe-by-composition
   note: scalar-mul-step folded 251x over canonical-fq-bits boolean decomposition
+  boundary_probe: gadget-scalar-mul-two-step (join seam safe)
+  lean_lift: Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE251_sound
 COMPOSITE quad-path-1/2/4/16/24 safe-by-composition
   note: quad-path-round folded per depth over canonical-fq-bits position decomposition
+  boundary_probe: gadget-quad-path-two-round (join seam safe)
 COMPOSITE decaf-compress-to-field safe-by-composition
   note: compress-to-field-core + canonical-fq-bits (253-bit sign decomposition)
 COMPOSITE decaf-encode-to-curve safe-by-composition

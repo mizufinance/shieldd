@@ -375,6 +375,72 @@ while IFS= read -r row; do
   [[ -n "$removal_path" && "$removal_path" != "pending" ]] || fail "assumption $id lacks removal path"
 done < <(table_rows "$assumption_file")
 
+# Per-circuit decaf discharge: the consolidate2x1 Lean whole-circuit artifact is
+# axiom-clean, so for THIS circuit every decaf bridge row must be either
+# `discharged` or carry a `Discharged-Circuits: consolidate2x1` marker backed by
+# (a) the stamped whole-circuit artifact and (b) a bridge theorem name that
+# actually exists in the extracted Lean sources. This makes the Focus-2 exit
+# criterion ("no decaf row assumed for consolidate2x1") mechanically checkable
+# while the rows stay open for circuit families not yet composed in Lean.
+C2X1_ARTIFACT="$CIRCUIT_FORMAL/consolidate2x1-whole-circuit-lean-artifact.txt"
+GNARK_LEAN_SRC="tools/gnark/lean/ShielddGnarkFormal"
+# bash 3.2 (macOS) has no associative arrays; map id->bridge theorem by case.
+decaf_bridge_theorem() {
+  case "$1" in
+    ZK-ASSUME-DECAF377-COMPRESS-TO-FIELD) echo "decaf377_compressToField_sound" ;;
+    ZK-ASSUME-DECAF377-RVK) echo "decaf377_randomizedVerificationKey_sound" ;;
+    ZK-ASSUME-DECAF377-DTK) echo "decaf377_diversifiedTransmissionKey_sound" ;;
+    ZK-ASSUME-DECAF377-NET-BALANCE) echo "decaf377_netBalanceCommitment_sound" ;;
+    ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE) echo "Relation_neg_invariant" ;;
+    *) echo "" ;;
+  esac
+}
+assumption_status_index="$(status_column_index "$assumption_file")"
+while IFS= read -r row; do
+  [[ -z "$row" ]] && continue
+  id="$(markdown_field "$row" 2 | strip_ticks)"
+  theorem="$(decaf_bridge_theorem "$id")"
+  [[ -n "$theorem" ]] || continue
+  status="$(markdown_field "$row" "$assumption_status_index" | strip_ticks)"
+  evidence="$(markdown_field "$row" 6)"
+  # The bridge theorem must exist in the extracted Lean sources.
+  rg -F "$theorem" "$GNARK_LEAN_SRC" >/dev/null \
+    || fail "decaf row $id cites bridge theorem $theorem absent from $GNARK_LEAN_SRC"
+  if [[ "$status" != "discharged" ]]; then
+    [[ "$evidence" == *"Discharged-Circuits: consolidate2x1"* ]] \
+      || fail "decaf row $id is $status for consolidate2x1 without a Discharged-Circuits: consolidate2x1 marker"
+  fi
+  # Either way it must be backed by the stamped, axiom-clean whole-circuit artifact.
+  check_stamped_artifact "$id" "$C2X1_ARTIFACT"
+  # The two-torsion row is fully mechanized for consolidate2x1: it must be discharged.
+  if [[ "$id" == "ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE" ]]; then
+    two_torsion_seen=1
+    [[ "$status" == "discharged" ]] \
+      || fail "ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE must be discharged (mechanized via Relation_neg_invariant), got $status"
+  fi
+done < <(table_rows "$assumption_file")
+[[ "${two_torsion_seen:-0}" == "1" ]] \
+  || fail "assumption ledger is missing ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE"
+
+# safe-by-composition -> Lean binding: every composition-lift bridge theorem the
+# constraint-system-assurance doc cites for consolidate2x1 must (a) be named in
+# the doc and (b) actually exist in the extracted Lean sources, so the C2
+# "by-composition" verdict is not an unbacked word for this circuit.
+ASSURANCE_DOC="docs/soundness/constraint-system-assurance.md"
+for bridge_theorem in \
+  scalarMulLE128_sound \
+  scalarMulLE251_sound \
+  decaf377_compressToField_sound \
+  decaf377_encodeToCurve_sound \
+  decaf377_randomizedVerificationKey_sound \
+  decaf377_diversifiedTransmissionKey_sound \
+  decaf377_netBalanceCommitment_sound; do
+  rg -F "$bridge_theorem" "$ASSURANCE_DOC" >/dev/null \
+    || fail "$ASSURANCE_DOC must cite safe-by-composition Lean bridge $bridge_theorem"
+  rg -F "$bridge_theorem" "$GNARK_LEAN_SRC" >/dev/null \
+    || fail "safe-by-composition bridge $bridge_theorem cited in $ASSURANCE_DOC is absent from $GNARK_LEAN_SRC"
+done
+
 scope_ids=""
 for scope in "$COMPLIANCE_FORMAL/compliance-soundness-scope.txt" "$CIRCUIT_FORMAL/circuit-soundness-scope.txt"; do
   ids="$(sed -n 's/^\([^#|][^|]*\)|.*/\1/p' "$scope")"

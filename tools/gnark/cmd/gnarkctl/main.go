@@ -234,6 +234,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.PoseidonHash7Gadget{}, true
 	case "gadget-quad-path-round":
 		return &circuits.QuadPathRoundGadget{}, true
+	case "gadget-quad-path-two-round":
+		return &circuits.QuadPathTwoRoundGadget{}, true
 	case "gadget-quad-path-1":
 		return &circuits.QuadPath1Gadget{}, true
 	case "gadget-quad-path-2":
@@ -274,6 +276,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.IvkModRGadget{}, true
 	case "gadget-scalar-mul-step":
 		return &circuits.ScalarMulStepGadget{}, true
+	case "gadget-scalar-mul-two-step":
+		return &circuits.ScalarMulTwoStepGadget{}, true
 	case "gadget-scalar-mul-le-251":
 		return &circuits.ScalarMulLE251Gadget{}, true
 	case "gadget-scalar-mul-le-128":
@@ -709,6 +713,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 	case "gadget-quad-path-round":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPathRoundGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-quad-path-two-round":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPathTwoRoundGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-quad-path-1":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.QuadPath1Gadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
@@ -768,6 +775,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-scalar-mul-step":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulStepGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-scalar-mul-two-step":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulTwoStepGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-scalar-mul-le-251":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ScalarMulLE251Gadget{})

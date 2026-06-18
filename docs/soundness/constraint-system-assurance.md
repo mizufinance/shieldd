@@ -97,6 +97,17 @@ The `*-step`/`*-round` probes fold over a boolean decomposition
 (`gadget-canonical-fq-bits`, itself `safe`); the `*-core` probes factor the
 253-bit sign decomposition out to that same leaf.
 
+A single-rung probe shows one rung deterministic in isolation; it does not by
+itself witness the *seam* where rung `i`'s outputs become rung `i+1`'s inputs.
+Two **composition-boundary probes** close that gap empirically:
+`gadget-scalar-mul-two-step` (two consecutive ladder rungs) and
+`gadget-quad-path-two-round` (two consecutive Merkle layers) wire two rungs
+together and run Picus over the join. Both reach `safe` (the scalar probe under
+the same Edwards-denominator preconditions as its single rung, now applied to
+both rungs), so the boundary introduces no free signal — condition (b) of the
+by-composition lift. Two rungs suffice: every interior seam in the ladder/path
+has the same join shape.
+
 For gadget `.sr1cs`, public operands and auxiliary witness hints are Picus
 inputs. Claimed result wires (`Out`, `OutX`, `OutY`, `Root`, `Nullifier`,
 `Valid`, `IvkReduced`) are Picus outputs whose uniqueness it must decide. There
@@ -159,7 +170,30 @@ The report then records each iterated/composite gadget as `safe-by-composition`:
 and `rvk`/`dtk`/`net-balance-commitment` (chains of the leaves above). The
 composition lift — deterministic leaves compose to a deterministic gadget, with
 the boolean decomposition supplying the per-rung selector — is the one step Picus
-does **not** perform; it is the documented residual assumption of the C2 verdict.
+does **not** perform; it is the documented residual of the C2 verdict.
+
+**For `consolidate2x1` that lift is not informal — it is mechanized in Lean.**
+The `safe-by-composition` rows consumed by `consolidate2x1` are each backed by a
+checked-in bridge theorem that proves the iterated/composite gadget's output is a
+function of its inputs by induction over the per-rung step, so two witnesses on
+the same inputs yield the same output (functional spec ⇒ output determinism):
+
+| `safe-by-composition` gadget | Lean bridge theorem (functional lift) |
+| --- | --- |
+| `scalar-mul-le-128/251` | `Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE128_sound` / `scalarMulLE251_sound` (ladder induction) |
+| `decaf-compress-to-field` | `Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_compressToField_sound` |
+| `decaf-encode-to-curve` | `Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_encodeToCurve_sound` |
+| `rvk` | `Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_randomizedVerificationKey_sound` |
+| `dtk` | `Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_diversifiedTransmissionKey_sound` |
+| `net-balance-commitment` | `Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_netBalanceCommitment_sound` |
+
+These bridges compose into the axiom-clean
+`Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound`, so for this
+circuit "by-composition" is independently discharged in the Lean track rather
+than left as an unbacked word. `scripts/check-soundness-invariants.sh` asserts
+each cited bridge theorem actually exists in the extracted Lean sources. For
+circuit families not yet composed in Lean, the lift remains the residual C2
+assumption.
 
 **Status honesty:** a Picus-clean gadget is under-constraint *evidence* for that
 gadget — necessary, not sufficient for the semantic property. There is no
@@ -172,7 +206,7 @@ rows still require whole-circuit composition artifacts.
 
 | Tool | Disposition | Reason |
 | --- | --- | --- |
-| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5; whole-family attempts are stamped as undischarged timeouts. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition`. Bounded 180-second runs on `consolidate2x1`, `split1x4`, and `split1x8` produced no verdict before watchdog termination. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
+| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5, plus two composition-boundary probes `safe`; whole-family attempts remain undischarged timeouts. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, the `*-two-step`/`*-two-round` join-seam probes, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition` with the lift mechanized in Lean for consolidate2x1. The whole-circuit attempt now runs with a real multi-hour budget (`scripts/run-whole-circuit-picus.sh`, nightly, non-gating) instead of the 180 s watchdog; `consolidate2x1`/`split1x4`/`split1x8` still wall out without a verdict and are recorded honestly. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
 | Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Shieldd needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
 | ACL2/Axe | Landed for bool-select, iszero, Poseidon2, nullifier, and AssetRegistryGap-backed `gadget-imt-gap` semantic gadget proofs. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |
