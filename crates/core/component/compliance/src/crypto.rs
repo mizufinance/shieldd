@@ -17,7 +17,7 @@ use once_cell::sync::Lazy;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_num::Amount;
 
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha512};
 
 use crate::issuer_keys::DETECTION_TIER_BYTES;
 use crate::structs::{ComplianceCiphertext, DleqProof};
@@ -25,17 +25,18 @@ use crate::structs::{ComplianceCiphertext, DleqProof};
 #[cfg(test)]
 use shieldd_sdk_keys::Address;
 
-/// Domain separator for SHA256 derivation — matches Orbis `DERIVATION_DOMAIN` exactly.
+/// Domain separator for SHA-512 derivation — matches Orbis `DERIVATION_DOMAIN` exactly.
 const DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
 
 /// Derive the compliance scalar `d` from canonical slot derivation material.
 ///
-/// `d = Fr::from_le_bytes_mod_order(SHA256(DERIVATION_DOMAIN || slot_derivation.to_bytes()))`
+/// `d = Fr::from_le_bytes_mod_order(SHA512(DERIVATION_DOMAIN || slot_derivation.to_bytes()))`
 ///
 /// This MUST match Orbis's `derive_capability_scalar()` so PRE math cancels correctly.
-/// The result is stored as Fq in the compliance leaf (Fr fits losslessly in Fq for decaf377).
+/// Orbis uses a 64-byte SHA-512 digest reduced mod `Fr` (wide reduction, negligible
+/// bias). The result is stored as Fq in the compliance leaf (Fr fits losslessly in Fq).
 pub fn derive_compliance_scalar(slot_derivation: Fq) -> Fq {
-    let mut hasher = Sha256::new();
+    let mut hasher = Sha512::new();
     hasher.update(DERIVATION_DOMAIN);
     hasher.update(slot_derivation.to_bytes());
     let hash = hasher.finalize();

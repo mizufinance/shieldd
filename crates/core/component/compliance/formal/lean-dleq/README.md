@@ -22,7 +22,7 @@ Loom + PolyFun + Mathlib, so the heavy `full` tier is nightly-only.
 | `Dleq/Group.lean` | `pow_keepBits_lt_q : 2^250 < q` | **proved** — residual axiom `Dleq.q_prime`. |
 | `Dleq/Challenge.lean` | `emb_injective` (`DLEQ-CHALLENGE-TRUNCATION`) | **proved** — `Fin (2^250) ↪ ZMod q`, valid because `2^250 < q`. |
 | `Dleq/Sigma.lean` | `sigma_complete`, `sigma_speciallySound`, `sigma_hvzk` | **proved** — completeness, extractor `(s−s')·(c−c')⁻¹`, perfect HVZK. |
-| `Dleq/FiatShamir.lean` | `dleq_fs_knowledge_soundness` | **proved** — VCVio `euf_nma_bound` (forking + special soundness), bound `1/|Ω| = 1/2^250`. |
+| `Dleq/FiatShamir.lean` | `dleq_fs_knowledge_soundness` | **proved** — VCVio `euf_nma_bound` (forking + special soundness), bound `1/|Ω| = 1/2^250` under the uniform-`Fin(2^250)` challenge model; true error ≤ `1.07/2^250` (`CC-ASSUME-CHALLENGE-TRUNCATION-NEGL`). |
 
 `#print axioms` for every obligation is clean modulo `propext`,
 `Classical.choice`, `Quot.sound`, plus the single residual `Dleq.q_prime`.

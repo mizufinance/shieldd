@@ -1,171 +1,84 @@
-# Soundness-Hardening Roadmap: Tamarin, Alloy, and the FV Stack
+# Soundness-Hardening Roadmap (forward-looking)
 
-## Context
+Open formal-verification work only, in priority order. Each focus area names the
+tools, the concrete deliverable, and the assumptions it must retire or audit.
+Status of already-landed layers lives in the assumption ledger and the
+per-component `formal/` artifacts, not here.
 
-We want assurance that the protocol, ZK circuits, DLEQ proof, and compliance
-flow are *sound*, and to be current with state-of-the-art use of Tamarin and
-Alloy for ZK/blockchain/cryptography work. The repo now runs a strong
-**layered refinement stack** (Tamarin + Lean + ACL2 + F*/hax + Picus + Alloy).
-The remaining risk is assumption retirement: Alloy is bounded and abstracts
-cryptography, and the DLEQ computational proof still depends on its
-random-oracle and prime-order-group residuals.
+## Focus 1 — DLEQ proof soundness + full assumption review
 
-## Current stack (baseline)
+Tools: Lean/VCVio, Alloy, Tamarin. The DLEQ Fiat-Shamir knowledge-soundness
+proof is mechanized; this focus is an end-to-end **soundness + assumption
+audit** across the three layers that touch DLEQ, not new construction unless the
+audit surfaces a gap.
 
-| Layer | Tool | Artifact |
-|---|---|---|
-| Protocol / symbolic (closed-world authorization) | **Tamarin** | `crates/core/component/compliance/formal/compliance.spthy` — 7 lemmas (SECRECY, DETECTION_CORRECTNESS, DESIGNATED_DECRYPTABILITY, DLEQ_BINDING, REPLAY_RESISTANCE, NO_KEY_CONFUSION, ANCHOR_FRESHNESS) |
-| Protocol / symbolic (active Dolev-Yao) | **Tamarin** | `crates/core/component/compliance/formal/compliance-active.spthy` — published transcript + attacker-driven verify, DLEQ soundness imported as `ProofSound`; 4 lemmas (DLEQ_BINDING, REPLAY_RESISTANCE, NO_KEY_CONFUSION, EXECUTABLE). Both models verified nightly via `scripts/compliance-symbolic.sh` |
-| Circuit relation (R1CS⇒spec) | **Lean** + **ACL2** | `tools/gnark/lean/` whole-circuit `consolidate2x1_circuit_sound` (axiom-clean); `crates/core/component/shielded-pool/formal/acl2/` 6 certified gadgets |
-| No under-constraint | **Picus** (cvc5 FF) | `scripts/circuit-constraint-check.sh` (leaf-gadget set, all `safe`: Poseidon arities, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, key derivation; ladders/composites `safe-by-composition`); `circuit-whole-picus-report.txt` records bounded whole-family consolidate/split attempts as undischarged timeouts |
-| Impl ↔ spec | **F\*/hax** + parity | statement-encoding injectivity; snarkpack validation; Go↔Lean wiring transcript diff |
-| DLEQ Σ-protocol + Fiat-Shamir knowledge soundness | **Lean/VCVio** | `crates/core/component/compliance/formal/lean-dleq/` (`dleq_fs_knowledge_soundness`, axiom-clean modulo two residuals) |
-| Proof-system crypto (Groth16/SnarkPack/FS) | **Assumed** | `crates/core/component/compliance/formal/assumption-ledger.md` |
+- **Lean/VCVio:** re-confirm `dleq_fs_knowledge_soundness` `#print axioms` is
+  clean modulo the two residuals (`CC-ASSUME-POSEIDON-RO`,
+  `CC-ASSUME-DECAF377-PRIME-ORDER-GROUP`); confirm the `1/2^250` bound and the
+  challenge embedding match `crypto.rs`.
+- **Tamarin:** confirm `compliance-active.spthy` imports DLEQ soundness as
+  `ProofSound` faithfully — i.e. the symbolic `ProofSound` restriction is exactly
+  the property the Lean proof establishes, with no stronger symbolic assumption
+  smuggled in.
+- **Alloy:** confirm the designated-decryptability / committee state machine does
+  not assume a DLEQ property the computational proof does not deliver.
+- **Assumption review:** every DLEQ-touching row in the ledger has a status, a
+  removal path, and no `assumed` row silently covers a property a higher layer
+  treats as `proved`. The two residuals are the irreducible base — document them
+  as such; no removal path short of a different cryptographic assumption.
 
-For `consolidate2x1`, the Decaf377 gadget bridge is no longer a named-axiom
-boundary: the Lean artifact composes extracted group-law, compression,
-assert-equivalent, encode-to-curve, RVK, DTK, and net-balance proofs. Its
-raw affine representative on-curve checks are now in-circuit constraints. The
-DLEQ Fiat-Shamir + challenge-truncation content is now mechanized (Step 2,
-below); its only residuals are `CC-ASSUME-POSEIDON-RO` and
-`CC-ASSUME-DECAF377-PRIME-ORDER-GROUP`.
+## Focus 2 — consolidate2x1: one circuit completely verified, all assumptions retired
 
-## State of the art (decision basis)
+Make the single `note_reshape` (consolidate2x1) circuit fully closed: Picus
+first (no under-constraint), then Lean (relation soundness with no open
+assumptions on this circuit).
 
-- **Tamarin** = adversarial message-passing soundness in the symbolic model.
-  SOA lesson (Basin et al. aggregate-signatures; SANA re-analysis): the bugs
-  live in *undocumented assumptions bridging symbolic↔computational*. The
-  assumption ledger is the right artifact; its completeness is the risk.
-- **Alloy** = bounded relational model-finder (SAT/SMT-backed). SOA uses it for
-  what Tamarin is weak at: **system-level state machines, data-structure
-  invariants, conservation/accounting**. Precedent: ZK-Rollup Alloy model
-  (arXiv 2406.16219), Ethereum-spec model-checking (arXiv 2501.07958),
-  Portus SMT finite model finding (arXiv 2411.15978).
-- The two are **complementary**: Tamarin for "can the adversary break the
-  protocol," Alloy for "do the state machines preserve invariants across all
-  reachable states." The repo's *explicit state machines* mandate is currently
-  covered by the bounded Alloy models and their explicit assumption-ledger rows.
+- **Picus (under-constraint):** drive the **whole consolidate2x1 circuit** to a
+  determinacy verdict, not just leaf gadgets. **Capacity wall:** the FF solver
+  currently times out on the full circuit; only leaf gadgets pass, with
+  ladders/composites `safe-by-composition`. Decision required: accept
+  `safe-by-composition` as "complete," or invest in making the whole-circuit run
+  terminate (decomposition strategy / solver tuning). Resolve this before
+  claiming the circuit "completely verified by Picus."
+- **Lean — retire every remaining assumption on this circuit:**
+  - `ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE` — prove the extracted
+    `CompressToField` relation invariant under `(x,y) ↦ (−x,−y)`, upgrading
+    `DecafEquivalent` (equality up to the 2-torsion `T=(0,−1)`) to genuine
+    statement-field equality. Self-contained algebra, no new circuit surface.
+    Highest-leverage Lean task.
+  - Decaf377 group-law axiom removal — extract the gnark group-law subcircuits
+    behind the `RVK` / `DTK` / `net-balance` bridges and replace the named-group
+    rows with proved ones. This bridge library is shared, so closing it here also
+    unblocks Focus 3.
+- **Exit criterion:** Picus verdict resolved (per the decision above);
+  `consolidate2x1_circuit_sound` `#print axioms` clean with no decaf
+  assumption-ledger rows left in `assumed` for this circuit.
 
-## Recommended approach
+## Focus 3 — transfer: one circuit completely verified, all assumptions retired
 
-Three workstreams.
+Same bar as Focus 2, applied to `transfer_circuit.go` (which today has **no**
+`*_circuit_sound` proof).
 
-### 1. Alloy system-state invariants (landed, bounded)
+- **Picus:** whole-circuit determinacy verdict for the transfer circuit (same
+  capacity decision as Focus 2 applies).
+- **Lean:** build `transfer_circuit_sound` reusing the consolidate2x1 bridge
+  library completed in Focus 2 (group-law, compression, assert-equivalent,
+  encode-to-curve, RVK, DTK, net-balance sub-proofs), with its own stamped
+  whole-circuit artifact + Go↔Lean wiring transcript.
+- **Assumption review:** every transfer-specific ledger row has a status and
+  removal path.
 
-The compliance formal tree now has `formal/alloy/` models with `check`
-assertions and stamped artifacts gated by `scripts/compliance-alloy.sh`. They
-model the **design-level state machine**, not the crypto — crypto stays
-idealized and is delegated to the assumption ledger, exactly as
-`compliance.spthy` does.
+## Deferred (not in current focus)
 
-- **Nullifier + IMT invariants** — double-spend impossibility across blocks;
-  indexed-Merkle-tree insert / non-membership (gap) global invariants. Ties to
-  Lean `imtGapSpec` and ACL2 `asset-registry-gap` (those prove the *gadget*;
-  Alloy proves the *system* invariant the gadget is trusted to enforce).
-- **Orbis threshold committee** — key designation → quorum → terminal decrypt;
-  no decryption without designated key (system-level mirror of Tamarin
-  `DESIGNATED_DECRYPTABILITY`).
-- **Value conservation** — whole-transaction net-balance across a tx graph;
-  ties to the P5 net-balance blueprint (Lean proves the commitment gadget;
-  Alloy proves graph-level conservation).
-- **Compliance tier state machine** — regulated/unregulated routing, tier
-  transitions, evidence lifecycle.
+- `shielded_ics20_withdrawal_circuit.go` whole-circuit proof — same pattern as
+  Focus 3, scheduled after transfer is closed.
+- Proof-system crypto (Groth16 / SnarkPack soundness) stays assumed in the
+  ledger; no in-repo mechanization planned.
 
-For each: document the abstraction boundary and add the idealization rows to the
-assumption ledger so Alloy idealizations are tracked like Tamarin's.
+## Verification bar (per scheduled item)
 
-### 2. Mechanize DLEQ cryptographic soundness (Lean/VCVio)
-
-**Status (done):** all five DLEQ obligations are machine-checked in
-**Lean 4 + VCVio** under `crates/core/component/compliance/formal/lean-dleq/`,
-with the two-tier harness `scripts/compliance-lean-dleq.sh` (`stamps`/`full`),
-nightly CI wiring, a stamped `lean-dleq-artifact.txt`, and the ledger flipped to
-`proved-computational`.
-
-- `Dleq/Group.lean` — decaf377 scalar field as `ZMod q` with `Fact (Nat.Prime q)`
-  and the keystone `pow_keepBits_lt_q : 2^250 < q`; the single residual axiom is
-  `Dleq.q_prime` (`CC-ASSUME-DECAF377-PRIME-ORDER-GROUP`).
-- `Dleq/Challenge.lean` — the 250-bit truncated challenge `Fin (2^250) ↪ ZMod q`
-  with `emb_injective` (`DLEQ-CHALLENGE-TRUNCATION`), valid precisely because
-  `2^250 < q`.
-- `Dleq/Sigma.lean` — the Chaum-Pedersen DLEQ `SigmaProtocol`; `sigma_complete`,
-  `sigma_speciallySound` (extractor `(s−s')·(c−c')⁻¹`), and `sigma_hvzk`.
-- `Dleq/FiatShamir.lean` — `dleq_fs_knowledge_soundness`, obtained by applying
-  VCVio's `euf_nma_bound` (forking lemma + special soundness) to the DLEQ Σ,
-  with challenge space `Fin (2^250)` so the bound's `1/|Ω|` is `1/2^250`,
-  matching `crypto.rs`. `#print axioms` is clean modulo `propext`,
-  `Classical.choice`, `Quot.sound`, and the residual `Dleq.q_prime`.
-
-Residuals are exactly two: `CC-ASSUME-POSEIDON-RO` (the FS hash idealized
-structurally as VCVio's `M × Commit →ₒ Chal` random oracle — no Lean `axiom`) and
-`CC-ASSUME-DECAF377-PRIME-ORDER-GROUP` (axiom `Dleq.q_prime`). The deleted
-`CC-ASSUME-DLEQ-FS` and `CC-ASSUME-CHALLENGE-TRUNCATION` assumptions are now
-discharged.
-
-**Why Lean/VCVio, not EasyCrypt:** the original plan targeted EasyCrypt, but the
-only license-clean, maintained packaged forking lemma is in **VCVio**
-(`Verified-zkEVM/VCV-io`, Apache-2.0): a generic `SigmaProtocol → Fiat-Shamir →
-Fork` pipeline whose Schnorr extractor `(z₁−z₂)·(c₁−c₂)⁻¹` is the exact shape of
-the DLEQ extractor. Every EasyCrypt forking implementation surveyed was unlicensed
-and pinned to an older EC release. Consolidating on Lean also gives a
-single-prover story. Cost: a second Lean toolchain (`v4.30.0` + Mathlib, isolated
-lake project, nightly-only `full`). The EC DLEQ track that previously served as a
-cross-check has been deleted (`delete replaced flows`); its algebra survives in
-git history as the port blueprint.
-
-### 3. Cross-layer faithfulness audit (assumption-ledger integrity)
-
-The ledger is the spine of the whole argument. As a standing doc task:
-
-- Verify each Tamarin/Alloy idealization genuinely *refines* the real
-  circuit/Rust primitive, and that every gap has a ledger row with a removal
-  path. The Tamarin abstraction points are the `dem/2` term (DEM/Poseidon
-  stream), the action facts `DleqBound`/`MetadataBound` (DLEQ + metadata
-  binding), and the persistent fact `!KeyInIMT` (IMT membership); IMT gap and
-  value conservation are abstracted in the Alloy models.
-- Confirm no `assumed` row silently covers a property a higher layer believes is
-  `proved` (the symbolic↔computational seam where SOA bugs hide).
-- **Resolved (2026-06):** the closed-world/active-adversary gap was closed by
-  *adding* a second model rather than narrowing claims. `compliance.spthy` stays
-  the closed-world authorization model (SECRECY, DETECTION_CORRECTNESS,
-  DESIGNATED_DECRYPTABILITY correspondence). `compliance-active.spthy` adds a
-  scoped active Dolev-Yao adversary: the full published transcript
-  (epk, s_point, proof, metadata) goes to the attacker via `Out`, the attacker
-  drives verification via `In`, and DLEQ knowledge soundness is imported as the
-  restriction `ProofSound` (the Lean `DLEQ-FS-KNOWLEDGE-SOUNDNESS` result) rather
-  than re-derived. It proves binding/replay/key-separation under that adversary
-  (DLEQ_BINDING, REPLAY_RESISTANCE, NO_KEY_CONFUSION, EXECUTABLE), all verified
-  with zero wellformedness warnings. Confidentiality is explicitly out of scope
-  there — `s_point = r*ACK` is published (crypto.rs:195), so seed secrecy rests on
-  the DH mask + Poseidon keystream (`CC-ASSUME-POSEIDON-STREAM`), a computational
-  obligation, not a symbolic secrecy lemma. Both models are proved and stamped by
-  `scripts/compliance-symbolic.sh`.
-
-## Files this roadmap touches (when executed)
-
-- New: `**/formal/alloy/*.als` (4 models) + artifacts/stamps
-- New: `**/formal/lean-dleq/` (Lean/VCVio DLEQ mechanization) + stamped artifact
-- Edit: `crates/core/component/compliance/formal/assumption-ledger.md` (add
-  Alloy idealization rows; flip DLEQ rows on success)
-- Edit: `.github/workflows/soundness-formal.yml` (add Alloy + Lean/VCVio DLEQ jobs
-  to nightly `provers`)
-- Edit: `scripts/` (new `compliance-alloy.sh`, `compliance-lean-dleq.sh` mirroring
-  `compliance-symbolic.sh` stamp/verify pattern)
-- Edit: `docs/compliance/reference.md` (link the new layers into the soundness
-  story)
-
-## Verification (of eventual execution)
-
-- Alloy: `check` assertions report **no counterexample within bounds**; stamped
-  artifact SHA-256 matches; nightly `provers` job green.
-- Lean/VCVio DLEQ: `lake build` succeeds with a clean `#print axioms` baseline
-  (modulo the two residual assumptions); ledger DLEQ rows are
-  `proved-computational`; artifact stamped.
-- Ledger audit: `scripts/check-soundness-invariants.sh` still green; every
-  idealization has a row + removal path; no status-kind contradictions.
-
-## Out of scope (flagged)
-
-- Decaf377 group-law axiom removal (separate, known removal path via extraction).
-- Whole-circuit Picus (undischarged-by-design — SMT capacity). Iterated/composite
-  gadgets are `safe-by-composition` from leaf probes, not monolithic runs.
+- Lean: `lake build` green; `#print axioms` shows no new kernel axioms beyond any
+  named residual being retired; no `sorry` / `admit` / `axiom`.
+- New artifacts stamped (source + artifact SHA-256) and wired into the nightly
+  `provers` job.
+- Every retired/added assumption-ledger row has a status and a removal path.

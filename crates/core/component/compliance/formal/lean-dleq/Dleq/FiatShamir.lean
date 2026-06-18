@@ -14,7 +14,10 @@ The prime-order group is modeled abstractly as `ZMod q` acting on itself
 group/scalar-module laws, not the decaf377 curve equation, and decaf377's
 prime-order group is isomorphic to `ZMod q` as an additive group with scalar
 action. The forking divisor `challengeSpaceInv Chal` is `1 / 2^keepBits`
-(`= 1/2^250`), matching `crypto.rs`'s truncated challenge space exactly.
+(`= 1/2^250`), the size of `crypto.rs`'s truncated challenge space. This models
+the truncated challenge as *uniform* on `Fin (2^250)`; the real `trunc₂₅₀` of a
+uniform `Fq` element is non-uniform by a factor ≤ 1.07, an idealization tracked
+as `CC-ASSUME-CHALLENGE-TRUNCATION-NEGL` (see `Challenge.lean`), not exact.
 -/
 import Dleq.Sigma
 import Dleq.Challenge
@@ -60,7 +63,9 @@ def dleqGen : GenerableRelation (Grp × Grp × Grp × Grp) (ZMod q) dleqRel wher
     simp [rel]
 
 /-- `challengeSpaceInv Chal = 1 / 2^keepBits` — the forking bound's soundness
-error is exactly the protocol's truncated challenge probability `1/2^250`. -/
+error under the uniform-`Fin (2^250)` challenge model. The protocol's actual
+`trunc₂₅₀` challenge is non-uniform by a factor ≤ 1.07
+(`CC-ASSUME-CHALLENGE-TRUNCATION-NEGL`), so the true error is ≤ `1.07/2^250`. -/
 theorem challengeSpaceInv_eq : challengeSpaceInv Chal = (2 ^ keepBits : ENNReal)⁻¹ := by
   simp [challengeSpaceInv, Fintype.card_fin]
 
@@ -71,8 +76,9 @@ making `qH` random-oracle queries, there is a witness-extraction reduction whose
 success probability is bounded below by the forking expression
 `Adv · (Adv/(qH+1) − 1/2^250)`. This is VCVio's `euf_nma_bound` instantiated at
 the DLEQ Σ-protocol; the extractor is special soundness'
-`(z₁ − z₂)·(e c₁ − e c₂)⁻¹`, and `1/2^250` is the truncated challenge space
-(`challengeSpaceInv_eq`). -/
+`(z₁ − z₂)·(e c₁ − e c₂)⁻¹`, and `1/2^250` is the (idealized-uniform) truncated
+challenge space (`challengeSpaceInv_eq`; see `CC-ASSUME-CHALLENGE-TRUNCATION-NEGL`
+for the ≤1.07× non-uniformity residual). -/
 theorem dleq_fs_knowledge_soundness
     {M : Type} [DecidableEq M]
     (nmaAdv : SignatureAlg.managedRoNmaAdv
@@ -88,5 +94,44 @@ theorem dleq_fs_knowledge_soundness
     (sigma_speciallySound emb emb_injective)
     (by intro ω₁ p₁ ω₂ p₂; simp [dleqSigma, sigma])
     nmaAdv qH
+
+/-- The Fiat-Shamir message type for the *strong* DLEQ transform: the hashed
+message is the encryption metadata together with the full DLEQ statement
+`(g, ack, epk, spt)`. With `BoundMsg`, the random-oracle query `(msg, commit) =
+((meta, (g, ack, epk, spt)), (R, R'))` covers exactly the transcript that
+`crypto.rs::compute_dleq_native` hashes — `(domain, meta, G, ACK, EPK, S, R, R')` —
+so the statement is bound into the challenge (strong Fiat-Shamir), not omitted as
+in the weak transform whose absence is the Frozen-Heart failure mode.
+
+`Meta` is the abstract metadata-hash carrier (the Poseidon-absorbed encryption
+metadata); only its `DecidableEq` is used. -/
+abbrev BoundMsg (Meta : Type) := Meta × (Grp × Grp × Grp × Grp)
+
+/-- **DLEQ Fiat-Shamir knowledge soundness under the strong (statement-binding)
+transform.**
+
+`dleq_fs_knowledge_soundness` specialized to `M := BoundMsg Meta`: the modeled RO
+message provably carries the statement `(g, ack, epk, spt)` and metadata, so the
+challenge is a function of the whole transcript exactly as in `crypto.rs`. This
+closes the structural Frozen-Heart gap (statement present in the hash).
+
+Scope: this is still VCVio's `euf_nma_bound` (knowledge soundness for an
+honestly-generated statement). Simulation-soundness / non-malleability against
+*adversarially chosen* statements — the property Tamarin's `ProofSound` imports —
+is not re-mechanized here; it follows from the statement-binding transcript by
+Faust–Kohlweiss–Marson–Venturi (FKMV), recorded as `CC-ASSUME-DLEQ-FS-NONMALLEABLE`
+(see `CC-FIND-DLEQ-WEAK-FS`). -/
+theorem dleq_fs_knowledge_soundness_strong
+    {Meta : Type} [DecidableEq Meta]
+    (nmaAdv : SignatureAlg.managedRoNmaAdv
+      (FiatShamir (m := OracleComp (unifSpec + (BoundMsg Meta × (Grp × Grp) →ₒ Chal)))
+        dleqSigma dleqGen (BoundMsg Meta)))
+    (qH : ℕ) :
+    ∃ reduction : (Grp × Grp × Grp × Grp) → ProbComp (ZMod q),
+      (Fork.advantage dleqSigma dleqGen (BoundMsg Meta) nmaAdv qH *
+          (Fork.advantage dleqSigma dleqGen (BoundMsg Meta) nmaAdv qH / (qH + 1 : ENNReal) -
+            challengeSpaceInv Chal)) ≤
+        Pr[= true | hardRelationExp dleqGen reduction] :=
+  dleq_fs_knowledge_soundness (M := BoundMsg Meta) nmaAdv qH
 
 end Dleq

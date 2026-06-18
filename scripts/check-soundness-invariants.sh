@@ -53,8 +53,12 @@ status_allowed_for_kind() {
         open|resolved|accepted-risk) return 0 ;;
       esac ;;
     assumption)
+      # `assumed` is the default residual state; `discharged` marks an
+      # assumption that has been mechanized into a theorem at its stated scope
+      # (evidence must cite the discharging proof; the removal path records what,
+      # if anything, remains for broader scopes).
       case "$status" in
-        assumed) return 0 ;;
+        assumed|discharged) return 0 ;;
       esac ;;
     gadget)
       # Gadget-scoped R1CS proofs: only `proved` carries a certified theorem.
@@ -432,5 +436,25 @@ rg -F "Ecne" docs/soundness/constraint-system-assurance.md >/dev/null \
   || fail "constraint-system assurance strategy must mention Ecne"
 rg -F "ACL2/Axe" docs/soundness/constraint-system-assurance.md >/dev/null \
   || fail "constraint-system assurance strategy must mention ACL2/Axe"
+
+# Lemma-citation existence: every `lean-dleq/Dleq/<File>.lean::<symbol>`
+# reference in the soundness docs must resolve to a real definition in the Lean
+# sources. Guards against a rename/delete silently passing CI with a dangling
+# citation. Citations are relative (`lean-dleq/...`); resolve under the
+# compliance formal dir.
+while IFS= read -r citation; do
+  [[ -z "$citation" ]] && continue
+  rel_path="${citation%%::*}"
+  symbol="${citation##*::}"
+  lean_path="$COMPLIANCE_FORMAL/$rel_path"
+  [[ -f "$lean_path" ]] || fail "lean citation $citation references missing file $lean_path"
+  rg -n "\b(theorem|lemma|def|abbrev|structure)\s+$symbol\b" "$lean_path" >/dev/null \
+    || fail "lean citation $citation: symbol $symbol is not defined in $lean_path"
+done < <(rg -oN --no-filename "lean-dleq/Dleq/[A-Za-z]+\.lean::[A-Za-z_][A-Za-z0-9_]*" \
+  "$COMPLIANCE_FORMAL/soundness-properties.md" \
+  "$COMPLIANCE_FORMAL/assumption-ledger.md" \
+  "$COMPLIANCE_FORMAL/compliance-soundness-findings.md" \
+  "$COMPLIANCE_FORMAL/compliance-soundness-scope.txt" \
+  "$HANDOFF" 2>/dev/null | sort -u)
 
 echo "soundness invariants ok"

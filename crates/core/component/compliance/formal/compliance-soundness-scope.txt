@@ -18,3 +18,5 @@ DLEQ-FS-KNOWLEDGE-SOUNDNESS|crates/core/component/compliance/formal/lean-dleq/Dl
 CC-FIND-C2-MALLEABILITY|crates/core/component/shielded-pool/src/public_input_hash.rs:transfer_statement_fields
 CC-FIND-UNUSED-STREAM-DOMAIN|crates/core/component/compliance/src/crypto.rs:COMPLIANCE_STREAM_CIPHER_DOMAIN
 CC-FIND-DESIGNATED-VERIFIER-CLAIM|crates/core/component/compliance/src/crypto.rs:compute_dleq_native
+CC-FIND-DLEQ-WEAK-FS|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:dleq_fs_knowledge_soundness_strong
+CC-FIND-DLEQ-CHALLENGE-BIAS|crates/core/component/compliance/src/crypto.rs:fq_to_challenge_scalar

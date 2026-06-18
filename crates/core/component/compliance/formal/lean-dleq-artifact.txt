@@ -3,17 +3,18 @@ toolchain: leanprover/lean4:v4.30.0
 scope: DLEQ computational soundness (completeness, special-soundness,
        HVZK, challenge-truncation, Fiat-Shamir knowledge-soundness)
 source_sha256: Dleq/Group.lean 362015011ca3b1734d3ab906b2ff2c6d6dfdcf9e857dbd6dc0a5cbb56994154f
-source_sha256: Dleq/Challenge.lean 4d2d5d18f870fbe13755b549a45541d5771dcac5790b73c30e80fbf858cdd63f
+source_sha256: Dleq/Challenge.lean 8b0008744b758b6b1135bd8879e01f93f71ed350a34f81bf149f681656e12afa
 source_sha256: Dleq/Sigma.lean 6762d4ace07ad8e86b3c8a681300cc996f31ce0cae5717b76cdc0133a61d20dd
-source_sha256: Dleq/FiatShamir.lean e357b30048d5b9025792211b87050c73dfbfa7563f8b8a02f64b87525a32ca10
+source_sha256: Dleq/FiatShamir.lean da20fab1318dd31189c33f819c3f18355e84b40622e232d95cc941b1149d1978
 source_sha256: lakefile.lean 240ecd04835cac6126f64f05b230a7a431b1615f045f88f9abce9774cdaede52
 source_sha256: lake-manifest.json 55b5e31da9d91bbbb282fe456c2e4ccff74388130398d249423b23792df5f0e9
 source_sha256: lean-toolchain 54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325
-source_sha256: scripts/compliance-lean-dleq.sh e53487527f8890ca18421647a48ee83ac051f6610c0845a05faec991c87b2505
+source_sha256: scripts/compliance-lean-dleq.sh 6405cd4fc8cc97380d706a4bbae202e92cdfa55935861ea5f9c66d1cad904a46
 OBLIGATION sigma_complete proved-computational
 OBLIGATION sigma_speciallySound proved-computational
 OBLIGATION sigma_hvzk proved-computational
 OBLIGATION emb_injective proved-computational
 OBLIGATION dleq_fs_knowledge_soundness proved-computational
+OBLIGATION dleq_fs_knowledge_soundness_strong proved-computational
 AXIOM Dleq.q_prime residual-assumption CC-ASSUME-DECAF377-PRIME-ORDER-GROUP
 ASSUMPTION CC-ASSUME-POSEIDON-RO structural-random-oracle-model

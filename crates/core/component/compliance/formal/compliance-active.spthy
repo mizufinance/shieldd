@@ -133,9 +133,14 @@ rule VerifyRegulated:
     [ ]
 
 /* ------------------------------------------------------------------------- *
- * Restriction: DLEQ knowledge soundness (proved in lean-dleq).               *
- * Any accepted proof was honestly generated for the identical statement and  *
- * metadata. The attacker may still replay/recombine GenProof outputs.        *
+ * Restriction: DLEQ knowledge soundness (lean-dleq + FKMV).                  *
+ * Knowledge soundness with a statement-binding transcript is mechanized in    *
+ * lean-dleq (`dleq_fs_knowledge_soundness_strong`; message `BoundMsg` carries  *
+ * statement + metadata). Acceptance ==> honest generation for the identical    *
+ * statement/metadata under an adversarially-chosen statement is the            *
+ * non-malleability property, discharged by FKMV given that statement-binding    *
+ * transcript (CC-ASSUME-DLEQ-FS-NONMALLEABLE). The attacker may still           *
+ * replay/recombine GenProof outputs.                                          *
  * ------------------------------------------------------------------------- */
 
 restriction ProofSound:

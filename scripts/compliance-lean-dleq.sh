@@ -99,10 +99,12 @@ while IFS= read -r ax; do
     || fail "non-allowlisted axiom '$ax' (only the residual prime-order-group assumption is permitted)"
 done < <(rg --no-filename -No '^\s*axiom\s+([A-Za-z0-9_]+)' -r '$1' "$LEAN_DIR/Dleq" || true)
 
-# --- stamp integrity (both tiers) -------------------------------------------
+# --- stamp integrity (stamps tier) ------------------------------------------
 # If a stamped artifact exists, every source_sha256 it records must still match,
-# so a module cannot be edited without re-running `full`.
-if [[ -f "$ARTIFACT" ]]; then
+# so a module cannot be edited without re-running `full`. The `full` tier
+# rewrites the artifact below, so it skips this gate (otherwise an intended
+# re-stamp after a source edit could never proceed).
+if [[ "$MODE" == "stamps" && -f "$ARTIFACT" ]]; then
   echo "==> stamp integrity"
   [[ -f "$ARTIFACT.sha256" ]] || fail "missing artifact stamp $ARTIFACT.sha256"
   want="$(cat "$ARTIFACT.sha256")"
@@ -139,6 +141,7 @@ import Dleq.FiatShamir
 #print axioms Dleq.sigma_hvzk
 #print axioms Dleq.emb_injective
 #print axioms Dleq.dleq_fs_knowledge_soundness
+#print axioms Dleq.dleq_fs_knowledge_soundness_strong
 LEAN
 )"
 printf '%s\n' "$axioms_out"
@@ -154,6 +157,7 @@ check_axioms "Dleq.sigma_speciallySound"         "$EXPECT_STD"
 check_axioms "Dleq.sigma_hvzk"                   "$EXPECT_STD"
 check_axioms "Dleq.emb_injective"                "$EXPECT_EMB"
 check_axioms "Dleq.dleq_fs_knowledge_soundness"  "$EXPECT_FS"
+check_axioms "Dleq.dleq_fs_knowledge_soundness_strong" "$EXPECT_FS"
 
 # --- stamp the development --------------------------------------------------
 {
@@ -170,6 +174,7 @@ check_axioms "Dleq.dleq_fs_knowledge_soundness"  "$EXPECT_FS"
   echo "OBLIGATION sigma_hvzk proved-computational"
   echo "OBLIGATION emb_injective proved-computational"
   echo "OBLIGATION dleq_fs_knowledge_soundness proved-computational"
+  echo "OBLIGATION dleq_fs_knowledge_soundness_strong proved-computational"
   echo "AXIOM Dleq.q_prime residual-assumption CC-ASSUME-DECAF377-PRIME-ORDER-GROUP"
   echo "ASSUMPTION CC-ASSUME-POSEIDON-RO structural-random-oracle-model"
 } >"$ARTIFACT"

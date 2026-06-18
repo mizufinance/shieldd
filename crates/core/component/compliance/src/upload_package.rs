@@ -7,7 +7,7 @@ use decaf377::{Element, Encoding, Fq, Fr};
 use hkdf::Hkdf;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 
 use crate::{
     crypto::verify_dleq_native,
@@ -470,8 +470,10 @@ fn encrypt_secret_with_randomness(
     ))
 }
 
+/// Derive a capability scalar — must match Orbis `derive_capability_scalar`
+/// (SHA-512 digest reduced mod `Fr`, wide reduction).
 fn derive_capability_scalar(derivation: &[u8]) -> Fr {
-    let mut hasher = Sha256::new();
+    let mut hasher = Sha512::new();
     hasher.update(DERIVATION_DOMAIN);
     hasher.update(derivation);
     let hash = hasher.finalize();
