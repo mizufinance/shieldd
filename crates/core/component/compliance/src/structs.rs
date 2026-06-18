@@ -136,7 +136,7 @@ pub struct ComplianceLeaf {
     pub slot_id: u32,
     /// Canonical random slot derivation material.
     pub slot_derivation: Fq,
-    /// Derivation scalar: d = SHA256_derive(slot_derivation). Verified at registration.
+    /// Derivation scalar: d = SHA512_derive(slot_derivation). Verified at registration.
     pub d: Fq,
 }
 

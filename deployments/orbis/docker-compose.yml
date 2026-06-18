@@ -5,7 +5,7 @@ services:
       context: ${ORBIS_RUNTIME_CONTEXT:?set by scripts/orbis-stack.sh}/docker
       dockerfile: Dockerfile.sourcehub-integration
       args:
-        SOURCEHUB_REF: "${SOURCEHUB_REF:-f7eaa5db6a14975dcfd929660d1539964353072c}"
+        SOURCEHUB_REF: "${SOURCEHUB_REF:-efd06660b43fa3e3a8c48956da3b425838aef83d}"
     platform: linux/amd64
     entrypoint: ["/bin/sh", "-c"]
     command:

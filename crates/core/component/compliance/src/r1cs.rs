@@ -3,7 +3,7 @@
 //! Proves compliance properties in zero-knowledge: asset registry inclusion,
 //! user registry inclusion, threshold flagging, leaf↔note binding, and ciphertext integrity.
 //!
-//! ACK = d × ring_pk where `d` is stored in the compliance leaf (SHA256-derived, matching Orbis).
+//! ACK = d × ring_pk where `d` is stored in the compliance leaf (SHA512-derived, matching Orbis).
 //! Single ACK per party; tier isolation via distinct EPKs.
 
 use ark_r1cs_std::prelude::*;

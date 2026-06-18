@@ -696,8 +696,9 @@ dependencies = [
 [[package]]
 name = "authn"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=38b7c38fb175dfb2aa926cd42ae97729e9a5a9a1#38b7c38fb175dfb2aa926cd42ae97729e9a5a9a1"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a#7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a"
 dependencies = [
+ "base64 0.22.1",
  "did-key",
  "form_urlencoded",
  "jsonwebtoken",
@@ -995,7 +996,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.11.0",
  "lazy_static",
  "lazycell",
  "log",
@@ -1018,7 +1019,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.11.0",
  "proc-macro2 1.0.93",
  "quote",
  "regex",
@@ -1708,7 +1709,7 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=38b7c38fb175dfb2aa926cd42ae97729e9a5a9a1#38b7c38fb175dfb2aa926cd42ae97729e9a5a9a1"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a#7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a"
 dependencies = [
  "async-trait",
  "backoff",
@@ -5202,7 +5203,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6452,8 +6453,8 @@ version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0f3e5beed80eb580c68e2c600937ac2c4eedabdfd5ef1e5b7ea4f3fba84497b"
 dependencies = [
- "heck 0.4.1",
- "itertools 0.10.5",
+ "heck 0.5.0",
+ "itertools 0.11.0",
  "log",
  "multimap",
  "once_cell",
@@ -6472,8 +6473,8 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
- "heck 0.4.1",
- "itertools 0.10.5",
+ "heck 0.5.0",
+ "itertools 0.11.0",
  "log",
  "multimap",
  "petgraph 0.8.3",
@@ -6494,7 +6495,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.11.0",
  "proc-macro2 1.0.93",
  "quote",
  "syn 2.0.96",
@@ -6507,7 +6508,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "157c5a9d7ea5c2ed2d9fb8f495b64759f7816c7eaea54ba3978f0d63000162e3"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.11.0",
  "proc-macro2 1.0.93",
  "quote",
  "syn 2.0.96",
@@ -6520,7 +6521,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.11.0",
  "proc-macro2 1.0.93",
  "quote",
  "syn 2.0.96",
@@ -6567,7 +6568,7 @@ dependencies = [
 [[package]]
 name = "proto"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=38b7c38fb175dfb2aa926cd42ae97729e9a5a9a1#38b7c38fb175dfb2aa926cd42ae97729e9a5a9a1"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a#7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a"
 dependencies = [
  "prost 0.14.3",
  "tonic 0.14.5",

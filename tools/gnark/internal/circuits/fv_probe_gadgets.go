@@ -8,9 +8,9 @@ package circuits
 // the segment's determinism to the full gadget.
 
 import (
-	decaf377 "github.com/mizufinance/decaf377-go"
 	"github.com/consensys/gnark/frontend"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
+	decaf377 "github.com/mizufinance/decaf377-go"
 )
 
 // EncodeToCurveCoreGadget is encode-to-curve with the 253-bit sign decomposition

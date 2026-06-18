@@ -34,6 +34,21 @@ and `crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md`.
 The forward work order is tracked in
 `docs/soundness/fv-hardening-roadmap.md`.
 
+**What a green gate actually re-verifies (run honesty).** The local
+`check-lean-circuit-fv.sh stamps` gate re-checks only that the stamped source
+and artifact **hashes** still match — it does *not* re-run Lean. The recorded
+`axiom_baseline` / `#print axioms` results in the whole-circuit artifacts
+(`{consolidate2x1,transfer}-whole-circuit-lean-artifact.txt`) were established by
+an actual `lake build` + `#print axioms` run at those exact hashes; the
+`check-lean-circuit-fv.sh full` clean-room Mathlib rebuild that re-derives them
+runs **nightly CI only** (`soundness-formal.yml`), not on every local run.
+Likewise the gadget-scope Picus under-constraint check is nightly-CI-tier, and
+no tool discharges a whole *transaction* circuit — the whole-circuit Picus run
+for `transfer` is recorded `FAMILY transfer undischarged-by-design` (times out on
+Poseidon+Merkle+Decaf377), which is the documented industry state of the art, not
+a shortfall. A green local gate therefore means "hashes consistent + soundness
+ledger/handoff consistent," with the heavy re-derivation delegated to nightly.
+
 | ID | Kind | Source | Status | Evidence | Removal path |
 | --- | --- | --- | --- | --- | --- |
 | `SECRECY` | property | compliance | `proved-symbolic` | Tamarin lemma `SECRECY verified` in `crates/core/component/compliance/formal/compliance-symbolic-artifact.txt`; modulo `CC-ASSUME-COMPRESSED-DH-MASK` and `CC-ASSUME-POSEIDON-STREAM`. | Remove the masking/DEM idealizations (computational proof) to reach plain `proved`. |

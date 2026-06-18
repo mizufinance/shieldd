@@ -28,7 +28,7 @@ use demo_state::{
     DetectedRow, DetectedScanFile, IssuerState, LedgerRow, RingState, RowRef, ScannerState,
     StatusDocument, UserState,
 };
-use orbis_common::blockchain::SourceHubClient;
+use orbis_common::blockchain::{orbis::WhitelistTarget, SourceHubClient};
 use serde::Deserialize;
 use shieldd_orbis_client::{NodeInfo, OrbisClient};
 use shieldd_sdk_compliance::{
@@ -1137,7 +1137,7 @@ async fn authorize_orbis_nodes_for_policy(
 ) -> Result<()> {
     for (node_key, peer_id) in routes {
         wait_for_sourcehub_node_info(client, node_key).await?;
-        update_orbis_node_info(client, node_key, peer_id, policy_id).await?;
+        whitelist_orbis_node_for_policy(client, node_key, peer_id, policy_id).await?;
     }
     Ok(())
 }
@@ -1161,22 +1161,49 @@ async fn wait_for_sourcehub_node_info(client: &SourceHubClient, node_key: &str) 
     .with_context(|| format!("timed out waiting for Orbis NodeInfo {node_key} on SourceHub"))
 }
 
-async fn update_orbis_node_info(
+/// A single controller-issued NodeInfo transaction. SourceHub split the former
+/// `MsgUpdateNodeInfo` into per-field messages, so refreshing a node's
+/// docker-routed peer id and whitelisting its policy are now distinct txs.
+enum NodeTx<'a> {
+    UpdatePeerId { peer_id: &'a str },
+    WhitelistPolicy { policy_id: &'a str },
+}
+
+/// Each Orbis node self-registers its NodeInfo on spinup. Here the controller
+/// (test account) rewrites the peer id to the docker-routed value and whitelists
+/// the freshly created ACP policy onto the node.
+async fn whitelist_orbis_node_for_policy(
     client: &SourceHubClient,
     node_key: &str,
     peer_id: &str,
     policy_id: &str,
 ) -> Result<()> {
+    send_orbis_node_tx(client, node_key, NodeTx::UpdatePeerId { peer_id }).await?;
+    send_orbis_node_tx(client, node_key, NodeTx::WhitelistPolicy { policy_id }).await
+}
+
+async fn send_orbis_node_tx(
+    client: &SourceHubClient,
+    node_key: &str,
+    tx: NodeTx<'_>,
+) -> Result<()> {
     let mut attempt = 0u32;
     loop {
-        let outcome = client
-            .orbis_update_node_info(
-                node_key,
-                Some(peer_id.to_string()),
-                vec![policy_id.to_string()],
-                vec![],
-            )
-            .await;
+        let (label, outcome) = match &tx {
+            NodeTx::UpdatePeerId { peer_id } => (
+                "update peer id",
+                client.orbis_update_node_peer_id(node_key, peer_id).await,
+            ),
+            NodeTx::WhitelistPolicy { policy_id } => (
+                "whitelist policy",
+                client
+                    .orbis_add_node_to_whitelist(
+                        node_key,
+                        WhitelistTarget::PolicyId(policy_id.to_string()),
+                    )
+                    .await,
+            ),
+        };
         match outcome {
             Ok(result) if result.code == 0 => return Ok(()),
             Ok(result) => {
@@ -1187,7 +1214,7 @@ async fn update_orbis_node_info(
                     continue;
                 }
                 bail!(
-                    "update Orbis NodeInfo tx failed for {node_key}: code={} log={}",
+                    "Orbis NodeInfo {label} tx failed for {node_key}: code={} log={}",
                     result.code,
                     result.log
                 )
@@ -1201,7 +1228,7 @@ async fn update_orbis_node_info(
                     continue;
                 }
                 return Err(anyhow!(
-                    "failed to update Orbis NodeInfo {node_key}: {error}"
+                    "failed to {label} on Orbis NodeInfo {node_key}: {error}"
                 ));
             }
         }

@@ -425,7 +425,7 @@ orbis_pinned_rev_from_cargo() {
 
 # SourceHub ref used by Orbis's integration Dockerfile. Keep this aligned with
 # the pinned Orbis runtime when Orbis updates its SourceHub contract.
-SOURCEHUB_REF_DEFAULT="f7eaa5db6a14975dcfd929660d1539964353072c"
+SOURCEHUB_REF_DEFAULT="efd06660b43fa3e3a8c48956da3b425838aef83d"
 export SOURCEHUB_REF="${SOURCEHUB_REF:-$SOURCEHUB_REF_DEFAULT}"
 
 ensure_orbis_runtime_checkout() {

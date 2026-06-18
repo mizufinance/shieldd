@@ -12,8 +12,8 @@ anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 decaf377 = { workspace = true, default-features = true }
 hex = { workspace = true }
-orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "38b7c38fb175dfb2aa926cd42ae97729e9a5a9a1" }
-orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "38b7c38fb175dfb2aa926cd42ae97729e9a5a9a1" }
+orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a" }
+orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a" }
 shieldd-orbis-client = { workspace = true }
 shieldd-sdk-compliance = { workspace = true, features = ["component", "sqlite-bundled"] }
 serde = { workspace = true, features = ["derive"] }
