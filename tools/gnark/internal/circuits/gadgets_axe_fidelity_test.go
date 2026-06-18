@@ -372,9 +372,17 @@ func intSet(values []int) map[int]bool {
 	return out
 }
 
+// isPicusFidelityOutputName is the test-side oracle for which secret wires must
+// be emitted as Picus outputs. It is intentionally an independent reimplementation
+// of artifacts.isPicusGadgetOutput (so the test is not tautological) but tracks
+// the same rule: every `Out*` wire is a gadget output, plus the non-prefixed
+// conventional outputs.
 func isPicusFidelityOutputName(name string) bool {
+	if strings.HasPrefix(name, "Out") {
+		return true
+	}
 	switch name {
-	case "Out", "OutX", "OutY", "Root", "Nullifier", "Valid", "IvkReduced":
+	case "Root", "Nullifier", "Valid", "IvkReduced":
 		return true
 	default:
 		return false
@@ -412,12 +420,27 @@ var expandedAxeFidelityCases = []fidelityCaseBuilder{
 	{name: "gadget-net-balance-commitment", fn: netBalanceCommitmentFidelityCase},
 }
 
-var allPicusFidelityCases = append([]fidelityCaseBuilder{
+// newProbeFidelityCases covers the verification-only probe gadgets added for the
+// transfer circuit (ladder rung/seam, ack/dleq non-constant-base, net-balance2,
+// the encode/compress -core segments, and hash5). Their `Out*` wires must be
+// labeled Picus outputs; this list guards that labeling and constraint fidelity.
+var newProbeFidelityCases = []fidelityCaseBuilder{
+	{name: "gadget-poseidon-hash5", fn: poseidonHash5FidelityCase},
+	{name: "gadget-scalar-mul-step", fn: scalarMulStepFidelityCase},
+	{name: "gadget-scalar-mul-two-step", fn: scalarMulTwoStepFidelityCase},
+	{name: "gadget-ack-two-step", fn: ackTwoStepFidelityCase},
+	{name: "gadget-dleq", fn: dleqFidelityCase},
+	{name: "gadget-net-balance-commitment2", fn: netBalanceCommitment2FidelityCase},
+	{name: "gadget-decaf-encode-to-curve-core", fn: encodeToCurveCoreFidelityCase},
+	{name: "gadget-decaf-compress-to-field-core", fn: compressToFieldCoreFidelityCase},
+}
+
+var allPicusFidelityCases = append(append([]fidelityCaseBuilder{
 	{name: "gadget-poseidon2", fn: poseidon2FidelityCase},
 	{name: "gadget-poseidon-hash4", fn: poseidonHash4FidelityCase},
 	{name: "gadget-nullifier", fn: nullifierFidelityCase},
 	{name: "gadget-imt-gap", fn: func(*testing.T) gadgetFidelityCase { return imtGapFidelityCase() }},
-}, expandedAxeFidelityCases...)
+}, expandedAxeFidelityCases...), newProbeFidelityCases...)
 
 func poseidonHash1FidelityCase(t *testing.T) gadgetFidelityCase {
 	vectors := loadVectors(t)
@@ -952,4 +975,240 @@ func fillQuadPath(dst [][3]frontend.Variable, src [][3]*big.Int) {
 			dst[i][j] = src[i][j]
 		}
 	}
+}
+
+// --- new probe fidelity cases (transfer ladder/seam, ack/dleq, net-balance2,
+// encode/compress -core, hash5) ---
+
+func decafIdentityPoint() gnarkte.Point {
+	return gnarkte.Point{X: big.NewInt(0), Y: big.NewInt(1)}
+}
+
+func decafDoubleNative(t *testing.T, p gnarkte.Point) gnarkte.Point {
+	t.Helper()
+	out, err := decafgnark.PointAddNative(p, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// scalarMulStepNative mirrors scalarMulStep: acc' = bit ? acc+cur : acc, cur' = 2·cur.
+func scalarMulStepNative(t *testing.T, bit bool, acc, cur gnarkte.Point) (gnarkte.Point, gnarkte.Point) {
+	t.Helper()
+	nextCur := decafDoubleNative(t, cur)
+	nextAcc := acc
+	if bit {
+		var err error
+		nextAcc, err = decafgnark.PointAddNative(acc, cur)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return nextAcc, nextCur
+}
+
+// scalarMulPrefixAccNative mirrors scalarMulTwoStepPrefix from acc=identity, cur=base.
+func scalarMulPrefixAccNative(t *testing.T, base gnarkte.Point, bit0, bit1 bool) gnarkte.Point {
+	t.Helper()
+	acc, cur := scalarMulStepNative(t, bit0, decafIdentityPoint(), base)
+	acc, _ = scalarMulStepNative(t, bit1, acc, cur)
+	return acc
+}
+
+func boolToVar(b bool) *big.Int { return boolBigInt(b) }
+
+func poseidonHash5FidelityCase(t *testing.T) gadgetFidelityCase {
+	domain := big.NewInt(7)
+	in := [5]*big.Int{big.NewInt(11), big.NewInt(13), big.NewInt(17), big.NewInt(19), big.NewInt(23)}
+	out, err := primitives.Poseidon377Hash5Native(domain, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return gadgetFidelityCase{
+		name:  "gadget-poseidon-hash5",
+		blank: &PoseidonHash5Gadget{},
+		assignment: &PoseidonHash5Gadget{
+			Domain: domain, In0: in[0], In1: in[1], In2: in[2], In3: in[3], In4: in[4],
+			Out: out,
+		},
+	}
+}
+
+func scalarMulStepFidelityCase(t *testing.T) gadgetFidelityCase {
+	gen := decafGenerator(t)
+	acc := gnarkte.Point{X: gen.X, Y: gen.Y}
+	cur := decafDoubleNative(t, acc)
+	outAcc, outCur := scalarMulStepNative(t, true, acc, cur)
+	return gadgetFidelityCase{
+		name:  "gadget-scalar-mul-step",
+		blank: &ScalarMulStepGadget{},
+		assignment: &ScalarMulStepGadget{
+			Bit: big.NewInt(1), AccX: acc.X, AccY: acc.Y, CurX: cur.X, CurY: cur.Y,
+			OutAccX: outAcc.X, OutAccY: outAcc.Y, OutCurX: outCur.X, OutCurY: outCur.Y,
+		},
+	}
+}
+
+func scalarMulTwoStepFidelityCase(t *testing.T) gadgetFidelityCase {
+	gen := decafGenerator(t)
+	acc := gnarkte.Point{X: gen.X, Y: gen.Y}
+	cur := decafDoubleNative(t, acc)
+	acc1, cur1 := scalarMulStepNative(t, true, acc, cur)
+	outAcc, outCur := scalarMulStepNative(t, false, acc1, cur1)
+	return gadgetFidelityCase{
+		name:  "gadget-scalar-mul-two-step",
+		blank: &ScalarMulTwoStepGadget{},
+		assignment: &ScalarMulTwoStepGadget{
+			Bit0: big.NewInt(1), Bit1: big.NewInt(0),
+			AccX: acc.X, AccY: acc.Y, CurX: cur.X, CurY: cur.Y,
+			OutAccX: outAcc.X, OutAccY: outAcc.Y, OutCurX: outCur.X, OutCurY: outCur.Y,
+		},
+	}
+}
+
+func ackTwoStepFidelityCase(t *testing.T) gadgetFidelityCase {
+	gen := decafGenerator(t)
+	base := gnarkte.Point{X: gen.X, Y: gen.Y}
+	acc1, cur1 := scalarMulStepNative(t, true, decafIdentityPoint(), base)
+	outAcc, outCur := scalarMulStepNative(t, true, acc1, cur1)
+	return gadgetFidelityCase{
+		name:  "gadget-ack-two-step",
+		blank: &AckTwoStepGadget{},
+		assignment: &AckTwoStepGadget{
+			Bit0: big.NewInt(1), Bit1: big.NewInt(1),
+			RingPKX: base.X, RingPKY: base.Y,
+			OutAccX: outAcc.X, OutAccY: outAcc.Y, OutCurX: outCur.X, OutCurY: outCur.Y,
+		},
+	}
+}
+
+func dleqFidelityCase(t *testing.T) gadgetFidelityCase {
+	gen := decafGenerator(t)
+	genPt := gnarkte.Point{X: gen.X, Y: gen.Y}
+	ack := decafDoubleNative(t, genPt)
+	negEPK := decafNegNative(genPt)
+	negSPoint := decafNegNative(ack)
+	sb0, sb1 := true, false
+	cb0, cb1 := true, true
+	rRec, err := decafgnark.PointAddNative(
+		scalarMulPrefixAccNative(t, genPt, sb0, sb1),
+		scalarMulPrefixAccNative(t, negEPK, cb0, cb1),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rpRec, err := decafgnark.PointAddNative(
+		scalarMulPrefixAccNative(t, ack, sb0, sb1),
+		scalarMulPrefixAccNative(t, negSPoint, cb0, cb1),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return gadgetFidelityCase{
+		name:  "gadget-dleq",
+		blank: &DLEQGadget{},
+		assignment: &DLEQGadget{
+			SBit0: boolToVar(sb0), SBit1: boolToVar(sb1), CBit0: boolToVar(cb0), CBit1: boolToVar(cb1),
+			GeneratorX: genPt.X, GeneratorY: genPt.Y,
+			AckX: ack.X, AckY: ack.Y,
+			NegEPKX: negEPK.X, NegEPKY: negEPK.Y,
+			NegSPointX: negSPoint.X, NegSPointY: negSPoint.Y,
+			OutRRecX: rRec.X, OutRRecY: rRec.Y, OutRPRecX: rpRec.X, OutRPRecY: rpRec.Y,
+		},
+	}
+}
+
+func netBalanceCommitment2FidelityCase(t *testing.T) gadgetFidelityCase {
+	input0 := big.NewInt(17)
+	input1 := big.NewInt(19)
+	output0 := big.NewInt(13)
+	output1 := big.NewInt(10)
+	assetID := big.NewInt(41)
+	blinding := big.NewInt(43)
+
+	// Reuse the 1-output native helper for in0+in1-output0+blinding, then
+	// subtract output1·valueGenerator to obtain the 2-output net balance.
+	sum, assetHash, err := netBalanceNativeForTest(input0, input1, output0, assetID, blinding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	valueGenerator, err := decafgnark.EncodeToCurveNative(assetHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output1Point, err := decafgnark.ScalarMulNative(valueGenerator, output1, 128)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := decafgnark.PointAddNative(sum, decafNegNative(output1Point))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wasSquare, invSqrt := sqrtRatioZetaWitness(encodeSqrtInput(assetHash))
+	roots := []*big.Int{invSqrt, new(big.Int).Mod(new(big.Int).Neg(invSqrt), decaf377.FieldModulus())}
+	for _, root := range roots {
+		assignment := &NetBalanceCommitment2Gadget{
+			Input0Amount: input0, Input1Amount: input1,
+			Output0Amount: output0, Output1Amount: output1,
+			AssetID: assetID, BalanceBlinding: blinding,
+			EncodeWasSquare: boolBigInt(wasSquare), EncodeInvSqrt: root,
+			OutX: out.X, OutY: out.Y,
+		}
+		if err := test.IsSolved(&NetBalanceCommitment2Gadget{}, assignment, ecc.BLS12_377.ScalarField()); err == nil {
+			return gadgetFidelityCase{name: "gadget-net-balance-commitment2", blank: &NetBalanceCommitment2Gadget{}, assignment: assignment}
+		}
+	}
+	t.Fatal("net-balance2 gadget rejected native output for both encode sqrt signs")
+	return gadgetFidelityCase{}
+}
+
+func encodeToCurveCoreFidelityCase(t *testing.T) gadgetFidelityCase {
+	input := big.NewInt(42)
+	expected := encodedPoint(t, input)
+	wasSquare, invSqrt := sqrtRatioZetaWitness(encodeSqrtInput(input))
+	ws := boolBigInt(wasSquare)
+	roots := []*big.Int{invSqrt, new(big.Int).Mod(new(big.Int).Neg(invSqrt), decaf377.FieldModulus())}
+	for _, root := range roots {
+		for _, isNeg := range []*big.Int{big.NewInt(0), big.NewInt(1)} {
+			assignment := &EncodeToCurveCoreGadget{
+				Input: input, WasSquare: ws, InvSqrt: root, IsNegative: isNeg,
+				OutX: expected.X, OutY: expected.Y,
+			}
+			if err := test.IsSolved(&EncodeToCurveCoreGadget{}, assignment, ecc.BLS12_377.ScalarField()); err == nil {
+				return gadgetFidelityCase{name: "gadget-decaf-encode-to-curve-core", blank: &EncodeToCurveCoreGadget{}, assignment: assignment}
+			}
+		}
+	}
+	t.Fatal("encode-to-curve-core gadget rejected native output for all sign witnesses")
+	return gadgetFidelityCase{}
+}
+
+func compressToFieldCoreFidelityCase(t *testing.T) gadgetFidelityCase {
+	point := encodedPoint(t, big.NewInt(42))
+	expected, err := decafgnark.CompressToFieldNative(point)
+	if err != nil {
+		t.Fatal(err)
+	}
+	x := point.X.(*big.Int)
+	y := point.Y.(*big.Int)
+	wasSquare, sqrtRatio := sqrtRatioZetaWitness(compressDen(x, y))
+	ws := boolBigInt(wasSquare)
+	roots := []*big.Int{sqrtRatio, new(big.Int).Mod(new(big.Int).Neg(sqrtRatio), decaf377.FieldModulus())}
+	for _, root := range roots {
+		for _, sign1 := range []*big.Int{big.NewInt(0), big.NewInt(1)} {
+			for _, sign2 := range []*big.Int{big.NewInt(0), big.NewInt(1)} {
+				assignment := &CompressToFieldCoreGadget{
+					X: x, Y: y, WasSquare: ws, SqrtRatio: root, Sign1: sign1, Sign2: sign2,
+					Out: expected,
+				}
+				if err := test.IsSolved(&CompressToFieldCoreGadget{}, assignment, ecc.BLS12_377.ScalarField()); err == nil {
+					return gadgetFidelityCase{name: "gadget-decaf-compress-to-field-core", blank: &CompressToFieldCoreGadget{}, assignment: assignment}
+				}
+			}
+		}
+	}
+	t.Fatal("compress-to-field-core gadget rejected native output for all sign witnesses")
+	return gadgetFidelityCase{}
 }

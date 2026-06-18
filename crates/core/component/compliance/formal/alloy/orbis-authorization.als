@@ -7,7 +7,7 @@
  * Shieldd verifies. Group/DLEQ algebra is abstracted to a structural binding of
  * each re-encryption commitment to exactly one issuer key. The cryptographic
  * binding behind that abstraction is tracked in the assumption ledger:
- *   - ALLOY-ASSUME-PRE-BINDING  (the DLEQ + PRE construction binds xnc_cmt to a
+ *   - CC-ASSUME-PRE-BINDING  (the DLEQ + PRE construction binds xnc_cmt to a
  *                                single issuer key; the DLEQ core is mechanized
  *                                in Lean lean-dleq as DLEQ-FS-KNOWLEDGE-SOUNDNESS)
  *
@@ -32,7 +32,7 @@ sig Issuer { pub: one PubKey }
 sig PubKey {}
 
 // A re-encryption commitment (xnc_cmt) seals a seed and is bound, by the DLEQ +
-// PRE construction, to exactly one issuer key (ALLOY-ASSUME-PRE-BINDING).
+// PRE construction, to exactly one issuer key (CC-ASSUME-PRE-BINDING).
 sig Commitment {
   seed: one Seed,
   boundTo: one Issuer

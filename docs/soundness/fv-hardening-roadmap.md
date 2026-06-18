@@ -1,9 +1,19 @@
 # Soundness-Hardening Roadmap (forward-looking)
 
-Open formal-verification work only, in priority order. Each focus area names the
-tools, the concrete deliverable, and the assumptions it must retire or audit.
-Status of already-landed layers lives in the assumption ledger and the
+Open formal-verification work, plus the primitive- and implementation-level
+audits that bound what the proofs assume, in priority order. Each focus area
+names the tools, the concrete deliverable, and the assumptions it must retire or
+audit. Status of already-landed layers lives in the assumption ledger and the
 per-component `formal/` artifacts, not here.
+
+The items below come from the 2026-06 threat-surface review (the vectors the
+landed FV stack does *not* yet cover). Three are in the top (P0) priority band
+because they are consensus-critical value-bridging or library-trust surfaces
+where a single bug mints or burns supply: the **multi-party ACP↔Orbis model**
+(Focus 1's REQUIRED item), the **gnark frontend/backend trust boundary**
+(Focus 2), and the **IBC/ICS-20 value-bridge + supply accounting** (Focus 2b,
+promoted from the deferred backlog after the 2026-06 review and the Zcash
+June-2026 Orchard turnstile incident). The remainder are Focus 3–5.
 
 ## Focus 1 — DLEQ proof soundness + full assumption review
 
@@ -54,17 +64,134 @@ could slip through.
   as a Lean proof that no longer matches the Go spec. This is the
   "full R1CS transcript proof" the whole-circuit artifacts list under
   `known_limitations`.
-- **Pin + advisory-track gnark** and record `gnark frontend+backend trusted at vX`
-  as an explicit ledger row.
+- **Pin + advisory-track gnark** and record `ZK-ASSUME-GNARK-FRONTEND-BACKEND`
+  (frontend+backend trusted at the pinned version) as an explicit ledger row,
+  tracking the published advisories — signature malleability (CVE-2025-57801),
+  the fake-GLV DoS (GHSA-9fvj-xqr2-xwg8), and Groth16 commitment soundness
+  (GHSA-q3hw-3gm4-w5cr) — against the pinned version on each bump.
 - **Backend crypto (Groth16/Plonk, KZG, pairing, prover Fiat-Shamir)** stays a
   named cryptographic trust assumption — not feasibly self-proved. The Zcash
   lesson is that real exploits cluster in layers (1)–(frontend), which *are* in
   reach.
 
+## Focus 2b — IBC/ICS-20 value-bridge + supply accounting (P0)
+
+Tools: Rust differential tests, Alloy, runtime invariants. ICS-20 is the only
+path where shielded value crosses the chain boundary, so a mint/burn or
+denom-trace bug is a direct supply break — the Zcash June-2026 Orchard turnstile
+incident is the reference failure. The whole-circuit Lean proof for
+`shielded_ics20_withdrawal_circuit.go` was previously deferred behind the gnark
+boundary work; the **supply-accounting and denom-trace invariants around it are
+promoted to P0** because they do not depend on the circuit proof landing.
+
+- **Supply-conservation invariant.** Every shielded mint must be backed by an
+  escrowed IBC deposit and every withdrawal must burn exactly the released
+  amount. Model the escrow/mint/burn ledger transition in Alloy (extend the
+  value-conservation model with the IBC boundary) and add a runtime turnstile
+  check that the shielded supply per denom never exceeds the escrowed amount.
+- **ICS-20 denom-trace handling.** Multi-hop denom traces (`transfer/channel-…`
+  prefixes) must round-trip injectively; a collision lets two distinct source
+  denoms map to one shielded asset id. Add a differential/parity test on the
+  denom-trace ↔ asset-id derivation.
+- **Ledger rows.** Record `ZK-ASSUME-ICS20-SUPPLY-CONSERVATION` (supply backed by
+  escrow) as an explicit invariant row with an Alloy/runtime removal path, and
+  schedule the deferred `shielded_ics20_withdrawal_circuit` whole-circuit proof
+  behind Focus 2's gnark-boundary extraction.
+
+## Focus 3 — Picus assurance integrity: extend `.sr1cs` fidelity to the new probes (MEDIUM)
+
+Tools: Go (gnark), Picus. The whole under-constraint argument rests on Picus
+reading the **same** constraint system the circuit actually compiles. A `.sr1cs`
+fidelity test **already exists**: `TestPicusExportFidelityAllGadgets` in
+`gadgets_axe_fidelity_test.go` parses the written `.sr1cs`, asserts
+`A(W)·B(W) == C(W)` for every constraint row against the gnark-solved witness,
+matches the constraint **count**, and checks the `(in)/(out)` wire roles via
+`assertPicusWireRoles`. The gap is **coverage**, not absence: the test's
+`allPicusFidelityCases` does not include the newer probe gadgets
+(`gadget-scalar-mul-step`, `-two-step`, `gadget-ack-two-step`, `gadget-dleq`,
+`gadget-net-balance-commitment2`, `-core` probes, `gadget-poseidon-hash5`), and
+those probes had a real wire-role mislabel (their `Out*` outputs were emitted as
+Picus `(in)`), since fixed in `isPicusGadgetOutput`.
+
+- **Add the new probes to `allPicusFidelityCases`** with real solved witnesses
+  (reuse the assignments in `decaf_gadgets_test.go` / `scalar_mul_gadgets_test.go`
+  — do not fabricate witnesses), so the role labeling and constraint fidelity of
+  every Picus-probed gadget is regression-guarded.
+- **Unify the wire-role oracle**: the test's `isPicusFidelityOutputName` is an
+  independent copy of the production allowlist; keep it independent but update it
+  to the same `Out*`-prefix rule so the two cannot silently drift.
+- **Gate it** in the `provers` job alongside `circuit-constraint-check.sh`; a
+  serializer regression then fails CI rather than silently weakening Picus.
+- No ledger row retires, but `picus_status = under-constraint-evidence-only` gains
+  a backing fidelity guarantee for the bytes Picus consumes.
+
+## Focus 4 — Cross-layer parity and field-range invariants (HIGH / MEDIUM)
+
+Tools: Rust/Go differential tests, gnark. The two ways a *correct* proof of a
+*wrong* circuit can still ship: in-circuit semantics diverging from the wallet,
+and an unbounded field value the abstract proofs never see.
+
+- **4a — In-circuit ↔ out-of-circuit parity audit (HIGH).** The wallet derives
+  keys, nullifiers, diversified addresses, FROST/compliance scalars, and point
+  compressions in *Rust*; the circuit re-implements them as constraints. A
+  divergence yields unspendable notes or a soundness-relevant mismatch.
+  Enumerate every such surface and confirm a differential/parity test pins Rust
+  output == in-circuit output (canonical-identifier parity per the engineering
+  rules). This concretely tests `CC-ASSUME-DECAF377-ENCODING` rather than
+  assuming it.
+- **4b — Explicit amount range-check + ledger row (MEDIUM).** `Note.Amount` is
+  bounded `< 2^128` only as a *side effect* of `ScalarMulLE(…,128)` in the
+  net-balance commitment — there is no explicit `AssertIsLessOrEqual` and no test
+  guarding the width. Alloy's `BindingImpliesConservation` runs over abstract
+  `Int` and would not catch field-overflow inflation. Add an explicit range
+  gadget on every amount, a regression test on the bit width, and a
+  `ZK-ASSUME`/property row recording the bound as an invariant rather than an
+  accident.
+
+## Focus 5 — Primitive and implementation audit track (MEDIUM)
+
+Not whole-circuit FV, but the primitive/implementation assumptions the proofs
+idealize away. Each is a documented audit deliverable, not a multi-month proof.
+
+- **5a — Poseidon parameter security-margin provenance.** `CC-ASSUME-POSEIDON-RO`,
+  `CC-ASSUME-POSEIDON-STREAM`, and `ZK-ASSUME-IMT-LEAF-COMMIT` idealize Poseidon
+  (RO / PRF / collision-resistant). Document the round-count and MDS provenance
+  and cite the security-margin analysis vs Gröbner-basis / interpolation attacks
+  **for this field** (not a copied parameter set), recorded as
+  `CC-ASSUME-POSEIDON-PARAM-PROVENANCE`. The compliance stream cipher
+  is already domain-separated (`compliance_stream_block` uses
+  `COMPLIANCE_STREAM_CIPHER_DOMAIN` as the Poseidon capacity); the residual is its
+  pseudorandomness/parameter provenance, not domain separation.
+- **5b — FROST nonce-reuse + DKG rogue-key (decaf377-frost).** Nonce reuse leaks
+  the long-lived share and is currently guarded only by a doc comment + RNG
+  quality (RFC 9591 makes single-use a hard requirement). Record
+  `CC-ASSUME-FROST-NONCE-SINGLE-USE` as an explicit upstream-trust row. Add a
+  structural single-use guard / session-lifecycle state-machine check, and
+  confirm
+  the DKG path enforces proof-of-possession against rogue-key. Record FROST
+  concurrent-signing (ROS/Wagner) resistance as an explicit upstream-trust row.
+- **5c — Constant-time / side-channel audit.** `vartime_*` compression and tier-
+  byte decryption operate on secret-derived points (`s_point`, shared secrets);
+  audit secret-dependent paths for timing leakage and record which are
+  constant-time vs explicitly out-of-scope.
+- **5d — FMD detection-ambiguity threat-model entry (decaf377-fmd).** Fuzzy
+  message detection has a tunable false-positive rate; capture the
+  detection-ambiguity / clue-key griefing / privacy-degradation surface in the
+  compliance threat model, even if no proof is scheduled.
+- **5e — Scanner DoS / unbounded-growth audit.** The wallet scanner and
+  compliance decryptor process attacker-supplied ciphertexts/clues per block;
+  an unbounded work item or memory-growth path is a liveness DoS. Audit the
+  scanner's per-block work bounds, cap attacker-controlled growth (per the
+  "bound attacker-controlled growth" engineering rule), and capture the residual
+  as a threat-model entry. This is a liveness/resource bound, not a soundness
+  assumption, so it stays in the threat model rather than the soundness ledger.
+
 ## Deferred (not in current focus)
 
 - `shielded_ics20_withdrawal_circuit.go` whole-circuit proof — same whole-circuit
   Lean pattern as the landed circuits, scheduled after the gnark-boundary work.
+  Its **supply-accounting and denom-trace invariants** are *not* deferred — they
+  are promoted to Focus 2b (P0).
 - Proof-system crypto (Groth16 / SnarkPack backend soundness) stays assumed in the
   ledger; see Focus 2 for the frontend-fidelity portion that *is* in reach.
 

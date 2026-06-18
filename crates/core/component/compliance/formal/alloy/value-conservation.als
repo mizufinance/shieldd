@@ -7,8 +7,8 @@
  * in the blinding-only subspace" (every value generator has zero net
  * coefficient). The cryptographic facts behind that abstraction are tracked in
  * the assumption ledger:
- *   - ALLOY-ASSUME-INDEP-VALUE-GENERATORS  (distinct assets -> independent G_v)
- *   - ALLOY-ASSUME-BINDING-SIG-DL          (a verifying binding sig proves the
+ *   - ZK-ASSUME-INDEP-VALUE-GENERATORS  (distinct assets -> independent G_v)
+ *   - ZK-ASSUME-BINDING-SIG-DL          (a verifying binding sig proves the
  *                                            summed commitment has zero value part)
  *
  * Sources of truth (Rust):
@@ -49,7 +49,7 @@ fun coeffOf[g: Generator]: Int {
 }
 
 // The binding verification key lies in the blinding-only subspace: every value
-// generator carries zero net coefficient (ALLOY-ASSUME-BINDING-SIG-DL).
+// generator carries zero net coefficient (ZK-ASSUME-BINDING-SIG-DL).
 pred bindingValid {
   all g: Generator | coeffOf[g] = 0
 }
@@ -59,7 +59,7 @@ pred conserves {
 }
 
 // Independent value generators: distinct assets use distinct generators
-// (ALLOY-ASSUME-INDEP-VALUE-GENERATORS).
+// (ZK-ASSUME-INDEP-VALUE-GENERATORS).
 pred independentGenerators {
   all disj a, b: Asset | a.gen != b.gen
 }

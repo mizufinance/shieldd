@@ -6,8 +6,8 @@
  * cryptography. Field elements are abstracted to a totally ordered set of
  * atoms (`Value`); Poseidon leaf commitments and Merkle authentication are
  * idealized away. Those idealizations are tracked in the assumption ledger:
- *   - ALLOY-ASSUME-FQ-TOTAL-ORDER     (Fq canonical ordering -> util/ordering)
- *   - ALLOY-ASSUME-IMT-LEAF-COMMIT    (Poseidon leaf commitment is injective)
+ *   - MODEL-ASSUME-FQ-TOTAL-ORDER     (Fq canonical ordering -> util/ordering)
+ *   - ZK-ASSUME-IMT-LEAF-COMMIT    (Poseidon leaf commitment is injective)
  *
  * Sources of truth (Rust):
  *   crates/core/component/sct/src/component/tree.rs   check_nullifier_unspent / nullify

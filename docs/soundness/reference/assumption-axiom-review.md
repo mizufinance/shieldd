@@ -46,7 +46,7 @@ documented base of `dleq_fs_knowledge_soundness`:
 | --- | --- | --- |
 | `CC-ASSUME-POSEIDON-RO` | ROM idealization of `poseidon377::hash_7` as a programmable RO | Standard FS base; removal = standard-model/indifferentiability sponge argument. Not a kernel axiom — it is the VCVio oracle *structure* the theorem quantifies over. |
 | `CC-ASSUME-DECAF377-PRIME-ORDER-GROUP` (= Lean `q_prime`) | decaf377 modeled as abstract prime-order group of order `q` | DLEQ soundness needs only group structure; `(c−c')` invertible mod prime `q`. Removal = compose decaf377 group-law gadget proofs. |
-| `CC-ASSUME-CHALLENGE-TRUNCATION-NEGL` | 250-bit truncation modeled as uniform `Fin (2^250)` | True error ≤ ~1.07×`1/2^250` (≈2^-249.9, ≤0.1-bit loss). **Must not be changed unilaterally** — challenge parity with Orbis is a protocol contract. |
+| `CC-ASSUME-CHALLENGE-TRUNCATION-NEGL` | 250-bit truncation modeled as uniform `Fin (2^250)` | True error ≤ ~1.07×`1/2^250` (≈2^-249.9, ≤0.1-bit loss) |
 | `CC-ASSUME-DLEQ-FS-NONMALLEABLE` | simulation-soundness / non-malleability vs adversarial statements | Cited (FKMV) not mechanized; strong-FS hashes the full statement, so Frozen-Heart is structurally excluded. This is what Tamarin `ProofSound` imports. |
 
 ## 4. Layer-consistency check (no silent upgrade across layers)
@@ -54,7 +54,7 @@ documented base of `dleq_fs_knowledge_soundness`:
 Requirement: *no `assumed` ledger row silently covers a property a higher layer
 treats as `proved`.* Result of the cross-check:
 
-- **DLEQ:** the Alloy `ALLOY-ASSUME-PRE-BINDING` and the Orbis recovery model rest
+- **DLEQ:** the Alloy `CC-ASSUME-PRE-BINDING` and the Orbis recovery model rest
   on DLEQ binding, and they correctly point at the **mechanized**
   `DLEQ-FS-KNOWLEDGE-SOUNDNESS`, declaring the residual base (`POSEIDON-RO`,
   `PRIME-ORDER-GROUP`) explicitly — no upgrade of an `assumed` row to `proved`.
@@ -84,7 +84,7 @@ No silent layer inversion found.
    confusion, and the `derive_*_scalar` byte-parity that makes PRE math cancel are
    **not** yet modeled. Requires authoring the multi-party Tamarin ACP↔Orbis model
    (the roadmap's top open item; Tamarin itself is installed and running).
-3. **Alloy bounded scope** — `ALLOY-ASSUME-BOUNDED-SCOPE` (scope 6 / 5-bit Int):
+3. **Alloy bounded scope** — `MODEL-ASSUME-BOUNDED-SCOPE` (scope 6 / 5-bit Int):
    refutation only within scope (small-scope hypothesis). All four models pass
    (`nullifier-imt`, `value-conservation`, `compliance-tiers`, `orbis-authorization`).
 4. **Compliance KEM/DEM idealizations** — `CC-ASSUME-COMPRESSED-DH-MASK`,

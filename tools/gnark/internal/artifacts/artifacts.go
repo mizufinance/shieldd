@@ -229,9 +229,17 @@ func picusWireRoles(ccs constraint.ConstraintSystem, circuit ...frontend.Circuit
 	return inputs, outputs, nil
 }
 
+// isPicusGadgetOutput classifies a secret wire as a gadget output (Picus `out`)
+// rather than a free input (Picus `in`). Mislabeling a true output as an input
+// lets Picus treat it as a given and miss its under-determination, so the rule
+// covers every `Out*` wire by prefix (OutX, OutAccX, OutRRecX, …) plus the
+// outputs that are not `Out`-prefixed by convention.
 func isPicusGadgetOutput(name string) bool {
+	if strings.HasPrefix(name, "Out") {
+		return true
+	}
 	switch name {
-	case "Out", "OutX", "OutY", "Root", "Nullifier", "Valid", "IvkReduced":
+	case "Root", "Nullifier", "Valid", "IvkReduced":
 		return true
 	default:
 		return false
