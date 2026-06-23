@@ -24,7 +24,6 @@ They are not migration promises.
 
 - Discuss goal, risks, and shape before writing a detailed plan.
 - Ask when design intent is unclear. Make scope explicit before refactors >5 files.
-- Stop and re-evaluate when something goes sideways; do not push through.
 - Follow impact through every affected layer: circuits, domain, storage, services, CLI, tests, docs.
 - If the same error hits twice, research 3-5 fixes and pick the best — do not flail.
 

@@ -24,9 +24,10 @@ task actually needs it.
 - **DLEQ challenge truncation** to 250 bits — soundness ≈ 2⁻²⁴⁹·⁹.
 - **gnark backend** (Groth16/Plonk, KZG, pairing, prover Fiat-Shamir) — a named
   crypto trust assumption, not self-proved.
-- **gnark frontend** is only *partially* covered: the wiring transcript checks
-  call-site wiring, not the full constraint set. Closing this is a top open item
-  on the roadmap.
+- **gnark frontend** is partially covered for `consolidate2x1` and `transfer`:
+  Lean checks the Define wiring transcript, and an independent Rust parser checks
+  compiled `.sr1cs` partition/hash/VK binding. Segment identity remains a named
+  trust gap.
 
 The authoritative per-row list with status + removal path is the **assumption
 ledger** at `crates/core/component/compliance/formal/assumption-ledger.md`.
@@ -35,8 +36,8 @@ ledger** at `crates/core/component/compliance/formal/assumption-ledger.md`.
 
 Forward work, in priority order, lives in
 [fv-hardening-roadmap.md](fv-hardening-roadmap.md): the Tamarin ACP↔Orbis
-interaction model, and full-constraint gnark-frontend extraction (the halo2/Zcash
-library-bug class).
+interaction model, closing the gnark segment-identity gap, and extending the
+compiled-constraint partition gate to every future shipped circuit.
 
 ## Reference (pull when relevant)
 

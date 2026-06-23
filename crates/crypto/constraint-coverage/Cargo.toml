@@ -1,0 +1,17 @@
+[package]
+name = "shieldd-constraint-coverage"
+description = "Independent coverage checker for gnark .sr1cs constraint manifests"
+authors.workspace = true
+edition.workspace = true
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+hex = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }

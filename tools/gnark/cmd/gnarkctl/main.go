@@ -47,6 +47,8 @@ func main() {
 		err = runExportLean(os.Args[2:])
 	case "export-wiring-transcript":
 		err = runExportWiringTranscript(os.Args[2:])
+	case "export-manifest":
+		err = runExportManifest(os.Args[2:])
 	case "prove":
 		err = runProve(os.Args[2:])
 	case "replay":
@@ -64,7 +66,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|export-wiring-transcript|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|export-manifest|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|export-wiring-transcript|prove|replay|verify-bench> [flags]")
 }
 
 func runExportWiringTranscript(args []string) error {
@@ -97,6 +99,46 @@ func runExportWiringTranscript(args []string) error {
 		return fmt.Errorf("write %s: %w", *outPath, err)
 	}
 	fmt.Fprintf(os.Stderr, "wrote %s\n", *outPath)
+	return nil
+}
+
+func runExportManifest(args []string) error {
+	fs := flag.NewFlagSet("export-manifest", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "supported circuit label")
+	outPath := fs.String("out", "", "output constraint manifest path")
+	sr1csPath := fs.String("sr1cs", "", "optional compiled .sr1cs path to hash into the manifest")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *outPath == "" {
+		return fmt.Errorf("--circuit and --out are required")
+	}
+	var manifest *circuits.ConstraintManifest
+	var err error
+	switch *circuit {
+	case "consolidate2x1":
+		manifest, err = circuits.ExportConsolidate2x1ConstraintManifest(*sr1csPath)
+	case "transfer":
+		manifest, err = circuits.ExportTransferConstraintManifest(*sr1csPath)
+	default:
+		return fmt.Errorf("unsupported constraint manifest circuit %q", *circuit)
+	}
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+	if err := circuits.WriteConstraintManifest(*outPath, manifest); err != nil {
+		return err
+	}
+	fmt.Fprintf(
+		os.Stderr,
+		"wrote %s (constraints=%d unclassified=%d)\n",
+		*outPath,
+		manifest.NbConstraints,
+		manifest.Breakdown.UnclassifiedConstraints,
+	)
 	return nil
 }
 

@@ -7811,6 +7811,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
 
 [[package]]
+name = "shieldd-constraint-coverage"
+version = "2.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.8",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "shieldd-orbis-client"
 version = "2.1.0"
 dependencies = [

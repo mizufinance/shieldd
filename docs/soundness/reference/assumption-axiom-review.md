@@ -74,11 +74,13 @@ No silent layer inversion found.
 
 ## 5. Model-vs-deployed gaps (carried, not hidden)
 
-1. **gnark frontend/backend** — Lean proves the *extracted* R1CS computes the spec
-   and Picus proves no under-constraint, but the gnark **frontend** compile and the
-   **backend** crypto (Groth16/Plonk, KZG, pairing, prover FS) are trusted. This is
-   the halo2/Zcash-class layer; the roadmap's full-constraint gnark-frontend
-   extraction targets it.
+1. **gnark frontend/backend** — Lean proves the extracted circuit composition and
+   Picus proves no under-constraint. For `consolidate2x1` and `transfer`, an
+   independent Rust `.sr1cs` parser binds the compiled bytes to manifests,
+   partition reports, metadata, and verifying keys; gadget-segment identity is
+   still trusted. The **backend** crypto (Groth16/Plonk, KZG, pairing, prover FS)
+   remains trusted, and future shipped circuits still need the same partition
+   gate. This is the halo2/Zcash-class layer the roadmap tracks.
 2. **ACP ↔ Orbis interaction** — the DLEQ proofs are *local* (bare relation in
    isolation). The multi-party ACP↔Orbis message flow, replay/reflection/party-
    confusion, and the `derive_*_scalar` byte-parity that makes PRE math cancel are

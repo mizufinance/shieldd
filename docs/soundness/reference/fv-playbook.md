@@ -109,11 +109,13 @@ model-fidelity gaps were found).
 
 1. R1CS well-formed / no under-constraint — ✅ Picus.
 2. Extracted R1CS computes the spec — ✅ Lean `*_circuit_sound`.
-3. gnark **frontend** compiles Go to the R1CS we think — ⚠️ partially (wiring
-   transcript only); the roadmap's full-constraint extraction work closes this.
+3. gnark **frontend** compiles Go to the R1CS we think — ⚠️ partially for
+   `consolidate2x1` and `transfer`: the Lean wiring transcript and independent
+   Rust `.sr1cs` partition/hash/VK gate pin the shipped bytes, but gadget-segment
+   identity is still trusted.
 4. gnark **backend** (Groth16/Plonk, KZG, pairing, prover FS) — ❌ named crypto
    trust assumption. The halo2/Zcash bug lived in layer 3-ish; that is the layer
-   the full-constraint extraction work targets.
+   the partition gate narrows and deploy-segment proof work must close.
 
 ## Two SHA derivations — keep them separate in any review
 

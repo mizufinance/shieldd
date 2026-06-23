@@ -48,3 +48,8 @@ import ShielddGnarkFormal.Consolidate2x1
 import ShielddGnarkFormal.Consolidate2x1WiringTranscript
 import ShielddGnarkFormal.Transfer
 import ShielddGnarkFormal.TransferWiringTranscript
+import ShielddGnarkFormal.Deployed.Poseidon6Link
+import ShielddGnarkFormal.Deployed.NoteCommitmentDeployedBridge
+import ShielddGnarkFormal.Deployed.NoteCommitmentSemanticBridge
+import ShielddGnarkFormal.Deployed.GlueBridges
+import ShielddGnarkFormal.Deployed.Nullifier.SemanticBridge

@@ -50,20 +50,43 @@ audit surfaces a gap.
 
 
 
-## Focus 2 — gnark trust boundary: full-constraint extraction
+## Focus 2 — gnark trust boundary: compiled-constraint coverage
 
 Motivated by the 2024–2025 halo2/Zcash library-soundness bug, which lived in the
 proving *library*, not the application circuit — exactly the layer our current
-proofs trust. Today we prove: (1) no under-constraint (Picus) and (2) the
-*extracted* R1CS matches its spec (Lean), but the wiring transcript only checks
-call-site wiring, not the full constraint set, so a gnark **frontend** miscompile
-could slip through.
+proofs must not silently trust. The soundness stack proves: (1) no
+under-constraint (Picus), (2) extracted gadget/circuit composition matches its
+spec (Lean), and now, for the completed whole circuits, (3) the checked artifacts
+are pinned to the exact compiled `.sr1cs` bytes by an independent coverage
+checker rather than only a call-site wiring string diff.
 
-- **Extract the complete constraint system** (not just the wiring transcript) for
-  each whole circuit and prove the full R1CS in Lean. A frontend bug then surfaces
-  as a Lean proof that no longer matches the Go spec. This is the
-  "full R1CS transcript proof" the whole-circuit artifacts list under
-  `known_limitations`.
+- **Landed for `consolidate2x1` and `transfer`: compiled-constraint partition
+  coverage.** `gnarkctl export-manifest` emits the compiled `.sr1cs` hash,
+  constraint count, and segment map while the Go circuit is defined. The Rust
+  `shieldd-constraint-coverage` checker parses the raw `.sr1cs` independently of
+  gnark, verifies the manifest hash and row count, requires an exact contiguous
+  segment partition over every row, rejects gaps/overlaps/out-of-bounds ranges,
+  rejects nonzero `marker`/`unclassified`/`adapter` segments, requires non-empty
+  gadget labels plus bridge-theorem name strings on gadget segments, and emits
+  per-segment constraint hashes. The gate binds `.sr1cs` -> manifest -> coverage
+  report -> `circuit_metadata.json` -> `verifying_key.json`.
+- **What this is and is not.** It is a partition/assignment gate: every compiled
+  row is assigned to exactly one declared segment and non-gadget segments are
+  constraint-free. It is **not** a proof that a gadget segment's rows equal the
+  named proved gadget — the checker does not re-derive a segment from the proved
+  gadget, so gadget identity is trusted from the Go emitter's trace boundaries.
+  **Known gap to close:** the deployed gadgets are inlined *partial evaluations*
+  of their standalone proved counterparts (verified empirically: standalone
+  `gadget-poseidon-hash6` is 436 constraints, the inlined note-commitment instance
+  is 430 with folded round constants), so the per-gadget `*Bridge.lean` proofs do
+  not directly cover the deployed rows. Closing it requires either
+  deploy-granularity extraction+proof of each segment, or a checked partial
+  evaluation of the standalone gadget under the manifest's declared constant
+  inputs.
+- **Open extension work:** close the gadget-identity gap above; every future whole
+  circuit that ships a proving key must get the same manifest/report/VK gate, and
+  any new non-gadget segment kind must have an explicit proof or be rejected by
+  policy.
 - **Pin + advisory-track gnark** and record `ZK-ASSUME-GNARK-FRONTEND-BACKEND`
   (frontend+backend trusted at the pinned version) as an explicit ledger row,
   tracking the published advisories — signature malleability (CVE-2025-57801),
@@ -84,7 +107,8 @@ and the ledger evidence on `ZK-ASSUME-ICS20-SUPPLY-CONSERVATION` citing the
 existing runtime turnstile in `transfer.rs`. The row stays `assumed` because the
 **residual** is the deferred whole-circuit R1CS proof of
 `shielded_ics20_withdrawal_circuit.go` (the Alloy model is design-level over the
-handler abstraction), which rides behind Focus 2's gnark-boundary extraction.
+handler abstraction), which must use the same Focus 2 manifest/checker gate when
+its whole-circuit artifact lands.
 
 Tools: Rust differential tests, Alloy, runtime invariants. ICS-20 is the only
 path where shielded value crosses the chain boundary, so a mint/burn or
@@ -106,7 +130,7 @@ promoted to P0** because they do not depend on the circuit proof landing.
 - **Ledger rows.** Record `ZK-ASSUME-ICS20-SUPPLY-CONSERVATION` (supply backed by
   escrow) as an explicit invariant row with an Alloy/runtime removal path, and
   schedule the deferred `shielded_ics20_withdrawal_circuit` whole-circuit proof
-  behind Focus 2's gnark-boundary extraction.
+  with the same Focus 2 manifest/checker gate.
 
 ## Focus 3 — Picus assurance integrity: `.sr1cs` fidelity for the new probes (LANDED in #96)
 
@@ -187,11 +211,11 @@ idealize away. Each is a documented audit deliverable, not a multi-month proof.
 ## Deferred (not in current focus)
 
 - `shielded_ics20_withdrawal_circuit.go` whole-circuit proof — same whole-circuit
-  Lean pattern as the landed circuits, scheduled after the gnark-boundary work.
+  Lean pattern as the landed circuits, with the same manifest/checker gate.
   Its **supply-accounting and denom-trace invariants** are *not* deferred — they
   are promoted to Focus 2b (P0).
 - Proof-system crypto (Groth16 / SnarkPack backend soundness) stays assumed in the
-  ledger; see Focus 2 for the frontend-fidelity portion that *is* in reach.
+  ledger; see Focus 2 for the compiled-constraint frontend-fidelity gate.
 
 ## Verification bar (per scheduled item)
 

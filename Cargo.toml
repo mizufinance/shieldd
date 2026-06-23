@@ -39,6 +39,7 @@ members = [
   "crates/crypto/proof-aggregation-lean-conformance",
   "crates/crypto/proof-aggregation-reference",
   "crates/crypto/proof-aggregation-trace-schema",
+  "crates/crypto/constraint-coverage",
   "crates/crypto/proof-params",
   "crates/crypto/tct",
   "crates/custody",
