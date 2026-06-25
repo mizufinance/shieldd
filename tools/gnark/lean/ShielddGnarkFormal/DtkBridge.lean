@@ -2268,4 +2268,42 @@ theorem dtkSeg14_build (gate_569 : List.Vector F 2) (IvkQuotient : F) (k : Prop)
   obtain ⟨g570, hg570, g571, hg571, g572, hg572, g573, hg573, heq, -⟩ := hguard
   exact ⟨g570, hg570, g571, hg571, g572, hg572, g573, hg573, heq, hk⟩
 
+/-- `k`-carrying form of `ivkGuard`: the continuation the deployed q4 ladder is run
+against (keystone #2 is generic in the continuation, so the generator plugs this
+in directly). -/
+def ivkGuardK (IvkQuotient : F) (k : Prop) (il : F) : Prop :=
+    ∃gate_570, gate_570 = Extracted.IvkModR.Gates.sub IvkQuotient (4:F) ∧
+    ∃gate_571, Extracted.IvkModR.Gates.is_zero gate_570 gate_571 ∧
+    ∃gate_572, gate_572 = Extracted.IvkModR.Gates.sub (1:F) il ∧
+    ∃gate_573, gate_573 = Extracted.IvkModR.Gates.mul gate_571 gate_572 ∧
+    Extracted.IvkModR.Gates.eq gate_573 (0:F) ∧
+    k
+
+/-- `k`-carrying guard rebuilds `dtkSeg14` in one step. -/
+theorem dtkSeg14_buildK (gate_569 : List.Vector F 2) (IvkQuotient : F) (k : Prop)
+    (hguard : ivkGuardK IvkQuotient k gate_569[1]) :
+    dtkSeg14 gate_569 IvkQuotient k := by
+  unfold dtkSeg14
+  unfold ivkGuardK at hguard
+  simp only [Extracted.DecafDtk.Gates, Extracted.IvkModR.Gates, GatesGnark9, GatesGnark8,
+    GatesDef.sub, GatesDef.mul, GatesDef.eq, GatesDef.is_zero] at hguard ⊢
+  obtain ⟨g570, hg570, g571, hg571, g572, hg572, g573, hg573, heq, hk⟩ := hguard
+  exact ⟨g570, hg570, g571, hg571, g572, hg572, g573, hg573, heq, hk⟩
+
+/-- mpr of `dtkSeg13_ltcQ`: cast the folded q4 ladder (run against `ivkGuardK`)
+back into the extracted `dtkSeg13 → dtkSeg14` continuation. The `ltcRec`/`dtkSeg13`
+defeq does the unrolling; `dtk_ltConstStep*_uncps` aligns the rung outputs and
+`dtkSeg14_buildK` rebuilds the tail. -/
+theorem dtkSeg13_build (bits : List.Vector F 253) (gate_527 : List.Vector F 2)
+    (IvkQuotient : F) (k : Prop)
+    (hladder : Extracted.IvkModR.ltcRec bits Extracted.IvkModR.q4Bit
+      (ivkGuardK IvkQuotient k) 42 gate_527[0] gate_527[1]) :
+    dtkSeg13 bits gate_527 (fun gate_569 => dtkSeg14 gate_569 IvkQuotient k) := by
+  have h2 : dtkSeg13 bits gate_527 (fun gate_569 => ivkGuardK IvkQuotient k gate_569[1]) :=
+    hladder
+  unfold dtkSeg13 at h2 ⊢
+  simp (config := { maxSteps := 200000 }) only [dtk_ltConstStepZero_uncps,
+    dtk_ltConstStepOne_uncps] at h2 ⊢
+  exact dtkSeg14_buildK _ _ _ h2
+
 end Shieldd.GnarkFormal.DtkBridge
