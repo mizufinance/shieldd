@@ -2247,4 +2247,25 @@ theorem decaf377_compressToField_onCurve
   obtain ⟨ws, sr, h⟩ := h
   exact compress_circuit_onCurve p.x p.y ws sr out h
 
+/-! ### Backward builders (deployed-slice mpr direction)
+
+These reconstruct the extracted `dtkSeg*` continuation nest from the folded
+`ltcRec` ladder results plus the carried tail `k`. They are the mpr companions of
+the forward `dtkSeg*_pass`/`dtkSeg*_ltc*` lemmas and are instance-independent
+(the segment structure is identical across all DTK deployments; only the `bits`
+values differ). The deployed-slice generator feeds per-instance rematerialized
+rows into these fixed builders. -/
+
+/-- mpr of `dtkSeg14_guard`: the ivk-quotient guard plus the carried tail `k`
+rebuild `dtkSeg14`. -/
+theorem dtkSeg14_build (gate_569 : List.Vector F 2) (IvkQuotient : F) (k : Prop)
+    (hguard : ivkGuard IvkQuotient gate_569[1]) (hk : k) :
+    dtkSeg14 gate_569 IvkQuotient k := by
+  unfold dtkSeg14
+  unfold ivkGuard at hguard
+  simp only [Extracted.DecafDtk.Gates, Extracted.IvkModR.Gates, GatesGnark9, GatesGnark8,
+    GatesDef.sub, GatesDef.mul, GatesDef.eq, GatesDef.is_zero] at hguard ⊢
+  obtain ⟨g570, hg570, g571, hg571, g572, hg572, g573, hg573, heq, -⟩ := hguard
+  exact ⟨g570, hg570, g571, hg571, g572, hg572, g573, hg573, heq, hk⟩
+
 end Shieldd.GnarkFormal.DtkBridge
