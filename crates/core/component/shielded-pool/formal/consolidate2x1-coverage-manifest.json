@@ -328,13 +328,13 @@
     {
       "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
       "op": "decaf.compress_to_field",
-      "status": "pending",
+      "status": "proven",
       "assumption_id": "",
       "shape_sha256_hex": "c7b7aeec064cedd7c8f6b7ba01df2138308c97883811dee9e212e804b918f4ac",
       "instances": [
         {
           "segment_index": 6,
-          "lean_theorem": "",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst6_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg6",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
           "relation_sha256_hex": "c7044169b63bcd7e2abba6870bc8179c936ede6fb4d53bc6b77193d55f4f24d4",
@@ -342,7 +342,7 @@
         },
         {
           "segment_index": 15,
-          "lean_theorem": "",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst15_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg15",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
           "relation_sha256_hex": "a3ad5e8c7ba0925b49ab41b02e3f3ee352e918ef8025c206c5393d1dc5aac149",
@@ -350,7 +350,7 @@
         },
         {
           "segment_index": 24,
-          "lean_theorem": "",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst24_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg24",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
           "relation_sha256_hex": "ea634de86db2fba95f9ac6df3c6e1c832302ac857b038b415e19d67d7c5a7f75",
@@ -358,7 +358,7 @@
         },
         {
           "segment_index": 33,
-          "lean_theorem": "",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst33_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg33",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
           "relation_sha256_hex": "712bc6bb1d58c5c5c6a2f715e6deb08c0f7a7a771de90110fda2d85c1d74639f",
@@ -366,7 +366,7 @@
         },
         {
           "segment_index": 42,
-          "lean_theorem": "",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst42_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg42",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
           "relation_sha256_hex": "fb3c60cf899550596d68a61018e29badd87744e9339e5155cc6001c70e7348b8",
@@ -374,14 +374,14 @@
         },
         {
           "segment_index": 54,
-          "lean_theorem": "",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst54_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg54",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
           "relation_sha256_hex": "ba561a1c526bd0bbbfe3bd2a33bd18b686ad0ed357914b436aa64db63ffd1b60",
           "wire_role_sha256_hex": "1dc7ad17faa1ead4d3dd12a31c24fccf43426f887d2b0870be6b4433f1f75fb3"
         }
       ],
-      "note": "pending deployed BoundDeployedSound wrapper"
+      "note": "deployed BoundDeployedSound wrapper (partial-state compress relation endpoint)"
     },
     {
       "class_key": "decaf.diversified_transmission_key@42fa5fd16924cc5b",

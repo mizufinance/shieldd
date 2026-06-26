@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg24
+import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 0
@@ -8,6 +9,9 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 
 open Shieldd.GnarkFormal.Extracted.DecafCompressToField
+
+instance seg24FactPrime : Fact (Nat.Prime Seg24.Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
 def seg24Rho (rho : Nat → Seg24.F) : Nat → Seg24.F
 | 0 => 1
@@ -486,6 +490,7 @@ theorem seg24_sound (rho : Nat → Seg24.F) (h : Seg24.relation rho) : Seg24.spe
   rcases p207 with ⟨r1035, r1036, r1037, r1038, r1039⟩
   unfold Seg24.relationPart208 at p208
   rcases p208 with ⟨r1040, r1041, r1042, r1043, r1044⟩
+  unfold Seg24.relationPart209 at p209
   have r1045 := p209
   change Shieldd.GnarkFormal.Extracted.DecafCompressToField.Relation
     (seg24Rho rho 17) (seg24Rho rho 18) (seg24Rho rho 912 - seg24Rho rho 572)
@@ -536,2093 +541,2093 @@ theorem seg24_sound (rho : Nat → Seg24.F) (h : Seg24.relation rho) : Seg24.spe
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
   · unfold Seg24.relationRow0 at r0
-    simpa [seg24Rho] using r0
+    simpa [seg24Rho, mul_eq_zero] using r0
   · unfold Seg24.relationRow1 at r1
-    simpa [seg24Rho] using r1
+    simpa [seg24Rho, mul_eq_zero] using r1
   · unfold Seg24.relationRow2 at r2
-    simpa [seg24Rho] using r2
+    simpa [seg24Rho, mul_eq_zero] using r2
   · unfold Seg24.relationRow3 at r3
-    simpa [seg24Rho] using r3
+    simpa [seg24Rho, mul_eq_zero] using r3
   · unfold Seg24.relationRow4 at r4
-    simpa [seg24Rho] using r4
+    simpa [seg24Rho, mul_eq_zero] using r4
   · unfold Seg24.relationRow5 at r5
-    simpa [seg24Rho] using r5
+    simpa [seg24Rho, mul_eq_zero] using r5
   · unfold Seg24.relationRow6 at r6
-    simpa [seg24Rho] using r6
+    simpa [seg24Rho, mul_eq_zero] using r6
   · unfold Seg24.relationRow7 at r7
-    simpa [seg24Rho] using r7
+    simpa [seg24Rho, mul_eq_zero] using r7
   · unfold Seg24.relationRow8 at r8
-    simpa [seg24Rho] using r8
+    simpa [seg24Rho, mul_eq_zero] using r8
   · unfold Seg24.relationRow9 at r9
-    simpa [seg24Rho] using r9
+    simpa [seg24Rho, mul_eq_zero] using r9
   · unfold Seg24.relationRow10 at r10
-    simpa [seg24Rho] using r10
+    simpa [seg24Rho, mul_eq_zero] using r10
   · unfold Seg24.relationRow11 at r11
-    simpa [seg24Rho] using r11
+    simpa [seg24Rho, mul_eq_zero] using r11
   · unfold Seg24.relationRow12 at r12
-    simpa [seg24Rho] using r12
+    simpa [seg24Rho, mul_eq_zero] using r12
   · unfold Seg24.relationRow13 at r13
-    simpa [seg24Rho] using r13
+    simpa [seg24Rho, mul_eq_zero] using r13
   · unfold Seg24.relationRow14 at r14
-    simpa [seg24Rho] using r14
+    simpa [seg24Rho, mul_eq_zero] using r14
   · unfold Seg24.relationRow15 at r15
-    simpa [seg24Rho] using r15
+    simpa [seg24Rho, mul_eq_zero] using r15
   · unfold Seg24.relationRow16 at r16
-    simpa [seg24Rho] using r16
+    simpa [seg24Rho, mul_eq_zero] using r16
   · unfold Seg24.relationRow17 at r17
-    simpa [seg24Rho] using r17
+    simpa [seg24Rho, mul_eq_zero] using r17
   · unfold Seg24.relationRow18 at r18
-    simpa [seg24Rho] using r18
+    simpa [seg24Rho, mul_eq_zero] using r18
   · unfold Seg24.relationRow19 at r19
-    simpa [seg24Rho] using r19
+    simpa [seg24Rho, mul_eq_zero] using r19
   · unfold Seg24.relationRow20 at r20
-    simpa [seg24Rho] using r20
+    simpa [seg24Rho, mul_eq_zero] using r20
   · unfold Seg24.relationRow21 at r21
-    simpa [seg24Rho] using r21
+    simpa [seg24Rho, mul_eq_zero] using r21
   · unfold Seg24.relationRow22 at r22
-    simpa [seg24Rho] using r22
+    simpa [seg24Rho, mul_eq_zero] using r22
   · unfold Seg24.relationRow23 at r23
-    simpa [seg24Rho] using r23
+    simpa [seg24Rho, mul_eq_zero] using r23
   · unfold Seg24.relationRow24 at r24
-    simpa [seg24Rho] using r24
+    simpa [seg24Rho, mul_eq_zero] using r24
   · unfold Seg24.relationRow25 at r25
-    simpa [seg24Rho] using r25
+    simpa [seg24Rho, mul_eq_zero] using r25
   · unfold Seg24.relationRow26 at r26
-    simpa [seg24Rho] using r26
+    simpa [seg24Rho, mul_eq_zero] using r26
   · unfold Seg24.relationRow27 at r27
-    simpa [seg24Rho] using r27
+    simpa [seg24Rho, mul_eq_zero] using r27
   · unfold Seg24.relationRow28 at r28
-    simpa [seg24Rho] using r28
+    simpa [seg24Rho, mul_eq_zero] using r28
   · unfold Seg24.relationRow29 at r29
-    simpa [seg24Rho] using r29
+    simpa [seg24Rho, mul_eq_zero] using r29
   · unfold Seg24.relationRow30 at r30
-    simpa [seg24Rho] using r30
+    simpa [seg24Rho, mul_eq_zero] using r30
   · unfold Seg24.relationRow31 at r31
-    simpa [seg24Rho] using r31
+    simpa [seg24Rho, mul_eq_zero] using r31
   · unfold Seg24.relationRow32 at r32
-    simpa [seg24Rho] using r32
+    simpa [seg24Rho, mul_eq_zero] using r32
   · unfold Seg24.relationRow33 at r33
-    simpa [seg24Rho] using r33
+    simpa [seg24Rho, mul_eq_zero] using r33
   · unfold Seg24.relationRow34 at r34
-    simpa [seg24Rho] using r34
+    simpa [seg24Rho, mul_eq_zero] using r34
   · unfold Seg24.relationRow35 at r35
-    simpa [seg24Rho] using r35
+    simpa [seg24Rho, mul_eq_zero] using r35
   · unfold Seg24.relationRow36 at r36
-    simpa [seg24Rho] using r36
+    simpa [seg24Rho, mul_eq_zero] using r36
   · unfold Seg24.relationRow37 at r37
-    simpa [seg24Rho] using r37
+    simpa [seg24Rho, mul_eq_zero] using r37
   · unfold Seg24.relationRow38 at r38
-    simpa [seg24Rho] using r38
+    simpa [seg24Rho, mul_eq_zero] using r38
   · unfold Seg24.relationRow39 at r39
-    simpa [seg24Rho] using r39
+    simpa [seg24Rho, mul_eq_zero] using r39
   · unfold Seg24.relationRow40 at r40
-    simpa [seg24Rho] using r40
+    simpa [seg24Rho, mul_eq_zero] using r40
   · unfold Seg24.relationRow41 at r41
-    simpa [seg24Rho] using r41
+    simpa [seg24Rho, mul_eq_zero] using r41
   · unfold Seg24.relationRow42 at r42
-    simpa [seg24Rho] using r42
+    simpa [seg24Rho, mul_eq_zero] using r42
   · unfold Seg24.relationRow43 at r43
-    simpa [seg24Rho] using r43
+    simpa [seg24Rho, mul_eq_zero] using r43
   · unfold Seg24.relationRow44 at r44
-    simpa [seg24Rho] using r44
+    simpa [seg24Rho, mul_eq_zero] using r44
   · unfold Seg24.relationRow45 at r45
-    simpa [seg24Rho] using r45
+    simpa [seg24Rho, mul_eq_zero] using r45
   · unfold Seg24.relationRow46 at r46
-    simpa [seg24Rho] using r46
+    simpa [seg24Rho, mul_eq_zero] using r46
   · unfold Seg24.relationRow47 at r47
-    simpa [seg24Rho] using r47
+    simpa [seg24Rho, mul_eq_zero] using r47
   · unfold Seg24.relationRow48 at r48
-    simpa [seg24Rho] using r48
+    simpa [seg24Rho, mul_eq_zero] using r48
   · unfold Seg24.relationRow49 at r49
-    simpa [seg24Rho] using r49
+    simpa [seg24Rho, mul_eq_zero] using r49
   · unfold Seg24.relationRow50 at r50
-    simpa [seg24Rho] using r50
+    simpa [seg24Rho, mul_eq_zero] using r50
   · unfold Seg24.relationRow51 at r51
-    simpa [seg24Rho] using r51
+    simpa [seg24Rho, mul_eq_zero] using r51
   · unfold Seg24.relationRow52 at r52
-    simpa [seg24Rho] using r52
+    simpa [seg24Rho, mul_eq_zero] using r52
   · unfold Seg24.relationRow53 at r53
-    simpa [seg24Rho] using r53
+    simpa [seg24Rho, mul_eq_zero] using r53
   · unfold Seg24.relationRow54 at r54
-    simpa [seg24Rho] using r54
+    simpa [seg24Rho, mul_eq_zero] using r54
   · unfold Seg24.relationRow55 at r55
-    simpa [seg24Rho] using r55
+    simpa [seg24Rho, mul_eq_zero] using r55
   · unfold Seg24.relationRow56 at r56
-    simpa [seg24Rho] using r56
+    simpa [seg24Rho, mul_eq_zero] using r56
   · unfold Seg24.relationRow57 at r57
-    simpa [seg24Rho] using r57
+    simpa [seg24Rho, mul_eq_zero] using r57
   · unfold Seg24.relationRow58 at r58
-    simpa [seg24Rho] using r58
+    simpa [seg24Rho, mul_eq_zero] using r58
   · unfold Seg24.relationRow59 at r59
-    simpa [seg24Rho] using r59
+    simpa [seg24Rho, mul_eq_zero] using r59
   · unfold Seg24.relationRow60 at r60
-    simpa [seg24Rho] using r60
+    simpa [seg24Rho, mul_eq_zero] using r60
   · unfold Seg24.relationRow61 at r61
-    simpa [seg24Rho] using r61
+    simpa [seg24Rho, mul_eq_zero] using r61
   · unfold Seg24.relationRow62 at r62
-    simpa [seg24Rho] using r62
+    simpa [seg24Rho, mul_eq_zero] using r62
   · unfold Seg24.relationRow63 at r63
-    simpa [seg24Rho] using r63
+    simpa [seg24Rho, mul_eq_zero] using r63
   · unfold Seg24.relationRow64 at r64
-    simpa [seg24Rho] using r64
+    simpa [seg24Rho, mul_eq_zero] using r64
   · unfold Seg24.relationRow65 at r65
-    simpa [seg24Rho] using r65
+    simpa [seg24Rho, mul_eq_zero] using r65
   · unfold Seg24.relationRow66 at r66
-    simpa [seg24Rho] using r66
+    simpa [seg24Rho, mul_eq_zero] using r66
   · unfold Seg24.relationRow67 at r67
-    simpa [seg24Rho] using r67
+    simpa [seg24Rho, mul_eq_zero] using r67
   · unfold Seg24.relationRow68 at r68
-    simpa [seg24Rho] using r68
+    simpa [seg24Rho, mul_eq_zero] using r68
   · unfold Seg24.relationRow69 at r69
-    simpa [seg24Rho] using r69
+    simpa [seg24Rho, mul_eq_zero] using r69
   · unfold Seg24.relationRow70 at r70
-    simpa [seg24Rho] using r70
+    simpa [seg24Rho, mul_eq_zero] using r70
   · unfold Seg24.relationRow71 at r71
-    simpa [seg24Rho] using r71
+    simpa [seg24Rho, mul_eq_zero] using r71
   · unfold Seg24.relationRow72 at r72
-    simpa [seg24Rho] using r72
+    simpa [seg24Rho, mul_eq_zero] using r72
   · unfold Seg24.relationRow73 at r73
-    simpa [seg24Rho] using r73
+    simpa [seg24Rho, mul_eq_zero] using r73
   · unfold Seg24.relationRow74 at r74
-    simpa [seg24Rho] using r74
+    simpa [seg24Rho, mul_eq_zero] using r74
   · unfold Seg24.relationRow75 at r75
-    simpa [seg24Rho] using r75
+    simpa [seg24Rho, mul_eq_zero] using r75
   · unfold Seg24.relationRow76 at r76
-    simpa [seg24Rho] using r76
+    simpa [seg24Rho, mul_eq_zero] using r76
   · unfold Seg24.relationRow77 at r77
-    simpa [seg24Rho] using r77
+    simpa [seg24Rho, mul_eq_zero] using r77
   · unfold Seg24.relationRow78 at r78
-    simpa [seg24Rho] using r78
+    simpa [seg24Rho, mul_eq_zero] using r78
   · unfold Seg24.relationRow79 at r79
-    simpa [seg24Rho] using r79
+    simpa [seg24Rho, mul_eq_zero] using r79
   · unfold Seg24.relationRow80 at r80
-    simpa [seg24Rho] using r80
+    simpa [seg24Rho, mul_eq_zero] using r80
   · unfold Seg24.relationRow81 at r81
-    simpa [seg24Rho] using r81
+    simpa [seg24Rho, mul_eq_zero] using r81
   · unfold Seg24.relationRow82 at r82
-    simpa [seg24Rho] using r82
+    simpa [seg24Rho, mul_eq_zero] using r82
   · unfold Seg24.relationRow83 at r83
-    simpa [seg24Rho] using r83
+    simpa [seg24Rho, mul_eq_zero] using r83
   · unfold Seg24.relationRow84 at r84
-    simpa [seg24Rho] using r84
+    simpa [seg24Rho, mul_eq_zero] using r84
   · unfold Seg24.relationRow85 at r85
-    simpa [seg24Rho] using r85
+    simpa [seg24Rho, mul_eq_zero] using r85
   · unfold Seg24.relationRow86 at r86
-    simpa [seg24Rho] using r86
+    simpa [seg24Rho, mul_eq_zero] using r86
   · unfold Seg24.relationRow87 at r87
-    simpa [seg24Rho] using r87
+    simpa [seg24Rho, mul_eq_zero] using r87
   · unfold Seg24.relationRow88 at r88
-    simpa [seg24Rho] using r88
+    simpa [seg24Rho, mul_eq_zero] using r88
   · unfold Seg24.relationRow89 at r89
-    simpa [seg24Rho] using r89
+    simpa [seg24Rho, mul_eq_zero] using r89
   · unfold Seg24.relationRow90 at r90
-    simpa [seg24Rho] using r90
+    simpa [seg24Rho, mul_eq_zero] using r90
   · unfold Seg24.relationRow91 at r91
-    simpa [seg24Rho] using r91
+    simpa [seg24Rho, mul_eq_zero] using r91
   · unfold Seg24.relationRow92 at r92
-    simpa [seg24Rho] using r92
+    simpa [seg24Rho, mul_eq_zero] using r92
   · unfold Seg24.relationRow93 at r93
-    simpa [seg24Rho] using r93
+    simpa [seg24Rho, mul_eq_zero] using r93
   · unfold Seg24.relationRow94 at r94
-    simpa [seg24Rho] using r94
+    simpa [seg24Rho, mul_eq_zero] using r94
   · unfold Seg24.relationRow95 at r95
-    simpa [seg24Rho] using r95
+    simpa [seg24Rho, mul_eq_zero] using r95
   · unfold Seg24.relationRow96 at r96
-    simpa [seg24Rho] using r96
+    simpa [seg24Rho, mul_eq_zero] using r96
   · unfold Seg24.relationRow97 at r97
-    simpa [seg24Rho] using r97
+    simpa [seg24Rho, mul_eq_zero] using r97
   · unfold Seg24.relationRow98 at r98
-    simpa [seg24Rho] using r98
+    simpa [seg24Rho, mul_eq_zero] using r98
   · unfold Seg24.relationRow99 at r99
-    simpa [seg24Rho] using r99
+    simpa [seg24Rho, mul_eq_zero] using r99
   · unfold Seg24.relationRow100 at r100
-    simpa [seg24Rho] using r100
+    simpa [seg24Rho, mul_eq_zero] using r100
   · unfold Seg24.relationRow101 at r101
-    simpa [seg24Rho] using r101
+    simpa [seg24Rho, mul_eq_zero] using r101
   · unfold Seg24.relationRow102 at r102
-    simpa [seg24Rho] using r102
+    simpa [seg24Rho, mul_eq_zero] using r102
   · unfold Seg24.relationRow103 at r103
-    simpa [seg24Rho] using r103
+    simpa [seg24Rho, mul_eq_zero] using r103
   · unfold Seg24.relationRow104 at r104
-    simpa [seg24Rho] using r104
+    simpa [seg24Rho, mul_eq_zero] using r104
   · unfold Seg24.relationRow105 at r105
-    simpa [seg24Rho] using r105
+    simpa [seg24Rho, mul_eq_zero] using r105
   · unfold Seg24.relationRow106 at r106
-    simpa [seg24Rho] using r106
+    simpa [seg24Rho, mul_eq_zero] using r106
   · unfold Seg24.relationRow107 at r107
-    simpa [seg24Rho] using r107
+    simpa [seg24Rho, mul_eq_zero] using r107
   · unfold Seg24.relationRow108 at r108
-    simpa [seg24Rho] using r108
+    simpa [seg24Rho, mul_eq_zero] using r108
   · unfold Seg24.relationRow109 at r109
-    simpa [seg24Rho] using r109
+    simpa [seg24Rho, mul_eq_zero] using r109
   · unfold Seg24.relationRow110 at r110
-    simpa [seg24Rho] using r110
+    simpa [seg24Rho, mul_eq_zero] using r110
   · unfold Seg24.relationRow111 at r111
-    simpa [seg24Rho] using r111
+    simpa [seg24Rho, mul_eq_zero] using r111
   · unfold Seg24.relationRow112 at r112
-    simpa [seg24Rho] using r112
+    simpa [seg24Rho, mul_eq_zero] using r112
   · unfold Seg24.relationRow113 at r113
-    simpa [seg24Rho] using r113
+    simpa [seg24Rho, mul_eq_zero] using r113
   · unfold Seg24.relationRow114 at r114
-    simpa [seg24Rho] using r114
+    simpa [seg24Rho, mul_eq_zero] using r114
   · unfold Seg24.relationRow115 at r115
-    simpa [seg24Rho] using r115
+    simpa [seg24Rho, mul_eq_zero] using r115
   · unfold Seg24.relationRow116 at r116
-    simpa [seg24Rho] using r116
+    simpa [seg24Rho, mul_eq_zero] using r116
   · unfold Seg24.relationRow117 at r117
-    simpa [seg24Rho] using r117
+    simpa [seg24Rho, mul_eq_zero] using r117
   · unfold Seg24.relationRow118 at r118
-    simpa [seg24Rho] using r118
+    simpa [seg24Rho, mul_eq_zero] using r118
   · unfold Seg24.relationRow119 at r119
-    simpa [seg24Rho] using r119
+    simpa [seg24Rho, mul_eq_zero] using r119
   · unfold Seg24.relationRow120 at r120
-    simpa [seg24Rho] using r120
+    simpa [seg24Rho, mul_eq_zero] using r120
   · unfold Seg24.relationRow121 at r121
-    simpa [seg24Rho] using r121
+    simpa [seg24Rho, mul_eq_zero] using r121
   · unfold Seg24.relationRow122 at r122
-    simpa [seg24Rho] using r122
+    simpa [seg24Rho, mul_eq_zero] using r122
   · unfold Seg24.relationRow123 at r123
-    simpa [seg24Rho] using r123
+    simpa [seg24Rho, mul_eq_zero] using r123
   · unfold Seg24.relationRow124 at r124
-    simpa [seg24Rho] using r124
+    simpa [seg24Rho, mul_eq_zero] using r124
   · unfold Seg24.relationRow125 at r125
-    simpa [seg24Rho] using r125
+    simpa [seg24Rho, mul_eq_zero] using r125
   · unfold Seg24.relationRow126 at r126
-    simpa [seg24Rho] using r126
+    simpa [seg24Rho, mul_eq_zero] using r126
   · unfold Seg24.relationRow127 at r127
-    simpa [seg24Rho] using r127
+    simpa [seg24Rho, mul_eq_zero] using r127
   · unfold Seg24.relationRow128 at r128
-    simpa [seg24Rho] using r128
+    simpa [seg24Rho, mul_eq_zero] using r128
   · unfold Seg24.relationRow129 at r129
-    simpa [seg24Rho] using r129
+    simpa [seg24Rho, mul_eq_zero] using r129
   · unfold Seg24.relationRow130 at r130
-    simpa [seg24Rho] using r130
+    simpa [seg24Rho, mul_eq_zero] using r130
   · unfold Seg24.relationRow131 at r131
-    simpa [seg24Rho] using r131
+    simpa [seg24Rho, mul_eq_zero] using r131
   · unfold Seg24.relationRow132 at r132
-    simpa [seg24Rho] using r132
+    simpa [seg24Rho, mul_eq_zero] using r132
   · unfold Seg24.relationRow133 at r133
-    simpa [seg24Rho] using r133
+    simpa [seg24Rho, mul_eq_zero] using r133
   · unfold Seg24.relationRow134 at r134
-    simpa [seg24Rho] using r134
+    simpa [seg24Rho, mul_eq_zero] using r134
   · unfold Seg24.relationRow135 at r135
-    simpa [seg24Rho] using r135
+    simpa [seg24Rho, mul_eq_zero] using r135
   · unfold Seg24.relationRow136 at r136
-    simpa [seg24Rho] using r136
+    simpa [seg24Rho, mul_eq_zero] using r136
   · unfold Seg24.relationRow137 at r137
-    simpa [seg24Rho] using r137
+    simpa [seg24Rho, mul_eq_zero] using r137
   · unfold Seg24.relationRow138 at r138
-    simpa [seg24Rho] using r138
+    simpa [seg24Rho, mul_eq_zero] using r138
   · unfold Seg24.relationRow139 at r139
-    simpa [seg24Rho] using r139
+    simpa [seg24Rho, mul_eq_zero] using r139
   · unfold Seg24.relationRow140 at r140
-    simpa [seg24Rho] using r140
+    simpa [seg24Rho, mul_eq_zero] using r140
   · unfold Seg24.relationRow141 at r141
-    simpa [seg24Rho] using r141
+    simpa [seg24Rho, mul_eq_zero] using r141
   · unfold Seg24.relationRow142 at r142
-    simpa [seg24Rho] using r142
+    simpa [seg24Rho, mul_eq_zero] using r142
   · unfold Seg24.relationRow143 at r143
-    simpa [seg24Rho] using r143
+    simpa [seg24Rho, mul_eq_zero] using r143
   · unfold Seg24.relationRow144 at r144
-    simpa [seg24Rho] using r144
+    simpa [seg24Rho, mul_eq_zero] using r144
   · unfold Seg24.relationRow145 at r145
-    simpa [seg24Rho] using r145
+    simpa [seg24Rho, mul_eq_zero] using r145
   · unfold Seg24.relationRow146 at r146
-    simpa [seg24Rho] using r146
+    simpa [seg24Rho, mul_eq_zero] using r146
   · unfold Seg24.relationRow147 at r147
-    simpa [seg24Rho] using r147
+    simpa [seg24Rho, mul_eq_zero] using r147
   · unfold Seg24.relationRow148 at r148
-    simpa [seg24Rho] using r148
+    simpa [seg24Rho, mul_eq_zero] using r148
   · unfold Seg24.relationRow149 at r149
-    simpa [seg24Rho] using r149
+    simpa [seg24Rho, mul_eq_zero] using r149
   · unfold Seg24.relationRow150 at r150
-    simpa [seg24Rho] using r150
+    simpa [seg24Rho, mul_eq_zero] using r150
   · unfold Seg24.relationRow151 at r151
-    simpa [seg24Rho] using r151
+    simpa [seg24Rho, mul_eq_zero] using r151
   · unfold Seg24.relationRow152 at r152
-    simpa [seg24Rho] using r152
+    simpa [seg24Rho, mul_eq_zero] using r152
   · unfold Seg24.relationRow153 at r153
-    simpa [seg24Rho] using r153
+    simpa [seg24Rho, mul_eq_zero] using r153
   · unfold Seg24.relationRow154 at r154
-    simpa [seg24Rho] using r154
+    simpa [seg24Rho, mul_eq_zero] using r154
   · unfold Seg24.relationRow155 at r155
-    simpa [seg24Rho] using r155
+    simpa [seg24Rho, mul_eq_zero] using r155
   · unfold Seg24.relationRow156 at r156
-    simpa [seg24Rho] using r156
+    simpa [seg24Rho, mul_eq_zero] using r156
   · unfold Seg24.relationRow157 at r157
-    simpa [seg24Rho] using r157
+    simpa [seg24Rho, mul_eq_zero] using r157
   · unfold Seg24.relationRow158 at r158
-    simpa [seg24Rho] using r158
+    simpa [seg24Rho, mul_eq_zero] using r158
   · unfold Seg24.relationRow159 at r159
-    simpa [seg24Rho] using r159
+    simpa [seg24Rho, mul_eq_zero] using r159
   · unfold Seg24.relationRow160 at r160
-    simpa [seg24Rho] using r160
+    simpa [seg24Rho, mul_eq_zero] using r160
   · unfold Seg24.relationRow161 at r161
-    simpa [seg24Rho] using r161
+    simpa [seg24Rho, mul_eq_zero] using r161
   · unfold Seg24.relationRow162 at r162
-    simpa [seg24Rho] using r162
+    simpa [seg24Rho, mul_eq_zero] using r162
   · unfold Seg24.relationRow163 at r163
-    simpa [seg24Rho] using r163
+    simpa [seg24Rho, mul_eq_zero] using r163
   · unfold Seg24.relationRow164 at r164
-    simpa [seg24Rho] using r164
+    simpa [seg24Rho, mul_eq_zero] using r164
   · unfold Seg24.relationRow165 at r165
-    simpa [seg24Rho] using r165
+    simpa [seg24Rho, mul_eq_zero] using r165
   · unfold Seg24.relationRow166 at r166
-    simpa [seg24Rho] using r166
+    simpa [seg24Rho, mul_eq_zero] using r166
   · unfold Seg24.relationRow167 at r167
-    simpa [seg24Rho] using r167
+    simpa [seg24Rho, mul_eq_zero] using r167
   · unfold Seg24.relationRow168 at r168
-    simpa [seg24Rho] using r168
+    simpa [seg24Rho, mul_eq_zero] using r168
   · unfold Seg24.relationRow169 at r169
-    simpa [seg24Rho] using r169
+    simpa [seg24Rho, mul_eq_zero] using r169
   · unfold Seg24.relationRow170 at r170
-    simpa [seg24Rho] using r170
+    simpa [seg24Rho, mul_eq_zero] using r170
   · unfold Seg24.relationRow171 at r171
-    simpa [seg24Rho] using r171
+    simpa [seg24Rho, mul_eq_zero] using r171
   · unfold Seg24.relationRow172 at r172
-    simpa [seg24Rho] using r172
+    simpa [seg24Rho, mul_eq_zero] using r172
   · unfold Seg24.relationRow173 at r173
-    simpa [seg24Rho] using r173
+    simpa [seg24Rho, mul_eq_zero] using r173
   · unfold Seg24.relationRow174 at r174
-    simpa [seg24Rho] using r174
+    simpa [seg24Rho, mul_eq_zero] using r174
   · unfold Seg24.relationRow175 at r175
-    simpa [seg24Rho] using r175
+    simpa [seg24Rho, mul_eq_zero] using r175
   · unfold Seg24.relationRow176 at r176
-    simpa [seg24Rho] using r176
+    simpa [seg24Rho, mul_eq_zero] using r176
   · unfold Seg24.relationRow177 at r177
-    simpa [seg24Rho] using r177
+    simpa [seg24Rho, mul_eq_zero] using r177
   · unfold Seg24.relationRow178 at r178
-    simpa [seg24Rho] using r178
+    simpa [seg24Rho, mul_eq_zero] using r178
   · unfold Seg24.relationRow179 at r179
-    simpa [seg24Rho] using r179
+    simpa [seg24Rho, mul_eq_zero] using r179
   · unfold Seg24.relationRow180 at r180
-    simpa [seg24Rho] using r180
+    simpa [seg24Rho, mul_eq_zero] using r180
   · unfold Seg24.relationRow181 at r181
-    simpa [seg24Rho] using r181
+    simpa [seg24Rho, mul_eq_zero] using r181
   · unfold Seg24.relationRow182 at r182
-    simpa [seg24Rho] using r182
+    simpa [seg24Rho, mul_eq_zero] using r182
   · unfold Seg24.relationRow183 at r183
-    simpa [seg24Rho] using r183
+    simpa [seg24Rho, mul_eq_zero] using r183
   · unfold Seg24.relationRow184 at r184
-    simpa [seg24Rho] using r184
+    simpa [seg24Rho, mul_eq_zero] using r184
   · unfold Seg24.relationRow185 at r185
-    simpa [seg24Rho] using r185
+    simpa [seg24Rho, mul_eq_zero] using r185
   · unfold Seg24.relationRow186 at r186
-    simpa [seg24Rho] using r186
+    simpa [seg24Rho, mul_eq_zero] using r186
   · unfold Seg24.relationRow187 at r187
-    simpa [seg24Rho] using r187
+    simpa [seg24Rho, mul_eq_zero] using r187
   · unfold Seg24.relationRow188 at r188
-    simpa [seg24Rho] using r188
+    simpa [seg24Rho, mul_eq_zero] using r188
   · unfold Seg24.relationRow189 at r189
-    simpa [seg24Rho] using r189
+    simpa [seg24Rho, mul_eq_zero] using r189
   · unfold Seg24.relationRow190 at r190
-    simpa [seg24Rho] using r190
+    simpa [seg24Rho, mul_eq_zero] using r190
   · unfold Seg24.relationRow191 at r191
-    simpa [seg24Rho] using r191
+    simpa [seg24Rho, mul_eq_zero] using r191
   · unfold Seg24.relationRow192 at r192
-    simpa [seg24Rho] using r192
+    simpa [seg24Rho, mul_eq_zero] using r192
   · unfold Seg24.relationRow193 at r193
-    simpa [seg24Rho] using r193
+    simpa [seg24Rho, mul_eq_zero] using r193
   · unfold Seg24.relationRow194 at r194
-    simpa [seg24Rho] using r194
+    simpa [seg24Rho, mul_eq_zero] using r194
   · unfold Seg24.relationRow195 at r195
-    simpa [seg24Rho] using r195
+    simpa [seg24Rho, mul_eq_zero] using r195
   · unfold Seg24.relationRow196 at r196
-    simpa [seg24Rho] using r196
+    simpa [seg24Rho, mul_eq_zero] using r196
   · unfold Seg24.relationRow197 at r197
-    simpa [seg24Rho] using r197
+    simpa [seg24Rho, mul_eq_zero] using r197
   · unfold Seg24.relationRow198 at r198
-    simpa [seg24Rho] using r198
+    simpa [seg24Rho, mul_eq_zero] using r198
   · unfold Seg24.relationRow199 at r199
-    simpa [seg24Rho] using r199
+    simpa [seg24Rho, mul_eq_zero] using r199
   · unfold Seg24.relationRow200 at r200
-    simpa [seg24Rho] using r200
+    simpa [seg24Rho, mul_eq_zero] using r200
   · unfold Seg24.relationRow201 at r201
-    simpa [seg24Rho] using r201
+    simpa [seg24Rho, mul_eq_zero] using r201
   · unfold Seg24.relationRow202 at r202
-    simpa [seg24Rho] using r202
+    simpa [seg24Rho, mul_eq_zero] using r202
   · unfold Seg24.relationRow203 at r203
-    simpa [seg24Rho] using r203
+    simpa [seg24Rho, mul_eq_zero] using r203
   · unfold Seg24.relationRow204 at r204
-    simpa [seg24Rho] using r204
+    simpa [seg24Rho, mul_eq_zero] using r204
   · unfold Seg24.relationRow205 at r205
-    simpa [seg24Rho] using r205
+    simpa [seg24Rho, mul_eq_zero] using r205
   · unfold Seg24.relationRow206 at r206
-    simpa [seg24Rho] using r206
+    simpa [seg24Rho, mul_eq_zero] using r206
   · unfold Seg24.relationRow207 at r207
-    simpa [seg24Rho] using r207
+    simpa [seg24Rho, mul_eq_zero] using r207
   · unfold Seg24.relationRow208 at r208
-    simpa [seg24Rho] using r208
+    simpa [seg24Rho, mul_eq_zero] using r208
   · unfold Seg24.relationRow209 at r209
-    simpa [seg24Rho] using r209
+    simpa [seg24Rho, mul_eq_zero] using r209
   · unfold Seg24.relationRow210 at r210
-    simpa [seg24Rho] using r210
+    simpa [seg24Rho, mul_eq_zero] using r210
   · unfold Seg24.relationRow211 at r211
-    simpa [seg24Rho] using r211
+    simpa [seg24Rho, mul_eq_zero] using r211
   · unfold Seg24.relationRow212 at r212
-    simpa [seg24Rho] using r212
+    simpa [seg24Rho, mul_eq_zero] using r212
   · unfold Seg24.relationRow213 at r213
-    simpa [seg24Rho] using r213
+    simpa [seg24Rho, mul_eq_zero] using r213
   · unfold Seg24.relationRow214 at r214
-    simpa [seg24Rho] using r214
+    simpa [seg24Rho, mul_eq_zero] using r214
   · unfold Seg24.relationRow215 at r215
-    simpa [seg24Rho] using r215
+    simpa [seg24Rho, mul_eq_zero] using r215
   · unfold Seg24.relationRow216 at r216
-    simpa [seg24Rho] using r216
+    simpa [seg24Rho, mul_eq_zero] using r216
   · unfold Seg24.relationRow217 at r217
-    simpa [seg24Rho] using r217
+    simpa [seg24Rho, mul_eq_zero] using r217
   · unfold Seg24.relationRow218 at r218
-    simpa [seg24Rho] using r218
+    simpa [seg24Rho, mul_eq_zero] using r218
   · unfold Seg24.relationRow219 at r219
-    simpa [seg24Rho] using r219
+    simpa [seg24Rho, mul_eq_zero] using r219
   · unfold Seg24.relationRow220 at r220
-    simpa [seg24Rho] using r220
+    simpa [seg24Rho, mul_eq_zero] using r220
   · unfold Seg24.relationRow221 at r221
-    simpa [seg24Rho] using r221
+    simpa [seg24Rho, mul_eq_zero] using r221
   · unfold Seg24.relationRow222 at r222
-    simpa [seg24Rho] using r222
+    simpa [seg24Rho, mul_eq_zero] using r222
   · unfold Seg24.relationRow223 at r223
-    simpa [seg24Rho] using r223
+    simpa [seg24Rho, mul_eq_zero] using r223
   · unfold Seg24.relationRow224 at r224
-    simpa [seg24Rho] using r224
+    simpa [seg24Rho, mul_eq_zero] using r224
   · unfold Seg24.relationRow225 at r225
-    simpa [seg24Rho] using r225
+    simpa [seg24Rho, mul_eq_zero] using r225
   · unfold Seg24.relationRow226 at r226
-    simpa [seg24Rho] using r226
+    simpa [seg24Rho, mul_eq_zero] using r226
   · unfold Seg24.relationRow227 at r227
-    simpa [seg24Rho] using r227
+    simpa [seg24Rho, mul_eq_zero] using r227
   · unfold Seg24.relationRow228 at r228
-    simpa [seg24Rho] using r228
+    simpa [seg24Rho, mul_eq_zero] using r228
   · unfold Seg24.relationRow229 at r229
-    simpa [seg24Rho] using r229
+    simpa [seg24Rho, mul_eq_zero] using r229
   · unfold Seg24.relationRow230 at r230
-    simpa [seg24Rho] using r230
+    simpa [seg24Rho, mul_eq_zero] using r230
   · unfold Seg24.relationRow231 at r231
-    simpa [seg24Rho] using r231
+    simpa [seg24Rho, mul_eq_zero] using r231
   · unfold Seg24.relationRow232 at r232
-    simpa [seg24Rho] using r232
+    simpa [seg24Rho, mul_eq_zero] using r232
   · unfold Seg24.relationRow233 at r233
-    simpa [seg24Rho] using r233
+    simpa [seg24Rho, mul_eq_zero] using r233
   · unfold Seg24.relationRow234 at r234
-    simpa [seg24Rho] using r234
+    simpa [seg24Rho, mul_eq_zero] using r234
   · unfold Seg24.relationRow235 at r235
-    simpa [seg24Rho] using r235
+    simpa [seg24Rho, mul_eq_zero] using r235
   · unfold Seg24.relationRow236 at r236
-    simpa [seg24Rho] using r236
+    simpa [seg24Rho, mul_eq_zero] using r236
   · unfold Seg24.relationRow237 at r237
-    simpa [seg24Rho] using r237
+    simpa [seg24Rho, mul_eq_zero] using r237
   · unfold Seg24.relationRow238 at r238
-    simpa [seg24Rho] using r238
+    simpa [seg24Rho, mul_eq_zero] using r238
   · unfold Seg24.relationRow239 at r239
-    simpa [seg24Rho] using r239
+    simpa [seg24Rho, mul_eq_zero] using r239
   · unfold Seg24.relationRow240 at r240
-    simpa [seg24Rho] using r240
+    simpa [seg24Rho, mul_eq_zero] using r240
   · unfold Seg24.relationRow241 at r241
-    simpa [seg24Rho] using r241
+    simpa [seg24Rho, mul_eq_zero] using r241
   · unfold Seg24.relationRow242 at r242
-    simpa [seg24Rho] using r242
+    simpa [seg24Rho, mul_eq_zero] using r242
   · unfold Seg24.relationRow243 at r243
-    simpa [seg24Rho] using r243
+    simpa [seg24Rho, mul_eq_zero] using r243
   · unfold Seg24.relationRow244 at r244
-    simpa [seg24Rho] using r244
+    simpa [seg24Rho, mul_eq_zero] using r244
   · unfold Seg24.relationRow245 at r245
-    simpa [seg24Rho] using r245
+    simpa [seg24Rho, mul_eq_zero] using r245
   · unfold Seg24.relationRow246 at r246
-    simpa [seg24Rho] using r246
+    simpa [seg24Rho, mul_eq_zero] using r246
   · unfold Seg24.relationRow247 at r247
-    simpa [seg24Rho] using r247
+    simpa [seg24Rho, mul_eq_zero] using r247
   · unfold Seg24.relationRow248 at r248
-    simpa [seg24Rho] using r248
+    simpa [seg24Rho, mul_eq_zero] using r248
   · unfold Seg24.relationRow249 at r249
-    simpa [seg24Rho] using r249
+    simpa [seg24Rho, mul_eq_zero] using r249
   · unfold Seg24.relationRow250 at r250
-    simpa [seg24Rho] using r250
+    simpa [seg24Rho, mul_eq_zero] using r250
   · unfold Seg24.relationRow251 at r251
-    simpa [seg24Rho] using r251
+    simpa [seg24Rho, mul_eq_zero] using r251
   · unfold Seg24.relationRow252 at r252
-    simpa [seg24Rho] using r252
+    simpa [seg24Rho, mul_eq_zero] using r252
   · unfold Seg24.relationRow253 at r253
-    simpa [seg24Rho] using r253
+    simpa [seg24Rho, mul_eq_zero] using r253
   · unfold Seg24.relationRow254 at r254
-    simpa [seg24Rho] using r254
+    simpa [seg24Rho, mul_eq_zero] using r254
   · unfold Seg24.relationRow255 at r255
-    simpa [seg24Rho] using r255
+    simpa [seg24Rho, mul_eq_zero] using r255
   · unfold Seg24.relationRow256 at r256
-    simpa [seg24Rho] using r256
+    simpa [seg24Rho, mul_eq_zero] using r256
   · unfold Seg24.relationRow257 at r257
-    simpa [seg24Rho] using r257
+    simpa [seg24Rho, mul_eq_zero] using r257
   · unfold Seg24.relationRow258 at r258
-    simpa [seg24Rho] using r258
+    simpa [seg24Rho, mul_eq_zero] using r258
   · unfold Seg24.relationRow259 at r259
-    simpa [seg24Rho] using r259
+    simpa [seg24Rho, mul_eq_zero] using r259
   · unfold Seg24.relationRow260 at r260
-    simpa [seg24Rho] using r260
+    simpa [seg24Rho, mul_eq_zero] using r260
   · unfold Seg24.relationRow261 at r261
-    simpa [seg24Rho] using r261
+    simpa [seg24Rho, mul_eq_zero] using r261
   · unfold Seg24.relationRow262 at r262
-    simpa [seg24Rho] using r262
+    simpa [seg24Rho, mul_eq_zero] using r262
   · unfold Seg24.relationRow263 at r263
-    simpa [seg24Rho] using r263
+    simpa [seg24Rho, mul_eq_zero] using r263
   · unfold Seg24.relationRow264 at r264
-    simpa [seg24Rho] using r264
+    simpa [seg24Rho, mul_eq_zero] using r264
   · unfold Seg24.relationRow265 at r265
-    simpa [seg24Rho] using r265
+    simpa [seg24Rho, mul_eq_zero] using r265
   · unfold Seg24.relationRow266 at r266
-    simpa [seg24Rho] using r266
+    simpa [seg24Rho, mul_eq_zero] using r266
   · unfold Seg24.relationRow267 at r267
-    simpa [seg24Rho] using r267
+    simpa [seg24Rho, mul_eq_zero] using r267
   · unfold Seg24.relationRow268 at r268
-    simpa [seg24Rho] using r268
+    simpa [seg24Rho, mul_eq_zero] using r268
   · unfold Seg24.relationRow269 at r269
-    simpa [seg24Rho] using r269
+    simpa [seg24Rho, mul_eq_zero] using r269
   · unfold Seg24.relationRow270 at r270
-    simpa [seg24Rho] using r270
+    simpa [seg24Rho, mul_eq_zero] using r270
   · unfold Seg24.relationRow271 at r271
-    simpa [seg24Rho] using r271
+    simpa [seg24Rho, mul_eq_zero] using r271
   · unfold Seg24.relationRow272 at r272
-    simpa [seg24Rho] using r272
+    simpa [seg24Rho, mul_eq_zero] using r272
   · unfold Seg24.relationRow273 at r273
-    simpa [seg24Rho] using r273
+    simpa [seg24Rho, mul_eq_zero] using r273
   · unfold Seg24.relationRow274 at r274
-    simpa [seg24Rho] using r274
+    simpa [seg24Rho, mul_eq_zero] using r274
   · unfold Seg24.relationRow275 at r275
-    simpa [seg24Rho] using r275
+    simpa [seg24Rho, mul_eq_zero] using r275
   · unfold Seg24.relationRow276 at r276
-    simpa [seg24Rho] using r276
+    simpa [seg24Rho, mul_eq_zero] using r276
   · unfold Seg24.relationRow277 at r277
-    simpa [seg24Rho] using r277
+    simpa [seg24Rho, mul_eq_zero] using r277
   · unfold Seg24.relationRow278 at r278
-    simpa [seg24Rho] using r278
+    simpa [seg24Rho, mul_eq_zero] using r278
   · unfold Seg24.relationRow279 at r279
-    simpa [seg24Rho] using r279
+    simpa [seg24Rho, mul_eq_zero] using r279
   · unfold Seg24.relationRow280 at r280
-    simpa [seg24Rho] using r280
+    simpa [seg24Rho, mul_eq_zero] using r280
   · unfold Seg24.relationRow282 at r282
-    simpa [seg24Rho] using r282
+    simpa [seg24Rho, mul_eq_zero] using r282
   · unfold Seg24.relationRow283 at r283
-    simpa [seg24Rho] using r283
+    simpa [seg24Rho, mul_eq_zero] using r283
   · unfold Seg24.relationRow284 at r284
-    simpa [seg24Rho] using r284
+    simpa [seg24Rho, mul_eq_zero] using r284
   · unfold Seg24.relationRow285 at r285
-    simpa [seg24Rho] using r285
+    simpa [seg24Rho, mul_eq_zero] using r285
   · unfold Seg24.relationRow286 at r286
-    simpa [seg24Rho] using r286
+    simpa [seg24Rho, mul_eq_zero] using r286
   · unfold Seg24.relationRow287 at r287
-    simpa [seg24Rho] using r287
+    simpa [seg24Rho, mul_eq_zero] using r287
   · unfold Seg24.relationRow288 at r288
-    simpa [seg24Rho] using r288
+    simpa [seg24Rho, mul_eq_zero] using r288
   · unfold Seg24.relationRow289 at r289
-    simpa [seg24Rho] using r289
+    simpa [seg24Rho, mul_eq_zero] using r289
   · unfold Seg24.relationRow290 at r290
-    simpa [seg24Rho] using r290
+    simpa [seg24Rho, mul_eq_zero] using r290
   · unfold Seg24.relationRow291 at r291
-    simpa [seg24Rho] using r291
+    simpa [seg24Rho, mul_eq_zero] using r291
   · unfold Seg24.relationRow292 at r292
-    simpa [seg24Rho] using r292
+    simpa [seg24Rho, mul_eq_zero] using r292
   · unfold Seg24.relationRow293 at r293
-    simpa [seg24Rho] using r293
+    simpa [seg24Rho, mul_eq_zero] using r293
   · unfold Seg24.relationRow294 at r294
-    simpa [seg24Rho] using r294
+    simpa [seg24Rho, mul_eq_zero] using r294
   · unfold Seg24.relationRow295 at r295
-    simpa [seg24Rho] using r295
+    simpa [seg24Rho, mul_eq_zero] using r295
   · unfold Seg24.relationRow296 at r296
-    simpa [seg24Rho] using r296
+    simpa [seg24Rho, mul_eq_zero] using r296
   · unfold Seg24.relationRow297 at r297
-    simpa [seg24Rho] using r297
+    simpa [seg24Rho, mul_eq_zero] using r297
   · unfold Seg24.relationRow298 at r298
-    simpa [seg24Rho] using r298
+    simpa [seg24Rho, mul_eq_zero] using r298
   · unfold Seg24.relationRow299 at r299
-    simpa [seg24Rho] using r299
+    simpa [seg24Rho, mul_eq_zero] using r299
   · unfold Seg24.relationRow300 at r300
-    simpa [seg24Rho] using r300
+    simpa [seg24Rho, mul_eq_zero] using r300
   · unfold Seg24.relationRow301 at r301
-    simpa [seg24Rho] using r301
+    simpa [seg24Rho, mul_eq_zero] using r301
   · unfold Seg24.relationRow302 at r302
-    simpa [seg24Rho] using r302
+    simpa [seg24Rho, mul_eq_zero] using r302
   · unfold Seg24.relationRow303 at r303
-    simpa [seg24Rho] using r303
+    simpa [seg24Rho, mul_eq_zero] using r303
   · unfold Seg24.relationRow304 at r304
-    simpa [seg24Rho] using r304
+    simpa [seg24Rho, mul_eq_zero] using r304
   · unfold Seg24.relationRow305 at r305
-    simpa [seg24Rho] using r305
+    simpa [seg24Rho, mul_eq_zero] using r305
   · unfold Seg24.relationRow306 at r306
-    simpa [seg24Rho] using r306
+    simpa [seg24Rho, mul_eq_zero] using r306
   · unfold Seg24.relationRow307 at r307
-    simpa [seg24Rho] using r307
+    simpa [seg24Rho, mul_eq_zero] using r307
   · unfold Seg24.relationRow308 at r308
-    simpa [seg24Rho] using r308
+    simpa [seg24Rho, mul_eq_zero] using r308
   · unfold Seg24.relationRow309 at r309
-    simpa [seg24Rho] using r309
+    simpa [seg24Rho, mul_eq_zero] using r309
   · unfold Seg24.relationRow310 at r310
-    simpa [seg24Rho] using r310
+    simpa [seg24Rho, mul_eq_zero] using r310
   · unfold Seg24.relationRow311 at r311
-    simpa [seg24Rho] using r311
+    simpa [seg24Rho, mul_eq_zero] using r311
   · unfold Seg24.relationRow312 at r312
-    simpa [seg24Rho] using r312
+    simpa [seg24Rho, mul_eq_zero] using r312
   · unfold Seg24.relationRow313 at r313
-    simpa [seg24Rho] using r313
+    simpa [seg24Rho, mul_eq_zero] using r313
   · unfold Seg24.relationRow314 at r314
-    simpa [seg24Rho] using r314
+    simpa [seg24Rho, mul_eq_zero] using r314
   · unfold Seg24.relationRow315 at r315
-    simpa [seg24Rho] using r315
+    simpa [seg24Rho, mul_eq_zero] using r315
   · unfold Seg24.relationRow316 at r316
-    simpa [seg24Rho] using r316
+    simpa [seg24Rho, mul_eq_zero] using r316
   · unfold Seg24.relationRow317 at r317
-    simpa [seg24Rho] using r317
+    simpa [seg24Rho, mul_eq_zero] using r317
   · unfold Seg24.relationRow318 at r318
-    simpa [seg24Rho] using r318
+    simpa [seg24Rho, mul_eq_zero] using r318
   · unfold Seg24.relationRow319 at r319
-    simpa [seg24Rho] using r319
+    simpa [seg24Rho, mul_eq_zero] using r319
   · unfold Seg24.relationRow320 at r320
-    simpa [seg24Rho] using r320
+    simpa [seg24Rho, mul_eq_zero] using r320
   · unfold Seg24.relationRow321 at r321
-    simpa [seg24Rho] using r321
+    simpa [seg24Rho, mul_eq_zero] using r321
   · unfold Seg24.relationRow322 at r322
-    simpa [seg24Rho] using r322
+    simpa [seg24Rho, mul_eq_zero] using r322
   · unfold Seg24.relationRow323 at r323
-    simpa [seg24Rho] using r323
+    simpa [seg24Rho, mul_eq_zero] using r323
   · unfold Seg24.relationRow324 at r324
-    simpa [seg24Rho] using r324
+    simpa [seg24Rho, mul_eq_zero] using r324
   · unfold Seg24.relationRow325 at r325
-    simpa [seg24Rho] using r325
+    simpa [seg24Rho, mul_eq_zero] using r325
   · unfold Seg24.relationRow326 at r326
-    simpa [seg24Rho] using r326
+    simpa [seg24Rho, mul_eq_zero] using r326
   · unfold Seg24.relationRow327 at r327
-    simpa [seg24Rho] using r327
+    simpa [seg24Rho, mul_eq_zero] using r327
   · unfold Seg24.relationRow328 at r328
-    simpa [seg24Rho] using r328
+    simpa [seg24Rho, mul_eq_zero] using r328
   · unfold Seg24.relationRow329 at r329
-    simpa [seg24Rho] using r329
+    simpa [seg24Rho, mul_eq_zero] using r329
   · unfold Seg24.relationRow330 at r330
-    simpa [seg24Rho] using r330
+    simpa [seg24Rho, mul_eq_zero] using r330
   · unfold Seg24.relationRow331 at r331
-    simpa [seg24Rho] using r331
+    simpa [seg24Rho, mul_eq_zero] using r331
   · unfold Seg24.relationRow332 at r332
-    simpa [seg24Rho] using r332
+    simpa [seg24Rho, mul_eq_zero] using r332
   · unfold Seg24.relationRow333 at r333
-    simpa [seg24Rho] using r333
+    simpa [seg24Rho, mul_eq_zero] using r333
   · unfold Seg24.relationRow334 at r334
-    simpa [seg24Rho] using r334
+    simpa [seg24Rho, mul_eq_zero] using r334
   · unfold Seg24.relationRow335 at r335
-    simpa [seg24Rho] using r335
+    simpa [seg24Rho, mul_eq_zero] using r335
   · unfold Seg24.relationRow336 at r336
-    simpa [seg24Rho] using r336
+    simpa [seg24Rho, mul_eq_zero] using r336
   · unfold Seg24.relationRow337 at r337
-    simpa [seg24Rho] using r337
+    simpa [seg24Rho, mul_eq_zero] using r337
   · unfold Seg24.relationRow338 at r338
-    simpa [seg24Rho] using r338
+    simpa [seg24Rho, mul_eq_zero] using r338
   · unfold Seg24.relationRow339 at r339
-    simpa [seg24Rho] using r339
+    simpa [seg24Rho, mul_eq_zero] using r339
   · unfold Seg24.relationRow340 at r340
-    simpa [seg24Rho] using r340
+    simpa [seg24Rho, mul_eq_zero] using r340
   · unfold Seg24.relationRow341 at r341
-    simpa [seg24Rho] using r341
+    simpa [seg24Rho, mul_eq_zero] using r341
   · unfold Seg24.relationRow342 at r342
-    simpa [seg24Rho] using r342
+    simpa [seg24Rho, mul_eq_zero] using r342
   · unfold Seg24.relationRow343 at r343
-    simpa [seg24Rho] using r343
+    simpa [seg24Rho, mul_eq_zero] using r343
   · unfold Seg24.relationRow344 at r344
-    simpa [seg24Rho] using r344
+    simpa [seg24Rho, mul_eq_zero] using r344
   · unfold Seg24.relationRow345 at r345
-    simpa [seg24Rho] using r345
+    simpa [seg24Rho, mul_eq_zero] using r345
   · unfold Seg24.relationRow346 at r346
-    simpa [seg24Rho] using r346
+    simpa [seg24Rho, mul_eq_zero] using r346
   · unfold Seg24.relationRow347 at r347
-    simpa [seg24Rho] using r347
+    simpa [seg24Rho, mul_eq_zero] using r347
   · unfold Seg24.relationRow348 at r348
-    simpa [seg24Rho] using r348
+    simpa [seg24Rho, mul_eq_zero] using r348
   · unfold Seg24.relationRow349 at r349
-    simpa [seg24Rho] using r349
+    simpa [seg24Rho, mul_eq_zero] using r349
   · unfold Seg24.relationRow350 at r350
-    simpa [seg24Rho] using r350
+    simpa [seg24Rho, mul_eq_zero] using r350
   · unfold Seg24.relationRow351 at r351
-    simpa [seg24Rho] using r351
+    simpa [seg24Rho, mul_eq_zero] using r351
   · unfold Seg24.relationRow352 at r352
-    simpa [seg24Rho] using r352
+    simpa [seg24Rho, mul_eq_zero] using r352
   · unfold Seg24.relationRow353 at r353
-    simpa [seg24Rho] using r353
+    simpa [seg24Rho, mul_eq_zero] using r353
   · unfold Seg24.relationRow354 at r354
-    simpa [seg24Rho] using r354
+    simpa [seg24Rho, mul_eq_zero] using r354
   · unfold Seg24.relationRow355 at r355
-    simpa [seg24Rho] using r355
+    simpa [seg24Rho, mul_eq_zero] using r355
   · unfold Seg24.relationRow356 at r356
-    simpa [seg24Rho] using r356
+    simpa [seg24Rho, mul_eq_zero] using r356
   · unfold Seg24.relationRow357 at r357
-    simpa [seg24Rho] using r357
+    simpa [seg24Rho, mul_eq_zero] using r357
   · unfold Seg24.relationRow358 at r358
-    simpa [seg24Rho] using r358
+    simpa [seg24Rho, mul_eq_zero] using r358
   · unfold Seg24.relationRow359 at r359
-    simpa [seg24Rho] using r359
+    simpa [seg24Rho, mul_eq_zero] using r359
   · unfold Seg24.relationRow360 at r360
-    simpa [seg24Rho] using r360
+    simpa [seg24Rho, mul_eq_zero] using r360
   · unfold Seg24.relationRow361 at r361
-    simpa [seg24Rho] using r361
+    simpa [seg24Rho, mul_eq_zero] using r361
   · unfold Seg24.relationRow362 at r362
-    simpa [seg24Rho] using r362
+    simpa [seg24Rho, mul_eq_zero] using r362
   · unfold Seg24.relationRow363 at r363
-    simpa [seg24Rho] using r363
+    simpa [seg24Rho, mul_eq_zero] using r363
   · unfold Seg24.relationRow364 at r364
-    simpa [seg24Rho] using r364
+    simpa [seg24Rho, mul_eq_zero] using r364
   · unfold Seg24.relationRow365 at r365
-    simpa [seg24Rho] using r365
+    simpa [seg24Rho, mul_eq_zero] using r365
   · unfold Seg24.relationRow366 at r366
-    simpa [seg24Rho] using r366
+    simpa [seg24Rho, mul_eq_zero] using r366
   · unfold Seg24.relationRow367 at r367
-    simpa [seg24Rho] using r367
+    simpa [seg24Rho, mul_eq_zero] using r367
   · unfold Seg24.relationRow368 at r368
-    simpa [seg24Rho] using r368
+    simpa [seg24Rho, mul_eq_zero] using r368
   · unfold Seg24.relationRow369 at r369
-    simpa [seg24Rho] using r369
+    simpa [seg24Rho, mul_eq_zero] using r369
   · unfold Seg24.relationRow370 at r370
-    simpa [seg24Rho] using r370
+    simpa [seg24Rho, mul_eq_zero] using r370
   · unfold Seg24.relationRow371 at r371
-    simpa [seg24Rho] using r371
+    simpa [seg24Rho, mul_eq_zero] using r371
   · unfold Seg24.relationRow372 at r372
-    simpa [seg24Rho] using r372
+    simpa [seg24Rho, mul_eq_zero] using r372
   · unfold Seg24.relationRow373 at r373
-    simpa [seg24Rho] using r373
+    simpa [seg24Rho, mul_eq_zero] using r373
   · unfold Seg24.relationRow374 at r374
-    simpa [seg24Rho] using r374
+    simpa [seg24Rho, mul_eq_zero] using r374
   · unfold Seg24.relationRow375 at r375
-    simpa [seg24Rho] using r375
+    simpa [seg24Rho, mul_eq_zero] using r375
   · unfold Seg24.relationRow376 at r376
-    simpa [seg24Rho] using r376
+    simpa [seg24Rho, mul_eq_zero] using r376
   · unfold Seg24.relationRow377 at r377
-    simpa [seg24Rho] using r377
+    simpa [seg24Rho, mul_eq_zero] using r377
   · unfold Seg24.relationRow378 at r378
-    simpa [seg24Rho] using r378
+    simpa [seg24Rho, mul_eq_zero] using r378
   · unfold Seg24.relationRow379 at r379
-    simpa [seg24Rho] using r379
+    simpa [seg24Rho, mul_eq_zero] using r379
   · unfold Seg24.relationRow380 at r380
-    simpa [seg24Rho] using r380
+    simpa [seg24Rho, mul_eq_zero] using r380
   · unfold Seg24.relationRow381 at r381
-    simpa [seg24Rho] using r381
+    simpa [seg24Rho, mul_eq_zero] using r381
   · unfold Seg24.relationRow382 at r382
-    simpa [seg24Rho] using r382
+    simpa [seg24Rho, mul_eq_zero] using r382
   · unfold Seg24.relationRow383 at r383
-    simpa [seg24Rho] using r383
+    simpa [seg24Rho, mul_eq_zero] using r383
   · unfold Seg24.relationRow384 at r384
-    simpa [seg24Rho] using r384
+    simpa [seg24Rho, mul_eq_zero] using r384
   · unfold Seg24.relationRow385 at r385
-    simpa [seg24Rho] using r385
+    simpa [seg24Rho, mul_eq_zero] using r385
   · unfold Seg24.relationRow386 at r386
-    simpa [seg24Rho] using r386
+    simpa [seg24Rho, mul_eq_zero] using r386
   · unfold Seg24.relationRow387 at r387
-    simpa [seg24Rho] using r387
+    simpa [seg24Rho, mul_eq_zero] using r387
   · unfold Seg24.relationRow388 at r388
-    simpa [seg24Rho] using r388
+    simpa [seg24Rho, mul_eq_zero] using r388
   · unfold Seg24.relationRow389 at r389
-    simpa [seg24Rho] using r389
+    simpa [seg24Rho, mul_eq_zero] using r389
   · unfold Seg24.relationRow390 at r390
-    simpa [seg24Rho] using r390
+    simpa [seg24Rho, mul_eq_zero] using r390
   · unfold Seg24.relationRow391 at r391
-    simpa [seg24Rho] using r391
+    simpa [seg24Rho, mul_eq_zero] using r391
   · unfold Seg24.relationRow392 at r392
-    simpa [seg24Rho] using r392
+    simpa [seg24Rho, mul_eq_zero] using r392
   · unfold Seg24.relationRow393 at r393
-    simpa [seg24Rho] using r393
+    simpa [seg24Rho, mul_eq_zero] using r393
   · unfold Seg24.relationRow394 at r394
-    simpa [seg24Rho] using r394
+    simpa [seg24Rho, mul_eq_zero] using r394
   · unfold Seg24.relationRow395 at r395
-    simpa [seg24Rho] using r395
+    simpa [seg24Rho, mul_eq_zero] using r395
   · unfold Seg24.relationRow396 at r396
-    simpa [seg24Rho] using r396
+    simpa [seg24Rho, mul_eq_zero] using r396
   · unfold Seg24.relationRow397 at r397
-    simpa [seg24Rho] using r397
+    simpa [seg24Rho, mul_eq_zero] using r397
   · unfold Seg24.relationRow398 at r398
-    simpa [seg24Rho] using r398
+    simpa [seg24Rho, mul_eq_zero] using r398
   · unfold Seg24.relationRow399 at r399
-    simpa [seg24Rho] using r399
+    simpa [seg24Rho, mul_eq_zero] using r399
   · unfold Seg24.relationRow400 at r400
-    simpa [seg24Rho] using r400
+    simpa [seg24Rho, mul_eq_zero] using r400
   · unfold Seg24.relationRow401 at r401
-    simpa [seg24Rho] using r401
+    simpa [seg24Rho, mul_eq_zero] using r401
   · unfold Seg24.relationRow402 at r402
-    simpa [seg24Rho] using r402
+    simpa [seg24Rho, mul_eq_zero] using r402
   · unfold Seg24.relationRow403 at r403
-    simpa [seg24Rho] using r403
+    simpa [seg24Rho, mul_eq_zero] using r403
   · unfold Seg24.relationRow404 at r404
-    simpa [seg24Rho] using r404
+    simpa [seg24Rho, mul_eq_zero] using r404
   · unfold Seg24.relationRow405 at r405
-    simpa [seg24Rho] using r405
+    simpa [seg24Rho, mul_eq_zero] using r405
   · unfold Seg24.relationRow406 at r406
-    simpa [seg24Rho] using r406
+    simpa [seg24Rho, mul_eq_zero] using r406
   · unfold Seg24.relationRow407 at r407
-    simpa [seg24Rho] using r407
+    simpa [seg24Rho, mul_eq_zero] using r407
   · unfold Seg24.relationRow408 at r408
-    simpa [seg24Rho] using r408
+    simpa [seg24Rho, mul_eq_zero] using r408
   · unfold Seg24.relationRow409 at r409
-    simpa [seg24Rho] using r409
+    simpa [seg24Rho, mul_eq_zero] using r409
   · unfold Seg24.relationRow410 at r410
-    simpa [seg24Rho] using r410
+    simpa [seg24Rho, mul_eq_zero] using r410
   · unfold Seg24.relationRow411 at r411
-    simpa [seg24Rho] using r411
+    simpa [seg24Rho, mul_eq_zero] using r411
   · unfold Seg24.relationRow412 at r412
-    simpa [seg24Rho] using r412
+    simpa [seg24Rho, mul_eq_zero] using r412
   · unfold Seg24.relationRow413 at r413
-    simpa [seg24Rho] using r413
+    simpa [seg24Rho, mul_eq_zero] using r413
   · unfold Seg24.relationRow414 at r414
-    simpa [seg24Rho] using r414
+    simpa [seg24Rho, mul_eq_zero] using r414
   · unfold Seg24.relationRow415 at r415
-    simpa [seg24Rho] using r415
+    simpa [seg24Rho, mul_eq_zero] using r415
   · unfold Seg24.relationRow416 at r416
-    simpa [seg24Rho] using r416
+    simpa [seg24Rho, mul_eq_zero] using r416
   · unfold Seg24.relationRow417 at r417
-    simpa [seg24Rho] using r417
+    simpa [seg24Rho, mul_eq_zero] using r417
   · unfold Seg24.relationRow418 at r418
-    simpa [seg24Rho] using r418
+    simpa [seg24Rho, mul_eq_zero] using r418
   · unfold Seg24.relationRow419 at r419
-    simpa [seg24Rho] using r419
+    simpa [seg24Rho, mul_eq_zero] using r419
   · unfold Seg24.relationRow420 at r420
-    simpa [seg24Rho] using r420
+    simpa [seg24Rho, mul_eq_zero] using r420
   · unfold Seg24.relationRow421 at r421
-    simpa [seg24Rho] using r421
+    simpa [seg24Rho, mul_eq_zero] using r421
   · unfold Seg24.relationRow422 at r422
-    simpa [seg24Rho] using r422
+    simpa [seg24Rho, mul_eq_zero] using r422
   · unfold Seg24.relationRow423 at r423
-    simpa [seg24Rho] using r423
+    simpa [seg24Rho, mul_eq_zero] using r423
   · unfold Seg24.relationRow424 at r424
-    simpa [seg24Rho] using r424
+    simpa [seg24Rho, mul_eq_zero] using r424
   · unfold Seg24.relationRow425 at r425
-    simpa [seg24Rho] using r425
+    simpa [seg24Rho, mul_eq_zero] using r425
   · unfold Seg24.relationRow426 at r426
-    simpa [seg24Rho] using r426
+    simpa [seg24Rho, mul_eq_zero] using r426
   · unfold Seg24.relationRow427 at r427
-    simpa [seg24Rho] using r427
+    simpa [seg24Rho, mul_eq_zero] using r427
   · unfold Seg24.relationRow428 at r428
-    simpa [seg24Rho] using r428
+    simpa [seg24Rho, mul_eq_zero] using r428
   · unfold Seg24.relationRow429 at r429
-    simpa [seg24Rho] using r429
+    simpa [seg24Rho, mul_eq_zero] using r429
   · unfold Seg24.relationRow430 at r430
-    simpa [seg24Rho] using r430
+    simpa [seg24Rho, mul_eq_zero] using r430
   · unfold Seg24.relationRow431 at r431
-    simpa [seg24Rho] using r431
+    simpa [seg24Rho, mul_eq_zero] using r431
   · unfold Seg24.relationRow432 at r432
-    simpa [seg24Rho] using r432
+    simpa [seg24Rho, mul_eq_zero] using r432
   · unfold Seg24.relationRow433 at r433
-    simpa [seg24Rho] using r433
+    simpa [seg24Rho, mul_eq_zero] using r433
   · unfold Seg24.relationRow434 at r434
-    simpa [seg24Rho] using r434
+    simpa [seg24Rho, mul_eq_zero] using r434
   · unfold Seg24.relationRow435 at r435
-    simpa [seg24Rho] using r435
+    simpa [seg24Rho, mul_eq_zero] using r435
   · unfold Seg24.relationRow436 at r436
-    simpa [seg24Rho] using r436
+    simpa [seg24Rho, mul_eq_zero] using r436
   · unfold Seg24.relationRow437 at r437
-    simpa [seg24Rho] using r437
+    simpa [seg24Rho, mul_eq_zero] using r437
   · unfold Seg24.relationRow438 at r438
-    simpa [seg24Rho] using r438
+    simpa [seg24Rho, mul_eq_zero] using r438
   · unfold Seg24.relationRow439 at r439
-    simpa [seg24Rho] using r439
+    simpa [seg24Rho, mul_eq_zero] using r439
   · unfold Seg24.relationRow440 at r440
-    simpa [seg24Rho] using r440
+    simpa [seg24Rho, mul_eq_zero] using r440
   · unfold Seg24.relationRow441 at r441
-    simpa [seg24Rho] using r441
+    simpa [seg24Rho, mul_eq_zero] using r441
   · unfold Seg24.relationRow442 at r442
-    simpa [seg24Rho] using r442
+    simpa [seg24Rho, mul_eq_zero] using r442
   · unfold Seg24.relationRow443 at r443
-    simpa [seg24Rho] using r443
+    simpa [seg24Rho, mul_eq_zero] using r443
   · unfold Seg24.relationRow444 at r444
-    simpa [seg24Rho] using r444
+    simpa [seg24Rho, mul_eq_zero] using r444
   · unfold Seg24.relationRow445 at r445
-    simpa [seg24Rho] using r445
+    simpa [seg24Rho, mul_eq_zero] using r445
   · unfold Seg24.relationRow446 at r446
-    simpa [seg24Rho] using r446
+    simpa [seg24Rho, mul_eq_zero] using r446
   · unfold Seg24.relationRow447 at r447
-    simpa [seg24Rho] using r447
+    simpa [seg24Rho, mul_eq_zero] using r447
   · unfold Seg24.relationRow448 at r448
-    simpa [seg24Rho] using r448
+    simpa [seg24Rho, mul_eq_zero] using r448
   · unfold Seg24.relationRow449 at r449
-    simpa [seg24Rho] using r449
+    simpa [seg24Rho, mul_eq_zero] using r449
   · unfold Seg24.relationRow450 at r450
-    simpa [seg24Rho] using r450
+    simpa [seg24Rho, mul_eq_zero] using r450
   · unfold Seg24.relationRow451 at r451
-    simpa [seg24Rho] using r451
+    simpa [seg24Rho, mul_eq_zero] using r451
   · unfold Seg24.relationRow452 at r452
-    simpa [seg24Rho] using r452
+    simpa [seg24Rho, mul_eq_zero] using r452
   · unfold Seg24.relationRow453 at r453
-    simpa [seg24Rho] using r453
+    simpa [seg24Rho, mul_eq_zero] using r453
   · unfold Seg24.relationRow454 at r454
-    simpa [seg24Rho] using r454
+    simpa [seg24Rho, mul_eq_zero] using r454
   · unfold Seg24.relationRow455 at r455
-    simpa [seg24Rho] using r455
+    simpa [seg24Rho, mul_eq_zero] using r455
   · unfold Seg24.relationRow456 at r456
-    simpa [seg24Rho] using r456
+    simpa [seg24Rho, mul_eq_zero] using r456
   · unfold Seg24.relationRow457 at r457
-    simpa [seg24Rho] using r457
+    simpa [seg24Rho, mul_eq_zero] using r457
   · unfold Seg24.relationRow458 at r458
-    simpa [seg24Rho] using r458
+    simpa [seg24Rho, mul_eq_zero] using r458
   · unfold Seg24.relationRow459 at r459
-    simpa [seg24Rho] using r459
+    simpa [seg24Rho, mul_eq_zero] using r459
   · unfold Seg24.relationRow460 at r460
-    simpa [seg24Rho] using r460
+    simpa [seg24Rho, mul_eq_zero] using r460
   · unfold Seg24.relationRow461 at r461
-    simpa [seg24Rho] using r461
+    simpa [seg24Rho, mul_eq_zero] using r461
   · unfold Seg24.relationRow462 at r462
-    simpa [seg24Rho] using r462
+    simpa [seg24Rho, mul_eq_zero] using r462
   · unfold Seg24.relationRow463 at r463
-    simpa [seg24Rho] using r463
+    simpa [seg24Rho, mul_eq_zero] using r463
   · unfold Seg24.relationRow464 at r464
-    simpa [seg24Rho] using r464
+    simpa [seg24Rho, mul_eq_zero] using r464
   · unfold Seg24.relationRow465 at r465
-    simpa [seg24Rho] using r465
+    simpa [seg24Rho, mul_eq_zero] using r465
   · unfold Seg24.relationRow466 at r466
-    simpa [seg24Rho] using r466
+    simpa [seg24Rho, mul_eq_zero] using r466
   · unfold Seg24.relationRow467 at r467
-    simpa [seg24Rho] using r467
+    simpa [seg24Rho, mul_eq_zero] using r467
   · unfold Seg24.relationRow468 at r468
-    simpa [seg24Rho] using r468
+    simpa [seg24Rho, mul_eq_zero] using r468
   · unfold Seg24.relationRow469 at r469
-    simpa [seg24Rho] using r469
+    simpa [seg24Rho, mul_eq_zero] using r469
   · unfold Seg24.relationRow470 at r470
-    simpa [seg24Rho] using r470
+    simpa [seg24Rho, mul_eq_zero] using r470
   · unfold Seg24.relationRow471 at r471
-    simpa [seg24Rho] using r471
+    simpa [seg24Rho, mul_eq_zero] using r471
   · unfold Seg24.relationRow472 at r472
-    simpa [seg24Rho] using r472
+    simpa [seg24Rho, mul_eq_zero] using r472
   · unfold Seg24.relationRow473 at r473
-    simpa [seg24Rho] using r473
+    simpa [seg24Rho, mul_eq_zero] using r473
   · unfold Seg24.relationRow474 at r474
-    simpa [seg24Rho] using r474
+    simpa [seg24Rho, mul_eq_zero] using r474
   · unfold Seg24.relationRow475 at r475
-    simpa [seg24Rho] using r475
+    simpa [seg24Rho, mul_eq_zero] using r475
   · unfold Seg24.relationRow476 at r476
-    simpa [seg24Rho] using r476
+    simpa [seg24Rho, mul_eq_zero] using r476
   · unfold Seg24.relationRow477 at r477
-    simpa [seg24Rho] using r477
+    simpa [seg24Rho, mul_eq_zero] using r477
   · unfold Seg24.relationRow478 at r478
-    simpa [seg24Rho] using r478
+    simpa [seg24Rho, mul_eq_zero] using r478
   · unfold Seg24.relationRow479 at r479
-    simpa [seg24Rho] using r479
+    simpa [seg24Rho, mul_eq_zero] using r479
   · unfold Seg24.relationRow480 at r480
-    simpa [seg24Rho] using r480
+    simpa [seg24Rho, mul_eq_zero] using r480
   · unfold Seg24.relationRow481 at r481
-    simpa [seg24Rho] using r481
+    simpa [seg24Rho, mul_eq_zero] using r481
   · unfold Seg24.relationRow482 at r482
-    simpa [seg24Rho] using r482
+    simpa [seg24Rho, mul_eq_zero] using r482
   · unfold Seg24.relationRow483 at r483
-    simpa [seg24Rho] using r483
+    simpa [seg24Rho, mul_eq_zero] using r483
   · unfold Seg24.relationRow484 at r484
-    simpa [seg24Rho] using r484
+    simpa [seg24Rho, mul_eq_zero] using r484
   · unfold Seg24.relationRow485 at r485
-    simpa [seg24Rho] using r485
+    simpa [seg24Rho, mul_eq_zero] using r485
   · unfold Seg24.relationRow486 at r486
-    simpa [seg24Rho] using r486
+    simpa [seg24Rho, mul_eq_zero] using r486
   · unfold Seg24.relationRow487 at r487
-    simpa [seg24Rho] using r487
+    simpa [seg24Rho, mul_eq_zero] using r487
   · unfold Seg24.relationRow488 at r488
-    simpa [seg24Rho] using r488
+    simpa [seg24Rho, mul_eq_zero] using r488
   · unfold Seg24.relationRow489 at r489
-    simpa [seg24Rho] using r489
+    simpa [seg24Rho, mul_eq_zero] using r489
   · unfold Seg24.relationRow490 at r490
-    simpa [seg24Rho] using r490
+    simpa [seg24Rho, mul_eq_zero] using r490
   · unfold Seg24.relationRow491 at r491
-    simpa [seg24Rho] using r491
+    simpa [seg24Rho, mul_eq_zero] using r491
   · unfold Seg24.relationRow492 at r492
-    simpa [seg24Rho] using r492
+    simpa [seg24Rho, mul_eq_zero] using r492
   · unfold Seg24.relationRow493 at r493
-    simpa [seg24Rho] using r493
+    simpa [seg24Rho, mul_eq_zero] using r493
   · unfold Seg24.relationRow494 at r494
-    simpa [seg24Rho] using r494
+    simpa [seg24Rho, mul_eq_zero] using r494
   · unfold Seg24.relationRow495 at r495
-    simpa [seg24Rho] using r495
+    simpa [seg24Rho, mul_eq_zero] using r495
   · unfold Seg24.relationRow496 at r496
-    simpa [seg24Rho] using r496
+    simpa [seg24Rho, mul_eq_zero] using r496
   · unfold Seg24.relationRow497 at r497
-    simpa [seg24Rho] using r497
+    simpa [seg24Rho, mul_eq_zero] using r497
   · unfold Seg24.relationRow498 at r498
-    simpa [seg24Rho] using r498
+    simpa [seg24Rho, mul_eq_zero] using r498
   · unfold Seg24.relationRow499 at r499
-    simpa [seg24Rho] using r499
+    simpa [seg24Rho, mul_eq_zero] using r499
   · unfold Seg24.relationRow500 at r500
-    simpa [seg24Rho] using r500
+    simpa [seg24Rho, mul_eq_zero] using r500
   · unfold Seg24.relationRow501 at r501
-    simpa [seg24Rho] using r501
+    simpa [seg24Rho, mul_eq_zero] using r501
   · unfold Seg24.relationRow502 at r502
-    simpa [seg24Rho] using r502
+    simpa [seg24Rho, mul_eq_zero] using r502
   · unfold Seg24.relationRow503 at r503
-    simpa [seg24Rho] using r503
+    simpa [seg24Rho, mul_eq_zero] using r503
   · unfold Seg24.relationRow504 at r504
-    simpa [seg24Rho] using r504
+    simpa [seg24Rho, mul_eq_zero] using r504
   · unfold Seg24.relationRow505 at r505
-    simpa [seg24Rho] using r505
+    simpa [seg24Rho, mul_eq_zero] using r505
   · unfold Seg24.relationRow506 at r506
-    simpa [seg24Rho] using r506
+    simpa [seg24Rho, mul_eq_zero] using r506
   · unfold Seg24.relationRow507 at r507
-    simpa [seg24Rho] using r507
+    simpa [seg24Rho, mul_eq_zero] using r507
   · unfold Seg24.relationRow508 at r508
-    simpa [seg24Rho] using r508
+    simpa [seg24Rho, mul_eq_zero] using r508
   · unfold Seg24.relationRow509 at r509
-    simpa [seg24Rho] using r509
+    simpa [seg24Rho, mul_eq_zero] using r509
   · unfold Seg24.relationRow510 at r510
-    simpa [seg24Rho] using r510
+    simpa [seg24Rho, mul_eq_zero] using r510
   · unfold Seg24.relationRow511 at r511
-    simpa [seg24Rho] using r511
+    simpa [seg24Rho, mul_eq_zero] using r511
   · unfold Seg24.relationRow512 at r512
-    simpa [seg24Rho] using r512
+    simpa [seg24Rho, mul_eq_zero] using r512
   · unfold Seg24.relationRow513 at r513
-    simpa [seg24Rho] using r513
+    simpa [seg24Rho, mul_eq_zero] using r513
   · unfold Seg24.relationRow514 at r514
-    simpa [seg24Rho] using r514
+    simpa [seg24Rho, mul_eq_zero] using r514
   · unfold Seg24.relationRow515 at r515
-    simpa [seg24Rho] using r515
+    simpa [seg24Rho, mul_eq_zero] using r515
   · unfold Seg24.relationRow516 at r516
-    simpa [seg24Rho] using r516
+    simpa [seg24Rho, mul_eq_zero] using r516
   · unfold Seg24.relationRow517 at r517
-    simpa [seg24Rho] using r517
+    simpa [seg24Rho, mul_eq_zero] using r517
   · unfold Seg24.relationRow518 at r518
-    simpa [seg24Rho] using r518
+    simpa [seg24Rho, mul_eq_zero] using r518
   · unfold Seg24.relationRow519 at r519
-    simpa [seg24Rho] using r519
+    simpa [seg24Rho, mul_eq_zero] using r519
   · unfold Seg24.relationRow520 at r520
-    simpa [seg24Rho] using r520
+    simpa [seg24Rho, mul_eq_zero] using r520
   · unfold Seg24.relationRow521 at r521
-    simpa [seg24Rho] using r521
+    simpa [seg24Rho, mul_eq_zero] using r521
   · unfold Seg24.relationRow522 at r522
-    simpa [seg24Rho] using r522
+    simpa [seg24Rho, mul_eq_zero] using r522
   · unfold Seg24.relationRow523 at r523
-    simpa [seg24Rho] using r523
+    simpa [seg24Rho, mul_eq_zero] using r523
   · unfold Seg24.relationRow524 at r524
-    simpa [seg24Rho] using r524
+    simpa [seg24Rho, mul_eq_zero] using r524
   · unfold Seg24.relationRow525 at r525
-    simpa [seg24Rho] using r525
+    simpa [seg24Rho, mul_eq_zero] using r525
   · unfold Seg24.relationRow526 at r526
-    simpa [seg24Rho] using r526
+    simpa [seg24Rho, mul_eq_zero] using r526
   · unfold Seg24.relationRow527 at r527
-    simpa [seg24Rho] using r527
+    simpa [seg24Rho, mul_eq_zero] using r527
   · unfold Seg24.relationRow528 at r528
-    simpa [seg24Rho] using r528
+    simpa [seg24Rho, mul_eq_zero] using r528
   · unfold Seg24.relationRow529 at r529
-    simpa [seg24Rho] using r529
+    simpa [seg24Rho, mul_eq_zero] using r529
   · unfold Seg24.relationRow530 at r530
-    simpa [seg24Rho] using r530
+    simpa [seg24Rho, mul_eq_zero] using r530
   · unfold Seg24.relationRow531 at r531
-    simpa [seg24Rho] using r531
+    simpa [seg24Rho, mul_eq_zero] using r531
   · unfold Seg24.relationRow532 at r532
-    simpa [seg24Rho] using r532
+    simpa [seg24Rho, mul_eq_zero] using r532
   · unfold Seg24.relationRow533 at r533
-    simpa [seg24Rho] using r533
+    simpa [seg24Rho, mul_eq_zero] using r533
   · unfold Seg24.relationRow534 at r534
-    simpa [seg24Rho] using r534
+    simpa [seg24Rho, mul_eq_zero] using r534
   · unfold Seg24.relationRow535 at r535
-    simpa [seg24Rho] using r535
+    simpa [seg24Rho, mul_eq_zero] using r535
   · unfold Seg24.relationRow536 at r536
-    simpa [seg24Rho] using r536
+    simpa [seg24Rho, mul_eq_zero] using r536
   · unfold Seg24.relationRow537 at r537
-    simpa [seg24Rho] using r537
+    simpa [seg24Rho, mul_eq_zero] using r537
   · unfold Seg24.relationRow538 at r538
-    simpa [seg24Rho] using r538
+    simpa [seg24Rho, mul_eq_zero] using r538
   · unfold Seg24.relationRow539 at r539
-    simpa [seg24Rho] using r539
+    simpa [seg24Rho, mul_eq_zero] using r539
   · unfold Seg24.relationRow540 at r540
-    simpa [seg24Rho] using r540
+    simpa [seg24Rho, mul_eq_zero] using r540
   · unfold Seg24.relationRow541 at r541
-    simpa [seg24Rho] using r541
+    simpa [seg24Rho, mul_eq_zero] using r541
   · unfold Seg24.relationRow542 at r542
-    simpa [seg24Rho] using r542
+    simpa [seg24Rho, mul_eq_zero] using r542
   · unfold Seg24.relationRow543 at r543
-    simpa [seg24Rho] using r543
+    simpa [seg24Rho, mul_eq_zero] using r543
   · unfold Seg24.relationRow544 at r544
-    simpa [seg24Rho] using r544
+    simpa [seg24Rho, mul_eq_zero] using r544
   · unfold Seg24.relationRow545 at r545
-    simpa [seg24Rho] using r545
+    simpa [seg24Rho, mul_eq_zero] using r545
   · unfold Seg24.relationRow546 at r546
-    simpa [seg24Rho] using r546
+    simpa [seg24Rho, mul_eq_zero] using r546
   · unfold Seg24.relationRow547 at r547
-    simpa [seg24Rho] using r547
+    simpa [seg24Rho, mul_eq_zero] using r547
   · unfold Seg24.relationRow548 at r548
-    simpa [seg24Rho] using r548
+    simpa [seg24Rho, mul_eq_zero] using r548
   · unfold Seg24.relationRow549 at r549
-    simpa [seg24Rho] using r549
+    simpa [seg24Rho, mul_eq_zero] using r549
   · unfold Seg24.relationRow550 at r550
-    simpa [seg24Rho] using r550
+    simpa [seg24Rho, mul_eq_zero] using r550
   · unfold Seg24.relationRow551 at r551
-    simpa [seg24Rho] using r551
+    simpa [seg24Rho, mul_eq_zero] using r551
   · unfold Seg24.relationRow552 at r552
-    simpa [seg24Rho] using r552
+    simpa [seg24Rho, mul_eq_zero] using r552
   · unfold Seg24.relationRow553 at r553
-    simpa [seg24Rho] using r553
+    simpa [seg24Rho, mul_eq_zero] using r553
   · unfold Seg24.relationRow554 at r554
-    simpa [seg24Rho] using r554
+    simpa [seg24Rho, mul_eq_zero] using r554
   · unfold Seg24.relationRow555 at r555
-    simpa [seg24Rho] using r555
+    simpa [seg24Rho, mul_eq_zero] using r555
   · unfold Seg24.relationRow556 at r556
-    simpa [seg24Rho] using r556
+    simpa [seg24Rho, mul_eq_zero] using r556
   · unfold Seg24.relationRow557 at r557
-    simpa [seg24Rho] using r557
+    simpa [seg24Rho, mul_eq_zero] using r557
   · unfold Seg24.relationRow558 at r558
-    simpa [seg24Rho] using r558
+    simpa [seg24Rho, mul_eq_zero] using r558
   · unfold Seg24.relationRow559 at r559
-    simpa [seg24Rho] using r559
+    simpa [seg24Rho, mul_eq_zero] using r559
   · unfold Seg24.relationRow560 at r560
-    simpa [seg24Rho] using r560
+    simpa [seg24Rho, mul_eq_zero] using r560
   · unfold Seg24.relationRow561 at r561
-    simpa [seg24Rho] using r561
+    simpa [seg24Rho, mul_eq_zero] using r561
   · unfold Seg24.relationRow562 at r562
-    simpa [seg24Rho] using r562
+    simpa [seg24Rho, mul_eq_zero] using r562
   · unfold Seg24.relationRow563 at r563
-    simpa [seg24Rho] using r563
+    simpa [seg24Rho, mul_eq_zero] using r563
   · unfold Seg24.relationRow564 at r564
-    simpa [seg24Rho] using r564
+    simpa [seg24Rho, mul_eq_zero] using r564
   · unfold Seg24.relationRow565 at r565
-    simpa [seg24Rho] using r565
+    simpa [seg24Rho, mul_eq_zero] using r565
   · unfold Seg24.relationRow566 at r566
-    simpa [seg24Rho] using r566
+    simpa [seg24Rho, mul_eq_zero] using r566
   · unfold Seg24.relationRow567 at r567
-    simpa [seg24Rho] using r567
+    simpa [seg24Rho, mul_eq_zero] using r567
   · unfold Seg24.relationRow568 at r568
-    simpa [seg24Rho] using r568
+    simpa [seg24Rho, mul_eq_zero] using r568
   · unfold Seg24.relationRow569 at r569
-    simpa [seg24Rho] using r569
+    simpa [seg24Rho, mul_eq_zero] using r569
   · unfold Seg24.relationRow570 at r570
-    simpa [seg24Rho] using r570
+    simpa [seg24Rho, mul_eq_zero] using r570
   · unfold Seg24.relationRow571 at r571
-    simpa [seg24Rho] using r571
+    simpa [seg24Rho, mul_eq_zero] using r571
   · unfold Seg24.relationRow572 at r572
-    simpa [seg24Rho] using r572
+    simpa [seg24Rho, mul_eq_zero] using r572
   · unfold Seg24.relationRow573 at r573
-    simpa [seg24Rho] using r573
+    simpa [seg24Rho, mul_eq_zero] using r573
   · unfold Seg24.relationRow574 at r574
-    simpa [seg24Rho] using r574
+    simpa [seg24Rho, mul_eq_zero] using r574
   · unfold Seg24.relationRow575 at r575
-    simpa [seg24Rho] using r575
+    simpa [seg24Rho, mul_eq_zero] using r575
   · unfold Seg24.relationRow576 at r576
-    simpa [seg24Rho] using r576
+    simpa [seg24Rho, mul_eq_zero] using r576
   · unfold Seg24.relationRow577 at r577
-    simpa [seg24Rho] using r577
+    simpa [seg24Rho, mul_eq_zero] using r577
   · unfold Seg24.relationRow578 at r578
-    simpa [seg24Rho] using r578
+    simpa [seg24Rho, mul_eq_zero] using r578
   · unfold Seg24.relationRow579 at r579
-    simpa [seg24Rho] using r579
+    simpa [seg24Rho, mul_eq_zero] using r579
   · unfold Seg24.relationRow580 at r580
-    simpa [seg24Rho] using r580
+    simpa [seg24Rho, mul_eq_zero] using r580
   · unfold Seg24.relationRow581 at r581
-    simpa [seg24Rho] using r581
+    simpa [seg24Rho, mul_eq_zero] using r581
   · unfold Seg24.relationRow582 at r582
-    simpa [seg24Rho] using r582
+    simpa [seg24Rho, mul_eq_zero] using r582
   · unfold Seg24.relationRow583 at r583
-    simpa [seg24Rho] using r583
+    simpa [seg24Rho, mul_eq_zero] using r583
   · unfold Seg24.relationRow584 at r584
-    simpa [seg24Rho] using r584
+    simpa [seg24Rho, mul_eq_zero] using r584
   · unfold Seg24.relationRow585 at r585
-    simpa [seg24Rho] using r585
+    simpa [seg24Rho, mul_eq_zero] using r585
   · unfold Seg24.relationRow586 at r586
-    simpa [seg24Rho] using r586
+    simpa [seg24Rho, mul_eq_zero] using r586
   · unfold Seg24.relationRow587 at r587
-    simpa [seg24Rho] using r587
+    simpa [seg24Rho, mul_eq_zero] using r587
   · unfold Seg24.relationRow588 at r588
-    simpa [seg24Rho] using r588
+    simpa [seg24Rho, mul_eq_zero] using r588
   · unfold Seg24.relationRow589 at r589
-    simpa [seg24Rho] using r589
+    simpa [seg24Rho, mul_eq_zero] using r589
   · unfold Seg24.relationRow590 at r590
-    simpa [seg24Rho] using r590
+    simpa [seg24Rho, mul_eq_zero] using r590
   · unfold Seg24.relationRow591 at r591
-    simpa [seg24Rho] using r591
+    simpa [seg24Rho, mul_eq_zero] using r591
   · unfold Seg24.relationRow592 at r592
-    simpa [seg24Rho] using r592
+    simpa [seg24Rho, mul_eq_zero] using r592
   · unfold Seg24.relationRow593 at r593
-    simpa [seg24Rho] using r593
+    simpa [seg24Rho, mul_eq_zero] using r593
   · unfold Seg24.relationRow594 at r594
-    simpa [seg24Rho] using r594
+    simpa [seg24Rho, mul_eq_zero] using r594
   · unfold Seg24.relationRow595 at r595
-    simpa [seg24Rho] using r595
+    simpa [seg24Rho, mul_eq_zero] using r595
   · unfold Seg24.relationRow596 at r596
-    simpa [seg24Rho] using r596
+    simpa [seg24Rho, mul_eq_zero] using r596
   · unfold Seg24.relationRow597 at r597
-    simpa [seg24Rho] using r597
+    simpa [seg24Rho, mul_eq_zero] using r597
   · unfold Seg24.relationRow598 at r598
-    simpa [seg24Rho] using r598
+    simpa [seg24Rho, mul_eq_zero] using r598
   · unfold Seg24.relationRow599 at r599
-    simpa [seg24Rho] using r599
+    simpa [seg24Rho, mul_eq_zero] using r599
   · unfold Seg24.relationRow600 at r600
-    simpa [seg24Rho] using r600
+    simpa [seg24Rho, mul_eq_zero] using r600
   · unfold Seg24.relationRow601 at r601
-    simpa [seg24Rho] using r601
+    simpa [seg24Rho, mul_eq_zero] using r601
   · unfold Seg24.relationRow602 at r602
-    simpa [seg24Rho] using r602
+    simpa [seg24Rho, mul_eq_zero] using r602
   · unfold Seg24.relationRow603 at r603
-    simpa [seg24Rho] using r603
+    simpa [seg24Rho, mul_eq_zero] using r603
   · unfold Seg24.relationRow604 at r604
-    simpa [seg24Rho] using r604
+    simpa [seg24Rho, mul_eq_zero] using r604
   · unfold Seg24.relationRow605 at r605
-    simpa [seg24Rho] using r605
+    simpa [seg24Rho, mul_eq_zero] using r605
   · unfold Seg24.relationRow606 at r606
-    simpa [seg24Rho] using r606
+    simpa [seg24Rho, mul_eq_zero] using r606
   · unfold Seg24.relationRow607 at r607
-    simpa [seg24Rho] using r607
+    simpa [seg24Rho, mul_eq_zero] using r607
   · unfold Seg24.relationRow608 at r608
-    simpa [seg24Rho] using r608
+    simpa [seg24Rho, mul_eq_zero] using r608
   · unfold Seg24.relationRow609 at r609
-    simpa [seg24Rho] using r609
+    simpa [seg24Rho, mul_eq_zero] using r609
   · unfold Seg24.relationRow610 at r610
-    simpa [seg24Rho] using r610
+    simpa [seg24Rho, mul_eq_zero] using r610
   · unfold Seg24.relationRow611 at r611
-    simpa [seg24Rho] using r611
+    simpa [seg24Rho, mul_eq_zero] using r611
   · unfold Seg24.relationRow612 at r612
-    simpa [seg24Rho] using r612
+    simpa [seg24Rho, mul_eq_zero] using r612
   · unfold Seg24.relationRow613 at r613
-    simpa [seg24Rho] using r613
+    simpa [seg24Rho, mul_eq_zero] using r613
   · unfold Seg24.relationRow614 at r614
-    simpa [seg24Rho] using r614
+    simpa [seg24Rho, mul_eq_zero] using r614
   · unfold Seg24.relationRow615 at r615
-    simpa [seg24Rho] using r615
+    simpa [seg24Rho, mul_eq_zero] using r615
   · unfold Seg24.relationRow616 at r616
-    simpa [seg24Rho] using r616
+    simpa [seg24Rho, mul_eq_zero] using r616
   · unfold Seg24.relationRow617 at r617
-    simpa [seg24Rho] using r617
+    simpa [seg24Rho, mul_eq_zero] using r617
   · unfold Seg24.relationRow618 at r618
-    simpa [seg24Rho] using r618
+    simpa [seg24Rho, mul_eq_zero] using r618
   · unfold Seg24.relationRow619 at r619
-    simpa [seg24Rho] using r619
+    simpa [seg24Rho, mul_eq_zero] using r619
   · unfold Seg24.relationRow620 at r620
-    simpa [seg24Rho] using r620
+    simpa [seg24Rho, mul_eq_zero] using r620
   · unfold Seg24.relationRow621 at r621
-    simpa [seg24Rho] using r621
+    simpa [seg24Rho, mul_eq_zero] using r621
   · unfold Seg24.relationRow622 at r622
-    simpa [seg24Rho] using r622
+    simpa [seg24Rho, mul_eq_zero] using r622
   · unfold Seg24.relationRow623 at r623
-    simpa [seg24Rho] using r623
+    simpa [seg24Rho, mul_eq_zero] using r623
   · unfold Seg24.relationRow624 at r624
-    simpa [seg24Rho] using r624
+    simpa [seg24Rho, mul_eq_zero] using r624
   · unfold Seg24.relationRow625 at r625
-    simpa [seg24Rho] using r625
+    simpa [seg24Rho, mul_eq_zero] using r625
   · unfold Seg24.relationRow626 at r626
-    simpa [seg24Rho] using r626
+    simpa [seg24Rho, mul_eq_zero] using r626
   · unfold Seg24.relationRow627 at r627
-    simpa [seg24Rho] using r627
+    simpa [seg24Rho, mul_eq_zero] using r627
   · unfold Seg24.relationRow628 at r628
-    simpa [seg24Rho] using r628
+    simpa [seg24Rho, mul_eq_zero] using r628
   · unfold Seg24.relationRow629 at r629
-    simpa [seg24Rho] using r629
+    simpa [seg24Rho, mul_eq_zero] using r629
   · unfold Seg24.relationRow630 at r630
-    simpa [seg24Rho] using r630
+    simpa [seg24Rho, mul_eq_zero] using r630
   · unfold Seg24.relationRow631 at r631
-    simpa [seg24Rho] using r631
+    simpa [seg24Rho, mul_eq_zero] using r631
   · unfold Seg24.relationRow632 at r632
-    simpa [seg24Rho] using r632
+    simpa [seg24Rho, mul_eq_zero] using r632
   · unfold Seg24.relationRow633 at r633
-    simpa [seg24Rho] using r633
+    simpa [seg24Rho, mul_eq_zero] using r633
   · unfold Seg24.relationRow634 at r634
-    simpa [seg24Rho] using r634
+    simpa [seg24Rho, mul_eq_zero] using r634
   · unfold Seg24.relationRow635 at r635
-    simpa [seg24Rho] using r635
+    simpa [seg24Rho, mul_eq_zero] using r635
   · unfold Seg24.relationRow636 at r636
-    simpa [seg24Rho] using r636
+    simpa [seg24Rho, mul_eq_zero] using r636
   · unfold Seg24.relationRow637 at r637
-    simpa [seg24Rho] using r637
+    simpa [seg24Rho, mul_eq_zero] using r637
   · unfold Seg24.relationRow638 at r638
-    simpa [seg24Rho] using r638
+    simpa [seg24Rho, mul_eq_zero] using r638
   · unfold Seg24.relationRow639 at r639
-    simpa [seg24Rho] using r639
+    simpa [seg24Rho, mul_eq_zero] using r639
   · unfold Seg24.relationRow640 at r640
-    simpa [seg24Rho] using r640
+    simpa [seg24Rho, mul_eq_zero] using r640
   · unfold Seg24.relationRow641 at r641
-    simpa [seg24Rho] using r641
+    simpa [seg24Rho, mul_eq_zero] using r641
   · unfold Seg24.relationRow642 at r642
-    simpa [seg24Rho] using r642
+    simpa [seg24Rho, mul_eq_zero] using r642
   · unfold Seg24.relationRow643 at r643
-    simpa [seg24Rho] using r643
+    simpa [seg24Rho, mul_eq_zero] using r643
   · unfold Seg24.relationRow644 at r644
-    simpa [seg24Rho] using r644
+    simpa [seg24Rho, mul_eq_zero] using r644
   · unfold Seg24.relationRow645 at r645
-    simpa [seg24Rho] using r645
+    simpa [seg24Rho, mul_eq_zero] using r645
   · unfold Seg24.relationRow646 at r646
-    simpa [seg24Rho] using r646
+    simpa [seg24Rho, mul_eq_zero] using r646
   · unfold Seg24.relationRow647 at r647
-    simpa [seg24Rho] using r647
+    simpa [seg24Rho, mul_eq_zero] using r647
   · unfold Seg24.relationRow648 at r648
-    simpa [seg24Rho] using r648
+    simpa [seg24Rho, mul_eq_zero] using r648
   · unfold Seg24.relationRow649 at r649
-    simpa [seg24Rho] using r649
+    simpa [seg24Rho, mul_eq_zero] using r649
   · unfold Seg24.relationRow650 at r650
-    simpa [seg24Rho] using r650
+    simpa [seg24Rho, mul_eq_zero] using r650
   · unfold Seg24.relationRow651 at r651
-    simpa [seg24Rho] using r651
+    simpa [seg24Rho, mul_eq_zero] using r651
   · unfold Seg24.relationRow652 at r652
-    simpa [seg24Rho] using r652
+    simpa [seg24Rho, mul_eq_zero] using r652
   · unfold Seg24.relationRow653 at r653
-    simpa [seg24Rho] using r653
+    simpa [seg24Rho, mul_eq_zero] using r653
   · unfold Seg24.relationRow654 at r654
-    simpa [seg24Rho] using r654
+    simpa [seg24Rho, mul_eq_zero] using r654
   · unfold Seg24.relationRow655 at r655
-    simpa [seg24Rho] using r655
+    simpa [seg24Rho, mul_eq_zero] using r655
   · unfold Seg24.relationRow656 at r656
-    simpa [seg24Rho] using r656
+    simpa [seg24Rho, mul_eq_zero] using r656
   · unfold Seg24.relationRow657 at r657
-    simpa [seg24Rho] using r657
+    simpa [seg24Rho, mul_eq_zero] using r657
   · unfold Seg24.relationRow658 at r658
-    simpa [seg24Rho] using r658
+    simpa [seg24Rho, mul_eq_zero] using r658
   · unfold Seg24.relationRow659 at r659
-    simpa [seg24Rho] using r659
+    simpa [seg24Rho, mul_eq_zero] using r659
   · unfold Seg24.relationRow660 at r660
-    simpa [seg24Rho] using r660
+    simpa [seg24Rho, mul_eq_zero] using r660
   · unfold Seg24.relationRow661 at r661
-    simpa [seg24Rho] using r661
+    simpa [seg24Rho, mul_eq_zero] using r661
   · unfold Seg24.relationRow662 at r662
-    simpa [seg24Rho] using r662
+    simpa [seg24Rho, mul_eq_zero] using r662
   · unfold Seg24.relationRow663 at r663
-    simpa [seg24Rho] using r663
+    simpa [seg24Rho, mul_eq_zero] using r663
   · unfold Seg24.relationRow664 at r664
-    simpa [seg24Rho] using r664
+    simpa [seg24Rho, mul_eq_zero] using r664
   · unfold Seg24.relationRow665 at r665
-    simpa [seg24Rho] using r665
+    simpa [seg24Rho, mul_eq_zero] using r665
   · unfold Seg24.relationRow666 at r666
-    simpa [seg24Rho] using r666
+    simpa [seg24Rho, mul_eq_zero] using r666
   · unfold Seg24.relationRow667 at r667
-    simpa [seg24Rho] using r667
+    simpa [seg24Rho, mul_eq_zero] using r667
   · unfold Seg24.relationRow668 at r668
-    simpa [seg24Rho] using r668
+    simpa [seg24Rho, mul_eq_zero] using r668
   · unfold Seg24.relationRow669 at r669
-    simpa [seg24Rho] using r669
+    simpa [seg24Rho, mul_eq_zero] using r669
   · unfold Seg24.relationRow670 at r670
-    simpa [seg24Rho] using r670
+    simpa [seg24Rho, mul_eq_zero] using r670
   · unfold Seg24.relationRow671 at r671
-    simpa [seg24Rho] using r671
+    simpa [seg24Rho, mul_eq_zero] using r671
   · unfold Seg24.relationRow672 at r672
-    simpa [seg24Rho] using r672
+    simpa [seg24Rho, mul_eq_zero] using r672
   · unfold Seg24.relationRow673 at r673
-    simpa [seg24Rho] using r673
+    simpa [seg24Rho, mul_eq_zero] using r673
   · unfold Seg24.relationRow674 at r674
-    simpa [seg24Rho] using r674
+    simpa [seg24Rho, mul_eq_zero] using r674
   · unfold Seg24.relationRow675 at r675
-    simpa [seg24Rho] using r675
+    simpa [seg24Rho, mul_eq_zero] using r675
   · unfold Seg24.relationRow676 at r676
-    simpa [seg24Rho] using r676
+    simpa [seg24Rho, mul_eq_zero] using r676
   · unfold Seg24.relationRow677 at r677
-    simpa [seg24Rho] using r677
+    simpa [seg24Rho, mul_eq_zero] using r677
   · unfold Seg24.relationRow678 at r678
-    simpa [seg24Rho] using r678
+    simpa [seg24Rho, mul_eq_zero] using r678
   · unfold Seg24.relationRow679 at r679
-    simpa [seg24Rho] using r679
+    simpa [seg24Rho, mul_eq_zero] using r679
   · unfold Seg24.relationRow680 at r680
-    simpa [seg24Rho] using r680
+    simpa [seg24Rho, mul_eq_zero] using r680
   · unfold Seg24.relationRow681 at r681
-    simpa [seg24Rho] using r681
+    simpa [seg24Rho, mul_eq_zero] using r681
   · unfold Seg24.relationRow682 at r682
-    simpa [seg24Rho] using r682
+    simpa [seg24Rho, mul_eq_zero] using r682
   · unfold Seg24.relationRow683 at r683
-    simpa [seg24Rho] using r683
+    simpa [seg24Rho, mul_eq_zero] using r683
   · unfold Seg24.relationRow684 at r684
-    simpa [seg24Rho] using r684
+    simpa [seg24Rho, mul_eq_zero] using r684
   · unfold Seg24.relationRow685 at r685
-    simpa [seg24Rho] using r685
+    simpa [seg24Rho, mul_eq_zero] using r685
   · unfold Seg24.relationRow686 at r686
-    simpa [seg24Rho] using r686
+    simpa [seg24Rho, mul_eq_zero] using r686
   · unfold Seg24.relationRow687 at r687
-    simpa [seg24Rho] using r687
+    simpa [seg24Rho, mul_eq_zero] using r687
   · unfold Seg24.relationRow688 at r688
-    simpa [seg24Rho] using r688
+    simpa [seg24Rho, mul_eq_zero] using r688
   · unfold Seg24.relationRow689 at r689
-    simpa [seg24Rho] using r689
+    simpa [seg24Rho, mul_eq_zero] using r689
   · unfold Seg24.relationRow690 at r690
-    simpa [seg24Rho] using r690
+    simpa [seg24Rho, mul_eq_zero] using r690
   · unfold Seg24.relationRow691 at r691
-    simpa [seg24Rho] using r691
+    simpa [seg24Rho, mul_eq_zero] using r691
   · unfold Seg24.relationRow692 at r692
-    simpa [seg24Rho] using r692
+    simpa [seg24Rho, mul_eq_zero] using r692
   · unfold Seg24.relationRow693 at r693
-    simpa [seg24Rho] using r693
+    simpa [seg24Rho, mul_eq_zero] using r693
   · unfold Seg24.relationRow694 at r694
-    simpa [seg24Rho] using r694
+    simpa [seg24Rho, mul_eq_zero] using r694
   · unfold Seg24.relationRow695 at r695
-    simpa [seg24Rho] using r695
+    simpa [seg24Rho, mul_eq_zero] using r695
   · unfold Seg24.relationRow696 at r696
-    simpa [seg24Rho] using r696
+    simpa [seg24Rho, mul_eq_zero] using r696
   · unfold Seg24.relationRow697 at r697
-    simpa [seg24Rho] using r697
+    simpa [seg24Rho, mul_eq_zero] using r697
   · unfold Seg24.relationRow698 at r698
-    simpa [seg24Rho] using r698
+    simpa [seg24Rho, mul_eq_zero] using r698
   · unfold Seg24.relationRow699 at r699
-    simpa [seg24Rho] using r699
+    simpa [seg24Rho, mul_eq_zero] using r699
   · unfold Seg24.relationRow700 at r700
-    simpa [seg24Rho] using r700
+    simpa [seg24Rho, mul_eq_zero] using r700
   · unfold Seg24.relationRow701 at r701
-    simpa [seg24Rho] using r701
+    simpa [seg24Rho, mul_eq_zero] using r701
   · unfold Seg24.relationRow702 at r702
-    simpa [seg24Rho] using r702
+    simpa [seg24Rho, mul_eq_zero] using r702
   · unfold Seg24.relationRow703 at r703
-    simpa [seg24Rho] using r703
+    simpa [seg24Rho, mul_eq_zero] using r703
   · unfold Seg24.relationRow704 at r704
-    simpa [seg24Rho] using r704
+    simpa [seg24Rho, mul_eq_zero] using r704
   · unfold Seg24.relationRow705 at r705
-    simpa [seg24Rho] using r705
+    simpa [seg24Rho, mul_eq_zero] using r705
   · unfold Seg24.relationRow706 at r706
-    simpa [seg24Rho] using r706
+    simpa [seg24Rho, mul_eq_zero] using r706
   · unfold Seg24.relationRow707 at r707
-    simpa [seg24Rho] using r707
+    simpa [seg24Rho, mul_eq_zero] using r707
   · unfold Seg24.relationRow708 at r708
-    simpa [seg24Rho] using r708
+    simpa [seg24Rho, mul_eq_zero] using r708
   · unfold Seg24.relationRow709 at r709
-    simpa [seg24Rho] using r709
+    simpa [seg24Rho, mul_eq_zero] using r709
   · unfold Seg24.relationRow710 at r710
-    simpa [seg24Rho] using r710
+    simpa [seg24Rho, mul_eq_zero] using r710
   · unfold Seg24.relationRow711 at r711
-    simpa [seg24Rho] using r711
+    simpa [seg24Rho, mul_eq_zero] using r711
   · unfold Seg24.relationRow712 at r712
-    simpa [seg24Rho] using r712
+    simpa [seg24Rho, mul_eq_zero] using r712
   · unfold Seg24.relationRow713 at r713
-    simpa [seg24Rho] using r713
+    simpa [seg24Rho, mul_eq_zero] using r713
   · unfold Seg24.relationRow714 at r714
-    simpa [seg24Rho] using r714
+    simpa [seg24Rho, mul_eq_zero] using r714
   · unfold Seg24.relationRow715 at r715
-    simpa [seg24Rho] using r715
+    simpa [seg24Rho, mul_eq_zero] using r715
   · unfold Seg24.relationRow716 at r716
-    simpa [seg24Rho] using r716
+    simpa [seg24Rho, mul_eq_zero] using r716
   · unfold Seg24.relationRow717 at r717
-    simpa [seg24Rho] using r717
+    simpa [seg24Rho, mul_eq_zero] using r717
   · unfold Seg24.relationRow718 at r718
-    simpa [seg24Rho] using r718
+    simpa [seg24Rho, mul_eq_zero] using r718
   · unfold Seg24.relationRow719 at r719
-    simpa [seg24Rho] using r719
+    simpa [seg24Rho, mul_eq_zero] using r719
   · unfold Seg24.relationRow720 at r720
-    simpa [seg24Rho] using r720
+    simpa [seg24Rho, mul_eq_zero] using r720
   · unfold Seg24.relationRow721 at r721
-    simpa [seg24Rho] using r721
+    simpa [seg24Rho, mul_eq_zero] using r721
   · unfold Seg24.relationRow722 at r722
-    simpa [seg24Rho] using r722
+    simpa [seg24Rho, mul_eq_zero] using r722
   · unfold Seg24.relationRow723 at r723
-    simpa [seg24Rho] using r723
+    simpa [seg24Rho, mul_eq_zero] using r723
   · unfold Seg24.relationRow724 at r724
-    simpa [seg24Rho] using r724
+    simpa [seg24Rho, mul_eq_zero] using r724
   · unfold Seg24.relationRow725 at r725
-    simpa [seg24Rho] using r725
+    simpa [seg24Rho, mul_eq_zero] using r725
   · unfold Seg24.relationRow726 at r726
-    simpa [seg24Rho] using r726
+    simpa [seg24Rho, mul_eq_zero] using r726
   · unfold Seg24.relationRow727 at r727
-    simpa [seg24Rho] using r727
+    simpa [seg24Rho, mul_eq_zero] using r727
   · unfold Seg24.relationRow728 at r728
-    simpa [seg24Rho] using r728
+    simpa [seg24Rho, mul_eq_zero] using r728
   · unfold Seg24.relationRow729 at r729
-    simpa [seg24Rho] using r729
+    simpa [seg24Rho, mul_eq_zero] using r729
   · unfold Seg24.relationRow730 at r730
-    simpa [seg24Rho] using r730
+    simpa [seg24Rho, mul_eq_zero] using r730
   · unfold Seg24.relationRow731 at r731
-    simpa [seg24Rho] using r731
+    simpa [seg24Rho, mul_eq_zero] using r731
   · unfold Seg24.relationRow732 at r732
-    simpa [seg24Rho] using r732
+    simpa [seg24Rho, mul_eq_zero] using r732
   · unfold Seg24.relationRow733 at r733
-    simpa [seg24Rho] using r733
+    simpa [seg24Rho, mul_eq_zero] using r733
   · unfold Seg24.relationRow734 at r734
-    simpa [seg24Rho] using r734
+    simpa [seg24Rho, mul_eq_zero] using r734
   · unfold Seg24.relationRow735 at r735
-    simpa [seg24Rho] using r735
+    simpa [seg24Rho, mul_eq_zero] using r735
   · unfold Seg24.relationRow736 at r736
-    simpa [seg24Rho] using r736
+    simpa [seg24Rho, mul_eq_zero] using r736
   · unfold Seg24.relationRow737 at r737
-    simpa [seg24Rho] using r737
+    simpa [seg24Rho, mul_eq_zero] using r737
   · unfold Seg24.relationRow738 at r738
-    simpa [seg24Rho] using r738
+    simpa [seg24Rho, mul_eq_zero] using r738
   · unfold Seg24.relationRow739 at r739
-    simpa [seg24Rho] using r739
+    simpa [seg24Rho, mul_eq_zero] using r739
   · unfold Seg24.relationRow740 at r740
-    simpa [seg24Rho] using r740
+    simpa [seg24Rho, mul_eq_zero] using r740
   · unfold Seg24.relationRow741 at r741
-    simpa [seg24Rho] using r741
+    simpa [seg24Rho, mul_eq_zero] using r741
   · unfold Seg24.relationRow742 at r742
-    simpa [seg24Rho] using r742
+    simpa [seg24Rho, mul_eq_zero] using r742
   · unfold Seg24.relationRow743 at r743
-    simpa [seg24Rho] using r743
+    simpa [seg24Rho, mul_eq_zero] using r743
   · unfold Seg24.relationRow744 at r744
-    simpa [seg24Rho] using r744
+    simpa [seg24Rho, mul_eq_zero] using r744
   · unfold Seg24.relationRow745 at r745
-    simpa [seg24Rho] using r745
+    simpa [seg24Rho, mul_eq_zero] using r745
   · unfold Seg24.relationRow746 at r746
-    simpa [seg24Rho] using r746
+    simpa [seg24Rho, mul_eq_zero] using r746
   · unfold Seg24.relationRow747 at r747
-    simpa [seg24Rho] using r747
+    simpa [seg24Rho, mul_eq_zero] using r747
   · unfold Seg24.relationRow748 at r748
-    simpa [seg24Rho] using r748
+    simpa [seg24Rho, mul_eq_zero] using r748
   · unfold Seg24.relationRow749 at r749
-    simpa [seg24Rho] using r749
+    simpa [seg24Rho, mul_eq_zero] using r749
   · unfold Seg24.relationRow750 at r750
-    simpa [seg24Rho] using r750
+    simpa [seg24Rho, mul_eq_zero] using r750
   · unfold Seg24.relationRow751 at r751
-    simpa [seg24Rho] using r751
+    simpa [seg24Rho, mul_eq_zero] using r751
   · unfold Seg24.relationRow752 at r752
-    simpa [seg24Rho] using r752
+    simpa [seg24Rho, mul_eq_zero] using r752
   · unfold Seg24.relationRow753 at r753
-    simpa [seg24Rho] using r753
+    simpa [seg24Rho, mul_eq_zero] using r753
   · unfold Seg24.relationRow754 at r754
-    simpa [seg24Rho] using r754
+    simpa [seg24Rho, mul_eq_zero] using r754
   · unfold Seg24.relationRow755 at r755
-    simpa [seg24Rho] using r755
+    simpa [seg24Rho, mul_eq_zero] using r755
   · unfold Seg24.relationRow756 at r756
-    simpa [seg24Rho] using r756
+    simpa [seg24Rho, mul_eq_zero] using r756
   · unfold Seg24.relationRow757 at r757
-    simpa [seg24Rho] using r757
+    simpa [seg24Rho, mul_eq_zero] using r757
   · unfold Seg24.relationRow758 at r758
-    simpa [seg24Rho] using r758
+    simpa [seg24Rho, mul_eq_zero] using r758
   · unfold Seg24.relationRow759 at r759
-    simpa [seg24Rho] using r759
+    simpa [seg24Rho, mul_eq_zero] using r759
   · unfold Seg24.relationRow760 at r760
-    simpa [seg24Rho] using r760
+    simpa [seg24Rho, mul_eq_zero] using r760
   · unfold Seg24.relationRow761 at r761
-    simpa [seg24Rho] using r761
+    simpa [seg24Rho, mul_eq_zero] using r761
   · unfold Seg24.relationRow762 at r762
-    simpa [seg24Rho] using r762
+    simpa [seg24Rho, mul_eq_zero] using r762
   · unfold Seg24.relationRow763 at r763
-    simpa [seg24Rho] using r763
+    simpa [seg24Rho, mul_eq_zero] using r763
   · unfold Seg24.relationRow764 at r764
-    simpa [seg24Rho] using r764
+    simpa [seg24Rho, mul_eq_zero] using r764
   · unfold Seg24.relationRow765 at r765
-    simpa [seg24Rho] using r765
+    simpa [seg24Rho, mul_eq_zero] using r765
   · unfold Seg24.relationRow766 at r766
-    simpa [seg24Rho] using r766
+    simpa [seg24Rho, mul_eq_zero] using r766
   · unfold Seg24.relationRow767 at r767
-    simpa [seg24Rho] using r767
+    simpa [seg24Rho, mul_eq_zero] using r767
   · unfold Seg24.relationRow768 at r768
-    simpa [seg24Rho] using r768
+    simpa [seg24Rho, mul_eq_zero] using r768
   · unfold Seg24.relationRow769 at r769
-    simpa [seg24Rho] using r769
+    simpa [seg24Rho, mul_eq_zero] using r769
   · unfold Seg24.relationRow770 at r770
-    simpa [seg24Rho] using r770
+    simpa [seg24Rho, mul_eq_zero] using r770
   · unfold Seg24.relationRow771 at r771
-    simpa [seg24Rho] using r771
+    simpa [seg24Rho, mul_eq_zero] using r771
   · unfold Seg24.relationRow772 at r772
-    simpa [seg24Rho] using r772
+    simpa [seg24Rho, mul_eq_zero] using r772
   · unfold Seg24.relationRow773 at r773
-    simpa [seg24Rho] using r773
+    simpa [seg24Rho, mul_eq_zero] using r773
   · unfold Seg24.relationRow774 at r774
-    simpa [seg24Rho] using r774
+    simpa [seg24Rho, mul_eq_zero] using r774
   · unfold Seg24.relationRow775 at r775
-    simpa [seg24Rho] using r775
+    simpa [seg24Rho, mul_eq_zero] using r775
   · unfold Seg24.relationRow776 at r776
-    simpa [seg24Rho] using r776
+    simpa [seg24Rho, mul_eq_zero] using r776
   · unfold Seg24.relationRow777 at r777
-    simpa [seg24Rho] using r777
+    simpa [seg24Rho, mul_eq_zero] using r777
   · unfold Seg24.relationRow778 at r778
-    simpa [seg24Rho] using r778
+    simpa [seg24Rho, mul_eq_zero] using r778
   · unfold Seg24.relationRow779 at r779
-    simpa [seg24Rho] using r779
+    simpa [seg24Rho, mul_eq_zero] using r779
   · unfold Seg24.relationRow780 at r780
-    simpa [seg24Rho] using r780
+    simpa [seg24Rho, mul_eq_zero] using r780
   · unfold Seg24.relationRow781 at r781
-    simpa [seg24Rho] using r781
+    simpa [seg24Rho, mul_eq_zero] using r781
   · unfold Seg24.relationRow782 at r782
-    simpa [seg24Rho] using r782
+    simpa [seg24Rho, mul_eq_zero] using r782
   · unfold Seg24.relationRow783 at r783
-    simpa [seg24Rho] using r783
+    simpa [seg24Rho, mul_eq_zero] using r783
   · unfold Seg24.relationRow784 at r784
-    simpa [seg24Rho] using r784
+    simpa [seg24Rho, mul_eq_zero] using r784
   · unfold Seg24.relationRow785 at r785
-    simpa [seg24Rho] using r785
+    simpa [seg24Rho, mul_eq_zero] using r785
   · unfold Seg24.relationRow786 at r786
-    simpa [seg24Rho] using r786
+    simpa [seg24Rho, mul_eq_zero] using r786
   · unfold Seg24.relationRow787 at r787
-    simpa [seg24Rho] using r787
+    simpa [seg24Rho, mul_eq_zero] using r787
   · unfold Seg24.relationRow788 at r788
-    simpa [seg24Rho] using r788
+    simpa [seg24Rho, mul_eq_zero] using r788
   · unfold Seg24.relationRow789 at r789
-    simpa [seg24Rho] using r789
+    simpa [seg24Rho, mul_eq_zero] using r789
   · unfold Seg24.relationRow790 at r790
-    simpa [seg24Rho] using r790
+    simpa [seg24Rho, mul_eq_zero] using r790
   · unfold Seg24.relationRow792 at r792
-    simpa [seg24Rho] using r792
+    simpa [seg24Rho, mul_eq_zero] using r792
   · unfold Seg24.relationRow793 at r793
-    simpa [seg24Rho] using r793
+    simpa [seg24Rho, mul_eq_zero] using r793
   · unfold Seg24.relationRow794 at r794
-    simpa [seg24Rho] using r794
+    simpa [seg24Rho, mul_eq_zero] using r794
   · unfold Seg24.relationRow795 at r795
-    simpa [seg24Rho] using r795
+    simpa [seg24Rho, mul_eq_zero] using r795
   · unfold Seg24.relationRow796 at r796
-    simpa [seg24Rho] using r796
+    simpa [seg24Rho, mul_eq_zero] using r796
   · unfold Seg24.relationRow797 at r797
-    simpa [seg24Rho] using r797
+    simpa [seg24Rho, mul_eq_zero] using r797
   · unfold Seg24.relationRow798 at r798
-    simpa [seg24Rho] using r798
+    simpa [seg24Rho, mul_eq_zero] using r798
   · unfold Seg24.relationRow799 at r799
-    simpa [seg24Rho] using r799
+    simpa [seg24Rho, mul_eq_zero] using r799
   · unfold Seg24.relationRow800 at r800
-    simpa [seg24Rho] using r800
+    simpa [seg24Rho, mul_eq_zero] using r800
   · unfold Seg24.relationRow801 at r801
-    simpa [seg24Rho] using r801
+    simpa [seg24Rho, mul_eq_zero] using r801
   · unfold Seg24.relationRow802 at r802
-    simpa [seg24Rho] using r802
+    simpa [seg24Rho, mul_eq_zero] using r802
   · unfold Seg24.relationRow803 at r803
-    simpa [seg24Rho] using r803
+    simpa [seg24Rho, mul_eq_zero] using r803
   · unfold Seg24.relationRow804 at r804
-    simpa [seg24Rho] using r804
+    simpa [seg24Rho, mul_eq_zero] using r804
   · unfold Seg24.relationRow805 at r805
-    simpa [seg24Rho] using r805
+    simpa [seg24Rho, mul_eq_zero] using r805
   · unfold Seg24.relationRow806 at r806
-    simpa [seg24Rho] using r806
+    simpa [seg24Rho, mul_eq_zero] using r806
   · unfold Seg24.relationRow807 at r807
-    simpa [seg24Rho] using r807
+    simpa [seg24Rho, mul_eq_zero] using r807
   · unfold Seg24.relationRow808 at r808
-    simpa [seg24Rho] using r808
+    simpa [seg24Rho, mul_eq_zero] using r808
   · unfold Seg24.relationRow809 at r809
-    simpa [seg24Rho] using r809
+    simpa [seg24Rho, mul_eq_zero] using r809
   · unfold Seg24.relationRow810 at r810
-    simpa [seg24Rho] using r810
+    simpa [seg24Rho, mul_eq_zero] using r810
   · unfold Seg24.relationRow811 at r811
-    simpa [seg24Rho] using r811
+    simpa [seg24Rho, mul_eq_zero] using r811
   · unfold Seg24.relationRow812 at r812
-    simpa [seg24Rho] using r812
+    simpa [seg24Rho, mul_eq_zero] using r812
   · unfold Seg24.relationRow813 at r813
-    simpa [seg24Rho] using r813
+    simpa [seg24Rho, mul_eq_zero] using r813
   · unfold Seg24.relationRow814 at r814
-    simpa [seg24Rho] using r814
+    simpa [seg24Rho, mul_eq_zero] using r814
   · unfold Seg24.relationRow815 at r815
-    simpa [seg24Rho] using r815
+    simpa [seg24Rho, mul_eq_zero] using r815
   · unfold Seg24.relationRow816 at r816
-    simpa [seg24Rho] using r816
+    simpa [seg24Rho, mul_eq_zero] using r816
   · unfold Seg24.relationRow817 at r817
-    simpa [seg24Rho] using r817
+    simpa [seg24Rho, mul_eq_zero] using r817
   · unfold Seg24.relationRow818 at r818
-    simpa [seg24Rho] using r818
+    simpa [seg24Rho, mul_eq_zero] using r818
   · unfold Seg24.relationRow819 at r819
-    simpa [seg24Rho] using r819
+    simpa [seg24Rho, mul_eq_zero] using r819
   · unfold Seg24.relationRow820 at r820
-    simpa [seg24Rho] using r820
+    simpa [seg24Rho, mul_eq_zero] using r820
   · unfold Seg24.relationRow821 at r821
-    simpa [seg24Rho] using r821
+    simpa [seg24Rho, mul_eq_zero] using r821
   · unfold Seg24.relationRow822 at r822
-    simpa [seg24Rho] using r822
+    simpa [seg24Rho, mul_eq_zero] using r822
   · unfold Seg24.relationRow823 at r823
-    simpa [seg24Rho] using r823
+    simpa [seg24Rho, mul_eq_zero] using r823
   · unfold Seg24.relationRow824 at r824
-    simpa [seg24Rho] using r824
+    simpa [seg24Rho, mul_eq_zero] using r824
   · unfold Seg24.relationRow825 at r825
-    simpa [seg24Rho] using r825
+    simpa [seg24Rho, mul_eq_zero] using r825
   · unfold Seg24.relationRow826 at r826
-    simpa [seg24Rho] using r826
+    simpa [seg24Rho, mul_eq_zero] using r826
   · unfold Seg24.relationRow827 at r827
-    simpa [seg24Rho] using r827
+    simpa [seg24Rho, mul_eq_zero] using r827
   · unfold Seg24.relationRow828 at r828
-    simpa [seg24Rho] using r828
+    simpa [seg24Rho, mul_eq_zero] using r828
   · unfold Seg24.relationRow829 at r829
-    simpa [seg24Rho] using r829
+    simpa [seg24Rho, mul_eq_zero] using r829
   · unfold Seg24.relationRow830 at r830
-    simpa [seg24Rho] using r830
+    simpa [seg24Rho, mul_eq_zero] using r830
   · unfold Seg24.relationRow831 at r831
-    simpa [seg24Rho] using r831
+    simpa [seg24Rho, mul_eq_zero] using r831
   · unfold Seg24.relationRow832 at r832
-    simpa [seg24Rho] using r832
+    simpa [seg24Rho, mul_eq_zero] using r832
   · unfold Seg24.relationRow833 at r833
-    simpa [seg24Rho] using r833
+    simpa [seg24Rho, mul_eq_zero] using r833
   · unfold Seg24.relationRow834 at r834
-    simpa [seg24Rho] using r834
+    simpa [seg24Rho, mul_eq_zero] using r834
   · unfold Seg24.relationRow835 at r835
-    simpa [seg24Rho] using r835
+    simpa [seg24Rho, mul_eq_zero] using r835
   · unfold Seg24.relationRow836 at r836
-    simpa [seg24Rho] using r836
+    simpa [seg24Rho, mul_eq_zero] using r836
   · unfold Seg24.relationRow837 at r837
-    simpa [seg24Rho] using r837
+    simpa [seg24Rho, mul_eq_zero] using r837
   · unfold Seg24.relationRow838 at r838
-    simpa [seg24Rho] using r838
+    simpa [seg24Rho, mul_eq_zero] using r838
   · unfold Seg24.relationRow839 at r839
-    simpa [seg24Rho] using r839
+    simpa [seg24Rho, mul_eq_zero] using r839
   · unfold Seg24.relationRow840 at r840
-    simpa [seg24Rho] using r840
+    simpa [seg24Rho, mul_eq_zero] using r840
   · unfold Seg24.relationRow841 at r841
-    simpa [seg24Rho] using r841
+    simpa [seg24Rho, mul_eq_zero] using r841
   · unfold Seg24.relationRow842 at r842
-    simpa [seg24Rho] using r842
+    simpa [seg24Rho, mul_eq_zero] using r842
   · unfold Seg24.relationRow843 at r843
-    simpa [seg24Rho] using r843
+    simpa [seg24Rho, mul_eq_zero] using r843
   · unfold Seg24.relationRow844 at r844
-    simpa [seg24Rho] using r844
+    simpa [seg24Rho, mul_eq_zero] using r844
   · unfold Seg24.relationRow845 at r845
-    simpa [seg24Rho] using r845
+    simpa [seg24Rho, mul_eq_zero] using r845
   · unfold Seg24.relationRow846 at r846
-    simpa [seg24Rho] using r846
+    simpa [seg24Rho, mul_eq_zero] using r846
   · unfold Seg24.relationRow847 at r847
-    simpa [seg24Rho] using r847
+    simpa [seg24Rho, mul_eq_zero] using r847
   · unfold Seg24.relationRow848 at r848
-    simpa [seg24Rho] using r848
+    simpa [seg24Rho, mul_eq_zero] using r848
   · unfold Seg24.relationRow849 at r849
-    simpa [seg24Rho] using r849
+    simpa [seg24Rho, mul_eq_zero] using r849
   · unfold Seg24.relationRow850 at r850
-    simpa [seg24Rho] using r850
+    simpa [seg24Rho, mul_eq_zero] using r850
   · unfold Seg24.relationRow851 at r851
-    simpa [seg24Rho] using r851
+    simpa [seg24Rho, mul_eq_zero] using r851
   · unfold Seg24.relationRow852 at r852
-    simpa [seg24Rho] using r852
+    simpa [seg24Rho, mul_eq_zero] using r852
   · unfold Seg24.relationRow853 at r853
-    simpa [seg24Rho] using r853
+    simpa [seg24Rho, mul_eq_zero] using r853
   · unfold Seg24.relationRow854 at r854
-    simpa [seg24Rho] using r854
+    simpa [seg24Rho, mul_eq_zero] using r854
   · unfold Seg24.relationRow855 at r855
-    simpa [seg24Rho] using r855
+    simpa [seg24Rho, mul_eq_zero] using r855
   · unfold Seg24.relationRow856 at r856
-    simpa [seg24Rho] using r856
+    simpa [seg24Rho, mul_eq_zero] using r856
   · unfold Seg24.relationRow857 at r857
-    simpa [seg24Rho] using r857
+    simpa [seg24Rho, mul_eq_zero] using r857
   · unfold Seg24.relationRow858 at r858
-    simpa [seg24Rho] using r858
+    simpa [seg24Rho, mul_eq_zero] using r858
   · unfold Seg24.relationRow859 at r859
-    simpa [seg24Rho] using r859
+    simpa [seg24Rho, mul_eq_zero] using r859
   · unfold Seg24.relationRow860 at r860
-    simpa [seg24Rho] using r860
+    simpa [seg24Rho, mul_eq_zero] using r860
   · unfold Seg24.relationRow861 at r861
-    simpa [seg24Rho] using r861
+    simpa [seg24Rho, mul_eq_zero] using r861
   · unfold Seg24.relationRow862 at r862
-    simpa [seg24Rho] using r862
+    simpa [seg24Rho, mul_eq_zero] using r862
   · unfold Seg24.relationRow863 at r863
-    simpa [seg24Rho] using r863
+    simpa [seg24Rho, mul_eq_zero] using r863
   · unfold Seg24.relationRow864 at r864
-    simpa [seg24Rho] using r864
+    simpa [seg24Rho, mul_eq_zero] using r864
   · unfold Seg24.relationRow865 at r865
-    simpa [seg24Rho] using r865
+    simpa [seg24Rho, mul_eq_zero] using r865
   · unfold Seg24.relationRow866 at r866
-    simpa [seg24Rho] using r866
+    simpa [seg24Rho, mul_eq_zero] using r866
   · unfold Seg24.relationRow867 at r867
-    simpa [seg24Rho] using r867
+    simpa [seg24Rho, mul_eq_zero] using r867
   · unfold Seg24.relationRow868 at r868
-    simpa [seg24Rho] using r868
+    simpa [seg24Rho, mul_eq_zero] using r868
   · unfold Seg24.relationRow869 at r869
-    simpa [seg24Rho] using r869
+    simpa [seg24Rho, mul_eq_zero] using r869
   · unfold Seg24.relationRow870 at r870
-    simpa [seg24Rho] using r870
+    simpa [seg24Rho, mul_eq_zero] using r870
   · unfold Seg24.relationRow871 at r871
-    simpa [seg24Rho] using r871
+    simpa [seg24Rho, mul_eq_zero] using r871
   · unfold Seg24.relationRow872 at r872
-    simpa [seg24Rho] using r872
+    simpa [seg24Rho, mul_eq_zero] using r872
   · unfold Seg24.relationRow873 at r873
-    simpa [seg24Rho] using r873
+    simpa [seg24Rho, mul_eq_zero] using r873
   · unfold Seg24.relationRow874 at r874
-    simpa [seg24Rho] using r874
+    simpa [seg24Rho, mul_eq_zero] using r874
   · unfold Seg24.relationRow875 at r875
-    simpa [seg24Rho] using r875
+    simpa [seg24Rho, mul_eq_zero] using r875
   · unfold Seg24.relationRow876 at r876
-    simpa [seg24Rho] using r876
+    simpa [seg24Rho, mul_eq_zero] using r876
   · unfold Seg24.relationRow877 at r877
-    simpa [seg24Rho] using r877
+    simpa [seg24Rho, mul_eq_zero] using r877
   · unfold Seg24.relationRow878 at r878
-    simpa [seg24Rho] using r878
+    simpa [seg24Rho, mul_eq_zero] using r878
   · unfold Seg24.relationRow879 at r879
-    simpa [seg24Rho] using r879
+    simpa [seg24Rho, mul_eq_zero] using r879
   · unfold Seg24.relationRow880 at r880
-    simpa [seg24Rho] using r880
+    simpa [seg24Rho, mul_eq_zero] using r880
   · unfold Seg24.relationRow881 at r881
-    simpa [seg24Rho] using r881
+    simpa [seg24Rho, mul_eq_zero] using r881
   · unfold Seg24.relationRow882 at r882
-    simpa [seg24Rho] using r882
+    simpa [seg24Rho, mul_eq_zero] using r882
   · unfold Seg24.relationRow883 at r883
-    simpa [seg24Rho] using r883
+    simpa [seg24Rho, mul_eq_zero] using r883
   · unfold Seg24.relationRow884 at r884
-    simpa [seg24Rho] using r884
+    simpa [seg24Rho, mul_eq_zero] using r884
   · unfold Seg24.relationRow885 at r885
-    simpa [seg24Rho] using r885
+    simpa [seg24Rho, mul_eq_zero] using r885
   · unfold Seg24.relationRow886 at r886
-    simpa [seg24Rho] using r886
+    simpa [seg24Rho, mul_eq_zero] using r886
   · unfold Seg24.relationRow887 at r887
-    simpa [seg24Rho] using r887
+    simpa [seg24Rho, mul_eq_zero] using r887
   · unfold Seg24.relationRow888 at r888
-    simpa [seg24Rho] using r888
+    simpa [seg24Rho, mul_eq_zero] using r888
   · unfold Seg24.relationRow889 at r889
-    simpa [seg24Rho] using r889
+    simpa [seg24Rho, mul_eq_zero] using r889
   · unfold Seg24.relationRow890 at r890
-    simpa [seg24Rho] using r890
+    simpa [seg24Rho, mul_eq_zero] using r890
   · unfold Seg24.relationRow891 at r891
-    simpa [seg24Rho] using r891
+    simpa [seg24Rho, mul_eq_zero] using r891
   · unfold Seg24.relationRow892 at r892
-    simpa [seg24Rho] using r892
+    simpa [seg24Rho, mul_eq_zero] using r892
   · unfold Seg24.relationRow893 at r893
-    simpa [seg24Rho] using r893
+    simpa [seg24Rho, mul_eq_zero] using r893
   · unfold Seg24.relationRow894 at r894
-    simpa [seg24Rho] using r894
+    simpa [seg24Rho, mul_eq_zero] using r894
   · unfold Seg24.relationRow895 at r895
-    simpa [seg24Rho] using r895
+    simpa [seg24Rho, mul_eq_zero] using r895
   · unfold Seg24.relationRow896 at r896
-    simpa [seg24Rho] using r896
+    simpa [seg24Rho, mul_eq_zero] using r896
   · unfold Seg24.relationRow897 at r897
-    simpa [seg24Rho] using r897
+    simpa [seg24Rho, mul_eq_zero] using r897
   · unfold Seg24.relationRow898 at r898
-    simpa [seg24Rho] using r898
+    simpa [seg24Rho, mul_eq_zero] using r898
   · unfold Seg24.relationRow899 at r899
-    simpa [seg24Rho] using r899
+    simpa [seg24Rho, mul_eq_zero] using r899
   · unfold Seg24.relationRow900 at r900
-    simpa [seg24Rho] using r900
+    simpa [seg24Rho, mul_eq_zero] using r900
   · unfold Seg24.relationRow901 at r901
-    simpa [seg24Rho] using r901
+    simpa [seg24Rho, mul_eq_zero] using r901
   · unfold Seg24.relationRow902 at r902
-    simpa [seg24Rho] using r902
+    simpa [seg24Rho, mul_eq_zero] using r902
   · unfold Seg24.relationRow903 at r903
-    simpa [seg24Rho] using r903
+    simpa [seg24Rho, mul_eq_zero] using r903
   · unfold Seg24.relationRow904 at r904
-    simpa [seg24Rho] using r904
+    simpa [seg24Rho, mul_eq_zero] using r904
   · unfold Seg24.relationRow905 at r905
-    simpa [seg24Rho] using r905
+    simpa [seg24Rho, mul_eq_zero] using r905
   · unfold Seg24.relationRow906 at r906
-    simpa [seg24Rho] using r906
+    simpa [seg24Rho, mul_eq_zero] using r906
   · unfold Seg24.relationRow907 at r907
-    simpa [seg24Rho] using r907
+    simpa [seg24Rho, mul_eq_zero] using r907
   · unfold Seg24.relationRow908 at r908
-    simpa [seg24Rho] using r908
+    simpa [seg24Rho, mul_eq_zero] using r908
   · unfold Seg24.relationRow909 at r909
-    simpa [seg24Rho] using r909
+    simpa [seg24Rho, mul_eq_zero] using r909
   · unfold Seg24.relationRow910 at r910
-    simpa [seg24Rho] using r910
+    simpa [seg24Rho, mul_eq_zero] using r910
   · unfold Seg24.relationRow911 at r911
-    simpa [seg24Rho] using r911
+    simpa [seg24Rho, mul_eq_zero] using r911
   · unfold Seg24.relationRow912 at r912
-    simpa [seg24Rho] using r912
+    simpa [seg24Rho, mul_eq_zero] using r912
   · unfold Seg24.relationRow913 at r913
-    simpa [seg24Rho] using r913
+    simpa [seg24Rho, mul_eq_zero] using r913
   · unfold Seg24.relationRow914 at r914
-    simpa [seg24Rho] using r914
+    simpa [seg24Rho, mul_eq_zero] using r914
   · unfold Seg24.relationRow915 at r915
-    simpa [seg24Rho] using r915
+    simpa [seg24Rho, mul_eq_zero] using r915
   · unfold Seg24.relationRow916 at r916
-    simpa [seg24Rho] using r916
+    simpa [seg24Rho, mul_eq_zero] using r916
   · unfold Seg24.relationRow917 at r917
-    simpa [seg24Rho] using r917
+    simpa [seg24Rho, mul_eq_zero] using r917
   · unfold Seg24.relationRow918 at r918
-    simpa [seg24Rho] using r918
+    simpa [seg24Rho, mul_eq_zero] using r918
   · unfold Seg24.relationRow919 at r919
-    simpa [seg24Rho] using r919
+    simpa [seg24Rho, mul_eq_zero] using r919
   · unfold Seg24.relationRow920 at r920
-    simpa [seg24Rho] using r920
+    simpa [seg24Rho, mul_eq_zero] using r920
   · unfold Seg24.relationRow921 at r921
-    simpa [seg24Rho] using r921
+    simpa [seg24Rho, mul_eq_zero] using r921
   · unfold Seg24.relationRow922 at r922
-    simpa [seg24Rho] using r922
+    simpa [seg24Rho, mul_eq_zero] using r922
   · unfold Seg24.relationRow923 at r923
-    simpa [seg24Rho] using r923
+    simpa [seg24Rho, mul_eq_zero] using r923
   · unfold Seg24.relationRow924 at r924
-    simpa [seg24Rho] using r924
+    simpa [seg24Rho, mul_eq_zero] using r924
   · unfold Seg24.relationRow925 at r925
-    simpa [seg24Rho] using r925
+    simpa [seg24Rho, mul_eq_zero] using r925
   · unfold Seg24.relationRow926 at r926
-    simpa [seg24Rho] using r926
+    simpa [seg24Rho, mul_eq_zero] using r926
   · unfold Seg24.relationRow927 at r927
-    simpa [seg24Rho] using r927
+    simpa [seg24Rho, mul_eq_zero] using r927
   · unfold Seg24.relationRow928 at r928
-    simpa [seg24Rho] using r928
+    simpa [seg24Rho, mul_eq_zero] using r928
   · unfold Seg24.relationRow929 at r929
-    simpa [seg24Rho] using r929
+    simpa [seg24Rho, mul_eq_zero] using r929
   · unfold Seg24.relationRow930 at r930
-    simpa [seg24Rho] using r930
+    simpa [seg24Rho, mul_eq_zero] using r930
   · unfold Seg24.relationRow931 at r931
-    simpa [seg24Rho] using r931
+    simpa [seg24Rho, mul_eq_zero] using r931
   · unfold Seg24.relationRow932 at r932
-    simpa [seg24Rho] using r932
+    simpa [seg24Rho, mul_eq_zero] using r932
   · unfold Seg24.relationRow933 at r933
-    simpa [seg24Rho] using r933
+    simpa [seg24Rho, mul_eq_zero] using r933
   · unfold Seg24.relationRow934 at r934
-    simpa [seg24Rho] using r934
+    simpa [seg24Rho, mul_eq_zero] using r934
   · unfold Seg24.relationRow935 at r935
-    simpa [seg24Rho] using r935
+    simpa [seg24Rho, mul_eq_zero] using r935
   · unfold Seg24.relationRow936 at r936
-    simpa [seg24Rho] using r936
+    simpa [seg24Rho, mul_eq_zero] using r936
   · unfold Seg24.relationRow937 at r937
-    simpa [seg24Rho] using r937
+    simpa [seg24Rho, mul_eq_zero] using r937
   · unfold Seg24.relationRow938 at r938
-    simpa [seg24Rho] using r938
+    simpa [seg24Rho, mul_eq_zero] using r938
   · unfold Seg24.relationRow939 at r939
-    simpa [seg24Rho] using r939
+    simpa [seg24Rho, mul_eq_zero] using r939
   · unfold Seg24.relationRow940 at r940
-    simpa [seg24Rho] using r940
+    simpa [seg24Rho, mul_eq_zero] using r940
   · unfold Seg24.relationRow941 at r941
-    simpa [seg24Rho] using r941
+    simpa [seg24Rho, mul_eq_zero] using r941
   · unfold Seg24.relationRow942 at r942
-    simpa [seg24Rho] using r942
+    simpa [seg24Rho, mul_eq_zero] using r942
   · unfold Seg24.relationRow943 at r943
-    simpa [seg24Rho] using r943
+    simpa [seg24Rho, mul_eq_zero] using r943
   · unfold Seg24.relationRow944 at r944
-    simpa [seg24Rho] using r944
+    simpa [seg24Rho, mul_eq_zero] using r944
   · unfold Seg24.relationRow945 at r945
-    simpa [seg24Rho] using r945
+    simpa [seg24Rho, mul_eq_zero] using r945
   · unfold Seg24.relationRow946 at r946
-    simpa [seg24Rho] using r946
+    simpa [seg24Rho, mul_eq_zero] using r946
   · unfold Seg24.relationRow947 at r947
-    simpa [seg24Rho] using r947
+    simpa [seg24Rho, mul_eq_zero] using r947
   · unfold Seg24.relationRow948 at r948
-    simpa [seg24Rho] using r948
+    simpa [seg24Rho, mul_eq_zero] using r948
   · unfold Seg24.relationRow949 at r949
-    simpa [seg24Rho] using r949
+    simpa [seg24Rho, mul_eq_zero] using r949
   · unfold Seg24.relationRow950 at r950
-    simpa [seg24Rho] using r950
+    simpa [seg24Rho, mul_eq_zero] using r950
   · unfold Seg24.relationRow951 at r951
-    simpa [seg24Rho] using r951
+    simpa [seg24Rho, mul_eq_zero] using r951
   · unfold Seg24.relationRow952 at r952
-    simpa [seg24Rho] using r952
+    simpa [seg24Rho, mul_eq_zero] using r952
   · unfold Seg24.relationRow953 at r953
-    simpa [seg24Rho] using r953
+    simpa [seg24Rho, mul_eq_zero] using r953
   · unfold Seg24.relationRow954 at r954
-    simpa [seg24Rho] using r954
+    simpa [seg24Rho, mul_eq_zero] using r954
   · unfold Seg24.relationRow955 at r955
-    simpa [seg24Rho] using r955
+    simpa [seg24Rho, mul_eq_zero] using r955
   · unfold Seg24.relationRow956 at r956
-    simpa [seg24Rho] using r956
+    simpa [seg24Rho, mul_eq_zero] using r956
   · unfold Seg24.relationRow957 at r957
-    simpa [seg24Rho] using r957
+    simpa [seg24Rho, mul_eq_zero] using r957
   · unfold Seg24.relationRow958 at r958
-    simpa [seg24Rho] using r958
+    simpa [seg24Rho, mul_eq_zero] using r958
   · unfold Seg24.relationRow959 at r959
-    simpa [seg24Rho] using r959
+    simpa [seg24Rho, mul_eq_zero] using r959
   · unfold Seg24.relationRow960 at r960
-    simpa [seg24Rho] using r960
+    simpa [seg24Rho, mul_eq_zero] using r960
   · unfold Seg24.relationRow961 at r961
-    simpa [seg24Rho] using r961
+    simpa [seg24Rho, mul_eq_zero] using r961
   · unfold Seg24.relationRow962 at r962
-    simpa [seg24Rho] using r962
+    simpa [seg24Rho, mul_eq_zero] using r962
   · unfold Seg24.relationRow963 at r963
-    simpa [seg24Rho] using r963
+    simpa [seg24Rho, mul_eq_zero] using r963
   · unfold Seg24.relationRow964 at r964
-    simpa [seg24Rho] using r964
+    simpa [seg24Rho, mul_eq_zero] using r964
   · unfold Seg24.relationRow965 at r965
-    simpa [seg24Rho] using r965
+    simpa [seg24Rho, mul_eq_zero] using r965
   · unfold Seg24.relationRow966 at r966
-    simpa [seg24Rho] using r966
+    simpa [seg24Rho, mul_eq_zero] using r966
   · unfold Seg24.relationRow967 at r967
-    simpa [seg24Rho] using r967
+    simpa [seg24Rho, mul_eq_zero] using r967
   · unfold Seg24.relationRow968 at r968
-    simpa [seg24Rho] using r968
+    simpa [seg24Rho, mul_eq_zero] using r968
   · unfold Seg24.relationRow969 at r969
-    simpa [seg24Rho] using r969
+    simpa [seg24Rho, mul_eq_zero] using r969
   · unfold Seg24.relationRow970 at r970
-    simpa [seg24Rho] using r970
+    simpa [seg24Rho, mul_eq_zero] using r970
   · unfold Seg24.relationRow971 at r971
-    simpa [seg24Rho] using r971
+    simpa [seg24Rho, mul_eq_zero] using r971
   · unfold Seg24.relationRow972 at r972
-    simpa [seg24Rho] using r972
+    simpa [seg24Rho, mul_eq_zero] using r972
   · unfold Seg24.relationRow973 at r973
-    simpa [seg24Rho] using r973
+    simpa [seg24Rho, mul_eq_zero] using r973
   · unfold Seg24.relationRow974 at r974
-    simpa [seg24Rho] using r974
+    simpa [seg24Rho, mul_eq_zero] using r974
   · unfold Seg24.relationRow975 at r975
-    simpa [seg24Rho] using r975
+    simpa [seg24Rho, mul_eq_zero] using r975
   · unfold Seg24.relationRow976 at r976
-    simpa [seg24Rho] using r976
+    simpa [seg24Rho, mul_eq_zero] using r976
   · unfold Seg24.relationRow977 at r977
-    simpa [seg24Rho] using r977
+    simpa [seg24Rho, mul_eq_zero] using r977
   · unfold Seg24.relationRow978 at r978
-    simpa [seg24Rho] using r978
+    simpa [seg24Rho, mul_eq_zero] using r978
   · unfold Seg24.relationRow979 at r979
-    simpa [seg24Rho] using r979
+    simpa [seg24Rho, mul_eq_zero] using r979
   · unfold Seg24.relationRow980 at r980
-    simpa [seg24Rho] using r980
+    simpa [seg24Rho, mul_eq_zero] using r980
   · unfold Seg24.relationRow981 at r981
-    simpa [seg24Rho] using r981
+    simpa [seg24Rho, mul_eq_zero] using r981
   · unfold Seg24.relationRow982 at r982
-    simpa [seg24Rho] using r982
+    simpa [seg24Rho, mul_eq_zero] using r982
   · unfold Seg24.relationRow983 at r983
-    simpa [seg24Rho] using r983
+    simpa [seg24Rho, mul_eq_zero] using r983
   · unfold Seg24.relationRow984 at r984
-    simpa [seg24Rho] using r984
+    simpa [seg24Rho, mul_eq_zero] using r984
   · unfold Seg24.relationRow985 at r985
-    simpa [seg24Rho] using r985
+    simpa [seg24Rho, mul_eq_zero] using r985
   · unfold Seg24.relationRow986 at r986
-    simpa [seg24Rho] using r986
+    simpa [seg24Rho, mul_eq_zero] using r986
   · unfold Seg24.relationRow987 at r987
-    simpa [seg24Rho] using r987
+    simpa [seg24Rho, mul_eq_zero] using r987
   · unfold Seg24.relationRow988 at r988
-    simpa [seg24Rho] using r988
+    simpa [seg24Rho, mul_eq_zero] using r988
   · unfold Seg24.relationRow989 at r989
-    simpa [seg24Rho] using r989
+    simpa [seg24Rho, mul_eq_zero] using r989
   · unfold Seg24.relationRow990 at r990
-    simpa [seg24Rho] using r990
+    simpa [seg24Rho, mul_eq_zero] using r990
   · unfold Seg24.relationRow991 at r991
-    simpa [seg24Rho] using r991
+    simpa [seg24Rho, mul_eq_zero] using r991
   · unfold Seg24.relationRow992 at r992
-    simpa [seg24Rho] using r992
+    simpa [seg24Rho, mul_eq_zero] using r992
   · unfold Seg24.relationRow993 at r993
-    simpa [seg24Rho] using r993
+    simpa [seg24Rho, mul_eq_zero] using r993
   · unfold Seg24.relationRow994 at r994
-    simpa [seg24Rho] using r994
+    simpa [seg24Rho, mul_eq_zero] using r994
   · unfold Seg24.relationRow995 at r995
-    simpa [seg24Rho] using r995
+    simpa [seg24Rho, mul_eq_zero] using r995
   · unfold Seg24.relationRow996 at r996
-    simpa [seg24Rho] using r996
+    simpa [seg24Rho, mul_eq_zero] using r996
   · unfold Seg24.relationRow997 at r997
-    simpa [seg24Rho] using r997
+    simpa [seg24Rho, mul_eq_zero] using r997
   · unfold Seg24.relationRow998 at r998
-    simpa [seg24Rho] using r998
+    simpa [seg24Rho, mul_eq_zero] using r998
   · unfold Seg24.relationRow999 at r999
-    simpa [seg24Rho] using r999
+    simpa [seg24Rho, mul_eq_zero] using r999
   · unfold Seg24.relationRow1000 at r1000
-    simpa [seg24Rho] using r1000
+    simpa [seg24Rho, mul_eq_zero] using r1000
   · unfold Seg24.relationRow1001 at r1001
-    simpa [seg24Rho] using r1001
+    simpa [seg24Rho, mul_eq_zero] using r1001
   · unfold Seg24.relationRow1002 at r1002
-    simpa [seg24Rho] using r1002
+    simpa [seg24Rho, mul_eq_zero] using r1002
   · unfold Seg24.relationRow1003 at r1003
-    simpa [seg24Rho] using r1003
+    simpa [seg24Rho, mul_eq_zero] using r1003
   · unfold Seg24.relationRow1004 at r1004
-    simpa [seg24Rho] using r1004
+    simpa [seg24Rho, mul_eq_zero] using r1004
   · unfold Seg24.relationRow1005 at r1005
-    simpa [seg24Rho] using r1005
+    simpa [seg24Rho, mul_eq_zero] using r1005
   · unfold Seg24.relationRow1006 at r1006
-    simpa [seg24Rho] using r1006
+    simpa [seg24Rho, mul_eq_zero] using r1006
   · unfold Seg24.relationRow1007 at r1007
-    simpa [seg24Rho] using r1007
+    simpa [seg24Rho, mul_eq_zero] using r1007
   · unfold Seg24.relationRow1008 at r1008
-    simpa [seg24Rho] using r1008
+    simpa [seg24Rho, mul_eq_zero] using r1008
   · unfold Seg24.relationRow1009 at r1009
-    simpa [seg24Rho] using r1009
+    simpa [seg24Rho, mul_eq_zero] using r1009
   · unfold Seg24.relationRow1010 at r1010
-    simpa [seg24Rho] using r1010
+    simpa [seg24Rho, mul_eq_zero] using r1010
   · unfold Seg24.relationRow1011 at r1011
-    simpa [seg24Rho] using r1011
+    simpa [seg24Rho, mul_eq_zero] using r1011
   · unfold Seg24.relationRow1012 at r1012
-    simpa [seg24Rho] using r1012
+    simpa [seg24Rho, mul_eq_zero] using r1012
   · unfold Seg24.relationRow1013 at r1013
-    simpa [seg24Rho] using r1013
+    simpa [seg24Rho, mul_eq_zero] using r1013
   · unfold Seg24.relationRow1014 at r1014
-    simpa [seg24Rho] using r1014
+    simpa [seg24Rho, mul_eq_zero] using r1014
   · unfold Seg24.relationRow1015 at r1015
-    simpa [seg24Rho] using r1015
+    simpa [seg24Rho, mul_eq_zero] using r1015
   · unfold Seg24.relationRow1016 at r1016
-    simpa [seg24Rho] using r1016
+    simpa [seg24Rho, mul_eq_zero] using r1016
   · unfold Seg24.relationRow1017 at r1017
-    simpa [seg24Rho] using r1017
+    simpa [seg24Rho, mul_eq_zero] using r1017
   · unfold Seg24.relationRow1018 at r1018
-    simpa [seg24Rho] using r1018
+    simpa [seg24Rho, mul_eq_zero] using r1018
   · unfold Seg24.relationRow1019 at r1019
-    simpa [seg24Rho] using r1019
+    simpa [seg24Rho, mul_eq_zero] using r1019
   · unfold Seg24.relationRow1020 at r1020
-    simpa [seg24Rho] using r1020
+    simpa [seg24Rho, mul_eq_zero] using r1020
   · unfold Seg24.relationRow1021 at r1021
-    simpa [seg24Rho] using r1021
+    simpa [seg24Rho, mul_eq_zero] using r1021
   · unfold Seg24.relationRow1022 at r1022
-    simpa [seg24Rho] using r1022
+    simpa [seg24Rho, mul_eq_zero] using r1022
   · unfold Seg24.relationRow1023 at r1023
-    simpa [seg24Rho] using r1023
+    simpa [seg24Rho, mul_eq_zero] using r1023
   · unfold Seg24.relationRow1024 at r1024
-    simpa [seg24Rho] using r1024
+    simpa [seg24Rho, mul_eq_zero] using r1024
   · unfold Seg24.relationRow1025 at r1025
-    simpa [seg24Rho] using r1025
+    simpa [seg24Rho, mul_eq_zero] using r1025
   · unfold Seg24.relationRow1026 at r1026
-    simpa [seg24Rho] using r1026
+    simpa [seg24Rho, mul_eq_zero] using r1026
   · unfold Seg24.relationRow1027 at r1027
-    simpa [seg24Rho] using r1027
+    simpa [seg24Rho, mul_eq_zero] using r1027
   · unfold Seg24.relationRow1028 at r1028
-    simpa [seg24Rho] using r1028
+    simpa [seg24Rho, mul_eq_zero] using r1028
   · unfold Seg24.relationRow1029 at r1029
-    simpa [seg24Rho] using r1029
+    simpa [seg24Rho, mul_eq_zero] using r1029
   · unfold Seg24.relationRow1030 at r1030
-    simpa [seg24Rho] using r1030
+    simpa [seg24Rho, mul_eq_zero] using r1030
   · unfold Seg24.relationRow1031 at r1031
-    simpa [seg24Rho] using r1031
+    simpa [seg24Rho, mul_eq_zero] using r1031
   · unfold Seg24.relationRow1032 at r1032
-    simpa [seg24Rho] using r1032
+    simpa [seg24Rho, mul_eq_zero] using r1032
   · unfold Seg24.relationRow1033 at r1033
-    simpa [seg24Rho] using r1033
+    simpa [seg24Rho, mul_eq_zero] using r1033
   · unfold Seg24.relationRow1034 at r1034
-    simpa [seg24Rho] using r1034
+    simpa [seg24Rho, mul_eq_zero] using r1034
   · unfold Seg24.relationRow1035 at r1035
-    simpa [seg24Rho] using r1035
+    simpa [seg24Rho, mul_eq_zero] using r1035
   · unfold Seg24.relationRow1036 at r1036
-    simpa [seg24Rho] using r1036
+    simpa [seg24Rho, mul_eq_zero] using r1036
   · unfold Seg24.relationRow1037 at r1037
-    simpa [seg24Rho] using r1037
+    simpa [seg24Rho, mul_eq_zero] using r1037
   · unfold Seg24.relationRow1038 at r1038
-    simpa [seg24Rho] using r1038
+    simpa [seg24Rho, mul_eq_zero] using r1038
   · unfold Seg24.relationRow1039 at r1039
-    simpa [seg24Rho] using r1039
+    simpa [seg24Rho, mul_eq_zero] using r1039
   · unfold Seg24.relationRow1040 at r1040
-    simpa [seg24Rho] using r1040
+    simpa [seg24Rho, mul_eq_zero] using r1040
   · unfold Seg24.relationRow1041 at r1041
-    simpa [seg24Rho] using r1041
+    simpa [seg24Rho, mul_eq_zero] using r1041
   · unfold Seg24.relationRow1042 at r1042
-    simpa [seg24Rho] using r1042
+    simpa [seg24Rho, mul_eq_zero] using r1042
   · unfold Seg24.relationRow1043 at r1043
-    simpa [seg24Rho] using r1043
+    simpa [seg24Rho, mul_eq_zero] using r1043
   · unfold Seg24.relationRow1044 at r1044
-    simpa [seg24Rho] using r1044
+    simpa [seg24Rho, mul_eq_zero] using r1044
   · unfold Seg24.relationRow1045 at r1045
-    simpa [seg24Rho] using r1045
+    simpa [seg24Rho, mul_eq_zero] using r1045
   · exact seg24_hrec1 rho r281
   · exact seg24_hrec2 rho r791
   · rfl

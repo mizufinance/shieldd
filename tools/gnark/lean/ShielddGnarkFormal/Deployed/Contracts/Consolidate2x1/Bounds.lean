@@ -18,6 +18,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg60
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NullifierAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NoteCommitmentAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.StatementHashAdapters
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg14
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg18
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg19
@@ -316,5 +317,41 @@ theorem inst53_bound :
   ⟨rfl, rfl, fun _ h => by
     simp only [Seg53.contract, Seg53.relation, Seg53.spec, Specs.deployedSpec53] at h ⊢ <;>
       · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
+
+/-- seg6 `decaf.compress_to_field`. -/
+theorem inst6_bound :
+    Deployed.BoundDeployedSound Seg6.contract
+      Seg6.contract.relationSha256Hex Seg6.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg6_sound⟩
+
+/-- seg15 `decaf.compress_to_field`. -/
+theorem inst15_bound :
+    Deployed.BoundDeployedSound Seg15.contract
+      Seg15.contract.relationSha256Hex Seg15.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg15_sound⟩
+
+/-- seg24 `decaf.compress_to_field`. -/
+theorem inst24_bound :
+    Deployed.BoundDeployedSound Seg24.contract
+      Seg24.contract.relationSha256Hex Seg24.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg24_sound⟩
+
+/-- seg33 `decaf.compress_to_field`. -/
+theorem inst33_bound :
+    Deployed.BoundDeployedSound Seg33.contract
+      Seg33.contract.relationSha256Hex Seg33.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg33_sound⟩
+
+/-- seg42 `decaf.compress_to_field`. -/
+theorem inst42_bound :
+    Deployed.BoundDeployedSound Seg42.contract
+      Seg42.contract.relationSha256Hex Seg42.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg42_sound⟩
+
+/-- seg54 `decaf.compress_to_field`. -/
+theorem inst54_bound :
+    Deployed.BoundDeployedSound Seg54.contract
+      Seg54.contract.relationSha256Hex Seg54.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg54_sound⟩
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1

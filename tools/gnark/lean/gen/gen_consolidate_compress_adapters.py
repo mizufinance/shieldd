@@ -77,6 +77,7 @@ def emit_part_unpack(lines: list[str], seg: int, parts: list[list[int]]) -> None
     lines.append("  ⟩")
     for i, rows in enumerate(parts):
         if len(rows) == 1:
+            lines.append(f"  unfold Seg{seg}.relationPart{i} at p{i}")
             lines.append(f"  have r{rows[0]} := p{i}")
         else:
             lines.append(f"  unfold Seg{seg}.relationPart{i} at p{i}")
@@ -163,7 +164,7 @@ def emit_segment(lines: list[str], seg: int, hyps: list[tuple[int, str]]) -> Non
     for h, _typ in hyps:
         row = bridge_row_for_hyp(h)
         lines.append(f"  · unfold Seg{seg}.relationRow{row} at r{row}")
-        lines.append(f"    simpa [seg{seg}Rho] using r{row}")
+        lines.append(f"    simpa [seg{seg}Rho, mul_eq_zero] using r{row}")
     lines.append(f"  · exact seg{seg}_hrec1 rho r281")
     lines.append(f"  · exact seg{seg}_hrec2 rho r791")
     lines.append("  · rfl")
@@ -196,6 +197,7 @@ def main() -> None:
         lines: list[str] = [
             "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon",
             f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{seg}",
+            "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
             "",
             "set_option maxRecDepth 1000000",
             "set_option maxHeartbeats 0",
@@ -204,6 +206,9 @@ def main() -> None:
             "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
             "",
             "open Shieldd.GnarkFormal.Extracted.DecafCompressToField",
+            "",
+            f"instance seg{seg}FactPrime : Fact (Nat.Prime Seg{seg}.Order) :=",
+            "  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩",
             "",
         ]
         x, y, offset = next((a, b, c) for s, a, b, c in SEGMENTS if s == seg)

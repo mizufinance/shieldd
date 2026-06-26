@@ -885,9 +885,9 @@
     "circuit": "consolidate2x1",
     "sr1cs_sha256_hex": "12bf600c30c5dac11d03784f5aa3d133ff86de5e67b8be9f7c6a79f0eda6e188",
     "total_obligations": 49,
-    "discharged": 35,
+    "discharged": 41,
     "functional_assumptions": 0,
-    "pending": 14,
+    "pending": 8,
     "unmapped": 0,
     "constant_mismatch": 0,
     "instance_unpinned": 0,
@@ -952,7 +952,9 @@
         "relation_sha256_hex": "c7044169b63bcd7e2abba6870bc8179c936ede6fb4d53bc6b77193d55f4f24d4",
         "wire_role_sha256_hex": "6e158c03e511e252c62c5b0506c53e92eb8a1ec1ca7ae6d7d26e3aab3c60f726",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst6_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg6"
         }
       },
       {
@@ -1081,7 +1083,9 @@
         "relation_sha256_hex": "a3ad5e8c7ba0925b49ab41b02e3f3ee352e918ef8025c206c5393d1dc5aac149",
         "wire_role_sha256_hex": "079757fbe0907203b2628f624f5b003bd0e6ca8ff958896c79aafd862f23b4df",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst15_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg15"
         }
       },
       {
@@ -1182,7 +1186,9 @@
         "relation_sha256_hex": "ea634de86db2fba95f9ac6df3c6e1c832302ac857b038b415e19d67d7c5a7f75",
         "wire_role_sha256_hex": "b14159ee40b48ef930fb791fca75402d2d67a5766d8730efaa22df2bfb855d9a",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst24_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg24"
         }
       },
       {
@@ -1311,7 +1317,9 @@
         "relation_sha256_hex": "712bc6bb1d58c5c5c6a2f715e6deb08c0f7a7a771de90110fda2d85c1d74639f",
         "wire_role_sha256_hex": "e46cb36af03e12a81c565bb76f5e9ebc2ef482d3562b98d6f533b4bc7857b03a",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst33_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg33"
         }
       },
       {
@@ -1412,7 +1420,9 @@
         "relation_sha256_hex": "fb3c60cf899550596d68a61018e29badd87744e9339e5155cc6001c70e7348b8",
         "wire_role_sha256_hex": "8538691015fdc5458273ed9eec474a83c13256f3cf3679be15def4a76f71a7c1",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst42_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg42"
         }
       },
       {
@@ -1571,7 +1581,9 @@
         "relation_sha256_hex": "ba561a1c526bd0bbbfe3bd2a33bd18b686ad0ed357914b436aa64db63ffd1b60",
         "wire_role_sha256_hex": "1dc7ad17faa1ead4d3dd12a31c24fccf43426f887d2b0870be6b4433f1f75fb3",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst54_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg54"
         }
       },
       {
