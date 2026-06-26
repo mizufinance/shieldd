@@ -63,6 +63,17 @@ CONFIGS = {
         # public_args (22 binder wires), spec_inputs (7 LC inputs) and seq come
         # from statement_hash_gendata.json.
     ),
+    "state_commitment_node0": dict(
+        W=5,
+        leaf="StateCommitmentPathNode0",
+        slice_stem="GadgetStateCommitmentPathNode0350_28e5d0",
+        link="Poseidon4Link",
+        bridge_ns="Poseidon4Bridge",
+        deployed_bridge="StateCommitmentPathNode0DeployedBridge",
+        spec="permSpec4",
+        domain_sym="tctNode1DomainLit",
+        extracted_ns="Shieldd.GnarkFormal.Extracted.PoseidonHash4",
+    ),
 }
 
 
@@ -95,7 +106,7 @@ def build(cfgname):
     NROUNDS = len(cs)                    # 39
     LAST = NROUNDS - 1                   # 38
     public_args = gd.get("public_args", cfg.get("public_args"))
-    seq = gd.get("seq", cfg.get("seq"))
+    seq = [int(x) for x in gd.get("seq", cfg.get("seq"))]
     M = [[seq[i + j] % Order for j in range(W)] for i in range(W)]
     # Spec-input expressions feeding the sponge (lanes 1..W-1). For single-wire
     # public inputs these equal `public_args`; for the statement hash they are

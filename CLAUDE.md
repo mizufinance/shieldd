@@ -61,10 +61,9 @@ They are not migration promises.
 - Never prove semantics of an extracted constraint chain in one monolithic
   tactic walk. Elaboration cost is quadratic in chain length: each
   `obtain`/destructuring step re-substitutes the entire remaining term.
-- Hard limit: ≤60 gates per definition/lemma/tactic block. Slice longer
+- Slice long
   circuits into segment predicates ending in an opaque continuation
   (`k : Prop` or `k : Vector F n → Prop`), prove each segment's semantics
   separately, and compose. Repeated rung patterns (ladders, lt-chains) get a
   fuel-recursive definition plus one induction lemma, never an unrolled walk.
-- If a single Lean compile exceeds ~10 minutes, kill it and restructure;
-  do not wait it out.
+- Monitor Lean compiles actively. A lot of them blowup in time or just hang.

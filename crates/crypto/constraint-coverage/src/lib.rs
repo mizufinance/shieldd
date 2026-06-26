@@ -1,11 +1,19 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, fs, path::Path};
+use std::{
+    collections::BTreeMap,
+    fs,
+    io::{BufRead, BufReader, Read},
+    path::Path,
+};
 use thiserror::Error;
 
+pub mod contracts;
 pub mod ir;
 pub mod leangen;
 pub mod obligations;
+pub mod rowmap;
+pub mod rvkfixed;
 
 #[derive(Debug, Error)]
 pub enum CoverageError {
@@ -84,6 +92,17 @@ pub enum CoverageError {
     },
     #[error("manifest unclassified constraint count {manifest} != recomputed {actual}")]
     UnclassifiedBreakdownMismatch { manifest: usize, actual: usize },
+    #[error(
+        "boundary state at cut {cut} carries {found} crossing synthetics {wires:?} \
+         (bound {bound}); an unexpected synthetic escapes its segment — refusing to \
+         regenerate the wide CPS continuation"
+    )]
+    BoundaryStateTooWide {
+        cut: usize,
+        found: usize,
+        bound: usize,
+        wires: Vec<usize>,
+    },
 }
 
 #[derive(Debug, Deserialize)]
@@ -174,11 +193,33 @@ pub fn load_manifest(
 
 pub fn load_sr1cs(path: impl AsRef<Path>) -> Result<Sr1cs, CoverageError> {
     let path = path.as_ref();
-    let data = fs::read(path).map_err(|source| CoverageError::Read {
+    let mut file = fs::File::open(path).map_err(|source| CoverageError::Read {
         path: path.display().to_string(),
         source,
     })?;
-    parse_sr1cs(&data)
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = file.read(&mut buf).map_err(|source| CoverageError::Read {
+            path: path.display().to_string(),
+            source,
+        })?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    let sha256_hex = hex::encode(hasher.finalize());
+
+    // Parse from the file a second time. Retaining a 267 MiB transfer source
+    // buffer while also retaining its per-row strings doubled peak memory and
+    // made deploy-IR generation unreliable; the streaming reader retains only
+    // the canonical constraint lines that downstream checks need.
+    let file = fs::File::open(path).map_err(|source| CoverageError::Read {
+        path: path.display().to_string(),
+        source,
+    })?;
+    parse_sr1cs_reader(BufReader::new(file), sha256_hex, path.display().to_string())
 }
 
 pub fn parse_sr1cs(data: &[u8]) -> Result<Sr1cs, CoverageError> {
@@ -187,11 +228,76 @@ pub fn parse_sr1cs(data: &[u8]) -> Result<Sr1cs, CoverageError> {
         line: 0,
         message: format!("not utf-8: {err}"),
     })?;
+    parse_sr1cs_lines(text.lines(), sha256_hex)
+}
+
+fn parse_sr1cs_reader<R: BufRead>(
+    reader: R,
+    sha256_hex: String,
+    path: String,
+) -> Result<Sr1cs, CoverageError> {
     let mut prime = String::new();
     let mut inputs = Vec::new();
     let mut outputs = Vec::new();
     let mut constraints = Vec::new();
-    for (idx, raw) in text.lines().enumerate() {
+    for (idx, raw) in reader.lines().enumerate() {
+        let line_no = idx + 1;
+        let mut raw = raw.map_err(|source| CoverageError::Read {
+            path: path.clone(),
+            source,
+        })?;
+        let line = raw.trim();
+        if line.is_empty() {
+            continue;
+        }
+        ensure_balanced(line, line_no)?;
+        if let Some(inner) = line
+            .strip_prefix("(prime-number ")
+            .and_then(|s| s.strip_suffix(')'))
+        {
+            prime = inner.to_owned();
+        } else if let Some(inner) = line.strip_prefix("(in ").and_then(|s| s.strip_suffix(')')) {
+            inputs.push(parse_wire(inner, line_no)?);
+        } else if let Some(inner) = line.strip_prefix("(out ").and_then(|s| s.strip_suffix(')')) {
+            outputs.push(parse_wire(inner, line_no)?);
+        } else if line.starts_with("(constraint ") {
+            // Gnark's artifact lines are already trimmed. Avoid cloning the
+            // hundreds of megabytes of constraint text in that common case.
+            if raw.len() != line.len() {
+                raw = line.to_owned();
+            }
+            constraints.push(raw);
+        } else {
+            return Err(CoverageError::Sr1csLine {
+                line: line_no,
+                message: format!("unknown form {line:?}"),
+            });
+        }
+    }
+    if prime.is_empty() {
+        return Err(CoverageError::Sr1csLine {
+            line: 0,
+            message: "missing prime-number form".to_owned(),
+        });
+    }
+    Ok(Sr1cs {
+        prime,
+        inputs,
+        outputs,
+        constraints,
+        sha256_hex,
+    })
+}
+
+fn parse_sr1cs_lines<'a>(
+    lines: impl IntoIterator<Item = &'a str>,
+    sha256_hex: String,
+) -> Result<Sr1cs, CoverageError> {
+    let mut prime = String::new();
+    let mut inputs = Vec::new();
+    let mut outputs = Vec::new();
+    let mut constraints = Vec::new();
+    for (idx, raw) in lines.into_iter().enumerate() {
         let line_no = idx + 1;
         let line = raw.trim();
         if line.is_empty() {

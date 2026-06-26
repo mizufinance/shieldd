@@ -1,9 +1,12 @@
 use anyhow::Context;
 use clap::Parser;
+use serde::Serialize;
 use shieldd_constraint_coverage::{
-    check_coverage,
-    ir::{build_ir, ir_json},
-    leangen, load_manifest, load_sr1cs, report_json,
+    check_coverage, contracts,
+    ir::{build_ir, ir_json, parse_rows},
+    leangen, load_manifest, load_sr1cs, obligations, report_json,
+    rowmap::{build_row_map, row_map_json},
+    CoverageReport,
 };
 use std::{fs, path::PathBuf};
 
@@ -19,9 +22,30 @@ struct Args {
     /// Building the IR runs the round-trip independence check over every row.
     #[clap(long)]
     ir_out: Option<PathBuf>,
+    /// Write a pending deployed-coverage manifest skeleton derived from the IR.
+    #[clap(long)]
+    coverage_manifest_out: Option<PathBuf>,
+    /// Read this deployed-coverage manifest, refresh all machine-derived
+    /// per-instance pins from the IR, and write the normalized result to
+    /// `--coverage-manifest-out`.
+    #[clap(long)]
+    coverage_manifest_normalize: Option<PathBuf>,
+    /// Check this deployed-coverage manifest and embed its obligation verdicts
+    /// in the emitted coverage report.
+    #[clap(long)]
+    coverage_manifest: Option<PathBuf>,
+    /// Read the committed deployed-slice IR from here when checking a coverage
+    /// manifest. Its circuit and `.sr1cs` hash are verified before use.
+    #[clap(long)]
+    coverage_ir: Option<PathBuf>,
     /// Generate one Lean `def` per structural class into this directory.
     #[clap(long)]
     lean_out: Option<PathBuf>,
+    /// Generate exact per-instance deployed-slice Lean contracts into this
+    /// directory. The output path mirrors the Lean module hierarchy under
+    /// `ShielddGnarkFormal/Deployed/Contracts`.
+    #[clap(long)]
+    lean_contract_out: Option<PathBuf>,
     /// Restrict Lean generation to ops whose name contains this substring.
     #[clap(long)]
     lean_only: Option<String>,
@@ -43,6 +67,38 @@ struct Args {
     /// Rows per segment for `--lean-seg-out`.
     #[clap(long, default_value_t = 50)]
     seg_size: usize,
+    /// Deployed rows whose widest side exceeds this term count are delegated to a
+    /// fuel lemma rather than flat-proven (default 16). Raise for slices whose
+    /// folded accumulators rematerialize narrow (e.g. Poseidon MDS folds).
+    #[clap(long, default_value_t = 16)]
+    ladder_width_limit: usize,
+    /// Emit the exhaustive wire-graph row map for `[slice-start,slice-end)` here
+    /// (per-row {to_binary|step|redundant} classification + justification).
+    #[clap(long)]
+    row_map_out: Option<PathBuf>,
+}
+
+#[derive(Serialize)]
+struct ReportOutput<'a> {
+    #[serde(flatten)]
+    coverage: &'a CoverageReport,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    deployed_obligations: Option<&'a obligations::CoverageReport>,
+}
+
+fn report_output_json(
+    coverage: &CoverageReport,
+    deployed_obligations: Option<&obligations::CoverageReport>,
+) -> anyhow::Result<Vec<u8>> {
+    if deployed_obligations.is_none() {
+        return Ok(report_json(coverage)?);
+    }
+    let mut data = serde_json::to_vec_pretty(&ReportOutput {
+        coverage,
+        deployed_obligations,
+    })?;
+    data.push(b'\n');
+    Ok(data)
 }
 
 fn write_out(path: &std::path::Path, data: Vec<u8>) -> anyhow::Result<()> {
@@ -60,7 +116,9 @@ fn main() -> anyhow::Result<()> {
         load_sr1cs(&args.sr1cs).with_context(|| format!("load sr1cs {}", args.sr1cs.display()))?;
 
     if args.ir_out.is_some()
+        || args.coverage_manifest_out.is_some()
         || args.lean_out.is_some()
+        || args.lean_contract_out.is_some()
         || args.lean_seg_out.is_some()
         || args.lean_slice_seg_out.is_some()
     {
@@ -68,12 +126,40 @@ fn main() -> anyhow::Result<()> {
         if let Some(path) = &args.ir_out {
             write_out(path, ir_json(&ir)?)?;
         }
+        if let Some(path) = &args.coverage_manifest_out {
+            let manifest = if let Some(previous_path) = &args.coverage_manifest_normalize {
+                let previous_bytes = fs::read(previous_path).with_context(|| {
+                    format!(
+                        "read deployed coverage manifest {}",
+                        previous_path.display()
+                    )
+                })?;
+                let previous = obligations::load_coverage_manifest(&previous_bytes)
+                    .context("parse deployed coverage manifest to normalize")?;
+                obligations::normalize_manifest(&ir, &previous)
+            } else {
+                obligations::skeleton_from_ir(&ir)
+            };
+            let mut data = serde_json::to_vec_pretty(&manifest)?;
+            data.push(b'\n');
+            write_out(path, data)?;
+        } else if args.coverage_manifest_normalize.is_some() {
+            anyhow::bail!("--coverage-manifest-normalize requires --coverage-manifest-out");
+        }
         if let Some(dir) = &args.lean_out {
             let files = leangen::generate(&ir, &sr1cs, args.lean_only.as_deref())
                 .context("generate deployed Lean defs")?;
             for f in &files {
                 write_out(&dir.join(&f.file_name), f.contents.clone().into_bytes())?;
                 eprintln!("generated {} ({})", f.file_name, &f.sha256_hex[..12]);
+            }
+        }
+        if let Some(dir) = &args.lean_contract_out {
+            let files = contracts::generate(&ir, &sr1cs)
+                .context("generate deployed Lean contract files")?;
+            for f in &files {
+                write_out(&dir.join(&f.file_name), f.contents.clone().into_bytes())?;
+                eprintln!("generated contract {} ({})", f.file_name, f.module);
             }
         }
         if let Some(dir) = &args.lean_seg_out {
@@ -101,8 +187,15 @@ fn main() -> anyhow::Result<()> {
             let end = args
                 .slice_end
                 .context("--slice-end is required with --lean-slice-seg-out")?;
-            let f = leangen::generate_segmented_slice(&sr1cs, op, start, end, args.seg_size)
-                .context("generate segmented deployed Lean slice def")?;
+            let f = leangen::generate_segmented_slice(
+                &sr1cs,
+                op,
+                start,
+                end,
+                args.seg_size,
+                args.ladder_width_limit,
+            )
+            .context("generate segmented deployed Lean slice def")?;
             write_out(&dir.join(&f.file_name), f.contents.clone().into_bytes())?;
             eprintln!(
                 "generated segmented slice {} ({} segments, {})",
@@ -113,11 +206,64 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
+    if let Some(path) = &args.row_map_out {
+        let op = args
+            .slice_op
+            .as_deref()
+            .context("--slice-op is required with --row-map-out")?;
+        let start = args
+            .slice_start
+            .context("--slice-start is required with --row-map-out")?;
+        let end = args
+            .slice_end
+            .context("--slice-end is required with --row-map-out")?;
+        let rows = parse_rows(&sr1cs).context("parse rows for row map")?;
+        let map = build_row_map(&sr1cs, &rows, op, start, end);
+        for (k, v) in &map.counts {
+            eprintln!("row-map {k}: {v}");
+        }
+        write_out(path, row_map_json(&map)?)?;
+        return Ok(());
+    }
+
     let report = check_coverage(&manifest, manifest_hash, &sr1cs)?;
-    let report = report_json(&report)?;
+    let deployed_obligations = if let Some(path) = &args.coverage_manifest {
+        let ir = if let Some(ir_path) = &args.coverage_ir {
+            let bytes = fs::read(ir_path)
+                .with_context(|| format!("read deployed slice IR {}", ir_path.display()))?;
+            let ir = obligations::load_ir(&bytes).context("parse deployed slice IR")?;
+            anyhow::ensure!(
+                ir.circuit == manifest.circuit,
+                "deployed slice IR circuit {:?} != manifest circuit {:?}",
+                ir.circuit,
+                manifest.circuit
+            );
+            anyhow::ensure!(
+                ir.sr1cs_sha256_hex == sr1cs.sha256_hex,
+                "deployed slice IR .sr1cs hash {} != actual {}",
+                ir.sr1cs_sha256_hex,
+                sr1cs.sha256_hex
+            );
+            ir
+        } else {
+            build_ir(&manifest, &sr1cs).context("build deployed-slice IR")?
+        };
+        let bytes = fs::read(path)
+            .with_context(|| format!("read deployed coverage manifest {}", path.display()))?;
+        let deployed_manifest = obligations::load_coverage_manifest(&bytes)
+            .context("parse deployed coverage manifest")?;
+        Some(obligations::check_obligations(&ir, &deployed_manifest))
+    } else {
+        None
+    };
+    let report = report_output_json(&report, deployed_obligations.as_ref())?;
     if let Some(path) = &args.report_out {
         write_out(path, report)?;
-    } else if args.ir_out.is_none() && args.lean_slice_seg_out.is_none() {
+    } else if args.ir_out.is_none()
+        && args.coverage_manifest_out.is_none()
+        && args.lean_contract_out.is_none()
+        && args.lean_slice_seg_out.is_none()
+    {
         print!("{}", String::from_utf8(report)?);
     }
     Ok(())

@@ -219,10 +219,6 @@ fn sha256_hex(data: &[u8]) -> String {
 // parameter — no renaming bookkeeping.
 // ---------------------------------------------------------------------------
 
-fn wname(w: usize) -> String {
-    format!("w{w}")
-}
-
 /// Re-materialize every wide linear combination into a chain of 2-term partial
 /// sums before segmentation.
 ///
@@ -247,7 +243,29 @@ fn wname(w: usize) -> String {
 /// O(n²). Factors with no large equal-coeff group (e.g. the `Σ 2ⁱ·bitᵢ`
 /// geometric recompositions) are then linearized generically into running
 /// `(coeff,wire)` partial sums so every rendered factor stays narrow.
+/// Provenance of a re-materialized row, for emitting the exact per-row
+/// `linear_combination` certificate (`deployed ⇒ rematerialized`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Prov {
+    /// Synthetic defining row `sₚ = <2-term LC>`; holds by `ring` under `rhoExt`.
+    Defining(usize),
+    /// A deployed row with its wide factors rewritten onto synthetic wires;
+    /// recovered from deployed row `idx` by substituting the synthetic defs.
+    Rewritten(usize),
+}
+
+/// Thin wrapper dropping provenance, for tests and width assertions.
+#[cfg(test)]
 fn rematerialize_accumulators(rows: &[Constraint]) -> Vec<Constraint> {
+    rematerialize_tagged(rows)
+        .into_iter()
+        .map(|(c, _)| c)
+        .collect()
+}
+
+/// Re-materialize, tagging each emitted row with its [`Prov`] so the certificate
+/// generator can emit the exact `linear_combination` per row.
+fn rematerialize_tagged(rows: &[Constraint]) -> Vec<(Constraint, Prov)> {
     const MAX_TERMS: usize = 6;
     let mut next = rows
         .iter()
@@ -256,7 +274,7 @@ fn rematerialize_accumulators(rows: &[Constraint]) -> Vec<Constraint> {
         .max()
         .unwrap_or(0)
         + 1;
-    let mut out: Vec<Constraint> = Vec::with_capacity(rows.len());
+    let mut out: Vec<(Constraint, Prov)> = Vec::with_capacity(rows.len());
     // wire-prefix -> synthetic wire holding that prefix's coeff-1 sum (shared
     // across rungs, coefficient-independent) and (coeff,wire)-prefix -> synthetic
     // wire for the generic residual linearization.
@@ -266,7 +284,7 @@ fn rematerialize_accumulators(rows: &[Constraint]) -> Vec<Constraint> {
     let get_l = (|r: &mut Constraint| &mut r.l) as fn(&mut Constraint) -> &mut Vec<Term>;
     let get_r = (|r: &mut Constraint| &mut r.r) as fn(&mut Constraint) -> &mut Vec<Term>;
     let get_o = (|r: &mut Constraint| &mut r.o) as fn(&mut Constraint) -> &mut Vec<Term>;
-    for c in rows {
+    for (idx, c) in rows.iter().enumerate() {
         let mut row = c.clone();
         for get in [get_l, get_r, get_o] {
             linearize_factor(
@@ -278,7 +296,7 @@ fn rematerialize_accumulators(rows: &[Constraint]) -> Vec<Constraint> {
                 &mut out,
             );
         }
-        out.push(row);
+        out.push((row, Prov::Rewritten(idx)));
     }
     out
 }
@@ -295,7 +313,7 @@ fn linearize_factor(
     wire_prefix: &mut BTreeMap<Vec<usize>, usize>,
     term_prefix: &mut BTreeMap<Vec<(String, usize)>, usize>,
     next: &mut usize,
-    out: &mut Vec<Constraint>,
+    out: &mut Vec<(Constraint, Prov)>,
 ) {
     let one = |w: usize| Term {
         coeff: "1".to_owned(),
@@ -330,11 +348,14 @@ fn linearize_factor(
             }
             let p = *next;
             *next += 1;
-            out.push(Constraint {
-                l: vec![one(s), one(w)],
-                r: vec![one(0)],
-                o: vec![one(p)],
-            });
+            out.push((
+                Constraint {
+                    l: vec![one(s), one(w)],
+                    r: vec![one(0)],
+                    o: vec![one(p)],
+                },
+                Prov::Defining(p),
+            ));
             wire_prefix.insert(key.clone(), p);
             s = p;
         }
@@ -368,11 +389,14 @@ fn linearize_factor(
                 None => vec![t.clone()],
                 Some(prev) => vec![one(prev), t.clone()],
             };
-            out.push(Constraint {
-                l,
-                r: vec![one(0)],
-                o: vec![one(p)],
-            });
+            out.push((
+                Constraint {
+                    l,
+                    r: vec![one(0)],
+                    o: vec![one(p)],
+                },
+                Prov::Defining(p),
+            ));
             term_prefix.insert(key.clone(), p);
             s_prev = Some(p);
         }
@@ -383,27 +407,223 @@ fn linearize_factor(
     *side = newside;
 }
 
-fn render_seg_rows(rows: &[Constraint], name: &BTreeMap<usize, String>) -> String {
-    rows.iter()
-        .map(|c| {
-            format!(
-                "  ({}) * ({}) = ({})",
-                render_lc(&c.l, name),
-                render_lc(&c.r, name),
-                render_lc(&c.o, name)
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(" ∧\n")
+// ---------------------------------------------------------------------------
+// Boundary-state escape analysis.
+//
+// Given the rematerialized row sequence and a set of segment cuts, classify every
+// wire that is live across a cut:
+//   * a SYNTHETIC (a wire introduced by a `Defining` row) crossing a cut is part
+//     of `StepState`, threaded through the fuel recursion / CPS continuation.
+//   * an ORIGINAL wire (input / bit / long-lived value) crossing a cut belongs to
+//     the opaque `Ctx`, not a continuation argument.
+//
+// We enforce a small bound on the number of crossing synthetics per cut. The whole
+// point of prefix-sharing remat is that only the running ladder accumulator(s)
+// cross a cut; if an unexpected synthetic escapes its segment the generation FAILS
+// rather than silently rebuilding the ~620-value continuation the pivot deleted.
+// ---------------------------------------------------------------------------
+
+/// Default maximum number of synthetic wires permitted to cross any single cut.
+/// A correctly-cut ladder threads only its accumulator(s); a handful of headroom
+/// covers gadgets with a couple of parallel running sums.
+const MAX_STEP_STATE: usize = 8;
+
+/// A deployed row whose widest side exceeds this many terms is a folded ladder
+/// rung (e.g. a 251-bit `to_binary` recomposition). Such rows are delegated to
+/// the inductive fuel lemma rather than flat-proven by `ring`, per CLAUDE's
+/// never-unroll-ladder rule (a flat `linear_combination` is O(width) ring work).
+/// Narrow gadget rows (boolean/select/add) sit well under this.
+const LADDER_WIDTH_LIMIT: usize = 16;
+
+/// Per-cut live classification of a rematerialized row sequence.
+#[derive(Debug)]
+struct BoundaryAnalysis {
+    /// Crossing synthetics at each interior cut (parallel to the interior `cuts`).
+    step_state: Vec<Vec<usize>>,
+    /// Crossing original (non-synthetic) wires at each interior cut — the `Ctx`
+    /// live set the semantic CPS layer threads opaquely. Asserted in tests;
+    /// consumed by the semantic bridge, not the per-rung cert layer.
+    #[allow(dead_code)]
+    ctx_state: Vec<Vec<usize>>,
 }
 
-fn cont_type(arity: usize) -> String {
-    let mut s = String::new();
-    for _ in 0..arity {
-        s.push_str("F → ");
+/// Wires *read* by a remat row: both factors plus the output, except a `Defining`
+/// row's own synthetic (which the row WRITES in its `o`, it is not a read).
+fn row_reads(c: &Constraint, prov: Prov) -> impl Iterator<Item = usize> + '_ {
+    let written = match prov {
+        Prov::Defining(s) => Some(s),
+        Prov::Rewritten(_) => None,
+    };
+    [&c.l, &c.r, &c.o]
+        .into_iter()
+        .flatten()
+        .map(|t| t.wire)
+        .filter(move |&w| w != 0 && Some(w) != written)
+}
+
+/// Classify wires live across each interior cut; bound the crossing synthetics.
+fn analyze_boundary(
+    remat: &[(Constraint, Prov)],
+    cuts: &[usize],
+    max_step_state: usize,
+) -> Result<BoundaryAnalysis, CoverageError> {
+    // synthetic wire -> defining-row index.
+    let mut born: BTreeMap<usize, usize> = BTreeMap::new();
+    for (i, (_, prov)) in remat.iter().enumerate() {
+        if let Prov::Defining(s) = prov {
+            born.insert(*s, i);
+        }
     }
-    s.push_str("Prop");
-    s
+    // first/last read index of every wire.
+    let mut first_use: BTreeMap<usize, usize> = BTreeMap::new();
+    let mut last_use: BTreeMap<usize, usize> = BTreeMap::new();
+    for (i, (c, prov)) in remat.iter().enumerate() {
+        for w in row_reads(c, *prov) {
+            first_use.entry(w).or_insert(i);
+            last_use.insert(w, i);
+        }
+    }
+
+    let mut step_state = Vec::with_capacity(cuts.len());
+    let mut ctx_state = Vec::with_capacity(cuts.len());
+    for &cut in cuts {
+        // A wire crosses `cut` when it is available before the cut and read at or
+        // after it: synthetics by their defining row, originals by their first read.
+        let mut syn: Vec<usize> = Vec::new();
+        let mut ctx: Vec<usize> = Vec::new();
+        for (&w, &lu) in &last_use {
+            if lu < cut {
+                continue;
+            }
+            match born.get(&w) {
+                Some(&b) if b < cut => syn.push(w),
+                Some(_) => {} // born at/after the cut: segment-local, not crossing.
+                None => {
+                    if first_use.get(&w).is_some_and(|&fu| fu < cut) {
+                        ctx.push(w);
+                    }
+                }
+            }
+        }
+        if syn.len() > max_step_state {
+            return Err(CoverageError::BoundaryStateTooWide {
+                cut,
+                found: syn.len(),
+                bound: max_step_state,
+                wires: syn,
+            });
+        }
+        step_state.push(syn);
+        ctx_state.push(ctx);
+    }
+    Ok(BoundaryAnalysis {
+        step_state,
+        ctx_state,
+    })
+}
+
+/// Place segment cuts on semantic-rung boundaries, never mid-rung.
+///
+/// A rung is a `Rewritten` deployed row together with the `Defining` synthetic
+/// rows that precede and feed it. Cutting only immediately after a `Rewritten`
+/// row keeps every intra-rung synthetic segment-local (so it lands in `rematSeg`'s
+/// local `∃`, not `StepState`); only the running accumulator threaded between
+/// rungs crosses a cut. We coalesce consecutive rungs until a segment reaches
+/// `target_rows` so each segment's bridge stays well under the ≤60-gate budget.
+fn rung_cuts(remat: &[(Constraint, Prov)], target_rows: usize) -> Vec<usize> {
+    let target = target_rows.max(1);
+    let mut cuts = Vec::new();
+    let mut seg_start = 0usize;
+    for (i, (_, prov)) in remat.iter().enumerate() {
+        let rung_end = matches!(prov, Prov::Rewritten(_));
+        if rung_end && (i + 1 - seg_start) >= target && i + 1 < remat.len() {
+            cuts.push(i + 1);
+            seg_start = i + 1;
+        }
+    }
+    cuts
+}
+
+/// Render an LC as a `dotLC rho [..]` list literal (the raw-layer encoding).
+fn render_dotlc(terms: &[Term]) -> String {
+    if terms.is_empty() {
+        return "dotLC rho ([] : List (F × Nat))".to_owned();
+    }
+    let inner = terms
+        .iter()
+        .map(|t| format!("(({} : F),{})", t.coeff, t.wire))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("dotLC rho [{inner}]")
+}
+
+/// A deployed (raw) row as a `dotLC` field equation: the Lean premise the per-row
+/// certificate discharges against.
+fn render_raw_row(c: &Constraint) -> String {
+    format!(
+        "{} * {} = {}",
+        render_dotlc(&c.l),
+        render_dotlc(&c.r),
+        render_dotlc(&c.o)
+    )
+}
+
+/// Transitive expansion of a synthetic into its original-wire LC. Every defining
+/// row is `s = (1·prev) + leaf` with `prev` synthetic (coeff 1) and `leaf` an
+/// original term, so expansion never multiplies coefficients — it concatenates
+/// the leaf terms, recursing through synthetic prev-links.
+fn full_expansion(s: usize, def_lc: &BTreeMap<usize, Vec<Term>>, out: &mut Vec<Term>) {
+    for t in &def_lc[&s] {
+        if def_lc.contains_key(&t.wire) {
+            full_expansion(t.wire, def_lc, out);
+        } else {
+            out.push(t.clone());
+        }
+    }
+}
+
+/// Render one side of a rewritten (narrow) row as a field expression: originals
+/// and the constant via `rho`, shared accumulators as their threaded `s{w}`
+/// variable, and segment-local synthetics inlined as `dotLC rho <full expansion>`.
+fn render_rewritten_side(
+    terms: &[Term],
+    step_syn: &BTreeSet<usize>,
+    def_lc: &BTreeMap<usize, Vec<Term>>,
+) -> String {
+    if terms.is_empty() {
+        return "(0 : F)".to_owned();
+    }
+    terms
+        .iter()
+        .map(|t| {
+            if t.wire == 0 {
+                format!("({} : F) * rho 0", t.coeff)
+            } else if step_syn.contains(&t.wire) {
+                format!("({} : F) * s{}", t.coeff, t.wire)
+            } else if def_lc.contains_key(&t.wire) {
+                let mut exp = Vec::new();
+                full_expansion(t.wire, def_lc, &mut exp);
+                format!("({} : F) * ({})", t.coeff, render_dotlc(&exp))
+            } else {
+                format!("({} : F) * rho {}", t.coeff, t.wire)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" + ")
+}
+
+/// Shared (cross-cut) synthetics referenced by a rewritten row, sorted — the
+/// abstract `StepState` arguments of that row's certificate.
+fn step_refs(c: &Constraint, step_syn: &BTreeSet<usize>) -> Vec<usize> {
+    let mut s: BTreeSet<usize> = BTreeSet::new();
+    for side in [&c.l, &c.r, &c.o] {
+        for t in side {
+            if step_syn.contains(&t.wire) {
+                s.insert(t.wire);
+            }
+        }
+    }
+    s.into_iter().collect()
 }
 
 pub struct SegmentedFile {
@@ -415,159 +635,136 @@ pub struct SegmentedFile {
     pub segment_count: usize,
 }
 
-/// Render a class as a CPS-segmented Lean file (`seg_size` rows per segment).
-fn render_segmented(
+/// Render a class as per-rung deployed-slice certificates (the threaded design).
+///
+/// Each deployed row becomes one `step{k}` lemma: its rematerialized (narrow)
+/// rewritten row follows from the exact wide deployed row (`hraw`) by one
+/// `linear_combination`, instantiating every shared accumulator `s{w}` with its
+/// full original expansion (a single wide `dotLC` list — bounded *argument count*,
+/// wide *data*). Cross-cut synthetics are validated against a small bound first;
+/// segment-local synthetics are inlined. No global `rhoExt`, no `fin_cases`, no
+/// flat existential — the per-rung certs are independent and the ladder recurrence
+/// that threads `s{w}` between rungs is discharged by the semantic-layer bridge.
+fn render_threaded(
     op: &str,
     size: usize,
     shape_hash: &str,
     prime: &str,
     rows: &[Constraint],
-    roles: &crate::ir::WireRoles,
-    seg_size: usize,
-) -> (String, usize) {
-    // Re-materialize the wide accumulator rows so deployed rungs match the
-    // fixed-size fuel lemmas in the spec bridge. (This narrows row bodies; it is
-    // independent of the composition shape below.)
-    let remat = rematerialize_accumulators(rows);
-    let rows: &[Constraint] = &remat;
-    let n = rows.len();
+    _roles: &crate::ir::WireRoles,
+    target_rows: usize,
+    ladder_width_limit: usize,
+) -> Result<(String, usize), CoverageError> {
+    let remat = rematerialize_tagged(rows);
 
-    // global name map for every wire appearing in the class
-    let mut name: BTreeMap<usize, String> = BTreeMap::new();
-    for c in rows {
-        for side in [&c.l, &c.r, &c.o] {
-            for t in side {
-                if t.wire != 0 {
-                    name.entry(t.wire).or_insert_with(|| wname(t.wire));
-                }
-            }
+    // Defining LC of each synthetic, for full expansion / inlining.
+    let mut def_lc: BTreeMap<usize, Vec<Term>> = BTreeMap::new();
+    for (c, prov) in &remat {
+        if let Prov::Defining(s) = prov {
+            def_lc.insert(*s, c.l.clone());
         }
     }
-    let all_wires: BTreeSet<usize> = name.keys().copied().collect();
-    let inputs: BTreeSet<usize> = roles.input.iter().copied().collect();
 
-    // chunk boundaries: 0 = b0 < b1 < … < b_m = n
-    let mut bounds = vec![0usize];
-    let mut x = seg_size.max(1);
-    while x < n {
-        bounds.push(x);
-        x += seg_size.max(1);
-    }
-    bounds.push(n);
-    let nseg = bounds.len() - 1;
+    // Cut on rung boundaries, classify crossings, enforce the StepState bound.
+    let cuts = rung_cuts(&remat, target_rows.max(1));
+    let boundary = analyze_boundary(&remat, &cuts, MAX_STEP_STATE)?;
+    let step_syn: BTreeSet<usize> = boundary.step_state.iter().flatten().copied().collect();
 
     let module = format!("{}{}_{}", camel(op), size, &shape_hash[..6]);
     let mut body = String::new();
+    // Rows whose deployed form is a folded ladder rung (any side wider than a few
+    // terms — e.g. a 251-bit `to_binary` recomposition) are NOT flat-proven: a
+    // flat `linear_combination` runs `ring` over hundreds of terms (CLAUDE
+    // never-unroll-ladder; the existing fuel lemma `rvkLadderK_final_semantic`
+    // discharges them by induction). We emit certs ONLY for the narrow gadget
+    // rows and record the wide rungs as delegated.
+    let mut delegated: Vec<usize> = Vec::new();
+    let mut emitted = 0usize;
 
-    // Flat composition: each `seg{k}` is a plain predicate over exactly the
-    // wires its rows reference (no continuation, no pass-through threading), and
-    // `relation` binds every non-input wire in ONE outer `∃` then conjoins the
-    // segments. Sound because the deployed relation is a single conjunction:
-    // `∧` is order-independent and every wire shares one binding scope, so no
-    // topo-sort, liveness, or cycle-hoisting is needed. This keeps each seg's
-    // interface to the ~tens of wires it actually touches, eliminating the
-    // ~620-wide CPS signatures (long-range pass-through wires) that made
-    // elaboration quadratic.
-    let seg_refs = |a: usize, b: usize| -> Vec<usize> {
-        let mut s: BTreeSet<usize> = BTreeSet::new();
-        for c in &rows[a..b] {
-            for side in [&c.l, &c.r, &c.o] {
-                for t in side {
-                    if t.wire != 0 {
-                        s.insert(t.wire);
-                    }
-                }
-            }
+    // One certificate per deployed row, in deployed order.
+    for (k, (rewritten, prov)) in remat.iter().enumerate() {
+        let raw_idx = match prov {
+            Prov::Rewritten(idx) => *idx,
+            Prov::Defining(_) => continue, // synthetic defining rows are not certs
+        };
+
+        let raw_row = &rows[raw_idx];
+        let widest = raw_row.l.len().max(raw_row.r.len()).max(raw_row.o.len());
+        if widest > ladder_width_limit {
+            delegated.push(raw_idx);
+            continue;
         }
-        s.into_iter().collect()
-    };
 
-    // Per-segment defs.
-    for k in 0..nseg {
-        let (a, b) = (bounds[k], bounds[k + 1]);
-        let refs = seg_refs(a, b);
-        let binder = refs
-            .iter()
-            .map(|w| name[w].clone())
-            .collect::<Vec<_>>()
-            .join(" ");
-        let seg = format!(
-            "def seg{k} ({binder} : F) : Prop :=\n{}\n\n",
-            render_seg_rows(&rows[a..b], &name)
+        let refs = step_refs(rewritten, &step_syn);
+        let mut params = String::new();
+        let mut hyps = String::new();
+        for &w in &refs {
+            let mut exp = Vec::new();
+            full_expansion(w, &def_lc, &mut exp);
+            params.push_str(&format!(" (s{w} : F)"));
+            hyps.push_str(&format!(" (hs{w} : s{w} = {})", render_dotlc(&exp)));
+        }
+        let subst = if refs.is_empty() {
+            String::new()
+        } else {
+            let names = refs
+                .iter()
+                .map(|w| format!("hs{w}"))
+                .collect::<Vec<_>>()
+                .join(" ");
+            format!("  subst {names}\n")
+        };
+
+        let raw = render_raw_row(&rows[raw_idx]);
+        let concl = format!(
+            "({}) * ({}) = ({})",
+            render_rewritten_side(&rewritten.l, &step_syn, &def_lc),
+            render_rewritten_side(&rewritten.r, &step_syn, &def_lc),
+            render_rewritten_side(&rewritten.o, &step_syn, &def_lc),
         );
-        body.push_str(&seg);
+        body.push_str(&format!(
+            "theorem step{k} (rho : Nat → F){params}{hyps}\n    \
+             (hraw : {raw}) :\n    {concl} := by\n{subst}  \
+             simp only [dotLC] at hraw ⊢\n  linear_combination hraw\n\n"
+        ));
+        emitted += 1;
     }
-
-    // Top-level relation: bind all non-input wires once, conjoin the segments,
-    // then hand the output wires to the continuation.
-    let in_binder = if roles.input.is_empty() {
+    let nseg = emitted;
+    let delegated_note = if delegated.is_empty() {
         String::new()
     } else {
-        let mut v = roles.input.clone();
-        v.sort_unstable();
         format!(
-            "({} : F) ",
-            v.iter().map(|w| wname(*w)).collect::<Vec<_>>().join(" ")
+            "-- {} folded ladder rung(s) delegated to the fuel lemma (deployed row \
+             indices, NOT flat-proven here): {:?}\n",
+            delegated.len(),
+            delegated
         )
     };
-    let mut out_v = roles.output.clone();
-    out_v.sort_unstable();
-    body.push_str(&format!(
-        "def relation {in_binder}(k : {}) : Prop :=\n",
-        cont_type(out_v.len())
-    ));
-    let internal: Vec<usize> = all_wires
-        .iter()
-        .copied()
-        .filter(|w| !inputs.contains(w))
-        .collect();
-    if !internal.is_empty() {
-        body.push_str(&format!(
-            "∃ {} : F,\n",
-            internal
-                .iter()
-                .map(|w| name[w].clone())
-                .collect::<Vec<_>>()
-                .join(" ")
-        ));
-    }
-    for k in 0..nseg {
-        let (a, b) = (bounds[k], bounds[k + 1]);
-        let args = seg_refs(a, b)
-            .iter()
-            .map(|w| name[w].clone())
-            .collect::<Vec<_>>()
-            .join(" ");
-        body.push_str(&format!("  seg{k} {args} ∧\n"));
-    }
-    let oargs = out_v
-        .iter()
-        .map(|w| wname(*w))
-        .collect::<Vec<_>>()
-        .join(" ");
-    body.push_str(&format!("  k {oargs}\n"));
 
     let contents = format!(
-        "import ProvenZk.Gates\n\
+        "import Mathlib.Data.ZMod.Basic\n\
+         import Mathlib.Tactic.LinearCombination\n\
          {}\n\
 \n\
          set_option linter.unusedVariables false\n\
          set_option maxRecDepth 100000\n\
          set_option maxHeartbeats 0\n\n\
-         /-! Auto-generated segmented deployed-slice relation for `{op}` \
-         (size {size}, {nseg} segments of ≤{seg_size} rows).\n\
-         Each `seg{{k}}` is the conjunction of its ≤{seg_size} deployed rows over \
-         the wires they touch; `relation` opens one flat existential over all \
-         non-input wires and conjoins every segment. Wide accumulator factors are \
-         re-materialized into ≤2-term rows. Generated from the checked deployed-slice IR. -/\n\n\
+         /-! Auto-generated per-rung deployed-slice certificates for `{op}` \
+         (size {size}, {nseg} rows).\n\
+         Each `step{{k}}` proves the rematerialized rung follows from the exact \
+         deployed row by instantiating every shared accumulator `s{{w}}` with its \
+         full original expansion. Generated from the checked deployed-slice IR. -/\n\n\
          namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n\
+         {delegated_note}\
          {}\n\n\
-         {body}\n\
+         def dotLC (rho : Nat → F) : List (F × Nat) → F\n  \
+         | [] => 0\n  | (a,w) :: t => a * rho w + dotLC rho t\n\n\
+         {body}\
          end Shieldd.GnarkFormal.Extracted.Deployed.{module}\n",
         field_imports(op),
         field_defs(op, prime)
     );
-    (contents, nseg)
+    Ok((contents, nseg))
 }
 
 /// Generate CPS-segmented files for classes whose row count exceeds `seg_size`
@@ -597,7 +794,7 @@ pub fn generate_segmented(
         }
         let (start, end) = seg_range[&class.representative_segment_index];
         let roles = wire_roles_for(&rows, &def_site, &last_use, &circuit_outputs, start, end);
-        let (contents, segment_count) = render_segmented(
+        let (contents, segment_count) = render_threaded(
             &class.op,
             class.constraint_count,
             &class.shape_sha256_hex,
@@ -605,7 +802,8 @@ pub fn generate_segmented(
             &rows[start..end],
             &roles,
             seg_size,
-        );
+            LADDER_WIDTH_LIMIT,
+        )?;
         let module = format!(
             "{}{}_{}",
             camel(&class.op),
@@ -633,6 +831,7 @@ pub fn generate_segmented_slice(
     start: usize,
     end: usize,
     seg_size: usize,
+    ladder_width_limit: usize,
 ) -> Result<SegmentedFile, CoverageError> {
     let rows = parse_rows(sr1cs)?;
     if start >= end || end > rows.len() {
@@ -666,7 +865,7 @@ pub fn generate_segmented_slice(
     }
     let shape_hash = sha256_hex(shape.as_bytes());
     let size = end - start;
-    let (contents, segment_count) = render_segmented(
+    let (contents, segment_count) = render_threaded(
         op,
         size,
         &shape_hash,
@@ -674,7 +873,8 @@ pub fn generate_segmented_slice(
         &rows[start..end],
         &roles,
         seg_size,
-    );
+        ladder_width_limit,
+    )?;
     let module = format!("{}{}_{}", camel(op), size, &shape_hash[..6]);
     Ok(SegmentedFile {
         class_key: format!("{op}@{}", &shape_hash[..16]),
@@ -737,30 +937,6 @@ mod tests {
     use super::*;
     use crate::{ir::build_ir, parse_sr1cs, ConstraintManifest};
 
-    fn global_name_map(rows: &[Constraint]) -> BTreeMap<usize, String> {
-        let mut name = BTreeMap::new();
-        for c in rows {
-            for side in [&c.l, &c.r, &c.o] {
-                for t in side {
-                    if t.wire != 0 {
-                        name.entry(t.wire).or_insert_with(|| wname(t.wire));
-                    }
-                }
-            }
-        }
-        name
-    }
-
-    fn constraint_lines(lean: &str) -> Vec<String> {
-        lean.lines()
-            .filter_map(|line| {
-                let trimmed = line.trim_start();
-                (trimmed.starts_with('(') && trimmed.contains(") * (") && trimmed.contains(" = ("))
-                    .then(|| line.trim_end_matches(" ∧").to_owned())
-            })
-            .collect()
-    }
-
     #[test]
     fn generates_relation_with_binders() {
         let manifest: ConstraintManifest = serde_json::from_str(
@@ -788,7 +964,7 @@ mod tests {
     }
 
     #[test]
-    fn segmented_relation_preserves_flat_row_trace() {
+    fn threaded_emits_per_row_certs_no_global_state() {
         let manifest: ConstraintManifest = serde_json::from_str(
             r#"{"schema":"shieldd.gnark.constraint_manifest.v1","circuit":"t","nb_constraints":4,
               "sr1cs_sha256_hex":"","segments":[
@@ -805,32 +981,69 @@ mod tests {
         )
         .unwrap();
         let ir = build_ir(&manifest, &sr1cs).unwrap();
-        let files = generate_segmented(&ir, &sr1cs, None, 2).unwrap();
+        let files = generate_segmented(&ir, &sr1cs, None, 1).unwrap();
         assert_eq!(files.len(), 1);
-        assert_eq!(files[0].segment_count, 2);
+        // These rows are narrow (no wide accumulator) -> one cert per deployed row,
+        // no synthetics, no threaded state.
+        assert_eq!(files[0].segment_count, 4);
+        let c = &files[0].contents;
+        for k in 0..4 {
+            assert!(c.contains(&format!("theorem step{k} ")), "missing step{k}");
+        }
+        assert!(c.contains("linear_combination hraw"));
+        assert!(c.contains("def dotLC"));
+        // The pivot deleted these globals; they must never reappear.
+        assert!(!c.contains("fin_cases"), "fin_cases leaked back in");
+        assert!(!c.contains("rhoExt"), "global rhoExt leaked back in");
+        assert!(
+            !c.contains("def relation"),
+            "flat-∃ relation leaked back in"
+        );
+    }
 
-        let rows = parse_rows(&sr1cs).unwrap();
-        let names = global_name_map(&rows);
-        let expected = render_seg_rows(&rows, &names)
-            .lines()
-            .map(|line| line.trim_end_matches(" ∧"))
-            .map(str::to_owned)
-            .collect::<Vec<_>>();
-        let actual = constraint_lines(&files[0].contents);
-        assert_eq!(actual, expected);
-
-        let dropped = actual.iter().skip(1).cloned().collect::<Vec<_>>();
-        assert_ne!(dropped, expected);
-
-        let literal_drift = files[0]
-            .contents
-            .replacen("(1 : F) * w2", "(2 : F) * w2", 1);
-        assert_ne!(constraint_lines(&literal_drift), expected);
-
-        let wire_drift = files[0]
-            .contents
-            .replacen("= ((1 : F) * w3)", "= ((1 : F) * w99)", 1);
-        assert_ne!(constraint_lines(&wire_drift), expected);
+    /// A growing accumulator threads a bounded set of shared synthetics: the
+    /// generated certs carry `s{w}` arguments with `= dotLC rho [..]` hypotheses,
+    /// and the wide deployed factor never appears in the rewritten conclusion.
+    #[test]
+    fn threaded_accumulator_emits_stepstate_args() {
+        let mut l = vec![term("3", 90)];
+        l.extend((10..20).map(|w| term("7", w)));
+        let rung0 = Constraint {
+            l,
+            r: vec![term("1", 0)],
+            o: vec![term("1", 200)],
+        };
+        let mut l2 = vec![term("3", 91)];
+        l2.extend((10..21).map(|w| term("9", w)));
+        let rung1 = Constraint {
+            l: l2,
+            r: vec![term("1", 0)],
+            o: vec![term("1", 201)],
+        };
+        let roles = crate::ir::WireRoles {
+            input: (10..21).chain([90, 91]).collect(),
+            output: vec![200, 201],
+            internal: vec![],
+        };
+        let (contents, _n) = render_threaded(
+            "gadget.ladder",
+            2,
+            &"0".repeat(64),
+            "17",
+            &[rung0, rung1],
+            &roles,
+            1,
+            LADDER_WIDTH_LIMIT,
+        )
+        .expect("within StepState bound");
+        // Shared accumulator threaded as `s{w}` with a full-expansion hypothesis.
+        assert!(contents.contains("(s"), "no StepState argument emitted");
+        assert!(
+            contents.contains("= dotLC rho ["),
+            "no full-expansion hypothesis"
+        );
+        assert!(contents.contains("linear_combination hraw"));
+        assert!(!contents.contains("fin_cases"));
     }
 
     fn term(coeff: &str, wire: usize) -> Term {
@@ -868,11 +1081,7 @@ mod tests {
 
     fn eval_side(terms: &[Term], assign: &BTreeMap<usize, u128>) -> u128 {
         terms.iter().fold(0u128, |acc, t| {
-            let w = if t.wire == 0 {
-                1
-            } else {
-                assign[&t.wire]
-            };
+            let w = if t.wire == 0 { 1 } else { assign[&t.wire] };
             (acc + mulmod(coeff_mod(&t.coeff), w)) % P
         })
     }
@@ -885,7 +1094,8 @@ mod tests {
     }
 
     fn sum_residuals(rows: &[Constraint], assign: &BTreeMap<usize, u128>) -> u128 {
-        rows.iter().fold(0u128, |acc, c| (acc + residual(c, assign)) % P)
+        rows.iter()
+            .fold(0u128, |acc, c| (acc + residual(c, assign)) % P)
     }
 
     fn max_wire(rows: &[Constraint]) -> usize {
@@ -908,7 +1118,9 @@ mod tests {
         let mut assign = BTreeMap::new();
         let mut state = seed | 1;
         for w in 1..=orig_max {
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             assign.insert(w, (state >> 3) % P);
         }
         for c in remat {
@@ -1074,9 +1286,115 @@ mod tests {
             o: vec![term("1", 200)],
         };
         let out = rematerialize_accumulators(&[row]);
-        assert!(out.iter().all(|c| c.l.len() <= 2), "wide geometric L survived");
+        assert!(
+            out.iter().all(|c| c.l.len() <= 2),
+            "wide geometric L survived"
+        );
         // The rewritten rung is a single accumulator wire.
         assert_eq!(out.last().unwrap().l.len(), 1);
     }
-}
 
+    /// A linear running accumulator threads exactly ONE synthetic across a cut
+    /// placed in the middle of its prefix chain: that is the `StepState`, and the
+    /// only original wire it carries forward is its base input (`Ctx`).
+    #[test]
+    fn boundary_threads_single_accumulator() {
+        // s11..s17 are the running prefix sums of a coeff-1 window 10..18; later
+        // rows keep extending the same accumulator.
+        let mut l = vec![term("3", 99)];
+        l.extend((10..18).map(|w| term("7", w)));
+        let row = Constraint {
+            l,
+            r: vec![term("1", 0)],
+            o: vec![term("1", 200)],
+        };
+        let remat = rematerialize_tagged(&[row]);
+        // remat = [def s_a, def s_b, …, rewritten rung]. Cut just before the last
+        // fold row: the partial sum carried in is the lone crossing synthetic.
+        let cut = remat.len() - 2;
+        let b = analyze_boundary(&remat, &[cut], MAX_STEP_STATE).expect("within bound");
+        assert_eq!(b.step_state.len(), 1);
+        assert_eq!(b.step_state[0].len(), 1, "only the accumulator crosses");
+        let s = b.step_state[0][0];
+        assert!(
+            s >= 200,
+            "crossing wire is a synthetic, not an original input"
+        );
+        // The window wires read after the cut are originals -> Ctx, never StepState.
+        assert!(b.ctx_state[0].iter().all(|&w| w < 200));
+    }
+
+    /// Cuts land only on rung (`Rewritten`) boundaries, and a growing-accumulator
+    /// ladder threads a bounded `StepState` across each of them.
+    #[test]
+    fn rung_cuts_keep_step_state_bounded() {
+        // Seven rungs over one growing coeff-`7` window; each rung extends the
+        // window by one wire and shares the prior partial sums.
+        let rungs: Vec<Constraint> = (0..7)
+            .map(|k| {
+                let mut l = vec![term("3", 90 + k)];
+                l.extend((10..=(17 + k)).map(|w| term("7", w)));
+                Constraint {
+                    l,
+                    r: vec![term("1", 0)],
+                    o: vec![term("1", 200 + k)],
+                }
+            })
+            .collect();
+        let remat = rematerialize_tagged(&rungs);
+        let cuts = rung_cuts(&remat, 4);
+        assert!(!cuts.is_empty(), "expected interior cuts");
+        // Every cut sits immediately after a Rewritten rung row.
+        for &c in &cuts {
+            assert!(
+                matches!(remat[c - 1].1, Prov::Rewritten(_)),
+                "cut {c} is mid-rung"
+            );
+        }
+        let b = analyze_boundary(&remat, &cuts, MAX_STEP_STATE).expect("bounded");
+        // The shared running window threads only a handful of synthetics per cut.
+        assert!(b.step_state.iter().all(|s| s.len() <= MAX_STEP_STATE));
+        assert!(
+            b.step_state.iter().any(|s| !s.is_empty()),
+            "accumulator threads"
+        );
+    }
+
+    /// If more synthetics cross a cut than the bound allows, generation FAILS
+    /// rather than silently rebuilding a wide continuation.
+    #[test]
+    fn boundary_rejects_wide_step_state() {
+        // Three independent accumulators all defined before the cut and all read
+        // after it -> three crossing synthetics; a bound of 2 must reject.
+        let mut remat: Vec<(Constraint, Prov)> = Vec::new();
+        for s in 300..303 {
+            remat.push((
+                Constraint {
+                    l: vec![term("1", 1), term("1", 2)],
+                    r: vec![term("1", 0)],
+                    o: vec![term("1", s)],
+                },
+                Prov::Defining(s),
+            ));
+        }
+        // a consumer row (after the cut) reading all three accumulators.
+        remat.push((
+            Constraint {
+                l: vec![term("1", 300), term("1", 301), term("1", 302)],
+                r: vec![term("1", 0)],
+                o: vec![term("1", 400)],
+            },
+            Prov::Rewritten(0),
+        ));
+        let cut = 3; // after the three defs, before the consumer.
+        let err = analyze_boundary(&remat, &[cut], 2).expect_err("must reject");
+        match err {
+            CoverageError::BoundaryStateTooWide { found, bound, .. } => {
+                assert_eq!((found, bound), (3, 2));
+            }
+            other => panic!("wrong error: {other:?}"),
+        }
+        // With headroom the same cut is accepted.
+        assert!(analyze_boundary(&remat, &[cut], 8).is_ok());
+    }
+}

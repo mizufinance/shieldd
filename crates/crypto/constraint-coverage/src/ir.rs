@@ -15,7 +15,7 @@
 //! never parse Lean back to R1CS.
 
 use crate::{ConstraintManifest, CoverageError, Sr1cs};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -61,7 +61,7 @@ impl Constraint {
 }
 
 /// Wire role within a segment, by global def-use position.
-#[derive(Debug, Default, Clone, Serialize)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct WireRoles {
     /// Used in the slice but defined upstream (or a primary circuit input).
     pub input: Vec<usize>,
@@ -71,7 +71,7 @@ pub struct WireRoles {
     pub internal: Vec<usize>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SegmentIr {
     pub index: usize,
     pub op: String,
@@ -80,13 +80,13 @@ pub struct SegmentIr {
     pub end: usize,
     pub constraint_count: usize,
     /// `(op, shape-hash)` class key; empty for zero-constraint segments.
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub class_key: String,
     pub wire_roles: WireRoles,
     /// Hash of this instance's folded-constant vector (all coeffs, in order).
     /// Two instances of one class with equal hashes are the *same* obligation;
     /// differing hashes mean the Lean def must be parametric over constants.
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub constant_vector_sha256_hex: String,
     /// Full per-instance fingerprint: sha256 of this slice's canonical-rendered
     /// rows, *including absolute wires*. Unlike `shape`/`constant_vector` (which
@@ -95,17 +95,17 @@ pub struct SegmentIr {
     /// discharging theorem must be instantiated and typechecked at exactly this
     /// relation; the obligation table pins it here so a sibling instance's proof
     /// cannot pass for this one.
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub relation_sha256_hex: String,
     /// Hash of this instance's wire-role boundary map (input/output/internal
     /// absolute wires). Composition threads segment outputs into the next
     /// segment's inputs through this map, so it is pinned independently of the
     /// row tokens.
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub wire_role_sha256_hex: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ClassIr {
     pub class_key: String,
     pub op: String,
@@ -120,9 +120,9 @@ pub struct ClassIr {
     pub distinct_constant_vectors: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CircuitIr {
-    pub schema: &'static str,
+    pub schema: String,
     pub circuit: String,
     pub sr1cs_sha256_hex: String,
     pub nb_constraints: usize,
@@ -303,10 +303,7 @@ fn wire_role_digest(roles: &WireRoles) -> String {
     fn list(v: &[usize]) -> String {
         let mut s = v.to_vec();
         s.sort_unstable();
-        s.iter()
-            .map(usize::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
+        s.iter().map(usize::to_string).collect::<Vec<_>>().join(",")
     }
     format!(
         "I:{}|O:{}|N:{}",
@@ -325,10 +322,18 @@ fn sha256_hex(data: &[u8]) -> String {
 /// Build the canonical IR from the manifest partition and the parsed `.sr1cs`,
 /// running the round-trip X-check on every constraint.
 pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitIr, CoverageError> {
-    // 1. Parse every row + round-trip check (independence: IR == deployed rows).
+    // 1. Scan every row + round-trip check (independence: IR == deployed rows).
+    // Do not retain parsed rows: transfer has 252k rows / a 267 MiB source
+    // file, and retaining the source strings, parsed coefficient strings, and
+    // generated IR simultaneously made artifact generation memory-bound. The
+    // two-pass scan keeps the X-check while bounding parsed-row memory to one
+    // row. Pass 2 below reparses each segment after the global def/use facts
+    // needed for boundary roles are known.
+    //
     // gnark emits a space before `]`/`)`; compare modulo bracket-adjacent
     // whitespace so the check is structural, not a whitespace diff.
-    let mut rows = Vec::with_capacity(sr1cs.constraints.len());
+    let mut def_site: BTreeMap<usize, usize> = BTreeMap::new();
+    let mut last_use: BTreeMap<usize, usize> = BTreeMap::new();
     for (i, raw) in sr1cs.constraints.iter().enumerate() {
         let c = parse_constraint(raw, i + 1)?;
         if c.render() != canonical_ws(raw) {
@@ -341,21 +346,11 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
                 ),
             });
         }
-        rows.push(c);
-    }
-
-    // 2. Global def site of each wire = first row where it appears in O.
-    let mut def_site: BTreeMap<usize, usize> = BTreeMap::new();
-    for (i, c) in rows.iter().enumerate() {
         for t in &c.o {
             if t.wire != 0 {
                 def_site.entry(t.wire).or_insert(i);
             }
         }
-    }
-    // Last use (any position) of each wire, for output/internal split.
-    let mut last_use: BTreeMap<usize, usize> = BTreeMap::new();
-    for (i, c) in rows.iter().enumerate() {
         for side in c.sides() {
             for t in side {
                 if t.wire != 0 {
@@ -365,7 +360,8 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
         }
     }
 
-    // 3. Per-segment wire roles + class key + constant vector.
+    // 2. Per-segment wire roles + class key + constant vector. Reparse only
+    // the current segment, then drop its parsed rows before moving on.
     let circuit_outputs: BTreeSet<usize> = sr1cs.outputs.iter().copied().collect();
     let mut segments = Vec::with_capacity(manifest.segments.len());
     let mut class_instances: BTreeMap<String, Vec<usize>> = BTreeMap::new();
@@ -380,20 +376,21 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
         let mut relation_hash = String::new();
         let mut wire_role_hash = String::new();
         if seg.constraint_count > 0 {
-            let slice = &rows[seg.start..seg.end];
-            roles = wire_roles_for(
-                &rows,
-                &def_site,
-                &last_use,
-                &circuit_outputs,
-                seg.start,
-                seg.end,
-            );
             // shape + constant vector over the slice
             let mut shape = String::new();
             let mut consts = String::new();
-            for c in slice {
-                shape.push_str(&row_shape(c, &mut ranks));
+            let mut relation = String::new();
+            let mut seen = BTreeSet::new();
+            for (offset, raw) in sr1cs.constraints[seg.start..seg.end].iter().enumerate() {
+                let c = parse_constraint(raw, seg.start + offset + 1)?;
+                for side in c.sides() {
+                    for term in side {
+                        if term.wire != 0 {
+                            seen.insert(term.wire);
+                        }
+                    }
+                }
+                shape.push_str(&row_shape(&c, &mut ranks));
                 shape.push('|');
                 for side in c.sides() {
                     for t in side {
@@ -402,17 +399,22 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
                     }
                     consts.push(';');
                 }
+                relation.push_str(&c.render());
+                relation.push('\n');
             }
+            roles = wire_roles_for_seen(
+                &seen,
+                &def_site,
+                &last_use,
+                &circuit_outputs,
+                seg.start,
+                seg.end,
+            );
             let shape_hash = sha256_hex(shape.as_bytes());
             class_key = format!("{}@{}", seg.op, &shape_hash[..16]);
             const_hash = sha256_hex(consts.as_bytes());
             // Full per-instance relation fingerprint: the exact canonical rows,
             // absolute wires included, as the X-checked `render()` emits them.
-            let mut relation = String::new();
-            for c in slice {
-                relation.push_str(&c.render());
-                relation.push('\n');
-            }
             relation_hash = sha256_hex(relation.as_bytes());
             wire_role_hash = sha256_hex(wire_role_digest(&roles).as_bytes());
             class_instances
@@ -459,7 +461,7 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
     }
 
     Ok(CircuitIr {
-        schema: "shieldd.gnark.deployed_slice_ir.v1",
+        schema: "shieldd.gnark.deployed_slice_ir.v1".to_owned(),
         circuit: manifest.circuit.clone(),
         sr1cs_sha256_hex: sr1cs.sha256_hex.clone(),
         nb_constraints: sr1cs.constraints.len(),
@@ -541,8 +543,22 @@ pub fn wire_roles_for(
             }
         }
     }
+    wire_roles_for_seen(&seen, def_site, last_use, circuit_outputs, start, end)
+}
+
+/// Assign roles for the already-collected non-constant wires of one segment.
+/// Keeping this independent of retained rows lets [`build_ir`] use its bounded
+/// two-pass scanner for large deployed artifacts.
+fn wire_roles_for_seen(
+    seen: &BTreeSet<usize>,
+    def_site: &BTreeMap<usize, usize>,
+    last_use: &BTreeMap<usize, usize>,
+    circuit_outputs: &BTreeSet<usize>,
+    start: usize,
+    end: usize,
+) -> WireRoles {
     let mut roles = WireRoles::default();
-    for &w in &seen {
+    for &w in seen {
         match def_site.get(&w).copied() {
             Some(d) if d >= start && d < end => {
                 let consumed_downstream = last_use.get(&w).copied().unwrap_or(d) >= end;

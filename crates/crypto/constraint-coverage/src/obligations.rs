@@ -5,60 +5,27 @@
 //! representative of a structural class does NOT cover another instance: gnark
 //! folds different baked constants/wire maps per instance. This module turns the
 //! deployed-slice IR into one obligation per non-marker instance and checks every
-//! one against a hand-maintained coverage manifest that records, per class, the
-//! discharging Lean theorem plus the exact shape + folded-constant hashes the
-//! proof was reviewed against.
+//! one against a hand-maintained coverage manifest that records, per instance,
+//! the discharging Lean theorem plus the exact shape + folded-constant hashes
+//! the proof was reviewed against.
 //!
 //! A `pending` class is a known gap (no proof yet). A `proven` class whose
 //! recorded shape/constant hash no longer matches the IR is a hard error: the
 //! deployed rows drifted out from under the proof and it must be re-validated.
-//! The compose step (§3) is gated on [`CoverageReport::fully_discharged`].
+//! `functional-assumption` is deliberately distinct: it binds an extracted
+//! semantic theorem to the exact deployed rows, but does not claim a row-level
+//! proof. The compose step is gated on [`CoverageReport::fully_discharged`]; a
+//! tiered transfer result uses [`CoverageReport::tiered_discharged`] instead.
 
+use crate::contracts;
 use crate::CoverageError;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Deployed-slice IR, re-parsed from the committed JSON. Only the fields the
-/// obligation table consumes are modelled; unknown fields are ignored.
-#[derive(Debug, Deserialize)]
-pub struct DeployedSliceIr {
-    pub schema: String,
-    pub circuit: String,
-    pub sr1cs_sha256_hex: String,
-    pub classes: Vec<IrClass>,
-    pub segments: Vec<IrSegment>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct IrClass {
-    pub class_key: String,
-    pub op: String,
-    pub constraint_count: usize,
-    pub shape_sha256_hex: String,
-    pub instance_segment_indices: Vec<usize>,
-    pub distinct_constant_vectors: usize,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct IrSegment {
-    pub index: usize,
-    pub op: String,
-    pub kind: String,
-    pub start: usize,
-    pub end: usize,
-    pub constraint_count: usize,
-    #[serde(default)]
-    pub class_key: String,
-    #[serde(default)]
-    pub constant_vector_sha256_hex: String,
-    /// Full per-instance relation fingerprint (canonical rows incl. absolute
-    /// wires). Distinct for every instance even within one class.
-    #[serde(default)]
-    pub relation_sha256_hex: String,
-    /// Per-instance wire-role boundary-map fingerprint.
-    #[serde(default)]
-    pub wire_role_sha256_hex: String,
-}
+/// The exact IR used by generation and obligation checking. Reusing the
+/// in-memory type avoids a JSON serialize/parse round trip when `main` checks a
+/// large circuit, while [`load_ir`] still validates committed IR artifacts.
+pub type DeployedSliceIr = crate::ir::CircuitIr;
 
 /// Coverage manifest: one entry per structural class, recording the proof state
 /// and the hashes the proof was reviewed against. Hand-maintained; the test
@@ -67,6 +34,11 @@ pub struct IrSegment {
 pub struct CoverageManifest {
     pub schema: String,
     pub circuit: String,
+    /// Exact set of class keys allowed to remain on an extracted functional
+    /// bridge. Keeping this separate from the class status prevents a pending
+    /// structural class from being relabelled into the residual tier silently.
+    #[serde(default)]
+    pub functional_assumption_allowlist: Vec<String>,
     pub classes: Vec<ClassCoverage>,
 }
 
@@ -74,18 +46,14 @@ pub struct CoverageManifest {
 pub struct ClassCoverage {
     pub class_key: String,
     pub op: String,
-    /// `"proven"` or `"pending"`.
+    /// `"proven"`, `"pending"`, or `"functional-assumption"`.
     pub status: String,
-    /// Lean theorem discharging every instance of this class. Required when
-    /// `proven`; the theorem is stated over the class `relation` def whose baked
-    /// constants are pinned by `constant_vector_sha256_hex`.
+    /// Named entry in the assumption ledger. Required only for a
+    /// `functional-assumption` class.
     #[serde(default)]
-    pub lean_theorem: String,
+    pub assumption_id: String,
     /// Coeff-agnostic wire shape this proof targets (must equal the IR class).
     pub shape_sha256_hex: String,
-    /// Folded-constant vector every instance must carry (must equal each
-    /// instance's hash). The bite: if a deployed constant changes, this differs.
-    pub constant_vector_sha256_hex: String,
     /// Exact per-instance fingerprints the theorem was instantiated and
     /// typechecked against — one entry per deployed instance of this class.
     /// Required when `proven`: the set must equal the IR's instance set for this
@@ -104,11 +72,26 @@ pub struct ClassCoverage {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InstanceCoverage {
     pub segment_index: usize,
+    /// Fully-qualified Lean theorem discharging this exact deployed instance.
+    /// Required when the parent class is `proven` or `functional-assumption`.
+    #[serde(default)]
+    pub lean_theorem: String,
+    /// Fully-qualified generated Lean contract module for this exact deployed
+    /// instance. Required when the parent class is `proven` or
+    /// `functional-assumption`.
+    #[serde(default)]
+    pub lean_contract: String,
+    /// Exact folded constants for this instance. Constants are per-instance:
+    /// transfer has structurally identical classes whose compile-time labels or
+    /// domains differ, so a class-level constant pin cannot soundly represent
+    /// them.
+    #[serde(default)]
+    pub constant_vector_sha256_hex: String,
     pub relation_sha256_hex: String,
     pub wire_role_sha256_hex: String,
 }
 
-pub const MANIFEST_SCHEMA: &str = "shieldd.gnark.deployed_coverage_manifest.v1";
+pub const MANIFEST_SCHEMA: &str = "shieldd.gnark.deployed_coverage_manifest.v5";
 
 /// One discharging obligation = one deployed segment instance that carries
 /// constraints (markers/adapters with zero rows are excluded).
@@ -130,17 +113,34 @@ pub struct Obligation {
 pub enum Verdict {
     /// Class is `proven` and this instance's constants, relation, and wire-role
     /// map all match the fingerprint the theorem was instantiated at.
-    Discharged { lean_theorem: String },
+    Discharged {
+        lean_theorem: String,
+        lean_contract: String,
+    },
+    /// The instance is bound to a named extracted functional theorem. This is
+    /// intentionally not a row-level discharge and therefore never makes a
+    /// report fully discharged.
+    FunctionalAssumption {
+        lean_theorem: String,
+        lean_contract: String,
+        assumption_id: String,
+    },
     /// Class exists in the manifest but is not yet proven.
     Pending,
     /// No manifest entry for this instance's class (a silent gap).
     Unmapped,
-    /// The instance's folded-constant hash differs from the proof's.
+    /// The instance's folded-constant hash differs from the exact proof pin.
     ConstantMismatch { manifest: String, instance: String },
     /// Proven class, but this instance has no pinned per-instance fingerprint:
     /// the theorem was never instantiated at this instance (a silent gap inside
     /// a class that otherwise reads proven).
     InstanceUnpinned,
+    /// Bound class and pinned instance, but no Lean theorem is recorded for this
+    /// exact instance.
+    TheoremMissing,
+    /// Bound class and pinned instance, but no generated Lean contract module
+    /// is recorded for this exact instance.
+    ContractMissing,
     /// The instance's full relation hash differs from the pinned fingerprint:
     /// the deployed rows drifted out from under the instantiated theorem.
     RelationMismatch { manifest: String, instance: String },
@@ -155,10 +155,13 @@ pub struct CoverageReport {
     pub sr1cs_sha256_hex: String,
     pub total_obligations: usize,
     pub discharged: usize,
+    pub functional_assumptions: usize,
     pub pending: usize,
     pub unmapped: usize,
     pub constant_mismatch: usize,
     pub instance_unpinned: usize,
+    pub theorem_missing: usize,
+    pub contract_missing: usize,
     pub relation_mismatch: usize,
     pub wire_role_mismatch: usize,
     /// Class-level errors that make the manifest inconsistent with the IR
@@ -174,9 +177,12 @@ impl CoverageReport {
     pub fn fully_discharged(&self) -> bool {
         self.class_errors.is_empty()
             && self.pending == 0
+            && self.functional_assumptions == 0
             && self.unmapped == 0
             && self.constant_mismatch == 0
             && self.instance_unpinned == 0
+            && self.theorem_missing == 0
+            && self.contract_missing == 0
             && self.relation_mismatch == 0
             && self.wire_role_mismatch == 0
     }
@@ -189,6 +195,24 @@ impl CoverageReport {
             && self.unmapped == 0
             && self.constant_mismatch == 0
             && self.instance_unpinned == 0
+            && self.theorem_missing == 0
+            && self.contract_missing == 0
+            && self.relation_mismatch == 0
+            && self.wire_role_mismatch == 0
+    }
+
+    /// True when all structural instances are row-discharged and every
+    /// remaining instance is a declared, pinned functional assumption. The
+    /// allowlist, theorem, assumption ID, and exact instance pins are checked
+    /// while constructing the report; any violation is a class error here.
+    pub fn tiered_discharged(&self) -> bool {
+        self.class_errors.is_empty()
+            && self.pending == 0
+            && self.unmapped == 0
+            && self.constant_mismatch == 0
+            && self.instance_unpinned == 0
+            && self.theorem_missing == 0
+            && self.contract_missing == 0
             && self.relation_mismatch == 0
             && self.wire_role_mismatch == 0
     }
@@ -229,11 +253,19 @@ pub fn check_obligations(ir: &DeployedSliceIr, manifest: &CoverageManifest) -> C
     if by_key.len() != manifest.classes.len() {
         class_errors.push("manifest has duplicate class_key entries".to_owned());
     }
+    let functional_allowlist: BTreeSet<&str> = manifest
+        .functional_assumption_allowlist
+        .iter()
+        .map(String::as_str)
+        .collect();
+    if functional_allowlist.len() != manifest.functional_assumption_allowlist.len() {
+        class_errors.push("functional-assumption allowlist has duplicate class keys".to_owned());
+    }
 
     // Every IR class must be enumerated, with matching op + shape; proven
-    // classes must carry a theorem. distinct_constant_vectors must be 1 (a
-    // single obligation per class — else the proof must be parametric and this
-    // table model does not yet support it).
+    // classes must carry a theorem. Constant vectors are pinned per instance:
+    // a structurally identical class can have different compile-time labels or
+    // domains at different call sites.
     let ir_keys: BTreeSet<&str> = ir.classes.iter().map(|c| c.class_key.as_str()).collect();
     for c in &ir.classes {
         match by_key.get(c.class_key.as_str()) {
@@ -251,18 +283,33 @@ pub fn check_obligations(ir: &DeployedSliceIr, manifest: &CoverageManifest) -> C
                         c.class_key, m.shape_sha256_hex, c.shape_sha256_hex
                     ));
                 }
-                if c.distinct_constant_vectors != 1 {
+                let is_bound = matches!(m.status.as_str(), "proven" | "functional-assumption");
+                if m.status == "functional-assumption" {
+                    if !functional_allowlist.contains(m.class_key.as_str()) {
+                        class_errors.push(format!(
+                            "class {} is functional-assumption but is not in the closed allowlist",
+                            c.class_key
+                        ));
+                    }
+                    if m.assumption_id.is_empty() {
+                        class_errors.push(format!(
+                            "class {} is functional-assumption but has no assumption_id",
+                            c.class_key
+                        ));
+                    }
+                } else if functional_allowlist.contains(m.class_key.as_str()) {
                     class_errors.push(format!(
-                        "class {} has {} distinct constant vectors; parametric coverage unsupported",
-                        c.class_key, c.distinct_constant_vectors
+                        "class {} is in the functional-assumption allowlist but has status {:?}",
+                        c.class_key, m.status
                     ));
                 }
-                if m.status == "proven" && m.lean_theorem.is_empty() {
+                if m.status == "proven" && !m.assumption_id.is_empty() {
                     class_errors.push(format!(
-                        "class {} is proven but has no lean_theorem",
-                        c.class_key
+                        "class {} is proven but declares functional assumption {:?}",
+                        c.class_key, m.assumption_id
                     ));
-                } else if m.status == "proven" {
+                }
+                if is_bound {
                     // The pinned per-instance fingerprint set must equal the IR's
                     // instance set for this class exactly: no uncovered instance,
                     // no stale fingerprint for a segment that no longer exists.
@@ -286,7 +333,10 @@ pub fn check_obligations(ir: &DeployedSliceIr, manifest: &CoverageManifest) -> C
                     // in the obligation loop below; the class-error here only
                     // catches stale/duplicate pins.
                 }
-                if m.status != "proven" && m.status != "pending" {
+                if !matches!(
+                    m.status.as_str(),
+                    "proven" | "pending" | "functional-assumption"
+                ) {
                     class_errors.push(format!(
                         "class {} has unknown status {:?}",
                         c.class_key, m.status
@@ -303,11 +353,35 @@ pub fn check_obligations(ir: &DeployedSliceIr, manifest: &CoverageManifest) -> C
             ));
         }
     }
+    for key in &functional_allowlist {
+        match by_key.get(key) {
+            None => class_errors.push(format!(
+                "functional-assumption allowlist class {key} is not present in the manifest"
+            )),
+            Some(class) if class.status != "functional-assumption" => class_errors.push(format!(
+                "functional-assumption allowlist class {key} has status {:?}",
+                class.status
+            )),
+            Some(_) => {}
+        }
+    }
 
     // One obligation per non-marker instance (constraint-bearing segment).
     let mut obligations = Vec::new();
-    let (mut discharged, mut pending, mut unmapped, mut constant_mismatch) = (0, 0, 0, 0);
-    let (mut instance_unpinned, mut relation_mismatch, mut wire_role_mismatch) = (0, 0, 0);
+    let (
+        mut discharged,
+        mut functional_assumptions,
+        mut pending,
+        mut unmapped,
+        mut constant_mismatch,
+    ) = (0, 0, 0, 0, 0);
+    let (
+        mut instance_unpinned,
+        mut theorem_missing,
+        mut contract_missing,
+        mut relation_mismatch,
+        mut wire_role_mismatch,
+    ) = (0, 0, 0, 0, 0);
     for seg in &ir.segments {
         if seg.constraint_count == 0 || seg.class_key.is_empty() {
             continue;
@@ -317,38 +391,56 @@ pub fn check_obligations(ir: &DeployedSliceIr, manifest: &CoverageManifest) -> C
                 unmapped += 1;
                 Verdict::Unmapped
             }
-            Some(m) if m.status == "proven" => {
-                if m.constant_vector_sha256_hex != seg.constant_vector_sha256_hex {
-                    constant_mismatch += 1;
-                    Verdict::ConstantMismatch {
-                        manifest: m.constant_vector_sha256_hex.clone(),
-                        instance: seg.constant_vector_sha256_hex.clone(),
+            Some(m) if matches!(m.status.as_str(), "proven" | "functional-assumption") => {
+                match m.instances.iter().find(|i| i.segment_index == seg.index) {
+                    None => {
+                        instance_unpinned += 1;
+                        Verdict::InstanceUnpinned
                     }
-                } else {
-                    match m.instances.iter().find(|i| i.segment_index == seg.index) {
-                        None => {
-                            instance_unpinned += 1;
-                            Verdict::InstanceUnpinned
+                    Some(inst)
+                        if inst.constant_vector_sha256_hex != seg.constant_vector_sha256_hex =>
+                    {
+                        constant_mismatch += 1;
+                        Verdict::ConstantMismatch {
+                            manifest: inst.constant_vector_sha256_hex.clone(),
+                            instance: seg.constant_vector_sha256_hex.clone(),
                         }
-                        Some(inst) if inst.relation_sha256_hex != seg.relation_sha256_hex => {
-                            relation_mismatch += 1;
-                            Verdict::RelationMismatch {
-                                manifest: inst.relation_sha256_hex.clone(),
-                                instance: seg.relation_sha256_hex.clone(),
-                            }
+                    }
+                    Some(inst) if inst.relation_sha256_hex != seg.relation_sha256_hex => {
+                        relation_mismatch += 1;
+                        Verdict::RelationMismatch {
+                            manifest: inst.relation_sha256_hex.clone(),
+                            instance: seg.relation_sha256_hex.clone(),
                         }
-                        Some(inst) if inst.wire_role_sha256_hex != seg.wire_role_sha256_hex => {
-                            wire_role_mismatch += 1;
-                            Verdict::WireRoleMismatch {
-                                manifest: inst.wire_role_sha256_hex.clone(),
-                                instance: seg.wire_role_sha256_hex.clone(),
-                            }
+                    }
+                    Some(inst) if inst.wire_role_sha256_hex != seg.wire_role_sha256_hex => {
+                        wire_role_mismatch += 1;
+                        Verdict::WireRoleMismatch {
+                            manifest: inst.wire_role_sha256_hex.clone(),
+                            instance: seg.wire_role_sha256_hex.clone(),
                         }
-                        Some(_) => {
-                            discharged += 1;
-                            Verdict::Discharged {
-                                lean_theorem: m.lean_theorem.clone(),
-                            }
+                    }
+                    Some(inst) if inst.lean_theorem.is_empty() => {
+                        theorem_missing += 1;
+                        Verdict::TheoremMissing
+                    }
+                    Some(inst) if inst.lean_contract.is_empty() => {
+                        contract_missing += 1;
+                        Verdict::ContractMissing
+                    }
+                    Some(inst) if m.status == "proven" => {
+                        discharged += 1;
+                        Verdict::Discharged {
+                            lean_theorem: inst.lean_theorem.clone(),
+                            lean_contract: inst.lean_contract.clone(),
+                        }
+                    }
+                    Some(inst) => {
+                        functional_assumptions += 1;
+                        Verdict::FunctionalAssumption {
+                            lean_theorem: inst.lean_theorem.clone(),
+                            lean_contract: inst.lean_contract.clone(),
+                            assumption_id: m.assumption_id.clone(),
                         }
                     }
                 }
@@ -376,10 +468,13 @@ pub fn check_obligations(ir: &DeployedSliceIr, manifest: &CoverageManifest) -> C
         sr1cs_sha256_hex: ir.sr1cs_sha256_hex.clone(),
         total_obligations: obligations.len(),
         discharged,
+        functional_assumptions,
         pending,
         unmapped,
         constant_mismatch,
         instance_unpinned,
+        theorem_missing,
+        contract_missing,
         relation_mismatch,
         wire_role_mismatch,
         class_errors,
@@ -396,20 +491,15 @@ pub fn skeleton_from_ir(ir: &DeployedSliceIr) -> CoverageManifest {
         .classes
         .iter()
         .map(|c| {
-            // Representative instance's folded-constant hash (all equal when
-            // distinct_constant_vectors == 1).
-            let const_hash = ir
-                .segments
-                .iter()
-                .find(|s| s.class_key == c.class_key)
-                .map(|s| s.constant_vector_sha256_hex.clone())
-                .unwrap_or_default();
             let instances: Vec<InstanceCoverage> = ir
                 .segments
                 .iter()
                 .filter(|s| s.class_key == c.class_key)
                 .map(|s| InstanceCoverage {
                     segment_index: s.index,
+                    lean_theorem: String::new(),
+                    lean_contract: contracts::contract_module(&ir.circuit, s.index),
+                    constant_vector_sha256_hex: s.constant_vector_sha256_hex.clone(),
                     relation_sha256_hex: s.relation_sha256_hex.clone(),
                     wire_role_sha256_hex: s.wire_role_sha256_hex.clone(),
                 })
@@ -418,9 +508,8 @@ pub fn skeleton_from_ir(ir: &DeployedSliceIr) -> CoverageManifest {
                 class_key: c.class_key.clone(),
                 op: c.op.clone(),
                 status: "pending".to_owned(),
-                lean_theorem: String::new(),
+                assumption_id: String::new(),
                 shape_sha256_hex: c.shape_sha256_hex.clone(),
-                constant_vector_sha256_hex: const_hash,
                 instances,
                 note: String::new(),
             }
@@ -430,8 +519,47 @@ pub fn skeleton_from_ir(ir: &DeployedSliceIr) -> CoverageManifest {
     CoverageManifest {
         schema: MANIFEST_SCHEMA.to_owned(),
         circuit: ir.circuit.clone(),
+        functional_assumption_allowlist: Vec::new(),
         classes,
     }
+}
+
+/// Rebuild the machine-derived pins of an existing manifest while retaining
+/// review-owned status, theorem, assumption, and note fields. This is used when
+/// the manifest schema changes or a circuit artifact is regenerated; it never
+/// carries old row/constant hashes forward.
+pub fn normalize_manifest(ir: &DeployedSliceIr, previous: &CoverageManifest) -> CoverageManifest {
+    let previous_by_key: BTreeMap<&str, &ClassCoverage> = previous
+        .classes
+        .iter()
+        .map(|class| (class.class_key.as_str(), class))
+        .collect();
+    let mut normalized = skeleton_from_ir(ir);
+    normalized.functional_assumption_allowlist = previous.functional_assumption_allowlist.clone();
+    for class in &mut normalized.classes {
+        let Some(previous_class) = previous_by_key.get(class.class_key.as_str()) else {
+            continue;
+        };
+        class.status = previous_class.status.clone();
+        class.assumption_id = previous_class.assumption_id.clone();
+        class.note = previous_class.note.clone();
+        let previous_instances: BTreeMap<usize, &InstanceCoverage> = previous_class
+            .instances
+            .iter()
+            .map(|instance| (instance.segment_index, instance))
+            .collect();
+        for instance in &mut class.instances {
+            if let Some(previous_instance) = previous_instances.get(&instance.segment_index) {
+                instance.lean_theorem = previous_instance.lean_theorem.clone();
+                instance.lean_contract = if previous_instance.lean_contract.is_empty() {
+                    contracts::contract_module(&ir.circuit, instance.segment_index)
+                } else {
+                    previous_instance.lean_contract.clone()
+                };
+            }
+        }
+    }
+    normalized
 }
 
 #[cfg(test)]
@@ -444,11 +572,14 @@ mod tests {
     );
 
     fn load() -> (DeployedSliceIr, CoverageManifest) {
-        let ir_bytes = std::fs::read(format!("{FORMAL_DIR}/consolidate2x1-deployed-slice-ir.json"))
-            .expect("read committed deployed-slice IR");
-        let man_bytes =
-            std::fs::read(format!("{FORMAL_DIR}/consolidate2x1-coverage-manifest.json"))
-                .expect("read committed coverage manifest");
+        let ir_bytes = std::fs::read(format!(
+            "{FORMAL_DIR}/consolidate2x1-deployed-slice-ir.json"
+        ))
+        .expect("read committed deployed-slice IR");
+        let man_bytes = std::fs::read(format!(
+            "{FORMAL_DIR}/consolidate2x1-coverage-manifest.json"
+        ))
+        .expect("read committed coverage manifest");
         (
             load_ir(&ir_bytes).expect("parse IR"),
             load_coverage_manifest(&man_bytes).expect("parse manifest"),
@@ -456,7 +587,7 @@ mod tests {
     }
 
     /// The manifest must stay structurally consistent with the IR: every class
-    /// enumerated, op + shape hashes matching, single constant vector per class,
+    /// enumerated, op + shape hashes matching, and all per-instance pins present.
     /// proven entries carrying a theorem. Pending classes are allowed. This is
     /// green throughout §2 and tightens to `fully_discharged` for the §3 gate.
     #[test]
@@ -471,12 +602,14 @@ mod tests {
             report.constant_mismatch,
         );
         // Every class is enumerated (no silent gaps) and the skeleton derived
-        // from the IR agrees on class set + hashes.
+        // from the IR agrees on class set + exact instance pins.
         let skel = skeleton_from_ir(&ir);
-        let man_keys: BTreeSet<&str> =
-            manifest.classes.iter().map(|c| c.class_key.as_str()).collect();
-        let skel_keys: BTreeSet<&str> =
-            skel.classes.iter().map(|c| c.class_key.as_str()).collect();
+        let man_keys: BTreeSet<&str> = manifest
+            .classes
+            .iter()
+            .map(|c| c.class_key.as_str())
+            .collect();
+        let skel_keys: BTreeSet<&str> = skel.classes.iter().map(|c| c.class_key.as_str()).collect();
         assert_eq!(man_keys, skel_keys, "manifest class set != IR class set");
         for s in &skel.classes {
             let m = manifest
@@ -489,11 +622,15 @@ mod tests {
                 "class {}: shape hash drifted from IR",
                 s.class_key
             );
-            assert_eq!(
-                m.constant_vector_sha256_hex, s.constant_vector_sha256_hex,
-                "class {}: constant hash drifted from IR",
-                s.class_key
-            );
+            assert_eq!(m.instances.len(), s.instances.len());
+            for (actual, expected) in m.instances.iter().zip(&s.instances) {
+                assert_eq!(actual.segment_index, expected.segment_index);
+                assert_eq!(
+                    actual.constant_vector_sha256_hex, expected.constant_vector_sha256_hex,
+                    "class {}: instance {} constant hash drifted from IR",
+                    s.class_key, expected.segment_index
+                );
+            }
         }
     }
 
@@ -510,17 +647,30 @@ mod tests {
             .count();
         assert_eq!(report.total_obligations, instance_count);
         assert_eq!(
-            report.discharged + report.pending + report.unmapped + report.constant_mismatch,
+            report.discharged
+                + report.functional_assumptions
+                + report.pending
+                + report.unmapped
+                + report.constant_mismatch
+                + report.instance_unpinned
+                + report.theorem_missing
+                + report.contract_missing
+                + report.relation_mismatch
+                + report.wire_role_mismatch,
             report.total_obligations,
             "verdict counts must partition all obligations"
         );
         // At least the two landed classes are discharged (assert_on_curve,
         // note_commitment), covering all their instances.
-        assert!(report.discharged >= 9, "expected >=9 discharged instances, got {}", report.discharged);
+        assert!(
+            report.discharged >= 9,
+            "expected >=9 discharged instances, got {}",
+            report.discharged
+        );
     }
 
     /// The constant-mismatch bite: corrupting one folded constant a `proven`
-    /// class was pinned against must surface as a `ConstantMismatch`, not a
+    /// instance was pinned against must surface as a `ConstantMismatch`, not a
     /// silent pass. Proves the table actually checks constants per instance.
     #[test]
     fn proven_class_constant_drift_is_caught() {
@@ -531,14 +681,15 @@ mod tests {
             .find(|c| c.status == "proven")
             .expect("at least one proven class");
         // flip the last hex nibble of the pinned constant vector hash
-        let mut h: Vec<char> = target.constant_vector_sha256_hex.chars().collect();
-        let last = h.len() - 1;
-        h[last] = if h[last] == 'a' { 'b' } else { 'a' };
-        target.constant_vector_sha256_hex = h.into_iter().collect();
+        let h = &mut target.instances[0].constant_vector_sha256_hex;
+        let mut chars: Vec<char> = h.chars().collect();
+        let last = chars.len() - 1;
+        chars[last] = if chars[last] == 'a' { 'b' } else { 'a' };
+        *h = chars.into_iter().collect();
         let report = check_obligations(&ir, &manifest);
         assert!(
             report.constant_mismatch > 0,
-            "corrupted proven-class constant hash was not caught"
+            "corrupted proven-instance constant hash was not caught"
         );
         assert!(!report.fully_discharged());
     }
@@ -607,6 +758,36 @@ mod tests {
         assert!(!report.fully_discharged());
     }
 
+    /// A bound class is not enough: each exact instance must name the theorem
+    /// that was typechecked for that slice.
+    #[test]
+    fn proven_instance_missing_theorem_is_caught() {
+        let (ir, mut manifest) = load();
+        let target = proven_multi_instance(&mut manifest);
+        target.instances[0].lean_theorem.clear();
+        let report = check_obligations(&ir, &manifest);
+        assert!(
+            report.theorem_missing > 0,
+            "dropping an instance theorem must surface as TheoremMissing"
+        );
+        assert!(!report.fully_discharged());
+    }
+
+    /// The generated contract module is part of the theorem binding. Dropping
+    /// it must fail independently of theorem-name presence.
+    #[test]
+    fn proven_instance_missing_contract_is_caught() {
+        let (ir, mut manifest) = load();
+        let target = proven_multi_instance(&mut manifest);
+        target.instances[0].lean_contract.clear();
+        let report = check_obligations(&ir, &manifest);
+        assert!(
+            report.contract_missing > 0,
+            "dropping an instance contract must surface as ContractMissing"
+        );
+        assert!(!report.fully_discharged());
+    }
+
     /// A class present in the IR but absent from the manifest is a hard gap.
     #[test]
     fn forgotten_class_is_unmapped() {
@@ -617,5 +798,67 @@ mod tests {
             !report.class_errors.is_empty() || report.unmapped > 0,
             "dropping a class from the manifest must fail the check"
         );
+    }
+
+    /// A pending structural class cannot be silently moved into the residual
+    /// tier: the closed allowlist must be changed explicitly as well.
+    #[test]
+    fn functional_assumption_requires_closed_allowlist() {
+        let (ir, mut manifest) = load();
+        let target = manifest
+            .classes
+            .iter_mut()
+            .find(|c| c.status == "pending")
+            .expect("a pending structural class");
+        target.status = "functional-assumption".to_owned();
+        for instance in &mut target.instances {
+            instance.lean_theorem = "Shieldd.GnarkFormal.Test.functional".to_owned();
+        }
+        target.assumption_id = "ZK-ASSUME-TEST".to_owned();
+
+        let report = check_obligations(&ir, &manifest);
+        assert!(
+            report
+                .class_errors
+                .iter()
+                .any(|error| error.contains("not in the closed allowlist")),
+            "functional class outside the allowlist was accepted: {:#?}",
+            report.class_errors
+        );
+        assert!(!report.tiered_discharged());
+    }
+
+    /// A tiered report accepts only exact, pinned functional residuals, while
+    /// `fully_discharged` remains reserved for zero residual assumptions.
+    #[test]
+    fn functional_assumption_is_tiered_not_fully_discharged() {
+        let (ir, mut manifest) = load();
+        for class in &mut manifest.classes {
+            if class.status == "pending" {
+                class.status = "proven".to_owned();
+                for instance in &mut class.instances {
+                    instance.lean_theorem = "Shieldd.GnarkFormal.Test.row_sound".to_owned();
+                }
+            }
+        }
+        let target = manifest
+            .classes
+            .iter_mut()
+            .find(|c| c.status == "proven")
+            .expect("a proven class");
+        target.status = "functional-assumption".to_owned();
+        for instance in &mut target.instances {
+            instance.lean_theorem = "Shieldd.GnarkFormal.Test.functional".to_owned();
+        }
+        target.assumption_id = "ZK-ASSUME-TEST".to_owned();
+        manifest
+            .functional_assumption_allowlist
+            .push(target.class_key.clone());
+
+        let report = check_obligations(&ir, &manifest);
+        assert!(report.class_errors.is_empty(), "{:#?}", report.class_errors);
+        assert!(report.functional_assumptions > 0);
+        assert!(report.tiered_discharged());
+        assert!(!report.fully_discharged());
     }
 }

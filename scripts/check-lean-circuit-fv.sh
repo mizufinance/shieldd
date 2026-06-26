@@ -249,7 +249,12 @@ scratch_files="$(find "$LEAN_DIR/ShielddGnarkFormal" -maxdepth 1 -type f \( -nam
 rg -n '\bsorry\b|\badmit\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" \
   && fail "Lean sources contain sorry/admit"
 
-axiom_lines="$(rg -n '^\s*axiom\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" || true)"
+# Only one Lean `axiom` is permitted in-tree: the ledgered decaf377 scalar-field
+# primality assumption (CC-ASSUME-DECAF377-PRIME-ORDER-GROUP), declared once in
+# Deployed/PrimeOrderAssumption.lean and used to supply `Fact (Nat.Prime Order)`
+# instances to the deployed gadget binding wrappers. Any other `axiom` fails.
+axiom_lines="$(rg -n '^\s*axiom\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" \
+  | rg -v 'Deployed/PrimeOrderAssumption\.lean:.*\baxiom decaf377ScalarFieldPrime\b' || true)"
 if [[ -n "$axiom_lines" ]]; then
   fail "unexpected Lean axiom: $axiom_lines"
 fi
