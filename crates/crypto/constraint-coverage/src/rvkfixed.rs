@@ -766,6 +766,124 @@ pub fn emit_raw_sound(certs: &[RungCert]) -> String {
     s
 }
 
+/// Emit `inst_rvk_raw_ladder`: identical to `inst_rvk_raw_sound` up to the ladder,
+/// but EXPOSES `onCurve (ladderPoint)` directly (no `hak`/`hadd`/native tail). The
+/// deployed-slice adapter needs this on-curve fact to build the native add's
+/// `addSpec` via `RvkDeployedRung.deployedTail_addSpec` (Edwards completeness wants
+/// both summands on-curve). Mirrors `emit_raw_sound`'s rung-cert threading exactly;
+/// the final accumulator on-curve fact `ho{n}` IS the ladder result.
+pub fn emit_raw_ladder(certs: &[RungCert]) -> String {
+    let n = certs.len();
+    assert!(n >= 1);
+    let nb = n + 1;
+    let b0t = "((toZMod bits[0]!) : EdwardsBridge.F)";
+    let mut s = String::new();
+    s.push_str("theorem inst_rvk_raw_ladder\n");
+    s.push_str(&format!("    (bits : List.Vector Bool {nb})\n"));
+    for k in 1..=n {
+        s.push_str(&format!(
+            "    (v2v{k} sxv{k} syv{k} sdx{k} sdy{k} accx{k} accy{k} : EdwardsBridge.F)\n"
+        ));
+    }
+    let point =
+        |k: usize| -> String { format!("⟨{GX}*{b0t} + accx{k}, (1+{GYM1}*{b0t}) + accy{k}⟩") };
+    for c in certs {
+        let k = c.i;
+        let r = &c.raw;
+        let bk = format!("((toZMod bits[{k}]!) : EdwardsBridge.F)");
+        if k == 1 {
+            s.push_str(&format!(
+                "    (h_v2_{k} : ({}*{b0t})*({} + {}*{b0t}) = v2v{k})\n",
+                r.alpha, r.cix, r.db0
+            ));
+            s.push_str(&format!(
+                "    (h_addX_{k} : sxv{k}*(1 + v2v{k}) = {} + {}*{b0t})\n",
+                r.cix, r.eb0
+            ));
+            s.push_str(&format!(
+                "    (h_addY_{k} : syv{k}*(1 + (-1)*v2v{k}) = {} + {}*{b0t})\n",
+                r.ciy, r.fb0
+            ));
+            s.push_str(&format!(
+                "    (h_selX_{k} : (1*{bk})*({}*{b0t} + sxv{k}) = sdx{k})\n",
+                r.neg_gx
+            ));
+            s.push_str(&format!(
+                "    (h_selY_{k} : (1*{bk})*((-1) + {}*{b0t} + syv{k}) = sdy{k})\n",
+                r.one_minus_gy
+            ));
+        } else {
+            let dx = format!("accx{}", k - 1);
+            let dy = format!("accy{}", k - 1);
+            let cw5 = r.cw5.as_deref().unwrap();
+            s.push_str(&format!(
+                "    (h_v2_{k} : ({}*{b0t} + {cw5}*{dx})*({} + {}*{b0t} + {}*{dy}) = v2v{k})\n",
+                r.alpha, r.cix, r.db0, r.cix
+            ));
+            s.push_str(&format!(
+                "    (h_addX_{k} : sxv{k}*(1 + v2v{k}) = {} + {}*{b0t} + {}*{dx} + {}*{dy})\n",
+                r.cix, r.eb0, r.ciy, r.cix
+            ));
+            s.push_str(&format!(
+                "    (h_addY_{k} : syv{k}*(1 + (-1)*v2v{k}) = {} + {}*{b0t} + {}*{dx} + {}*{dy})\n",
+                r.ciy, r.fb0, r.cix, r.ciy
+            ));
+            s.push_str(&format!(
+                "    (h_selX_{k} : (1*{bk})*({}*{b0t} + (-1)*{dx} + sxv{k}) = sdx{k})\n",
+                r.neg_gx
+            ));
+            s.push_str(&format!(
+                "    (h_selY_{k} : (1*{bk})*((-1) + {}*{b0t} + (-1)*{dy} + syv{k}) = sdy{k})\n",
+                r.one_minus_gy
+            ));
+        }
+        if k == 1 {
+            s.push_str(&format!("    (haccx{k} : accx{k} = sdx{k})\n"));
+            s.push_str(&format!("    (haccy{k} : accy{k} = sdy{k})\n"));
+        } else {
+            s.push_str(&format!("    (haccx{k} : accx{k} = accx{} + sdx{k})\n", k - 1));
+            s.push_str(&format!("    (haccy{k} : accy{k} = accy{} + sdy{k})\n", k - 1));
+        }
+    }
+    s.push_str(&format!("    : onCurve {} := by\n", point(n)));
+    let boolpf = "(by cases h : bits[0]! <;> simp [h, Bool.toZMod_zero, Bool.toZMod_one])";
+    s.push_str(&format!(
+        "  have ho0 : onCurve (acc1 {b0t}) := seed_onCurve _ {boolpf}\n"
+    ));
+    for k in 1..=n {
+        let bk = format!("((toZMod bits[{k}]!) : EdwardsBridge.F)");
+        let hbit =
+            format!("(by cases h : bits[{k}]! <;> simp [h, Bool.toZMod_zero, Bool.toZMod_one])");
+        if k == 1 {
+            s.push_str(&format!(
+                "  have hr{k} : RvkFixedBaseLadder.FixedStepRel {k} {bk} (acc1 {b0t}) {} := by\n",
+                point(k)
+            ));
+            s.push_str(&format!(
+                "    have h := rung{k} {b0t} {bk} v2v{k} sxv{k} syv{k} sdx{k} sdy{k} ho0 h_v2_{k} h_addX_{k} h_addY_{k} h_selX_{k} h_selY_{k} {hbit}\n"
+            ));
+            s.push_str(&format!("    rw [haccx{k}, haccy{k}]; exact h\n"));
+        } else {
+            s.push_str(&format!(
+                "  have hr{k} : RvkFixedBaseLadder.FixedStepRel {k} {bk} {} {} := by\n",
+                point(k - 1),
+                point(k)
+            ));
+            s.push_str(&format!(
+                "    have h := rung{k}_wide {b0t} {bk} accx{} accy{} v2v{k} sxv{k} syv{k} sdx{k} sdy{k} ho{} h_v2_{k} h_addX_{k} h_addY_{k} h_selX_{k} h_selY_{k} {hbit}\n",
+                k - 1, k - 1, k - 1
+            ));
+            s.push_str(&format!("    rw [haccx{k}, haccy{k}]; exact h\n"));
+        }
+        s.push_str(&format!(
+            "  have ho{k} := (RvkFixedBaseLadder.fixedStep_semantic {k} bits[{k}]! _ _ ho{} hr{k}).2\n",
+            k - 1
+        ));
+    }
+    s.push_str(&format!("  exact ho{n}\n"));
+    s
+}
+
 /// Emit the deployed-row → `onCurve` bridge `inst_rvk_deployed_sound` over a wire
 /// assignment `rho : Nat → F`. It mirrors the keystone's interface exactly — the
 /// per-rung accumulators are abstract variables `ax{k}/ay{k}` threaded by link
@@ -930,6 +1048,136 @@ pub fn emit_relation_bridge(certs: &[RungCert], b0: usize) -> String {
     s
 }
 
+/// Emit `inst_rvk_ladder_deployed` over `rho`: same deployed-row premises as
+/// `inst_rvk_deployed_sound` (booleanity + fused rung rows + accumulator links)
+/// but WITHOUT the native tail (`hak`/`hadd`); it concludes `onCurve (ladderPoint)`
+/// directly by applying `inst_rvk_raw_ladder`. The deployed-slice adapter uses this
+/// to obtain the ladder-result on-curve fact needed by `deployedTail_addSpec`.
+pub fn emit_ladder_deployed(certs: &[RungCert], b0: usize) -> String {
+    let n = certs.len();
+    let nb = n + 1;
+    let b0r = format!("rho {b0}");
+    let mut s = String::new();
+    s.push_str("set_option maxHeartbeats 100000000 in\n");
+    s.push_str("theorem inst_rvk_ladder_deployed (rho : Nat → EdwardsBridge.F)\n");
+    for c in certs {
+        let k = c.i;
+        s.push_str(&format!("    (ax{k} ay{k} : EdwardsBridge.F)\n"));
+    }
+    s.push_str(&format!("    (hbool0 : (1*({b0r}))*(1 + (-1)*({b0r})) = 0)\n"));
+    for c in certs {
+        let k = c.i;
+        let bw = format!("rho {}", c.raw.bit);
+        s.push_str(&format!("    (hbool{k} : (1*({bw}))*(1 + (-1)*({bw})) = 0)\n"));
+    }
+    for c in certs {
+        let k = c.i;
+        let r = &c.raw;
+        let bk = format!("rho {}", r.bit);
+        let v2 = format!("rho {}", r.v2w);
+        let sx = format!("rho {}", r.sx);
+        let sy = format!("rho {}", r.sy);
+        let sdx = format!("rho {}", r.sdx);
+        let sdy = format!("rho {}", r.sdy);
+        if k == 1 {
+            s.push_str(&format!(
+                "    (d_v2_{k} : ({}*({b0r}))*({} + {}*({b0r})) = {v2})\n",
+                r.alpha, r.cix, r.db0
+            ));
+            s.push_str(&format!(
+                "    (d_addX_{k} : ({sx})*(1 + {v2}) = {} + {}*({b0r}))\n",
+                r.cix, r.eb0
+            ));
+            s.push_str(&format!(
+                "    (d_addY_{k} : ({sy})*(1 + (-1)*{v2}) = {} + {}*({b0r}))\n",
+                r.ciy, r.fb0
+            ));
+            s.push_str(&format!(
+                "    (d_selX_{k} : (1*({bk}))*({}*({b0r}) + {sx}) = {sdx})\n",
+                r.neg_gx
+            ));
+            s.push_str(&format!(
+                "    (d_selY_{k} : (1*({bk}))*((-1) + {}*({b0r}) + {sy}) = {sdy})\n",
+                r.one_minus_gy
+            ));
+            s.push_str(&format!("    (hax{k} : ax{k} = {sdx})\n"));
+            s.push_str(&format!("    (hay{k} : ay{k} = {sdy})\n"));
+        } else {
+            let dx = format!("ax{}", k - 1);
+            let dy = format!("ay{}", k - 1);
+            let cw5 = r.cw5.as_deref().unwrap();
+            s.push_str(&format!(
+                "    (d_v2_{k} : ({}*({b0r}) + {cw5}*{dx})*({} + {}*({b0r}) + {}*{dy}) = {v2})\n",
+                r.alpha, r.cix, r.db0, r.cix
+            ));
+            s.push_str(&format!(
+                "    (d_addX_{k} : ({sx})*(1 + {v2}) = {} + {}*({b0r}) + {}*{dx} + {}*{dy})\n",
+                r.cix, r.eb0, r.ciy, r.cix
+            ));
+            s.push_str(&format!(
+                "    (d_addY_{k} : ({sy})*(1 + (-1)*{v2}) = {} + {}*({b0r}) + {}*{dx} + {}*{dy})\n",
+                r.ciy, r.fb0, r.cix, r.ciy
+            ));
+            s.push_str(&format!(
+                "    (d_selX_{k} : (1*({bk}))*({}*({b0r}) + (-1)*{dx} + {sx}) = {sdx})\n",
+                r.neg_gx
+            ));
+            s.push_str(&format!(
+                "    (d_selY_{k} : (1*({bk}))*((-1) + {}*({b0r}) + (-1)*{dy} + {sy}) = {sdy})\n",
+                r.one_minus_gy
+            ));
+            s.push_str(&format!("    (hax{k} : ax{k} = ax{} + {sdx})\n", k - 1));
+            s.push_str(&format!("    (hay{k} : ay{k} = ay{} + {sdy})\n", k - 1));
+        }
+    }
+    s.push_str(&format!(
+        "    : onCurve ⟨{GX}*({b0r}) + ax{n}, (1+{GYM1}*({b0r})) + ay{n} ⟩ := by\n"
+    ));
+    s.push_str("  obtain ⟨c0, hc0⟩ := boolify _ hbool0\n");
+    for c in certs {
+        let k = c.i;
+        s.push_str(&format!("  obtain ⟨c{k}, hc{k}⟩ := boolify _ hbool{k}\n"));
+    }
+    let cl: Vec<String> = (0..=n).map(|k| format!("c{k}")).collect();
+    s.push_str(&format!(
+        "  let bits : List.Vector Bool {nb} := ⟨[{}], rfl⟩\n",
+        cl.join(", ")
+    ));
+    s.push_str(&format!(
+        "  have hb0 : (toZMod bits[0]! : EdwardsBridge.F) = rho {b0} := hc0.symm\n"
+    ));
+    for c in certs {
+        let k = c.i;
+        s.push_str(&format!(
+            "  have hb{k} : (toZMod bits[{k}]! : EdwardsBridge.F) = rho {} := hc{k}.symm\n",
+            c.raw.bit
+        ));
+    }
+    for c in certs {
+        let k = c.i;
+        s.push_str(&format!("  rw [← hb0] at d_v2_{k} d_addX_{k} d_addY_{k}\n"));
+        s.push_str(&format!("  rw [← hb0, ← hb{k}] at d_selX_{k} d_selY_{k}\n"));
+    }
+    // align the goal's ladder point (in `rho b0` form) with the keystone's `bits[0]` form.
+    s.push_str("  rw [← hb0]\n");
+    s.push_str("  exact inst_rvk_raw_ladder bits\n");
+    for c in certs {
+        let k = c.i;
+        let r = &c.raw;
+        s.push_str(&format!(
+            "    (rho {}) (rho {}) (rho {}) (rho {}) (rho {}) ax{k} ay{k}\n",
+            r.v2w, r.sx, r.sy, r.sdx, r.sdy
+        ));
+    }
+    for c in certs {
+        let k = c.i;
+        s.push_str(&format!(
+            "    d_v2_{k} d_addX_{k} d_addY_{k} d_selX_{k} d_selY_{k} hax{k} hay{k}\n"
+        ));
+    }
+    s
+}
+
 pub fn emit_footer(inst: &str) -> String {
     format!("end Cert\nend Shieldd.GnarkFormal.RvkFixedGen{inst}\n")
 }
@@ -960,7 +1208,9 @@ pub fn emit_rvk_file(rows: &[Constraint], fused_base: usize, n: usize, inst: &st
     }
     out.push_str(&emit_composition(certs.len()));
     out.push_str(&emit_raw_sound(&certs));
+    out.push_str(&emit_raw_ladder(&certs));
     out.push_str(&emit_relation_bridge(&certs, b0));
+    out.push_str(&emit_ladder_deployed(&certs, b0));
     out.push_str(&emit_footer(inst));
     out
 }

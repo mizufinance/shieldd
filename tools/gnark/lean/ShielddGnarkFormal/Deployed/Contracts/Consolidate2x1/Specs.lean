@@ -96,10 +96,18 @@ def deployedSpec27 (rho : Nat → DeployedF) : Prop :=
       Shieldd.GnarkFormal.Poseidon3Bridge.nullifierDomainLit
       (rho 8) (rho 113) (rho 114)
 
-/-- Deployed RVK fixed-base multiplication endpoint. -/
-def deployedSpec13 (rho : Nat → DeployedF) : Prop := onCurveAt (rho 12380) (rho 12381)
+/-- Deployed RVK fixed-base multiplication endpoint.
 
-def deployedSpec31 (rho : Nat → DeployedF) : Prop := onCurveAt (rho 31080) (rho 31081)
+The segment computes `rvk = ak ⊕ (bits · Basepoint)` and proves the output is on the
+Edwards curve. On-curve-ness of `rvk` requires on-curve-ness of the `ak` input
+(`(rho 6, rho 7)`), which this segment does **not** assert internally — `ak` is
+constrained on-curve by a separate deployed segment. The faithful per-segment endpoint
+is therefore the implication: if the `ak` input is on-curve, the `rvk` output is. -/
+def deployedSpec13 (rho : Nat → DeployedF) : Prop :=
+  onCurveAt (rho 6) (rho 7) → onCurveAt (rho 12380) (rho 12381)
+
+def deployedSpec31 (rho : Nat → DeployedF) : Prop :=
+  onCurveAt (rho 6) (rho 7) → onCurveAt (rho 31080) (rho 31081)
 
 /-- Deployed statement-hash Poseidon subchain endpoint. -/
 def deployedSpec59 (rho : Nat → DeployedF) : Prop :=

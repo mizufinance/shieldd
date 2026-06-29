@@ -19,6 +19,8 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NullifierAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NoteCommitmentAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.StatementHashAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapters
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg13
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg31
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg14
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg18
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg19
@@ -133,6 +135,18 @@ theorem inst12_bound :
   ⟨rfl, rfl, fun _ h => by
     simp only [Seg12.contract, Seg12.relation, Seg12.spec, Specs.deployedSpec12] at h ⊢
     linear_combination -h⟩
+
+/-- seg13 `decaf.randomized_verification_key`. -/
+theorem inst13_bound :
+    Deployed.BoundDeployedSound Seg13.contract
+      Seg13.contract.relationSha256Hex Seg13.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg13_sound⟩
+
+/-- seg31 `decaf.randomized_verification_key`. -/
+theorem inst31_bound :
+    Deployed.BoundDeployedSound Seg31.contract
+      Seg31.contract.relationSha256Hex Seg31.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg31_sound⟩
 
 /-- seg21 `assert.eq`. -/
 theorem inst21_bound :
