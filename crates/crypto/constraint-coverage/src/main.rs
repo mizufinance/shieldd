@@ -72,6 +72,11 @@ struct Args {
     /// folded accumulators rematerialize narrow (e.g. Poseidon MDS folds).
     #[clap(long, default_value_t = 16)]
     ladder_width_limit: usize,
+    /// Emit the recovered, parity-gated lt-compare ladder seating (R + Q4
+    /// canonicity chains) for consolidate2x1 as JSON here — the Pass-3 handoff
+    /// the Lean generator consumes instead of re-deriving the recovery.
+    #[clap(long)]
+    lt_seating_out: Option<PathBuf>,
     /// Emit the exhaustive wire-graph row map for `[slice-start,slice-end)` here
     /// (per-row {to_binary|step|redundant} classification + justification).
     #[clap(long)]
@@ -204,6 +209,28 @@ fn main() -> anyhow::Result<()> {
                 &f.sha256_hex[..12]
             );
         }
+    }
+
+    if let Some(path) = &args.lt_seating_out {
+        anyhow::ensure!(
+            manifest.circuit == "consolidate2x1",
+            "--lt-seating-out only applies to consolidate2x1 (got {:?})",
+            manifest.circuit
+        );
+        let rows = parse_rows(&sr1cs).context("parse rows for lt seating")?;
+        const DTK_OFFSET: usize = 13677;
+        const DTK_ROWS: usize = 6329;
+        let dtk = rows
+            .get(DTK_OFFSET..DTK_OFFSET + DTK_ROWS)
+            .context("DTK segment slice out of range for lt seating")?;
+        let seating = shieldd_constraint_coverage::ltchain::consolidate2x1_lt_seating_json(dtk)
+            .map_err(anyhow::Error::msg)
+            .context("recover + gate lt-compare ladders")?;
+        let mut data = serde_json::to_vec_pretty(&seating)?;
+        data.push(b'\n');
+        write_out(path, data)?;
+        eprintln!("emitted lt-compare ladder seating to {}", path.display());
+        return Ok(());
     }
 
     if let Some(path) = &args.row_map_out {

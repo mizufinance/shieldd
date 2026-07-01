@@ -139,7 +139,11 @@ fn lc_mul_at(
     ))
 }
 
-/// One recovered rung of the ladder (MSB-first index `n`).
+/// One recovered rung of the ladder (MSB-first index `n`). On a bound-bit-set
+/// rung the three multiplications `l = pe·(1-bit)`, `il_mul = il·l`, `pe' =
+/// pe·bit` each seat at a named raw row (`l_row`/`il_mul_row`/`pe_row`); on a
+/// bound-bit-clear rung only `pe' = pe·(1-bit)` at `pe_row` is present. A row is
+/// `None` when the factor folded a constant and consumed no row.
 pub struct LtRung {
     pub n: usize,
     pub one: bool,
@@ -148,6 +152,11 @@ pub struct LtRung {
     pub pe_out: Lc,
     pub il_in: Lc,
     pub il_out: Lc,
+    pub l: Option<Lc>,
+    pub il_mul: Option<Lc>,
+    pub l_row: Option<usize>,
+    pub il_mul_row: Option<usize>,
+    pub pe_row: Option<usize>,
     pub rows: Vec<usize>,
 }
 
@@ -188,27 +197,34 @@ pub fn recover_lt_chain(
         let il_in = il[&(n + 1)].clone();
         let mut used = Vec::new();
 
-        let (pe_out, il_out, is_one) = if bound.bit(n as u64) {
-            let (l, c1, r1) = lc_mul_at(rows, cursor, &pe_in, &one_minus_bit)?;
-            let (il_mul, c2, r2) = lc_mul_at(rows, c1, &il_in, &l)?;
-            let (pe_out, c3, r3) = lc_mul_at(rows, c2, &pe_in, &bit)?;
-            cursor = c3;
-            for r in [r1, r2, r3].into_iter().flatten() {
-                used.push(r.row);
-                recons.push(r);
+        let mut push_recon = |r: Option<Recon>| -> Option<usize> {
+            let row = r.as_ref().map(|x| x.row);
+            if let Some(rec) = r {
+                used.push(rec.row);
+                recons.push(rec);
             }
-            // il' = il + l - il_mul
-            let il_out = lc_axpy(&lc_axpy(&il_in, &l, &Fp::one()), &il_mul, &(-&Fp::one()));
-            (pe_out, il_out, true)
-        } else {
-            let (pe_out, c1, r1) = lc_mul_at(rows, cursor, &pe_in, &one_minus_bit)?;
-            cursor = c1;
-            if let Some(r) = r1 {
-                used.push(r.row);
-                recons.push(r);
-            }
-            (pe_out, il_in.clone(), false)
+            row
         };
+
+        let (pe_out, il_out, is_one, l_opt, il_mul_opt, l_row, il_mul_row, pe_row) =
+            if bound.bit(n as u64) {
+                let (l, c1, r1) = lc_mul_at(rows, cursor, &pe_in, &one_minus_bit)?;
+                let (il_mul, c2, r2) = lc_mul_at(rows, c1, &il_in, &l)?;
+                let (pe_out, c3, r3) = lc_mul_at(rows, c2, &pe_in, &bit)?;
+                cursor = c3;
+                let l_row = push_recon(r1);
+                let il_mul_row = push_recon(r2);
+                let pe_row = push_recon(r3);
+                // il' = il + l - il_mul
+                let il_out = lc_axpy(&lc_axpy(&il_in, &l, &Fp::one()), &il_mul, &(-&Fp::one()));
+                (pe_out, il_out, true, Some(l), Some(il_mul), l_row, il_mul_row, pe_row)
+            } else {
+                let (pe_out, c1, r1) = lc_mul_at(rows, cursor, &pe_in, &one_minus_bit)?;
+                cursor = c1;
+                let pe_row = push_recon(r1);
+                (pe_out, il_in.clone(), false, None, None, None, None, pe_row)
+            };
+        drop(push_recon);
 
         pe.insert(n, pe_out.clone());
         il.insert(n, il_out.clone());
@@ -220,6 +236,11 @@ pub fn recover_lt_chain(
             pe_out,
             il_in,
             il_out,
+            l: l_opt,
+            il_mul: il_mul_opt,
+            l_row,
+            il_mul_row,
+            pe_row,
             rows: used,
         });
     }
@@ -346,8 +367,51 @@ pub fn scalar_order() -> BigUint {
     .expect("valid scalar order")
 }
 
-/// Re-export for the generator handoff: the recovered chain as plain seating
-/// data the Python emitter can consume (row indices + branch + state LCs).
+/// Recover, parity-gate, and serialize both consolidate2x1 DTK canonicity
+/// ladders as the Pass-3 seating handoff the Python generator consumes. `dtk`
+/// is the DTK segment slice `[13677, 13677+6329)`. Fails closed if either
+/// ladder fails recovery, bound-pinning, or the parity gate — so a consumer that
+/// trusts this JSON is trusting the same gate the extractor enforces.
+pub fn consolidate2x1_lt_seating_json(dtk: &[Constraint]) -> Result<serde_json::Value, String> {
+    let chains = verify_consolidate2x1_lt_ladders(dtk)?;
+    let labels = ["R", "Q4"];
+    let ladders: Vec<_> = chains
+        .iter()
+        .zip(labels)
+        .map(|(repr, label)| {
+            let mut v = recovered_seating_json(repr);
+            v["label"] = serde_json::json!(label);
+            v
+        })
+        .collect();
+    Ok(serde_json::json!({
+        "dtk_offset": 13677,
+        "dtk_rows": 6329,
+        "ladders": ladders,
+    }))
+}
+
+/// Serialize an LC as `[[coeff_decimal, wire], …]` (empty = the zero LC).
+fn lc_json(lc: &Lc) -> serde_json::Value {
+    serde_json::Value::Array(
+        lc_to_terms(lc)
+            .iter()
+            .map(|t| serde_json::json!([t.coeff, t.wire]))
+            .collect(),
+    )
+}
+
+fn lc_json_opt(lc: &Option<Lc>) -> serde_json::Value {
+    match lc {
+        Some(l) => lc_json(l),
+        None => serde_json::Value::Null,
+    }
+}
+
+/// The recovered chain as complete seating data the Python emitter reconstructs
+/// its `LtcTrace`/`LtcStep` from directly — DTK-relative row indices, per-rung
+/// branch, the named multiplication rows, and every state LC. Emitting the full
+/// scan is what lets the generator drop its duplicate Python recovery.
 pub fn recovered_seating_json(repr: &LtChainRepr) -> serde_json::Value {
     serde_json::json!({
         "start_row": repr.start_row,
@@ -358,8 +422,15 @@ pub fn recovered_seating_json(repr: &LtChainRepr) -> serde_json::Value {
             "one": r.one,
             "bit_wire": r.bit_wire,
             "rows": r.rows,
-            "pe_out": lc_to_terms(&r.pe_out).iter().map(|t| (t.coeff.clone(), t.wire)).collect::<Vec<_>>(),
-            "il_out": lc_to_terms(&r.il_out).iter().map(|t| (t.coeff.clone(), t.wire)).collect::<Vec<_>>(),
+            "l_row": r.l_row,
+            "il_mul_row": r.il_mul_row,
+            "pe_row": r.pe_row,
+            "pe_in": lc_json(&r.pe_in),
+            "il_in": lc_json(&r.il_in),
+            "pe_out": lc_json(&r.pe_out),
+            "il_out": lc_json(&r.il_out),
+            "l": lc_json_opt(&r.l),
+            "il_mul": lc_json_opt(&r.il_mul),
         })).collect::<Vec<_>>(),
     })
 }

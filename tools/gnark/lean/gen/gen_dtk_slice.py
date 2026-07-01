@@ -25,11 +25,14 @@ import re
 import hashlib
 import json
 import os
+import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parents[2]
 FORMAL = ROOT / "ShielddGnarkFormal"
 DEFAULT_CONTRACTS = FORMAL / "Deployed/Contracts/Consolidate2x1"
 SOURCE_CONTRACTS = Path(os.environ.get("DTK_CONTRACTS_SOURCE", DEFAULT_CONTRACTS))
@@ -1032,20 +1035,6 @@ def lc_add(*terms: tuple[Lc, int]) -> Lc:
     return lc_clean(out)
 
 
-def lc_proportional(left: Lc, right: Lc) -> int | None:
-    left = lc_clean(left)
-    right = lc_clean(right)
-    if not left and not right:
-        return 1
-    if not left or not right or set(left) != set(right):
-        return None
-    wire = next(iter(left))
-    scale = left[wire] * pow(right[wire], -1, ORDER) % ORDER
-    if all(left[item] == scale * right[item] % ORDER for item in left):
-        return scale
-    return None
-
-
 def sr1cs_lc_rows() -> list[tuple[Lc, Lc, Lc]]:
     constraints = [
         parse_constraint(line)
@@ -1062,82 +1051,92 @@ def sr1cs_lc_rows() -> list[tuple[Lc, Lc, Lc]]:
     return rows
 
 
-def lc_mul_at(
-    rows: list[tuple[Lc, Lc, Lc]], cursor: int, left: Lc, right: Lc
-) -> tuple[Lc, int, int | None]:
-    zero: Lc = {}
-    one: Lc = {0: 1}
-    if not left or not right:
-        return zero, cursor, None
-    left_constant = lc_proportional(left, one)
-    if left_constant is not None:
-        return lc_clean({wire: left_constant * coeff for wire, coeff in right.items()}), cursor, None
-    right_constant = lc_proportional(right, one)
-    if right_constant is not None:
-        return lc_clean({wire: right_constant * coeff for wire, coeff in left.items()}), cursor, None
-    row_left, row_right, row_out = rows[cursor]
-    for expected_left, expected_right in ((left, right), (right, left)):
-        left_scale = lc_proportional(row_left, expected_left)
-        right_scale = lc_proportional(row_right, expected_right)
-        if left_scale is None or right_scale is None:
-            continue
-        inverse = pow(left_scale * right_scale % ORDER, -1, ORDER)
-        return (
-            lc_clean({wire: coeff * inverse for wire, coeff in row_out.items()}),
-            cursor + 1,
-            cursor,
+# The lt-compare carry-chain recovery no longer lives here. It is done — and,
+# crucially, *parity-gated* — in the trusted Rust extractor
+# (`shieldd-constraint-coverage`, `ltchain::recover_lt_chain` +
+# `verify_consolidate2x1_lt_ladders`). The generator consumes the extractor's
+# recovered seating as JSON, so a mis-seat is caught at extraction time against
+# the raw rows rather than silently emitted into Lean.
+
+MANIFEST = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1-manifest.json"
+# label -> the extracted bit predicate the emitted Lean references.
+LTC_BIT_DEF = {"R": "rBit", "Q4": "q4Bit"}
+LTC_END_ROW = {"R": 2345, "Q4": 2715}
+
+
+def _lt_seating() -> dict:
+    """Recovered, parity-gated lt-ladder seating from the Rust extractor.
+
+    `DTK_LT_SEATING` may point at a pre-generated JSON (the extractor's
+    `--lt-seating-out` output); otherwise the extractor is invoked directly so
+    the seating always comes through its fail-closed parity gate.
+    """
+    override = os.environ.get("DTK_LT_SEATING")
+    if override:
+        return json.loads(Path(override).read_text())
+    with tempfile.NamedTemporaryFile("r", suffix=".json", delete=False) as handle:
+        out_path = Path(handle.name)
+    try:
+        subprocess.run(
+            [
+                "cargo", "run", "-q", "-p", "shieldd-constraint-coverage", "--",
+                "--manifest", str(MANIFEST),
+                "--sr1cs", str(SR1CS),
+                "--lt-seating-out", str(out_path),
+            ],
+            cwd=REPO_ROOT,
+            check=True,
         )
-    raise ValueError(
-        f"DTK row {cursor} does not implement expected multiplication: "
-        f"{row_left} * {row_right}, expected {left} * {right}"
+        return json.loads(out_path.read_text())
+    finally:
+        out_path.unlink(missing_ok=True)
+
+
+def _lc_from_json(pairs) -> Lc:
+    return lc_clean({wire: int(coeff) for coeff, wire in pairs}) if pairs else {}
+
+
+def _trace_from_json(ladder: dict) -> LtcTrace:
+    label = ladder["label"]
+    one: Lc = {0: 1}
+    pe: dict[int, Lc] = {253: one}
+    il: dict[int, Lc] = {253: {}}
+    steps: dict[int, LtcStep] = {}
+    for rung in sorted(ladder["rungs"], key=lambda r: -r["n"]):
+        n = rung["n"]
+        pe_out = _lc_from_json(rung["pe_out"])
+        il_out = _lc_from_json(rung["il_out"])
+        steps[n] = LtcStep(
+            n,
+            rung["one"],
+            rung["bit_wire"],
+            _lc_from_json(rung["pe_in"]),
+            _lc_from_json(rung["il_in"]),
+            pe_out,
+            il_out,
+            _lc_from_json(rung["l"]) if rung["l"] is not None else None,
+            _lc_from_json(rung["il_mul"]) if rung["il_mul"] is not None else None,
+            rung["l_row"],
+            rung["il_mul_row"],
+            rung["pe_row"],
+        )
+        pe[n] = pe_out
+        il[n] = il_out
+    return LtcTrace(
+        label, LTC_BIT_DEF[label], ladder["start_row"], ladder["end_row"], pe, il, steps
     )
 
 
-def build_ltc_trace(
-    rows: list[tuple[Lc, Lc, Lc]], label: str, bit_def: str, bound: int, start: int
-) -> LtcTrace:
-    one: Lc = {0: 1}
-    pe = {253: one}
-    il: dict[int, Lc] = {253: {}}
-    steps: dict[int, LtcStep] = {}
-    cursor = start
-    for n in range(252, -1, -1):
-        bit = {14064 + n: 1}
-        one_minus_bit = lc_add((one, 1), (bit, -1))
-        pe_in = pe[n + 1]
-        il_in = il[n + 1]
-        if (bound >> n) & 1:
-            l, cursor, l_row = lc_mul_at(rows, cursor, pe_in, one_minus_bit)
-            il_mul, cursor, il_mul_row = lc_mul_at(rows, cursor, il_in, l)
-            pe_out, cursor, pe_row = lc_mul_at(rows, cursor, pe_in, bit)
-            il_out = lc_add((il_in, 1), (l, 1), (il_mul, -1))
-            one_step = True
-        else:
-            pe_out, cursor, pe_row = lc_mul_at(rows, cursor, pe_in, one_minus_bit)
-            il_out = il_in
-            l = None
-            il_mul = None
-            l_row = None
-            il_mul_row = None
-            one_step = False
-        pe[n] = pe_out
-        il[n] = il_out
-        steps[n] = LtcStep(
-            n, one_step, 14064 + n, pe_in, il_in, pe_out, il_out,
-            l, il_mul, l_row, il_mul_row, pe_row,
-        )
-    return LtcTrace(label, bit_def, start, cursor, pe, il, steps)
-
-
 def dtk_ltc_traces() -> tuple[LtcTrace, LtcTrace]:
-    rows = sr1cs_lc_rows()
-    scalar_order = 2111115437357092606062206234695386632838870926408408195193685246394721360383
-    r_trace = build_ltc_trace(rows, "R", "rBit", scalar_order, 1828)
-    q4_trace = build_ltc_trace(rows, "Q4", "q4Bit", ORDER - 4 * scalar_order, 2346)
-    if r_trace.end_row != 2345:
-        raise ValueError(f"r ladder ended at row {r_trace.end_row}, expected 2345")
-    if q4_trace.end_row != 2715:
-        raise ValueError(f"q4 ladder ended at row {q4_trace.end_row}, expected 2715")
+    seating = _lt_seating()
+    traces = {lad["label"]: _trace_from_json(lad) for lad in seating["ladders"]}
+    r_trace, q4_trace = traces["R"], traces["Q4"]
+    for trace in (r_trace, q4_trace):
+        if trace.end_row != LTC_END_ROW[trace.label]:
+            raise ValueError(
+                f"{trace.label} ladder ended at row {trace.end_row}, "
+                f"expected {LTC_END_ROW[trace.label]}"
+            )
     return r_trace, q4_trace
 
 
