@@ -9,8 +9,10 @@ use std::{
 use thiserror::Error;
 
 pub mod contracts;
+pub mod field;
 pub mod ir;
 pub mod leangen;
+pub mod ltchain;
 pub mod obligations;
 pub mod rowmap;
 pub mod rvkfixed;
@@ -103,6 +105,8 @@ pub enum CoverageError {
         bound: usize,
         wires: Vec<usize>,
     },
+    #[error("consolidate2x1 lt-ladder recovery/parity gate failed: {0}")]
+    LtLadderParity(String),
 }
 
 #[derive(Debug, Deserialize)]

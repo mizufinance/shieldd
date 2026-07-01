@@ -442,6 +442,20 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
                 })?;
         files.push(render_contract(&ir.circuit, segment, segment_rows));
     }
+    // Tier-3 inherent-topology gate: recover and parity-check the consolidate2x1
+    // DTK canonicity ladders at extraction time (fail-closed), the analogue of
+    // `structure_lc`'s in-line parity assert.
+    // DTK segment slice `[13677, 13677+6329)`; ladder rows are DTK-relative. The
+    // ladders exist only in the full deployed artifact; the slice bound doubles
+    // as the guard that this is the real circuit, not a synthetic fixture.
+    const DTK_OFFSET: usize = 13677;
+    const DTK_ROWS: usize = 6329;
+    if ir.circuit == "consolidate2x1" {
+        if let Some(dtk) = rows.get(DTK_OFFSET..DTK_OFFSET + DTK_ROWS) {
+            crate::ltchain::verify_consolidate2x1_lt_ladders(dtk)
+                .map_err(CoverageError::LtLadderParity)?;
+        }
+    }
     Ok(files)
 }
 
@@ -719,224 +733,4 @@ mod tests {
         assert!(defs.contains("def relationLc0Part2"));
         assert!(defs.contains("def relationLc0"));
     }
-}
-
-// ===========================================================================
-// Tier-3 SPIKE (throwaway): recurrence-recovery normalizer feasibility probe.
-//
-// Question the spike exists to answer: can `stateTrace_to_ltcRec` — recovery of
-// the `x < p` lt-compare carry chain, currently done inside Lean — be lifted to
-// Rust and *parity-gated statically*, exactly like `structure_lc`? i.e. is the
-// gate a decidable, fail-closed structural check, or does it need semantic
-// (ideal-membership / all-inputs) reasoning?
-//
-// This module is test-only: no production path, no emission change, manifest
-// untouched. The durable output is the written finding at the bottom.
-// ===========================================================================
-#[cfg(test)]
-mod tier3_spike {
-    use crate::ir::{Constraint, Term};
-    use std::collections::BTreeMap;
-
-    // --- Pass 1/2 topology classification sketch ---------------------------
-    #[allow(dead_code)]
-    enum ConstraintTopology {
-        /// Pass 1: equal-coeff AP run (the existing `structure_lc` case).
-        ArtifactPackedSum,
-        /// Pass 2: an lt-compare / canonicity carry chain (the Tier-3 target).
-        InherentLtChain(LtChain),
-        /// Neither — stays flat.
-        Flat,
-    }
-
-    fn t(coeff: &str, wire: usize) -> Term {
-        Term { coeff: coeff.into(), wire }
-    }
-
-    /// A recovered lt-compare chain: seed wires + MSB-first rungs. Each rung
-    /// carries the bound bit `cb` (a compile-time constant of the modulus) and
-    /// the witness bit wire, plus the fresh wires the rung defines.
-    struct LtChain {
-        pe0: usize,
-        il0: usize,
-        fresh_base: usize,
-        rungs: Vec<Rung>,
-    }
-
-    struct Rung {
-        cb: bool,      // bound bit (StepOne when true, StepZero when false)
-        bit: usize,    // witness bit wire for this rung
-    }
-
-    /// Unroll a chain to the exact raw R1CS triples it stands for — the compact
-    /// → raw direction of the parity gate (analogue of `expand_repr`). The gate
-    /// forms are pinned by `IvkModRBridge.ltConstStep{One,Zero}_uncps`:
-    ///   StepOne : pe' = pe·bit ; il' = il + pe(1-bit) - il·(pe(1-bit))
-    ///   StepZero: pe' = pe(1-bit)                       (il unchanged)
-    fn expand(chain: &LtChain) -> Vec<Constraint> {
-        let mut out = Vec::new();
-        let mut pe = chain.pe0;
-        let mut il = chain.il0;
-        let mut fresh = chain.fresh_base;
-        let mut alloc = || {
-            let w = fresh;
-            fresh += 1;
-            w
-        };
-        for r in &chain.rungs {
-            if r.cb {
-                let pe_out = alloc();
-                let s = alloc(); // s = pe·(1-bit)
-                let m = alloc(); // m = il·s
-                let il_out = alloc();
-                // pe' = pe · bit
-                out.push(Constraint { l: vec![t("1", pe)], r: vec![t("1", r.bit)], o: vec![t("1", pe_out)] });
-                // s = pe · (1 - bit)
-                out.push(Constraint { l: vec![t("1", pe)], r: vec![t("1", 0), t("-1", r.bit)], o: vec![t("1", s)] });
-                // m = il · s
-                out.push(Constraint { l: vec![t("1", il)], r: vec![t("1", s)], o: vec![t("1", m)] });
-                // il' = il + s - m   (pure linear: 1·(il + s - m) = il')
-                out.push(Constraint { l: vec![t("1", 0)], r: vec![t("1", il), t("1", s), t("-1", m)], o: vec![t("1", il_out)] });
-                pe = pe_out;
-                il = il_out;
-            } else {
-                let pe_out = alloc();
-                // pe' = pe · (1 - bit)
-                out.push(Constraint { l: vec![t("1", pe)], r: vec![t("1", 0), t("-1", r.bit)], o: vec![t("1", pe_out)] });
-                pe = pe_out;
-            }
-        }
-        out
-    }
-
-    // --- The static parity gate (analogue of terms_multiset_eq) -------------
-    // Canonicalize each side by combining like terms (wire -> Σ coeff), treat
-    // L·R commutatively, then compare the *multiset* of canonical triples. This
-    // is fully decidable structural equality — no field-assignment reasoning.
-    type CanonSide = BTreeMap<usize, i128>;
-
-    fn canon_side(terms: &[Term]) -> CanonSide {
-        let mut m = CanonSide::new();
-        for term in terms {
-            let c: i128 = term.coeff.parse().expect("spike uses integer coeffs");
-            *m.entry(term.wire).or_insert(0) += c;
-        }
-        m.retain(|_, v| *v != 0);
-        m
-    }
-
-    fn canon_constraint(c: &Constraint) -> (CanonSide, CanonSide, CanonSide) {
-        let (l, r, o) = (canon_side(&c.l), canon_side(&c.r), canon_side(&c.o));
-        let (lo, hi) = if l <= r { (l, r) } else { (r, l) }; // L·R commutes
-        (lo, hi, o)
-    }
-
-    fn constraints_multiset_eq(a: &[Constraint], b: &[Constraint]) -> bool {
-        if a.len() != b.len() {
-            return false;
-        }
-        let mut a: Vec<_> = a.iter().map(canon_constraint).collect();
-        let mut b: Vec<_> = b.iter().map(canon_constraint).collect();
-        a.sort();
-        b.sort();
-        a == b
-    }
-
-    /// The parity-gated normalizer output: recovery is trusted only if its
-    /// unrolling reproduces the raw block exactly (fail-closed). A mis-seated or
-    /// wrong-branch recovery cannot pass — soundness rests on this gate, so the
-    /// Pass-2 traversal may be an arbitrarily heuristic best-effort.
-    fn parity_gated(recovered: &LtChain, raw: &[Constraint], cb_expected: &[bool]) -> bool {
-        let cb_recovered: Vec<bool> = recovered.rungs.iter().map(|r| r.cb).collect();
-        cb_recovered == cb_expected && constraints_multiset_eq(&expand(recovered), raw)
-    }
-
-    fn sample_chain() -> LtChain {
-        // 3 MSB-first rungs with bound-bit pattern 1,0,1 over witness bits 40,41,42.
-        LtChain {
-            pe0: 10,
-            il0: 11,
-            fresh_base: 100,
-            rungs: vec![
-                Rung { cb: true, bit: 40 },
-                Rung { cb: false, bit: 41 },
-                Rung { cb: true, bit: 42 },
-            ],
-        }
-    }
-
-    #[test]
-    fn static_parity_gate_holds_on_correct_recovery() {
-        let raw = expand(&sample_chain()); // stands in for the gnark-emitted block
-        // Pass 2 recovers the same seating (real milestone: from a graph walk).
-        let recovered = sample_chain();
-        let cb = [true, false, true];
-        assert!(
-            parity_gated(&recovered, &raw, &cb),
-            "correct recovery must pass the static multiset-parity gate"
-        );
-        // Classification wrapper compiles/holds the recovered chain.
-        matches!(ConstraintTopology::InherentLtChain(recovered), ConstraintTopology::InherentLtChain(_));
-    }
-
-    #[test]
-    fn gate_fails_closed_on_wrong_branch() {
-        let raw = expand(&sample_chain());
-        // Recovery flips rung-1 branch (StepZero -> StepOne): different triples.
-        let mut bad = sample_chain();
-        bad.rungs[1].cb = true;
-        assert!(
-            !parity_gated(&bad, &raw, &[true, false, true]),
-            "a wrong-branch recovery must be rejected by the gate"
-        );
-    }
-
-    #[test]
-    fn gate_fails_closed_on_misseated_wire() {
-        let raw = expand(&sample_chain());
-        // Recovery mis-seats a witness bit wire (40 -> 39): unroll diverges.
-        let mut bad = sample_chain();
-        bad.rungs[0].bit = 39;
-        assert!(
-            !constraints_multiset_eq(&expand(&bad), &raw),
-            "a mis-seated wire must break multiset parity"
-        );
-    }
-
-    // ---------------------------------------------------------------------
-    // FINDING (go / no-go).
-    //
-    // (b) DOES THE STATIC-PARITY GATE HOLD?  YES. The lt-rung raw forms are
-    //     exact R1CS triples (pinned by ltConstStep{One,Zero}_uncps). Unrolling
-    //     a recovered chain reproduces those triples verbatim; the gate is
-    //     decidable multiset-equality over canonicalized (like-terms-combined,
-    //     L·R-commutative) triples — one rung richer than structure_lc's term
-    //     multiset, same complexity class. The tests show it accepts correct
-    //     recovery and fails closed on a wrong branch or a mis-seated wire.
-    //     Crucially the gate needs NO field-assignment / ideal reasoning: the
-    //     recovery never USES booleanity (b·(1-b)=0) to simplify a rung, so
-    //     unrolled ≡ raw syntactically, not just semantically. (If a future
-    //     recovery did fold booleanity into a rung, parity would degrade to
-    //     ideal-membership — keep recovery a pure re-description to stay in the
-    //     decidable regime.)  Semantics stay in Lean: ltcRec_sound already
-    //     proves the recurrence's meaning; the gate only pins re-description.
-    //
-    // (a) TRAVERSAL DIFFICULTY.  This is the real cost, NOT the gate. The spike
-    //     models a pre-segmented, correctly-seated block; production Pass 2 must
-    //     recover seating from gnark's locality-destroyed graph (CSE, const-
-    //     folding, widening OR-accumulators, non-local b·(1-b) seating). The
-    //     fail-closed gate de-risks this completely: a heuristic traversal is
-    //     SOUND regardless of how it seats, because a mis-seat cannot pass. So
-    //     the milestone's risk is *completeness* (recovering enough blocks to be
-    //     worth it), never soundness.
-    //
-    // (c) GO / NO-GO: GO, as a follow-on milestone (not this plan). Est. size:
-    //     ~1 wk — (1) block segmentation from the def-use graph [hardest],
-    //     (2) per-rung shape matcher + cb/bit recovery, (3) this gate promoted
-    //     to field-coeff canonicalization + wired into contracts::tests as a
-    //     fail-closed assert, (4) emission handing the generator recovered
-    //     (pe,il) pairs so Opus sees clean ltcRec, never the folded accumulator.
-    //     Pin recovered cb against the independently-known modulus bits so the
-    //     gate proves "the ladder against r", not "some ladder".
-    // ---------------------------------------------------------------------
 }
