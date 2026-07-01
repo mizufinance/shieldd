@@ -1332,13 +1332,6 @@ def compact_wire_expr(constant: int, wires: list[int], field: str) -> str:
     return " + ".join(terms)
 
 
-def compact_run_expansion(run: CompactRun) -> str:
-    return " + ".join(
-        f"rho {run.start + index * run.stride}"
-        for index in range(run.count)
-    )
-
-
 @dataclass(frozen=True)
 class LtcAtomLayout:
     segments: tuple[tuple[int, ...], ...]
@@ -2243,15 +2236,24 @@ def emit_compact_acc_bridge(
     elif new_run is not None:
         if new_run.coeff != 1:
             raise ValueError(f"new accumulator run has coefficient {new_run.coeff}")
-        expansion = compact_run_expansion(new_run)
-        lines.extend([
-            f"{indent}have hnew : Shieldd.GnarkFormal.StrideRun.sumAux rho "
-            f"{new_run.start} {new_run.stride} "
-            f"{new_run.count} = {expansion} := by\n",
-            f"{indent}  simp only [Shieldd.GnarkFormal.StrideRun.sumAux]\n",
-            f"{indent}  ring\n",
-            f"{indent}rw [hnew]\n",
-        ])
+        # A run appears for the first time (its wires were flat residual singletons
+        # at the previous prefix, then reach STRUCTURED_LC_MIN_RUN and collapse to
+        # one `sumAux`).  Expand the fresh `sumAux count` back to its flat terms so
+        # `ring` matches the residual RHS.  Peel with the symbolic step lemma
+        # `sumAux_succ` (count → count-1) down to `sumAux_zero`, never
+        # `simp only [sumAux]` — unfolding the recursive fuel def at a literal count
+        # is the O(count) blowup the leaf-bench/linter forbid.  The peel is bounded
+        # (count == MIN_RUN) and every rewrite names a step lemma, not the def.
+        peels = ", ".join(
+            f"Shieldd.GnarkFormal.StrideRun.sumAux_succ rho "
+            f"{new_run.start} {new_run.stride} {n}"
+            for n in range(new_run.count - 1, -1, -1)
+        )
+        lines.append(
+            f"{indent}rw [{peels}, "
+            f"Shieldd.GnarkFormal.StrideRun.sumAux_zero rho "
+            f"{new_run.start} {new_run.stride}]\n"
+        )
     lines.append(f"{indent}ring\n")
 
 
@@ -2558,7 +2560,13 @@ def emit_scalar_rung(
     lines.append(f"  exact hrung{index}\n\n")
 
 
-SCALAR_CHUNK_SIZE = 32
+# Rungs per Scalar chunk module.  Each rung emits a projection lemma (a full
+# `unfold relation; rcases` at a ~3.6GB plateau) plus its StepRel theorem, so a
+# module's peak RSS grows with the rung count.  At 32 rungs a chunk peaked at
+# ~15.5GB — over the 12GB machine-safety ceiling.  11 rungs keeps a chunk to
+# 2*11+1 = 23 theorems (under the lint R5 `--max-theorems 24` proxy for that
+# ceiling) and its peak RSS well under it.
+SCALAR_CHUNK_SIZE = 11
 
 
 def scalar_chunks(
@@ -2611,8 +2619,8 @@ def emit_scalar_hstep_chunk(
     `seg{N}LadderAccState/CurState` applications reduce to the concrete
     accumulator points by *kernel* defeq (cheap `rfl` on the Nat match),
     so we never invoke `simp only [<252-arm match>]` — that triggers the
-    catastrophic splitter-equation generation.  Keeping the dispatch to ≤32
-    indices per cached module bounds RSS.
+    catastrophic splitter-equation generation.  Keeping the dispatch to
+    `SCALAR_CHUNK_SIZE` indices per cached module bounds RSS.
     """
     acc_state = f"seg{cfg.seg}LadderAccState"
     cur_state = f"seg{cfg.seg}LadderCurState"
@@ -2710,9 +2718,9 @@ def emit_scalar(cfg: Instance, rungs: tuple[ScalarRung, ...]) -> str:
         f"        ({acc_state} rho (i + 1)) ({cur_state} rho (i + 1)) := by\n",
         "    intro i hi hacc hcur\n",
     ])
-    # 8-way range dispatch into the per-chunk hstep lemmas.  No 251-way
+    # Range dispatch into the per-chunk hstep lemmas.  No 251-way
     # `interval_cases` and no matcher `simp` in this module — each chunk lemma
-    # already discharged its ≤32 indices in its own cached process.
+    # already discharged its `SCALAR_CHUNK_SIZE` indices in its own cached process.
     chunks = scalar_chunks(rungs)
     for chunk_index, subset in enumerate(chunks):
         hi_c = subset[-1].index + 1

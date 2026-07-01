@@ -7,6 +7,21 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16Scala
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR5
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR6
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR7
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR8
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR9
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR10
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR11
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR12
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR13
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR14
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR15
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR16
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR17
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR18
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR19
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR20
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR21
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16ScalarR22
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -35,21 +50,51 @@ theorem seg16_scalar_ladder (rho : Nat -> Seg16.F) (h : Seg16.relation rho)
         (seg16LadderAccState rho i) (seg16LadderCurState rho i)
         (seg16LadderAccState rho (i + 1)) (seg16LadderCurState rho (i + 1)) := by
     intro i hi hacc hcur
-    rcases Nat.lt_or_ge i 32 with hb0|hb0
+    rcases Nat.lt_or_ge i 11 with hb0|hb0
     · exact seg16_hstep_c0 rho h bits hbitAt i (by omega) hb0 hacc hcur
-    rcases Nat.lt_or_ge i 64 with hb1|hb1
+    rcases Nat.lt_or_ge i 22 with hb1|hb1
     · exact seg16_hstep_c1 rho h bits hbitAt i hb0 hb1 hacc hcur
-    rcases Nat.lt_or_ge i 96 with hb2|hb2
+    rcases Nat.lt_or_ge i 33 with hb2|hb2
     · exact seg16_hstep_c2 rho h bits hbitAt i hb1 hb2 hacc hcur
-    rcases Nat.lt_or_ge i 128 with hb3|hb3
+    rcases Nat.lt_or_ge i 44 with hb3|hb3
     · exact seg16_hstep_c3 rho h bits hbitAt i hb2 hb3 hacc hcur
-    rcases Nat.lt_or_ge i 160 with hb4|hb4
+    rcases Nat.lt_or_ge i 55 with hb4|hb4
     · exact seg16_hstep_c4 rho h bits hbitAt i hb3 hb4 hacc hcur
-    rcases Nat.lt_or_ge i 192 with hb5|hb5
+    rcases Nat.lt_or_ge i 66 with hb5|hb5
     · exact seg16_hstep_c5 rho h bits hbitAt i hb4 hb5 hacc hcur
-    rcases Nat.lt_or_ge i 224 with hb6|hb6
+    rcases Nat.lt_or_ge i 77 with hb6|hb6
     · exact seg16_hstep_c6 rho h bits hbitAt i hb5 hb6 hacc hcur
-    exact seg16_hstep_c7 rho h bits hbitAt i hb6 hi hacc hcur
+    rcases Nat.lt_or_ge i 88 with hb7|hb7
+    · exact seg16_hstep_c7 rho h bits hbitAt i hb6 hb7 hacc hcur
+    rcases Nat.lt_or_ge i 99 with hb8|hb8
+    · exact seg16_hstep_c8 rho h bits hbitAt i hb7 hb8 hacc hcur
+    rcases Nat.lt_or_ge i 110 with hb9|hb9
+    · exact seg16_hstep_c9 rho h bits hbitAt i hb8 hb9 hacc hcur
+    rcases Nat.lt_or_ge i 121 with hb10|hb10
+    · exact seg16_hstep_c10 rho h bits hbitAt i hb9 hb10 hacc hcur
+    rcases Nat.lt_or_ge i 132 with hb11|hb11
+    · exact seg16_hstep_c11 rho h bits hbitAt i hb10 hb11 hacc hcur
+    rcases Nat.lt_or_ge i 143 with hb12|hb12
+    · exact seg16_hstep_c12 rho h bits hbitAt i hb11 hb12 hacc hcur
+    rcases Nat.lt_or_ge i 154 with hb13|hb13
+    · exact seg16_hstep_c13 rho h bits hbitAt i hb12 hb13 hacc hcur
+    rcases Nat.lt_or_ge i 165 with hb14|hb14
+    · exact seg16_hstep_c14 rho h bits hbitAt i hb13 hb14 hacc hcur
+    rcases Nat.lt_or_ge i 176 with hb15|hb15
+    · exact seg16_hstep_c15 rho h bits hbitAt i hb14 hb15 hacc hcur
+    rcases Nat.lt_or_ge i 187 with hb16|hb16
+    · exact seg16_hstep_c16 rho h bits hbitAt i hb15 hb16 hacc hcur
+    rcases Nat.lt_or_ge i 198 with hb17|hb17
+    · exact seg16_hstep_c17 rho h bits hbitAt i hb16 hb17 hacc hcur
+    rcases Nat.lt_or_ge i 209 with hb18|hb18
+    · exact seg16_hstep_c18 rho h bits hbitAt i hb17 hb18 hacc hcur
+    rcases Nat.lt_or_ge i 220 with hb19|hb19
+    · exact seg16_hstep_c19 rho h bits hbitAt i hb18 hb19 hacc hcur
+    rcases Nat.lt_or_ge i 231 with hb20|hb20
+    · exact seg16_hstep_c20 rho h bits hbitAt i hb19 hb20 hacc hcur
+    rcases Nat.lt_or_ge i 242 with hb21|hb21
+    · exact seg16_hstep_c21 rho h bits hbitAt i hb20 hb21 hacc hcur
+    exact seg16_hstep_c22 rho h bits hbitAt i hb21 hi hacc hcur
   have hfinal : EdwardsBridge.onCurve (seg16LadderAccState rho 251) →
       Shieldd.GnarkFormal.ScalarMulBridge.finalKWithOutputCurve
         (dtkOutX16 rho : Seg16.F) (dtkOutY16 rho : Seg16.F)
