@@ -68,6 +68,48 @@ They are not migration promises.
   fuel-recursive definition plus one induction lemma, never an unrolled walk.
 - Monitor Lean compiles actively. A lot of them blowup in time or just hang.
 
+### StructuredLC — the compact extracted-row representation
+
+Wide extracted LCs (the fixed-base scalar-ladder accumulators, `≥ MIN_RUN`
+equal-coefficient wires in arithmetic progression) are NOT rendered as flat
+`k`-term sums. The extractor (`crates/crypto/constraint-coverage/src/contracts.rs`,
+`structure_lc`) emits them as `StructuredLC.eval rho { const, runs, residual }`,
+where each `runs` entry is a `StrideRun{coeff,start,stride,count}`. The evaluator
+lives in `ShielddGnarkFormal/StructuredLC.lean` (field-generic; DTK stride-13 is
+one instantiation). Rationale: a flat per-rung LC bakes O(k²) into extraction
+(each rung consumes the whole `k`-wide sum); the compact form makes each rung
+O(1). See [[structuredlc-framework]], [[dtk-scalar-accumulator-flat-lc-floor]].
+
+Rules when working with StructuredLC:
+- **The extractor is the parity gate.** `structure_lc` asserts the compact form
+  expands to the exact raw `(coeff,wire)` multiset at generation time (fails
+  closed). Lean therefore never re-proves parity — do NOT write a Lean lemma
+  bridging a flat `relationLc*` to `StructuredLC.eval` (that reintroduces the
+  O(k²) expansion). If you need parity, add/extend a Rust `contracts::tests` case.
+- **Prove recurrences symbolically, then instantiate.** Relate rung `n+1` to `n`
+  with the single reused step lemma `StrideRun.evalAux_succ` (one peel) over a
+  SYMBOLIC index, then instantiate at the concrete rung for free. NEVER `simp`/
+  `unfold` `StrideRun.eval`/`evalAux` at a literal `count` — that expands all `k`
+  terms and hits max recursion depth (this is the blowup, verified).
+- **Adapters consume StructuredLC-form rows opaquely.** `linear_combination`/`ring`
+  treat `StructuredLC.eval rho lc` as one atom; keep it that way. Never unfold
+  `relationLc*Part*`.
+- **Manifest-neutral.** `relation_sha256_hex` hashes the raw `.sr1cs` constraint
+  strings, not the Lean text, so the compact rendering does not move the coverage
+  pin. Regenerating contracts is safe w.r.t. the manifest.
+
+### Leaf benchmark — the fast inner loop
+
+Never debug a tactic by rebuilding a full adapter. Use
+`scripts/lean-leaf-bench.sh <FILE.lean|Module> [leaf|aggregator|import]`: it
+compiles ONE module into an isolated temp dir with a FRESH olean, samples RSS over
+the compile's own process GROUP, and actively KILLS on time/RSS breach (so a bad
+cert diagnoses in ~1s, never grinds all night). Budgets: leaf `<60s/<2GB/<10MB`,
+aggregator `<120s/<4GB/<50MB`. Run the `import` tier once for the upstream-olean
+RSS floor, then pass `BENCH_IMPORT_FLOOR_MB=<n>` so leaf RSS is judged on marginal
+cost. Gate the full adapter build on first/mid/high/final leaves + all aggregators
+green BEFORE building the whole segment.
+
 ### Lean build resource limits — follow these every time
 
 > **INCIDENT LOG:** Unbounded, concurrent `lake build` invocations have

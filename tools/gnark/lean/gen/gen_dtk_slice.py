@@ -5,6 +5,18 @@ The three slices have one normalized row shape.  Their internal witness ranges
 are translated from the seg16 template by an explicit seating table; the two
 DivGen inputs are the only non-shared external wires.  Generated Lean is split
 by semantic block so no theorem elaborates the complete 6,329-row relation.
+
+StructuredLC contract (see `AGENTS.md`, "Lean Circuit Proofs"): the base `Seg{N}.lean`
+now renders wide accumulator rows as `StructuredLC.eval rho { const, runs, residual }`
+(compact `StrideRun`s), not flat `relationLc*Part*` sums.  Adapter certificates MUST
+consume those rows opaquely — `linear_combination`/`ring` treat `StructuredLC.eval`
+as one atom.  Prove rung-to-rung recurrences over a SYMBOLIC index via the reused
+`StrideRun.sumAux_succ` peel, then instantiate at the concrete rung; never `simp`/
+`unfold` `StrideRun.sumAux` at a literal `count` (that expands all k terms
+and hits max recursion depth).  Never bridge a flat LC to `StructuredLC.eval` in
+Lean — the Rust extractor's parity gate (`contracts::structure_lc`) already proves
+the compact form equals the raw (coeff,wire) multiset.  Debug obligations with
+`scripts/lean-leaf-bench.sh` leaves, never full adapter rebuilds.
 """
 
 from __future__ import annotations
@@ -12,14 +24,18 @@ from __future__ import annotations
 import re
 import hashlib
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMAL = ROOT / "ShielddGnarkFormal"
-CONTRACTS = FORMAL / "Deployed/Contracts/Consolidate2x1"
+DEFAULT_CONTRACTS = FORMAL / "Deployed/Contracts/Consolidate2x1"
+SOURCE_CONTRACTS = Path(os.environ.get("DTK_CONTRACTS_SOURCE", DEFAULT_CONTRACTS))
+OUTPUT_CONTRACTS = Path(os.environ.get("DTK_CONTRACTS_OUTPUT", DEFAULT_CONTRACTS))
 DTK = FORMAL / "Deployed/Dtk"
+OUTPUT_DTK = Path(os.environ.get("DTK_SHARED_OUTPUT", DTK))
 EXTRACTED_DEPLOYED = FORMAL / "Extracted/Deployed"
 SR1CS = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1.sr1cs"
 POSEIDON2 = FORMAL / "Poseidon2Bridge.lean"
@@ -35,28 +51,63 @@ def write_generated(path: Path, contents: str) -> None:
     path.write_text(contents)
 
 
+# Wire index of the seg16 (base) instance. `delta` measures every instance's
+# internal-witness offset relative to this base, so the ladder-accumulator seat
+# arithmetic reuses seg16's layout shifted by `delta`.
+BASE_INTERNAL = 13087
+
+
 @dataclass(frozen=True)
 class Instance:
+    """Per-instance seating data: the wire offsets that reseat the seg16 proof
+    shape onto seg34/seg45. Pure data — no emission logic lives here. The
+    validator fails generation on a wiring typo instead of emitting a silently
+    mis-seated (and later blowup-prone or unsound) adapter."""
+
     seg: int
     internal_base: int
     div_x: int
     div_y: int
     following_seg: int
 
+    def __post_init__(self) -> None:
+        for name in ("seg", "internal_base", "div_x", "div_y", "following_seg"):
+            val = getattr(self, name)
+            if not isinstance(val, int) or val <= 0:
+                raise ValueError(f"Instance.{name} must be a positive int, got {val!r}")
+        # div wires are the consecutive (x, y) pair of the net-balance divisor.
+        if self.div_y != self.div_x + 1:
+            raise ValueError(
+                f"Instance(seg={self.seg}): div_y ({self.div_y}) must be "
+                f"div_x + 1 ({self.div_x + 1})"
+            )
+        # the following segment is always downstream of this one.
+        if self.following_seg <= self.seg:
+            raise ValueError(
+                f"Instance(seg={self.seg}): following_seg ({self.following_seg}) "
+                f"must be greater than seg"
+            )
+        # seg16 is the base layout; every instance sits at or beyond it.
+        if self.internal_base < BASE_INTERNAL:
+            raise ValueError(
+                f"Instance(seg={self.seg}): internal_base ({self.internal_base}) "
+                f"must be >= base {BASE_INTERNAL}"
+            )
+
     @property
     def delta(self) -> int:
-        return self.internal_base - 13087
+        return self.internal_base - BASE_INTERNAL
 
 
 INSTANCES = (
-    Instance(16, 13087, 17, 18, 18),
+    Instance(16, BASE_INTERNAL, 17, 18, 18),
     Instance(34, 31787, 107, 108, 36),
     Instance(45, 38743, 195, 196, 47),
 )
 
 
 def source(seg: int) -> str:
-    return (CONTRACTS / f"Seg{seg}.lean").read_text()
+    return (SOURCE_CONTRACTS / f"Seg{seg}.lean").read_text()
 
 
 def def_body(text: str, name: str) -> str:
@@ -130,15 +181,29 @@ def relation_parts(seg: int) -> list[list[int]]:
 def normalized_row(body: str, cfg: Instance) -> str:
     external = {cfg.div_x: "D0", cfg.div_y: "D1"}
 
-    def replace(match: re.Match[str]) -> str:
-        wire = int(match.group(1))
+    def wire_name(wire: int) -> str:
         if wire in external:
-            return f"rho {external[wire]}"
+            return external[wire]
         if wire >= cfg.internal_base:
-            return f"rho I{wire - cfg.internal_base}"
-        return f"rho E{wire}"
+            return f"I{wire - cfg.internal_base}"
+        return f"E{wire}"
 
-    return re.sub(r"rho (\d+)", replace, body)
+    def replace_rho(match: re.Match[str]) -> str:
+        return f"rho {wire_name(int(match.group(1)))}"
+
+    def replace_run(match: re.Match[str]) -> str:
+        return f"{match.group(1)}{wire_name(int(match.group(2)))}{match.group(3)}"
+
+    def replace_residual(match: re.Match[str]) -> str:
+        return f"{match.group(1)}{wire_name(int(match.group(2)))}{match.group(3)}"
+
+    body = re.sub(r"rho (\d+)", replace_rho, body)
+    body = re.sub(
+        r"(⟨\(-?\d+ : F\), )(\d+)(, \d+, \d+⟩)", replace_run, body
+    )
+    return re.sub(
+        r"(\(\(-?\d+ : F\), )(\d+)(\))", replace_residual, body
+    )
 
 
 def validate_normalized_shape() -> None:
@@ -173,6 +238,7 @@ def output_wires(cfg: Instance) -> tuple[list[int], list[int]]:
 def emit_outputs() -> str:
     lines = [
         "import Mathlib.Data.ZMod.Basic\n\n",
+        "import ShielddGnarkFormal.StructuredLC\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 4000000\n\n",
         "/-! Generated opaque DTK ladder accumulators.  Keep these as plain `def`s: ",
@@ -185,14 +251,14 @@ def emit_outputs() -> str:
         xs, ys = output_wires(cfg)
         lines.append(f"def seg{cfg.seg}AccX0 (_rho : Nat -> F) : F := 0\n")
         lines.append(f"def seg{cfg.seg}AccY0 (_rho : Nat -> F) : F := 1\n")
-        for k, (xwire, ywire) in enumerate(zip(xs, ys, strict=True), start=1):
+        for k, _ in enumerate(zip(xs, ys, strict=True), start=1):
             lines.append(
                 f"def seg{cfg.seg}AccX{k} (rho : Nat -> F) : F := "
-                f"seg{cfg.seg}AccX{k - 1} rho + rho {xwire}\n"
+                f"{compact_wire_expr(0, xs[:k], 'F')}\n"
             )
             lines.append(
                 f"def seg{cfg.seg}AccY{k} (rho : Nat -> F) : F := "
-                f"seg{cfg.seg}AccY{k - 1} rho + rho {ywire}\n"
+                f"{compact_wire_expr(1, ys[:k], 'F')}\n"
             )
         lines.append(f"\ndef dtkOutX{cfg.seg} (rho : Nat -> F) : F := seg{cfg.seg}AccX251 rho\n")
         lines.append(f"def dtkOutY{cfg.seg} (rho : Nat -> F) : F := seg{cfg.seg}AccY251 rho\n\n")
@@ -1146,6 +1212,134 @@ def lc_expr(value: Lc, cfg: Instance) -> str:
     return " + ".join(terms) if terms else f"(0 : Seg{cfg.seg}.F)"
 
 
+STRUCTURED_LC_MIN_RUN = 16
+
+
+@dataclass(frozen=True)
+class CompactRun:
+    coeff: int
+    start: int
+    stride: int
+    count: int
+
+
+@dataclass(frozen=True)
+class CompactLc:
+    constant: int
+    runs: tuple[CompactRun, ...]
+    residual: tuple[tuple[int, int], ...]
+
+
+def compact_runs(coeff: int, wires: list[int]) -> tuple[list[CompactRun], list[tuple[int, int]]]:
+    remaining = sorted(wires)
+    runs: list[CompactRun] = []
+    residual: list[tuple[int, int]] = []
+    preferred: dict[int, int] = {}
+    while remaining:
+        start = remaining[0]
+        available = set(remaining)
+        best: tuple[int, int] | None = None
+        for second in remaining[1:]:
+            stride = second - start
+            if stride == 0:
+                continue
+            count = 1
+            wire = start
+            while wire + stride in available:
+                count += 1
+                wire += stride
+            selected = preferred.get(stride, count) if preferred.get(stride, count) <= count else count
+            if selected >= STRUCTURED_LC_MIN_RUN and (best is None or selected > best[1]):
+                best = (stride, selected)
+        if best is None:
+            residual.append((coeff, start))
+            remaining.pop(0)
+            continue
+        stride, count = best
+        preferred.setdefault(stride, count)
+        runs.append(CompactRun(coeff, start, stride, count))
+        for index in range(count):
+            remaining.remove(start + index * stride)
+    return runs, residual
+
+
+def compact_lc(value: Lc, cfg: Instance) -> CompactLc | None:
+    seated = seated_lc(value, cfg)
+    constant = signed_coeff(seated.get(0, 0))
+    by_coeff: dict[int, list[int]] = {}
+    for wire, raw_coeff in seated.items():
+        if wire != 0:
+            by_coeff.setdefault(signed_coeff(raw_coeff), []).append(wire)
+    runs: list[CompactRun] = []
+    residual: list[tuple[int, int]] = []
+    for coeff in sorted(by_coeff, key=lambda item: str(item)):
+        coeff_runs, coeff_residual = compact_runs(coeff, by_coeff[coeff])
+        runs.extend(coeff_runs)
+        residual.extend(coeff_residual)
+    if not runs:
+        return None
+    raw_cost = len(seated)
+    compact_cost = (1 if constant else 0) + 4 * len(runs) + len(residual)
+    if compact_cost * 2 >= raw_cost:
+        return None
+    return CompactLc(constant, tuple(runs), tuple(residual))
+
+
+def compact_lc_expr(value: Lc, cfg: Instance) -> str:
+    compact = compact_lc(value, cfg)
+    if compact is None:
+        return lc_expr(value, cfg)
+    terms = [f"({compact.constant} : Seg{cfg.seg}.F)"]
+    terms.extend(
+        f"(({run.coeff} : Seg{cfg.seg}.F) * "
+        "Shieldd.GnarkFormal.StrideRun.sumAux rho "
+        f"{run.start} {run.stride} {run.count})"
+        for run in compact.runs
+    )
+    terms.extend(
+        f"(({coeff} : Seg{cfg.seg}.F) * rho {wire})"
+        for coeff, wire in compact.residual
+    )
+    return " + ".join(terms)
+
+
+def compact_wire_lc(constant: int, wires: list[int]) -> CompactLc | None:
+    runs, residual = compact_runs(1, wires)
+    if not runs:
+        return None
+    raw_cost = (1 if constant else 0) + len(wires)
+    compact_cost = (1 if constant else 0) + 4 * len(runs) + len(residual)
+    if compact_cost * 2 >= raw_cost:
+        return None
+    return CompactLc(constant, tuple(runs), tuple(residual))
+
+
+def compact_wire_expr(constant: int, wires: list[int], field: str) -> str:
+    compact = compact_wire_lc(constant, wires)
+    if compact is None:
+        terms = [f"({constant} : {field})"] if constant else []
+        terms.extend(f"rho {wire}" for wire in wires)
+        return " + ".join(terms) if terms else f"(0 : {field})"
+    terms = [f"({compact.constant} : {field})"]
+    terms.extend(
+        f"(({run.coeff} : {field}) * Shieldd.GnarkFormal.StrideRun.sumAux "
+        f"rho {run.start} {run.stride} {run.count})"
+        for run in compact.runs
+    )
+    terms.extend(
+        f"(({coeff} : {field}) * rho {wire})"
+        for coeff, wire in compact.residual
+    )
+    return " + ".join(terms)
+
+
+def compact_run_expansion(run: CompactRun) -> str:
+    return " + ".join(
+        f"rho {run.start + index * run.stride}"
+        for index in range(run.count)
+    )
+
+
 @dataclass(frozen=True)
 class LtcAtomLayout:
     segments: tuple[tuple[int, ...], ...]
@@ -1461,11 +1655,25 @@ def emit_ltc_state_defs(
         )
 
 
+def row_is_structured(seg: int, row: int) -> bool:
+    """A row rendered as `StructuredLC.eval` (compact accumulator) rather than a
+    flat product.  Only such rows need the StructuredLC→sumAux simp; emitting it
+    on a flat row fails with `simp made no progress`."""
+    return "StructuredLC.eval" in def_body(source(seg), f"relationRow{row}")
+
+
 def emit_row_unfold(lines: list[str], cfg: Instance, row: int) -> None:
     names = [f"Seg{cfg.seg}.relationRow{row}"] + [
         f"Seg{cfg.seg}.{name}" for name in lc_dependencies(cfg.seg, row)
     ]
     lines.append(f"  unfold {' '.join(names)} at r{row}\n")
+    if row_is_structured(cfg.seg, row):
+        lines.append(
+            "  simp only [Shieldd.GnarkFormal.StructuredLC.eval, "
+            "Shieldd.GnarkFormal.StructuredLC.sumRuns, "
+            "Shieldd.GnarkFormal.StructuredLC.sumResidual, "
+            f"Shieldd.GnarkFormal.StrideRun.eval] at r{row}\n"
+        )
 
 
 def emit_mul_equation(
@@ -2000,34 +2208,57 @@ def scalar_acc_name(cfg: Instance, axis: str, index: int) -> str:
     return f"seg{cfg.seg}Acc{axis}{index}"
 
 
+def emit_compact_acc_bridge(
+    lines: list[str], current_compact: CompactLc | None,
+    previous_compact: CompactLc | None, indent: str,
+) -> None:
+    if current_compact is None and previous_compact is None:
+        lines.append(f"{indent}ring\n")
+        return
+
+    previous_runs = {
+        (run.coeff, run.start, run.stride): run for run in previous_compact.runs
+    } if previous_compact else {}
+    changed_run: tuple[CompactRun, CompactRun] | None = None
+    new_run: CompactRun | None = None
+    if current_compact:
+        for run in current_compact.runs:
+            old = previous_runs.get((run.coeff, run.start, run.stride))
+            if old is None:
+                new_run = run
+            elif run.count == old.count + 1:
+                changed_run = (old, run)
+            elif run.count != old.count:
+                raise ValueError(f"unsupported compact accumulator run change: {old} -> {run}")
+    if changed_run is not None:
+        old, _ = changed_run
+        lines.append(
+            f"{indent}rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho "
+            f"{old.start} {old.stride} {old.count}]\n"
+        )
+        # `ring` (not `norm_num`) closes both the const-0 (accX) and const-1
+        # (accY) successor goals; norm_num leaves the `1 + …` associativity for
+        # accY unsolved.
+        lines.append(f"{indent}ring\n")
+        return
+    elif new_run is not None:
+        if new_run.coeff != 1:
+            raise ValueError(f"new accumulator run has coefficient {new_run.coeff}")
+        expansion = compact_run_expansion(new_run)
+        lines.extend([
+            f"{indent}have hnew : Shieldd.GnarkFormal.StrideRun.sumAux rho "
+            f"{new_run.start} {new_run.stride} "
+            f"{new_run.count} = {expansion} := by\n",
+            f"{indent}  simp only [Shieldd.GnarkFormal.StrideRun.sumAux]\n",
+            f"{indent}  ring\n",
+            f"{indent}rw [hnew]\n",
+        ])
+    lines.append(f"{indent}ring\n")
+
+
 def emit_scalar_defs(
     lines: list[str], cfg: Instance, rungs: tuple[ScalarRung, ...]
 ) -> None:
-    xs, ys = scalar_acc_lcs(rungs)
-    for index in range(252):
-        for axis, states in (("X", xs), ("Y", ys)):
-            flat = scalar_flat_name(cfg, axis, index)
-            acc = scalar_acc_name(cfg, axis, index)
-            lines.append(
-                f"def {flat} (rho : Nat -> Seg{cfg.seg}.F) : Seg{cfg.seg}.F := "
-                f"{lc_expr(states[index], cfg)}\n"
-            )
-            lines.append(
-                f"theorem {flat}_eq (rho : Nat -> Seg{cfg.seg}.F) : "
-                f"{acc} rho = {flat} rho := by\n"
-            )
-            if index == 0:
-                lines.append(f"  unfold {acc} {flat}\n  ring\n")
-            else:
-                previous_flat = scalar_flat_name(cfg, axis, index - 1)
-                previous_acc = scalar_acc_name(cfg, axis, index - 1)
-                lines.append(
-                    f"  unfold {acc}\n"
-                    f"  rw [{previous_flat}_eq]\n"
-                    f"  unfold {flat} {previous_flat}\n"
-                    "  ring\n"
-                )
-    lines.append("\n")
     acc_state = f"seg{cfg.seg}LadderAccState"
     cur_state = f"seg{cfg.seg}LadderCurState"
     lines.append(
@@ -2091,6 +2322,29 @@ def rung_rows(rung: ScalarRung, rows: list[tuple[Lc, Lc, Lc]]) -> set[int]:
     return s
 
 
+def emit_row_projection(
+    lines: list[str], cfg: Instance, name: str, keep_rows: set[int]
+) -> None:
+    """Emit a projection lemma `name rho h : relationRow_a rho ∧ … ∧ row_z rho`.
+
+    The full 80-part `unfold relation; rcases` destructure is expensive (~3.6GB
+    plateau) but bounded.  Confining it to a lemma whose STATEMENT is just the
+    narrow row conjunction keeps the destructured 80-part context out of the
+    rung's StepRel proof — carrying that context through the rung tactics is
+    what balloons to 11GB.  The rung then `obtain`s its ~13 rows for free.
+    """
+    ordered = sorted(keep_rows)
+    conj = " ∧ ".join(f"Seg{cfg.seg}.relationRow{row} rho" for row in ordered)
+    lines.extend([
+        f"theorem {name} "
+        f"(rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) "
+        f"(h : Seg{cfg.seg}.relation rho) :\n",
+        f"    {conj} := by\n",
+    ])
+    emit_unpack(lines, cfg, keep_rows)
+    lines.append(f"  exact ⟨{', '.join(f'r{row}' for row in ordered)}⟩\n\n")
+
+
 def emit_scalar_rung(
     lines: list[str], cfg: Instance, rung: ScalarRung,
     rows: list[tuple[Lc, Lc, Lc]],
@@ -2100,8 +2354,15 @@ def emit_scalar_rung(
     acc_y = scalar_acc_name(cfg, "Y", index)
     next_acc_x = scalar_acc_name(cfg, "X", index + 1)
     next_acc_y = scalar_acc_name(cfg, "Y", index + 1)
-    flat_x = scalar_flat_name(cfg, "X", index)
-    flat_y = scalar_flat_name(cfg, "Y", index)
+    output_xs, output_ys = output_wires(cfg)
+    if output_xs[index] != seat_wire(cfg, rung.delta_x):
+        raise ValueError(f"Seg{cfg.seg} rung {index}: X accumulator wire mismatch")
+    if output_ys[index] != seat_wire(cfg, rung.delta_y):
+        raise ValueError(f"Seg{cfg.seg} rung {index}: Y accumulator wire mismatch")
+    current_x_compact = compact_wire_lc(0, output_xs[:index])
+    current_y_compact = compact_wire_lc(1, output_ys[:index])
+    next_x_compact = compact_wire_lc(0, output_xs[:index + 1])
+    next_y_compact = compact_wire_lc(1, output_ys[:index + 1])
     cur_x = f"rho {seat_wire(cfg, rung.cur_x)}"
     cur_y = f"rho {seat_wire(cfg, rung.cur_y)}"
     next_cur_x = f"rho {seat_wire(cfg, rung.next_cur_x)}"
@@ -2120,6 +2381,8 @@ def emit_scalar_rung(
     nax = f"{next_acc_x} rho"
     nay = f"{next_acc_y} rho"
     rrows = rung_rows(rung, rows)
+    proj_name = f"seg{cfg.seg}_rows{index}"
+    emit_row_projection(lines, cfg, proj_name, rrows)
     lines.extend([
         f"theorem seg{cfg.seg}_rung{index} "
         f"(rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) "
@@ -2135,8 +2398,12 @@ def emit_scalar_rung(
         f"        ⟨({next_acc_x} rho : Seg{cfg.seg}.F), ({next_acc_y} rho : Seg{cfg.seg}.F)⟩\n",
         f"        ⟨({next_cur_x} : Seg{cfg.seg}.F), ({next_cur_y} : Seg{cfg.seg}.F)⟩ := by\n",
     ])
-    emit_unpack(lines, cfg, rrows)
-    for row in sorted(rrows):
+    ordered_rows = sorted(rrows)
+    lines.append(
+        f"  obtain ⟨{', '.join(f'r{row}' for row in ordered_rows)}⟩ := "
+        f"{proj_name} rho h\n"
+    )
+    for row in ordered_rows:
         emit_row_unfold(lines, cfg, row)
     lines.extend([
         f"  have hrung{index} (bit : Bool) (hbit : rho {bit_wire} = "
@@ -2150,7 +2417,19 @@ def emit_scalar_rung(
         f"        ⟨({cur_x} : Seg{cfg.seg}.F), ({cur_y} : Seg{cfg.seg}.F)⟩\n",
         f"        ⟨({next_acc_x} rho : Seg{cfg.seg}.F), ({next_acc_y} rho : Seg{cfg.seg}.F)⟩\n",
         f"        ⟨({next_cur_x} : Seg{cfg.seg}.F), ({next_cur_y} : Seg{cfg.seg}.F)⟩ := by\n",
+        f"    have hnextx : {nax} = {ax} + rho {seat_wire(cfg, rung.delta_x)} := by\n",
+        f"      unfold {next_acc_x} {acc_x}\n",
     ])
+    emit_compact_acc_bridge(
+        lines, next_x_compact, current_x_compact, "      "
+    )
+    lines.extend([
+        f"    have hnexty : {nay} = {ay} + rho {seat_wire(cfg, rung.delta_y)} := by\n",
+        f"      unfold {next_acc_y} {acc_y}\n",
+    ])
+    emit_compact_acc_bridge(
+        lines, next_y_compact, current_y_compact, "      "
+    )
     if index == 0:
         lines.extend([
             "    have haddx :\n",
@@ -2184,8 +2463,7 @@ def emit_scalar_rung(
             acc_sum_seat = seat_wire(cfg, singleton_wire(rows[a0][0]))
             lines.extend([
                 f"    have hsum : {ax} + {ay} = rho {acc_sum_seat} := by\n",
-                f"      rw [{flat_x}_eq, {flat_y}_eq]\n",
-                f"      unfold {flat_x} {flat_y}\n",
+                f"      unfold {acc_x} {acc_y}\n",
                 f"      linear_combination r{a_sum}\n",
                 f"    have ha0 : ({cur_x} + {cur_y}) * ({ax} + {ay}) = rho {t0} := by\n",
                 f"      rw [hsum]\n",
@@ -2194,16 +2472,15 @@ def emit_scalar_rung(
         else:
             lines.extend([
                 f"    have ha0 : ({cur_x} + {cur_y}) * ({ax} + {ay}) = rho {t0} := by\n",
-                f"      rw [{flat_x}_eq, {flat_y}_eq]\n",
-                f"      unfold {flat_x} {flat_y}\n",
+                f"      unfold {acc_x} {acc_y}\n",
                 f"      linear_combination r{a0}\n",
             ])
         lines.extend([
             f"    have ha1 : {cur_y} * {ax} = rho {t1} := by\n",
-            f"      rw [{flat_x}_eq]\n      unfold {flat_x}\n",
+            f"      unfold {acc_x}\n",
             f"      linear_combination r{a1}\n",
             f"    have ha2 : {cur_x} * {ay} = rho {t2} := by\n",
-            f"      rw [{flat_y}_eq]\n      unfold {flat_y}\n",
+            f"      unfold {acc_y}\n",
             f"      linear_combination r{a2}\n",
             f"    have ha3 : 3021 * rho {t1} * rho {t2} = rho {t3} := by\n",
             f"      linear_combination r{a3}\n",
@@ -2233,19 +2510,19 @@ def emit_scalar_rung(
         f"Bool.toZMod bit * ({ax} - {sum_x}) := by\n",
         f"      have hd : rho {seat_wire(cfg, rung.delta_x)} = "
         f"Bool.toZMod bit * ({sum_x} - {ax}) := by\n",
-        f"        rw [← hbit, {flat_x}_eq]\n",
-        f"        unfold {flat_x}\n",
+        f"        rw [← hbit]\n",
+        f"        unfold {acc_x}\n",
         f"        linear_combination -r{rung.select_x_row}\n",
-        f"      unfold {next_acc_x}\n",
+        "      rw [hnextx]\n",
         "      linear_combination hd\n",
         f"    have hsely : {nay} = {ay} - "
         f"Bool.toZMod bit * ({ay} - {sum_y}) := by\n",
         f"      have hd : rho {seat_wire(cfg, rung.delta_y)} = "
         f"Bool.toZMod bit * ({sum_y} - {ay}) := by\n",
-        f"        rw [← hbit, {flat_y}_eq]\n",
-        f"        unfold {flat_y}\n",
+        f"        rw [← hbit]\n",
+        f"        unfold {acc_y}\n",
         f"        linear_combination -r{rung.select_y_row}\n",
-        f"      unfold {next_acc_y}\n",
+        "      rw [hnexty]\n",
         "      linear_combination hd\n",
     ])
     d0, d1, d2, d3, d4 = rung.double_rows
@@ -2309,6 +2586,7 @@ def emit_scalar_defs_module(
     lines = [
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Bits\n",
         "import ShielddGnarkFormal.Deployed.Dtk.Ladder\n\n",
+        "import ShielddGnarkFormal.StructuredLC\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
@@ -2982,74 +3260,75 @@ def main() -> None:
     ltc_traces = dtk_ltc_traces()
     scalar_rungs = dtk_scalar_rungs()
     poseidon_module, poseidon_sboxes = generate_poseidon_shape()
-    DTK.mkdir(parents=True, exist_ok=True)
-    write_generated(DTK / "Outputs.lean", emit_outputs())
+    OUTPUT_DTK.mkdir(parents=True, exist_ok=True)
+    OUTPUT_CONTRACTS.mkdir(parents=True, exist_ok=True)
+    write_generated(OUTPUT_DTK / "Outputs.lean", emit_outputs())
     for cfg in INSTANCES:
-        write_generated(CONTRACTS / f"DtkAdapterSeg{cfg.seg}Base.lean", emit_base(cfg))
+        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Base.lean", emit_base(cfg))
         previous: str | None = None
         for block in canonical_blocks(cfg):
             component = f"DtkAdapterSeg{cfg.seg}{block.label}"
             write_generated(
-                CONTRACTS / f"{component}Rec.lean",
+                OUTPUT_CONTRACTS / f"{component}Rec.lean",
                 emit_canon_recover(cfg, block, previous),
             )
             write_generated(
-                CONTRACTS / f"{component}Binary.lean",
+                OUTPUT_CONTRACTS / f"{component}Binary.lean",
                 emit_canon_binary(cfg, block, f"{component}Rec"),
             )
             rows = relation_rows(cfg.seg)
             true_defs = f"{component}TrueDefs"
             write_generated(
-                CONTRACTS / f"{true_defs}.lean",
+                OUTPUT_CONTRACTS / f"{true_defs}.lean",
                 emit_canon_true_defs(cfg, block, rows, f"{component}Binary"),
             )
             previous_true = true_defs
             for chunk_index, _ in enumerate(canon_chunks()):
                 true_chunk = f"{component}TrueChunk{chunk_index}"
                 write_generated(
-                    CONTRACTS / f"{true_chunk}.lean",
+                    OUTPUT_CONTRACTS / f"{true_chunk}.lean",
                     emit_canon_true_chunk(
                         cfg, block, rows, previous_true, chunk_index
                     ),
                 )
                 previous_true = true_chunk
             write_generated(
-                CONTRACTS / f"{component}True.lean",
+                OUTPUT_CONTRACTS / f"{component}True.lean",
                 emit_canon_true_thread(cfg, block, previous_true),
             )
             previous_compare = f"{component}True"
             for chunk_index, _ in enumerate(canon_chunks()):
                 compare_chunk = f"{component}CompareChunk{chunk_index}"
                 write_generated(
-                    CONTRACTS / f"{compare_chunk}.lean",
+                    OUTPUT_CONTRACTS / f"{compare_chunk}.lean",
                     emit_canon_compare_chunk(
                         cfg, block, rows, previous_compare, chunk_index
                     ),
                 )
                 previous_compare = compare_chunk
             write_generated(
-                CONTRACTS / f"{component}Compare.lean",
+                OUTPUT_CONTRACTS / f"{component}Compare.lean",
                 emit_canon_compare(cfg, block, previous_compare),
             )
             write_generated(
-                CONTRACTS / f"{component}Chain.lean",
+                OUTPUT_CONTRACTS / f"{component}Chain.lean",
                 emit_canon_chain(cfg, block, f"{component}Compare"),
             )
             write_generated(
-                CONTRACTS / f"{component}.lean",
+                OUTPUT_CONTRACTS / f"{component}.lean",
                 emit_canon_block(cfg, 0 if block.label == "Canon1" else 1),
             )
             previous = component
-        write_generated(CONTRACTS / f"DtkAdapterSeg{cfg.seg}Canon.lean", emit_canon(cfg))
-        write_generated(CONTRACTS / f"DtkAdapterSeg{cfg.seg}Bits.lean", emit_bits(cfg))
+        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Canon.lean", emit_canon(cfg))
+        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Bits.lean", emit_bits(cfg))
         write_generated(
-            CONTRACTS / f"DtkAdapterSeg{cfg.seg}Poseidon.lean",
+            OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Poseidon.lean",
             emit_poseidon_adapter(cfg, poseidon_module, poseidon_sboxes),
         )
         r_trace, q4_trace = ltc_traces
         q4_defs = f"DtkAdapterSeg{cfg.seg}LtQ4Defs"
         write_generated(
-            CONTRACTS / f"{q4_defs}.lean",
+            OUTPUT_CONTRACTS / f"{q4_defs}.lean",
             emit_ltc_defs(cfg, q4_trace, f"DtkAdapterSeg{cfg.seg}Base"),
         )
         previous_lt = q4_defs
@@ -3059,39 +3338,39 @@ def main() -> None:
                     f"DtkAdapterSeg{cfg.seg}Lt{trace.label}Chunk{chunk_index}"
                 )
                 write_generated(
-                    CONTRACTS / f"{component}.lean",
+                    OUTPUT_CONTRACTS / f"{component}.lean",
                     emit_ltc_chunk(cfg, trace, chunk_index, previous_lt),
                 )
                 previous_lt = component
         r_defs = f"DtkAdapterSeg{cfg.seg}LtRDefs"
         write_generated(
-            CONTRACTS / f"{r_defs}.lean",
+            OUTPUT_CONTRACTS / f"{r_defs}.lean",
             emit_ltc_defs(cfg, r_trace, previous_lt),
         )
         previous_lt = r_defs
         for chunk_index, _ in enumerate(ltc_chunks()):
             component = f"DtkAdapterSeg{cfg.seg}LtRChunk{chunk_index}"
             write_generated(
-                CONTRACTS / f"{component}.lean",
+                OUTPUT_CONTRACTS / f"{component}.lean",
                 emit_ltc_chunk(cfg, r_trace, chunk_index, previous_lt),
             )
             previous_lt = component
-        write_generated(CONTRACTS / f"DtkAdapterSeg{cfg.seg}Lt.lean", emit_ltc(cfg))
+        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Lt.lean", emit_ltc(cfg))
         scalar_rows = sr1cs_lc_rows()
         write_generated(
-            CONTRACTS / f"DtkAdapterSeg{cfg.seg}ScalarDefs.lean",
+            OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}ScalarDefs.lean",
             emit_scalar_defs_module(cfg, scalar_rungs),
         )
         for chunk_index, subset in enumerate(scalar_chunks(scalar_rungs)):
             write_generated(
-                CONTRACTS / f"DtkAdapterSeg{cfg.seg}ScalarR{chunk_index}.lean",
+                OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}ScalarR{chunk_index}.lean",
                 emit_scalar_chunk(cfg, chunk_index, subset, scalar_rows),
             )
         write_generated(
-            CONTRACTS / f"DtkAdapterSeg{cfg.seg}Scalar.lean",
+            OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Scalar.lean",
             emit_scalar(cfg, scalar_rungs),
         )
-        write_generated(CONTRACTS / f"DtkAdapterSeg{cfg.seg}.lean", emit_adapter(cfg))
+        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}.lean", emit_adapter(cfg))
     print(
         "generated DTK outputs/base/canonical/bit/lt/scalar modules and "
         f"{poseidon_module}; normalized row shape verified"

@@ -307,6 +307,12 @@ done < <(printf '%s\n' "$selected_circuits")
 echo "==> compiled constraint coverage"
 "$ROOT/scripts/check-constraint-coverage.sh" $(printf '%s\n' "$selected_circuits")
 
+# --- emitted-Lean semantic anti-pattern lint (both tiers) -------------------
+# Enforces the term-size / machine-safety emission rules (fuel-def unroll, wide
+# carried rcases, >8-arm in-proof match) in CI instead of prompt context.
+echo "==> emitted-Lean anti-pattern lint"
+"$ROOT/scripts/check-structured-lc-lint.sh"
+
 # --- stamp integrity (both tiers) -------------------------------------------
 check_common_stamps
 while IFS= read -r circuit; do
