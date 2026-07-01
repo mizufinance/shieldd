@@ -703,6 +703,13 @@ theorem perm2_value {d i0 i1 : F} {k : F → Prop}
   have h' : Extracted.Poseidon2.poseidonPerm2 d i0 i1 k := h
   exact (Poseidon2Bridge.perm2_uncps d i0 i1 k).mp h'
 
+theorem perm2_intro {d i0 i1 : F} {k : F → Prop}
+    (h : k (Poseidon2Bridge.permSpec2 d i0 i1)) :
+    Extracted.DecafDtk.poseidonPerm2 d i0 i1 k := by
+  have h' : Extracted.Poseidon2.poseidonPerm2 d i0 i1 k :=
+    (Poseidon2Bridge.perm2_uncps d i0 i1 k).mpr h
+  exact h'
+
 private theorem dtk_is_zero_cases (a out : F) (h : Extracted.DecafDtk.Gates.is_zero a out) :
     (a ≠ 0 ∧ out = 0) ∨ (a = 0 ∧ out = 1) := h
 

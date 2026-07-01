@@ -68,4 +68,72 @@ theorem depLtcRaw_to_ltcRec (A : List.Vector F 253) (cb : ℕ → Bool) (k : F �
       have htailR := ih pe' il htail
       rwa [hpe'] at htailR
 
+/-- A compact state-trace interface for generated deployed certificates.  State
+`fuel` is the input to the rung processing bit `fuel - 1`; the generated proof
+only supplies the two output equations for each rung. -/
+theorem stateTrace_to_ltcRec (A : List.Vector F 253) (cb : ℕ → Bool) (k : F → Prop)
+    (pe il : ℕ → F)
+    (hstep : ∀ n, n < 253 →
+      if cb n then
+        pe n = pe (n + 1) * A[n]! ∧
+        il n = il (n + 1) + pe (n + 1) * (1 - A[n]!) -
+          il (n + 1) * (pe (n + 1) * (1 - A[n]!))
+      else
+        pe n = pe (n + 1) * (1 - A[n]!) ∧ il n = il (n + 1))
+    (hk : k (il 0)) :
+    ∀ fuel, fuel ≤ 253 → ltcRec A cb k fuel (pe fuel) (il fuel) := by
+  intro fuel hfuel
+  induction fuel with
+  | zero => simpa [ltcRec] using hk
+  | succ n ih =>
+    have hn : n < 253 := by omega
+    have hs := hstep n hn
+    rw [ltcRec]
+    cases hc : cb n with
+    | false =>
+      simp only [hc, Bool.false_eq_true, ↓reduceIte] at hs ⊢
+      rw [ltConstStepZero_uncps]
+      rw [← hs.1, ← hs.2]
+      exact ih (by omega)
+    | true =>
+      simp only [hc, ↓reduceIte] at hs ⊢
+      rw [ltConstStepOne_uncps]
+      rw [← hs.1, ← hs.2]
+      exact ih (by omega)
+
+/-- Compose a bounded interval of a deployed state trace onto an already-proven
+tail. Generated adapters use this to keep each elaboration context small. -/
+theorem stateTrace_span_to_ltcRec (A : List.Vector F 253) (cb : ℕ → Bool)
+    (k : F → Prop) (pe il : ℕ → F) (start span : ℕ)
+    (hstep : ∀ n, start ≤ n → n < start + span →
+      if cb n then
+        pe n = pe (n + 1) * A[n]! ∧
+        il n = il (n + 1) + pe (n + 1) * (1 - A[n]!) -
+          il (n + 1) * (pe (n + 1) * (1 - A[n]!))
+      else
+        pe n = pe (n + 1) * (1 - A[n]!) ∧ il n = il (n + 1))
+    (htail : ltcRec A cb k start (pe start) (il start))
+    (hbound : start + span ≤ 253) :
+    ltcRec A cb k (start + span) (pe (start + span)) (il (start + span)) := by
+  induction span with
+  | zero => simpa using htail
+  | succ span ih =>
+    have htail' := ih
+      (fun n hstart hn => hstep n hstart (by omega))
+      (by omega)
+    have hn : start + span < 253 := by omega
+    have hs := hstep (start + span) (by omega) (by omega)
+    rw [Nat.add_succ, ltcRec]
+    cases hc : cb (start + span) with
+    | false =>
+      simp only [hc, Bool.false_eq_true, ↓reduceIte] at hs ⊢
+      rw [ltConstStepZero_uncps]
+      rw [← hs.1, ← hs.2]
+      exact htail'
+    | true =>
+      simp only [hc, ↓reduceIte] at hs ⊢
+      rw [ltConstStepOne_uncps]
+      rw [← hs.1, ← hs.2]
+      exact htail'
+
 end Shieldd.GnarkFormal.Deployed.Dtk

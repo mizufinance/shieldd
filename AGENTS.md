@@ -67,3 +67,44 @@ They are not migration promises.
   separately, and compose. Repeated rung patterns (ladders, lt-chains) get a
   fuel-recursive definition plus one induction lemma, never an unrolled walk.
 - Monitor Lean compiles actively. A lot of them blowup in time or just hang.
+
+### Lean build resource limits — follow these every time
+
+> **INCIDENT LOG:** Unbounded, concurrent `lake build` invocations have
+> force-rebooted this 48GB macOS machine **twice** (2025-06-23, 2025-06-29) by
+> exhausting RAM and disk. A single OS crash loses unsaved work across every
+> open application. Treat the rules below as load-bearing, not optional polish.
+
+Heavyweight adapter elaborations (Rvk/Dtk/Compress adapters, `Bounds`, Seg
+files) each hold hundreds of GF(p) witnesses; a single one can consume many GB
+of RSS. The crashes came from *fan-out* — many builds running at once, and
+whole-package builds spawning one heavy Lean worker per module.
+
+These are guidelines you are expected to keep, not a script that polices you:
+
+1. **One lake at a time.** Never run two `lake` builds concurrently — not in
+   parallel tool calls, not in the background, not across subagents. Start a
+   build only once the previous one has exited.
+
+2. **Single-threaded.** Export `LEAN_NUM_THREADS=1` so a build elaborates one
+   module at a time instead of fanning out one heavy worker per core (14 here).
+   (macOS rejects `setrlimit(RLIMIT_AS)`, so `ulimit -v` does nothing; keeping
+   builds serial and single-threaded is what actually bounds memory.)
+
+3. **Build the narrowest target.** Name the specific module
+   (`lake build Shieldd…Consolidate2x1.DtkAdapterSeg16`), never a bare
+   `lake build` of the whole package.
+
+4. **Bound elaboration.** Generated Lean files must set a finite `maxHeartbeats`
+   (never `0`) so a runaway elaboration aborts with a diagnostic instead of
+   grinding. See [[lean-gen-bounded-heartbeats]].
+
+5. **Monitor actively.** Run builds in the background and watch them; if one
+   hangs or balloons, kill it (`pkill -f 'lean --'`) rather than letting it run
+   unbounded. Prefer a wall-clock cap on long builds.
+
+**Canonical invocation:**
+```
+LEAN_NUM_THREADS=1 lake build <SPECIFIC.MODULE>     # build one module
+LEAN_NUM_THREADS=1 lake env lean <FILE>             # type-check a file
+```

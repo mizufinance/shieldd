@@ -1,0 +1,79 @@
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16LtRChunk51
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+
+theorem seg16RStep52L (rho : Nat -> Seg16.F) (r2220 : Seg16.relationRow2220 rho) :
+    rho 14795 = seg16RPe53 rho * (1 - rho 14116) := by
+  unfold Seg16.relationRow2220 at r2220
+  unfold seg16RPe53
+  linear_combination -r2220
+
+theorem seg16RStep52IlMul (rho : Nat -> Seg16.F) (r2221 : Seg16.relationRow2221 rho) :
+    rho 14796 = seg16RIl53 rho * (rho 14795) := by
+  unfold Seg16.relationRow2221 at r2221
+  rw [seg16RStep52IlLc rho] at r2221
+  linear_combination -r2221
+
+theorem seg16RStep52Acc (rho : Nat -> Seg16.F) :
+    seg16RIl52 rho = seg16RIl53 rho + (rho 14795) - (rho 14796) := by
+  have hstate : seg16RIl52 rho = seg16RIl53 rho + seg16RIlAtom103 rho := by rfl
+  rw [hstate]
+  unfold seg16RIlAtom103
+  ring
+
+theorem seg16RStep52Pe (rho : Nat -> Seg16.F) (r2222 : Seg16.relationRow2222 rho) :
+    seg16RPe52 rho = seg16RPe53 rho * rho 14116 := by
+  unfold Seg16.relationRow2222 at r2222
+  unfold seg16RPe52 seg16RPe53
+  linear_combination -r2222
+
+theorem seg16RStep52 (rho : Nat -> Seg16.F) (r2220 : Seg16.relationRow2220 rho) (r2221 : Seg16.relationRow2221 rho) (r2222 : Seg16.relationRow2222 rho) :
+    seg16RPe52 rho = seg16RPe53 rho * rho 14116 ∧
+    seg16RIl52 rho = seg16RIl53 rho + seg16RPe53 rho * (1 - rho 14116) -
+      seg16RIl53 rho * (seg16RPe53 rho * (1 - rho 14116)) := by
+  constructor
+  · exact seg16RStep52Pe rho r2222
+  · rw [seg16RStep52Acc rho, seg16RStep52L rho r2220, seg16RStep52IlMul rho r2221, seg16RStep52L rho r2220]
+
+theorem seg16_r_chunk52 (rho : Nat -> Seg16.F) (h : Seg16.relation rho) (k : Prop) (hq4 : Shieldd.GnarkFormal.Extracted.IvkModR.ltcRec (seg16IvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit
+    (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 10) k) 253 (1 : Seg16.F) (0 : Seg16.F)) :
+    Shieldd.GnarkFormal.Extracted.IvkModR.ltcRec (seg16IvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.rBit
+      (Shieldd.GnarkFormal.DtkBridge.rContK (seg16IvkBits rho) (rho 10) k) 53 (seg16RPeState rho 53) (seg16RIlState rho 53) := by
+  have htail := seg16_r_chunk51 rho h k hq4
+  unfold Seg16.relation at h
+  rcases h with ⟨
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, p27, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _
+  ⟩
+  unfold Seg16.relationPart27 at p27
+  rcases p27 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r2220, r2221, r2222, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  have hsteps : ∀ n, 52 ≤ n → n < 53 →
+      if Shieldd.GnarkFormal.Extracted.IvkModR.rBit n then
+        seg16RPeState rho n = seg16RPeState rho (n + 1) * rho (14064 + n) ∧
+        seg16RIlState rho n = seg16RIlState rho (n + 1) + seg16RPeState rho (n + 1) * (1 - rho (14064 + n)) -
+          seg16RIlState rho (n + 1) * (seg16RPeState rho (n + 1) * (1 - rho (14064 + n)))
+      else
+        seg16RPeState rho n = seg16RPeState rho (n + 1) * (1 - rho (14064 + n)) ∧
+        seg16RIlState rho n = seg16RIlState rho (n + 1) := by
+    intro n hnlo hnhi
+    interval_cases n
+    · have hb : Shieldd.GnarkFormal.Extracted.IvkModR.rBit 52 = true := by decide +kernel
+      simp only [hb, ↓reduceIte, Nat.reduceAdd]
+      exact seg16RStep52 rho r2220 r2221 r2222
+  have ht := Shieldd.GnarkFormal.Deployed.Dtk.stateTrace_span_to_ltcRec
+    (seg16IvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.rBit (Shieldd.GnarkFormal.DtkBridge.rContK (seg16IvkBits rho) (rho 10) k)
+    (seg16RPeState rho) (seg16RIlState rho) 52 1
+    (by intro n hnlo hnhi; have key := seg16IvkBits_get rho n (by omega); erw [key]; exact hsteps n hnlo hnhi) htail (by omega)
+  simpa only [Nat.reduceAdd] using ht
+
+end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1

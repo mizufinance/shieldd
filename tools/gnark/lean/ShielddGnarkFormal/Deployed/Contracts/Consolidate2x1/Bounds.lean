@@ -21,6 +21,9 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.StatementHashAdapter
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg13
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg31
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg34
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg45
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg14
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg18
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg19
@@ -147,6 +150,24 @@ theorem inst31_bound :
     Deployed.BoundDeployedSound Seg31.contract
       Seg31.contract.relationSha256Hex Seg31.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, seg31_sound⟩
+
+/-- seg16 `decaf.diversified_transmission_key`. -/
+theorem inst16_bound :
+    Deployed.BoundDeployedSound Seg16.contract
+      Seg16.contract.relationSha256Hex Seg16.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg16_sound⟩
+
+/-- seg34 `decaf.diversified_transmission_key`. -/
+theorem inst34_bound :
+    Deployed.BoundDeployedSound Seg34.contract
+      Seg34.contract.relationSha256Hex Seg34.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg34_sound⟩
+
+/-- seg45 `decaf.diversified_transmission_key`. -/
+theorem inst45_bound :
+    Deployed.BoundDeployedSound Seg45.contract
+      Seg45.contract.relationSha256Hex Seg45.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg45_sound⟩
 
 /-- seg21 `assert.eq`. -/
 theorem inst21_bound :

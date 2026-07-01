@@ -77,10 +77,8 @@ check_bridge_theorems() {
   local bounds_module="ShielddGnarkFormal.Deployed.Contracts.$(contract_module_dir_for_circuit "$circuit").Bounds"
   local bounds_path="$lean_src_dir/${bounds_module//.//}.lean"
   if [[ -f "$bounds_path" ]]; then
-    (
-      cd "$lean_src_dir"
-      lake build "$bounds_module" >/dev/null
-    ) || fail "deployed bounds module does not build for $circuit"
+    lake build "$bounds_module" >/dev/null \
+      || fail "deployed bounds module does not build for $circuit"
   fi
   {
     echo "import ShielddGnarkFormal"
@@ -95,10 +93,8 @@ check_bridge_theorems() {
       printf '#check %s\n' "$thm"
     done
   } > "$lean_check"
-  (
-    cd "$lean_src_dir"
-    lake env lean "$lean_check" >/dev/null
-  ) || fail "one or more bridge_theorem names do not resolve as fully qualified Lean declarations for $circuit"
+  lake env lean "$lean_check" >/dev/null \
+    || fail "one or more bridge_theorem names do not resolve as fully qualified Lean declarations for $circuit"
 }
 
 check_typed_contract_theorems() {
@@ -122,10 +118,8 @@ check_typed_contract_theorems() {
   fi
 
   if [[ -s "$imports_file" ]]; then
-    (
-      cd "$lean_src_dir"
-      xargs lake build < "$imports_file" >/dev/null
-    ) || fail "one or more deployed contract modules do not build for $circuit"
+    xargs lake build < "$imports_file" >/dev/null \
+      || fail "one or more deployed contract modules do not build for $circuit"
   fi
 
   {
@@ -146,10 +140,8 @@ check_typed_contract_theorems() {
         "$thm" "$contract_module" "$relation_hash" "$wire_role_hash"
     done
   } > "$lean_check"
-  (
-    cd "$lean_src_dir"
-    lake env lean "$lean_check" >/dev/null
-  ) || fail "one or more deployed theorem types do not match their generated contracts for $circuit"
+  lake env lean "$lean_check" >/dev/null \
+    || fail "one or more deployed theorem types do not match their generated contracts for $circuit"
 }
 
 check_generated_contracts() {

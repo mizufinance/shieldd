@@ -26,6 +26,17 @@ Order = 844446174942837042424882493878154653137589933515406382793523345591740923
 
 # ---------------------------------------------------------------- class configs
 CONFIGS = {
+    "dtk_ivk": dict(
+        W=3,
+        leaf="DtkIvkPoseidon",
+        slice_stem="DtkIvkPoseidon270_e8acc1",
+        link="Poseidon2Link",
+        bridge_ns="Poseidon2Bridge",
+        deployed_bridge="DtkIvkPoseidonDeployedBridge",
+        spec="permSpec2",
+        domain_sym="ivkDomainLit",
+        extracted_ns="Shieldd.GnarkFormal.Extracted.Poseidon2",
+    ),
     "nullifier": dict(
         W=4,
         leaf="Nullifier",                       # Deployed.{leaf} namespace + subdir
@@ -518,7 +529,7 @@ def build(cfgname):
         return lc_expr(dep)
 
     # seg{i}_sound lemmas: reconstruct the i-th deployed 5-row S-box.
-    SEG = [f"import ShielddGnarkFormal.Deployed.{cfg['deployed_bridge']}\nimport ShielddGnarkFormal.Deployed.{leaf}.SpecLink\n\n", header]
+    SEG = [f"import ShielddGnarkFormal.Deployed.{cfg['deployed_bridge']}\nimport ShielddGnarkFormal.Deployed.{leaf}.SpecLink\nimport Mathlib.Tactic.LinearCombination\n\n", header]
     bridge_seg_base = cfg.get("seg_lemmas_in_bridge", set())
     for s in sorted(seg_args):
         r = seg2round[s]
@@ -535,11 +546,11 @@ def build(cfgname):
             f"  unfold {NS}.seg{s}\n"
             f"  rintro ⟨v0, v1, v2, v3, {w}, h0, h1, h2, h3, h4, hk⟩\n"
             f"  refine ⟨{w}, ?_, hk⟩\n"
-            f"  have h0' : ({seg_hw_expr(s)}) * ({seg_hw_expr(s)}) = v0 := by simpa [one_mul, add_assoc] using h0\n"
-            f"  have h1' : v0 * v0 = v1 := by simpa [one_mul, add_assoc] using h1\n"
-            f"  have h2' : v1 * v1 = v2 := by simpa [one_mul, add_assoc] using h2\n"
-            f"  have h3' : v2 * v2 = v3 := by simpa [one_mul, add_assoc] using h3\n"
-            f"  have h4' : v3 * ({seg_hw_expr(s)}) = {w} := by simpa [one_mul, add_assoc] using h4\n"
+            f"  have h0' : ({seg_hw_expr(s)}) * ({seg_hw_expr(s)}) = v0 := by linear_combination h0\n"
+            f"  have h1' : v0 * v0 = v1 := by linear_combination h1\n"
+            f"  have h2' : v1 * v1 = v2 := by linear_combination h2\n"
+            f"  have h3' : v2 * v2 = v3 := by linear_combination h3\n"
+            f"  have h4' : v3 * ({seg_hw_expr(s)}) = {w} := by linear_combination h4\n"
             f"  exact p17_from_rows _ _ _ _ _ _ h0' h1' h2' h3' h4'\n\n")
     SEG.append(footer)
     (OUT / "SegSound.lean").write_text("".join(SEG))

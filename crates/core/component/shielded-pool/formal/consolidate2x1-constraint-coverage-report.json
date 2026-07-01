@@ -885,9 +885,9 @@
     "circuit": "consolidate2x1",
     "sr1cs_sha256_hex": "12bf600c30c5dac11d03784f5aa3d133ff86de5e67b8be9f7c6a79f0eda6e188",
     "total_obligations": 49,
-    "discharged": 43,
+    "discharged": 46,
     "functional_assumptions": 0,
-    "pending": 6,
+    "pending": 3,
     "unmapped": 0,
     "constant_mismatch": 0,
     "instance_unpinned": 0,
@@ -1100,7 +1100,9 @@
         "relation_sha256_hex": "c740c930f54314497c378023621ccca5ac18256e12d9f151fbbcb7f98293a947",
         "wire_role_sha256_hex": "bbf7d893bfe64a71827608ca197b6e5a3d58ccd48e143faaa1fe0d554bcc3f3d",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst16_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg16"
         }
       },
       {
@@ -1336,7 +1338,9 @@
         "relation_sha256_hex": "b9964a640964db2cdb489a381f50ae3f769985d1a3146e7ea7169f44d044650c",
         "wire_role_sha256_hex": "3088b6d52e4b2b07b381e3b3899a42a79d311e4c7bb72213e15f19c51dbd2cbe",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst34_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg34"
         }
       },
       {
@@ -1469,7 +1473,9 @@
         "relation_sha256_hex": "ca87602d1158751dc2058aa05ab07e8f7db8733942f3a462ebdc4be1620e1b34",
         "wire_role_sha256_hex": "a0d088d05663effb50aae5f7cbc59df0a42d1368c707fc7d36ebc5d830078e74",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst45_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg45"
         }
       },
       {
