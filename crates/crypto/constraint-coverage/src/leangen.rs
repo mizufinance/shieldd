@@ -178,7 +178,7 @@ fn render_class(ctx: &ClassCtx) -> (String, String) {
 \n\
          set_option linter.unusedVariables false\n\
          set_option maxRecDepth 100000\n\
-         set_option maxHeartbeats 0\n\n\
+         set_option maxHeartbeats 50000000\n\n\
          /-! Auto-generated deployed-slice relation for `{op}` (size {size}).\n\
          Flat R1CS rows of the gnark partial-evaluated gadget, constants verbatim.\n\
          Generated from the checked deployed-slice IR; do not edit by hand. -/\n\n\
@@ -748,7 +748,7 @@ fn render_threaded(
 \n\
          set_option linter.unusedVariables false\n\
          set_option maxRecDepth 100000\n\
-         set_option maxHeartbeats 0\n\n\
+         set_option maxHeartbeats 50000000\n\n\
          /-! Auto-generated per-rung deployed-slice certificates for `{op}` \
          (size {size}, {nseg} rows).\n\
          Each `step{{k}}` proves the rematerialized rung follows from the exact \

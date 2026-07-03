@@ -269,6 +269,14 @@ theorem nbAddK_semantic (px py qx qy : F) (k : F → F → Prop)
   rcases h with ⟨rx, hrx, ry, hry, hk⟩
   exact ⟨rx, ry, ⟨hrx, hry⟩, hk⟩
 
+theorem nbAddK_of_addSpec (p q out : EdwardsBridge.Point) (k : F → F → Prop)
+    (hadd : EdwardsBridge.addSpec p q out) (hk : k out.x out.y) :
+    nbAddK p.x p.y q.x q.y k := by
+  simp only [nbAddK, EdwardsBridge.addSpec, EdwardsBridge.a, EdwardsBridge.d,
+    Extracted.NetBalanceCommitment.Gates, GatesGnark9, GatesGnark8, GatesDef.mul,
+    GatesDef.add, GatesDef.sub, exists_eq_left]
+  exact ⟨out.x, hadd.1, out.y, hadd.2, hk⟩
+
 /-- Final Edwards-add block `addD`: pins the result to `(OutX, OutY)`. -/
 def nbFinalK (px py qx qy outX outY : F) : Prop :=
     ∃g0, g0 = Extracted.NetBalanceCommitment.Gates.mul px (8444461749428370424248824938781546531375899335154063827935233455917409239040:F) ∧
@@ -306,6 +314,20 @@ theorem nbFinalK_semantic (px py qx qy outX outY : F)
     GatesDef.add, GatesDef.sub, GatesDef.eq, exists_eq_left] at h ⊢
   rcases h with ⟨rx, hrx, ry, hry, hx, hy, -⟩
   exact ⟨hx ▸ hrx, hy ▸ hry⟩
+
+theorem nbFinalK_of_addSpec (p q out : EdwardsBridge.Point)
+    (hadd : EdwardsBridge.addSpec p q out) (hout : EdwardsBridge.onCurve out) :
+    nbFinalK p.x p.y q.x q.y out.x out.y := by
+  simp only [nbFinalK, EdwardsBridge.addSpec, EdwardsBridge.onCurve,
+    EdwardsBridge.a, EdwardsBridge.d, Extracted.NetBalanceCommitment.Gates,
+    GatesGnark9, GatesGnark8, GatesDef.mul, GatesDef.add, GatesDef.sub,
+    GatesDef.eq, exists_eq_left]
+  have hout' : out.y * out.y - out.x * out.x
+      = 1 + 3021 * (out.x * out.x) * (out.y * out.y) := by
+    have h := hout
+    simp only [EdwardsBridge.onCurve, EdwardsBridge.d] at h
+    linear_combination h
+  exact ⟨out.x, hadd.1, out.y, hadd.2, rfl, rfl, hout', True.intro⟩
 
 /-! ### Circuit body: four value ladders, add chain, blinding ladder, final add -/
 

@@ -238,7 +238,7 @@ def main():
         "import ShielddGnarkFormal.Extracted.PoseidonHash4\n\n",
         "set_option linter.unusedVariables false\n",
         "set_option maxRecDepth 100000\n",
-        "set_option maxHeartbeats 0\n\n",
+        "set_option maxHeartbeats 50000000\n\n",
         f"/-! Auto-generated CPS-segmented deployed-slice relation for `{OP}` ",
         "(size 350, 70 segments of 5 rows).\n",
         "Generated from consolidate2x1.sr1cs global rows [2093,2443); do not edit by hand. -/\n\n",

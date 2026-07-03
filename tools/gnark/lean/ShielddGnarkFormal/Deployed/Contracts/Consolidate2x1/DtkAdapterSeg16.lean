@@ -189,7 +189,7 @@ theorem seg16_dtkSeg0 (rho : Nat -> Seg16.F) (h : Seg16.relation rho)
   refine Shieldd.GnarkFormal.DtkBridge.perm2_intro ?_
   refine ⟨(2111115437357092606062206234695386632838870926408408195193685246394721360383 : Seg16.F) * rho 10, rfl,
     (2111115437357092606062206234695386632838870926408408195193685246394721360383 : Seg16.F) * rho 10 + rho 9, rfl,
-    (by linear_combination hposeidon), rho 10 - (1 : Seg16.F), rfl,
+    (by first | linear_combination hposeidon | linear_combination (2 : Seg16.F) * hposeidon | linear_combination -hposeidon | linear_combination (-2 : Seg16.F) * hposeidon), rho 10 - (1 : Seg16.F), rfl,
     rho 14060, (by first | linear_combination r1317 | linear_combination -r1317), rho 10 - (2 : Seg16.F), rfl,
     rho 14061, (by first | linear_combination r1318 | linear_combination -r1318), rho 10 - (3 : Seg16.F), rfl,
     rho 14062, (by first | linear_combination r1319 | linear_combination -r1319), rho 10 - (4 : Seg16.F), rfl,

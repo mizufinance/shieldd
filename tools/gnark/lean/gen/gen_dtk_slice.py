@@ -109,8 +109,15 @@ INSTANCES = (
 )
 
 
+_SOURCE_CACHE: dict[tuple[str, int], str] = {}
+_RELATION_PARTS_CACHE: dict[tuple[str, int, int], tuple[tuple[int, ...], ...]] = {}
+
+
 def source(seg: int) -> str:
-    return (SOURCE_CONTRACTS / f"Seg{seg}.lean").read_text()
+    key = (str(SOURCE_CONTRACTS.resolve()), seg)
+    if key not in _SOURCE_CACHE:
+        _SOURCE_CACHE[key] = (SOURCE_CONTRACTS / f"Seg{seg}.lean").read_text()
+    return _SOURCE_CACHE[key]
 
 
 def def_body(text: str, name: str) -> str:
@@ -164,6 +171,10 @@ def relation_rows(seg: int) -> dict[int, str]:
 
 
 def relation_parts(seg: int) -> list[list[int]]:
+    cache_key = (str(SOURCE_CONTRACTS.resolve()), seg, ROW_COUNT)
+    cached = _RELATION_PARTS_CACHE.get(cache_key)
+    if cached is not None:
+        return [list(rows) for rows in cached]
     text = source(seg)
     parts = []
     for match in re.finditer(
@@ -178,6 +189,7 @@ def relation_parts(seg: int) -> list[list[int]]:
         parts.append([int(row) for row in re.findall(r"relationRow(\d+) rho", match.group(2))])
     if [row for part in parts for row in part] != list(range(ROW_COUNT)):
         raise ValueError(f"Seg{seg}: relation parts do not cover rows exactly")
+    _RELATION_PARTS_CACHE[cache_key] = tuple(tuple(rows) for rows in parts)
     return parts
 
 
@@ -430,7 +442,8 @@ def lc_dependencies(seg: int, row: int) -> list[str]:
 
 
 def emit_recomposition(
-    lines: list[str], cfg: Instance, block: CanonicalBlock, bits: str, rec_hyp: str
+    lines: list[str], cfg: Instance, block: CanonicalBlock, bits: str, rec_hyp: str,
+    width: int = 253,
 ) -> None:
     dependencies = lc_dependencies(cfg.seg, block.rec_row)
     unfolds = " ".join(
@@ -439,8 +452,8 @@ def emit_recomposition(
     )
     lines.extend(
         [
-            f"  have hrecover := recover_ofFn_eq_recBits rho {block.bit_base} 253\n",
-            f"  have hacc : powSumAcc rho 0 1 {block.bit_base} 253 = rho {block.input_wire} := by\n",
+            f"  have hrecover := recover_ofFn_eq_recBits rho {block.bit_base} {width}\n",
+            f"  have hacc : powSumAcc rho 0 1 {block.bit_base} {width} = rho {block.input_wire} := by\n",
             f"    unfold {unfolds} at {rec_hyp}\n",
             f"    simp only [powSumAcc]\n",
             f"    linear_combination {rec_hyp}\n",
@@ -565,10 +578,16 @@ def canon_prefix(cfg: Instance, block: CanonicalBlock) -> str:
     return f"seg{cfg.seg}{block.label}"
 
 
-def canon_component_header(cfg: Instance, block: CanonicalBlock, previous: str | None) -> list[str]:
+def canon_component_header(
+    cfg: Instance,
+    block: CanonicalBlock,
+    previous: str | None,
+    base_component: str | None = None,
+) -> list[str]:
     if previous is None:
+        base_component = base_component or f"DtkAdapterSeg{cfg.seg}Base"
         imports = [
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Base\n",
+            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.{base_component}\n",
             "import ShielddGnarkFormal.CanonicalFqBitsDeployedKernel\n",
             "import ShielddGnarkFormal.CanonicalFqBitsChainAcc\n",
             "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon\n",
@@ -588,10 +607,15 @@ def canon_component_header(cfg: Instance, block: CanonicalBlock, previous: str |
     ]
 
 
-def emit_canon_recover(cfg: Instance, block: CanonicalBlock, previous: str | None) -> str:
+def emit_canon_recover(
+    cfg: Instance,
+    block: CanonicalBlock,
+    previous: str | None,
+    base_component: str | None = None,
+) -> str:
     prefix = canon_prefix(cfg, block)
     bits = bits_name(cfg, block.label)
-    lines = canon_component_header(cfg, block, previous)
+    lines = canon_component_header(cfg, block, previous, base_component)
     lines.append(
         f"theorem {prefix}_recover (rho : Nat -> Seg{cfg.seg}.F) "
         f"(h : Seg{cfg.seg}.relation rho) :\n"
@@ -841,12 +865,21 @@ def emit_canon_chain(cfg: Instance, block: CanonicalBlock, previous: str) -> str
     return "".join(lines)
 
 
-def emit_canon_block(cfg: Instance, block_index: int) -> str:
+def emit_canon_block(
+    cfg: Instance,
+    block_index: int | None = None,
+    *,
+    block: CanonicalBlock | None = None,
+    previous: str | None = None,
+) -> str:
     rows = relation_rows(cfg.seg)
-    block = canonical_blocks(cfg)[block_index]
+    if block is None:
+        if block_index is None:
+            raise ValueError("canonical block or block_index is required")
+        block = canonical_blocks(cfg)[block_index]
     prefix = canon_prefix(cfg, block)
     bits = bits_name(cfg, block.label)
-    previous = f"DtkAdapterSeg{cfg.seg}{block.label}Chain"
+    previous = previous or f"DtkAdapterSeg{cfg.seg}{block.label}Chain"
     lines = canon_component_header(cfg, block, previous)
     lines.append(
         f"theorem {prefix}_canonical (rho : Nat -> Seg{cfg.seg}.F)\n"
@@ -2938,7 +2971,7 @@ def emit_adapter(cfg: Instance) -> str:
         f"  refine Shieldd.GnarkFormal.DtkBridge.perm2_intro ?_\n",
         f"  refine ⟨(2111115437357092606062206234695386632838870926408408195193685246394721360383 : Seg{cfg.seg}.F) * rho 10, rfl,\n",
         f"    (2111115437357092606062206234695386632838870926408408195193685246394721360383 : Seg{cfg.seg}.F) * rho 10 + rho 9, rfl,\n",
-        f"    (by linear_combination hposeidon), rho 10 - (1 : Seg{cfg.seg}.F), rfl,\n",
+        f"    (by first | linear_combination hposeidon | linear_combination (2 : Seg{cfg.seg}.F) * hposeidon | linear_combination -hposeidon | linear_combination (-2 : Seg{cfg.seg}.F) * hposeidon), rho 10 - (1 : Seg{cfg.seg}.F), rfl,\n",
         f"    rho {w(973)}, (by first | linear_combination r1317 | linear_combination -r1317), rho 10 - (2 : Seg{cfg.seg}.F), rfl,\n",
         f"    rho {w(974)}, (by first | linear_combination r1318 | linear_combination -r1318), rho 10 - (3 : Seg{cfg.seg}.F), rfl,\n",
         f"    rho {w(975)}, (by first | linear_combination r1319 | linear_combination -r1319), rho 10 - (4 : Seg{cfg.seg}.F), rfl,\n",

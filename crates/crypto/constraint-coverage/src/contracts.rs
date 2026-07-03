@@ -294,14 +294,22 @@ fn render_structured_lc(repr: &StructuredLcRepr) -> String {
     )
 }
 
-fn render_lc_factored(terms: &[Term], defs: &mut String, next_lc: &mut usize) -> String {
+fn render_lc_factored_with_inline_limit(
+    terms: &[Term],
+    defs: &mut String,
+    next_lc: &mut usize,
+    inline_limit: usize,
+    structured: bool,
+) -> String {
     const LC_CHUNK_SIZE: usize = 32;
 
-    if let Some(repr) = structure_lc(terms) {
-        return render_structured_lc(&repr);
+    if structured {
+        if let Some(repr) = structure_lc(terms) {
+            return render_structured_lc(&repr);
+        }
     }
 
-    if terms.len() <= LC_CHUNK_SIZE {
+    if terms.len() <= inline_limit {
         return render_lc(terms);
     }
 
@@ -325,14 +333,29 @@ fn render_lc_factored(terms: &[Term], defs: &mut String, next_lc: &mut usize) ->
     format!("{name} rho")
 }
 
-fn render_row_factored(row: &Constraint, defs: &mut String, next_lc: &mut usize) -> String {
-    let l = render_lc_factored(&row.l, defs, next_lc);
-    let r = render_lc_factored(&row.r, defs, next_lc);
-    let o = render_lc_factored(&row.o, defs, next_lc);
+#[cfg(test)]
+fn render_lc_factored(terms: &[Term], defs: &mut String, next_lc: &mut usize) -> String {
+    render_lc_factored_with_inline_limit(terms, defs, next_lc, 32, true)
+}
+
+fn render_row_factored(
+    row: &Constraint,
+    defs: &mut String,
+    next_lc: &mut usize,
+    inline_limit: usize,
+    structured: bool,
+) -> String {
+    let l = render_lc_factored_with_inline_limit(&row.l, defs, next_lc, inline_limit, structured);
+    let r = render_lc_factored_with_inline_limit(&row.r, defs, next_lc, inline_limit, structured);
+    let o = render_lc_factored_with_inline_limit(&row.o, defs, next_lc, inline_limit, structured);
     format!("({l}) * ({r}) = ({o})")
 }
 
-fn render_relation_defs(rows: &[Constraint]) -> (String, String) {
+fn render_relation_defs_with_inline_limit(
+    rows: &[Constraint],
+    inline_limit: usize,
+    structured: bool,
+) -> (String, String) {
     const CHUNK_THRESHOLD: usize = 100;
     const SMALL_CHUNK_SIZE: usize = 5;
     const LARGE_CHUNK_SIZE: usize = 80;
@@ -346,7 +369,7 @@ fn render_relation_defs(rows: &[Constraint]) -> (String, String) {
     let mut next_lc = 0usize;
     for (idx, row) in rows.iter().enumerate() {
         let row_body = if factor_lc {
-            render_row_factored(row, &mut defs, &mut next_lc)
+            render_row_factored(row, &mut defs, &mut next_lc, inline_limit, structured)
         } else {
             render_row(row)
         };
@@ -382,12 +405,31 @@ fn render_relation_defs(rows: &[Constraint]) -> (String, String) {
     (defs, parts.join(" ∧\n    "))
 }
 
+#[cfg(test)]
+fn render_relation_defs(rows: &[Constraint]) -> (String, String) {
+    render_relation_defs_with_inline_limit(rows, 32, true)
+}
+
 fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> ContractFile {
     let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
     let module = contract_module(circuit, segment.index);
     let file_name = contract_file_name(circuit, segment.index);
     let circuit_mod = circuit_module(circuit);
-    let (relation_defs, relation_body) = render_relation_defs(rows);
+    // Semantic adapters project recomposition rows directly. Keep their bounded
+    // irregular LCs in the row equation so proofs never open a relationLc*Part*
+    // implementation detail. Equal-coefficient ladder sums are still compacted
+    // first by StructuredLC.
+    let inline_limit = match segment.op.as_str() {
+        "decaf.net_balance_commitment" => 256,
+        "gadget.state_commitment_path" => 64,
+        _ => 32,
+    };
+    // The rvk fixed-base bridges (segs 13/31) consume the flat relationLc*
+    // defs directly; compacting their ladder accumulators into StructuredLC
+    // would delete the defs those proven adapters are seated on.
+    let structured = segment.op != "decaf.randomized_verification_key";
+    let (relation_defs, relation_body) =
+        render_relation_defs_with_inline_limit(rows, inline_limit, structured);
     let contents = format!(
          "import ShielddGnarkFormal.Deployed.Contract\n\
          import ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.Specs\n\
@@ -732,5 +774,23 @@ mod tests {
         assert!(defs.contains("def relationLc0Part1"));
         assert!(defs.contains("def relationLc0Part2"));
         assert!(defs.contains("def relationLc0"));
+    }
+
+    #[test]
+    fn keeps_configured_irregular_linear_combinations_inline() {
+        let terms = (1..=253)
+            .map(|wire| Term {
+                coeff: format!("{wire}"),
+                wire,
+            })
+            .collect::<Vec<_>>();
+        let mut defs = String::new();
+        let mut next_lc = 0;
+
+        let rendered = render_lc_factored_with_inline_limit(&terms, &mut defs, &mut next_lc, 256, true);
+
+        assert!(rendered.contains("(253 : F) * rho 253"));
+        assert!(defs.is_empty());
+        assert_eq!(next_lc, 0);
     }
 }

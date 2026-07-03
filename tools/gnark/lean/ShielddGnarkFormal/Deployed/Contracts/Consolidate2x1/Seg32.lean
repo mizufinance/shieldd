@@ -1,9 +1,10 @@
 import ShielddGnarkFormal.Deployed.Contract
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs
+import ShielddGnarkFormal.StructuredLC
 import Mathlib.Data.ZMod.Basic
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 50000000
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg32
 

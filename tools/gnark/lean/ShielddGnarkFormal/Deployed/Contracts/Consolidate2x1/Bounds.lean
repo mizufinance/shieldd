@@ -24,6 +24,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg31
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg34
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg45
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg14
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg18
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg19
@@ -168,6 +169,12 @@ theorem inst45_bound :
     Deployed.BoundDeployedSound Seg45.contract
       Seg45.contract.relationSha256Hex Seg45.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, seg45_sound⟩
+
+/-- seg52 `decaf.net_balance_commitment`. -/
+theorem inst52_bound :
+    Deployed.BoundDeployedSound Seg52.contract
+      Seg52.contract.relationSha256Hex Seg52.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg52_sound⟩
 
 /-- seg21 `assert.eq`. -/
 theorem inst21_bound :

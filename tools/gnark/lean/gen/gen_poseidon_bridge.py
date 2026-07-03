@@ -26,6 +26,17 @@ Order = 844446174942837042424882493878154653137589933515406382793523345591740923
 
 # ---------------------------------------------------------------- class configs
 CONFIGS = {
+    "net_balance": dict(
+        W=2,
+        leaf="NetBalancePoseidon",
+        slice_stem="NetBalancePoseidon230_6eb4e5",
+        link="Poseidon1Link",
+        bridge_ns="Poseidon1Bridge",
+        deployed_bridge="NetBalancePoseidonDeployedBridge",
+        spec="permSpec1",
+        domain_sym="netBalanceDomainLit",
+        extracted_ns="Shieldd.GnarkFormal.Extracted.PoseidonHash1",
+    ),
     "dtk_ivk": dict(
         W=3,
         leaf="DtkIvkPoseidon",

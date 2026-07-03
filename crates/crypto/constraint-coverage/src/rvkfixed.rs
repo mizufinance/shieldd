@@ -90,6 +90,34 @@ fn carried_wires(side: &[Term], b0: usize) -> Vec<usize> {
 /// `rows[base .. base+5]`, over seed bit `b0`. `i == 1` is the base case (no
 /// carried accumulator); `i >= 2` is the inductive growing-accumulator case.
 pub fn emit_rung(i: usize, rows: &[Constraint], base: usize, b0: usize) -> Option<RungCert> {
+    emit_rung_cfg(
+        i,
+        rows,
+        base,
+        b0,
+        GX,
+        GYM1,
+        "RvkFixedBaseLadder.FixedStepRel",
+        "RvkFixedBaseRung.fixedRung_fixedStepRel",
+    )
+}
+
+/// `emit_rung` over an arbitrary fixed base: `gx`/`gym1` are the generator's
+/// `x`/`y-1` literals baked into the rows, `fsr` the per-rung step-relation
+/// target, `kern` the row→step keystone (same argument shape as
+/// `RvkFixedBaseRung.fixedRung_fixedStepRel`). The literal module opened by the
+/// header must define `L{i}`/`C_eq_L{i}` for the same base.
+#[allow(non_snake_case, clippy::too_many_arguments)]
+pub fn emit_rung_cfg(
+    i: usize,
+    rows: &[Constraint],
+    base: usize,
+    b0: usize,
+    gx: &str,
+    gym1: &str,
+    fsr: &str,
+    kern: &str,
+) -> Option<RungCert> {
     if base + 5 > rows.len() {
         return None;
     }
@@ -138,19 +166,19 @@ pub fn emit_rung(i: usize, rows: &[Constraint], base: usize, b0: usize) -> Optio
         // Base case: acc1 = ⟨Gx·b0, 1+Gym1·b0⟩, no carried accumulator, single-term
         // v2 factors (no `cw5` slot).
         s.push_str(&format!(
-            "theorem e_a_{i} : ({alpha} : EdwardsBridge.F) = 3021 * {ciy} * {GX} := by decide\n"
+            "theorem e_a_{i} : ({alpha} : EdwardsBridge.F) = 3021 * {ciy} * {gx} := by decide\n"
         ));
         s.push_str(&format!(
-            "theorem e_db_{i} : ({db0} : EdwardsBridge.F) = {cix} * {GYM1} := by decide\n"
+            "theorem e_db_{i} : ({db0} : EdwardsBridge.F) = {cix} * {gym1} := by decide\n"
         ));
         s.push_str(&format!(
-            "theorem e_eb_{i} : ({eb0} : EdwardsBridge.F) = {ciy} * {GX} + {cix} * {GYM1} := by decide\n"
+            "theorem e_eb_{i} : ({eb0} : EdwardsBridge.F) = {ciy} * {gx} + {cix} * {gym1} := by decide\n"
         ));
         s.push_str(&format!(
-            "theorem e_fb_{i} : ({fb0} : EdwardsBridge.F) = (-1) * {ciy} * {GX} - {cix} * {GYM1} + ({GYM1} - {GX} * (-1)) * ({cix} + {ciy}) := by decide\n"
+            "theorem e_fb_{i} : ({fb0} : EdwardsBridge.F) = (-1) * {ciy} * {gx} - {cix} * {gym1} + ({gym1} - {gx} * (-1)) * ({cix} + {ciy}) := by decide\n"
         ));
         s.push_str(&format!(
-            "noncomputable def acc{i} (b0 : EdwardsBridge.F) : Point := ⟨{GX}*b0, 1+{GYM1}*b0⟩\n"
+            "noncomputable def acc{i} (b0 : EdwardsBridge.F) : Point := ⟨{gx}*b0, 1+{gym1}*b0⟩\n"
         ));
         s.push_str(&format!("theorem {nm}\n"));
         s.push_str(&format!(
@@ -174,7 +202,7 @@ pub fn emit_rung(i: usize, rows: &[Constraint], base: usize, b0: usize) -> Optio
             "    (hbit : (1*bit{i})*(1 + (-1)*bit{i}) = 0) :\n"
         ));
         s.push_str(&format!(
-            "    RvkFixedBaseLadder.FixedStepRel {i} bit{i} (acc{i} b0) ⟨{GX}*b0 + sdx, (1+{GYM1}*b0) + sdy⟩ := by\n"
+            "    {fsr} {i} bit{i} (acc{i} b0) ⟨{gx}*b0 + sdx, (1+{gym1}*b0) + sdy⟩ := by\n"
         ));
         s.push_str(&format!("  simp only [e_a_{i}, e_db_{i}] at h_v2\n"));
         s.push_str(&format!("  simp only [e_eb_{i}] at h_addX\n"));
@@ -182,7 +210,7 @@ pub fn emit_rung(i: usize, rows: &[Constraint], base: usize, b0: usize) -> Optio
         s.push_str("  simp only [e_nx] at h_selX\n");
         s.push_str("  simp only [e_ny] at h_selY\n");
         s.push_str(&format!(
-            "  refine RvkFixedBaseRung.fixedRung_fixedStepRel {i} bit{i} (acc{i} b0) ⟨sx, sy⟩ ⟨{GX}*b0 + sdx, (1+{GYM1}*b0) + sdy⟩ hacc ?_ ?_ ?_ ?_ ?_\n"
+            "  refine {kern} {i} bit{i} (acc{i} b0) ⟨sx, sy⟩ ⟨{gx}*b0 + sdx, (1+{gym1}*b0) + sdy⟩ hacc ?_ ?_ ?_ ?_ ?_\n"
         ));
         s.push_str(&format!(
             "  · rw [C_eq_L{i}]; simp only [acc{i}, L{i}, EdwardsBridge.d]\n    linear_combination h_addX + sx * h_v2\n"
@@ -203,22 +231,22 @@ pub fn emit_rung(i: usize, rows: &[Constraint], base: usize, b0: usize) -> Optio
             .expect("v2.L carried-delta coeff")
             .to_owned();
         s.push_str(&format!(
-            "theorem e_a_{i} : ({alpha} : EdwardsBridge.F) = 3021 * {ciy} * {GX} := by decide\n"
+            "theorem e_a_{i} : ({alpha} : EdwardsBridge.F) = 3021 * {ciy} * {gx} := by decide\n"
         ));
         s.push_str(&format!(
             "theorem e_cw_{i} : ({cw5} : EdwardsBridge.F) = 3021 * {ciy} := by decide\n"
         ));
         s.push_str(&format!(
-            "theorem e_db_{i} : ({db0} : EdwardsBridge.F) = {cix} * {GYM1} := by decide\n"
+            "theorem e_db_{i} : ({db0} : EdwardsBridge.F) = {cix} * {gym1} := by decide\n"
         ));
         s.push_str(&format!(
-            "theorem e_eb_{i} : ({eb0} : EdwardsBridge.F) = {ciy} * {GX} + {cix} * {GYM1} := by decide\n"
+            "theorem e_eb_{i} : ({eb0} : EdwardsBridge.F) = {ciy} * {gx} + {cix} * {gym1} := by decide\n"
         ));
         s.push_str(&format!(
-            "theorem e_fb_{i} : ({fb0} : EdwardsBridge.F) = (-1) * {ciy} * {GX} - {cix} * {GYM1} + ({GYM1} - {GX} * (-1)) * ({cix} + {ciy}) := by decide\n"
+            "theorem e_fb_{i} : ({fb0} : EdwardsBridge.F) = (-1) * {ciy} * {gx} - {cix} * {gym1} + ({gym1} - {gx} * (-1)) * ({cix} + {ciy}) := by decide\n"
         ));
         s.push_str(&format!(
-            "noncomputable def acc{i} (b0 d1x d1y : EdwardsBridge.F) : Point := ⟨{GX}*b0 + d1x, (1+{GYM1}*b0) + d1y⟩\n"
+            "noncomputable def acc{i} (b0 d1x d1y : EdwardsBridge.F) : Point := ⟨{gx}*b0 + d1x, (1+{gym1}*b0) + d1y⟩\n"
         ));
         s.push_str(&format!("theorem {nm}\n"));
         s.push_str(&format!(
@@ -244,7 +272,7 @@ pub fn emit_rung(i: usize, rows: &[Constraint], base: usize, b0: usize) -> Optio
             "    (hbit : (1*bit{i})*(1 + (-1)*bit{i}) = 0) :\n"
         ));
         s.push_str(&format!(
-            "    RvkFixedBaseLadder.FixedStepRel {i} bit{i} (acc{i} b0 d1x d1y) ⟨{GX}*b0 + (d1x + sdx), (1+{GYM1}*b0) + (d1y + sdy)⟩ := by\n"
+            "    {fsr} {i} bit{i} (acc{i} b0 d1x d1y) ⟨{gx}*b0 + (d1x + sdx), (1+{gym1}*b0) + (d1y + sdy)⟩ := by\n"
         ));
         s.push_str(&format!(
             "  simp only [e_a_{i}, e_cw_{i}, e_db_{i}] at h_v2\n"
@@ -254,7 +282,7 @@ pub fn emit_rung(i: usize, rows: &[Constraint], base: usize, b0: usize) -> Optio
         s.push_str("  simp only [e_nx] at h_selX\n");
         s.push_str("  simp only [e_ny] at h_selY\n");
         s.push_str(&format!(
-            "  refine RvkFixedBaseRung.fixedRung_fixedStepRel {i} bit{i} (acc{i} b0 d1x d1y) ⟨sx, sy⟩ ⟨{GX}*b0 + (d1x + sdx), (1+{GYM1}*b0) + (d1y + sdy)⟩ hacc ?_ ?_ ?_ ?_ ?_\n"
+            "  refine {kern} {i} bit{i} (acc{i} b0 d1x d1y) ⟨sx, sy⟩ ⟨{gx}*b0 + (d1x + sdx), (1+{gym1}*b0) + (d1y + sdy)⟩ hacc ?_ ?_ ?_ ?_ ?_\n"
         ));
         s.push_str(&format!(
             "  · rw [C_eq_L{i}]; simp only [acc{i}, L{i}, EdwardsBridge.d]\n    linear_combination h_addX + sx * h_v2\n"
@@ -375,7 +403,7 @@ pub fn emit_rung(i: usize, rows: &[Constraint], base: usize, b0: usize) -> Optio
             "    (hbit : (1*bit{i})*(1 + (-1)*bit{i}) = 0) :\n"
         ));
         wide.push_str(&format!(
-            "    RvkFixedBaseLadder.FixedStepRel {i} bit{i} (acc{i} b0 ({sx_sum}) ({sy_sum})) ⟨{GX}*b0 + (({sx_sum}) + sdx), (1+{GYM1}*b0) + (({sy_sum}) + sdy)⟩ := by\n"
+            "    {fsr} {i} bit{i} (acc{i} b0 ({sx_sum}) ({sy_sum})) ⟨{gx}*b0 + (({sx_sum}) + sdx), (1+{gym1}*b0) + (({sy_sum}) + sdy)⟩ := by\n"
         ));
         wide.push_str(&format!(
             "  exact {nm} b0 bit{i} ({sx_sum}) ({sy_sum}) v2 sx sy sdx sdy hacc\n"
@@ -447,6 +475,68 @@ pub fn emit_header(neg_gx: &str, one_minus_gy: &str, inst: &str) -> String {
          theorem e_nx : ({neg_gx} : EdwardsBridge.F) = -({GX}) := by decide\n\
          theorem e_ny : ({one_minus_gy} : EdwardsBridge.F) = -({GYM1}) := by decide\n"
     )
+}
+
+/// Header for the seg52 net-balance blinding-ladder cert file (blindGen base).
+pub fn emit_nb_header(neg_gx: &str, one_minus_gy: &str, gx: &str, gym1: &str) -> String {
+    format!(
+        "import ShielddGnarkFormal.Deployed.NetBalance.Ladder\n\
+         import ShielddGnarkFormal.NbFixedBaseLiteral\n\
+         namespace Shieldd.GnarkFormal.NbFixedGenSeg52\n\
+         open Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd (Order)\n\
+         open Shieldd.GnarkFormal.EdwardsBridge (Point onCurve)\n\
+         open Shieldd.GnarkFormal.Deployed.NetBalance (Cb NbFixedStepRel nbFixedRung_stepRel)\n\
+         open Shieldd.GnarkFormal.NbFixedBaseLiteral\n\
+         open Bool (toZMod)\n\
+         set_option maxRecDepth 100000\n\
+         set_option maxHeartbeats 4000000\n\
+         theorem a_eq_neg_one : ({A_LIT} : EdwardsBridge.F) = -1 := by decide\n\
+         theorem e_nx : ({neg_gx} : EdwardsBridge.F) = -({gx}) := by decide\n\
+         theorem e_ny : ({one_minus_gy} : EdwardsBridge.F) = -({gym1}) := by decide\n"
+    )
+}
+
+/// blindGen coordinates (seg52 net-balance blinding base): `x` and `y - 1`.
+pub const NB_GX: &str =
+    "4661681602708190761543544705274244814260880986867766715334030151044279151219";
+pub const NB_GYM1: &str =
+    "4337336842509898676347982752646772244181661588533917621717979456142867120377";
+
+/// Per-instance cert file for the seg52 blinding ladder's fused rungs: header +
+/// per-rung bindings/theorems only (the ladder walk and the 8-row split rungs
+/// are emitted by `gen/gen_nb_slice.py`, which consumes `rung{i}`/`rung{i}_wide`).
+pub fn emit_nb_file(rows: &[Constraint], fused_base: usize, n: usize) -> String {
+    let b0 = rows[fused_base].l[0].wire;
+    let neg_gx = coeff_at(&rows[fused_base + 3].r, b0).unwrap().to_owned();
+    let one_minus_gy = coeff_at(&rows[fused_base + 4].r, b0).unwrap().to_owned();
+    let mut out = emit_nb_header(&neg_gx, &one_minus_gy, NB_GX, NB_GYM1);
+    let mut certs = Vec::new();
+    for i in 1..=n {
+        match emit_rung_cfg(
+            i,
+            rows,
+            fused_base + (i - 1) * 5,
+            b0,
+            NB_GX,
+            NB_GYM1,
+            "NbFixedStepRel",
+            "nbFixedRung_stepRel",
+        ) {
+            Some(c) => certs.push(c),
+            None => break,
+        }
+    }
+    assert_eq!(certs.len(), n, "seg52 fused-rung recovery fell short");
+    for c in &certs {
+        out.push_str(&c.bindings);
+    }
+    out.push_str(&emit_section_open());
+    for c in &certs {
+        out.push_str(&c.theorem);
+        out.push_str(&c.wide);
+    }
+    out.push_str("end Cert\nend Shieldd.GnarkFormal.NbFixedGenSeg52\n");
+    out
 }
 
 /// Open the `Fact (Nat.Prime Order)` section (after all Fact-free bindings).
@@ -841,8 +931,14 @@ pub fn emit_raw_ladder(certs: &[RungCert]) -> String {
             s.push_str(&format!("    (haccx{k} : accx{k} = sdx{k})\n"));
             s.push_str(&format!("    (haccy{k} : accy{k} = sdy{k})\n"));
         } else {
-            s.push_str(&format!("    (haccx{k} : accx{k} = accx{} + sdx{k})\n", k - 1));
-            s.push_str(&format!("    (haccy{k} : accy{k} = accy{} + sdy{k})\n", k - 1));
+            s.push_str(&format!(
+                "    (haccx{k} : accx{k} = accx{} + sdx{k})\n",
+                k - 1
+            ));
+            s.push_str(&format!(
+                "    (haccy{k} : accy{k} = accy{} + sdy{k})\n",
+                k - 1
+            ));
         }
     }
     s.push_str(&format!("    : onCurve {} := by\n", point(n)));
@@ -1064,11 +1160,15 @@ pub fn emit_ladder_deployed(certs: &[RungCert], b0: usize) -> String {
         let k = c.i;
         s.push_str(&format!("    (ax{k} ay{k} : EdwardsBridge.F)\n"));
     }
-    s.push_str(&format!("    (hbool0 : (1*({b0r}))*(1 + (-1)*({b0r})) = 0)\n"));
+    s.push_str(&format!(
+        "    (hbool0 : (1*({b0r}))*(1 + (-1)*({b0r})) = 0)\n"
+    ));
     for c in certs {
         let k = c.i;
         let bw = format!("rho {}", c.raw.bit);
-        s.push_str(&format!("    (hbool{k} : (1*({bw}))*(1 + (-1)*({bw})) = 0)\n"));
+        s.push_str(&format!(
+            "    (hbool{k} : (1*({bw}))*(1 + (-1)*({bw})) = 0)\n"
+        ));
     }
     for c in certs {
         let k = c.i;
@@ -1354,7 +1454,6 @@ mod tests {
     use crate::load_sr1cs;
 
     #[test]
-    #[test]
     fn dump_tail_rows() {
         let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
             .unwrap();
@@ -1595,6 +1694,26 @@ mod tests {
     }
 
     #[test]
+    fn emit_nb_seg52() {
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+            .unwrap();
+        let rows = parse_rows(&sr).unwrap();
+        let n: usize = std::env::var("NB_N")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(149);
+        // seg52 starts at absolute row 47848; first fused blinding rung at
+        // segment-relative 7041 (see gen/gen_nb_slice.py BLIND_* constants).
+        let out = emit_nb_file(&rows, 47848 + 7041, n);
+        std::fs::write(
+            "../../../tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg52.lean",
+            &out,
+        )
+        .unwrap();
+        eprintln!("wrote NbFixedGenSeg52.lean ({} bytes)", out.len());
+    }
+
+    #[test]
     fn emit_inst1_prefix() {
         let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
             .unwrap();
@@ -1612,7 +1731,6 @@ mod tests {
 
 #[cfg(test)]
 mod fanout_probe {
-    use super::*;
     use crate::ir::parse_rows;
     use crate::load_sr1cs;
     #[test]
