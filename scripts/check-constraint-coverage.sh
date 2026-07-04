@@ -76,14 +76,25 @@ check_bridge_theorems() {
   local report="$1" circuit="$2" lean_check="$tmp_dir/$circuit-bridge-theorems.lean"
   local bounds_module="ShielddGnarkFormal.Deployed.Contracts.$(contract_module_dir_for_circuit "$circuit").Bounds"
   local bounds_path="$lean_src_dir/${bounds_module//.//}.lean"
+  local capstone_module="${bounds_module%.Bounds}.Capstone"
+  local capstone_path="$lean_src_dir/${capstone_module//.//}.lean"
   if [[ -f "$bounds_path" ]]; then
     lake build "$bounds_module" >/dev/null \
       || fail "deployed bounds module does not build for $circuit"
+  fi
+  if [[ -f "$capstone_path" ]]; then
+    lake build "$capstone_module" >/dev/null \
+      || fail "deployed capstone module does not build for $circuit"
   fi
   {
     echo "import ShielddGnarkFormal"
     if [[ -f "$bounds_path" ]]; then
       printf 'import %s\n' "$bounds_module"
+    fi
+    if [[ -f "$capstone_path" ]]; then
+      printf 'import %s\n' "$capstone_module"
+      local capstone_ns="Shieldd.GnarkFormal.${capstone_module#ShielddGnarkFormal.}"
+      printf '#check @%s.%s_deployed_sound\n' "${capstone_ns%.Capstone}" "$circuit"
     fi
     jq -r '
       .segments[].bridge_theorem // empty,
@@ -227,7 +238,7 @@ fi
 [[ -n "$selected_circuits" ]] || fail "no circuits selected"
 
 tmp_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir"' EXIT
+trap 'if [[ -z "${KEEP_TMP:-}" ]]; then rm -rf "$tmp_dir"; fi' EXIT
 
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
