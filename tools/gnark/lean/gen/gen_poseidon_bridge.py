@@ -85,18 +85,37 @@ CONFIGS = {
         # public_args (22 binder wires), spec_inputs (7 LC inputs) and seq come
         # from statement_hash_gendata.json.
     ),
-    "state_commitment_node0": dict(
+}
+
+_leaf_gd = HERE / "state_commitment_leaf_gendata.json"
+CONFIGS["state_commitment_leaf"] = dict(
+    W=2,
+    leaf="StateCommitmentPathLeaf",
+    slice_stem=json.load(open(_leaf_gd))["slice_stem"] if _leaf_gd.exists() else None,
+    link="Poseidon1Link",
+    bridge_ns="Poseidon1Bridge",
+    deployed_bridge="StateCommitmentPathLeafDeployedBridge",
+    spec="permSpec1",
+    domain_sym="tctLeafDomainLit",
+    extracted_ns="Shieldd.GnarkFormal.Extracted.PoseidonHash1",
+)
+
+# The 24 state-commitment Merkle node levels share one shape; each level's
+# slice_stem (per-level shape hash) comes from its gendata, emitted by
+# gen_state_commitment_nodes.py. Node k hashes with domain TCTDomain + (k+1).
+for _k in range(24):
+    _gd = HERE / f"state_commitment_node{_k}_gendata.json"
+    CONFIGS[f"state_commitment_node{_k}"] = dict(
         W=5,
-        leaf="StateCommitmentPathNode0",
-        slice_stem="GadgetStateCommitmentPathNode0350_28e5d0",
+        leaf=f"StateCommitmentPathNode{_k}",
+        slice_stem=json.load(open(_gd))["slice_stem"] if _gd.exists() else None,
         link="Poseidon4Link",
         bridge_ns="Poseidon4Bridge",
-        deployed_bridge="StateCommitmentPathNode0DeployedBridge",
+        deployed_bridge=f"StateCommitmentPathNode{_k}DeployedBridge",
         spec="permSpec4",
-        domain_sym="tctNode1DomainLit",
+        domain_sym=f"tctNode{_k + 1}DomainLit",
         extracted_ns="Shieldd.GnarkFormal.Extracted.PoseidonHash4",
-    ),
-}
+    )
 
 
 def p17(a):

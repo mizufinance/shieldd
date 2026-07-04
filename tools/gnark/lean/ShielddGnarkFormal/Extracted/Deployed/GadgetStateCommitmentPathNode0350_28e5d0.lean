@@ -3,7 +3,7 @@ import ShielddGnarkFormal.Extracted.PoseidonHash4
 
 set_option linter.unusedVariables false
 set_option maxRecDepth 100000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 50000000
 
 /-! Auto-generated CPS-segmented deployed-slice relation for `gadget.state_commitment_path.node0` (size 350, 70 segments of 5 rows).
 Generated from consolidate2x1.sr1cs global rows [2093,2443); do not edit by hand. -/
