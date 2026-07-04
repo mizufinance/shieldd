@@ -78,6 +78,8 @@ check_bridge_theorems() {
   local bounds_path="$lean_src_dir/${bounds_module//.//}.lean"
   local capstone_module="${bounds_module%.Bounds}.Capstone"
   local capstone_path="$lean_src_dir/${capstone_module//.//}.lean"
+  local statement_module="${bounds_module%.Bounds}.Statement"
+  local statement_path="$lean_src_dir/${statement_module//.//}.lean"
   if [[ -f "$bounds_path" ]]; then
     lake build "$bounds_module" >/dev/null \
       || fail "deployed bounds module does not build for $circuit"
@@ -86,6 +88,10 @@ check_bridge_theorems() {
     lake build "$capstone_module" >/dev/null \
       || fail "deployed capstone module does not build for $circuit"
   fi
+  if [[ -f "$statement_path" ]]; then
+    lake build "$statement_module" >/dev/null \
+      || fail "deployed statement module does not build for $circuit"
+  fi
   {
     echo "import ShielddGnarkFormal"
     if [[ -f "$bounds_path" ]]; then
@@ -93,8 +99,17 @@ check_bridge_theorems() {
     fi
     if [[ -f "$capstone_path" ]]; then
       printf 'import %s\n' "$capstone_module"
+    fi
+    if [[ -f "$statement_path" ]]; then
+      printf 'import %s\n' "$statement_module"
+    fi
+    if [[ -f "$capstone_path" ]]; then
       local capstone_ns="Shieldd.GnarkFormal.${capstone_module#ShielddGnarkFormal.}"
       printf '#check @%s.%s_deployed_sound\n' "${capstone_ns%.Capstone}" "$circuit"
+    fi
+    if [[ -f "$statement_path" ]]; then
+      local statement_ns="Shieldd.GnarkFormal.${statement_module#ShielddGnarkFormal.}"
+      printf '#check @%s.%s_statement\n' "${statement_ns%.Statement}" "$circuit"
     fi
     jq -r '
       .segments[].bridge_theorem // empty,

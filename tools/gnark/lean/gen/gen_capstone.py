@@ -47,6 +47,18 @@ def main() -> None:
     hyps = " ".join(f"h{n}" for n in segs)
     uses = ",\n    ".join(f"inst{n}_bound.2.2 rho h{n}" for n in segs)
 
+    # Per-segment projection lemmas out of the composed spec conjunction.
+    # k-th conjunct (0-based i) is reached by i `.2`s then `.1`; the final
+    # conjunct is reached by i `.2`s alone. The trailing `(… :)` ascription
+    # forces unification through the `specAll` def.
+    last = len(segs) - 1
+    projections = "\n\n".join(
+        f"""theorem specOf{n} (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg{n}.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h){"".join(".2" for _ in range(i))}{"" if i == last else ".1"} :)"""
+        for i, n in enumerate(segs)
+    )
+
     OUT.write_text(f"""import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Bounds
 
 set_option maxRecDepth 100000
@@ -75,6 +87,8 @@ theorem consolidate2x1_deployed_sound :
   intro rho h
   obtain ⟨{', '.join(f'h{n}' for n in segs)}⟩ := h
   exact ⟨{uses}⟩
+
+{projections}
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 """)

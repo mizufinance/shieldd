@@ -171,4 +171,200 @@ theorem consolidate2x1_deployed_sound :
     inst59_bound.2.2 rho h59,
     inst60_bound.2.2 rho h60⟩
 
+theorem specOf2 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg2.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).1 :)
+
+theorem specOf3 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg3.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.1 :)
+
+theorem specOf4 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg4.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.1 :)
+
+theorem specOf6 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg6.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.1 :)
+
+theorem specOf7 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg7.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.1 :)
+
+theorem specOf8 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg8.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.1 :)
+
+theorem specOf9 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg9.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.1 :)
+
+theorem specOf10 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg10.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.1 :)
+
+theorem specOf11 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg11.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf12 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg12.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf13 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg13.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf14 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg14.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf15 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg15.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf16 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg16.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf17 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg17.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf18 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg18.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf19 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg19.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf20 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg20.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf21 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg21.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf24 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg24.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf25 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg25.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf26 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg26.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf27 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg27.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf28 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg28.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf29 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg29.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf30 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg30.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf31 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg31.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf32 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg32.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf33 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg33.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf34 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg34.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf35 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg35.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf36 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg36.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf37 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg37.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf38 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg38.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf39 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg39.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf42 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg42.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf43 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg43.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf44 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg44.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf45 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg45.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf46 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg46.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf47 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg47.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf48 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg48.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf49 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg49.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf50 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg50.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf52 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg52.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf53 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg53.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf54 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg54.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf59 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg59.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 :)
+
+theorem specOf60 (rho : Nat → DeployedF) (h : relationAll rho) :
+    Seg60.contract.spec rho :=
+  ((consolidate2x1_deployed_sound rho h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 :)
+
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
