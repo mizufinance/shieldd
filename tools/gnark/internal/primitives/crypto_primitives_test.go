@@ -204,3 +204,105 @@ func TestDecaf377EncodeToCurveCompiles(t *testing.T) {
 		t.Fatalf("compile decaf377 encode_to_curve circuit: %v", err)
 	}
 }
+
+// Composite-derivation differential tests: the nullifier and the note
+// commitment are re-implemented in-circuit as Poseidon hashes over their
+// respective domains. Rust golden outputs (poseidon377::hash_3 / hash_6, real
+// crate) are checked in `phase05_vectors.json`; these assert the gnark gadgets
+// reproduce them exactly, pinning RATE_3 / RATE_6 output correctness.
+
+type nullifierDerivationCircuit struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+	In2    frontend.Variable
+
+	Expected frontend.Variable `gnark:",public"`
+}
+
+func (c *nullifierDerivationCircuit) Define(api frontend.API) error {
+	result, err := Poseidon377Hash3(api, c.Domain, [3]frontend.Variable{c.In0, c.In1, c.In2})
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(result, c.Expected)
+	return nil
+}
+
+func TestNullifierDerivationMatchesShielddVectors(t *testing.T) {
+	vectors, err := LoadPrototypeVectors()
+	if err != nil {
+		t.Fatalf("load vectors: %v", err)
+	}
+	if got, want := len(vectors.Poseidon377.NullifierInputs), 3; got != want {
+		t.Fatalf("nullifier input length mismatch: got %d want %d", got, want)
+	}
+
+	assignment := &nullifierDerivationCircuit{
+		Domain:   vectors.Poseidon377.NullifierDomain,
+		In0:      vectors.Poseidon377.NullifierInputs[0],
+		In1:      vectors.Poseidon377.NullifierInputs[1],
+		In2:      vectors.Poseidon377.NullifierInputs[2],
+		Expected: vectors.Poseidon377.NullifierOutput,
+	}
+
+	assert := test.NewAssert(t)
+	assert.CheckCircuit(
+		&nullifierDerivationCircuit{},
+		test.WithCurves(ecc.BLS12_377),
+		test.WithBackends(backend.GROTH16),
+		test.WithValidAssignment(assignment),
+	)
+}
+
+type noteCommitmentDerivationCircuit struct {
+	Domain frontend.Variable
+	In0    frontend.Variable
+	In1    frontend.Variable
+	In2    frontend.Variable
+	In3    frontend.Variable
+	In4    frontend.Variable
+	In5    frontend.Variable
+
+	Expected frontend.Variable `gnark:",public"`
+}
+
+func (c *noteCommitmentDerivationCircuit) Define(api frontend.API) error {
+	result, err := Poseidon377Hash6(api, c.Domain, [6]frontend.Variable{
+		c.In0, c.In1, c.In2, c.In3, c.In4, c.In5,
+	})
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(result, c.Expected)
+	return nil
+}
+
+func TestNoteCommitmentDerivationMatchesShielddVectors(t *testing.T) {
+	vectors, err := LoadPrototypeVectors()
+	if err != nil {
+		t.Fatalf("load vectors: %v", err)
+	}
+	if got, want := len(vectors.Poseidon377.NoteCommitInputs), 6; got != want {
+		t.Fatalf("note commit input length mismatch: got %d want %d", got, want)
+	}
+
+	assignment := &noteCommitmentDerivationCircuit{
+		Domain:   vectors.Poseidon377.NoteCommitDomain,
+		In0:      vectors.Poseidon377.NoteCommitInputs[0],
+		In1:      vectors.Poseidon377.NoteCommitInputs[1],
+		In2:      vectors.Poseidon377.NoteCommitInputs[2],
+		In3:      vectors.Poseidon377.NoteCommitInputs[3],
+		In4:      vectors.Poseidon377.NoteCommitInputs[4],
+		In5:      vectors.Poseidon377.NoteCommitInputs[5],
+		Expected: vectors.Poseidon377.NoteCommitOutput,
+	}
+
+	assert := test.NewAssert(t)
+	assert.CheckCircuit(
+		&noteCommitmentDerivationCircuit{},
+		test.WithCurves(ecc.BLS12_377),
+		test.WithBackends(backend.GROTH16),
+		test.WithValidAssignment(assignment),
+	)
+}

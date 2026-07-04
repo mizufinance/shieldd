@@ -57,6 +57,10 @@ type PoseidonVectors struct {
 	Hash7Domain           string              `json:"hash7_domain"`
 	Hash7Inputs           []string            `json:"hash7_inputs"`
 	Hash7Output           string              `json:"hash7_output"`
+	NullifierInputs       []string            `json:"nullifier_inputs"`
+	NullifierOutput       string              `json:"nullifier_output"`
+	NoteCommitInputs      []string            `json:"note_commit_inputs"`
+	NoteCommitOutput      string              `json:"note_commit_output"`
 	Rate1                 PoseidonRateVectors `json:"rate_1"`
 	Rate2                 PoseidonRateVectors `json:"rate_2"`
 	Rate3                 PoseidonRateVectors `json:"rate_3"`

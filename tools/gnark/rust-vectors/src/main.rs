@@ -54,6 +54,13 @@ struct PoseidonVectors {
     hash7_domain: String,
     hash7_inputs: Vec<String>,
     hash7_output: String,
+    // Composite-derivation goldens: the nullifier (Poseidon hash_3 over the
+    // nullifier domain) and the note commitment (hash_6 over the note-commit
+    // domain), pinning RATE_3 / RATE_6 output correctness across Rust and gnark.
+    nullifier_inputs: Vec<String>,
+    nullifier_output: String,
+    note_commit_inputs: Vec<String>,
+    note_commit_output: String,
     rate_1: PoseidonRateVectors,
     rate_2: PoseidonRateVectors,
     rate_3: PoseidonRateVectors,
@@ -227,6 +234,28 @@ fn main() {
             hash7_inputs[6],
         ),
     );
+    // Nullifier = Poseidon hash_3(nullifier_domain, [nk, stateCommitment, position]).
+    let nullifier_domain = blake2b_fq(b"shieldd.nullifier");
+    let nullifier_inputs = [11u64, 22, 3].map(Fq::from);
+    let nullifier_output = poseidon377::hash_3(
+        &nullifier_domain,
+        (nullifier_inputs[0], nullifier_inputs[1], nullifier_inputs[2]),
+    );
+    // Note commitment = Poseidon hash_6(note_commit_domain,
+    //   [blinding, amount, assetId, divGenFq, transmissionKeyS, clueKey]).
+    let note_commit_domain = blake2b_fq(b"shieldd.notecommit");
+    let note_commit_inputs = [101u64, 202, 303, 404, 505, 606].map(Fq::from);
+    let note_commit_output = poseidon377::hash_6(
+        &note_commit_domain,
+        (
+            note_commit_inputs[0],
+            note_commit_inputs[1],
+            note_commit_inputs[2],
+            note_commit_inputs[3],
+            note_commit_inputs[4],
+            note_commit_inputs[5],
+        ),
+    );
     let generator_encoding = Encoding::from(Element::GENERATOR);
     let generator_encoding_bytes: [u8; 32] = generator_encoding.into();
     let generator_affine = Element::GENERATOR.into_affine();
@@ -357,6 +386,10 @@ fn main() {
             hash7_domain: hash7_domain.to_string(),
             hash7_inputs: hash7_inputs.iter().map(ToString::to_string).collect(),
             hash7_output: hash7_output.to_string(),
+            nullifier_inputs: nullifier_inputs.iter().map(ToString::to_string).collect(),
+            nullifier_output: nullifier_output.to_string(),
+            note_commit_inputs: note_commit_inputs.iter().map(ToString::to_string).collect(),
+            note_commit_output: note_commit_output.to_string(),
             rate_1: poseidon_rate_vectors(poseidon377::RATE_1_PARAMS.clone()),
             rate_2: poseidon_rate_vectors(poseidon377::RATE_2_PARAMS.clone()),
             rate_3: poseidon_rate_vectors(poseidon377::RATE_3_PARAMS.clone()),
