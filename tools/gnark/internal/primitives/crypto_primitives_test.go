@@ -306,3 +306,100 @@ func TestNoteCommitmentDerivationMatchesShielddVectors(t *testing.T) {
 		test.WithValidAssignment(assignment),
 	)
 }
+
+// Consolidate2x1 statement-hash seam (H3 / Phase C). The 7 public statement
+// fields are assembled in the exact production order (NoteReshapeCircuit.Define:
+// anchor, output note commitment, balance commitment Fq, then per-input
+// nullifier+rk) and fed through the production ConsolidateStatementHashForShape
+// gadget. The asserted hash is the Rust reference (real poseidon377::hash_7 over
+// the consolidate2x1 domain) baked into phase05_vectors.json. Any wire-order,
+// endianness, domain, or padding drift between the Rust statement serialization
+// and the gnark gadget fails this test.
+type consolidateStatementSeamCircuit struct {
+	Anchor                frontend.Variable
+	OutputNoteCommitment0 frontend.Variable
+	BalanceCommitmentFq   frontend.Variable
+	Nullifier0            frontend.Variable
+	RK0                   frontend.Variable
+	Nullifier1            frontend.Variable
+	RK1                   frontend.Variable
+
+	Expected frontend.Variable `gnark:",public"`
+}
+
+func (c *consolidateStatementSeamCircuit) Define(api frontend.API) error {
+	// Production assembly order (mirrors NoteReshapeCircuit.Define for nIn=2).
+	fields := []frontend.Variable{
+		c.Anchor,
+		c.OutputNoteCommitment0,
+		c.BalanceCommitmentFq,
+		c.Nullifier0,
+		c.RK0,
+		c.Nullifier1,
+		c.RK1,
+	}
+	h, err := ConsolidateStatementHashForShape(api, 2, fields)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(h, c.Expected)
+	return nil
+}
+
+func TestConsolidate2x1StatementSeamMatchesShielddVectors(t *testing.T) {
+	vectors, err := LoadPrototypeVectors()
+	if err != nil {
+		t.Fatalf("load vectors: %v", err)
+	}
+	fx := vectors.Consolidate2x1Stmt
+	if got, want := fx.Label, "consolidate2x1"; got != want {
+		t.Fatalf("statement label mismatch: got %q want %q", got, want)
+	}
+	if got, want := len(fx.Fields), 7; got != want {
+		t.Fatalf("statement field count mismatch: got %d want %d", got, want)
+	}
+	if got, want := len(fx.FieldRoles), 7; got != want {
+		t.Fatalf("statement role count mismatch: got %d want %d", got, want)
+	}
+	// Pin the documented role order so a Rust-side reordering is caught here.
+	wantRoles := []string{
+		"anchor", "output_note_commitment_0", "balance_commitment_fq",
+		"nullifier_0", "rk_0", "nullifier_1", "rk_1",
+	}
+	for i, want := range wantRoles {
+		if fx.FieldRoles[i] != want {
+			t.Fatalf("field role %d mismatch: got %q want %q", i, fx.FieldRoles[i], want)
+		}
+	}
+
+	valid := &consolidateStatementSeamCircuit{
+		Anchor:                fx.Fields[0],
+		OutputNoteCommitment0: fx.Fields[1],
+		BalanceCommitmentFq:   fx.Fields[2],
+		Nullifier0:            fx.Fields[3],
+		RK0:                   fx.Fields[4],
+		Nullifier1:            fx.Fields[5],
+		RK1:                   fx.Fields[6],
+		Expected:              fx.StatementHash,
+	}
+	// Drift sentinel: swapping two fields must not reproduce the hash.
+	swapped := &consolidateStatementSeamCircuit{
+		Anchor:                fx.Fields[3], // nullifier_0 in the anchor slot
+		OutputNoteCommitment0: fx.Fields[1],
+		BalanceCommitmentFq:   fx.Fields[2],
+		Nullifier0:            fx.Fields[0], // anchor in the nullifier slot
+		RK0:                   fx.Fields[4],
+		Nullifier1:            fx.Fields[5],
+		RK1:                   fx.Fields[6],
+		Expected:              fx.StatementHash,
+	}
+
+	assert := test.NewAssert(t)
+	assert.CheckCircuit(
+		&consolidateStatementSeamCircuit{},
+		test.WithCurves(ecc.BLS12_377),
+		test.WithBackends(backend.GROTH16),
+		test.WithValidAssignment(valid),
+		test.WithInvalidAssignment(swapped),
+	)
+}
