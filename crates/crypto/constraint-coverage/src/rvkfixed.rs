@@ -1703,8 +1703,9 @@ mod tests {
             .and_then(|s| s.parse().ok())
             .unwrap_or(149);
         // seg52 starts at absolute row 47848; first fused blinding rung at
-        // segment-relative 7041 (see gen/gen_nb_slice.py BLIND_* constants).
-        let out = emit_nb_file(&rows, 47848 + 7041, n);
+        // segment-relative 6401 (7041 before the T1-a seed-ladder removal
+        // deleted 640 rows inside seg52; see gen/gen_nb_slice.py BLIND_* constants).
+        let out = emit_nb_file(&rows, 47848 + 6401, n);
         std::fs::write(
             "../../../tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg52.lean",
             &out,
