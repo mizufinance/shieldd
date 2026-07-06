@@ -20,9 +20,7 @@ theorem seg52In1Bits_toBinary (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    p40, p41, _, _, _, _, _, _, _, _,
+    _, _, p32, p33, _, _, _, _, _, _,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -34,283 +32,283 @@ theorem seg52In1Bits_toBinary (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart40 at p40
+  unfold Seg52.relationPart32 at p32
 
-  rcases p40 with ⟨_, _, _, r3203, r3204, r3205, r3206, r3207, r3208, r3209, r3210, r3211, r3212, r3213, r3214, r3215, r3216, r3217, r3218, r3219, r3220, r3221, r3222, r3223, r3224, r3225, r3226, r3227, r3228, r3229, r3230, r3231, r3232, r3233, r3234, r3235, r3236, r3237, r3238, r3239, r3240, r3241, r3242, r3243, r3244, r3245, r3246, r3247, r3248, r3249, r3250, r3251, r3252, r3253, r3254, r3255, r3256, r3257, r3258, r3259, r3260, r3261, r3262, r3263, r3264, r3265, r3266, r3267, r3268, r3269, r3270, r3271, r3272, r3273, r3274, r3275, r3276, r3277, r3278, r3279⟩
+  rcases p32 with ⟨_, _, _, r2563, r2564, r2565, r2566, r2567, r2568, r2569, r2570, r2571, r2572, r2573, r2574, r2575, r2576, r2577, r2578, r2579, r2580, r2581, r2582, r2583, r2584, r2585, r2586, r2587, r2588, r2589, r2590, r2591, r2592, r2593, r2594, r2595, r2596, r2597, r2598, r2599, r2600, r2601, r2602, r2603, r2604, r2605, r2606, r2607, r2608, r2609, r2610, r2611, r2612, r2613, r2614, r2615, r2616, r2617, r2618, r2619, r2620, r2621, r2622, r2623, r2624, r2625, r2626, r2627, r2628, r2629, r2630, r2631, r2632, r2633, r2634, r2635, r2636, r2637, r2638, r2639⟩
 
-  unfold Seg52.relationPart41 at p41
+  unfold Seg52.relationPart33 at p33
 
-  rcases p41 with ⟨r3280, r3281, r3282, r3283, r3284, r3285, r3286, r3287, r3288, r3289, r3290, r3291, r3292, r3293, r3294, r3295, r3296, r3297, r3298, r3299, r3300, r3301, r3302, r3303, r3304, r3305, r3306, r3307, r3308, r3309, r3310, r3311, r3312, r3313, r3314, r3315, r3316, r3317, r3318, r3319, r3320, r3321, r3322, r3323, r3324, r3325, r3326, r3327, r3328, r3329, r3330, r3331, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p33 with ⟨r2640, r2641, r2642, r2643, r2644, r2645, r2646, r2647, r2648, r2649, r2650, r2651, r2652, r2653, r2654, r2655, r2656, r2657, r2658, r2659, r2660, r2661, r2662, r2663, r2664, r2665, r2666, r2667, r2668, r2669, r2670, r2671, r2672, r2673, r2674, r2675, r2676, r2677, r2678, r2679, r2680, r2681, r2682, r2683, r2684, r2685, r2686, r2687, r2688, r2689, r2690, r2691, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationRow3203 at r3203
+  unfold Seg52.relationRow2563 at r2563
 
-  unfold Seg52.relationRow3204 at r3204
+  unfold Seg52.relationRow2564 at r2564
 
-  unfold Seg52.relationRow3205 at r3205
+  unfold Seg52.relationRow2565 at r2565
 
-  unfold Seg52.relationRow3206 at r3206
+  unfold Seg52.relationRow2566 at r2566
 
-  unfold Seg52.relationRow3207 at r3207
+  unfold Seg52.relationRow2567 at r2567
 
-  unfold Seg52.relationRow3208 at r3208
+  unfold Seg52.relationRow2568 at r2568
 
-  unfold Seg52.relationRow3209 at r3209
+  unfold Seg52.relationRow2569 at r2569
 
-  unfold Seg52.relationRow3210 at r3210
+  unfold Seg52.relationRow2570 at r2570
 
-  unfold Seg52.relationRow3211 at r3211
+  unfold Seg52.relationRow2571 at r2571
 
-  unfold Seg52.relationRow3212 at r3212
+  unfold Seg52.relationRow2572 at r2572
 
-  unfold Seg52.relationRow3213 at r3213
+  unfold Seg52.relationRow2573 at r2573
 
-  unfold Seg52.relationRow3214 at r3214
+  unfold Seg52.relationRow2574 at r2574
 
-  unfold Seg52.relationRow3215 at r3215
+  unfold Seg52.relationRow2575 at r2575
 
-  unfold Seg52.relationRow3216 at r3216
+  unfold Seg52.relationRow2576 at r2576
 
-  unfold Seg52.relationRow3217 at r3217
+  unfold Seg52.relationRow2577 at r2577
 
-  unfold Seg52.relationRow3218 at r3218
+  unfold Seg52.relationRow2578 at r2578
 
-  unfold Seg52.relationRow3219 at r3219
+  unfold Seg52.relationRow2579 at r2579
 
-  unfold Seg52.relationRow3220 at r3220
+  unfold Seg52.relationRow2580 at r2580
 
-  unfold Seg52.relationRow3221 at r3221
+  unfold Seg52.relationRow2581 at r2581
 
-  unfold Seg52.relationRow3222 at r3222
+  unfold Seg52.relationRow2582 at r2582
 
-  unfold Seg52.relationRow3223 at r3223
+  unfold Seg52.relationRow2583 at r2583
 
-  unfold Seg52.relationRow3224 at r3224
+  unfold Seg52.relationRow2584 at r2584
 
-  unfold Seg52.relationRow3225 at r3225
+  unfold Seg52.relationRow2585 at r2585
 
-  unfold Seg52.relationRow3226 at r3226
+  unfold Seg52.relationRow2586 at r2586
 
-  unfold Seg52.relationRow3227 at r3227
+  unfold Seg52.relationRow2587 at r2587
 
-  unfold Seg52.relationRow3228 at r3228
+  unfold Seg52.relationRow2588 at r2588
 
-  unfold Seg52.relationRow3229 at r3229
+  unfold Seg52.relationRow2589 at r2589
 
-  unfold Seg52.relationRow3230 at r3230
+  unfold Seg52.relationRow2590 at r2590
 
-  unfold Seg52.relationRow3231 at r3231
+  unfold Seg52.relationRow2591 at r2591
 
-  unfold Seg52.relationRow3232 at r3232
+  unfold Seg52.relationRow2592 at r2592
 
-  unfold Seg52.relationRow3233 at r3233
+  unfold Seg52.relationRow2593 at r2593
 
-  unfold Seg52.relationRow3234 at r3234
+  unfold Seg52.relationRow2594 at r2594
 
-  unfold Seg52.relationRow3235 at r3235
+  unfold Seg52.relationRow2595 at r2595
 
-  unfold Seg52.relationRow3236 at r3236
+  unfold Seg52.relationRow2596 at r2596
 
-  unfold Seg52.relationRow3237 at r3237
+  unfold Seg52.relationRow2597 at r2597
 
-  unfold Seg52.relationRow3238 at r3238
+  unfold Seg52.relationRow2598 at r2598
 
-  unfold Seg52.relationRow3239 at r3239
+  unfold Seg52.relationRow2599 at r2599
 
-  unfold Seg52.relationRow3240 at r3240
+  unfold Seg52.relationRow2600 at r2600
 
-  unfold Seg52.relationRow3241 at r3241
+  unfold Seg52.relationRow2601 at r2601
 
-  unfold Seg52.relationRow3242 at r3242
+  unfold Seg52.relationRow2602 at r2602
 
-  unfold Seg52.relationRow3243 at r3243
+  unfold Seg52.relationRow2603 at r2603
 
-  unfold Seg52.relationRow3244 at r3244
+  unfold Seg52.relationRow2604 at r2604
 
-  unfold Seg52.relationRow3245 at r3245
+  unfold Seg52.relationRow2605 at r2605
 
-  unfold Seg52.relationRow3246 at r3246
+  unfold Seg52.relationRow2606 at r2606
 
-  unfold Seg52.relationRow3247 at r3247
+  unfold Seg52.relationRow2607 at r2607
 
-  unfold Seg52.relationRow3248 at r3248
+  unfold Seg52.relationRow2608 at r2608
 
-  unfold Seg52.relationRow3249 at r3249
+  unfold Seg52.relationRow2609 at r2609
 
-  unfold Seg52.relationRow3250 at r3250
+  unfold Seg52.relationRow2610 at r2610
 
-  unfold Seg52.relationRow3251 at r3251
+  unfold Seg52.relationRow2611 at r2611
 
-  unfold Seg52.relationRow3252 at r3252
+  unfold Seg52.relationRow2612 at r2612
 
-  unfold Seg52.relationRow3253 at r3253
+  unfold Seg52.relationRow2613 at r2613
 
-  unfold Seg52.relationRow3254 at r3254
+  unfold Seg52.relationRow2614 at r2614
 
-  unfold Seg52.relationRow3255 at r3255
+  unfold Seg52.relationRow2615 at r2615
 
-  unfold Seg52.relationRow3256 at r3256
+  unfold Seg52.relationRow2616 at r2616
 
-  unfold Seg52.relationRow3257 at r3257
+  unfold Seg52.relationRow2617 at r2617
 
-  unfold Seg52.relationRow3258 at r3258
+  unfold Seg52.relationRow2618 at r2618
 
-  unfold Seg52.relationRow3259 at r3259
+  unfold Seg52.relationRow2619 at r2619
 
-  unfold Seg52.relationRow3260 at r3260
+  unfold Seg52.relationRow2620 at r2620
 
-  unfold Seg52.relationRow3261 at r3261
+  unfold Seg52.relationRow2621 at r2621
 
-  unfold Seg52.relationRow3262 at r3262
+  unfold Seg52.relationRow2622 at r2622
 
-  unfold Seg52.relationRow3263 at r3263
+  unfold Seg52.relationRow2623 at r2623
 
-  unfold Seg52.relationRow3264 at r3264
+  unfold Seg52.relationRow2624 at r2624
 
-  unfold Seg52.relationRow3265 at r3265
+  unfold Seg52.relationRow2625 at r2625
 
-  unfold Seg52.relationRow3266 at r3266
+  unfold Seg52.relationRow2626 at r2626
 
-  unfold Seg52.relationRow3267 at r3267
+  unfold Seg52.relationRow2627 at r2627
 
-  unfold Seg52.relationRow3268 at r3268
+  unfold Seg52.relationRow2628 at r2628
 
-  unfold Seg52.relationRow3269 at r3269
+  unfold Seg52.relationRow2629 at r2629
 
-  unfold Seg52.relationRow3270 at r3270
+  unfold Seg52.relationRow2630 at r2630
 
-  unfold Seg52.relationRow3271 at r3271
+  unfold Seg52.relationRow2631 at r2631
 
-  unfold Seg52.relationRow3272 at r3272
+  unfold Seg52.relationRow2632 at r2632
 
-  unfold Seg52.relationRow3273 at r3273
+  unfold Seg52.relationRow2633 at r2633
 
-  unfold Seg52.relationRow3274 at r3274
+  unfold Seg52.relationRow2634 at r2634
 
-  unfold Seg52.relationRow3275 at r3275
+  unfold Seg52.relationRow2635 at r2635
 
-  unfold Seg52.relationRow3276 at r3276
+  unfold Seg52.relationRow2636 at r2636
 
-  unfold Seg52.relationRow3277 at r3277
+  unfold Seg52.relationRow2637 at r2637
 
-  unfold Seg52.relationRow3278 at r3278
+  unfold Seg52.relationRow2638 at r2638
 
-  unfold Seg52.relationRow3279 at r3279
+  unfold Seg52.relationRow2639 at r2639
 
-  unfold Seg52.relationRow3280 at r3280
+  unfold Seg52.relationRow2640 at r2640
 
-  unfold Seg52.relationRow3281 at r3281
+  unfold Seg52.relationRow2641 at r2641
 
-  unfold Seg52.relationRow3282 at r3282
+  unfold Seg52.relationRow2642 at r2642
 
-  unfold Seg52.relationRow3283 at r3283
+  unfold Seg52.relationRow2643 at r2643
 
-  unfold Seg52.relationRow3284 at r3284
+  unfold Seg52.relationRow2644 at r2644
 
-  unfold Seg52.relationRow3285 at r3285
+  unfold Seg52.relationRow2645 at r2645
 
-  unfold Seg52.relationRow3286 at r3286
+  unfold Seg52.relationRow2646 at r2646
 
-  unfold Seg52.relationRow3287 at r3287
+  unfold Seg52.relationRow2647 at r2647
 
-  unfold Seg52.relationRow3288 at r3288
+  unfold Seg52.relationRow2648 at r2648
 
-  unfold Seg52.relationRow3289 at r3289
+  unfold Seg52.relationRow2649 at r2649
 
-  unfold Seg52.relationRow3290 at r3290
+  unfold Seg52.relationRow2650 at r2650
 
-  unfold Seg52.relationRow3291 at r3291
+  unfold Seg52.relationRow2651 at r2651
 
-  unfold Seg52.relationRow3292 at r3292
+  unfold Seg52.relationRow2652 at r2652
 
-  unfold Seg52.relationRow3293 at r3293
+  unfold Seg52.relationRow2653 at r2653
 
-  unfold Seg52.relationRow3294 at r3294
+  unfold Seg52.relationRow2654 at r2654
 
-  unfold Seg52.relationRow3295 at r3295
+  unfold Seg52.relationRow2655 at r2655
 
-  unfold Seg52.relationRow3296 at r3296
+  unfold Seg52.relationRow2656 at r2656
 
-  unfold Seg52.relationRow3297 at r3297
+  unfold Seg52.relationRow2657 at r2657
 
-  unfold Seg52.relationRow3298 at r3298
+  unfold Seg52.relationRow2658 at r2658
 
-  unfold Seg52.relationRow3299 at r3299
+  unfold Seg52.relationRow2659 at r2659
 
-  unfold Seg52.relationRow3300 at r3300
+  unfold Seg52.relationRow2660 at r2660
 
-  unfold Seg52.relationRow3301 at r3301
+  unfold Seg52.relationRow2661 at r2661
 
-  unfold Seg52.relationRow3302 at r3302
+  unfold Seg52.relationRow2662 at r2662
 
-  unfold Seg52.relationRow3303 at r3303
+  unfold Seg52.relationRow2663 at r2663
 
-  unfold Seg52.relationRow3304 at r3304
+  unfold Seg52.relationRow2664 at r2664
 
-  unfold Seg52.relationRow3305 at r3305
+  unfold Seg52.relationRow2665 at r2665
 
-  unfold Seg52.relationRow3306 at r3306
+  unfold Seg52.relationRow2666 at r2666
 
-  unfold Seg52.relationRow3307 at r3307
+  unfold Seg52.relationRow2667 at r2667
 
-  unfold Seg52.relationRow3308 at r3308
+  unfold Seg52.relationRow2668 at r2668
 
-  unfold Seg52.relationRow3309 at r3309
+  unfold Seg52.relationRow2669 at r2669
 
-  unfold Seg52.relationRow3310 at r3310
+  unfold Seg52.relationRow2670 at r2670
 
-  unfold Seg52.relationRow3311 at r3311
+  unfold Seg52.relationRow2671 at r2671
 
-  unfold Seg52.relationRow3312 at r3312
+  unfold Seg52.relationRow2672 at r2672
 
-  unfold Seg52.relationRow3313 at r3313
+  unfold Seg52.relationRow2673 at r2673
 
-  unfold Seg52.relationRow3314 at r3314
+  unfold Seg52.relationRow2674 at r2674
 
-  unfold Seg52.relationRow3315 at r3315
+  unfold Seg52.relationRow2675 at r2675
 
-  unfold Seg52.relationRow3316 at r3316
+  unfold Seg52.relationRow2676 at r2676
 
-  unfold Seg52.relationRow3317 at r3317
+  unfold Seg52.relationRow2677 at r2677
 
-  unfold Seg52.relationRow3318 at r3318
+  unfold Seg52.relationRow2678 at r2678
 
-  unfold Seg52.relationRow3319 at r3319
+  unfold Seg52.relationRow2679 at r2679
 
-  unfold Seg52.relationRow3320 at r3320
+  unfold Seg52.relationRow2680 at r2680
 
-  unfold Seg52.relationRow3321 at r3321
+  unfold Seg52.relationRow2681 at r2681
 
-  unfold Seg52.relationRow3322 at r3322
+  unfold Seg52.relationRow2682 at r2682
 
-  unfold Seg52.relationRow3323 at r3323
+  unfold Seg52.relationRow2683 at r2683
 
-  unfold Seg52.relationRow3324 at r3324
+  unfold Seg52.relationRow2684 at r2684
 
-  unfold Seg52.relationRow3325 at r3325
+  unfold Seg52.relationRow2685 at r2685
 
-  unfold Seg52.relationRow3326 at r3326
+  unfold Seg52.relationRow2686 at r2686
 
-  unfold Seg52.relationRow3327 at r3327
+  unfold Seg52.relationRow2687 at r2687
 
-  unfold Seg52.relationRow3328 at r3328
+  unfold Seg52.relationRow2688 at r2688
 
-  unfold Seg52.relationRow3329 at r3329
+  unfold Seg52.relationRow2689 at r2689
 
-  unfold Seg52.relationRow3330 at r3330
+  unfold Seg52.relationRow2690 at r2690
 
-  have hrecover := recover_ofFn_eq_recBits rho 47594 128
+  have hrecover := recover_ofFn_eq_recBits rho 46954 128
 
-  have hacc : powSumAcc rho 0 1 47594 128 = rho 105 := by
+  have hacc : powSumAcc rho 0 1 46954 128 = rho 105 := by
 
-    unfold Seg52.relationRow3331 at r3331
+    unfold Seg52.relationRow2691 at r2691
 
     simp only [powSumAcc]
 
-    linear_combination r3331
+    linear_combination r2691
 
   have hrec : recover_binary_zmod' (seg52In1Bits rho) = rho 105 := by
 
@@ -325,137 +323,137 @@ theorem seg52In1Bits_toBinary (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 105) (seg52In1Bits rho)
   · intro i hi
     have key := seg52In1Bits_get rho i hi
-    have hgoal : rho (47594 + i) * (1 - rho (47594 + i)) = 0 := by
+    have hgoal : rho (46954 + i) * (1 - rho (46954 + i)) = 0 := by
       interval_cases i
-      · linear_combination r3203
-      · linear_combination r3204
-      · linear_combination r3205
-      · linear_combination r3206
-      · linear_combination r3207
-      · linear_combination r3208
-      · linear_combination r3209
-      · linear_combination r3210
-      · linear_combination r3211
-      · linear_combination r3212
-      · linear_combination r3213
-      · linear_combination r3214
-      · linear_combination r3215
-      · linear_combination r3216
-      · linear_combination r3217
-      · linear_combination r3218
-      · linear_combination r3219
-      · linear_combination r3220
-      · linear_combination r3221
-      · linear_combination r3222
-      · linear_combination r3223
-      · linear_combination r3224
-      · linear_combination r3225
-      · linear_combination r3226
-      · linear_combination r3227
-      · linear_combination r3228
-      · linear_combination r3229
-      · linear_combination r3230
-      · linear_combination r3231
-      · linear_combination r3232
-      · linear_combination r3233
-      · linear_combination r3234
-      · linear_combination r3235
-      · linear_combination r3236
-      · linear_combination r3237
-      · linear_combination r3238
-      · linear_combination r3239
-      · linear_combination r3240
-      · linear_combination r3241
-      · linear_combination r3242
-      · linear_combination r3243
-      · linear_combination r3244
-      · linear_combination r3245
-      · linear_combination r3246
-      · linear_combination r3247
-      · linear_combination r3248
-      · linear_combination r3249
-      · linear_combination r3250
-      · linear_combination r3251
-      · linear_combination r3252
-      · linear_combination r3253
-      · linear_combination r3254
-      · linear_combination r3255
-      · linear_combination r3256
-      · linear_combination r3257
-      · linear_combination r3258
-      · linear_combination r3259
-      · linear_combination r3260
-      · linear_combination r3261
-      · linear_combination r3262
-      · linear_combination r3263
-      · linear_combination r3264
-      · linear_combination r3265
-      · linear_combination r3266
-      · linear_combination r3267
-      · linear_combination r3268
-      · linear_combination r3269
-      · linear_combination r3270
-      · linear_combination r3271
-      · linear_combination r3272
-      · linear_combination r3273
-      · linear_combination r3274
-      · linear_combination r3275
-      · linear_combination r3276
-      · linear_combination r3277
-      · linear_combination r3278
-      · linear_combination r3279
-      · linear_combination r3280
-      · linear_combination r3281
-      · linear_combination r3282
-      · linear_combination r3283
-      · linear_combination r3284
-      · linear_combination r3285
-      · linear_combination r3286
-      · linear_combination r3287
-      · linear_combination r3288
-      · linear_combination r3289
-      · linear_combination r3290
-      · linear_combination r3291
-      · linear_combination r3292
-      · linear_combination r3293
-      · linear_combination r3294
-      · linear_combination r3295
-      · linear_combination r3296
-      · linear_combination r3297
-      · linear_combination r3298
-      · linear_combination r3299
-      · linear_combination r3300
-      · linear_combination r3301
-      · linear_combination r3302
-      · linear_combination r3303
-      · linear_combination r3304
-      · linear_combination r3305
-      · linear_combination r3306
-      · linear_combination r3307
-      · linear_combination r3308
-      · linear_combination r3309
-      · linear_combination r3310
-      · linear_combination r3311
-      · linear_combination r3312
-      · linear_combination r3313
-      · linear_combination r3314
-      · linear_combination r3315
-      · linear_combination r3316
-      · linear_combination r3317
-      · linear_combination r3318
-      · linear_combination r3319
-      · linear_combination r3320
-      · linear_combination r3321
-      · linear_combination r3322
-      · linear_combination r3323
-      · linear_combination r3324
-      · linear_combination r3325
-      · linear_combination r3326
-      · linear_combination r3327
-      · linear_combination r3328
-      · linear_combination r3329
-      · linear_combination r3330
-    have key' : (seg52In1Bits rho)[i] = rho (47594 + i) := by
+      · linear_combination r2563
+      · linear_combination r2564
+      · linear_combination r2565
+      · linear_combination r2566
+      · linear_combination r2567
+      · linear_combination r2568
+      · linear_combination r2569
+      · linear_combination r2570
+      · linear_combination r2571
+      · linear_combination r2572
+      · linear_combination r2573
+      · linear_combination r2574
+      · linear_combination r2575
+      · linear_combination r2576
+      · linear_combination r2577
+      · linear_combination r2578
+      · linear_combination r2579
+      · linear_combination r2580
+      · linear_combination r2581
+      · linear_combination r2582
+      · linear_combination r2583
+      · linear_combination r2584
+      · linear_combination r2585
+      · linear_combination r2586
+      · linear_combination r2587
+      · linear_combination r2588
+      · linear_combination r2589
+      · linear_combination r2590
+      · linear_combination r2591
+      · linear_combination r2592
+      · linear_combination r2593
+      · linear_combination r2594
+      · linear_combination r2595
+      · linear_combination r2596
+      · linear_combination r2597
+      · linear_combination r2598
+      · linear_combination r2599
+      · linear_combination r2600
+      · linear_combination r2601
+      · linear_combination r2602
+      · linear_combination r2603
+      · linear_combination r2604
+      · linear_combination r2605
+      · linear_combination r2606
+      · linear_combination r2607
+      · linear_combination r2608
+      · linear_combination r2609
+      · linear_combination r2610
+      · linear_combination r2611
+      · linear_combination r2612
+      · linear_combination r2613
+      · linear_combination r2614
+      · linear_combination r2615
+      · linear_combination r2616
+      · linear_combination r2617
+      · linear_combination r2618
+      · linear_combination r2619
+      · linear_combination r2620
+      · linear_combination r2621
+      · linear_combination r2622
+      · linear_combination r2623
+      · linear_combination r2624
+      · linear_combination r2625
+      · linear_combination r2626
+      · linear_combination r2627
+      · linear_combination r2628
+      · linear_combination r2629
+      · linear_combination r2630
+      · linear_combination r2631
+      · linear_combination r2632
+      · linear_combination r2633
+      · linear_combination r2634
+      · linear_combination r2635
+      · linear_combination r2636
+      · linear_combination r2637
+      · linear_combination r2638
+      · linear_combination r2639
+      · linear_combination r2640
+      · linear_combination r2641
+      · linear_combination r2642
+      · linear_combination r2643
+      · linear_combination r2644
+      · linear_combination r2645
+      · linear_combination r2646
+      · linear_combination r2647
+      · linear_combination r2648
+      · linear_combination r2649
+      · linear_combination r2650
+      · linear_combination r2651
+      · linear_combination r2652
+      · linear_combination r2653
+      · linear_combination r2654
+      · linear_combination r2655
+      · linear_combination r2656
+      · linear_combination r2657
+      · linear_combination r2658
+      · linear_combination r2659
+      · linear_combination r2660
+      · linear_combination r2661
+      · linear_combination r2662
+      · linear_combination r2663
+      · linear_combination r2664
+      · linear_combination r2665
+      · linear_combination r2666
+      · linear_combination r2667
+      · linear_combination r2668
+      · linear_combination r2669
+      · linear_combination r2670
+      · linear_combination r2671
+      · linear_combination r2672
+      · linear_combination r2673
+      · linear_combination r2674
+      · linear_combination r2675
+      · linear_combination r2676
+      · linear_combination r2677
+      · linear_combination r2678
+      · linear_combination r2679
+      · linear_combination r2680
+      · linear_combination r2681
+      · linear_combination r2682
+      · linear_combination r2683
+      · linear_combination r2684
+      · linear_combination r2685
+      · linear_combination r2686
+      · linear_combination r2687
+      · linear_combination r2688
+      · linear_combination r2689
+      · linear_combination r2690
+    have key' : (seg52In1Bits rho)[i] = rho (46954 + i) := by
       rw [← getElem!_pos (seg52In1Bits rho) i (by simpa using hi)]
       exact key
     exact key' ▸ hgoal

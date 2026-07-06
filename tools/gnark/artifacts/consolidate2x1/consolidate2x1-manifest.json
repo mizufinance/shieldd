@@ -5,11 +5,11 @@
     "n_in": 2,
     "n_out": 1
   },
-  "nb_constraints": 57969,
+  "nb_constraints": 57329,
   "nb_public_variables": 2,
   "nb_secret_variables": 199,
-  "nb_internal_variables": 53963,
-  "sr1cs_sha256_hex": "12bf600c30c5dac11d03784f5aa3d133ff86de5e67b8be9f7c6a79f0eda6e188",
+  "nb_internal_variables": 53323,
+  "sr1cs_sha256_hex": "1019bf22b25e1c5229859f7fd8366003e817c6667438f9927fbb2a4be7734037",
   "segments": [
     {
       "index": 1,
@@ -752,8 +752,8 @@
       "gadget_label": "gadget-net-balance-commitment2",
       "bridge_theorem": "Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound",
       "start": 47848,
-      "end": 56449,
-      "constraint_count": 8601
+      "end": 55809,
+      "constraint_count": 7961
     },
     {
       "index": 53,
@@ -765,8 +765,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 56449,
-      "end": 56452,
+      "start": 55809,
+      "end": 55812,
       "constraint_count": 3
     },
     {
@@ -779,8 +779,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 56452,
-      "end": 57498,
+      "start": 55812,
+      "end": 56858,
       "constraint_count": 1046
     },
     {
@@ -790,8 +790,8 @@
         "field=anchor"
       ],
       "kind": "adapter",
-      "start": 57498,
-      "end": 57498,
+      "start": 56858,
+      "end": 56858,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
@@ -802,8 +802,8 @@
         "fields=output_commitments"
       ],
       "kind": "adapter",
-      "start": 57498,
-      "end": 57498,
+      "start": 56858,
+      "end": 56858,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
@@ -814,8 +814,8 @@
         "field=balance_commitment.fq"
       ],
       "kind": "adapter",
-      "start": 57498,
-      "end": 57498,
+      "start": 56858,
+      "end": 56858,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
@@ -826,8 +826,8 @@
         "fields=nullifiers_and_rks"
       ],
       "kind": "adapter",
-      "start": 57498,
-      "end": 57498,
+      "start": 56858,
+      "end": 56858,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
@@ -842,8 +842,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash7",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
-      "start": 57498,
-      "end": 57968,
+      "start": 56858,
+      "end": 57328,
       "constraint_count": 470
     },
     {
@@ -854,17 +854,17 @@
         "rhs=claimed_statement_hash"
       ],
       "kind": "glue",
-      "start": 57968,
-      "end": 57969,
+      "start": 57328,
+      "end": 57329,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     }
   ],
   "breakdown": {
-    "total_constraints": 57969,
+    "total_constraints": 57329,
     "constraints_by_kind": {
       "adapter": 0,
-      "gadget": 57934,
+      "gadget": 57294,
       "glue": 35,
       "marker": 0
     },

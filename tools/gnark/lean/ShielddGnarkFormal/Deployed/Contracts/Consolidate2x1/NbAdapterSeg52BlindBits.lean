@@ -28,547 +28,545 @@ theorem seg52BlindBits_toBinary (rho : Nat -> Seg52.F) (h : Seg52.relation rho) 
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, p76, p77, p78, p79,
 
-    _, _, _, _, p84, p85, p86, p87, p88, _,
+    p80, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart84 at p84
+  unfold Seg52.relationPart76 at p76
 
-  rcases p84 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6789, r6790, r6791, r6792, r6793, r6794, r6795, r6796, r6797, r6798, r6799⟩
+  rcases p76 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6149, r6150, r6151, r6152, r6153, r6154, r6155, r6156, r6157, r6158, r6159⟩
 
-  unfold Seg52.relationPart85 at p85
+  unfold Seg52.relationPart77 at p77
 
-  rcases p85 with ⟨r6800, r6801, r6802, r6803, r6804, r6805, r6806, r6807, r6808, r6809, r6810, r6811, r6812, r6813, r6814, r6815, r6816, r6817, r6818, r6819, r6820, r6821, r6822, r6823, r6824, r6825, r6826, r6827, r6828, r6829, r6830, r6831, r6832, r6833, r6834, r6835, r6836, r6837, r6838, r6839, r6840, r6841, r6842, r6843, r6844, r6845, r6846, r6847, r6848, r6849, r6850, r6851, r6852, r6853, r6854, r6855, r6856, r6857, r6858, r6859, r6860, r6861, r6862, r6863, r6864, r6865, r6866, r6867, r6868, r6869, r6870, r6871, r6872, r6873, r6874, r6875, r6876, r6877, r6878, r6879⟩
+  rcases p77 with ⟨r6160, r6161, r6162, r6163, r6164, r6165, r6166, r6167, r6168, r6169, r6170, r6171, r6172, r6173, r6174, r6175, r6176, r6177, r6178, r6179, r6180, r6181, r6182, r6183, r6184, r6185, r6186, r6187, r6188, r6189, r6190, r6191, r6192, r6193, r6194, r6195, r6196, r6197, r6198, r6199, r6200, r6201, r6202, r6203, r6204, r6205, r6206, r6207, r6208, r6209, r6210, r6211, r6212, r6213, r6214, r6215, r6216, r6217, r6218, r6219, r6220, r6221, r6222, r6223, r6224, r6225, r6226, r6227, r6228, r6229, r6230, r6231, r6232, r6233, r6234, r6235, r6236, r6237, r6238, r6239⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨r6880, r6881, r6882, r6883, r6884, r6885, r6886, r6887, r6888, r6889, r6890, r6891, r6892, r6893, r6894, r6895, r6896, r6897, r6898, r6899, r6900, r6901, r6902, r6903, r6904, r6905, r6906, r6907, r6908, r6909, r6910, r6911, r6912, r6913, r6914, r6915, r6916, r6917, r6918, r6919, r6920, r6921, r6922, r6923, r6924, r6925, r6926, r6927, r6928, r6929, r6930, r6931, r6932, r6933, r6934, r6935, r6936, r6937, r6938, r6939, r6940, r6941, r6942, r6943, r6944, r6945, r6946, r6947, r6948, r6949, r6950, r6951, r6952, r6953, r6954, r6955, r6956, r6957, r6958, r6959⟩
+  rcases p78 with ⟨r6240, r6241, r6242, r6243, r6244, r6245, r6246, r6247, r6248, r6249, r6250, r6251, r6252, r6253, r6254, r6255, r6256, r6257, r6258, r6259, r6260, r6261, r6262, r6263, r6264, r6265, r6266, r6267, r6268, r6269, r6270, r6271, r6272, r6273, r6274, r6275, r6276, r6277, r6278, r6279, r6280, r6281, r6282, r6283, r6284, r6285, r6286, r6287, r6288, r6289, r6290, r6291, r6292, r6293, r6294, r6295, r6296, r6297, r6298, r6299, r6300, r6301, r6302, r6303, r6304, r6305, r6306, r6307, r6308, r6309, r6310, r6311, r6312, r6313, r6314, r6315, r6316, r6317, r6318, r6319⟩
 
-  unfold Seg52.relationPart87 at p87
+  unfold Seg52.relationPart79 at p79
 
-  rcases p87 with ⟨r6960, r6961, r6962, r6963, r6964, r6965, r6966, r6967, r6968, r6969, r6970, r6971, r6972, r6973, r6974, r6975, r6976, r6977, r6978, r6979, r6980, r6981, r6982, r6983, r6984, r6985, r6986, r6987, r6988, r6989, r6990, r6991, r6992, r6993, r6994, r6995, r6996, r6997, r6998, r6999, r7000, r7001, r7002, r7003, r7004, r7005, r7006, r7007, r7008, r7009, r7010, r7011, r7012, r7013, r7014, r7015, r7016, r7017, r7018, r7019, r7020, r7021, r7022, r7023, r7024, r7025, r7026, r7027, r7028, r7029, r7030, r7031, r7032, r7033, r7034, r7035, r7036, r7037, r7038, r7039⟩
+  rcases p79 with ⟨r6320, r6321, r6322, r6323, r6324, r6325, r6326, r6327, r6328, r6329, r6330, r6331, r6332, r6333, r6334, r6335, r6336, r6337, r6338, r6339, r6340, r6341, r6342, r6343, r6344, r6345, r6346, r6347, r6348, r6349, r6350, r6351, r6352, r6353, r6354, r6355, r6356, r6357, r6358, r6359, r6360, r6361, r6362, r6363, r6364, r6365, r6366, r6367, r6368, r6369, r6370, r6371, r6372, r6373, r6374, r6375, r6376, r6377, r6378, r6379, r6380, r6381, r6382, r6383, r6384, r6385, r6386, r6387, r6388, r6389, r6390, r6391, r6392, r6393, r6394, r6395, r6396, r6397, r6398, r6399⟩
 
-  unfold Seg52.relationPart88 at p88
+  unfold Seg52.relationPart80 at p80
 
-  rcases p88 with ⟨r7040, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p80 with ⟨r6400, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationRow6789 at r6789
+  unfold Seg52.relationRow6149 at r6149
 
-  unfold Seg52.relationRow6790 at r6790
+  unfold Seg52.relationRow6150 at r6150
 
-  unfold Seg52.relationRow6791 at r6791
+  unfold Seg52.relationRow6151 at r6151
 
-  unfold Seg52.relationRow6792 at r6792
+  unfold Seg52.relationRow6152 at r6152
 
-  unfold Seg52.relationRow6793 at r6793
+  unfold Seg52.relationRow6153 at r6153
 
-  unfold Seg52.relationRow6794 at r6794
+  unfold Seg52.relationRow6154 at r6154
 
-  unfold Seg52.relationRow6795 at r6795
+  unfold Seg52.relationRow6155 at r6155
 
-  unfold Seg52.relationRow6796 at r6796
+  unfold Seg52.relationRow6156 at r6156
 
-  unfold Seg52.relationRow6797 at r6797
+  unfold Seg52.relationRow6157 at r6157
 
-  unfold Seg52.relationRow6798 at r6798
+  unfold Seg52.relationRow6158 at r6158
 
-  unfold Seg52.relationRow6799 at r6799
+  unfold Seg52.relationRow6159 at r6159
 
-  unfold Seg52.relationRow6800 at r6800
+  unfold Seg52.relationRow6160 at r6160
 
-  unfold Seg52.relationRow6801 at r6801
+  unfold Seg52.relationRow6161 at r6161
 
-  unfold Seg52.relationRow6802 at r6802
+  unfold Seg52.relationRow6162 at r6162
 
-  unfold Seg52.relationRow6803 at r6803
+  unfold Seg52.relationRow6163 at r6163
 
-  unfold Seg52.relationRow6804 at r6804
+  unfold Seg52.relationRow6164 at r6164
 
-  unfold Seg52.relationRow6805 at r6805
+  unfold Seg52.relationRow6165 at r6165
 
-  unfold Seg52.relationRow6806 at r6806
+  unfold Seg52.relationRow6166 at r6166
 
-  unfold Seg52.relationRow6807 at r6807
+  unfold Seg52.relationRow6167 at r6167
 
-  unfold Seg52.relationRow6808 at r6808
+  unfold Seg52.relationRow6168 at r6168
 
-  unfold Seg52.relationRow6809 at r6809
+  unfold Seg52.relationRow6169 at r6169
 
-  unfold Seg52.relationRow6810 at r6810
+  unfold Seg52.relationRow6170 at r6170
 
-  unfold Seg52.relationRow6811 at r6811
+  unfold Seg52.relationRow6171 at r6171
 
-  unfold Seg52.relationRow6812 at r6812
+  unfold Seg52.relationRow6172 at r6172
 
-  unfold Seg52.relationRow6813 at r6813
+  unfold Seg52.relationRow6173 at r6173
 
-  unfold Seg52.relationRow6814 at r6814
+  unfold Seg52.relationRow6174 at r6174
 
-  unfold Seg52.relationRow6815 at r6815
+  unfold Seg52.relationRow6175 at r6175
 
-  unfold Seg52.relationRow6816 at r6816
+  unfold Seg52.relationRow6176 at r6176
 
-  unfold Seg52.relationRow6817 at r6817
+  unfold Seg52.relationRow6177 at r6177
 
-  unfold Seg52.relationRow6818 at r6818
+  unfold Seg52.relationRow6178 at r6178
 
-  unfold Seg52.relationRow6819 at r6819
+  unfold Seg52.relationRow6179 at r6179
 
-  unfold Seg52.relationRow6820 at r6820
+  unfold Seg52.relationRow6180 at r6180
 
-  unfold Seg52.relationRow6821 at r6821
+  unfold Seg52.relationRow6181 at r6181
 
-  unfold Seg52.relationRow6822 at r6822
+  unfold Seg52.relationRow6182 at r6182
 
-  unfold Seg52.relationRow6823 at r6823
+  unfold Seg52.relationRow6183 at r6183
 
-  unfold Seg52.relationRow6824 at r6824
+  unfold Seg52.relationRow6184 at r6184
 
-  unfold Seg52.relationRow6825 at r6825
+  unfold Seg52.relationRow6185 at r6185
 
-  unfold Seg52.relationRow6826 at r6826
+  unfold Seg52.relationRow6186 at r6186
 
-  unfold Seg52.relationRow6827 at r6827
+  unfold Seg52.relationRow6187 at r6187
 
-  unfold Seg52.relationRow6828 at r6828
+  unfold Seg52.relationRow6188 at r6188
 
-  unfold Seg52.relationRow6829 at r6829
+  unfold Seg52.relationRow6189 at r6189
 
-  unfold Seg52.relationRow6830 at r6830
+  unfold Seg52.relationRow6190 at r6190
 
-  unfold Seg52.relationRow6831 at r6831
+  unfold Seg52.relationRow6191 at r6191
 
-  unfold Seg52.relationRow6832 at r6832
+  unfold Seg52.relationRow6192 at r6192
 
-  unfold Seg52.relationRow6833 at r6833
+  unfold Seg52.relationRow6193 at r6193
 
-  unfold Seg52.relationRow6834 at r6834
+  unfold Seg52.relationRow6194 at r6194
 
-  unfold Seg52.relationRow6835 at r6835
+  unfold Seg52.relationRow6195 at r6195
 
-  unfold Seg52.relationRow6836 at r6836
+  unfold Seg52.relationRow6196 at r6196
 
-  unfold Seg52.relationRow6837 at r6837
+  unfold Seg52.relationRow6197 at r6197
 
-  unfold Seg52.relationRow6838 at r6838
+  unfold Seg52.relationRow6198 at r6198
 
-  unfold Seg52.relationRow6839 at r6839
+  unfold Seg52.relationRow6199 at r6199
 
-  unfold Seg52.relationRow6840 at r6840
+  unfold Seg52.relationRow6200 at r6200
 
-  unfold Seg52.relationRow6841 at r6841
+  unfold Seg52.relationRow6201 at r6201
 
-  unfold Seg52.relationRow6842 at r6842
+  unfold Seg52.relationRow6202 at r6202
 
-  unfold Seg52.relationRow6843 at r6843
+  unfold Seg52.relationRow6203 at r6203
 
-  unfold Seg52.relationRow6844 at r6844
+  unfold Seg52.relationRow6204 at r6204
 
-  unfold Seg52.relationRow6845 at r6845
+  unfold Seg52.relationRow6205 at r6205
 
-  unfold Seg52.relationRow6846 at r6846
+  unfold Seg52.relationRow6206 at r6206
 
-  unfold Seg52.relationRow6847 at r6847
+  unfold Seg52.relationRow6207 at r6207
 
-  unfold Seg52.relationRow6848 at r6848
+  unfold Seg52.relationRow6208 at r6208
 
-  unfold Seg52.relationRow6849 at r6849
+  unfold Seg52.relationRow6209 at r6209
 
-  unfold Seg52.relationRow6850 at r6850
+  unfold Seg52.relationRow6210 at r6210
 
-  unfold Seg52.relationRow6851 at r6851
+  unfold Seg52.relationRow6211 at r6211
 
-  unfold Seg52.relationRow6852 at r6852
+  unfold Seg52.relationRow6212 at r6212
 
-  unfold Seg52.relationRow6853 at r6853
+  unfold Seg52.relationRow6213 at r6213
 
-  unfold Seg52.relationRow6854 at r6854
+  unfold Seg52.relationRow6214 at r6214
 
-  unfold Seg52.relationRow6855 at r6855
+  unfold Seg52.relationRow6215 at r6215
 
-  unfold Seg52.relationRow6856 at r6856
+  unfold Seg52.relationRow6216 at r6216
 
-  unfold Seg52.relationRow6857 at r6857
+  unfold Seg52.relationRow6217 at r6217
 
-  unfold Seg52.relationRow6858 at r6858
+  unfold Seg52.relationRow6218 at r6218
 
-  unfold Seg52.relationRow6859 at r6859
+  unfold Seg52.relationRow6219 at r6219
 
-  unfold Seg52.relationRow6860 at r6860
+  unfold Seg52.relationRow6220 at r6220
 
-  unfold Seg52.relationRow6861 at r6861
+  unfold Seg52.relationRow6221 at r6221
 
-  unfold Seg52.relationRow6862 at r6862
+  unfold Seg52.relationRow6222 at r6222
 
-  unfold Seg52.relationRow6863 at r6863
+  unfold Seg52.relationRow6223 at r6223
 
-  unfold Seg52.relationRow6864 at r6864
+  unfold Seg52.relationRow6224 at r6224
 
-  unfold Seg52.relationRow6865 at r6865
+  unfold Seg52.relationRow6225 at r6225
 
-  unfold Seg52.relationRow6866 at r6866
+  unfold Seg52.relationRow6226 at r6226
 
-  unfold Seg52.relationRow6867 at r6867
+  unfold Seg52.relationRow6227 at r6227
 
-  unfold Seg52.relationRow6868 at r6868
+  unfold Seg52.relationRow6228 at r6228
 
-  unfold Seg52.relationRow6869 at r6869
+  unfold Seg52.relationRow6229 at r6229
 
-  unfold Seg52.relationRow6870 at r6870
+  unfold Seg52.relationRow6230 at r6230
 
-  unfold Seg52.relationRow6871 at r6871
+  unfold Seg52.relationRow6231 at r6231
 
-  unfold Seg52.relationRow6872 at r6872
+  unfold Seg52.relationRow6232 at r6232
 
-  unfold Seg52.relationRow6873 at r6873
+  unfold Seg52.relationRow6233 at r6233
 
-  unfold Seg52.relationRow6874 at r6874
+  unfold Seg52.relationRow6234 at r6234
 
-  unfold Seg52.relationRow6875 at r6875
+  unfold Seg52.relationRow6235 at r6235
 
-  unfold Seg52.relationRow6876 at r6876
+  unfold Seg52.relationRow6236 at r6236
 
-  unfold Seg52.relationRow6877 at r6877
+  unfold Seg52.relationRow6237 at r6237
 
-  unfold Seg52.relationRow6878 at r6878
+  unfold Seg52.relationRow6238 at r6238
 
-  unfold Seg52.relationRow6879 at r6879
+  unfold Seg52.relationRow6239 at r6239
 
-  unfold Seg52.relationRow6880 at r6880
+  unfold Seg52.relationRow6240 at r6240
 
-  unfold Seg52.relationRow6881 at r6881
+  unfold Seg52.relationRow6241 at r6241
 
-  unfold Seg52.relationRow6882 at r6882
+  unfold Seg52.relationRow6242 at r6242
 
-  unfold Seg52.relationRow6883 at r6883
+  unfold Seg52.relationRow6243 at r6243
 
-  unfold Seg52.relationRow6884 at r6884
+  unfold Seg52.relationRow6244 at r6244
 
-  unfold Seg52.relationRow6885 at r6885
+  unfold Seg52.relationRow6245 at r6245
 
-  unfold Seg52.relationRow6886 at r6886
+  unfold Seg52.relationRow6246 at r6246
 
-  unfold Seg52.relationRow6887 at r6887
+  unfold Seg52.relationRow6247 at r6247
 
-  unfold Seg52.relationRow6888 at r6888
+  unfold Seg52.relationRow6248 at r6248
 
-  unfold Seg52.relationRow6889 at r6889
+  unfold Seg52.relationRow6249 at r6249
 
-  unfold Seg52.relationRow6890 at r6890
+  unfold Seg52.relationRow6250 at r6250
 
-  unfold Seg52.relationRow6891 at r6891
+  unfold Seg52.relationRow6251 at r6251
 
-  unfold Seg52.relationRow6892 at r6892
+  unfold Seg52.relationRow6252 at r6252
 
-  unfold Seg52.relationRow6893 at r6893
+  unfold Seg52.relationRow6253 at r6253
 
-  unfold Seg52.relationRow6894 at r6894
+  unfold Seg52.relationRow6254 at r6254
 
-  unfold Seg52.relationRow6895 at r6895
+  unfold Seg52.relationRow6255 at r6255
 
-  unfold Seg52.relationRow6896 at r6896
+  unfold Seg52.relationRow6256 at r6256
 
-  unfold Seg52.relationRow6897 at r6897
+  unfold Seg52.relationRow6257 at r6257
 
-  unfold Seg52.relationRow6898 at r6898
+  unfold Seg52.relationRow6258 at r6258
 
-  unfold Seg52.relationRow6899 at r6899
+  unfold Seg52.relationRow6259 at r6259
 
-  unfold Seg52.relationRow6900 at r6900
+  unfold Seg52.relationRow6260 at r6260
 
-  unfold Seg52.relationRow6901 at r6901
+  unfold Seg52.relationRow6261 at r6261
 
-  unfold Seg52.relationRow6902 at r6902
+  unfold Seg52.relationRow6262 at r6262
 
-  unfold Seg52.relationRow6903 at r6903
+  unfold Seg52.relationRow6263 at r6263
 
-  unfold Seg52.relationRow6904 at r6904
+  unfold Seg52.relationRow6264 at r6264
 
-  unfold Seg52.relationRow6905 at r6905
+  unfold Seg52.relationRow6265 at r6265
 
-  unfold Seg52.relationRow6906 at r6906
+  unfold Seg52.relationRow6266 at r6266
 
-  unfold Seg52.relationRow6907 at r6907
+  unfold Seg52.relationRow6267 at r6267
 
-  unfold Seg52.relationRow6908 at r6908
+  unfold Seg52.relationRow6268 at r6268
 
-  unfold Seg52.relationRow6909 at r6909
+  unfold Seg52.relationRow6269 at r6269
 
-  unfold Seg52.relationRow6910 at r6910
+  unfold Seg52.relationRow6270 at r6270
 
-  unfold Seg52.relationRow6911 at r6911
+  unfold Seg52.relationRow6271 at r6271
 
-  unfold Seg52.relationRow6912 at r6912
+  unfold Seg52.relationRow6272 at r6272
 
-  unfold Seg52.relationRow6913 at r6913
+  unfold Seg52.relationRow6273 at r6273
 
-  unfold Seg52.relationRow6914 at r6914
+  unfold Seg52.relationRow6274 at r6274
 
-  unfold Seg52.relationRow6915 at r6915
+  unfold Seg52.relationRow6275 at r6275
 
-  unfold Seg52.relationRow6916 at r6916
+  unfold Seg52.relationRow6276 at r6276
 
-  unfold Seg52.relationRow6917 at r6917
+  unfold Seg52.relationRow6277 at r6277
 
-  unfold Seg52.relationRow6918 at r6918
+  unfold Seg52.relationRow6278 at r6278
 
-  unfold Seg52.relationRow6919 at r6919
+  unfold Seg52.relationRow6279 at r6279
 
-  unfold Seg52.relationRow6920 at r6920
+  unfold Seg52.relationRow6280 at r6280
 
-  unfold Seg52.relationRow6921 at r6921
+  unfold Seg52.relationRow6281 at r6281
 
-  unfold Seg52.relationRow6922 at r6922
+  unfold Seg52.relationRow6282 at r6282
 
-  unfold Seg52.relationRow6923 at r6923
+  unfold Seg52.relationRow6283 at r6283
 
-  unfold Seg52.relationRow6924 at r6924
+  unfold Seg52.relationRow6284 at r6284
 
-  unfold Seg52.relationRow6925 at r6925
+  unfold Seg52.relationRow6285 at r6285
 
-  unfold Seg52.relationRow6926 at r6926
+  unfold Seg52.relationRow6286 at r6286
 
-  unfold Seg52.relationRow6927 at r6927
+  unfold Seg52.relationRow6287 at r6287
 
-  unfold Seg52.relationRow6928 at r6928
+  unfold Seg52.relationRow6288 at r6288
 
-  unfold Seg52.relationRow6929 at r6929
+  unfold Seg52.relationRow6289 at r6289
 
-  unfold Seg52.relationRow6930 at r6930
+  unfold Seg52.relationRow6290 at r6290
 
-  unfold Seg52.relationRow6931 at r6931
+  unfold Seg52.relationRow6291 at r6291
 
-  unfold Seg52.relationRow6932 at r6932
+  unfold Seg52.relationRow6292 at r6292
 
-  unfold Seg52.relationRow6933 at r6933
+  unfold Seg52.relationRow6293 at r6293
 
-  unfold Seg52.relationRow6934 at r6934
+  unfold Seg52.relationRow6294 at r6294
 
-  unfold Seg52.relationRow6935 at r6935
+  unfold Seg52.relationRow6295 at r6295
 
-  unfold Seg52.relationRow6936 at r6936
+  unfold Seg52.relationRow6296 at r6296
 
-  unfold Seg52.relationRow6937 at r6937
+  unfold Seg52.relationRow6297 at r6297
 
-  unfold Seg52.relationRow6938 at r6938
+  unfold Seg52.relationRow6298 at r6298
 
-  unfold Seg52.relationRow6939 at r6939
+  unfold Seg52.relationRow6299 at r6299
 
-  unfold Seg52.relationRow6940 at r6940
+  unfold Seg52.relationRow6300 at r6300
 
-  unfold Seg52.relationRow6941 at r6941
+  unfold Seg52.relationRow6301 at r6301
 
-  unfold Seg52.relationRow6942 at r6942
+  unfold Seg52.relationRow6302 at r6302
 
-  unfold Seg52.relationRow6943 at r6943
+  unfold Seg52.relationRow6303 at r6303
 
-  unfold Seg52.relationRow6944 at r6944
+  unfold Seg52.relationRow6304 at r6304
 
-  unfold Seg52.relationRow6945 at r6945
+  unfold Seg52.relationRow6305 at r6305
 
-  unfold Seg52.relationRow6946 at r6946
+  unfold Seg52.relationRow6306 at r6306
 
-  unfold Seg52.relationRow6947 at r6947
+  unfold Seg52.relationRow6307 at r6307
 
-  unfold Seg52.relationRow6948 at r6948
+  unfold Seg52.relationRow6308 at r6308
 
-  unfold Seg52.relationRow6949 at r6949
+  unfold Seg52.relationRow6309 at r6309
 
-  unfold Seg52.relationRow6950 at r6950
+  unfold Seg52.relationRow6310 at r6310
 
-  unfold Seg52.relationRow6951 at r6951
+  unfold Seg52.relationRow6311 at r6311
 
-  unfold Seg52.relationRow6952 at r6952
+  unfold Seg52.relationRow6312 at r6312
 
-  unfold Seg52.relationRow6953 at r6953
+  unfold Seg52.relationRow6313 at r6313
 
-  unfold Seg52.relationRow6954 at r6954
+  unfold Seg52.relationRow6314 at r6314
 
-  unfold Seg52.relationRow6955 at r6955
+  unfold Seg52.relationRow6315 at r6315
 
-  unfold Seg52.relationRow6956 at r6956
+  unfold Seg52.relationRow6316 at r6316
 
-  unfold Seg52.relationRow6957 at r6957
+  unfold Seg52.relationRow6317 at r6317
 
-  unfold Seg52.relationRow6958 at r6958
+  unfold Seg52.relationRow6318 at r6318
 
-  unfold Seg52.relationRow6959 at r6959
+  unfold Seg52.relationRow6319 at r6319
 
-  unfold Seg52.relationRow6960 at r6960
+  unfold Seg52.relationRow6320 at r6320
 
-  unfold Seg52.relationRow6961 at r6961
+  unfold Seg52.relationRow6321 at r6321
 
-  unfold Seg52.relationRow6962 at r6962
+  unfold Seg52.relationRow6322 at r6322
 
-  unfold Seg52.relationRow6963 at r6963
+  unfold Seg52.relationRow6323 at r6323
 
-  unfold Seg52.relationRow6964 at r6964
+  unfold Seg52.relationRow6324 at r6324
 
-  unfold Seg52.relationRow6965 at r6965
+  unfold Seg52.relationRow6325 at r6325
 
-  unfold Seg52.relationRow6966 at r6966
+  unfold Seg52.relationRow6326 at r6326
 
-  unfold Seg52.relationRow6967 at r6967
+  unfold Seg52.relationRow6327 at r6327
 
-  unfold Seg52.relationRow6968 at r6968
+  unfold Seg52.relationRow6328 at r6328
 
-  unfold Seg52.relationRow6969 at r6969
+  unfold Seg52.relationRow6329 at r6329
 
-  unfold Seg52.relationRow6970 at r6970
+  unfold Seg52.relationRow6330 at r6330
 
-  unfold Seg52.relationRow6971 at r6971
+  unfold Seg52.relationRow6331 at r6331
 
-  unfold Seg52.relationRow6972 at r6972
+  unfold Seg52.relationRow6332 at r6332
 
-  unfold Seg52.relationRow6973 at r6973
+  unfold Seg52.relationRow6333 at r6333
 
-  unfold Seg52.relationRow6974 at r6974
+  unfold Seg52.relationRow6334 at r6334
 
-  unfold Seg52.relationRow6975 at r6975
+  unfold Seg52.relationRow6335 at r6335
 
-  unfold Seg52.relationRow6976 at r6976
+  unfold Seg52.relationRow6336 at r6336
 
-  unfold Seg52.relationRow6977 at r6977
+  unfold Seg52.relationRow6337 at r6337
 
-  unfold Seg52.relationRow6978 at r6978
+  unfold Seg52.relationRow6338 at r6338
 
-  unfold Seg52.relationRow6979 at r6979
+  unfold Seg52.relationRow6339 at r6339
 
-  unfold Seg52.relationRow6980 at r6980
+  unfold Seg52.relationRow6340 at r6340
 
-  unfold Seg52.relationRow6981 at r6981
+  unfold Seg52.relationRow6341 at r6341
 
-  unfold Seg52.relationRow6982 at r6982
+  unfold Seg52.relationRow6342 at r6342
 
-  unfold Seg52.relationRow6983 at r6983
+  unfold Seg52.relationRow6343 at r6343
 
-  unfold Seg52.relationRow6984 at r6984
+  unfold Seg52.relationRow6344 at r6344
 
-  unfold Seg52.relationRow6985 at r6985
+  unfold Seg52.relationRow6345 at r6345
 
-  unfold Seg52.relationRow6986 at r6986
+  unfold Seg52.relationRow6346 at r6346
 
-  unfold Seg52.relationRow6987 at r6987
+  unfold Seg52.relationRow6347 at r6347
 
-  unfold Seg52.relationRow6988 at r6988
+  unfold Seg52.relationRow6348 at r6348
 
-  unfold Seg52.relationRow6989 at r6989
+  unfold Seg52.relationRow6349 at r6349
 
-  unfold Seg52.relationRow6990 at r6990
+  unfold Seg52.relationRow6350 at r6350
 
-  unfold Seg52.relationRow6991 at r6991
+  unfold Seg52.relationRow6351 at r6351
 
-  unfold Seg52.relationRow6992 at r6992
+  unfold Seg52.relationRow6352 at r6352
 
-  unfold Seg52.relationRow6993 at r6993
+  unfold Seg52.relationRow6353 at r6353
 
-  unfold Seg52.relationRow6994 at r6994
+  unfold Seg52.relationRow6354 at r6354
 
-  unfold Seg52.relationRow6995 at r6995
+  unfold Seg52.relationRow6355 at r6355
 
-  unfold Seg52.relationRow6996 at r6996
+  unfold Seg52.relationRow6356 at r6356
 
-  unfold Seg52.relationRow6997 at r6997
+  unfold Seg52.relationRow6357 at r6357
 
-  unfold Seg52.relationRow6998 at r6998
+  unfold Seg52.relationRow6358 at r6358
 
-  unfold Seg52.relationRow6999 at r6999
+  unfold Seg52.relationRow6359 at r6359
 
-  unfold Seg52.relationRow7000 at r7000
+  unfold Seg52.relationRow6360 at r6360
 
-  unfold Seg52.relationRow7001 at r7001
+  unfold Seg52.relationRow6361 at r6361
 
-  unfold Seg52.relationRow7002 at r7002
+  unfold Seg52.relationRow6362 at r6362
 
-  unfold Seg52.relationRow7003 at r7003
+  unfold Seg52.relationRow6363 at r6363
 
-  unfold Seg52.relationRow7004 at r7004
+  unfold Seg52.relationRow6364 at r6364
 
-  unfold Seg52.relationRow7005 at r7005
+  unfold Seg52.relationRow6365 at r6365
 
-  unfold Seg52.relationRow7006 at r7006
+  unfold Seg52.relationRow6366 at r6366
 
-  unfold Seg52.relationRow7007 at r7007
+  unfold Seg52.relationRow6367 at r6367
 
-  unfold Seg52.relationRow7008 at r7008
+  unfold Seg52.relationRow6368 at r6368
 
-  unfold Seg52.relationRow7009 at r7009
+  unfold Seg52.relationRow6369 at r6369
 
-  unfold Seg52.relationRow7010 at r7010
+  unfold Seg52.relationRow6370 at r6370
 
-  unfold Seg52.relationRow7011 at r7011
+  unfold Seg52.relationRow6371 at r6371
 
-  unfold Seg52.relationRow7012 at r7012
+  unfold Seg52.relationRow6372 at r6372
 
-  unfold Seg52.relationRow7013 at r7013
+  unfold Seg52.relationRow6373 at r6373
 
-  unfold Seg52.relationRow7014 at r7014
+  unfold Seg52.relationRow6374 at r6374
 
-  unfold Seg52.relationRow7015 at r7015
+  unfold Seg52.relationRow6375 at r6375
 
-  unfold Seg52.relationRow7016 at r7016
+  unfold Seg52.relationRow6376 at r6376
 
-  unfold Seg52.relationRow7017 at r7017
+  unfold Seg52.relationRow6377 at r6377
 
-  unfold Seg52.relationRow7018 at r7018
+  unfold Seg52.relationRow6378 at r6378
 
-  unfold Seg52.relationRow7019 at r7019
+  unfold Seg52.relationRow6379 at r6379
 
-  unfold Seg52.relationRow7020 at r7020
+  unfold Seg52.relationRow6380 at r6380
 
-  unfold Seg52.relationRow7021 at r7021
+  unfold Seg52.relationRow6381 at r6381
 
-  unfold Seg52.relationRow7022 at r7022
+  unfold Seg52.relationRow6382 at r6382
 
-  unfold Seg52.relationRow7023 at r7023
+  unfold Seg52.relationRow6383 at r6383
 
-  unfold Seg52.relationRow7024 at r7024
+  unfold Seg52.relationRow6384 at r6384
 
-  unfold Seg52.relationRow7025 at r7025
+  unfold Seg52.relationRow6385 at r6385
 
-  unfold Seg52.relationRow7026 at r7026
+  unfold Seg52.relationRow6386 at r6386
 
-  unfold Seg52.relationRow7027 at r7027
+  unfold Seg52.relationRow6387 at r6387
 
-  unfold Seg52.relationRow7028 at r7028
+  unfold Seg52.relationRow6388 at r6388
 
-  unfold Seg52.relationRow7029 at r7029
+  unfold Seg52.relationRow6389 at r6389
 
-  unfold Seg52.relationRow7030 at r7030
+  unfold Seg52.relationRow6390 at r6390
 
-  unfold Seg52.relationRow7031 at r7031
+  unfold Seg52.relationRow6391 at r6391
 
-  unfold Seg52.relationRow7032 at r7032
+  unfold Seg52.relationRow6392 at r6392
 
-  unfold Seg52.relationRow7033 at r7033
+  unfold Seg52.relationRow6393 at r6393
 
-  unfold Seg52.relationRow7034 at r7034
+  unfold Seg52.relationRow6394 at r6394
 
-  unfold Seg52.relationRow7035 at r7035
+  unfold Seg52.relationRow6395 at r6395
 
-  unfold Seg52.relationRow7036 at r7036
+  unfold Seg52.relationRow6396 at r6396
 
-  unfold Seg52.relationRow7037 at r7037
+  unfold Seg52.relationRow6397 at r6397
 
-  unfold Seg52.relationRow7038 at r7038
+  unfold Seg52.relationRow6398 at r6398
 
-  unfold Seg52.relationRow7039 at r7039
+  unfold Seg52.relationRow6399 at r6399
 
-  have hrecover := recover_ofFn_eq_recBits rho 51178 251
+  have hrecover := recover_ofFn_eq_recBits rho 50538 251
 
-  have hacc : powSumAcc rho 0 1 51178 251 = rho 5 := by
+  have hacc : powSumAcc rho 0 1 50538 251 = rho 5 := by
 
-    unfold Seg52.relationRow7040 at r7040
+    unfold Seg52.relationRow6400 at r6400
 
     simp only [powSumAcc]
 
-    linear_combination r7040
+    linear_combination r6400
 
   have hrec : recover_binary_zmod' (seg52BlindBits rho) = rho 5 := by
 
@@ -583,260 +581,260 @@ theorem seg52BlindBits_toBinary (rho : Nat -> Seg52.F) (h : Seg52.relation rho) 
   apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 5) (seg52BlindBits rho)
   · intro i hi
     have key := seg52BlindBits_get rho i hi
-    have hgoal : rho (51178 + i) * (1 - rho (51178 + i)) = 0 := by
+    have hgoal : rho (50538 + i) * (1 - rho (50538 + i)) = 0 := by
       interval_cases i
-      · linear_combination r6789
-      · linear_combination r6790
-      · linear_combination r6791
-      · linear_combination r6792
-      · linear_combination r6793
-      · linear_combination r6794
-      · linear_combination r6795
-      · linear_combination r6796
-      · linear_combination r6797
-      · linear_combination r6798
-      · linear_combination r6799
-      · linear_combination r6800
-      · linear_combination r6801
-      · linear_combination r6802
-      · linear_combination r6803
-      · linear_combination r6804
-      · linear_combination r6805
-      · linear_combination r6806
-      · linear_combination r6807
-      · linear_combination r6808
-      · linear_combination r6809
-      · linear_combination r6810
-      · linear_combination r6811
-      · linear_combination r6812
-      · linear_combination r6813
-      · linear_combination r6814
-      · linear_combination r6815
-      · linear_combination r6816
-      · linear_combination r6817
-      · linear_combination r6818
-      · linear_combination r6819
-      · linear_combination r6820
-      · linear_combination r6821
-      · linear_combination r6822
-      · linear_combination r6823
-      · linear_combination r6824
-      · linear_combination r6825
-      · linear_combination r6826
-      · linear_combination r6827
-      · linear_combination r6828
-      · linear_combination r6829
-      · linear_combination r6830
-      · linear_combination r6831
-      · linear_combination r6832
-      · linear_combination r6833
-      · linear_combination r6834
-      · linear_combination r6835
-      · linear_combination r6836
-      · linear_combination r6837
-      · linear_combination r6838
-      · linear_combination r6839
-      · linear_combination r6840
-      · linear_combination r6841
-      · linear_combination r6842
-      · linear_combination r6843
-      · linear_combination r6844
-      · linear_combination r6845
-      · linear_combination r6846
-      · linear_combination r6847
-      · linear_combination r6848
-      · linear_combination r6849
-      · linear_combination r6850
-      · linear_combination r6851
-      · linear_combination r6852
-      · linear_combination r6853
-      · linear_combination r6854
-      · linear_combination r6855
-      · linear_combination r6856
-      · linear_combination r6857
-      · linear_combination r6858
-      · linear_combination r6859
-      · linear_combination r6860
-      · linear_combination r6861
-      · linear_combination r6862
-      · linear_combination r6863
-      · linear_combination r6864
-      · linear_combination r6865
-      · linear_combination r6866
-      · linear_combination r6867
-      · linear_combination r6868
-      · linear_combination r6869
-      · linear_combination r6870
-      · linear_combination r6871
-      · linear_combination r6872
-      · linear_combination r6873
-      · linear_combination r6874
-      · linear_combination r6875
-      · linear_combination r6876
-      · linear_combination r6877
-      · linear_combination r6878
-      · linear_combination r6879
-      · linear_combination r6880
-      · linear_combination r6881
-      · linear_combination r6882
-      · linear_combination r6883
-      · linear_combination r6884
-      · linear_combination r6885
-      · linear_combination r6886
-      · linear_combination r6887
-      · linear_combination r6888
-      · linear_combination r6889
-      · linear_combination r6890
-      · linear_combination r6891
-      · linear_combination r6892
-      · linear_combination r6893
-      · linear_combination r6894
-      · linear_combination r6895
-      · linear_combination r6896
-      · linear_combination r6897
-      · linear_combination r6898
-      · linear_combination r6899
-      · linear_combination r6900
-      · linear_combination r6901
-      · linear_combination r6902
-      · linear_combination r6903
-      · linear_combination r6904
-      · linear_combination r6905
-      · linear_combination r6906
-      · linear_combination r6907
-      · linear_combination r6908
-      · linear_combination r6909
-      · linear_combination r6910
-      · linear_combination r6911
-      · linear_combination r6912
-      · linear_combination r6913
-      · linear_combination r6914
-      · linear_combination r6915
-      · linear_combination r6916
-      · linear_combination r6917
-      · linear_combination r6918
-      · linear_combination r6919
-      · linear_combination r6920
-      · linear_combination r6921
-      · linear_combination r6922
-      · linear_combination r6923
-      · linear_combination r6924
-      · linear_combination r6925
-      · linear_combination r6926
-      · linear_combination r6927
-      · linear_combination r6928
-      · linear_combination r6929
-      · linear_combination r6930
-      · linear_combination r6931
-      · linear_combination r6932
-      · linear_combination r6933
-      · linear_combination r6934
-      · linear_combination r6935
-      · linear_combination r6936
-      · linear_combination r6937
-      · linear_combination r6938
-      · linear_combination r6939
-      · linear_combination r6940
-      · linear_combination r6941
-      · linear_combination r6942
-      · linear_combination r6943
-      · linear_combination r6944
-      · linear_combination r6945
-      · linear_combination r6946
-      · linear_combination r6947
-      · linear_combination r6948
-      · linear_combination r6949
-      · linear_combination r6950
-      · linear_combination r6951
-      · linear_combination r6952
-      · linear_combination r6953
-      · linear_combination r6954
-      · linear_combination r6955
-      · linear_combination r6956
-      · linear_combination r6957
-      · linear_combination r6958
-      · linear_combination r6959
-      · linear_combination r6960
-      · linear_combination r6961
-      · linear_combination r6962
-      · linear_combination r6963
-      · linear_combination r6964
-      · linear_combination r6965
-      · linear_combination r6966
-      · linear_combination r6967
-      · linear_combination r6968
-      · linear_combination r6969
-      · linear_combination r6970
-      · linear_combination r6971
-      · linear_combination r6972
-      · linear_combination r6973
-      · linear_combination r6974
-      · linear_combination r6975
-      · linear_combination r6976
-      · linear_combination r6977
-      · linear_combination r6978
-      · linear_combination r6979
-      · linear_combination r6980
-      · linear_combination r6981
-      · linear_combination r6982
-      · linear_combination r6983
-      · linear_combination r6984
-      · linear_combination r6985
-      · linear_combination r6986
-      · linear_combination r6987
-      · linear_combination r6988
-      · linear_combination r6989
-      · linear_combination r6990
-      · linear_combination r6991
-      · linear_combination r6992
-      · linear_combination r6993
-      · linear_combination r6994
-      · linear_combination r6995
-      · linear_combination r6996
-      · linear_combination r6997
-      · linear_combination r6998
-      · linear_combination r6999
-      · linear_combination r7000
-      · linear_combination r7001
-      · linear_combination r7002
-      · linear_combination r7003
-      · linear_combination r7004
-      · linear_combination r7005
-      · linear_combination r7006
-      · linear_combination r7007
-      · linear_combination r7008
-      · linear_combination r7009
-      · linear_combination r7010
-      · linear_combination r7011
-      · linear_combination r7012
-      · linear_combination r7013
-      · linear_combination r7014
-      · linear_combination r7015
-      · linear_combination r7016
-      · linear_combination r7017
-      · linear_combination r7018
-      · linear_combination r7019
-      · linear_combination r7020
-      · linear_combination r7021
-      · linear_combination r7022
-      · linear_combination r7023
-      · linear_combination r7024
-      · linear_combination r7025
-      · linear_combination r7026
-      · linear_combination r7027
-      · linear_combination r7028
-      · linear_combination r7029
-      · linear_combination r7030
-      · linear_combination r7031
-      · linear_combination r7032
-      · linear_combination r7033
-      · linear_combination r7034
-      · linear_combination r7035
-      · linear_combination r7036
-      · linear_combination r7037
-      · linear_combination r7038
-      · linear_combination r7039
-    have key' : (seg52BlindBits rho)[i] = rho (51178 + i) := by
+      · linear_combination r6149
+      · linear_combination r6150
+      · linear_combination r6151
+      · linear_combination r6152
+      · linear_combination r6153
+      · linear_combination r6154
+      · linear_combination r6155
+      · linear_combination r6156
+      · linear_combination r6157
+      · linear_combination r6158
+      · linear_combination r6159
+      · linear_combination r6160
+      · linear_combination r6161
+      · linear_combination r6162
+      · linear_combination r6163
+      · linear_combination r6164
+      · linear_combination r6165
+      · linear_combination r6166
+      · linear_combination r6167
+      · linear_combination r6168
+      · linear_combination r6169
+      · linear_combination r6170
+      · linear_combination r6171
+      · linear_combination r6172
+      · linear_combination r6173
+      · linear_combination r6174
+      · linear_combination r6175
+      · linear_combination r6176
+      · linear_combination r6177
+      · linear_combination r6178
+      · linear_combination r6179
+      · linear_combination r6180
+      · linear_combination r6181
+      · linear_combination r6182
+      · linear_combination r6183
+      · linear_combination r6184
+      · linear_combination r6185
+      · linear_combination r6186
+      · linear_combination r6187
+      · linear_combination r6188
+      · linear_combination r6189
+      · linear_combination r6190
+      · linear_combination r6191
+      · linear_combination r6192
+      · linear_combination r6193
+      · linear_combination r6194
+      · linear_combination r6195
+      · linear_combination r6196
+      · linear_combination r6197
+      · linear_combination r6198
+      · linear_combination r6199
+      · linear_combination r6200
+      · linear_combination r6201
+      · linear_combination r6202
+      · linear_combination r6203
+      · linear_combination r6204
+      · linear_combination r6205
+      · linear_combination r6206
+      · linear_combination r6207
+      · linear_combination r6208
+      · linear_combination r6209
+      · linear_combination r6210
+      · linear_combination r6211
+      · linear_combination r6212
+      · linear_combination r6213
+      · linear_combination r6214
+      · linear_combination r6215
+      · linear_combination r6216
+      · linear_combination r6217
+      · linear_combination r6218
+      · linear_combination r6219
+      · linear_combination r6220
+      · linear_combination r6221
+      · linear_combination r6222
+      · linear_combination r6223
+      · linear_combination r6224
+      · linear_combination r6225
+      · linear_combination r6226
+      · linear_combination r6227
+      · linear_combination r6228
+      · linear_combination r6229
+      · linear_combination r6230
+      · linear_combination r6231
+      · linear_combination r6232
+      · linear_combination r6233
+      · linear_combination r6234
+      · linear_combination r6235
+      · linear_combination r6236
+      · linear_combination r6237
+      · linear_combination r6238
+      · linear_combination r6239
+      · linear_combination r6240
+      · linear_combination r6241
+      · linear_combination r6242
+      · linear_combination r6243
+      · linear_combination r6244
+      · linear_combination r6245
+      · linear_combination r6246
+      · linear_combination r6247
+      · linear_combination r6248
+      · linear_combination r6249
+      · linear_combination r6250
+      · linear_combination r6251
+      · linear_combination r6252
+      · linear_combination r6253
+      · linear_combination r6254
+      · linear_combination r6255
+      · linear_combination r6256
+      · linear_combination r6257
+      · linear_combination r6258
+      · linear_combination r6259
+      · linear_combination r6260
+      · linear_combination r6261
+      · linear_combination r6262
+      · linear_combination r6263
+      · linear_combination r6264
+      · linear_combination r6265
+      · linear_combination r6266
+      · linear_combination r6267
+      · linear_combination r6268
+      · linear_combination r6269
+      · linear_combination r6270
+      · linear_combination r6271
+      · linear_combination r6272
+      · linear_combination r6273
+      · linear_combination r6274
+      · linear_combination r6275
+      · linear_combination r6276
+      · linear_combination r6277
+      · linear_combination r6278
+      · linear_combination r6279
+      · linear_combination r6280
+      · linear_combination r6281
+      · linear_combination r6282
+      · linear_combination r6283
+      · linear_combination r6284
+      · linear_combination r6285
+      · linear_combination r6286
+      · linear_combination r6287
+      · linear_combination r6288
+      · linear_combination r6289
+      · linear_combination r6290
+      · linear_combination r6291
+      · linear_combination r6292
+      · linear_combination r6293
+      · linear_combination r6294
+      · linear_combination r6295
+      · linear_combination r6296
+      · linear_combination r6297
+      · linear_combination r6298
+      · linear_combination r6299
+      · linear_combination r6300
+      · linear_combination r6301
+      · linear_combination r6302
+      · linear_combination r6303
+      · linear_combination r6304
+      · linear_combination r6305
+      · linear_combination r6306
+      · linear_combination r6307
+      · linear_combination r6308
+      · linear_combination r6309
+      · linear_combination r6310
+      · linear_combination r6311
+      · linear_combination r6312
+      · linear_combination r6313
+      · linear_combination r6314
+      · linear_combination r6315
+      · linear_combination r6316
+      · linear_combination r6317
+      · linear_combination r6318
+      · linear_combination r6319
+      · linear_combination r6320
+      · linear_combination r6321
+      · linear_combination r6322
+      · linear_combination r6323
+      · linear_combination r6324
+      · linear_combination r6325
+      · linear_combination r6326
+      · linear_combination r6327
+      · linear_combination r6328
+      · linear_combination r6329
+      · linear_combination r6330
+      · linear_combination r6331
+      · linear_combination r6332
+      · linear_combination r6333
+      · linear_combination r6334
+      · linear_combination r6335
+      · linear_combination r6336
+      · linear_combination r6337
+      · linear_combination r6338
+      · linear_combination r6339
+      · linear_combination r6340
+      · linear_combination r6341
+      · linear_combination r6342
+      · linear_combination r6343
+      · linear_combination r6344
+      · linear_combination r6345
+      · linear_combination r6346
+      · linear_combination r6347
+      · linear_combination r6348
+      · linear_combination r6349
+      · linear_combination r6350
+      · linear_combination r6351
+      · linear_combination r6352
+      · linear_combination r6353
+      · linear_combination r6354
+      · linear_combination r6355
+      · linear_combination r6356
+      · linear_combination r6357
+      · linear_combination r6358
+      · linear_combination r6359
+      · linear_combination r6360
+      · linear_combination r6361
+      · linear_combination r6362
+      · linear_combination r6363
+      · linear_combination r6364
+      · linear_combination r6365
+      · linear_combination r6366
+      · linear_combination r6367
+      · linear_combination r6368
+      · linear_combination r6369
+      · linear_combination r6370
+      · linear_combination r6371
+      · linear_combination r6372
+      · linear_combination r6373
+      · linear_combination r6374
+      · linear_combination r6375
+      · linear_combination r6376
+      · linear_combination r6377
+      · linear_combination r6378
+      · linear_combination r6379
+      · linear_combination r6380
+      · linear_combination r6381
+      · linear_combination r6382
+      · linear_combination r6383
+      · linear_combination r6384
+      · linear_combination r6385
+      · linear_combination r6386
+      · linear_combination r6387
+      · linear_combination r6388
+      · linear_combination r6389
+      · linear_combination r6390
+      · linear_combination r6391
+      · linear_combination r6392
+      · linear_combination r6393
+      · linear_combination r6394
+      · linear_combination r6395
+      · linear_combination r6396
+      · linear_combination r6397
+      · linear_combination r6398
+      · linear_combination r6399
+    have key' : (seg52BlindBits rho)[i] = rho (50538 + i) := by
       rw [← getElem!_pos (seg52BlindBits rho) i (by simpa using hi)]
       exact key
     exact key' ▸ hgoal

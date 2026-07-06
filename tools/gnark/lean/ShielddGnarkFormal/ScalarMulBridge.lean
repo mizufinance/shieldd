@@ -53,6 +53,27 @@ def toA (p : EdwardsBridge.Point) : Decaf377Assumptions.Point := ⟨p.x, p.y⟩
     toA (EdwardsBridge.negF p) = Decaf377Assumptions.neg (toA p) := by
   simp only [toA, EdwardsBridge.negF, Decaf377Assumptions.neg]
 
+/-- A zero-scalar ladder from identity is the identity: every selector bit of
+`(0 : F)` is false, so the accumulator never advances.  This replaces the
+eliminated constant seed ladder in the net-balance commitment. -/
+theorem scalarMulLEFrom_zero (fuel bitIndex : Nat) (result current : Decaf377Assumptions.Point) :
+    Decaf377Assumptions.scalarMulLEFrom (0 : Decaf377Assumptions.F) fuel bitIndex result current
+      = result := by
+  induction fuel generalizing bitIndex current with
+  | zero => rfl
+  | succ n ih =>
+    unfold Decaf377Assumptions.scalarMulLEFrom
+    have hbit : ((0 : Decaf377Assumptions.F).val).testBit bitIndex = false := by
+      simp
+    simp only [hbit, Decaf377Assumptions.select, if_false]
+    exact ih (bitIndex + 1) (Decaf377Assumptions.double current)
+
+theorem scalarMulLE_zero (nBits : Nat) (base : Decaf377Assumptions.Point) :
+    Decaf377Assumptions.scalarMulLE nBits base (0 : Decaf377Assumptions.F)
+      = Decaf377Assumptions.identity := by
+  unfold Decaf377Assumptions.scalarMulLE
+  exact scalarMulLEFrom_zero nBits 0 Decaf377Assumptions.identity base
+
 def StepRel (bit : F) (acc cur acc' cur' : EdwardsBridge.Point) : Prop :=
   ∃ sum,
     EdwardsBridge.addSpec acc cur sum ∧

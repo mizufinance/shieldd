@@ -29,7 +29,7 @@ theorem seg52Out0_ladder (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
       ⟨rho 45162, rho 45164⟩ ∧
     EdwardsBridge.onCurve (seg52Out0AccState rho 128) := by
   have hbitAt : ∀ i, i < 128 →
-      rho (49386 + i) = Bool.toZMod bits[i]! := by
+      rho (48746 + i) = Bool.toZMod bits[i]! := by
     intro i hi
     rw [← seg52Out0Bits_get rho i hi, hbits]
     rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),

@@ -5,11 +5,11 @@
     "n_in": 2,
     "n_out": 2
   },
-  "nb_constraints": 252613,
+  "nb_constraints": 251973,
   "nb_public_variables": 2,
   "nb_secret_variables": 542,
-  "nb_internal_variables": 225603,
-  "sr1cs_sha256_hex": "b33af399923a281555bc35e62ace41eba85b092d81ba077b313f521cf347f4e4",
+  "nb_internal_variables": 224963,
+  "sr1cs_sha256_hex": "749f4eeb803bbf5f9b08077e8b9ce481c5e63acb052d16aba429a3c4747707e7",
   "segments": [
     {
       "index": 1,
@@ -1972,8 +1972,8 @@
       "gadget_label": "gadget-net-balance-commitment2",
       "bridge_theorem": "Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound",
       "start": 222047,
-      "end": 232441,
-      "constraint_count": 10394
+      "end": 231801,
+      "constraint_count": 9754
     },
     {
       "index": 131,
@@ -1985,8 +1985,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 232441,
-      "end": 232444,
+      "start": 231801,
+      "end": 231804,
       "constraint_count": 3
     },
     {
@@ -1999,8 +1999,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 232444,
-      "end": 233490,
+      "start": 231804,
+      "end": 232850,
       "constraint_count": 1046
     },
     {
@@ -2011,8 +2011,8 @@
         "fields=transfer_statement_fields"
       ],
       "kind": "adapter",
-      "start": 233490,
-      "end": 233490,
+      "start": 232850,
+      "end": 232850,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
@@ -2026,8 +2026,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 233490,
-      "end": 234536,
+      "start": 232850,
+      "end": 233896,
       "constraint_count": 1046
     },
     {
@@ -2040,8 +2040,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 234536,
-      "end": 235582,
+      "start": 233896,
+      "end": 234942,
       "constraint_count": 1046
     },
     {
@@ -2054,8 +2054,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 235582,
-      "end": 236628,
+      "start": 234942,
+      "end": 235988,
       "constraint_count": 1046
     },
     {
@@ -2068,8 +2068,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 236628,
-      "end": 237674,
+      "start": 235988,
+      "end": 237034,
       "constraint_count": 1046
     },
     {
@@ -2082,8 +2082,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 237674,
-      "end": 238720,
+      "start": 237034,
+      "end": 238080,
       "constraint_count": 1046
     },
     {
@@ -2096,8 +2096,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 238720,
-      "end": 239766,
+      "start": 238080,
+      "end": 239126,
       "constraint_count": 1046
     },
     {
@@ -2110,8 +2110,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 239766,
-      "end": 240812,
+      "start": 239126,
+      "end": 240172,
       "constraint_count": 1046
     },
     {
@@ -2124,8 +2124,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 240812,
-      "end": 241858,
+      "start": 240172,
+      "end": 241218,
       "constraint_count": 1046
     },
     {
@@ -2138,8 +2138,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 241858,
-      "end": 242904,
+      "start": 241218,
+      "end": 242264,
       "constraint_count": 1046
     },
     {
@@ -2152,8 +2152,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 242904,
-      "end": 243950,
+      "start": 242264,
+      "end": 243310,
       "constraint_count": 1046
     },
     {
@@ -2166,8 +2166,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 243950,
-      "end": 244996,
+      "start": 243310,
+      "end": 244356,
       "constraint_count": 1046
     },
     {
@@ -2180,8 +2180,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 244996,
-      "end": 246042,
+      "start": 244356,
+      "end": 245402,
       "constraint_count": 1046
     },
     {
@@ -2195,8 +2195,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash7",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
-      "start": 246042,
-      "end": 252612,
+      "start": 245402,
+      "end": 251972,
       "constraint_count": 6570
     },
     {
@@ -2207,17 +2207,17 @@
         "rhs=claimed_statement_hash"
       ],
       "kind": "glue",
-      "start": 252612,
-      "end": 252613,
+      "start": 251972,
+      "end": 251973,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     }
   ],
   "breakdown": {
-    "total_constraints": 252613,
+    "total_constraints": 251973,
     "constraints_by_kind": {
       "adapter": 0,
-      "gadget": 251671,
+      "gadget": 251031,
       "glue": 942,
       "marker": 0
     },

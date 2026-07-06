@@ -209,7 +209,13 @@ func computeTransferNetBalanceCommitment(
 	// amount >= 2^128 unsatisfiable, preventing field-overflow value inflation in
 	// the net-balance sum. Load-bearing for balance soundness; pinned by
 	// TestAmountRangeBoundIs128Bits.
-	sum := ScalarMulLE(api, curve, valueGenerator, 0, 128)
+	// Additive identity seed. Previously ScalarMulLE(valueGenerator, 0, 128),
+	// a full 128-rung ladder over the constant scalar 0 that only ever yields
+	// the identity (every Select folds to the running identity) while still
+	// emitting a redundant doubling chain of valueGenerator. The identity point
+	// is the correct seed directly; the first curve.Add folds the constant
+	// operand. Semantic equality pinned by TestNetBalanceCommitmentGadgetParity.
+	sum := gnarkte.Point{X: 0, Y: 1}
 	for _, amount := range inputAmounts {
 		sum = curve.Add(sum, ScalarMulLE(api, curve, valueGenerator, amount, 128))
 	}

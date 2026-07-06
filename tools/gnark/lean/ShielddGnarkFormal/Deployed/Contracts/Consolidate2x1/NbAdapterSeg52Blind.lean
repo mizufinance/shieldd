@@ -43,7 +43,7 @@ theorem seg52Blind_ladder (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
       Shieldd.GnarkFormal.Deployed.NetBalance.blindGen ∧
     EdwardsBridge.onCurve (seg52BlindAccState rho 251) := by
   have hbitAt : ∀ i, i < 251 →
-      rho (51178 + i) = Bool.toZMod bits[i]! := by
+      rho (50538 + i) = Bool.toZMod bits[i]! := by
     intro i hi
     rw [← seg52BlindBits_get rho i hi, hbits]
     rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),
@@ -56,7 +56,7 @@ theorem seg52Blind_ladder (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
     intro i hi hacc
     by_cases hzero : i = 0
     · subst i
-      have hb0 : rho 51178 = Bool.toZMod bits[0]! := by
+      have hb0 : rho 50538 = Bool.toZMod bits[0]! := by
         simpa using hbitAt 0 (by omega)
       simpa [seg52BlindAccState, hb0] using
         (Shieldd.GnarkFormal.Deployed.NetBalance.seedStepRel bits[0]!)

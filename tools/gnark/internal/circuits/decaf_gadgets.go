@@ -304,7 +304,7 @@ func netBalanceCommitment2MirrorWithWitness(
 		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
 	}
 
-	sum := scalarMulLEMirror(api, valueGenerator, 0, 128)
+	sum := gnarkte.Point{X: 0, Y: 1} // additive identity seed (see production note)
 	input0 := scalarMulLEMirror(api, valueGenerator, input0Amount, 128)
 	input1 := scalarMulLEMirror(api, valueGenerator, input1Amount, 128)
 	output0 := scalarMulLEMirror(api, valueGenerator, output0Amount, 128)
@@ -347,7 +347,7 @@ func netBalanceCommitmentMirrorWithWitness(
 		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
 	}
 
-	sum := scalarMulLEMirror(api, valueGenerator, 0, 128)
+	sum := gnarkte.Point{X: 0, Y: 1} // additive identity seed (see production note)
 	input0 := scalarMulLEMirror(api, valueGenerator, input0Amount, 128)
 	input1 := scalarMulLEMirror(api, valueGenerator, input1Amount, 128)
 	output := scalarMulLEMirror(api, valueGenerator, outputAmount, 128)

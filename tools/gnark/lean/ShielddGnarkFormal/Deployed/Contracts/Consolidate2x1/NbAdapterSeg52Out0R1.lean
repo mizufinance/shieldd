@@ -7,7 +7,7 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 
 theorem seg52Out0_rows11 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5262 rho ∧ Seg52.relationRow5263 rho ∧ Seg52.relationRow5264 rho ∧ Seg52.relationRow5265 rho ∧ Seg52.relationRow5266 rho ∧ Seg52.relationRow5267 rho ∧ Seg52.relationRow5268 rho ∧ Seg52.relationRow5269 rho ∧ Seg52.relationRow5270 rho ∧ Seg52.relationRow5271 rho ∧ Seg52.relationRow5272 rho ∧ Seg52.relationRow5273 rho ∧ Seg52.relationRow5274 rho := by
+    Seg52.relationRow4622 rho ∧ Seg52.relationRow4623 rho ∧ Seg52.relationRow4624 rho ∧ Seg52.relationRow4625 rho ∧ Seg52.relationRow4626 rho ∧ Seg52.relationRow4627 rho ∧ Seg52.relationRow4628 rho ∧ Seg52.relationRow4629 rho ∧ Seg52.relationRow4630 rho ∧ Seg52.relationRow4631 rho ∧ Seg52.relationRow4632 rho ∧ Seg52.relationRow4633 rho ∧ Seg52.relationRow4634 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -22,9 +22,7 @@ theorem seg52Out0_rows11 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, p65, _, _, _, _,
+    _, _, _, _, _, _, _, p57, _, _,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -32,118 +30,118 @@ theorem seg52Out0_rows11 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart65 at p65
+  unfold Seg52.relationPart57 at p57
 
-  rcases p65 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5262, r5263, r5264, r5265, r5266, r5267, r5268, r5269, r5270, r5271, r5272, r5273, r5274, _, _, _, _, _⟩
+  rcases p57 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4622, r4623, r4624, r4625, r4626, r4627, r4628, r4629, r4630, r4631, r4632, r4633, r4634, _, _, _, _, _⟩
 
-  exact ⟨r5262, r5263, r5264, r5265, r5266, r5267, r5268, r5269, r5270, r5271, r5272, r5273, r5274⟩
+  exact ⟨r4622, r4623, r4624, r4625, r4626, r4627, r4628, r4629, r4630, r4631, r4632, r4633, r4634⟩
 
 theorem seg52Out0_rung11 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49397 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48757 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX11 rho, seg52Out0AccY11 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49649, rho 49650⟩ →
+      EdwardsBridge.onCurve ⟨rho 49009, rho 49010⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX11 rho, seg52Out0AccY11 rho⟩ ⟨rho 49649, rho 49650⟩
-        ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ ⟨rho 49662, rho 49663⟩ := by
-  obtain ⟨r5262, r5263, r5264, r5265, r5266, r5267, r5268, r5269, r5270, r5271, r5272, r5273, r5274⟩ := seg52Out0_rows11 rho h
-  unfold Seg52.relationRow5262 at r5262
+        ⟨seg52Out0AccX11 rho, seg52Out0AccY11 rho⟩ ⟨rho 49009, rho 49010⟩
+        ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ ⟨rho 49022, rho 49023⟩ := by
+  obtain ⟨r4622, r4623, r4624, r4625, r4626, r4627, r4628, r4629, r4630, r4631, r4632, r4633, r4634⟩ := seg52Out0_rows11 rho h
+  unfold Seg52.relationRow4622 at r4622
 
-  unfold Seg52.relationRow5263 at r5263
+  unfold Seg52.relationRow4623 at r4623
 
-  unfold Seg52.relationRow5264 at r5264
+  unfold Seg52.relationRow4624 at r4624
 
-  unfold Seg52.relationRow5265 at r5265
+  unfold Seg52.relationRow4625 at r4625
 
-  unfold Seg52.relationRow5266 at r5266
+  unfold Seg52.relationRow4626 at r4626
 
-  unfold Seg52.relationRow5267 at r5267
+  unfold Seg52.relationRow4627 at r4627
 
-  unfold Seg52.relationRow5268 at r5268
+  unfold Seg52.relationRow4628 at r4628
 
-  unfold Seg52.relationRow5269 at r5269
+  unfold Seg52.relationRow4629 at r4629
 
-  unfold Seg52.relationRow5270 at r5270
+  unfold Seg52.relationRow4630 at r4630
 
-  unfold Seg52.relationRow5271 at r5271
+  unfold Seg52.relationRow4631 at r4631
 
-  unfold Seg52.relationRow5272 at r5272
+  unfold Seg52.relationRow4632 at r4632
 
-  unfold Seg52.relationRow5273 at r5273
+  unfold Seg52.relationRow4633 at r4633
 
-  unfold Seg52.relationRow5274 at r5274
+  unfold Seg52.relationRow4634 at r4634
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX12 rho = seg52Out0AccX11 rho + rho 49657 := by
+  have hnextx : seg52Out0AccX12 rho = seg52Out0AccX11 rho + rho 49017 := by
     unfold seg52Out0AccX12 seg52Out0AccX11
     ring
 
-  have hnexty : seg52Out0AccY12 rho = seg52Out0AccY11 rho + rho 49658 := by
+  have hnexty : seg52Out0AccY12 rho = seg52Out0AccY11 rho + rho 49018 := by
     unfold seg52Out0AccY12 seg52Out0AccY11
     ring
 
-  have ha0 : (rho 49649 + rho 49650) * (seg52Out0AccX11 rho + seg52Out0AccY11 rho) = rho 49651 := by
+  have ha0 : (rho 49009 + rho 49010) * (seg52Out0AccX11 rho + seg52Out0AccY11 rho) = rho 49011 := by
     unfold seg52Out0AccX11 seg52Out0AccY11
-    linear_combination r5262
-  have ha1 : rho 49650 * seg52Out0AccX11 rho = rho 49652 := by
+    linear_combination r4622
+  have ha1 : rho 49010 * seg52Out0AccX11 rho = rho 49012 := by
     unfold seg52Out0AccX11
-    linear_combination r5263
-  have ha2 : rho 49649 * seg52Out0AccY11 rho = rho 49653 := by
+    linear_combination r4623
+  have ha2 : rho 49009 * seg52Out0AccY11 rho = rho 49013 := by
     unfold seg52Out0AccY11
-    linear_combination r5264
-  have ha3 : 3021 * rho 49652 * rho 49653 = rho 49654 := by
-    linear_combination r5265
-  have ha4 : rho 49655 * (1 + rho 49654) = rho 49652 + rho 49653 := by
-    linear_combination r5266
-  have ha5 : rho 49656 * (1 - rho 49654) = rho 49651 - rho 49652 - rho 49653 := by
-    linear_combination r5267
+    linear_combination r4624
+  have ha3 : 3021 * rho 49012 * rho 49013 = rho 49014 := by
+    linear_combination r4625
+  have ha4 : rho 49015 * (1 + rho 49014) = rho 49012 + rho 49013 := by
+    linear_combination r4626
+  have ha5 : rho 49016 * (1 - rho 49014) = rho 49011 - rho 49012 - rho 49013 := by
+    linear_combination r4627
   have haddx :
-      rho 49655 * (1 + 3021 * (rho 49650 * seg52Out0AccX11 rho) * (rho 49649 * seg52Out0AccY11 rho)) =
-        rho 49650 * seg52Out0AccX11 rho + rho 49649 * seg52Out0AccY11 rho := by
+      rho 49015 * (1 + 3021 * (rho 49010 * seg52Out0AccX11 rho) * (rho 49009 * seg52Out0AccY11 rho)) =
+        rho 49010 * seg52Out0AccX11 rho + rho 49009 * seg52Out0AccY11 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49656 * (1 - 3021 * (rho 49650 * seg52Out0AccX11 rho) * (rho 49649 * seg52Out0AccY11 rho)) =
-        (-1) * (rho 49650 * seg52Out0AccX11 rho) - rho 49649 * seg52Out0AccY11 rho +
-          (seg52Out0AccY11 rho - seg52Out0AccX11 rho * (-1)) * (rho 49649 + rho 49650) := by
+      rho 49016 * (1 - 3021 * (rho 49010 * seg52Out0AccX11 rho) * (rho 49009 * seg52Out0AccY11 rho)) =
+        (-1) * (rho 49010 * seg52Out0AccX11 rho) - rho 49009 * seg52Out0AccY11 rho +
+          (seg52Out0AccY11 rho - seg52Out0AccX11 rho * (-1)) * (rho 49009 + rho 49010) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49656 * (1 - rho 49654) = rho 49651 - rho 49652 - rho 49653 := ha5
-      _ = (-1) * rho 49652 - rho 49653 + (seg52Out0AccY11 rho - seg52Out0AccX11 rho * (-1)) *
-          (rho 49649 + rho 49650) := by
+      rho 49016 * (1 - rho 49014) = rho 49011 - rho 49012 - rho 49013 := ha5
+      _ = (-1) * rho 49012 - rho 49013 + (seg52Out0AccY11 rho - seg52Out0AccX11 rho * (-1)) *
+          (rho 49009 + rho 49010) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX12 rho = seg52Out0AccX11 rho - Bool.toZMod bit * (seg52Out0AccX11 rho - rho 49655) := by
-    have hd : rho 49657 = Bool.toZMod bit * (rho 49655 - seg52Out0AccX11 rho) := by
+  have hselx : seg52Out0AccX12 rho = seg52Out0AccX11 rho - Bool.toZMod bit * (seg52Out0AccX11 rho - rho 49015) := by
+    have hd : rho 49017 = Bool.toZMod bit * (rho 49015 - seg52Out0AccX11 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX11
-      linear_combination -r5268
+      linear_combination -r4628
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY12 rho = seg52Out0AccY11 rho - Bool.toZMod bit * (seg52Out0AccY11 rho - rho 49656) := by
-    have hd : rho 49658 = Bool.toZMod bit * (rho 49656 - seg52Out0AccY11 rho) := by
+  have hsely : seg52Out0AccY12 rho = seg52Out0AccY11 rho - Bool.toZMod bit * (seg52Out0AccY11 rho - rho 49016) := by
+    have hd : rho 49018 = Bool.toZMod bit * (rho 49016 - seg52Out0AccY11 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY11
-      linear_combination -r5269
+      linear_combination -r4629
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49649 * rho 49650 = rho 49659 := by linear_combination r5270
-  have hd1 : rho 49649 * rho 49649 = rho 49660 := by linear_combination r5271
-  have hd2 : rho 49650 * rho 49650 = rho 49661 := by linear_combination r5272
-  have hd3 : rho 49662 * (rho 49650 * rho 49650 + rho 49649 * rho 49649 * (-1)) =
-      2 * (rho 49649 * rho 49650) := by
+  have hd0 : rho 49009 * rho 49010 = rho 49019 := by linear_combination r4630
+  have hd1 : rho 49009 * rho 49009 = rho 49020 := by linear_combination r4631
+  have hd2 : rho 49010 * rho 49010 = rho 49021 := by linear_combination r4632
+  have hd3 : rho 49022 * (rho 49010 * rho 49010 + rho 49009 * rho 49009 * (-1)) =
+      2 * (rho 49009 * rho 49010) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5273
-  have hd4 : rho 49663 * (2 - (rho 49650 * rho 49650 + rho 49649 * rho 49649 * (-1))) =
-      rho 49650 * rho 49650 - rho 49649 * rho 49649 * (-1) := by
+    linear_combination r4633
+  have hd4 : rho 49023 * (2 - (rho 49010 * rho 49010 + rho 49009 * rho 49009 * (-1))) =
+      rho 49010 * rho 49010 - rho 49009 * rho 49009 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5274
+    linear_combination r4634
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX11 rho, seg52Out0AccY11 rho⟩ ⟨rho 49649, rho 49650⟩
-    ⟨rho 49655, rho 49656⟩ ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ ⟨rho 49662, rho 49663⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX11 rho, seg52Out0AccY11 rho⟩ ⟨rho 49009, rho 49010⟩
+    ⟨rho 49015, rho 49016⟩ ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ ⟨rho 49022, rho 49023⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -154,7 +152,7 @@ theorem seg52Out0_rung11 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows12 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5275 rho ∧ Seg52.relationRow5276 rho ∧ Seg52.relationRow5277 rho ∧ Seg52.relationRow5278 rho ∧ Seg52.relationRow5279 rho ∧ Seg52.relationRow5280 rho ∧ Seg52.relationRow5281 rho ∧ Seg52.relationRow5282 rho ∧ Seg52.relationRow5283 rho ∧ Seg52.relationRow5284 rho ∧ Seg52.relationRow5285 rho ∧ Seg52.relationRow5286 rho ∧ Seg52.relationRow5287 rho := by
+    Seg52.relationRow4635 rho ∧ Seg52.relationRow4636 rho ∧ Seg52.relationRow4637 rho ∧ Seg52.relationRow4638 rho ∧ Seg52.relationRow4639 rho ∧ Seg52.relationRow4640 rho ∧ Seg52.relationRow4641 rho ∧ Seg52.relationRow4642 rho ∧ Seg52.relationRow4643 rho ∧ Seg52.relationRow4644 rho ∧ Seg52.relationRow4645 rho ∧ Seg52.relationRow4646 rho ∧ Seg52.relationRow4647 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -169,9 +167,7 @@ theorem seg52Out0_rows12 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, p65, p66, _, _, _,
+    _, _, _, _, _, _, _, p57, p58, _,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -179,122 +175,122 @@ theorem seg52Out0_rows12 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart65 at p65
+  unfold Seg52.relationPart57 at p57
 
-  rcases p65 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5275, r5276, r5277, r5278, r5279⟩
+  rcases p57 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4635, r4636, r4637, r4638, r4639⟩
 
-  unfold Seg52.relationPart66 at p66
+  unfold Seg52.relationPart58 at p58
 
-  rcases p66 with ⟨r5280, r5281, r5282, r5283, r5284, r5285, r5286, r5287, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p58 with ⟨r4640, r4641, r4642, r4643, r4644, r4645, r4646, r4647, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5275, r5276, r5277, r5278, r5279, r5280, r5281, r5282, r5283, r5284, r5285, r5286, r5287⟩
+  exact ⟨r4635, r4636, r4637, r4638, r4639, r4640, r4641, r4642, r4643, r4644, r4645, r4646, r4647⟩
 
 theorem seg52Out0_rung12 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49398 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48758 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49662, rho 49663⟩ →
+      EdwardsBridge.onCurve ⟨rho 49022, rho 49023⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ ⟨rho 49662, rho 49663⟩
-        ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ ⟨rho 49675, rho 49676⟩ := by
-  obtain ⟨r5275, r5276, r5277, r5278, r5279, r5280, r5281, r5282, r5283, r5284, r5285, r5286, r5287⟩ := seg52Out0_rows12 rho h
-  unfold Seg52.relationRow5275 at r5275
+        ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ ⟨rho 49022, rho 49023⟩
+        ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ ⟨rho 49035, rho 49036⟩ := by
+  obtain ⟨r4635, r4636, r4637, r4638, r4639, r4640, r4641, r4642, r4643, r4644, r4645, r4646, r4647⟩ := seg52Out0_rows12 rho h
+  unfold Seg52.relationRow4635 at r4635
 
-  unfold Seg52.relationRow5276 at r5276
+  unfold Seg52.relationRow4636 at r4636
 
-  unfold Seg52.relationRow5277 at r5277
+  unfold Seg52.relationRow4637 at r4637
 
-  unfold Seg52.relationRow5278 at r5278
+  unfold Seg52.relationRow4638 at r4638
 
-  unfold Seg52.relationRow5279 at r5279
+  unfold Seg52.relationRow4639 at r4639
 
-  unfold Seg52.relationRow5280 at r5280
+  unfold Seg52.relationRow4640 at r4640
 
-  unfold Seg52.relationRow5281 at r5281
+  unfold Seg52.relationRow4641 at r4641
 
-  unfold Seg52.relationRow5282 at r5282
+  unfold Seg52.relationRow4642 at r4642
 
-  unfold Seg52.relationRow5283 at r5283
+  unfold Seg52.relationRow4643 at r4643
 
-  unfold Seg52.relationRow5284 at r5284
+  unfold Seg52.relationRow4644 at r4644
 
-  unfold Seg52.relationRow5285 at r5285
+  unfold Seg52.relationRow4645 at r4645
 
-  unfold Seg52.relationRow5286 at r5286
+  unfold Seg52.relationRow4646 at r4646
 
-  unfold Seg52.relationRow5287 at r5287
+  unfold Seg52.relationRow4647 at r4647
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX13 rho = seg52Out0AccX12 rho + rho 49670 := by
+  have hnextx : seg52Out0AccX13 rho = seg52Out0AccX12 rho + rho 49030 := by
     unfold seg52Out0AccX13 seg52Out0AccX12
     ring
 
-  have hnexty : seg52Out0AccY13 rho = seg52Out0AccY12 rho + rho 49671 := by
+  have hnexty : seg52Out0AccY13 rho = seg52Out0AccY12 rho + rho 49031 := by
     unfold seg52Out0AccY13 seg52Out0AccY12
     ring
 
-  have ha0 : (rho 49662 + rho 49663) * (seg52Out0AccX12 rho + seg52Out0AccY12 rho) = rho 49664 := by
+  have ha0 : (rho 49022 + rho 49023) * (seg52Out0AccX12 rho + seg52Out0AccY12 rho) = rho 49024 := by
     unfold seg52Out0AccX12 seg52Out0AccY12
-    linear_combination r5275
-  have ha1 : rho 49663 * seg52Out0AccX12 rho = rho 49665 := by
+    linear_combination r4635
+  have ha1 : rho 49023 * seg52Out0AccX12 rho = rho 49025 := by
     unfold seg52Out0AccX12
-    linear_combination r5276
-  have ha2 : rho 49662 * seg52Out0AccY12 rho = rho 49666 := by
+    linear_combination r4636
+  have ha2 : rho 49022 * seg52Out0AccY12 rho = rho 49026 := by
     unfold seg52Out0AccY12
-    linear_combination r5277
-  have ha3 : 3021 * rho 49665 * rho 49666 = rho 49667 := by
-    linear_combination r5278
-  have ha4 : rho 49668 * (1 + rho 49667) = rho 49665 + rho 49666 := by
-    linear_combination r5279
-  have ha5 : rho 49669 * (1 - rho 49667) = rho 49664 - rho 49665 - rho 49666 := by
-    linear_combination r5280
+    linear_combination r4637
+  have ha3 : 3021 * rho 49025 * rho 49026 = rho 49027 := by
+    linear_combination r4638
+  have ha4 : rho 49028 * (1 + rho 49027) = rho 49025 + rho 49026 := by
+    linear_combination r4639
+  have ha5 : rho 49029 * (1 - rho 49027) = rho 49024 - rho 49025 - rho 49026 := by
+    linear_combination r4640
   have haddx :
-      rho 49668 * (1 + 3021 * (rho 49663 * seg52Out0AccX12 rho) * (rho 49662 * seg52Out0AccY12 rho)) =
-        rho 49663 * seg52Out0AccX12 rho + rho 49662 * seg52Out0AccY12 rho := by
+      rho 49028 * (1 + 3021 * (rho 49023 * seg52Out0AccX12 rho) * (rho 49022 * seg52Out0AccY12 rho)) =
+        rho 49023 * seg52Out0AccX12 rho + rho 49022 * seg52Out0AccY12 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49669 * (1 - 3021 * (rho 49663 * seg52Out0AccX12 rho) * (rho 49662 * seg52Out0AccY12 rho)) =
-        (-1) * (rho 49663 * seg52Out0AccX12 rho) - rho 49662 * seg52Out0AccY12 rho +
-          (seg52Out0AccY12 rho - seg52Out0AccX12 rho * (-1)) * (rho 49662 + rho 49663) := by
+      rho 49029 * (1 - 3021 * (rho 49023 * seg52Out0AccX12 rho) * (rho 49022 * seg52Out0AccY12 rho)) =
+        (-1) * (rho 49023 * seg52Out0AccX12 rho) - rho 49022 * seg52Out0AccY12 rho +
+          (seg52Out0AccY12 rho - seg52Out0AccX12 rho * (-1)) * (rho 49022 + rho 49023) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49669 * (1 - rho 49667) = rho 49664 - rho 49665 - rho 49666 := ha5
-      _ = (-1) * rho 49665 - rho 49666 + (seg52Out0AccY12 rho - seg52Out0AccX12 rho * (-1)) *
-          (rho 49662 + rho 49663) := by
+      rho 49029 * (1 - rho 49027) = rho 49024 - rho 49025 - rho 49026 := ha5
+      _ = (-1) * rho 49025 - rho 49026 + (seg52Out0AccY12 rho - seg52Out0AccX12 rho * (-1)) *
+          (rho 49022 + rho 49023) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX13 rho = seg52Out0AccX12 rho - Bool.toZMod bit * (seg52Out0AccX12 rho - rho 49668) := by
-    have hd : rho 49670 = Bool.toZMod bit * (rho 49668 - seg52Out0AccX12 rho) := by
+  have hselx : seg52Out0AccX13 rho = seg52Out0AccX12 rho - Bool.toZMod bit * (seg52Out0AccX12 rho - rho 49028) := by
+    have hd : rho 49030 = Bool.toZMod bit * (rho 49028 - seg52Out0AccX12 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX12
-      linear_combination -r5281
+      linear_combination -r4641
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY13 rho = seg52Out0AccY12 rho - Bool.toZMod bit * (seg52Out0AccY12 rho - rho 49669) := by
-    have hd : rho 49671 = Bool.toZMod bit * (rho 49669 - seg52Out0AccY12 rho) := by
+  have hsely : seg52Out0AccY13 rho = seg52Out0AccY12 rho - Bool.toZMod bit * (seg52Out0AccY12 rho - rho 49029) := by
+    have hd : rho 49031 = Bool.toZMod bit * (rho 49029 - seg52Out0AccY12 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY12
-      linear_combination -r5282
+      linear_combination -r4642
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49662 * rho 49663 = rho 49672 := by linear_combination r5283
-  have hd1 : rho 49662 * rho 49662 = rho 49673 := by linear_combination r5284
-  have hd2 : rho 49663 * rho 49663 = rho 49674 := by linear_combination r5285
-  have hd3 : rho 49675 * (rho 49663 * rho 49663 + rho 49662 * rho 49662 * (-1)) =
-      2 * (rho 49662 * rho 49663) := by
+  have hd0 : rho 49022 * rho 49023 = rho 49032 := by linear_combination r4643
+  have hd1 : rho 49022 * rho 49022 = rho 49033 := by linear_combination r4644
+  have hd2 : rho 49023 * rho 49023 = rho 49034 := by linear_combination r4645
+  have hd3 : rho 49035 * (rho 49023 * rho 49023 + rho 49022 * rho 49022 * (-1)) =
+      2 * (rho 49022 * rho 49023) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5286
-  have hd4 : rho 49676 * (2 - (rho 49663 * rho 49663 + rho 49662 * rho 49662 * (-1))) =
-      rho 49663 * rho 49663 - rho 49662 * rho 49662 * (-1) := by
+    linear_combination r4646
+  have hd4 : rho 49036 * (2 - (rho 49023 * rho 49023 + rho 49022 * rho 49022 * (-1))) =
+      rho 49023 * rho 49023 - rho 49022 * rho 49022 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5287
+    linear_combination r4647
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ ⟨rho 49662, rho 49663⟩
-    ⟨rho 49668, rho 49669⟩ ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ ⟨rho 49675, rho 49676⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX12 rho, seg52Out0AccY12 rho⟩ ⟨rho 49022, rho 49023⟩
+    ⟨rho 49028, rho 49029⟩ ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ ⟨rho 49035, rho 49036⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -305,7 +301,7 @@ theorem seg52Out0_rung12 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows13 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5288 rho ∧ Seg52.relationRow5289 rho ∧ Seg52.relationRow5290 rho ∧ Seg52.relationRow5291 rho ∧ Seg52.relationRow5292 rho ∧ Seg52.relationRow5293 rho ∧ Seg52.relationRow5294 rho ∧ Seg52.relationRow5295 rho ∧ Seg52.relationRow5296 rho ∧ Seg52.relationRow5297 rho ∧ Seg52.relationRow5298 rho ∧ Seg52.relationRow5299 rho ∧ Seg52.relationRow5300 rho := by
+    Seg52.relationRow4648 rho ∧ Seg52.relationRow4649 rho ∧ Seg52.relationRow4650 rho ∧ Seg52.relationRow4651 rho ∧ Seg52.relationRow4652 rho ∧ Seg52.relationRow4653 rho ∧ Seg52.relationRow4654 rho ∧ Seg52.relationRow4655 rho ∧ Seg52.relationRow4656 rho ∧ Seg52.relationRow4657 rho ∧ Seg52.relationRow4658 rho ∧ Seg52.relationRow4659 rho ∧ Seg52.relationRow4660 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -320,9 +316,7 @@ theorem seg52Out0_rows13 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, p66, _, _, _,
+    _, _, _, _, _, _, _, _, p58, _,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -330,118 +324,118 @@ theorem seg52Out0_rows13 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart66 at p66
+  unfold Seg52.relationPart58 at p58
 
-  rcases p66 with ⟨_, _, _, _, _, _, _, _, r5288, r5289, r5290, r5291, r5292, r5293, r5294, r5295, r5296, r5297, r5298, r5299, r5300, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p58 with ⟨_, _, _, _, _, _, _, _, r4648, r4649, r4650, r4651, r4652, r4653, r4654, r4655, r4656, r4657, r4658, r4659, r4660, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5288, r5289, r5290, r5291, r5292, r5293, r5294, r5295, r5296, r5297, r5298, r5299, r5300⟩
+  exact ⟨r4648, r4649, r4650, r4651, r4652, r4653, r4654, r4655, r4656, r4657, r4658, r4659, r4660⟩
 
 theorem seg52Out0_rung13 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49399 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48759 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49675, rho 49676⟩ →
+      EdwardsBridge.onCurve ⟨rho 49035, rho 49036⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ ⟨rho 49675, rho 49676⟩
-        ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ ⟨rho 49688, rho 49689⟩ := by
-  obtain ⟨r5288, r5289, r5290, r5291, r5292, r5293, r5294, r5295, r5296, r5297, r5298, r5299, r5300⟩ := seg52Out0_rows13 rho h
-  unfold Seg52.relationRow5288 at r5288
+        ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ ⟨rho 49035, rho 49036⟩
+        ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ ⟨rho 49048, rho 49049⟩ := by
+  obtain ⟨r4648, r4649, r4650, r4651, r4652, r4653, r4654, r4655, r4656, r4657, r4658, r4659, r4660⟩ := seg52Out0_rows13 rho h
+  unfold Seg52.relationRow4648 at r4648
 
-  unfold Seg52.relationRow5289 at r5289
+  unfold Seg52.relationRow4649 at r4649
 
-  unfold Seg52.relationRow5290 at r5290
+  unfold Seg52.relationRow4650 at r4650
 
-  unfold Seg52.relationRow5291 at r5291
+  unfold Seg52.relationRow4651 at r4651
 
-  unfold Seg52.relationRow5292 at r5292
+  unfold Seg52.relationRow4652 at r4652
 
-  unfold Seg52.relationRow5293 at r5293
+  unfold Seg52.relationRow4653 at r4653
 
-  unfold Seg52.relationRow5294 at r5294
+  unfold Seg52.relationRow4654 at r4654
 
-  unfold Seg52.relationRow5295 at r5295
+  unfold Seg52.relationRow4655 at r4655
 
-  unfold Seg52.relationRow5296 at r5296
+  unfold Seg52.relationRow4656 at r4656
 
-  unfold Seg52.relationRow5297 at r5297
+  unfold Seg52.relationRow4657 at r4657
 
-  unfold Seg52.relationRow5298 at r5298
+  unfold Seg52.relationRow4658 at r4658
 
-  unfold Seg52.relationRow5299 at r5299
+  unfold Seg52.relationRow4659 at r4659
 
-  unfold Seg52.relationRow5300 at r5300
+  unfold Seg52.relationRow4660 at r4660
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX14 rho = seg52Out0AccX13 rho + rho 49683 := by
+  have hnextx : seg52Out0AccX14 rho = seg52Out0AccX13 rho + rho 49043 := by
     unfold seg52Out0AccX14 seg52Out0AccX13
     ring
 
-  have hnexty : seg52Out0AccY14 rho = seg52Out0AccY13 rho + rho 49684 := by
+  have hnexty : seg52Out0AccY14 rho = seg52Out0AccY13 rho + rho 49044 := by
     unfold seg52Out0AccY14 seg52Out0AccY13
     ring
 
-  have ha0 : (rho 49675 + rho 49676) * (seg52Out0AccX13 rho + seg52Out0AccY13 rho) = rho 49677 := by
+  have ha0 : (rho 49035 + rho 49036) * (seg52Out0AccX13 rho + seg52Out0AccY13 rho) = rho 49037 := by
     unfold seg52Out0AccX13 seg52Out0AccY13
-    linear_combination r5288
-  have ha1 : rho 49676 * seg52Out0AccX13 rho = rho 49678 := by
+    linear_combination r4648
+  have ha1 : rho 49036 * seg52Out0AccX13 rho = rho 49038 := by
     unfold seg52Out0AccX13
-    linear_combination r5289
-  have ha2 : rho 49675 * seg52Out0AccY13 rho = rho 49679 := by
+    linear_combination r4649
+  have ha2 : rho 49035 * seg52Out0AccY13 rho = rho 49039 := by
     unfold seg52Out0AccY13
-    linear_combination r5290
-  have ha3 : 3021 * rho 49678 * rho 49679 = rho 49680 := by
-    linear_combination r5291
-  have ha4 : rho 49681 * (1 + rho 49680) = rho 49678 + rho 49679 := by
-    linear_combination r5292
-  have ha5 : rho 49682 * (1 - rho 49680) = rho 49677 - rho 49678 - rho 49679 := by
-    linear_combination r5293
+    linear_combination r4650
+  have ha3 : 3021 * rho 49038 * rho 49039 = rho 49040 := by
+    linear_combination r4651
+  have ha4 : rho 49041 * (1 + rho 49040) = rho 49038 + rho 49039 := by
+    linear_combination r4652
+  have ha5 : rho 49042 * (1 - rho 49040) = rho 49037 - rho 49038 - rho 49039 := by
+    linear_combination r4653
   have haddx :
-      rho 49681 * (1 + 3021 * (rho 49676 * seg52Out0AccX13 rho) * (rho 49675 * seg52Out0AccY13 rho)) =
-        rho 49676 * seg52Out0AccX13 rho + rho 49675 * seg52Out0AccY13 rho := by
+      rho 49041 * (1 + 3021 * (rho 49036 * seg52Out0AccX13 rho) * (rho 49035 * seg52Out0AccY13 rho)) =
+        rho 49036 * seg52Out0AccX13 rho + rho 49035 * seg52Out0AccY13 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49682 * (1 - 3021 * (rho 49676 * seg52Out0AccX13 rho) * (rho 49675 * seg52Out0AccY13 rho)) =
-        (-1) * (rho 49676 * seg52Out0AccX13 rho) - rho 49675 * seg52Out0AccY13 rho +
-          (seg52Out0AccY13 rho - seg52Out0AccX13 rho * (-1)) * (rho 49675 + rho 49676) := by
+      rho 49042 * (1 - 3021 * (rho 49036 * seg52Out0AccX13 rho) * (rho 49035 * seg52Out0AccY13 rho)) =
+        (-1) * (rho 49036 * seg52Out0AccX13 rho) - rho 49035 * seg52Out0AccY13 rho +
+          (seg52Out0AccY13 rho - seg52Out0AccX13 rho * (-1)) * (rho 49035 + rho 49036) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49682 * (1 - rho 49680) = rho 49677 - rho 49678 - rho 49679 := ha5
-      _ = (-1) * rho 49678 - rho 49679 + (seg52Out0AccY13 rho - seg52Out0AccX13 rho * (-1)) *
-          (rho 49675 + rho 49676) := by
+      rho 49042 * (1 - rho 49040) = rho 49037 - rho 49038 - rho 49039 := ha5
+      _ = (-1) * rho 49038 - rho 49039 + (seg52Out0AccY13 rho - seg52Out0AccX13 rho * (-1)) *
+          (rho 49035 + rho 49036) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX14 rho = seg52Out0AccX13 rho - Bool.toZMod bit * (seg52Out0AccX13 rho - rho 49681) := by
-    have hd : rho 49683 = Bool.toZMod bit * (rho 49681 - seg52Out0AccX13 rho) := by
+  have hselx : seg52Out0AccX14 rho = seg52Out0AccX13 rho - Bool.toZMod bit * (seg52Out0AccX13 rho - rho 49041) := by
+    have hd : rho 49043 = Bool.toZMod bit * (rho 49041 - seg52Out0AccX13 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX13
-      linear_combination -r5294
+      linear_combination -r4654
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY14 rho = seg52Out0AccY13 rho - Bool.toZMod bit * (seg52Out0AccY13 rho - rho 49682) := by
-    have hd : rho 49684 = Bool.toZMod bit * (rho 49682 - seg52Out0AccY13 rho) := by
+  have hsely : seg52Out0AccY14 rho = seg52Out0AccY13 rho - Bool.toZMod bit * (seg52Out0AccY13 rho - rho 49042) := by
+    have hd : rho 49044 = Bool.toZMod bit * (rho 49042 - seg52Out0AccY13 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY13
-      linear_combination -r5295
+      linear_combination -r4655
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49675 * rho 49676 = rho 49685 := by linear_combination r5296
-  have hd1 : rho 49675 * rho 49675 = rho 49686 := by linear_combination r5297
-  have hd2 : rho 49676 * rho 49676 = rho 49687 := by linear_combination r5298
-  have hd3 : rho 49688 * (rho 49676 * rho 49676 + rho 49675 * rho 49675 * (-1)) =
-      2 * (rho 49675 * rho 49676) := by
+  have hd0 : rho 49035 * rho 49036 = rho 49045 := by linear_combination r4656
+  have hd1 : rho 49035 * rho 49035 = rho 49046 := by linear_combination r4657
+  have hd2 : rho 49036 * rho 49036 = rho 49047 := by linear_combination r4658
+  have hd3 : rho 49048 * (rho 49036 * rho 49036 + rho 49035 * rho 49035 * (-1)) =
+      2 * (rho 49035 * rho 49036) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5299
-  have hd4 : rho 49689 * (2 - (rho 49676 * rho 49676 + rho 49675 * rho 49675 * (-1))) =
-      rho 49676 * rho 49676 - rho 49675 * rho 49675 * (-1) := by
+    linear_combination r4659
+  have hd4 : rho 49049 * (2 - (rho 49036 * rho 49036 + rho 49035 * rho 49035 * (-1))) =
+      rho 49036 * rho 49036 - rho 49035 * rho 49035 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5300
+    linear_combination r4660
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ ⟨rho 49675, rho 49676⟩
-    ⟨rho 49681, rho 49682⟩ ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ ⟨rho 49688, rho 49689⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX13 rho, seg52Out0AccY13 rho⟩ ⟨rho 49035, rho 49036⟩
+    ⟨rho 49041, rho 49042⟩ ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ ⟨rho 49048, rho 49049⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -452,7 +446,7 @@ theorem seg52Out0_rung13 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows14 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5301 rho ∧ Seg52.relationRow5302 rho ∧ Seg52.relationRow5303 rho ∧ Seg52.relationRow5304 rho ∧ Seg52.relationRow5305 rho ∧ Seg52.relationRow5306 rho ∧ Seg52.relationRow5307 rho ∧ Seg52.relationRow5308 rho ∧ Seg52.relationRow5309 rho ∧ Seg52.relationRow5310 rho ∧ Seg52.relationRow5311 rho ∧ Seg52.relationRow5312 rho ∧ Seg52.relationRow5313 rho := by
+    Seg52.relationRow4661 rho ∧ Seg52.relationRow4662 rho ∧ Seg52.relationRow4663 rho ∧ Seg52.relationRow4664 rho ∧ Seg52.relationRow4665 rho ∧ Seg52.relationRow4666 rho ∧ Seg52.relationRow4667 rho ∧ Seg52.relationRow4668 rho ∧ Seg52.relationRow4669 rho ∧ Seg52.relationRow4670 rho ∧ Seg52.relationRow4671 rho ∧ Seg52.relationRow4672 rho ∧ Seg52.relationRow4673 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -467,9 +461,7 @@ theorem seg52Out0_rows14 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, p66, _, _, _,
+    _, _, _, _, _, _, _, _, p58, _,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -477,118 +469,118 @@ theorem seg52Out0_rows14 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart66 at p66
+  unfold Seg52.relationPart58 at p58
 
-  rcases p66 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5301, r5302, r5303, r5304, r5305, r5306, r5307, r5308, r5309, r5310, r5311, r5312, r5313, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p58 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4661, r4662, r4663, r4664, r4665, r4666, r4667, r4668, r4669, r4670, r4671, r4672, r4673, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5301, r5302, r5303, r5304, r5305, r5306, r5307, r5308, r5309, r5310, r5311, r5312, r5313⟩
+  exact ⟨r4661, r4662, r4663, r4664, r4665, r4666, r4667, r4668, r4669, r4670, r4671, r4672, r4673⟩
 
 theorem seg52Out0_rung14 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49400 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48760 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49688, rho 49689⟩ →
+      EdwardsBridge.onCurve ⟨rho 49048, rho 49049⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ ⟨rho 49688, rho 49689⟩
-        ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ ⟨rho 49701, rho 49702⟩ := by
-  obtain ⟨r5301, r5302, r5303, r5304, r5305, r5306, r5307, r5308, r5309, r5310, r5311, r5312, r5313⟩ := seg52Out0_rows14 rho h
-  unfold Seg52.relationRow5301 at r5301
+        ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ ⟨rho 49048, rho 49049⟩
+        ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ ⟨rho 49061, rho 49062⟩ := by
+  obtain ⟨r4661, r4662, r4663, r4664, r4665, r4666, r4667, r4668, r4669, r4670, r4671, r4672, r4673⟩ := seg52Out0_rows14 rho h
+  unfold Seg52.relationRow4661 at r4661
 
-  unfold Seg52.relationRow5302 at r5302
+  unfold Seg52.relationRow4662 at r4662
 
-  unfold Seg52.relationRow5303 at r5303
+  unfold Seg52.relationRow4663 at r4663
 
-  unfold Seg52.relationRow5304 at r5304
+  unfold Seg52.relationRow4664 at r4664
 
-  unfold Seg52.relationRow5305 at r5305
+  unfold Seg52.relationRow4665 at r4665
 
-  unfold Seg52.relationRow5306 at r5306
+  unfold Seg52.relationRow4666 at r4666
 
-  unfold Seg52.relationRow5307 at r5307
+  unfold Seg52.relationRow4667 at r4667
 
-  unfold Seg52.relationRow5308 at r5308
+  unfold Seg52.relationRow4668 at r4668
 
-  unfold Seg52.relationRow5309 at r5309
+  unfold Seg52.relationRow4669 at r4669
 
-  unfold Seg52.relationRow5310 at r5310
+  unfold Seg52.relationRow4670 at r4670
 
-  unfold Seg52.relationRow5311 at r5311
+  unfold Seg52.relationRow4671 at r4671
 
-  unfold Seg52.relationRow5312 at r5312
+  unfold Seg52.relationRow4672 at r4672
 
-  unfold Seg52.relationRow5313 at r5313
+  unfold Seg52.relationRow4673 at r4673
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX15 rho = seg52Out0AccX14 rho + rho 49696 := by
+  have hnextx : seg52Out0AccX15 rho = seg52Out0AccX14 rho + rho 49056 := by
     unfold seg52Out0AccX15 seg52Out0AccX14
     ring
 
-  have hnexty : seg52Out0AccY15 rho = seg52Out0AccY14 rho + rho 49697 := by
+  have hnexty : seg52Out0AccY15 rho = seg52Out0AccY14 rho + rho 49057 := by
     unfold seg52Out0AccY15 seg52Out0AccY14
     ring
 
-  have ha0 : (rho 49688 + rho 49689) * (seg52Out0AccX14 rho + seg52Out0AccY14 rho) = rho 49690 := by
+  have ha0 : (rho 49048 + rho 49049) * (seg52Out0AccX14 rho + seg52Out0AccY14 rho) = rho 49050 := by
     unfold seg52Out0AccX14 seg52Out0AccY14
-    linear_combination r5301
-  have ha1 : rho 49689 * seg52Out0AccX14 rho = rho 49691 := by
+    linear_combination r4661
+  have ha1 : rho 49049 * seg52Out0AccX14 rho = rho 49051 := by
     unfold seg52Out0AccX14
-    linear_combination r5302
-  have ha2 : rho 49688 * seg52Out0AccY14 rho = rho 49692 := by
+    linear_combination r4662
+  have ha2 : rho 49048 * seg52Out0AccY14 rho = rho 49052 := by
     unfold seg52Out0AccY14
-    linear_combination r5303
-  have ha3 : 3021 * rho 49691 * rho 49692 = rho 49693 := by
-    linear_combination r5304
-  have ha4 : rho 49694 * (1 + rho 49693) = rho 49691 + rho 49692 := by
-    linear_combination r5305
-  have ha5 : rho 49695 * (1 - rho 49693) = rho 49690 - rho 49691 - rho 49692 := by
-    linear_combination r5306
+    linear_combination r4663
+  have ha3 : 3021 * rho 49051 * rho 49052 = rho 49053 := by
+    linear_combination r4664
+  have ha4 : rho 49054 * (1 + rho 49053) = rho 49051 + rho 49052 := by
+    linear_combination r4665
+  have ha5 : rho 49055 * (1 - rho 49053) = rho 49050 - rho 49051 - rho 49052 := by
+    linear_combination r4666
   have haddx :
-      rho 49694 * (1 + 3021 * (rho 49689 * seg52Out0AccX14 rho) * (rho 49688 * seg52Out0AccY14 rho)) =
-        rho 49689 * seg52Out0AccX14 rho + rho 49688 * seg52Out0AccY14 rho := by
+      rho 49054 * (1 + 3021 * (rho 49049 * seg52Out0AccX14 rho) * (rho 49048 * seg52Out0AccY14 rho)) =
+        rho 49049 * seg52Out0AccX14 rho + rho 49048 * seg52Out0AccY14 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49695 * (1 - 3021 * (rho 49689 * seg52Out0AccX14 rho) * (rho 49688 * seg52Out0AccY14 rho)) =
-        (-1) * (rho 49689 * seg52Out0AccX14 rho) - rho 49688 * seg52Out0AccY14 rho +
-          (seg52Out0AccY14 rho - seg52Out0AccX14 rho * (-1)) * (rho 49688 + rho 49689) := by
+      rho 49055 * (1 - 3021 * (rho 49049 * seg52Out0AccX14 rho) * (rho 49048 * seg52Out0AccY14 rho)) =
+        (-1) * (rho 49049 * seg52Out0AccX14 rho) - rho 49048 * seg52Out0AccY14 rho +
+          (seg52Out0AccY14 rho - seg52Out0AccX14 rho * (-1)) * (rho 49048 + rho 49049) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49695 * (1 - rho 49693) = rho 49690 - rho 49691 - rho 49692 := ha5
-      _ = (-1) * rho 49691 - rho 49692 + (seg52Out0AccY14 rho - seg52Out0AccX14 rho * (-1)) *
-          (rho 49688 + rho 49689) := by
+      rho 49055 * (1 - rho 49053) = rho 49050 - rho 49051 - rho 49052 := ha5
+      _ = (-1) * rho 49051 - rho 49052 + (seg52Out0AccY14 rho - seg52Out0AccX14 rho * (-1)) *
+          (rho 49048 + rho 49049) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX15 rho = seg52Out0AccX14 rho - Bool.toZMod bit * (seg52Out0AccX14 rho - rho 49694) := by
-    have hd : rho 49696 = Bool.toZMod bit * (rho 49694 - seg52Out0AccX14 rho) := by
+  have hselx : seg52Out0AccX15 rho = seg52Out0AccX14 rho - Bool.toZMod bit * (seg52Out0AccX14 rho - rho 49054) := by
+    have hd : rho 49056 = Bool.toZMod bit * (rho 49054 - seg52Out0AccX14 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX14
-      linear_combination -r5307
+      linear_combination -r4667
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY15 rho = seg52Out0AccY14 rho - Bool.toZMod bit * (seg52Out0AccY14 rho - rho 49695) := by
-    have hd : rho 49697 = Bool.toZMod bit * (rho 49695 - seg52Out0AccY14 rho) := by
+  have hsely : seg52Out0AccY15 rho = seg52Out0AccY14 rho - Bool.toZMod bit * (seg52Out0AccY14 rho - rho 49055) := by
+    have hd : rho 49057 = Bool.toZMod bit * (rho 49055 - seg52Out0AccY14 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY14
-      linear_combination -r5308
+      linear_combination -r4668
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49688 * rho 49689 = rho 49698 := by linear_combination r5309
-  have hd1 : rho 49688 * rho 49688 = rho 49699 := by linear_combination r5310
-  have hd2 : rho 49689 * rho 49689 = rho 49700 := by linear_combination r5311
-  have hd3 : rho 49701 * (rho 49689 * rho 49689 + rho 49688 * rho 49688 * (-1)) =
-      2 * (rho 49688 * rho 49689) := by
+  have hd0 : rho 49048 * rho 49049 = rho 49058 := by linear_combination r4669
+  have hd1 : rho 49048 * rho 49048 = rho 49059 := by linear_combination r4670
+  have hd2 : rho 49049 * rho 49049 = rho 49060 := by linear_combination r4671
+  have hd3 : rho 49061 * (rho 49049 * rho 49049 + rho 49048 * rho 49048 * (-1)) =
+      2 * (rho 49048 * rho 49049) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5312
-  have hd4 : rho 49702 * (2 - (rho 49689 * rho 49689 + rho 49688 * rho 49688 * (-1))) =
-      rho 49689 * rho 49689 - rho 49688 * rho 49688 * (-1) := by
+    linear_combination r4672
+  have hd4 : rho 49062 * (2 - (rho 49049 * rho 49049 + rho 49048 * rho 49048 * (-1))) =
+      rho 49049 * rho 49049 - rho 49048 * rho 49048 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5313
+    linear_combination r4673
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ ⟨rho 49688, rho 49689⟩
-    ⟨rho 49694, rho 49695⟩ ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ ⟨rho 49701, rho 49702⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX14 rho, seg52Out0AccY14 rho⟩ ⟨rho 49048, rho 49049⟩
+    ⟨rho 49054, rho 49055⟩ ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ ⟨rho 49061, rho 49062⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -599,7 +591,7 @@ theorem seg52Out0_rung14 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows15 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5314 rho ∧ Seg52.relationRow5315 rho ∧ Seg52.relationRow5316 rho ∧ Seg52.relationRow5317 rho ∧ Seg52.relationRow5318 rho ∧ Seg52.relationRow5319 rho ∧ Seg52.relationRow5320 rho ∧ Seg52.relationRow5321 rho ∧ Seg52.relationRow5322 rho ∧ Seg52.relationRow5323 rho ∧ Seg52.relationRow5324 rho ∧ Seg52.relationRow5325 rho ∧ Seg52.relationRow5326 rho := by
+    Seg52.relationRow4674 rho ∧ Seg52.relationRow4675 rho ∧ Seg52.relationRow4676 rho ∧ Seg52.relationRow4677 rho ∧ Seg52.relationRow4678 rho ∧ Seg52.relationRow4679 rho ∧ Seg52.relationRow4680 rho ∧ Seg52.relationRow4681 rho ∧ Seg52.relationRow4682 rho ∧ Seg52.relationRow4683 rho ∧ Seg52.relationRow4684 rho ∧ Seg52.relationRow4685 rho ∧ Seg52.relationRow4686 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -614,9 +606,7 @@ theorem seg52Out0_rows15 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, p66, _, _, _,
+    _, _, _, _, _, _, _, _, p58, _,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -624,122 +614,122 @@ theorem seg52Out0_rows15 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart66 at p66
+  unfold Seg52.relationPart58 at p58
 
-  rcases p66 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5314, r5315, r5316, r5317, r5318, r5319, r5320, r5321, r5322, r5323, r5324, r5325, r5326, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p58 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4674, r4675, r4676, r4677, r4678, r4679, r4680, r4681, r4682, r4683, r4684, r4685, r4686, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5314, r5315, r5316, r5317, r5318, r5319, r5320, r5321, r5322, r5323, r5324, r5325, r5326⟩
+  exact ⟨r4674, r4675, r4676, r4677, r4678, r4679, r4680, r4681, r4682, r4683, r4684, r4685, r4686⟩
 
 theorem seg52Out0_rung15 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49401 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48761 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49701, rho 49702⟩ →
+      EdwardsBridge.onCurve ⟨rho 49061, rho 49062⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ ⟨rho 49701, rho 49702⟩
-        ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ ⟨rho 49714, rho 49715⟩ := by
-  obtain ⟨r5314, r5315, r5316, r5317, r5318, r5319, r5320, r5321, r5322, r5323, r5324, r5325, r5326⟩ := seg52Out0_rows15 rho h
-  unfold Seg52.relationRow5314 at r5314
+        ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ ⟨rho 49061, rho 49062⟩
+        ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ ⟨rho 49074, rho 49075⟩ := by
+  obtain ⟨r4674, r4675, r4676, r4677, r4678, r4679, r4680, r4681, r4682, r4683, r4684, r4685, r4686⟩ := seg52Out0_rows15 rho h
+  unfold Seg52.relationRow4674 at r4674
 
-  unfold Seg52.relationRow5315 at r5315
+  unfold Seg52.relationRow4675 at r4675
 
-  unfold Seg52.relationRow5316 at r5316
+  unfold Seg52.relationRow4676 at r4676
 
-  unfold Seg52.relationRow5317 at r5317
+  unfold Seg52.relationRow4677 at r4677
 
-  unfold Seg52.relationRow5318 at r5318
+  unfold Seg52.relationRow4678 at r4678
 
-  unfold Seg52.relationRow5319 at r5319
+  unfold Seg52.relationRow4679 at r4679
 
-  unfold Seg52.relationRow5320 at r5320
+  unfold Seg52.relationRow4680 at r4680
 
-  unfold Seg52.relationRow5321 at r5321
+  unfold Seg52.relationRow4681 at r4681
 
-  unfold Seg52.relationRow5322 at r5322
+  unfold Seg52.relationRow4682 at r4682
 
-  unfold Seg52.relationRow5323 at r5323
+  unfold Seg52.relationRow4683 at r4683
 
-  unfold Seg52.relationRow5324 at r5324
+  unfold Seg52.relationRow4684 at r4684
 
-  unfold Seg52.relationRow5325 at r5325
+  unfold Seg52.relationRow4685 at r4685
 
-  unfold Seg52.relationRow5326 at r5326
+  unfold Seg52.relationRow4686 at r4686
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX16 rho = seg52Out0AccX15 rho + rho 49709 := by
+  have hnextx : seg52Out0AccX16 rho = seg52Out0AccX15 rho + rho 49069 := by
     unfold seg52Out0AccX16 seg52Out0AccX15
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 15, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 14, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 13, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 12, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 11, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 10, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 9, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 8, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 7, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 6, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 5, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 4, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 3, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 2, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 1, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 0, Shieldd.GnarkFormal.StrideRun.sumAux_zero rho 49514 13]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 15, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 14, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 13, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 12, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 11, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 10, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 9, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 8, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 7, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 6, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 5, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 4, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 3, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 2, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 1, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 0, Shieldd.GnarkFormal.StrideRun.sumAux_zero rho 48874 13]
 
     ring
 
-  have hnexty : seg52Out0AccY16 rho = seg52Out0AccY15 rho + rho 49710 := by
+  have hnexty : seg52Out0AccY16 rho = seg52Out0AccY15 rho + rho 49070 := by
     unfold seg52Out0AccY16 seg52Out0AccY15
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 15, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 14, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 13, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 12, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 11, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 10, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 9, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 8, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 7, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 6, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 5, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 4, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 3, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 2, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 1, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 0, Shieldd.GnarkFormal.StrideRun.sumAux_zero rho 49515 13]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 15, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 14, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 13, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 12, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 11, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 10, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 9, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 8, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 7, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 6, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 5, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 4, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 3, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 2, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 1, Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 0, Shieldd.GnarkFormal.StrideRun.sumAux_zero rho 48875 13]
 
     ring
 
-  have ha0 : (rho 49701 + rho 49702) * (seg52Out0AccX15 rho + seg52Out0AccY15 rho) = rho 49703 := by
+  have ha0 : (rho 49061 + rho 49062) * (seg52Out0AccX15 rho + seg52Out0AccY15 rho) = rho 49063 := by
     unfold seg52Out0AccX15 seg52Out0AccY15
-    linear_combination r5314
-  have ha1 : rho 49702 * seg52Out0AccX15 rho = rho 49704 := by
+    linear_combination r4674
+  have ha1 : rho 49062 * seg52Out0AccX15 rho = rho 49064 := by
     unfold seg52Out0AccX15
-    linear_combination r5315
-  have ha2 : rho 49701 * seg52Out0AccY15 rho = rho 49705 := by
+    linear_combination r4675
+  have ha2 : rho 49061 * seg52Out0AccY15 rho = rho 49065 := by
     unfold seg52Out0AccY15
-    linear_combination r5316
-  have ha3 : 3021 * rho 49704 * rho 49705 = rho 49706 := by
-    linear_combination r5317
-  have ha4 : rho 49707 * (1 + rho 49706) = rho 49704 + rho 49705 := by
-    linear_combination r5318
-  have ha5 : rho 49708 * (1 - rho 49706) = rho 49703 - rho 49704 - rho 49705 := by
-    linear_combination r5319
+    linear_combination r4676
+  have ha3 : 3021 * rho 49064 * rho 49065 = rho 49066 := by
+    linear_combination r4677
+  have ha4 : rho 49067 * (1 + rho 49066) = rho 49064 + rho 49065 := by
+    linear_combination r4678
+  have ha5 : rho 49068 * (1 - rho 49066) = rho 49063 - rho 49064 - rho 49065 := by
+    linear_combination r4679
   have haddx :
-      rho 49707 * (1 + 3021 * (rho 49702 * seg52Out0AccX15 rho) * (rho 49701 * seg52Out0AccY15 rho)) =
-        rho 49702 * seg52Out0AccX15 rho + rho 49701 * seg52Out0AccY15 rho := by
+      rho 49067 * (1 + 3021 * (rho 49062 * seg52Out0AccX15 rho) * (rho 49061 * seg52Out0AccY15 rho)) =
+        rho 49062 * seg52Out0AccX15 rho + rho 49061 * seg52Out0AccY15 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49708 * (1 - 3021 * (rho 49702 * seg52Out0AccX15 rho) * (rho 49701 * seg52Out0AccY15 rho)) =
-        (-1) * (rho 49702 * seg52Out0AccX15 rho) - rho 49701 * seg52Out0AccY15 rho +
-          (seg52Out0AccY15 rho - seg52Out0AccX15 rho * (-1)) * (rho 49701 + rho 49702) := by
+      rho 49068 * (1 - 3021 * (rho 49062 * seg52Out0AccX15 rho) * (rho 49061 * seg52Out0AccY15 rho)) =
+        (-1) * (rho 49062 * seg52Out0AccX15 rho) - rho 49061 * seg52Out0AccY15 rho +
+          (seg52Out0AccY15 rho - seg52Out0AccX15 rho * (-1)) * (rho 49061 + rho 49062) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49708 * (1 - rho 49706) = rho 49703 - rho 49704 - rho 49705 := ha5
-      _ = (-1) * rho 49704 - rho 49705 + (seg52Out0AccY15 rho - seg52Out0AccX15 rho * (-1)) *
-          (rho 49701 + rho 49702) := by
+      rho 49068 * (1 - rho 49066) = rho 49063 - rho 49064 - rho 49065 := ha5
+      _ = (-1) * rho 49064 - rho 49065 + (seg52Out0AccY15 rho - seg52Out0AccX15 rho * (-1)) *
+          (rho 49061 + rho 49062) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX16 rho = seg52Out0AccX15 rho - Bool.toZMod bit * (seg52Out0AccX15 rho - rho 49707) := by
-    have hd : rho 49709 = Bool.toZMod bit * (rho 49707 - seg52Out0AccX15 rho) := by
+  have hselx : seg52Out0AccX16 rho = seg52Out0AccX15 rho - Bool.toZMod bit * (seg52Out0AccX15 rho - rho 49067) := by
+    have hd : rho 49069 = Bool.toZMod bit * (rho 49067 - seg52Out0AccX15 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX15
-      linear_combination -r5320
+      linear_combination -r4680
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY16 rho = seg52Out0AccY15 rho - Bool.toZMod bit * (seg52Out0AccY15 rho - rho 49708) := by
-    have hd : rho 49710 = Bool.toZMod bit * (rho 49708 - seg52Out0AccY15 rho) := by
+  have hsely : seg52Out0AccY16 rho = seg52Out0AccY15 rho - Bool.toZMod bit * (seg52Out0AccY15 rho - rho 49068) := by
+    have hd : rho 49070 = Bool.toZMod bit * (rho 49068 - seg52Out0AccY15 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY15
-      linear_combination -r5321
+      linear_combination -r4681
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49701 * rho 49702 = rho 49711 := by linear_combination r5322
-  have hd1 : rho 49701 * rho 49701 = rho 49712 := by linear_combination r5323
-  have hd2 : rho 49702 * rho 49702 = rho 49713 := by linear_combination r5324
-  have hd3 : rho 49714 * (rho 49702 * rho 49702 + rho 49701 * rho 49701 * (-1)) =
-      2 * (rho 49701 * rho 49702) := by
+  have hd0 : rho 49061 * rho 49062 = rho 49071 := by linear_combination r4682
+  have hd1 : rho 49061 * rho 49061 = rho 49072 := by linear_combination r4683
+  have hd2 : rho 49062 * rho 49062 = rho 49073 := by linear_combination r4684
+  have hd3 : rho 49074 * (rho 49062 * rho 49062 + rho 49061 * rho 49061 * (-1)) =
+      2 * (rho 49061 * rho 49062) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5325
-  have hd4 : rho 49715 * (2 - (rho 49702 * rho 49702 + rho 49701 * rho 49701 * (-1))) =
-      rho 49702 * rho 49702 - rho 49701 * rho 49701 * (-1) := by
+    linear_combination r4685
+  have hd4 : rho 49075 * (2 - (rho 49062 * rho 49062 + rho 49061 * rho 49061 * (-1))) =
+      rho 49062 * rho 49062 - rho 49061 * rho 49061 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5326
+    linear_combination r4686
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ ⟨rho 49701, rho 49702⟩
-    ⟨rho 49707, rho 49708⟩ ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ ⟨rho 49714, rho 49715⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX15 rho, seg52Out0AccY15 rho⟩ ⟨rho 49061, rho 49062⟩
+    ⟨rho 49067, rho 49068⟩ ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ ⟨rho 49074, rho 49075⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -750,7 +740,7 @@ theorem seg52Out0_rung15 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows16 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5327 rho ∧ Seg52.relationRow5328 rho ∧ Seg52.relationRow5329 rho ∧ Seg52.relationRow5330 rho ∧ Seg52.relationRow5331 rho ∧ Seg52.relationRow5332 rho ∧ Seg52.relationRow5333 rho ∧ Seg52.relationRow5334 rho ∧ Seg52.relationRow5335 rho ∧ Seg52.relationRow5336 rho ∧ Seg52.relationRow5337 rho ∧ Seg52.relationRow5338 rho ∧ Seg52.relationRow5339 rho := by
+    Seg52.relationRow4687 rho ∧ Seg52.relationRow4688 rho ∧ Seg52.relationRow4689 rho ∧ Seg52.relationRow4690 rho ∧ Seg52.relationRow4691 rho ∧ Seg52.relationRow4692 rho ∧ Seg52.relationRow4693 rho ∧ Seg52.relationRow4694 rho ∧ Seg52.relationRow4695 rho ∧ Seg52.relationRow4696 rho ∧ Seg52.relationRow4697 rho ∧ Seg52.relationRow4698 rho ∧ Seg52.relationRow4699 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -765,9 +755,7 @@ theorem seg52Out0_rows16 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, p66, _, _, _,
+    _, _, _, _, _, _, _, _, p58, _,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -775,132 +763,132 @@ theorem seg52Out0_rows16 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart66 at p66
+  unfold Seg52.relationPart58 at p58
 
-  rcases p66 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5327, r5328, r5329, r5330, r5331, r5332, r5333, r5334, r5335, r5336, r5337, r5338, r5339, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p58 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4687, r4688, r4689, r4690, r4691, r4692, r4693, r4694, r4695, r4696, r4697, r4698, r4699, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5327, r5328, r5329, r5330, r5331, r5332, r5333, r5334, r5335, r5336, r5337, r5338, r5339⟩
+  exact ⟨r4687, r4688, r4689, r4690, r4691, r4692, r4693, r4694, r4695, r4696, r4697, r4698, r4699⟩
 
 theorem seg52Out0_rung16 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49402 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48762 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49714, rho 49715⟩ →
+      EdwardsBridge.onCurve ⟨rho 49074, rho 49075⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ ⟨rho 49714, rho 49715⟩
-        ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ ⟨rho 49727, rho 49728⟩ := by
-  obtain ⟨r5327, r5328, r5329, r5330, r5331, r5332, r5333, r5334, r5335, r5336, r5337, r5338, r5339⟩ := seg52Out0_rows16 rho h
-  unfold Seg52.relationRow5327 at r5327
+        ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ ⟨rho 49074, rho 49075⟩
+        ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ ⟨rho 49087, rho 49088⟩ := by
+  obtain ⟨r4687, r4688, r4689, r4690, r4691, r4692, r4693, r4694, r4695, r4696, r4697, r4698, r4699⟩ := seg52Out0_rows16 rho h
+  unfold Seg52.relationRow4687 at r4687
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5327
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4687
 
-  unfold Seg52.relationRow5328 at r5328
+  unfold Seg52.relationRow4688 at r4688
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5328
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4688
 
-  unfold Seg52.relationRow5329 at r5329
+  unfold Seg52.relationRow4689 at r4689
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5329
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4689
 
-  unfold Seg52.relationRow5330 at r5330
+  unfold Seg52.relationRow4690 at r4690
 
-  unfold Seg52.relationRow5331 at r5331
+  unfold Seg52.relationRow4691 at r4691
 
-  unfold Seg52.relationRow5332 at r5332
+  unfold Seg52.relationRow4692 at r4692
 
-  unfold Seg52.relationRow5333 at r5333
+  unfold Seg52.relationRow4693 at r4693
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5333
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4693
 
-  unfold Seg52.relationRow5334 at r5334
+  unfold Seg52.relationRow4694 at r4694
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5334
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4694
 
-  unfold Seg52.relationRow5335 at r5335
+  unfold Seg52.relationRow4695 at r4695
 
-  unfold Seg52.relationRow5336 at r5336
+  unfold Seg52.relationRow4696 at r4696
 
-  unfold Seg52.relationRow5337 at r5337
+  unfold Seg52.relationRow4697 at r4697
 
-  unfold Seg52.relationRow5338 at r5338
+  unfold Seg52.relationRow4698 at r4698
 
-  unfold Seg52.relationRow5339 at r5339
+  unfold Seg52.relationRow4699 at r4699
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX17 rho = seg52Out0AccX16 rho + rho 49722 := by
+  have hnextx : seg52Out0AccX17 rho = seg52Out0AccX16 rho + rho 49082 := by
     unfold seg52Out0AccX17 seg52Out0AccX16
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 16]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 16]
 
     ring
 
-  have hnexty : seg52Out0AccY17 rho = seg52Out0AccY16 rho + rho 49723 := by
+  have hnexty : seg52Out0AccY17 rho = seg52Out0AccY16 rho + rho 49083 := by
     unfold seg52Out0AccY17 seg52Out0AccY16
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 16]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 16]
 
     ring
 
-  have ha0 : (rho 49714 + rho 49715) * (seg52Out0AccX16 rho + seg52Out0AccY16 rho) = rho 49716 := by
+  have ha0 : (rho 49074 + rho 49075) * (seg52Out0AccX16 rho + seg52Out0AccY16 rho) = rho 49076 := by
     unfold seg52Out0AccX16 seg52Out0AccY16
-    linear_combination r5327
-  have ha1 : rho 49715 * seg52Out0AccX16 rho = rho 49717 := by
+    linear_combination r4687
+  have ha1 : rho 49075 * seg52Out0AccX16 rho = rho 49077 := by
     unfold seg52Out0AccX16
-    linear_combination r5328
-  have ha2 : rho 49714 * seg52Out0AccY16 rho = rho 49718 := by
+    linear_combination r4688
+  have ha2 : rho 49074 * seg52Out0AccY16 rho = rho 49078 := by
     unfold seg52Out0AccY16
-    linear_combination r5329
-  have ha3 : 3021 * rho 49717 * rho 49718 = rho 49719 := by
-    linear_combination r5330
-  have ha4 : rho 49720 * (1 + rho 49719) = rho 49717 + rho 49718 := by
-    linear_combination r5331
-  have ha5 : rho 49721 * (1 - rho 49719) = rho 49716 - rho 49717 - rho 49718 := by
-    linear_combination r5332
+    linear_combination r4689
+  have ha3 : 3021 * rho 49077 * rho 49078 = rho 49079 := by
+    linear_combination r4690
+  have ha4 : rho 49080 * (1 + rho 49079) = rho 49077 + rho 49078 := by
+    linear_combination r4691
+  have ha5 : rho 49081 * (1 - rho 49079) = rho 49076 - rho 49077 - rho 49078 := by
+    linear_combination r4692
   have haddx :
-      rho 49720 * (1 + 3021 * (rho 49715 * seg52Out0AccX16 rho) * (rho 49714 * seg52Out0AccY16 rho)) =
-        rho 49715 * seg52Out0AccX16 rho + rho 49714 * seg52Out0AccY16 rho := by
+      rho 49080 * (1 + 3021 * (rho 49075 * seg52Out0AccX16 rho) * (rho 49074 * seg52Out0AccY16 rho)) =
+        rho 49075 * seg52Out0AccX16 rho + rho 49074 * seg52Out0AccY16 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49721 * (1 - 3021 * (rho 49715 * seg52Out0AccX16 rho) * (rho 49714 * seg52Out0AccY16 rho)) =
-        (-1) * (rho 49715 * seg52Out0AccX16 rho) - rho 49714 * seg52Out0AccY16 rho +
-          (seg52Out0AccY16 rho - seg52Out0AccX16 rho * (-1)) * (rho 49714 + rho 49715) := by
+      rho 49081 * (1 - 3021 * (rho 49075 * seg52Out0AccX16 rho) * (rho 49074 * seg52Out0AccY16 rho)) =
+        (-1) * (rho 49075 * seg52Out0AccX16 rho) - rho 49074 * seg52Out0AccY16 rho +
+          (seg52Out0AccY16 rho - seg52Out0AccX16 rho * (-1)) * (rho 49074 + rho 49075) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49721 * (1 - rho 49719) = rho 49716 - rho 49717 - rho 49718 := ha5
-      _ = (-1) * rho 49717 - rho 49718 + (seg52Out0AccY16 rho - seg52Out0AccX16 rho * (-1)) *
-          (rho 49714 + rho 49715) := by
+      rho 49081 * (1 - rho 49079) = rho 49076 - rho 49077 - rho 49078 := ha5
+      _ = (-1) * rho 49077 - rho 49078 + (seg52Out0AccY16 rho - seg52Out0AccX16 rho * (-1)) *
+          (rho 49074 + rho 49075) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX17 rho = seg52Out0AccX16 rho - Bool.toZMod bit * (seg52Out0AccX16 rho - rho 49720) := by
-    have hd : rho 49722 = Bool.toZMod bit * (rho 49720 - seg52Out0AccX16 rho) := by
+  have hselx : seg52Out0AccX17 rho = seg52Out0AccX16 rho - Bool.toZMod bit * (seg52Out0AccX16 rho - rho 49080) := by
+    have hd : rho 49082 = Bool.toZMod bit * (rho 49080 - seg52Out0AccX16 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX16
-      linear_combination -r5333
+      linear_combination -r4693
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY17 rho = seg52Out0AccY16 rho - Bool.toZMod bit * (seg52Out0AccY16 rho - rho 49721) := by
-    have hd : rho 49723 = Bool.toZMod bit * (rho 49721 - seg52Out0AccY16 rho) := by
+  have hsely : seg52Out0AccY17 rho = seg52Out0AccY16 rho - Bool.toZMod bit * (seg52Out0AccY16 rho - rho 49081) := by
+    have hd : rho 49083 = Bool.toZMod bit * (rho 49081 - seg52Out0AccY16 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY16
-      linear_combination -r5334
+      linear_combination -r4694
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49714 * rho 49715 = rho 49724 := by linear_combination r5335
-  have hd1 : rho 49714 * rho 49714 = rho 49725 := by linear_combination r5336
-  have hd2 : rho 49715 * rho 49715 = rho 49726 := by linear_combination r5337
-  have hd3 : rho 49727 * (rho 49715 * rho 49715 + rho 49714 * rho 49714 * (-1)) =
-      2 * (rho 49714 * rho 49715) := by
+  have hd0 : rho 49074 * rho 49075 = rho 49084 := by linear_combination r4695
+  have hd1 : rho 49074 * rho 49074 = rho 49085 := by linear_combination r4696
+  have hd2 : rho 49075 * rho 49075 = rho 49086 := by linear_combination r4697
+  have hd3 : rho 49087 * (rho 49075 * rho 49075 + rho 49074 * rho 49074 * (-1)) =
+      2 * (rho 49074 * rho 49075) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5338
-  have hd4 : rho 49728 * (2 - (rho 49715 * rho 49715 + rho 49714 * rho 49714 * (-1))) =
-      rho 49715 * rho 49715 - rho 49714 * rho 49714 * (-1) := by
+    linear_combination r4698
+  have hd4 : rho 49088 * (2 - (rho 49075 * rho 49075 + rho 49074 * rho 49074 * (-1))) =
+      rho 49075 * rho 49075 - rho 49074 * rho 49074 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5339
+    linear_combination r4699
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ ⟨rho 49714, rho 49715⟩
-    ⟨rho 49720, rho 49721⟩ ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ ⟨rho 49727, rho 49728⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX16 rho, seg52Out0AccY16 rho⟩ ⟨rho 49074, rho 49075⟩
+    ⟨rho 49080, rho 49081⟩ ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ ⟨rho 49087, rho 49088⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -911,7 +899,7 @@ theorem seg52Out0_rung16 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows17 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5340 rho ∧ Seg52.relationRow5341 rho ∧ Seg52.relationRow5342 rho ∧ Seg52.relationRow5343 rho ∧ Seg52.relationRow5344 rho ∧ Seg52.relationRow5345 rho ∧ Seg52.relationRow5346 rho ∧ Seg52.relationRow5347 rho ∧ Seg52.relationRow5348 rho ∧ Seg52.relationRow5349 rho ∧ Seg52.relationRow5350 rho ∧ Seg52.relationRow5351 rho ∧ Seg52.relationRow5352 rho := by
+    Seg52.relationRow4700 rho ∧ Seg52.relationRow4701 rho ∧ Seg52.relationRow4702 rho ∧ Seg52.relationRow4703 rho ∧ Seg52.relationRow4704 rho ∧ Seg52.relationRow4705 rho ∧ Seg52.relationRow4706 rho ∧ Seg52.relationRow4707 rho ∧ Seg52.relationRow4708 rho ∧ Seg52.relationRow4709 rho ∧ Seg52.relationRow4710 rho ∧ Seg52.relationRow4711 rho ∧ Seg52.relationRow4712 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -926,9 +914,7 @@ theorem seg52Out0_rows17 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, p66, _, _, _,
+    _, _, _, _, _, _, _, _, p58, _,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -936,132 +922,132 @@ theorem seg52Out0_rows17 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart66 at p66
+  unfold Seg52.relationPart58 at p58
 
-  rcases p66 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5340, r5341, r5342, r5343, r5344, r5345, r5346, r5347, r5348, r5349, r5350, r5351, r5352, _, _, _, _, _, _, _⟩
+  rcases p58 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4700, r4701, r4702, r4703, r4704, r4705, r4706, r4707, r4708, r4709, r4710, r4711, r4712, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5340, r5341, r5342, r5343, r5344, r5345, r5346, r5347, r5348, r5349, r5350, r5351, r5352⟩
+  exact ⟨r4700, r4701, r4702, r4703, r4704, r4705, r4706, r4707, r4708, r4709, r4710, r4711, r4712⟩
 
 theorem seg52Out0_rung17 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49403 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48763 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49727, rho 49728⟩ →
+      EdwardsBridge.onCurve ⟨rho 49087, rho 49088⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ ⟨rho 49727, rho 49728⟩
-        ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ ⟨rho 49740, rho 49741⟩ := by
-  obtain ⟨r5340, r5341, r5342, r5343, r5344, r5345, r5346, r5347, r5348, r5349, r5350, r5351, r5352⟩ := seg52Out0_rows17 rho h
-  unfold Seg52.relationRow5340 at r5340
+        ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ ⟨rho 49087, rho 49088⟩
+        ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ ⟨rho 49100, rho 49101⟩ := by
+  obtain ⟨r4700, r4701, r4702, r4703, r4704, r4705, r4706, r4707, r4708, r4709, r4710, r4711, r4712⟩ := seg52Out0_rows17 rho h
+  unfold Seg52.relationRow4700 at r4700
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5340
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4700
 
-  unfold Seg52.relationRow5341 at r5341
+  unfold Seg52.relationRow4701 at r4701
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5341
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4701
 
-  unfold Seg52.relationRow5342 at r5342
+  unfold Seg52.relationRow4702 at r4702
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5342
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4702
 
-  unfold Seg52.relationRow5343 at r5343
+  unfold Seg52.relationRow4703 at r4703
 
-  unfold Seg52.relationRow5344 at r5344
+  unfold Seg52.relationRow4704 at r4704
 
-  unfold Seg52.relationRow5345 at r5345
+  unfold Seg52.relationRow4705 at r4705
 
-  unfold Seg52.relationRow5346 at r5346
+  unfold Seg52.relationRow4706 at r4706
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5346
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4706
 
-  unfold Seg52.relationRow5347 at r5347
+  unfold Seg52.relationRow4707 at r4707
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5347
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4707
 
-  unfold Seg52.relationRow5348 at r5348
+  unfold Seg52.relationRow4708 at r4708
 
-  unfold Seg52.relationRow5349 at r5349
+  unfold Seg52.relationRow4709 at r4709
 
-  unfold Seg52.relationRow5350 at r5350
+  unfold Seg52.relationRow4710 at r4710
 
-  unfold Seg52.relationRow5351 at r5351
+  unfold Seg52.relationRow4711 at r4711
 
-  unfold Seg52.relationRow5352 at r5352
+  unfold Seg52.relationRow4712 at r4712
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX18 rho = seg52Out0AccX17 rho + rho 49735 := by
+  have hnextx : seg52Out0AccX18 rho = seg52Out0AccX17 rho + rho 49095 := by
     unfold seg52Out0AccX18 seg52Out0AccX17
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 17]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 17]
 
     ring
 
-  have hnexty : seg52Out0AccY18 rho = seg52Out0AccY17 rho + rho 49736 := by
+  have hnexty : seg52Out0AccY18 rho = seg52Out0AccY17 rho + rho 49096 := by
     unfold seg52Out0AccY18 seg52Out0AccY17
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 17]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 17]
 
     ring
 
-  have ha0 : (rho 49727 + rho 49728) * (seg52Out0AccX17 rho + seg52Out0AccY17 rho) = rho 49729 := by
+  have ha0 : (rho 49087 + rho 49088) * (seg52Out0AccX17 rho + seg52Out0AccY17 rho) = rho 49089 := by
     unfold seg52Out0AccX17 seg52Out0AccY17
-    linear_combination r5340
-  have ha1 : rho 49728 * seg52Out0AccX17 rho = rho 49730 := by
+    linear_combination r4700
+  have ha1 : rho 49088 * seg52Out0AccX17 rho = rho 49090 := by
     unfold seg52Out0AccX17
-    linear_combination r5341
-  have ha2 : rho 49727 * seg52Out0AccY17 rho = rho 49731 := by
+    linear_combination r4701
+  have ha2 : rho 49087 * seg52Out0AccY17 rho = rho 49091 := by
     unfold seg52Out0AccY17
-    linear_combination r5342
-  have ha3 : 3021 * rho 49730 * rho 49731 = rho 49732 := by
-    linear_combination r5343
-  have ha4 : rho 49733 * (1 + rho 49732) = rho 49730 + rho 49731 := by
-    linear_combination r5344
-  have ha5 : rho 49734 * (1 - rho 49732) = rho 49729 - rho 49730 - rho 49731 := by
-    linear_combination r5345
+    linear_combination r4702
+  have ha3 : 3021 * rho 49090 * rho 49091 = rho 49092 := by
+    linear_combination r4703
+  have ha4 : rho 49093 * (1 + rho 49092) = rho 49090 + rho 49091 := by
+    linear_combination r4704
+  have ha5 : rho 49094 * (1 - rho 49092) = rho 49089 - rho 49090 - rho 49091 := by
+    linear_combination r4705
   have haddx :
-      rho 49733 * (1 + 3021 * (rho 49728 * seg52Out0AccX17 rho) * (rho 49727 * seg52Out0AccY17 rho)) =
-        rho 49728 * seg52Out0AccX17 rho + rho 49727 * seg52Out0AccY17 rho := by
+      rho 49093 * (1 + 3021 * (rho 49088 * seg52Out0AccX17 rho) * (rho 49087 * seg52Out0AccY17 rho)) =
+        rho 49088 * seg52Out0AccX17 rho + rho 49087 * seg52Out0AccY17 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49734 * (1 - 3021 * (rho 49728 * seg52Out0AccX17 rho) * (rho 49727 * seg52Out0AccY17 rho)) =
-        (-1) * (rho 49728 * seg52Out0AccX17 rho) - rho 49727 * seg52Out0AccY17 rho +
-          (seg52Out0AccY17 rho - seg52Out0AccX17 rho * (-1)) * (rho 49727 + rho 49728) := by
+      rho 49094 * (1 - 3021 * (rho 49088 * seg52Out0AccX17 rho) * (rho 49087 * seg52Out0AccY17 rho)) =
+        (-1) * (rho 49088 * seg52Out0AccX17 rho) - rho 49087 * seg52Out0AccY17 rho +
+          (seg52Out0AccY17 rho - seg52Out0AccX17 rho * (-1)) * (rho 49087 + rho 49088) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49734 * (1 - rho 49732) = rho 49729 - rho 49730 - rho 49731 := ha5
-      _ = (-1) * rho 49730 - rho 49731 + (seg52Out0AccY17 rho - seg52Out0AccX17 rho * (-1)) *
-          (rho 49727 + rho 49728) := by
+      rho 49094 * (1 - rho 49092) = rho 49089 - rho 49090 - rho 49091 := ha5
+      _ = (-1) * rho 49090 - rho 49091 + (seg52Out0AccY17 rho - seg52Out0AccX17 rho * (-1)) *
+          (rho 49087 + rho 49088) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX18 rho = seg52Out0AccX17 rho - Bool.toZMod bit * (seg52Out0AccX17 rho - rho 49733) := by
-    have hd : rho 49735 = Bool.toZMod bit * (rho 49733 - seg52Out0AccX17 rho) := by
+  have hselx : seg52Out0AccX18 rho = seg52Out0AccX17 rho - Bool.toZMod bit * (seg52Out0AccX17 rho - rho 49093) := by
+    have hd : rho 49095 = Bool.toZMod bit * (rho 49093 - seg52Out0AccX17 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX17
-      linear_combination -r5346
+      linear_combination -r4706
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY18 rho = seg52Out0AccY17 rho - Bool.toZMod bit * (seg52Out0AccY17 rho - rho 49734) := by
-    have hd : rho 49736 = Bool.toZMod bit * (rho 49734 - seg52Out0AccY17 rho) := by
+  have hsely : seg52Out0AccY18 rho = seg52Out0AccY17 rho - Bool.toZMod bit * (seg52Out0AccY17 rho - rho 49094) := by
+    have hd : rho 49096 = Bool.toZMod bit * (rho 49094 - seg52Out0AccY17 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY17
-      linear_combination -r5347
+      linear_combination -r4707
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49727 * rho 49728 = rho 49737 := by linear_combination r5348
-  have hd1 : rho 49727 * rho 49727 = rho 49738 := by linear_combination r5349
-  have hd2 : rho 49728 * rho 49728 = rho 49739 := by linear_combination r5350
-  have hd3 : rho 49740 * (rho 49728 * rho 49728 + rho 49727 * rho 49727 * (-1)) =
-      2 * (rho 49727 * rho 49728) := by
+  have hd0 : rho 49087 * rho 49088 = rho 49097 := by linear_combination r4708
+  have hd1 : rho 49087 * rho 49087 = rho 49098 := by linear_combination r4709
+  have hd2 : rho 49088 * rho 49088 = rho 49099 := by linear_combination r4710
+  have hd3 : rho 49100 * (rho 49088 * rho 49088 + rho 49087 * rho 49087 * (-1)) =
+      2 * (rho 49087 * rho 49088) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5351
-  have hd4 : rho 49741 * (2 - (rho 49728 * rho 49728 + rho 49727 * rho 49727 * (-1))) =
-      rho 49728 * rho 49728 - rho 49727 * rho 49727 * (-1) := by
+    linear_combination r4711
+  have hd4 : rho 49101 * (2 - (rho 49088 * rho 49088 + rho 49087 * rho 49087 * (-1))) =
+      rho 49088 * rho 49088 - rho 49087 * rho 49087 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5352
+    linear_combination r4712
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ ⟨rho 49727, rho 49728⟩
-    ⟨rho 49733, rho 49734⟩ ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ ⟨rho 49740, rho 49741⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX17 rho, seg52Out0AccY17 rho⟩ ⟨rho 49087, rho 49088⟩
+    ⟨rho 49093, rho 49094⟩ ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ ⟨rho 49100, rho 49101⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -1072,7 +1058,7 @@ theorem seg52Out0_rung17 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows18 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5353 rho ∧ Seg52.relationRow5354 rho ∧ Seg52.relationRow5355 rho ∧ Seg52.relationRow5356 rho ∧ Seg52.relationRow5357 rho ∧ Seg52.relationRow5358 rho ∧ Seg52.relationRow5359 rho ∧ Seg52.relationRow5360 rho ∧ Seg52.relationRow5361 rho ∧ Seg52.relationRow5362 rho ∧ Seg52.relationRow5363 rho ∧ Seg52.relationRow5364 rho ∧ Seg52.relationRow5365 rho := by
+    Seg52.relationRow4713 rho ∧ Seg52.relationRow4714 rho ∧ Seg52.relationRow4715 rho ∧ Seg52.relationRow4716 rho ∧ Seg52.relationRow4717 rho ∧ Seg52.relationRow4718 rho ∧ Seg52.relationRow4719 rho ∧ Seg52.relationRow4720 rho ∧ Seg52.relationRow4721 rho ∧ Seg52.relationRow4722 rho ∧ Seg52.relationRow4723 rho ∧ Seg52.relationRow4724 rho ∧ Seg52.relationRow4725 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -1087,9 +1073,7 @@ theorem seg52Out0_rows18 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, p66, p67, _, _,
+    _, _, _, _, _, _, _, _, p58, p59,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -1097,136 +1081,136 @@ theorem seg52Out0_rows18 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart66 at p66
+  unfold Seg52.relationPart58 at p58
 
-  rcases p66 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5353, r5354, r5355, r5356, r5357, r5358, r5359⟩
+  rcases p58 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4713, r4714, r4715, r4716, r4717, r4718, r4719⟩
 
-  unfold Seg52.relationPart67 at p67
+  unfold Seg52.relationPart59 at p59
 
-  rcases p67 with ⟨r5360, r5361, r5362, r5363, r5364, r5365, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p59 with ⟨r4720, r4721, r4722, r4723, r4724, r4725, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5353, r5354, r5355, r5356, r5357, r5358, r5359, r5360, r5361, r5362, r5363, r5364, r5365⟩
+  exact ⟨r4713, r4714, r4715, r4716, r4717, r4718, r4719, r4720, r4721, r4722, r4723, r4724, r4725⟩
 
 theorem seg52Out0_rung18 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49404 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48764 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49740, rho 49741⟩ →
+      EdwardsBridge.onCurve ⟨rho 49100, rho 49101⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ ⟨rho 49740, rho 49741⟩
-        ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ ⟨rho 49753, rho 49754⟩ := by
-  obtain ⟨r5353, r5354, r5355, r5356, r5357, r5358, r5359, r5360, r5361, r5362, r5363, r5364, r5365⟩ := seg52Out0_rows18 rho h
-  unfold Seg52.relationRow5353 at r5353
+        ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ ⟨rho 49100, rho 49101⟩
+        ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ ⟨rho 49113, rho 49114⟩ := by
+  obtain ⟨r4713, r4714, r4715, r4716, r4717, r4718, r4719, r4720, r4721, r4722, r4723, r4724, r4725⟩ := seg52Out0_rows18 rho h
+  unfold Seg52.relationRow4713 at r4713
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5353
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4713
 
-  unfold Seg52.relationRow5354 at r5354
+  unfold Seg52.relationRow4714 at r4714
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5354
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4714
 
-  unfold Seg52.relationRow5355 at r5355
+  unfold Seg52.relationRow4715 at r4715
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5355
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4715
 
-  unfold Seg52.relationRow5356 at r5356
+  unfold Seg52.relationRow4716 at r4716
 
-  unfold Seg52.relationRow5357 at r5357
+  unfold Seg52.relationRow4717 at r4717
 
-  unfold Seg52.relationRow5358 at r5358
+  unfold Seg52.relationRow4718 at r4718
 
-  unfold Seg52.relationRow5359 at r5359
+  unfold Seg52.relationRow4719 at r4719
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5359
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4719
 
-  unfold Seg52.relationRow5360 at r5360
+  unfold Seg52.relationRow4720 at r4720
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5360
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4720
 
-  unfold Seg52.relationRow5361 at r5361
+  unfold Seg52.relationRow4721 at r4721
 
-  unfold Seg52.relationRow5362 at r5362
+  unfold Seg52.relationRow4722 at r4722
 
-  unfold Seg52.relationRow5363 at r5363
+  unfold Seg52.relationRow4723 at r4723
 
-  unfold Seg52.relationRow5364 at r5364
+  unfold Seg52.relationRow4724 at r4724
 
-  unfold Seg52.relationRow5365 at r5365
+  unfold Seg52.relationRow4725 at r4725
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX19 rho = seg52Out0AccX18 rho + rho 49748 := by
+  have hnextx : seg52Out0AccX19 rho = seg52Out0AccX18 rho + rho 49108 := by
     unfold seg52Out0AccX19 seg52Out0AccX18
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 18]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 18]
 
     ring
 
-  have hnexty : seg52Out0AccY19 rho = seg52Out0AccY18 rho + rho 49749 := by
+  have hnexty : seg52Out0AccY19 rho = seg52Out0AccY18 rho + rho 49109 := by
     unfold seg52Out0AccY19 seg52Out0AccY18
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 18]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 18]
 
     ring
 
-  have ha0 : (rho 49740 + rho 49741) * (seg52Out0AccX18 rho + seg52Out0AccY18 rho) = rho 49742 := by
+  have ha0 : (rho 49100 + rho 49101) * (seg52Out0AccX18 rho + seg52Out0AccY18 rho) = rho 49102 := by
     unfold seg52Out0AccX18 seg52Out0AccY18
-    linear_combination r5353
-  have ha1 : rho 49741 * seg52Out0AccX18 rho = rho 49743 := by
+    linear_combination r4713
+  have ha1 : rho 49101 * seg52Out0AccX18 rho = rho 49103 := by
     unfold seg52Out0AccX18
-    linear_combination r5354
-  have ha2 : rho 49740 * seg52Out0AccY18 rho = rho 49744 := by
+    linear_combination r4714
+  have ha2 : rho 49100 * seg52Out0AccY18 rho = rho 49104 := by
     unfold seg52Out0AccY18
-    linear_combination r5355
-  have ha3 : 3021 * rho 49743 * rho 49744 = rho 49745 := by
-    linear_combination r5356
-  have ha4 : rho 49746 * (1 + rho 49745) = rho 49743 + rho 49744 := by
-    linear_combination r5357
-  have ha5 : rho 49747 * (1 - rho 49745) = rho 49742 - rho 49743 - rho 49744 := by
-    linear_combination r5358
+    linear_combination r4715
+  have ha3 : 3021 * rho 49103 * rho 49104 = rho 49105 := by
+    linear_combination r4716
+  have ha4 : rho 49106 * (1 + rho 49105) = rho 49103 + rho 49104 := by
+    linear_combination r4717
+  have ha5 : rho 49107 * (1 - rho 49105) = rho 49102 - rho 49103 - rho 49104 := by
+    linear_combination r4718
   have haddx :
-      rho 49746 * (1 + 3021 * (rho 49741 * seg52Out0AccX18 rho) * (rho 49740 * seg52Out0AccY18 rho)) =
-        rho 49741 * seg52Out0AccX18 rho + rho 49740 * seg52Out0AccY18 rho := by
+      rho 49106 * (1 + 3021 * (rho 49101 * seg52Out0AccX18 rho) * (rho 49100 * seg52Out0AccY18 rho)) =
+        rho 49101 * seg52Out0AccX18 rho + rho 49100 * seg52Out0AccY18 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49747 * (1 - 3021 * (rho 49741 * seg52Out0AccX18 rho) * (rho 49740 * seg52Out0AccY18 rho)) =
-        (-1) * (rho 49741 * seg52Out0AccX18 rho) - rho 49740 * seg52Out0AccY18 rho +
-          (seg52Out0AccY18 rho - seg52Out0AccX18 rho * (-1)) * (rho 49740 + rho 49741) := by
+      rho 49107 * (1 - 3021 * (rho 49101 * seg52Out0AccX18 rho) * (rho 49100 * seg52Out0AccY18 rho)) =
+        (-1) * (rho 49101 * seg52Out0AccX18 rho) - rho 49100 * seg52Out0AccY18 rho +
+          (seg52Out0AccY18 rho - seg52Out0AccX18 rho * (-1)) * (rho 49100 + rho 49101) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49747 * (1 - rho 49745) = rho 49742 - rho 49743 - rho 49744 := ha5
-      _ = (-1) * rho 49743 - rho 49744 + (seg52Out0AccY18 rho - seg52Out0AccX18 rho * (-1)) *
-          (rho 49740 + rho 49741) := by
+      rho 49107 * (1 - rho 49105) = rho 49102 - rho 49103 - rho 49104 := ha5
+      _ = (-1) * rho 49103 - rho 49104 + (seg52Out0AccY18 rho - seg52Out0AccX18 rho * (-1)) *
+          (rho 49100 + rho 49101) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX19 rho = seg52Out0AccX18 rho - Bool.toZMod bit * (seg52Out0AccX18 rho - rho 49746) := by
-    have hd : rho 49748 = Bool.toZMod bit * (rho 49746 - seg52Out0AccX18 rho) := by
+  have hselx : seg52Out0AccX19 rho = seg52Out0AccX18 rho - Bool.toZMod bit * (seg52Out0AccX18 rho - rho 49106) := by
+    have hd : rho 49108 = Bool.toZMod bit * (rho 49106 - seg52Out0AccX18 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX18
-      linear_combination -r5359
+      linear_combination -r4719
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY19 rho = seg52Out0AccY18 rho - Bool.toZMod bit * (seg52Out0AccY18 rho - rho 49747) := by
-    have hd : rho 49749 = Bool.toZMod bit * (rho 49747 - seg52Out0AccY18 rho) := by
+  have hsely : seg52Out0AccY19 rho = seg52Out0AccY18 rho - Bool.toZMod bit * (seg52Out0AccY18 rho - rho 49107) := by
+    have hd : rho 49109 = Bool.toZMod bit * (rho 49107 - seg52Out0AccY18 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY18
-      linear_combination -r5360
+      linear_combination -r4720
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49740 * rho 49741 = rho 49750 := by linear_combination r5361
-  have hd1 : rho 49740 * rho 49740 = rho 49751 := by linear_combination r5362
-  have hd2 : rho 49741 * rho 49741 = rho 49752 := by linear_combination r5363
-  have hd3 : rho 49753 * (rho 49741 * rho 49741 + rho 49740 * rho 49740 * (-1)) =
-      2 * (rho 49740 * rho 49741) := by
+  have hd0 : rho 49100 * rho 49101 = rho 49110 := by linear_combination r4721
+  have hd1 : rho 49100 * rho 49100 = rho 49111 := by linear_combination r4722
+  have hd2 : rho 49101 * rho 49101 = rho 49112 := by linear_combination r4723
+  have hd3 : rho 49113 * (rho 49101 * rho 49101 + rho 49100 * rho 49100 * (-1)) =
+      2 * (rho 49100 * rho 49101) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5364
-  have hd4 : rho 49754 * (2 - (rho 49741 * rho 49741 + rho 49740 * rho 49740 * (-1))) =
-      rho 49741 * rho 49741 - rho 49740 * rho 49740 * (-1) := by
+    linear_combination r4724
+  have hd4 : rho 49114 * (2 - (rho 49101 * rho 49101 + rho 49100 * rho 49100 * (-1))) =
+      rho 49101 * rho 49101 - rho 49100 * rho 49100 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5365
+    linear_combination r4725
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ ⟨rho 49740, rho 49741⟩
-    ⟨rho 49746, rho 49747⟩ ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ ⟨rho 49753, rho 49754⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX18 rho, seg52Out0AccY18 rho⟩ ⟨rho 49100, rho 49101⟩
+    ⟨rho 49106, rho 49107⟩ ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ ⟨rho 49113, rho 49114⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -1237,7 +1221,7 @@ theorem seg52Out0_rung18 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows19 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5366 rho ∧ Seg52.relationRow5367 rho ∧ Seg52.relationRow5368 rho ∧ Seg52.relationRow5369 rho ∧ Seg52.relationRow5370 rho ∧ Seg52.relationRow5371 rho ∧ Seg52.relationRow5372 rho ∧ Seg52.relationRow5373 rho ∧ Seg52.relationRow5374 rho ∧ Seg52.relationRow5375 rho ∧ Seg52.relationRow5376 rho ∧ Seg52.relationRow5377 rho ∧ Seg52.relationRow5378 rho := by
+    Seg52.relationRow4726 rho ∧ Seg52.relationRow4727 rho ∧ Seg52.relationRow4728 rho ∧ Seg52.relationRow4729 rho ∧ Seg52.relationRow4730 rho ∧ Seg52.relationRow4731 rho ∧ Seg52.relationRow4732 rho ∧ Seg52.relationRow4733 rho ∧ Seg52.relationRow4734 rho ∧ Seg52.relationRow4735 rho ∧ Seg52.relationRow4736 rho ∧ Seg52.relationRow4737 rho ∧ Seg52.relationRow4738 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -1252,9 +1236,7 @@ theorem seg52Out0_rows19 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, _, p67, _, _,
+    _, _, _, _, _, _, _, _, _, p59,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -1262,132 +1244,132 @@ theorem seg52Out0_rows19 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart67 at p67
+  unfold Seg52.relationPart59 at p59
 
-  rcases p67 with ⟨_, _, _, _, _, _, r5366, r5367, r5368, r5369, r5370, r5371, r5372, r5373, r5374, r5375, r5376, r5377, r5378, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p59 with ⟨_, _, _, _, _, _, r4726, r4727, r4728, r4729, r4730, r4731, r4732, r4733, r4734, r4735, r4736, r4737, r4738, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5366, r5367, r5368, r5369, r5370, r5371, r5372, r5373, r5374, r5375, r5376, r5377, r5378⟩
+  exact ⟨r4726, r4727, r4728, r4729, r4730, r4731, r4732, r4733, r4734, r4735, r4736, r4737, r4738⟩
 
 theorem seg52Out0_rung19 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49405 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48765 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49753, rho 49754⟩ →
+      EdwardsBridge.onCurve ⟨rho 49113, rho 49114⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ ⟨rho 49753, rho 49754⟩
-        ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ ⟨rho 49766, rho 49767⟩ := by
-  obtain ⟨r5366, r5367, r5368, r5369, r5370, r5371, r5372, r5373, r5374, r5375, r5376, r5377, r5378⟩ := seg52Out0_rows19 rho h
-  unfold Seg52.relationRow5366 at r5366
+        ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ ⟨rho 49113, rho 49114⟩
+        ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ ⟨rho 49126, rho 49127⟩ := by
+  obtain ⟨r4726, r4727, r4728, r4729, r4730, r4731, r4732, r4733, r4734, r4735, r4736, r4737, r4738⟩ := seg52Out0_rows19 rho h
+  unfold Seg52.relationRow4726 at r4726
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5366
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4726
 
-  unfold Seg52.relationRow5367 at r5367
+  unfold Seg52.relationRow4727 at r4727
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5367
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4727
 
-  unfold Seg52.relationRow5368 at r5368
+  unfold Seg52.relationRow4728 at r4728
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5368
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4728
 
-  unfold Seg52.relationRow5369 at r5369
+  unfold Seg52.relationRow4729 at r4729
 
-  unfold Seg52.relationRow5370 at r5370
+  unfold Seg52.relationRow4730 at r4730
 
-  unfold Seg52.relationRow5371 at r5371
+  unfold Seg52.relationRow4731 at r4731
 
-  unfold Seg52.relationRow5372 at r5372
+  unfold Seg52.relationRow4732 at r4732
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5372
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4732
 
-  unfold Seg52.relationRow5373 at r5373
+  unfold Seg52.relationRow4733 at r4733
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5373
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4733
 
-  unfold Seg52.relationRow5374 at r5374
+  unfold Seg52.relationRow4734 at r4734
 
-  unfold Seg52.relationRow5375 at r5375
+  unfold Seg52.relationRow4735 at r4735
 
-  unfold Seg52.relationRow5376 at r5376
+  unfold Seg52.relationRow4736 at r4736
 
-  unfold Seg52.relationRow5377 at r5377
+  unfold Seg52.relationRow4737 at r4737
 
-  unfold Seg52.relationRow5378 at r5378
+  unfold Seg52.relationRow4738 at r4738
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX20 rho = seg52Out0AccX19 rho + rho 49761 := by
+  have hnextx : seg52Out0AccX20 rho = seg52Out0AccX19 rho + rho 49121 := by
     unfold seg52Out0AccX20 seg52Out0AccX19
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 19]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 19]
 
     ring
 
-  have hnexty : seg52Out0AccY20 rho = seg52Out0AccY19 rho + rho 49762 := by
+  have hnexty : seg52Out0AccY20 rho = seg52Out0AccY19 rho + rho 49122 := by
     unfold seg52Out0AccY20 seg52Out0AccY19
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 19]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 19]
 
     ring
 
-  have ha0 : (rho 49753 + rho 49754) * (seg52Out0AccX19 rho + seg52Out0AccY19 rho) = rho 49755 := by
+  have ha0 : (rho 49113 + rho 49114) * (seg52Out0AccX19 rho + seg52Out0AccY19 rho) = rho 49115 := by
     unfold seg52Out0AccX19 seg52Out0AccY19
-    linear_combination r5366
-  have ha1 : rho 49754 * seg52Out0AccX19 rho = rho 49756 := by
+    linear_combination r4726
+  have ha1 : rho 49114 * seg52Out0AccX19 rho = rho 49116 := by
     unfold seg52Out0AccX19
-    linear_combination r5367
-  have ha2 : rho 49753 * seg52Out0AccY19 rho = rho 49757 := by
+    linear_combination r4727
+  have ha2 : rho 49113 * seg52Out0AccY19 rho = rho 49117 := by
     unfold seg52Out0AccY19
-    linear_combination r5368
-  have ha3 : 3021 * rho 49756 * rho 49757 = rho 49758 := by
-    linear_combination r5369
-  have ha4 : rho 49759 * (1 + rho 49758) = rho 49756 + rho 49757 := by
-    linear_combination r5370
-  have ha5 : rho 49760 * (1 - rho 49758) = rho 49755 - rho 49756 - rho 49757 := by
-    linear_combination r5371
+    linear_combination r4728
+  have ha3 : 3021 * rho 49116 * rho 49117 = rho 49118 := by
+    linear_combination r4729
+  have ha4 : rho 49119 * (1 + rho 49118) = rho 49116 + rho 49117 := by
+    linear_combination r4730
+  have ha5 : rho 49120 * (1 - rho 49118) = rho 49115 - rho 49116 - rho 49117 := by
+    linear_combination r4731
   have haddx :
-      rho 49759 * (1 + 3021 * (rho 49754 * seg52Out0AccX19 rho) * (rho 49753 * seg52Out0AccY19 rho)) =
-        rho 49754 * seg52Out0AccX19 rho + rho 49753 * seg52Out0AccY19 rho := by
+      rho 49119 * (1 + 3021 * (rho 49114 * seg52Out0AccX19 rho) * (rho 49113 * seg52Out0AccY19 rho)) =
+        rho 49114 * seg52Out0AccX19 rho + rho 49113 * seg52Out0AccY19 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49760 * (1 - 3021 * (rho 49754 * seg52Out0AccX19 rho) * (rho 49753 * seg52Out0AccY19 rho)) =
-        (-1) * (rho 49754 * seg52Out0AccX19 rho) - rho 49753 * seg52Out0AccY19 rho +
-          (seg52Out0AccY19 rho - seg52Out0AccX19 rho * (-1)) * (rho 49753 + rho 49754) := by
+      rho 49120 * (1 - 3021 * (rho 49114 * seg52Out0AccX19 rho) * (rho 49113 * seg52Out0AccY19 rho)) =
+        (-1) * (rho 49114 * seg52Out0AccX19 rho) - rho 49113 * seg52Out0AccY19 rho +
+          (seg52Out0AccY19 rho - seg52Out0AccX19 rho * (-1)) * (rho 49113 + rho 49114) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49760 * (1 - rho 49758) = rho 49755 - rho 49756 - rho 49757 := ha5
-      _ = (-1) * rho 49756 - rho 49757 + (seg52Out0AccY19 rho - seg52Out0AccX19 rho * (-1)) *
-          (rho 49753 + rho 49754) := by
+      rho 49120 * (1 - rho 49118) = rho 49115 - rho 49116 - rho 49117 := ha5
+      _ = (-1) * rho 49116 - rho 49117 + (seg52Out0AccY19 rho - seg52Out0AccX19 rho * (-1)) *
+          (rho 49113 + rho 49114) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX20 rho = seg52Out0AccX19 rho - Bool.toZMod bit * (seg52Out0AccX19 rho - rho 49759) := by
-    have hd : rho 49761 = Bool.toZMod bit * (rho 49759 - seg52Out0AccX19 rho) := by
+  have hselx : seg52Out0AccX20 rho = seg52Out0AccX19 rho - Bool.toZMod bit * (seg52Out0AccX19 rho - rho 49119) := by
+    have hd : rho 49121 = Bool.toZMod bit * (rho 49119 - seg52Out0AccX19 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX19
-      linear_combination -r5372
+      linear_combination -r4732
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY20 rho = seg52Out0AccY19 rho - Bool.toZMod bit * (seg52Out0AccY19 rho - rho 49760) := by
-    have hd : rho 49762 = Bool.toZMod bit * (rho 49760 - seg52Out0AccY19 rho) := by
+  have hsely : seg52Out0AccY20 rho = seg52Out0AccY19 rho - Bool.toZMod bit * (seg52Out0AccY19 rho - rho 49120) := by
+    have hd : rho 49122 = Bool.toZMod bit * (rho 49120 - seg52Out0AccY19 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY19
-      linear_combination -r5373
+      linear_combination -r4733
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49753 * rho 49754 = rho 49763 := by linear_combination r5374
-  have hd1 : rho 49753 * rho 49753 = rho 49764 := by linear_combination r5375
-  have hd2 : rho 49754 * rho 49754 = rho 49765 := by linear_combination r5376
-  have hd3 : rho 49766 * (rho 49754 * rho 49754 + rho 49753 * rho 49753 * (-1)) =
-      2 * (rho 49753 * rho 49754) := by
+  have hd0 : rho 49113 * rho 49114 = rho 49123 := by linear_combination r4734
+  have hd1 : rho 49113 * rho 49113 = rho 49124 := by linear_combination r4735
+  have hd2 : rho 49114 * rho 49114 = rho 49125 := by linear_combination r4736
+  have hd3 : rho 49126 * (rho 49114 * rho 49114 + rho 49113 * rho 49113 * (-1)) =
+      2 * (rho 49113 * rho 49114) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5377
-  have hd4 : rho 49767 * (2 - (rho 49754 * rho 49754 + rho 49753 * rho 49753 * (-1))) =
-      rho 49754 * rho 49754 - rho 49753 * rho 49753 * (-1) := by
+    linear_combination r4737
+  have hd4 : rho 49127 * (2 - (rho 49114 * rho 49114 + rho 49113 * rho 49113 * (-1))) =
+      rho 49114 * rho 49114 - rho 49113 * rho 49113 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5378
+    linear_combination r4738
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ ⟨rho 49753, rho 49754⟩
-    ⟨rho 49759, rho 49760⟩ ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ ⟨rho 49766, rho 49767⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX19 rho, seg52Out0AccY19 rho⟩ ⟨rho 49113, rho 49114⟩
+    ⟨rho 49119, rho 49120⟩ ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ ⟨rho 49126, rho 49127⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -1398,7 +1380,7 @@ theorem seg52Out0_rung19 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows20 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5379 rho ∧ Seg52.relationRow5380 rho ∧ Seg52.relationRow5381 rho ∧ Seg52.relationRow5382 rho ∧ Seg52.relationRow5383 rho ∧ Seg52.relationRow5384 rho ∧ Seg52.relationRow5385 rho ∧ Seg52.relationRow5386 rho ∧ Seg52.relationRow5387 rho ∧ Seg52.relationRow5388 rho ∧ Seg52.relationRow5389 rho ∧ Seg52.relationRow5390 rho ∧ Seg52.relationRow5391 rho := by
+    Seg52.relationRow4739 rho ∧ Seg52.relationRow4740 rho ∧ Seg52.relationRow4741 rho ∧ Seg52.relationRow4742 rho ∧ Seg52.relationRow4743 rho ∧ Seg52.relationRow4744 rho ∧ Seg52.relationRow4745 rho ∧ Seg52.relationRow4746 rho ∧ Seg52.relationRow4747 rho ∧ Seg52.relationRow4748 rho ∧ Seg52.relationRow4749 rho ∧ Seg52.relationRow4750 rho ∧ Seg52.relationRow4751 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -1413,9 +1395,7 @@ theorem seg52Out0_rows20 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, _, p67, _, _,
+    _, _, _, _, _, _, _, _, _, p59,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -1423,132 +1403,132 @@ theorem seg52Out0_rows20 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart67 at p67
+  unfold Seg52.relationPart59 at p59
 
-  rcases p67 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5379, r5380, r5381, r5382, r5383, r5384, r5385, r5386, r5387, r5388, r5389, r5390, r5391, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p59 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4739, r4740, r4741, r4742, r4743, r4744, r4745, r4746, r4747, r4748, r4749, r4750, r4751, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5379, r5380, r5381, r5382, r5383, r5384, r5385, r5386, r5387, r5388, r5389, r5390, r5391⟩
+  exact ⟨r4739, r4740, r4741, r4742, r4743, r4744, r4745, r4746, r4747, r4748, r4749, r4750, r4751⟩
 
 theorem seg52Out0_rung20 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49406 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48766 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49766, rho 49767⟩ →
+      EdwardsBridge.onCurve ⟨rho 49126, rho 49127⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ ⟨rho 49766, rho 49767⟩
-        ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ ⟨rho 49779, rho 49780⟩ := by
-  obtain ⟨r5379, r5380, r5381, r5382, r5383, r5384, r5385, r5386, r5387, r5388, r5389, r5390, r5391⟩ := seg52Out0_rows20 rho h
-  unfold Seg52.relationRow5379 at r5379
+        ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ ⟨rho 49126, rho 49127⟩
+        ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ ⟨rho 49139, rho 49140⟩ := by
+  obtain ⟨r4739, r4740, r4741, r4742, r4743, r4744, r4745, r4746, r4747, r4748, r4749, r4750, r4751⟩ := seg52Out0_rows20 rho h
+  unfold Seg52.relationRow4739 at r4739
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5379
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4739
 
-  unfold Seg52.relationRow5380 at r5380
+  unfold Seg52.relationRow4740 at r4740
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5380
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4740
 
-  unfold Seg52.relationRow5381 at r5381
+  unfold Seg52.relationRow4741 at r4741
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5381
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4741
 
-  unfold Seg52.relationRow5382 at r5382
+  unfold Seg52.relationRow4742 at r4742
 
-  unfold Seg52.relationRow5383 at r5383
+  unfold Seg52.relationRow4743 at r4743
 
-  unfold Seg52.relationRow5384 at r5384
+  unfold Seg52.relationRow4744 at r4744
 
-  unfold Seg52.relationRow5385 at r5385
+  unfold Seg52.relationRow4745 at r4745
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5385
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4745
 
-  unfold Seg52.relationRow5386 at r5386
+  unfold Seg52.relationRow4746 at r4746
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5386
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4746
 
-  unfold Seg52.relationRow5387 at r5387
+  unfold Seg52.relationRow4747 at r4747
 
-  unfold Seg52.relationRow5388 at r5388
+  unfold Seg52.relationRow4748 at r4748
 
-  unfold Seg52.relationRow5389 at r5389
+  unfold Seg52.relationRow4749 at r4749
 
-  unfold Seg52.relationRow5390 at r5390
+  unfold Seg52.relationRow4750 at r4750
 
-  unfold Seg52.relationRow5391 at r5391
+  unfold Seg52.relationRow4751 at r4751
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX21 rho = seg52Out0AccX20 rho + rho 49774 := by
+  have hnextx : seg52Out0AccX21 rho = seg52Out0AccX20 rho + rho 49134 := by
     unfold seg52Out0AccX21 seg52Out0AccX20
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 20]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 20]
 
     ring
 
-  have hnexty : seg52Out0AccY21 rho = seg52Out0AccY20 rho + rho 49775 := by
+  have hnexty : seg52Out0AccY21 rho = seg52Out0AccY20 rho + rho 49135 := by
     unfold seg52Out0AccY21 seg52Out0AccY20
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 20]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 20]
 
     ring
 
-  have ha0 : (rho 49766 + rho 49767) * (seg52Out0AccX20 rho + seg52Out0AccY20 rho) = rho 49768 := by
+  have ha0 : (rho 49126 + rho 49127) * (seg52Out0AccX20 rho + seg52Out0AccY20 rho) = rho 49128 := by
     unfold seg52Out0AccX20 seg52Out0AccY20
-    linear_combination r5379
-  have ha1 : rho 49767 * seg52Out0AccX20 rho = rho 49769 := by
+    linear_combination r4739
+  have ha1 : rho 49127 * seg52Out0AccX20 rho = rho 49129 := by
     unfold seg52Out0AccX20
-    linear_combination r5380
-  have ha2 : rho 49766 * seg52Out0AccY20 rho = rho 49770 := by
+    linear_combination r4740
+  have ha2 : rho 49126 * seg52Out0AccY20 rho = rho 49130 := by
     unfold seg52Out0AccY20
-    linear_combination r5381
-  have ha3 : 3021 * rho 49769 * rho 49770 = rho 49771 := by
-    linear_combination r5382
-  have ha4 : rho 49772 * (1 + rho 49771) = rho 49769 + rho 49770 := by
-    linear_combination r5383
-  have ha5 : rho 49773 * (1 - rho 49771) = rho 49768 - rho 49769 - rho 49770 := by
-    linear_combination r5384
+    linear_combination r4741
+  have ha3 : 3021 * rho 49129 * rho 49130 = rho 49131 := by
+    linear_combination r4742
+  have ha4 : rho 49132 * (1 + rho 49131) = rho 49129 + rho 49130 := by
+    linear_combination r4743
+  have ha5 : rho 49133 * (1 - rho 49131) = rho 49128 - rho 49129 - rho 49130 := by
+    linear_combination r4744
   have haddx :
-      rho 49772 * (1 + 3021 * (rho 49767 * seg52Out0AccX20 rho) * (rho 49766 * seg52Out0AccY20 rho)) =
-        rho 49767 * seg52Out0AccX20 rho + rho 49766 * seg52Out0AccY20 rho := by
+      rho 49132 * (1 + 3021 * (rho 49127 * seg52Out0AccX20 rho) * (rho 49126 * seg52Out0AccY20 rho)) =
+        rho 49127 * seg52Out0AccX20 rho + rho 49126 * seg52Out0AccY20 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49773 * (1 - 3021 * (rho 49767 * seg52Out0AccX20 rho) * (rho 49766 * seg52Out0AccY20 rho)) =
-        (-1) * (rho 49767 * seg52Out0AccX20 rho) - rho 49766 * seg52Out0AccY20 rho +
-          (seg52Out0AccY20 rho - seg52Out0AccX20 rho * (-1)) * (rho 49766 + rho 49767) := by
+      rho 49133 * (1 - 3021 * (rho 49127 * seg52Out0AccX20 rho) * (rho 49126 * seg52Out0AccY20 rho)) =
+        (-1) * (rho 49127 * seg52Out0AccX20 rho) - rho 49126 * seg52Out0AccY20 rho +
+          (seg52Out0AccY20 rho - seg52Out0AccX20 rho * (-1)) * (rho 49126 + rho 49127) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49773 * (1 - rho 49771) = rho 49768 - rho 49769 - rho 49770 := ha5
-      _ = (-1) * rho 49769 - rho 49770 + (seg52Out0AccY20 rho - seg52Out0AccX20 rho * (-1)) *
-          (rho 49766 + rho 49767) := by
+      rho 49133 * (1 - rho 49131) = rho 49128 - rho 49129 - rho 49130 := ha5
+      _ = (-1) * rho 49129 - rho 49130 + (seg52Out0AccY20 rho - seg52Out0AccX20 rho * (-1)) *
+          (rho 49126 + rho 49127) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX21 rho = seg52Out0AccX20 rho - Bool.toZMod bit * (seg52Out0AccX20 rho - rho 49772) := by
-    have hd : rho 49774 = Bool.toZMod bit * (rho 49772 - seg52Out0AccX20 rho) := by
+  have hselx : seg52Out0AccX21 rho = seg52Out0AccX20 rho - Bool.toZMod bit * (seg52Out0AccX20 rho - rho 49132) := by
+    have hd : rho 49134 = Bool.toZMod bit * (rho 49132 - seg52Out0AccX20 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX20
-      linear_combination -r5385
+      linear_combination -r4745
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY21 rho = seg52Out0AccY20 rho - Bool.toZMod bit * (seg52Out0AccY20 rho - rho 49773) := by
-    have hd : rho 49775 = Bool.toZMod bit * (rho 49773 - seg52Out0AccY20 rho) := by
+  have hsely : seg52Out0AccY21 rho = seg52Out0AccY20 rho - Bool.toZMod bit * (seg52Out0AccY20 rho - rho 49133) := by
+    have hd : rho 49135 = Bool.toZMod bit * (rho 49133 - seg52Out0AccY20 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY20
-      linear_combination -r5386
+      linear_combination -r4746
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49766 * rho 49767 = rho 49776 := by linear_combination r5387
-  have hd1 : rho 49766 * rho 49766 = rho 49777 := by linear_combination r5388
-  have hd2 : rho 49767 * rho 49767 = rho 49778 := by linear_combination r5389
-  have hd3 : rho 49779 * (rho 49767 * rho 49767 + rho 49766 * rho 49766 * (-1)) =
-      2 * (rho 49766 * rho 49767) := by
+  have hd0 : rho 49126 * rho 49127 = rho 49136 := by linear_combination r4747
+  have hd1 : rho 49126 * rho 49126 = rho 49137 := by linear_combination r4748
+  have hd2 : rho 49127 * rho 49127 = rho 49138 := by linear_combination r4749
+  have hd3 : rho 49139 * (rho 49127 * rho 49127 + rho 49126 * rho 49126 * (-1)) =
+      2 * (rho 49126 * rho 49127) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5390
-  have hd4 : rho 49780 * (2 - (rho 49767 * rho 49767 + rho 49766 * rho 49766 * (-1))) =
-      rho 49767 * rho 49767 - rho 49766 * rho 49766 * (-1) := by
+    linear_combination r4750
+  have hd4 : rho 49140 * (2 - (rho 49127 * rho 49127 + rho 49126 * rho 49126 * (-1))) =
+      rho 49127 * rho 49127 - rho 49126 * rho 49126 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5391
+    linear_combination r4751
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ ⟨rho 49766, rho 49767⟩
-    ⟨rho 49772, rho 49773⟩ ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ ⟨rho 49779, rho 49780⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX20 rho, seg52Out0AccY20 rho⟩ ⟨rho 49126, rho 49127⟩
+    ⟨rho 49132, rho 49133⟩ ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ ⟨rho 49139, rho 49140⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -1559,7 +1539,7 @@ theorem seg52Out0_rung20 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   · simpa [EdwardsBridge.a_eq] using hd4
 
 theorem seg52Out0_rows21 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow5392 rho ∧ Seg52.relationRow5393 rho ∧ Seg52.relationRow5394 rho ∧ Seg52.relationRow5395 rho ∧ Seg52.relationRow5396 rho ∧ Seg52.relationRow5397 rho ∧ Seg52.relationRow5398 rho ∧ Seg52.relationRow5399 rho ∧ Seg52.relationRow5400 rho ∧ Seg52.relationRow5401 rho ∧ Seg52.relationRow5402 rho ∧ Seg52.relationRow5403 rho ∧ Seg52.relationRow5404 rho := by
+    Seg52.relationRow4752 rho ∧ Seg52.relationRow4753 rho ∧ Seg52.relationRow4754 rho ∧ Seg52.relationRow4755 rho ∧ Seg52.relationRow4756 rho ∧ Seg52.relationRow4757 rho ∧ Seg52.relationRow4758 rho ∧ Seg52.relationRow4759 rho ∧ Seg52.relationRow4760 rho ∧ Seg52.relationRow4761 rho ∧ Seg52.relationRow4762 rho ∧ Seg52.relationRow4763 rho ∧ Seg52.relationRow4764 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -1574,9 +1554,7 @@ theorem seg52Out0_rows21 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
-
-    _, _, _, _, _, _, _, p67, _, _,
+    _, _, _, _, _, _, _, _, _, p59,
 
     _, _, _, _, _, _, _, _, _, _,
 
@@ -1584,132 +1562,132 @@ theorem seg52Out0_rows21 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart67 at p67
+  unfold Seg52.relationPart59 at p59
 
-  rcases p67 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r5392, r5393, r5394, r5395, r5396, r5397, r5398, r5399, r5400, r5401, r5402, r5403, r5404, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p59 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r4752, r4753, r4754, r4755, r4756, r4757, r4758, r4759, r4760, r4761, r4762, r4763, r4764, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r5392, r5393, r5394, r5395, r5396, r5397, r5398, r5399, r5400, r5401, r5402, r5403, r5404⟩
+  exact ⟨r4752, r4753, r4754, r4755, r4756, r4757, r4758, r4759, r4760, r4761, r4762, r4763, r4764⟩
 
 theorem seg52Out0_rung21 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    ∀ (bit : Bool), rho 49407 = Bool.toZMod bit →
+    ∀ (bit : Bool), rho 48767 = Bool.toZMod bit →
       EdwardsBridge.onCurve ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ →
-      EdwardsBridge.onCurve ⟨rho 49779, rho 49780⟩ →
+      EdwardsBridge.onCurve ⟨rho 49139, rho 49140⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ ⟨rho 49779, rho 49780⟩
-        ⟨seg52Out0AccX22 rho, seg52Out0AccY22 rho⟩ ⟨rho 49792, rho 49793⟩ := by
-  obtain ⟨r5392, r5393, r5394, r5395, r5396, r5397, r5398, r5399, r5400, r5401, r5402, r5403, r5404⟩ := seg52Out0_rows21 rho h
-  unfold Seg52.relationRow5392 at r5392
+        ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ ⟨rho 49139, rho 49140⟩
+        ⟨seg52Out0AccX22 rho, seg52Out0AccY22 rho⟩ ⟨rho 49152, rho 49153⟩ := by
+  obtain ⟨r4752, r4753, r4754, r4755, r4756, r4757, r4758, r4759, r4760, r4761, r4762, r4763, r4764⟩ := seg52Out0_rows21 rho h
+  unfold Seg52.relationRow4752 at r4752
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5392
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4752
 
-  unfold Seg52.relationRow5393 at r5393
+  unfold Seg52.relationRow4753 at r4753
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5393
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4753
 
-  unfold Seg52.relationRow5394 at r5394
+  unfold Seg52.relationRow4754 at r4754
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5394
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4754
 
-  unfold Seg52.relationRow5395 at r5395
+  unfold Seg52.relationRow4755 at r4755
 
-  unfold Seg52.relationRow5396 at r5396
+  unfold Seg52.relationRow4756 at r4756
 
-  unfold Seg52.relationRow5397 at r5397
+  unfold Seg52.relationRow4757 at r4757
 
-  unfold Seg52.relationRow5398 at r5398
+  unfold Seg52.relationRow4758 at r4758
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5398
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4758
 
-  unfold Seg52.relationRow5399 at r5399
+  unfold Seg52.relationRow4759 at r4759
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5399
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r4759
 
-  unfold Seg52.relationRow5400 at r5400
+  unfold Seg52.relationRow4760 at r4760
 
-  unfold Seg52.relationRow5401 at r5401
+  unfold Seg52.relationRow4761 at r4761
 
-  unfold Seg52.relationRow5402 at r5402
+  unfold Seg52.relationRow4762 at r4762
 
-  unfold Seg52.relationRow5403 at r5403
+  unfold Seg52.relationRow4763 at r4763
 
-  unfold Seg52.relationRow5404 at r5404
+  unfold Seg52.relationRow4764 at r4764
 
   intro bit hbit hacc hcur
-  have hnextx : seg52Out0AccX22 rho = seg52Out0AccX21 rho + rho 49787 := by
+  have hnextx : seg52Out0AccX22 rho = seg52Out0AccX21 rho + rho 49147 := by
     unfold seg52Out0AccX22 seg52Out0AccX21
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49514 13 21]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48874 13 21]
 
     ring
 
-  have hnexty : seg52Out0AccY22 rho = seg52Out0AccY21 rho + rho 49788 := by
+  have hnexty : seg52Out0AccY22 rho = seg52Out0AccY21 rho + rho 49148 := by
     unfold seg52Out0AccY22 seg52Out0AccY21
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 49515 13 21]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 48875 13 21]
 
     ring
 
-  have ha0 : (rho 49779 + rho 49780) * (seg52Out0AccX21 rho + seg52Out0AccY21 rho) = rho 49781 := by
+  have ha0 : (rho 49139 + rho 49140) * (seg52Out0AccX21 rho + seg52Out0AccY21 rho) = rho 49141 := by
     unfold seg52Out0AccX21 seg52Out0AccY21
-    linear_combination r5392
-  have ha1 : rho 49780 * seg52Out0AccX21 rho = rho 49782 := by
+    linear_combination r4752
+  have ha1 : rho 49140 * seg52Out0AccX21 rho = rho 49142 := by
     unfold seg52Out0AccX21
-    linear_combination r5393
-  have ha2 : rho 49779 * seg52Out0AccY21 rho = rho 49783 := by
+    linear_combination r4753
+  have ha2 : rho 49139 * seg52Out0AccY21 rho = rho 49143 := by
     unfold seg52Out0AccY21
-    linear_combination r5394
-  have ha3 : 3021 * rho 49782 * rho 49783 = rho 49784 := by
-    linear_combination r5395
-  have ha4 : rho 49785 * (1 + rho 49784) = rho 49782 + rho 49783 := by
-    linear_combination r5396
-  have ha5 : rho 49786 * (1 - rho 49784) = rho 49781 - rho 49782 - rho 49783 := by
-    linear_combination r5397
+    linear_combination r4754
+  have ha3 : 3021 * rho 49142 * rho 49143 = rho 49144 := by
+    linear_combination r4755
+  have ha4 : rho 49145 * (1 + rho 49144) = rho 49142 + rho 49143 := by
+    linear_combination r4756
+  have ha5 : rho 49146 * (1 - rho 49144) = rho 49141 - rho 49142 - rho 49143 := by
+    linear_combination r4757
   have haddx :
-      rho 49785 * (1 + 3021 * (rho 49780 * seg52Out0AccX21 rho) * (rho 49779 * seg52Out0AccY21 rho)) =
-        rho 49780 * seg52Out0AccX21 rho + rho 49779 * seg52Out0AccY21 rho := by
+      rho 49145 * (1 + 3021 * (rho 49140 * seg52Out0AccX21 rho) * (rho 49139 * seg52Out0AccY21 rho)) =
+        rho 49140 * seg52Out0AccX21 rho + rho 49139 * seg52Out0AccY21 rho := by
     rw [ha1, ha2, ha3]
     exact ha4
   have haddy :
-      rho 49786 * (1 - 3021 * (rho 49780 * seg52Out0AccX21 rho) * (rho 49779 * seg52Out0AccY21 rho)) =
-        (-1) * (rho 49780 * seg52Out0AccX21 rho) - rho 49779 * seg52Out0AccY21 rho +
-          (seg52Out0AccY21 rho - seg52Out0AccX21 rho * (-1)) * (rho 49779 + rho 49780) := by
+      rho 49146 * (1 - 3021 * (rho 49140 * seg52Out0AccX21 rho) * (rho 49139 * seg52Out0AccY21 rho)) =
+        (-1) * (rho 49140 * seg52Out0AccX21 rho) - rho 49139 * seg52Out0AccY21 rho +
+          (seg52Out0AccY21 rho - seg52Out0AccX21 rho * (-1)) * (rho 49139 + rho 49140) := by
     rw [ha1, ha2, ha3]
     calc
-      rho 49786 * (1 - rho 49784) = rho 49781 - rho 49782 - rho 49783 := ha5
-      _ = (-1) * rho 49782 - rho 49783 + (seg52Out0AccY21 rho - seg52Out0AccX21 rho * (-1)) *
-          (rho 49779 + rho 49780) := by
+      rho 49146 * (1 - rho 49144) = rho 49141 - rho 49142 - rho 49143 := ha5
+      _ = (-1) * rho 49142 - rho 49143 + (seg52Out0AccY21 rho - seg52Out0AccX21 rho * (-1)) *
+          (rho 49139 + rho 49140) := by
         rw [← ha0]
         ring
-  have hselx : seg52Out0AccX22 rho = seg52Out0AccX21 rho - Bool.toZMod bit * (seg52Out0AccX21 rho - rho 49785) := by
-    have hd : rho 49787 = Bool.toZMod bit * (rho 49785 - seg52Out0AccX21 rho) := by
+  have hselx : seg52Out0AccX22 rho = seg52Out0AccX21 rho - Bool.toZMod bit * (seg52Out0AccX21 rho - rho 49145) := by
+    have hd : rho 49147 = Bool.toZMod bit * (rho 49145 - seg52Out0AccX21 rho) := by
       rw [← hbit]
       unfold seg52Out0AccX21
-      linear_combination -r5398
+      linear_combination -r4758
     rw [hnextx]
     linear_combination hd
-  have hsely : seg52Out0AccY22 rho = seg52Out0AccY21 rho - Bool.toZMod bit * (seg52Out0AccY21 rho - rho 49786) := by
-    have hd : rho 49788 = Bool.toZMod bit * (rho 49786 - seg52Out0AccY21 rho) := by
+  have hsely : seg52Out0AccY22 rho = seg52Out0AccY21 rho - Bool.toZMod bit * (seg52Out0AccY21 rho - rho 49146) := by
+    have hd : rho 49148 = Bool.toZMod bit * (rho 49146 - seg52Out0AccY21 rho) := by
       rw [← hbit]
       unfold seg52Out0AccY21
-      linear_combination -r5399
+      linear_combination -r4759
     rw [hnexty]
     linear_combination hd
-  have hd0 : rho 49779 * rho 49780 = rho 49789 := by linear_combination r5400
-  have hd1 : rho 49779 * rho 49779 = rho 49790 := by linear_combination r5401
-  have hd2 : rho 49780 * rho 49780 = rho 49791 := by linear_combination r5402
-  have hd3 : rho 49792 * (rho 49780 * rho 49780 + rho 49779 * rho 49779 * (-1)) =
-      2 * (rho 49779 * rho 49780) := by
+  have hd0 : rho 49139 * rho 49140 = rho 49149 := by linear_combination r4760
+  have hd1 : rho 49139 * rho 49139 = rho 49150 := by linear_combination r4761
+  have hd2 : rho 49140 * rho 49140 = rho 49151 := by linear_combination r4762
+  have hd3 : rho 49152 * (rho 49140 * rho 49140 + rho 49139 * rho 49139 * (-1)) =
+      2 * (rho 49139 * rho 49140) := by
     rw [hd0, hd1, hd2]
-    linear_combination r5403
-  have hd4 : rho 49793 * (2 - (rho 49780 * rho 49780 + rho 49779 * rho 49779 * (-1))) =
-      rho 49780 * rho 49780 - rho 49779 * rho 49779 * (-1) := by
+    linear_combination r4763
+  have hd4 : rho 49153 * (2 - (rho 49140 * rho 49140 + rho 49139 * rho 49139 * (-1))) =
+      rho 49140 * rho 49140 - rho 49139 * rho 49139 * (-1) := by
     rw [hd1, hd2]
-    linear_combination r5404
+    linear_combination r4764
   apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-    (Bool.toZMod bit) ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ ⟨rho 49779, rho 49780⟩
-    ⟨rho 49785, rho 49786⟩ ⟨seg52Out0AccX22 rho, seg52Out0AccY22 rho⟩ ⟨rho 49792, rho 49793⟩
+    (Bool.toZMod bit) ⟨seg52Out0AccX21 rho, seg52Out0AccY21 rho⟩ ⟨rho 49139, rho 49140⟩
+    ⟨rho 49145, rho 49146⟩ ⟨seg52Out0AccX22 rho, seg52Out0AccY22 rho⟩ ⟨rho 49152, rho 49153⟩
     hacc hcur
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -1721,7 +1699,7 @@ theorem seg52Out0_rung21 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
 theorem seg52Out0_hstep_c1 (rho : Nat -> Seg52.F)
     (h : Seg52.relation rho) (bits : List.Vector Bool 128)
-    (hbitAt : ∀ i, i < 128 → rho (49386 + i) = Bool.toZMod bits[i]!) :
+    (hbitAt : ∀ i, i < 128 → rho (48746 + i) = Bool.toZMod bits[i]!) :
     ∀ i, 11 ≤ i → i < 22 →
       EdwardsBridge.onCurve (seg52Out0AccState rho i) →
       EdwardsBridge.onCurve (seg52Out0CurState rho i) →

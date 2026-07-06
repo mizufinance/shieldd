@@ -39,9 +39,9 @@ SR1CS = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1.sr1cs"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 NB_GX = 4661681602708190761543544705274244814260880986867766715334030151044279151219
 NB_GYM1 = 4337336842509898676347982752646772244181661588533917621717979456142867120377
-SEG_START, ROW_COUNT = 47848, 8601
-OUT_X_WIRE, OUT_Y_WIRE = 52987, 52988
-FINAL_ADD_ROWS = range(8595, 8601)
+SEG_START, ROW_COUNT = 47848, 7961
+OUT_X_WIRE, OUT_Y_WIRE = 52347, 52348
+FINAL_ADD_ROWS = range(7955, 7961)
 
 Lc = dict[int, int]
 
@@ -100,22 +100,22 @@ class ValueLadder:
 
 
 VALUE_LADDERS = (
-    ValueLadder("in0", 45808, (1416, 1543), 1544, 15, 45936, 1544, 3203),
-    ValueLadder("in1", 47594, (3203, 3330), 3331, 105, 47722, 3331, 4996),
-    ValueLadder("out0", 49386, (4996, 5123), 5124, 193, 49514, 5124, 6789),
+    ValueLadder("in0", 45168, (776, 903), 904, 15, 45296, 904, 2563),
+    ValueLadder("in1", 46954, (2563, 2690), 2691, 105, 47082, 2691, 4356),
+    ValueLadder("out0", 48746, (4356, 4483), 4484, 193, 48874, 4484, 6149),
 )
 
 # Blinding fixed-base ladder (rvk shape). Seed term: bits[0] wire folded into
 # every accumulator row (same encoding as rvk — see memory rvk-fixedbase-bit0).
-BLIND_BIT_BASE = 51178          # booleanity wires 51178 .. 51428 (251 bits)
-BLIND_BINARY_ROWS = (6789, 7039)
-BLIND_COPY_ROW = 7040           # 1*Lc13 = 1*rho 5
+BLIND_BIT_BASE = 50538          # booleanity wires 50538 .. 50788 (251 bits)
+BLIND_BINARY_ROWS = (6149, 6399)
+BLIND_COPY_ROW = 6400           # 1*Lc13 = 1*rho 5
 BLIND_WIRE = 5
 # Accumulator wire pairs: 149 at stride 5, then 101 at stride 8 (250 rungs;
 # rung k consumes bit wire BLIND_BIT_BASE+1+k).
 BLIND_ACCS = tuple(
-    [(51432 + 5 * k, 51433 + 5 * k) for k in range(149)]
-    + [(52180 + 8 * j, 52181 + 8 * j) for j in range(101)]
+    [(50792 + 5 * k, 50793 + 5 * k) for k in range(149)]
+    + [(51540 + 8 * j, 51541 + 8 * j) for j in range(101)]
 )
 
 ASSET_ID_WIRE = 16
@@ -683,8 +683,8 @@ def blind_rungs(rows: list[tuple[Lc, Lc, Lc]]) -> tuple[BlindRung, ...]:
     rungs: list[BlindRung] = []
     prev_end = BLIND_COPY_ROW
     for index, (acc_x, acc_y) in enumerate(BLIND_ACCS):
-        acc_x_rows = [r for r in range(7041, 8601) if rows[r][2] == {acc_x: 1}]
-        acc_y_rows = [r for r in range(7041, 8601) if rows[r][2] == {acc_y: 1}]
+        acc_x_rows = [r for r in range(6401, 7961) if rows[r][2] == {acc_x: 1}]
+        acc_y_rows = [r for r in range(6401, 7961) if rows[r][2] == {acc_y: 1}]
         if len(acc_x_rows) != 1 or len(acc_y_rows) != 1:
             raise ValueError(f"blind rung {index}: acc rows {acc_x_rows}/{acc_y_rows}")
         acc_x_row, acc_y_row = acc_x_rows[0], acc_y_rows[0]
@@ -700,8 +700,8 @@ def blind_rungs(rows: list[tuple[Lc, Lc, Lc]]) -> tuple[BlindRung, ...]:
             index, bit, acc_x, acc_y, acc_x_row, acc_y_row, block, len(block) == 8,
         ))
         prev_end = acc_y_row
-    if prev_end != 8593:
-        raise ValueError(f"blinding ladder ended at row {prev_end}, expected 8593")
+    if prev_end != 7953:
+        raise ValueError(f"blinding ladder ended at row {prev_end}, expected 7953")
     return tuple(rungs)
 
 
@@ -806,8 +806,8 @@ def emit_fixed_base_literal(rows: list[tuple[Lc, Lc, Lc]]) -> str:
     pts = blind_gen_doubles()
     # Fail-closed seed check: the b0 seed-fold coefficients in the first
     # blinding rung's acc rows must be -Lb0.x and -(Lb0.y - 1).
-    seed_x_coeffs = {side.get(BLIND_BIT_BASE) for side in rows[7044]}
-    seed_y_coeffs = {side.get(BLIND_BIT_BASE) for side in rows[7045]}
+    seed_x_coeffs = {side.get(BLIND_BIT_BASE) for side in rows[6404]}
+    seed_y_coeffs = {side.get(BLIND_BIT_BASE) for side in rows[6405]}
     if (ORDER - pts[0][0]) not in seed_x_coeffs:
         raise ValueError("blindGen.x seed coefficient absent from rung-0 acc-x row")
     if (ORDER - (pts[0][1] - 1)) not in seed_y_coeffs:
@@ -1402,14 +1402,14 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
     lines += [
         "def seg52BlindAccState (rho : Nat -> Seg52.F) : Nat -> EdwardsBridge.Point",
         "  | 0 => ⟨0, 1⟩",
-        "  | 1 => Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 51178)",
+        "  | 1 => Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 50538)",
     ]
     for state in range(2, 252):
         delta = state - 1
         lines.append(
-            f"  | {state} => ⟨(({NB_GX} : Seg52.F) * rho 51178 + "
+            f"  | {state} => ⟨(({NB_GX} : Seg52.F) * rho 50538 + "
             f"{blind_delta_name('X', delta)} rho : Seg52.F), "
-            f"((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 51178 + "
+            f"((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + "
             f"{blind_delta_name('Y', delta)} rho : Seg52.F)⟩"
         )
     lines += [
@@ -1472,23 +1472,23 @@ def emit_blind_fused_rung(
     emit_blind_delta_step(lines, rungs, k)
     previous = k - 1
     if k == 1:
-        # Arm 1 of seg52BlindAccState is `seedAcc (rho 51178)`; `x + DeltaX0`
+        # Arm 1 of seg52BlindAccState is `seedAcc (rho 50538)`; `x + DeltaX0`
         # (i.e. `x + 0`) is not defeq for opaque ZMod terms, so state the
         # acc1-shaped pair without the zero delta.
         prev_pair = [
-            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 51178 : Seg52.F),",
-            f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 51178 : Seg52.F)⟩",
+            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 50538 : Seg52.F),",
+            f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 : Seg52.F)⟩",
         ]
     else:
         prev_pair = [
-            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 51178 + {blind_delta_name('X', previous)} rho : Seg52.F),",
-            f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 51178 + {blind_delta_name('Y', previous)} rho : Seg52.F)⟩",
+            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 50538 + {blind_delta_name('X', previous)} rho : Seg52.F),",
+            f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + {blind_delta_name('Y', previous)} rho : Seg52.F)⟩",
         ]
     lines += [
         f"  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel {k}",
         *prev_pair,
-        f"    ⟨(({NB_GX} : Seg52.F) * rho 51178 + {blind_delta_name('X', k)} rho : Seg52.F),",
-        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 51178 + {blind_delta_name('Y', k)} rho : Seg52.F)⟩",
+        f"    ⟨(({NB_GX} : Seg52.F) * rho 50538 + {blind_delta_name('X', k)} rho : Seg52.F),",
+        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + {blind_delta_name('Y', k)} rho : Seg52.F)⟩",
         # k=1: next-state deltas are single wires, defeq by delta unfold; the
         # hnext rewrites would introduce a non-defeq `Delta0 + wire` shape.
         ("  rw [← hbitValue]" if k == 1 else "  rw [hnextx, hnexty, ← hbitValue]"),
@@ -1498,7 +1498,7 @@ def emit_blind_fused_rung(
     sx = singleton_wire(rows[r_add_x][0])
     sy = singleton_wire(rows[r_add_y][0])
     theorem = "rung1" if k == 1 else f"rung{k}_wide"
-    args = ["(rho 51178)", f"(rho {rung.bit})"]
+    args = ["(rho 50538)", f"(rho {rung.bit})"]
     if k > 1:
         args += [
             f"({blind_delta_name('X', previous)} rho)",
@@ -1548,14 +1548,14 @@ def emit_blind_split_rung(
     dy = f"{blind_delta_name('Y', previous)} rho"
     lines += [
         f"  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel {k}",
-        f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 51178 + {dx} : Seg52.F),",
-        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 51178 + {dy} : Seg52.F)⟩",
-        f"    ⟨(({NB_GX} : Seg52.F) * rho 51178 + {blind_delta_name('X', k)} rho : Seg52.F),",
-        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 51178 + {blind_delta_name('Y', k)} rho : Seg52.F)⟩",
+        f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 50538 + {dx} : Seg52.F),",
+        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + {dy} : Seg52.F)⟩",
+        f"    ⟨(({NB_GX} : Seg52.F) * rho 50538 + {blind_delta_name('X', k)} rho : Seg52.F),",
+        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + {blind_delta_name('Y', k)} rho : Seg52.F)⟩",
         "  rw [hnextx, hnexty, ← hbitValue]",
         # splitRung_stepRel's select-Y third arg is left-associated
         # ((1+g*b0+d1y) + sdy); reassociate the goal to match.
-        f"  rw [← add_assoc ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 51178)",
+        f"  rw [← add_assoc ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538)",
         f"    ({dy}) (rho {cert.sdy})]",
         "  exact Shieldd.GnarkFormal.RvkFixedSplitRung.splitRung_stepRel",
         f"    (Shieldd.GnarkFormal.Deployed.NetBalance.Cb {k})",
@@ -1566,7 +1566,7 @@ def emit_blind_split_rung(
         f"    ({cert.rb} : Seg52.F) ({cert.cc} : Seg52.F)",
         f"    ({cert.px} : Seg52.F) ({cert.py} : Seg52.F)",
         f"    ({cert.qb0} : Seg52.F) ({cert.neg_gx} : Seg52.F) ({cert.neg_gym1} : Seg52.F)",
-        f"    (rho 51178) ({dx}) ({dy}) (rho {cert.bit})",
+        f"    (rho 50538) ({dx}) ({dy}) (rho {cert.bit})",
         f"    (rho {cert.i67}) (rho {cert.i68}) (rho {cert.i69}) (rho {cert.i71})",
         f"    (rho {cert.out_x}) (rho {cert.out_y}) (rho {cert.sdx}) (rho {cert.sdy}) hacc",
         f"    (Shieldd.GnarkFormal.Deployed.NetBalance.Cb_onCurve {k})",
@@ -1614,7 +1614,7 @@ def emit_blind_chunk(
     lines += [
         f"theorem seg52Blind_hstep_c{chunk_index} (rho : Nat -> Seg52.F)",
         "    (h : Seg52.relation rho) (bits : List.Vector Bool 251)",
-        "    (hbitAt : ∀ i, i < 251 → rho (51178 + i) = Bool.toZMod bits[i]!) :",
+        "    (hbitAt : ∀ i, i < 251 → rho (50538 + i) = Bool.toZMod bits[i]!) :",
         f"    ∀ i, {lo} ≤ i → i < {hi} →",
         "      EdwardsBridge.onCurve (seg52BlindAccState rho i) →",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i",
@@ -1660,7 +1660,7 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
         "      Shieldd.GnarkFormal.Deployed.NetBalance.blindGen ∧",
         "    EdwardsBridge.onCurve (seg52BlindAccState rho 251) := by",
         "  have hbitAt : ∀ i, i < 251 →",
-        "      rho (51178 + i) = Bool.toZMod bits[i]! := by",
+        "      rho (50538 + i) = Bool.toZMod bits[i]! := by",
         "    intro i hi",
         "    rw [← seg52BlindBits_get rho i hi, hbits]",
         "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),",
@@ -1673,7 +1673,7 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
         "    intro i hi hacc",
         "    by_cases hzero : i = 0",
         "    · subst i",
-        "      have hb0 : rho 51178 = Bool.toZMod bits[0]! := by",
+        "      have hb0 : rho 50538 = Bool.toZMod bits[0]! := by",
         "        simpa using hbitAt 0 (by omega)",
         "      simpa [seg52BlindAccState, hb0] using",
         "        (Shieldd.GnarkFormal.Deployed.NetBalance.seedStepRel bits[0]!)",
@@ -1868,8 +1868,8 @@ def emit_adds() -> str:
                 lines.extend([
                     "    have hchar : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg52.F) = 0 := by decide",
                     f"    first",
-                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} + (({p_sum}) * rho 51178) * hchar",
-                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} - (({p_sum}) * rho 51178) * hchar",
+                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} + (({p_sum}) * rho 50538) * hchar",
+                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} - (({p_sum}) * rho 50538) * hchar",
                 ])
             else:
                 lines.append(f"    linear_combination r{row0 + index}")
@@ -1888,25 +1888,25 @@ def emit_adds() -> str:
         lines.append("")
 
     theorem(
-        "seg52_add_inputs", 4990,
-        "seg52In0AccState rho 128", "seg52In1AccState rho 128", "⟨rho 49384, rho 49385⟩",
-        (49380, 49381, 49382, 49383),
+        "seg52_add_inputs", 4350,
+        "seg52In0AccState rho 128", "seg52In1AccState rho 128", "⟨rho 48744, rho 48745⟩",
+        (48740, 48741, 48742, 48743),
         ["seg52In0AccState", "seg52In0AccX128", "seg52In0AccY128",
          "seg52In1AccState", "seg52In1AccX128", "seg52In1AccY128"],
     )
     theorem(
-        "seg52_add_output", 6783, "⟨rho 49384, rho 49385⟩",
+        "seg52_add_output", 6143, "⟨rho 48744, rho 48745⟩",
         "⟨-(seg52Out0AccState rho 128).x, (seg52Out0AccState rho 128).y⟩",
-        "⟨rho 51176, rho 51177⟩", (51172, 51173, 51174, 51175),
+        "⟨rho 50536, rho 50537⟩", (50532, 50533, 50534, 50535),
         ["seg52Out0AccState", "seg52Out0AccX128", "seg52Out0AccY128"],
     )
     theorem(
-        "seg52_final_addSpec", 8595, "⟨rho 51176, rho 51177⟩",
-        "seg52BlindAccState rho 251", "⟨rho 52987, rho 52988⟩",
-        (52983, 52984, 52985, 52986),
+        "seg52_final_addSpec", 7955, "⟨rho 50536, rho 50537⟩",
+        "seg52BlindAccState rho 251", "⟨rho 52347, rho 52348⟩",
+        (52343, 52344, 52345, 52346),
         ["seg52BlindAccState", "seg52BlindDeltaX250", "seg52BlindDeltaY250"],
         final=True,
-        sum_wire_row=8594, p_sum="rho 51176 + rho 51177",
+        sum_wire_row=7954, p_sum="rho 50536 + rho 50537",
     )
     lines += ["end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
     return "\n".join(lines)
@@ -1931,7 +1931,7 @@ open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
 
 theorem seg52_nbBody (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
     nbBody (rho 45162) (rho 45164) (rho 15) (rho 105) (rho 193) (rho 5)
-      (rho 52987) (rho 52988) := by
+      (rho 52347) (rho 52348) := by
   have hbase := seg52_value_base_onCurve rho h
   have hIn0Bin := seg52In0Bits_toBinary rho h
   have hIn1Bin := seg52In1Bits_toBinary rho h
@@ -1950,36 +1950,33 @@ theorem seg52_nbBody (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   have hAdd1 := (seg52_add_inputs rho h hP1On hP2On (fun _ _ => True) True.intro).2
   have hA1Eq := EdwardsBridge.addSpec_eq
     (seg52In0AccState rho 128) (seg52In1AccState rho 128)
-    ⟨rho 49384, rho 49385⟩ hP1On hP2On hAdd1
-  have hA1On : EdwardsBridge.onCurve ⟨rho 49384, rho 49385⟩ :=
+    ⟨rho 48744, rho 48745⟩ hP1On hP2On hAdd1
+  have hA1On : EdwardsBridge.onCurve ⟨rho 48744, rho 48745⟩ :=
     hA1Eq ▸ EdwardsBridge.add_onCurve _ _ hP1On hP2On
   have hNegOn : EdwardsBridge.onCurve
       ⟨-(seg52Out0AccState rho 128).x, (seg52Out0AccState rho 128).y⟩ := by
     simpa [EdwardsBridge.negF] using
       EdwardsBridge.neg_onCurve (seg52Out0AccState rho 128) hP3On
   have hAdd2 := (seg52_add_output rho h hA1On hNegOn (fun _ _ => True) True.intro).2
-  have hA2Eq := EdwardsBridge.addSpec_eq ⟨rho 49384, rho 49385⟩
+  have hA2Eq := EdwardsBridge.addSpec_eq ⟨rho 48744, rho 48745⟩
     ⟨-(seg52Out0AccState rho 128).x, (seg52Out0AccState rho 128).y⟩
-    ⟨rho 51176, rho 51177⟩ hA1On hNegOn hAdd2
-  have hA2On : EdwardsBridge.onCurve ⟨rho 51176, rho 51177⟩ :=
+    ⟨rho 50536, rho 50537⟩ hA1On hNegOn hAdd2
+  have hA2On : EdwardsBridge.onCurve ⟨rho 50536, rho 50537⟩ :=
     hA2Eq ▸ EdwardsBridge.add_onCurve _ _ hA1On hNegOn
   have hBlindOn := (seg52Blind_ladder rho h blindBool hBlindEq (fun _ => True)
     True.intro).2
   have hFinalAdd := seg52_final_addSpec rho h hA2On hBlindOn
-  have hOutEq := EdwardsBridge.addSpec_eq ⟨rho 51176, rho 51177⟩
-    (seg52BlindAccState rho 251) ⟨rho 52987, rho 52988⟩
+  have hOutEq := EdwardsBridge.addSpec_eq ⟨rho 50536, rho 50537⟩
+    (seg52BlindAccState rho 251) ⟨rho 52347, rho 52348⟩
     hA2On hBlindOn hFinalAdd
-  have hOutOn : EdwardsBridge.onCurve ⟨rho 52987, rho 52988⟩ :=
+  have hOutOn : EdwardsBridge.onCurve ⟨rho 52347, rho 52348⟩ :=
     hOutEq ▸ EdwardsBridge.add_onCurve _ _ hA2On hBlindOn
-  have hFinalK : nbFinalK (rho 51176) (rho 51177)
+  have hFinalK : nbFinalK (rho 50536) (rho 50537)
       (seg52BlindAccState rho 251).x (seg52BlindAccState rho 251).y
-      (rho 52987) (rho 52988) :=
-    nbFinalK_of_addSpec ⟨rho 51176, rho 51177⟩ (seg52BlindAccState rho 251)
-      ⟨rho 52987, rho 52988⟩ hFinalAdd hOutOn
+      (rho 52347) (rho 52348) :=
+    nbFinalK_of_addSpec ⟨rho 50536, rho 50537⟩ (seg52BlindAccState rho 251)
+      ⟨rho 52347, rho 52348⟩ hFinalAdd hOutOn
   unfold nbBody
-  apply Shieldd.GnarkFormal.Deployed.NetBalance.zeroLadderK128
-    ⟨rho 45162, rho 45164⟩ hbase
-  intro _ _
   refine ⟨seg52In0Bits rho, hIn0Bin, ?_⟩
   refine (seg52In0_ladder rho h in0Bool hIn0Eq _ ?_ hbase).1
   refine ⟨seg52In1Bits rho, hIn1Bin, ?_⟩
@@ -2003,11 +2000,11 @@ theorem seg52_sound (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   have hbody := seg52_nbBody rho h
   have hpost := seg52_encode_post rho h
     (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-      (rho 52987) (rho 52988)) hbody
+      (rho 52347) (rho 52348)) hbody
   have hpre := seg52_encode_pre rho h
     (fun T YDen => nbEncodeSeg1K (rho 44799) T YDen
       (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-        (rho 52987) (rho 52988))) hpost
+        (rho 52347) (rho 52348))) hpost
   rw [seg52_poseidon_eq rho h] at hpre
   have hposeidon := (Shieldd.GnarkFormal.Poseidon1Bridge.perm1_uncps
     ({POSEIDON_DOMAIN} : Seg52.F) (rho 16)
@@ -2015,11 +2012,11 @@ theorem seg52_sound (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
       (rho 44799) (rho 44800)
       (fun T YDen => nbEncodeSeg1K (rho 44799) T YDen
         (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-          (rho 52987) (rho 52988))))).mpr hpre
+          (rho 52347) (rho 52348))))).mpr hpre
   have hcircuit := (nb_circuit_eq (rho 15) (rho 105) (rho 193) (rho 16)
-    (rho 5) (rho 44799) (rho 44800) (rho 52987) (rho 52988)).mpr hposeidon
+    (rho 5) (rho 44799) (rho 44800) (rho 52347) (rho 52348)).mpr hposeidon
   apply Shieldd.GnarkFormal.NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound
-    (rho 15) (rho 105) (rho 193) (rho 16) (rho 5) ⟨rho 52987, rho 52988⟩
+    (rho 15) (rho 105) (rho 193) (rho 16) (rho 5) ⟨rho 52347, rho 52348⟩
   exact ⟨rho 44799, rho 44800, hcircuit⟩
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
@@ -2032,7 +2029,7 @@ def recover() -> dict:
     value = {lad.label: value_rungs(rows, lad) for lad in VALUE_LADDERS}
     blind = blind_rungs(rows)
     # Division-form Edwards add: out sits on the A side (out * (1 ± d·t) = …).
-    if rows[8599][0] != {OUT_X_WIRE: 1} or rows[8600][0] != {OUT_Y_WIRE: 1}:
+    if rows[7959][0] != {OUT_X_WIRE: 1} or rows[7960][0] != {OUT_Y_WIRE: 1}:
         raise ValueError("final add rows do not constrain the pinned output wires")
     return {"rows": rows, "value": value, "blind": blind}
 

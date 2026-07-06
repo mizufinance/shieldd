@@ -20,37 +20,37 @@ theorem seg52CanonBits_get (rho : Nat -> Seg52.F) (i : Nat) (hi : i < 253) :
   simp only [seg52CanonBits, List.Vector.toList_ofFn, List.getElem_ofFn]
 
 def seg52In0Bits (rho : Nat -> Seg52.F) : List.Vector Seg52.F 128 :=
-  List.Vector.ofFn (fun i : Fin 128 => rho (45808 + i.val))
+  List.Vector.ofFn (fun i : Fin 128 => rho (45168 + i.val))
 
 theorem seg52In0Bits_get (rho : Nat -> Seg52.F) (i : Nat) (hi : i < 128) :
-    (seg52In0Bits rho)[i]! = rho (45808 + i) := by
+    (seg52In0Bits rho)[i]! = rho (45168 + i) := by
   rw [getElem!_pos _ i (by simpa using hi)]
   conv_lhs => rw [List.Vector.getElem_def]
   simp only [seg52In0Bits, List.Vector.toList_ofFn, List.getElem_ofFn]
 
 def seg52In1Bits (rho : Nat -> Seg52.F) : List.Vector Seg52.F 128 :=
-  List.Vector.ofFn (fun i : Fin 128 => rho (47594 + i.val))
+  List.Vector.ofFn (fun i : Fin 128 => rho (46954 + i.val))
 
 theorem seg52In1Bits_get (rho : Nat -> Seg52.F) (i : Nat) (hi : i < 128) :
-    (seg52In1Bits rho)[i]! = rho (47594 + i) := by
+    (seg52In1Bits rho)[i]! = rho (46954 + i) := by
   rw [getElem!_pos _ i (by simpa using hi)]
   conv_lhs => rw [List.Vector.getElem_def]
   simp only [seg52In1Bits, List.Vector.toList_ofFn, List.getElem_ofFn]
 
 def seg52Out0Bits (rho : Nat -> Seg52.F) : List.Vector Seg52.F 128 :=
-  List.Vector.ofFn (fun i : Fin 128 => rho (49386 + i.val))
+  List.Vector.ofFn (fun i : Fin 128 => rho (48746 + i.val))
 
 theorem seg52Out0Bits_get (rho : Nat -> Seg52.F) (i : Nat) (hi : i < 128) :
-    (seg52Out0Bits rho)[i]! = rho (49386 + i) := by
+    (seg52Out0Bits rho)[i]! = rho (48746 + i) := by
   rw [getElem!_pos _ i (by simpa using hi)]
   conv_lhs => rw [List.Vector.getElem_def]
   simp only [seg52Out0Bits, List.Vector.toList_ofFn, List.getElem_ofFn]
 
 def seg52BlindBits (rho : Nat -> Seg52.F) : List.Vector Seg52.F 251 :=
-  List.Vector.ofFn (fun i : Fin 251 => rho (51178 + i.val))
+  List.Vector.ofFn (fun i : Fin 251 => rho (50538 + i.val))
 
 theorem seg52BlindBits_get (rho : Nat -> Seg52.F) (i : Nat) (hi : i < 251) :
-    (seg52BlindBits rho)[i]! = rho (51178 + i) := by
+    (seg52BlindBits rho)[i]! = rho (50538 + i) := by
   rw [getElem!_pos _ i (by simpa using hi)]
   conv_lhs => rw [List.Vector.getElem_def]
   simp only [seg52BlindBits, List.Vector.toList_ofFn, List.getElem_ofFn]

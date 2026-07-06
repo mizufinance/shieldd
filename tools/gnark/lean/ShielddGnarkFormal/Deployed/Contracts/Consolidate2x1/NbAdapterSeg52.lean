@@ -16,7 +16,7 @@ open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
 
 theorem seg52_nbBody (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
     nbBody (rho 45162) (rho 45164) (rho 15) (rho 105) (rho 193) (rho 5)
-      (rho 52987) (rho 52988) := by
+      (rho 52347) (rho 52348) := by
   have hbase := seg52_value_base_onCurve rho h
   have hIn0Bin := seg52In0Bits_toBinary rho h
   have hIn1Bin := seg52In1Bits_toBinary rho h
@@ -35,36 +35,33 @@ theorem seg52_nbBody (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   have hAdd1 := (seg52_add_inputs rho h hP1On hP2On (fun _ _ => True) True.intro).2
   have hA1Eq := EdwardsBridge.addSpec_eq
     (seg52In0AccState rho 128) (seg52In1AccState rho 128)
-    ⟨rho 49384, rho 49385⟩ hP1On hP2On hAdd1
-  have hA1On : EdwardsBridge.onCurve ⟨rho 49384, rho 49385⟩ :=
+    ⟨rho 48744, rho 48745⟩ hP1On hP2On hAdd1
+  have hA1On : EdwardsBridge.onCurve ⟨rho 48744, rho 48745⟩ :=
     hA1Eq ▸ EdwardsBridge.add_onCurve _ _ hP1On hP2On
   have hNegOn : EdwardsBridge.onCurve
       ⟨-(seg52Out0AccState rho 128).x, (seg52Out0AccState rho 128).y⟩ := by
     simpa [EdwardsBridge.negF] using
       EdwardsBridge.neg_onCurve (seg52Out0AccState rho 128) hP3On
   have hAdd2 := (seg52_add_output rho h hA1On hNegOn (fun _ _ => True) True.intro).2
-  have hA2Eq := EdwardsBridge.addSpec_eq ⟨rho 49384, rho 49385⟩
+  have hA2Eq := EdwardsBridge.addSpec_eq ⟨rho 48744, rho 48745⟩
     ⟨-(seg52Out0AccState rho 128).x, (seg52Out0AccState rho 128).y⟩
-    ⟨rho 51176, rho 51177⟩ hA1On hNegOn hAdd2
-  have hA2On : EdwardsBridge.onCurve ⟨rho 51176, rho 51177⟩ :=
+    ⟨rho 50536, rho 50537⟩ hA1On hNegOn hAdd2
+  have hA2On : EdwardsBridge.onCurve ⟨rho 50536, rho 50537⟩ :=
     hA2Eq ▸ EdwardsBridge.add_onCurve _ _ hA1On hNegOn
   have hBlindOn := (seg52Blind_ladder rho h blindBool hBlindEq (fun _ => True)
     True.intro).2
   have hFinalAdd := seg52_final_addSpec rho h hA2On hBlindOn
-  have hOutEq := EdwardsBridge.addSpec_eq ⟨rho 51176, rho 51177⟩
-    (seg52BlindAccState rho 251) ⟨rho 52987, rho 52988⟩
+  have hOutEq := EdwardsBridge.addSpec_eq ⟨rho 50536, rho 50537⟩
+    (seg52BlindAccState rho 251) ⟨rho 52347, rho 52348⟩
     hA2On hBlindOn hFinalAdd
-  have hOutOn : EdwardsBridge.onCurve ⟨rho 52987, rho 52988⟩ :=
+  have hOutOn : EdwardsBridge.onCurve ⟨rho 52347, rho 52348⟩ :=
     hOutEq ▸ EdwardsBridge.add_onCurve _ _ hA2On hBlindOn
-  have hFinalK : nbFinalK (rho 51176) (rho 51177)
+  have hFinalK : nbFinalK (rho 50536) (rho 50537)
       (seg52BlindAccState rho 251).x (seg52BlindAccState rho 251).y
-      (rho 52987) (rho 52988) :=
-    nbFinalK_of_addSpec ⟨rho 51176, rho 51177⟩ (seg52BlindAccState rho 251)
-      ⟨rho 52987, rho 52988⟩ hFinalAdd hOutOn
+      (rho 52347) (rho 52348) :=
+    nbFinalK_of_addSpec ⟨rho 50536, rho 50537⟩ (seg52BlindAccState rho 251)
+      ⟨rho 52347, rho 52348⟩ hFinalAdd hOutOn
   unfold nbBody
-  apply Shieldd.GnarkFormal.Deployed.NetBalance.zeroLadderK128
-    ⟨rho 45162, rho 45164⟩ hbase
-  intro _ _
   refine ⟨seg52In0Bits rho, hIn0Bin, ?_⟩
   refine (seg52In0_ladder rho h in0Bool hIn0Eq _ ?_ hbase).1
   refine ⟨seg52In1Bits rho, hIn1Bin, ?_⟩
@@ -88,11 +85,11 @@ theorem seg52_sound (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
   have hbody := seg52_nbBody rho h
   have hpost := seg52_encode_post rho h
     (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-      (rho 52987) (rho 52988)) hbody
+      (rho 52347) (rho 52348)) hbody
   have hpre := seg52_encode_pre rho h
     (fun T YDen => nbEncodeSeg1K (rho 44799) T YDen
       (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-        (rho 52987) (rho 52988))) hpost
+        (rho 52347) (rho 52348))) hpost
   rw [seg52_poseidon_eq rho h] at hpre
   have hposeidon := (Shieldd.GnarkFormal.Poseidon1Bridge.perm1_uncps
     (6888358618106443442961843809729175081075858965522240584763322653509542282215 : Seg52.F) (rho 16)
@@ -100,11 +97,11 @@ theorem seg52_sound (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
       (rho 44799) (rho 44800)
       (fun T YDen => nbEncodeSeg1K (rho 44799) T YDen
         (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-          (rho 52987) (rho 52988))))).mpr hpre
+          (rho 52347) (rho 52348))))).mpr hpre
   have hcircuit := (nb_circuit_eq (rho 15) (rho 105) (rho 193) (rho 16)
-    (rho 5) (rho 44799) (rho 44800) (rho 52987) (rho 52988)).mpr hposeidon
+    (rho 5) (rho 44799) (rho 44800) (rho 52347) (rho 52348)).mpr hposeidon
   apply Shieldd.GnarkFormal.NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound
-    (rho 15) (rho 105) (rho 193) (rho 16) (rho 5) ⟨rho 52987, rho 52988⟩
+    (rho 15) (rho 105) (rho 193) (rho 16) (rho 5) ⟨rho 52347, rho 52348⟩
   exact ⟨rho 44799, rho 44800, hcircuit⟩
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1

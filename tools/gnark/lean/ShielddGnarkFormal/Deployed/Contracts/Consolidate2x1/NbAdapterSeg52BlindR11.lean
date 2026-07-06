@@ -7,7 +7,7 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 
 theorem seg52Blind_rows111 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6900 rho ∧ Seg52.relationRow7591 rho ∧ Seg52.relationRow7592 rho ∧ Seg52.relationRow7593 rho ∧ Seg52.relationRow7594 rho ∧ Seg52.relationRow7595 rho := by
+    Seg52.relationRow6260 rho ∧ Seg52.relationRow6951 rho ∧ Seg52.relationRow6952 rho ∧ Seg52.relationRow6953 rho ∧ Seg52.relationRow6954 rho ∧ Seg52.relationRow6955 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -26,90 +26,88 @@ theorem seg52Blind_rows111 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
     _, _, _, _, _, _, p86, _, _, _,
 
-    _, _, _, _, p94, _, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
+  unfold Seg52.relationPart78 at p78
+
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6260, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+
   unfold Seg52.relationPart86 at p86
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6900, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6951, r6952, r6953, r6954, r6955, _, _, _, _⟩
 
-  unfold Seg52.relationPart94 at p94
-
-  rcases p94 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r7591, r7592, r7593, r7594, r7595, _, _, _, _⟩
-
-  exact ⟨r6900, r7591, r7592, r7593, r7594, r7595⟩
+  exact ⟨r6260, r6951, r6952, r6953, r6954, r6955⟩
 
 theorem seg52Blind_rung111 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51289 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50649 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 111)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       111 (Bool.toZMod bit) (seg52BlindAccState rho 111)
       (seg52BlindAccState rho 112) := by
-  obtain ⟨r6900, r7591, r7592, r7593, r7594, r7595⟩ := seg52Blind_rows111 rho h
-  unfold Seg52.relationRow6900 at r6900
+  obtain ⟨r6260, r6951, r6952, r6953, r6954, r6955⟩ := seg52Blind_rows111 rho h
+  unfold Seg52.relationRow6260 at r6260
 
-  unfold Seg52.relationRow7591 at r7591
+  unfold Seg52.relationRow6951 at r6951
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7591
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6951
 
-  unfold Seg52.relationRow7592 at r7592
+  unfold Seg52.relationRow6952 at r6952
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7592
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6952
 
-  unfold Seg52.relationRow7593 at r7593
+  unfold Seg52.relationRow6953 at r6953
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7593
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6953
 
-  unfold Seg52.relationRow7594 at r7594
+  unfold Seg52.relationRow6954 at r6954
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7594
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6954
 
-  unfold Seg52.relationRow7595 at r7595
+  unfold Seg52.relationRow6955 at r6955
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7595
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6955
 
   have hnextx : seg52BlindDeltaX111 rho =
-      seg52BlindDeltaX110 rho + rho 51982 := by
+      seg52BlindDeltaX110 rho + rho 51342 := by
     unfold seg52BlindDeltaX111 seg52BlindDeltaX110
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 110]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 110]
 
     ring
 
   have hnexty : seg52BlindDeltaY111 rho =
-      seg52BlindDeltaY110 rho + rho 51983 := by
+      seg52BlindDeltaY110 rho + rho 51343 := by
     unfold seg52BlindDeltaY111 seg52BlindDeltaY110
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 110]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 110]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 111
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX110 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY110 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX111 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY111 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX110 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY110 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX111 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY111 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung111_wide (rho 51178) (rho 51289) (seg52BlindDeltaX110 rho) (seg52BlindDeltaY110 rho) (rho 51979) (rho 51980) (rho 51981) (rho 51982) (rho 51983) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung111_wide (rho 50538) (rho 50649) (seg52BlindDeltaX110 rho) (seg52BlindDeltaY110 rho) (rho 51339) (rho 51340) (rho 51341) (rho 51342) (rho 51343) hacc
   · unfold seg52BlindDeltaX110 seg52BlindDeltaY110
-    linear_combination r7591
+    linear_combination r6951
   · unfold seg52BlindDeltaX110 seg52BlindDeltaY110
-    linear_combination r7592
+    linear_combination r6952
   · unfold seg52BlindDeltaX110 seg52BlindDeltaY110
-    linear_combination r7593
+    linear_combination r6953
   · unfold seg52BlindDeltaX110
-    linear_combination r7594
+    linear_combination r6954
   · unfold seg52BlindDeltaY110
-    linear_combination r7595
-  · linear_combination r6900
+    linear_combination r6955
+  · linear_combination r6260
 
 theorem seg52Blind_rows112 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6901 rho ∧ Seg52.relationRow7596 rho ∧ Seg52.relationRow7597 rho ∧ Seg52.relationRow7598 rho ∧ Seg52.relationRow7599 rho ∧ Seg52.relationRow7600 rho := by
+    Seg52.relationRow6261 rho ∧ Seg52.relationRow6956 rho ∧ Seg52.relationRow6957 rho ∧ Seg52.relationRow6958 rho ∧ Seg52.relationRow6959 rho ∧ Seg52.relationRow6960 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -128,94 +126,92 @@ theorem seg52Blind_rows112 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, p86, p87, _, _,
 
-    _, _, _, _, p94, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
+  unfold Seg52.relationPart78 at p78
+
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6261, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+
   unfold Seg52.relationPart86 at p86
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6901, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6956, r6957, r6958, r6959⟩
 
-  unfold Seg52.relationPart94 at p94
+  unfold Seg52.relationPart87 at p87
 
-  rcases p94 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r7596, r7597, r7598, r7599⟩
+  rcases p87 with ⟨r6960, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
-
-  rcases p95 with ⟨r7600, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-
-  exact ⟨r6901, r7596, r7597, r7598, r7599, r7600⟩
+  exact ⟨r6261, r6956, r6957, r6958, r6959, r6960⟩
 
 theorem seg52Blind_rung112 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51290 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50650 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 112)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       112 (Bool.toZMod bit) (seg52BlindAccState rho 112)
       (seg52BlindAccState rho 113) := by
-  obtain ⟨r6901, r7596, r7597, r7598, r7599, r7600⟩ := seg52Blind_rows112 rho h
-  unfold Seg52.relationRow6901 at r6901
+  obtain ⟨r6261, r6956, r6957, r6958, r6959, r6960⟩ := seg52Blind_rows112 rho h
+  unfold Seg52.relationRow6261 at r6261
 
-  unfold Seg52.relationRow7596 at r7596
+  unfold Seg52.relationRow6956 at r6956
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7596
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6956
 
-  unfold Seg52.relationRow7597 at r7597
+  unfold Seg52.relationRow6957 at r6957
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7597
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6957
 
-  unfold Seg52.relationRow7598 at r7598
+  unfold Seg52.relationRow6958 at r6958
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7598
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6958
 
-  unfold Seg52.relationRow7599 at r7599
+  unfold Seg52.relationRow6959 at r6959
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7599
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6959
 
-  unfold Seg52.relationRow7600 at r7600
+  unfold Seg52.relationRow6960 at r6960
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7600
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6960
 
   have hnextx : seg52BlindDeltaX112 rho =
-      seg52BlindDeltaX111 rho + rho 51987 := by
+      seg52BlindDeltaX111 rho + rho 51347 := by
     unfold seg52BlindDeltaX112 seg52BlindDeltaX111
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 111]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 111]
 
     ring
 
   have hnexty : seg52BlindDeltaY112 rho =
-      seg52BlindDeltaY111 rho + rho 51988 := by
+      seg52BlindDeltaY111 rho + rho 51348 := by
     unfold seg52BlindDeltaY112 seg52BlindDeltaY111
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 111]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 111]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 112
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX111 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY111 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX112 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY112 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX111 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY111 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX112 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY112 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung112_wide (rho 51178) (rho 51290) (seg52BlindDeltaX111 rho) (seg52BlindDeltaY111 rho) (rho 51984) (rho 51985) (rho 51986) (rho 51987) (rho 51988) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung112_wide (rho 50538) (rho 50650) (seg52BlindDeltaX111 rho) (seg52BlindDeltaY111 rho) (rho 51344) (rho 51345) (rho 51346) (rho 51347) (rho 51348) hacc
   · unfold seg52BlindDeltaX111 seg52BlindDeltaY111
-    linear_combination r7596
+    linear_combination r6956
   · unfold seg52BlindDeltaX111 seg52BlindDeltaY111
-    linear_combination r7597
+    linear_combination r6957
   · unfold seg52BlindDeltaX111 seg52BlindDeltaY111
-    linear_combination r7598
+    linear_combination r6958
   · unfold seg52BlindDeltaX111
-    linear_combination r7599
+    linear_combination r6959
   · unfold seg52BlindDeltaY111
-    linear_combination r7600
-  · linear_combination r6901
+    linear_combination r6960
+  · linear_combination r6261
 
 theorem seg52Blind_rows113 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6902 rho ∧ Seg52.relationRow7601 rho ∧ Seg52.relationRow7602 rho ∧ Seg52.relationRow7603 rho ∧ Seg52.relationRow7604 rho ∧ Seg52.relationRow7605 rho := by
+    Seg52.relationRow6262 rho ∧ Seg52.relationRow6961 rho ∧ Seg52.relationRow6962 rho ∧ Seg52.relationRow6963 rho ∧ Seg52.relationRow6964 rho ∧ Seg52.relationRow6965 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -234,90 +230,88 @@ theorem seg52Blind_rows113 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, _, p87, _, _,
 
-    _, _, _, _, _, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6902, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6262, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
+  unfold Seg52.relationPart87 at p87
 
-  rcases p95 with ⟨_, r7601, r7602, r7603, r7604, r7605, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p87 with ⟨_, r6961, r6962, r6963, r6964, r6965, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r6902, r7601, r7602, r7603, r7604, r7605⟩
+  exact ⟨r6262, r6961, r6962, r6963, r6964, r6965⟩
 
 theorem seg52Blind_rung113 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51291 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50651 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 113)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       113 (Bool.toZMod bit) (seg52BlindAccState rho 113)
       (seg52BlindAccState rho 114) := by
-  obtain ⟨r6902, r7601, r7602, r7603, r7604, r7605⟩ := seg52Blind_rows113 rho h
-  unfold Seg52.relationRow6902 at r6902
+  obtain ⟨r6262, r6961, r6962, r6963, r6964, r6965⟩ := seg52Blind_rows113 rho h
+  unfold Seg52.relationRow6262 at r6262
 
-  unfold Seg52.relationRow7601 at r7601
+  unfold Seg52.relationRow6961 at r6961
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7601
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6961
 
-  unfold Seg52.relationRow7602 at r7602
+  unfold Seg52.relationRow6962 at r6962
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7602
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6962
 
-  unfold Seg52.relationRow7603 at r7603
+  unfold Seg52.relationRow6963 at r6963
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7603
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6963
 
-  unfold Seg52.relationRow7604 at r7604
+  unfold Seg52.relationRow6964 at r6964
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7604
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6964
 
-  unfold Seg52.relationRow7605 at r7605
+  unfold Seg52.relationRow6965 at r6965
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7605
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6965
 
   have hnextx : seg52BlindDeltaX113 rho =
-      seg52BlindDeltaX112 rho + rho 51992 := by
+      seg52BlindDeltaX112 rho + rho 51352 := by
     unfold seg52BlindDeltaX113 seg52BlindDeltaX112
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 112]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 112]
 
     ring
 
   have hnexty : seg52BlindDeltaY113 rho =
-      seg52BlindDeltaY112 rho + rho 51993 := by
+      seg52BlindDeltaY112 rho + rho 51353 := by
     unfold seg52BlindDeltaY113 seg52BlindDeltaY112
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 112]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 112]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 113
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX112 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY112 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX113 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY113 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX112 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY112 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX113 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY113 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung113_wide (rho 51178) (rho 51291) (seg52BlindDeltaX112 rho) (seg52BlindDeltaY112 rho) (rho 51989) (rho 51990) (rho 51991) (rho 51992) (rho 51993) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung113_wide (rho 50538) (rho 50651) (seg52BlindDeltaX112 rho) (seg52BlindDeltaY112 rho) (rho 51349) (rho 51350) (rho 51351) (rho 51352) (rho 51353) hacc
   · unfold seg52BlindDeltaX112 seg52BlindDeltaY112
-    linear_combination r7601
+    linear_combination r6961
   · unfold seg52BlindDeltaX112 seg52BlindDeltaY112
-    linear_combination r7602
+    linear_combination r6962
   · unfold seg52BlindDeltaX112 seg52BlindDeltaY112
-    linear_combination r7603
+    linear_combination r6963
   · unfold seg52BlindDeltaX112
-    linear_combination r7604
+    linear_combination r6964
   · unfold seg52BlindDeltaY112
-    linear_combination r7605
-  · linear_combination r6902
+    linear_combination r6965
+  · linear_combination r6262
 
 theorem seg52Blind_rows114 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6903 rho ∧ Seg52.relationRow7606 rho ∧ Seg52.relationRow7607 rho ∧ Seg52.relationRow7608 rho ∧ Seg52.relationRow7609 rho ∧ Seg52.relationRow7610 rho := by
+    Seg52.relationRow6263 rho ∧ Seg52.relationRow6966 rho ∧ Seg52.relationRow6967 rho ∧ Seg52.relationRow6968 rho ∧ Seg52.relationRow6969 rho ∧ Seg52.relationRow6970 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -336,90 +330,88 @@ theorem seg52Blind_rows114 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, _, p87, _, _,
 
-    _, _, _, _, _, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6903, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6263, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
+  unfold Seg52.relationPart87 at p87
 
-  rcases p95 with ⟨_, _, _, _, _, _, r7606, r7607, r7608, r7609, r7610, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p87 with ⟨_, _, _, _, _, _, r6966, r6967, r6968, r6969, r6970, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r6903, r7606, r7607, r7608, r7609, r7610⟩
+  exact ⟨r6263, r6966, r6967, r6968, r6969, r6970⟩
 
 theorem seg52Blind_rung114 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51292 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50652 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 114)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       114 (Bool.toZMod bit) (seg52BlindAccState rho 114)
       (seg52BlindAccState rho 115) := by
-  obtain ⟨r6903, r7606, r7607, r7608, r7609, r7610⟩ := seg52Blind_rows114 rho h
-  unfold Seg52.relationRow6903 at r6903
+  obtain ⟨r6263, r6966, r6967, r6968, r6969, r6970⟩ := seg52Blind_rows114 rho h
+  unfold Seg52.relationRow6263 at r6263
 
-  unfold Seg52.relationRow7606 at r7606
+  unfold Seg52.relationRow6966 at r6966
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7606
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6966
 
-  unfold Seg52.relationRow7607 at r7607
+  unfold Seg52.relationRow6967 at r6967
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7607
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6967
 
-  unfold Seg52.relationRow7608 at r7608
+  unfold Seg52.relationRow6968 at r6968
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7608
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6968
 
-  unfold Seg52.relationRow7609 at r7609
+  unfold Seg52.relationRow6969 at r6969
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7609
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6969
 
-  unfold Seg52.relationRow7610 at r7610
+  unfold Seg52.relationRow6970 at r6970
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7610
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6970
 
   have hnextx : seg52BlindDeltaX114 rho =
-      seg52BlindDeltaX113 rho + rho 51997 := by
+      seg52BlindDeltaX113 rho + rho 51357 := by
     unfold seg52BlindDeltaX114 seg52BlindDeltaX113
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 113]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 113]
 
     ring
 
   have hnexty : seg52BlindDeltaY114 rho =
-      seg52BlindDeltaY113 rho + rho 51998 := by
+      seg52BlindDeltaY113 rho + rho 51358 := by
     unfold seg52BlindDeltaY114 seg52BlindDeltaY113
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 113]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 113]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 114
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX113 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY113 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX114 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY114 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX113 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY113 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX114 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY114 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung114_wide (rho 51178) (rho 51292) (seg52BlindDeltaX113 rho) (seg52BlindDeltaY113 rho) (rho 51994) (rho 51995) (rho 51996) (rho 51997) (rho 51998) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung114_wide (rho 50538) (rho 50652) (seg52BlindDeltaX113 rho) (seg52BlindDeltaY113 rho) (rho 51354) (rho 51355) (rho 51356) (rho 51357) (rho 51358) hacc
   · unfold seg52BlindDeltaX113 seg52BlindDeltaY113
-    linear_combination r7606
+    linear_combination r6966
   · unfold seg52BlindDeltaX113 seg52BlindDeltaY113
-    linear_combination r7607
+    linear_combination r6967
   · unfold seg52BlindDeltaX113 seg52BlindDeltaY113
-    linear_combination r7608
+    linear_combination r6968
   · unfold seg52BlindDeltaX113
-    linear_combination r7609
+    linear_combination r6969
   · unfold seg52BlindDeltaY113
-    linear_combination r7610
-  · linear_combination r6903
+    linear_combination r6970
+  · linear_combination r6263
 
 theorem seg52Blind_rows115 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6904 rho ∧ Seg52.relationRow7611 rho ∧ Seg52.relationRow7612 rho ∧ Seg52.relationRow7613 rho ∧ Seg52.relationRow7614 rho ∧ Seg52.relationRow7615 rho := by
+    Seg52.relationRow6264 rho ∧ Seg52.relationRow6971 rho ∧ Seg52.relationRow6972 rho ∧ Seg52.relationRow6973 rho ∧ Seg52.relationRow6974 rho ∧ Seg52.relationRow6975 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -438,90 +430,88 @@ theorem seg52Blind_rows115 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, _, p87, _, _,
 
-    _, _, _, _, _, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6904, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6264, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
+  unfold Seg52.relationPart87 at p87
 
-  rcases p95 with ⟨_, _, _, _, _, _, _, _, _, _, _, r7611, r7612, r7613, r7614, r7615, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p87 with ⟨_, _, _, _, _, _, _, _, _, _, _, r6971, r6972, r6973, r6974, r6975, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r6904, r7611, r7612, r7613, r7614, r7615⟩
+  exact ⟨r6264, r6971, r6972, r6973, r6974, r6975⟩
 
 theorem seg52Blind_rung115 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51293 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50653 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 115)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       115 (Bool.toZMod bit) (seg52BlindAccState rho 115)
       (seg52BlindAccState rho 116) := by
-  obtain ⟨r6904, r7611, r7612, r7613, r7614, r7615⟩ := seg52Blind_rows115 rho h
-  unfold Seg52.relationRow6904 at r6904
+  obtain ⟨r6264, r6971, r6972, r6973, r6974, r6975⟩ := seg52Blind_rows115 rho h
+  unfold Seg52.relationRow6264 at r6264
 
-  unfold Seg52.relationRow7611 at r7611
+  unfold Seg52.relationRow6971 at r6971
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7611
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6971
 
-  unfold Seg52.relationRow7612 at r7612
+  unfold Seg52.relationRow6972 at r6972
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7612
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6972
 
-  unfold Seg52.relationRow7613 at r7613
+  unfold Seg52.relationRow6973 at r6973
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7613
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6973
 
-  unfold Seg52.relationRow7614 at r7614
+  unfold Seg52.relationRow6974 at r6974
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7614
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6974
 
-  unfold Seg52.relationRow7615 at r7615
+  unfold Seg52.relationRow6975 at r6975
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7615
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6975
 
   have hnextx : seg52BlindDeltaX115 rho =
-      seg52BlindDeltaX114 rho + rho 52002 := by
+      seg52BlindDeltaX114 rho + rho 51362 := by
     unfold seg52BlindDeltaX115 seg52BlindDeltaX114
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 114]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 114]
 
     ring
 
   have hnexty : seg52BlindDeltaY115 rho =
-      seg52BlindDeltaY114 rho + rho 52003 := by
+      seg52BlindDeltaY114 rho + rho 51363 := by
     unfold seg52BlindDeltaY115 seg52BlindDeltaY114
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 114]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 114]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 115
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX114 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY114 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX115 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY115 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX114 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY114 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX115 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY115 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung115_wide (rho 51178) (rho 51293) (seg52BlindDeltaX114 rho) (seg52BlindDeltaY114 rho) (rho 51999) (rho 52000) (rho 52001) (rho 52002) (rho 52003) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung115_wide (rho 50538) (rho 50653) (seg52BlindDeltaX114 rho) (seg52BlindDeltaY114 rho) (rho 51359) (rho 51360) (rho 51361) (rho 51362) (rho 51363) hacc
   · unfold seg52BlindDeltaX114 seg52BlindDeltaY114
-    linear_combination r7611
+    linear_combination r6971
   · unfold seg52BlindDeltaX114 seg52BlindDeltaY114
-    linear_combination r7612
+    linear_combination r6972
   · unfold seg52BlindDeltaX114 seg52BlindDeltaY114
-    linear_combination r7613
+    linear_combination r6973
   · unfold seg52BlindDeltaX114
-    linear_combination r7614
+    linear_combination r6974
   · unfold seg52BlindDeltaY114
-    linear_combination r7615
-  · linear_combination r6904
+    linear_combination r6975
+  · linear_combination r6264
 
 theorem seg52Blind_rows116 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6905 rho ∧ Seg52.relationRow7616 rho ∧ Seg52.relationRow7617 rho ∧ Seg52.relationRow7618 rho ∧ Seg52.relationRow7619 rho ∧ Seg52.relationRow7620 rho := by
+    Seg52.relationRow6265 rho ∧ Seg52.relationRow6976 rho ∧ Seg52.relationRow6977 rho ∧ Seg52.relationRow6978 rho ∧ Seg52.relationRow6979 rho ∧ Seg52.relationRow6980 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -540,90 +530,88 @@ theorem seg52Blind_rows116 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, _, p87, _, _,
 
-    _, _, _, _, _, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6905, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6265, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
+  unfold Seg52.relationPart87 at p87
 
-  rcases p95 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r7616, r7617, r7618, r7619, r7620, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p87 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6976, r6977, r6978, r6979, r6980, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r6905, r7616, r7617, r7618, r7619, r7620⟩
+  exact ⟨r6265, r6976, r6977, r6978, r6979, r6980⟩
 
 theorem seg52Blind_rung116 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51294 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50654 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 116)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       116 (Bool.toZMod bit) (seg52BlindAccState rho 116)
       (seg52BlindAccState rho 117) := by
-  obtain ⟨r6905, r7616, r7617, r7618, r7619, r7620⟩ := seg52Blind_rows116 rho h
-  unfold Seg52.relationRow6905 at r6905
+  obtain ⟨r6265, r6976, r6977, r6978, r6979, r6980⟩ := seg52Blind_rows116 rho h
+  unfold Seg52.relationRow6265 at r6265
 
-  unfold Seg52.relationRow7616 at r7616
+  unfold Seg52.relationRow6976 at r6976
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7616
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6976
 
-  unfold Seg52.relationRow7617 at r7617
+  unfold Seg52.relationRow6977 at r6977
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7617
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6977
 
-  unfold Seg52.relationRow7618 at r7618
+  unfold Seg52.relationRow6978 at r6978
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7618
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6978
 
-  unfold Seg52.relationRow7619 at r7619
+  unfold Seg52.relationRow6979 at r6979
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7619
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6979
 
-  unfold Seg52.relationRow7620 at r7620
+  unfold Seg52.relationRow6980 at r6980
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7620
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6980
 
   have hnextx : seg52BlindDeltaX116 rho =
-      seg52BlindDeltaX115 rho + rho 52007 := by
+      seg52BlindDeltaX115 rho + rho 51367 := by
     unfold seg52BlindDeltaX116 seg52BlindDeltaX115
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 115]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 115]
 
     ring
 
   have hnexty : seg52BlindDeltaY116 rho =
-      seg52BlindDeltaY115 rho + rho 52008 := by
+      seg52BlindDeltaY115 rho + rho 51368 := by
     unfold seg52BlindDeltaY116 seg52BlindDeltaY115
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 115]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 115]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 116
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX115 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY115 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX116 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY116 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX115 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY115 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX116 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY116 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung116_wide (rho 51178) (rho 51294) (seg52BlindDeltaX115 rho) (seg52BlindDeltaY115 rho) (rho 52004) (rho 52005) (rho 52006) (rho 52007) (rho 52008) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung116_wide (rho 50538) (rho 50654) (seg52BlindDeltaX115 rho) (seg52BlindDeltaY115 rho) (rho 51364) (rho 51365) (rho 51366) (rho 51367) (rho 51368) hacc
   · unfold seg52BlindDeltaX115 seg52BlindDeltaY115
-    linear_combination r7616
+    linear_combination r6976
   · unfold seg52BlindDeltaX115 seg52BlindDeltaY115
-    linear_combination r7617
+    linear_combination r6977
   · unfold seg52BlindDeltaX115 seg52BlindDeltaY115
-    linear_combination r7618
+    linear_combination r6978
   · unfold seg52BlindDeltaX115
-    linear_combination r7619
+    linear_combination r6979
   · unfold seg52BlindDeltaY115
-    linear_combination r7620
-  · linear_combination r6905
+    linear_combination r6980
+  · linear_combination r6265
 
 theorem seg52Blind_rows117 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6906 rho ∧ Seg52.relationRow7621 rho ∧ Seg52.relationRow7622 rho ∧ Seg52.relationRow7623 rho ∧ Seg52.relationRow7624 rho ∧ Seg52.relationRow7625 rho := by
+    Seg52.relationRow6266 rho ∧ Seg52.relationRow6981 rho ∧ Seg52.relationRow6982 rho ∧ Seg52.relationRow6983 rho ∧ Seg52.relationRow6984 rho ∧ Seg52.relationRow6985 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -642,90 +630,88 @@ theorem seg52Blind_rows117 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, _, p87, _, _,
 
-    _, _, _, _, _, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6906, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6266, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
+  unfold Seg52.relationPart87 at p87
 
-  rcases p95 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r7621, r7622, r7623, r7624, r7625, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p87 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6981, r6982, r6983, r6984, r6985, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r6906, r7621, r7622, r7623, r7624, r7625⟩
+  exact ⟨r6266, r6981, r6982, r6983, r6984, r6985⟩
 
 theorem seg52Blind_rung117 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51295 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50655 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 117)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       117 (Bool.toZMod bit) (seg52BlindAccState rho 117)
       (seg52BlindAccState rho 118) := by
-  obtain ⟨r6906, r7621, r7622, r7623, r7624, r7625⟩ := seg52Blind_rows117 rho h
-  unfold Seg52.relationRow6906 at r6906
+  obtain ⟨r6266, r6981, r6982, r6983, r6984, r6985⟩ := seg52Blind_rows117 rho h
+  unfold Seg52.relationRow6266 at r6266
 
-  unfold Seg52.relationRow7621 at r7621
+  unfold Seg52.relationRow6981 at r6981
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7621
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6981
 
-  unfold Seg52.relationRow7622 at r7622
+  unfold Seg52.relationRow6982 at r6982
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7622
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6982
 
-  unfold Seg52.relationRow7623 at r7623
+  unfold Seg52.relationRow6983 at r6983
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7623
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6983
 
-  unfold Seg52.relationRow7624 at r7624
+  unfold Seg52.relationRow6984 at r6984
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7624
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6984
 
-  unfold Seg52.relationRow7625 at r7625
+  unfold Seg52.relationRow6985 at r6985
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7625
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6985
 
   have hnextx : seg52BlindDeltaX117 rho =
-      seg52BlindDeltaX116 rho + rho 52012 := by
+      seg52BlindDeltaX116 rho + rho 51372 := by
     unfold seg52BlindDeltaX117 seg52BlindDeltaX116
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 116]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 116]
 
     ring
 
   have hnexty : seg52BlindDeltaY117 rho =
-      seg52BlindDeltaY116 rho + rho 52013 := by
+      seg52BlindDeltaY116 rho + rho 51373 := by
     unfold seg52BlindDeltaY117 seg52BlindDeltaY116
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 116]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 116]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 117
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX116 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY116 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX117 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY117 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX116 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY116 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX117 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY117 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung117_wide (rho 51178) (rho 51295) (seg52BlindDeltaX116 rho) (seg52BlindDeltaY116 rho) (rho 52009) (rho 52010) (rho 52011) (rho 52012) (rho 52013) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung117_wide (rho 50538) (rho 50655) (seg52BlindDeltaX116 rho) (seg52BlindDeltaY116 rho) (rho 51369) (rho 51370) (rho 51371) (rho 51372) (rho 51373) hacc
   · unfold seg52BlindDeltaX116 seg52BlindDeltaY116
-    linear_combination r7621
+    linear_combination r6981
   · unfold seg52BlindDeltaX116 seg52BlindDeltaY116
-    linear_combination r7622
+    linear_combination r6982
   · unfold seg52BlindDeltaX116 seg52BlindDeltaY116
-    linear_combination r7623
+    linear_combination r6983
   · unfold seg52BlindDeltaX116
-    linear_combination r7624
+    linear_combination r6984
   · unfold seg52BlindDeltaY116
-    linear_combination r7625
-  · linear_combination r6906
+    linear_combination r6985
+  · linear_combination r6266
 
 theorem seg52Blind_rows118 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6907 rho ∧ Seg52.relationRow7626 rho ∧ Seg52.relationRow7627 rho ∧ Seg52.relationRow7628 rho ∧ Seg52.relationRow7629 rho ∧ Seg52.relationRow7630 rho := by
+    Seg52.relationRow6267 rho ∧ Seg52.relationRow6986 rho ∧ Seg52.relationRow6987 rho ∧ Seg52.relationRow6988 rho ∧ Seg52.relationRow6989 rho ∧ Seg52.relationRow6990 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -744,90 +730,88 @@ theorem seg52Blind_rows118 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, _, p87, _, _,
 
-    _, _, _, _, _, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6907, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6267, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
+  unfold Seg52.relationPart87 at p87
 
-  rcases p95 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r7626, r7627, r7628, r7629, r7630, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p87 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6986, r6987, r6988, r6989, r6990, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r6907, r7626, r7627, r7628, r7629, r7630⟩
+  exact ⟨r6267, r6986, r6987, r6988, r6989, r6990⟩
 
 theorem seg52Blind_rung118 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51296 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50656 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 118)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       118 (Bool.toZMod bit) (seg52BlindAccState rho 118)
       (seg52BlindAccState rho 119) := by
-  obtain ⟨r6907, r7626, r7627, r7628, r7629, r7630⟩ := seg52Blind_rows118 rho h
-  unfold Seg52.relationRow6907 at r6907
+  obtain ⟨r6267, r6986, r6987, r6988, r6989, r6990⟩ := seg52Blind_rows118 rho h
+  unfold Seg52.relationRow6267 at r6267
 
-  unfold Seg52.relationRow7626 at r7626
+  unfold Seg52.relationRow6986 at r6986
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7626
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6986
 
-  unfold Seg52.relationRow7627 at r7627
+  unfold Seg52.relationRow6987 at r6987
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7627
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6987
 
-  unfold Seg52.relationRow7628 at r7628
+  unfold Seg52.relationRow6988 at r6988
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7628
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6988
 
-  unfold Seg52.relationRow7629 at r7629
+  unfold Seg52.relationRow6989 at r6989
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7629
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6989
 
-  unfold Seg52.relationRow7630 at r7630
+  unfold Seg52.relationRow6990 at r6990
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7630
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6990
 
   have hnextx : seg52BlindDeltaX118 rho =
-      seg52BlindDeltaX117 rho + rho 52017 := by
+      seg52BlindDeltaX117 rho + rho 51377 := by
     unfold seg52BlindDeltaX118 seg52BlindDeltaX117
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 117]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 117]
 
     ring
 
   have hnexty : seg52BlindDeltaY118 rho =
-      seg52BlindDeltaY117 rho + rho 52018 := by
+      seg52BlindDeltaY117 rho + rho 51378 := by
     unfold seg52BlindDeltaY118 seg52BlindDeltaY117
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 117]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 117]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 118
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX117 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY117 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX118 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY118 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX117 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY117 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX118 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY118 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung118_wide (rho 51178) (rho 51296) (seg52BlindDeltaX117 rho) (seg52BlindDeltaY117 rho) (rho 52014) (rho 52015) (rho 52016) (rho 52017) (rho 52018) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung118_wide (rho 50538) (rho 50656) (seg52BlindDeltaX117 rho) (seg52BlindDeltaY117 rho) (rho 51374) (rho 51375) (rho 51376) (rho 51377) (rho 51378) hacc
   · unfold seg52BlindDeltaX117 seg52BlindDeltaY117
-    linear_combination r7626
+    linear_combination r6986
   · unfold seg52BlindDeltaX117 seg52BlindDeltaY117
-    linear_combination r7627
+    linear_combination r6987
   · unfold seg52BlindDeltaX117 seg52BlindDeltaY117
-    linear_combination r7628
+    linear_combination r6988
   · unfold seg52BlindDeltaX117
-    linear_combination r7629
+    linear_combination r6989
   · unfold seg52BlindDeltaY117
-    linear_combination r7630
-  · linear_combination r6907
+    linear_combination r6990
+  · linear_combination r6267
 
 theorem seg52Blind_rows119 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6908 rho ∧ Seg52.relationRow7631 rho ∧ Seg52.relationRow7632 rho ∧ Seg52.relationRow7633 rho ∧ Seg52.relationRow7634 rho ∧ Seg52.relationRow7635 rho := by
+    Seg52.relationRow6268 rho ∧ Seg52.relationRow6991 rho ∧ Seg52.relationRow6992 rho ∧ Seg52.relationRow6993 rho ∧ Seg52.relationRow6994 rho ∧ Seg52.relationRow6995 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -846,90 +830,88 @@ theorem seg52Blind_rows119 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, _, p87, _, _,
 
-    _, _, _, _, _, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6908, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6268, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
+  unfold Seg52.relationPart87 at p87
 
-  rcases p95 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r7631, r7632, r7633, r7634, r7635, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p87 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6991, r6992, r6993, r6994, r6995, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r6908, r7631, r7632, r7633, r7634, r7635⟩
+  exact ⟨r6268, r6991, r6992, r6993, r6994, r6995⟩
 
 theorem seg52Blind_rung119 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51297 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50657 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 119)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       119 (Bool.toZMod bit) (seg52BlindAccState rho 119)
       (seg52BlindAccState rho 120) := by
-  obtain ⟨r6908, r7631, r7632, r7633, r7634, r7635⟩ := seg52Blind_rows119 rho h
-  unfold Seg52.relationRow6908 at r6908
+  obtain ⟨r6268, r6991, r6992, r6993, r6994, r6995⟩ := seg52Blind_rows119 rho h
+  unfold Seg52.relationRow6268 at r6268
 
-  unfold Seg52.relationRow7631 at r7631
+  unfold Seg52.relationRow6991 at r6991
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7631
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6991
 
-  unfold Seg52.relationRow7632 at r7632
+  unfold Seg52.relationRow6992 at r6992
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7632
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6992
 
-  unfold Seg52.relationRow7633 at r7633
+  unfold Seg52.relationRow6993 at r6993
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7633
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6993
 
-  unfold Seg52.relationRow7634 at r7634
+  unfold Seg52.relationRow6994 at r6994
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7634
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6994
 
-  unfold Seg52.relationRow7635 at r7635
+  unfold Seg52.relationRow6995 at r6995
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7635
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6995
 
   have hnextx : seg52BlindDeltaX119 rho =
-      seg52BlindDeltaX118 rho + rho 52022 := by
+      seg52BlindDeltaX118 rho + rho 51382 := by
     unfold seg52BlindDeltaX119 seg52BlindDeltaX118
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 118]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 118]
 
     ring
 
   have hnexty : seg52BlindDeltaY119 rho =
-      seg52BlindDeltaY118 rho + rho 52023 := by
+      seg52BlindDeltaY118 rho + rho 51383 := by
     unfold seg52BlindDeltaY119 seg52BlindDeltaY118
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 118]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 118]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 119
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX118 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY118 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX119 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY119 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX118 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY118 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX119 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY119 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung119_wide (rho 51178) (rho 51297) (seg52BlindDeltaX118 rho) (seg52BlindDeltaY118 rho) (rho 52019) (rho 52020) (rho 52021) (rho 52022) (rho 52023) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung119_wide (rho 50538) (rho 50657) (seg52BlindDeltaX118 rho) (seg52BlindDeltaY118 rho) (rho 51379) (rho 51380) (rho 51381) (rho 51382) (rho 51383) hacc
   · unfold seg52BlindDeltaX118 seg52BlindDeltaY118
-    linear_combination r7631
+    linear_combination r6991
   · unfold seg52BlindDeltaX118 seg52BlindDeltaY118
-    linear_combination r7632
+    linear_combination r6992
   · unfold seg52BlindDeltaX118 seg52BlindDeltaY118
-    linear_combination r7633
+    linear_combination r6993
   · unfold seg52BlindDeltaX118
-    linear_combination r7634
+    linear_combination r6994
   · unfold seg52BlindDeltaY118
-    linear_combination r7635
-  · linear_combination r6908
+    linear_combination r6995
+  · linear_combination r6268
 
 theorem seg52Blind_rows120 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Seg52.relationRow6909 rho ∧ Seg52.relationRow7636 rho ∧ Seg52.relationRow7637 rho ∧ Seg52.relationRow7638 rho ∧ Seg52.relationRow7639 rho ∧ Seg52.relationRow7640 rho := by
+    Seg52.relationRow6269 rho ∧ Seg52.relationRow6996 rho ∧ Seg52.relationRow6997 rho ∧ Seg52.relationRow6998 rho ∧ Seg52.relationRow6999 rho ∧ Seg52.relationRow7000 rho := by
   unfold Seg52.relation at h
 
   rcases h with ⟨
@@ -948,91 +930,89 @@ theorem seg52Blind_rows120 (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
 
     _, _, _, _, _, _, _, _, _, _,
 
-    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, p78, _,
 
-    _, _, _, _, _, _, p86, _, _, _,
+    _, _, _, _, _, _, _, p87, _, _,
 
-    _, _, _, _, _, p95, _, _, _, _,
-
-    _, _, _, _, _, _, _, _
+    _, _, _, _, _, _, _, _, _, _
 
   ⟩
 
-  unfold Seg52.relationPart86 at p86
+  unfold Seg52.relationPart78 at p78
 
-  rcases p86 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6909, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p78 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6269, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  unfold Seg52.relationPart95 at p95
+  unfold Seg52.relationPart87 at p87
 
-  rcases p95 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r7636, r7637, r7638, r7639, r7640, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  rcases p87 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r6996, r6997, r6998, r6999, r7000, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
 
-  exact ⟨r6909, r7636, r7637, r7638, r7639, r7640⟩
+  exact ⟨r6269, r6996, r6997, r6998, r6999, r7000⟩
 
 theorem seg52Blind_rung120 (rho : Nat -> Seg52.F) (h : Seg52.relation rho)
-    (bit : Bool) (hbitValue : rho 51298 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 50658 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho 120)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       120 (Bool.toZMod bit) (seg52BlindAccState rho 120)
       (seg52BlindAccState rho 121) := by
-  obtain ⟨r6909, r7636, r7637, r7638, r7639, r7640⟩ := seg52Blind_rows120 rho h
-  unfold Seg52.relationRow6909 at r6909
+  obtain ⟨r6269, r6996, r6997, r6998, r6999, r7000⟩ := seg52Blind_rows120 rho h
+  unfold Seg52.relationRow6269 at r6269
 
-  unfold Seg52.relationRow7636 at r7636
+  unfold Seg52.relationRow6996 at r6996
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7636
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6996
 
-  unfold Seg52.relationRow7637 at r7637
+  unfold Seg52.relationRow6997 at r6997
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7637
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6997
 
-  unfold Seg52.relationRow7638 at r7638
+  unfold Seg52.relationRow6998 at r6998
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7638
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6998
 
-  unfold Seg52.relationRow7639 at r7639
+  unfold Seg52.relationRow6999 at r6999
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7639
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r6999
 
-  unfold Seg52.relationRow7640 at r7640
+  unfold Seg52.relationRow7000 at r7000
 
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7640
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r7000
 
   have hnextx : seg52BlindDeltaX120 rho =
-      seg52BlindDeltaX119 rho + rho 52027 := by
+      seg52BlindDeltaX119 rho + rho 51387 := by
     unfold seg52BlindDeltaX120 seg52BlindDeltaX119
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51432 5 119]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50792 5 119]
 
     ring
 
   have hnexty : seg52BlindDeltaY120 rho =
-      seg52BlindDeltaY119 rho + rho 52028 := by
+      seg52BlindDeltaY119 rho + rho 51388 := by
     unfold seg52BlindDeltaY120 seg52BlindDeltaY119
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 51433 5 119]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 50793 5 119]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 120
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX119 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY119 rho : Seg52.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 51178 + seg52BlindDeltaX120 rho : Seg52.F),
-      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 51178 + seg52BlindDeltaY120 rho : Seg52.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX119 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY119 rho : Seg52.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg52.F) * rho 50538 + seg52BlindDeltaX120 rho : Seg52.F),
+      ((1 : Seg52.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg52.F) * rho 50538 + seg52BlindDeltaY120 rho : Seg52.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung120_wide (rho 51178) (rho 51298) (seg52BlindDeltaX119 rho) (seg52BlindDeltaY119 rho) (rho 52024) (rho 52025) (rho 52026) (rho 52027) (rho 52028) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg52.rung120_wide (rho 50538) (rho 50658) (seg52BlindDeltaX119 rho) (seg52BlindDeltaY119 rho) (rho 51384) (rho 51385) (rho 51386) (rho 51387) (rho 51388) hacc
   · unfold seg52BlindDeltaX119 seg52BlindDeltaY119
-    linear_combination r7636
+    linear_combination r6996
   · unfold seg52BlindDeltaX119 seg52BlindDeltaY119
-    linear_combination r7637
+    linear_combination r6997
   · unfold seg52BlindDeltaX119 seg52BlindDeltaY119
-    linear_combination r7638
+    linear_combination r6998
   · unfold seg52BlindDeltaX119
-    linear_combination r7639
+    linear_combination r6999
   · unfold seg52BlindDeltaY119
-    linear_combination r7640
-  · linear_combination r6909
+    linear_combination r7000
+  · linear_combination r6269
 
 theorem seg52Blind_hstep_c11 (rho : Nat -> Seg52.F)
     (h : Seg52.relation rho) (bits : List.Vector Bool 251)
-    (hbitAt : ∀ i, i < 251 → rho (51178 + i) = Bool.toZMod bits[i]!) :
+    (hbitAt : ∀ i, i < 251 → rho (50538 + i) = Bool.toZMod bits[i]!) :
     ∀ i, 111 ≤ i → i < 121 →
       EdwardsBridge.onCurve (seg52BlindAccState rho i) →
       Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i
