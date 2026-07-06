@@ -32,9 +32,9 @@ def spend2NullifierOut : List Nat := [20337, 20342, 20347, 20352]
 def outputNoteCommitmentOut : List Nat := [38712, 38717, 38722, 38727, 38732, 38737, 38742]
 
 /-- Compressed net-balance commitment lanes fed into the statement hash. -/
-def netBalanceCommitmentCompressed : List Nat := [53353, 53693]
+def netBalanceCommitmentCompressed : List Nat := [52713, 53053]
 
 /-- Statement-hash transcript output lanes. -/
-def statementHashOut : List Nat := [54128, 54133, 54138, 54143, 54148, 54153, 54158, 54163]
+def statementHashOut : List Nat := [53488, 53493, 53498, 53503, 53508, 53513, 53518, 53523]
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Wiring

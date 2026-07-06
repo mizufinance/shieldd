@@ -27,6 +27,6 @@ def deployedSpec42 (rho : Nat → DeployedF) : Prop :=
 
 def deployedSpec54 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Extracted.DecafCompressToField.Relation
-    (rho 52987) (rho 52988) (rho 53693 - rho 53353)
+    (rho 52347) (rho 52348) (rho 53053 - rho 52713)
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Specs
