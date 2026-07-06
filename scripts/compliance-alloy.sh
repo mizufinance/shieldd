@@ -109,3 +109,4 @@ run_model value-conservation  BindingImpliesConservation
 run_model compliance-tiers    CompleteIsTerminal CompleteReachableFromAll NoPendingShortcut FourCanonicalTiers
 run_model orbis-authorization CorrectIssuerRecovers OnlyDesignatedRecovers SingleBinding
 run_model ics20-supply-conservation SupplyBackedByEscrow
+run_model consolidate2x1-statement-sufficiency NoDoubleSpend NoInflation SpendAuthBound

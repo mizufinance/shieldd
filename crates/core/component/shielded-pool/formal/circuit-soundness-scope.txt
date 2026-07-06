@@ -14,3 +14,4 @@ ZK-FIND-DUMMY-NULLIFIER-DOMAIN|crates/core/component/shielded-pool/src/note_resh
 ZK-FIND-RUST-GO-FIELD-CORRESPONDENCE|tools/gnark/internal/abi/statement_fields.go:ReconstructedTransferStatementFieldsFromWitnessV1
 ZK-PROP-AMOUNT-RANGE-128|tools/gnark/internal/circuits/amount_range_test.go:TestAmountRangeBoundIs128Bits
 ZK-PROP-C2X1-STATEMENT-SEAM|tools/gnark/internal/primitives/crypto_primitives_test.go:TestConsolidate2x1StatementSeamMatchesShielddVectors
+ZK-PROP-C2X1-STATEMENT-SUFFICIENT|crates/core/component/compliance/formal/alloy/consolidate2x1-statement-sufficiency.als:assert NoDoubleSpend
