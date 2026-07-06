@@ -145,8 +145,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst60_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg60",
           "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
-          "relation_sha256_hex": "31ed2083de3fb600342102447f9296cf2a754c3194edc371227e6c3642191c85",
-          "wire_role_sha256_hex": "aa94a9e0aef184f5d5b9caeb0344e116299d4452f228d3c7e080d11c53a9bf37"
+          "relation_sha256_hex": "4aa083bf1e1a311c9ddae88e2b2f04562c60cd16e221ae08cafe77202959a79a",
+          "wire_role_sha256_hex": "446af964d7eeb40ddfb1a6d11fc5fcf0ed1551014aa2a963f9de7bd7dad9566f"
         }
       ],
       "note": "deployed glue slice => enforced algebraic equality; axiom-clean"
@@ -261,8 +261,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst53_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg53",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "2c3197620c8f28d2506af617b117137b9399c3fce0252e2168dcd84b4c7b6dd0",
-          "wire_role_sha256_hex": "964d07820091fa592fdf860808d5c641220ea9d86520255c498d407023bdf77b"
+          "relation_sha256_hex": "4ce09aba27c2dcb02eb1e6ab35404325ab2cde0c2e17a20310295de6bcaf47d5",
+          "wire_role_sha256_hex": "6e5fcfb824387b56d1fd7170683608b789056c238f96127ed4ec2c795c135a27"
         }
       ],
       "note": "deployed glue slice => enforced algebraic equality; axiom-clean"
@@ -377,8 +377,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst54_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg54",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "ba561a1c526bd0bbbfe3bd2a33bd18b686ad0ed357914b436aa64db63ffd1b60",
-          "wire_role_sha256_hex": "1dc7ad17faa1ead4d3dd12a31c24fccf43426f887d2b0870be6b4433f1f75fb3"
+          "relation_sha256_hex": "b9f39a42c4c97de3176ac214f8b295ef180b6030adf61dbc347b2ea7de7e668b",
+          "wire_role_sha256_hex": "d6a4c79e10661d3a4495421e50f64c10d287e22c0f8269201b54efdde6cfca73"
         }
       ],
       "note": "deployed BoundDeployedSound wrapper (partial-state compress relation endpoint)"
@@ -418,19 +418,19 @@
       "note": ""
     },
     {
-      "class_key": "decaf.net_balance_commitment@5db733dadf555bc9",
+      "class_key": "decaf.net_balance_commitment@72fe1288e66d0e52",
       "op": "decaf.net_balance_commitment",
-      "status": "proven",
+      "status": "pending",
       "assumption_id": "",
-      "shape_sha256_hex": "5db733dadf555bc9fd7f7592004a37dd7f0fcb0f7d60704489b68fe274af026f",
+      "shape_sha256_hex": "72fe1288e66d0e527017bca53324702669cf3ae5a415d2f3a8570d4ef5298692",
       "instances": [
         {
           "segment_index": 52,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst52_bound",
+          "lean_theorem": "",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg52",
-          "constant_vector_sha256_hex": "0b2c254be85a0efe63944a9b7317bdf144904df8c13a0b4633d80899adbed45c",
-          "relation_sha256_hex": "5e360dffe445decc04f8a0d56822a446cd4681da0f2a8c3fb25d43a02d376c31",
-          "wire_role_sha256_hex": "e0a52aa054f6863b1f19a8635a0c9ba4e5de1a08be8a446b2db4e43413ce0204"
+          "constant_vector_sha256_hex": "1f315ac3616448676e5e877161b3a9a4ec9b68f247423fcceec60b4164b229bb",
+          "relation_sha256_hex": "2f20c7c26088dd1c944a5f8a3f3646c72fa80190ea13843a81b697f2ec4e9885",
+          "wire_role_sha256_hex": "18c787991df932d10a86feb65d6ae17748e166e3d0291abb5416d89ae5add96a"
         }
       ],
       "note": ""
@@ -559,8 +559,8 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst59_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg59",
           "constant_vector_sha256_hex": "4075c83513915417cc58a11f75e715c91728f27fb81d1a48f9fc46831a72f7a6",
-          "relation_sha256_hex": "e3aa647f90558375d13dbe9925db32613d578b24a4c1c5bb173ed9c3d5882a2a",
-          "wire_role_sha256_hex": "2c9c936e8e757641022b19b76a05b73249dd8cee74acd5052092da9fd85a132b"
+          "relation_sha256_hex": "f8bc57a488c76cf77cd9a993e2a126be61aca56ac712e51c5a49ed3a31a552e3",
+          "wire_role_sha256_hex": "e75f5d3cf411d0e62f3d80019daeafcc00d39bb357e2747262a45d7500eea97f"
         }
       ],
       "note": "deployed statement-hash Poseidon partial-state endpoint via typed semantic bridge; uses named deployed prime-order assumption"
