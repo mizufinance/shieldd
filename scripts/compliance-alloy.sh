@@ -110,3 +110,4 @@ run_model compliance-tiers    CompleteIsTerminal CompleteReachableFromAll NoPend
 run_model orbis-authorization CorrectIssuerRecovers OnlyDesignatedRecovers SingleBinding
 run_model ics20-supply-conservation SupplyBackedByEscrow
 run_model consolidate2x1-statement-sufficiency NoDoubleSpend NoInflation SpendAuthBound
+run_model transfer-statement-sufficiency NoDoubleSpend NoInflation SpendAuthBound RegulatedEnforced DummyNonSpending
