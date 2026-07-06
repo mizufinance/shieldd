@@ -161,6 +161,90 @@ fn parse_g1(point: &G1PointJson) -> Result<ProofG1> {
     Ok(point)
 }
 
+#[cfg(test)]
+mod statement_parity_tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    /// Every shieldd gnark family exposes exactly one public input wire,
+    /// `ClaimedStatementHash` — the statement-hash transcript binding (see
+    /// `note_reshape_circuit.go:23` / `transfer_circuit.go:49`, and the
+    /// per-field binding inventories under
+    /// `docs/soundness/reference/{consolidate2x1,transfer}-statement-binding-inventory.md`).
+    ///
+    /// The SnarkPack aggregation layer derives its per-proof arity from the VK
+    /// as `pvk.vk.gamma_abc_g1.len() - 1` (`proof-aggregation/src/statement.rs:212`).
+    /// Groth16 lays out `gamma_abc_g1` as `[gamma_abc_0, ..public inputs..]`, so
+    /// `len() - 1` is the public-input count. Nothing else pins the committed
+    /// family VKs to the circuit's actual public-input surface; this test closes
+    /// that cross-tool statement-parity axis (SnarkPack S5): a circuit change
+    /// exposing a second public input, or a VK swap, would otherwise silently
+    /// diverge the aggregated statement shape from what the circuit proves.
+    const EXPECTED_PUBLIC_INPUT_ARITY: usize = 1;
+
+    /// All committed gnark families (one artifact dir each under tools/gnark/artifacts).
+    const FAMILIES: &[&str] = &[
+        "consolidate2x1",
+        "consolidate4x1",
+        "consolidate8x1",
+        "shielded_ics20_withdrawal",
+        "split1x4",
+        "split1x8",
+        "transfer",
+    ];
+
+    fn artifacts_root() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../../tools/gnark/artifacts")
+            .canonicalize()
+            .expect("tools/gnark/artifacts should resolve")
+    }
+
+    #[test]
+    fn family_vks_expose_single_statement_hash_public_input() {
+        let root = artifacts_root();
+        for family in FAMILIES {
+            let family_dir = root.join(family);
+            let vk_path = family_dir.join("verifying_key.json");
+            let vk_json: VerifyingKeyJson = serde_json::from_slice(
+                &fs::read(&vk_path).unwrap_or_else(|e| panic!("read {vk_path:?}: {e}")),
+            )
+            .unwrap_or_else(|e| panic!("decode {vk_path:?}: {e}"));
+
+            // Parse into ark VK so we validate the same shape the runtime consumes.
+            let vk = verifying_key_from_json(&vk_json)
+                .unwrap_or_else(|e| panic!("parse VK for {family}: {e}"));
+
+            let gamma_abc_len = vk.gamma_abc_g1.len();
+            let arity = gamma_abc_len
+                .checked_sub(1)
+                .unwrap_or_else(|| panic!("family {family} VK has empty gamma_abc_g1"));
+
+            assert_eq!(
+                arity, EXPECTED_PUBLIC_INPUT_ARITY,
+                "family {family} VK public-input arity {arity} != {EXPECTED_PUBLIC_INPUT_ARITY} \
+                 (gamma_abc_g1 len {gamma_abc_len}); statement-parity broken — the circuit's \
+                 public-input surface no longer matches the single ClaimedStatementHash wire the \
+                 aggregation layer assumes"
+            );
+
+            // Cross-file parity: the two committed artifacts must agree on the
+            // public surface. gnark's `nb_public_variables` counts the implicit
+            // constant `1` wire plus each declared public input, which is exactly
+            // `gamma_abc_g1.len()` (Groth16 lays out `[gamma_abc_0, ..inputs..]`).
+            // A partial regen (new VK, stale metadata, or vice versa) drifts these.
+            let metadata = load_artifact_metadata(&family_dir)
+                .unwrap_or_else(|e| panic!("load metadata for {family}: {e}"));
+            assert_eq!(
+                metadata.nb_public_variables as usize, gamma_abc_len,
+                "family {family} circuit_metadata.nb_public_variables {} disagrees with VK \
+                 gamma_abc_g1 len {gamma_abc_len}; the VK and metadata artifacts have drifted",
+                metadata.nb_public_variables
+            );
+        }
+    }
+}
+
 fn parse_g2(point: &G2PointJson) -> Result<ProofG2> {
     let x_a0 = ProofG1Base::from_str(&point.x.a0).map_err(|_| anyhow!("invalid G2 x.a0"))?;
     let x_a1 = ProofG1Base::from_str(&point.x.a1).map_err(|_| anyhow!("invalid G2 x.a1"))?;
