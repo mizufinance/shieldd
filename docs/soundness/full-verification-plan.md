@@ -29,7 +29,7 @@ proved or an audited ledger row. Layers do not promote each other
 | L2 | No under-constraint | Is each gadget's constraint system deterministic — no free wire, no missing constraint? | Picus (leaf decomposition, `picus-leaf-decomposition` pattern) | halo2 2024/25-style library under-constraint |
 | L3 | Gadget semantics | Do the extracted gadget constraints imply the gadget spec? | Lean (`*Bridge.lean` `circuit_sound` theorems) | constraints satisfiable by wrong outputs |
 | L4 | Compiled artifact | Do the *actual compiled `.sr1cs` rows* imply the whole-circuit statement? | Lean deployed bridges + `shieldd-constraint-coverage` partition gate + capstone composition theorem | compile-time specialization diverging from proved gadget |
-| L5 | Proving stack | Prover/verifier/aggregator code and backend crypto: Groth16, gnark backend, SnarkPack/RIPP, arkworks | F*/hax (implementation seams), pinned-version advisory audit, ledger rows | backend soundness CVE (GHSA-q3hw-3gm4-w5cr) |
+| L5 | Proving stack | Prover/verifier/aggregator code and backend crypto: Groth16, gnark backend, SnarkPack/RIPP, arkworks | Named assumption rows + pinned versions + advisory monitoring; F* only where rows already exist (SnarkPack) — no new proof tooling at this layer | backend soundness CVE (GHSA-q3hw-3gm4-w5cr) |
 
 Mapping from the original 4-layer sketch: sketch-1 = L1, sketch-2 = L2,
 sketch-3 = L3, sketch-4 = L4. L0 and L5 are the additions — L0 because every
@@ -39,6 +39,25 @@ direction the sketch misses: L2–L4 are **soundness-only** (constraints ⇒
 spec). **Completeness** (honest witness always satisfies; no honest-user
 funds bricked) is covered by prover round-trip tests, not proofs — keep it a
 named test obligation, not an accident.
+
+**Boundary fidelity (cross-cutting, decided 2026-07-06).** No tool checks that
+another tool's model matches the real artifact: the Alloy facts are
+hand-transcribed from the circuit/handler, the F* statement model is separate
+from the Lean one, the deployed artifact is separate from the manifest pin.
+Every such seam must be a **named ledger row** (`MODEL-ASSUME-*` class) plus
+the strongest cheap mechanical pin available (seam/conformance test, hash
+pin). Unnamed seams are findings. The composition across layers and tools is
+stated once, in `docs/soundness/assurance-case.md` — the tree of protocol
+claims where every edge is a stamped artifact, a ledger row, or an explicit
+TODO. Keep it current per its maintenance rule.
+
+**Tooling policy (decided 2026-07-06).** Tools are routed per assumption type
+and each must earn its seat: Lean (semantics, L3/L4), Picus (determinism, L2),
+Alloy (statement sufficiency, L1), tests (completeness + parity). Tamarin is
+retained ONLY for the compliance detection flow (Phase H) — if that surface
+stays assumption-rowed, drop Tamarin. No new hax extraction: for the H3 seam,
+use the differential-test option, not F* extraction; F* remains only where
+SnarkPack rows already exist.
 
 ## 2. Current state — consolidate2x1
 
@@ -81,11 +100,25 @@ mechanized SnarkPack/RIPP soundness theorem** — that is the honest gap.
 
 | ID | Layer | Hole | Severity |
 | --- | --- | --- | --- |
-| S1 | L5 | **No mechanized RIPP/TIPP/MIPP soundness theorem.** The algorithm is `refined` (reviewed vs the published paper + divergence findings), not `proved`. A mechanized game-based proof (Lean/VCVio, same stack as DLEQ) is the only removal path; it is a research-scale effort. | HIGH (accept-or-prove decision needed) |
+| S1 | L5 | **No mechanized RIPP/TIPP/MIPP soundness theorem.** DECIDED 2026-07-06 (human): **accept for now** on Filecoin-lineage + paper review evidence, as a named `assumed` ledger row with an explicit removal path. The removal path is NOT re-proving the IPP paper: it is mechanizing in Lean that the aggregated verification equation implies each per-proof Groth16 verification equation under the pairing assumptions — a bounded, statement-shaped target. Roadmap item, not current work. | decided (row pending, Task 14) |
 | S2 | L5 | Groth16 verification inside aggregation + pairing/KZG crypto: named assumption, stays assumed (matches roadmap policy). | audited |
 | S3 | L5 | arkworks + hax + F* toolchain trust rows: audited, pinned (`toolchain.toml`), stamp-checked by `just snarkpack-invariants`. | audited |
 | S4 | L4/L5 | Transcript/statement seam: statement-encoding injectivity `proved` (`lemma_encode_statement_injective`); challenge/padding/wrapper rows depend on it — any change to statement encoding **reopens all dependent rows** (completion rule in the handoff doc). | guarded |
 | S5 | L1 | The aggregated statement's binding to the per-proof circuit statements (does accepting an aggregate imply each underlying statement?) is composed from F* rows + Rust types; confirm the Lean-side statement model and the F*-side model are the *same* statement (cross-tool statement-parity check, like Tamarin `ProofSound` in Focus 1). | MED |
+
+### SnarkPack layer table (added 2026-07-06)
+
+SnarkPack previously had scattered S-rows instead of the circuit side's layer
+discipline. Same structure, applied to the aggregation stack — a SnarkPack
+property is "verified" only when every SL under it is proved or rowed:
+
+| # | Layer | Question | Primary evidence | Status |
+| --- | --- | --- | --- | --- |
+| SL0 | Crypto assumptions | Pairing (BLS12-377), KZG/structured-reference-string assumptions | Ledger rows (S2 pattern) | rowed |
+| SL1 | Statement parity | Does the aggregate statement equal the per-circuit statements? | S5 conformance tests: VK arity 1, statement parity, VK-hash hardening | proved (tests green) |
+| SL2 | Aggregation soundness | Does an accepted aggregate imply each Groth16 check? | S1: accepted on Filecoin lineage (decision above); removal path = Lean mechanization of the verification equation | rowed (decided) |
+| SL3 | Implementation seam | Does the Rust implementation compute the reviewed algorithm? | Existing F* rows over hax-extracted Rust (`formal-handoff.md`), statement-encoding injectivity (S4), completion rules | guarded |
+| SL4 | Artifact identity | Are the deployed VKs/SRS the ones the rows were stamped against? | Pinned versions (S3), VK-hash tests; deployed-artifact check joins the release checklist (Task 17) | rowed + tests |
 
 ## 4. Phase plan
 
@@ -163,6 +196,36 @@ Goal: an artifact that says the statement is *enough*.
 
 ### Phase G — Optimization loop enabled (Section 5)
 Not a work phase; the end state. Enter only when A–D are green.
+
+### Phase H — Compliance/ciphertext protocol (transfer surface) [added 2026-07-06]
+The transfer compliance surface gets the same layer treatment as the value
+surface; today it is 8 `functional-assumption` classes plus unstated
+encryption/protocol questions. Three distinct sub-problems, three tools:
+- **H-a (L3/L4, Lean):** prove the 8 `ZK-ASSUME-TRANSFER-DEPLOYED-*` gadget
+  classes with the existing deployed-bridge machinery (dossier says
+  threshold/ack/poseidon patterns are reusable; shared_secret is the hard
+  canon-chain-class one). Executor-drivable per class once one exemplar exists.
+- **H-b (L0/L1, game-based or row):** encryption security of the Poseidon
+  encryption (what the ciphertexts must hide/bind). Either a VCVio game-based
+  proof (DLEQ stack) or an explicit assumption row with the property stated
+  precisely — the danger is the *unstated* property, not the assumption.
+- **H-c (L1, Tamarin — its only remaining seat):** the multi-party detection
+  flow (who can detect/decrypt what, under which key compromise). Model only
+  if the protocol relies on it; otherwise row it and drop Tamarin entirely.
+- Also owns: `MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT` (human must confirm
+  consolidate2x1's absent compliance surface is intended design).
+- Exit: no compliance-surface edge in `assurance-case.md` left as TODO.
+
+### Deployment / release binding [added 2026-07-06]
+A release checklist (Task 17, `docs/soundness/release-checklist.md`) binds
+proofs to shipped artifacts: deployed VK/`.sr1cs` hashes == the manifest pin
+the capstone was proven at; gate battery green at the release tag; prover
+round-trip on the release artifacts; assurance-case tree has no unexplained
+TODO on shipped surfaces. CI enforces the cheap tier continuously (Task 16):
+per-PR invariants gate + lint + Alloy + seam/parity tests + the manifest-pin
+tripwire (recompile, assert `relation_sha256_hex` set unchanged — blocks
+circuit changes that outrun their proofs); nightly Picus battery. The full
+Lean forest stays out of CI; the pin tripwire is what makes that safe.
 
 ## 5. The optimize-safely loop (end state)
 
