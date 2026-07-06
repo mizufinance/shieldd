@@ -32,16 +32,50 @@ relation changes that existing Lean generators/substrates already cover
 proof pattern (frontier/human design first); **T3** = protocol-visible changes
 (reopen Phase C + SnarkPack S4; human sign-off).
 
-### T1-a. Specialize net-balance 2-in-2-out → 2-in-1-out (~2–3k rows, ~4–5%)
-`gadget-net-balance-commitment2` is a generic 2-in-2-out gadget; consolidate2x1
-has one output (the executor's Task 1 finding: output lanes [53353,53693] are
-the only consumed pair; the second output slot is dummy/negated filler). Emit a
-specialized 2-in-1-out variant in Go, dropping the dummy-output ladder work.
-- Re-verify: seg52 relation hash flips → regenerate via `gen_nb_slice.py`
-  (StructuredLC + canon substrates all apply — the gadget stays a fixed-base
-  ladder + canon block, just narrower). Statement UNCHANGED (same compressed
-  output lanes).
-- Risk: low. This is the recommended **pilot** for the whole loop (§4).
+### T1-a. Eliminate the constant seed ladder in net-balance (~1 ladder, ~1–2%)
+**Corrected 2026-07-06 (executor Task 10).** The original T1-a ("specialize
+2-in-2-out → 2-in-1-out, drop the dummy-output ladder") rested on a false
+premise: consolidate2x1's net-balance is **already 2-in-1-out**.
+`NewConsolidateCircuit` sets `nOut:1`
+(`tools/gnark/internal/circuits/note_reshape_circuit.go:38-40`), so
+`computeTransferNetBalanceCommitment` receives a 1-element `outputAmounts` slice
+and lays down exactly one negated-output ladder — there is no dummy second
+output. The `gadget-net-balance-commitment2` label on seg52 is nominal only
+(`wiring_transcript.go:333-334` maps the op string unconditionally); the
+single-output `NetBalanceCommitmentGadget` (`decaf_gadgets.go:135`) already *is*
+the consolidate shape. The "[53353,53693] / dummy second output slot" phrasing
+mis-read the executor's Task 1 note, which was about *statement* wiring naming,
+not a net-balance dummy ladder.
+
+The real latent waste is the **constant seed ladder**
+`ScalarMulLE(api, curve, valueGenerator, 0, 128)`
+(`transfer_circuit.go:212`): a 128-bit ladder over the literal scalar `0`,
+whose value is the additive identity. `sum` starts at identity and every real
+term is added on top, so the seed can be dropped by initializing `sum` from the
+first accumulated term instead. Ladder inventory today: seed(0) + in0 + in1 +
+out0 + blinding = 5; after = 4.
+- **Blast radius (must inventory before touching Go).**
+  `computeTransferNetBalanceCommitment` is SHARED by consolidate2x1
+  (`note_reshape_circuit.go:130`), transfer (`transfer_circuit.go:932`), and
+  ics20 withdrawal (`shielded_ics20_withdrawal_circuit.go:81`). Removing the seed
+  there flips the net-balance segment in all three circuits, and — because the
+  segment relation hash is over raw wire-indexed `.sr1cs` strings — every
+  segment allocated after the seed in each circuit shifts too. The §4 pilot must
+  first enumerate the exact flipped-segment set across all three circuits and
+  confirm each is regenerable by `gen_nb_slice.py` or an existing substrate
+  before any Go edit; if any flipped *proven* segment needs a NEW proof shape,
+  this becomes T2-class and stops for design.
+  - Alternative that keeps containment: a consolidate-only
+    `computeConsolidateNetBalanceCommitment` avoids flipping transfer/ics20, but
+    duplicates the function — a design call (fan-out vs. containment), not an
+    executor default.
+- Re-verify: touched net-balance segs regenerate via `gen_nb_slice.py`
+  (StructuredLC + canon substrates apply — the gadget stays a fixed-base ladder;
+  it just loses one identity-seed ladder). Statement UNCHANGED.
+- Risk: low *arithmetically* (dropping an identity term), but the shared-function
+  blast radius makes the re-verification wider than a single segment. Confirm the
+  seed term is purely dead (contributes only identity, pinned by a parity/unit
+  test) as step 1 of the loop.
 
 ### T1-b. Deduplicate canonicity blocks across DTK instances (~2–4k rows, 3–7%)
 Three DTK instances each canonicalize their scalar inputs. Check (Go source +
