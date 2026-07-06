@@ -75,6 +75,13 @@
  *                      membership binds ComplianceAnchor (§5.1 gap closed).
  *   DummyNonSpending — a dummy input consumes no real note and its synthetic
  *                      nullifier cannot collide a real one (inventory §3 check).
+ *
+ * MODEL FIDELITY (assurance-case A4): the facts below are a HAND-WRITTEN
+ * transcription of the circuit statement + Rust handler conjuncts — there is no
+ * mechanical .als↔R1CS binding. Tracked as ledger row MODEL-ASSUME-ALLOY-FIDELITY
+ * (assumption-ledger.md); mitigated by the file:symbol comments here, the
+ * frontier-reviewed transfer-statement-binding-inventory.md, and the Rust↔Go
+ * seam test TestRustGoStatementFieldDifferential.
  */
 
 open util/integer

@@ -45,6 +45,13 @@
  *   NoInflation    — an accepted action's output value equals its input value.
  *   SpendAuthBound — equal rk statement fields force the same spending key ak,
  *                    so the sig checker's key is pinned by the statement.
+ *
+ * MODEL FIDELITY (assurance-case A4): the facts below are a HAND-WRITTEN
+ * transcription of the circuit statement + Rust handler conjuncts — there is no
+ * mechanical .als↔R1CS binding. Tracked as ledger row MODEL-ASSUME-ALLOY-FIDELITY
+ * (assumption-ledger.md); mitigated by the file:symbol comments here, the
+ * frontier-reviewed consolidate2x1-statement-binding-inventory.md, and the
+ * Rust↔Go seam test TestConsolidate2x1StatementSeamMatchesShielddVectors.
  */
 
 open util/integer

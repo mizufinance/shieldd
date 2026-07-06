@@ -131,8 +131,10 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
 - A3 L0 parameter provenance (Poseidon params, curve constants) [ROW
   CC-ASSUME-POSEIDON-PARAM-PROVENANCE — Phase E memo]
 - A4 **Model fidelity**: the Alloy facts transcribe the real circuit/handler
-  [TODO Task 15 — `MODEL-ASSUME-ALLOY-FIDELITY` not yet ledgered; mitigated by
-  file:symbol citations + reviewed inventories + statement-seam test]
+  [ROW MODEL-ASSUME-ALLOY-FIDELITY — hand-written transcription, no mechanical
+  `.als`↔R1CS binding; mitigated by file:symbol comments in both `.als` headers,
+  the frontier-reviewed statement-binding inventories, and the Rust↔Go seam
+  tests; removal = generate the fact skeleton from `Statement.lean`]
 - A5 Toolchain trust: Lean kernel, Picus/cvc5, Alloy, gnark compiler, pinned
   versions [ROW ZK-ASSUME-GNARK-FRONTEND-BACKEND + `toolchain.toml` pins; S3
   pattern; toolchain-pin CI enforcement TODO Task 16]
