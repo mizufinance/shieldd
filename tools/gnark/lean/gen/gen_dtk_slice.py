@@ -466,112 +466,6 @@ def emit_recomposition(
     )
 
 
-def emit_canonical_theorem(
-    lines: list[str], cfg: Instance, block: CanonicalBlock, rows: dict[int, str]
-) -> None:
-    flags, row_for_j = flag_wire_map(block, rows)
-    prefix = f"seg{cfg.seg}{block.label}"
-    bits = bits_name(cfg, block.label)
-    bit_rows = list(range(block.bit_row_start, block.bit_row_start + 253))
-    comparison_rows = list(range(block.comparison_row_start, block.comparison_row_start + 252))
-    keep = set(bit_rows + comparison_rows + [block.rec_row])
-    lines.append(
-        f"theorem {prefix}_canonical (rho : Nat -> Seg{cfg.seg}.F)\n"
-        f"    (h : Seg{cfg.seg}.relation rho) (k : List.Vector Seg{cfg.seg}.F 253 -> Prop)\n"
-        f"    (hk : k ({bits} rho)) :\n"
-        f"    Shieldd.GnarkFormal.Extracted.CanonicalFqBits.canonicalFqBitsGadget "
-        f"(rho {block.input_wire}) k := by\n"
-    )
-    emit_unpack(lines, cfg, keep)
-    for row in bit_rows + comparison_rows:
-        lines.append(f"  unfold Seg{cfg.seg}.relationRow{row} at r{row}\n")
-    emit_recomposition(lines, cfg, block, f"({bits} rho)", f"r{block.rec_row}")
-    lines.extend(
-        [
-            f"  set bits : List.Vector Seg{cfg.seg}.F 253 := {bits} rho with hbits\n",
-            "  have keyB : forall (j : Nat) (hj : j < 253), bits[j]! = "
-            f"rho ({block.bit_base} + j) := by\n",
-            "    intro j hj\n",
-            "    rw [hbits, getElem!_pos _ j (by simpa using hj)]\n",
-            "    conv_lhs => rw [List.Vector.getElem_def]\n",
-            "    simp only [List.Vector.toList_ofFn, List.getElem_ofFn]\n",
-            "  refine Shieldd.GnarkFormal.Extracted.CanonicalFqBits."
-            f"canonicalFqBitsGadget_of_components (rho {block.input_wire}) bits k "
-            "(by simpa [hbits] using hrec) ?_ ?_\n",
-            "  · apply Shieldd.GnarkFormal.RvkToBinary.isVectorBinary_of_booleanity bits\n",
-            "    intro i hi\n",
-            "    rw [keyB i hi]\n",
-            "    interval_cases i\n",
-        ]
-    )
-    for row in bit_rows:
-        lines.append(f"    · linear_combination r{row}\n")
-    lines.extend(
-        [
-            "  · refine Shieldd.GnarkFormal.Extracted.CanonicalFqBits.chainK_of_obligations "
-            "bits k (by simpa [hbits] using hk) ?_\n",
-            "    refine Shieldd.GnarkFormal.Extracted.CanonicalFqBits.block_hobl_of_truethread "
-            f"bits ({prefix}Flag rho) ?_ ?_ ?_ ?_\n",
-            f"    · simp [{prefix}Flag]\n",
-            "    · intro m hm\n",
-            "      interval_cases m\n",
-        ]
-    )
-    for j in range(253):
-        current = flags[j]
-        nxt = 1 if j == 252 else flags[j + 1]
-        bit_is_one = ((ORDER - 1) >> j) & 1
-        if j == 252:
-            lines.append(
-                f"      · rw [show {prefix}Flag rho 252 = rho {current} from rfl, "
-                f"show {prefix}Flag rho 253 = 1 from rfl]\n"
-            )
-            lines.append(
-                "        rw [show Shieldd.GnarkFormal.Extracted.CanonicalFqBits.trueFactor bits 252 = "
-                "bits[252]! from by simp [Shieldd.GnarkFormal.Extracted.CanonicalFqBits.trueFactor, "
-                "Shieldd.GnarkFormal.Extracted.CanonicalFqBits.pmBit]]\n"
-            )
-            lines.append("        rw [keyB 252 (by omega)]\n        ring\n")
-        elif bit_is_one:
-            row = row_for_j[j]
-            lines.append(
-                f"      · rw [show {prefix}Flag rho {j} = rho {current} from rfl, "
-                f"show {prefix}Flag rho {j + 1} = rho {nxt} from rfl]\n"
-            )
-            lines.append(
-                f"        rw [show Shieldd.GnarkFormal.Extracted.CanonicalFqBits.trueFactor bits {j} = "
-                f"bits[{j}]! from by simp [Shieldd.GnarkFormal.Extracted.CanonicalFqBits.trueFactor, "
-                "Shieldd.GnarkFormal.Extracted.CanonicalFqBits.pmBit]]\n"
-            )
-            lines.append(f"        rw [keyB {j} (by omega)]\n        linear_combination r{row}\n")
-        else:
-            lines.append(
-                f"      · rw [show {prefix}Flag rho {j} = rho {current} from rfl, "
-                f"show {prefix}Flag rho {j + 1} = rho {nxt} from rfl]\n"
-            )
-            lines.append(
-                f"        rw [show Shieldd.GnarkFormal.Extracted.CanonicalFqBits.trueFactor bits {j} = 1 "
-                "from by simp [Shieldd.GnarkFormal.Extracted.CanonicalFqBits.trueFactor, "
-                "Shieldd.GnarkFormal.Extracted.CanonicalFqBits.pmBit]]\n"
-            )
-    lines.extend(["    · intro j hj hpm\n", "      interval_cases j\n"])
-    for j in range(253):
-        if ((ORDER - 1) >> j) & 1:
-            lines.append(
-                "      · norm_num [Shieldd.GnarkFormal.Extracted.CanonicalFqBits.pmBit] at hpm\n"
-            )
-        else:
-            row = row_for_j[j]
-            nxt = flags[j + 1]
-            lines.append(f"      · rw [keyB {j} (by omega)]\n")
-            lines.append(
-                f"        rw [show {prefix}Flag rho {j + 1} = rho {nxt} from rfl]\n"
-            )
-            lines.append(f"        linear_combination r{row}\n")
-    lines.extend(["    · intro j hj\n", "      rw [keyB j hj]\n", "      interval_cases j\n"])
-    for row in bit_rows:
-        lines.append(f"      · linear_combination r{row}\n")
-    lines.append("\n")
 
 
 def canon_prefix(cfg: Instance, block: CanonicalBlock) -> str:
@@ -849,7 +743,7 @@ def emit_canon_chain(cfg: Instance, block: CanonicalBlock, previous: str) -> str
         f"(hk : k ({bits} rho)) : chainK ({bits} rho) k 253 1 := by\n"
         f"  refine chainK_of_obligations ({bits} rho) k hk ?_\n"
         f"  refine block_hobl_of_truethread ({bits} rho) ({prefix}Flag rho) ?_ ?_ ?_ ?_\n"
-        f"  · simp [{prefix}Flag]\n"
+        f"  · rfl\n"
         f"  · exact {prefix}_flag_step rho h\n"
         f"  · exact {prefix}_compare rho h\n"
         f"  · have hbinary := {prefix}_binary rho h\n"

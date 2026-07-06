@@ -11,7 +11,7 @@ open Shieldd.GnarkFormal.Extracted.CanonicalFqBits
 theorem seg34Canon2_chain (rho : Nat -> Seg34.F) (h : Seg34.relation rho) (k : List.Vector Seg34.F 253 -> Prop) (hk : k (seg34Canon2Bits rho)) : chainK (seg34Canon2Bits rho) k 253 1 := by
   refine chainK_of_obligations (seg34Canon2Bits rho) k hk ?_
   refine block_hobl_of_truethread (seg34Canon2Bits rho) (seg34Canon2Flag rho) ?_ ?_ ?_ ?_
-  · simp [seg34Canon2Flag]
+  · rfl
   · exact seg34Canon2_flag_step rho h
   · exact seg34Canon2_compare rho h
   · have hbinary := seg34Canon2_binary rho h
