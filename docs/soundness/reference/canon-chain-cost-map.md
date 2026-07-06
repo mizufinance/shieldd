@@ -1,6 +1,15 @@
 # Canon-Chain Cost Map (hole H9 groundwork)
 
-**Status:** draft — pending frontier review
+**Status:** RESOLVED (2026-07-06, commit 5d939968d) — the re-architecture this
+worklist scoped proved unnecessary. The 769 MB was not `chainK`
+term-materialization at all; it was a `simp [segNNFlag]` invocation forcing
+normalization of a 254-arm `Nat`-match. Replacing that `simp` with `rfl` collapses
+each canon chain from **769 MB → 0.07 MB** (≈11000×) with no generator or substrate
+re-design. See §6 and memory `canon-chain-simp-flag-root-cause`. The root-cause
+hypothesis in §3 (per-rung `chainK` unfolding) was **disproven** — kept below as
+the record of what was ruled out.
+
+**Status (historical):** draft — pending frontier review
 **Scope:** the canonical-Fq-bits chain modules of the deployed consolidate2x1
 Lean forest (`tools/gnark/lean/ShielddGnarkFormal`).
 **Purpose:** a ranked, evidence-backed worklist for the **Phase B** canon-chain
@@ -125,3 +134,33 @@ frontier Phase B (`Not yours` for the executor). See
 [full-verification-plan](../full-verification-plan.md) §Phase B, and memory
 `dtk-generator-cumulative-blowup`, `canonical-fqbits-deployed-kernel`,
 `structuredlc-framework`.
+
+## 6. Resolution (2026-07-06)
+
+The fix (frontier, commit `5d939968d`) was a one-line tactic change, not the
+Phase B generator re-architecture §4 anticipated. The 769 MB came from a
+`simp [segNNFlag]` normalizing a 254-arm `Nat`-match — replacing it with `rfl`
+(kernel defeq, no simp normalization) removes the blowup. `chainK`
+materialization (the §3 hypothesis) was **not** the driver.
+
+**Before → after (measured):**
+
+| Metric | Before (§1) | After (Task 8 rebuild) |
+| --- | --- | --- |
+| Each `*CanonNChain.olean` | 769 MB | **0.07 MB** (≈11000× smaller) |
+| 7-chain mass | 5.38 GB | **~0.5 MB** |
+| Canon-chain peak build RSS | ~22 GB | rolled into full-forest peak **5.8 GB** |
+| Full deployed forest rebuild | ~14 h | **40.5 min** (2430 s wall) |
+
+Verified by a detached, single-lake, `LEAN_NUM_THREADS=1` **full** deployed
+consolidate2x1 forest rebuild (contract regen → `lake build` → constraint
+coverage): exit 0, `constraint coverage ok: circuits=consolidate2x1`, peak
+`max_worker=5.8GB` (34 GB guard never approached), all 49 deployed segment bridges
+still discharged. Exit target from §4 (< 4 h wall, < 8 GB RSS) **met with wide
+margin**. H9 velocity debt is closed; the optimize loop and ics20 are no longer
+blocked on a canon-chain re-arch.
+
+### Log
+- 2026-07-06 — Task 8 executor rebuild confirms the `rfl` fix across the whole
+  forest (40.5 min, 5.8 GB peak, chains 0.07 MB). Doc flipped to RESOLVED. The
+  §3 per-rung hypothesis is recorded as ruled-out, not deleted.
