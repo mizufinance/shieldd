@@ -59,9 +59,10 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
   - Groth16 soundness over BLS12-377 [ROW ZK-ASSUME-GNARK-FRONTEND-BACKEND —
     L0/L5, pinned gnark; A5 class]
   - SnarkPack aggregation implies each per-proof Groth16 check
-    [ROW — S1 decision: accepted on Filecoin lineage, removal path = Lean
-    mechanization of the aggregated verification equation; see plan §3. **Ledger
-    row added by Task 14** on the SnarkPack `formal-handoff.md` side]
+    [ROW "SnarkPack aggregation implies each per-proof Groth16 verification (S1
+    decision)", SnarkPack `formal-handoff.md` Assumptions table — accepted on
+    Filecoin lineage + paper review (human 2026-07-06), removal path = Lean
+    mechanization of the aggregate→per-proof implication; plan §3]
   - Aggregate statement = per-circuit statements [TEST
     shielded-pool/src/gnark/artifacts.rs::family_vks_expose_single_statement_hash_public_input
     + ::committed_family_artifacts_carry_verified_hashes — S5 conformance, all 7
