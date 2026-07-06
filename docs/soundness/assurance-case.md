@@ -53,8 +53,10 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
     review per `reference/picus-composition-note.md`]
   - Compiled artifact = proved artifact: manifest pin `relation_sha256_hex`
     [PROVED shielded-pool/formal/consolidate2x1-coverage-manifest.json
-    sha256:4ef7343e…] + deployed VK/`.sr1cs` identity [TODO Task 17 release
-    checklist]
+    sha256:4ef7343e…] + `.sr1cs` `sr1cs_sha256_hex` recompile tripwire
+    [TEST scripts/check-manifest-pin.sh — CI `seam-and-pin` job, both circuits]
+    + deployed VK/`.sr1cs` identity [ROW docs/soundness/release-checklist.md §1 —
+    release-time artifact-hash equality + SnarkPack SL4]
 - R1.3 The proof system accepts only satisfiable statements
   - Groth16 soundness over BLS12-377 [ROW ZK-ASSUME-GNARK-FRONTEND-BACKEND —
     L0/L5, pinned gnark; A5 class]
@@ -107,8 +109,9 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
 - Prover round-trip on release artifacts per shape [TEST
   shielded-pool/src/transfer/proof.rs::transfer_hidden_arity_1x1_roundtrip_* +
   gnark/internal/primitives/statement_hash_test.go::TestTransferStatementHashGroth16RoundTrip
-  + primitives/phase0_test.go::TestPhase0Groth16Bls12377RoundTrip; per-shape
-  round-trip on the *release* artifacts wired into the checklist TODO Task 17]
+  + primitives/phase0_test.go::TestPhase0Groth16Bls12377RoundTrip] — per-shape
+  round-trip on the *release* artifacts is gated at deploy time [ROW
+  docs/soundness/release-checklist.md §3]
 
 ## R5. Compliance surface (transfer) — ciphertexts are well-formed and
 ## detection works as specified
