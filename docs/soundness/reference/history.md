@@ -73,6 +73,6 @@ tables (T1-b VOID, T1-c no-dead-output) live in the playbook.
 
 ## 2026-06-23 / 2026-06-29 — machine OOM reboots from concurrent lake builds
 Two full OS crashes from parallel unbounded `lake` builds. Produced the
-standing resource discipline in `Agents.md` (one lake, `LEAN_NUM_THREADS=1`,
+standing resource discipline in `tools/gnark/lean/AGENTS.md` (one lake, `LEAN_NUM_THREADS=1`,
 narrowest target, bounded heartbeats, monitored background builds). Kept here
-as the incident record; the rules live in `Agents.md` and plan §7.
+as the incident record; the rules live in `tools/gnark/lean/AGENTS.md` and plan §7.

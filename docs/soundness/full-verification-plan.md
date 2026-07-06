@@ -135,7 +135,7 @@ composing the 49 `deployedSpecN` results plus the partition fact.
   the *wiring ledger* (which wires are shared across segment boundaries, and
   the public-input wire list) into a generated Lean structure, then compose
   segment specs by conjunction + shared-wire substitution. Do NOT attempt a
-  monolithic 57,969-row walk (see Lean rules in `Agents.md`).
+  monolithic 57,969-row walk (see Lean rules in `tools/gnark/lean/AGENTS.md`).
 - Deliverable: `Deployed/Contracts/Consolidate2x1/Capstone.lean` + generator;
   new obligation row in the coverage manifest so the gate fails closed.
 - Exit: `check-constraint-coverage.sh consolidate2x1` green with the capstone
@@ -225,7 +225,10 @@ TODO on shipped surfaces. CI enforces the cheap tier continuously (Task 16):
 per-PR invariants gate + lint + Alloy + seam/parity tests + the manifest-pin
 tripwire (recompile, assert `relation_sha256_hex` set unchanged — blocks
 circuit changes that outrun their proofs); nightly Picus battery. The full
-Lean forest stays out of CI; the pin tripwire is what makes that safe.
+Lean forest stays out of *per-PR* jobs — the pin tripwire is what makes that
+safe — but the nightly/dispatch cloud tier does run the full clean-room Lean
+rebuild (`soundness-formal.yml` `lean-circuit-fv` full tier). The Lean
+resource incident rules apply to the local machine, not to ephemeral runners.
 
 ## 5. The optimize-safely loop (end state)
 
@@ -289,7 +292,7 @@ crashed the machine or produced silent unsoundness.
    done. Never flip a manifest verdict without the green bridge; never edit
    emitted `.lean` by hand (fix the generator; `Projection.lean`, `Specs.lean`,
    `Bounds.lean` are hand-authored and editable).
-2. **Lean resource discipline** (see `Agents.md`, incident log): one `lake`
+2. **Lean resource discipline** (see `tools/gnark/lean/AGENTS.md`, incident log): one `lake`
    at a time, `LEAN_NUM_THREADS=1`, narrowest target, bounded
    `maxHeartbeats`, RSS-guarded background builds, no `native_decide`.
    Debug in leaf probes (`scripts/lean-leaf-bench.sh`), never by rebuilding
