@@ -34,10 +34,20 @@ ledger** at `crates/core/component/compliance/formal/assumption-ledger.md`.
 
 ## What is open
 
-Forward work, in priority order, lives in
-[fv-hardening-roadmap.md](fv-hardening-roadmap.md): the Tamarin ACP↔Orbis
-interaction model, closing the gnark segment-identity gap, and extending the
-compiled-constraint partition gate to every future shipped circuit.
+The governing plan is [full-verification-plan.md](full-verification-plan.md)
+(layers, hole inventory, phases A–H, promotion rules, §8 backlog). The
+composition of all claims across tools is
+[assurance-case.md](assurance-case.md) — every protocol claim traces to a
+stamped artifact, a named ledger row, or an explicit TODO.
+
+## Top-level docs (all forward-looking)
+
+- **[full-verification-plan.md](full-verification-plan.md)** — the plan.
+- **[assurance-case.md](assurance-case.md)** — the claim tree.
+- **[optimization-playbook.md](optimization-playbook.md)** — where the
+  constraints are, ranked reduction candidates, the optimize-safely pilot.
+- **[release-checklist.md](release-checklist.md)** — binding proofs to shipped
+  artifacts at release time.
 
 ## Reference (pull when relevant)
 
@@ -45,15 +55,18 @@ compiled-constraint partition gate to every future shipped circuit.
   proof, circuit, or stamp: tool locations & PATH, Lean ≤60-gate slicing, the
   OOM/memory rules, Picus decomposition, stamping workflow, trust boundary, the two
   SHA derivations.
-- **[reference/assumption-axiom-review.md](reference/assumption-axiom-review.md)** —
-  the manual audit: every conclusion, its kernel-axiom status, every residual, and
-  the model-vs-deployed gaps.
 - **[reference/soundness-handoff.md](reference/soundness-handoff.md)** — the detailed
   living state ledger behind the summary table above.
-- **[fv-hardening-roadmap.md](fv-hardening-roadmap.md)** — open
-  work detail, tool roles, promotion rules, long-range backlog.
 - **[reference/constraint-system-assurance.md](reference/constraint-system-assurance.md)** —
   per-circuit assurance argument + CI tiers (referenced by the invariant gates).
+- **[reference/phase-c-alloy-statement-sufficiency-spec.md](reference/phase-c-alloy-statement-sufficiency-spec.md)** —
+  design of the implemented Alloy H2 models (maintain the `.als` against it).
+- Evidence bases: [reference/consolidate2x1-statement-binding-inventory.md](reference/consolidate2x1-statement-binding-inventory.md),
+  [reference/transfer-statement-binding-inventory.md](reference/transfer-statement-binding-inventory.md),
+  [reference/transfer-deployed-bridge-dossier.md](reference/transfer-deployed-bridge-dossier.md),
+  [reference/picus-composition-note.md](reference/picus-composition-note.md).
+- **[reference/history.md](reference/history.md)** — the single backward-looking
+  ledger: resolved incidents, closed scoping memos, point-in-time audits.
 
 ## Machine-checked evidence (next to the code — do not relocate)
 

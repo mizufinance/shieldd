@@ -96,7 +96,7 @@ mid-investigation on this when handing off.
 - `docs/soundness/constraint-system-assurance.md`: update covered-gadget list (the
   "next decomposition targets" line ~57 + Picus status lines ~67-77); list any
   `undischarged` (timeout) gadgets honestly.
-- `docs/soundness/fv-hardening-roadmap.md:20`: update the Picus row
+- `docs/soundness/full-verification-plan.md` §8 / reference/constraint-system-assurance.md: update the Picus row
   ("poseidon2, nullifier, imt-gap") to the expanded coverage.
 - `crates/core/component/shielded-pool/formal/toolchain.toml`: leave
   `picus_status = under-constraint-evidence-only` and `scope = decomposed-gadget-only`

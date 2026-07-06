@@ -244,7 +244,8 @@ required_files=(
   "$HANDOFF"
   docs/soundness/README.md
   docs/soundness/reference/constraint-system-assurance.md
-  docs/soundness/fv-hardening-roadmap.md
+  docs/soundness/assurance-case.md
+  docs/soundness/reference/history.md
 )
 
 for file in "${required_files[@]}"; do

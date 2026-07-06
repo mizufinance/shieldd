@@ -10,7 +10,7 @@ phase should be able to execute it from this file plus the pointed-to
 artifacts, without re-deriving strategy. Read the **Operating rules** section
 before touching anything.
 
-Related: `fv-hardening-roadmap.md` (threat-driven focus areas),
+Related:
 `crates/core/component/compliance/formal/assumption-ledger.md` (the ledger),
 `crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md`
 (SnarkPack evidence ledger).
@@ -20,7 +20,7 @@ Related: `fv-hardening-roadmap.md` (threat-driven focus areas),
 Each layer has one question, one primary tool, and one failure mode it
 catches. A property is only "verified" when every layer under it is either
 proved or an audited ledger row. Layers do not promote each other
-(promotion rules in `fv-hardening-roadmap.md` apply).
+(promotion rules in Section 8 apply).
 
 | # | Layer | Question | Primary tool | Reference failure |
 | --- | --- | --- | --- | --- |
@@ -260,14 +260,14 @@ explicit do-not-touch list.
 
 | Work | Owner | Why |
 | --- | --- | --- |
-| Phase D tests; C seam (F*/hax or differential); F2/F3; Phase G re-prove loop; B Specs.lean split; applying a proven pattern across segments; C Alloy model **implementation** (frontier spec exists: `phase-c-alloy-statement-sufficiency-spec.md`); Phase G T1 optimizations (`optimization-playbook.md`) | executor | enumerable, pattern-following, gate-verified |
+| Phase D tests; C seam (F*/hax or differential); F2/F3; Phase G re-prove loop; B Specs.lean split; applying a proven pattern across segments; C Alloy model **implementation** (frontier spec exists: `reference/phase-c-alloy-statement-sufficiency-spec.md`); Phase G T1 optimizations (`optimization-playbook.md`) | executor | enumerable, pattern-following, gate-verified |
 | New proof *shapes* (playbook T2: windowed/GLV ladders); E crypto-judgment audits (Poseidon provenance); promoting any `draft — pending frontier review` doc to a ledger row | frontier (or human review) | novel proof design; Lean-performance trap density; vacuous-theorem risk |
 | F1 RIPP mechanization (if chosen); playbook T3 (protocol-visible changes); any change to gate/manifest/ledger *semantics* | human decision | research-scale; redefines what "verified" means |
 
 **Post-frontier operation.** When no frontier session is available, the
 executor drives the plan directly: pick the highest open item in phase order
 (A→G) whose owner row above says executor, using the two frontier-authored
-specs (`phase-c-alloy-statement-sufficiency-spec.md`,
+specs (`reference/phase-c-alloy-statement-sufficiency-spec.md`,
 `optimization-playbook.md` §4 pilot) as the queue. Everything in the
 frontier/human rows is parked, not attempted. Escalation target becomes the
 human: hand back with the exact log, per the hard rules below. A finding
@@ -306,3 +306,34 @@ crashed the machine or produced silent unsoundness.
    the third attempt (executor models: hand back instead, per Section 6).
 6. **Verification bar** (from the roadmap): lake green, `#print axioms`
    clean modulo named residuals, artifacts SHA-stamped, gates in CI.
+
+## 8. Beyond current scope — threat-review backlog and promotion rules
+*(absorbed from `fv-hardening-roadmap.md` 2026-07-06; that doc is deleted —
+its landed/historical status text lives in the ledger and
+`reference/history.md`)*
+
+### Promotion rules (canonical statement)
+- A property row reaches `proved` only when a stamped artifact proves the
+  exact property scope the row cites.
+- Gadget proofs, Picus reports, differential tests, and symbolic proofs are
+  evidence for their own layer; they never promote another layer by
+  implication.
+- Assumptions retire only when a new artifact proves the same obligation over
+  the shipping code or a strictly stronger boundary.
+- Every heavy prover artifact has a reproducible command and a SHA-256 stamp
+  checked by CI.
+
+### Verification bar (per scheduled item)
+Lean: lake green, `#print axioms` clean beyond named residuals, no
+`sorry`/`admit`/`axiom`. Artifacts stamped (source + artifact sha256) and
+wired into CI. Every retired/added ledger row has a status and removal path.
+
+### Open backlog (P0 first; none scheduled inside phases A–H)
+| Item | What | Layer/tool |
+| --- | --- | --- |
+| ACP↔Orbis multi-party model | The one REQUIRED Tamarin deliverable beyond Phase H-c: committee/consensus flow binding accepted statements across parties | L1, Tamarin |
+| ics20 withdrawal whole-circuit proof | Same deployed-bridge pattern as consolidate2x1/transfer (supply/denom-trace invariants already landed) | L3/L4, Lean |
+| split1xN family proofs | Extend the artifact pattern; retires remaining `ZK-ASSUME-DECAF377-*` per family | L3/L4, Lean |
+| Turnstile feasibility | Decide on Zcash-style runtime supply accounting as a backstop (Zcash June-2026 Orchard incident) | protocol, human |
+| ACL2/Axe independent R1CS checks | Optional independent regression layer for high-risk gadgets; never promotes | L2 |
+| Statement/aggregation seam unification | One statement across Rust bytes, Lean, F* (extends S5/SL1) | L1/L4 |

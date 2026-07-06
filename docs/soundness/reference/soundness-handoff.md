@@ -32,7 +32,7 @@ now have stamped gadget-scope semantic proofs. See
 `docs/soundness/reference/constraint-system-assurance.md`
 and `crates/core/component/shielded-pool/formal/circuit-gadget-proofs.md`.
 The forward work order is tracked in
-`docs/soundness/fv-hardening-roadmap.md`.
+`docs/soundness/full-verification-plan.md` §8.
 
 **What a green gate actually re-verifies (run honesty).** The local
 `check-lean-circuit-fv.sh stamps` gate re-checks only that the stamped source
