@@ -81,6 +81,12 @@ struct Args {
     /// (per-row {to_binary|step|redundant} classification + justification).
     #[clap(long)]
     row_map_out: Option<PathBuf>,
+    /// Build and CHECK the gadget-wiring certificate (instance graph +
+    /// topological order) and write it here. Fails closed on a shared wire
+    /// producer, a used-but-never-defined input wire, or a cycle. Closes
+    /// picus-composition-note gap 2.
+    #[clap(long)]
+    wiring_cert_out: Option<PathBuf>,
 }
 
 #[derive(Serialize)]
@@ -230,6 +236,28 @@ fn main() -> anyhow::Result<()> {
         data.push(b'\n');
         write_out(path, data)?;
         eprintln!("emitted lt-compare ladder seating to {}", path.display());
+        return Ok(());
+    }
+
+    if let Some(path) = &args.wiring_cert_out {
+        let ir = build_ir(&manifest, &sr1cs).context("build deployed-slice IR for wiring cert")?;
+        let cert = shieldd_constraint_coverage::wiring::build_certificate(&ir, &sr1cs)
+            .map_err(anyhow::Error::msg)
+            .context("build + check gadget-wiring certificate")?;
+        let (data, sha) = shieldd_constraint_coverage::wiring::certificate_json(&cert)
+            .map_err(anyhow::Error::msg)
+            .context("serialize gadget-wiring certificate")?;
+        write_out(path, data)?;
+        eprintln!(
+            "wiring cert ok: {} nodes, {} edges, acyclic; roots: {} primary-input, {} internal-witness, \
+             {} shared-witness; sha256:{}",
+            cert.n_nodes,
+            cert.n_edges,
+            cert.n_primary_input_roots,
+            cert.n_internal_witness,
+            cert.n_shared_witness,
+            sha
+        );
         return Ok(());
     }
 

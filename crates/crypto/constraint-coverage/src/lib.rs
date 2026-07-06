@@ -16,6 +16,7 @@ pub mod ltchain;
 pub mod obligations;
 pub mod rowmap;
 pub mod rvkfixed;
+pub mod wiring;
 
 #[derive(Debug, Error)]
 pub enum CoverageError {

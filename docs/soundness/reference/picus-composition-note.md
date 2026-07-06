@@ -3,10 +3,21 @@
 **Status: frontier-reviewed 2026-07-06 — accepted as supporting evidence, NOT
 promotable to a ledger/property row.** Verdict: option (b) of the final section
 — Picus contribution is scoped to "per-leaf determinism, composed by argument";
-the Lean deployed bridges remain the primary authority. Promotion to a
-`proved-symbolic` row is blocked until gaps 2 and 3 are mechanized (per-leaf
-`.sr1cs` input hashes in the artifacts, and a machine-checked acyclic
-gadget-wiring certificate). Those are executor-safe follow-ups.
+the Lean deployed bridges remain the primary authority.
+
+**Update 2026-07-06 (executor): gaps 2 and 3 mechanized.** Gap 3 — each per-leaf
+`.picus.txt` artifact now carries a `picus-input-fingerprint` footer with the
+sha256 of the exact `.sr1cs` Picus consumed (emitted by
+`scripts/circuit-constraint-check.sh`), so the artifact hash pins *which*
+constraint system was checked, not just the verdict text. Gap 2 — a
+machine-checked gadget-wiring certificate (nodes = deployed instances, edges =
+producer→consumer over algebraically-defined wires, plus a verified topological
+order) is now generated and hash-pinned per circuit at
+`crates/core/component/shielded-pool/formal/<circuit>-wiring-cert.json`
+(`--wiring-cert-out` in `shieldd-constraint-coverage`, fail-closed on a
+double-producer or a cycle). See the mechanized-gap sections below. Whole-circuit
+Picus (gap 1) remains a killed run, so this note stays supporting evidence, not a
+primary `proved-symbolic` row.
 
 This note inventories the per-leaf
 Picus verdicts and lays out the argument that leaf-level determinism composes to
@@ -92,20 +103,57 @@ proving one step lemma and composing, rather than unrolling.
    above is an **argument, not a Picus-checked fact**. This is the core reason a
    composition note is needed at all; it is also the core caveat.
 
-2. **The interface/wiring assumption is not itself Picus-checked here.** The
-   argument requires that in the actual circuit every gadget instance's inputs
-   are pinned by upstream outputs or circuit inputs (acyclic, no shared free
-   wire). That wiring fact is currently supplied by the Lean deployed bridges
-   and the coverage partition, not by an independent Picus/graph artifact. A
-   machine-checked gadget call graph (nodes = gadget instances, edges =
-   wire-sharing) with a topological-order certificate would close this.
+2. **The interface/wiring assumption is not itself Picus-checked here.**
+   ~~That wiring fact is currently supplied by the Lean deployed bridges and the
+   coverage partition, not by an independent graph artifact.~~ **MECHANIZED
+   2026-07-06.** `shieldd-constraint-coverage --wiring-cert-out` now derives the
+   instance-wiring graph from the deployed coverage partition and CHECKS it,
+   fail-closed:
 
-3. **Artifacts fingerprint the verdict text, not the constraint system.** Many
-   leaves share the identical verdict-text sha256 (`b26dcc47adde522a…`) because
-   the artifact stores only the two-line "properly constrained / Exiting …"
-   message. The hash therefore does **not** pin *which* R1CS was checked. To
-   make these artifacts load-bearing evidence, each should additionally carry a
-   hash of the exact `.sr1cs`/constraint input Picus consumed.
+   - **Nodes** = the constraint-bearing deployed instances (49 for
+     consolidate2x1). Their row ranges partition the circuit (the existing
+     coverage gate), so each row maps to exactly one instance.
+   - **Producer** of a wire = the instance whose row range contains that wire's
+     algebraic def row (its first `O`-position in an `L*R=O` constraint), the
+     same def-site rule the slice IR uses. Declared circuit inputs are roots,
+     never producers.
+   - **Edge** producer→consumer for every wire so defined and used across a seam.
+   - **Check (1): single producer** — errors if any wire is `O`-defined inside
+     two instances.
+   - **Check (2): acyclicity** — a Kahn topological sort of the producer→consumer
+     graph; a back-edge (a later instance defining a wire an earlier one already
+     consumed) is a cycle and errors. The emitted `topological_order` is the
+     acyclicity witness.
+
+   For consolidate2x1: **49 nodes, 20 edges, acyclic**; roots split into 193
+   declared circuit inputs, 13 635 *internal-witness* wires (touched by exactly
+   one instance — uniqueness is that instance's per-leaf Picus verdict), and
+   just **6 *shared-witness* wires**. The 6 are not a gap: they are the decaf
+   point-coordinate seams — the `(x,y)` of a group element computed by an
+   rvk/net-balance ladder and consumed by the immediately following
+   `decaf.assert_equivalent`/`compress_to_field` (segments 13→14, 31→32,
+   52→53→54). They carry no single `O`-def because the coordinates are jointly
+   determined by the ladder accumulation and the equivalence constraint; that
+   exact seam is what the rvk/dtk/net-balance Lean deployed bridges reason over.
+   The certificate enumerates all 6 (`shared_witness_wires`) so the Picus/Lean
+   boundary is auditable, not silent.
+
+   What this mechanizes: the composition's structural premise — acyclic wiring,
+   one producer per algebraically-defined wire — is now a re-checkable artifact
+   with a pinned sha256. What it does not do: re-prove per-wire uniqueness
+   (Picus's job for internal witnesses) or the cross-seam semantics (the Lean
+   bridges' job for the 6 shared witnesses). The three checks are complementary.
+
+3. **Artifacts fingerprint the verdict text, not the constraint system.**
+   ~~Many leaves share the identical verdict-text sha256 because the artifact
+   stores only the two-line message.~~ **MECHANIZED 2026-07-06.**
+   `scripts/circuit-constraint-check.sh` now appends a `picus-input-fingerprint`
+   footer to every `gadget-*.picus.txt` recording `sr1cs_sha256`,
+   `precondition_sha256`, `verdict`, and `picus_exit`. The artifact hash now
+   moves iff the input `.sr1cs`, the precondition, or the verdict moves, so each
+   leaf artifact independently pins *which* R1CS Picus checked. (The footer is
+   kept free of the token "underconstrained" so the script's post-loop safety
+   re-scan is unaffected.)
 
 4. **Leaf→segment mapping is not mechanized in this note.** Which of the 24
    leaves appears in which consolidate2x1 deployed segment is asserted by the

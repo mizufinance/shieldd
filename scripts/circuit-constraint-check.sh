@@ -144,6 +144,22 @@ for gadget in "${gadgets[@]}"; do
     echo "$gadget" >>"$undischarged_gadgets"
   fi
 
+  # Self-pin the leaf artifact to the exact constraint system Picus consumed.
+  # Without this the .picus.txt fingerprints only the verdict text (which many
+  # leaves share), so its sha256 cannot attest *which* R1CS was checked
+  # (picus-composition-note gap 3). The footer makes each artifact independently
+  # load-bearing: its hash moves iff the input .sr1cs, precondition, or verdict
+  # moves. Kept free of the token "underconstrained" so the post-loop safety
+  # re-scan is unaffected.
+  {
+    echo "--- picus-input-fingerprint ---"
+    echo "gadget: $gadget"
+    echo "verdict: $result"
+    echo "sr1cs_sha256: $sr1cs_sha"
+    echo "precondition_sha256: $precond_sha"
+    echo "picus_exit: $picus_exit"
+  } >>"$output"
+
   {
     echo "GADGET $gadget $result"
     echo "  sr1cs_sha256: $sr1cs_sha"
