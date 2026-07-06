@@ -22,11 +22,14 @@ on:
       - 'tools/gnark/go.sum'
       - 'tools/gnark/lean/**'
       - 'tools/gnark/cmd/gnarkctl/**'
+      - 'tools/gnark/artifacts/**'
       - 'tools/gnark/internal/artifacts/**'
       - 'tools/gnark/internal/circuits/**'
       - 'tools/gnark/internal/compliance/**'
       - 'tools/gnark/internal/abi/**'
+      - 'tools/gnark/internal/primitives/**'
       - 'scripts/check-lean-circuit-fv.sh'
+      - 'scripts/check-manifest-pin.sh'
       - 'scripts/check-soundness-invariants.sh'
       - 'scripts/compliance-symbolic.sh'
       - 'scripts/compliance-alloy.sh'
@@ -64,6 +67,50 @@ jobs:
       # The heavy `full` proof run (Sigma + FS-ROM) is nightly-only in `provers`.
       - name: Check DLEQ Lean stamps
         run: bash scripts/compliance-lean-dleq.sh stamps
+
+  # Cheap Go-only gate: the Rust<->Go statement-field seam (the H2/A4 model-fidelity
+  # anchor) and the .sr1cs manifest-pin tripwire. No lake/Lean, no nix. Recompiling
+  # both circuits' R1CS and re-hashing takes a few seconds; a drift here means the
+  # deployed artifact would no longer be the proved artifact.
+  seam-and-pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/gnark/go.mod
+          cache-dependency-path: tools/gnark/go.sum
+      - name: Statement-field seam / parity tests (Rust<->Go)
+        working-directory: tools/gnark
+        run: |
+          go test ./internal/abi/ -run TestRustGoStatementFieldDifferential -count=1
+          go test ./internal/primitives/ -run TestConsolidate2x1StatementSeamMatchesShielddVectors -count=1
+      - name: Manifest-pin tripwire (recompile R1CS, assert sr1cs_sha256_hex)
+        run: bash scripts/check-manifest-pin.sh
+
+  # Alloy bounded-model outcome check on PRs (the same gate the nightly `provers`
+  # job runs). Asserts every declared `check` is UNSAT and each `run show` is SAT
+  # across all compliance models, including the two statement-sufficiency models.
+  # nix-only (no Rust cache); the re-stamp it writes is discarded with the checkout.
+  alloy:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache: "false"
+      - name: Run compliance Alloy outcome gate
+        run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
 
   lean-circuit-fv:
     runs-on: blacksmith-16vcpu-ubuntu-2404
