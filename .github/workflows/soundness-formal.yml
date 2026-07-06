@@ -124,6 +124,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ matrix.ref }}
+          lfs: true # gate reads the committed LFS-tracked .sr1cs artifacts
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Setup Go
@@ -169,6 +170,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           ref: ${{ matrix.ref }}
+          lfs: true # provers read the committed LFS-tracked .sr1cs artifacts
 
       - uses: ./.github/actions/setup-nix-rust
         if: github.event_name != 'pull_request'
