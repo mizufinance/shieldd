@@ -243,6 +243,44 @@ mod statement_parity_tests {
             );
         }
     }
+
+    /// `validate_artifact_hashes` skips a key silently when its recorded
+    /// `*_sha256_hex` field is absent — a stale or hand-truncated metadata file
+    /// would then load an unverified artifact. For the committed families we
+    /// require both key hashes to be present, and exercise the real validator so
+    /// a recorded hash that no longer matches the committed bytes fails closed.
+    #[test]
+    fn committed_family_artifacts_carry_verified_hashes() {
+        let root = artifacts_root();
+        for family in FAMILIES {
+            let family_dir = root.join(family);
+            let metadata = load_artifact_metadata(&family_dir)
+                .unwrap_or_else(|e| panic!("load metadata for {family}: {e}"));
+
+            assert!(
+                metadata.verifying_key_sha256_hex.is_some(),
+                "family {family} circuit_metadata is missing verifying_key_sha256_hex; \
+                 the committed VK would load unverified"
+            );
+            assert!(
+                metadata.proving_key_sha256_hex.is_some(),
+                "family {family} circuit_metadata is missing proving_key_sha256_hex; \
+                 the committed proving key would load unverified"
+            );
+
+            // Run the real validator against the committed bytes: it checks the
+            // proving_key.bin and verifying_key.json hashes since both fields are
+            // present above and both files are committed for every family.
+            validate_artifact_hashes(&family_dir, &metadata, family)
+                .unwrap_or_else(|e| panic!("hash validation for {family}: {e}"));
+
+            // Also parse the committed VK end-to-end (on-curve + subgroup checks
+            // in load_prepared_vk / parse_g1 / parse_g2) so a malformed committed
+            // key is caught here rather than at first proof verification.
+            load_prepared_vk(&family_dir, &metadata, family)
+                .unwrap_or_else(|e| panic!("prepared VK load for {family}: {e}"));
+        }
+    }
 }
 
 fn parse_g2(point: &G2PointJson) -> Result<ProofG2> {
