@@ -82,7 +82,7 @@ What is DONE (do not redo; verify via the named gate):
 
 | ID | Layer | Hole | Severity |
 | --- | --- | --- | --- |
-| H1 | L4 | **Capstone composition theorem missing**: 49 per-segment `deployedSpecN` theorems exist, but no single Lean theorem composes them into "any satisfying assignment of the full 57,969-row `.sr1cs` satisfies the consolidate2x1 statement". Inter-segment wiring (shared wires between segments) is currently only the coverage checker's partition, not a proof. | HIGH |
+| H1 | L4 | ~~Capstone composition theorem missing~~ **RESOLVED**: `consolidate2x1_deployed_sound` (Capstone.lean, commit 5b195be25) composes the 49 `deployedSpecN` theorems; `Statement.lean` phrases it over named wires; both gate-checked. | closed |
 | H2 | L1 | **Statement-sufficiency review not mechanized**: no artifact says the consolidate2x1 statement (as a list of public-input bindings) is *sufficient* for protocol soundness. Alloy models assume the statement; nothing derives the needed statement from the protocol and diffs it against the circuit's. | HIGH |
 | H3 | L4/L1 | **Statement seam**: Rust statement-byte serialization ↔ circuit public-input wire order/encoding parity is tested, not proved (`statement.hash` binding proven in-circuit; the Rust-side byte layout is the trusted half). | MED |
 | H4 | L0 | Poseidon parameter provenance for this field (`CC-ASSUME-POSEIDON-PARAM-PROVENANCE`, roadmap Focus 5a) — audit deliverable, not proof. | MED |
@@ -90,7 +90,7 @@ What is DONE (do not redo; verify via the named gate):
 | H6 | L2 | Amount range bound is a side effect of `ScalarMulLE(…,128)`, not an explicit range gadget + width regression test (roadmap Focus 4b). | MED |
 | H7 | L2 | Picus verdict composition is manual: leaves are `safe`, the composition argument is prose. Write it down as a checked artifact (per-leaf manifest + composition note), or accept as an audited row. | LOW |
 | H8 | L1 | Alloy small-scope hypothesis (`scope 6`): properties hold in-scope only. Acceptable if auditied; raise scope or add an inductive argument for supply-critical properties. | LOW |
-| H9 | infra | Canon-chain modules peak ~22 GB; `Specs.lean` edits trigger a ~14 h full adapter-forest rebuild. Not a soundness hole, but it blocks the optimize loop (Section 5) and ics20. | HIGH (velocity) |
+| H9 | infra | ~~Canon-chain 22 GB / 14 h rebuilds~~ **RESOLVED**: one `simp`→`rfl` fix in `gen_dtk_slice.py` (commit 5d939968d); forest rebuild proven at 40.5 min / 5.8 GB peak (commit d49eb9995). See `reference/history.md`. | closed |
 
 ## 3. Current state — SnarkPack
 
@@ -100,7 +100,7 @@ mechanized SnarkPack/RIPP soundness theorem** — that is the honest gap.
 
 | ID | Layer | Hole | Severity |
 | --- | --- | --- | --- |
-| S1 | L5 | **No mechanized RIPP/TIPP/MIPP soundness theorem.** DECIDED 2026-07-06 (human): **accept for now** on Filecoin-lineage + paper review evidence, as a named `assumed` ledger row with an explicit removal path. The removal path is NOT re-proving the IPP paper: it is mechanizing in Lean that the aggregated verification equation implies each per-proof Groth16 verification equation under the pairing assumptions — a bounded, statement-shaped target. Roadmap item, not current work. | decided (row pending, Task 14) |
+| S1 | L5 | **No mechanized RIPP/TIPP/MIPP soundness theorem.** DECIDED 2026-07-06 (human): **accept for now** on Filecoin-lineage + paper review evidence, as a named `assumed` ledger row with an explicit removal path. The removal path is NOT re-proving the IPP paper: it is mechanizing in Lean that the aggregated verification equation implies each per-proof Groth16 verification equation under the pairing assumptions — a bounded, statement-shaped target. Roadmap item, not current work. | decided (row landed, Task 14) |
 | S2 | L5 | Groth16 verification inside aggregation + pairing/KZG crypto: named assumption, stays assumed (matches roadmap policy). | audited |
 | S3 | L5 | arkworks + hax + F* toolchain trust rows: audited, pinned (`toolchain.toml`), stamp-checked by `just snarkpack-invariants`. | audited |
 | S4 | L4/L5 | Transcript/statement seam: statement-encoding injectivity `proved` (`lemma_encode_statement_injective`); challenge/padding/wrapper rows depend on it — any change to statement encoding **reopens all dependent rows** (completion rule in the handoff doc). | guarded |
@@ -127,7 +127,7 @@ paid before the heavy proof work that depends on iteration speed. Every phase
 ends with its **exit gate** green and the ledger updated — a phase without a
 ledger diff or a stamped artifact is not done.
 
-### Phase A — Capstone composition theorem (H1) [L4, Lean]
+### Phase A — Capstone composition theorem (H1) [L4, Lean] — DONE (commit 5b195be25)
 Goal: one theorem, roughly
 `sr1cs_satisfying_assignment rho → Consolidate2x1Statement (publics rho)`,
 composing the 49 `deployedSpecN` results plus the partition fact.
@@ -141,7 +141,7 @@ composing the 49 `deployedSpecN` results plus the partition fact.
 - Exit: `check-constraint-coverage.sh consolidate2x1` green with the capstone
   obligation; `#print axioms` clean modulo named L0 residuals.
 
-### Phase B — Structural debt paydown (H9) [infra]
+### Phase B — Structural debt paydown (H9) [infra] — DONE (commits 5d939968d, d49eb9995)
 Goal: canon chains ≤ 8 GB peak; `Specs.lean` edit no longer rebuilds the
 forest.
 - Re-architect canonical-bit chains with the StructuredLC discipline
@@ -152,7 +152,7 @@ forest.
 - Exit: full clean rebuild of the Consolidate2x1 tree < 4 h wall,
   peak RSS < 8 GB per module (measure with `scripts/lean-leaf-bench.sh`).
 
-### Phase C — Statement sufficiency + seam (H2, H3) [L1, Alloy/Tamarin + F*/hax]
+### Phase C — Statement sufficiency + seam (H2, H3) [L1] — DONE (Alloy models both circuits, commits 409ad51e6 + 62f47dfce; seam = differential test route)
 Goal: an artifact that says the statement is *enough*.
 - Write the consolidate2x1 statement as a typed list of bindings (public
   input → protocol object). Extend the Alloy ledger model so the adversary
@@ -166,7 +166,7 @@ Goal: an artifact that says the statement is *enough*.
 - Exit: new ledger rows `ZK-PROP-C2X1-STATEMENT-SUFFICIENT` (alloy) and a
   seam row; both cited from the coverage report.
 
-### Phase D — Parity + range hardening (H5, H6) [L2/L3, Rust/Go tests]
+### Phase D — Parity + range hardening (H5, H6) [L2/L3, Rust/Go tests] — DONE (executor Task 2)
 - Enumerate every in-circuit re-implementation of a Rust derivation
   (nullifier, keys, compression, commitment); one differential test each,
   wired into CI. Explicit range gadget or width regression test for amounts.

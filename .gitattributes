@@ -1,3 +1,6 @@
 *.bin filter=lfs diff=lfs merge=lfs -text
 *.sr1cs filter=lfs diff=lfs merge=lfs -text
 assets/** filter=lfs diff=lfs merge=lfs -text
+
+# Lean proof tree: mostly machine-generated adapters; collapse in GitHub PR review
+tools/gnark/lean/ShielddGnarkFormal/**/*.lean linguist-generated=true
