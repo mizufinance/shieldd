@@ -34,6 +34,32 @@ fn circuit_module(circuit: &str) -> String {
     out
 }
 
+/// The `Specs` submodule holding a segment's hand-authored endpoint.
+///
+/// consolidate2x1's specs are split per crypto family (`Specs/Core.lean`,
+/// `Specs/Compress.lean`, …) so that touching one family's endpoints does not
+/// re-elaborate contracts/adapters seated on another. Each contract imports the
+/// narrowest family submodule; the `Specs.deployedSpecN` reference still
+/// resolves because every submodule opens the shared `…Specs` namespace.
+/// Non-consolidate circuits keep the monolithic `Specs`.
+fn spec_submodule(circuit: &str, segment_index: usize) -> &'static str {
+    if circuit_module(circuit) != "Consolidate2x1" {
+        return "Specs";
+    }
+    match segment_index {
+        6 | 15 | 24 | 33 | 42 | 54 => "Specs.Compress",
+        7 | 25 | 43 => "Specs.NoteCommitment",
+        9 | 27 => "Specs.Nullifier",
+        13 | 31 => "Specs.Rvk",
+        16 | 34 | 45 => "Specs.Dtk",
+        52 => "Specs.Nb",
+        11 | 29 => "Specs.Scp",
+        // on-curve, assert-eq, assert-equivalent glue rows, and the
+        // statement-hash endpoint (seg 59).
+        _ => "Specs.Glue",
+    }
+}
+
 pub fn contract_module(circuit: &str, segment_index: usize) -> String {
     format!(
         "Shieldd.GnarkFormal.Deployed.Contracts.{}.Seg{}",
@@ -432,7 +458,7 @@ fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> C
         render_relation_defs_with_inline_limit(rows, inline_limit, structured);
     let contents = format!(
          "import ShielddGnarkFormal.Deployed.Contract\n\
-         import ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.Specs\n\
+         import ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.{spec_sub}\n\
          import ShielddGnarkFormal.StructuredLC\n\
          import Mathlib.Data.ZMod.Basic\n\n\
          set_option maxRecDepth 1000000\n\
@@ -457,6 +483,7 @@ fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> C
         relation = relation_body,
         max_heartbeats = MAX_CONTRACT_HEARTBEATS,
         segment_index = segment.index,
+        spec_sub = spec_submodule(circuit, segment.index),
         relation_hash = segment.relation_sha256_hex,
         wire_role_hash = segment.wire_role_sha256_hex,
     );
@@ -681,9 +708,11 @@ mod tests {
         assert!(file
             .contents
             .contains("((2 : F) * rho 1) * ((3 : F) * rho 2) = ((6 : F) * rho 3)"));
+        // seg8 is a glue (assert.eq) endpoint, so it imports the narrow
+        // `Specs.Glue` submodule, not the monolithic `Specs` aggregator.
         assert!(file
             .contents
-            .contains("import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs"));
+            .contains("import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Glue\n"));
         assert!(file
             .contents
             .contains("def spec (rho : Nat -> F) : Prop := Specs.deployedSpec8 rho"));
@@ -792,5 +821,61 @@ mod tests {
         assert!(rendered.contains("(253 : F) * rho 253"));
         assert!(defs.is_empty());
         assert_eq!(next_lc, 0);
+    }
+
+    #[test]
+    fn structures_transfer_ack_stride13_parallel_offset_one() {
+        // The transfer decaf.ack deployed rows (Seg10/72) carry the
+        // fixed-base accumulator as two parallel stride-13 runs offset by one
+        // wire, e.g. `{ runs: [⟨1,21115,13,16⟩, ⟨1,21116,13,16⟩] }`. Pin that
+        // exact shape (count 16 = the narrowest ack rung) round-trips.
+        let mut terms = vec![t("1", 0)];
+        for index in 0..16 {
+            terms.push(t("1", 21115 + index * 13));
+            terms.push(t("1", 21116 + index * 13));
+        }
+        let repr = structure_lc(&terms).expect("ack parallel stride-13 runs should be detected");
+        assert_eq!(
+            repr.runs
+                .iter()
+                .map(|run| (run.start, run.stride, run.count))
+                .collect::<Vec<_>>(),
+            vec![(21115, 13, 16), (21116, 13, 16)]
+        );
+        assert_eq!(repr.constant.len(), 1);
+        assert!(repr.residual.is_empty());
+        assert!(terms_multiset_eq(&expand_repr(&repr), &terms));
+    }
+
+    #[test]
+    fn structures_transfer_shared_secret_mixed_strides() {
+        // The transfer decaf.shared_secret rows (Seg104-107) mix stride-5,
+        // stride-8, stride-13 and stride-14 accumulators in the same LC (the
+        // interleaved coordinate accumulators plus canonical-bit reconstruction).
+        // Each equal-coeff arithmetic-progression run must be recovered
+        // independently and expand back to the exact multiset.
+        let mut terms = Vec::new();
+        for index in 0..16 {
+            terms.push(t("1", 500 + index * 5));
+        }
+        for index in 0..16 {
+            terms.push(t("1", 900 + index * 8));
+        }
+        for index in 0..16 {
+            terms.push(t("1", 1500 + index * 13));
+        }
+        for index in 0..16 {
+            terms.push(t("1", 2200 + index * 14));
+        }
+        let repr = structure_lc(&terms).expect("mixed-stride runs should be detected");
+        assert_eq!(
+            repr.runs
+                .iter()
+                .map(|run| (run.start, run.stride, run.count))
+                .collect::<Vec<_>>(),
+            vec![(500, 5, 16), (900, 8, 16), (1500, 13, 16), (2200, 14, 16)]
+        );
+        assert!(repr.residual.is_empty());
+        assert!(terms_multiset_eq(&expand_repr(&repr), &terms));
     }
 }

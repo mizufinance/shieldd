@@ -1017,7 +1017,7 @@ def emit_adapter(seg: int, cfg, certs: list[SplitCert], lemma_count: int) -> str
 
     L: list[str] = [
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{seg}",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Rvk",
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc",
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Ladder",
         *[

@@ -1,5 +1,5 @@
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg13
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Rvk
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg13Acc
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg13Ladder
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg13Lemmas0

@@ -1913,7 +1913,7 @@ def emit_adds() -> str:
 
 
 def emit_top() -> str:
-    return f"""import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs
+    return f"""import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Nb
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52EncodePost
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Adds
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52In0Bits

@@ -800,16 +800,18 @@ mod tests {
         );
     }
 
-    /// A pending structural class cannot be silently moved into the residual
-    /// tier: the closed allowlist must be changed explicitly as well.
+    /// A structural class cannot be silently moved into the residual tier: the
+    /// closed allowlist must be changed explicitly as well. (Independent of the
+    /// class's prior status — consolidate2x1 has no pending classes once every
+    /// segment is discharged, so promote the first class rather than a pending
+    /// one.)
     #[test]
     fn functional_assumption_requires_closed_allowlist() {
         let (ir, mut manifest) = load();
         let target = manifest
             .classes
-            .iter_mut()
-            .find(|c| c.status == "pending")
-            .expect("a pending structural class");
+            .first_mut()
+            .expect("at least one structural class");
         target.status = "functional-assumption".to_owned();
         for instance in &mut target.instances {
             instance.lean_theorem = "Shieldd.GnarkFormal.Test.functional".to_owned();
