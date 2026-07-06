@@ -1,6 +1,8 @@
 # consolidate2x1 Statement-Binding Inventory
 
-**Status:** draft — pending frontier review
+**Status:** frontier-reviewed 2026-07-06 — accepted as the evidence base for the
+Phase C Alloy model (`docs/soundness/phase-c-alloy-statement-sufficiency-spec.md`).
+Remains a reference document; makes no ledger claim itself.
 **Scope:** the deployed `consolidate2x1` circuit slice (49/49 segments circuit-sound).
 **Purpose:** evidence base for the Phase C Alloy *statement-sufficiency* model (hole
 **H2**). For each field the public statement hash commits to, this records the

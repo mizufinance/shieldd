@@ -1,6 +1,9 @@
 # transfer Statement-Binding Inventory
 
-**Status:** draft — pending frontier review
+**Status:** frontier-reviewed 2026-07-06 — accepted. The `ASSUMED[…@seg]`
+flagging convention is correct and should carry into the Alloy model as named
+per-class assumption predicates. The two live gaps in §7 are H2 model
+obligations, not blockers on this document.
 **Scope:** the deployed `transfer` (2×2) circuit slice.
 **Purpose:** transfer twin of the
 [consolidate2x1 statement-binding inventory](consolidate2x1-statement-binding-inventory.md),

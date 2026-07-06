@@ -1,6 +1,14 @@
 # Picus Determinism Composition Note (consolidate2x1)
 
-**Status: draft — pending frontier review.** This note inventories the per-leaf
+**Status: frontier-reviewed 2026-07-06 — accepted as supporting evidence, NOT
+promotable to a ledger/property row.** Verdict: option (b) of the final section
+— Picus contribution is scoped to "per-leaf determinism, composed by argument";
+the Lean deployed bridges remain the primary authority. Promotion to a
+`proved-symbolic` row is blocked until gaps 2 and 3 are mechanized (per-leaf
+`.sr1cs` input hashes in the artifacts, and a machine-checked acyclic
+gadget-wiring certificate). Those are executor-safe follow-ups.
+
+This note inventories the per-leaf
 Picus verdicts and lays out the argument that leaf-level determinism composes to
 whole-circuit determinism. It is *not* itself a verified artifact: the
 composition step is a human argument, not a Picus result (see **Gaps found**).
