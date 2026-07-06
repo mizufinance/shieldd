@@ -118,10 +118,17 @@ fn lc_mul_at(
     if let Some(k) = lc_proportional(right, &one) {
         return Ok((scale_lc(left, &k), cursor, None));
     }
-    let c = rows.get(cursor).ok_or_else(|| format!("row {cursor} out of range"))?;
-    let (row_l, row_r, row_o) = (lc_from_terms(&c.l), lc_from_terms(&c.r), lc_from_terms(&c.o));
+    let c = rows
+        .get(cursor)
+        .ok_or_else(|| format!("row {cursor} out of range"))?;
+    let (row_l, row_r, row_o) = (
+        lc_from_terms(&c.l),
+        lc_from_terms(&c.r),
+        lc_from_terms(&c.o),
+    );
     for (el, er) in [(left, right), (right, left)] {
-        let (Some(ls), Some(rs)) = (lc_proportional(&row_l, el), lc_proportional(&row_r, er)) else {
+        let (Some(ls), Some(rs)) = (lc_proportional(&row_l, el), lc_proportional(&row_r, er))
+        else {
             continue;
         };
         let inv = (&ls * &rs).inverse();
@@ -217,7 +224,16 @@ pub fn recover_lt_chain(
                 let pe_row = push_recon(r3);
                 // il' = il + l - il_mul
                 let il_out = lc_axpy(&lc_axpy(&il_in, &l, &Fp::one()), &il_mul, &(-&Fp::one()));
-                (pe_out, il_out, true, Some(l), Some(il_mul), l_row, il_mul_row, pe_row)
+                (
+                    pe_out,
+                    il_out,
+                    true,
+                    Some(l),
+                    Some(il_mul),
+                    l_row,
+                    il_mul_row,
+                    pe_row,
+                )
             } else {
                 let (pe_out, c1, r1) = lc_mul_at(rows, cursor, &pe_in, &one_minus_bit)?;
                 cursor = c1;
@@ -258,7 +274,11 @@ pub fn recover_lt_chain(
 /// `BTreeMap`. Two constraints are equal iff `O` matches and the unordered
 /// `{L, R}` pair matches (`L·R` commutes).
 fn constraint_eq(recon: &Recon, raw: &Constraint) -> bool {
-    let (rl, rr, ro) = (lc_from_terms(&raw.l), lc_from_terms(&raw.r), lc_from_terms(&raw.o));
+    let (rl, rr, ro) = (
+        lc_from_terms(&raw.l),
+        lc_from_terms(&raw.r),
+        lc_from_terms(&raw.o),
+    );
     if recon.o != ro {
         return false;
     }
@@ -311,8 +331,20 @@ fn consolidate2x1_ladders() -> Vec<LadderSeat> {
     let r = scalar_order();
     let q4 = &crate::field::modulus() - &(&r * 4u32);
     vec![
-        LadderSeat { label: "R", bit_base: 14064, start: 1828, end: 2345, bound: r },
-        LadderSeat { label: "Q4", bit_base: 14064, start: 2346, end: 2715, bound: q4 },
+        LadderSeat {
+            label: "R",
+            bit_base: 14064,
+            start: 1828,
+            end: 2345,
+            bound: r,
+        },
+        LadderSeat {
+            label: "Q4",
+            bit_base: 14064,
+            start: 2346,
+            end: 2715,
+            bound: q4,
+        },
     ]
 }
 

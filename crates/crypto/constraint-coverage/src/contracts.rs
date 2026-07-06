@@ -816,7 +816,8 @@ mod tests {
         let mut defs = String::new();
         let mut next_lc = 0;
 
-        let rendered = render_lc_factored_with_inline_limit(&terms, &mut defs, &mut next_lc, 256, true);
+        let rendered =
+            render_lc_factored_with_inline_limit(&terms, &mut defs, &mut next_lc, 256, true);
 
         assert!(rendered.contains("(253 : F) * rho 253"));
         assert!(defs.is_empty());

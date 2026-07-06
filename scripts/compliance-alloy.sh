@@ -76,13 +76,13 @@ run_model() {
 
   local check line
   for check in "${checks[@]}"; do
-    line="$(rg -N "check[[:space:]]+${check}\b" "$tmp" || true)"
+    line="$(grep -E "check[[:space:]]+${check}\b" "$tmp" || true)"
     [ -n "$line" ] || { cat "$tmp" >&2; rm -rf "$workdir" "$tmp"; fail "$name: check $check did not run"; }
-    printf '%s\n' "$line" | rg -qw UNSAT \
+    printf '%s\n' "$line" | grep -qw UNSAT \
       || { cat "$tmp" >&2; rm -rf "$workdir" "$tmp"; fail "$name: check $check did not hold (counterexample found)"; }
   done
 
-  rg -N "run[[:space:]]+show\b" "$tmp" | rg -qw SAT \
+  grep -E "run[[:space:]]+show\b" "$tmp" | grep -qw SAT \
     || { cat "$tmp" >&2; rm -rf "$workdir" "$tmp"; fail "$name: non-vacuity guard failed (show not satisfiable)"; }
 
   local model_sha output_sha

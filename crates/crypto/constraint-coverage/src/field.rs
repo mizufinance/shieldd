@@ -106,7 +106,10 @@ mod tests {
     #[test]
     fn parse_and_reduce_negative() {
         assert_eq!(Fp::parse("-1"), &Fp::zero() - &Fp::one());
-        assert_eq!(Fp::parse("-1").to_decimal(), (&modulus() - 1u32).to_str_radix(10));
+        assert_eq!(
+            Fp::parse("-1").to_decimal(),
+            (&modulus() - 1u32).to_str_radix(10)
+        );
     }
 
     #[test]

@@ -83,6 +83,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ matrix.ref }}
+          lfs: true # seam tests read LFS-tracked .bin witness/statement vectors
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
