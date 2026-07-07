@@ -72,9 +72,11 @@ watchdog (observed 2026-07-07: 8 spurious timeouts incl. byte-identical
 ### Q3 — post-boundary optimization queue (after Q1+Q2 green)
 The 2026-07-07 audit ranked the candidates in
 `docs/soundness/optimization-playbook.md` §2/§2t/§2x. Executor-startable, in
-order: (1) **T1-d blast-radius inventory** (read-only first, per the T1-a
-lesson: confirm the decaf-coset equivalence argument with the frontier before
-touching Go); (2) **TC-1** base-select in `DeriveSharedSecretsSpend`; (3)
+order: (1) **T1-d Go change** — the read-only blast-radius inventory is DONE
+and the decaf-coset equivalence is frontier-confirmed (2026-07-07, recorded
+under T1-d in the playbook: delete segments 34/36 + 45/47, rewire segment 16
+to shared.div_gen, −12,658 rows; hard rule 8 applies to the entire downstream
+wire range); (2) **TC-1** base-select in `DeriveSharedSecretsSpend`; (3)
 **T1-h** ToBinary dedup; (4) **F-1** census tooling (`fv-opt-loop.sh census`).
 Everything T2/T3/S-1/TC-3 waits for frontier design or Antoine. SnarkPack §8
 candidates stay frozen behind S1 + security review (not yours).

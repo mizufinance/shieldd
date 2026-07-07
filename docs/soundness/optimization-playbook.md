@@ -120,6 +120,40 @@ instances.
 - Subsumes most of T1-b (the duplicated canon blocks live inside the deleted
   instances) and makes T2-b one-third as valuable.
 
+**Blast-radius inventory + coset confirmation (2026-07-07, read-only pass —
+Q3 step 1 done).** Manifest facts (consolidate2x1-manifest.json, 60 segments,
+57,329 rows): the three `gadget-dtk` instances are segments **16, 34, 45**
+(6,329 rows each, outs `spend0/spend1/output0.transmission.computed`). The
+ONLY consumer of each computed transmission is one 3-row `AssertEquivalent`
+against the note's claimed transmission (segments 18/36/47); separately each
+note's transmission and div_gen are asserted ≡ shared (segments 20/38/49 and
+the div_gen twins), and shared.transmission has its own on-curve assert
+(segment 4). Replacement design: one DTK from `sharedDivGen` +
+`AssertEquivalent(computed, sharedTransmission)`; keep all per-note ≡-shared
+and on-curve asserts. Binding chain: note.transmission ≡ shared.transmission
+≡ computed = ivk·sharedDivGen ~ ivk·noteDivGen (noteDivGen ≡ sharedDivGen).
+- **Coset argument, confirmed:** `AssertEquivalent` is X_l·Y_r = X_r·Y_l,
+  i.e. equality of X/Y in P¹ — an equivalence relation (transitive; Y ≠ 0 on
+  the decaf domain), identifying P with P+T for the order-2 point T. Scalar
+  mul respects it: ivk·(P+T) = ivk·P + (ivk mod 2)·T ∈ {ivk·P, ivk·P+T},
+  same class. So DTK of any equivalent representative lands in the same
+  decaf class, and the assert chain closes the identical statement relation.
+  Nothing downstream distinguishes coset representatives: the only other
+  transmission consumers are `CompressToField` (coset-invariant) and the
+  ≡-asserts themselves. Design-level confirmation done; gates still decide.
+- **Deletion mechanics:** −12,658 rows starting at segment 34 shifts every
+  later segment's start/end and index — hard rule 8 at ~20× the T1-a scale.
+  The allowlist needs: delete segments 34+36 and 45+47 (dtk + its consumer
+  assert becomes the single shared assert), re-wire segment 16's input to
+  shared.div_gen, plus the mechanical index/wire renumbering of everything
+  after. Hand-authored Lean layer must be re-grepped for stale wire indices
+  across the whole downstream range.
+- **Adjacent observation (pre-existing, NOT changed by T1-d):** the note
+  commitment absorbs witness `transmission_key_s` directly; the point/key_s
+  binding is not an in-circuit equation. Whatever ledger row covers that
+  today covers it identically after T1-d — listed here so the diff reviewer
+  doesn't mistake it for a new gap.
+
 ### T1-e. Hoist the IVK derivation out of `DiversifiedTransmissionKey` — 2026-07-07 audit
 Subsumed by T1-d; standalone fallback if T1-d's equivalence argument stalls.
 `IncomingViewingKey` (CompressToField(ak) + Poseidon2 + `IVKModRDecomposition`
