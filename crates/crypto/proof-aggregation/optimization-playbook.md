@@ -369,6 +369,19 @@ the §4a 10% estimate.
    each family slot). Lives *above* this crate's per-aggregate API — the
    batching seam belongs in the caller that sees all 7 families.
 
+6. **Padding-aware commitment coalescing (prover, 2026-07-07).** Padding
+   repeats the final row to the next power of two
+   (`pad_items_to_power_of_two`, padding.rs) — at n = 2^k + 1 nearly half the
+   commit work runs over *identical* elements. Pairing commitments collapse
+   algebraically: Π e(A, vᵢ) over the duplicated tail = e(A, Σ vᵢ), trading
+   up-to-half the Miller loops for cheap G2 adds of SRS keys (likewise
+   repeated-base MSM terms: sum the scalars). The commitment *values* are
+   bit-identical, so transcript and wire bytes are untouched — category 1,
+   provable by the byte baseline at a padded count. Win is shape-dependent
+   (zero at exact powers of two); measure against the real family-count
+   distribution before building. GIPA's fold rounds don't preserve the
+   duplication past round one, so only the initial commit stage coalesces.
+
 **Lineage cross-check (2026-07-07):** against bellperson/Filecoin SnarkPack
 and the SnarkPack v2 paper, this backend already has every headline verifier
 trick: merged TIPP/MIPP transcript (single `r_commitment_steps`), O(log n)
