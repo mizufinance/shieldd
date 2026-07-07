@@ -126,6 +126,44 @@ migration story. Record as future work; do not start from this playbook.
 - Statement field set or order (reopens Phase C + S4 + seam tests; only with
   human sign-off, and then T3 process).
 
+## 2b. Leeway map — which open holes restrict this loop (and which don't)
+
+The loop's safety comes from fail-closed gates, not from a small assumption
+ledger: `relation_sha256_hex` pins the raw `.sr1cs`, so a T1 change un-proves
+exactly the touched segments. Consequently the irreducible crypto assumptions
+(Poseidon-RO, decaf prime order, DLEQ truncation, gnark backend) consume no
+optimization leeway — closing them is research-scale and never widens this
+envelope. T2 is blocked on new Lean proof shapes, not assumptions.
+
+Holes that DO restrict the loop, in the order they pay back:
+
+1. **Remove the filecoin lineage (S1 → mechanize).** Until S1 is closed, §3
+   keeps SnarkPack config-only. The removal path is to FV the inherited
+   algebra outright — mechanize the RIPP refinement (TIPP/MIPP), the KZG
+   commitment openings, and the aggregation transcript — so SnarkPack
+   soundness rests on our own proofs rather than filecoin-lineage provenance
+   (`crates/crypto/proof-aggregation/formal/snarkpack/ripp-refinement.md`,
+   `filecoin-divergence-findings.md`). This is the single biggest leeway
+   unlock: algebra/transcript/pairing-count optimizations go from forbidden
+   to T2-class with a mechanized artifact backing each change, and every
+   divergence-from-filecoin finding stops being a standing risk. Human
+   green-light required to start (plan §6 owner row: F1), but it should be
+   treated as the priority hole, not an optional branch.
+2. **Alloy↔statement seam gate.** The Alloy models are hand-maintained against
+   `reference/phase-c-alloy-statement-sufficiency-spec.md`; nothing mechanical
+   ties the Alloy signature to the circuit's public-input list. Irrelevant for
+   T1 (statement unchanged, gate-asserted), but a conformance test pinning the
+   Alloy sig fields to the statement fields (fail-closed on drift) makes T3
+   Phase-C reopens auditable instead of human-only.
+3. **gnark frontend segment identity.** The one named trust gap *inside* the
+   loop's own trust path: pins hash compiled `.sr1cs`, while Define-wiring →
+   compiled-segment identity is only partially covered. Hardening it raises
+   confidence in every loop run — worth more to this loop than any crypto
+   assumption.
+
+Spend hole-closing budget in that order, and only when T2/T3 or SnarkPack
+algebra work is actually on the table; none of it blocks the T1 loop.
+
 ## 3. SnarkPack — until S1 is decided
 
 S1 (mechanize vs. accept RIPP soundness) is an open human decision; until then
@@ -135,8 +173,17 @@ SnarkPack optimization is **configuration-level only**:
   (`statement_parity`, VK-hash hardening) green; they pin exactly what config
   changes could silently break (arity, artifact bytes).
 - Anything touching the IPP/KZG algebra, transcript, or pairing count waits for
-  S1. If S1 lands "accept with audit", those become T2-class items with the
-  audit note as the verification artifact.
+  S1. The preferred S1 outcome is the §2b item-1 removal path (mechanize the
+  RIPP/TIPP/MIPP refinement and KZG openings, dropping the filecoin-lineage
+  assumption); "accept with audit" is the fallback, and then those items become
+  T2-class with the audit note as the verification artifact.
+
+The detailed SnarkPack loop (category-1/2/3 rule, byte/trace baselines,
+bench discipline, transcript do-not-touch list) is
+`crates/crypto/proof-aggregation/optimization-playbook.md` — it governs any
+change inside that crate. `fv-opt-loop.sh gates` runs
+`check-snarkpack-invariants.sh` + `check-snarkpack-filecoin-shape.sh`
+automatically whenever the crate differs from the merge base.
 
 ## 4. The pilot run (recommended first execution)
 
@@ -154,7 +201,19 @@ Run T1-a (net-balance specialization) end-to-end as the loop's shakedown:
 A pilot that completes in ≤2 sessions proves the loop is executor-drivable;
 after that, T1-b and T1-c are the queue, and T2/T3 wait for design capacity.
 
-## 5. Measurement discipline
+## 5. Results ledger — what each optimization actually bought
+
+One row per landed optimization. Rows and prover time come from measurement
+(coverage report JSON + actual prover bench), never inferred. A candidate whose
+measured win is negligible gets recorded too — knowing a lever doesn't pay is
+part of the map. `scripts/fv-opt-loop.sh gates --record-out` emits the raw
+record; distill it into a row here on commit.
+
+| Opt | Landed | Rows before → after (Δ) | Prover wall time before → after | Proof size | Segments flipped | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| T1-a seed-ladder elimination | pending gate battery | 57,969 → 57,329 (−640, −1.1%) | TBD (bench with `gnarkctl replay --mode prove`) | unchanged (Groth16) | seg52 family | shared fn: also flips transfer/ics20 net-balance segs |
+
+## 6. Measurement discipline
 
 - Constraint counts from the coverage report JSON (source of truth), not gnark
   logs.
