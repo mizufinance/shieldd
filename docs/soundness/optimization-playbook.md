@@ -187,16 +187,22 @@ automatically whenever the crate differs from the merge base.
 
 ## 4. The pilot run (recommended first execution)
 
-Run T1-a (net-balance specialization) end-to-end as the loop's shakedown:
+The loop is mechanized in `scripts/fv-opt-loop.sh` (fail-closed; sequences
+existing gates, never edits verdicts/stamps). Per attempt:
 1. Baseline: record `nb_constraints`, prover wall time, proof size.
-2. Go change + recompile; `export-manifest`; confirm ONLY seg52-family segments
-   flip in the manifest diff (if anything else flips, stop — the change leaked).
-3. Re-extract, regenerate seg52 contracts/adapters, rebuild narrowest targets,
-   flip verdicts back with green bridges.
-4. Full gate battery: coverage (--require-full-deployed), soundness invariants,
-   Picus probe on the new gadget, parity/range tests, capstone rebuild,
-   prover round-trip (completeness!), statement-seam test.
-5. Record before/after in this doc; commit.
+2. Go change, then `scripts/fv-opt-loop.sh diff --circuit <c> --allow-flips
+   <segs>`: recompiles, re-extracts, asserts the flipped-segment set is
+   contained in the allowlist and every flip has a known Lean regeneration
+   family (unknown family = T2-class, red, stop before anything lands).
+3. Regenerate the flipped segments' contracts/adapters (generator printed by
+   the diff phase), rebuild narrowest Lean targets under the AGENTS.md resource
+   rules, flip verdicts back with green bridges, re-stamp per the fv-playbook
+   stamping workflow.
+4. `scripts/fv-opt-loop.sh gates --circuit <c> --lean --prove --record-out
+   <file>`: coverage (--require-full-deployed), soundness invariants, SnarkPack
+   gates when that crate moved, parity/range tests, statement-seam test,
+   prover round-trip (completeness!).
+5. Distill the emitted record into a §5 results-ledger row; commit.
 
 A pilot that completes in ≤2 sessions proves the loop is executor-drivable;
 after that, T1-b and T1-c are the queue, and T2/T3 wait for design capacity.

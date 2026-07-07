@@ -10,6 +10,18 @@ Entry format: date · what happened · the reusable lesson · pointers.
 
 ---
 
+## 2026-07-07 — Optimize-safely loop mechanized; assurance-case gaps closed
+The §5 loop moved from prose to `scripts/fv-opt-loop.sh` (diff-phase flip
+containment against an allowlist with generator-family dispatch; gates-phase
+battery + measurement record). Red path verified with a tampered report.
+Playbook gained the leeway map (§2b — filecoin-lineage removal is the top
+hole-closing priority for SnarkPack leeway), the SnarkPack config-only
+boundary (§3), and the results ledger (§5). Assurance-case evidence gaps
+closed: R2.2 repeated-nullifier handler test, R3.2 `ZK-ASSUME-SPEND-AUTH-RDSA`
+row. **Lesson (Picus):** run the leaf battery on an idle machine — a
+concurrent Lean build starved 8 leaves (incl. a byte-identical one) into the
+120 s watchdog.
+
 ## 2026-07-06 — Canon-chain 769MB/22GB blowup: root cause was one simp line
 *(absorbs `canon-chain-cost-map.md`)*
 

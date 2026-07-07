@@ -32,7 +32,8 @@ finish a task: commit, delete its section here, and add one dated line under
    Specs edits, verify with probes first, then run one full gate build.
 6. If the same gate fails twice for the same reason: STOP, write what you
    tried and the exact log under "Blocked", and hand back.
-7. Commit per completed task on `fv/circuit-soundness-hardening`. This file is
+7. Commit per completed task on the active FV branch (currently
+   `optimization-loop-boundaries`). This file is
    tracked; commit its updates with the task they describe.
 8. After a regeneration that changes constraint counts, grep the hand-authored
    layer (`Specs/`, `Wiring.lean`, `Statement.lean`, `Bounds.lean`,
@@ -61,13 +62,12 @@ record before/after constraint counts and wall-time-per-tier in
 
 ### Q2 — Task 11 clean Picus regen
 Re-run the 24-leaf Picus battery against the post-T1-a `.sr1cs` inputs; input
-fingerprints + wiring cert must re-stamp clean (24/24).
-
-### Q3 — assurance-case evidence gaps
-- Gap #1 (R2.2): add a handler test asserting a repeated nullifier is
-  rejected; cite it in `docs/soundness/assurance-case.md`.
-- Gap #2 (R3.2): add the spend-auth-rdsa assumption row (ledger + mirror) and
-  cite it.
+fingerprints + wiring cert must re-stamp clean (24/24). Note: T1-a changed the
+`gadget-scalar-mul-step` and `gadget-dleq` leaf `.sr1cs` (shared fixed-base
+helper), so those verdicts are genuinely new. Run the battery on an otherwise
+idle machine — a concurrent Lean build starves the SMT queries into the 120 s
+watchdog (observed 2026-07-07: 8 spurious timeouts incl. byte-identical
+`gadget-iszero`).
 
 ## Awaiting human (Antoine)
 
@@ -90,6 +90,11 @@ changing what any gate checks.
 
 ## Recently completed
 
+- 2026-07-07: Q3 evidence gaps closed (repeated-nullifier handler test → R2.2;
+  `ZK-ASSUME-SPEND-AUTH-RDSA` ledger row + mirror → R3.2).
+- 2026-07-07: `scripts/fv-opt-loop.sh` orchestrator landed (diff containment +
+  gate battery + measurement record); playbook gained leeway map (§2b),
+  SnarkPack boundary (§3), results ledger (§5).
 - 2026-07-06: Tasks 13–17 (assurance-case citations, SnarkPack S1 row,
   fidelity rows, CI workflow, release checklist); Tasks 11/12 Picus input
   fingerprints + wiring cert; Alloy H2 transfer instantiation; T1-b VOID /
