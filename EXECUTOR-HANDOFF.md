@@ -69,6 +69,16 @@ idle machine — a concurrent Lean build starves the SMT queries into the 120 s
 watchdog (observed 2026-07-07: 8 spurious timeouts incl. byte-identical
 `gadget-iszero`).
 
+### Q3 — post-boundary optimization queue (after Q1+Q2 green)
+The 2026-07-07 audit ranked the candidates in
+`docs/soundness/optimization-playbook.md` §2/§2t/§2x. Executor-startable, in
+order: (1) **T1-d blast-radius inventory** (read-only first, per the T1-a
+lesson: confirm the decaf-coset equivalence argument with the frontier before
+touching Go); (2) **TC-1** base-select in `DeriveSharedSecretsSpend`; (3)
+**T1-h** ToBinary dedup; (4) **F-1** census tooling (`fv-opt-loop.sh census`).
+Everything T2/T3/S-1/TC-3 waits for frontier design or Antoine. SnarkPack §8
+candidates stay frozen behind S1 + security review (not yours).
+
 ## Awaiting human (Antoine)
 
 - Confirm `MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT` (consolidate2x1's

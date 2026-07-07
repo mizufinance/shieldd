@@ -251,6 +251,24 @@ in-circuit lever, and the hash widths already match their input arities.
 - Statement field set or order (reopens Phase C + S4 + seam tests; only with
   human sign-off, and then T3 process).
 
+### TC-7. Fuse the dummy-slot rk ladders (~1.2k rows per dummy-capable slot,
+transfer + ics20)
+`syntheticDummyVerificationKey` (transfer_circuit.go:366, mirrored in the
+ics20 circuit) computes `sak·G` and then `RandomizedVerificationKey` adds
+`r·G` — two full fixed-base ladders per spend slot, run unconditionally.
+Since both are scalar-times-G, one ladder over `(sak + r) mod order` (one
+IVKModR-style reduction gadget, ~0.5k) replaces two (~2.5k). Same ladder
+relation shape. Check first whether the dummy rk must remain
+domain-separated from the real rk derivation for the Alloy/statement model.
+
+### Fan-out note (2026-07-07)
+The consolidate findings are not consolidate-only: transfer and ics20
+withdrawal share the same helpers and the same shared-context binding
+pattern, so T1-d (single DTK), T1-f (single div_gen compress), T1-h (bit
+reuse), and T2-c (windowed ladder) each apply per-shape. Any landed fix in a
+shared helper flips segments in all three manifests — size the allowlist
+accordingly (T1-a's transfer/ics20 net-balance fan-out is the precedent).
+
 ## 2x. Frontier-lens findings (2026-07-07) — lower bounds, hints, forensics
 
 Four lenses beyond redundancy-reading: rows-vs-information floor,
