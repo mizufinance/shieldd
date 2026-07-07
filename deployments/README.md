@@ -13,4 +13,4 @@ See the [Shieldd Guide] for setup steps on running a Shieldd node.
 ├── compose/ # example docker-compose configs, unmaintained
 ```
 
-[Shieldd Guide]: ../docs/guide/README.md
+[Shieldd Guide]: https://github.com/mizufinance/guide

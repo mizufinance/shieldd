@@ -6,4 +6,4 @@ and binary fullpath in `ExecStart`, and possibly the path to the home directory,
 
 See the [guide] for details on how to use these configs.
 
-[guide]: ../../docs/guide/README.md
+[guide]: https://github.com/mizufinance/guide
