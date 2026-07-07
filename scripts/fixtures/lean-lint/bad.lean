@@ -27,3 +27,6 @@ theorem bad_r4_match (n : Nat) : True := by
   | 7 => trivial
   | 8 => trivial
   | _ => trivial
+
+-- R6: unbounded heartbeats removes the elaboration kill switch.
+set_option maxHeartbeats 0

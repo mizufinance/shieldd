@@ -4,7 +4,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg43
 import ShielddGnarkFormal.Deployed.NoteCommitment.RawRelationSemanticBridge
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 1000000
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 

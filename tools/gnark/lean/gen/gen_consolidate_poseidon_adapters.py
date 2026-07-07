@@ -38,6 +38,54 @@ def parse_segments(stem):
     return out
 
 
+def derive_mapping(stem, seg_mod_path):
+    """Positionally align extracted wire ids with the deployed segment's rho ids.
+
+    The extracted CPS rows and the deployed `relationRow{j}` defs are the same
+    constraints in the same order; only the wire numbering may differ (row
+    eliminations upstream shift every later wire id). Aligning coefficient
+    literals token-by-token and pairing the wire refs yields the mapping —
+    hardcoding it drifts the first time the circuit is re-optimized.
+    """
+    ex_text = (EXTRACTED / f"{stem}.lean").read_text()
+    sg_text = seg_mod_path.read_text()
+
+    def row_tokens(body, wire_re):
+        coeffs = re.findall(r"\((\d+) : F\)", body)
+        wires = re.findall(wire_re, body)
+        return coeffs, wires
+
+    sg_rows = {}
+    for m in re.finditer(
+        r"def relationRow(\d+) \(rho : Nat -> F\) : Prop :=\n(.*?)\n\n", sg_text, re.S
+    ):
+        sg_rows[int(m.group(1))] = m.group(2)
+
+    ex_rows = []
+    for m in re.finditer(r"∃ [^:]+ : F,\n(.*?)\n  k ", ex_text, re.S):
+        ex_rows.extend(
+            line for line in m.group(1).splitlines() if "=" in line
+        )
+    if len(ex_rows) != len(sg_rows):
+        raise SystemExit(
+            f"{stem}: {len(ex_rows)} extracted rows vs {len(sg_rows)} deployed rows"
+        )
+
+    mapping = {}
+    for j, ex_row in enumerate(ex_rows):
+        ec, ew = row_tokens(ex_row, r"\bw(\d+)\b")
+        sc, sw = row_tokens(sg_rows[j], r"rho (\d+)")
+        if ec != sc or len(ew) != len(sw):
+            raise SystemExit(f"{stem}: row {j} shape mismatch vs relationRow{j}")
+        for e, s in zip(ew, sw):
+            e, s = int(e), int(s)
+            if mapping.setdefault(e, s) != s:
+                raise SystemExit(
+                    f"{stem}: wire w{e} maps to both {mapping[e]} and {s}"
+                )
+    return mapping
+
+
 def rho(wire, mapping):
     if wire not in mapping:
         n = int(wire[1:])
@@ -114,7 +162,7 @@ def emit_statement_hash(segments):
     stem = "StatementHash470_5c3d95"
     ns = f"Shieldd.GnarkFormal.Extracted.Deployed.{stem}"
     seg_mod = "Seg59"
-    mapping = {}
+    mapping = derive_mapping(stem, CONSOLIDATE / "Seg59.lean")
     final = ["w54128", "w54133", "w54138", "w54143", "w54148", "w54153", "w54158", "w54163"]
     inputs = [
         "w2", "w1637", "w1642", "w1647", "w1652", "w12746", "w13086",
@@ -127,7 +175,7 @@ def emit_statement_hash(segments):
         "import ShielddGnarkFormal.Deployed.StatementHash.SemanticBridge",
         "",
         "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 0",
+        "set_option maxHeartbeats 1000000",
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
@@ -246,7 +294,7 @@ def emit_note(segments):
         "import ShielddGnarkFormal.Deployed.NoteCommitment.RawRelationSemanticBridge",
         "",
         "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 0",
+        "set_option maxHeartbeats 1000000",
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
