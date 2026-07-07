@@ -101,8 +101,8 @@ State of the wait-time work stream, resumable by executor:
   same-product rows are triaged in the playbook's T1-h "Consolidate2x1
   triage" paragraph (folded into T1-d / NB-2, not separate candidates).
   REMAINING: (ii) run census on transfer (large .sr1cs, do off-peak).
-- **NOT started**: TC-1 and NB-1 read-only blast-radius inventories (same
-  template as the T1-d one recorded under the playbook's T1-d section).
+- **DONE**: TC-1 and NB-1/NB-2 read-only blast-radius inventories landed in
+  the playbook (commit d8a2c6e9a), matching the T1-d template.
 - Q1 wakeup armed (detached Statement build pid 28434 still running, ~4h,
   healthy); Q2 queued behind it.
 Everything T2/T3/S-1/TC-3 waits for frontier design or Antoine. SnarkPack §8
