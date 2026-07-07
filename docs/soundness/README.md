@@ -66,6 +66,9 @@ stamped artifact, a named ledger row, or an explicit TODO.
   [reference/transfer-deployed-bridge-dossier.md](reference/transfer-deployed-bridge-dossier.md);
   Picus determinism composition is §C2b of
   [reference/constraint-system-assurance.md](reference/constraint-system-assurance.md).
+- **[reference/external-incidents-coverage.md](reference/external-incidents-coverage.md)** —
+  real-world ZK incident catalog mapped to our coverage, plus the Zcash
+  (Tachyon/Ironwood) FV-program comparison; open gaps G1–G4.
 - **[reference/history.md](reference/history.md)** — the single backward-looking
   ledger: resolved incidents, closed scoping memos, point-in-time audits.
 
