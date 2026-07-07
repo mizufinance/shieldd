@@ -135,3 +135,52 @@ where
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cnidarium::{StateDelta, TempStorage};
+    use decaf377::Fq;
+    use shieldd_sdk_txhash::TransactionId;
+
+    struct TestInput(Nullifier);
+
+    async fn run_execute<S: StateWrite>(state: &mut S, nullifier: Nullifier) -> Result<()> {
+        execute::<_, TestInput, NotePayload>(
+            state,
+            &[TestInput(nullifier)],
+            &[],
+            |input| input.0,
+            |_| false,
+            |payload| payload,
+            |_| true,
+        )
+        .await
+    }
+
+    /// Assurance-case R2.2 (evidence gap #1): the check-then-nullify handler
+    /// path rejects a nullifier that was already spent.
+    #[tokio::test]
+    async fn execute_rejects_repeated_nullifier() -> Result<()> {
+        let storage = TempStorage::new().await?;
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
+        shieldd_sdk_sct::component::clock::EpochManager::put_block_height(&mut state, 1);
+        state.put_current_source(Some(TransactionId([7u8; 32])));
+        let nullifier = Nullifier(Fq::from(42u64));
+
+        run_execute(&mut state, nullifier).await?;
+
+        let err = run_execute(&mut state, nullifier)
+            .await
+            .expect_err("second spend of the same nullifier must be rejected");
+        assert!(
+            err.to_string().contains("already spent"),
+            "unexpected rejection reason: {err:#}"
+        );
+
+        // A distinct nullifier is still accepted after the rejection.
+        run_execute(&mut state, Nullifier(Fq::from(43u64))).await?;
+        Ok(())
+    }
+}

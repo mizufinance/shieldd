@@ -81,8 +81,9 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
   both `.als` models transcribes the handler conjunct (nullifier-set insertion
   in `shielded-pool/src/component/note_manager.rs`; enforced by the
   `action_handler/{consolidate,transfer}.rs` check-then-nullify path).
-  [TODO Task 13-followup — no *dedicated* repeated-nullifier rejection test
-  symbol exists to pin this runtime edge; add one. Logged as evidence gap #1.]
+  [TEST shielded-pool/src/component/action_handler/note_reshape.rs::execute_rejects_repeated_nullifier
+  — second spend of the same nullifier rejected ("already spent"), distinct
+  nullifier still accepted]
 - R2.3 No same-note double spend within one action: Alloy `NoDoubleSpend`
   UNSAT [PROVED both alloy artifacts, 03e5e685… / 383646d9…] — conditional on
   A1, A4
@@ -97,10 +98,10 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
   spec on-curve(ak) → binding with ak on-curve enforced in-circuit; the RVK
   bridge `decaf377_randomizedVerificationKey_sound` [ROW ZK-ASSUME-DECAF377-RVK]
   is composed into the whole-circuit artifact ea76f525…]
-- R3.2 Signature check over rk (spend-auth rdsa) [TODO Task 15-candidate — no
-  dedicated spend-auth rdsa assumption row exists; `ZK-ASSUME-BINDING-SIG-DL`
-  covers the *binding* signature only, not spend authorization. Add a
-  spend-auth-rdsa row. Logged as evidence gap #2.]
+- R3.2 Signature check over rk (spend-auth rdsa) [ROW ZK-ASSUME-SPEND-AUTH-RDSA
+  — `verify_auth_sigs` (note_reshape.rs) verifies each input's
+  `Signature<SpendAuth>` over the effect hash under its `rk`; unforgeability
+  under known-randomizer re-randomization is the assumed edge]
 - R3.3 Alloy `SpendAuthBound` UNSAT [PROVED both alloy artifacts, 03e5e685… /
   383646d9…]
 
@@ -148,17 +149,16 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
 
 These are edges the tree *claims* but for which no backing artifact/row/test was
 found. Missing evidence, not contradicted evidence — tracked, not findings.
+Both gaps are **CLOSED** (2026-07-07); entries kept as the record of the tree
+doing its job.
 
-- **Gap #1 (R2.2)** — no dedicated test pins "the chain rejects a repeated
-  nullifier". The enforcement exists in the handler path
-  (`note_manager.rs` nullifier-set insertion; `action_handler/*.rs`
-  check-then-nullify) and is transcribed by the Alloy `ChainAcceptance` fact,
-  but there is no `#[test]` asserting a second spend of the same nullifier is
-  rejected. *Fix:* add that handler test and cite it here.
-- **Gap #2 (R3.2)** — no spend-auth rdsa assumption row. The spend-authorization
-  signature over `rk` (decaf377-rdsa) is relied on but only the *binding*
-  signature has a row (`ZK-ASSUME-BINDING-SIG-DL`). *Fix:* add a spend-auth-rdsa
-  assumption row (Task 15 is the natural home) and cite it here.
+- **Gap #1 (R2.2)** — CLOSED: no dedicated test pinned "the chain rejects a
+  repeated nullifier". Resolved by
+  `note_reshape.rs::execute_rejects_repeated_nullifier` (second spend of the
+  same nullifier rejected, distinct nullifier still accepted); cited at R2.2.
+- **Gap #2 (R3.2)** — CLOSED: no spend-auth rdsa assumption row existed
+  (`ZK-ASSUME-BINDING-SIG-DL` covers the *binding* signature only). Resolved by
+  ledger row `ZK-ASSUME-SPEND-AUTH-RDSA` (+ handoff mirror); cited at R3.2.
 
 ## Maintenance rule
 
