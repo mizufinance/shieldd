@@ -94,10 +94,13 @@ State of the wait-time work stream, resumable by executor:
   gadget-dtk instances, 141 dead-output rows per DTK instance, 44 CSE-miss
   rows total, ~30 exact-duplicate rows (two per compress/dtk instance —
   worth a look, they sit inside decaf isqrt), floor-ratio table matches M-1
-  (quad-path 0.98, poseidon 1.00, compress 0.18 per CF-1). REMAINING: (i)
-  wire it as a `census` mode into fv-opt-loop.sh, (ii) run on transfer
-  (large .sr1cs, do off-peak), (iii) triage the exact-dup pairs and the
-  net-balance x4 same-product rows into playbook candidates.
+  (quad-path 0.98, poseidon 1.00, compress 0.18 per CF-1). (i) DONE:
+  `census` mode wired into `fv-opt-loop.sh` (`census --circuit <c>`,
+  commit 76a33ae2f), confirmed byte-identical to standalone `fv-census.py`
+  on consolidate2x1. (iii) DONE: the exact-dup pairs and net-balance x4
+  same-product rows are triaged in the playbook's T1-h "Consolidate2x1
+  triage" paragraph (folded into T1-d / NB-2, not separate candidates).
+  REMAINING: (ii) run census on transfer (large .sr1cs, do off-peak).
 - **NOT started**: TC-1 and NB-1 read-only blast-radius inventories (same
   template as the T1-d one recorded under the playbook's T1-d section).
 - Q1 wakeup armed (detached Statement build pid 28434 still running, ~4h,
@@ -165,6 +168,10 @@ changing what any gate checks.
 
 ## Recently completed
 
+- 2026-07-07: Q3 F-1 checkpoint closed out — `census` mode confirmed
+  byte-identical to standalone `fv-census.py` on consolidate2x1; exact-dup
+  and net-balance x4 triage confirmed already recorded in the playbook
+  (folded into T1-d / NB-2). Transfer census run remains open (off-peak).
 - 2026-07-07: Q3 evidence gaps closed (repeated-nullifier handler test → R2.2;
   `ZK-ASSUME-SPEND-AUTH-RDSA` ledger row + mirror → R3.2).
 - 2026-07-07: `scripts/fv-opt-loop.sh` orchestrator landed (diff containment +
