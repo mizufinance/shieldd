@@ -128,7 +128,7 @@ jobs:
     # by digest, so no per-run install and no elan-init.sh 429 flake. Rebuild and
     # repin via .github/workflows/fv-toolchain-image.yml when the toolchain moves.
     container:
-      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:ac391c7228bb6dc01227651ee3fab4418181a7d54c3eab73ba3858278a042b61
+      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:fcf19089cb1a62d8ca8246ac20381b8528c5e1915e417e712ea6264a8bf3abc0
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
