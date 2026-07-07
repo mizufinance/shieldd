@@ -105,14 +105,36 @@ State of the wait-time work stream, resumable by executor:
 Everything T2/T3/S-1/TC-3 waits for frontier design or Antoine. SnarkPack §8
 candidates stay frozen behind S1 + security review (not yours).
 
-### Q4 — VK↔`.sr1cs` derivation pinning — script BUILT, one FINDING open
+### Q4 — VK↔`.sr1cs` derivation pinning — transfer run done, CI wiring BLOCKED on the open finding
 `scripts/check-vk-derivation.sh <circuit> [--prove]` exists (note:
 groth16.Setup is randomized, so the binding is hash pins + byte-identical
 recompiled `.sr1cs` + a prove/verify round trip with the DEPLOYED keys —
-not key regeneration). First run on consolidate2x1 found a FINDING, now
-awaiting human (below). Remaining executor work once the finding is
-resolved: run it for transfer, wire it into CI tier 1 (new job, no existing
-gate modified), and add the L5 evidence pointer to the ledger row.
+not key regeneration). First run on consolidate2x1 found a FINDING, awaiting
+human (below). 2026-07-07: ran transfer too — **same finding, same class**
+(see below); of the three bindings, source (recompile byte-identical) and
+keys (`--prove` round trip, run by hand since the script exits at step 1)
+both hold for transfer, only the vk hash pin is stale.
+
+L5 evidence pointer added (text-only): `docs/soundness/reference/
+soundness-handoff.md` row `ZK-ASSUME-GNARK-FRONTEND-BACKEND` now cites
+`scripts/check-vk-derivation.sh` as the plumbing-half evidence.
+
+**CI wiring NOT done — contradiction found, stopped per hard rules.** This
+section's own prior text said "wire it into CI tier 1... once the finding
+is resolved," but consolidate2x1's vk-pin finding is still open (awaiting
+human, unresolved). `check-vk-derivation.sh consolidate2x1` (no `--prove`)
+currently exits RED at step 1 (verified 2026-07-07). Wiring it into CI now
+as a new job would land a gate that is red on every PR from its first
+commit, for a known-stale-stamp reason rather than a regression — that's a
+design call (ship the new job already-red, or wait for the stamp refresh?)
+not a mechanical task, so it was left undone pending Antoine's call. Once
+the consolidate2x1 stamp refresh lands (PR97 policy), add a
+`vk-derivation` job to `.github/workflows/soundness-formal.yml` (sibling to
+`seam-and-pin`: Go-only, `lfs: true`, `bash scripts/check-vk-derivation.sh
+consolidate2x1`, no `--prove` in CI — that leg needs the witness fixture
+and is exercised by hand per the playbook). Transfer joins the CI job only
+after its own stamp refresh; the TODO comment there should cite the PR97
+transfer stamp-refresh policy.
 
 ## Awaiting human (Antoine)
 
@@ -126,6 +148,20 @@ gate modified), and add the L5 evidence pointer to the ledger row.
   pins are stale bookkeeping from PR97. Fix is a stamp refresh (regenerate
   metadata + restamp the Lean artifact via the playbook flow) — same class
   as the pending PR97 transfer stamp refresh; not hand-edited per rules.
+
+- **FINDING (2026-07-07, check-vk-derivation on transfer): stale VK pins for
+  transfer, same class as consolidate2x1 above.** Committed
+  `verifying_key.bin` (sha256 `6aaff992d5cdae24b5438b84a0343e4770e44bdccd7395f8364ffb738d9b2804`)
+  does NOT match the vk hash pinned by `circuit_metadata.json` and by
+  `transfer-whole-circuit-lean-artifact.txt` (both pin
+  `70418046b5e926d4a02ef74397948e8197636d0997e0b55fe3c52b3aec12198f`); the pk
+  pin matches (`834a5ff9…`). Source binding holds (recompiled `.sr1cs`
+  byte-identical to `tools/gnark/artifacts/transfer/transfer.sr1cs`). Keys
+  binding holds too: `gnarkctl replay --mode prove` with the deployed
+  proving/verifying keys against the recompiled circuit and
+  `transfer_witness_v1.bin` succeeds (prover done, verifier done, exit 0,
+  run 2026-07-07). Fix is the same PR97 transfer stamp refresh already
+  tracked; rides with the consolidate2x1 refresh, not hand-edited per rules.
 
 - **H4 memo review**: accept (or reject)
   `docs/soundness/reference/poseidon-parameter-provenance.md` as the
