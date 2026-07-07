@@ -54,7 +54,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
+        # PR -> local ref; schedule -> dev only (halves nightly cost; change
+        # lands on dev); dispatch -> both (covers pre-release main verification).
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || (github.event_name == 'schedule' && '["dev"]' || '["main", "dev"]')) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,7 +80,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
+        # PR -> local ref; schedule -> dev only (halves nightly cost; change
+        # lands on dev); dispatch -> both (covers pre-release main verification).
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || (github.event_name == 'schedule' && '["dev"]' || '["main", "dev"]')) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -114,8 +118,23 @@ jobs:
         run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
 
   lean-circuit-fv:
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    # PRs run the cheap `stamps` tier on a standard runner; the nightly `full`
+    # tier that elaborates the whole-circuit proofs stays on the 16-vcpu tier for
+    # RAM/cores. If the PR stamps tier ever exceeds ~10 min on ubuntu-latest,
+    # move it to a smaller blacksmith tier rather than back to 16-vcpu.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'blacksmith-16vcpu-ubuntu-2404' }}
     timeout-minutes: 45
+    # Toolchain (Go, Rust, elan/Lean, ripgrep) is baked into the FV image, pinned
+    # by digest, so no per-run install and no elan-init.sh 429 flake. Rebuild and
+    # repin via .github/workflows/fv-toolchain-image.yml when the toolchain moves.
+    container:
+      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:ac391c7228bb6dc01227651ee3fab4418181a7d54c3eab73ba3858278a042b61
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: read # pull the FV toolchain image from GHCR
     # Single-threaded Lean elaboration caps per-process memory: the nightly full
     # tier rebuilds the whole-circuit models, and unbounded threads let one
     # elaboration balloon past the runner's RAM and OOM the job.
@@ -124,43 +143,47 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
+        # PR -> local ref; schedule -> dev only (change lands on dev, so that's
+        # the clean-room drift target); dispatch -> both (covers pre-release main).
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || (github.event_name == 'schedule' && '["dev"]' || '["main", "dev"]')) }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ matrix.ref }}
           lfs: true # gate reads the committed LFS-tracked .sr1cs artifacts
-      # Cache the Lean toolchain, Mathlib download cache, and dependency builds
-      # (proven-zk/Mathlib oleans). Keyed on the toolchain + lake-manifest pins,
-      # which are themselves SHA-stamped into the whole-circuit artifacts, so the
-      # cache invalidates exactly when the proved inputs change. Deliberately does
-      # NOT cache tools/gnark/lean/.lake/build: the project's own circuit-proof
-      # oleans must re-elaborate from source so the nightly `full` tier's axiom
-      # check stays a real clean-room build.
-      - name: Cache Lean toolchain and Mathlib
+      # Cache the Mathlib download cache and dependency builds (proven-zk/Mathlib
+      # oleans). Keyed on the toolchain + lake-manifest pins, which are themselves
+      # SHA-stamped into the whole-circuit artifacts, so the cache invalidates
+      # exactly when the proved inputs change. Deliberately does NOT cache
+      # tools/gnark/lean/.lake/build: the project's own circuit-proof oleans must
+      # re-elaborate from source so the nightly `full` tier's axiom check stays a
+      # real clean-room build. (elan/Lean itself is baked in the image, not cached.)
+      - name: Cache Lean Mathlib and deps
         uses: actions/cache@v4
         with:
           path: |
-            ~/.elan
             ~/.cache/mathlib
             tools/gnark/lean/.lake/packages
-          key: lean-fv-${{ runner.os }}-${{ hashFiles('tools/gnark/lean/lean-toolchain', 'tools/gnark/lean/lake-manifest.json') }}
+          key: lean-fv-${{ hashFiles('tools/gnark/lean/lean-toolchain', 'tools/gnark/lean/lake-manifest.json') }}
           restore-keys: |
-            lean-fv-${{ runner.os }}-
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
-      - name: Setup Go
-        uses: actions/setup-go@v5
+            lean-fv-
+      # Rust + Go build caches: the stamps tier compiles the constraint-coverage
+      # crate and runs `go run ./cmd/gnarkctl`. These make the ubuntu-latest PR
+      # runner viable (the toolchains themselves are baked; only build artifacts
+      # are cached here).
+      - name: Rust build cache
+        uses: Swatinem/rust-cache@v2
         with:
-          go-version-file: tools/gnark/go.mod
-          cache-dependency-path: tools/gnark/go.sum
-      - name: Install pinned Lean
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
-          sh /tmp/elan-init.sh -y --default-toolchain leanprover/lean4:v4.15.0
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          workspaces: "."
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-fv-${{ hashFiles('tools/gnark/go.sum') }}
+          restore-keys: |
+            go-fv-
       # PRs run the cheap `stamps` tier (hygiene + stamp integrity + wiring
       # transcript); the nightly schedule/dispatch runs the expensive `full`
       # tier that elaborates the whole-circuit proofs and checks axioms.
@@ -182,7 +205,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
+        # PR -> local ref; schedule -> dev only (halves nightly cost; change
+        # lands on dev); dispatch -> both (covers pre-release main verification).
+        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || (github.event_name == 'schedule' && '["dev"]' || '["main", "dev"]')) }}
     steps:
       - name: PR prover policy
         if: github.event_name == 'pull_request'
