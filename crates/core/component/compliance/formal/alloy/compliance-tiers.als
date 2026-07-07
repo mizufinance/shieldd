@@ -38,14 +38,14 @@ assert CompleteIsTerminal {
   no AuditComplete.legal
 }
 
-check CompleteIsTerminal for 6
+check CompleteIsTerminal for 10
 
 // Every non-terminal status can still reach AuditComplete (no dead ends).
 assert CompleteReachableFromAll {
   all s: AuditStatus | AuditComplete in s.*legal
 }
 
-check CompleteReachableFromAll for 6
+check CompleteReachableFromAll for 10
 
 // No illegal shortcut from Pending straight to completion (evidence must be
 // validated first).
@@ -53,18 +53,18 @@ assert NoPendingShortcut {
   AuditComplete not in Pending.legal
 }
 
-check NoPendingShortcut for 6
+check NoPendingShortcut for 10
 
 // A transfer has exactly four canonical compliance tiers.
 assert FourCanonicalTiers {
   #TierKind = 4
 }
 
-check FourCanonicalTiers for 6
+check FourCanonicalTiers for 10
 
 // Non-vacuity: a legal multi-step audit path exists.
 pred show {
   some s: AuditStatus | some s.legal and s != AuditComplete
 }
 
-run show for 6
+run show for 10

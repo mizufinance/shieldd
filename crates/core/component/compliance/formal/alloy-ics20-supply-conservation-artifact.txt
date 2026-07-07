@@ -1,6 +1,6 @@
 tool: alloy
 alloy: 6.2.0
 model: crates/core/component/compliance/formal/alloy/ics20-supply-conservation.als
-model_sha256: 448a58605b561289733291801de1a941febed6206afd380503fd1d544fefc7d2
-alloy_output_sha256: eed81c0942fceb770408428fca51cdf9c1fa24a41f72b0daf98380428ce30d47
+model_sha256: 60e5ad3a35c484861ef75926914c33c3a2a6949c6b2d3422491b57d18667874e
+alloy_output_sha256: 58aad83d1e27063a157226e6d1fb649d5a262ae6bfa04363b2d004a2b36e5b93
 CHECK SupplyBackedByEscrow no-counterexample

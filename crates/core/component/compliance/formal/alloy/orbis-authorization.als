@@ -53,19 +53,19 @@ assert CorrectIssuerRecovers {
   all c: Commitment | recover[c, c.boundTo] = c.seed
 }
 
-check CorrectIssuerRecovers for 6
+check CorrectIssuerRecovers for 10
 
 assert OnlyDesignatedRecovers {
   all c: Commitment, i: Issuer | i != c.boundTo implies no recover[c, i]
 }
 
-check OnlyDesignatedRecovers for 6
+check OnlyDesignatedRecovers for 10
 
 assert SingleBinding {
   all c: Commitment | one c.boundTo
 }
 
-check SingleBinding for 6
+check SingleBinding for 10
 
 // Non-vacuity: a sealed commitment with at least two distinct issuers exists,
 // so OnlyDesignatedRecovers is checked against a real non-recipient.
@@ -74,4 +74,4 @@ pred show {
   #Issuer >= 2
 }
 
-run show for 6
+run show for 10
