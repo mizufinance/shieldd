@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl git git-lfs unzip xz-utils ripgrep \
       build-essential pkg-config libssl-dev \
       clang lld \
+      jq python3 perl \
     && rm -rf /var/lib/apt/lists/* \
     && git lfs install --system
 
@@ -56,6 +57,7 @@ RUN set -eux; \
     go version; \
     cargo --version; rustc --version; rustfmt --version; \
     clang --version; ld.lld --version; \
+    jq --version; python3 --version; shasum -a 256 /dev/null >/dev/null; \
     rustc --print target-list | grep -qx wasm32-unknown-unknown; \
     elan --version; lean --version; lake --version; \
     rg --version; git lfs version
