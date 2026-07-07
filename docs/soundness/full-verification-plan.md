@@ -340,3 +340,29 @@ wired into CI. Every retired/added ledger row has a status and removal path.
 | Turnstile feasibility | Decide on Zcash-style runtime supply accounting as a backstop (Zcash June-2026 Orchard incident) | protocol, human |
 | ACL2/Axe independent R1CS checks | Optional independent regression layer for high-risk gadgets; never promotes | L2 |
 | Statement/aggregation seam unification | One statement across Rust bytes, Lean, F* (extends S5/SL1) | L1/L4 |
+| VK↔`.sr1cs` derivation pinning | Mechanical check that the deployed proving/verifying keys derive from the exact pinned `.sr1cs` — closes the `ZK-ASSUME-GNARK-FRONTEND-BACKEND` plumbing half (the "proved the model, trusted the plumbing" shape); executor-class | L5, gate |
+| Verifier FV program (L5a–d) | See §8a — mechanize the accept path above the pairing primitive | L5, Lean/F* |
+| Privacy-axis scoping decision | Everything proved today is soundness-direction; the ZK/leakage direction (witness independence, encryption usage, ss derivation — gnark GHSA-9xcg class) has no mechanized coverage and no regression gate. Decide: scope a verification program, or record an explicit accepted-risk row. Even "accepted risk" beats the current unexamined state | direction, human |
+| Native statement construction | The Rust that builds the statement from chain state is seam/parity-tested (S4/S5, Alloy H2) but not proved; a field-ordering bug there is invisible to circuit-layer FV. Candidate: verified reference builder + byte-differential test promoted to a gate | L1, Rust/F* |
+
+### §8a. Verifier FV program (from the 2026-07-07 external-incident review)
+Goal: shrink L5 from "the whole verifier stack is correct" to "the BLS12-377
+pairing primitive is correct + q-type assumptions hold" — the same boundary
+Zcash's Tachyon program targets. Staged, each independently valuable:
+- **L5a — Groth16 scheme soundness (AGM), Lean.** The pairing-equation check
+  implies knowledge soundness; port the Bailey–Miller-style AGM
+  formalization shape rather than inventing it. Retires the BCTV14-class
+  risk row.
+- **L5b — SnarkPack/RIPP (TIPP/MIPP + KZG final-ck) soundness, Lean.** The
+  already-planned RIPP mechanization, now sequenced here; gated by S1.
+- **L5c — Fiat-Shamir transcript reduction, Lean/VCVio.** Same job as the
+  landed DLEQ FS proof, over the SnarkPack transcript (category-3 surface
+  stays frozen; the proof is *about* it, not a change *to* it).
+- **L5d — implementation conformance.** Verified reference model of
+  `verify_family_aggregate` + Groth16 verify; byte-level differential tests
+  against the Rust promoted to a gate (extends the F*/S5 seams).
+- **L5e — floor (explicit non-goal).** Pairing/Miller-loop/field arithmetic
+  stays an assumption row + differential tests; fiat-crypto-style verified
+  field arithmetic only if ever justified.
+Ordering: L5d and the VK-pinning backlog row first (cheap, executor-class,
+close the plumbing); L5a/L5c next (proof work with precedent); L5b behind S1.

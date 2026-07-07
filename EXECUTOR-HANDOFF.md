@@ -105,11 +105,21 @@ State of the wait-time work stream, resumable by executor:
 Everything T2/T3/S-1/TC-3 waits for frontier design or Antoine. SnarkPack §8
 candidates stay frozen behind S1 + security review (not yours).
 
+### Q4 — VK↔`.sr1cs` derivation pinning (after Q3; new check, not a gate edit)
+Build the mechanical check that the deployed proving/verifying keys derive
+from the exact pinned `.sr1cs` (plan §8 backlog row; closes the plumbing half
+of `ZK-ASSUME-GNARK-FRONTEND-BACKEND`). Shape: regenerate keys from the
+pinned constraint system in CI (or hash-chain the setup transcript) and
+compare against the deployed VK hash the SnarkPack conformance tests already
+pin. This is a NEW script (allowed); it must not modify any existing gate.
+
 ## Awaiting human (Antoine)
 
 - Confirm `MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT` (consolidate2x1's
   absent compliance surface: intended design or oversight?).
 - Playbook T2/T3, S1 removal path, gate-semantics changes.
+- Plan §8: turnstile feasibility (G2), privacy-axis scoping decision,
+  verifier FV program (§8a) sequencing/approval.
 
 ## Standing mission (post-frontier)
 

@@ -50,9 +50,11 @@ Both deltas already exist as named open items (SL/RIPP, plan §8 turnstile).
 
 - **G1 — scheme-level verification.** BCTV14/halo2-class flaws live below
   our Lean layer. Current mitigation: L5 assumption rows, pinned versions,
-  advisory monitoring, SnarkPack F* seams + conformance tests. Plan: RIPP
-  mechanization (SnarkPack layer table; S1 decision gates it). Owner:
-  frontier + Antoine.
+  advisory monitoring, SnarkPack F* seams + conformance tests. Plan: the
+  staged verifier FV program in full-verification-plan §8a (L5a Groth16 AGM
+  soundness, L5b RIPP behind S1, L5c FS transcript reduction, L5d
+  implementation conformance; pairing primitive stays the explicit floor).
+  Owner: frontier + Antoine.
 - **G2 — runtime supply accounting (turnstile).** Zcash's backstop for
   unknown bugs. Already a plan §8 backlog row; this review recommends
   treating it as the highest-value non-Lean item, since it converts every
