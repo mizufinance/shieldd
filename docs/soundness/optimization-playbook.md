@@ -251,6 +251,70 @@ in-circuit lever, and the hash widths already match their input arities.
 - Statement field set or order (reopens Phase C + S4 + seam tests; only with
   human sign-off, and then T3 process).
 
+## 2x. Frontier-lens findings (2026-07-07) — lower bounds, hints, forensics
+
+Four lenses beyond redundancy-reading: rows-vs-information floor,
+verify-don't-compute, security-margin arbitrage, mechanical forensics.
+
+### TC-6. Borrow-witness comparison in `ThresholdFlag` (~130 rows, transfer)
+`fieldLessThan` (threshold.go:34) decomposes **both** operands (2 × 128 bits)
+and runs a bit comparator. Verify-don't-compute form: witness boolean `flag`,
+decompose only `d = a − b + flag·2¹²⁸` to 128 bits — `flag` is forced iff
+`a < b`, sound given both operands independently range-bound (amount is via
+net-balance; pin the leaf threshold's 128-bit bound once). One decomposition
+instead of two. Small but the pattern generalizes to any var-vs-var compare.
+
+### M-1. Merkle is ≥94% Poseidon S-box floor — do not micro-optimize
+Measured 9,015 rows / 24 levels = 375/level vs the width-5 permutation's
+S-box floor ≈ 355 (S-boxes are the only R1CS cost; linear/MDS layers are
+free). The 4-child select network is ~20 rows/level of the gap (and
+`isIndex0/1/2` are linear in `isIndex3 = bit0·bit1` — 3 of the 4 indicator
+muls at tct_path.go:45–48 are deletable, but that is noise). The only real
+levers are arity (T3-a) or a cheaper permutation (protocol change). Anything
+else here is wasted effort — recorded to stop future audits re-mining it.
+
+### E-1. Edwards add is near-floor; superoptimization only via Picus
+decaf377's curve is complete Edwards, and gnark's affine add with witnessed
+inverses is already the ~6–7-mul optimal form; projective/extended
+coordinates cost *more* R1CS muls (inversions are hints, not muls, so the
+classic "defer inversions" trick buys nothing here). Slack per add ≤ 1–2
+muls. If ever chased: formula changes that drop completeness must go through
+Picus per-leaf determinism + a new exceptional-case argument — research-grade,
+not loop-grade.
+
+### S-1. Short-exponent esk (T3-research, crypto decision, up to ~28% of the
+12 transfer DH ladders)
+The rvk randomizer already runs at 150 bits — a deliberate security-margin
+trade. The same argument under the short-exponent DL/DH assumption (SEDL)
+would shrink the four compliance tiers' 251-bit `esk` ladders to ~180 bits.
+Changes what the ciphertexts' semantic-security reduction assumes →
+assumption-ledger row + human crypto sign-off; the constraint win is
+mechanical afterwards. Record, don't start.
+
+### F-1. Constraint forensics as a loop phase (`fv-opt-loop.sh census`) — tooling
+Both audit passes found waste by eye (duplicate `ToBinary`, dead ladder
+outputs). Mechanize it against the compiled `.sr1cs` + wire-role JSON via the
+existing Rust parser: report (a) syntactically identical constraint rows =
+CSE misses (catches every T1-h instance and future regressions), (b)
+constraints outside the transitive fan-in of any assertion or public input =
+dead cones (catches TC-1-style discarded outputs), (c) per-gadget rows vs
+S-box/mul floor (auto-refreshes the M-1-style table). Read-only, no gate
+semantics — executor-buildable; turns "audit for waste" from a frontier
+session into a standing red flag in the loop.
+
+### Anti-candidate: statement-hash repartition
+Moving the in-circuit statement Poseidon out to native (statement fields as
+individual public inputs) trades ~one hash for per-input verifier MSM terms
+*and breaks the SnarkPack arity-1 statement design* (S5 conformance, MIPP
+public-input fold). Rejected on design grounds; recorded so it isn't
+re-derived.
+
+### Do-not-touch list
+- Poseidon round counts / MDS parameters (crypto margin, provenance memo H4).
+- The 128-bit amount decomposition (exactness is a proved property row).
+- Statement field set or order (reopens Phase C + S4 + seam tests; only with
+  human sign-off, and then T3 process).
+
 ## 2b. Leeway map — which open holes restrict this loop (and which don't)
 
 The loop's safety comes from fail-closed gates, not from a small assumption

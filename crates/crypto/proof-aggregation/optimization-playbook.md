@@ -351,6 +351,24 @@ the §4a 10% estimate.
    cost partially offsets the subgroup-check saving — evaluate them together,
    not separately.
 
+5. **Cross-family batch verification (amortization lens, 2026-07-07).** The
+   chain verifies up to 7 family aggregates per block as independent
+   `verify_family_aggregate` calls, each paying its own PPE final
+   exponentiation and KZG multi-pairings. Verifier-local random combiners
+   r₁…r₇ (fresh, post-deserialization, never transcript-derived) can merge
+   the 7 PPE checks — distinct prepared VKs are fine, Miller loops just
+   concatenate — into one multi-pairing with a **single** final
+   exponentiation, and likewise the 14 KZG opening checks. Saves ~6 final
+   exps + final-exp-per-KZG-pair per block; fixed-cost stage, so it matters
+   most at small n where per-aggregate overhead dominates. Batching changes
+   accept/reject *granularity* (one bit for the whole block — on failure,
+   fall back to per-family to attribute blame), and it is a
+   validation-strength change like candidate 1: byte-stable but needs the
+   same security-review checklist (randomizer sizing per cofactor prime,
+   independence from proof bytes, negative tests planting a bad element in
+   each family slot). Lives *above* this crate's per-aggregate API — the
+   batching seam belongs in the caller that sees all 7 families.
+
 **Lineage cross-check (2026-07-07):** against bellperson/Filecoin SnarkPack
 and the SnarkPack v2 paper, this backend already has every headline verifier
 trick: merged TIPP/MIPP transcript (single `r_commitment_steps`), O(log n)
