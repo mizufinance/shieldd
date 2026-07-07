@@ -130,6 +130,23 @@ jobs:
         with:
           ref: ${{ matrix.ref }}
           lfs: true # gate reads the committed LFS-tracked .sr1cs artifacts
+      # Cache the Lean toolchain, Mathlib download cache, and dependency builds
+      # (proven-zk/Mathlib oleans). Keyed on the toolchain + lake-manifest pins,
+      # which are themselves SHA-stamped into the whole-circuit artifacts, so the
+      # cache invalidates exactly when the proved inputs change. Deliberately does
+      # NOT cache tools/gnark/lean/.lake/build: the project's own circuit-proof
+      # oleans must re-elaborate from source so the nightly `full` tier's axiom
+      # check stays a real clean-room build.
+      - name: Cache Lean toolchain and Mathlib
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.elan
+            ~/.cache/mathlib
+            tools/gnark/lean/.lake/packages
+          key: lean-fv-${{ runner.os }}-${{ hashFiles('tools/gnark/lean/lean-toolchain', 'tools/gnark/lean/lake-manifest.json') }}
+          restore-keys: |
+            lean-fv-${{ runner.os }}-
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Setup Go
