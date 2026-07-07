@@ -23,6 +23,10 @@ use shieldd_sdk_compliance::{OrbisEncryptedSeedUploadPackage, OrbisSecretEnvelop
 
 const SOURCEHUB_TX_MAX_RETRIES: u32 = 30;
 
+/// Minimum `pss_interval` (seconds) the orbis x/pss module accepts for a ring.
+/// Values below this are rejected as `invalid ring`.
+const PSS_INTERVAL_MIN_SECS: u64 = 86_400;
+
 #[derive(Debug, Deserialize)]
 struct PreResponse {
     xnc_cmt: String,
@@ -92,9 +96,18 @@ async fn create_orbis_ring_with_retry(
     let mut attempt = 0u32;
     loop {
         match client
-            // pss_interval: 0 (proto3 default) preserves the previous `None` wire
-            // encoding after orbis-rs made this field a plain u64.
-            .orbis_create_ring_get_id(peer_node_keys.to_vec(), threshold, 0, policy_id, None, 0)
+            // pss_interval must be at least 86400s (1 day): the orbis x/pss
+            // module rejects a smaller ring interval as invalid. We do not run
+            // proactive secret sharing in the integration flow, so pin the
+            // minimum accepted value.
+            .orbis_create_ring_get_id(
+                peer_node_keys.to_vec(),
+                threshold,
+                PSS_INTERVAL_MIN_SECS,
+                policy_id,
+                None,
+                0,
+            )
             .await
         {
             Ok((result, ring_id)) if result.code == 0 => return Ok(ring_id),
