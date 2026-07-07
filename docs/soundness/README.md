@@ -35,7 +35,8 @@ ledger** at `crates/core/component/compliance/formal/assumption-ledger.md`.
 ## What is open
 
 The governing plan is [full-verification-plan.md](full-verification-plan.md)
-(layers, hole inventory, phases A–H, promotion rules, §8 backlog). The
+(layer stack, hole inventory §3, FV + optimization queues §4, promotion
+rules, §8 backlog). The
 composition of all claims across tools is
 [assurance-case.md](assurance-case.md) — every protocol claim traces to a
 stamped artifact, a named ledger row, or an explicit TODO.

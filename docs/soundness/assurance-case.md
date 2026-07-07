@@ -48,7 +48,7 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
   - No witness slack at the gadget frontier: Picus per-leaf determinism, each
     leaf now bound to its exact `.sr1cs` input (input-fingerprint footer) and
     composed by the machine-checked wiring certificate [ROW — supporting
-    evidence; input fingerprints + acyclic wiring cert landed Tasks 11/12
+    evidence; input fingerprints + acyclic wiring cert are part of the battery
     (commit c72844309); promotion to a property row deferred pending frontier
     review per `reference/constraint-system-assurance.md` §C2b]
   - Compiled artifact = proved artifact: manifest pin `relation_sha256_hex`
@@ -119,9 +119,9 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
 
 - R5.1 Ciphertext/DLEQ gadget semantics: 8 classes [ROW
   ZK-ASSUME-TRANSFER-DEPLOYED-* (5 rows) + ZK-ASSUME-TRANSFER-COMPLIANCE-GADGETS
-  — open Lean work, plan Phase H-a]
+  — open Lean work, plan §3 hole H-a]
 - R5.2 Encryption security properties [TODO — VCVio game-based or explicit
-  assumption row, plan Phase H-b]
+  assumption row, plan §3 hole H-b]
 - R5.3 consolidate2x1 has no compliance surface [ROW
   MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT — **awaiting human confirmation
   that the exemption is intended protocol design**]
@@ -133,7 +133,7 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
 - A2 decaf377 group + compress-to-field injectivity [ROW
   ZK-ASSUME-DECAF377-COMPRESS-TO-FIELD + compress segs PROVED in ea76f525…]
 - A3 L0 parameter provenance (Poseidon params, curve constants) [ROW
-  CC-ASSUME-POSEIDON-PARAM-PROVENANCE — Phase E memo]
+  CC-ASSUME-POSEIDON-PARAM-PROVENANCE — plan §3 H4 memo]
 - A4 **Model fidelity**: the Alloy facts transcribe the real circuit/handler
   [ROW MODEL-ASSUME-ALLOY-FIDELITY — hand-written transcription, no mechanical
   `.als`↔R1CS binding; mitigated by file:symbol comments in both `.als` headers,

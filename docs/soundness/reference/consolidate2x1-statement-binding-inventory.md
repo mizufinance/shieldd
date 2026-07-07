@@ -4,7 +4,7 @@
 Phase C Alloy model (`phase-c-alloy-statement-sufficiency-spec.md` (this directory)).
 Remains a reference document; makes no ledger claim itself.
 **Scope:** the deployed `consolidate2x1` circuit slice (49/49 segments circuit-sound).
-**Purpose:** evidence base for the Phase C Alloy *statement-sufficiency* model (hole
+**Purpose:** evidence base for the Alloy *statement-sufficiency* model (hole
 **H2**). For each field the public statement hash commits to, this records the
 in-circuit binding chain down to segments/specs; for each protocol object the
 consensus layer relies on, which statement field pins it; and a candid list of

@@ -1,4 +1,4 @@
-# Optimization playbook — consolidate2x1 + SnarkPack (Phase G)
+# Optimization playbook — consolidate2x1 + SnarkPack
 
 **Status:** frontier-authored. This is the concrete instantiation of the
 optimize-safely loop (full-verification-plan §5): where the constraints are,
@@ -30,7 +30,7 @@ Ranked by (savings × pattern-reuse) / re-verification cost. Tiers: **T1** =
 relation changes that existing Lean generators/substrates already cover
 (executor-safe through the loop); **T2** = new gadget shapes needing a new
 proof pattern (frontier/human design first); **T3** = protocol-visible changes
-(reopen Phase C + SnarkPack S4; human sign-off).
+(reopen the L1 statement-sufficiency artifacts + SnarkPack S4; human sign-off).
 
 ### T1-a. Eliminate the constant seed ladder in net-balance (~1 ladder, ~1–2%)
 **Corrected 2026-07-06 (executor Task 10).** The original T1-a ("specialize
@@ -198,7 +198,7 @@ one, but still a new relation shape for Lean.
 ### T3-a. Merkle arity change (quad-path-24 → wider arity) (up to ~9k rows, 15%)
 Halving levels via arity-4 Poseidon (or one wider hash per level) attacks the
 31% Merkle mass, but changes the tree shape = state-machine + anchor semantics
-+ every client — protocol change, reopens Phase C, needs human sign-off and a
++ every client — protocol change, reopens the L1 statement artifacts, needs human sign-off and a
 migration story. Record as future work; do not start from this playbook.
 
 ### T2-c. Swap `ScalarMulLE` for a 2-bit windowed ladder (gadget-level, all
@@ -261,7 +261,7 @@ If every DLEQ input is already bound in the statement (epk/c/s lanes are —
 check ack/S lanes in the transfer binding inventory), the chain can verify
 the four DLEQs **natively** (microseconds) instead of paying ~an eighth of
 the circuit for them, exactly like the auth signatures are verified natively
-(`verify_auth_sigs`). Changes the statement/handler split → Phase C + S4 +
+(`verify_auth_sigs`). Changes the statement/handler split → L1 statement artifacts + S4 +
 human sign-off; record, don't start.
 
 ### TC-4. ACK ladders and `AddressPlaintextFQs` bit-packing (small)
@@ -282,7 +282,7 @@ prover profiling shows witness-gen hot. Fewer/narrower hashes is the only
 in-circuit lever, and the hash widths already match their input arities.
 - Poseidon round counts / MDS parameters (crypto margin, provenance memo H4).
 - The 128-bit amount decomposition (exactness is a proved property row).
-- Statement field set or order (reopens Phase C + S4 + seam tests; only with
+- Statement field set or order (reopens L1 statement artifacts + S4 + seam tests; only with
   human sign-off, and then T3 process).
 
 ### NB-1. Conservation short-circuit in net-balance (~3–4k rows in
@@ -426,7 +426,7 @@ re-derived.
 ### Do-not-touch list
 - Poseidon round counts / MDS parameters (crypto margin, provenance memo H4).
 - The 128-bit amount decomposition (exactness is a proved property row).
-- Statement field set or order (reopens Phase C + S4 + seam tests; only with
+- Statement field set or order (reopens L1 statement artifacts + S4 + seam tests; only with
   human sign-off, and then T3 process).
 
 ### Audit coverage manifest (2026-07-07, four rounds — the audit is closed)

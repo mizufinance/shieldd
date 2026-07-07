@@ -7,7 +7,7 @@ obligations, not blockers on this document.
 **Scope:** the deployed `transfer` (2×2) circuit slice.
 **Purpose:** transfer twin of the
 [consolidate2x1 statement-binding inventory](consolidate2x1-statement-binding-inventory.md),
-in identical format so the Phase C Alloy *statement-sufficiency* model (hole
+in identical format so the Alloy *statement-sufficiency* model (hole
 **H2**) can be written once and instantiated on both circuits.
 
 Same read-only, lake-free method as Task 6, with three transfer-specific twists,
