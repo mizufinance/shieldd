@@ -1,7 +1,6 @@
 # Assurance case — shieldd shielded pool
 
-**Status:** frontier-authored skeleton, 2026-07-06; leaf citations resolved by
-the executor (Task 13, same date). The tree structure and claim decomposition
+**Status:** living claim tree. The tree structure and claim decomposition
 are fixed (frontier judgment); the leaf citations are maintained by the executor
 and must be kept current: **every edge is either a stamped artifact, a named
 ledger row, or an explicit TODO — an edge with none of these is a finding.**
@@ -37,7 +36,7 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
       ZK-ASSUME-TRANSFER-DEPLOYED-DLEQ / -SHARED-SECRET / -ACK /
       -POSEIDON-ENCRYPTION / -THRESHOLD-FLAG (5 rows)] and the compliance-gadget
       class row [ROW ZK-ASSUME-TRANSFER-COMPLIANCE-GADGETS]
-  - split / ics20 / other shapes: [TODO Task 17 — out of current scope; scope
+  - split / ics20 / other shapes: [TODO — out of current scope; scope
     boundary stated in the release checklist]
 - R1.2 An accepted proof implies the statement's circuit relation holds
   - Whole-circuit soundness, consolidate2x1: capstone composition theorem
@@ -63,7 +62,7 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
   - SnarkPack aggregation implies each per-proof Groth16 check
     [ROW "SnarkPack aggregation implies each per-proof Groth16 verification (S1
     decision)", SnarkPack `formal-handoff.md` Assumptions table — accepted on
-    Filecoin lineage + paper review (human 2026-07-06), removal path = Lean
+    Filecoin lineage + paper review (human decision), removal path = Lean
     mechanization of the aggregate→per-proof implication; plan §3]
   - Aggregate statement = per-circuit statements [TEST
     shielded-pool/src/gnark/artifacts.rs::family_vks_expose_single_statement_hash_public_input
@@ -141,29 +140,20 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
   tests; removal = generate the fact skeleton from `Statement.lean`]
 - A5 Toolchain trust: Lean kernel, Picus/cvc5, Alloy, gnark compiler, pinned
   versions [ROW ZK-ASSUME-GNARK-FRONTEND-BACKEND + `toolchain.toml` pins; S3
-  pattern; toolchain-pin CI enforcement TODO Task 16]
+  pattern; toolchain-pin CI enforcement TODO]
 
 ---
 
-## Evidence gaps (surfaced by Task 13 leaf resolution — the tree doing its job)
+## Evidence gaps
 
-These are edges the tree *claims* but for which no backing artifact/row/test was
-found. Missing evidence, not contradicted evidence — tracked, not findings.
-Both gaps are **CLOSED** (2026-07-07); entries kept as the record of the tree
-doing its job.
+Edges the tree claims but for which no backing artifact/row/test exists yet —
+missing evidence, not contradicted evidence; tracked, not findings.
 
-- **Gap #1 (R2.2)** — CLOSED: no dedicated test pinned "the chain rejects a
-  repeated nullifier". Resolved by
-  `note_reshape.rs::execute_rejects_repeated_nullifier` (second spend of the
-  same nullifier rejected, distinct nullifier still accepted); cited at R2.2.
-- **Gap #2 (R3.2)** — CLOSED: no spend-auth rdsa assumption row existed
-  (`ZK-ASSUME-BINDING-SIG-DL` covers the *binding* signature only). Resolved by
-  ledger row `ZK-ASSUME-SPEND-AUTH-RDSA` (+ handoff mirror); cited at R3.2.
+- (none open)
 
 ## Maintenance rule
 
 Any commit that flips a manifest verdict, adds/removes a ledger row, or
 changes a statement encoding MUST update the affected edge here in the same
 commit. `check-soundness-invariants.sh` does not (yet) parse this file; until
-it does, the executor audits the tree at the end of every session (adopted as
-the session-end routine per Task 13).
+it does, the executor audits the tree at the end of every session.

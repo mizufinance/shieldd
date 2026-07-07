@@ -31,16 +31,14 @@ proved or an audited ledger row. Layers do not promote each other
 | L4 | Compiled artifact | Do the *actual compiled `.sr1cs` rows* imply the whole-circuit statement? | Lean deployed bridges + `shieldd-constraint-coverage` partition gate + capstone composition theorem | compile-time specialization diverging from proved gadget |
 | L5 | Proving stack | Prover/verifier/aggregator code and backend crypto: Groth16, gnark backend, SnarkPack/RIPP, arkworks | Named assumption rows + pinned versions + advisory monitoring; F* only where rows already exist (SnarkPack) — no new proof tooling at this layer | backend soundness CVE (GHSA-q3hw-3gm4-w5cr) |
 
-Mapping from the original 4-layer sketch: sketch-1 = L1, sketch-2 = L2,
-sketch-3 = L3, sketch-4 = L4. L0 and L5 are the additions — L0 because every
-Lean/Tamarin result is conditional on it, and L5 because a verified circuit
-proved by a broken prover/aggregator is not a verified system. One more
-direction the sketch misses: L2–L4 are **soundness-only** (constraints ⇒
+L0 exists because every Lean/Tamarin result is conditional on it; L5 because
+a verified circuit proved by a broken prover/aggregator is not a verified
+system. One direction the stack does not cover: L2–L4 are **soundness-only** (constraints ⇒
 spec). **Completeness** (honest witness always satisfies; no honest-user
 funds bricked) is covered by prover round-trip tests, not proofs — keep it a
 named test obligation, not an accident.
 
-**Boundary fidelity (cross-cutting, decided 2026-07-06).** No tool checks that
+**Boundary fidelity (cross-cutting).** No tool checks that
 another tool's model matches the real artifact: the Alloy facts are
 hand-transcribed from the circuit/handler, the F* statement model is separate
 from the Lean one, the deployed artifact is separate from the manifest pin.
@@ -51,7 +49,7 @@ stated once, in `docs/soundness/assurance-case.md` — the tree of protocol
 claims where every edge is a stamped artifact, a ledger row, or an explicit
 TODO. Keep it current per its maintenance rule.
 
-**Tooling policy (decided 2026-07-06).** Tools are routed per assumption type
+**Tooling policy.** Tools are routed per assumption type
 and each must earn its seat: Lean (semantics, L3/L4), Picus (determinism, L2),
 Alloy (statement sufficiency, L1), tests (completeness + parity). Tamarin is
 retained ONLY for the compliance detection flow (hole H-c) — if that surface
@@ -205,9 +203,6 @@ crashed the machine or produced silent unsoundness.
    clean modulo named residuals, artifacts SHA-stamped, gates in CI.
 
 ## 8. Beyond current scope — threat-review backlog and promotion rules
-*(absorbed from `fv-hardening-roadmap.md` 2026-07-06; that doc is deleted —
-its landed/historical status text lives in the ledger and
-`reference/history.md`)*
 
 ### Promotion rules (canonical statement)
 - A property row reaches `proved` only when a stamped artifact proves the
@@ -229,7 +224,7 @@ wired into CI. Every retired/added ledger row has a status and removal path.
 | Item | What | Layer/tool |
 | --- | --- | --- |
 | ACP↔Orbis multi-party model | The one REQUIRED Tamarin deliverable (= hole H-c): committee/consensus flow binding accepted statements across parties | L1, Tamarin |
-| ics20 withdrawal whole-circuit proof | Same deployed-bridge pattern as consolidate2x1/transfer (supply/denom-trace invariants already landed) | L3/L4, Lean |
+| ics20 withdrawal whole-circuit proof | Same deployed-bridge pattern as consolidate2x1/transfer (supply/denom-trace invariants exist) | L3/L4, Lean |
 | split1xN family proofs | Extend the artifact pattern; retires remaining `ZK-ASSUME-DECAF377-*` per family | L3/L4, Lean |
 | Turnstile feasibility | Decide on Zcash-style runtime supply accounting as a backstop (Zcash June-2026 Orchard incident) | protocol, human |
 | ACL2/Axe independent R1CS checks | Optional independent regression layer for high-risk gadgets; never promotes | L2 |
@@ -239,7 +234,7 @@ wired into CI. Every retired/added ledger row has a status and removal path.
 | Privacy-axis scoping decision | Everything proved today is soundness-direction; the ZK/leakage direction (witness independence, encryption usage, ss derivation — gnark GHSA-9xcg class) has no mechanized coverage and no regression gate. Decide: scope a verification program, or record an explicit accepted-risk row. Even "accepted risk" beats the current unexamined state | direction, human |
 | Native statement construction | The Rust that builds the statement from chain state is seam/parity-tested (S4/S5, Alloy H2) but not proved; a field-ordering bug there is invisible to circuit-layer FV. Candidate: verified reference builder + byte-differential test promoted to a gate | L1, Rust/F* |
 
-### §8a. Verifier FV program (from the 2026-07-07 external-incident review)
+### §8a. Verifier FV program (motivation: `reference/external-incidents-coverage.md`)
 Goal: shrink L5 from "the whole verifier stack is correct" to "the BLS12-377
 pairing primitive is correct + q-type assumptions hold" — the same boundary
 Zcash's Tachyon program targets. Staged, each independently valuable:
@@ -247,10 +242,10 @@ Zcash's Tachyon program targets. Staged, each independently valuable:
   implies knowledge soundness; port the Bailey–Miller-style AGM
   formalization shape rather than inventing it. Retires the BCTV14-class
   risk row.
-- **L5b — SnarkPack/RIPP (TIPP/MIPP + KZG final-ck) soundness, Lean.** The
-  already-planned RIPP mechanization, now sequenced here; gated by S1.
-- **L5c — Fiat-Shamir transcript reduction, Lean/VCVio.** Same job as the
-  landed DLEQ FS proof, over the SnarkPack transcript (category-3 surface
+- **L5b — SnarkPack/RIPP (TIPP/MIPP + KZG final-ck) soundness, Lean.** The RIPP
+  mechanization; gated by S1.
+- **L5c — Fiat-Shamir transcript reduction, Lean/VCVio.** Same shape as the
+  existing DLEQ FS proof, over the SnarkPack transcript (category-3 surface
   stays frozen; the proof is *about* it, not a change *to* it).
 - **L5d — implementation conformance.** Verified reference model of
   `verify_family_aggregate` + Groth16 verify; byte-level differential tests

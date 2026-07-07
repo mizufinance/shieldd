@@ -33,21 +33,13 @@ proof pattern (frontier/human design first); **T3** = protocol-visible changes
 (reopen the L1 statement-sufficiency artifacts + SnarkPack S4; human sign-off).
 
 ### T1-a. Eliminate the constant seed ladder in net-balance (~1 ladder, ~1–2%)
-**Corrected 2026-07-06 (executor Task 10).** The original T1-a ("specialize
-2-in-2-out → 2-in-1-out, drop the dummy-output ladder") rested on a false
-premise: consolidate2x1's net-balance is **already 2-in-1-out**.
-`NewConsolidateCircuit` sets `nOut:1`
-(`tools/gnark/internal/circuits/note_reshape_circuit.go:38-40`), so
-`computeTransferNetBalanceCommitment` receives a 1-element `outputAmounts` slice
-and lays down exactly one negated-output ladder — there is no dummy second
-output. The `gadget-net-balance-commitment2` label on seg52 is nominal only
-(`wiring_transcript.go:333-334` maps the op string unconditionally); the
-single-output `NetBalanceCommitmentGadget` (`decaf_gadgets.go:135`) already *is*
-the consolidate shape. The "[53353,53693] / dummy second output slot" phrasing
-mis-read the executor's Task 1 note, which was about *statement* wiring naming,
-not a net-balance dummy ladder.
+Note: consolidate2x1's net-balance is already 2-in-1-out (`NewConsolidateCircuit`
+sets `nOut:1`, `tools/gnark/internal/circuits/note_reshape_circuit.go:38-40`);
+the `gadget-net-balance-commitment2` label on seg52 is nominal only
+(`wiring_transcript.go:333-334` maps the op string unconditionally). Do not
+re-derive a "dummy second output" candidate — there is none.
 
-The real latent waste is the **constant seed ladder**
+The target is the **constant seed ladder**
 `ScalarMulLE(api, curve, valueGenerator, 0, 128)`
 (`transfer_circuit.go:212`): a 128-bit ladder over the literal scalar `0`,
 whose value is the additive identity. `sum` starts at identity and every real
@@ -96,7 +88,7 @@ e.g. an intermediate only needed as a curve point — delete it).
 - Re-verify: compress bridge pattern is landed and per-instance; deletions only
   shrink the manifest.
 
-### T1-d. Compute DTK once, not per note (~−12–13k rows, ~21%) — 2026-07-07 audit
+### T1-d. Compute DTK once, not per note (~−12–13k rows, ~21%)
 Largest confirmed redundancy in the deployed circuit.
 `verifyNoteReshapeSpend` and `verifyNoteReshapeOutput` each call
 `DiversifiedTransmissionKey` (the full ~6.3k-row 253-bit variable-base ladder
@@ -120,8 +112,8 @@ instances.
 - Subsumes most of T1-b (the duplicated canon blocks live inside the deleted
   instances) and makes T2-b one-third as valuable.
 
-**Blast-radius inventory + coset confirmation (2026-07-07, read-only pass —
-Q3 step 1 done).** Manifest facts (consolidate2x1-manifest.json, 60 segments,
+**Blast-radius inventory + coset confirmation (read-only pass; inputs to the
+Go change).** Manifest facts (consolidate2x1-manifest.json, 60 segments,
 57,329 rows): the three `gadget-dtk` instances are segments **16, 34, 45**
 (6,329 rows each, outs `spend0/spend1/output0.transmission.computed`). The
 ONLY consumer of each computed transmission is one 3-row `AssertEquivalent`
@@ -154,7 +146,7 @@ and on-curve asserts. Binding chain: note.transmission ≡ shared.transmission
   today covers it identically after T1-d — listed here so the diff reviewer
   doesn't mistake it for a new gap.
 
-### T1-e. Hoist the IVK derivation out of `DiversifiedTransmissionKey` — 2026-07-07 audit
+### T1-e. Hoist the IVK derivation out of `DiversifiedTransmissionKey`
 Subsumed by T1-d; standalone fallback if T1-d's equivalence argument stalls.
 `IncomingViewingKey` (CompressToField(ak) + Poseidon2 + `IVKModRDecomposition`
 with a 253-bit ToBinary and two `LessThanConstant253`) is recomputed
@@ -162,7 +154,7 @@ identically per DTK call (spend_auth_shared.go:115) — nk, ak, ivkReduced,
 quotientA are all shared wires. Hoist once into `Define`, pass `ivk` in.
 Save ≈2 × (compress ~1k + Poseidon2 + range blocks) ≈ 3–4k rows.
 
-### T1-f. Compress `div_gen` once (~−2k rows) — 2026-07-07 audit
+### T1-f. Compress `div_gen` once (~−2k rows)
 Sharpens T1-c with a concrete site: `div_gen_fq` is computed per spend/output
 (note_reshape_circuit.go:197/296) for the note commitment, but every note's
 `div_gen` is asserted decaf-equivalent to `shared.div_gen`, and decaf
@@ -170,7 +162,7 @@ compress-to-field is coset-invariant — equivalent representatives compress to
 the *same* Fq element. Compress `sharedDivGen` once in `Define`, reuse the
 wire. 3 instances → 1. Same manifest-deletion caveat as T1-d, smaller.
 
-### T1-g. Redundant per-note transmission on-curve checks (small) — 2026-07-07 audit
+### T1-g. Redundant per-note transmission on-curve checks (small)
 `assertDecafPointOnCurve(transmission)` runs per note (lines 270/338) *and*
 on `sharedTransmission` in `Define` (line 81), with equivalence asserted
 between them. If `AssertEquivalent`'s relation already forces membership given
@@ -202,7 +194,7 @@ Halving levels via arity-4 Poseidon (or one wider hash per level) attacks the
 migration story. Record as future work; do not start from this playbook.
 
 ### T2-c. Swap `ScalarMulLE` for a 2-bit windowed ladder (gadget-level, all
-ladders; ~25–35% of every ladder) — 2026-07-07 audit
+ladders; ~25–35% of every ladder)
 `ScalarMulLE` (compliance/dleq.go:50) is the textbook 1-bit double-and-add:
 per bit = 1 unified Edwards add + 2 `Select` + 1 double + 1 bit row. gnark's
 own `std/algebra/native/twistededwards.Curve.ScalarMul` at our pinned version
@@ -213,7 +205,7 @@ version of T2-a/T2-b (audited upstream, but still a new relation shape for the
 ladder Lean substrates — frontier design first). Applies to every ladder in
 both circuits: DTK, rvk, net-balance, and all 14+ compliance ladders below.
 
-### T1-h. `ToBinary` duplication sweep (~250–1,500 rows per circuit) — 2026-07-07 audit
+### T1-h. `ToBinary` duplication sweep (~250–1,500 rows per circuit)
 gnark does not CSE hint-based decompositions, so repeated `api.ToBinary` on
 the *same wire* pays full bit rows + boolean constraints each time. Confirmed
 duplicates: (a) ivk — decomposed in `IVKModRDecomposition`
@@ -225,7 +217,7 @@ receiver amount decomposed in `ThresholdFlag`'s `fieldLessThan`
 Fix: decompose once, thread bits (the ladder gadgets need a bits-in variant).
 Executor-safe shape (wire plumbing), but touches ladder gadget signatures.
 
-## 2t. Transfer-only candidates — the compliance surface (2026-07-07 audit)
+## 2t. Transfer-only candidates — the compliance surface
 
 The transfer circuit is consolidate plus the compliance add-on:
 4 `DeriveSharedSecretsSpend` tiers, 4 `VerifyDLEQ` calls, 2
@@ -286,7 +278,7 @@ in-circuit lever, and the hash widths already match their input arities.
   human sign-off, and then T3 process).
 
 ### NB-1. Conservation short-circuit in net-balance (~3–4k rows in
-consolidate, ~40% of the gadget) — 2026-07-07 deep audit
+consolidate, ~40% of the gadget)
 `computeTransferNetBalanceCommitment` (transfer_circuit.go:218–232) runs one
 128-bit ladder **per amount** over the same `valueGenerator`. For
 conservation-exact shapes (consolidate: same asset, Σin = Σout; check
@@ -310,7 +302,7 @@ scalars instead of paying them 3× (the doubling chain is the same
 `valueGenerator` powers). Relation-local, no statement impact.
 
 ### CF-1. CompressToField: the two 253-bit Abs decompositions are ~half the
-gadget (~500 of ~1,046 rows × 6 instances) — 2026-07-07 deep audit
+gadget (~500 of ~1,046 rows × 6 instances)
 Inside `decaf377-go/gnark` `CompressToField`: ~10 muls + one isqrt hint
 block (~10 rows) + **two `decaf377Abs` calls, each a full
 `ToBinary(v, 253)`** (decaf377.go:78–82) just to read a sign parity. The
@@ -357,7 +349,7 @@ IVKModR-style reduction gadget, ~0.5k) replaces two (~2.5k). Same ladder
 relation shape. Check first whether the dummy rk must remain
 domain-separated from the real rk derivation for the Alloy/statement model.
 
-### Fan-out note (2026-07-07)
+### Fan-out note
 The consolidate findings are not consolidate-only: transfer and ics20
 withdrawal share the same helpers and the same shared-context binding
 pattern, so T1-d (single DTK), T1-f (single div_gen compress), T1-h (bit
@@ -365,7 +357,7 @@ reuse), and T2-c (windowed ladder) each apply per-shape. Any landed fix in a
 shared helper flips segments in all three manifests — size the allowlist
 accordingly (T1-a's transfer/ics20 net-balance fan-out is the precedent).
 
-## 2x. Frontier-lens findings (2026-07-07) — lower bounds, hints, forensics
+## 2x. Frontier-lens findings — lower bounds, hints, forensics
 
 Four lenses beyond redundancy-reading: rows-vs-information floor,
 verify-don't-compute, security-margin arbitrage, mechanical forensics.
@@ -429,7 +421,7 @@ re-derived.
 - Statement field set or order (reopens L1 statement artifacts + S4 + seam tests; only with
   human sign-off, and then T3 process).
 
-### Audit coverage manifest (2026-07-07, four rounds — the audit is closed)
+### Audit coverage manifest (the audit is closed)
 Every constraint-bearing surface was read, not sampled. Circuits:
 consolidate/note_reshape, transfer (net-balance, compliance ciphertexts,
 dummy slots, DLEQ, threshold, IMT quad path), ics20 withdrawal (shares the
@@ -536,10 +528,9 @@ after that, the queue is **T1-d first** (largest confirmed win, needs the
 frontier equivalence sign-off + a deletion clause in the loop's allowlist),
 then T1-f, with T1-e as the fallback if T1-d stalls; T2/T3 wait for design
 capacity. Transfer-side, TC-1 (base-select in `DeriveSharedSecretsSpend`)
-leads §2t. The 2026-07-07 SnarkPack deep audit added candidates 2–4 to
-`crates/crypto/proof-aggregation/optimization-playbook.md` §8 (GT fold
-deferral, cyclotomic-exp audit, GT wire compression) and recorded the
-bellperson/paper lineage cross-check there.
+leads §2t. SnarkPack candidates (GT fold deferral, cyclotomic-exp audit, GT wire
+compression, and the bellperson/paper lineage cross-check) live in
+`crates/crypto/proof-aggregation/optimization-playbook.md` §8.
 
 ## 5. Results ledger — what each optimization actually bought
 
