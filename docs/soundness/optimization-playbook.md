@@ -148,7 +148,9 @@ Holes that DO restrict the loop, in the order they pay back:
    to T2-class with a mechanized artifact backing each change, and every
    divergence-from-filecoin finding stops being a standing risk. Human
    green-light required to start (plan §6 owner row: F1), but it should be
-   treated as the priority hole, not an optional branch.
+   treated as the priority hole, not an optional branch. Proposed proof-unit
+   decomposition and the decisions the green-light must settle:
+   `crates/crypto/proof-aggregation/formal/snarkpack/s1-mechanization-scope.md`.
 2. **Alloy↔statement seam gate.** The Alloy models are hand-maintained against
    `reference/phase-c-alloy-statement-sufficiency-spec.md`; nothing mechanical
    ties the Alloy signature to the circuit's public-input list. Irrelevant for
