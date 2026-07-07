@@ -152,18 +152,25 @@ services:
           n=$$((n+1)); [ "$$n" -gt 120 ] && { echo "timeout waiting for first block"; exit 1; }
           echo "waiting for sourcehub first block"; sleep 2
         done
+        # Fund all three nodes in ONE bank multi-send so there is a single tx
+        # from the funder account. Three separate sends raced the account
+        # sequence: broadcast-sync returns before commit, so the next send
+        # reused a stale sequence and node3 failed with "account sequence
+        # mismatch". multi-send gives each listed address the same amount.
+        addrs=""
         for d in /n1 /n2 /n3; do
-          addr=$$(cat "$$d/public_key.txt")
-          echo "funding orbis node ($$d): $$addr"
-          n=0
-          until sourcehubd tx bank send test "$$addr" 1000000000uopen \
-                --keyring-backend test --home "$$H" --chain-id sourcehub-localnet \
-                --node tcp://sourcehub:26657 --fees 2000uopen --yes; do
-            n=$$((n+1)); [ "$$n" -gt 60 ] && { echo "failed to fund $$addr"; exit 1; }
-            echo "retry funding $$addr ($$n)"; sleep 3
-          done
-          sleep 6
+          a=$$(cat "$$d/public_key.txt")
+          echo "will fund orbis node ($$d): $$a"
+          addrs="$$addrs $$a"
         done
+        n=0
+        until sourcehubd tx bank multi-send test $$addrs 1000000000uopen \
+              --keyring-backend test --home "$$H" --chain-id sourcehub-localnet \
+              --node tcp://sourcehub:26657 --fees 2000uopen --yes; do
+          n=$$((n+1)); [ "$$n" -gt 60 ] && { echo "failed to fund orbis nodes"; exit 1; }
+          echo "retry funding orbis nodes ($$n)"; sleep 3
+        done
+        sleep 6
         echo "orbis funding complete"
         for h in node1 node2 node3; do
           n=0
