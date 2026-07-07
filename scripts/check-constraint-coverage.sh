@@ -255,6 +255,18 @@ fi
 tmp_dir="$(mktemp -d)"
 trap 'if [[ -z "${KEEP_TMP:-}" ]]; then rm -rf "$tmp_dir"; fi' EXIT
 
+# Every `lake` invocation below (bridge-theorem checks, typed-contract builds)
+# resolves the Lean project from the current directory, so run from the Lean
+# source root. All file paths are absolute ($ROOT/...), and the cargo runs that
+# need the repo root cd into "$ROOT" inside their own subshells.
+cd "$lean_src_dir"
+
+# Fetch the prebuilt Mathlib olean cache before any `lake build` so the bounds/
+# capstone/statement modules link against downloaded dependencies instead of
+# recompiling Mathlib from source (which blows the CI timeout). Non-fatal: a
+# cache miss just falls back to a source build.
+lake exe cache get >/dev/null 2>&1 || true
+
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   artifact_dir="$(artifact_dir_for_circuit "$circuit")"

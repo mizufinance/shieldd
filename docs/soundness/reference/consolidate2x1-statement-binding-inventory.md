@@ -62,7 +62,7 @@ Each conjunct is discharged by a per-segment projection
 
 | conjunct | wire | binds | discharged by |
 |----------|------|-------|---------------|
-| 1 | `statementHashPublic` (wire 1) | claimed hash = LC over `statementHashOut` limbs 54128..54163 | `specOf60` → `deployedSpec60` |
+| 1 | `statementHashPublic` (wire 1) | claimed hash = LC over `statementHashOut` limbs 53488..53523 | `specOf60` → `deployedSpec60` |
 | 2 | `anchor` (wire 2) | anchor = 5-term LC over 10550..10570 | `specOf12` → `deployedSpec12` |
 | 3 | `spend1NoteCommitmentLeaf` (wire 23) | = 7-term LC over 1312..1342 | `specOf8` → `deployedSpec8` |
 | 4 | `spend2NoteCommitmentLeaf` (wire 113) | = 7-term LC over 20012..20042 | `specOf26` → `deployedSpec26` |
@@ -170,6 +170,6 @@ Marked accordingly.
 ---
 
 *Citations verified read-only against the deployed slice at
-`sr1cs_sha256_hex = 12bf600c30c5dac11d03784f5aa3d133ff86de5e67b8be9f7c6a79f0eda6e188`
+`sr1cs_sha256_hex = 1019bf22b25e1c5229859f7fd8366003e817c6667438f9927fbb2a4be7734037`
 ([consolidate2x1-deployed-slice-ir.json](../../../crates/core/component/shielded-pool/formal/consolidate2x1-deployed-slice-ir.json)).
 No lake build was run to produce this document.*
