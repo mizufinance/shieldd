@@ -105,63 +105,38 @@ State of the wait-time work stream, resumable by executor:
 Everything T2/T3/S-1/TC-3 waits for frontier design or Antoine. SnarkPack §8
 candidates stay frozen behind S1 + security review (not yours).
 
-### Q4 — VK↔`.sr1cs` derivation pinning — transfer run done, CI wiring BLOCKED on the open finding
+### Q4 — VK↔`.sr1cs` derivation pinning — DONE (findings were false positives)
 `scripts/check-vk-derivation.sh <circuit> [--prove]` exists (note:
 groth16.Setup is randomized, so the binding is hash pins + byte-identical
 recompiled `.sr1cs` + a prove/verify round trip with the DEPLOYED keys —
-not key regeneration). First run on consolidate2x1 found a FINDING, awaiting
-human (below). 2026-07-07: ran transfer too — **same finding, same class**
-(see below); of the three bindings, source (recompile byte-identical) and
-keys (`--prove` round trip, run by hand since the script exits at step 1)
-both hold for transfer, only the vk hash pin is stale.
+not key regeneration). The 2026-07-07 "stale VK pin" findings were a bug in
+the script itself: `gnarkctl setup` pins `verifying_key_sha256_hex` over
+`verifying_key.json` (main.go, `SHA256HexFile(vkJSONPath)`), while the pk
+pin is over `proving_key.bin`; the script compared the vk pin to the `.bin`
+bytes. Fixed: step 1 now checks the pin against `verifying_key.json` and a
+new `gnarkctl check-vk-json` subcommand binds the JSON encoding to the
+`.bin` bytes the verifier loads. Both circuits GREEN with no artifact edits
+— no stamp refresh was ever needed.
 
 L5 evidence pointer added (text-only): `docs/soundness/reference/
 soundness-handoff.md` row `ZK-ASSUME-GNARK-FRONTEND-BACKEND` now cites
 `scripts/check-vk-derivation.sh` as the plumbing-half evidence.
 
-**CI wiring NOT done — contradiction found, stopped per hard rules.** This
-section's own prior text said "wire it into CI tier 1... once the finding
-is resolved," but consolidate2x1's vk-pin finding is still open (awaiting
-human, unresolved). `check-vk-derivation.sh consolidate2x1` (no `--prove`)
-currently exits RED at step 1 (verified 2026-07-07). Wiring it into CI now
-as a new job would land a gate that is red on every PR from its first
-commit, for a known-stale-stamp reason rather than a regression — that's a
-design call (ship the new job already-red, or wait for the stamp refresh?)
-not a mechanical task, so it was left undone pending Antoine's call. Once
-the consolidate2x1 stamp refresh lands (PR97 policy), add a
-`vk-derivation` job to `.github/workflows/soundness-formal.yml` (sibling to
-`seam-and-pin`: Go-only, `lfs: true`, `bash scripts/check-vk-derivation.sh
-consolidate2x1`, no `--prove` in CI — that leg needs the witness fixture
-and is exercised by hand per the playbook). Transfer joins the CI job only
-after its own stamp refresh; the TODO comment there should cite the PR97
-transfer stamp-refresh policy.
+**CI wiring done (2026-07-07):** `vk-derivation` job in
+`.github/workflows/soundness-formal.yml` (sibling to `seam-and-pin`,
+Go-only, `lfs: true`, matrix over consolidate2x1 + transfer, no `--prove`
+in CI — that leg needs the witness fixture and is exercised by hand per
+the playbook). Both legs verified green locally before wiring.
 
 ## Awaiting human (Antoine)
 
-- **FINDING (2026-07-07, check-vk-derivation first run): stale VK pins for
-  consolidate2x1.** Committed `verifying_key.bin` (LFS oid `dece3b17…`) does
-  NOT match the vk hash pinned by `circuit_metadata.json` and by
-  `consolidate2x1-whole-circuit-lean-artifact.txt` (both pin `35620e95…`,
-  an earlier setup run); the pk pin matches. The deployed pk/vk pair itself
-  is sound: prove+verify against the recompiled circuit passes (run
-  2026-07-07). So keys↔circuit binding holds; the metadata/Lean-stamp vk
-  pins are stale bookkeeping from PR97. Fix is a stamp refresh (regenerate
-  metadata + restamp the Lean artifact via the playbook flow) — same class
-  as the pending PR97 transfer stamp refresh; not hand-edited per rules.
-
-- **FINDING (2026-07-07, check-vk-derivation on transfer): stale VK pins for
-  transfer, same class as consolidate2x1 above.** Committed
-  `verifying_key.bin` (sha256 `6aaff992d5cdae24b5438b84a0343e4770e44bdccd7395f8364ffb738d9b2804`)
-  does NOT match the vk hash pinned by `circuit_metadata.json` and by
-  `transfer-whole-circuit-lean-artifact.txt` (both pin
-  `70418046b5e926d4a02ef74397948e8197636d0997e0b55fe3c52b3aec12198f`); the pk
-  pin matches (`834a5ff9…`). Source binding holds (recompiled `.sr1cs`
-  byte-identical to `tools/gnark/artifacts/transfer/transfer.sr1cs`). Keys
-  binding holds too: `gnarkctl replay --mode prove` with the deployed
-  proving/verifying keys against the recompiled circuit and
-  `transfer_witness_v1.bin` succeeds (prover done, verifier done, exit 0,
-  run 2026-07-07). Fix is the same PR97 transfer stamp refresh already
-  tracked; rides with the consolidate2x1 refresh, not hand-edited per rules.
+- **RESOLVED (2026-07-07): the two "stale VK pin" findings (consolidate2x1,
+  transfer) were false positives.** The vk metadata pin is over
+  `verifying_key.json` by construction (`gnarkctl setup`); the first version
+  of `check-vk-derivation.sh` compared it to `verifying_key.bin`. Script
+  fixed (json pin + `gnarkctl check-vk-json` json↔bin binding); both
+  circuits GREEN, no artifacts touched. The "PR97 transfer stamp refresh"
+  is therefore moot — no stamps were ever stale.
 
 - **H4 memo review**: accept (or reject)
   `docs/soundness/reference/poseidon-parameter-provenance.md` as the

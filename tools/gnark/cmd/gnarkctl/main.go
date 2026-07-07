@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"math/big"
@@ -55,6 +57,8 @@ func main() {
 		err = runReplay(os.Args[2:])
 	case "verify-bench":
 		err = runVerifyBench(os.Args[2:])
+	case "check-vk-json":
+		err = runCheckVKJSON(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
@@ -527,6 +531,44 @@ func runProve(args []string) error {
 	if err := artifacts.WriteJSON(*outPath, artifactJSON); err != nil {
 		return fmt.Errorf("write artifacts: %w", err)
 	}
+	return nil
+}
+
+// runCheckVKJSON verifies verifying_key.json is a faithful re-encoding of
+// verifying_key.bin, so the metadata pin over the JSON binds the deployed bytes.
+func runCheckVKJSON(args []string) error {
+	fs := flag.NewFlagSet("check-vk-json", flag.ContinueOnError)
+	artifactDir := fs.String("artifact-dir", "", "artifact directory containing verifying_key.{bin,json}")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *artifactDir == "" {
+		return fmt.Errorf("check-vk-json: --artifact-dir required")
+	}
+	vk, _, err := loadVK(filepath.Join(*artifactDir, "verifying_key.bin"))
+	if err != nil {
+		return err
+	}
+	want, err := json.Marshal(artifacts.EncodeVerifyingKeyJSON(vk))
+	if err != nil {
+		return err
+	}
+	raw, err := os.ReadFile(filepath.Join(*artifactDir, "verifying_key.json"))
+	if err != nil {
+		return err
+	}
+	var parsed artifacts.VerifyingKeyJSON
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return fmt.Errorf("parse verifying_key.json: %w", err)
+	}
+	got, err := json.Marshal(parsed)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(want, got) {
+		return fmt.Errorf("verifying_key.json does not encode the same key as verifying_key.bin")
+	}
+	fmt.Println("verifying_key.json matches verifying_key.bin")
 	return nil
 }
 

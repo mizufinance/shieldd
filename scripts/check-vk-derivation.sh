@@ -41,14 +41,19 @@ meta="$adir/circuit_metadata.json"
 sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 jqget() { python3 -c "import json,sys;print(json.load(open('$meta'))['$1'])"; }
 
-# 1. hash pins: metadata <-> deployed key bytes
+# 1. hash pins: metadata <-> deployed key artifacts. Writer semantics
+# (gnarkctl setup): proving_key pin is over proving_key.bin, verifying_key
+# pin is over verifying_key.json; check-vk-json binds the JSON encoding to
+# the verifying_key.bin bytes the verifier actually loads.
 pk_pin="$(jqget proving_key_sha256_hex)"
 vk_pin="$(jqget verifying_key_sha256_hex)"
 [[ "$(sha "$adir/proving_key.bin")" == "$pk_pin" ]] \
   || fail "proving_key.bin does not match metadata pin $pk_pin"
-[[ "$(sha "$adir/verifying_key.bin")" == "$vk_pin" ]] \
-  || fail "verifying_key.bin does not match metadata pin $vk_pin"
-note "key bytes match metadata pins (pk $pk_pin, vk $vk_pin)"
+[[ "$(sha "$adir/verifying_key.json")" == "$vk_pin" ]] \
+  || fail "verifying_key.json does not match metadata pin $vk_pin"
+( cd "$GNARK_DIR" && go run ./cmd/gnarkctl check-vk-json --artifact-dir "$adir" >/dev/null ) \
+  || fail "verifying_key.json does not encode the same key as verifying_key.bin"
+note "key artifacts match metadata pins (pk $pk_pin, vk $vk_pin; json<->bin bound)"
 
 # 1b. Lean whole-circuit artifact stamp pins the same VK hash (when present)
 stamp="$ROOT/crates/core/component/shielded-pool/formal/$circuit-whole-circuit-lean-artifact.txt"
