@@ -14,7 +14,8 @@ set -euo pipefail
 # delegated to check-constraint-coverage.sh under its own resource rules.
 #
 # Usage:
-#   scripts/fv-opt-loop.sh diff  --circuit consolidate2x1 --allow-flips 52,53
+#   scripts/fv-opt-loop.sh diff  --circuit consolidate2x1 --allow-flips 52,53 \
+#       [--allow-remove 34,36] [--allow-add 60]
 #   scripts/fv-opt-loop.sh gates --circuit consolidate2x1 [--lean] [--prove] \
 #       [--record-out <file.md>]
 #
@@ -42,6 +43,8 @@ mode="$1"; shift
 
 circuit=""
 allow_flips=""
+allow_remove=""
+allow_add=""
 run_lean=0
 run_prove=0
 record_out=""
@@ -49,6 +52,8 @@ while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --circuit) shift; circuit="${1:-}" ;;
     --allow-flips) shift; allow_flips="${1:-}" ;;
+    --allow-remove) shift; allow_remove="${1:-}" ;;
+    --allow-add) shift; allow_add="${1:-}" ;;
     --lean) run_lean=1 ;;
     --prove) run_prove=1 ;;
     --record-out) shift; record_out="${1:-}" ;;
@@ -110,54 +115,57 @@ recompile_and_extract() {
   ) || fail "extractor rejected the recompiled circuit (parity gate inside generation failed closed)"
 }
 
-# Compare per-obligation relation hashes committed vs fresh; print flip lines
-# "segment_index op relation_before relation_after" (segment set changes count
-# as flips of the affected indices).
+# Alignment-aware obligation diff (fv-opt-loop-diff.py): matches obligations
+# by identity hashes, so segment deletions/insertions do not spray spurious
+# index-shift flips over every downstream segment. Emits
+# "kind<TAB>old_idx<TAB>new_idx<TAB>op".
 flipped_segments() {
-  python3 - "$committed_report" "$fresh_report" <<'EOF'
-import json, sys
-old = json.load(open(sys.argv[1]))["deployed_obligations"]["obligations"]
-new = json.load(open(sys.argv[2]))["deployed_obligations"]["obligations"]
-o = {x["segment_index"]: x for x in old}
-n = {x["segment_index"]: x for x in new}
-flips = []
-for idx in sorted(set(o) | set(n)):
-    a, b = o.get(idx), n.get(idx)
-    if a is None:
-        flips.append((idx, b["op"], "ADDED"))
-    elif b is None:
-        flips.append((idx, a["op"], "REMOVED"))
-    elif a["relation_sha256_hex"] != b["relation_sha256_hex"] \
-         or a["constant_vector_sha256_hex"] != b["constant_vector_sha256_hex"] \
-         or a["wire_role_sha256_hex"] != b["wire_role_sha256_hex"]:
-        flips.append((idx, b["op"], "FLIPPED"))
-for idx, op, kind in flips:
-    print(f"{idx}\t{op}\t{kind}")
-EOF
+  python3 "$ROOT/scripts/fv-opt-loop-diff.py" "$committed_report" "$fresh_report"
 }
 
+# Containment: FLIPPED old-indices against --allow-flips, REMOVED old-indices
+# against --allow-remove, ADDED new-indices against --allow-add. Anything
+# outside its list, or with no regeneration family, is red.
 check_flip_containment() {
   local flips="$1"
   if [[ ! -s "$flips" ]]; then
     note "no segment flips: compiled constraints identical to committed pins"
     return 0
   fi
-  note "flipped segments:"
+  note "changed segments (aligned diff):"
   cat "$flips" | sed 's/^/  /'
-  local allowed=",${allow_flips},"
+  local allowed_flips=",${allow_flips},"
+  local allowed_remove=",${allow_remove},"
+  local allowed_add=",${allow_add},"
   local red=0
-  while IFS=$'\t' read -r idx op kind; do
-    if [[ "$allowed" != *",$idx,"* ]]; then
-      echo "fv-opt-loop: segment $idx ($op, $kind) flipped but is not in --allow-flips '$allow_flips'" >&2
-      red=1
-    fi
-    local gen
-    gen="$(generator_for_op "$op")"
-    if [[ -z "$gen" ]]; then
-      echo "fv-opt-loop: segment $idx op $op has NO regeneration family — T2-class, needs frontier design" >&2
-      red=1
-    else
-      note "  segment $idx regenerates via tools/gnark/lean/gen/$gen"
+  while IFS=$'\t' read -r kind oidx nidx op; do
+    case "$kind" in
+      FLIPPED)
+        if [[ "$allowed_flips" != *",$oidx,"* ]]; then
+          echo "fv-opt-loop: segment $oidx→$nidx ($op) FLIPPED but old index $oidx is not in --allow-flips '$allow_flips'" >&2
+          red=1
+        fi ;;
+      REMOVED)
+        if [[ "$allowed_remove" != *",$oidx,"* ]]; then
+          echo "fv-opt-loop: segment $oidx ($op) REMOVED but not in --allow-remove '$allow_remove'" >&2
+          red=1
+        fi ;;
+      ADDED)
+        if [[ "$allowed_add" != *",$nidx,"* ]]; then
+          echo "fv-opt-loop: new segment $nidx ($op) ADDED but not in --allow-add '$allow_add'" >&2
+          red=1
+        fi ;;
+    esac
+    # REMOVED segments need no regeneration; flips/adds must map to a family.
+    if [[ "$kind" != "REMOVED" ]]; then
+      local gen
+      gen="$(generator_for_op "$op")"
+      if [[ -z "$gen" ]]; then
+        echo "fv-opt-loop: segment ${oidx}/${nidx} op $op has NO regeneration family — T2-class, needs frontier design" >&2
+        red=1
+      else
+        note "  segment ${oidx}→${nidx} regenerates via tools/gnark/lean/gen/$gen"
+      fi
     fi
   done < "$flips"
   [[ "$red" -eq 0 ]] || fail "flip containment violated — the change leaked outside its allowlist"
