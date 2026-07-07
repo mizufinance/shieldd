@@ -696,7 +696,7 @@ dependencies = [
 [[package]]
 name = "authn"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a#7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=b5d229aaadef4c0127203c2fccafb6771f38eaca#b5d229aaadef4c0127203c2fccafb6771f38eaca"
 dependencies = [
  "base64 0.22.1",
  "did-key",
@@ -1709,7 +1709,7 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a#7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=b5d229aaadef4c0127203c2fccafb6771f38eaca#b5d229aaadef4c0127203c2fccafb6771f38eaca"
 dependencies = [
  "async-trait",
  "backoff",
@@ -6568,7 +6568,7 @@ dependencies = [
 [[package]]
 name = "proto"
 version = "0.0.1"
-source = "git+https://github.com/sourcenetwork/orbis-rs?rev=7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a#7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a"
+source = "git+https://github.com/sourcenetwork/orbis-rs?rev=b5d229aaadef4c0127203c2fccafb6771f38eaca#b5d229aaadef4c0127203c2fccafb6771f38eaca"
 dependencies = [
  "prost 0.14.3",
  "tonic 0.14.5",

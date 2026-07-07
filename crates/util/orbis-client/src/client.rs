@@ -92,7 +92,9 @@ async fn create_orbis_ring_with_retry(
     let mut attempt = 0u32;
     loop {
         match client
-            .orbis_create_ring_get_id(peer_node_keys.to_vec(), threshold, None, policy_id, None, 0)
+            // pss_interval: 0 (proto3 default) preserves the previous `None` wire
+            // encoding after orbis-rs made this field a plain u64.
+            .orbis_create_ring_get_id(peer_node_keys.to_vec(), threshold, 0, policy_id, None, 0)
             .await
         {
             Ok((result, ring_id)) if result.code == 0 => return Ok(ring_id),
