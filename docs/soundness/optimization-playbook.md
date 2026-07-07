@@ -167,7 +167,85 @@ Halving levels via arity-4 Poseidon (or one wider hash per level) attacks the
 + every client — protocol change, reopens Phase C, needs human sign-off and a
 migration story. Record as future work; do not start from this playbook.
 
-### Do-not-touch list
+### T2-c. Swap `ScalarMulLE` for a 2-bit windowed ladder (gadget-level, all
+ladders; ~25–35% of every ladder) — 2026-07-07 audit
+`ScalarMulLE` (compliance/dleq.go:50) is the textbook 1-bit double-and-add:
+per bit = 1 unified Edwards add + 2 `Select` + 1 double + 1 bit row. gnark's
+own `std/algebra/native/twistededwards.Curve.ScalarMul` at our pinned version
+processes 2 bits per iteration with `Lookup2`, halving the add/select count;
+`DoubleBaseScalarMul` (Straus shared doubling) is already used in DLEQ but
+nowhere else. Adopting the upstream audited gadget is the cheapest-to-justify
+version of T2-a/T2-b (audited upstream, but still a new relation shape for the
+ladder Lean substrates — frontier design first). Applies to every ladder in
+both circuits: DTK, rvk, net-balance, and all 14+ compliance ladders below.
+
+### T1-h. `ToBinary` duplication sweep (~250–1,500 rows per circuit) — 2026-07-07 audit
+gnark does not CSE hint-based decompositions, so repeated `api.ToBinary` on
+the *same wire* pays full bit rows + boolean constraints each time. Confirmed
+duplicates: (a) ivk — decomposed in `IVKModRDecomposition`
+(spend_auth_shared.go:87) and again inside `ScalarMulLE` for the DTK ladder,
+per DTK instance; (b) transfer: esk decomposed 3× per
+`DeriveSharedSecretsSpend` call (one per ladder, 4 calls); (c) transfer:
+receiver amount decomposed in `ThresholdFlag`'s `fieldLessThan`
+(threshold.go:35) and again in the net-balance `ScalarMulLE(amount, 128)`.
+Fix: decompose once, thread bits (the ladder gadgets need a bits-in variant).
+Executor-safe shape (wire plumbing), but touches ladder gadget signatures.
+
+## 2t. Transfer-only candidates — the compliance surface (2026-07-07 audit)
+
+The transfer circuit is consolidate plus the compliance add-on:
+4 `DeriveSharedSecretsSpend` tiers, 4 `VerifyDLEQ` calls, 2
+`DeriveACKFromLeafD`, 5 Poseidon-encryption checks, threshold flag, address
+bit-packing. Measure per-gadget mass with `profile_test.go` before ranking —
+but the redundancies below are structural, read straight from the source.
+
+### TC-1. Select the base, not the product, in `DeriveSharedSecretsSpend`
+(~3 full 251-bit ladders, likely the single largest transfer win)
+spend_shared.go:37–42 computes **both** `esk·ack` and `esk·dkPub` (two full
+variable-base ladders) and then `Select`s one result. Three of the four call
+sites (sender_ext, output_core, output_ext —
+transfer_circuit.go:688/700/712) discard everything except the selected
+point. For those, select the *base point* first
+(`Select(isFlagged, dkPub, ack)`) and run **one** ladder. The sender_core
+call keeps both (it consumes `ssDetection = esk·dkPub` unconditionally).
+Saves 3 × (~2.5k) ≈ 7–8k rows. Relation shape unchanged (same ladder gadget,
+one fewer instance) — T1-class through the loop, manifest rows deleted.
+
+### TC-2. EPK recomputation: confirm the fixed-base doubles fold
+`computedEPK = ScalarMulLE(G, esk, 251)` per tier (spend_shared.go:34, 4×).
+G is a compile-time constant, so `curve.Double(current)` should
+constant-fold (T1-a's −640 = 5 rows/bit datapoint suggests it does), leaving
+~5 rows/bit. Verify in the wire-role JSON; if the doubles are materializing,
+constant-folding them is free money (4 × ~1.3k). Longer term this is the
+prime T2-a windowed-constant-table site.
+
+### TC-3. Move DLEQ verification out of the circuit entirely (T3-class,
+protocol decision, ~4 × two double-base 251-bit ladders ≈ 10–15k rows)
+High-level "should we even do this here" item. `VerifyDLEQ` runs two
+`DoubleBaseScalarMul` per tier over `(publishedC, publishedS, epk, ack, S)`.
+If every DLEQ input is already bound in the statement (epk/c/s lanes are —
+check ack/S lanes in the transfer binding inventory), the chain can verify
+the four DLEQs **natively** (microseconds) instead of paying ~an eighth of
+the circuit for them, exactly like the auth signatures are verified natively
+(`verify_auth_sigs`). Changes the statement/handler split → Phase C + S4 +
+human sign-off; record, don't start.
+
+### TC-4. ACK ladders and `AddressPlaintextFQs` bit-packing (small)
+`DeriveACKFromLeafD` = one 251-bit variable-base ladder ×2 (sender,
+receiver) — inherent unless T2-c lands. `AddressPlaintextFQsFromCompressed`
+(address_encryption.go:11–13) does two 256-bit `ToBinary` just to repack
+field elements into byte-aligned plaintext limbs — check whether the
+Poseidon-encryption plaintext layout could take the Fq lanes directly
+(protocol-adjacent: changes ciphertext layout → category-2-equivalent for
+the compliance wire format).
+
+### TC-5. Poseidon is already near-R1CS-optimal — don't chase it
+The in-circuit cost is S-boxes only (MDS/linear layers are free in R1CS);
+alpha=17 (5 muls/S-box) is forced by gcd(α, q−1)=1 on BLS12-377 Fq. The
+"optimized Poseidon" (Neptune-style sparse partial-round matrices) speeds up
+*witness generation*, not constraint count — worth doing off-circuit only if
+prover profiling shows witness-gen hot. Fewer/narrower hashes is the only
+in-circuit lever, and the hash widths already match their input arities.
 - Poseidon round counts / MDS parameters (crypto margin, provenance memo H4).
 - The 128-bit amount decomposition (exactness is a proved property row).
 - Statement field set or order (reopens Phase C + S4 + seam tests; only with
@@ -257,9 +335,11 @@ A pilot that completes in ≤2 sessions proves the loop is executor-drivable;
 after that, the queue is **T1-d first** (largest confirmed win, needs the
 frontier equivalence sign-off + a deletion clause in the loop's allowlist),
 then T1-f, with T1-e as the fallback if T1-d stalls; T2/T3 wait for design
-capacity. The 2026-07-07 SnarkPack audit found nothing above the existing
-backlog in `crates/crypto/proof-aggregation/optimization-playbook.md` §8 —
-that queue stands unchanged (batched GT subgroup validation, security-gated).
+capacity. Transfer-side, TC-1 (base-select in `DeriveSharedSecretsSpend`)
+leads §2t. The 2026-07-07 SnarkPack deep audit added candidates 2–4 to
+`crates/crypto/proof-aggregation/optimization-playbook.md` §8 (GT fold
+deferral, cyclotomic-exp audit, GT wire compression) and recorded the
+bellperson/paper lineage cross-check there.
 
 ## 5. Results ledger — what each optimization actually bought
 

@@ -321,6 +321,45 @@ the §4a 10% estimate.
      "deserialized elements are subgroup-valid" premise is still discharged, now by
      the batch.
 
+**Added by the 2026-07-07 deep audit (each still goes through §3–§4):**
+
+2. **Defer the GIPA commitment folds into one GT multi-exponentiation.**
+   `_compute_recursive_challenges` (gipa.rs:657) interleaves challenge hashing
+   with `fold_output` — 2 GT exponentiations × 3 commitments × log₂n rounds,
+   each a standalone 128-bit square-and-multiply. The challenge for round i
+   hashes only the previous challenge and that round's `com_1`/`com_2`
+   (gipa.rs:672–679), **never the running folded com** — so the folds are
+   deferrable: run the hash loop first, then compute each final com as one
+   multi-exp over 2·log₂n GT bases (Straus, shared cyclotomic squarings).
+   Saves ~(2·log₂n − 1) × 128 GT squarings per commitment (×3, ×2 for the
+   combined TIPP/MIPP transcript). Category 1 (identical GT values, transcript
+   untouched — the trace baseline proves it). Verify `challenge_ms`/
+   `tipp_mipp_ms` share first; below the 10% bar at small n, real at n ≥ 256.
+
+3. **Confirm GT exponentiation uses cyclotomic squaring throughout.**
+   `mul_helper` on `PairingOutput` routes through arkworks' `Group` impl,
+   whose `double()` is `cyclotomic_square` — good. But any site exponentiating
+   a raw `Fp12` (not `PairingOutput`) pays generic `square()`, ~2× slower.
+   One-line audit: grep for `pow(` / `mul_assign` on `Fp12`-typed values
+   outside `PairingOutput`. Zero-risk category 1 if any site is found.
+
+4. **Category 2 (parked): cyclotomic/torus GT compression on the wire.**
+   The aggregate proof is dominated by GT elements (~576 bytes each
+   uncompressed Fp12); Karabina/torus compression halves them and shrinks the
+   deserialize hotspot's parsing share. Wire-encoding only (category 2,
+   version bump + baseline regen). Interacts with candidate 1: decompression
+   cost partially offsets the subgroup-check saving — evaluate them together,
+   not separately.
+
+**Lineage cross-check (2026-07-07):** against bellperson/Filecoin SnarkPack
+and the SnarkPack v2 paper, this backend already has every headline verifier
+trick: merged TIPP/MIPP transcript (single `r_commitment_steps`), O(log n)
+final-ck verification via KZG openings (`verify_commitment_key_*_kzg_opening`
+— the O(n) `_compute_final_commitment_keys` MSM is not on the production
+verify path), 128-bit rescaled challenges (`c`/`c_inv` swap, gipa.rs:694),
+prepared-G2 PPE reuse (§11), MSM final-key recombination (§9). The genuinely
+open deltas are candidates 1–4 above plus the §10 fixed-base SRS tables.
+
 **Deferred to the §10 benchmark matrix (not pursued as optimizations here):**
 
 - *Large fixed-base MSM tables for the SRS generators* (windowed comb/Pippenger,
