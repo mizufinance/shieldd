@@ -77,7 +77,31 @@ and the decaf-coset equivalence is frontier-confirmed (2026-07-07, recorded
 under T1-d in the playbook: delete segments 34/36 + 45/47, rewire segment 16
 to shared.div_gen, −12,658 rows; hard rule 8 applies to the entire downstream
 wire range); (2) **TC-1** base-select in `DeriveSharedSecretsSpend`; (3)
-**T1-h** ToBinary dedup; (4) **F-1** census tooling (`fv-opt-loop.sh census`).
+**T1-h** ToBinary dedup; (4) **F-1** census tooling — PARTIALLY DONE, see
+checkpoint below.
+
+### Q3 checkpoint (2026-07-07, frontier session, mid-flight)
+State of the wait-time work stream, resumable by executor:
+- **fv-opt-loop diff phase now supports deletions** (commit 30cee42b9):
+  alignment-aware differ in `scripts/fv-opt-loop-diff.py`,
+  `--allow-remove`/`--allow-add` flags, red/green tested + end-to-end green
+  on the unchanged tree. T1-d's mechanical prerequisite is met; invoke as
+  `diff --circuit consolidate2x1 --allow-flips 16 --allow-remove 34,36,45,47`
+  (indices from the T1-d inventory in the playbook).
+- **F-1 census tool exists and works**: `scripts/fv-census.py <sr1cs>
+  <manifest>` (committed this checkpoint). First consolidate2x1 run
+  mechanically confirms the audit: cross-segment CSE misses across the three
+  gadget-dtk instances, 141 dead-output rows per DTK instance, 44 CSE-miss
+  rows total, ~30 exact-duplicate rows (two per compress/dtk instance —
+  worth a look, they sit inside decaf isqrt), floor-ratio table matches M-1
+  (quad-path 0.98, poseidon 1.00, compress 0.18 per CF-1). REMAINING: (i)
+  wire it as a `census` mode into fv-opt-loop.sh, (ii) run on transfer
+  (large .sr1cs, do off-peak), (iii) triage the exact-dup pairs and the
+  net-balance x4 same-product rows into playbook candidates.
+- **NOT started**: TC-1 and NB-1 read-only blast-radius inventories (same
+  template as the T1-d one recorded under the playbook's T1-d section).
+- Q1 wakeup armed (detached Statement build pid 28434 still running, ~4h,
+  healthy); Q2 queued behind it.
 Everything T2/T3/S-1/TC-3 waits for frontier design or Antoine. SnarkPack §8
 candidates stay frozen behind S1 + security review (not yours).
 
