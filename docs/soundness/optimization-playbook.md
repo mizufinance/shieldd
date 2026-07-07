@@ -205,7 +205,7 @@ version of T2-a/T2-b (audited upstream, but still a new relation shape for the
 ladder Lean substrates — frontier design first). Applies to every ladder in
 both circuits: DTK, rvk, net-balance, and all 14+ compliance ladders below.
 
-### T1-h. `ToBinary` duplication sweep (~250–1,500 rows per circuit)
+### T1-h. `ToBinary` duplication sweep (~24k rows in transfer, ~10%; small in consolidate)
 gnark does not CSE hint-based decompositions, so repeated `api.ToBinary` on
 the *same wire* pays full bit rows + boolean constraints each time. Confirmed
 duplicates: (a) ivk — decomposed in `IVKModRDecomposition`
@@ -216,6 +216,26 @@ receiver amount decomposed in `ThresholdFlag`'s `fieldLessThan`
 (threshold.go:35) and again in the net-balance `ScalarMulLE(amount, 128)`.
 Fix: decompose once, thread bits (the ladder gadgets need a bits-in variant).
 Executor-safe shape (wire plumbing), but touches ladder gadget signatures.
+
+**Census quantification (transfer).** `fv-opt-loop.sh census --circuit
+transfer` reports **24,407 exact-duplicate rows** (identical A,B,C — pure
+redundancy, ~10% of 251,973). They are booleanity rows `w·(1−w)=0` re-emitted
+on the *same wire IDs*, in mirrored order (one block ascending, its twin
+descending) — a second ladder over the same bits re-asserts every bit.
+Per-segment counts: 5,352 in each of the four `gadget-dleq` instances
+(seg125–128, ≈21.4k total — this is candidate #1 for transfer by
+rows-per-effort), 2,336 in `gadget-imt-gap` (seg6), 1,337 in each
+`gadget-poseidon-hash4` (seg110/112), 1,009 per `gadget-dtk` (seg25/48),
+672 per `gadget-decaf-compress-to-field` instance. Plus 160 CSE-miss rows
+(same product, different output wire) and 521 write-only wires. Zero
+alias-capable recompositions (report (d)). Full outputs: run the census;
+numbers above are the 2026-07 baseline for regression comparison.
+
+Consolidate2x1 triage (small, fold into T1-d): ~30 exact dups are the ×3
+groups inside decaf isqrt per compress/dtk instance (deleted wholesale by
+T1-d for the DTK copies); the net-balance ×4 same-product rows
+(48620/48756/50543/52336) are one shared product recomputed per ladder —
+covered by NB-2's shared-base fold, not worth a separate candidate.
 
 ## 2t. Transfer-only candidates — the compliance surface
 
@@ -398,15 +418,15 @@ assumption-ledger row + human crypto sign-off; the constraint win is
 mechanical afterwards. Record, don't start.
 
 ### F-1. Constraint forensics as a loop phase (`fv-opt-loop.sh census`) — tooling
-Both audit passes found waste by eye (duplicate `ToBinary`, dead ladder
-outputs). Mechanize it against the compiled `.sr1cs` + wire-role JSON via the
-existing Rust parser: report (a) syntactically identical constraint rows =
-CSE misses (catches every T1-h instance and future regressions), (b)
-constraints outside the transitive fan-in of any assertion or public input =
-dead cones (catches TC-1-style discarded outputs), (c) per-gadget rows vs
-S-box/mul floor (auto-refreshes the M-1-style table). Read-only, no gate
-semantics — executor-buildable; turns "audit for waste" from a frontier
-session into a standing red flag in the loop.
+Standing tool: `scripts/fv-census.py`, run via `fv-opt-loop.sh census
+--circuit <name>` (read-only, never a gate). Reports (a) exact-duplicate
+rows and (a') same-product CSE misses (catches every T1-h instance and
+future regressions), (b) write-only wires = dead-output candidates, (c)
+per-gadget rows vs multiplication floor (auto-refreshes the M-1-style
+table), (d) alias-capable bit recompositions (hole D5 tripwire). Remaining
+extension if ever needed: full dead-cone analysis (transitive fan-in from
+assertions), which would catch TC-1-style discarded outputs the write-only
+heuristic misses.
 
 ### Anti-candidate: statement-hash repartition
 Moving the in-circuit statement Poseidon out to native (statement fields as
