@@ -1144,7 +1144,12 @@ async fn authorize_orbis_nodes_for_policy(
 
 async fn wait_for_sourcehub_node_info(client: &SourceHubClient, node_key: &str) -> Result<()> {
     let mut last_error = None;
-    for _ in 0..60 {
+    // 180 * 2s = 6 min. On-chain NodeInfo registration lags node startup by the
+    // full funder round-trip (wait for keys -> wait for first block -> fund ->
+    // node restarts on-failure -> registers). The old self-funding image
+    // registered immediately, so 2 min was enough; the prebuilt-image + funder
+    // topology needs a larger budget or this races and flakes.
+    for _ in 0..180 {
         match client.orbis_read_node_info(node_key).await {
             Ok(Some(_)) => return Ok(()),
             Ok(None) => {
