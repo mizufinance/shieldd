@@ -50,7 +50,7 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
     composed by the machine-checked wiring certificate [ROW — supporting
     evidence; input fingerprints + acyclic wiring cert landed Tasks 11/12
     (commit c72844309); promotion to a property row deferred pending frontier
-    review per `reference/picus-composition-note.md`]
+    review per `reference/constraint-system-assurance.md` §C2b]
   - Compiled artifact = proved artifact: manifest pin `relation_sha256_hex`
     [PROVED shielded-pool/formal/consolidate2x1-coverage-manifest.json
     sha256:4ef7343e…] + `.sr1cs` `sr1cs_sha256_hex` recompile tripwire

@@ -63,8 +63,9 @@ stamped artifact, a named ledger row, or an explicit TODO.
   design of the implemented Alloy H2 models (maintain the `.als` against it).
 - Evidence bases: [reference/consolidate2x1-statement-binding-inventory.md](reference/consolidate2x1-statement-binding-inventory.md),
   [reference/transfer-statement-binding-inventory.md](reference/transfer-statement-binding-inventory.md),
-  [reference/transfer-deployed-bridge-dossier.md](reference/transfer-deployed-bridge-dossier.md),
-  [reference/picus-composition-note.md](reference/picus-composition-note.md).
+  [reference/transfer-deployed-bridge-dossier.md](reference/transfer-deployed-bridge-dossier.md);
+  Picus determinism composition is §C2b of
+  [reference/constraint-system-assurance.md](reference/constraint-system-assurance.md).
 - **[reference/history.md](reference/history.md)** — the single backward-looking
   ledger: resolved incidents, closed scoping memos, point-in-time audits.
 

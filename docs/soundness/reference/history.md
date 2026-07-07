@@ -10,6 +10,13 @@ Entry format: date · what happened · the reusable lesson · pointers.
 
 ---
 
+## 2026-07-07 — picus-composition-note.md absorbed into constraint-system-assurance §C2b
+The Picus determinism-composition review closed 2026-07-06 (verdict: supporting
+evidence, not promotable; gaps 2/3 mechanized as the wiring cert + input
+fingerprints). Per this ledger's policy the standalone note was deleted and its
+durable content lives in `constraint-system-assurance.md` §C2b; per-leaf
+verdicts live in the generated `.picus.txt` artifacts, not in prose.
+
 ## 2026-07-07 — Optimize-safely loop mechanized; assurance-case gaps closed
 The §5 loop moved from prose to `scripts/fv-opt-loop.sh` (diff-phase flip
 containment against an allowlist with generator-family dispatch; gates-phase

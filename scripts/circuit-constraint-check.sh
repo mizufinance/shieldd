@@ -147,7 +147,7 @@ for gadget in "${gadgets[@]}"; do
   # Self-pin the leaf artifact to the exact constraint system Picus consumed.
   # Without this the .picus.txt fingerprints only the verdict text (which many
   # leaves share), so its sha256 cannot attest *which* R1CS was checked
-  # (picus-composition-note gap 3). The footer makes each artifact independently
+  # (constraint-system-assurance §C2b). The footer makes each artifact independently
   # load-bearing: its hash moves iff the input .sr1cs, precondition, or verdict
   # moves. Kept free of the token "underconstrained" so the post-loop safety
   # re-scan is unaffected.
