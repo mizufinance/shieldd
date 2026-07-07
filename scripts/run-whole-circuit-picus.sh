@@ -53,7 +53,11 @@ mkdir -p "$WORK_DIR"
 
 families=("$@")
 if [ "${#families[@]}" -eq 0 ]; then
-  families=(consolidate2x1 split1x4 split1x8)
+  # The two Lean-proved deployed circuits. The split families were dropped: their
+  # whole-circuit Picus attempts only ever walled out and they have no Lean
+  # composition to cross-check against. Keep this default in sync with the
+  # nightly invocation in .github/workflows/soundness-formal.yml.
+  families=(consolidate2x1 transfer)
 fi
 
 cvc5_version="$("$PICUS_SOLVER" --version 2>/dev/null | head -1 | awk '{print $2}')"

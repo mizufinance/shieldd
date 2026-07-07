@@ -59,6 +59,12 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
           platforms: linux/amd64
           provenance: false
+          # Per-arch GHA layer cache so unchanged base/apt/go/rustup/dep layers
+          # are reused across pushes. The final `cargo build` layer still rebuilds
+          # on any source change (monolithic build with no cache mount); a
+          # cargo-chef restructure to cache the compile is a possible follow-up.
+          cache-from: type=gha,scope=amd64
+          cache-to: type=gha,scope=amd64,mode=max
 
   build_arm64:
     name: Build and Push ARM64 Image
@@ -104,6 +110,10 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
           platforms: linux/arm64
           provenance: false
+          # Per-arch GHA layer cache (separate scope from amd64 so the two arches
+          # don't clobber each other). See the amd64 job for the cargo-chef note.
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,scope=arm64,mode=max
 
   create_manifest:
     name: Create and Push Multi-Arch Manifest

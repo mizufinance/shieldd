@@ -1,14 +1,15 @@
 # Orbis Runtime Contract
 
-Shieldd vendors the Orbis integration runtime contract here so local and CI
-flows do not depend on a manually maintained neighboring `orbis-rs` checkout or
-on `cli-tool`.
+Shieldd pins the Orbis integration runtime here so local and CI flows pull
+prebuilt images instead of building `orbis-rs` from a checkout.
 
 Current contract line:
 
-- Orbis source ref: pinned in [crates/util/orbis-client/Cargo.toml](../../crates/util/orbis-client/Cargo.toml) (`orbis-rs` git revs). `scripts/lib/common.sh::orbis_pinned_rev_from_cargo` extracts this and feeds it to the Docker build context, so Cargo.toml is the single source of truth.
+- Orbis node image: pulled from `ghcr.io/sourcenetwork/orbis-rs`, tagged with the
+  same `orbis-rs` git rev pinned in [crates/util/orbis-client/Cargo.toml](../../crates/util/orbis-client/Cargo.toml) plus the crypto feature. `scripts/lib/common.sh::ensure_orbis_images` derives `ORBIS_IMAGE` from `orbis_pinned_rev_from_cargo`, so Cargo.toml is the single source of truth. The tag is a multi-arch (amd64+arm64) manifest.
 - Crypto feature: `decaf377`
-- SourceHub source ref: pinned as `SOURCEHUB_REF_DEFAULT` in [scripts/lib/common.sh](../../scripts/lib/common.sh) and passed to Orbis's `docker/Dockerfile.sourcehub-integration`. This must expose the `x/orbis` module used by the pinned Orbis client.
+- SourceHub image: `ghcr.io/sourcenetwork/sourcehub:dev` (rolling tag, no ref pin), pulled directly. Override `SOURCEHUB_IMAGE` / `SOURCEHUB_PLATFORM` (a locally-built `linux/arm64` image on Apple Silicon avoids the blst SIGILL). The published image is amd64-only.
+- The published orbis images are production builds (no self-funding); `orbis-funder` funds each node's SourceHub account from the genesis `test` account so the nodes can register and serve gRPC.
 - Node controller key: each `orbis-node` must start with `--node-controller-key`.
   The default in [docker-compose.yml](docker-compose.yml) is the compressed
   public key for Orbis's `TEST_ACCOUNT_HEX_KEY`, matching the signer used by
@@ -32,8 +33,7 @@ runtime contract. Orbis still uses a bulletin abstraction internally, but the
 SourceHub backend maps document, key-derivation, node-info, and ring records to
 `x/orbis` state.
 
-`./scripts/orbis-stack.sh up` prepares a local checkout of the pinned upstream
-`orbis-rs` ref under `tmp/orbis-rs` and points Docker Compose at that local
-build context. This avoids Docker BuildKit incompatibilities with remote git
-contexts on older CI runners while keeping Shieldd's supported runtime pinned
-in repo.
+`./scripts/orbis-stack.sh up` resolves the pinned image tags via
+`ensure_orbis_images` and brings the stack up with `docker compose up -d
+--pull missing` — no `orbis-rs`/`sourcehub` source build. This keeps CI fast
+(nothing to compile) while the runtime stays pinned in repo via Cargo.toml.

@@ -16,7 +16,7 @@ case "$ACTION" in
     up)
         print_banner "Orbis Runtime Bring-Up" "sourcehub + 3 nodes via vendored runtime contract"
         ensure_docker_daemon
-        ensure_orbis_runtime_checkout
+        ensure_orbis_images
         if [ -n "${CI:-}" ]; then
             # On CI, preflight runs ~minutes before bring-up (build happens in between),
             # so a port that was free then may now be held by a leftover container or
@@ -43,7 +43,7 @@ case "$ACTION" in
                 fi
             done
         fi
-        run_orbis_compose "$COMPOSE_FILE" up -d --build
+        run_orbis_compose "$COMPOSE_FILE" up -d --pull missing
         wait_for_orbis_stack
         log_success "Orbis stack ready"
         ;;
@@ -53,18 +53,18 @@ case "$ACTION" in
             log_warning "Docker daemon is not running; skipping Orbis compose teardown"
             exit 0
         fi
-        ensure_orbis_runtime_checkout
+        ensure_orbis_images
         run_orbis_compose "$COMPOSE_FILE" down -v
         log_success "Orbis stack stopped"
         ;;
     logs)
         ensure_docker_daemon
-        ensure_orbis_runtime_checkout
+        ensure_orbis_images
         run_orbis_compose "$COMPOSE_FILE" logs
         ;;
     ps)
         ensure_docker_daemon
-        ensure_orbis_runtime_checkout
+        ensure_orbis_images
         run_orbis_compose "$COMPOSE_FILE" ps
         ;;
     *)

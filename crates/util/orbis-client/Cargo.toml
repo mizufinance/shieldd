@@ -22,9 +22,9 @@ hkdf = "0.12"
 
 shieldd-sdk-compliance = { workspace = true, default-features = false }
 
-orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a" }
-orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a" }
-orbis-proto = { package = "proto", git = "https://github.com/sourcenetwork/orbis-rs", rev = "7c2cadb661a69e9f87ec48ec8c80bc811b2e0e9a" }
+orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
+orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
+orbis-proto = { package = "proto", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
 orbis-tonic = { package = "tonic", version = "0.14.5", features = ["transport"] }
 
 [dev-dependencies]

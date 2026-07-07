@@ -423,64 +423,20 @@ orbis_pinned_rev_from_cargo() {
     printf '%s' "$revs"
 }
 
-# SourceHub ref used by Orbis's integration Dockerfile. Keep this aligned with
-# the pinned Orbis runtime when Orbis updates its SourceHub contract.
-SOURCEHUB_REF_DEFAULT="efd06660b43fa3e3a8c48956da3b425838aef83d"
-export SOURCEHUB_REF="${SOURCEHUB_REF:-$SOURCEHUB_REF_DEFAULT}"
-
-ensure_orbis_runtime_checkout() {
-    local repo_url="${ORBIS_RUNTIME_REPO:-https://github.com/sourcenetwork/orbis-rs.git}"
-    local ref
-    if [ -n "${ORBIS_RUNTIME_REF:-}" ]; then
-        ref="$ORBIS_RUNTIME_REF"
-    else
-        ref="$(orbis_pinned_rev_from_cargo)" || return 1
+# Orbis node image, pinned to the same orbis-rs rev as the Cargo git deps so the
+# runtime and the linked client never drift. The published multi-arch tag encodes
+# the crypto feature. Override ORBIS_IMAGE to bypass. sourcehub:dev is a rolling
+# tag pulled directly (no ref pin) — override SOURCEHUB_IMAGE / SOURCEHUB_PLATFORM
+# (e.g. a locally-built linux/arm64 image on Apple Silicon) as needed.
+ensure_orbis_images() {
+    if [ -z "${ORBIS_IMAGE:-}" ]; then
+        local rev crypto
+        rev="$(orbis_pinned_rev_from_cargo)" || return 1
+        crypto="${ORBIS_INTEGRATION_CRYPTO:-decaf377}"
+        export ORBIS_IMAGE="ghcr.io/sourcenetwork/orbis-rs:${rev}-${crypto}"
     fi
-    local default_checkout_dir="$COMPLIANCE_TMP/orbis-rs"
-    local checkout_dir="${ORBIS_RUNTIME_CONTEXT:-$default_checkout_dir}"
-    local current_ref=""
-
-    if [ -n "${ORBIS_RUNTIME_CONTEXT:-}" ]; then
-        if [ ! -f "$checkout_dir/docker/Dockerfile" ]; then
-            log_error "ORBIS_RUNTIME_CONTEXT is set but $checkout_dir/docker/Dockerfile is missing"
-            return 1
-        fi
-        export ORBIS_RUNTIME_CONTEXT="$checkout_dir"
-        return 0
-    fi
-
-    command -v git >/dev/null 2>&1 || {
-        log_error "git not found in PATH; cannot prepare Orbis runtime checkout"
-        return 1
-    }
-
-    if [ -d "$checkout_dir/.git" ]; then
-        current_ref="$(git -C "$checkout_dir" rev-parse HEAD 2>/dev/null || true)"
-    fi
-    if [ "$current_ref" = "$ref" ] && [ -f "$checkout_dir/docker/Dockerfile" ]; then
-        export ORBIS_RUNTIME_CONTEXT="$checkout_dir"
-        return 0
-    fi
-
-    rm -rf "$default_checkout_dir"
-    mkdir -p "$(dirname "$checkout_dir")"
-
-    log_info "Preparing Orbis runtime checkout at $checkout_dir ($ref)"
-    run_quiet git clone --filter=blob:none "$repo_url" "$checkout_dir" || {
-        log_error "Failed to clone Orbis runtime repo from $repo_url"
-        return 1
-    }
-    run_quiet git -C "$checkout_dir" checkout "$ref" || {
-        log_error "Failed to checkout Orbis runtime ref $ref"
-        return 1
-    }
-
-    if [ ! -f "$checkout_dir/docker/Dockerfile" ]; then
-        log_error "Expected Orbis Dockerfile missing at $checkout_dir/docker/Dockerfile"
-        return 1
-    fi
-
-    export ORBIS_RUNTIME_CONTEXT="$checkout_dir"
+    export SOURCEHUB_IMAGE="${SOURCEHUB_IMAGE:-ghcr.io/sourcenetwork/sourcehub:dev}"
+    export SOURCEHUB_PLATFORM="${SOURCEHUB_PLATFORM:-linux/amd64}"
 }
 
 run_orbis_compose() {

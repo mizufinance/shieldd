@@ -1,24 +1,39 @@
+# Orbis integration stack: prebuilt images (no in-pipeline build).
+#
+# sourcehub + 3 orbis nodes are pulled from GHCR instead of built from a
+# vendored orbis-rs checkout. ORBIS_IMAGE is pinned to the same orbis-rs rev as
+# the Cargo git deps (see scripts/lib/common.sh, which derives it from the pin);
+# the multi-arch (amd64+arm64) tag encodes the crypto feature.
+#
+# The published orbis images are production builds (ENABLE_INTEGRATION_TEST=false)
+# so they do NOT self-fund. orbis-funder funds each node's sourcehub account from
+# the genesis `test` account; each node then restarts once (restart: on-failure)
+# to pick up its on-chain account number and serve gRPC.
+#
+# Fixed ORBIS_PASSWORD / ORBIS_SECRET_KEY / node-controller-key values are
+# local-test fixtures only.
 services:
   sourcehub:
-    image: orbis-sourcehub-integration
-    build:
-      context: ${ORBIS_RUNTIME_CONTEXT:?set by scripts/orbis-stack.sh}/docker
-      dockerfile: Dockerfile.sourcehub-integration
-      args:
-        SOURCEHUB_REF: "${SOURCEHUB_REF:-efd06660b43fa3e3a8c48956da3b425838aef83d}"
-    platform: linux/amd64
+    image: ${SOURCEHUB_IMAGE:-ghcr.io/sourcenetwork/sourcehub:dev}
+    # sourcehub:dev is published amd64-only; override to a locally-built
+    # linux/arm64 image on Apple Silicon to avoid the blst SIGILL under emulation.
+    platform: ${SOURCEHUB_PLATFORM:-linux/amd64}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        rm -rf /home/node/.sourcehub/*
-        sourcehubd init local-node --chain-id sourcehub-localnet --home /home/node/.sourcehub
-        sourcehubd keys add validator --keyring-backend test --home /home/node/.sourcehub
-        echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" | sourcehubd keys add test --recover --keyring-backend test --home /home/node/.sourcehub
-        sourcehubd genesis add-genesis-account validator 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
-        sourcehubd genesis add-genesis-account test 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
-        sourcehubd genesis gentx validator 10000000000uopen --keyring-backend test --chain-id sourcehub-localnet --home /home/node/.sourcehub
-        sourcehubd genesis collect-gentxs --home /home/node/.sourcehub
+        set -e
+        if [ ! -f /home/node/.sourcehub/config/config.toml ]; then
+          sourcehubd init local-node --chain-id sourcehub-localnet --home /home/node/.sourcehub
+          sourcehubd keys add validator --keyring-backend test --home /home/node/.sourcehub
+          echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" | sourcehubd keys add test --recover --keyring-backend test --home /home/node/.sourcehub
+          sourcehubd genesis add-genesis-account validator 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
+          sourcehubd genesis add-genesis-account test 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
+          sourcehubd genesis gentx validator 10000000000uopen --keyring-backend test --chain-id sourcehub-localnet --home /home/node/.sourcehub
+          sourcehubd genesis collect-gentxs --home /home/node/.sourcehub
+        fi
         exec sourcehubd start --home /home/node/.sourcehub --rpc.laddr tcp://0.0.0.0:26657 --api.enable --api.address tcp://0.0.0.0:1317
+    volumes:
+      - sourcehub-data:/home/node/.sourcehub
     ports:
       - "${ORBIS_SOURCEHUB_RPC_PORT:-26657}:26657"
       - "${ORBIS_SOURCEHUB_P2P_PORT:-26656}:26656"
@@ -34,17 +49,17 @@ services:
       start_period: 30s
 
   node1:
-    build:
-      context: ${ORBIS_RUNTIME_CONTEXT:?set by scripts/orbis-stack.sh}
-      dockerfile: docker/Dockerfile
-      args:
-        ENABLE_INTEGRATION_TEST: "true"
-        CRYPTO_FEATURE: "${ORBIS_INTEGRATION_CRYPTO:-decaf377}"
+    image: ${ORBIS_IMAGE:-ghcr.io/sourcenetwork/orbis-rs:b5d229aaadef4c0127203c2fccafb6771f38eaca-decaf377}
     environment:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret1testsecret1
       - RUST_LOG=debug
     command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
+    # published image doesn't self-fund; orbis-funder funds /data's account and the
+    # node restarts once to resolve it. /data persists the signing key + public_key.txt.
+    restart: on-failure
+    volumes:
+      - orbis-node1-data:/data
     ports:
       - "${ORBIS_NODE1_GRPC_PORT:-50051}:50051"
       - "${ORBIS_NODE1_METRICS_PORT:-9091}:9090"
@@ -61,17 +76,15 @@ services:
       start_period: 30s
 
   node2:
-    build:
-      context: ${ORBIS_RUNTIME_CONTEXT:?set by scripts/orbis-stack.sh}
-      dockerfile: docker/Dockerfile
-      args:
-        ENABLE_INTEGRATION_TEST: "true"
-        CRYPTO_FEATURE: "${ORBIS_INTEGRATION_CRYPTO:-decaf377}"
+    image: ${ORBIS_IMAGE:-ghcr.io/sourcenetwork/orbis-rs:b5d229aaadef4c0127203c2fccafb6771f38eaca-decaf377}
     environment:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret2testsecret2
       - RUST_LOG=debug
     command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
+    restart: on-failure
+    volumes:
+      - orbis-node2-data:/data
     ports:
       - "${ORBIS_NODE2_GRPC_PORT:-50052}:50051"
       - "${ORBIS_NODE2_METRICS_PORT:-9092}:9090"
@@ -88,17 +101,15 @@ services:
       start_period: 30s
 
   node3:
-    build:
-      context: ${ORBIS_RUNTIME_CONTEXT:?set by scripts/orbis-stack.sh}
-      dockerfile: docker/Dockerfile
-      args:
-        ENABLE_INTEGRATION_TEST: "true"
-        CRYPTO_FEATURE: "${ORBIS_INTEGRATION_CRYPTO:-decaf377}"
+    image: ${ORBIS_IMAGE:-ghcr.io/sourcenetwork/orbis-rs:b5d229aaadef4c0127203c2fccafb6771f38eaca-decaf377}
     environment:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret3testsecret3
       - RUST_LOG=debug
     command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
+    restart: on-failure
+    volumes:
+      - orbis-node3-data:/data
     ports:
       - "${ORBIS_NODE3_GRPC_PORT:-50053}:50051"
       - "${ORBIS_NODE3_METRICS_PORT:-9093}:9090"
@@ -114,6 +125,78 @@ services:
       retries: 30
       start_period: 30s
 
+  # Funds each orbis node's sourcehub account from the genesis `test` account
+  # (abandon mnemonic). Each node writes its address to /data/public_key.txt; the
+  # funder reads those, sends uopen, then waits until all three serve gRPC so the
+  # host-side readiness wait can gate on stable nodes rather than the flapping
+  # (restart: on-failure) healthcheck.
+  orbis-funder:
+    image: ${SOURCEHUB_IMAGE:-ghcr.io/sourcenetwork/sourcehub:dev}
+    platform: ${SOURCEHUB_PLATFORM:-linux/amd64}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        H=/tmp/funder
+        echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" \
+          | sourcehubd keys add test --recover --keyring-backend test --home "$$H"
+        for d in /n1 /n2 /n3; do
+          i=0
+          while [ ! -s "$$d/public_key.txt" ]; do
+            i=$$((i+1)); [ "$$i" -gt 120 ] && { echo "timeout waiting for $$d/public_key.txt"; exit 1; }
+            echo "waiting for $$d/public_key.txt"; sleep 3
+          done
+        done
+        n=0
+        until sourcehubd query block --type=height 1 --node tcp://sourcehub:26657 >/dev/null 2>&1; do
+          n=$$((n+1)); [ "$$n" -gt 120 ] && { echo "timeout waiting for first block"; exit 1; }
+          echo "waiting for sourcehub first block"; sleep 2
+        done
+        # Fund all three nodes in ONE bank multi-send so there is a single tx
+        # from the funder account. Three separate sends raced the account
+        # sequence: broadcast-sync returns before commit, so the next send
+        # reused a stale sequence and node3 failed with "account sequence
+        # mismatch". multi-send gives each listed address the same amount.
+        addrs=""
+        for d in /n1 /n2 /n3; do
+          a=$$(cat "$$d/public_key.txt")
+          echo "will fund orbis node ($$d): $$a"
+          addrs="$$addrs $$a"
+        done
+        n=0
+        until sourcehubd tx bank multi-send test $$addrs 1000000000uopen \
+              --keyring-backend test --home "$$H" --chain-id sourcehub-localnet \
+              --node tcp://sourcehub:26657 --fees 2000uopen --yes; do
+          n=$$((n+1)); [ "$$n" -gt 60 ] && { echo "failed to fund orbis nodes"; exit 1; }
+          echo "retry funding orbis nodes ($$n)"; sleep 3
+        done
+        sleep 6
+        echo "orbis funding complete"
+        for h in node1 node2 node3; do
+          n=0
+          until bash -c "exec 3<>/dev/tcp/$$h/50051" 2>/dev/null; do
+            n=$$((n+1)); [ "$$n" -gt 120 ] && { echo "timeout waiting for $$h gRPC"; exit 1; }
+            echo "waiting for $$h gRPC"; sleep 3
+          done
+          echo "$$h gRPC ready"
+        done
+        echo "all orbis nodes ready"
+    volumes:
+      - orbis-node1-data:/n1:ro
+      - orbis-node2-data:/n2:ro
+      - orbis-node3-data:/n3:ro
+    networks:
+      - orbis-integration-network
+    depends_on:
+      sourcehub:
+        condition: service_healthy
+
 networks:
   orbis-integration-network:
     driver: bridge
+
+volumes:
+  sourcehub-data: {}
+  orbis-node1-data: {}
+  orbis-node2-data: {}
+  orbis-node3-data: {}
