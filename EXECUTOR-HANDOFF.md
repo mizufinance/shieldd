@@ -127,6 +127,12 @@ gate modified), and add the L5 evidence pointer to the ledger row.
   metadata + restamp the Lean artifact via the playbook flow) — same class
   as the pending PR97 transfer stamp refresh; not hand-edited per rules.
 
+- **H4 memo review**: accept (or reject)
+  `docs/soundness/reference/poseidon-parameter-provenance.md` as the
+  discharge evidence for `CC-ASSUME-POSEIDON-PARAM-PROVENANCE`. The memo is
+  draft; the ledger row stays `assumed` until you accept. Fork-delta check
+  already done inside it (mizufinance/poseidon377 is packaging-only vs
+  upstream: arkworks 0.4→0.5 bumps, crypto sources byte-identical).
 - Confirm `MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT` (consolidate2x1's
   absent compliance surface: intended design or oversight?).
 - Playbook T2/T3, S1 removal path, gate-semantics changes.

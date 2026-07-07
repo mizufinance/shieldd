@@ -82,7 +82,7 @@ carries the ones not yet scheduled. IDs are stable for cross-reference.
 
 | ID | Layer | Hole | Next action | Owner |
 | --- | --- | --- | --- | --- |
-| H4 | L0 | Poseidon parameter provenance for this field (`CC-ASSUME-POSEIDON-PARAM-PROVENANCE`) | Provenance memo + security-margin citation — document, not proof | frontier/human |
+| H4 | L0 | Poseidon parameter provenance for this field (`CC-ASSUME-POSEIDON-PARAM-PROVENANCE`) | Memo drafted at `reference/poseidon-parameter-provenance.md`; human acceptance as the row's discharge evidence | frontier/human |
 | H8 | L1 | Alloy small-scope bound (`MODEL-ASSUME-BOUNDED-SCOPE`, scope 6) | Raise scope or add an inductive argument for supply-critical properties; else record the bound as accepted | frontier |
 | H-a | L3/L4 | 8 `ZK-ASSUME-TRANSFER-DEPLOYED-*` compliance gadget classes unproved | Deployed-bridge fan-out with existing machinery; executor-drivable once per-class exemplar exists | executor |
 | H-b | L0/L1 | Poseidon-encryption security property unstated/unproved | VCVio game-based proof or a precisely-stated assumption row — the danger is the unstated property | frontier |
