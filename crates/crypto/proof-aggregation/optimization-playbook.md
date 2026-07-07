@@ -382,6 +382,22 @@ the §4a 10% estimate.
    distribution before building. GIPA's fold rounds don't preserve the
    duplication past round one, so only the initial commit stage coalesces.
 
+7. **Per-proof final-exp fusion inside one verify (verifier, 2026-07-07).**
+   Within a single `verify_family_aggregate`, the two KZG opening checks
+   (`verify_commitment_key_g2/g1_kzg_opening`, tipa/mod.rs:1137/1160) and the
+   base-commitment + PPE checks each pay their own final exponentiation on a
+   2–4-pair multi-pairing. All are of the form `multi_pairing(...) == 0`, so
+   the same verifier-local-randomizer argument as candidate 5 fuses them
+   into one Miller-loop concatenation + one final exp *per proof* — the
+   intra-proof version of candidate 5, worth doing first since it needs no
+   cross-crate seam. Note the KZG pair inputs are challenge-dependent, so
+   prepared-point caching does not apply here (the fixed-SRS prepared trick
+   is already spent on the PPE, §11); the fusion is the whole remaining win.
+   Same security-review checklist as candidates 1/5. Also confirmed while
+   sweeping: `deserialize_aggregate_proof` uses `deserialize_compressed`
+   (full per-point subgroup validation) — that cost is exactly what
+   candidate 1's batched subgroup check targets; no separate finding.
+
 **Lineage cross-check (2026-07-07):** against bellperson/Filecoin SnarkPack
 and the SnarkPack v2 paper, this backend already has every headline verifier
 trick: merged TIPP/MIPP transcript (single `r_commitment_steps`), O(log n)
@@ -389,7 +405,7 @@ final-ck verification via KZG openings (`verify_commitment_key_*_kzg_opening`
 — the O(n) `_compute_final_commitment_keys` MSM is not on the production
 verify path), 128-bit rescaled challenges (`c`/`c_inv` swap, gipa.rs:694),
 prepared-G2 PPE reuse (§11), MSM final-key recombination (§9). The genuinely
-open deltas are candidates 1–4 above plus the §10 fixed-base SRS tables.
+open deltas are candidates 1–7 above plus the §10 fixed-base SRS tables.
 
 **Deferred to the §10 benchmark matrix (not pursued as optimizations here):**
 

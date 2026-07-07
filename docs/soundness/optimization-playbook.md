@@ -251,6 +251,68 @@ in-circuit lever, and the hash widths already match their input arities.
 - Statement field set or order (reopens Phase C + S4 + seam tests; only with
   human sign-off, and then T3 process).
 
+### NB-1. Conservation short-circuit in net-balance (~3–4k rows in
+consolidate, ~40% of the gadget) — 2026-07-07 deep audit
+`computeTransferNetBalanceCommitment` (transfer_circuit.go:218–232) runs one
+128-bit ladder **per amount** over the same `valueGenerator`. For
+conservation-exact shapes (consolidate: same asset, Σin = Σout; check
+transfer 1x1 likewise) the value component is *identically zero*: assert
+`Σin = Σout` directly (linear, no overflow — amounts are 128-bit-bounded and
+few) and the commitment collapses to `blinding·G_b` — all amount ladders
+deleted. **Must keep** an explicit `ToBinary(amount, 128)` per amount, since
+today the ladder is what enforces ZK-ASSUME-AMOUNT-RANGE (the comment at
+:207 says so — the range bound is load-bearing, the ladder is not). Statement
+value unchanged (the commitment equals the defined homomorphic sum), and the
+circuit gets *stronger* (explicit in-circuit conservation). T2-class: the
+relation shape changes (ladders → linear + range rows). For ics20 (net ≠ 0
+public withdrawal), the value term is `w·G_v` with public `w` — a per-shape
+analysis of who computes it belongs with TC-3.
+
+### NB-2. Shared-base Straus fold for the amount ladders (fallback to NB-1,
+~1.3k rows)
+If NB-1's relation change is deferred: the per-amount ladders all use the
+same base, so one joint ladder shares the 128 doublings across the three
+scalars instead of paying them 3× (the doubling chain is the same
+`valueGenerator` powers). Relation-local, no statement impact.
+
+### CF-1. CompressToField: the two 253-bit Abs decompositions are ~half the
+gadget (~500 of ~1,046 rows × 6 instances) — 2026-07-07 deep audit
+Inside `decaf377-go/gnark` `CompressToField`: ~10 muls + one isqrt hint
+block (~10 rows) + **two `decaf377Abs` calls, each a full
+`ToBinary(v, 253)`** (decaf377.go:78–82) just to read a sign parity. The
+parity genuinely requires a canonical decomposition, so the floor is one
+decomposition per abs — but census item (a) applies: when the compressed
+value is *also* canonicity-decomposed downstream (DTK canon blocks, statement
+lanes), the bits can be shared. Also: `CompressToField` asserts on-curve
+internally (decaf377.go:125), so any external `assertDecafPointOnCurve` on a
+point that is subsequently compressed is redundant — and conversely
+`AssertEquivalent` is a bare cross-ratio check (decaf_equiv.go:11) that does
+NOT imply curve membership, which resolves T1-g: the per-note transmission
+on-curve asserts are load-bearing (transmission is never compressed);
+T1-g as originally stated is void. Cross-check for the census: the Abs
+`ToBinary(v, 253)` admits non-canonical decompositions for v < 2^253 − q —
+Picus marks the leaf `safe`, so this is presumably closed, but the census
+should assert it mechanically.
+
+### ENC-1. Wide keystream blocks in the compliance stream cipher
+(~1–1.5k rows, transfer; category-2-equivalent wire change)
+`complianceStreamBlock` derives each keystream element with its own width-3
+Poseidon (transfer_encryption.go:38); the detection ciphertext alone burns 4
+consecutive blocks (+1 seed), and address encryption iterates blocks per
+limb. One width-7 permutation yields 6 keystream elements for ~⅓ the S-box
+cost of 6 width-3 perms. Changes the ciphertext bytes → compliance wire
+format version bump (the SnarkPack playbook's category-2 discipline, applied
+to the compliance ciphertext format) + native decryptor update. Bundle with
+any other ciphertext-layout change (TC-4), never alone.
+
+### Floor results (no action): statement hash & IMT
+The statement sponge is 1 width-8 permutation for ≤7 fields, chaining at
+rate 6 beyond (statement_hash.go:40–67) — widening the permutation is a
+crypto-parameter change (do-not-touch); the construction is fine. The
+transfer IMT (`IndexedLeafCommitment` + `VerifyQuadPath`) is 3 leaf perms +
+Hash4 per level + one 64-bit position decomposition — same ≥90% S-box floor
+as M-1. Neither is worth further audit passes.
+
 ### TC-7. Fuse the dummy-slot rk ladders (~1.2k rows per dummy-capable slot,
 transfer + ics20)
 `syntheticDummyVerificationKey` (transfer_circuit.go:366, mirrored in the
@@ -332,6 +394,28 @@ re-derived.
 - The 128-bit amount decomposition (exactness is a proved property row).
 - Statement field set or order (reopens Phase C + S4 + seam tests; only with
   human sign-off, and then T3 process).
+
+### Audit coverage manifest (2026-07-07, four rounds — the audit is closed)
+Every constraint-bearing surface was read, not sampled. Circuits:
+consolidate/note_reshape, transfer (net-balance, compliance ciphertexts,
+dummy slots, DLEQ, threshold, IMT quad path), ics20 withdrawal (shares the
+helper skeleton — every helper finding fans out), spend_auth_shared
+(nullifier/IVK/DTK/rvk), compliance (spend_shared, dleq, ack,
+transfer_encryption, address encryption, canonical_fq_bits, indexed_tree,
+threshold), primitives (poseidon377, tct_path, statement_hash,
+scalar_mul), and the decaf377-go gnark dependency internals
+(compress/isqrt/abs, AssertEquivalent). SnarkPack: gipa, tipa,
+structured_scalar_message, backend (incl. deserialize), srs, padding,
+transcript/statement (category-3, read only to confirm untouchable),
+preflight/bundle/dispatch (orchestration, no algebra), dh_commitments and
+inner_products via their call sites (prepared-G2 and multi-pairing usage
+confirmed optimal on the prover; verifier residue = §8 candidate 7).
+Surfaces with an explicit no-action floor verdict: Poseidon (TC-5), Merkle
+(M-1), Edwards add (E-1), statement sponge & IMT (§2t floor results),
+Groth16 verify internals (arkworks upstream, out of scope). Anything not
+in this manifest is either generated FV scaffolding (probe gadgets,
+fv_probe_*) or carries no constraints. New candidates from here on should
+come from F-1 census measurements, not more manual reading.
 
 ## 2b. Leeway map — which open holes restrict this loop (and which don't)
 
