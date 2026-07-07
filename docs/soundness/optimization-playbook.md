@@ -96,6 +96,53 @@ e.g. an intermediate only needed as a curve point — delete it).
 - Re-verify: compress bridge pattern is landed and per-instance; deletions only
   shrink the manifest.
 
+### T1-d. Compute DTK once, not per note (~−12–13k rows, ~21%) — 2026-07-07 audit
+Largest confirmed redundancy in the deployed circuit.
+`verifyNoteReshapeSpend` and `verifyNoteReshapeOutput` each call
+`DiversifiedTransmissionKey` (the full ~6.3k-row 253-bit variable-base ladder
+plus the whole IVK derivation), so consolidate2x1 pays the DTK mass 3×. But the
+circuit *already asserts* every note's `div_gen ≡ shared.div_gen` and
+`transmission ≡ shared.transmission` (note_reshape_circuit.go:274/276/342/344),
+and DTK inputs `nk/ak/ivk` are circuit-globals. So: compute DTK **once** from
+`sharedDivGen` in `Define`, assert it ≡ `sharedTransmission`, and let the
+per-note equivalence asserts carry the binding — delete the 2 redundant
+instances.
+- Soundness argument to pin before coding: decaf equivalence is the 2-torsion
+  coset; scalar-mul commutes with the coset, so DTK of an equivalent
+  representative is equivalent — the per-note `AssertEquivalent` chain closes
+  the same relation. Frontier should confirm this in the statement-binding
+  inventory before the Go change.
+- FV impact: whole DTK segment families *disappear* from the manifest (row
+  deletions, not flips). `fv-opt-loop.sh diff` treats unexpected
+  deletions as red — the allowlist mechanism needs a deletion clause for this
+  candidate. Coverage gate shrinks; remaining single DTK instance keeps its
+  existing proofs (input wire changes only → glue/wiring re-check).
+- Subsumes most of T1-b (the duplicated canon blocks live inside the deleted
+  instances) and makes T2-b one-third as valuable.
+
+### T1-e. Hoist the IVK derivation out of `DiversifiedTransmissionKey` — 2026-07-07 audit
+Subsumed by T1-d; standalone fallback if T1-d's equivalence argument stalls.
+`IncomingViewingKey` (CompressToField(ak) + Poseidon2 + `IVKModRDecomposition`
+with a 253-bit ToBinary and two `LessThanConstant253`) is recomputed
+identically per DTK call (spend_auth_shared.go:115) — nk, ak, ivkReduced,
+quotientA are all shared wires. Hoist once into `Define`, pass `ivk` in.
+Save ≈2 × (compress ~1k + Poseidon2 + range blocks) ≈ 3–4k rows.
+
+### T1-f. Compress `div_gen` once (~−2k rows) — 2026-07-07 audit
+Sharpens T1-c with a concrete site: `div_gen_fq` is computed per spend/output
+(note_reshape_circuit.go:197/296) for the note commitment, but every note's
+`div_gen` is asserted decaf-equivalent to `shared.div_gen`, and decaf
+compress-to-field is coset-invariant — equivalent representatives compress to
+the *same* Fq element. Compress `sharedDivGen` once in `Define`, reuse the
+wire. 3 instances → 1. Same manifest-deletion caveat as T1-d, smaller.
+
+### T1-g. Redundant per-note transmission on-curve checks (small) — 2026-07-07 audit
+`assertDecafPointOnCurve(transmission)` runs per note (lines 270/338) *and*
+on `sharedTransmission` in `Define` (line 81), with equivalence asserted
+between them. If `AssertEquivalent`'s relation already forces membership given
+one on-curve side (check decaf377-go gnark internals), the per-note checks are
+deletable. Hundreds of rows at most — bundle with T1-d, not standalone.
+
 ### T2-a. Windowed fixed-base ladders (rvk, net-balance; ~30–60% of those
 gadgets, i.e. 4–7k rows total)
 4-bit windowing turns 150/253 double-and-add rungs into ~38/64 table-lookup
@@ -207,7 +254,12 @@ existing gates, never edits verdicts/stamps). Per attempt:
 5. Distill the emitted record into a §5 results-ledger row; commit.
 
 A pilot that completes in ≤2 sessions proves the loop is executor-drivable;
-after that, T1-b and T1-c are the queue, and T2/T3 wait for design capacity.
+after that, the queue is **T1-d first** (largest confirmed win, needs the
+frontier equivalence sign-off + a deletion clause in the loop's allowlist),
+then T1-f, with T1-e as the fallback if T1-d stalls; T2/T3 wait for design
+capacity. The 2026-07-07 SnarkPack audit found nothing above the existing
+backlog in `crates/crypto/proof-aggregation/optimization-playbook.md` §8 —
+that queue stands unchanged (batched GT subgroup validation, security-gated).
 
 ## 5. Results ledger — what each optimization actually bought
 
