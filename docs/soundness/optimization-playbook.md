@@ -257,6 +257,30 @@ call keeps both (it consumes `ssDetection = esk·dkPub` unconditionally).
 Saves 3 × (~2.5k) ≈ 7–8k rows. Relation shape unchanged (same ladder gadget,
 one fewer instance) — T1-class through the loop, manifest rows deleted.
 
+**Blast-radius inventory (read-only pass; inputs to the Go change).**
+Manifest facts (transfer, 148 segments, 251,973 rows): the four
+`decaf.shared_secret` segments are **104 (sender_core, 9,034 rows), 105
+(sender_ext), 106 (output_core), 107 (output_ext) (9,033 each)**. The change
+touches spend_shared.go:37–42 behind a per-call-site mode; only 105/106/107
+shrink (one 251-bit variable-base ladder each, ~2.5–3k rows); 104 is
+untouched (consumes `ssDetection = esk·dkPub` unconditionally). Loop
+invocation: `diff --circuit transfer --allow-flips 105,106,107`.
+FV blast radius is *different from T1-d*: these segments are part of the
+compliance surface covered by `ZK-ASSUME-TRANSFER-DEPLOYED-SHARED-SECRET` —
+functional-assumption classes with **exact per-instance relation/wire-role
+pins in the closed allowlist**, not proved bridges. So no Lean regeneration
+exists or is needed, but (i) the loop's containment check will go red on "no
+regeneration family" for op `decaf.shared_secret` — the loop needs a
+rowed-class path (allow a flip whose obligation verdict is
+`functional-assumption`, requiring only an allowlist re-pin) before TC-1 can
+drive through it; (ii) the allowlist re-pin itself is gate-adjacent (the
+coverage gate rejects drift) and must ride in the same commit; (iii)
+hard rule 8 (downstream wire shift in hand-authored transfer Lean) and the
+PR97 transfer-stamp refresh policy both apply — a TC-1 landing forces the
+pending stamp refresh, so sequence it WITH that refresh, and STOP on any
+contract drift. Prerequisite before the Go edit: design the rowed-class
+diff path (frontier, small) — everything else is executor-mechanical.
+
 ### TC-2. EPK recomputation: confirm the fixed-base doubles fold
 `computedEPK = ScalarMulLE(G, esk, 251)` per tier (spend_shared.go:34, 4×).
 G is a compile-time constant, so `curve.Double(current)` should
@@ -320,6 +344,27 @@ If NB-1's relation change is deferred: the per-amount ladders all use the
 same base, so one joint ladder shares the 128 doublings across the three
 scalars instead of paying them 3× (the doubling chain is the same
 `valueGenerator` powers). Relation-local, no statement impact.
+
+**NB-1/NB-2 blast-radius inventory (read-only pass).** Manifest facts
+(consolidate2x1): net-balance is **segment 52** (`gadget-net-balance-
+commitment2`, 7,961 rows post-T1-a target); consumers are segment 53
+(3-row assert-equivalent against `claimed.balance_commitment`, which
+segment 2 asserts on-curve) and segment 54 (compress-to-field feeding the
+statement via segment 57). Statement value is unchanged by both candidates
+(the commitment still equals the homomorphic sum), so no L1/statement
+artifacts reopen. NB-2 (shared-base Straus fold) flips only segment 52 —
+`diff --circuit consolidate2x1 --allow-flips 52` — and regenerates via
+`gen_nb_slice.py`; whether the generator handles a joint-ladder relation
+shape is the open question that decides NB-2's tier (if not, it is T2:
+frontier designs the new slice spec first). NB-1 (conservation
+short-circuit) is T2 by construction: the relation changes from ladders to
+linear-conservation + explicit `ToBinary(amount,128)` range rows (the range
+rows are load-bearing for ZK-ASSUME-AMOUNT-RANGE and MUST survive), so
+frontier must write the new net-balance spec + generator before any Go
+edit. Hard rule 8 applies to both (segment 52 sits upstream of the
+statement-hash segments; every downstream wire shifts on a row-count
+change). Transfer's net-balance is a separate instance — fan out only
+after the consolidate exemplar is green.
 
 ### CF-1. CompressToField: the two 253-bit Abs decompositions are ~half the
 gadget (~500 of ~1,046 rows × 6 instances)
