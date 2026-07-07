@@ -105,15 +105,27 @@ State of the wait-time work stream, resumable by executor:
 Everything T2/T3/S-1/TC-3 waits for frontier design or Antoine. SnarkPack §8
 candidates stay frozen behind S1 + security review (not yours).
 
-### Q4 — VK↔`.sr1cs` derivation pinning (after Q3; new check, not a gate edit)
-Build the mechanical check that the deployed proving/verifying keys derive
-from the exact pinned `.sr1cs` (plan §8 backlog row; closes the plumbing half
-of `ZK-ASSUME-GNARK-FRONTEND-BACKEND`). Shape: regenerate keys from the
-pinned constraint system in CI (or hash-chain the setup transcript) and
-compare against the deployed VK hash the SnarkPack conformance tests already
-pin. This is a NEW script (allowed); it must not modify any existing gate.
+### Q4 — VK↔`.sr1cs` derivation pinning — script BUILT, one FINDING open
+`scripts/check-vk-derivation.sh <circuit> [--prove]` exists (note:
+groth16.Setup is randomized, so the binding is hash pins + byte-identical
+recompiled `.sr1cs` + a prove/verify round trip with the DEPLOYED keys —
+not key regeneration). First run on consolidate2x1 found a FINDING, now
+awaiting human (below). Remaining executor work once the finding is
+resolved: run it for transfer, wire it into CI tier 1 (new job, no existing
+gate modified), and add the L5 evidence pointer to the ledger row.
 
 ## Awaiting human (Antoine)
+
+- **FINDING (2026-07-07, check-vk-derivation first run): stale VK pins for
+  consolidate2x1.** Committed `verifying_key.bin` (LFS oid `dece3b17…`) does
+  NOT match the vk hash pinned by `circuit_metadata.json` and by
+  `consolidate2x1-whole-circuit-lean-artifact.txt` (both pin `35620e95…`,
+  an earlier setup run); the pk pin matches. The deployed pk/vk pair itself
+  is sound: prove+verify against the recompiled circuit passes (run
+  2026-07-07). So keys↔circuit binding holds; the metadata/Lean-stamp vk
+  pins are stale bookkeeping from PR97. Fix is a stamp refresh (regenerate
+  metadata + restamp the Lean artifact via the playbook flow) — same class
+  as the pending PR97 transfer stamp refresh; not hand-edited per rules.
 
 - Confirm `MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT` (consolidate2x1's
   absent compliance surface: intended design or oversight?).
