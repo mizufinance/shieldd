@@ -1,0 +1,61 @@
+# FV toolchain image for the soundness-formal PR gate (lean-circuit-fv).
+#
+# Bakes the exact toolchain that check-lean-circuit-fv.sh needs so PR jobs pull
+# instead of curl-installing on every run. Removes the recurring
+# raw.githubusercontent.com 429 that flaked the elan-init.sh fetch.
+#
+# Contents: Go, Rust (pinned), elan+Lean (pinned), ripgrep, git, lfs, xz.
+# Deliberately NO solvers / nix / hax: lean-circuit-fv uses none of them; those
+# are provers-only (nightly) and are a separate, heavier image.
+#
+# Base is ubuntu:24.04 to match the GitHub runners (ubuntu-latest /
+# blacksmith-*-ubuntu-2404). The pinned Lean/Rust binaries are glibc-forward
+# compatible; the build asserts each toolchain actually executes on this base.
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl git git-lfs unzip xz-utils ripgrep \
+      build-essential pkg-config libssl-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && git lfs install --system
+
+# --- Go (matches tools/gnark/go.mod: go 1.25.4) ----------------------------
+ARG GO_VERSION=1.25.4
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tgz \
+    && tar -C /usr/local -xzf /tmp/go.tgz \
+    && rm /tmp/go.tgz
+ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
+ENV GOTOOLCHAIN=local
+
+# --- Rust (matches rust-toolchain.toml: 1.89 + wasm32 + rustfmt) -----------
+ARG RUST_VERSION=1.89.0
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
+ENV PATH="/usr/local/cargo/bin:${PATH}"
+RUN curl -fsSL https://sh.rustup.rs -o /tmp/rustup.sh \
+    && sh /tmp/rustup.sh -y --no-modify-path \
+       --default-toolchain "${RUST_VERSION}" \
+       --component rustfmt \
+       --target wasm32-unknown-unknown \
+    && rm /tmp/rustup.sh \
+    && chmod -R a+rwX "$CARGO_HOME" "$RUSTUP_HOME"
+
+# --- elan + Lean (matches tools/gnark/lean/lean-toolchain) ------------------
+ARG LEAN_VERSION=leanprover/lean4:v4.15.0
+ENV ELAN_HOME=/usr/local/elan
+ENV PATH="/usr/local/elan/bin:${PATH}"
+RUN curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh \
+    && sh /tmp/elan-init.sh -y --default-toolchain "${LEAN_VERSION}" \
+    && rm /tmp/elan-init.sh \
+    && chmod -R a+rwX "$ELAN_HOME"
+
+# --- assert every baked toolchain actually runs on this base ---------------
+RUN set -eux; \
+    go version; \
+    cargo --version; rustc --version; rustfmt --version; \
+    rustc --print target-list | grep -qx wasm32-unknown-unknown; \
+    elan --version; lean --version; lake --version; \
+    rg --version; git lfs version
+
+CMD ["/bin/bash"]
