@@ -41,7 +41,7 @@ Both deltas already exist as named open items (SL/RIPP, plan §8 turnstile).
 | 5 | gnark GHSA-q3hw-3gm4-w5cr + GHSA-9xcg-3q8v-7fq6 (2024, backend) | Multi-commitment Groth16 unsound; commitment ZK break | Pinned gnark v0.14.0 (fixed ≥0.11.0); circuits use no Groth16 commitment API (verified 2026-07-07); cited as the L5 reference failure in the plan | covered |
 | 6 | "Frozen Heart" Fiat-Shamir (2022, weak transcripts across many libs) | Challenges omitted statement parts → proof forgery | DLEQ FS knowledge soundness proved (Lean/VCVio, axiom `q_prime`); SnarkPack transcript is a frozen category-3 surface with S5 statement-parity + VK-arity conformance tests; 128-bit rescaled challenges documented | covered (SL1 residual tracked) |
 | 7 | Monero CryptoNote key-image (2017, small-subgroup inflation) | Torsion component in key images → infinite mint | Cofactor class: decaf377 quotient encoding, `ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE`, T1-d coset analysis (playbook), SnarkPack `deserialize_compressed` full subgroup validation (any batching keeps validation strength per §8 checklist) | covered |
-| 8 | Non-canonical field aliasing (Semaphore/circom class) | Inputs ≥ p alias mod p → nullifier/root forgery | `CanonicalFqBits253` canon blocks with proved LT chains; residual: decaf `Abs` uses plain `ToBinary(253)` — routed to the census as a mechanical check (playbook CF-1 note) | covered / one check queued (G4) |
+| 8 | Non-canonical field aliasing (Semaphore/circom class) | Inputs ≥ p alias mod p → nullifier/root forgery | `CanonicalFqBits253` canon blocks with proved LT chains (decaf `Abs` uses them too, `decaf_gadgets.go:405`); standing mechanical tripwire: `fv-census.py` report (d) flags any single-row recomposition wide enough to alias — currently zero in consolidate2x1 (widest is 252 powers, 2^252−1 < p) | covered |
 | 9 | Assigned-not-constrained (circom `<--`, DarkForest class) | Witness assigned but never constrained | gnark's API lacks the footgun; extractor parity gate + Picus + census recompute/dead-cone reports | covered |
 | 10 | Proof-verification forgery outside SNARKs (BNB/IAVL 2022 $570M, Polygon Plasma 2021) | Verifier accepted malformed Merkle/exit proofs | Merkle membership is in-circuit and proven (quad-path bridges); bridge/exit surface is ics20: supply-conservation invariants landed, whole-circuit proof in plan §8 backlog | covered / ics20 proof pending |
 | 11 | halo2 query collision (2025, proving-system impl) | Redundant polynomial evaluation unchecked | Not our proving stack; class lands on L5 rows + advisory monitoring for arkworks/gnark | Gap G1 (same row) |
@@ -64,6 +64,10 @@ Both deltas already exist as named open items (SL/RIPP, plan §8 turnstile).
   Production SRS provenance (ceremony, transcript custody, verifier-side
   pinning) is not yet a ledger row; dev SRS is explicitly non-production.
   Plan: add an L5 row when the production ceremony is scheduled.
-- **G4 — canonicity census check.** Mechanically assert the decaf `Abs`
-  decomposition cannot alias (Picus marks the leaf safe; make the check
-  standing via `fv-census.py`). Queued with F-1 in the executor handoff.
+- **G4 — canonicity census check.** CLOSED by `fv-census.py` report (d): a
+  standing detector for alias-capable bit recompositions (2^width − 1 ≥ p),
+  run via `fv-opt-loop.sh census`. Current verdict: zero such rows in
+  consolidate2x1; `Abs` uses `CanonicalFqBits253`, and gnark's own 253-bit
+  `ToBinary` path carries a reducedness check. Scope note: the detector sees
+  single-row recompositions; split (multi-row) recompositions would need a
+  new detector if a gadget ever introduces one.

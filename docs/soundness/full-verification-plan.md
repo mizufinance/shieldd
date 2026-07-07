@@ -94,7 +94,6 @@ carries the ones not yet scheduled. IDs are stable for cross-reference.
 | D2 | L5 | Production SRS/ceremony provenance has no ledger row | Add the row when the ceremony is scheduled | human |
 | D3 | direction | Privacy/ZK axis has zero mechanized coverage and no regression gate (all proofs are soundness-direction) | Scoping decision: verification program or explicit accepted-risk row | human |
 | D4 | L1 | Native statement construction (Rust chain-state → statement) covered by seam/parity tests only | Verified reference builder + byte-differential gate | frontier |
-| D5 | L2 | decaf `Abs` decomposition canonicity asserted by Picus verdict only | Standing mechanical check in `fv-census.py` (G4, queued with F-1) | executor |
 | MC1 | model | `MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT`: is consolidate2x1's absent compliance surface intended? | Human confirmation | human |
 | F-ext | L3/L4 | ics20 whole-circuit proof; split1xN family proofs (retire per-family `ZK-ASSUME-DECAF377-*`) | Same deployed-bridge pattern; executor fan-out after transfer H-a | executor |
 

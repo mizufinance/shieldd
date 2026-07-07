@@ -18,9 +18,13 @@ set -euo pipefail
 #       [--allow-remove 34,36] [--allow-add 60]
 #   scripts/fv-opt-loop.sh gates --circuit consolidate2x1 [--lean] [--prove] \
 #       [--record-out <file.md>]
+#   scripts/fv-opt-loop.sh census --circuit transfer
 #
 #   diff   pre-proof phase: recompile + flipped-segment containment check.
 #   gates  post-proof phase: full battery + measurement record.
+#   census read-only waste forensics on the freshly compiled circuit
+#          (fv-census.py: duplicates, CSE misses, dead outputs, mul floor,
+#          D5 decomposition canonicity). Informational, never a gate.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GNARK_DIR="$ROOT/tools/gnark"
@@ -33,13 +37,13 @@ fail() {
 note() { echo "fv-opt-loop: $*"; }
 
 usage() {
-  sed -n '4,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '4,27p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 2
 }
 
 [[ "$#" -ge 1 ]] || usage
 mode="$1"; shift
-[[ "$mode" == "diff" || "$mode" == "gates" ]] || usage
+[[ "$mode" == "diff" || "$mode" == "gates" || "$mode" == "census" ]] || usage
 
 circuit=""
 allow_flips=""
@@ -242,6 +246,17 @@ REC
   fi
 }
 
+export_only() {
+  sr1cs_out="$tmp_dir/$circuit.sr1cs"
+  manifest_out="$tmp_dir/$circuit-manifest.json"
+  note "recompiling $circuit (export only)"
+  (
+    cd "$GNARK_DIR"
+    go run ./cmd/gnarkctl export-r1cs --circuit "$circuit" --out "$sr1cs_out" >/dev/null
+    go run ./cmd/gnarkctl export-manifest --circuit "$circuit" --sr1cs "$sr1cs_out" --out "$manifest_out" >/dev/null
+  )
+}
+
 case "$mode" in
   diff)
     recompile_and_extract
@@ -254,5 +269,10 @@ case "$mode" in
     gate_battery
     emit_record
     note "GREEN: gate battery passed"
+    ;;
+  census)
+    export_only
+    python3 "$ROOT/scripts/fv-census.py" "$sr1cs_out" "$manifest_out"
+    note "census complete (informational — not a gate)"
     ;;
 esac

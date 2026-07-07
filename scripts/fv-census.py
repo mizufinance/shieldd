@@ -8,7 +8,12 @@ Reads a .sr1cs export and its segment manifest; reports, per segment:
   (b) write-only wires (appear in exactly one row and are not circuit
       inputs/outputs — dead-output candidates like discarded ladder results),
   (c) rows vs multiplication floor (rows whose A and B are both non-constant;
-      linear rows are free in a smarter compiler — the M-1-style table).
+      linear rows are free in a smarter compiler — the M-1-style table),
+  (d) decomposition canonicity (plan hole D5): every bit-recomposition row
+      wide enough that 2^width - 1 >= p, i.e. two bit-strings can encode the
+      same field element. Alias-capable decompositions are sound only if a
+      canonicity (LT) chain or an out-of-circuit argument covers them —
+      each one reported here must map to a named justification.
 
 Read-only: no gate semantics, no verdicts. Usage:
   fv-census.py <circuit.sr1cs> <circuit-manifest.json> [--min-dups 2]
@@ -25,9 +30,12 @@ TERM_RE = re.compile(r"\((\d+) (\d+)\)")
 
 def parse(path):
     inputs, outputs, rows = set(), set(), []
+    prime = None
     for line in open(path):
         line = line.strip()
-        if line.startswith("(in "):
+        if line.startswith("(prime-number "):
+            prime = int(line[len("(prime-number "):-1])
+        elif line.startswith("(in "):
             inputs.add(int(line[4:-1]))
         elif line.startswith("(out "):
             outputs.add(int(line[5:-1]))
@@ -35,7 +43,7 @@ def parse(path):
             m = ROW_RE.match(line)
             a, b, c = (tuple(TERM_RE.findall(part)) for part in m.groups())
             rows.append((a, b, c))
-    return inputs, outputs, rows
+    return inputs, outputs, rows, prime
 
 
 def is_linear(part):
@@ -45,7 +53,7 @@ def is_linear(part):
 
 def main():
     sr1cs, manifest_path = sys.argv[1], sys.argv[2]
-    inputs, outputs, rows = parse(sr1cs)
+    inputs, outputs, rows, prime = parse(sr1cs)
     manifest = json.load(open(manifest_path))
     segs = manifest.get("segments", manifest)
 
@@ -123,6 +131,42 @@ def main():
             fam[label][1] += 1
     for label, (r, m) in sorted(fam.items(), key=lambda kv: -kv[1][0]):
         print(f"  {label:45s} rows={r:6d} muls={m:6d} floor-ratio={m / r if r else 0:.2f}")
+    print()
+
+    # (d) decomposition canonicity (D5/G4): recomposition rows wide enough to alias
+    print("## (d) decomposition canonicity (D5): bit recompositions with 2^width-1 >= p")
+    if prime is None:
+        print("  no (prime-number) header — skipped")
+        return
+    boolean = set()
+    for a, b, c in rows:
+        # w*w = w
+        if len(a) == 1 and a == b and a == c:
+            boolean.add(int(a[0][1]))
+        # (1 - w)*w = 0
+        elif (not c and len(b) == 1 and len(a) == 2
+              and {int(x[0]) for x in a} == {1, prime - 1}
+              and b[0][1] in {w for _, w in a}):
+            boolean.add(int(b[0][1]))
+    alias_bound = prime.bit_length() - 1  # width k with 2^k - 1 >= p ⇔ k >= bitlen(p)
+    n = 0
+    for i, (a, b, c) in enumerate(rows):
+        for part in (a, b, c):
+            powers, wires = set(), []
+            for coeff, w in part:
+                v = int(coeff) % prime
+                v = min(v, prime - v)  # accept negated (subtraction) recompositions
+                if v and v & (v - 1) == 0:
+                    powers.add(v.bit_length() - 1)
+                    wires.append(int(w))
+            width = len(powers)
+            if width > alias_bound and powers == set(range(width)):
+                n += 1
+                nb = sum(1 for w in wires if w in boolean)
+                cap = "ALIAS-CAPABLE" if (1 << width) - 1 >= prime else "canonical-by-width"
+                print(f"  row {i} in {seg_name(seg_of(i))}: width={width} {cap} "
+                      f"boolean-constrained wires {nb}/{len(wires)}")
+    print(f"  => {n} full-width recomposition rows (each needs a named canonicity justification)")
 
 
 if __name__ == "__main__":
