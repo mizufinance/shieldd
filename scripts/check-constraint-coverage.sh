@@ -4,6 +4,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 require_full_deployed=0
 check_typed_bindings=0
+# Lean elaboration is opt-in. The default run is Rust-only: it re-derives the
+# coverage report and the emitted deployed contracts and checks them against the
+# committed, hash-stamped artifacts. That is what the cheap PR tier needs. The
+# `lake`-driven theorem-name/type resolution (which transitively builds the
+# whole-circuit Lean models and OOMs a 16-vcpu runner) is only run when a caller
+# asks for it, i.e. the nightly full tier. --require-full-deployed and
+# --check-typed-bindings imply it because they type-check Lean directly.
+run_lean_theorem_checks=0
 
 fail() {
   echo "constraint coverage check failed: $*" >&2
@@ -58,9 +66,14 @@ while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --require-full-deployed)
       require_full_deployed=1
+      run_lean_theorem_checks=1
       ;;
     --check-typed-bindings)
       check_typed_bindings=1
+      run_lean_theorem_checks=1
+      ;;
+    --lean-theorem-checks)
+      run_lean_theorem_checks=1
       ;;
     *)
       cli_args+=("$1")
@@ -188,12 +201,27 @@ check_generated_contracts() {
     find . -maxdepth 1 -type f -name 'Seg*.lean' | sed 's#^\./##' | sort
   ) > "$generated_list"
 
-  if ! cmp -s "$committed_list" "$generated_list"; then
-    comm -23 "$committed_list" "$generated_list" \
-      | sed 's/^/Only in committed generated contracts: /' >&2
-    comm -13 "$committed_list" "$generated_list" \
-      | sed 's/^/Only in generated contracts: /' >&2
-    fail "generated deployed contract set drifted for $circuit"
+  # Subset fidelity: every committed contract must exist in the freshly
+  # generated set and byte-match it. A committed contract the generator no
+  # longer emits is a stale orphan (always fatal). Generated contracts with no
+  # committed counterpart mean the deployed layer is incomplete; that is
+  # allowed only when the tier permits pending obligations (stamps tier),
+  # exactly as pending obligations are treated below, and fatal under
+  # --require-full-deployed. This keeps a complete set (consolidate2x1) at full
+  # equality while letting an in-progress set (transfer) stay gated and honest.
+  local orphans missing
+  orphans="$(comm -23 "$committed_list" "$generated_list")"
+  if [[ -n "$orphans" ]]; then
+    printf '%s\n' "$orphans" \
+      | sed 's/^/Committed contract no longer emitted by generator: /' >&2
+    fail "stale committed deployed contract for $circuit"
+  fi
+
+  missing="$(comm -13 "$committed_list" "$generated_list")"
+  if [[ -n "$missing" && "$require_full_deployed" -eq 1 ]]; then
+    printf '%s\n' "$missing" \
+      | sed 's/^/Generated contract with no committed counterpart: /' >&2
+    fail "generated deployed contract set incomplete for $circuit"
   fi
 
   while IFS= read -r contract_file; do
@@ -202,7 +230,7 @@ check_generated_contracts() {
       diff -u "$committed_dir/$contract_file" "$generated_dir/$contract_file" >&2 || true
       fail "generated deployed contract drifted for $circuit: $contract_file"
     fi
-  done < "$generated_list"
+  done < "$committed_list"
 }
 
 coverage_manifest_for_circuit() {
@@ -264,8 +292,11 @@ cd "$lean_src_dir"
 # Fetch the prebuilt Mathlib olean cache before any `lake build` so the bounds/
 # capstone/statement modules link against downloaded dependencies instead of
 # recompiling Mathlib from source (which blows the CI timeout). Non-fatal: a
-# cache miss just falls back to a source build.
-lake exe cache get >/dev/null 2>&1 || true
+# cache miss just falls back to a source build. Only needed when Lean theorem
+# checks are requested; the Rust-only default touches no `lake` target.
+if [[ "$run_lean_theorem_checks" -eq 1 ]]; then
+  lake exe cache get >/dev/null 2>&1 || true
+fi
 
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
@@ -393,7 +424,9 @@ while IFS= read -r circuit; do
     check_typed_contract_theorems "$report" "$circuit"
   fi
 
-  check_bridge_theorems "$report" "$circuit"
+  if [[ "$run_lean_theorem_checks" -eq 1 ]]; then
+    check_bridge_theorems "$report" "$circuit"
+  fi
 done < <(printf '%s\n' "$selected_circuits")
 
 echo "constraint coverage ok: circuits=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"

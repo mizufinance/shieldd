@@ -304,8 +304,15 @@ while IFS= read -r circuit; do
 done < <(printf '%s\n' "$selected_circuits")
 
 # --- compiled-constraint coverage and VK binding (both tiers) ---------------
+# The Rust coverage checks (report drift, emitted-contract drift, stamp
+# integrity) run in both tiers. The `lake`-driven bridge-theorem name/type
+# resolution transitively builds the whole-circuit Lean models, so it is
+# deferred to the `full` (nightly) tier; the PR `stamps` tier certifies those
+# Lean sources by hash instead of re-elaborating them.
+coverage_lean_flag=""
+[[ "$MODE" == "full" ]] && coverage_lean_flag="--lean-theorem-checks"
 echo "==> compiled constraint coverage"
-"$ROOT/scripts/check-constraint-coverage.sh" $(printf '%s\n' "$selected_circuits")
+"$ROOT/scripts/check-constraint-coverage.sh" $coverage_lean_flag $(printf '%s\n' "$selected_circuits")
 
 # --- emitted-Lean semantic anti-pattern lint (both tiers) -------------------
 # Enforces the term-size / machine-safety emission rules (fuel-def unroll, wide

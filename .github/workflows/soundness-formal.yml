@@ -116,6 +116,11 @@ jobs:
   lean-circuit-fv:
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 45
+    # Single-threaded Lean elaboration caps per-process memory: the nightly full
+    # tier rebuilds the whole-circuit models, and unbounded threads let one
+    # elaboration balloon past the runner's RAM and OOM the job.
+    env:
+      LEAN_NUM_THREADS: "1"
     strategy:
       fail-fast: false
       matrix:
