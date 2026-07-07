@@ -18,6 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl git git-lfs unzip xz-utils ripgrep \
       build-essential pkg-config libssl-dev \
+      clang lld \
     && rm -rf /var/lib/apt/lists/* \
     && git lfs install --system
 
@@ -54,6 +55,7 @@ RUN curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-ini
 RUN set -eux; \
     go version; \
     cargo --version; rustc --version; rustfmt --version; \
+    clang --version; ld.lld --version; \
     rustc --print target-list | grep -qx wasm32-unknown-unknown; \
     elan --version; lean --version; lake --version; \
     rg --version; git lfs version
