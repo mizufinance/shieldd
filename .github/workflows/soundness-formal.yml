@@ -128,7 +128,7 @@ jobs:
     # by digest, so no per-run install and no elan-init.sh 429 flake. Rebuild and
     # repin via .github/workflows/fv-toolchain-image.yml when the toolchain moves.
     container:
-      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:fcf19089cb1a62d8ca8246ac20381b8528c5e1915e417e712ea6264a8bf3abc0
+      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:4bdec94eb778ca2ae549ba75de18b44a822f5460f608d7facc911382f08e88aa
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -188,6 +188,7 @@ jobs:
       # transcript); the nightly schedule/dispatch runs the expensive `full`
       # tier that elaborates the whole-circuit proofs and checks axioms.
       - name: Run Lean whole-circuit FV gate
+        shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             bash scripts/check-lean-circuit-fv.sh stamps
