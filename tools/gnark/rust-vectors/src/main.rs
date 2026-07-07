@@ -54,6 +54,13 @@ struct PoseidonVectors {
     hash7_domain: String,
     hash7_inputs: Vec<String>,
     hash7_output: String,
+    // Composite-derivation goldens: the nullifier (Poseidon hash_3 over the
+    // nullifier domain) and the note commitment (hash_6 over the note-commit
+    // domain), pinning RATE_3 / RATE_6 output correctness across Rust and gnark.
+    nullifier_inputs: Vec<String>,
+    nullifier_output: String,
+    note_commit_inputs: Vec<String>,
+    note_commit_output: String,
     rate_1: PoseidonRateVectors,
     rate_2: PoseidonRateVectors,
     rate_3: PoseidonRateVectors,
@@ -95,6 +102,25 @@ struct DleqFixture {
     dleq_s: String,
 }
 
+/// Consolidate2x1 statement-hash seam fixture (H3 / Phase C).
+///
+/// A seeded consolidate2x1 public statement: the 7 field elements in the exact
+/// production role order the circuit assembles them (anchor, output note
+/// commitment, balance commitment Fq, then per-input nullifier+rk), plus the
+/// reference statement hash computed with the real `poseidon377::hash_7` over
+/// the `consolidate2x1` public-input-hash domain. The Go seam test assembles
+/// these fields in the same order, runs the production statement-hash gadget,
+/// and asserts the in-circuit wire equals `statement_hash`. Any wire-order,
+/// endianness, or domain drift fails.
+#[derive(Serialize)]
+struct ConsolidateStatementFixture {
+    label: String,
+    domain: String,
+    field_roles: Vec<String>,
+    fields: Vec<String>,
+    statement_hash: String,
+}
+
 #[derive(Serialize)]
 struct Vectors {
     decaf377_companion_curve: CurveVectors,
@@ -102,6 +128,7 @@ struct Vectors {
     decaf377_compress_vectors: Vec<DecafCompressVector>,
     decaf377_encode_vectors: Vec<DecafEncodeVector>,
     dleq_fixture: DleqFixture,
+    consolidate2x1_statement: ConsolidateStatementFixture,
 }
 
 fn blake2b_fq(label: &[u8]) -> Fq {
@@ -225,6 +252,58 @@ fn main() {
             hash7_inputs[4],
             hash7_inputs[5],
             hash7_inputs[6],
+        ),
+    );
+    // Nullifier = Poseidon hash_3(nullifier_domain, [nk, stateCommitment, position]).
+    let nullifier_domain = blake2b_fq(b"shieldd.nullifier");
+    let nullifier_inputs = [11u64, 22, 3].map(Fq::from);
+    let nullifier_output = poseidon377::hash_3(
+        &nullifier_domain,
+        (nullifier_inputs[0], nullifier_inputs[1], nullifier_inputs[2]),
+    );
+    // Note commitment = Poseidon hash_6(note_commit_domain,
+    //   [blinding, amount, assetId, divGenFq, transmissionKeyS, clueKey]).
+    let note_commit_domain = blake2b_fq(b"shieldd.notecommit");
+    let note_commit_inputs = [101u64, 202, 303, 404, 505, 606].map(Fq::from);
+    let note_commit_output = poseidon377::hash_6(
+        &note_commit_domain,
+        (
+            note_commit_inputs[0],
+            note_commit_inputs[1],
+            note_commit_inputs[2],
+            note_commit_inputs[3],
+            note_commit_inputs[4],
+            note_commit_inputs[5],
+        ),
+    );
+    // Consolidate2x1 statement-hash seam: 7 seeded, distinct field elements in
+    // the production assembly order, hashed via the real poseidon377::hash_7
+    // over the consolidate2x1 public-input-hash domain (single hash_7, no
+    // continuation, for the 7-field statement — pads unused). See
+    // NoteReshapeCircuit.Define / hashStatementFields on the Go side.
+    let consolidate_statement_domain =
+        blake2b_fq(b"shieldd.shielded_pool.consolidate2x1.public_input_hash.v1");
+    let consolidate_statement_roles = [
+        "anchor",
+        "output_note_commitment_0",
+        "balance_commitment_fq",
+        "nullifier_0",
+        "rk_0",
+        "nullifier_1",
+        "rk_1",
+    ];
+    let consolidate_statement_fields =
+        [70_001u64, 70_002, 70_003, 70_004, 70_005, 70_006, 70_007].map(Fq::from);
+    let consolidate_statement_hash = poseidon377::hash_7(
+        &consolidate_statement_domain,
+        (
+            consolidate_statement_fields[0],
+            consolidate_statement_fields[1],
+            consolidate_statement_fields[2],
+            consolidate_statement_fields[3],
+            consolidate_statement_fields[4],
+            consolidate_statement_fields[5],
+            consolidate_statement_fields[6],
         ),
     );
     let generator_encoding = Encoding::from(Element::GENERATOR);
@@ -357,6 +436,10 @@ fn main() {
             hash7_domain: hash7_domain.to_string(),
             hash7_inputs: hash7_inputs.iter().map(ToString::to_string).collect(),
             hash7_output: hash7_output.to_string(),
+            nullifier_inputs: nullifier_inputs.iter().map(ToString::to_string).collect(),
+            nullifier_output: nullifier_output.to_string(),
+            note_commit_inputs: note_commit_inputs.iter().map(ToString::to_string).collect(),
+            note_commit_output: note_commit_output.to_string(),
             rate_1: poseidon_rate_vectors(poseidon377::RATE_1_PARAMS.clone()),
             rate_2: poseidon_rate_vectors(poseidon377::RATE_2_PARAMS.clone()),
             rate_3: poseidon_rate_vectors(poseidon377::RATE_3_PARAMS.clone()),
@@ -378,6 +461,19 @@ fn main() {
             epk_y: epk_y.to_string(),
             dleq_c: dleq_c.to_string(),
             dleq_s: Fq::from_le_bytes_mod_order(&dleq_s.to_bytes()).to_string(),
+        },
+        consolidate2x1_statement: ConsolidateStatementFixture {
+            label: "consolidate2x1".to_string(),
+            domain: consolidate_statement_domain.to_string(),
+            field_roles: consolidate_statement_roles
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+            fields: consolidate_statement_fields
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+            statement_hash: consolidate_statement_hash.to_string(),
         },
     };
 

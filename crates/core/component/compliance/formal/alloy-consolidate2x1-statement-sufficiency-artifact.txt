@@ -1,0 +1,8 @@
+tool: alloy
+alloy: 6.2.0
+model: crates/core/component/compliance/formal/alloy/consolidate2x1-statement-sufficiency.als
+model_sha256: c4bb887c5ce34a314f7b6164c7b8c284369123196cb68f08cb5b45b4c8d52c15
+alloy_output_sha256: d297f13ee3147235f1d0b35094bad5309e24d028cb87505eade13e53653e2d32
+CHECK NoDoubleSpend no-counterexample
+CHECK NoInflation no-counterexample
+CHECK SpendAuthBound no-counterexample

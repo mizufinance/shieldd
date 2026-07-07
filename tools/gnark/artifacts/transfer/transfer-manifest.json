@@ -1,0 +1,2233 @@
+{
+  "schema": "shieldd.gnark.constraint_manifest.v1",
+  "circuit": "transfer",
+  "shape": {
+    "n_in": 2,
+    "n_out": 2
+  },
+  "nb_constraints": 251973,
+  "nb_public_variables": 2,
+  "nb_secret_variables": 542,
+  "nb_internal_variables": 224963,
+  "sr1cs_sha256_hex": "749f4eeb803bbf5f9b08077e8b9ce481c5e63acb052d16aba429a3c4747707e7",
+  "segments": [
+    {
+      "index": 1,
+      "op": "shared.bind",
+      "args": [
+        "claimed.balance_commitment=balance_commitment",
+        "shared.ak=auth.ak",
+        "shared.asset_id=spend0.note.asset_id",
+        "sender.div_gen=sender.div_gen",
+        "sender.transmission=sender.transmission"
+      ],
+      "kind": "marker",
+      "start": 0,
+      "end": 0,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 2,
+      "op": "select.point",
+      "args": [
+        "cond=is_regulated",
+        "if_true=asset.leaf.ring_pk",
+        "if_false=unregulated.ring_pk",
+        "out=effective.ring_pk"
+      ],
+      "kind": "glue",
+      "start": 0,
+      "end": 3,
+      "constraint_count": 3,
+      "classification_note": "allowed selector/range glue segment"
+    },
+    {
+      "index": 3,
+      "op": "select.point",
+      "args": [
+        "cond=is_regulated",
+        "if_true=asset.leaf.dk_pub",
+        "if_false=unregulated.dk_pub",
+        "out=effective.dk_pub"
+      ],
+      "kind": "glue",
+      "start": 3,
+      "end": 5,
+      "constraint_count": 2,
+      "classification_note": "allowed selector/range glue segment"
+    },
+    {
+      "index": 4,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=sender.div_gen",
+        "out=sender.div_gen_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 5,
+      "end": 1051,
+      "constraint_count": 1046
+    },
+    {
+      "index": 5,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=sender.transmission",
+        "out=sender.transmission_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 1051,
+      "end": 2097,
+      "constraint_count": 1046
+    },
+    {
+      "index": 6,
+      "op": "gadget.asset_registry_imt",
+      "args": [
+        "asset_id=shared.asset_id",
+        "is_regulated=is_regulated",
+        "leaf=asset.leaf",
+        "path=asset.path",
+        "position=asset.position",
+        "root=asset_anchor"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-imt-gap",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.ImtGap.circuit_sound",
+      "start": 2097,
+      "end": 16504,
+      "constraint_count": 14407
+    },
+    {
+      "index": 7,
+      "op": "gadget.compliance_leaf",
+      "args": [
+        "div_gen_fq=sender.div_gen_fq",
+        "transmission_fq=sender.transmission_fq",
+        "asset_id=sender.asset_id",
+        "slot_id=sender.slot_id",
+        "slot_derivation=sender.slot_derivation",
+        "d=sender.d",
+        "out=sender.leaf_commitment"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 16504,
+      "end": 16934,
+      "constraint_count": 430
+    },
+    {
+      "index": 8,
+      "op": "gadget.compliance_path",
+      "args": [
+        "leaf=sender.leaf_commitment",
+        "path=sender.path",
+        "position=sender.position",
+        "out=sender.compliance_root"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 16934,
+      "end": 22823,
+      "constraint_count": 5889
+    },
+    {
+      "index": 9,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=sender.compliance_root",
+        "rhs=compliance_anchor",
+        "cond=is_regulated"
+      ],
+      "kind": "glue",
+      "start": 22823,
+      "end": 22825,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 10,
+      "op": "decaf.ack",
+      "args": [
+        "ring_pk=effective.ring_pk",
+        "d=sender.d",
+        "out=sender.ack"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-ack-two-step",
+      "bridge_theorem": "Shieldd.GnarkFormal.AckBridge.ack_sound",
+      "start": 22825,
+      "end": 26435,
+      "constraint_count": 3610
+    },
+    {
+      "index": 11,
+      "op": "spend.begin",
+      "args": [
+        "spend0"
+      ],
+      "kind": "marker",
+      "start": 26435,
+      "end": 26435,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 12,
+      "op": "assert.boolean",
+      "args": [
+        "var=spend0.is_dummy"
+      ],
+      "kind": "glue",
+      "start": 26435,
+      "end": 26436,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 13,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=spend0.note.div_gen",
+        "out=spend0.note.div_gen_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 26436,
+      "end": 27482,
+      "constraint_count": 1046
+    },
+    {
+      "index": 14,
+      "op": "gadget.note_commitment",
+      "args": [
+        "blinding=spend0.note.blinding",
+        "amount=spend0.note.amount",
+        "asset_id=spend0.note.asset_id",
+        "div_gen_fq=spend0.note.div_gen_fq",
+        "transmission_key_s=spend0.note.transmission_key_s",
+        "clue_key=spend0.note.clue_key",
+        "out=spend0.note.commitment.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 27482,
+      "end": 27912,
+      "constraint_count": 430
+    },
+    {
+      "index": 15,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend0.note.commitment.computed",
+        "rhs=spend0.state_proof.commitment",
+        "cond=spend0.is_not_dummy"
+      ],
+      "kind": "glue",
+      "start": 27912,
+      "end": 27914,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 16,
+      "op": "gadget.nullifier",
+      "args": [
+        "nk=auth.nk",
+        "commitment=spend0.state_proof.commitment",
+        "position=spend0.state_proof.position",
+        "out=spend0.nullifier.real"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-nullifier",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
+      "start": 27914,
+      "end": 28224,
+      "constraint_count": 310
+    },
+    {
+      "index": 17,
+      "op": "gadget.state_commitment_path",
+      "args": [
+        "commitment=spend0.state_proof.commitment",
+        "position=spend0.state_proof.position",
+        "path=spend0.state_proof.path",
+        "out=spend0.anchor.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 28224,
+      "end": 37239,
+      "constraint_count": 9015
+    },
+    {
+      "index": 18,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "args": [
+        "seed=spend0.dummy_nullifier_seed",
+        "randomizer=spend0.auth_randomizer",
+        "slot=spend0",
+        "out=spend0.nullifier.synthetic"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash3-specialized",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
+      "start": 37239,
+      "end": 37544,
+      "constraint_count": 305
+    },
+    {
+      "index": 19,
+      "op": "dummy.mux",
+      "args": [
+        "is_dummy=spend0.is_dummy",
+        "real=spend0.nullifier.real",
+        "synthetic=spend0.nullifier.synthetic",
+        "out=spend0.nullifier"
+      ],
+      "kind": "glue",
+      "start": 37544,
+      "end": 37547,
+      "constraint_count": 3,
+      "classification_note": "allowed selector/range glue segment"
+    },
+    {
+      "index": 20,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend0.anchor.computed",
+        "rhs=anchor",
+        "cond=spend0.is_not_dummy"
+      ],
+      "kind": "glue",
+      "start": 37547,
+      "end": 37549,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 21,
+      "op": "decaf.randomized_verification_key",
+      "args": [
+        "ak=shared.ak",
+        "randomizer=spend0.auth_randomizer",
+        "out=spend0.rk.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 37549,
+      "end": 39361,
+      "constraint_count": 1812
+    },
+    {
+      "index": 22,
+      "op": "decaf.randomized_verification_key.dummy",
+      "args": [
+        "spend_auth_key=spend0.dummy_spend_auth_key",
+        "randomizer=spend0.auth_randomizer",
+        "out=spend0.rk.dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 39361,
+      "end": 42979,
+      "constraint_count": 3618
+    },
+    {
+      "index": 23,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=spend0.rk.computed",
+        "rhs=spend0.rk.claimed",
+        "cond=spend0.is_not_dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 42979,
+      "end": 42985,
+      "constraint_count": 6
+    },
+    {
+      "index": 24,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=spend0.rk.dummy",
+        "rhs=spend0.rk.claimed",
+        "cond=spend0.is_dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 42985,
+      "end": 42990,
+      "constraint_count": 5
+    },
+    {
+      "index": 25,
+      "op": "decaf.diversified_transmission_key",
+      "args": [
+        "nk=auth.nk",
+        "ak=shared.ak",
+        "div_gen=spend0.note.div_gen",
+        "ivk_reduced=auth.ivk_reduced",
+        "ivk_quotient_a=auth.ivk_quotient_a",
+        "out=spend0.transmission.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-dtk",
+      "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
+      "start": 42990,
+      "end": 49319,
+      "constraint_count": 6329
+    },
+    {
+      "index": 26,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=spend0.transmission.computed",
+        "rhs=spend0.note.transmission",
+        "cond=spend0.is_not_dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 49319,
+      "end": 49324,
+      "constraint_count": 5
+    },
+    {
+      "index": 27,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend0.note.amount",
+        "rhs=0",
+        "cond=spend0.is_dummy"
+      ],
+      "kind": "glue",
+      "start": 49324,
+      "end": 49326,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 28,
+      "op": "assert.eq",
+      "args": [
+        "lhs=spend0.note.asset_id",
+        "rhs=shared.asset_id"
+      ],
+      "kind": "glue",
+      "start": 49326,
+      "end": 49327,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 29,
+      "op": "assert.eq",
+      "args": [
+        "lhs=sender.asset_id",
+        "rhs=spend0.note.asset_id"
+      ],
+      "kind": "glue",
+      "start": 49327,
+      "end": 49328,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 30,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=sender.div_gen",
+        "rhs=spend0.note.div_gen",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 49328,
+      "end": 49331,
+      "constraint_count": 3
+    },
+    {
+      "index": 31,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=sender.transmission",
+        "rhs=spend0.note.transmission",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 49331,
+      "end": 49334,
+      "constraint_count": 3
+    },
+    {
+      "index": 32,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=spend0.rk.claimed",
+        "out=spend0.rk.compressed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 49334,
+      "end": 50380,
+      "constraint_count": 1046
+    },
+    {
+      "index": 33,
+      "op": "spend.collect",
+      "args": [
+        "spend0",
+        "amount-\u003einput_amounts",
+        "nullifier-\u003estatement.nullifiers_and_rks",
+        "rk_compressed-\u003estatement.nullifiers_and_rks"
+      ],
+      "kind": "marker",
+      "start": 50380,
+      "end": 50380,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 34,
+      "op": "spend.begin",
+      "args": [
+        "spend1"
+      ],
+      "kind": "marker",
+      "start": 50380,
+      "end": 50380,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 35,
+      "op": "assert.boolean",
+      "args": [
+        "var=spend1.is_dummy"
+      ],
+      "kind": "glue",
+      "start": 50380,
+      "end": 50381,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 36,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=spend1.note.div_gen",
+        "out=spend1.note.div_gen_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 50381,
+      "end": 51427,
+      "constraint_count": 1046
+    },
+    {
+      "index": 37,
+      "op": "gadget.note_commitment",
+      "args": [
+        "blinding=spend1.note.blinding",
+        "amount=spend1.note.amount",
+        "asset_id=spend1.note.asset_id",
+        "div_gen_fq=spend1.note.div_gen_fq",
+        "transmission_key_s=spend1.note.transmission_key_s",
+        "clue_key=spend1.note.clue_key",
+        "out=spend1.note.commitment.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 51427,
+      "end": 51857,
+      "constraint_count": 430
+    },
+    {
+      "index": 38,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend1.note.commitment.computed",
+        "rhs=spend1.state_proof.commitment",
+        "cond=spend1.is_not_dummy"
+      ],
+      "kind": "glue",
+      "start": 51857,
+      "end": 51859,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 39,
+      "op": "gadget.nullifier",
+      "args": [
+        "nk=auth.nk",
+        "commitment=spend1.state_proof.commitment",
+        "position=spend1.state_proof.position",
+        "out=spend1.nullifier.real"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-nullifier",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
+      "start": 51859,
+      "end": 52169,
+      "constraint_count": 310
+    },
+    {
+      "index": 40,
+      "op": "gadget.state_commitment_path",
+      "args": [
+        "commitment=spend1.state_proof.commitment",
+        "position=spend1.state_proof.position",
+        "path=spend1.state_proof.path",
+        "out=spend1.anchor.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 52169,
+      "end": 61184,
+      "constraint_count": 9015
+    },
+    {
+      "index": 41,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "args": [
+        "seed=spend1.dummy_nullifier_seed",
+        "randomizer=spend1.auth_randomizer",
+        "slot=spend1",
+        "out=spend1.nullifier.synthetic"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash3-specialized",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
+      "start": 61184,
+      "end": 61489,
+      "constraint_count": 305
+    },
+    {
+      "index": 42,
+      "op": "dummy.mux",
+      "args": [
+        "is_dummy=spend1.is_dummy",
+        "real=spend1.nullifier.real",
+        "synthetic=spend1.nullifier.synthetic",
+        "out=spend1.nullifier"
+      ],
+      "kind": "glue",
+      "start": 61489,
+      "end": 61492,
+      "constraint_count": 3,
+      "classification_note": "allowed selector/range glue segment"
+    },
+    {
+      "index": 43,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend1.anchor.computed",
+        "rhs=anchor",
+        "cond=spend1.is_not_dummy"
+      ],
+      "kind": "glue",
+      "start": 61492,
+      "end": 61494,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 44,
+      "op": "decaf.randomized_verification_key",
+      "args": [
+        "ak=shared.ak",
+        "randomizer=spend1.auth_randomizer",
+        "out=spend1.rk.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 61494,
+      "end": 63306,
+      "constraint_count": 1812
+    },
+    {
+      "index": 45,
+      "op": "decaf.randomized_verification_key.dummy",
+      "args": [
+        "spend_auth_key=spend1.dummy_spend_auth_key",
+        "randomizer=spend1.auth_randomizer",
+        "out=spend1.rk.dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 63306,
+      "end": 66924,
+      "constraint_count": 3618
+    },
+    {
+      "index": 46,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=spend1.rk.computed",
+        "rhs=spend1.rk.claimed",
+        "cond=spend1.is_not_dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 66924,
+      "end": 66930,
+      "constraint_count": 6
+    },
+    {
+      "index": 47,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=spend1.rk.dummy",
+        "rhs=spend1.rk.claimed",
+        "cond=spend1.is_dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 66930,
+      "end": 66935,
+      "constraint_count": 5
+    },
+    {
+      "index": 48,
+      "op": "decaf.diversified_transmission_key",
+      "args": [
+        "nk=auth.nk",
+        "ak=shared.ak",
+        "div_gen=spend1.note.div_gen",
+        "ivk_reduced=auth.ivk_reduced",
+        "ivk_quotient_a=auth.ivk_quotient_a",
+        "out=spend1.transmission.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-dtk",
+      "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
+      "start": 66935,
+      "end": 73264,
+      "constraint_count": 6329
+    },
+    {
+      "index": 49,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=spend1.transmission.computed",
+        "rhs=spend1.note.transmission",
+        "cond=spend1.is_not_dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 73264,
+      "end": 73269,
+      "constraint_count": 5
+    },
+    {
+      "index": 50,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend1.note.amount",
+        "rhs=0",
+        "cond=spend1.is_dummy"
+      ],
+      "kind": "glue",
+      "start": 73269,
+      "end": 73271,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 51,
+      "op": "assert.eq",
+      "args": [
+        "lhs=spend1.note.asset_id",
+        "rhs=shared.asset_id"
+      ],
+      "kind": "glue",
+      "start": 73271,
+      "end": 73272,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 52,
+      "op": "assert.eq",
+      "args": [
+        "lhs=sender.asset_id",
+        "rhs=spend1.note.asset_id"
+      ],
+      "kind": "glue",
+      "start": 73272,
+      "end": 73273,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 53,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=sender.div_gen",
+        "rhs=spend1.note.div_gen",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 73273,
+      "end": 73276,
+      "constraint_count": 3
+    },
+    {
+      "index": 54,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=sender.transmission",
+        "rhs=spend1.note.transmission",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 73276,
+      "end": 73279,
+      "constraint_count": 3
+    },
+    {
+      "index": 55,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=spend1.rk.claimed",
+        "out=spend1.rk.compressed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 73279,
+      "end": 74325,
+      "constraint_count": 1046
+    },
+    {
+      "index": 56,
+      "op": "spend.collect",
+      "args": [
+        "spend1",
+        "amount-\u003einput_amounts",
+        "nullifier-\u003estatement.nullifiers_and_rks",
+        "rk_compressed-\u003estatement.nullifiers_and_rks"
+      ],
+      "kind": "marker",
+      "start": 74325,
+      "end": 74325,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 57,
+      "op": "output.begin",
+      "args": [
+        "output0"
+      ],
+      "kind": "marker",
+      "start": 74325,
+      "end": 74325,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 58,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output0.is_receiver",
+        "rhs=1"
+      ],
+      "kind": "glue",
+      "start": 74325,
+      "end": 74326,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 59,
+      "op": "gadget.is_zero",
+      "args": [
+        "in=output0.note.amount",
+        "out=output0.is_dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-iszero",
+      "bridge_theorem": "Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero",
+      "start": 74326,
+      "end": 74328,
+      "constraint_count": 2
+    },
+    {
+      "index": 60,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output0.note.div_gen",
+        "out=output0.note.div_gen_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 74328,
+      "end": 75374,
+      "constraint_count": 1046
+    },
+    {
+      "index": 61,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output0.note.transmission",
+        "out=output0.note.transmission_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 75374,
+      "end": 76420,
+      "constraint_count": 1046
+    },
+    {
+      "index": 62,
+      "op": "gadget.note_commitment",
+      "args": [
+        "blinding=output0.note.blinding",
+        "amount=output0.note.amount",
+        "asset_id=output0.note.asset_id",
+        "div_gen_fq=output0.note.div_gen_fq",
+        "transmission_key_s=output0.note.transmission_key_s",
+        "clue_key=output0.note.clue_key",
+        "out=output0.note.commitment.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 76420,
+      "end": 76850,
+      "constraint_count": 430
+    },
+    {
+      "index": 63,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output0.note.commitment.computed",
+        "rhs=output0.note_commitment"
+      ],
+      "kind": "glue",
+      "start": 76850,
+      "end": 76851,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 64,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output0.note.asset_id",
+        "rhs=shared.asset_id"
+      ],
+      "kind": "glue",
+      "start": 76851,
+      "end": 76852,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 65,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output0.recipient.asset_id",
+        "rhs=output0.note.asset_id"
+      ],
+      "kind": "glue",
+      "start": 76852,
+      "end": 76853,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 66,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=output0.recipient.div_gen",
+        "rhs=output0.note.div_gen",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 76853,
+      "end": 76856,
+      "constraint_count": 3
+    },
+    {
+      "index": 67,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=output0.recipient.transmission",
+        "rhs=output0.note.transmission",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 76856,
+      "end": 76859,
+      "constraint_count": 3
+    },
+    {
+      "index": 68,
+      "op": "gadget.compliance_leaf",
+      "args": [
+        "div_gen_fq=output0.note.div_gen_fq",
+        "transmission_fq=output0.note.transmission_fq",
+        "asset_id=output0.recipient.asset_id",
+        "slot_id=output0.recipient.slot_id",
+        "slot_derivation=output0.recipient.slot_derivation",
+        "d=output0.recipient.d",
+        "out=output0.recipient.leaf_commitment"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 76859,
+      "end": 77289,
+      "constraint_count": 430
+    },
+    {
+      "index": 69,
+      "op": "gadget.compliance_path",
+      "args": [
+        "leaf=output0.recipient.leaf_commitment",
+        "path=output0.recipient.path",
+        "position=output0.recipient.position",
+        "out=output0.recipient.compliance_root"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 77289,
+      "end": 83178,
+      "constraint_count": 5889
+    },
+    {
+      "index": 70,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=output0.recipient.compliance_root",
+        "rhs=compliance_anchor",
+        "cond=is_regulated"
+      ],
+      "kind": "glue",
+      "start": 83178,
+      "end": 83180,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 71,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output0.is_dummy",
+        "rhs=0"
+      ],
+      "kind": "glue",
+      "start": 83180,
+      "end": 83181,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 72,
+      "op": "decaf.ack",
+      "args": [
+        "ring_pk=effective.ring_pk",
+        "d=output0.recipient.d",
+        "out=receiver.ack"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-ack-two-step",
+      "bridge_theorem": "Shieldd.GnarkFormal.AckBridge.ack_sound",
+      "start": 83181,
+      "end": 86791,
+      "constraint_count": 3610
+    },
+    {
+      "index": 73,
+      "op": "output.collect",
+      "args": [
+        "output0",
+        "amount-\u003eoutput_amounts",
+        "commitment-\u003estatement.output_commitments",
+        "ack-\u003ereceiver_ack"
+      ],
+      "kind": "marker",
+      "start": 86791,
+      "end": 86791,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 74,
+      "op": "output.begin",
+      "args": [
+        "output1"
+      ],
+      "kind": "marker",
+      "start": 86791,
+      "end": 86791,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 75,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output1.is_receiver",
+        "rhs=0"
+      ],
+      "kind": "glue",
+      "start": 86791,
+      "end": 86792,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 76,
+      "op": "gadget.is_zero",
+      "args": [
+        "in=output1.note.amount",
+        "out=output1.is_dummy"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-iszero",
+      "bridge_theorem": "Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero",
+      "start": 86792,
+      "end": 86794,
+      "constraint_count": 2
+    },
+    {
+      "index": 77,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output1.note.div_gen",
+        "out=output1.note.div_gen_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 86794,
+      "end": 87840,
+      "constraint_count": 1046
+    },
+    {
+      "index": 78,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output1.note.transmission",
+        "out=output1.note.transmission_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 87840,
+      "end": 88886,
+      "constraint_count": 1046
+    },
+    {
+      "index": 79,
+      "op": "gadget.note_commitment",
+      "args": [
+        "blinding=output1.note.blinding",
+        "amount=output1.note.amount",
+        "asset_id=output1.note.asset_id",
+        "div_gen_fq=output1.note.div_gen_fq",
+        "transmission_key_s=output1.note.transmission_key_s",
+        "clue_key=output1.note.clue_key",
+        "out=output1.note.commitment.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 88886,
+      "end": 89316,
+      "constraint_count": 430
+    },
+    {
+      "index": 80,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output1.note.commitment.computed",
+        "rhs=output1.note_commitment"
+      ],
+      "kind": "glue",
+      "start": 89316,
+      "end": 89317,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 81,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output1.note.asset_id",
+        "rhs=shared.asset_id"
+      ],
+      "kind": "glue",
+      "start": 89317,
+      "end": 89318,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 82,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output1.recipient.asset_id",
+        "rhs=output1.note.asset_id"
+      ],
+      "kind": "glue",
+      "start": 89318,
+      "end": 89319,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 83,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=output1.recipient.div_gen",
+        "rhs=output1.note.div_gen",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 89319,
+      "end": 89322,
+      "constraint_count": 3
+    },
+    {
+      "index": 84,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=output1.recipient.transmission",
+        "rhs=output1.note.transmission",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 89322,
+      "end": 89325,
+      "constraint_count": 3
+    },
+    {
+      "index": 85,
+      "op": "gadget.compliance_leaf",
+      "args": [
+        "div_gen_fq=output1.note.div_gen_fq",
+        "transmission_fq=output1.note.transmission_fq",
+        "asset_id=output1.recipient.asset_id",
+        "slot_id=output1.recipient.slot_id",
+        "slot_derivation=output1.recipient.slot_derivation",
+        "d=output1.recipient.d",
+        "out=output1.recipient.leaf_commitment"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 89325,
+      "end": 89755,
+      "constraint_count": 430
+    },
+    {
+      "index": 86,
+      "op": "gadget.compliance_path",
+      "args": [
+        "leaf=output1.recipient.leaf_commitment",
+        "path=output1.recipient.path",
+        "position=output1.recipient.position",
+        "out=output1.recipient.compliance_root"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 89755,
+      "end": 95644,
+      "constraint_count": 5889
+    },
+    {
+      "index": 87,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=output1.recipient.compliance_root",
+        "rhs=compliance_anchor",
+        "cond=is_regulated"
+      ],
+      "kind": "glue",
+      "start": 95644,
+      "end": 95646,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 88,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output1.recipient.asset_id",
+        "rhs=sender.asset_id"
+      ],
+      "kind": "glue",
+      "start": 95646,
+      "end": 95647,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 89,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output1.recipient.d",
+        "rhs=sender.d"
+      ],
+      "kind": "glue",
+      "start": 95647,
+      "end": 95648,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 90,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=output1.recipient.div_gen",
+        "rhs=sender.div_gen",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 95648,
+      "end": 95651,
+      "constraint_count": 3
+    },
+    {
+      "index": 91,
+      "op": "decaf.assert_equivalent_if",
+      "args": [
+        "lhs=output1.recipient.transmission",
+        "rhs=sender.transmission",
+        "cond=1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 95651,
+      "end": 95654,
+      "constraint_count": 3
+    },
+    {
+      "index": 92,
+      "op": "output.collect",
+      "args": [
+        "output1",
+        "amount-\u003eoutput_amounts",
+        "commitment-\u003estatement.output_commitments"
+      ],
+      "kind": "marker",
+      "start": 95654,
+      "end": 95654,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 93,
+      "op": "compliance.begin",
+      "args": [
+        "tiers=sender_core,sender_ext,output_core,output_ext"
+      ],
+      "kind": "marker",
+      "start": 95654,
+      "end": 95654,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 94,
+      "op": "threshold.flag",
+      "args": [
+        "amount=receiver.amount",
+        "threshold=asset.leaf.threshold",
+        "out=is_flagged"
+      ],
+      "kind": "glue",
+      "start": 95654,
+      "end": 96549,
+      "constraint_count": 895,
+      "classification_note": "allowed selector/range glue segment"
+    },
+    {
+      "index": 95,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=compliance.sender_core.epk",
+        "out=compliance.sender_core.epk_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 96549,
+      "end": 97595,
+      "constraint_count": 1046
+    },
+    {
+      "index": 96,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=compliance.sender_ext.epk",
+        "out=compliance.sender_ext.epk_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 97595,
+      "end": 98641,
+      "constraint_count": 1046
+    },
+    {
+      "index": 97,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=compliance.output_core.epk",
+        "out=compliance.output_core.epk_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 98641,
+      "end": 99687,
+      "constraint_count": 1046
+    },
+    {
+      "index": 98,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=compliance.output_ext.epk",
+        "out=compliance.output_ext.epk_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 99687,
+      "end": 100733,
+      "constraint_count": 1046
+    },
+    {
+      "index": 99,
+      "op": "gadget.transfer_salt",
+      "args": [
+        "label=salt0",
+        "nonce_root=compliance.transfer_nonce_root",
+        "out=salt0"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 100733,
+      "end": 100998,
+      "constraint_count": 265
+    },
+    {
+      "index": 100,
+      "op": "gadget.transfer_salt",
+      "args": [
+        "label=salt1",
+        "nonce_root=compliance.transfer_nonce_root",
+        "out=salt1"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 100998,
+      "end": 101263,
+      "constraint_count": 265
+    },
+    {
+      "index": 101,
+      "op": "gadget.transfer_salt",
+      "args": [
+        "label=salt2",
+        "nonce_root=compliance.transfer_nonce_root",
+        "out=salt2"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 101263,
+      "end": 101528,
+      "constraint_count": 265
+    },
+    {
+      "index": 102,
+      "op": "gadget.transfer_salt",
+      "args": [
+        "label=salt3",
+        "nonce_root=compliance.transfer_nonce_root",
+        "out=salt3"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 101528,
+      "end": 101793,
+      "constraint_count": 265
+    },
+    {
+      "index": 103,
+      "op": "gadget.transfer_salt",
+      "args": [
+        "label=salt4",
+        "nonce_root=compliance.transfer_nonce_root",
+        "out=salt4"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 101793,
+      "end": 102058,
+      "constraint_count": 265
+    },
+    {
+      "index": 104,
+      "op": "decaf.shared_secret",
+      "args": [
+        "tier=sender_core",
+        "esk=compliance.sender_r_core",
+        "ack=sender.ack",
+        "dk_pub=effective.dk_pub",
+        "flag=is_flagged",
+        "epk=compliance.sender_core.epk",
+        "out=sender_core.shared"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-ack-two-step",
+      "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
+      "start": 102058,
+      "end": 111092,
+      "constraint_count": 9034
+    },
+    {
+      "index": 105,
+      "op": "decaf.shared_secret",
+      "args": [
+        "tier=sender_ext",
+        "esk=compliance.sender_r_ext",
+        "ack=sender.ack",
+        "dk_pub=effective.dk_pub",
+        "flag=is_flagged",
+        "epk=compliance.sender_ext.epk",
+        "out=sender_ext.shared"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-ack-two-step",
+      "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
+      "start": 111092,
+      "end": 120125,
+      "constraint_count": 9033
+    },
+    {
+      "index": 106,
+      "op": "decaf.shared_secret",
+      "args": [
+        "tier=output_core",
+        "esk=compliance.output_r_core",
+        "ack=receiver.ack",
+        "dk_pub=effective.dk_pub",
+        "flag=is_flagged",
+        "epk=compliance.output_core.epk",
+        "out=output_core.shared"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-ack-two-step",
+      "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
+      "start": 120125,
+      "end": 129158,
+      "constraint_count": 9033
+    },
+    {
+      "index": 107,
+      "op": "decaf.shared_secret",
+      "args": [
+        "tier=output_ext",
+        "esk=compliance.output_r_ext",
+        "ack=receiver.ack",
+        "dk_pub=effective.dk_pub",
+        "flag=is_flagged",
+        "epk=compliance.output_ext.epk",
+        "out=output_ext.shared"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-ack-two-step",
+      "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
+      "start": 129158,
+      "end": 138191,
+      "constraint_count": 9033
+    },
+    {
+      "index": 108,
+      "op": "gadget.poseidon_encryption.detection",
+      "args": [
+        "regulated=is_regulated",
+        "flag=is_flagged",
+        "ss=sender_core.ss_detection",
+        "epk_fq=compliance.sender_core.epk_fq",
+        "salt=salt0",
+        "asset_id=shared.asset_id",
+        "sender_slot=sender.slot_id",
+        "receiver_slot=receiver.slot_id",
+        "out=compliance.detection_ciphertext"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash7",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_sound",
+      "start": 138191,
+      "end": 140575,
+      "constraint_count": 2384
+    },
+    {
+      "index": 109,
+      "op": "gadget.poseidon_encryption.amount",
+      "args": [
+        "tier=sender_core",
+        "regulated=is_regulated",
+        "ss=sender_core.shared",
+        "c2=compliance.sender_core.c2",
+        "amount=receiver.amount",
+        "out=compliance.sender_core.ciphertext"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_sound",
+      "start": 140575,
+      "end": 141888,
+      "constraint_count": 1313
+    },
+    {
+      "index": 110,
+      "op": "gadget.poseidon_encryption.address",
+      "args": [
+        "tier=sender_ext",
+        "regulated=is_regulated",
+        "ss=sender_ext.shared",
+        "c2=compliance.sender_ext.c2",
+        "div_gen_fq=receiver.div_gen_fq",
+        "transmission_fq=receiver.transmission_fq",
+        "out=compliance.sender_ext.ciphertext"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash4",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_sound",
+      "start": 141888,
+      "end": 144747,
+      "constraint_count": 2859
+    },
+    {
+      "index": 111,
+      "op": "gadget.poseidon_encryption.amount",
+      "args": [
+        "tier=output_core",
+        "regulated=is_regulated",
+        "ss=output_core.shared",
+        "c2=compliance.output_core.c2",
+        "amount=receiver.amount",
+        "out=compliance.output_core.ciphertext"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_sound",
+      "start": 144747,
+      "end": 146060,
+      "constraint_count": 1313
+    },
+    {
+      "index": 112,
+      "op": "gadget.poseidon_encryption.address",
+      "args": [
+        "tier=output_ext",
+        "regulated=is_regulated",
+        "ss=output_ext.shared",
+        "c2=compliance.output_ext.c2",
+        "div_gen_fq=sender.div_gen_fq",
+        "transmission_fq=sender.transmission_fq",
+        "out=compliance.output_ext.ciphertext"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash4",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_sound",
+      "start": 146060,
+      "end": 148919,
+      "constraint_count": 2859
+    },
+    {
+      "index": 113,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=compliance.sender_core.epk",
+        "rhs=compliance.sender_core.proof.enc_cmt"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 148919,
+      "end": 148922,
+      "constraint_count": 3
+    },
+    {
+      "index": 114,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=compliance.sender_ext.epk",
+        "rhs=compliance.sender_ext.proof.enc_cmt"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 148922,
+      "end": 148925,
+      "constraint_count": 3
+    },
+    {
+      "index": 115,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=compliance.output_core.epk",
+        "rhs=compliance.output_core.proof.enc_cmt"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 148925,
+      "end": 148928,
+      "constraint_count": 3
+    },
+    {
+      "index": 116,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=compliance.output_ext.epk",
+        "rhs=compliance.output_ext.proof.enc_cmt"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 148928,
+      "end": 148931,
+      "constraint_count": 3
+    },
+    {
+      "index": 117,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=sender.ack",
+        "rhs=compliance.sender_core.proof.derived_pk"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 148931,
+      "end": 148934,
+      "constraint_count": 3
+    },
+    {
+      "index": 118,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=sender.ack",
+        "rhs=compliance.sender_ext.proof.derived_pk"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 148934,
+      "end": 148937,
+      "constraint_count": 3
+    },
+    {
+      "index": 119,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=receiver.ack",
+        "rhs=compliance.output_core.proof.derived_pk"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 148937,
+      "end": 148940,
+      "constraint_count": 3
+    },
+    {
+      "index": 120,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=receiver.ack",
+        "rhs=compliance.output_ext.proof.derived_pk"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 148940,
+      "end": 149385,
+      "constraint_count": 445
+    },
+    {
+      "index": 121,
+      "op": "gadget.metadata_hash",
+      "args": [
+        "tier=sender_core",
+        "out=sender_core.metadata_hash"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 149385,
+      "end": 149827,
+      "constraint_count": 442
+    },
+    {
+      "index": 122,
+      "op": "gadget.metadata_hash",
+      "args": [
+        "tier=sender_ext",
+        "out=sender_ext.metadata_hash"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 149827,
+      "end": 150269,
+      "constraint_count": 442
+    },
+    {
+      "index": 123,
+      "op": "gadget.metadata_hash",
+      "args": [
+        "tier=output_core",
+        "out=output_core.metadata_hash"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 150269,
+      "end": 150711,
+      "constraint_count": 442
+    },
+    {
+      "index": 124,
+      "op": "gadget.metadata_hash",
+      "args": [
+        "tier=output_ext",
+        "out=output_ext.metadata_hash"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 150711,
+      "end": 150711,
+      "constraint_count": 0
+    },
+    {
+      "index": 125,
+      "op": "gadget.dleq",
+      "args": [
+        "tier=sender_core",
+        "r=compliance.sender_r_core",
+        "derived_pk=compliance.sender_core.proof.derived_pk",
+        "shared_point=compliance.sender_core.proof.shared_point",
+        "enc_cmt=compliance.sender_core.proof.enc_cmt",
+        "metadata=sender_core.metadata_hash",
+        "challenge=compliance.sender_core.proof.challenge",
+        "response=compliance.sender_core.proof.response"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-dleq",
+      "bridge_theorem": "Shieldd.GnarkFormal.DleqBridge.dleq_sound",
+      "start": 150711,
+      "end": 168545,
+      "constraint_count": 17834
+    },
+    {
+      "index": 126,
+      "op": "gadget.dleq",
+      "args": [
+        "tier=sender_ext",
+        "r=compliance.sender_r_ext",
+        "derived_pk=compliance.sender_ext.proof.derived_pk",
+        "shared_point=compliance.sender_ext.proof.shared_point",
+        "enc_cmt=compliance.sender_ext.proof.enc_cmt",
+        "metadata=sender_ext.metadata_hash",
+        "challenge=compliance.sender_ext.proof.challenge",
+        "response=compliance.sender_ext.proof.response"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-dleq",
+      "bridge_theorem": "Shieldd.GnarkFormal.DleqBridge.dleq_sound",
+      "start": 168545,
+      "end": 186379,
+      "constraint_count": 17834
+    },
+    {
+      "index": 127,
+      "op": "gadget.dleq",
+      "args": [
+        "tier=output_core",
+        "r=compliance.output_r_core",
+        "derived_pk=compliance.output_core.proof.derived_pk",
+        "shared_point=compliance.output_core.proof.shared_point",
+        "enc_cmt=compliance.output_core.proof.enc_cmt",
+        "metadata=output_core.metadata_hash",
+        "challenge=compliance.output_core.proof.challenge",
+        "response=compliance.output_core.proof.response"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-dleq",
+      "bridge_theorem": "Shieldd.GnarkFormal.DleqBridge.dleq_sound",
+      "start": 186379,
+      "end": 204213,
+      "constraint_count": 17834
+    },
+    {
+      "index": 128,
+      "op": "gadget.dleq",
+      "args": [
+        "tier=output_ext",
+        "r=compliance.output_r_ext",
+        "derived_pk=compliance.output_ext.proof.derived_pk",
+        "shared_point=compliance.output_ext.proof.shared_point",
+        "enc_cmt=compliance.output_ext.proof.enc_cmt",
+        "metadata=output_ext.metadata_hash",
+        "challenge=compliance.output_ext.proof.challenge",
+        "response=compliance.output_ext.proof.response"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-dleq",
+      "bridge_theorem": "Shieldd.GnarkFormal.DleqBridge.dleq_sound",
+      "start": 204213,
+      "end": 222047,
+      "constraint_count": 17834
+    },
+    {
+      "index": 129,
+      "op": "compliance.collect",
+      "args": [
+        "detection_ciphertext-\u003estatement",
+        "tier_ciphertexts-\u003estatement",
+        "dleq_proofs-\u003estatement"
+      ],
+      "kind": "marker",
+      "start": 222047,
+      "end": 222047,
+      "constraint_count": 0,
+      "classification_note": "semantic trace marker; expected to carry no constraints"
+    },
+    {
+      "index": 130,
+      "op": "decaf.net_balance_commitment",
+      "args": [
+        "inputs=input_amounts",
+        "outputs=output_amounts",
+        "asset_id=shared.asset_id",
+        "blinding=action_balance_blinding",
+        "out=balance_commitment.computed"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-net-balance-commitment2",
+      "bridge_theorem": "Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound",
+      "start": 222047,
+      "end": 231801,
+      "constraint_count": 9754
+    },
+    {
+      "index": 131,
+      "op": "decaf.assert_equivalent",
+      "args": [
+        "lhs=balance_commitment.computed",
+        "rhs=claimed.balance_commitment"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 231801,
+      "end": 231804,
+      "constraint_count": 3
+    },
+    {
+      "index": 132,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=balance_commitment.computed",
+        "out=balance_commitment.fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 231804,
+      "end": 232850,
+      "constraint_count": 1046
+    },
+    {
+      "index": 133,
+      "op": "statement.assemble",
+      "args": [
+        "shape=transfer2x2",
+        "fields=transfer_statement_fields"
+      ],
+      "kind": "adapter",
+      "start": 232850,
+      "end": 232850,
+      "constraint_count": 0,
+      "classification_note": "statement vector assembly; expected to carry no constraints"
+    },
+    {
+      "index": 134,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=sender_core.proof.derived_pk",
+        "out=sender_core.proof.derived_pk_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 232850,
+      "end": 233896,
+      "constraint_count": 1046
+    },
+    {
+      "index": 135,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=sender_core.proof.enc_cmt",
+        "out=sender_core.proof.enc_cmt_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 233896,
+      "end": 234942,
+      "constraint_count": 1046
+    },
+    {
+      "index": 136,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=sender_core.proof.shared_point",
+        "out=sender_core.proof.shared_point_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 234942,
+      "end": 235988,
+      "constraint_count": 1046
+    },
+    {
+      "index": 137,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=sender_ext.proof.derived_pk",
+        "out=sender_ext.proof.derived_pk_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 235988,
+      "end": 237034,
+      "constraint_count": 1046
+    },
+    {
+      "index": 138,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=sender_ext.proof.enc_cmt",
+        "out=sender_ext.proof.enc_cmt_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 237034,
+      "end": 238080,
+      "constraint_count": 1046
+    },
+    {
+      "index": 139,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=sender_ext.proof.shared_point",
+        "out=sender_ext.proof.shared_point_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 238080,
+      "end": 239126,
+      "constraint_count": 1046
+    },
+    {
+      "index": 140,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output_core.proof.derived_pk",
+        "out=output_core.proof.derived_pk_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 239126,
+      "end": 240172,
+      "constraint_count": 1046
+    },
+    {
+      "index": 141,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output_core.proof.enc_cmt",
+        "out=output_core.proof.enc_cmt_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 240172,
+      "end": 241218,
+      "constraint_count": 1046
+    },
+    {
+      "index": 142,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output_core.proof.shared_point",
+        "out=output_core.proof.shared_point_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 241218,
+      "end": 242264,
+      "constraint_count": 1046
+    },
+    {
+      "index": 143,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output_ext.proof.derived_pk",
+        "out=output_ext.proof.derived_pk_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 242264,
+      "end": 243310,
+      "constraint_count": 1046
+    },
+    {
+      "index": 144,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output_ext.proof.enc_cmt",
+        "out=output_ext.proof.enc_cmt_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 243310,
+      "end": 244356,
+      "constraint_count": 1046
+    },
+    {
+      "index": 145,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=output_ext.proof.shared_point",
+        "out=output_ext.proof.shared_point_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 244356,
+      "end": 245402,
+      "constraint_count": 1046
+    },
+    {
+      "index": 146,
+      "op": "statement.hash",
+      "args": [
+        "family=transfer",
+        "fields=statement_fields",
+        "out=statement_hash"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash7",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
+      "start": 245402,
+      "end": 251972,
+      "constraint_count": 6570
+    },
+    {
+      "index": 147,
+      "op": "assert.eq",
+      "args": [
+        "lhs=statement_hash",
+        "rhs=claimed_statement_hash"
+      ],
+      "kind": "glue",
+      "start": 251972,
+      "end": 251973,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    }
+  ],
+  "breakdown": {
+    "total_constraints": 251973,
+    "constraints_by_kind": {
+      "adapter": 0,
+      "gadget": 251031,
+      "glue": 942,
+      "marker": 0
+    },
+    "segments_by_kind": {
+      "adapter": 1,
+      "gadget": 103,
+      "glue": 32,
+      "marker": 11
+    },
+    "unclassified_constraints": 0,
+    "unclassified_segments": 0
+  }
+}

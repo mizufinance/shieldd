@@ -289,6 +289,11 @@ func BalanceCommitment(
 		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
 	}
 
+	// The 128-bit width here is the canonical note-amount range bound
+	// (ZK-ASSUME-AMOUNT-RANGE): ScalarMulLE's api.ToBinary(noteAmount, 128)
+	// makes any amount >= 2^128 unsatisfiable, preventing field-overflow value
+	// inflation. Load-bearing for balance soundness; pinned by
+	// TestAmountRangeBoundIs128Bits.
 	valuePoint := ScalarMulLE(api, curve, valueGenerator, noteAmount, 128)
 	blindingPoint := ScalarMulLE(
 		api,

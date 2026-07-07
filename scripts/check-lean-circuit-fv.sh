@@ -148,6 +148,11 @@ check_consolidate2x1_stamps() {
   local artifact="$C2X1_ARTIFACT"
   local go_wiring="$1"
   local lean_wiring="$2"
+  require_artifact_line "$artifact" "whole_circuit_sr1cs_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")"
+  require_artifact_line "$artifact" "manifest_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/consolidate2x1/consolidate2x1-manifest.json")"
+  require_artifact_line "$artifact" "coverage_report_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-constraint-coverage-report.json")"
+  require_artifact_line "$artifact" "nb_constraints" "$(jq -r '.nb_constraints' "$ROOT/tools/gnark/artifacts/consolidate2x1/circuit_metadata.json")"
+  require_artifact_line "$artifact" "verifying_key_sha256_hex" "$(jq -r '.verifying_key_sha256_hex' "$ROOT/tools/gnark/artifacts/consolidate2x1/circuit_metadata.json")"
   require_artifact_line "$artifact" "whole_circuit_model_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Consolidate2x1.lean")"
   require_artifact_line "$artifact" "decaf_assumptions_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Decaf377Assumptions.lean")"
   require_artifact_line "$artifact" "compress_to_field_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/CompressToFieldBridge.lean")"
@@ -169,11 +174,15 @@ check_consolidate2x1_stamps() {
   require_artifact_line "$artifact" "poseidon_go_source_sha256" "$(sha256_file "$ROOT/tools/gnark/internal/primitives/poseidon377.go")"
   require_artifact_line "$artifact" "gadget_labels_source_sha256" "$(sha256_file "$ROOT/tools/gnark/internal/circuits/gadgets_constraint.go")"
   require_artifact_line "$artifact" "gnarkctl_source_sha256" "$(sha256_file "$ROOT/tools/gnark/cmd/gnarkctl/main.go")"
+  require_artifact_line "$artifact" "constraint_coverage_lib_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/lib.rs")"
+  require_artifact_line "$artifact" "constraint_coverage_main_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/main.rs")"
+  require_artifact_line "$artifact" "constraint_coverage_cargo_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/Cargo.toml")"
   require_artifact_line "$artifact" "root_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal.lean")"
   require_artifact_line "$artifact" "lakefile_sha256" "$(sha256_file "$LEAN_DIR/lakefile.lean")"
   require_artifact_line "$artifact" "lake_manifest_sha256" "$(sha256_file "$LEAN_DIR/lake-manifest.json")"
   require_artifact_line "$artifact" "lean_toolchain_sha256" "$(sha256_file "$LEAN_DIR/lean-toolchain")"
   require_artifact_line "$artifact" "lean_check_script_sha256" "$(sha256_file "$ROOT/scripts/check-lean-circuit-fv.sh")"
+  require_artifact_line "$artifact" "constraint_coverage_script_sha256" "$(sha256_file "$ROOT/scripts/check-constraint-coverage.sh")"
   rg -F "whole-circuit" "$artifact" >/dev/null \
     || fail "whole-circuit artifact must state whole-circuit scope"
 }
@@ -182,6 +191,11 @@ check_transfer_stamps() {
   local artifact="$TRANSFER_ARTIFACT"
   local go_wiring="$1"
   local lean_wiring="$2"
+  require_artifact_line "$artifact" "whole_circuit_sr1cs_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/transfer/transfer.sr1cs")"
+  require_artifact_line "$artifact" "manifest_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/transfer/transfer-manifest.json")"
+  require_artifact_line "$artifact" "coverage_report_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/transfer-constraint-coverage-report.json")"
+  require_artifact_line "$artifact" "nb_constraints" "$(jq -r '.nb_constraints' "$ROOT/tools/gnark/artifacts/transfer/circuit_metadata.json")"
+  require_artifact_line "$artifact" "verifying_key_sha256_hex" "$(jq -r '.verifying_key_sha256_hex' "$ROOT/tools/gnark/artifacts/transfer/circuit_metadata.json")"
   require_artifact_line "$artifact" "whole_circuit_model_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Transfer.lean")"
   require_artifact_line "$artifact" "decaf_assumptions_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Decaf377Assumptions.lean")"
   require_artifact_line "$artifact" "compress_to_field_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/CompressToFieldBridge.lean")"
@@ -215,11 +229,15 @@ check_transfer_stamps() {
   require_artifact_line "$artifact" "poseidon_go_source_sha256" "$(sha256_file "$ROOT/tools/gnark/internal/primitives/poseidon377.go")"
   require_artifact_line "$artifact" "gadget_labels_source_sha256" "$(sha256_file "$ROOT/tools/gnark/internal/circuits/gadgets_constraint.go")"
   require_artifact_line "$artifact" "gnarkctl_source_sha256" "$(sha256_file "$ROOT/tools/gnark/cmd/gnarkctl/main.go")"
+  require_artifact_line "$artifact" "constraint_coverage_lib_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/lib.rs")"
+  require_artifact_line "$artifact" "constraint_coverage_main_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/main.rs")"
+  require_artifact_line "$artifact" "constraint_coverage_cargo_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/Cargo.toml")"
   require_artifact_line "$artifact" "root_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal.lean")"
   require_artifact_line "$artifact" "lakefile_sha256" "$(sha256_file "$LEAN_DIR/lakefile.lean")"
   require_artifact_line "$artifact" "lake_manifest_sha256" "$(sha256_file "$LEAN_DIR/lake-manifest.json")"
   require_artifact_line "$artifact" "lean_toolchain_sha256" "$(sha256_file "$LEAN_DIR/lean-toolchain")"
   require_artifact_line "$artifact" "lean_check_script_sha256" "$(sha256_file "$ROOT/scripts/check-lean-circuit-fv.sh")"
+  require_artifact_line "$artifact" "constraint_coverage_script_sha256" "$(sha256_file "$ROOT/scripts/check-constraint-coverage.sh")"
   rg -F "whole-circuit" "$artifact" >/dev/null \
     || fail "whole-circuit artifact must state whole-circuit scope"
 }
@@ -231,7 +249,12 @@ scratch_files="$(find "$LEAN_DIR/ShielddGnarkFormal" -maxdepth 1 -type f \( -nam
 rg -n '\bsorry\b|\badmit\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" \
   && fail "Lean sources contain sorry/admit"
 
-axiom_lines="$(rg -n '^\s*axiom\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" || true)"
+# Only one Lean `axiom` is permitted in-tree: the ledgered decaf377 scalar-field
+# primality assumption (CC-ASSUME-DECAF377-PRIME-ORDER-GROUP), declared once in
+# Deployed/PrimeOrderAssumption.lean and used to supply `Fact (Nat.Prime Order)`
+# instances to the deployed gadget binding wrappers. Any other `axiom` fails.
+axiom_lines="$(rg -n '^\s*axiom\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" \
+  | rg -v 'Deployed/PrimeOrderAssumption\.lean:.*\baxiom decaf377ScalarFieldPrime\b' || true)"
 if [[ -n "$axiom_lines" ]]; then
   fail "unexpected Lean axiom: $axiom_lines"
 fi
@@ -279,6 +302,23 @@ while IFS= read -r circuit; do
     fail "Go Define wiring transcript does not match Lean transcript for $circuit"
   fi
 done < <(printf '%s\n' "$selected_circuits")
+
+# --- compiled-constraint coverage and VK binding (both tiers) ---------------
+# The Rust coverage checks (report drift, emitted-contract drift, stamp
+# integrity) run in both tiers. The `lake`-driven bridge-theorem name/type
+# resolution transitively builds the whole-circuit Lean models, so it is
+# deferred to the `full` (nightly) tier; the PR `stamps` tier certifies those
+# Lean sources by hash instead of re-elaborating them.
+coverage_lean_flag=""
+[[ "$MODE" == "full" ]] && coverage_lean_flag="--lean-theorem-checks"
+echo "==> compiled constraint coverage"
+"$ROOT/scripts/check-constraint-coverage.sh" $coverage_lean_flag $(printf '%s\n' "$selected_circuits")
+
+# --- emitted-Lean semantic anti-pattern lint (both tiers) -------------------
+# Enforces the term-size / machine-safety emission rules (fuel-def unroll, wide
+# carried rcases, >8-arm in-proof match) in CI instead of prompt context.
+echo "==> emitted-Lean anti-pattern lint"
+"$ROOT/scripts/check-structured-lc-lint.sh"
 
 # --- stamp integrity (both tiers) -------------------------------------------
 check_common_stamps

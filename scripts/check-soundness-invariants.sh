@@ -141,6 +141,9 @@ check_proof_artifact() {
     "$COMPLIANCE_FORMAL/alloy-value-conservation-artifact.txt" \
     "$COMPLIANCE_FORMAL/alloy-compliance-tiers-artifact.txt" \
     "$COMPLIANCE_FORMAL/alloy-orbis-authorization-artifact.txt" \
+    "$COMPLIANCE_FORMAL/alloy-ics20-supply-conservation-artifact.txt" \
+    "$COMPLIANCE_FORMAL/alloy-consolidate2x1-statement-sufficiency-artifact.txt" \
+    "$COMPLIANCE_FORMAL/alloy-transfer-statement-sufficiency-artifact.txt" \
     "$COMPLIANCE_FORMAL/lean-dleq-artifact.txt" \
     "$CIRCUIT_FORMAL/statement-field-formal-artifact.txt"; do
     if [[ "$evidence" == *"$artifact"* ]]; then
@@ -241,7 +244,8 @@ required_files=(
   "$HANDOFF"
   docs/soundness/README.md
   docs/soundness/reference/constraint-system-assurance.md
-  docs/soundness/fv-hardening-roadmap.md
+  docs/soundness/assurance-case.md
+  docs/soundness/reference/history.md
 )
 
 for file in "${required_files[@]}"; do

@@ -1,0 +1,430 @@
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg13Acc
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+
+theorem seg13_lc1229 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1229 rho = seg13AccX219 rho + seg13AccY219 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1229, Seg13.relationLc1229Part0, Seg13.relationLc1229Part1, Seg13.relationLc1229Part2, Seg13.relationLc1229Part3, Seg13.relationLc1229Part4, Seg13.relationLc1229Part5, Seg13.relationLc1229Part6, Seg13.relationLc1229Part7, Seg13.relationLc1229Part8, Seg13.relationLc1229Part9, Seg13.relationLc1229Part10, Seg13.relationLc1229Part11, Seg13.relationLc1229Part12, Seg13.relationLc1229Part13]
+  rw [seg13AccX219_sum, seg13AccY219_sum]
+  ring
+
+theorem seg13_lc1230 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1230 rho = 664720289368771774607689558907679234755924170859141298034878778977921393150*seg13AccX219 rho + 3852354410364297846567328813030532193415590370172629429674586400220246585410*rho 10571 := by
+  simp only [Seg13.relationLc1230, Seg13.relationLc1230Part0, Seg13.relationLc1230Part1, Seg13.relationLc1230Part2, Seg13.relationLc1230Part3, Seg13.relationLc1230Part4, Seg13.relationLc1230Part5, Seg13.relationLc1230Part6]
+  rw [seg13AccX219_sum]
+  ring
+
+theorem seg13_lc1231 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1231 rho = 1840999688597703629631039258546352622862511100796735162417886474873228693825*seg13AccY219 rho + 1840999688597703629631039258546352622862511100796735162417886474873228693825 + 1673511469619955977518183988565504897056510131010753193051227192168730177644*rho 10571 := by
+  simp only [Seg13.relationLc1231, Seg13.relationLc1231Part0, Seg13.relationLc1231Part1, Seg13.relationLc1231Part2, Seg13.relationLc1231Part3, Seg13.relationLc1231Part4, Seg13.relationLc1231Part5, Seg13.relationLc1231Part6]
+  rw [seg13AccY219_sum]
+  ring
+
+theorem seg13_lc1232 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1232 rho = 1509657088705954584862288366931791726639437790517727113003330335972982095490*seg13AccX219 rho + 1840999688597703629631039258546352622862511100796735162417886474873228693825*seg13AccY219 rho + 1840999688597703629631039258546352622862511100796735162417886474873228693825 + 7992060264098102768861749592822150277097207942271381091284693659157662692314*rho 10571 := by
+  simp only [Seg13.relationLc1232, Seg13.relationLc1232Part0, Seg13.relationLc1232Part1, Seg13.relationLc1232Part2, Seg13.relationLc1232Part3, Seg13.relationLc1232Part4, Seg13.relationLc1232Part5, Seg13.relationLc1232Part6, Seg13.relationLc1232Part7, Seg13.relationLc1232Part8, Seg13.relationLc1232Part9, Seg13.relationLc1232Part10, Seg13.relationLc1232Part11, Seg13.relationLc1232Part12, Seg13.relationLc1232Part13]
+  rw [seg13AccX219_sum, seg13AccY219_sum]
+  ring
+
+theorem seg13_lc1233 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1233 rho = 6934804660722415839386536571849754804736461544636336714931903119944427143551*seg13AccX219 rho + 6603462060830666794617785680235193908513388234357328665517346981044180545216*seg13AccY219 rho + 6603462060830666794617785680235193908513388234357328665517346981044180545216 + 452401485330267655387075345959396254278691392882682736650539796759746546727*rho 10571 := by
+  simp only [Seg13.relationLc1233, Seg13.relationLc1233Part0, Seg13.relationLc1233Part1, Seg13.relationLc1233Part2, Seg13.relationLc1233Part3, Seg13.relationLc1233Part4, Seg13.relationLc1233Part5, Seg13.relationLc1233Part6, Seg13.relationLc1233Part7, Seg13.relationLc1233Part8, Seg13.relationLc1233Part9, Seg13.relationLc1233Part10, Seg13.relationLc1233Part11, Seg13.relationLc1233Part12, Seg13.relationLc1233Part13]
+  rw [seg13AccX219_sum, seg13AccY219_sum]
+  ring
+
+theorem seg13_lc1234 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1234 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX219 rho + rho 12130 := by
+  simp only [Seg13.relationLc1234, Seg13.relationLc1234Part0, Seg13.relationLc1234Part1, Seg13.relationLc1234Part2, Seg13.relationLc1234Part3, Seg13.relationLc1234Part4, Seg13.relationLc1234Part5, Seg13.relationLc1234Part6]
+  rw [seg13AccX219_sum]
+  ring
+
+theorem seg13_lc1235 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1235 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY219 rho + rho 12132 := by
+  simp only [Seg13.relationLc1235, Seg13.relationLc1235Part0, Seg13.relationLc1235Part1, Seg13.relationLc1235Part2, Seg13.relationLc1235Part3, Seg13.relationLc1235Part4, Seg13.relationLc1235Part5, Seg13.relationLc1235Part6]
+  rw [seg13AccY219_sum]
+  ring
+
+theorem seg13_lc1236 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1236 rho = seg13AccX220 rho + seg13AccY220 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1236, Seg13.relationLc1236Part0, Seg13.relationLc1236Part1, Seg13.relationLc1236Part2, Seg13.relationLc1236Part3, Seg13.relationLc1236Part4, Seg13.relationLc1236Part5, Seg13.relationLc1236Part6, Seg13.relationLc1236Part7, Seg13.relationLc1236Part8, Seg13.relationLc1236Part9, Seg13.relationLc1236Part10, Seg13.relationLc1236Part11, Seg13.relationLc1236Part12, Seg13.relationLc1236Part13]
+  rw [seg13AccX220_sum, seg13AccY220_sum]
+  ring
+
+theorem seg13_lc1237 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1237 rho = 5791789347728941516993523159659494889333240044800236722540434826636000096086*seg13AccX220 rho + 4828905915229688026472990501082234424529133778340273211941412939713368772977*rho 10571 := by
+  simp only [Seg13.relationLc1237, Seg13.relationLc1237Part0, Seg13.relationLc1237Part1, Seg13.relationLc1237Part2, Seg13.relationLc1237Part3, Seg13.relationLc1237Part4, Seg13.relationLc1237Part5, Seg13.relationLc1237Part6]
+  rw [seg13AccX220_sum]
+  ring
+
+theorem seg13_lc1238 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1238 rho = 6570330944860596111059142108479099720512137819754909616625358705125934600095*seg13AccY220 rho + 6570330944860596111059142108479099720512137819754909616625358705125934600095 + 4846688529128689085673653848924591249673793542413264056059586517802268792870*rho 10571 := by
+  simp only [Seg13.relationLc1238, Seg13.relationLc1238Part0, Seg13.relationLc1238Part1, Seg13.relationLc1238Part2, Seg13.relationLc1238Part3, Seg13.relationLc1238Part4, Seg13.relationLc1238Part5, Seg13.relationLc1238Part6]
+  rw [seg13AccY220_sum]
+  ring
+
+theorem seg13_lc1239 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1239 rho = 3870548444408008476887576047147739124234881800694480163715625136648901154230*seg13AccX220 rho + 6570330944860596111059142108479099720512137819754909616625358705125934600095*seg13AccY220 rho + 6570330944860596111059142108479099720512137819754909616625358705125934600095 + 3193496721864086105491981762444090318806529963256406885279806050088467766475*rho 10571 := by
+  simp only [Seg13.relationLc1239, Seg13.relationLc1239Part0, Seg13.relationLc1239Part1, Seg13.relationLc1239Part2, Seg13.relationLc1239Part3, Seg13.relationLc1239Part4, Seg13.relationLc1239Part5, Seg13.relationLc1239Part6, Seg13.relationLc1239Part7, Seg13.relationLc1239Part8, Seg13.relationLc1239Part9, Seg13.relationLc1239Part10, Seg13.relationLc1239Part11, Seg13.relationLc1239Part12, Seg13.relationLc1239Part13]
+  rw [seg13AccX220_sum, seg13AccY220_sum]
+  ring
+
+theorem seg13_lc1240 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1240 rho = 4573913305020361947361248891633807407141017534459583664219608319268508084811*seg13AccX220 rho + 1874130804567774313189682830302446810863761515399154211309874750791474638946*seg13AccY220 rho + 1874130804567774313189682830302446810863761515399154211309874750791474638946 + 5250965027564284318756843176337456212569369371897656942655427405828941472566*rho 10571 := by
+  simp only [Seg13.relationLc1240, Seg13.relationLc1240Part0, Seg13.relationLc1240Part1, Seg13.relationLc1240Part2, Seg13.relationLc1240Part3, Seg13.relationLc1240Part4, Seg13.relationLc1240Part5, Seg13.relationLc1240Part6, Seg13.relationLc1240Part7, Seg13.relationLc1240Part8, Seg13.relationLc1240Part9, Seg13.relationLc1240Part10, Seg13.relationLc1240Part11, Seg13.relationLc1240Part12, Seg13.relationLc1240Part13]
+  rw [seg13AccX220_sum, seg13AccY220_sum]
+  ring
+
+theorem seg13_lc1241 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1241 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX220 rho + rho 12138 := by
+  simp only [Seg13.relationLc1241, Seg13.relationLc1241Part0, Seg13.relationLc1241Part1, Seg13.relationLc1241Part2, Seg13.relationLc1241Part3, Seg13.relationLc1241Part4, Seg13.relationLc1241Part5, Seg13.relationLc1241Part6]
+  rw [seg13AccX220_sum]
+  ring
+
+theorem seg13_lc1242 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1242 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY220 rho + rho 12140 := by
+  simp only [Seg13.relationLc1242, Seg13.relationLc1242Part0, Seg13.relationLc1242Part1, Seg13.relationLc1242Part2, Seg13.relationLc1242Part3, Seg13.relationLc1242Part4, Seg13.relationLc1242Part5, Seg13.relationLc1242Part6]
+  rw [seg13AccY220_sum]
+  ring
+
+theorem seg13_lc1243 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1243 rho = seg13AccX221 rho + seg13AccY221 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1243, Seg13.relationLc1243Part0, Seg13.relationLc1243Part1, Seg13.relationLc1243Part2, Seg13.relationLc1243Part3, Seg13.relationLc1243Part4, Seg13.relationLc1243Part5, Seg13.relationLc1243Part6, Seg13.relationLc1243Part7, Seg13.relationLc1243Part8, Seg13.relationLc1243Part9, Seg13.relationLc1243Part10, Seg13.relationLc1243Part11, Seg13.relationLc1243Part12, Seg13.relationLc1243Part13]
+  rw [seg13AccX221_sum, seg13AccY221_sum]
+  ring
+
+theorem seg13_lc1244 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1244 rho = 3572665339850325498579135525683803696736775859419263016244508576639770858362*seg13AccX221 rho + 5124414814074150176411602441813154520065508830654359745986878861746779079731*rho 10571 := by
+  simp only [Seg13.relationLc1244, Seg13.relationLc1244Part0, Seg13.relationLc1244Part1, Seg13.relationLc1244Part2, Seg13.relationLc1244Part3, Seg13.relationLc1244Part4, Seg13.relationLc1244Part5, Seg13.relationLc1244Part6]
+  rw [seg13AccX221_sum]
+  ring
+
+theorem seg13_lc1245 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1245 rho = 5331045109956993830571264971135024265297950271702392351376889158259487897154*seg13AccY221 rho + 5331045109956993830571264971135024265297950271702392351376889158259487897154 + 5826020781600902362789512844011047342814882089613210203743853380263811888273*rho 10571 := by
+  simp only [Seg13.relationLc1245, Seg13.relationLc1245Part0, Seg13.relationLc1245Part1, Seg13.relationLc1245Part2, Seg13.relationLc1245Part3, Seg13.relationLc1245Part4, Seg13.relationLc1245Part5, Seg13.relationLc1245Part6]
+  rw [seg13AccY221_sum]
+  ring
+
+theorem seg13_lc1246 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1246 rho = 3984419284434054346260560964346040255182851151424680641451159279463405473847*seg13AccX221 rho + 5331045109956993830571264971135024265297950271702392351376889158259487897154*seg13AccY221 rho + 5331045109956993830571264971135024265297950271702392351376889158259487897154 + 256776209672180712557306124199789784883037711549193371791210745777995988131*rho 10571 := by
+  simp only [Seg13.relationLc1246, Seg13.relationLc1246Part0, Seg13.relationLc1246Part1, Seg13.relationLc1246Part2, Seg13.relationLc1246Part3, Seg13.relationLc1246Part4, Seg13.relationLc1246Part5, Seg13.relationLc1246Part6, Seg13.relationLc1246Part7, Seg13.relationLc1246Part8, Seg13.relationLc1246Part9, Seg13.relationLc1246Part10, Seg13.relationLc1246Part11, Seg13.relationLc1246Part12, Seg13.relationLc1246Part13]
+  rw [seg13AccX221_sum, seg13AccY221_sum]
+  ring
+
+theorem seg13_lc1247 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1247 rho = 4460042464994316077988263974435506276193048183729383186484074176454003765194*seg13AccX221 rho + 3113416639471376593677559967646522266077949063451671476558344297657921341887*seg13AccY221 rho + 3113416639471376593677559967646522266077949063451671476558344297657921341887 + 8187685539756189711691518814581756746492861623604870456144022710139413250910*rho 10571 := by
+  simp only [Seg13.relationLc1247, Seg13.relationLc1247Part0, Seg13.relationLc1247Part1, Seg13.relationLc1247Part2, Seg13.relationLc1247Part3, Seg13.relationLc1247Part4, Seg13.relationLc1247Part5, Seg13.relationLc1247Part6, Seg13.relationLc1247Part7, Seg13.relationLc1247Part8, Seg13.relationLc1247Part9, Seg13.relationLc1247Part10, Seg13.relationLc1247Part11, Seg13.relationLc1247Part12, Seg13.relationLc1247Part13]
+  rw [seg13AccX221_sum, seg13AccY221_sum]
+  ring
+
+theorem seg13_lc1248 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1248 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX221 rho + rho 12146 := by
+  simp only [Seg13.relationLc1248, Seg13.relationLc1248Part0, Seg13.relationLc1248Part1, Seg13.relationLc1248Part2, Seg13.relationLc1248Part3, Seg13.relationLc1248Part4, Seg13.relationLc1248Part5, Seg13.relationLc1248Part6]
+  rw [seg13AccX221_sum]
+  ring
+
+theorem seg13_lc1249 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1249 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY221 rho + rho 12148 := by
+  simp only [Seg13.relationLc1249, Seg13.relationLc1249Part0, Seg13.relationLc1249Part1, Seg13.relationLc1249Part2, Seg13.relationLc1249Part3, Seg13.relationLc1249Part4, Seg13.relationLc1249Part5, Seg13.relationLc1249Part6]
+  rw [seg13AccY221_sum]
+  ring
+
+theorem seg13_lc1250 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1250 rho = seg13AccX222 rho + seg13AccY222 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1250, Seg13.relationLc1250Part0, Seg13.relationLc1250Part1, Seg13.relationLc1250Part2, Seg13.relationLc1250Part3, Seg13.relationLc1250Part4, Seg13.relationLc1250Part5, Seg13.relationLc1250Part6, Seg13.relationLc1250Part7, Seg13.relationLc1250Part8, Seg13.relationLc1250Part9, Seg13.relationLc1250Part10, Seg13.relationLc1250Part11, Seg13.relationLc1250Part12, Seg13.relationLc1250Part13]
+  rw [seg13AccX222_sum, seg13AccY222_sum]
+  ring
+
+theorem seg13_lc1251 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1251 rho = 8000303670094469490476673488425897846331820804390470973550534731133844079073*seg13AccX222 rho + 6144560444343160063992881673823174172581281374192862824241915636711435846291*rho 10571 := by
+  simp only [Seg13.relationLc1251, Seg13.relationLc1251Part0, Seg13.relationLc1251Part1, Seg13.relationLc1251Part2, Seg13.relationLc1251Part3, Seg13.relationLc1251Part4, Seg13.relationLc1251Part5, Seg13.relationLc1251Part6]
+  rw [seg13AccX222_sum]
+  ring
+
+theorem seg13_lc1252 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1252 rho = 1887744025524448028782079554652453304437947498971093309363675424119475519583*seg13AccY222 rho + 1887744025524448028782079554652453304437947498971093309363675424119475519583 + 819468999576066053346443248822634724062702190613440189513332390125497148669*rho 10571 := by
+  simp only [Seg13.relationLc1252, Seg13.relationLc1252Part0, Seg13.relationLc1252Part1, Seg13.relationLc1252Part2, Seg13.relationLc1252Part3, Seg13.relationLc1252Part4, Seg13.relationLc1252Part5, Seg13.relationLc1252Part6]
+  rw [seg13AccY222_sum]
+  ring
+
+theorem seg13_lc1253 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1253 rho = 4578478711514179693474281065300833356408036753542400846508946607768266391390*seg13AccX222 rho + 1887744025524448028782079554652453304437947498971093309363675424119475519583*seg13AccY222 rho + 1887744025524448028782079554652453304437947498971093309363675424119475519583 + 460915207708500139852863131169871953994873745442741291473145961732039897431*rho 10571 := by
+  simp only [Seg13.relationLc1253, Seg13.relationLc1253Part0, Seg13.relationLc1253Part1, Seg13.relationLc1253Part2, Seg13.relationLc1253Part3, Seg13.relationLc1253Part4, Seg13.relationLc1253Part5, Seg13.relationLc1253Part6, Seg13.relationLc1253Part7, Seg13.relationLc1253Part8, Seg13.relationLc1253Part9, Seg13.relationLc1253Part10, Seg13.relationLc1253Part11, Seg13.relationLc1253Part12, Seg13.relationLc1253Part13]
+  rw [seg13AccX222_sum, seg13AccY222_sum]
+  ring
+
+theorem seg13_lc1254 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1254 rho = 3865983037914190730774543873480713174967862581611662981426286848149142847651*seg13AccX222 rho + 6556717723903922395466745384129093226937951836182970518571558031797933719458*seg13AccY222 rho + 6556717723903922395466745384129093226937951836182970518571558031797933719458 + 7983546541719870284395961807611674577381025589711322536462087494185369341610*rho 10571 := by
+  simp only [Seg13.relationLc1254, Seg13.relationLc1254Part0, Seg13.relationLc1254Part1, Seg13.relationLc1254Part2, Seg13.relationLc1254Part3, Seg13.relationLc1254Part4, Seg13.relationLc1254Part5, Seg13.relationLc1254Part6, Seg13.relationLc1254Part7, Seg13.relationLc1254Part8, Seg13.relationLc1254Part9, Seg13.relationLc1254Part10, Seg13.relationLc1254Part11, Seg13.relationLc1254Part12, Seg13.relationLc1254Part13]
+  rw [seg13AccX222_sum, seg13AccY222_sum]
+  ring
+
+theorem seg13_lc1255 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1255 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX222 rho + rho 12154 := by
+  simp only [Seg13.relationLc1255, Seg13.relationLc1255Part0, Seg13.relationLc1255Part1, Seg13.relationLc1255Part2, Seg13.relationLc1255Part3, Seg13.relationLc1255Part4, Seg13.relationLc1255Part5, Seg13.relationLc1255Part6]
+  rw [seg13AccX222_sum]
+  ring
+
+theorem seg13_lc1256 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1256 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY222 rho + rho 12156 := by
+  simp only [Seg13.relationLc1256, Seg13.relationLc1256Part0, Seg13.relationLc1256Part1, Seg13.relationLc1256Part2, Seg13.relationLc1256Part3, Seg13.relationLc1256Part4, Seg13.relationLc1256Part5, Seg13.relationLc1256Part6, Seg13.relationLc1256Part7]
+  rw [seg13AccY222_sum]
+  ring
+
+theorem seg13_lc1257 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1257 rho = seg13AccX223 rho + seg13AccY223 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1257, Seg13.relationLc1257Part0, Seg13.relationLc1257Part1, Seg13.relationLc1257Part2, Seg13.relationLc1257Part3, Seg13.relationLc1257Part4, Seg13.relationLc1257Part5, Seg13.relationLc1257Part6, Seg13.relationLc1257Part7, Seg13.relationLc1257Part8, Seg13.relationLc1257Part9, Seg13.relationLc1257Part10, Seg13.relationLc1257Part11, Seg13.relationLc1257Part12, Seg13.relationLc1257Part13]
+  rw [seg13AccX223_sum, seg13AccY223_sum]
+  ring
+
+theorem seg13_lc1258 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1258 rho = 8430879408160093330160722625733046182942582392288172093642470246427173150924*seg13AccX223 rho + 137488558884457205232673999167580192163634451127116374232054679488272803951*rho 10571 := by
+  simp only [Seg13.relationLc1258, Seg13.relationLc1258Part0, Seg13.relationLc1258Part1, Seg13.relationLc1258Part2, Seg13.relationLc1258Part3, Seg13.relationLc1258Part4, Seg13.relationLc1258Part5, Seg13.relationLc1258Part6]
+  rw [seg13AccX223_sum]
+  ring
+
+theorem seg13_lc1259 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1259 rho = 5488990425375250677312158644956143720864801916199029913146988551927765366148*seg13AccY223 rho + 5488990425375250677312158644956143720864801916199029913146988551927765366148 + 4696590780626708679326410096169400110649612865425230674289355738983321282676*rho 10571 := by
+  simp only [Seg13.relationLc1259, Seg13.relationLc1259Part0, Seg13.relationLc1259Part1, Seg13.relationLc1259Part2, Seg13.relationLc1259Part3, Seg13.relationLc1259Part4, Seg13.relationLc1259Part5, Seg13.relationLc1259Part6, Seg13.relationLc1259Part7]
+  rw [seg13AccY223_sum]
+  ring
+
+theorem seg13_lc1260 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1260 rho = 2378756493353947353174995670503160409749240985525734003918765609988819935894*seg13AccX223 rho + 5488990425375250677312158644956143720864801916199029913146988551927765366148*seg13AccY223 rho + 5488990425375250677312158644956143720864801916199029913146988551927765366148 + 875524338087914269282414393648643232728828106502861215033072362763655557100*rho 10571 := by
+  simp only [Seg13.relationLc1260, Seg13.relationLc1260Part0, Seg13.relationLc1260Part1, Seg13.relationLc1260Part2, Seg13.relationLc1260Part3, Seg13.relationLc1260Part4, Seg13.relationLc1260Part5, Seg13.relationLc1260Part6, Seg13.relationLc1260Part7, Seg13.relationLc1260Part8, Seg13.relationLc1260Part9, Seg13.relationLc1260Part10, Seg13.relationLc1260Part11, Seg13.relationLc1260Part12, Seg13.relationLc1260Part13]
+  rw [seg13AccX223_sum, seg13AccY223_sum]
+  ring
+
+theorem seg13_lc1261 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1261 rho = 6065705256074423071073829268278386121626658349628329824016467845928589303147*seg13AccX223 rho + 2955471324053119746936666293825402810511097418955033914788244903989643872893*seg13AccY223 rho + 2955471324053119746936666293825402810511097418955033914788244903989643872893 + 7568937411340456154966410545132903298647071228651202612902161093153753681941*rho 10571 := by
+  simp only [Seg13.relationLc1261, Seg13.relationLc1261Part0, Seg13.relationLc1261Part1, Seg13.relationLc1261Part2, Seg13.relationLc1261Part3, Seg13.relationLc1261Part4, Seg13.relationLc1261Part5, Seg13.relationLc1261Part6, Seg13.relationLc1261Part7, Seg13.relationLc1261Part8, Seg13.relationLc1261Part9, Seg13.relationLc1261Part10, Seg13.relationLc1261Part11, Seg13.relationLc1261Part12, Seg13.relationLc1261Part13]
+  rw [seg13AccX223_sum, seg13AccY223_sum]
+  ring
+
+theorem seg13_lc1262 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1262 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX223 rho + rho 12162 := by
+  simp only [Seg13.relationLc1262, Seg13.relationLc1262Part0, Seg13.relationLc1262Part1, Seg13.relationLc1262Part2, Seg13.relationLc1262Part3, Seg13.relationLc1262Part4, Seg13.relationLc1262Part5, Seg13.relationLc1262Part6, Seg13.relationLc1262Part7]
+  rw [seg13AccX223_sum]
+  ring
+
+theorem seg13_lc1263 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1263 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY223 rho + rho 12164 := by
+  simp only [Seg13.relationLc1263, Seg13.relationLc1263Part0, Seg13.relationLc1263Part1, Seg13.relationLc1263Part2, Seg13.relationLc1263Part3, Seg13.relationLc1263Part4, Seg13.relationLc1263Part5, Seg13.relationLc1263Part6, Seg13.relationLc1263Part7]
+  rw [seg13AccY223_sum]
+  ring
+
+theorem seg13_lc1264 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1264 rho = seg13AccX224 rho + seg13AccY224 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1264, Seg13.relationLc1264Part0, Seg13.relationLc1264Part1, Seg13.relationLc1264Part2, Seg13.relationLc1264Part3, Seg13.relationLc1264Part4, Seg13.relationLc1264Part5, Seg13.relationLc1264Part6, Seg13.relationLc1264Part7, Seg13.relationLc1264Part8, Seg13.relationLc1264Part9, Seg13.relationLc1264Part10, Seg13.relationLc1264Part11, Seg13.relationLc1264Part12, Seg13.relationLc1264Part13, Seg13.relationLc1264Part14]
+  rw [seg13AccX224_sum, seg13AccY224_sum]
+  ring
+
+theorem seg13_lc1265 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1265 rho = 4646807500992826888153210383261166334613760351744050686719083718939098348084*seg13AccX224 rho + 5655851257221613673432360408661590662640487308967499114876056615059719009869*rho 10571 := by
+  simp only [Seg13.relationLc1265, Seg13.relationLc1265Part0, Seg13.relationLc1265Part1, Seg13.relationLc1265Part2, Seg13.relationLc1265Part3, Seg13.relationLc1265Part4, Seg13.relationLc1265Part5, Seg13.relationLc1265Part6, Seg13.relationLc1265Part7]
+  rw [seg13AccX224_sum]
+  ring
+
+theorem seg13_lc1266 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1266 rho = 1622593000433510709761396177601639448844449538627720169095349271552626081854*seg13AccY224 rho + 1622593000433510709761396177601639448844449538627720169095349271552626081854 + 2996902736460755794649865793395753181717427225185005573185734567768188894816*rho 10571 := by
+  simp only [Seg13.relationLc1266, Seg13.relationLc1266Part0, Seg13.relationLc1266Part1, Seg13.relationLc1266Part2, Seg13.relationLc1266Part3, Seg13.relationLc1266Part4, Seg13.relationLc1266Part5, Seg13.relationLc1266Part6, Seg13.relationLc1266Part7]
+  rw [seg13AccY224_sum]
+  ring
+
+theorem seg13_lc1267 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1267 rho = 2953326188314250908604737618582116618162053445307658210190773125841682639780*seg13AccX224 rho + 1622593000433510709761396177601639448844449538627720169095349271552626081854*seg13AccY224 rho + 1622593000433510709761396177601639448844449538627720169095349271552626081854 + 5061672224158656816420493123825889868515856287301081906893473179844358288203*rho 10571 := by
+  simp only [Seg13.relationLc1267, Seg13.relationLc1267Part0, Seg13.relationLc1267Part1, Seg13.relationLc1267Part2, Seg13.relationLc1267Part3, Seg13.relationLc1267Part4, Seg13.relationLc1267Part5, Seg13.relationLc1267Part6, Seg13.relationLc1267Part7, Seg13.relationLc1267Part8, Seg13.relationLc1267Part9, Seg13.relationLc1267Part10, Seg13.relationLc1267Part11, Seg13.relationLc1267Part12, Seg13.relationLc1267Part13, Seg13.relationLc1267Part14]
+  rw [seg13AccX224_sum, seg13AccY224_sum]
+  ring
+
+theorem seg13_lc1268 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1268 rho = 5491135561114119515644087320199429913213845889846405617744460330075726599261*seg13AccX224 rho + 6821868748994859714487428761179907082531449796526343658839884184364783157187*seg13AccY224 rho + 6821868748994859714487428761179907082531449796526343658839884184364783157187 + 3382789525269713607828331814955656662860043047852981921041760276073050950838*rho 10571 := by
+  simp only [Seg13.relationLc1268, Seg13.relationLc1268Part0, Seg13.relationLc1268Part1, Seg13.relationLc1268Part2, Seg13.relationLc1268Part3, Seg13.relationLc1268Part4, Seg13.relationLc1268Part5, Seg13.relationLc1268Part6, Seg13.relationLc1268Part7, Seg13.relationLc1268Part8, Seg13.relationLc1268Part9, Seg13.relationLc1268Part10, Seg13.relationLc1268Part11, Seg13.relationLc1268Part12, Seg13.relationLc1268Part13, Seg13.relationLc1268Part14]
+  rw [seg13AccX224_sum, seg13AccY224_sum]
+  ring
+
+theorem seg13_lc1269 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1269 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX224 rho + rho 12170 := by
+  simp only [Seg13.relationLc1269, Seg13.relationLc1269Part0, Seg13.relationLc1269Part1, Seg13.relationLc1269Part2, Seg13.relationLc1269Part3, Seg13.relationLc1269Part4, Seg13.relationLc1269Part5, Seg13.relationLc1269Part6, Seg13.relationLc1269Part7]
+  rw [seg13AccX224_sum]
+  ring
+
+theorem seg13_lc1270 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1270 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY224 rho + rho 12172 := by
+  simp only [Seg13.relationLc1270, Seg13.relationLc1270Part0, Seg13.relationLc1270Part1, Seg13.relationLc1270Part2, Seg13.relationLc1270Part3, Seg13.relationLc1270Part4, Seg13.relationLc1270Part5, Seg13.relationLc1270Part6, Seg13.relationLc1270Part7]
+  rw [seg13AccY224_sum]
+  ring
+
+theorem seg13_lc1271 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1271 rho = seg13AccX225 rho + seg13AccY225 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1271, Seg13.relationLc1271Part0, Seg13.relationLc1271Part1, Seg13.relationLc1271Part2, Seg13.relationLc1271Part3, Seg13.relationLc1271Part4, Seg13.relationLc1271Part5, Seg13.relationLc1271Part6, Seg13.relationLc1271Part7, Seg13.relationLc1271Part8, Seg13.relationLc1271Part9, Seg13.relationLc1271Part10, Seg13.relationLc1271Part11, Seg13.relationLc1271Part12, Seg13.relationLc1271Part13, Seg13.relationLc1271Part14]
+  rw [seg13AccX225_sum, seg13AccY225_sum]
+  ring
+
+theorem seg13_lc1272 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1272 rho = 230866951924261299928005816650156310418793511476899823886516576488765052397*seg13AccX225 rho + 7313516269647177659283131405818770766015456623013382751654818648438686782681*rho 10571 := by
+  simp only [Seg13.relationLc1272, Seg13.relationLc1272Part0, Seg13.relationLc1272Part1, Seg13.relationLc1272Part2, Seg13.relationLc1272Part3, Seg13.relationLc1272Part4, Seg13.relationLc1272Part5, Seg13.relationLc1272Part6, Seg13.relationLc1272Part7]
+  rw [seg13AccX225_sum]
+  ring
+
+theorem seg13_lc1273 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1273 rho = 1256597705043208047069837330755860793551934832130546170224321504783783074734*seg13AccY225 rho + 1256597705043208047069837330755860793551934832130546170224321504783783074734 + 3265115896146439185665706020631741552756968807676274568772232573261777764377*rho 10571 := by
+  simp only [Seg13.relationLc1273, Seg13.relationLc1273Part0, Seg13.relationLc1273Part1, Seg13.relationLc1273Part2, Seg13.relationLc1273Part3, Seg13.relationLc1273Part4, Seg13.relationLc1273Part5, Seg13.relationLc1273Part6, Seg13.relationLc1273Part7]
+  rw [seg13AccY225_sum]
+  ring
+
+theorem seg13_lc1274 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1274 rho = 4785550937429094481169783615031664289316768770372470762412779276102976955409*seg13AccX225 rho + 1256597705043208047069837330755860793551934832130546170224321504783783074734*seg13AccY225 rho + 1256597705043208047069837330755860793551934832130546170224321504783783074734 + 173190824862904302519672893910340281831081648658553524491316116111121246391*rho 10571 := by
+  simp only [Seg13.relationLc1274, Seg13.relationLc1274Part0, Seg13.relationLc1274Part1, Seg13.relationLc1274Part2, Seg13.relationLc1274Part3, Seg13.relationLc1274Part4, Seg13.relationLc1274Part5, Seg13.relationLc1274Part6, Seg13.relationLc1274Part7, Seg13.relationLc1274Part8, Seg13.relationLc1274Part9, Seg13.relationLc1274Part10, Seg13.relationLc1274Part11, Seg13.relationLc1274Part12, Seg13.relationLc1274Part13, Seg13.relationLc1274Part14]
+  rw [seg13AccX225_sum, seg13AccY225_sum]
+  ring
+
+theorem seg13_lc1275 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1275 rho = 3658910811999275943079041323749882242059130564781593065522454179814432283632*seg13AccX225 rho + 7187864044385162377178987608025685737823964503023517657710911951133626164307*seg13AccY225 rho + 7187864044385162377178987608025685737823964503023517657710911951133626164307 + 8271270924565466121729152044871206249544817686495510303443917339806287992650*rho 10571 := by
+  simp only [Seg13.relationLc1275, Seg13.relationLc1275Part0, Seg13.relationLc1275Part1, Seg13.relationLc1275Part2, Seg13.relationLc1275Part3, Seg13.relationLc1275Part4, Seg13.relationLc1275Part5, Seg13.relationLc1275Part6, Seg13.relationLc1275Part7, Seg13.relationLc1275Part8, Seg13.relationLc1275Part9, Seg13.relationLc1275Part10, Seg13.relationLc1275Part11, Seg13.relationLc1275Part12, Seg13.relationLc1275Part13, Seg13.relationLc1275Part14]
+  rw [seg13AccX225_sum, seg13AccY225_sum]
+  ring
+
+theorem seg13_lc1276 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1276 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX225 rho + rho 12178 := by
+  simp only [Seg13.relationLc1276, Seg13.relationLc1276Part0, Seg13.relationLc1276Part1, Seg13.relationLc1276Part2, Seg13.relationLc1276Part3, Seg13.relationLc1276Part4, Seg13.relationLc1276Part5, Seg13.relationLc1276Part6, Seg13.relationLc1276Part7]
+  rw [seg13AccX225_sum]
+  ring
+
+theorem seg13_lc1277 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1277 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY225 rho + rho 12180 := by
+  simp only [Seg13.relationLc1277, Seg13.relationLc1277Part0, Seg13.relationLc1277Part1, Seg13.relationLc1277Part2, Seg13.relationLc1277Part3, Seg13.relationLc1277Part4, Seg13.relationLc1277Part5, Seg13.relationLc1277Part6, Seg13.relationLc1277Part7]
+  rw [seg13AccY225_sum]
+  ring
+
+theorem seg13_lc1278 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1278 rho = seg13AccX226 rho + seg13AccY226 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1278, Seg13.relationLc1278Part0, Seg13.relationLc1278Part1, Seg13.relationLc1278Part2, Seg13.relationLc1278Part3, Seg13.relationLc1278Part4, Seg13.relationLc1278Part5, Seg13.relationLc1278Part6, Seg13.relationLc1278Part7, Seg13.relationLc1278Part8, Seg13.relationLc1278Part9, Seg13.relationLc1278Part10, Seg13.relationLc1278Part11, Seg13.relationLc1278Part12, Seg13.relationLc1278Part13, Seg13.relationLc1278Part14]
+  rw [seg13AccX226_sum, seg13AccY226_sum]
+  ring
+
+theorem seg13_lc1279 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1279 rho = 6835153613359202620753536692428562756593607850803641642315853655957739349557*seg13AccX226 rho + 2017182082067414761062071606460734901159165964626278109605283782069263953972*rho 10571 := by
+  simp only [Seg13.relationLc1279, Seg13.relationLc1279Part0, Seg13.relationLc1279Part1, Seg13.relationLc1279Part2, Seg13.relationLc1279Part3, Seg13.relationLc1279Part4, Seg13.relationLc1279Part5, Seg13.relationLc1279Part6, Seg13.relationLc1279Part7]
+  rw [seg13AccX226_sum]
+  ring
+
+theorem seg13_lc1280 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1280 rho = 4124457764415245496255913558276081521933417185473503110705956689248568844076*seg13AccY226 rho + 4124457764415245496255913558276081521933417185473503110705956689248568844076 + 702028760441283555932115401866662986118340125936855939554033690217644916028*rho 10571 := by
+  simp only [Seg13.relationLc1280, Seg13.relationLc1280Part0, Seg13.relationLc1280Part1, Seg13.relationLc1280Part2, Seg13.relationLc1280Part3, Seg13.relationLc1280Part4, Seg13.relationLc1280Part5, Seg13.relationLc1280Part6, Seg13.relationLc1280Part7]
+  rw [seg13AccY226_sum]
+  ring
+
+theorem seg13_lc1281 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1281 rho = 670328206463667571670381561423772983699249767941947996199548708911028979636*seg13AccX226 rho + 4124457764415245496255913558276081521933417185473503110705956689248568844076*seg13AccY226 rho + 4124457764415245496255913558276081521933417185473503110705956689248568844076 + 5759310616382359197185735522973011350951230249491416595907705522570065497749*rho 10571 := by
+  simp only [Seg13.relationLc1281, Seg13.relationLc1281Part0, Seg13.relationLc1281Part1, Seg13.relationLc1281Part2, Seg13.relationLc1281Part3, Seg13.relationLc1281Part4, Seg13.relationLc1281Part5, Seg13.relationLc1281Part6, Seg13.relationLc1281Part7, Seg13.relationLc1281Part8, Seg13.relationLc1281Part9, Seg13.relationLc1281Part10, Seg13.relationLc1281Part11, Seg13.relationLc1281Part12, Seg13.relationLc1281Part13, Seg13.relationLc1281Part14]
+  rw [seg13AccX226_sum, seg13AccY226_sum]
+  ring
+
+theorem seg13_lc1282 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1282 rho = 7774133542964702852578443377357773547676649567212115831735684747006380259405*seg13AccX226 rho + 4320003985013124927992911380505465009442482149680560717229276766668840394965*seg13AccY226 rho + 4320003985013124927992911380505465009442482149680560717229276766668840394965 + 2685151133046011227063089415808535180424669085662647232027527933347343741292*rho 10571 := by
+  simp only [Seg13.relationLc1282, Seg13.relationLc1282Part0, Seg13.relationLc1282Part1, Seg13.relationLc1282Part2, Seg13.relationLc1282Part3, Seg13.relationLc1282Part4, Seg13.relationLc1282Part5, Seg13.relationLc1282Part6, Seg13.relationLc1282Part7, Seg13.relationLc1282Part8, Seg13.relationLc1282Part9, Seg13.relationLc1282Part10, Seg13.relationLc1282Part11, Seg13.relationLc1282Part12, Seg13.relationLc1282Part13, Seg13.relationLc1282Part14]
+  rw [seg13AccX226_sum, seg13AccY226_sum]
+  ring
+
+theorem seg13_lc1283 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1283 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX226 rho + rho 12186 := by
+  simp only [Seg13.relationLc1283, Seg13.relationLc1283Part0, Seg13.relationLc1283Part1, Seg13.relationLc1283Part2, Seg13.relationLc1283Part3, Seg13.relationLc1283Part4, Seg13.relationLc1283Part5, Seg13.relationLc1283Part6, Seg13.relationLc1283Part7]
+  rw [seg13AccX226_sum]
+  ring
+
+theorem seg13_lc1284 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1284 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY226 rho + rho 12188 := by
+  simp only [Seg13.relationLc1284, Seg13.relationLc1284Part0, Seg13.relationLc1284Part1, Seg13.relationLc1284Part2, Seg13.relationLc1284Part3, Seg13.relationLc1284Part4, Seg13.relationLc1284Part5, Seg13.relationLc1284Part6, Seg13.relationLc1284Part7]
+  rw [seg13AccY226_sum]
+  ring
+
+theorem seg13_lc1285 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1285 rho = seg13AccX227 rho + seg13AccY227 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1285, Seg13.relationLc1285Part0, Seg13.relationLc1285Part1, Seg13.relationLc1285Part2, Seg13.relationLc1285Part3, Seg13.relationLc1285Part4, Seg13.relationLc1285Part5, Seg13.relationLc1285Part6, Seg13.relationLc1285Part7, Seg13.relationLc1285Part8, Seg13.relationLc1285Part9, Seg13.relationLc1285Part10, Seg13.relationLc1285Part11, Seg13.relationLc1285Part12, Seg13.relationLc1285Part13, Seg13.relationLc1285Part14]
+  rw [seg13AccX227_sum, seg13AccY227_sum]
+  ring
+
+theorem seg13_lc1286 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1286 rho = 4524962738914307807798123734612000272059917171761359026606240250240415183856*seg13AccX227 rho + 995428320130555585130336813757345081731043089115607568591490337949712775920*rho 10571 := by
+  simp only [Seg13.relationLc1286, Seg13.relationLc1286Part0, Seg13.relationLc1286Part1, Seg13.relationLc1286Part2, Seg13.relationLc1286Part3, Seg13.relationLc1286Part4, Seg13.relationLc1286Part5, Seg13.relationLc1286Part6, Seg13.relationLc1286Part7]
+  rw [seg13AccX227_sum]
+  ring
+
+theorem seg13_lc1287 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1287 rho = 6839982277198200993905199196894153768204783486790809026862012284204149052726*seg13AccY227 rho + 6839982277198200993905199196894153768204783486790809026862012284204149052726 + 5046918817069920361234594595240506121883550357632552607367130359059160801262*rho 10571 := by
+  simp only [Seg13.relationLc1287, Seg13.relationLc1287Part0, Seg13.relationLc1287Part1, Seg13.relationLc1287Part2, Seg13.relationLc1287Part3, Seg13.relationLc1287Part4, Seg13.relationLc1287Part5, Seg13.relationLc1287Part6, Seg13.relationLc1287Part7]
+  rw [seg13AccY227_sum]
+  ring
+
+theorem seg13_lc1288 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1288 rho = 3168520398821998675432544448650812386733185655048432861991799320028025515729*seg13AccX227 rho + 6839982277198200993905199196894153768204783486790809026862012284204149052726*seg13AccY227 rho + 6839982277198200993905199196894153768204783486790809026862012284204149052726 + 4242215223718301650013630925741887103030677810318664896385086087306011463934*rho 10571 := by
+  simp only [Seg13.relationLc1288, Seg13.relationLc1288Part0, Seg13.relationLc1288Part1, Seg13.relationLc1288Part2, Seg13.relationLc1288Part3, Seg13.relationLc1288Part4, Seg13.relationLc1288Part5, Seg13.relationLc1288Part6, Seg13.relationLc1288Part7, Seg13.relationLc1288Part8, Seg13.relationLc1288Part9, Seg13.relationLc1288Part10, Seg13.relationLc1288Part11, Seg13.relationLc1288Part12, Seg13.relationLc1288Part13, Seg13.relationLc1288Part14]
+  rw [seg13AccX227_sum, seg13AccY227_sum]
+  ring
+
+theorem seg13_lc1289 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1289 rho = 5275941350606371748816280490130734144642713680105630965943434135889383723312*seg13AccX227 rho + 1604479472230169430343625741887392763171115848363254801073221171713260186315*seg13AccY227 rho + 1604479472230169430343625741887392763171115848363254801073221171713260186315 + 4202246525710068774235194013039659428345221524835398931550147368611397775107*rho 10571 := by
+  simp only [Seg13.relationLc1289, Seg13.relationLc1289Part0, Seg13.relationLc1289Part1, Seg13.relationLc1289Part2, Seg13.relationLc1289Part3, Seg13.relationLc1289Part4, Seg13.relationLc1289Part5, Seg13.relationLc1289Part6, Seg13.relationLc1289Part7, Seg13.relationLc1289Part8, Seg13.relationLc1289Part9, Seg13.relationLc1289Part10, Seg13.relationLc1289Part11, Seg13.relationLc1289Part12, Seg13.relationLc1289Part13, Seg13.relationLc1289Part14]
+  rw [seg13AccX227_sum, seg13AccY227_sum]
+  ring
+
+theorem seg13_lc1290 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1290 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX227 rho + rho 12194 := by
+  simp only [Seg13.relationLc1290, Seg13.relationLc1290Part0, Seg13.relationLc1290Part1, Seg13.relationLc1290Part2, Seg13.relationLc1290Part3, Seg13.relationLc1290Part4, Seg13.relationLc1290Part5, Seg13.relationLc1290Part6, Seg13.relationLc1290Part7]
+  rw [seg13AccX227_sum]
+  ring
+
+theorem seg13_lc1291 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1291 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY227 rho + rho 12196 := by
+  simp only [Seg13.relationLc1291, Seg13.relationLc1291Part0, Seg13.relationLc1291Part1, Seg13.relationLc1291Part2, Seg13.relationLc1291Part3, Seg13.relationLc1291Part4, Seg13.relationLc1291Part5, Seg13.relationLc1291Part6, Seg13.relationLc1291Part7]
+  rw [seg13AccY227_sum]
+  ring
+
+theorem seg13_lc1292 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1292 rho = seg13AccX228 rho + seg13AccY228 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 10571 + 1 := by
+  simp only [Seg13.relationLc1292, Seg13.relationLc1292Part0, Seg13.relationLc1292Part1, Seg13.relationLc1292Part2, Seg13.relationLc1292Part3, Seg13.relationLc1292Part4, Seg13.relationLc1292Part5, Seg13.relationLc1292Part6, Seg13.relationLc1292Part7, Seg13.relationLc1292Part8, Seg13.relationLc1292Part9, Seg13.relationLc1292Part10, Seg13.relationLc1292Part11, Seg13.relationLc1292Part12, Seg13.relationLc1292Part13, Seg13.relationLc1292Part14]
+  rw [seg13AccX228_sum, seg13AccY228_sum]
+  ring
+
+theorem seg13_lc1293 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1293 rho = 8005795343449612145036117745829407939494616795117852748437620276172049747902*seg13AccX228 rho + 4802774979772271385970034729279180096321539640809073194439602886238651987693*rho 10571 := by
+  simp only [Seg13.relationLc1293, Seg13.relationLc1293Part0, Seg13.relationLc1293Part1, Seg13.relationLc1293Part2, Seg13.relationLc1293Part3, Seg13.relationLc1293Part4, Seg13.relationLc1293Part5, Seg13.relationLc1293Part6, Seg13.relationLc1293Part7]
+  rw [seg13AccX228_sum]
+  ring
+
+theorem seg13_lc1294 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1294 rho = 615972545279460132803560543708205878635144221637755246156538630440780593542*seg13AccY228 rho + 615972545279460132803560543708205878635144221637755246156538630440780593542 + 6474623323290704998664558489372220939430902356818200455473100300981788630784*rho 10571 := by
+  simp only [Seg13.relationLc1294, Seg13.relationLc1294Part0, Seg13.relationLc1294Part1, Seg13.relationLc1294Part2, Seg13.relationLc1294Part3, Seg13.relationLc1294Part4, Seg13.relationLc1294Part5, Seg13.relationLc1294Part6, Seg13.relationLc1294Part7]
+  rw [seg13AccY228_sum]
+  ring
+
+theorem seg13_lc1295 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1295 rho = 5746896620463009213497640306832806199906311734702654425407263281094487929817*seg13AccX228 rho + 615972545279460132803560543708205878635144221637755246156538630440780593542*seg13AccY228 rho + 615972545279460132803560543708205878635144221637755246156538630440780593542 + 3004507892039376367240834378403203524047736042809415880464454041675868861535*rho 10571 := by
+  simp only [Seg13.relationLc1295, Seg13.relationLc1295Part0, Seg13.relationLc1295Part1, Seg13.relationLc1295Part2, Seg13.relationLc1295Part3, Seg13.relationLc1295Part4, Seg13.relationLc1295Part5, Seg13.relationLc1295Part6, Seg13.relationLc1295Part7, Seg13.relationLc1295Part8, Seg13.relationLc1295Part9, Seg13.relationLc1295Part10, Seg13.relationLc1295Part11, Seg13.relationLc1295Part12, Seg13.relationLc1295Part13, Seg13.relationLc1295Part14]
+  rw [seg13AccX228_sum, seg13AccY228_sum]
+  ring
+
+theorem seg13_lc1296 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1296 rho = 2697565128965361210751184631948740331469587600451409402527970174822921309224*seg13AccX228 rho + 7828489204148910291445264395073340652740755113516308581778694825476628645499*seg13AccY228 rho + 7828489204148910291445264395073340652740755113516308581778694825476628645499 + 5439953857388994057007990560378343007328163292344647947470779414241540377506*rho 10571 := by
+  simp only [Seg13.relationLc1296, Seg13.relationLc1296Part0, Seg13.relationLc1296Part1, Seg13.relationLc1296Part2, Seg13.relationLc1296Part3, Seg13.relationLc1296Part4, Seg13.relationLc1296Part5, Seg13.relationLc1296Part6, Seg13.relationLc1296Part7, Seg13.relationLc1296Part8, Seg13.relationLc1296Part9, Seg13.relationLc1296Part10, Seg13.relationLc1296Part11, Seg13.relationLc1296Part12, Seg13.relationLc1296Part13, Seg13.relationLc1296Part14]
+  rw [seg13AccX228_sum, seg13AccY228_sum]
+  ring
+
+theorem seg13_lc1297 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1297 rho = 3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 10571 + (-1)*seg13AccX228 rho + rho 12202 := by
+  simp only [Seg13.relationLc1297, Seg13.relationLc1297Part0, Seg13.relationLc1297Part1, Seg13.relationLc1297Part2, Seg13.relationLc1297Part3, Seg13.relationLc1297Part4, Seg13.relationLc1297Part5, Seg13.relationLc1297Part6, Seg13.relationLc1297Part7]
+  rw [seg13AccX228_sum]
+  ring
+
+theorem seg13_lc1298 (rho : Nat -> Seg13.F) :
+    Seg13.relationLc1298 rho = (-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 10571 + (-1)*seg13AccY228 rho + rho 12204 := by
+  simp only [Seg13.relationLc1298, Seg13.relationLc1298Part0, Seg13.relationLc1298Part1, Seg13.relationLc1298Part2, Seg13.relationLc1298Part3, Seg13.relationLc1298Part4, Seg13.relationLc1298Part5, Seg13.relationLc1298Part6, Seg13.relationLc1298Part7]
+  rw [seg13AccY228_sum]
+  ring
+
+
+end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1

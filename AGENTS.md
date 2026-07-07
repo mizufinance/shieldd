@@ -24,7 +24,6 @@ They are not migration promises.
 
 - Discuss goal, risks, and shape before writing a detailed plan.
 - Ask when design intent is unclear. Make scope explicit before refactors >5 files.
-- Stop and re-evaluate when something goes sideways; do not push through.
 - Follow impact through every affected layer: circuits, domain, storage, services, CLI, tests, docs.
 - If the same error hits twice, research 3-5 fixes and pick the best — do not flail.
 
@@ -59,13 +58,8 @@ They are not migration promises.
 
 ## Lean Circuit Proofs
 
-- Never prove semantics of an extracted constraint chain in one monolithic
-  tactic walk. Elaboration cost is quadratic in chain length: each
-  `obtain`/destructuring step re-substitutes the entire remaining term.
-- Hard limit: ≤60 gates per definition/lemma/tactic block. Slice longer
-  circuits into segment predicates ending in an opaque continuation
-  (`k : Prop` or `k : Vector F n → Prop`), prove each segment's semantics
-  separately, and compose. Repeated rung patterns (ladders, lt-chains) get a
-  fuel-recursive definition plus one induction lemma, never an unrolled walk.
-- If a single Lean compile exceeds ~10 minutes, kill it and restructure;
-  do not wait it out.
+All Lean-proof rules live in `tools/gnark/lean/AGENTS.md` — read it BEFORE any
+work under `tools/gnark/lean/` or on the proof generators/extractor. Its
+resource limits are load-bearing: unbounded concurrent `lake` builds have
+OOM-rebooted this machine twice. Minimum recall: one `lake` at a time,
+`LEAN_NUM_THREADS=1`, narrowest named module, monitored in the background.

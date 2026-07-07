@@ -52,6 +52,7 @@ func NewSplitCircuit(nOut int) *NoteReshapeCircuit {
 }
 
 func (c *NoteReshapeCircuit) Define(api frontend.API) error {
+	c.bindWiringTrace(api)
 	if c.nIn <= 0 || c.nOut <= 0 {
 		return fmt.Errorf("%s circuit shape must be positive, got %dx%d", c.label, c.nIn, c.nOut)
 	}

@@ -616,4 +616,41 @@ mod test {
         let hi = (value as u128) << 64;
         assert_eq!(hi, encode_decode(hi))
     }
+
+    // Regression tests for ZK-ASSUME-AMOUNT-RANGE / ZK-PROP-AMOUNT-RANGE-128.
+    //
+    // The circuit enforces `amount < 2^128` in-gadget via `ScalarMulLE(.., 128)`
+    // (pinned Go-side by `TestAmountRangeBoundIs128Bits`). These tests pin the
+    // Rust-side half of the assumption: every amount that can exist off-circuit is
+    // < 2^128 by construction, and its scalar-field embedding — the value the
+    // net-balance commitment sums — does not wrap the curve order, so a valid
+    // amount can never alias a smaller one mod `Fr`.
+
+    #[test]
+    fn amount_is_structurally_below_2_pow_128() {
+        use crate::Amount;
+        // The wire form is two u64 halves assembled into a u128; the widest
+        // amount representable is exactly 2^128 - 1. There is no constructor that
+        // yields a value >= 2^128, so out-of-range amounts are rejected before
+        // any proving happens (they cannot be built).
+        let widest = Amount::from(u128::MAX);
+        assert_eq!(widest.value(), u128::MAX);
+        assert_eq!(u128::MAX, (1u128 << 127) + ((1u128 << 127) - 1));
+    }
+
+    #[test]
+    fn scalar_embedding_of_max_amount_does_not_wrap() {
+        use ark_ff::{BigInteger, PrimeField};
+        use decaf377::Fr;
+
+        // The net-balance commitment scalar-multiplies by `Fr::from(amount)`.
+        // If `2^128 - 1 >= Fr::MODULUS` the embedding would wrap and two distinct
+        // amounts could collide mod the curve order. Prove the max amount embeds
+        // with no reduction: its little-endian field bytes are exactly the 16
+        // bytes of u128::MAX, zero-padded — i.e. the integer is unchanged.
+        let fr = Fr::from(u128::MAX);
+        let le = fr.into_bigint().to_bytes_le();
+        assert_eq!(&le[0..16], &u128::MAX.to_le_bytes());
+        assert!(le[16..].iter().all(|&b| b == 0));
+    }
 }

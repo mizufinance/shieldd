@@ -314,8 +314,6 @@ ladders from identity over the value generator `(vgX, vgY)`, the Edwards add
 chain `add(add(add(zero, in0), in1), neg out)`, a 251-bit blinding ladder over
 the fixed blinding generator, and the final Edwards add pinned to the outputs. -/
 def nbBody (vgX vgY in0 in1 outp0 outp1 blind outX outY : F) : Prop :=
-  ∃ b0, Extracted.NetBalanceCommitment2.Gates.to_binary (0:F) 128 b0 ∧
-  nbLadderK b0 (fun s0 =>
   ∃ b1, Extracted.NetBalanceCommitment2.Gates.to_binary in0 128 b1 ∧
   nbLadderK b1 (fun s1 =>
   ∃ b2, Extracted.NetBalanceCommitment2.Gates.to_binary in1 128 b2 ∧
@@ -324,7 +322,7 @@ def nbBody (vgX vgY in0 in1 outp0 outp1 blind outX outY : F) : Prop :=
   nbLadderK b3 (fun s3 =>
   ∃ b3b, Extracted.NetBalanceCommitment2.Gates.to_binary outp1 128 b3b ∧
   nbLadderK b3b (fun s3b =>
-    nbAddK s0[0] s0[1] s1[0] s1[1] (fun a1x a1y =>
+    nbAddK (0:F) (1:F) s1[0] s1[1] (fun a1x a1y =>
     nbAddK a1x a1y s2[0] s2[1] (fun a2x a2y =>
     ∃ g621, g621 = Extracted.NetBalanceCommitment2.Gates.neg s3[0] ∧
     nbAddK a2x a2y g621 s3[1] (fun a3x a3y =>
@@ -336,7 +334,6 @@ def nbBody (vgX vgY in0 in1 outp0 outp1 blind outX outY : F) : Prop :=
       251 0 ⟨0, 1⟩
       ⟨(4661681602708190761543544705274244814260880986867766715334030151044279151219 : F),
        (4337336842509898676347982752646772244181661588533917621717979456142867120378 : F)⟩)))))
-    128 0 ⟨0, 1⟩ ⟨vgX, vgY⟩)
     128 0 ⟨0, 1⟩ ⟨vgX, vgY⟩)
     128 0 ⟨0, 1⟩ ⟨vgX, vgY⟩)
     128 0 ⟨0, 1⟩ ⟨vgX, vgY⟩)
@@ -412,9 +409,12 @@ private theorem nb_circuit_eq_and_onCurve
         AssetID) ⟨ox, oy⟩ :=
     ⟨EncodeWasSquare, EncodeInvSqrt, T, YDen, hpre, hpost⟩
   have hvgEq := Decaf377Assumptions.encode_spec_eq hEncSpec
-  -- five value ladders
-  obtain ⟨S0, hS0on, hS0eq, _, _, hbody⟩ :=
-    nbLadder pow128_lt_order hvgOn hbody
+  -- identity seed (constant net-balance seed ladder eliminated) + four value ladders
+  have hS0on : EdwardsBridge.onCurve (⟨0, 1⟩ : EdwardsBridge.Point) :=
+    EdwardsBridge.identity_onCurve
+  have hS0eq : toA (⟨0, 1⟩ : EdwardsBridge.Point)
+      = Decaf377Assumptions.scalarMulLE 128 (toA ⟨ox, oy⟩) 0 := by
+    rw [scalarMulLE_zero]; rfl
   obtain ⟨P1, hP1on, hP1eq, _, _, hbody⟩ :=
     nbLadder pow128_lt_order hvgOn hbody
   obtain ⟨P2, hP2on, hP2eq, _, _, hbody⟩ :=
@@ -434,7 +434,7 @@ private theorem nb_circuit_eq_and_onCurve
   obtain ⟨P4, hP4on, hP4eq, _, _, hbody⟩ := nbLadder pow251_lt_order blindGen_onCurve hbody
   have hfinal := nbFinalK_semantic _ _ _ _ _ _ hbody
   -- thread on-curve and addF equalities forward
-  have hA1 := EdwardsBridge.addSpec_eq S0 P1 ⟨a1x, a1y⟩ hS0on hP1on haddA
+  have hA1 := EdwardsBridge.addSpec_eq ⟨0, 1⟩ P1 ⟨a1x, a1y⟩ hS0on hP1on haddA
   have hA1on : EdwardsBridge.onCurve ⟨a1x, a1y⟩ := hA1 ▸ EdwardsBridge.add_onCurve _ _ hS0on hP1on
   have hA2 := EdwardsBridge.addSpec_eq ⟨a1x, a1y⟩ P2 ⟨a2x, a2y⟩ hA1on hP2on haddB
   have hA2on : EdwardsBridge.onCurve ⟨a2x, a2y⟩ := hA2 ▸ EdwardsBridge.add_onCurve _ _ hA1on hP2on

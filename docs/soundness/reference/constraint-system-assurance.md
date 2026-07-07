@@ -315,14 +315,35 @@ A circuit property row moves to `proved` only with a stamped whole-circuit
 artifact; the invariant gate rejects gadget artifacts as substitutes for that
 property-level claim.
 
-**Lean wiring fidelity.** The `consolidate2x1` and `transfer` Lean whole-circuit
-artifacts use Go Define wiring transcripts, not full R1CS transcript comparisons.
-Each transcript records the ordered call-site composition of proved leaves and
-decaf/compliance gadget bridges with stable semantic wire names, then
-byte-compares that output against the Lean model transcript in
+**Whole-circuit frontend fidelity.** The `consolidate2x1` and `transfer` Lean
+whole-circuit artifacts still use Go Define wiring transcripts for the semantic
+composition check: each transcript records the ordered call-site composition of
+proved leaves and decaf/compliance gadget bridges with stable semantic wire
+names, then byte-compares that output against the Lean model transcript in
 `scripts/check-lean-circuit-fv.sh`. This catches dropped calls, miswired inputs,
-missing equality/equivalence checks, and statement-field order drift without
-re-materializing the full Poseidon/Merkle/Decaf constraint system.
+missing equality/equivalence checks, and statement-field order drift.
+
+The same gate now also checks compiled-constraint **partition** coverage.
+`gnarkctl export-manifest` records the compiled `.sr1cs` hash, row count, and
+segment map; `shieldd-constraint-coverage` parses the raw `.sr1cs` in Rust,
+requires an exact contiguous segment partition over every compiled row, rejects
+nonzero `marker`/`unclassified`/`adapter` segments, requires non-empty gadget
+labels plus bridge-theorem name strings, and emits per-segment constraint hashes.
+`scripts/check-constraint-coverage.sh` binds the `.sr1cs`, manifest, coverage
+report, circuit metadata, and bundled verifying key.
+
+This is a partition/assignment gate, **not** a byte-level proof that each gadget
+segment equals its proved gadget. The check verifies every compiled row falls in
+exactly one declared segment and that non-gadget segments are constraint-free; it
+does **not** re-derive a gadget segment's rows from the proved gadget. That
+identity is currently trusted from the Go emitter's trace boundaries. Note the
+deployed gadgets are inlined *partial evaluations* of their standalone proved
+counterparts — e.g. `gadget-poseidon-hash6` is 436 constraints standalone but the
+inlined note-commitment instance is 430 with folded round constants — so the
+per-gadget `*Bridge.lean` proofs do not yet directly cover the deployed rows.
+Closing this requires either deploy-granularity extraction of each segment or a
+partial-evaluation check against the standalone gadget under declared constant
+inputs.
 
 The Decaf377 boundary for these artifacts is now constraint-derived in Lean:
 compress, assert-equivalent, encode-to-curve, RVK, DTK, scalar ladders, Edwards
@@ -333,7 +354,7 @@ pass through compression now have explicit in-circuit curve-equation assertions,
 and the whole-circuit theorem has no named external Decaf assumptions. The
 staged path from these circuit artifacts to family-wide and protocol-wide
 coverage is tracked in
-[fv-hardening-roadmap.md](../fv-hardening-roadmap.md).
+the plan §8 backlog (`../full-verification-plan.md`).
 
 **M6 Lean scaffold.** A Lean 4 project now lives in
 [tools/gnark/lean](../../tools/gnark/lean). The vendored

@@ -79,6 +79,7 @@ func NewTransferCircuit() *TransferCircuit {
 }
 
 func (c *TransferCircuit) Define(api frontend.API) error {
+	c.bindWiringTrace(api)
 	if len(c.Spends) != TransferCircuitInputs || len(c.Outputs) != TransferCircuitOutputs {
 		return fmt.Errorf(
 			"transfer circuit must be fixed %dx%d, got %dx%d",
@@ -203,7 +204,18 @@ func computeTransferNetBalanceCommitment(
 		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
 	}
 
-	sum := ScalarMulLE(api, curve, valueGenerator, 0, 128)
+	// The 128-bit width on every amount is the canonical note-amount range bound
+	// (ZK-ASSUME-AMOUNT-RANGE): ScalarMulLE's api.ToBinary(amount, 128) makes any
+	// amount >= 2^128 unsatisfiable, preventing field-overflow value inflation in
+	// the net-balance sum. Load-bearing for balance soundness; pinned by
+	// TestAmountRangeBoundIs128Bits.
+	// Additive identity seed. Previously ScalarMulLE(valueGenerator, 0, 128),
+	// a full 128-rung ladder over the constant scalar 0 that only ever yields
+	// the identity (every Select folds to the running identity) while still
+	// emitting a redundant doubling chain of valueGenerator. The identity point
+	// is the correct seed directly; the first curve.Add folds the constant
+	// operand. Semantic equality pinned by TestNetBalanceCommitmentGadgetParity.
+	sum := gnarkte.Point{X: 0, Y: 1}
 	for _, amount := range inputAmounts {
 		sum = curve.Add(sum, ScalarMulLE(api, curve, valueGenerator, amount, 128))
 	}
@@ -388,9 +400,10 @@ func (c *TransferCircuit) verifyTransferSpend(
 	spentDivGen := gnarkte.Point{X: spend.Note.DivGen.X, Y: spend.Note.DivGen.Y}
 	spentTransmission := gnarkte.Point{X: spend.Note.Transmission.X, Y: spend.Note.Transmission.Y}
 	rkClaimed := gnarkte.Point{X: spend.RK.X, Y: spend.RK.Y}
+	name := fmt.Sprintf("spend%d", index)
+	c.traceWiring("assert.boolean", "var="+name+".is_dummy")
 	api.AssertIsBoolean(spend.IsDummy)
 	isNotDummy := api.Sub(1, spend.IsDummy)
-	name := fmt.Sprintf("spend%d", index)
 
 	c.traceWiring("decaf.compress_to_field", "in="+name+".note.div_gen", "out="+name+".note.div_gen_fq")
 	spentDivGenFq, err := decafgnark.CompressToField(api, spentDivGen)
@@ -512,7 +525,9 @@ func (c *TransferCircuit) verifyTransferOutput(
 	if index == 0 {
 		expectedReceiver = 1
 	}
+	c.traceWiring("assert.eq", "lhs="+name+".is_receiver", fmt.Sprintf("rhs=%d", expectedReceiver))
 	api.AssertIsEqual(output.IsReceiver, expectedReceiver)
+	c.traceWiring("gadget.is_zero", "in="+name+".note.amount", "out="+name+".is_dummy")
 	isDummy := api.IsZero(output.Note.Amount)
 
 	c.traceWiring("decaf.compress_to_field", "in="+name+".note.div_gen", "out="+name+".note.div_gen_fq")
@@ -930,8 +945,10 @@ func (c *TransferCircuit) assertTransferNetBalanceCommitment(
 	if err != nil {
 		return nil, err
 	}
+	c.traceWiring("decaf.assert_equivalent", "lhs=balance_commitment.computed", "rhs=claimed.balance_commitment")
 	decafgnark.AssertEquivalent(api, netBalanceCommitment, shared.claimedBalanceCommitment)
 
+	c.traceWiring("decaf.compress_to_field", "in=balance_commitment.computed", "out=balance_commitment.fq")
 	balanceCommitmentFq, err := decafgnark.CompressToField(api, netBalanceCommitment)
 	if err != nil {
 		return nil, err
@@ -960,7 +977,8 @@ func (c *TransferCircuit) buildTransferStatementFields(
 		fields = append(fields, epkFq, tier.C2)
 		fields = append(fields, tier.Ciphertext[:]...)
 	}
-	appendProofTier := func(proof TransferComplianceProofFields) error {
+	appendProofTier := func(label string, proof TransferComplianceProofFields) error {
+		c.traceWiring("decaf.compress_to_field", "in="+label+".proof.derived_pk", "out="+label+".proof.derived_pk_fq")
 		derivedPKFq, err := decafgnark.CompressToField(
 			api,
 			gnarkte.Point{X: proof.DerivedPK.X, Y: proof.DerivedPK.Y},
@@ -968,6 +986,7 @@ func (c *TransferCircuit) buildTransferStatementFields(
 		if err != nil {
 			return err
 		}
+		c.traceWiring("decaf.compress_to_field", "in="+label+".proof.enc_cmt", "out="+label+".proof.enc_cmt_fq")
 		encCmtFq, err := decafgnark.CompressToField(
 			api,
 			gnarkte.Point{X: proof.EncCmt.X, Y: proof.EncCmt.Y},
@@ -975,6 +994,7 @@ func (c *TransferCircuit) buildTransferStatementFields(
 		if err != nil {
 			return err
 		}
+		c.traceWiring("decaf.compress_to_field", "in="+label+".proof.shared_point", "out="+label+".proof.shared_point_fq")
 		sharedPointFq, err := decafgnark.CompressToField(
 			api,
 			gnarkte.Point{X: proof.SharedPoint.X, Y: proof.SharedPoint.Y},
@@ -1006,16 +1026,16 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	appendCoreTier(statementData.outputCoreEPKFq, c.Compliance.OutputCore)
 	appendExtTier(statementData.outputExtEPKFq, c.Compliance.OutputExt)
 	fields = append(fields, c.TargetTimestamp)
-	if err := appendProofTier(c.Compliance.SenderCore.Proof); err != nil {
+	if err := appendProofTier("sender_core", c.Compliance.SenderCore.Proof); err != nil {
 		return nil, err
 	}
-	if err := appendProofTier(c.Compliance.SenderExt.Proof); err != nil {
+	if err := appendProofTier("sender_ext", c.Compliance.SenderExt.Proof); err != nil {
 		return nil, err
 	}
-	if err := appendProofTier(c.Compliance.OutputCore.Proof); err != nil {
+	if err := appendProofTier("output_core", c.Compliance.OutputCore.Proof); err != nil {
 		return nil, err
 	}
-	if err := appendProofTier(c.Compliance.OutputExt.Proof); err != nil {
+	if err := appendProofTier("output_ext", c.Compliance.OutputExt.Proof); err != nil {
 		return nil, err
 	}
 
