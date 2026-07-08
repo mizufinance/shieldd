@@ -1,7 +1,7 @@
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Tactic.LinearCombination
 set_option maxRecDepth 100000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 20000000
 
 /-! NEW segmented/threaded blueprint (Codex pivot, validated shape).
 

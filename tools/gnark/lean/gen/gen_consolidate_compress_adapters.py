@@ -19,7 +19,7 @@ SEGMENTS = [
     (24, 107, 108, 18700),
     (33, 102, 103, 30874),
     (42, 195, 196, 37400),
-    (54, 52987, 52988, 52781),
+    (54, 52347, 52348, 52141),
 ]
 
 
@@ -178,7 +178,7 @@ def main() -> None:
         "import Mathlib.Tactic.Ring",
         "",
         "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 0",
+        "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
@@ -200,7 +200,7 @@ def main() -> None:
             "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
             "",
             "set_option maxRecDepth 1000000",
-            "set_option maxHeartbeats 0",
+            "set_option maxHeartbeats 20000000",
             "set_option linter.unusedVariables false",
             "",
             "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",

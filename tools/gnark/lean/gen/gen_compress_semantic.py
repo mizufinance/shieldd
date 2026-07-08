@@ -240,7 +240,7 @@ def main():
     L.append("set_option linter.unusedVariables false")
     L.append("set_option linter.unreachableTactic false")
     L.append("set_option maxRecDepth 1000000")
-    L.append("set_option maxHeartbeats 0")
+    L.append("set_option maxHeartbeats 20000000")
     L.append("")
     L.append("namespace Shieldd.GnarkFormal.Extracted.DecafCompressToField")
     L.append("")

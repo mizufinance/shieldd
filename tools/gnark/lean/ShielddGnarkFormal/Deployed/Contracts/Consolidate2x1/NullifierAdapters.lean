@@ -3,7 +3,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg27
 import ShielddGnarkFormal.Deployed.Nullifier.SemanticBridge
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 

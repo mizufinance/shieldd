@@ -3,7 +3,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg54
 import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
@@ -15,9 +15,9 @@ instance seg54FactPrime : Fact (Nat.Prime Seg54.Order) :=
 
 def seg54Rho (rho : Nat → Seg54.F) : Nat → Seg54.F
 | 0 => 1
-| 17 => rho 52987
-| 18 => rho 52988
-| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + 52781) else rho i
+| 17 => rho 52347
+| 18 => rho 52348
+| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + 52141) else rho i
 
 theorem seg54_hrec1 (rho : Nat → Seg54.F)
     (h : Seg54.relationRow281 rho) :
