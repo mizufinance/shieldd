@@ -51,11 +51,11 @@
  *                                     exact-match/gap select pins is_regulated to
  *                                     actual registry membership
  *   MODEL-ASSUME-BOUNDED-SCOPE      bounded model checking (scope 6 / 5-bit int)
- *   MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT  new row (inventory §6/§7 gap ii):
- *                                     consolidate carries no compliance surface;
- *                                     records that as an explicit protocol-policy
- *                                     assumption for human confirmation, NOT an
- *                                     Alloy-decidable property.
+ *   MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT  discharged protocol-policy row:
+ *                                     consolidate carries no compliance surface
+ *                                     because it is a same-owner reshape and cannot
+ *                                     create a cross-owner output (owner decision
+ *                                     2026-07-08; not an Alloy-decidable property).
  *
  * Compliance-gadget assumptions (regulator-utility tier, NOT load-bearing here):
  *   ZK-ASSUME-TRANSFER-DETECTION-CIPHERTEXT  gadget.poseidon_encryption.detection@108

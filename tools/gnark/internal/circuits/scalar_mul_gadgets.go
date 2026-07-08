@@ -88,6 +88,8 @@ type ScalarMulStepGadget struct {
 
 func (c *ScalarMulStepGadget) Define(api frontend.API) error {
 	api.AssertIsBoolean(c.Bit)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.AccX, Y: c.AccY})
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.CurX, Y: c.CurY})
 	state := abstractor.Call1(api, scalarMulStep{
 		Bit:  c.Bit,
 		AccX: c.AccX,
@@ -126,6 +128,8 @@ type ScalarMulTwoStepGadget struct {
 func (c *ScalarMulTwoStepGadget) Define(api frontend.API) error {
 	api.AssertIsBoolean(c.Bit0)
 	api.AssertIsBoolean(c.Bit1)
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.AccX, Y: c.AccY})
+	assertDecafPointOnCurve(api, gnarkte.Point{X: c.CurX, Y: c.CurY})
 	s0 := abstractor.Call1(api, scalarMulStep{
 		Bit:  c.Bit0,
 		AccX: c.AccX,

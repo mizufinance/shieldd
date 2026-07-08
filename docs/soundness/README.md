@@ -24,10 +24,14 @@ task actually needs it.
 - **DLEQ challenge truncation** to 250 bits — soundness ≈ 2⁻²⁴⁹·⁹.
 - **gnark backend** (Groth16/Plonk, KZG, pairing, prover Fiat-Shamir) — a named
   crypto trust assumption, not self-proved.
-- **gnark frontend** is partially covered for `consolidate2x1` and `transfer`:
-  Lean checks the Define wiring transcript, and an independent Rust parser checks
-  compiled `.sr1cs` partition/hash/VK binding. Segment identity remains a named
-  trust gap.
+- **gnark frontend** coverage differs per circuit. For `consolidate2x1` the
+  deployed segment-identity gap is **closed**: every compiled `.sr1cs` segment
+  (49/49) is proved directly from its raw deployed rows (`inst*_bound` →
+  capstone `consolidate2x1_deployed_sound` → `Statement.lean`), on top of the
+  wiring-transcript and Rust partition/hash/VK checks. For `transfer` (still on
+  standalone bridge composition: wiring transcript + partition check only),
+  segment identity — that a deployed segment's rows equal the standalone proved
+  gadget — remains a named trust gap.
 
 The authoritative per-row list with status + removal path is the **assumption
 ledger** at `crates/core/component/compliance/formal/assumption-ledger.md`.

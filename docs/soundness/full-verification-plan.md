@@ -15,28 +15,90 @@ Related:
 `crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md`
 (SnarkPack evidence ledger).
 
-## 1. The verification stack — six layers
+## 1. The verification stacks — ZK circuits and SnarkPack
 
-Each layer has one question, one primary tool, and one failure mode it
-catches. A property is only "verified" when every layer under it is either
-proved or an audited ledger row. Layers do not promote each other
-(promotion rules in Section 8 apply).
+Two verified objects with different shapes, so two stacks. The **ZK-circuit
+stack (L0–L5)** verifies one circuit family from crypto assumptions up to the
+deployed `.sr1cs` and its prover/verifier. The **SnarkPack stack (SL0–SL4)**
+verifies the aggregation layer that consumes finished per-circuit Groth16
+proofs. They meet at exactly one boundary: the **aggregation seam** (the
+per-circuit statement/VK handed to the aggregator), verified by the S5
+conformance tests and tracked as SL1r. Within each stack a property is only
+"verified" when every layer under it is either proved or an audited ledger
+row; layers never promote each other (promotion rules in Section 8).
 
-| # | Layer | Question | Primary tool | Reference failure |
+Assumption placement rule: **all "we believe the math" content lives in the
+assumptions layer (L0 / SL0)** as ledger rows. Every other layer is a
+verification target — its residual gaps are holes with removal paths, not
+standing assumptions.
+
+### 1a. ZK-circuit stack (L0–L5)
+
+| # | Layer | Question | How verified | Reference failure |
 | --- | --- | --- | --- | --- |
-| L0 | Cryptographic assumptions | Are the primitives what we idealize them as? (Poseidon RO/CR, decaf377 group, pairing/Groth16) | Audit + ledger rows; parameter-provenance review | wrong Poseidon security margin for this field |
-| L1 | Protocol / statement completeness | Does the *statement* the circuit proves imply protocol security? Is every necessary object bound (note→nullifier, anchor, value balance)? | Alloy (ledger state machines), Tamarin (multi-party flows), human statement review | a sound proof of an insufficient statement |
-| L2 | No under-constraint | Is each gadget's constraint system deterministic — no free wire, no missing constraint? | Picus (leaf decomposition, `picus-leaf-decomposition` pattern) | halo2 2024/25-style library under-constraint |
+| L0 | Assumptions (crypto + parameters) | Are the primitives what we idealize them as? Poseidon RO/CR + parameter provenance, decaf377 prime-order group, BLS12-377 pairing hardness, Groth16/AGM-class assumptions, SRS/ceremony provenance | Audit + ledger rows (`CC-ASSUME-*`, `ZK-ASSUME-*` crypto rows); parameter-provenance review (H4 memo) | wrong Poseidon security margin for this field |
+| L1 | Protocol / statement completeness | Does the *statement* the circuit proves imply protocol security? Is every necessary object bound (note→nullifier, anchor, value balance)? | Alloy (ledger state machines + statement sufficiency), Tamarin (multi-party flows), human statement review | a sound proof of an insufficient statement |
+| L2 | No under-constraint | Is each gadget's constraint system deterministic — no free wire, no missing constraint? | Picus + finite-field cvc5 (leaf decomposition, `picus-leaf-decomposition` pattern), fail-closed battery | halo2 2024/25-style library under-constraint |
 | L3 | Gadget semantics | Do the extracted gadget constraints imply the gadget spec? | Lean (`*Bridge.lean` `circuit_sound` theorems) | constraints satisfiable by wrong outputs |
-| L4 | Compiled artifact | Do the *actual compiled `.sr1cs` rows* imply the whole-circuit statement? | Lean deployed bridges + `shieldd-constraint-coverage` partition gate + capstone composition theorem | compile-time specialization diverging from proved gadget |
-| L5 | Proving stack | Prover/verifier/aggregator code and backend crypto: Groth16, gnark backend, SnarkPack/RIPP, arkworks | Named assumption rows + pinned versions + advisory monitoring; F* only where rows already exist (SnarkPack) — no new proof tooling at this layer | backend soundness CVE (GHSA-q3hw-3gm4-w5cr) |
+| L4 | Compiled artifact | Do the *actual compiled `.sr1cs` rows* imply the whole-circuit statement? | Lean deployed raw-row proofs (`inst*_bound` → capstone → `Statement.lean`) + `shieldd-constraint-coverage` partition gate | compile-time specialization diverging from proved gadget |
+| L5 | Proving-stack code (FV target, not an assumption bucket) | Do the prover/verifier implementations correctly realize the scheme? gnark backend, Groth16 verify path, key derivation plumbing | Today: pinned versions, advisory monitoring, VK↔`.sr1cs` derivation gate, prover round-trip. Target: §8a verifier FV program (L5a–L5e) shrinks this to the L0 pairing/q-type rows | backend soundness CVE (GHSA-q3hw-3gm4-w5cr) |
 
-L0 exists because every Lean/Tamarin result is conditional on it; L5 because
-a verified circuit proved by a broken prover/aggregator is not a verified
-system. One direction the stack does not cover: L2–L4 are **soundness-only** (constraints ⇒
-spec). **Completeness** (honest witness always satisfies; no honest-user
-funds bricked) is covered by prover round-trip tests, not proofs — keep it a
-named test obligation, not an accident.
+L5 is a list of **FV targets with interim mitigations**, not assumptions: the
+irreducible "the math is hard" content (pairing hardness, AGM, SRS) belongs
+to L0 rows, and §8a's end state is that L5 reduces to exactly those rows plus
+the unverified pairing primitive (L5e, an explicit non-goal).
+
+**How the layer boundaries are verified (ZK stack):**
+- **L0→all**: every proof above is conditional on the L0 rows; the ledger
+  gate (`check-soundness-invariants.sh`) enforces row discipline; H4-style
+  provenance memos discharge parameter rows.
+- **L1↔L4**: the statement-seam test binds the Rust statement bytes to the
+  Lean `Statement.lean` projection; Alloy models are hand-transcribed
+  (named `MODEL-ASSUME-*` rows + seam tests).
+- **L2↔L3/L4**: Picus verdicts are pinned to the exact `.sr1cs` the Lean
+  extractor consumes (input fingerprints in each `.picus.txt`, wiring cert,
+  `TestPicusExportFidelityAllGadgets`).
+- **L3↔L4**: for `consolidate2x1` there is no boundary to trust — L4 proofs
+  are extracted from the deployed rows themselves (segment identity closed).
+  For `transfer` the boundary is the Go emitter's trace labels (named gap,
+  `ZK-ASSUME-GNARK-FRONTEND-BACKEND`).
+- **L4↔L5**: `check-vk-derivation.sh` pins the deployed proving/verifying
+  keys to the exact pinned `.sr1cs`; manifest hash pins fail closed on drift.
+
+**Holes left per layer (ZK stack, IDs from §3):** L0: H4, H-b, D2 · L1: H8,
+H-c, D4 · L2: none open for consolidate2x1 (clean re-stamp in flight,
+handoff Q2) · L3/L4: H-a, F-ext (transfer compliance classes, ics20,
+split1xN; transfer segment identity) · L5: V1 (§8a program) · cross-cutting:
+D1 (turnstile), D3 (privacy axis).
+
+### 1b. SnarkPack stack (SL0–SL4)
+
+The aggregator is verified against a different question set — it consumes
+already-proved Groth16 proofs, so it has no circuit/constraint layers; its
+risk concentrates in scheme soundness and implementation conformance.
+
+| # | Layer | Question | How verified | Holes left |
+| --- | --- | --- | --- | --- |
+| SL0 | Assumptions | Pairing hardness, q-type/KZG assumptions, SRS provenance for the aggregation SRS | Ledger rows in `formal-handoff.md`; `check-snarkpack-invariants.sh` row discipline | D2 (ceremony row, shared with L0) |
+| SL1 | Aggregate statement sufficiency | Does accepting one aggregate imply each per-circuit statement? (arity, statement hashing, VK binding) | S5 conformance tests: VK-arity=1 + statement-parity + VK-hash pinning (proved-by-test) | SL1r: Lean-side and F*-side statement models not yet mechanically the same statement |
+| SL2 | Scheme soundness (RIPP/TIPP/MIPP + KZG final-ck) | Does the aggregated equation imply each Groth16 equation? | Accepted on lineage evidence (S1 human decision 2026-07-06: Filecoin Bellperson v0.21.0 lineage + paper review + `ripp-refinement.md`), rowed with removal path | SL2r: not mechanized; removal path = §8a L5b Lean proof |
+| SL3 | Mechanization surface (F*) | Do the F* models match the adapted code where rows demand it? | Existing F* developments + completion rules; frozen category-3 surface (no new extraction) | guarded — completion rules enforced by gate, no new F* scope |
+| SL4 | Implementation conformance | Does the shipping Rust (`verify_family_aggregate`) match the model? | Conformance/differential tests (`just snarkpack-lean-conformance`, shape gate `check-snarkpack-filecoin-shape.sh`) + adaptation register | §8a L5d: verified reference model + byte-differential gate not yet built |
+
+**How the layer boundaries are verified (SnarkPack stack):** SL0→above:
+ledger-row conditionality, same discipline gate. SL1↔ZK-stack: the
+aggregation seam — per-circuit statement hash and VK identity pinned by the
+S5 tests (this is the *only* inter-stack boundary; nothing else in either
+stack may assume facts from the other). SL2↔SL4: the Stage 9 Lean
+differential conformance gate ties the accepted-equation shape to the
+implementation. SL3↔SL4: adaptation register + divergence findings doc pin
+the F* model to the adapted Rust.
+
+**Direction not covered by either stack:** L2–L4 and SL1–SL2 are
+**soundness-only** (constraints/equations ⇒ spec). **Completeness** (honest
+witness always satisfies; no honest-user funds bricked) is covered by prover
+round-trip tests, not proofs — keep it a named test obligation, not an
+accident.
 
 **Boundary fidelity (cross-cutting).** No tool checks that
 another tool's model matches the real artifact: the Alloy facts are
@@ -94,7 +156,6 @@ carries the ones not yet scheduled. IDs are stable for cross-reference.
 | D2 | L5 | Production SRS/ceremony provenance has no ledger row | Add the row when the ceremony is scheduled | human |
 | D3 | direction | Privacy/ZK axis has zero mechanized coverage and no regression gate (all proofs are soundness-direction) | Scoping decision: verification program or explicit accepted-risk row | human |
 | D4 | L1 | Native statement construction (Rust chain-state → statement) covered by seam/parity tests only | Verified reference builder + byte-differential gate | frontier |
-| MC1 | model | `MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT`: is consolidate2x1's absent compliance surface intended? | Human confirmation | human |
 | F-ext | L3/L4 | ics20 whole-circuit proof; split1xN family proofs (retire per-family `ZK-ASSUME-DECAF377-*`) | Same deployed-bridge pattern; executor fan-out after transfer H-a | executor |
 
 ## 4. Next steps — two queues
@@ -110,8 +171,9 @@ carries the ones not yet scheduled. IDs are stable for cross-reference.
 5. **§8a verifier program** — L5d conformance gate, then L5a (Groth16 AGM),
    then L5c (FS transcript); L5b behind the S1 removal path.
 6. **H-c Tamarin model**, then **F-ext** (ics20, split1xN).
-7. **Human decisions pending, any time:** D1 turnstile, D3 privacy axis, MC1
-   compliance-exempt, §8a sequencing sign-off.
+7. **Human decisions pending, any time:** D1 turnstile, D3 privacy axis, §8a
+   sequencing sign-off. MC1 was resolved on 2026-07-08: consolidate is
+   intentionally compliance-exempt because it cannot change ownership.
 
 ### Optimization queue
 Governed by `docs/soundness/optimization-playbook.md` (§2 ranked candidates,
@@ -157,7 +219,7 @@ explicit do-not-touch list.
 | --- | --- | --- |
 | Applying a proven pattern across segments (H-a fan-out, F-ext); parity/conformance tests (SL1r, D5); VK↔`.sr1cs` pinning (V1 step 1); the §4 optimization queue (T1-class, `optimization-playbook.md`); maintaining the Alloy models against `reference/phase-c-alloy-statement-sufficiency-spec.md` | executor | enumerable, pattern-following, gate-verified |
 | New proof *shapes* (playbook T2: windowed/GLV ladders; §8a L5a/L5c; H-b, H-c, D4); crypto-judgment audits (H4, H8); promoting any `draft — pending frontier review` doc to a ledger row | frontier (or human review) | novel proof design; Lean-performance trap density; vacuous-theorem risk |
-| L5b RIPP mechanization (SL2r removal path); playbook T3 (protocol-visible changes); D1/D3/MC1 decisions; any change to gate/manifest/ledger *semantics* | human decision | research-scale; redefines what "verified" means |
+| L5b RIPP mechanization (SL2r removal path); playbook T3 (protocol-visible changes); D1/D3 decisions; any change to gate/manifest/ledger *semantics* | human decision | research-scale; redefines what "verified" means |
 
 **Post-frontier operation.** When no frontier session is available, the
 executor drives the plan directly: pick the highest open item in the §4
@@ -195,7 +257,7 @@ crashed the machine or produced silent unsoundness.
    removal-path/status. Evidence for one layer never promotes another.
    `functional_assumption_allowlist` stays empty unless a human approves.
 5. **Scope discipline**: audit items (H4, H8) produce documents, not proofs;
-   decision points (D1, D3, MC1, SL2r) stop for human sign-off; everything else executes
+   decision points (D1, D3, SL2r) stop for human sign-off; everything else executes
    without asking. If the same error hits twice, research 3–5 fixes before
    the third attempt (executor models: hand back instead, per Section 6).
 6. **Verification bar** (from the roadmap): lake green, `#print axioms`

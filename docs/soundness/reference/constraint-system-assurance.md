@@ -365,18 +365,24 @@ labels plus bridge-theorem name strings, and emits per-segment constraint hashes
 `scripts/check-constraint-coverage.sh` binds the `.sr1cs`, manifest, coverage
 report, circuit metadata, and bundled verifying key.
 
-This is a partition/assignment gate, **not** a byte-level proof that each gadget
-segment equals its proved gadget. The check verifies every compiled row falls in
-exactly one declared segment and that non-gadget segments are constraint-free; it
-does **not** re-derive a gadget segment's rows from the proved gadget. That
-identity is currently trusted from the Go emitter's trace boundaries. Note the
-deployed gadgets are inlined *partial evaluations* of their standalone proved
-counterparts — e.g. `gadget-poseidon-hash6` is 436 constraints standalone but the
-inlined note-commitment instance is 430 with folded round constants — so the
-per-gadget `*Bridge.lean` proofs do not yet directly cover the deployed rows.
-Closing this requires either deploy-granularity extraction of each segment or a
-partial-evaluation check against the standalone gadget under declared constant
-inputs.
+This is a partition/assignment gate, **not** by itself a proof that each gadget
+segment equals its proved gadget. For circuits covered only by the standalone
+bridge composition (currently `transfer`), that identity is trusted from the Go
+emitter's trace boundaries, and the deployed gadgets are inlined *partial
+evaluations* of their standalone proved counterparts — e.g.
+`gadget-poseidon-hash6` is 436 constraints standalone but the inlined
+note-commitment instance is 430 with folded round constants — so the per-gadget
+`*Bridge.lean` proofs do not directly cover the deployed rows there.
+
+For `consolidate2x1` this gap is **closed** by the deployed raw-row proof
+architecture: each of the 49 compiled segments has a Lean relation extracted
+from the actual `.sr1cs` rows and discharged as an `inst*_bound` theorem, the
+capstone `consolidate2x1_deployed_sound` composes them, and `Statement.lean`
+projects the result onto the public statement. Trace boundaries there serve
+only as segment *labels*; the semantics are proved from the deployed rows
+themselves. Closing the same gap for `transfer` requires the same
+deploy-granularity extraction (or a partial-evaluation check against the
+standalone gadget under declared constant inputs).
 
 The Decaf377 boundary for these artifacts is now constraint-derived in Lean:
 compress, assert-equivalent, encode-to-curve, RVK, DTK, scalar ladders, Edwards

@@ -54,14 +54,21 @@ finish a task: commit, delete its section here, and add one dated line under
 
 ## Active queue (in order)
 
-### Q2 — Task 11 clean Picus regen
-Re-run the 24-leaf Picus battery against the post-T1-a `.sr1cs` inputs; input
-fingerprints + wiring cert must re-stamp clean (24/24). Note: T1-a changed the
-`gadget-scalar-mul-step` and `gadget-dleq` leaf `.sr1cs` (shared fixed-base
-helper), so those verdicts are genuinely new. Run the battery on an otherwise
-idle machine — a concurrent Lean build starves the SMT queries into the 120 s
-watchdog (observed 2026-07-07: 8 spurious timeouts incl. byte-identical
-`gadget-iszero`).
+### Q2 — Task 11 clean Picus regen (23/24 done; BLOCKED on gadget-dleq)
+2026-07-08 state: the 2026-07-07 "8 spurious timeouts" were a cvc5 wrapper
+fork-bomb (real binary not on PATH — see `docs/soundness/fv-playbook.md` /
+memory); with the PATH fixed a healthy leaf decides in seconds. The battery
+then surfaced a REAL stale verdict: the committed `safe` for
+`gadget-scalar-mul-step` was pinned to a pre-merge PR-96 `.sr1cs` variant;
+the current leaf was genuinely underconstrained at (0,0) (double's
+`y²−x²` denominator free). Fixed by adding `assertDecafPointOnCurve` on the
+Acc/Cur witness inputs of `ScalarMulStepGadget`/`ScalarMulTwoStepGadget`
+(matching every other Edwards leaf harness; deployed circuits unaffected —
+ladder call sites feed the constant generator + identity seed) and
+re-deriving the precondition wire indices (w19; w20/w33). Both leaves now
+`safe` at battery settings; 23/24 leaves green. Remaining: `gadget-dleq`
+(see Blocked) — once it discharges, run the full battery, re-stamp
+`circuit-constraint-report.txt` + sidecar, commit.
 
 ### Q3 — post-boundary optimization queue (after Q1+Q2 green)
 The 2026-07-07 audit ranked the candidates in
@@ -182,4 +189,18 @@ changing what any gate checks.
 
 ## Blocked
 
-(none)
+- **Q2 / `gadget-dleq` undischarged post-T1-a (2026-07-08).** Pre-T1-a the
+  leaf was `safe` unconditionally; T1-a's identity-seed ladder leaves the
+  add-denominator products symbolic where the old constant seed folded them,
+  and the leaf (116 constraints: 4 two-step prefixes + 2 Edwards adds) now
+  times out: 120 s and 600 s with no precondition, and 120 s and 600 s with a
+  6-wire add-denominator precondition (`picus-preconditions/gadget-dleq.json`,
+  w39/w59/w72/w85/w105/w118 ≠ ±1-breaking values — committed, verdict still
+  pending). Logs: session scratchpad `q2-battery.log` + probe outputs.
+  Options for human/frontier: (a) decompose the DLEQ probe into two
+  half-leaves (one response equation each, ~58 constraints — matches the
+  leaf-decomposition doctrine; loses the cross-equation shared-bit seam in a
+  single probe, so the composition note must argue bit-sharing adds no free
+  signal), or (b) raise the per-leaf budget for this gadget (gate-semantics
+  change, human sign-off). The 23 other leaves are green; the committed
+  report cannot re-stamp until this resolves.

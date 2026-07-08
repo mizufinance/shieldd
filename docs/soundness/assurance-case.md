@@ -121,9 +121,11 @@ the committed `<artifact>.sha256` stamp (the stamp file is the source of truth).
   — open Lean work, plan §3 hole H-a]
 - R5.2 Encryption security properties [TODO — VCVio game-based or explicit
   assumption row, plan §3 hole H-b]
-- R5.3 consolidate2x1 has no compliance surface [ROW
-  MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT — **awaiting human confirmation
-  that the exemption is intended protocol design**]
+- R5.3 consolidate2x1 intentionally has no compliance surface [ROW
+  MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT — **discharged by protocol-owner
+  decision (2026-07-08)**: consolidate is a same-owner reshape; its spends and
+  output remain bound to shared owner key material, while cross-owner movement
+  must use transfer]
 
 ## A. Cross-cutting assumptions (every R-branch is conditional on these)
 
