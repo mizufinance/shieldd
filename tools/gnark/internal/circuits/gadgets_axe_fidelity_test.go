@@ -1086,9 +1086,7 @@ func ackTwoStepFidelityCase(t *testing.T) gadgetFidelityCase {
 func dleqFidelityCase(t *testing.T) gadgetFidelityCase {
 	gen := decafGenerator(t)
 	genPt := gnarkte.Point{X: gen.X, Y: gen.Y}
-	ack := decafDoubleNative(t, genPt)
 	negEPK := decafNegNative(genPt)
-	negSPoint := decafNegNative(ack)
 	sb0, sb1 := true, false
 	cb0, cb1 := true, true
 	rRec, err := decafgnark.PointAddNative(
@@ -1098,23 +1096,14 @@ func dleqFidelityCase(t *testing.T) gadgetFidelityCase {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rpRec, err := decafgnark.PointAddNative(
-		scalarMulPrefixAccNative(t, ack, sb0, sb1),
-		scalarMulPrefixAccNative(t, negSPoint, cb0, cb1),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
 	return gadgetFidelityCase{
 		name:  "gadget-dleq",
 		blank: &DLEQGadget{},
 		assignment: &DLEQGadget{
 			SBit0: boolToVar(sb0), SBit1: boolToVar(sb1), CBit0: boolToVar(cb0), CBit1: boolToVar(cb1),
-			GeneratorX: genPt.X, GeneratorY: genPt.Y,
-			AckX: ack.X, AckY: ack.Y,
-			NegEPKX: negEPK.X, NegEPKY: negEPK.Y,
-			NegSPointX: negSPoint.X, NegSPointY: negSPoint.Y,
-			OutRRecX: rRec.X, OutRRecY: rRec.Y, OutRPRecX: rpRec.X, OutRPRecY: rpRec.Y,
+			Base1X: genPt.X, Base1Y: genPt.Y,
+			Base2X: negEPK.X, Base2Y: negEPK.Y,
+			OutX: rRec.X, OutY: rRec.Y,
 		},
 	}
 }

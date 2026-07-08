@@ -1,13 +1,13 @@
 [
  [
-  "edwards-denominator-1plus-w39-nonzero",
+  "edwards-denominator-1plus-rung1-base1-w27-nonzero",
   [
    "rassert",
    [
     "rneq",
     [
      "rvar",
-     39
+     27
     ],
     [
      "rint",
@@ -17,14 +17,14 @@
   ]
  ],
  [
-  "edwards-denominator-1minus-w39-nonzero",
+  "edwards-denominator-1minus-rung1-base1-w27-nonzero",
   [
    "rassert",
    [
     "rneq",
     [
      "rvar",
-     39
+     27
     ],
     [
      "rint",
@@ -34,14 +34,14 @@
   ]
  ],
  [
-  "edwards-denominator-1plus-w59-nonzero",
+  "edwards-denominator-1plus-rung1-base2-w47-nonzero",
   [
    "rassert",
    [
     "rneq",
     [
      "rvar",
-     59
+     47
     ],
     [
      "rint",
@@ -51,14 +51,14 @@
   ]
  ],
  [
-  "edwards-denominator-1minus-w59-nonzero",
+  "edwards-denominator-1minus-rung1-base2-w47-nonzero",
   [
    "rassert",
    [
     "rneq",
     [
      "rvar",
-     59
+     47
     ],
     [
      "rint",
@@ -68,14 +68,14 @@
   ]
  ],
  [
-  "edwards-denominator-1plus-w72-nonzero",
+  "edwards-denominator-1plus-final-add-w60-nonzero",
   [
    "rassert",
    [
     "rneq",
     [
      "rvar",
-     72
+     60
     ],
     [
      "rint",
@@ -85,116 +85,14 @@
   ]
  ],
  [
-  "edwards-denominator-1minus-w72-nonzero",
+  "edwards-denominator-1minus-final-add-w60-nonzero",
   [
    "rassert",
    [
     "rneq",
     [
      "rvar",
-     72
-    ],
-    [
-     "rint",
-     1
-    ]
-   ]
-  ]
- ],
- [
-  "edwards-denominator-1plus-w85-nonzero",
-  [
-   "rassert",
-   [
-    "rneq",
-    [
-     "rvar",
-     85
-    ],
-    [
-     "rint",
-     8444461749428370424248824938781546531375899335154063827935233455917409239040
-    ]
-   ]
-  ]
- ],
- [
-  "edwards-denominator-1minus-w85-nonzero",
-  [
-   "rassert",
-   [
-    "rneq",
-    [
-     "rvar",
-     85
-    ],
-    [
-     "rint",
-     1
-    ]
-   ]
-  ]
- ],
- [
-  "edwards-denominator-1plus-w105-nonzero",
-  [
-   "rassert",
-   [
-    "rneq",
-    [
-     "rvar",
-     105
-    ],
-    [
-     "rint",
-     8444461749428370424248824938781546531375899335154063827935233455917409239040
-    ]
-   ]
-  ]
- ],
- [
-  "edwards-denominator-1minus-w105-nonzero",
-  [
-   "rassert",
-   [
-    "rneq",
-    [
-     "rvar",
-     105
-    ],
-    [
-     "rint",
-     1
-    ]
-   ]
-  ]
- ],
- [
-  "edwards-denominator-1plus-w118-nonzero",
-  [
-   "rassert",
-   [
-    "rneq",
-    [
-     "rvar",
-     118
-    ],
-    [
-     "rint",
-     8444461749428370424248824938781546531375899335154063827935233455917409239040
-    ]
-   ]
-  ]
- ],
- [
-  "edwards-denominator-1minus-w118-nonzero",
-  [
-   "rassert",
-   [
-    "rneq",
-    [
-     "rvar",
-     118
+     60
     ],
     [
      "rint",

@@ -178,26 +178,25 @@ func (c *AckTwoStepGadget) Define(api frontend.API) error {
 	return nil
 }
 
-// DLEQGadget probes the transfer DLEQ response seam: two scalar-multiplication
-// prefixes share the same response/challenge bits across the two response
-// equations, then each pair is joined by Edwards addition.
+// DLEQGadget probes one transfer DLEQ response equation: two
+// scalar-multiplication prefixes over the response/challenge bit pairs joined
+// by Edwards addition (s·B1 + c·B2). Both response equations have exactly this
+// shape, and sharing the s/c bits across two individually-deterministic
+// equations cannot introduce a free signal, so this one-equation probe covers
+// the response seam (composition note: COMPOSITE transfer-dleq in the Picus
+// report). The two-equation monolith stopped discharging after T1-a's
+// identity-seed ladder left its add denominators symbolic.
 type DLEQGadget struct {
-	SBit0      frontend.Variable `gnark:",public"`
-	SBit1      frontend.Variable `gnark:",public"`
-	CBit0      frontend.Variable `gnark:",public"`
-	CBit1      frontend.Variable `gnark:",public"`
-	GeneratorX frontend.Variable `gnark:",public"`
-	GeneratorY frontend.Variable `gnark:",public"`
-	AckX       frontend.Variable `gnark:",public"`
-	AckY       frontend.Variable `gnark:",public"`
-	NegEPKX    frontend.Variable `gnark:",public"`
-	NegEPKY    frontend.Variable `gnark:",public"`
-	NegSPointX frontend.Variable `gnark:",public"`
-	NegSPointY frontend.Variable `gnark:",public"`
-	OutRRecX   frontend.Variable
-	OutRRecY   frontend.Variable
-	OutRPRecX  frontend.Variable
-	OutRPRecY  frontend.Variable
+	SBit0  frontend.Variable `gnark:",public"`
+	SBit1  frontend.Variable `gnark:",public"`
+	CBit0  frontend.Variable `gnark:",public"`
+	CBit1  frontend.Variable `gnark:",public"`
+	Base1X frontend.Variable `gnark:",public"`
+	Base1Y frontend.Variable `gnark:",public"`
+	Base2X frontend.Variable `gnark:",public"`
+	Base2Y frontend.Variable `gnark:",public"`
+	OutX   frontend.Variable
+	OutY   frontend.Variable
 }
 
 func (c *DLEQGadget) Define(api frontend.API) error {
@@ -205,26 +204,17 @@ func (c *DLEQGadget) Define(api frontend.API) error {
 	api.AssertIsBoolean(c.SBit1)
 	api.AssertIsBoolean(c.CBit0)
 	api.AssertIsBoolean(c.CBit1)
-	generator := gnarkte.Point{X: c.GeneratorX, Y: c.GeneratorY}
-	ack := gnarkte.Point{X: c.AckX, Y: c.AckY}
-	negEPK := gnarkte.Point{X: c.NegEPKX, Y: c.NegEPKY}
-	negSPoint := gnarkte.Point{X: c.NegSPointX, Y: c.NegSPointY}
-	assertDecafPointOnCurve(api, generator)
-	assertDecafPointOnCurve(api, ack)
-	assertDecafPointOnCurve(api, negEPK)
-	assertDecafPointOnCurve(api, negSPoint)
+	base1 := gnarkte.Point{X: c.Base1X, Y: c.Base1Y}
+	base2 := gnarkte.Point{X: c.Base2X, Y: c.Base2Y}
+	assertDecafPointOnCurve(api, base1)
+	assertDecafPointOnCurve(api, base2)
 
-	sG, _ := scalarMulTwoStepPrefix(api, generator, c.SBit0, c.SBit1)
-	cEPK, _ := scalarMulTwoStepPrefix(api, negEPK, c.CBit0, c.CBit1)
-	rRec := edwardsAddMirror(api, sG, cEPK)
-	sAck, _ := scalarMulTwoStepPrefix(api, ack, c.SBit0, c.SBit1)
-	cSPoint, _ := scalarMulTwoStepPrefix(api, negSPoint, c.CBit0, c.CBit1)
-	rpRec := edwardsAddMirror(api, sAck, cSPoint)
+	sB1, _ := scalarMulTwoStepPrefix(api, base1, c.SBit0, c.SBit1)
+	cB2, _ := scalarMulTwoStepPrefix(api, base2, c.CBit0, c.CBit1)
+	rec := edwardsAddMirror(api, sB1, cB2)
 
-	api.AssertIsEqual(rRec.X, c.OutRRecX)
-	api.AssertIsEqual(rRec.Y, c.OutRRecY)
-	api.AssertIsEqual(rpRec.X, c.OutRPRecX)
-	api.AssertIsEqual(rpRec.Y, c.OutRPRecY)
+	api.AssertIsEqual(rec.X, c.OutX)
+	api.AssertIsEqual(rec.Y, c.OutY)
 	return nil
 }
 
