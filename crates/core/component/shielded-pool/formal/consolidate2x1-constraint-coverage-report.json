@@ -885,9 +885,9 @@
     "circuit": "consolidate2x1",
     "sr1cs_sha256_hex": "1019bf22b25e1c5229859f7fd8366003e817c6667438f9927fbb2a4be7734037",
     "total_obligations": 49,
-    "discharged": 48,
+    "discharged": 49,
     "functional_assumptions": 0,
-    "pending": 1,
+    "pending": 0,
     "unmapped": 0,
     "constant_mismatch": 0,
     "instance_unpinned": 0,
@@ -1567,7 +1567,9 @@
         "relation_sha256_hex": "2f20c7c26088dd1c944a5f8a3f3646c72fa80190ea13843a81b697f2ec4e9885",
         "wire_role_sha256_hex": "18c787991df932d10a86feb65d6ae17748e166e3d0291abb5416d89ae5add96a",
         "verdict": {
-          "kind": "pending"
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst52_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg52"
         }
       },
       {

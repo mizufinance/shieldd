@@ -54,12 +54,6 @@ finish a task: commit, delete its section here, and add one dated line under
 
 ## Active queue (in order)
 
-### Q1 — seg52 downstream rebuild + Task 10 gate battery
-Once frontier reports keystone + capstone green: run the full gate battery for
-T1-a (manifest diff must show ONLY seg52-family flips), prover round-trip,
-record before/after constraint counts and wall-time-per-tier in
-`docs/soundness/optimization-playbook.md` §5. Usual lake discipline.
-
 ### Q2 — Task 11 clean Picus regen
 Re-run the 24-leaf Picus battery against the post-T1-a `.sr1cs` inputs; input
 fingerprints + wiring cert must re-stamp clean (24/24). Note: T1-a changed the
@@ -168,6 +162,10 @@ changing what any gate checks.
 
 ## Recently completed
 
+- 2026-07-08: Q1 done — seg52 class flipped to proven (`inst52_bound`),
+  coverage report 49/49 discharged, stamps refreshed, diff containment GREEN
+  (57,329 identical to pins), full gate battery + prover round-trip GREEN;
+  §5 T1-a row landed (record: `docs/soundness/records/t1a-gate-record.md`).
 - 2026-07-07: Q3 F-1 checkpoint closed out — `census` mode confirmed
   byte-identical to standalone `fv-census.py` on consolidate2x1; exact-dup
   and net-balance x4 triage confirmed already recorded in the playbook
@@ -181,8 +179,6 @@ changing what any gate checks.
   fidelity rows, CI workflow, release checklist); Tasks 11/12 Picus input
   fingerprints + wiring cert; Alloy H2 transfer instantiation; T1-b VOID /
   T1-c no-dead-output verdicts.
-- 2026-07-06: seg52 keystone root cause fixed by frontier (−640 hand-authored
-  wire shift; lesson = hard rule 8).
 
 ## Blocked
 

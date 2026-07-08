@@ -420,13 +420,13 @@
     {
       "class_key": "decaf.net_balance_commitment@72fe1288e66d0e52",
       "op": "decaf.net_balance_commitment",
-      "status": "pending",
+      "status": "proven",
       "assumption_id": "",
       "shape_sha256_hex": "72fe1288e66d0e527017bca53324702669cf3ae5a415d2f3a8570d4ef5298692",
       "instances": [
         {
           "segment_index": 52,
-          "lean_theorem": "",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst52_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg52",
           "constant_vector_sha256_hex": "1f315ac3616448676e5e877161b3a9a4ec9b68f247423fcceec60b4164b229bb",
           "relation_sha256_hex": "2f20c7c26088dd1c944a5f8a3f3646c72fa80190ea13843a81b697f2ec4e9885",

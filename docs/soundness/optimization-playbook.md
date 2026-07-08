@@ -607,7 +607,7 @@ record; distill it into a row here on commit.
 
 | Opt | Landed | Rows before → after (Δ) | Prover wall time before → after | Proof size | Segments flipped | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| T1-a seed-ladder elimination | pending gate battery | 57,969 → 57,329 (−640, −1.1%) | TBD (bench with `gnarkctl replay --mode prove`) | unchanged (Groth16) | seg52 family | shared fn: also flips transfer/ics20 net-balance segs |
+| T1-a seed-ladder elimination | 2026-07-08 (gate battery GREEN, record: `records/t1a-gate-record.md`) | 57,969 → 57,329 (−640, −1.1%) | no pre-T1-a bench; post: 142–161 ms (`gnarkctl replay --mode prove`, 3 runs, no accel) | unchanged (Groth16) | seg52 family | shared fn: also flips transfer/ics20 net-balance segs; 49/49 discharged post-flip |
 
 ## 6. Measurement discipline
 
