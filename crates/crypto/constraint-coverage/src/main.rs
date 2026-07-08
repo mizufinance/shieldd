@@ -224,12 +224,19 @@ fn main() -> anyhow::Result<()> {
             manifest.circuit
         );
         let rows = parse_rows(&sr1cs).context("parse rows for lt seating")?;
-        const DTK_OFFSET: usize = 13677;
         const DTK_ROWS: usize = 6329;
+        let ir = build_ir(&manifest, &sr1cs).context("build deployed-slice IR for lt seating")?;
+        let dtk_offset = ir
+            .segments
+            .iter()
+            .find(|s| s.op == "decaf.diversified_transmission_key")
+            .context("no decaf.diversified_transmission_key segment in IR")?
+            .start;
         let dtk = rows
-            .get(DTK_OFFSET..DTK_OFFSET + DTK_ROWS)
+            .get(dtk_offset..dtk_offset + DTK_ROWS)
             .context("DTK segment slice out of range for lt seating")?;
-        let seating = shieldd_constraint_coverage::ltchain::consolidate2x1_lt_seating_json(dtk)
+        let seating =
+            shieldd_constraint_coverage::ltchain::consolidate2x1_lt_seating_json(dtk, dtk_offset)
             .map_err(anyhow::Error::msg)
             .context("recover + gate lt-compare ladders")?;
         let mut data = serde_json::to_vec_pretty(&seating)?;

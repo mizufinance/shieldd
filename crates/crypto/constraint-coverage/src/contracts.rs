@@ -514,15 +514,22 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
     // Tier-3 inherent-topology gate: recover and parity-check the consolidate2x1
     // DTK canonicity ladders at extraction time (fail-closed), the analogue of
     // `structure_lc`'s in-line parity assert.
-    // DTK segment slice `[13677, 13677+6329)`; ladder rows are DTK-relative. The
-    // ladders exist only in the full deployed artifact; the slice bound doubles
-    // as the guard that this is the real circuit, not a synthetic fixture.
-    const DTK_OFFSET: usize = 13677;
+    // The DTK segment's row range moves whenever gnark's constraint-emission
+    // order changes (e.g. hoisting DTK computation earlier), so its offset is
+    // located from the IR by op rather than pinned to a constant — the slice
+    // bound still doubles as the guard that this is the real circuit, not a
+    // synthetic fixture (a missing/short DTK segment falls through to `None`).
     const DTK_ROWS: usize = 6329;
     if ir.circuit == "consolidate2x1" {
-        if let Some(dtk) = rows.get(DTK_OFFSET..DTK_OFFSET + DTK_ROWS) {
-            crate::ltchain::verify_consolidate2x1_lt_ladders(dtk)
-                .map_err(CoverageError::LtLadderParity)?;
+        if let Some(dtk_segment) = ir
+            .segments
+            .iter()
+            .find(|s| s.op == "decaf.diversified_transmission_key")
+        {
+            if let Some(dtk) = rows.get(dtk_segment.start..dtk_segment.start + DTK_ROWS) {
+                crate::ltchain::verify_consolidate2x1_lt_ladders(dtk)
+                    .map_err(CoverageError::LtLadderParity)?;
+            }
         }
     }
     Ok(files)

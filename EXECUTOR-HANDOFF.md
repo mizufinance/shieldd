@@ -121,6 +121,113 @@ keystone build mentioned in "Current state" above) that it should get its own
 session rather than be folded into a quick pass — flagging here rather than
 attempting a rushed Lean regen.
 
+**2026-07-08 follow-up session — mechanical scope confirmed, materially bigger
+than "downstream shift after 34" (STOPPING here, do not rush the Lean layer):**
+
+Ran step 1 (`go run ./cmd/gnarkctl export-r1cs`/`export-manifest`, from
+`tools/gnark/`) — this is committed as **uncommitted working-tree changes**
+(not yet committed, intentionally, since the Lean layer would be inconsistent
+with them): `tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs` and
+`consolidate2x1-manifest.json`, 44,665 constraints, matching commit `48aede47d`'s
+Go fixtures exactly. Confirmed via
+`cargo run -p shieldd-constraint-coverage -- --manifest ... --sr1cs ... --ir-out /tmp/...`
+that the extractor's parity gate (round-trip independence check) passes clean
+against the new `.sr1cs` — no relation-shape surprises in the new circuit.
+
+**Critical correction to the inventory's assumption:** hoisting DTK into
+`Define()` did not just delete segments 34/36/45/47 and shift everything
+after — it changed gnark's constraint-emission ORDER, because the
+once-per-circuit DTK computation now emits early (near the shared setup),
+not interleaved with per-note processing where segment 16 used to sit. Ran
+`cargo run -p shieldd-constraint-coverage -- --coverage-manifest-normalize
+crates/core/component/shielded-pool/formal/consolidate2x1-coverage-manifest.json
+--coverage-manifest-out /tmp/consolidate2x1-coverage-manifest.json` (plus the
+same `--manifest`/`--sr1cs`/`--ir-out` flags) — this correctly collapses the
+DTK class (3 instances -> 1) and its consumer-assert class (3 -> 1) by
+`class_key` (a semantic shape hash, order-independent), confirming the T1-d
+soundness argument mechanically. But `normalize_manifest` keys **within** a
+class by literal `segment_index`, so for every OTHER class (all still proven,
+all still needing every instance's `lean_theorem` non-empty per
+`obligations.rs::check_obligations`), only instances whose new index happens
+to numerically coincide with an old index keep their theorem name — the rest
+got silently blanked to `""` (would fail `TheoremMissing` if committed as-is).
+Full old->new mapping for all 17 obligation classes (all `proven`, all
+consolidate2x1) confirmed by diffing old vs. normalized manifest instance
+lists positionally (sorted ascending both sides — same count on both sides
+except the two DTK-family classes which shrink 3->1):
+
+| class (op) | old segs | new segs |
+|---|---|---|
+| assert.eq@06c76cb... | 8,26,44 | 10,26,42 |
+| assert.eq@3c90b3a... | 10,28 | 12,28 |
+| assert.eq@745c866... | 21 | 21 |
+| assert.eq@798349... | 12,30 | 14,30 |
+| assert.eq@944014b... | 39,50 | 37,46 |
+| assert.eq@fcdce01... | 60 | 56 |
+| decaf.assert_equivalent@33ce4e8... (DTK consumer) | 18,36,47 | 6 (only) |
+| decaf.assert_equivalent@cddeba6... | 14,19,20,32,37,38,48,49,53 | 16,19,20,32,35,36,44,45,49 |
+| decaf.assert_on_curve@e37c7dd... | 2,3,4,17,35,46 | 2,3,4,18,34,43 |
+| decaf.compress_to_field@c7b7ae... | 6,15,24,33,42,54 | 8,17,24,33,40,50 |
+| decaf.diversified_transmission_key | 16,34,45 | 5 (only) |
+| decaf.net_balance_commitment | 52 | 48 |
+| decaf.randomized_verification_key | 13,31 | 15,31 |
+| gadget.note_commitment | 7,25,43 | 9,25,41 |
+| gadget.nullifier | 9,27 | 11,27 |
+| gadget.state_commitment_path | 11,29 | 13,29 |
+| statement.hash | 59 | 55 |
+
+This table only covers constraint-bearing (obligation) segments — it is NOT
+a complete old->new map of all 60/56 segment slots (marker/glue segments with
+0 constraints are excluded and still need mapping from the fresh IR before any
+Lean file touches them).
+
+**Why this is bigger than the inventory assumed:** every one of the ~9
+per-family Lean generators under `tools/gnark/lean/gen/` (`gen_dtk_slice.py`,
+`gen_consolidate_compress_adapters.py`, `gen_rvk_deployed_adapters.py`,
+`gen_scp_adapters.py`, `gen_nb_slice.py`, `gen_consolidate_poseidon_adapters.py`,
+`gen_note_commitment_semantic.py`, `gen_wiring.py`, `gen_capstone.py`) is keyed
+by an explicit `INSTANCES` tuple of segment numbers (plus, for DTK, hand-picked
+`internal_base`/`div_x`/`div_y`/`following_seg` wire offsets per instance) —
+**every one of these needs its INSTANCES tuple (and DTK's per-instance wire
+offsets, which must be re-derived from the fresh IR, not assumed unchanged)
+updated to the new numbers**, then rerun, then the stale old-numbered files
+(`DtkAdapterSeg34*`/`DtkAdapterSeg45*`, all 617 files each, plus every other
+family's stale `Seg{old}`-named output) deleted, then the hand-authored
+`Bounds.lean`/`Wiring.lean`/`Statement.lean`/`Specs/*.lean` re-pointed from
+`Seg{old}`/`inst{old}_bound` to `Seg{new}`/`inst{new}_bound` per the table
+above, then the capstone (`consolidate2x1_deployed_sound`) and Statement layer
+rebuilt end to end. This is a full-circuit Lean re-derivation, not a
+downstream-shift patch — **do not attempt without a dedicated session**,
+one `lake` at a time, `LEAN_NUM_THREADS=1`, per `tools/gnark/lean/AGENTS.md`.
+
+**State left for the next session:** `tools/gnark/artifacts/consolidate2x1/
+consolidate2x1.sr1cs` and `consolidate2x1-manifest.json` are modified in the
+working tree (verified correct/matching Go, NOT committed — the Lean layer is
+not yet consistent with them, so committing now would leave the tree failing
+gates with no compensating fix). No Lean files touched. No commit made this
+session. Next session: start from the IR at `/tmp` this session left behind
+is gone (scratch), but regenerating it is one `cargo run` (~seconds, see
+command above) — re-run it first, then use the class table above as the
+starting map, extract the full marker-segment mapping from the fresh IR, and
+work generator-by-generator.
+
+**2026-07-08 third session (interrupted by session limit) — WIP checkpoint
+commit:** stage-1 artifacts regenerated and committed as WIP: `.sr1cs` +
+gnark manifest (44,665), deployed-slice IR / coverage-manifest /
+constraint-coverage-report JSONs, and an extractor fix that unpins the
+hardcoded DTK row offset 13677 in `constraint-coverage/src/{contracts,ltchain,
+main}.rs` (DTK segment now located from the IR by op; 6329-row fail-closed
+parity gate unchanged). KNOWN RED at this checkpoint, by design: (a) 7
+`shieldd-constraint-coverage` tests pin pre-T1-d row offsets against the real
+`.sr1cs` (ltchain real-sr1cs recovery x3, rowmap rvk slice, rvkfixed emit x3
+— e.g. index 54249 vs len 44,665) — retable them with the new offsets; (b)
+the regenerated coverage-manifest has blanked `lean_theorem` names for
+renumbered instances (normalize keys by literal segment_index) — the Lean
+regen + manifest re-point must restore them; (c) entire Lean layer still
+pre-T1-d. fv-opt-loop gates stay RED until the Lean stage lands. Remote is
+NOT touched: origin sits at the fully-green Q2 stamp (2ff6e5492); do not push
+until gates are green.
+
 ### Q3 checkpoint (2026-07-07, frontier session, mid-flight)
 State of the wait-time work stream, resumable by executor:
 - **fv-opt-loop diff phase now supports deletions** (commit 30cee42b9):
