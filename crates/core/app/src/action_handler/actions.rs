@@ -8,8 +8,6 @@ use shieldd_sdk_shielded_pool::component::Ics20Transfer;
 use shieldd_sdk_transaction::Action;
 use shieldd_sdk_txhash::TransactionContext;
 
-mod submit;
-
 use crate::ShielddHost;
 
 use super::AppActionHandler;
@@ -25,8 +23,9 @@ impl AppActionHandler for Action {
             Action::Consolidate(action) => action.check_stateless(context).await,
             Action::Split(action) => action.check_stateless(context).await,
             Action::ValidatorDefinition(action) => action.check_stateless(()).await,
-            Action::ValidatorVote(action) => action.check_stateless(()).await,
-            Action::ProposalSubmit(action) => action.check_stateless(()).await,
+            Action::ValidatorVote(_) | Action::ProposalSubmit(_) => {
+                bail!("governance actions are disabled in host-driven Shieldd")
+            }
             Action::IbcRelay(action) => {
                 action
                     .clone()
@@ -49,8 +48,9 @@ impl AppActionHandler for Action {
             Action::Consolidate(_) => Ok(()),
             Action::Split(_) => Ok(()),
             Action::ValidatorDefinition(action) => action.check_historical(state).await,
-            Action::ValidatorVote(action) => action.check_historical(state).await,
-            Action::ProposalSubmit(action) => action.check_historical(state).await,
+            Action::ValidatorVote(_) | Action::ProposalSubmit(_) => {
+                bail!("governance actions are disabled in host-driven Shieldd")
+            }
             Action::IbcRelay(action) => {
                 action
                     .clone()
@@ -73,8 +73,9 @@ impl AppActionHandler for Action {
             Action::Consolidate(action) => action.check_and_execute(state).await,
             Action::Split(action) => action.check_and_execute(state).await,
             Action::ValidatorDefinition(action) => action.check_and_execute(state).await,
-            Action::ValidatorVote(action) => action.check_and_execute(state).await,
-            Action::ProposalSubmit(action) => action.check_and_execute(state).await,
+            Action::ValidatorVote(_) | Action::ProposalSubmit(_) => {
+                bail!("governance actions are disabled in host-driven Shieldd")
+            }
             Action::IbcRelay(action) => {
                 action
                     .clone()

@@ -16,7 +16,6 @@ component = [
   "shieldd-sdk-compact-block/component",
   "shieldd-sdk-compliance/component",
   "shieldd-sdk-fee/component",
-  "shieldd-sdk-governance/component",
   "shieldd-sdk-ibc/component",
   "shieldd-sdk-ibc/rpc",
   "shieldd-sdk-sct/component",
