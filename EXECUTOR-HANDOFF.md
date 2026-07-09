@@ -411,6 +411,67 @@ This resolves itself as step (6) above ("re-stamp every `.sha256` sidecar")
 completes — do not attempt to "fix" it by reverting the vk regen or
 weakening the check.
 
+**`gen_nb_slice.py` (seg52->seg48) — wire delta DERIVED, generator NOT yet
+edited (2,078 lines, dozens of interdependent hardcoded literals — too large
+to safely rush in a single pass):**
+
+Using the same diff-two-contracts method as SCP: retrieved the pre-regen
+`Seg52.lean` from git history (`git show de3a9ad2b~1:.../Seg52.lean`, since
+the base-contract regen commit deleted it) and diffed it positionally
+against the fresh `Seg48.lean` (both exactly 7961 rows, zero arity
+mismatches). Clean two-value split, zero conflicts:
+- **External/public wires — delta 0 (unchanged):** `{5, 15, 16, 105, 193}`
+  = `BLIND_WIRE=5`, value-ladder `amount_wire`s `15/105/193` (in0/in1/out0),
+  `ASSET_ID_WIRE=16`. These sit before the DTK hoist point so they don't
+  shift, consistent with the DTK/RVK/SCP pattern above.
+- **Internal wires — delta -11632 (i.e. `new = old - 11632`):** every wire
+  in range `44566..52348` (7,783 wires). Confirmed `OUT_X_WIRE/OUT_Y_WIRE`
+  `52347/52348` are in this set (they're the last-referenced wires).
+- **Row indices are separately shifted by -12664** (`SEG_START` 47848 ->
+  35184, matching the already-committed `rvkfixed.rs` finding above) — do
+  NOT confuse the row-delta with the wire-delta, they are different numbers
+  for different index spaces. All the file's `*_ROWS`/`*_ROW` constants
+  (`BINARY_ROWS`, `COPY_ROW`, `FINAL_ADD_ROWS`, `POSEIDON_PREFIX_ROWS`,
+  `ENCODE_BINARY_ROWS`, etc.) are **segment-relative** (0-indexed from
+  `SEG_START`), confirmed unaffected by the zero-arity-mismatch diff above
+  — only `SEG_START` itself needs the row-index update, none of the
+  in-segment row offsets.
+
+**Concrete literal-by-literal edit list for the next session** (apply
+`new = old - 11632` to every wire constant, leave every row constant and
+every external/public wire alone):
+- `SEG_START, ROW_COUNT = 47848, 7961` -> `SEG_START = 35184` (ROW_COUNT
+  unchanged)
+- `OUT_X_WIRE, OUT_Y_WIRE = 52347, 52348` -> `40715, 40716`
+- `VALUE_LADDERS` bit_base/acc_x_start columns: `45168->33536`,
+  `46954->35322`, `48746->37114` (bit_base); `45296->33664`,
+  `47082->35450`, `48874->37242` (acc_x_start); amount_wire (15/105/193)
+  and all row-tuple fields unchanged
+- `BLIND_BIT_BASE = 50538` -> `38906`; `BLIND_ACCS` formula bases
+  `50792->39160`, `51540->39908` (stride/count unchanged); `BLIND_WIRE=5`
+  and `BLIND_BINARY_ROWS`/`BLIND_COPY_ROW` unchanged
+- `ENCODE_INPUT_WIRE = 44814` -> `33182`; `ENCODE_BIT_BASE = 44818` ->
+  `33186`; `ENCODE_OUTPUT_X = 45162` -> `33530`; `ENCODE_OUTPUT_Y = 45164`
+  -> `33532`; `ENCODE_BINARY_ROWS`/`ENCODE_COPY_ROW` unchanged
+- Poseidon-adapter output wires `44790`/`44795` (appear 4x in the file,
+  lines ~203/321/322/336/439 as of this session) -> `33158`/`33163`
+- All `Seg52`/`seg52` string literals (module names, import paths like
+  `NbAdapterSeg52Base`, theorem names `seg52_poseidon_eq`, doc references)
+  -> `Seg48`/`seg48`; all output-file names (`NbAdapterSeg52*`) -> `Seg48`
+- Re-run, then delete the ~617 stale `NbAdapterSeg52*.lean` files per the
+  handoff's earlier count estimate.
+
+**Why this session stopped before editing `gen_nb_slice.py` itself:** the
+file has ~40+ distinct wire-literal occurrences interleaved with row
+literals and string literals across 2,078 lines (compare: DTK needed ~8
+edits, RVK ~15, SCP ~5) — a blind bulk find-replace risks silently
+corrupting a row-literal that looks like a wire-literal (both are bare
+integers) or missing a literal embedded in an f-string/comment. This needs
+a careful line-by-line pass with the edit list above as a checklist, not a
+regex sweep, and was deprioritized this session in favor of documenting the
+now-fully-derived delta so the next session can execute the edit list
+directly without any further forensic work.
+
 ### Q3 checkpoint (2026-07-07, frontier session, mid-flight)
 State of the wait-time work stream, resumable by executor:
 - **fv-opt-loop diff phase now supports deletions** (commit 30cee42b9):
