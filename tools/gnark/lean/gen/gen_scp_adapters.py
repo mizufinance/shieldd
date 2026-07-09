@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deployed state-commitment-path adapters for consolidate2x1 segs 11/29.
+"""Generate deployed state-commitment-path adapters for consolidate2x1 segs 13/29.
 
 Each seg is one 9015-row Merkle slice: leaf Poseidon1 (rows 0-229), 48-bit
 position decomposition (230-277) + recompose (278), then 24 levels of
@@ -15,7 +15,7 @@ abstract QuadPath24 here, so composition folds the per-height
 
 All wire seats are parsed fail-closed from each instance's own contract
 (`Seg{N}.lean`); cross-instance consistency is asserted against the shared
-slice-module numbering (seg29 = seg11 seats +90 / internals +18700).
+slice-module numbering (seg29 = seg13 seats +90 / internals +12884).
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ NODE_C = (
     "7600015574485533381823942444903391878238309401638657445141710110325668315137",
 )
 
-INSTANCES = (11, 29)
+INSTANCES = (13, 29)
 
 HEADER_OPTS = [
     "set_option maxRecDepth 1000000",
@@ -103,7 +103,7 @@ def row_out(body: str) -> int:
 
 
 def leaf_cont_wires() -> tuple[int, int]:
-    """The two lane wires the leaf slice's continuation binds (seg11 numbering)."""
+    """The two lane wires the leaf slice's continuation binds (seg13 numbering)."""
     text = (EXTRACTED / f"{LEAF_STEM}.lean").read_text()
     match = re.findall(r"=>\s*k (w\d+) (w\d+)\)", text)
     if not match:
@@ -112,7 +112,7 @@ def leaf_cont_wires() -> tuple[int, int]:
 
 
 def node_cont_wires(k: int) -> tuple[int, ...]:
-    """The five s38_1 lane wires node k's continuation binds (seg11 numbering)."""
+    """The five s38_1 lane wires node k's continuation binds (seg13 numbering)."""
     text = (EXTRACTED / f"{node_stem(k)}.lean").read_text()
     match = re.findall(r"=>\s*k (w\d+) (w\d+) (w\d+) (w\d+) (w\d+)\)", text)
     if not match:
@@ -121,9 +121,9 @@ def node_cont_wires(k: int) -> tuple[int, ...]:
 
 
 def wire_map(seg: int, wire: int) -> int:
-    if seg == 11:
+    if seg == 13:
         return wire
-    return wire + 90 if wire < 1653 else wire + 18700
+    return wire + 90 if wire < 1653 else wire + 12884
 
 
 class Level:
