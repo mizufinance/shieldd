@@ -134,6 +134,62 @@ impl ::prost::Name for DepositResponse {
         "/shieldd.execution_client.v1.DepositResponse".into()
     }
 }
+/// CheckTxRequest carries a Shieldd transaction to validate without applying
+/// state changes.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckTxRequest {
+    /// Raw Shieldd transaction bytes.
+    #[prost(bytes = "vec", tag = "1")]
+    pub tx: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for CheckTxRequest {
+    const NAME: &'static str = "CheckTxRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.CheckTxRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.CheckTxRequest".into()
+    }
+}
+/// CheckTxResponse contains the Shieldd transaction admission result.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckTxResponse {
+    /// Non-zero when Shieldd rejected the transaction.
+    #[prost(uint32, tag = "1")]
+    pub code: u32,
+    /// Response data emitted by the transaction.
+    #[prost(bytes = "vec", tag = "2")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+    /// Human-readable validation log.
+    #[prost(string, tag = "3")]
+    pub log: ::prost::alloc::string::String,
+    /// Additional validation information.
+    #[prost(string, tag = "4")]
+    pub info: ::prost::alloc::string::String,
+    /// Gas requested by the transaction.
+    #[prost(int64, tag = "5")]
+    pub gas_wanted: i64,
+    /// Gas consumed by validation.
+    #[prost(int64, tag = "6")]
+    pub gas_used: i64,
+    /// Events emitted during transaction validation.
+    #[prost(message, repeated, tag = "7")]
+    pub events: ::prost::alloc::vec::Vec<Event>,
+    /// Module or subsystem that produced a non-zero code.
+    #[prost(string, tag = "8")]
+    pub codespace: ::prost::alloc::string::String,
+}
+impl ::prost::Name for CheckTxResponse {
+    const NAME: &'static str = "CheckTxResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.CheckTxResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.CheckTxResponse".into()
+    }
+}
 /// DeliverTxRequest carries a Shieldd transaction supplied by the host chain.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeliverTxRequest {
@@ -540,6 +596,37 @@ pub mod execution_client_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /// CheckTx validates a Shieldd transaction supplied by the host chain without
+        /// applying state changes.
+        pub async fn check_tx(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CheckTxRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CheckTxResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClient/CheckTx",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClient",
+                        "CheckTx",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         /// DeliverTx applies a Shieldd transaction supplied by the host chain.
         pub async fn deliver_tx(
             &mut self,
@@ -726,6 +813,12 @@ pub mod execution_client_server {
             &self,
             request: tonic::Request<super::DepositRequest>,
         ) -> std::result::Result<tonic::Response<super::DepositResponse>, tonic::Status>;
+        /// CheckTx validates a Shieldd transaction supplied by the host chain without
+        /// applying state changes.
+        async fn check_tx(
+            &self,
+            request: tonic::Request<super::CheckTxRequest>,
+        ) -> std::result::Result<tonic::Response<super::CheckTxResponse>, tonic::Status>;
         /// DeliverTx applies a Shieldd transaction supplied by the host chain.
         async fn deliver_tx(
             &self,
@@ -962,6 +1055,51 @@ pub mod execution_client_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DepositSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClient/CheckTx" => {
+                    #[allow(non_camel_case_types)]
+                    struct CheckTxSvc<T: ExecutionClient>(pub Arc<T>);
+                    impl<
+                        T: ExecutionClient,
+                    > tonic::server::UnaryService<super::CheckTxRequest>
+                    for CheckTxSvc<T> {
+                        type Response = super::CheckTxResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CheckTxRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClient>::check_tx(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CheckTxSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

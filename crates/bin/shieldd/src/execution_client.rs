@@ -3,18 +3,20 @@ use std::sync::Arc;
 use anyhow::{ensure, Context as _, Result};
 use cnidarium::Storage;
 use shieldd_sdk_app::{
-    app::App, block_tx_indexing::BlockTxIndexingMode, genesis::AppState,
+    app::{App, CheckTxSharedContext},
+    block_tx_indexing::BlockTxIndexingMode,
+    genesis::AppState,
     stateless_cache::StatelessCache,
 };
 use shieldd_sdk_proto::{
     core::app::v1 as proto_app,
     execution_client::v1::{
         execution_client_server::ExecutionClient as ExecutionClientService, BeginBlockRequest,
-        BeginBlockResponse, CommitRequest, CommitResponse as ProtoCommitResponse, DeliverTxRequest,
-        DeliverTxResponse, DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse,
-        Event as ProtoEvent, EventAttribute as ProtoEventAttribute, ExportGenesisRequest,
-        ExportGenesisResponse, InitGenesisRequest, InitGenesisResponse, RollbackRequest,
-        RollbackResponse,
+        BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
+        CommitResponse as ProtoCommitResponse, DeliverTxRequest, DeliverTxResponse, DepositRequest,
+        DepositResponse, EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
+        EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
+        InitGenesisRequest, InitGenesisResponse, RollbackRequest, RollbackResponse,
     },
 };
 use tendermint::abci::{self, request};
@@ -196,6 +198,37 @@ impl ExecutionClient {
         })
     }
 
+    pub async fn check_tx(&self, tx_bytes: &[u8]) -> Result<ExecutionResponse> {
+        ensure!(
+            self.storage.latest_version() != u64::MAX,
+            "check_tx requires initialized storage"
+        );
+
+        let snapshot = self.storage.latest_snapshot();
+        let checktx_shared_context = match CheckTxSharedContext::load(&snapshot).await {
+            Ok(context) => Some(Arc::new(context)),
+            Err(error) => {
+                tracing::warn!(
+                    ?error,
+                    version = snapshot.version(),
+                    "CheckTxSharedContext unavailable; falling back to legacy CheckTx path"
+                );
+                None
+            }
+        };
+
+        let mut app = App::new(snapshot);
+        app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
+        if let Some(context) = checktx_shared_context {
+            app.set_checktx_shared_context(context);
+        }
+
+        let events = app
+            .deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))
+            .await?;
+        Ok(ExecutionResponse { events })
+    }
+
     pub async fn deliver_tx(&mut self, tx_bytes: &[u8]) -> Result<ExecutionResponse> {
         ensure!(
             self.phase == ExecutionPhase::InBlock,
@@ -311,6 +344,27 @@ impl ExecutionClientService for GrpcExecutionClient {
         Ok(Response::new(DepositResponse {
             deposit_id: response.deposit_id,
         }))
+    }
+
+    async fn check_tx(
+        &self,
+        request: Request<CheckTxRequest>,
+    ) -> std::result::Result<Response<CheckTxResponse>, Status> {
+        let inner = self.inner.lock().await;
+        let response = match inner.check_tx(&request.into_inner().tx).await {
+            Ok(response) => CheckTxResponse {
+                events: encode_events(response.events).map_err(internal)?,
+                ..Default::default()
+            },
+            Err(error) => CheckTxResponse {
+                code: 1,
+                log: format!("{error:#}"),
+                codespace: "shieldd".to_owned(),
+                ..Default::default()
+            },
+        };
+
+        Ok(Response::new(response))
     }
 
     async fn deliver_tx(
@@ -506,5 +560,35 @@ mod tests {
             .expect_err("missing time must be rejected");
 
         assert!(err.to_string().contains("missing begin_block time"));
+    }
+
+    #[tokio::test]
+    async fn check_tx_rejects_invalid_tx_without_entering_block() {
+        let storage = temp_storage().await;
+        let mut client = ExecutionClient::new(storage.deref().clone());
+
+        client.init_genesis(AppState::default()).await.unwrap();
+        client.commit().await.unwrap();
+
+        let err = client
+            .check_tx(b"not a shieldd transaction")
+            .await
+            .expect_err("invalid tx should be rejected");
+
+        assert!(err.to_string().contains("decoding transaction"));
+        assert_eq!(client.phase, ExecutionPhase::Idle);
+    }
+
+    #[tokio::test]
+    async fn check_tx_requires_initialized_storage() {
+        let storage = temp_storage().await;
+        let client = ExecutionClient::new(storage.deref().clone());
+
+        let err = client
+            .check_tx(&[])
+            .await
+            .expect_err("uninitialized storage should be rejected");
+
+        assert!(err.to_string().contains("initialized storage"));
     }
 }

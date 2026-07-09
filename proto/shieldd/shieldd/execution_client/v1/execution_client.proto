@@ -16,6 +16,9 @@ service ExecutionClient {
   // Deposit mints Shieldd notes for assets escrowed or burned by the host
   // chain.
   rpc Deposit(DepositRequest) returns (DepositResponse) {}
+  // CheckTx validates a Shieldd transaction supplied by the host chain without
+  // applying state changes.
+  rpc CheckTx(CheckTxRequest) returns (CheckTxResponse) {}
   // DeliverTx applies a Shieldd transaction supplied by the host chain.
   rpc DeliverTx(DeliverTxRequest) returns (DeliverTxResponse) {}
   // EndBlock finalizes the active Shieldd block.
@@ -80,6 +83,33 @@ message HostSource {
 message DepositResponse {
   // Deposit identifier used as the Shieldd commitment source transaction id.
   bytes deposit_id = 1;
+}
+
+// CheckTxRequest carries a Shieldd transaction to validate without applying
+// state changes.
+message CheckTxRequest {
+  // Raw Shieldd transaction bytes.
+  bytes tx = 1;
+}
+
+// CheckTxResponse contains the Shieldd transaction admission result.
+message CheckTxResponse {
+  // Non-zero when Shieldd rejected the transaction.
+  uint32 code = 1;
+  // Response data emitted by the transaction.
+  bytes data = 2;
+  // Human-readable validation log.
+  string log = 3;
+  // Additional validation information.
+  string info = 4;
+  // Gas requested by the transaction.
+  int64 gas_wanted = 5;
+  // Gas consumed by validation.
+  int64 gas_used = 6;
+  // Events emitted during transaction validation.
+  repeated Event events = 7;
+  // Module or subsystem that produced a non-zero code.
+  string codespace = 8;
 }
 
 // DeliverTxRequest carries a Shieldd transaction supplied by the host chain.
