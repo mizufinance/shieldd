@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Generate deployed DTK adapters for consolidate2x1 segments 16, 34, and 45.
+"""Generate the deployed DTK adapter for consolidate2x1 segment 5.
 
-The three slices have one normalized row shape.  Their internal witness ranges
-are translated from the seg16 template by an explicit seating table; the two
-DivGen inputs are the only non-shared external wires.  Generated Lean is split
-by semantic block so no theorem elaborates the complete 6,329-row relation.
+Post-T1-d: DTK computation is hoisted into `Define()` and computed once, so
+the three pre-T1-d instances (segments 16, 34, 45) collapse into a single
+segment-5 instance (its consumer-assert also collapses, segments 18/36/47
+-> 6). Generated Lean is split by semantic block so no theorem elaborates
+the complete 6,329-row relation.
 
 StructuredLC contract (see `AGENTS.md`, "Lean Circuit Proofs"): the base `Seg{N}.lean`
 now renders wide accumulator rows as `StructuredLC.eval rho { const, runs, residual }`
@@ -46,6 +47,9 @@ POSEIDON2 = FORMAL / "Poseidon2Bridge.lean"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 ROW_COUNT = 6329
 LADDER_BITS = 251
+# DTK segment's global row offset in the whole .sr1cs (was 13677 pre-T1-d;
+# DTK hoisting into Define() moved it to the front of emission order).
+DTK_GLOBAL_OFFSET = 12
 
 
 def write_generated(path: Path, contents: str) -> None:
@@ -54,10 +58,11 @@ def write_generated(path: Path, contents: str) -> None:
     path.write_text(contents)
 
 
-# Wire index of the seg16 (base) instance. `delta` measures every instance's
-# internal-witness offset relative to this base, so the ladder-accumulator seat
-# arithmetic reuses seg16's layout shifted by `delta`.
-BASE_INTERNAL = 13087
+# Wire index of the seg5 (only, post-T1-d) instance. `delta` measures every
+# instance's internal-witness offset relative to this base, so the
+# ladder-accumulator seat arithmetic reuses seg5's layout shifted by `delta`.
+# (Was 13087 for pre-T1-d seg16; DTK now emits near the circuit start.)
+BASE_INTERNAL = 210
 
 
 @dataclass(frozen=True)
@@ -103,9 +108,7 @@ class Instance:
 
 
 INSTANCES = (
-    Instance(16, BASE_INTERNAL, 17, 18, 18),
-    Instance(34, 31787, 107, 108, 36),
-    Instance(45, 38743, 195, 196, 47),
+    Instance(5, BASE_INTERNAL, 17, 18, 6),
 )
 
 
@@ -222,7 +225,7 @@ def normalized_row(body: str, cfg: Instance) -> str:
 
 
 def validate_normalized_shape() -> None:
-    template = relation_rows(16)
+    template = relation_rows(INSTANCES[0].seg)
     for cfg in INSTANCES[1:]:
         rows = relation_rows(cfg.seg)
         mismatches = [
@@ -969,7 +972,7 @@ def sr1cs_lc_rows() -> list[tuple[Lc, Lc, Lc]]:
         if line.strip().startswith("(constraint ")
     ]
     rows = []
-    for row in constraints[13677 : 13677 + ROW_COUNT]:
+    for row in constraints[DTK_GLOBAL_OFFSET : DTK_GLOBAL_OFFSET + ROW_COUNT]:
         rows.append(tuple(
             lc_clean({wire: int(coeff, 0) for coeff, wire in side}) for side in row
         ))
@@ -1082,7 +1085,7 @@ def dtk_scalar_rungs() -> tuple[ScalarRung, ...]:
     rungs: list[ScalarRung] = []
     cur_x, cur_y = 17, 18
     for index, (delta_x, delta_y) in enumerate(zip(xs, ys, strict=True)):
-        bit = 15292 + index
+        bit = BASE_INTERNAL + 2205 + index
         candidates = [
             row
             for row in range(2971, 6329)
@@ -1937,7 +1940,7 @@ def emit_ltc_step_function_range(
 def emit_q4_guard_theorem(
     lines: list[str], cfg: Instance, trace: LtcTrace,
 ) -> None:
-    q_guard_wires = [seat_wire(cfg, wire) for wire in (15289, 15290, 15291)]
+    q_guard_wires = [seat_wire(cfg, wire) for wire in (2412, 2413, 2414)]
     q_il0 = ltc_state_name(cfg, trace, "Il", 0)
     lines.extend([
         f"theorem seg{cfg.seg}Q4Guard (rho : Nat -> Seg{cfg.seg}.F) (k : Prop) "
@@ -2962,7 +2965,7 @@ def generate_poseidon_shape() -> tuple[str, list[list[int]]]:
         for line in SR1CS.read_text().splitlines()
         if line.strip().startswith("(constraint ")
     ]
-    start = 13677 + 1046
+    start = DTK_GLOBAL_OFFSET + 1046
     rows = all_rows[start : start + 270]
     if len(rows) != 270:
         raise ValueError("missing DTK Poseidon rows")
@@ -3043,7 +3046,7 @@ def generate_poseidon_shape() -> tuple[str, list[list[int]]]:
     EXTRACTED_DEPLOYED.mkdir(parents=True, exist_ok=True)
     write_generated(EXTRACTED_DEPLOYED / f"{module}.lean", "".join(lines))
 
-    if args[0] != [8, 13449, 13789]:
+    if args[0] != [8, 572, 912]:
         raise ValueError(f"unexpected DTK Poseidon live inputs {args[0]}")
     ranges: list[list[int]] = []
     current_range: list[int] = []
@@ -3065,8 +3068,8 @@ def generate_poseidon_shape() -> tuple[str, list[list[int]]]:
         "seg2round": seg2round,
         "ranges": ranges,
         "domain": "9361307723838134966014044876631201920149619",
-        "public_args": ["w8", "w13449", "w13789"],
-        "spec_inputs": ["w8", "w13789 - w13449"],
+        "public_args": ["w8", "w572", "w912"],
+        "spec_inputs": ["w8", "w912 - w572"],
         "seq": [
             "5629641166285580282832549959187697687583932890102709218623488970611606159361",
             "6333346312071277818186618704086159898531924501365547870951425091938056929281",
@@ -3111,7 +3114,7 @@ def seat_wire(cfg: Instance, template_wire: int) -> int:
         return cfg.div_x
     if template_wire == 18:
         return cfg.div_y
-    if template_wire >= 13087:
+    if template_wire >= BASE_INTERNAL:
         return template_wire + cfg.delta
     return template_wire
 
@@ -3123,8 +3126,8 @@ def emit_poseidon_adapter(
     final_row = 1316
     keep = set(range(first_row, final_row + 1))
     final_outputs = [outputs[-1] for outputs in sbox_outputs[-3:]]
-    compressed_pos = seat_wire(cfg, 13449)
-    compressed_neg = seat_wire(cfg, 13789)
+    compressed_pos = seat_wire(cfg, 572)
+    compressed_neg = seat_wire(cfg, 912)
     lines = [
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Base\n",
         "import ShielddGnarkFormal.Deployed.DtkIvkPoseidon.SemanticBridge\n\n",
