@@ -1,13 +1,13 @@
-import ShielddGnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e8acc1
+import ShielddGnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_20212c
 import ShielddGnarkFormal.Poseidon2Bridge
 
 namespace Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon
 
 open Shieldd.GnarkFormal.Poseidon2Bridge
 
-variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e8acc1.Order)]
+variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_20212c.Order)]
 
-abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e8acc1.F
+abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_20212c.F
 
 def ivkDomainLit : F := (9361307723838134966014044876631201920149619 : F)
 

@@ -1,0 +1,518 @@
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Acc
+import Mathlib.Tactic
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+
+theorem seg15_prefix_31_v2 (rho : Nat -> Seg15.F)
+    (r402 : Seg15.relationRow402 rho) :
+    (4581169201032225273346815198674222137244651689521475375102896469810765099874*rho 16387 + 6239473800542177955912286854217196612304894561077124215846141335882663981489*seg15AccX30 rho)*(7014478899807931017630156883840563490129767664606627483381858286107267060760 + 3705126959081868329560129378476674408048362276472695522288315318682167365101*rho 16387 + 7014478899807931017630156883840563490129767664606627483381858286107267060760*seg15AccY30 rho) = rho 16788 := by
+  rw [seg15AccX30_sum, seg15AccY30_sum]
+  unfold Seg15.relationRow402 at r402
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r402 ⊢
+  exact r402
+
+theorem seg15_prefix_31_addX (rho : Nat -> Seg15.F)
+    (r403 : Seg15.relationRow403 rho) :
+    rho 16789*(1 + rho 16788) = 7014478899807931017630156883840563490129767664606627483381858286107267060760 + 4036483349559716702726202916369721979329262896544758086694624634891391150373*rho 16387 + 2917515087207657242782997913936898453769403476043285566617773795384885965012*seg15AccX30 rho + 7014478899807931017630156883840563490129767664606627483381858286107267060760*seg15AccY30 rho := by
+  rw [add_assoc, seg15AccWeighted30]
+  unfold Seg15.relationRow403 at r403
+  simp only [Seg15.relationLc29, Seg15.relationLc29Part0, Seg15.relationLc29Part1] at r403
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r403 ⊢
+  exact r403
+
+theorem seg15_prefix_31_addY (rho : Nat -> Seg15.F)
+    (r404 : Seg15.relationRow404 rho) :
+    rho 16790*(1 + (-1)*rho 16788) = 2917515087207657242782997913936898453769403476043285566617773795384885965012 + 4721939043766132390365156950830445930758152113648870963101837212571466540881*rho 16387 + 7014478899807931017630156883840563490129767664606627483381858286107267060760*seg15AccX30 rho + 2917515087207657242782997913936898453769403476043285566617773795384885965012*seg15AccY30 rho := by
+  rw [add_assoc, seg15AccWeighted30]
+  unfold Seg15.relationRow404 at r404
+  simp only [Seg15.relationLc30, Seg15.relationLc30Part0, Seg15.relationLc30Part1] at r404
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r404 ⊢
+  exact r404
+
+theorem seg15_prefix_31_selX (rho : Nat -> Seg15.F)
+    (r405 : Seg15.relationRow405 rho) :
+    (1*rho 16418)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX30 rho + rho 16789) = rho 16791 := by
+  rw [seg15AccX30_sum]
+  unfold Seg15.relationRow405 at r405
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r405 ⊢
+  exact r405
+
+theorem seg15_prefix_31_selY (rho : Nat -> Seg15.F)
+    (r406 : Seg15.relationRow406 rho) :
+    (1*rho 16418)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY30 rho + rho 16790) = rho 16792 := by
+  rw [seg15AccY30_sum]
+  unfold Seg15.relationRow406 at r406
+  simp only [Seg15.relationLc31, Seg15.relationLc31Part0, Seg15.relationLc31Part1] at r406
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r406 ⊢
+  exact r406
+
+theorem seg15_prefix_32_v2 (rho : Nat -> Seg15.F)
+    (r407 : Seg15.relationRow407 rho) :
+    (7203414340787563976155236541638779635986213038456604732762385849135341147546*rho 16387 + 136614437469717025728540285685024726697946417222084284029518632750850413301*seg15AccX31 rho)*(4648071162727660542848380498583304381460872648196428650654098166653683272040 + 2540880036486131943961124182899818153723310999553178717815323475067300526429*rho 16387 + 4648071162727660542848380498583304381460872648196428650654098166653683272040*seg15AccY31 rho) = rho 16793 := by
+  rw [seg15AccX31_sum, seg15AccY31_sum]
+  unfold Seg15.relationRow407 at r407
+  simp only [Seg15.relationLc32, Seg15.relationLc32Part0, Seg15.relationLc32Part1] at r407
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r407 ⊢
+  exact r407
+
+theorem seg15_prefix_32_addX (rho : Nat -> Seg15.F)
+    (r408 : Seg15.relationRow408 rho) :
+    rho 16794*(1 + rho 16793) = 4648071162727660542848380498583304381460872648196428650654098166653683272040 + 3365069102581043717779498816644741510181603160285966327926452578638586080029*rho 16387 + 5199217301679655314838974818410910815321373952268712613122662610605472371741*seg15AccX31 rho + 4648071162727660542848380498583304381460872648196428650654098166653683272040*seg15AccY31 rho := by
+  rw [add_assoc, seg15AccWeighted31]
+  unfold Seg15.relationRow408 at r408
+  simp only [Seg15.relationLc33, Seg15.relationLc33Part0, Seg15.relationLc33Part1] at r408
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r408 ⊢
+  exact r408
+
+theorem seg15_prefix_32_addY (rho : Nat -> Seg15.F)
+    (r409 : Seg15.relationRow409 rho) :
+    rho 16795*(1 + (-1)*rho 16793) = 5199217301679655314838974818410910815321373952268712613122662610605472371741 + 2917606646628830688575648961145231231134156944394659783256745266509429338581*rho 16387 + 4648071162727660542848380498583304381460872648196428650654098166653683272040*seg15AccX31 rho + 5199217301679655314838974818410910815321373952268712613122662610605472371741*seg15AccY31 rho := by
+  rw [add_assoc, seg15AccWeighted31]
+  unfold Seg15.relationRow409 at r409
+  simp only [Seg15.relationLc34, Seg15.relationLc34Part0, Seg15.relationLc34Part1] at r409
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r409 ⊢
+  exact r409
+
+theorem seg15_prefix_32_selX (rho : Nat -> Seg15.F)
+    (r410 : Seg15.relationRow410 rho) :
+    (1*rho 16419)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX31 rho + rho 16794) = rho 16796 := by
+  rw [seg15AccX31_sum]
+  unfold Seg15.relationRow410 at r410
+  simp only [Seg15.relationLc35, Seg15.relationLc35Part0, Seg15.relationLc35Part1] at r410
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r410 ⊢
+  exact r410
+
+theorem seg15_prefix_32_selY (rho : Nat -> Seg15.F)
+    (r411 : Seg15.relationRow411 rho) :
+    (1*rho 16419)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY31 rho + rho 16795) = rho 16797 := by
+  rw [seg15AccY31_sum]
+  unfold Seg15.relationRow411 at r411
+  simp only [Seg15.relationLc36, Seg15.relationLc36Part0, Seg15.relationLc36Part1] at r411
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r411 ⊢
+  exact r411
+
+theorem seg15_prefix_33_v2 (rho : Nat -> Seg15.F)
+    (r412 : Seg15.relationRow412 rho) :
+    (3360975926604625167541495984214134574008106726344771564779072438371774310356*rho 16387 + 1543965350493936645240803205024551544750903601537073662569060821766604821295*seg15AccX32 rho)*(6040898278084703606807003137529967990516096655680683589984074628992017998216 + 7137487175674098003771138708922956629581657025759195104399955519750233128346*rho 16387 + 6040898278084703606807003137529967990516096655680683589984074628992017998216*seg15AccY32 rho) = rho 16798 := by
+  rw [seg15AccX32_sum, seg15AccY32_sum]
+  unfold Seg15.relationRow412 at r412
+  simp only [Seg15.relationLc37, Seg15.relationLc37Part0, Seg15.relationLc37Part1] at r412
+  simp only [Seg15.relationLc38, Seg15.relationLc38Part0, Seg15.relationLc38Part1] at r412
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r412 ⊢
+  exact r412
+
+theorem seg15_prefix_33_addX (rho : Nat -> Seg15.F)
+    (r413 : Seg15.relationRow413 rho) :
+    rho 16799*(1 + rho 16798) = 6040898278084703606807003137529967990516096655680683589984074628992017998216 + 4449565551369732653569275718150486047453352804080325646965690206226838254580*rho 16387 + 5305902802305707051264319939428136335020260788389258596187898762049986541053*seg15AccX32 rho + 6040898278084703606807003137529967990516096655680683589984074628992017998216*seg15AccY32 rho := by
+  rw [add_assoc, seg15AccWeighted32]
+  unfold Seg15.relationRow413 at r413
+  simp only [Seg15.relationLc39, Seg15.relationLc39Part0, Seg15.relationLc39Part1, Seg15.relationLc39Part2] at r413
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r413 ⊢
+  exact r413
+
+theorem seg15_prefix_33_addY (rho : Nat -> Seg15.F)
+    (r414 : Seg15.relationRow414 rho) :
+    rho 16800*(1 + (-1)*rho 16798) = 5305902802305707051264319939428136335020260788389258596187898762049986541053 + 2814877368443726696118547384849669017277674374461576406649511044998605996800*rho 16387 + 6040898278084703606807003137529967990516096655680683589984074628992017998216*seg15AccX32 rho + 5305902802305707051264319939428136335020260788389258596187898762049986541053*seg15AccY32 rho := by
+  rw [add_assoc, seg15AccWeighted32]
+  unfold Seg15.relationRow414 at r414
+  simp only [Seg15.relationLc40, Seg15.relationLc40Part0, Seg15.relationLc40Part1, Seg15.relationLc40Part2] at r414
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r414 ⊢
+  exact r414
+
+theorem seg15_prefix_33_selX (rho : Nat -> Seg15.F)
+    (r415 : Seg15.relationRow415 rho) :
+    (1*rho 16420)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX32 rho + rho 16799) = rho 16801 := by
+  rw [seg15AccX32_sum]
+  unfold Seg15.relationRow415 at r415
+  simp only [Seg15.relationLc41, Seg15.relationLc41Part0, Seg15.relationLc41Part1] at r415
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r415 ⊢
+  exact r415
+
+theorem seg15_prefix_33_selY (rho : Nat -> Seg15.F)
+    (r416 : Seg15.relationRow416 rho) :
+    (1*rho 16420)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY32 rho + rho 16800) = rho 16802 := by
+  rw [seg15AccY32_sum]
+  unfold Seg15.relationRow416 at r416
+  simp only [Seg15.relationLc42, Seg15.relationLc42Part0, Seg15.relationLc42Part1] at r416
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r416 ⊢
+  exact r416
+
+theorem seg15_prefix_34_v2 (rho : Nat -> Seg15.F)
+    (r417 : Seg15.relationRow417 rho) :
+    (7435118643412649766237088463347060288844193205328919495557364512525268642612*rho 16387 + 2390951901919080636374557696001749605335611760845118841000002691622039366119*seg15AccX33 rho)*(4339327889298312009382154954915201834845694584936220011692515152447487397113 + 5952647242997322099106275843266454433107326250844550093282472843230506741173*rho 16387 + 4339327889298312009382154954915201834845694584936220011692515152447487397113*seg15AccY33 rho) = rho 16803 := by
+  rw [seg15AccX33_sum, seg15AccY33_sum]
+  unfold Seg15.relationRow417 at r417
+  simp only [Seg15.relationLc43, Seg15.relationLc43Part0, Seg15.relationLc43Part1] at r417
+  simp only [Seg15.relationLc44, Seg15.relationLc44Part0, Seg15.relationLc44Part1] at r417
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r417 ⊢
+  exact r417
+
+theorem seg15_prefix_34_addX (rho : Nat -> Seg15.F)
+    (r418 : Seg15.relationRow418 rho) :
+    rho 16804*(1 + rho 16803) = 4339327889298312009382154954915201834845694584936220011692515152447487397113 + 932037297588725938030836807673242895009462327618292635717409236553558997408*rho 16387 + 5518622457885972293314649118454410659563509069630906029521731494429853650193*seg15AccX33 rho + 4339327889298312009382154954915201834845694584936220011692515152447487397113*seg15AccY33 rho := by
+  rw [add_assoc, seg15AccWeighted33]
+  unfold Seg15.relationRow418 at r418
+  simp only [Seg15.relationLc45, Seg15.relationLc45Part0, Seg15.relationLc45Part1, Seg15.relationLc45Part2] at r418
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r418 ⊢
+  exact r418
+
+theorem seg15_prefix_34_addY (rho : Nat -> Seg15.F)
+    (r419 : Seg15.relationRow419 rho) :
+    rho 16805*(1 + (-1)*rho 16803) = 5518622457885972293314649118454410659563509069630906029521731494429853650193 + 6253181600698670761975383693459860083874249503681351330263538576416174709777*rho 16387 + 4339327889298312009382154954915201834845694584936220011692515152447487397113*seg15AccX33 rho + 5518622457885972293314649118454410659563509069630906029521731494429853650193*seg15AccY33 rho := by
+  rw [add_assoc, seg15AccWeighted33]
+  unfold Seg15.relationRow419 at r419
+  simp only [Seg15.relationLc46, Seg15.relationLc46Part0, Seg15.relationLc46Part1, Seg15.relationLc46Part2] at r419
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r419 ⊢
+  exact r419
+
+theorem seg15_prefix_34_selX (rho : Nat -> Seg15.F)
+    (r420 : Seg15.relationRow420 rho) :
+    (1*rho 16421)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX33 rho + rho 16804) = rho 16806 := by
+  rw [seg15AccX33_sum]
+  unfold Seg15.relationRow420 at r420
+  simp only [Seg15.relationLc47, Seg15.relationLc47Part0, Seg15.relationLc47Part1] at r420
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r420 ⊢
+  exact r420
+
+theorem seg15_prefix_34_selY (rho : Nat -> Seg15.F)
+    (r421 : Seg15.relationRow421 rho) :
+    (1*rho 16421)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY33 rho + rho 16805) = rho 16807 := by
+  rw [seg15AccY33_sum]
+  unfold Seg15.relationRow421 at r421
+  simp only [Seg15.relationLc48, Seg15.relationLc48Part0, Seg15.relationLc48Part1] at r421
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r421 ⊢
+  exact r421
+
+theorem seg15_prefix_35_v2 (rho : Nat -> Seg15.F)
+    (r422 : Seg15.relationRow422 rho) :
+    (3651366216281786421926547364596016781057486484064302133377103200620687596976*rho 16387 + 2511669022247206812161869629466276987337945639304938005698123059390861064989*seg15AccX34 rho)*(2259012951295629764024579298461801285536326622251485130033474515142356155111 + 348095528643503982719379745132160814341763278282712383821836934807805599487*rho 16387 + 2259012951295629764024579298461801285536326622251485130033474515142356155111*seg15AccY34 rho) = rho 16808 := by
+  rw [seg15AccX34_sum, seg15AccY34_sum]
+  unfold Seg15.relationRow422 at r422
+  simp only [Seg15.relationLc49, Seg15.relationLc49Part0, Seg15.relationLc49Part1] at r422
+  simp only [Seg15.relationLc50, Seg15.relationLc50Part0, Seg15.relationLc50Part1] at r422
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r422 ⊢
+  exact r422
+
+theorem seg15_prefix_35_addX (rho : Nat -> Seg15.F)
+    (r423 : Seg15.relationRow423 rho) :
+    rho 16809*(1 + rho 16808) = 2259012951295629764024579298461801285536326622251485130033474515142356155111 + 7563854264655058385701221424827548968682131921287248312995691503799349437144*rho 16387 + 615787240614527871614334113260975343889452432761734187405312639311890398429*seg15AccX34 rho + 2259012951295629764024579298461801285536326622251485130033474515142356155111*seg15AccY34 rho := by
+  rw [add_assoc, seg15AccWeighted34]
+  unfold Seg15.relationRow423 at r423
+  simp only [Seg15.relationLc51, Seg15.relationLc51Part0, Seg15.relationLc51Part1, Seg15.relationLc51Part2] at r423
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r423 ⊢
+  exact r423
+
+theorem seg15_prefix_35_addY (rho : Nat -> Seg15.F)
+    (r424 : Seg15.relationRow424 rho) :
+    rho 16810*(1 + (-1)*rho 16808) = 615787240614527871614334113260975343889452432761734187405312639311890398429 + 6825036008606936403574758059084895642046160173684766887406037028034446940920*rho 16387 + 2259012951295629764024579298461801285536326622251485130033474515142356155111*seg15AccX34 rho + 615787240614527871614334113260975343889452432761734187405312639311890398429*seg15AccY34 rho := by
+  rw [add_assoc, seg15AccWeighted34]
+  unfold Seg15.relationRow424 at r424
+  simp only [Seg15.relationLc52, Seg15.relationLc52Part0, Seg15.relationLc52Part1, Seg15.relationLc52Part2] at r424
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r424 ⊢
+  exact r424
+
+theorem seg15_prefix_35_selX (rho : Nat -> Seg15.F)
+    (r425 : Seg15.relationRow425 rho) :
+    (1*rho 16422)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX34 rho + rho 16809) = rho 16811 := by
+  rw [seg15AccX34_sum]
+  unfold Seg15.relationRow425 at r425
+  simp only [Seg15.relationLc53, Seg15.relationLc53Part0, Seg15.relationLc53Part1] at r425
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r425 ⊢
+  exact r425
+
+theorem seg15_prefix_35_selY (rho : Nat -> Seg15.F)
+    (r426 : Seg15.relationRow426 rho) :
+    (1*rho 16422)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY34 rho + rho 16810) = rho 16812 := by
+  rw [seg15AccY34_sum]
+  unfold Seg15.relationRow426 at r426
+  simp only [Seg15.relationLc54, Seg15.relationLc54Part0, Seg15.relationLc54Part1] at r426
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r426 ⊢
+  exact r426
+
+theorem seg15_prefix_36_v2 (rho : Nat -> Seg15.F)
+    (r427 : Seg15.relationRow427 rho) :
+    (2833339980642050130105468187124395222836116796601658345597697387732210172573*rho 16387 + 7315983903096487915754023566782326847467569909030484887817389720623755155896*seg15AccX35 rho)*(6295691546556716754436912436379714908434430701210537280485031833028397410397 + 2549556922254275764026477534121736154314477242231135576491077161890810328114*rho 16387 + 6295691546556716754436912436379714908434430701210537280485031833028397410397*seg15AccY35 rho) = rho 16813 := by
+  rw [seg15AccX35_sum, seg15AccY35_sum]
+  unfold Seg15.relationRow427 at r427
+  simp only [Seg15.relationLc55, Seg15.relationLc55Part0, Seg15.relationLc55Part1] at r427
+  simp only [Seg15.relationLc56, Seg15.relationLc56Part0, Seg15.relationLc56Part1] at r427
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r427 ⊢
+  exact r427
+
+theorem seg15_prefix_36_addX (rho : Nat -> Seg15.F)
+    (r428 : Seg15.relationRow428 rho) :
+    rho 16814*(1 + rho 16813) = 6295691546556716754436912436379714908434430701210537280485031833028397410397 + 6916681249492857906630506008985655411921888986126285976219786978352487071429*rho 16387 + 6554496631765374631696458020546417542665533138533649817136049192449861308000*seg15AccX35 rho + 6295691546556716754436912436379714908434430701210537280485031833028397410397*seg15AccY35 rho := by
+  rw [add_assoc, seg15AccWeighted35]
+  unfold Seg15.relationRow428 at r428
+  simp only [Seg15.relationLc57, Seg15.relationLc57Part0, Seg15.relationLc57Part1, Seg15.relationLc57Part2] at r428
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r428 ⊢
+  exact r428
+
+theorem seg15_prefix_36_addY (rho : Nat -> Seg15.F)
+    (r429 : Seg15.relationRow429 rho) :
+    rho 16815*(1 + (-1)*rho 16813) = 6554496631765374631696458020546417542665533138533649817136049192449861308000 + 1487571320597799729156916433138675965370975271164905067793436153547633830944*rho 16387 + 6295691546556716754436912436379714908434430701210537280485031833028397410397*seg15AccX35 rho + 6554496631765374631696458020546417542665533138533649817136049192449861308000*seg15AccY35 rho := by
+  rw [add_assoc, seg15AccWeighted35]
+  unfold Seg15.relationRow429 at r429
+  simp only [Seg15.relationLc58, Seg15.relationLc58Part0, Seg15.relationLc58Part1, Seg15.relationLc58Part2] at r429
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r429 ⊢
+  exact r429
+
+theorem seg15_prefix_36_selX (rho : Nat -> Seg15.F)
+    (r430 : Seg15.relationRow430 rho) :
+    (1*rho 16423)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX35 rho + rho 16814) = rho 16816 := by
+  rw [seg15AccX35_sum]
+  unfold Seg15.relationRow430 at r430
+  simp only [Seg15.relationLc59, Seg15.relationLc59Part0, Seg15.relationLc59Part1] at r430
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r430 ⊢
+  exact r430
+
+theorem seg15_prefix_36_selY (rho : Nat -> Seg15.F)
+    (r431 : Seg15.relationRow431 rho) :
+    (1*rho 16423)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY35 rho + rho 16815) = rho 16817 := by
+  rw [seg15AccY35_sum]
+  unfold Seg15.relationRow431 at r431
+  simp only [Seg15.relationLc60, Seg15.relationLc60Part0, Seg15.relationLc60Part1] at r431
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r431 ⊢
+  exact r431
+
+theorem seg15_prefix_37_v2 (rho : Nat -> Seg15.F)
+    (r432 : Seg15.relationRow432 rho) :
+    (803980581825681997882472852881647133048328936003838712435095075808245989086*rho 16387 + 6334345927168293860617691197907754261420091566533206876213950776912116811895*seg15AccX36 rho)*(3322832884971658379020786549972206387369304268355604981071819235682279886563 + 3742391049692554707688247834471216841214819134200172501298175408335104860001*rho 16387 + 3322832884971658379020786549972206387369304268355604981071819235682279886563*seg15AccY36 rho) = rho 16818 := by
+  rw [seg15AccX36_sum, seg15AccY36_sum]
+  unfold Seg15.relationRow432 at r432
+  simp only [Seg15.relationLc61, Seg15.relationLc61Part0, Seg15.relationLc61Part1] at r432
+  simp only [Seg15.relationLc62, Seg15.relationLc62Part0, Seg15.relationLc62Part1] at r432
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r432 ⊢
+  exact r432
+
+theorem seg15_prefix_37_addX (rho : Nat -> Seg15.F)
+    (r433 : Seg15.relationRow433 rho) :
+    rho 16819*(1 + rho 16818) = 3322832884971658379020786549972206387369304268355604981071819235682279886563 + 2129795733956591764029297315827035874160583587213118217946240747961540846450*rho 16387 + 5821815196371080939141566108487615899565058757814397251452290634226070225917*seg15AccX36 rho + 3322832884971658379020786549972206387369304268355604981071819235682279886563*seg15AccY36 rho := by
+  rw [add_assoc, seg15AccWeighted36]
+  unfold Seg15.relationRow433 at r433
+  simp only [Seg15.relationLc63, Seg15.relationLc63Part0, Seg15.relationLc63Part1, Seg15.relationLc63Part2] at r433
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r433 ⊢
+  exact r433
+
+theorem seg15_prefix_37_addY (rho : Nat -> Seg15.F)
+    (r434 : Seg15.relationRow434 rho) :
+    rho 16820*(1 + (-1)*rho 16818) = 5821815196371080939141566108487615899565058757814397251452290634226070225917 + 1342632423321852336261692036393510600183999016189562550954932080238708326577*rho 16387 + 3322832884971658379020786549972206387369304268355604981071819235682279886563*seg15AccX36 rho + 5821815196371080939141566108487615899565058757814397251452290634226070225917*seg15AccY36 rho := by
+  rw [add_assoc, seg15AccWeighted36]
+  unfold Seg15.relationRow434 at r434
+  simp only [Seg15.relationLc64, Seg15.relationLc64Part0, Seg15.relationLc64Part1, Seg15.relationLc64Part2] at r434
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r434 ⊢
+  exact r434
+
+theorem seg15_prefix_37_selX (rho : Nat -> Seg15.F)
+    (r435 : Seg15.relationRow435 rho) :
+    (1*rho 16424)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX36 rho + rho 16819) = rho 16821 := by
+  rw [seg15AccX36_sum]
+  unfold Seg15.relationRow435 at r435
+  simp only [Seg15.relationLc65, Seg15.relationLc65Part0, Seg15.relationLc65Part1] at r435
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r435 ⊢
+  exact r435
+
+theorem seg15_prefix_37_selY (rho : Nat -> Seg15.F)
+    (r436 : Seg15.relationRow436 rho) :
+    (1*rho 16424)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY36 rho + rho 16820) = rho 16822 := by
+  rw [seg15AccY36_sum]
+  unfold Seg15.relationRow436 at r436
+  simp only [Seg15.relationLc66, Seg15.relationLc66Part0, Seg15.relationLc66Part1] at r436
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r436 ⊢
+  exact r436
+
+theorem seg15_prefix_38_v2 (rho : Nat -> Seg15.F)
+    (r437 : Seg15.relationRow437 rho) :
+    (1009916982077206128033609777361685216350669515822433705706665175388118018829*rho 16387 + 6051250210517190749663141116441450966628119241944618079453095600811208772222*seg15AccX37 rho)*(3150268533740900499578316159152134076751680532834121341659634171961029431792 + 2898409259390194651556282054766198193763430239886953805590234007251608670059*rho 16387 + 3150268533740900499578316159152134076751680532834121341659634171961029431792*seg15AccY37 rho) = rho 16823 := by
+  rw [seg15AccX37_sum, seg15AccY37_sum]
+  unfold Seg15.relationRow437 at r437
+  simp only [Seg15.relationLc67, Seg15.relationLc67Part0, Seg15.relationLc67Part1] at r437
+  simp only [Seg15.relationLc68, Seg15.relationLc68Part0, Seg15.relationLc68Part1] at r437
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r437 ⊢
+  exact r437
+
+theorem seg15_prefix_38_addX (rho : Nat -> Seg15.F)
+    (r438 : Seg15.relationRow438 rho) :
+    rho 16824*(1 + rho 16823) = 3150268533740900499578316159152134076751680532834121341659634171961029431792 + 2758980867967042941829566517804359186364408625440783412445230694566907463858*rho 16387 + 5299009025282118220688906454851861015532590982905956826222019362649553696377*seg15AccX37 rho + 3150268533740900499578316159152134076751680532834121341659634171961029431792*seg15AccY37 rho := by
+  rw [add_assoc, seg15AccWeighted37]
+  unfold Seg15.relationRow438 at r438
+  simp only [Seg15.relationLc69, Seg15.relationLc69Part0, Seg15.relationLc69Part1, Seg15.relationLc69Part2] at r438
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r438 ⊢
+  exact r438
+
+theorem seg15_prefix_38_addY (rho : Nat -> Seg15.F)
+    (r439 : Seg15.relationRow439 rho) :
+    rho 16825*(1 + (-1)*rho 16823) = 5299009025282118220688906454851861015532590982905956826222019362649553696377 + 6343037318141234726453880135613100257806210245726646240133126189191628366975*rho 16387 + 3150268533740900499578316159152134076751680532834121341659634171961029431792*seg15AccX37 rho + 5299009025282118220688906454851861015532590982905956826222019362649553696377*seg15AccY37 rho := by
+  rw [add_assoc, seg15AccWeighted37]
+  unfold Seg15.relationRow439 at r439
+  simp only [Seg15.relationLc70, Seg15.relationLc70Part0, Seg15.relationLc70Part1, Seg15.relationLc70Part2] at r439
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r439 ⊢
+  exact r439
+
+theorem seg15_prefix_38_selX (rho : Nat -> Seg15.F)
+    (r440 : Seg15.relationRow440 rho) :
+    (1*rho 16425)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX37 rho + rho 16824) = rho 16826 := by
+  rw [seg15AccX37_sum]
+  unfold Seg15.relationRow440 at r440
+  simp only [Seg15.relationLc71, Seg15.relationLc71Part0, Seg15.relationLc71Part1] at r440
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r440 ⊢
+  exact r440
+
+theorem seg15_prefix_38_selY (rho : Nat -> Seg15.F)
+    (r441 : Seg15.relationRow441 rho) :
+    (1*rho 16425)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY37 rho + rho 16825) = rho 16827 := by
+  rw [seg15AccY37_sum]
+  unfold Seg15.relationRow441 at r441
+  simp only [Seg15.relationLc72, Seg15.relationLc72Part0, Seg15.relationLc72Part1] at r441
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r441 ⊢
+  exact r441
+
+theorem seg15_prefix_39_v2 (rho : Nat -> Seg15.F)
+    (r442 : Seg15.relationRow442 rho) :
+    (4055808561599814462885459923885954734183140044469009082707959598090942531216*rho 16387 + 919177287557471400886151427262146296905684745211404392707875994351732261419*seg15AccX38 rho)*(2459406165588571115311174697897461555967218978176849787735079515445045239877 + 3561836517110067914917388337528013887729344884646458938509273390102621545248*rho 16387 + 2459406165588571115311174697897461555967218978176849787735079515445045239877*seg15AccY38 rho) = rho 16828 := by
+  rw [seg15AccX38_sum, seg15AccY38_sum]
+  unfold Seg15.relationRow442 at r442
+  simp only [Seg15.relationLc73, Seg15.relationLc73Part0, Seg15.relationLc73Part1] at r442
+  simp only [Seg15.relationLc74, Seg15.relationLc74Part0, Seg15.relationLc74Part1] at r442
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r442 ⊢
+  exact r442
+
+theorem seg15_prefix_39_addX (rho : Nat -> Seg15.F)
+    (r443 : Seg15.relationRow443 rho) :
+    rho 16829*(1 + rho 16828) = 2459406165588571115311174697897461555967218978176849787735079515445045239877 + 5366117760719104240009535820294641980238990105175700970320241128819874078089*rho 16387 + 5034556368092701954807355136104875024596127238450076252401212621682093933060*seg15AccX38 rho + 2459406165588571115311174697897461555967218978176849787735079515445045239877*seg15AccY38 rho := by
+  rw [add_assoc, seg15AccWeighted38]
+  unfold Seg15.relationRow443 at r443
+  simp only [Seg15.relationLc75, Seg15.relationLc75Part0, Seg15.relationLc75Part1, Seg15.relationLc75Part2] at r443
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r443 ⊢
+  exact r443
+
+theorem seg15_prefix_39_addY (rho : Nat -> Seg15.F)
+    (r444 : Seg15.relationRow444 rho) :
+    rho 16830*(1 + (-1)*rho 16828) = 5034556368092701954807355136104875024596127238450076252401212621682093933060 + 2776352286685200723773157721639124171677345230423218268294247495348690302387*rho 16387 + 2459406165588571115311174697897461555967218978176849787735079515445045239877*seg15AccX38 rho + 5034556368092701954807355136104875024596127238450076252401212621682093933060*seg15AccY38 rho := by
+  rw [add_assoc, seg15AccWeighted38]
+  unfold Seg15.relationRow444 at r444
+  simp only [Seg15.relationLc76, Seg15.relationLc76Part0, Seg15.relationLc76Part1, Seg15.relationLc76Part2] at r444
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r444 ⊢
+  exact r444
+
+theorem seg15_prefix_39_selX (rho : Nat -> Seg15.F)
+    (r445 : Seg15.relationRow445 rho) :
+    (1*rho 16426)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX38 rho + rho 16829) = rho 16831 := by
+  rw [seg15AccX38_sum]
+  unfold Seg15.relationRow445 at r445
+  simp only [Seg15.relationLc77, Seg15.relationLc77Part0, Seg15.relationLc77Part1] at r445
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r445 ⊢
+  exact r445
+
+theorem seg15_prefix_39_selY (rho : Nat -> Seg15.F)
+    (r446 : Seg15.relationRow446 rho) :
+    (1*rho 16426)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY38 rho + rho 16830) = rho 16832 := by
+  rw [seg15AccY38_sum]
+  unfold Seg15.relationRow446 at r446
+  simp only [Seg15.relationLc78, Seg15.relationLc78Part0, Seg15.relationLc78Part1] at r446
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r446 ⊢
+  exact r446
+
+theorem seg15_prefix_40_v2 (rho : Nat -> Seg15.F)
+    (r447 : Seg15.relationRow447 rho) :
+    (1215279473610371209935227904049657825190163834384456189946283016107686137841*rho 16387 + 3131519962748260633613313507912172186478635528818138590775791988998556993852*seg15AccX39 rho)*(1214286283469246825825118534888634565400684580240643302545653368917068457758 + 8298128149157705628277342045212304693352092272731248112178849781241908597876*rho 16387 + 1214286283469246825825118534888634565400684580240643302545653368917068457758*seg15AccY39 rho) = rho 16833 := by
+  rw [seg15AccX39_sum, seg15AccY39_sum]
+  unfold Seg15.relationRow447 at r447
+  simp only [Seg15.relationLc79, Seg15.relationLc79Part0, Seg15.relationLc79Part1] at r447
+  simp only [Seg15.relationLc80, Seg15.relationLc80Part0, Seg15.relationLc80Part1] at r447
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r447 ⊢
+  exact r447
+
+theorem seg15_prefix_40_addX (rho : Nat -> Seg15.F)
+    (r448 : Seg15.relationRow448 rho) :
+    rho 16834*(1 + rho 16833) = 1214286283469246825825118534888634565400684580240643302545653368917068457758 + 8002233522886339559505266502144845482991067722684261581370776804310052360471*rho 16387 + 8026210262354054865492217713588127197539452375622686325254164529602078941503*seg15AccX39 rho + 1214286283469246825825118534888634565400684580240643302545653368917068457758*seg15AccY39 rho := by
+  rw [add_assoc, seg15AccWeighted39]
+  unfold Seg15.relationRow448 at r448
+  simp only [Seg15.relationLc81, Seg15.relationLc81Part0, Seg15.relationLc81Part1, Seg15.relationLc81Part2] at r448
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r448 ⊢
+  exact r448
+
+theorem seg15_prefix_40_addY (rho : Nat -> Seg15.F)
+    (r449 : Seg15.relationRow449 rho) :
+    rho 16835*(1 + (-1)*rho 16833) = 8026210262354054865492217713588127197539452375622686325254164529602078941503 + 7728715752397633698641128843943213501411187652390824656893175053399511388425*rho 16387 + 1214286283469246825825118534888634565400684580240643302545653368917068457758*seg15AccX39 rho + 8026210262354054865492217713588127197539452375622686325254164529602078941503*seg15AccY39 rho := by
+  rw [add_assoc, seg15AccWeighted39]
+  unfold Seg15.relationRow449 at r449
+  simp only [Seg15.relationLc82, Seg15.relationLc82Part0, Seg15.relationLc82Part1, Seg15.relationLc82Part2] at r449
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r449 ⊢
+  exact r449
+
+theorem seg15_prefix_40_selX (rho : Nat -> Seg15.F)
+    (r450 : Seg15.relationRow450 rho) :
+    (1*rho 16427)*(3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 16387 + (-1)*seg15AccX39 rho + rho 16834) = rho 16836 := by
+  rw [seg15AccX39_sum]
+  unfold Seg15.relationRow450 at r450
+  simp only [Seg15.relationLc83, Seg15.relationLc83Part0, Seg15.relationLc83Part1] at r450
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r450 ⊢
+  exact r450
+
+theorem seg15_prefix_40_selY (rho : Nat -> Seg15.F)
+    (r451 : Seg15.relationRow451 rho) :
+    (1*rho 16427)*((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 16387 + (-1)*seg15AccY39 rho + rho 16835) = rho 16837 := by
+  rw [seg15AccY39_sum]
+  unfold Seg15.relationRow451 at r451
+  simp only [Seg15.relationLc84, Seg15.relationLc84Part0, Seg15.relationLc84Part1] at r451
+  simp only [mul_add, neg_mul, one_mul, mul_one, zero_mul, mul_zero,
+    add_zero, zero_add, sub_eq_add_neg, ← add_assoc] at r451 ⊢
+  exact r451
+
+
+end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+

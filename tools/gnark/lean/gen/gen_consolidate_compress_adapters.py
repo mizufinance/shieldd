@@ -14,12 +14,14 @@ AGG_OUT = CONTRACTS / "CompressAdapters.lean"
 
 SEGMENTS = [
     # seg, x, y, internal wire offset for base wires 210..912
-    (6, 17, 18, 0),
-    (15, 12, 13, 12174),
+    # Post-T1-d: re-derived from consolidate2x1-deployed-slice-ir.json (do not
+    # reuse pre-hoist offsets; the DTK/NB hoists shifted everything downstream).
+    (8, 17, 18, 5816),
+    (17, 12, 13, 17990),
     (24, 107, 108, 18700),
     (33, 102, 103, 30874),
-    (42, 195, 196, 37400),
-    (54, 52347, 52348, 52141),
+    (40, 195, 196, 31584),
+    (50, 40715, 40716, 40509),
 ]
 
 

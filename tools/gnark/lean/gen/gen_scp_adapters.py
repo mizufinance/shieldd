@@ -15,7 +15,9 @@ abstract QuadPath24 here, so composition folds the per-height
 
 All wire seats are parsed fail-closed from each instance's own contract
 (`Seg{N}.lean`); cross-instance consistency is asserted against the shared
-slice-module numbering (seg29 = seg13 seats +90 / internals +12884).
+slice-module numbering (seg29 = seg13 seats +90 / internals +18700).
+Post-T1-d: seg13 (formerly seg11) itself gained a +5816 internal-wire shift
+from the DTK hoist; seg29 is unaffected.
 """
 
 from __future__ import annotations
@@ -122,8 +124,10 @@ def node_cont_wires(k: int) -> tuple[int, ...]:
 
 def wire_map(seg: int, wire: int) -> int:
     if seg == 13:
-        return wire
-    return wire + 90 if wire < 1653 else wire + 12884
+        # Post-T1-d: seg13 (formerly seg11) internal wires shift +5816 from the
+        # DTK hoist; public wires (<210) are untouched.
+        return wire if wire < 210 else wire + 5816
+    return wire + 90 if wire < 1653 else wire + 18700
 
 
 class Level:
