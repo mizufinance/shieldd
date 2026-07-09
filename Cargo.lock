@@ -7811,6 +7811,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
 
 [[package]]
+name = "shieldd"
+version = "2.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "cnidarium",
+ "prost 0.13.4",
+ "shieldd-sdk-app",
+ "shieldd-sdk-proto",
+ "tendermint 0.40.3",
+ "tendermint-proto 0.40.3",
+ "tokio",
+ "tonic 0.12.3",
+ "tracing",
+ "tracing-subscriber 0.3.23",
+]
+
+[[package]]
 name = "shieldd-constraint-coverage"
 version = "2.1.0"
 dependencies = [

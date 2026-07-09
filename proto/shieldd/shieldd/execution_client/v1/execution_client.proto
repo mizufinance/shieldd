@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package shieldd.execution_client.v1;
+
+import "shieldd/core/app/v1/app.proto";
+import "tendermint/abci/types.proto";
+
+// ExecutionClient is the gRPC boundary used by a host chain to drive Shieldd
+// execution without embedding the Shieldd app in-process.
+service ExecutionClient {
+  // InitGenesis initializes Shieldd state from full genesis content or a
+  // checkpoint supplied by the host chain.
+  rpc InitGenesis(InitGenesisRequest) returns (InitGenesisResponse) {}
+  // BeginBlock opens a new Shieldd block using the host chain's CometBFT block
+  // metadata.
+  rpc BeginBlock(tendermint.abci.RequestBeginBlock) returns (tendermint.abci.ResponseBeginBlock) {}
+  // Deposit mints Shieldd notes for assets escrowed or burned by the host
+  // chain.
+  rpc Deposit(DepositRequest) returns (DepositResponse) {}
+  // DeliverTx applies a Shieldd transaction supplied by the host chain.
+  rpc DeliverTx(tendermint.abci.RequestDeliverTx) returns (tendermint.abci.ResponseDeliverTx) {}
+  // EndBlock finalizes the active Shieldd block.
+  rpc EndBlock(tendermint.abci.RequestEndBlock) returns (tendermint.abci.ResponseEndBlock) {}
+  // Commit persists the pending Shieldd state and returns the committed root.
+  rpc Commit(CommitRequest) returns (CommitResponse) {}
+  // Rollback discards uncommitted Shieldd state for the current execution phase.
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+  // ExportGenesis exports the currently committed Shieldd state as genesis.
+  rpc ExportGenesis(ExportGenesisRequest) returns (ExportGenesisResponse) {}
+}
+
+// InitGenesisRequest carries the Shieldd genesis payload controlled by the host
+// chain.
+message InitGenesisRequest {
+  // Genesis state to initialize, either full content or a checkpoint.
+  shieldd.core.app.v1.GenesisAppState genesis = 1;
+}
+
+// InitGenesisResponse is empty on success.
+message InitGenesisResponse {
+}
+
+// DepositRequest describes a host-chain deposit that should mint a Shieldd note.
+message DepositRequest {
+  // Host-chain asset denomination.
+  string denom = 1;
+  // Base-unit amount encoded as a decimal string.
+  string amount = 2;
+  // Shieldd recipient address.
+  string recipient = 3;
+  // Host-chain source used for replay protection and deposit identity.
+  HostSource source = 4;
+}
+
+// HostSource identifies the host-chain message that caused a Shieldd deposit.
+message HostSource {
+  // Host-chain block height containing the deposit message.
+  uint64 height = 1;
+  // Host-chain transaction hash containing the deposit message.
+  bytes tx_hash = 2;
+  // Zero-based message index within the host-chain transaction.
+  uint32 msg_index = 3;
+}
+
+// DepositResponse returns the deterministic Shieldd deposit identifier.
+message DepositResponse {
+  // Deposit identifier used as the Shieldd commitment source transaction id.
+  bytes deposit_id = 1;
+}
+
+// CommitRequest is empty because all pending state is held by the execution
+// client.
+message CommitRequest {}
+
+// CommitResponse contains the root hash committed by Shieldd.
+message CommitResponse {
+  // Committed Shieldd application root hash.
+  bytes root_hash = 1;
+}
+
+// RollbackRequest is empty because rollback applies to the current pending
+// execution phase.
+message RollbackRequest {}
+
+// RollbackResponse is empty on success.
+message RollbackResponse {}
+
+// ExportGenesisRequest is empty because it exports the latest committed state.
+message ExportGenesisRequest {}
+
+// ExportGenesisResponse returns the exported Shieldd genesis payload.
+message ExportGenesisResponse {
+  // Exported Shieldd genesis state.
+  shieldd.core.app.v1.GenesisAppState genesis = 1;
+}

@@ -1,3 +1,4 @@
+mod host;
 mod preconsensus;
 mod validation_support;
 
@@ -45,8 +46,7 @@ use shieldd_sdk_fee::component::{
 };
 use shieldd_sdk_fee::{Fee, Gas, GasPrices};
 use shieldd_sdk_governance::component::{Governance, StateReadExt as _, StateWriteExt as _};
-use shieldd_sdk_ibc::component::{Ibc, StateWriteExt as _};
-use shieldd_sdk_ibc::StateReadExt as _;
+use shieldd_sdk_ibc::component::StateWriteExt as _;
 use shieldd_sdk_proof_aggregation::{
     aggregate_family_profiled, pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
     verify_family_aggregate_profiled_status, AggregateBuildBackendProfile, AggregateBundle,
@@ -72,9 +72,7 @@ use shieldd_sdk_shielded_pool::component::{
 use shieldd_sdk_transaction::gas::GasCost as _;
 use shieldd_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters};
 use shieldd_sdk_txhash::AuthorizingData as _;
-use shieldd_sdk_validator::component::{
-    stake::ConsensusUpdateRead, Staking, StateReadExt as _, StateWriteExt as _,
-};
+use shieldd_sdk_validator::component::StateWriteExt as _;
 use tendermint::abci::{self, Event};
 use tendermint::v0_37::abci::{request, response};
 use tendermint::validator::Update;
@@ -3782,15 +3780,6 @@ impl App {
                 state_tx.put_chain_id(genesis.chain_id.clone());
                 Sct::init_chain(&mut state_tx, Some(&genesis.sct_content)).await;
                 ShieldedPool::init_chain(&mut state_tx, Some(&genesis.shielded_pool_content)).await;
-                Staking::init_chain(
-                    &mut state_tx,
-                    Some(&(
-                        genesis.validator_content.clone(),
-                        genesis.shielded_pool_content.clone(),
-                    )),
-                )
-                .await;
-                Ibc::init_chain(&mut state_tx, Some(&genesis.ibc_content)).await;
                 Governance::init_chain(&mut state_tx, Some(&genesis.governance_content)).await;
                 FeeComponent::init_chain(&mut state_tx, Some(&genesis.fee_content)).await;
                 // Initialize compliance component with empty trees for anchor tracking.
@@ -3804,8 +3793,6 @@ impl App {
             }
             AppState::Checkpoint(_) => {
                 ShieldedPool::init_chain(&mut state_tx, None).await;
-                Staking::init_chain(&mut state_tx, None).await;
-                Ibc::init_chain(&mut state_tx, None).await;
                 Governance::init_chain(&mut state_tx, None).await;
                 FeeComponent::init_chain(&mut state_tx, None).await;
                 Compliance::init_chain(&mut state_tx, None).await;
@@ -4530,13 +4517,7 @@ impl App {
         let mut arc_state_tx = Arc::new(state_tx);
         Sct::begin_block(&mut arc_state_tx, begin_block).await;
         ShieldedPool::begin_block(&mut arc_state_tx, begin_block).await;
-        Ibc::begin_block::<ShielddHost, StateDelta<Arc<StateDelta<cnidarium::Snapshot>>>>(
-            &mut arc_state_tx,
-            begin_block,
-        )
-        .await;
         Governance::begin_block(&mut arc_state_tx, begin_block).await;
-        Staking::begin_block(&mut arc_state_tx, begin_block).await;
         FeeComponent::begin_block(&mut arc_state_tx, begin_block).await;
 
         let state_tx = Arc::try_unwrap(arc_state_tx)
@@ -6037,9 +6018,7 @@ impl App {
         let mut arc_state_tx = Arc::new(state_tx);
         Sct::end_block(&mut arc_state_tx, end_block).await;
         ShieldedPool::end_block(&mut arc_state_tx, end_block).await;
-        Ibc::end_block(&mut arc_state_tx, end_block).await;
         Governance::end_block(&mut arc_state_tx, end_block).await;
-        Staking::end_block(&mut arc_state_tx, end_block).await;
         FeeComponent::end_block(&mut arc_state_tx, end_block).await;
         Compliance::end_block(&mut arc_state_tx, end_block).await;
         let mut state_tx = Arc::try_unwrap(arc_state_tx)
@@ -6078,18 +6057,12 @@ impl App {
             Sct::end_epoch(&mut arc_state_tx)
                 .await
                 .expect("able to call end_epoch on Sct component");
-            Ibc::end_epoch(&mut arc_state_tx)
-                .await
-                .expect("able to call end_epoch on IBC component");
             Governance::end_epoch(&mut arc_state_tx)
                 .await
                 .expect("able to call end_epoch on Governance component");
             ShieldedPool::end_epoch(&mut arc_state_tx)
                 .await
                 .expect("able to call end_epoch on shielded pool component");
-            Staking::end_epoch(&mut arc_state_tx)
-                .await
-                .expect("able to call end_epoch on Staking component");
             FeeComponent::end_epoch(&mut arc_state_tx)
                 .await
                 .expect("able to call end_epoch on Fee component");
@@ -6211,11 +6184,7 @@ impl App {
     }
 
     pub fn cometbft_validator_updates(&self) -> Vec<Update> {
-        self.state
-            .cometbft_validator_updates()
-            // If the cometbft validator updates are not set, we return an empty
-            // update set, signaling no change to Tendermint.
-            .unwrap_or_default()
+        Vec::new()
     }
 }
 
@@ -6261,12 +6230,16 @@ pub trait StateReadExt: StateRead {
     async fn get_app_params(&self) -> Result<AppParameters> {
         let chain_id = self.get_chain_id().await?;
         let compliance_params = self.get_compliance_params().await?;
-        let ibc_params = self.get_ibc_params().await?;
+        // IBC is being removed from the app lifecycle. Keep the public app-params
+        // shape populated until the component is deleted.
+        let ibc_params = Default::default();
         let fee_params = self.get_fee_params().await?;
         let governance_params = self.get_governance_params().await?;
         let sct_params = self.get_sct_params().await?;
         let shielded_pool_params = self.get_shielded_pool_params().await?;
-        let validator_params = self.get_stake_params().await?;
+        // Staking is being removed from the app lifecycle. Keep the public app-params
+        // shape populated until the component is deleted.
+        let validator_params = Default::default();
 
         Ok(AppParameters {
             chain_id,

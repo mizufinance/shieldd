@@ -198,6 +198,14 @@ pub mod shieldd {
         }
     }
 
+    /// Execution-client RPC surface.
+    pub mod execution_client {
+        pub mod v1 {
+            include!("gen/shieldd.execution_client.v1.rs");
+            include!("gen/shieldd.execution_client.v1.serde.rs");
+        }
+    }
+
     pub mod util {
         pub mod node {
             pub mod v1 {
