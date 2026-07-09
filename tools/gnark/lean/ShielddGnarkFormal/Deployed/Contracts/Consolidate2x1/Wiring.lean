@@ -23,18 +23,18 @@ def spend1NoteCommitmentLeaf : Nat := 23
 def spend2NoteCommitmentLeaf : Nat := 113
 
 /-- Spend 1 nullifier gadget output lanes. -/
-def spend1NullifierOut : List Nat := [1637, 1642, 1647, 1652]
+def spend1NullifierOut : List Nat := [7453, 7458, 7463, 7468]
 
 /-- Spend 2 nullifier gadget output lanes. -/
 def spend2NullifierOut : List Nat := [20337, 20342, 20347, 20352]
 
 /-- Output note-commitment gadget output lanes. -/
-def outputNoteCommitmentOut : List Nat := [38712, 38717, 38722, 38727, 38732, 38737, 38742]
+def outputNoteCommitmentOut : List Nat := [32896, 32901, 32906, 32911, 32916, 32921, 32926]
 
 /-- Compressed net-balance commitment lanes fed into the statement hash. -/
-def netBalanceCommitmentCompressed : List Nat := [52713, 53053]
+def netBalanceCommitmentCompressed : List Nat := [41081, 41421]
 
 /-- Statement-hash transcript output lanes. -/
-def statementHashOut : List Nat := [53488, 53493, 53498, 53503, 53508, 53513, 53518, 53523]
+def statementHashOut : List Nat := [41856, 41861, 41866, 41871, 41876, 41881, 41886, 41891]
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Wiring

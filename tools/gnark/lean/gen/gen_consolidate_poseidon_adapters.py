@@ -161,8 +161,8 @@ def build_nested(ns, segments, mapping, start, stop, final_prop, indent="  "):
 def emit_statement_hash(segments):
     stem = "StatementHash470_5c3d95"
     ns = f"Shieldd.GnarkFormal.Extracted.Deployed.{stem}"
-    seg_mod = "Seg59"
-    mapping = derive_mapping(stem, CONSOLIDATE / "Seg59.lean")
+    seg_mod = "Seg55"
+    mapping = derive_mapping(stem, CONSOLIDATE / "Seg55.lean")
     final = ["w54128", "w54133", "w54138", "w54143", "w54148", "w54153", "w54158", "w54163"]
     inputs = [
         "w2", "w1637", "w1642", "w1647", "w1652", "w12746", "w13086",
@@ -171,7 +171,7 @@ def emit_statement_hash(segments):
         "w38742", "w53353", "w53693",
     ]
     body = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg59",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg55",
         "import ShielddGnarkFormal.Deployed.StatementHash.SemanticBridge",
         "",
         "set_option maxRecDepth 1000000",
@@ -179,26 +179,26 @@ def emit_statement_hash(segments):
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        emit_part_helpers("seg59", seg_mod, stem, ns, segments, mapping, 0, 93),
-        "theorem seg59_relation_to_statement_hash (rho : Nat → Seg59.F)",
-        "    (h : Seg59.relation rho) :",
+        emit_part_helpers("seg55", seg_mod, stem, ns, segments, mapping, 0, 93),
+        "theorem seg55_relation_to_statement_hash (rho : Nat → Seg55.F)",
+        "    (h : Seg55.relation rho) :",
         f"    {ns}.relation",
         f"      {' '.join(rho(w, mapping) for w in inputs)}",
         f"      (fun {' '.join(final)} =>",
         f"        {conj_eq(final, mapping)}) := by",
-        "  unfold Seg59.relation at h",
+        "  unfold Seg55.relation at h",
         rcases_parts(94),
         f"  unfold {ns}.relation",
-        emit_apply_chain("seg59", 0, 93),
+        emit_apply_chain("seg55", 0, 93),
         f"  exact {tuple_expr(['rfl'] * len(final))}",
         "",
-        "theorem seg59_sound (rho : Nat → Seg59.F) (h : Seg59.relation rho) : Seg59.spec rho := by",
-        "  have hExtracted := seg59_relation_to_statement_hash rho h",
+        "theorem seg55_sound (rho : Nat → Seg55.F) (h : Seg55.relation rho) : Seg55.spec rho := by",
+        "  have hExtracted := seg55_relation_to_statement_hash rho h",
         "  rcases Shieldd.GnarkFormal.Deployed.StatementHash.relation_sound_permSpec",
         f"      {' '.join(rho(w, mapping) for w in inputs)} _ hExtracted with",
         f"    ⟨{', '.join(final)}, hk, hperm⟩",
         f"  rcases hk with {tuple_expr([f'h{w}' for w in final])}",
-        f"  simpa [Seg59.spec, Specs.deployedSpec59, {', '.join(f'h{w}' for w in final)}] using hperm",
+        f"  simpa [Seg55.spec, Specs.deployedSpec55, {', '.join(f'h{w}' for w in final)}] using hperm",
         "",
         "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
@@ -283,14 +283,14 @@ def emit_note(segments):
     stem = "GadgetNoteCommitmentWithOutput431_7f228e"
     ns = f"Shieldd.GnarkFormal.Extracted.Deployed.{stem}"
     configs = [
-        ("Seg7", "seg7", note_mapping(0, 0, 572, 912)),
+        ("Seg9", "seg9", note_mapping(0, 5816, 6388, 6728)),
         ("Seg25", "seg25", note_mapping(90, 18700, 19272, 19612)),
-        ("Seg43", "seg43", note_mapping(178, 37400, 37972, 38312)),
+        ("Seg41", "seg41", note_mapping(178, 31584, 32156, 32496)),
     ]
     body = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg7",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg9",
         "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg25",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg43",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg41",
         "import ShielddGnarkFormal.Deployed.NoteCommitment.RawRelationSemanticBridge",
         "",
         "set_option maxRecDepth 1000000",
