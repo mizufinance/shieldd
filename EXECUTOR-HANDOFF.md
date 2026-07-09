@@ -228,6 +228,150 @@ pre-T1-d. fv-opt-loop gates stay RED until the Lean stage lands. Remote is
 NOT touched: origin sits at the fully-green Q2 stamp (2ff6e5492); do not push
 until gates are green.
 
+**2026-07-08 fourth session — constraint-coverage re-pinned green + committed;
+2/9 Lean generators fixed with derived offsets; base contracts regenerated
+(pushed to origin, still expected RED until Lean adapter/Bounds work lands):**
+
+Commits `92e4b79a5` (constraint-coverage repin) and `de3a9ad2b` (base contract
+regen + 2 generators) are pushed to `optimization-loop-boundaries`. Do NOT
+treat the push as a green signal — it isn't; CI is expected to still show
+Lean/formal jobs red. Pushed anyway per mission ("commit, push, watch CI"
+applies per-stage, not only at final green).
+
+**(a) constraint-coverage row/wire re-pins — DONE, 66/66 green, committed:**
+- `ltchain.rs`: DTK `bit_base` 14064 -> **1187** (both occurrences + the
+  `BIT_BASE` const). `DTK_OFFSET`(12)/`DTK_ROWS`(6329) needed no change —
+  internal DTK row order within its segment is preserved, only its wire
+  numbering shifted (hoisting changed absolute wire base, not row order).
+- `rvkfixed.rs`: rvk inst0 `emit_tail` base 11813 -> **18145**; `emit_rvk_file`
+  base 11068 -> **17400** (seg13 -> seg15, +5816 delta preserved in-segment,
+  i.e. same relative offsets from segment start); NB fused-blinding-rung base
+  47848 -> **35184** (seg52 -> seg48, offset `+6401` unchanged).
+- `rowmap.rs`: rvk_inst0 slice `10816..12628` -> **17148..18960** (seg15 IR
+  bounds); bit-wire span `10571..10821` -> **16387..16637** (251 wires,
+  located from the fresh IR's segment-15 `wire_roles`, confirmed via actual
+  test-failure output, not derivation guesses alone).
+- Method used (reusable for the rest): for DTK/RVK, wrote a throwaway
+  `#[cfg(test)]` scratch probe that dumps `parse_rows(&sr1cs)` at the
+  *predicted* absolute row position, read the actual wire numbers back, then
+  back-solved the base constant — cheaper than reconstructing full segment
+  structure by hand. Removed the scratch probe before committing.
+
+**(b) base Lean contracts — DONE, mechanically regenerated, committed:**
+Ran `cargo run -q -p shieldd-constraint-coverage -- --manifest
+tools/gnark/artifacts/consolidate2x1/consolidate2x1-manifest.json --sr1cs
+tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs --lean-contract-out
+/tmp/t1d-contracts-regen` — this is the automatic per-segment contract
+generator (`contracts::generate` in `main.rs`), independent of the hand-picked
+`gen/*.py` adapter generators. Produced all 45 correct `Seg{N}.lean` files
+(2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,24,25,26,27,28,29,30,31,32,
+33,34,35,36,37,40,41,42,43,44,45,46,48,49,50,55,56). Copied over the real dir,
+deleted the 9 truly-stale old-numbered leftovers (Seg7/38/39/47/52/53/54/59/60).
+Directory now has exactly the 45 segments the manifest expects — verified by
+count. **This significantly de-risks the remaining work**: the bulk of the
+per-segment *structural relation* content is mechanically regeneratable, not
+hand-traced. **`coverage-manifest.json`'s `lean_theorem` names were checked
+and are NOT blanked** (contradicts item (b) in the prior checkpoint above —
+apparently already resolved by an earlier normalize step, or the committed
+manifest in this working tree is already the normalized one). Re-verify this
+before assuming it at final gate time.
+
+**(c) 2 of 9 `gen/*.py` generators fixed — DONE, committed (not yet re-run to
+produce adapter output, and Lean build NOT attempted):**
+- `gen_dtk_slice.py`: collapsed `INSTANCES` from 3-tuple to single
+  `Instance(5, BASE_INTERNAL=210, 17, 18, 6)`. Added `DTK_GLOBAL_OFFSET = 12`
+  const, replacing two `13677` literals. Converted every absolute-wire literal
+  anchored on the old base (13087) to the new base (210): e.g.
+  `seat_wire(cfg, 13449)` -> `seat_wire(cfg, 572)`, `13789` -> `912`, ladder
+  bits `(15289,15290,15291)` -> `(2412,2413,2414)`, plus the matching
+  sanity-check/JSON literals (`w13449`/`w13789` -> `w572`/`w912`).
+- `gen_rvk_deployed_adapters.py`: `INSTANCES` key `13` -> `15` with every
+  field shifted by the same `+5816`: `b0` 10571->16387, `prefix_x1/y1`
+  10825/10826->16641/16642, `cont_x150/y150` 11573/11574->17389/17390, `out`
+  (12380,12381)->(18196,18197), `i75..i79` 12375-12379->18191-18195.
+  Segment-local (unchanged both instances): `vbase=247, split_row0=997,
+  split_lc0=739, akX=6, akY=7, lcx=1448, lcy=1447, lc46=1446, r1805=1805,
+  tail={pre:1806,x7:1807,y8:1808,d9:1809,outx:1810,outy:1811}`. Inst1 (seg31)
+  verified zero shift, left untouched.
+- **Neither generator has actually been re-run yet** to produce the real
+  `DtkAdapterSeg5*.lean` / `RvkAdapterSeg15*.lean` output files, nor have the
+  stale `DtkAdapterSeg16/34/45*` / `RvkAdapterSeg13*` files been deleted.
+
+**(d) NOT started — 7 of 9 generators still hardcode pre-T1-d segments/wires,
+untouched this session:**
+- `gen_scp_adapters.py`: `INSTANCES = (11, 29)` -> needs `(13, 29)`
+  (`gadget.state_commitment_path`, per table above). Likely segment-local
+  offsets unchanged (analogous to RVK inst1) but NOT verified.
+- `gen_nb_slice.py`: hardcodes segment "52" pervasively (`BLIND_BIT_BASE =
+  50538`, `BLIND_BINARY_ROWS=(6149,6399)`, `BLIND_COPY_ROW=6400`,
+  `FINAL_ADD_ROWS=range(7955,7961)`, `VALUE_LADDERS`, etc.) — needs full
+  rename/re-derivation to segment 48 using the same probe-and-back-solve
+  method as DTK/RVK above.
+- `gen_consolidate_compress_adapters.py`: 6 segments, old
+  `6,15,24,33,42,54` -> new `8,17,24,33,40,50` (only 2 of 6 numerically
+  coincide — the other 4 need real wire-offset re-derivation, not just
+  renumbering).
+- `gen_consolidate_poseidon_adapters.py`: hardcoded wire literals like
+  `w54128`/`w54133`/etc. — needs full re-derivation.
+- `gen_note_commitment_semantic.py`: hardcoded `public_args =
+  ["w14","w15","w16","w19","w22","w572","w912"]` — note `w572`/`w912`
+  coincidentally match the new DTK offsets derived above; **verify this is a
+  real shared-wire reference and not a coincidental literal collision** before
+  reusing.
+- `gen_wiring.py`, `gen_capstone.py`: only grepped for `INSTANCES`/`SEGMENTS`
+  patterns, not fixed; suspected lower-risk (may be largely IR-driven) but not
+  confirmed.
+
+**(e) hand-authored `Bounds.lean`/`Wiring.lean`/`Statement.lean` — inspected,
+NOT fixed:**
+- `Bounds.lean` (411 lines): `grep -c "Seg[0-9]"` = 157 matches (imports +
+  `inst{N}_bound : BoundDeployedSound Seg{N}.contract <relSha> <wireSha> :=
+  ...` theorem definitions later in the file). Confirmed stale imports of
+  now-deleted segments (Seg38/39/47/53/60 — the last should become Seg56 per
+  the rename table) and stale adapter aggregator module names
+  (`RvkAdapterSeg13` -> should be `RvkAdapterSeg15`, `DtkAdapterSeg16` +
+  `DtkAdapterSeg34` + `DtkAdapterSeg45` -> should collapse to a single
+  `DtkAdapterSeg5`, `NbAdapterSeg52` -> `NbAdapterSeg48`, `ScpAdapterSeg11` ->
+  `ScpAdapterSeg13`). **This is proof-level, not pure renumbering** — the
+  `inst{N}_bound` theorem bodies likely have per-shape proof tactics
+  (`assert_on_curve` vs `compress_to_field` vs ladder-relation proofs differ),
+  so this cannot be a blind search-replace; lines 61-411 (the actual
+  `inst{N}_bound` bodies) were NOT read/inspected this session.
+- `Wiring.lean` (40 lines) / `Statement.lean` (46 lines): `grep -c "Seg[0-9]"`
+  = 0 for both — they do NOT reference segments via the literal `Seg{N}`
+  pattern, so their staleness (if any) must be checked via a different
+  pattern (`inst[0-9]+_bound`, `Adapter`, or literal wire indices). **Not yet
+  actually inspected in detail** — this is the single most valuable next
+  action for the next session (before touching Bounds.lean bodies, confirm
+  what Wiring/Statement actually reference).
+
+**Why this session stopped here rather than pushing into Bounds.lean:**
+Rewriting `Bounds.lean`'s `inst{N}_bound` proof bodies blind (without
+understanding each obligation class's specific proof tactic) risks producing
+Lean that either doesn't compile or — worse — compiles but doesn't actually
+discharge the intended proof obligation (a silent soundness regression, the
+exact failure mode the hard rules exist to prevent). Given the fix-attempt
+discipline and the effort/time remaining, this needed a dedicated session with
+budget for iterative `lake build` failures, not a rushed pass. No `lake
+build` has been attempted at all this session — the Lean layer remains
+entirely unverified by the actual proof checker.
+
+**Concrete next steps, in order:** (1) finish `gen_scp_adapters.py` +
+`gen_nb_slice.py` + `gen_consolidate_compress_adapters.py` +
+`gen_consolidate_poseidon_adapters.py` + `gen_note_commitment_semantic.py`
+using the probe-and-back-solve method demonstrated for DTK/RVK; (2) re-run
+all 9 generators, delete every stale old-numbered adapter output file; (3)
+read `Bounds.lean` lines 61-411 in full, read `Wiring.lean`/`Statement.lean`
+in full, and re-point every stale reference per the rename table above; (4)
+`scripts/lint-emitted-lean.py`; (5) serialized `lake build`s (adapters ->
+capstone `consolidate2x1_deployed_sound` -> `Statement`), one at a time,
+`LEAN_NUM_THREADS=1`, narrowest module, detached + RSS-monitored per
+`tools/gnark/lean/AGENTS.md`; (6) re-stamp every `.sha256` sidecar; (7)
+`scripts/fv-opt-loop.sh diff --circuit consolidate2x1 --allow-flips 16
+--allow-remove 34,36,45,47` then `gates`; (8) full gate battery +
+`scripts/check-soundness-invariants.sh` + prover round-trip; (9) write
+`docs/soundness/records/t1d-gate-record.md` + playbook §5 row.
+
 ### Q3 checkpoint (2026-07-07, frontier session, mid-flight)
 State of the wait-time work stream, resumable by executor:
 - **fv-opt-loop diff phase now supports deletions** (commit 30cee42b9):
