@@ -91,10 +91,10 @@ theorem seg11_part8_to_extracted (rho : Nat → Seg11.F)
 theorem seg11_part9_to_extracted (rho : Nat → Seg11.F)
     (h : Seg11.relationPart9 rho)
     {k : Seg11.F → Seg11.F → Seg11.F → Seg11.F → Seg11.F → Seg11.F → Seg11.F → Prop} (hk : k (rho 7178) (rho 7183) (rho 7188) (rho 7193) (rho 7198) (rho 7203) (rho 7208)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg11 (rho 7178) (rho 7183) (rho 7188) (rho 7193) (rho 7198) (rho 7203) k := by
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg9 (rho 7178) (rho 7183) (rho 7188) (rho 7193) (rho 7198) (rho 7203) k := by
   unfold Seg11.relationPart9 Seg11.relationRow45 Seg11.relationRow46 Seg11.relationRow47 Seg11.relationRow48 Seg11.relationRow49 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
-  unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg11
+  unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg9
   exact ⟨(rho 7204), (rho 7205), (rho 7206), (rho 7207), (rho 7208), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg11_part10_to_extracted (rho : Nat → Seg11.F)
