@@ -285,8 +285,6 @@ pub fn build_orbis_encrypted_seed_upload_package_with_randomness(
     timestamp: u64,
     salt: Fq,
 ) -> Result<OrbisEncryptedSeedUploadPackage> {
-    statement.validate_shape()?;
-    let derivation_bytes = statement.subject_b_d_bytes;
     anyhow::ensure!(
         string_to_fq(ring_id) == statement.ring_id_hash()?,
         "ring_id does not match statement ring_id_hash"
@@ -303,6 +301,37 @@ pub fn build_orbis_encrypted_seed_upload_package_with_randomness(
         string_to_fq(permission) == statement.permission_hash()?,
         "permission does not match statement permission_hash"
     );
+    build_orbis_encrypted_seed_upload_package_from_statement(
+        rng, ring_pk, seed, r, statement, ring_id, policy_id, resource, permission, tier,
+        timestamp, salt,
+    )
+}
+
+/// Like [`build_orbis_encrypted_seed_upload_package_with_randomness`], but
+/// trusts the statement's metadata hashes instead of requiring them to equal
+/// the hashes of the string identifiers.
+///
+/// Unregulated transfers need this: the transfer circuit binds each tier
+/// statement's metadata hashes to the asset indexed leaf, and for an
+/// unregulated asset that leaf is the non-membership *neighbor* — a real
+/// registered asset whose identifier strings the client does not know, only
+/// their hashes from the leaf.
+pub fn build_orbis_encrypted_seed_upload_package_from_statement(
+    rng: &mut (impl RngCore + CryptoRng),
+    ring_pk: &Element,
+    seed: Fq,
+    r: Fr,
+    statement: TransferTierMetadataStatement,
+    ring_id: &str,
+    policy_id: &str,
+    resource: &str,
+    permission: &str,
+    tier: TransferTierKind,
+    timestamp: u64,
+    salt: Fq,
+) -> Result<OrbisEncryptedSeedUploadPackage> {
+    statement.validate_shape()?;
+    let derivation_bytes = statement.subject_b_d_bytes;
     anyhow::ensure!(statement.tier == tier, "tier does not match statement tier");
     anyhow::ensure!(
         statement.target_timestamp == timestamp,
