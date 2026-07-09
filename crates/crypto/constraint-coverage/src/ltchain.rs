@@ -571,4 +571,3 @@ mod tests {
         assert_eq!(chains[1].end_row, 2715);
     }
 }
-

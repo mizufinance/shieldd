@@ -237,8 +237,8 @@ fn main() -> anyhow::Result<()> {
             .context("DTK segment slice out of range for lt seating")?;
         let seating =
             shieldd_constraint_coverage::ltchain::consolidate2x1_lt_seating_json(dtk, dtk_offset)
-            .map_err(anyhow::Error::msg)
-            .context("recover + gate lt-compare ladders")?;
+                .map_err(anyhow::Error::msg)
+                .context("recover + gate lt-compare ladders")?;
         let mut data = serde_json::to_vec_pretty(&seating)?;
         data.push(b'\n');
         write_out(path, data)?;
