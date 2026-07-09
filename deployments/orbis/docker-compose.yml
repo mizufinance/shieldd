@@ -7,7 +7,8 @@
 #
 # The published orbis images are production builds (ENABLE_INTEGRATION_TEST=false)
 # so they do NOT self-fund. orbis-funder funds each node's sourcehub account from
-# the genesis `test` account; each node then restarts once (restart: on-failure)
+# the dedicated genesis `funder` account (the host flow signs from `test`; they
+# must not share a sequence); each node then restarts once (restart: on-failure)
 # to pick up its on-chain account number and serve gRPC.
 #
 # Fixed ORBIS_PASSWORD / ORBIS_SECRET_KEY / node-controller-key values are
@@ -26,8 +27,10 @@ services:
           sourcehubd init local-node --chain-id sourcehub-localnet --home /home/node/.sourcehub
           sourcehubd keys add validator --keyring-backend test --home /home/node/.sourcehub
           echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" | sourcehubd keys add test --recover --keyring-backend test --home /home/node/.sourcehub
+          echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" | sourcehubd keys add funder --recover --keyring-backend test --home /home/node/.sourcehub
           sourcehubd genesis add-genesis-account validator 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
           sourcehubd genesis add-genesis-account test 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
+          sourcehubd genesis add-genesis-account funder 100000000000uopen --keyring-backend test --home /home/node/.sourcehub
           sourcehubd genesis gentx validator 10000000000uopen --keyring-backend test --chain-id sourcehub-localnet --home /home/node/.sourcehub
           sourcehubd genesis collect-gentxs --home /home/node/.sourcehub
         fi
@@ -125,9 +128,13 @@ services:
       retries: 30
       start_period: 30s
 
-  # Funds each orbis node's sourcehub account from the genesis `test` account
-  # (abandon mnemonic). Each node writes its address to /data/public_key.txt; the
-  # funder reads those, sends uopen, then waits until all three serve gRPC so the
+  # Funds each orbis node's sourcehub account from the dedicated genesis
+  # `funder` account. It must NOT share an account with the host-side
+  # orbis-integration flow (which signs ring/policy txs from `test`): two
+  # independent signers on one Cosmos account race the sequence, and the loser
+  # is rejected with code 32. Each node writes its address to
+  # /data/public_key.txt; the funder reads those, sends uopen, waits until the
+  # balances are actually visible, then waits until all three serve gRPC so the
   # host-side readiness wait can gate on stable nodes rather than the flapping
   # (restart: on-failure) healthcheck.
   orbis-funder:
@@ -138,8 +145,8 @@ services:
       - |
         set -e
         H=/tmp/funder
-        echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" \
-          | sourcehubd keys add test --recover --keyring-backend test --home "$$H"
+        echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" \
+          | sourcehubd keys add funder --recover --keyring-backend test --home "$$H"
         for d in /n1 /n2 /n3; do
           i=0
           while [ ! -s "$$d/public_key.txt" ]; do
@@ -153,10 +160,10 @@ services:
           echo "waiting for sourcehub first block"; sleep 2
         done
         # Fund all three nodes in ONE bank multi-send so there is a single tx
-        # from the funder account. Three separate sends raced the account
-        # sequence: broadcast-sync returns before commit, so the next send
-        # reused a stale sequence and node3 failed with "account sequence
-        # mismatch". multi-send gives each listed address the same amount.
+        # from the funder account (three separate sends raced their own
+        # sequence). The CLI exits 0 even when CheckTx REJECTS the tx (e.g.
+        # code 32 sequence mismatch), so gate the retry loop on "code":0 in
+        # the JSON output, not on the exit status.
         addrs=""
         for d in /n1 /n2 /n3; do
           a=$$(cat "$$d/public_key.txt")
@@ -164,13 +171,23 @@ services:
           addrs="$$addrs $$a"
         done
         n=0
-        until sourcehubd tx bank multi-send test $$addrs 1000000000uopen \
+        until out=$$(sourcehubd tx bank multi-send funder $$addrs 1000000000uopen \
               --keyring-backend test --home "$$H" --chain-id sourcehub-localnet \
-              --node tcp://sourcehub:26657 --fees 2000uopen --yes; do
-          n=$$((n+1)); [ "$$n" -gt 60 ] && { echo "failed to fund orbis nodes"; exit 1; }
-          echo "retry funding orbis nodes ($$n)"; sleep 3
+              --node tcp://sourcehub:26657 --fees 2000uopen --yes -o json 2>&1) \
+              && echo "$$out" | grep -q '"code":0'; do
+          n=$$((n+1)); [ "$$n" -gt 60 ] && { echo "failed to fund orbis nodes: $$out"; exit 1; }
+          echo "retry funding orbis nodes ($$n): $$out"; sleep 3
         done
-        sleep 6
+        # Broadcast-sync returns before commit; wait until every node's
+        # balance is actually queryable so "funding complete" means funded.
+        for d in /n1 /n2 /n3; do
+          a=$$(cat "$$d/public_key.txt")
+          n=0
+          until sourcehubd query bank balances "$$a" --node tcp://sourcehub:26657 -o json 2>/dev/null | grep -q uopen; do
+            n=$$((n+1)); [ "$$n" -gt 60 ] && { echo "timeout waiting for $$a balance"; exit 1; }
+            echo "waiting for $$a balance"; sleep 2
+          done
+        done
         echo "orbis funding complete"
         for h in node1 node2 node3; do
           n=0
