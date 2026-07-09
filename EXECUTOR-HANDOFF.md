@@ -356,21 +356,60 @@ budget for iterative `lake build` failures, not a rushed pass. No `lake
 build` has been attempted at all this session — the Lean layer remains
 entirely unverified by the actual proof checker.
 
-**Concrete next steps, in order:** (1) finish `gen_scp_adapters.py` +
-`gen_nb_slice.py` + `gen_consolidate_compress_adapters.py` +
+**Concrete next steps, in order:** (1) finish `gen_scp_adapters.py` (DONE,
+commit `454f8f369`: seg11->seg13, wire delta re-derived directly by diffing
+`Seg13.lean`/`Seg29.lean` positionally rather than raw-.sr1cs probing —
+clean 2-way split, 74 shared wires +90 / 8,918 internal wires +12884, zero
+conflicts, threshold 1653 unchanged) + `gen_nb_slice.py` +
+`gen_consolidate_compress_adapters.py` +
 `gen_consolidate_poseidon_adapters.py` + `gen_note_commitment_semantic.py`
-using the probe-and-back-solve method demonstrated for DTK/RVK; (2) re-run
-all 9 generators, delete every stale old-numbered adapter output file; (3)
-read `Bounds.lean` lines 61-411 in full, read `Wiring.lean`/`Statement.lean`
-in full, and re-point every stale reference per the rename table above; (4)
-`scripts/lint-emitted-lean.py`; (5) serialized `lake build`s (adapters ->
-capstone `consolidate2x1_deployed_sound` -> `Statement`), one at a time,
+using the probe-and-back-solve method demonstrated for DTK/RVK (or, per the
+SCP result above, prefer diffing two already-regenerated base contracts
+positionally when both segments in the pair already have a fresh
+`Seg{N}.lean` — cheaper and more reliable than raw-.sr1cs row probing); (2)
+re-run all 9 generators, delete every stale old-numbered adapter output
+file; (3) read `Bounds.lean` lines 61-411 in full, read
+`Wiring.lean`/`Statement.lean` in full, and re-point every stale reference
+per the rename table above; (4) `scripts/lint-emitted-lean.py`; (5)
+serialized `lake build`s (adapters -> capstone
+`consolidate2x1_deployed_sound` -> `Statement`), one at a time,
 `LEAN_NUM_THREADS=1`, narrowest module, detached + RSS-monitored per
 `tools/gnark/lean/AGENTS.md`; (6) re-stamp every `.sha256` sidecar; (7)
 `scripts/fv-opt-loop.sh diff --circuit consolidate2x1 --allow-flips 16
 --allow-remove 34,36,45,47` then `gates`; (8) full gate battery +
 `scripts/check-soundness-invariants.sh` + prover round-trip; (9) write
 `docs/soundness/records/t1d-gate-record.md` + playbook §5 row.
+
+**2026-07-08 session-4 continued — two more CI-surfaced bugs found and
+fixed (both Rule 1, both pushed):**
+- `lint` job was RED on unrelated formatting drift in
+  `crates/crypto/constraint-coverage/src/main.rs`/`ltchain.rs` (a stray
+  indentation from the prior WIP session's edit) — fixed with `cargo fmt`,
+  commit `f98cc12fb`.
+- `test` job was RED: `app_can_sweep_a_collection_of_small_notes` failed
+  with `artifact mismatch: compiled circuit has 44665 constraints but
+  metadata says 57329; rerun gnarkctl setup` — the committed
+  `tools/gnark/artifacts/consolidate2x1/{proving_key.bin,verifying_key.bin,
+  verifying_key.json,circuit_metadata.json}` were never refreshed after the
+  T1-d `.sr1cs`/manifest regen landed. Ran `go run ./cmd/gnarkctl setup
+  --circuit consolidate2x1 --out-dir ...` (44,665 constraints, matches),
+  verified no other file pins the old pk/vk sha256 hashes, replaced the 4
+  artifacts, commit `2be8e5c99`. `cargo test -p shieldd-sdk-app-tests --test
+  app_can_sweep_a_collection_of_small_notes --release` now passes.
+
+**IMPORTANT — expected new red after the pk/vk regen above:**
+`vk-derivation (consolidate2x1)` now FAILS in CI (it was passing before,
+misleadingly): `scripts/check-vk-derivation.sh consolidate2x1` reports "RED:
+Lean artifact stamp .../consolidate2x1-whole-circuit-lean-artifact.txt pins
+a DIFFERENT vk hash than metadata" and exits 1. This is NOT a new bug —
+before the pk/vk regen, this check was a false-negative pass: the stale vk
+happened to still match the stale Lean-artifact stamp, masking the real
+divergence between the current circuit and the not-yet-regenerated Lean
+layer. Now that the vk correctly reflects the 44,665-row circuit, the gate
+correctly flags that the Lean whole-circuit artifact hasn't caught up yet.
+This resolves itself as step (6) above ("re-stamp every `.sha256` sidecar")
+completes — do not attempt to "fix" it by reverting the vk regen or
+weakening the check.
 
 ### Q3 checkpoint (2026-07-07, frontier session, mid-flight)
 State of the wait-time work stream, resumable by executor:
