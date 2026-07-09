@@ -1630,7 +1630,7 @@ mod tests {
         let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
-        let out = emit_tail(&rows, 11813, "inst0");
+        let out = emit_tail(&rows, 18145, "inst0");
         std::fs::write("/tmp/tail_gen.lean", &out).unwrap();
         // every baked literal must have been resolved (no `expect` panic) and the
         // 7 const-identity lemmas + tail theorem present.
@@ -1688,7 +1688,7 @@ mod tests {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(3);
-        let out = emit_rvk_file(&rows, 11068, n, "Inst0");
+        let out = emit_rvk_file(&rows, 17400, n, "Inst0");
         std::fs::write("/tmp/rvkfixed_gen.lean", &out).unwrap();
         eprintln!("wrote /tmp/rvkfixed_gen.lean ({} bytes)", out.len());
     }
@@ -1702,10 +1702,10 @@ mod tests {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(149);
-        // seg52 starts at absolute row 47848; first fused blinding rung at
+        // seg48 (was seg52 pre-T1-d) starts at absolute row 35184; first fused blinding rung at
         // segment-relative 6401 (7041 before the T1-a seed-ladder removal
         // deleted 640 rows inside seg52; see gen/gen_nb_slice.py BLIND_* constants).
-        let out = emit_nb_file(&rows, 47848 + 6401, n);
+        let out = emit_nb_file(&rows, 35184 + 6401, n);
         std::fs::write(
             "../../../tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg52.lean",
             &out,

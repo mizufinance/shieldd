@@ -333,14 +333,14 @@ fn consolidate2x1_ladders() -> Vec<LadderSeat> {
     vec![
         LadderSeat {
             label: "R",
-            bit_base: 14064,
+            bit_base: 1187,
             start: 1828,
             end: 2345,
             bound: r,
         },
         LadderSeat {
             label: "Q4",
-            bit_base: 14064,
+            bit_base: 1187,
             start: 2346,
             end: 2715,
             bound: q4,
@@ -485,7 +485,7 @@ mod tests {
     // segment 5 in emission order (was offset 13677, now 12).
     const DTK_OFFSET: usize = 12;
     const DTK_ROWS: usize = 6329;
-    const BIT_BASE: usize = 14064;
+    const BIT_BASE: usize = 1187;
 
     fn dtk_rows() -> Vec<Constraint> {
         let path = concat!(
@@ -571,3 +571,4 @@ mod tests {
         assert_eq!(chains[1].end_row, 2715);
     }
 }
+
