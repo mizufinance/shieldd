@@ -47,15 +47,16 @@ fn spec_submodule(circuit: &str, segment_index: usize) -> &'static str {
         return "Specs";
     }
     match segment_index {
-        6 | 15 | 24 | 33 | 42 | 54 => "Specs.Compress",
-        7 | 25 | 43 => "Specs.NoteCommitment",
-        9 | 27 => "Specs.Nullifier",
-        13 | 31 => "Specs.Rvk",
-        16 | 34 | 45 => "Specs.Dtk",
-        52 => "Specs.Nb",
-        11 | 29 => "Specs.Scp",
-        // on-curve, assert-eq, assert-equivalent glue rows, and the
-        // statement-hash endpoint (seg 59).
+        8 | 17 | 24 | 33 | 40 | 50 => "Specs.Compress",
+        9 | 25 | 41 => "Specs.NoteCommitment",
+        11 | 27 => "Specs.Nullifier",
+        15 | 31 => "Specs.Rvk",
+        5 => "Specs.Dtk",
+        48 => "Specs.Nb",
+        13 | 29 => "Specs.Scp",
+        // on-curve, assert-eq, assert-equivalent glue rows, seg6 (DTK
+        // consumer, post-hoist single instance), and the statement-hash
+        // endpoint (seg 55).
         _ => "Specs.Glue",
     }
 }
@@ -679,7 +680,7 @@ mod tests {
             nb_constraints: 1,
             classes: Vec::new(),
             segments: vec![SegmentIr {
-                index: 8,
+                index: 100,
                 op: "assert.eq".to_owned(),
                 kind: "glue".to_owned(),
                 start: 0,
@@ -703,26 +704,27 @@ mod tests {
         let files = generate(&ir, &sr1cs).expect("generate contract");
         assert_eq!(files.len(), 1);
         let file = &files[0];
-        assert_eq!(file.segment_index, 8);
-        assert_eq!(file.file_name, "Consolidate2x1/Seg8.lean");
+        assert_eq!(file.segment_index, 100);
+        assert_eq!(file.file_name, "Consolidate2x1/Seg100.lean");
         assert_eq!(
             file.module,
-            "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg8"
+            "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg100"
         );
-        assert!(file.contents.contains("segmentIndex := 8"));
+        assert!(file.contents.contains("segmentIndex := 100"));
         assert!(file.contents.contains("relationSha256Hex := \"relation\""));
         assert!(file.contents.contains("wireRoleSha256Hex := \"roles\""));
         assert!(file
             .contents
             .contains("((2 : F) * rho 1) * ((3 : F) * rho 2) = ((6 : F) * rho 3)"));
-        // seg8 is a glue (assert.eq) endpoint, so it imports the narrow
+        // seg100 is a synthetic index outside every family's segment-index
+        // list, so it imports the narrow
         // `Specs.Glue` submodule, not the monolithic `Specs` aggregator.
         assert!(file
             .contents
             .contains("import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Glue\n"));
         assert!(file
             .contents
-            .contains("def spec (rho : Nat -> F) : Prop := Specs.deployedSpec8 rho"));
+            .contains("def spec (rho : Nat -> F) : Prop := Specs.deployedSpec100 rho"));
         assert!(file.contents.contains("set_option maxRecDepth 1000000"));
         assert!(file.contents.contains("set_option maxHeartbeats 50000000"));
         assert!(!file.contents.contains("set_option maxHeartbeats 0"));

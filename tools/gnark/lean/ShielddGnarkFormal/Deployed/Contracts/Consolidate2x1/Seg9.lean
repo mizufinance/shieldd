@@ -1,5 +1,5 @@
 import ShielddGnarkFormal.Deployed.Contract
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Nullifier
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.NoteCommitment
 import ShielddGnarkFormal.StructuredLC
 import Mathlib.Data.ZMod.Basic
 
