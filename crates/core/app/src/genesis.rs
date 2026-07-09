@@ -115,8 +115,9 @@ impl TryFrom<pb::GenesisContent> for Content {
             chain_id: msg.chain_id,
             governance_content: msg
                 .governance_content
-                .ok_or_else(|| anyhow::anyhow!("proto response missing governance content"))?
-                .try_into()?,
+                .map(TryInto::try_into)
+                .transpose()?
+                .unwrap_or_default(),
             fee_content: msg
                 .fee_content
                 .ok_or_else(|| anyhow::anyhow!("proto response missing fee content"))?
@@ -203,6 +204,20 @@ mod test {
                 .anchor_validation_window_blocks,
             shieldd_sdk_compliance::params::ComplianceParameters::default()
                 .anchor_validation_window_blocks
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn missing_governance_content_uses_default() -> anyhow::Result<()> {
+        let mut proto: pb::GenesisContent = Content::default().into();
+        proto.governance_content = None;
+
+        let content = Content::try_from(proto)?;
+
+        assert_eq!(
+            content.governance_content.governance_params,
+            shieldd_sdk_governance::params::GovernanceParameters::default()
         );
         Ok(())
     }

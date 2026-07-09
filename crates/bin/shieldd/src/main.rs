@@ -84,7 +84,7 @@ async fn start(db: PathBuf, bind: SocketAddr) -> anyhow::Result<()> {
         .serve(bind)
         .await
         .map_err(|error| {
-            anyhow::anyhow!("Shieldd execution-client server failed on {bind}: {error}")
+            anyhow::anyhow!("Shieldd execution-client server failed on {bind}: {error:?}")
         })
 }
 
