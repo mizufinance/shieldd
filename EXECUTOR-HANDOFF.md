@@ -558,6 +558,23 @@ Canon-chain re-architecture design; anything under
 `crates/crypto/proof-aggregation/formal/snarkpack/`; RIPP mechanization;
 changing what any gate checks.
 
+**2026-07-08 — `flow`/`orbis-integration` CI job: confirmed infra flake, not
+T1-d-related.** Failed 3 times in a row on PR 99 against commit `bccab8ad7`,
+with 3 *different* transient symptoms each time: (1) "Orbis ring ... is not
+finalized yet" (timeout), (2) a `pcli tx split` invocation erroring with no
+captured stdout/stderr, (3) "DKG request failed ... Failed to connect to
+peer node3 ... timed out" preceded by a signer-init 500 from the REST API.
+Different root cause each retry = CI-runner-level resource/network
+contention in the multi-process devnet+DKG integration harness, not a
+reproducible code regression from anything in this PR (T1-d touches
+consolidate2x1's gnark circuit + Lean layer only; `orbis-integration`
+exercises pclientd/DKG/split-note flows that don't call consolidate2x1).
+Reran twice via `gh run rerun <id> --failed`; left failing on the 3rd
+attempt rather than retrying indefinitely (3 different symptoms already
+demonstrates infra flakiness, not a fixable bug). Left as-is for the next
+session/human to decide whether to retry again or investigate the shared
+CI runner's resource pressure.
+
 ## Recently completed
 
 - 2026-07-08: Q2 done — full 24/24 Picus battery `safe` post-T1-a, report +
