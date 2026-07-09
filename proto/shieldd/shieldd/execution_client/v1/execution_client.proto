@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package shieldd.execution_client.v1;
 
+import "google/protobuf/timestamp.proto";
 import "shieldd/core/app/v1/app.proto";
-import "tendermint/abci/types.proto";
 
 // ExecutionClient is the gRPC boundary used by a host chain to drive Shieldd
 // execution without embedding the Shieldd app in-process.
@@ -11,16 +11,15 @@ service ExecutionClient {
   // InitGenesis initializes Shieldd state from full genesis content or a
   // checkpoint supplied by the host chain.
   rpc InitGenesis(InitGenesisRequest) returns (InitGenesisResponse) {}
-  // BeginBlock opens a new Shieldd block using the host chain's CometBFT block
-  // metadata.
-  rpc BeginBlock(tendermint.abci.RequestBeginBlock) returns (tendermint.abci.ResponseBeginBlock) {}
+  // BeginBlock opens a new Shieldd block at the host chain's block height.
+  rpc BeginBlock(BeginBlockRequest) returns (BeginBlockResponse) {}
   // Deposit mints Shieldd notes for assets escrowed or burned by the host
   // chain.
   rpc Deposit(DepositRequest) returns (DepositResponse) {}
   // DeliverTx applies a Shieldd transaction supplied by the host chain.
-  rpc DeliverTx(tendermint.abci.RequestDeliverTx) returns (tendermint.abci.ResponseDeliverTx) {}
+  rpc DeliverTx(DeliverTxRequest) returns (DeliverTxResponse) {}
   // EndBlock finalizes the active Shieldd block.
-  rpc EndBlock(tendermint.abci.RequestEndBlock) returns (tendermint.abci.ResponseEndBlock) {}
+  rpc EndBlock(EndBlockRequest) returns (EndBlockResponse) {}
   // Commit persists the pending Shieldd state and returns the committed root.
   rpc Commit(CommitRequest) returns (CommitResponse) {}
   // Rollback discards uncommitted Shieldd state for the current execution phase.
@@ -38,6 +37,21 @@ message InitGenesisRequest {
 
 // InitGenesisResponse is empty on success.
 message InitGenesisResponse {
+}
+
+// BeginBlockRequest carries the host-chain block fields Shieldd uses during
+// begin-block execution.
+message BeginBlockRequest {
+  // Host-chain block height.
+  int64 height = 1;
+  // Host-chain block time.
+  google.protobuf.Timestamp time = 2;
+}
+
+// BeginBlockResponse contains non-consensus events emitted by Shieldd.
+message BeginBlockResponse {
+  // Events emitted during begin-block execution.
+  repeated Event events = 1;
 }
 
 // DepositRequest describes a host-chain deposit that should mint a Shieldd note.
@@ -66,6 +80,62 @@ message HostSource {
 message DepositResponse {
   // Deposit identifier used as the Shieldd commitment source transaction id.
   bytes deposit_id = 1;
+}
+
+// DeliverTxRequest carries a Shieldd transaction supplied by the host chain.
+message DeliverTxRequest {
+  // Raw Shieldd transaction bytes.
+  bytes tx = 1;
+}
+
+// DeliverTxResponse contains the Shieldd transaction execution result.
+message DeliverTxResponse {
+  // Non-zero when Shieldd rejected the transaction.
+  uint32 code = 1;
+  // Response data emitted by the transaction.
+  bytes data = 2;
+  // Human-readable execution log.
+  string log = 3;
+  // Additional execution information.
+  string info = 4;
+  // Gas requested by the transaction.
+  int64 gas_wanted = 5;
+  // Gas consumed by the transaction.
+  int64 gas_used = 6;
+  // Events emitted during transaction execution.
+  repeated Event events = 7;
+  // Module or subsystem that produced a non-zero code.
+  string codespace = 8;
+}
+
+// EndBlockRequest identifies the host-chain block being finalized.
+message EndBlockRequest {
+  // Host-chain block height.
+  int64 height = 1;
+}
+
+// EndBlockResponse contains non-consensus events emitted by Shieldd.
+message EndBlockResponse {
+  // Events emitted during end-block execution.
+  repeated Event events = 1;
+}
+
+// Event describes a non-consensus execution event emitted by Shieldd.
+message Event {
+  // Event type.
+  string type = 1;
+  // Event attributes.
+  repeated EventAttribute attributes = 2;
+}
+
+// EventAttribute is a key-value pair attached to a Shieldd execution event.
+message EventAttribute {
+  // Attribute key.
+  string key = 1;
+  // Attribute value.
+  string value = 2;
+  // Whether host-chain indexers should index this attribute.
+  bool index = 3;
 }
 
 // CommitRequest is empty because all pending state is held by the execution

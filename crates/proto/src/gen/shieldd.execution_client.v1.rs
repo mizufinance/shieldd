@@ -30,6 +30,44 @@ impl ::prost::Name for InitGenesisResponse {
         "/shieldd.execution_client.v1.InitGenesisResponse".into()
     }
 }
+/// BeginBlockRequest carries the host-chain block fields Shieldd uses during
+/// begin-block execution.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BeginBlockRequest {
+    /// Host-chain block height.
+    #[prost(int64, tag = "1")]
+    pub height: i64,
+    /// Host-chain block time.
+    #[prost(message, optional, tag = "2")]
+    pub time: ::core::option::Option<::pbjson_types::Timestamp>,
+}
+impl ::prost::Name for BeginBlockRequest {
+    const NAME: &'static str = "BeginBlockRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.BeginBlockRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.BeginBlockRequest".into()
+    }
+}
+/// BeginBlockResponse contains non-consensus events emitted by Shieldd.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BeginBlockResponse {
+    /// Events emitted during begin-block execution.
+    #[prost(message, repeated, tag = "1")]
+    pub events: ::prost::alloc::vec::Vec<Event>,
+}
+impl ::prost::Name for BeginBlockResponse {
+    const NAME: &'static str = "BeginBlockResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.BeginBlockResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.BeginBlockResponse".into()
+    }
+}
 /// DepositRequest describes a host-chain deposit that should mint a Shieldd note.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DepositRequest {
@@ -94,6 +132,138 @@ impl ::prost::Name for DepositResponse {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.execution_client.v1.DepositResponse".into()
+    }
+}
+/// DeliverTxRequest carries a Shieldd transaction supplied by the host chain.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeliverTxRequest {
+    /// Raw Shieldd transaction bytes.
+    #[prost(bytes = "vec", tag = "1")]
+    pub tx: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for DeliverTxRequest {
+    const NAME: &'static str = "DeliverTxRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.DeliverTxRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.DeliverTxRequest".into()
+    }
+}
+/// DeliverTxResponse contains the Shieldd transaction execution result.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeliverTxResponse {
+    /// Non-zero when Shieldd rejected the transaction.
+    #[prost(uint32, tag = "1")]
+    pub code: u32,
+    /// Response data emitted by the transaction.
+    #[prost(bytes = "vec", tag = "2")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+    /// Human-readable execution log.
+    #[prost(string, tag = "3")]
+    pub log: ::prost::alloc::string::String,
+    /// Additional execution information.
+    #[prost(string, tag = "4")]
+    pub info: ::prost::alloc::string::String,
+    /// Gas requested by the transaction.
+    #[prost(int64, tag = "5")]
+    pub gas_wanted: i64,
+    /// Gas consumed by the transaction.
+    #[prost(int64, tag = "6")]
+    pub gas_used: i64,
+    /// Events emitted during transaction execution.
+    #[prost(message, repeated, tag = "7")]
+    pub events: ::prost::alloc::vec::Vec<Event>,
+    /// Module or subsystem that produced a non-zero code.
+    #[prost(string, tag = "8")]
+    pub codespace: ::prost::alloc::string::String,
+}
+impl ::prost::Name for DeliverTxResponse {
+    const NAME: &'static str = "DeliverTxResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.DeliverTxResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.DeliverTxResponse".into()
+    }
+}
+/// EndBlockRequest identifies the host-chain block being finalized.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct EndBlockRequest {
+    /// Host-chain block height.
+    #[prost(int64, tag = "1")]
+    pub height: i64,
+}
+impl ::prost::Name for EndBlockRequest {
+    const NAME: &'static str = "EndBlockRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.EndBlockRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.EndBlockRequest".into()
+    }
+}
+/// EndBlockResponse contains non-consensus events emitted by Shieldd.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EndBlockResponse {
+    /// Events emitted during end-block execution.
+    #[prost(message, repeated, tag = "1")]
+    pub events: ::prost::alloc::vec::Vec<Event>,
+}
+impl ::prost::Name for EndBlockResponse {
+    const NAME: &'static str = "EndBlockResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.EndBlockResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.EndBlockResponse".into()
+    }
+}
+/// Event describes a non-consensus execution event emitted by Shieldd.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Event {
+    /// Event type.
+    #[prost(string, tag = "1")]
+    pub r#type: ::prost::alloc::string::String,
+    /// Event attributes.
+    #[prost(message, repeated, tag = "2")]
+    pub attributes: ::prost::alloc::vec::Vec<EventAttribute>,
+}
+impl ::prost::Name for Event {
+    const NAME: &'static str = "Event";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.Event".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.Event".into()
+    }
+}
+/// EventAttribute is a key-value pair attached to a Shieldd execution event.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventAttribute {
+    /// Attribute key.
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    /// Attribute value.
+    #[prost(string, tag = "2")]
+    pub value: ::prost::alloc::string::String,
+    /// Whether host-chain indexers should index this attribute.
+    #[prost(bool, tag = "3")]
+    pub index: bool,
+}
+impl ::prost::Name for EventAttribute {
+    const NAME: &'static str = "EventAttribute";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.EventAttribute".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.EventAttribute".into()
     }
 }
 /// CommitRequest is empty because all pending state is held by the execution
@@ -309,17 +479,12 @@ pub mod execution_client_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// BeginBlock opens a new Shieldd block using the host chain's CometBFT block
-        /// metadata.
+        /// BeginBlock opens a new Shieldd block at the host chain's block height.
         pub async fn begin_block(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::super::super::super::tendermint::abci::RequestBeginBlock,
-            >,
+            request: impl tonic::IntoRequest<super::BeginBlockRequest>,
         ) -> std::result::Result<
-            tonic::Response<
-                super::super::super::super::tendermint::abci::ResponseBeginBlock,
-            >,
+            tonic::Response<super::BeginBlockResponse>,
             tonic::Status,
         > {
             self.inner
@@ -378,13 +543,9 @@ pub mod execution_client_client {
         /// DeliverTx applies a Shieldd transaction supplied by the host chain.
         pub async fn deliver_tx(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::super::super::super::tendermint::abci::RequestDeliverTx,
-            >,
+            request: impl tonic::IntoRequest<super::DeliverTxRequest>,
         ) -> std::result::Result<
-            tonic::Response<
-                super::super::super::super::tendermint::abci::ResponseDeliverTx,
-            >,
+            tonic::Response<super::DeliverTxResponse>,
             tonic::Status,
         > {
             self.inner
@@ -412,13 +573,9 @@ pub mod execution_client_client {
         /// EndBlock finalizes the active Shieldd block.
         pub async fn end_block(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::super::super::super::tendermint::abci::RequestEndBlock,
-            >,
+            request: impl tonic::IntoRequest<super::EndBlockRequest>,
         ) -> std::result::Result<
-            tonic::Response<
-                super::super::super::super::tendermint::abci::ResponseEndBlock,
-            >,
+            tonic::Response<super::EndBlockResponse>,
             tonic::Status,
         > {
             self.inner
@@ -555,17 +712,12 @@ pub mod execution_client_server {
             tonic::Response<super::InitGenesisResponse>,
             tonic::Status,
         >;
-        /// BeginBlock opens a new Shieldd block using the host chain's CometBFT block
-        /// metadata.
+        /// BeginBlock opens a new Shieldd block at the host chain's block height.
         async fn begin_block(
             &self,
-            request: tonic::Request<
-                super::super::super::super::tendermint::abci::RequestBeginBlock,
-            >,
+            request: tonic::Request<super::BeginBlockRequest>,
         ) -> std::result::Result<
-            tonic::Response<
-                super::super::super::super::tendermint::abci::ResponseBeginBlock,
-            >,
+            tonic::Response<super::BeginBlockResponse>,
             tonic::Status,
         >;
         /// Deposit mints Shieldd notes for assets escrowed or burned by the host
@@ -577,25 +729,17 @@ pub mod execution_client_server {
         /// DeliverTx applies a Shieldd transaction supplied by the host chain.
         async fn deliver_tx(
             &self,
-            request: tonic::Request<
-                super::super::super::super::tendermint::abci::RequestDeliverTx,
-            >,
+            request: tonic::Request<super::DeliverTxRequest>,
         ) -> std::result::Result<
-            tonic::Response<
-                super::super::super::super::tendermint::abci::ResponseDeliverTx,
-            >,
+            tonic::Response<super::DeliverTxResponse>,
             tonic::Status,
         >;
         /// EndBlock finalizes the active Shieldd block.
         async fn end_block(
             &self,
-            request: tonic::Request<
-                super::super::super::super::tendermint::abci::RequestEndBlock,
-            >,
+            request: tonic::Request<super::EndBlockRequest>,
         ) -> std::result::Result<
-            tonic::Response<
-                super::super::super::super::tendermint::abci::ResponseEndBlock,
-            >,
+            tonic::Response<super::EndBlockResponse>,
             tonic::Status,
         >;
         /// Commit persists the pending Shieldd state and returns the committed root.
@@ -748,19 +892,16 @@ pub mod execution_client_server {
                     struct BeginBlockSvc<T: ExecutionClient>(pub Arc<T>);
                     impl<
                         T: ExecutionClient,
-                    > tonic::server::UnaryService<
-                        super::super::super::super::tendermint::abci::RequestBeginBlock,
-                    > for BeginBlockSvc<T> {
-                        type Response = super::super::super::super::tendermint::abci::ResponseBeginBlock;
+                    > tonic::server::UnaryService<super::BeginBlockRequest>
+                    for BeginBlockSvc<T> {
+                        type Response = super::BeginBlockResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::super::super::super::tendermint::abci::RequestBeginBlock,
-                            >,
+                            request: tonic::Request<super::BeginBlockRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
@@ -841,19 +982,16 @@ pub mod execution_client_server {
                     struct DeliverTxSvc<T: ExecutionClient>(pub Arc<T>);
                     impl<
                         T: ExecutionClient,
-                    > tonic::server::UnaryService<
-                        super::super::super::super::tendermint::abci::RequestDeliverTx,
-                    > for DeliverTxSvc<T> {
-                        type Response = super::super::super::super::tendermint::abci::ResponseDeliverTx;
+                    > tonic::server::UnaryService<super::DeliverTxRequest>
+                    for DeliverTxSvc<T> {
+                        type Response = super::DeliverTxResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::super::super::super::tendermint::abci::RequestDeliverTx,
-                            >,
+                            request: tonic::Request<super::DeliverTxRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
@@ -889,19 +1027,16 @@ pub mod execution_client_server {
                     struct EndBlockSvc<T: ExecutionClient>(pub Arc<T>);
                     impl<
                         T: ExecutionClient,
-                    > tonic::server::UnaryService<
-                        super::super::super::super::tendermint::abci::RequestEndBlock,
-                    > for EndBlockSvc<T> {
-                        type Response = super::super::super::super::tendermint::abci::ResponseEndBlock;
+                    > tonic::server::UnaryService<super::EndBlockRequest>
+                    for EndBlockSvc<T> {
+                        type Response = super::EndBlockResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::super::super::super::tendermint::abci::RequestEndBlock,
-                            >,
+                            request: tonic::Request<super::EndBlockRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {

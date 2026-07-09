@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use anyhow::{ensure, Context as _, Result};
 use cnidarium::Storage;
-use prost::Message;
 use shieldd_sdk_app::{
     app::App, block_tx_indexing::BlockTxIndexingMode, genesis::AppState,
     stateless_cache::StatelessCache,
@@ -10,17 +9,22 @@ use shieldd_sdk_app::{
 use shieldd_sdk_proto::{
     core::app::v1 as proto_app,
     execution_client::v1::{
-        execution_client_server::ExecutionClient as ExecutionClientService, CommitRequest,
-        CommitResponse as ProtoCommitResponse, DepositRequest, DepositResponse,
-        ExportGenesisRequest, ExportGenesisResponse, InitGenesisRequest, InitGenesisResponse,
-        RollbackRequest, RollbackResponse,
+        execution_client_server::ExecutionClient as ExecutionClientService, BeginBlockRequest,
+        BeginBlockResponse, CommitRequest, CommitResponse as ProtoCommitResponse, DeliverTxRequest,
+        DeliverTxResponse, DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse,
+        Event as ProtoEvent, EventAttribute as ProtoEventAttribute, ExportGenesisRequest,
+        ExportGenesisResponse, InitGenesisRequest, InitGenesisResponse, RollbackRequest,
+        RollbackResponse,
     },
-    tendermint::abci as proto_abci,
 };
 use tendermint::abci::{self, request};
+use tendermint_proto::google::protobuf::Timestamp as TendermintTimestamp;
 use tendermint_proto::v0_37 as tendermint_proto_v037;
 use tokio::sync::Mutex;
 use tonic::{Request, Response, Status};
+
+const SYNTHETIC_HOST_CHAIN_ID: &str = "shieldd-host";
+const SYNTHETIC_PROPOSER_ADDRESS: [u8; 20] = [0u8; 20];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ExecutionPhase {
@@ -122,6 +126,43 @@ impl ExecutionClient {
 
         let root_hash = self.storage.latest_snapshot().root_hash().await?;
         Ok(AppState::Checkpoint(root_hash.0.to_vec()))
+    }
+
+    async fn begin_block_request(&self, request: BeginBlockRequest) -> Result<request::BeginBlock> {
+        ensure!(request.height > 0, "begin_block height must be positive");
+        let time = request.time.context("missing begin_block time")?;
+        let root_hash = self.storage.latest_snapshot().root_hash().await?;
+
+        let raw = tendermint_proto_v037::abci::RequestBeginBlock {
+            hash: Vec::new().into(),
+            header: Some(tendermint_proto_v037::types::Header {
+                version: Some(tendermint_proto_v037::version::Consensus { block: 11, app: 1 }),
+                chain_id: SYNTHETIC_HOST_CHAIN_ID.to_owned(),
+                height: request.height,
+                time: Some(TendermintTimestamp {
+                    seconds: time.seconds,
+                    nanos: time.nanos,
+                }),
+                last_block_id: None,
+                last_commit_hash: Vec::new(),
+                data_hash: Vec::new(),
+                validators_hash: Vec::new(),
+                next_validators_hash: Vec::new(),
+                consensus_hash: Vec::new(),
+                app_hash: root_hash.0.to_vec(),
+                last_results_hash: Vec::new(),
+                evidence_hash: Vec::new(),
+                proposer_address: SYNTHETIC_PROPOSER_ADDRESS.to_vec(),
+            }),
+            last_commit_info: Some(tendermint_proto_v037::abci::CommitInfo {
+                round: 0,
+                votes: Vec::new(),
+            }),
+            byzantine_validators: Vec::new(),
+        };
+
+        raw.try_into()
+            .context("invalid synthesized begin_block request")
     }
 
     pub async fn begin_block(
@@ -241,21 +282,19 @@ impl ExecutionClientService for GrpcExecutionClient {
 
     async fn begin_block(
         &self,
-        request: Request<proto_abci::RequestBeginBlock>,
-    ) -> std::result::Result<Response<proto_abci::ResponseBeginBlock>, Status> {
-        let begin_block = decode_tendermint_request(request.into_inner())
-            .and_then(|raw: tendermint_proto_v037::abci::RequestBeginBlock| {
-                raw.try_into().context("invalid begin block request")
-            })
-            .map_err(invalid_argument)?;
-
+        request: Request<BeginBlockRequest>,
+    ) -> std::result::Result<Response<BeginBlockResponse>, Status> {
         let mut inner = self.inner.lock().await;
+        let begin_block = inner
+            .begin_block_request(request.into_inner())
+            .await
+            .map_err(invalid_argument)?;
         let response = inner
             .begin_block(&begin_block)
             .await
             .map_err(failed_precondition)?;
 
-        Ok(Response::new(proto_abci::ResponseBeginBlock {
+        Ok(Response::new(BeginBlockResponse {
             events: encode_events(response.events).map_err(internal)?,
         }))
     }
@@ -276,15 +315,15 @@ impl ExecutionClientService for GrpcExecutionClient {
 
     async fn deliver_tx(
         &self,
-        request: Request<proto_abci::RequestDeliverTx>,
-    ) -> std::result::Result<Response<proto_abci::ResponseDeliverTx>, Status> {
+        request: Request<DeliverTxRequest>,
+    ) -> std::result::Result<Response<DeliverTxResponse>, Status> {
         let mut inner = self.inner.lock().await;
         let response = match inner.deliver_tx(&request.into_inner().tx).await {
-            Ok(response) => proto_abci::ResponseDeliverTx {
+            Ok(response) => DeliverTxResponse {
                 events: encode_events(response.events).map_err(internal)?,
                 ..Default::default()
             },
-            Err(error) => proto_abci::ResponseDeliverTx {
+            Err(error) => DeliverTxResponse {
                 code: 1,
                 log: format!("{error:#}"),
                 codespace: "shieldd".to_owned(),
@@ -297,23 +336,19 @@ impl ExecutionClientService for GrpcExecutionClient {
 
     async fn end_block(
         &self,
-        request: Request<proto_abci::RequestEndBlock>,
-    ) -> std::result::Result<Response<proto_abci::ResponseEndBlock>, Status> {
-        let end_block = decode_tendermint_request(request.into_inner())
-            .and_then(|raw: tendermint_proto_v037::abci::RequestEndBlock| {
-                raw.try_into().context("invalid end block request")
-            })
-            .map_err(invalid_argument)?;
-
+        request: Request<EndBlockRequest>,
+    ) -> std::result::Result<Response<EndBlockResponse>, Status> {
+        let end_block = request::EndBlock {
+            height: request.into_inner().height,
+        };
         let mut inner = self.inner.lock().await;
         let response = inner
             .end_block(&end_block)
             .await
             .map_err(failed_precondition)?;
 
-        Ok(Response::new(proto_abci::ResponseEndBlock {
+        Ok(Response::new(EndBlockResponse {
             events: encode_events(response.events).map_err(internal)?,
-            ..Default::default()
         }))
     }
 
@@ -353,22 +388,26 @@ impl ExecutionClientService for GrpcExecutionClient {
     }
 }
 
-fn decode_tendermint_request<S, D>(source: S) -> Result<D>
-where
-    S: Message,
-    D: Message + Default,
-{
-    let mut encoded = Vec::new();
-    source.encode(&mut encoded)?;
-    D::decode(encoded.as_slice()).context("decoding tendermint request")
-}
-
-fn encode_events(events: Vec<abci::Event>) -> Result<Vec<proto_abci::Event>> {
+fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
     events
         .into_iter()
         .map(|event| {
-            let raw: tendermint_proto_v037::abci::Event = event.into();
-            decode_tendermint_request(raw)
+            let attributes = event
+                .attributes
+                .iter()
+                .map(|attribute| {
+                    Ok(ProtoEventAttribute {
+                        key: attribute.key_str()?.to_owned(),
+                        value: attribute.value_str()?.to_owned(),
+                        index: attribute.index(),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?;
+
+            Ok(ProtoEvent {
+                r#type: event.kind,
+                attributes,
+            })
         })
         .collect()
 }
@@ -425,5 +464,47 @@ mod tests {
             exported,
             AppState::Checkpoint(root_hash) if root_hash == commit.root_hash
         ));
+    }
+
+    #[tokio::test]
+    async fn begin_block_request_synthesizes_internal_abci_context() {
+        let storage = temp_storage().await;
+        let mut client = ExecutionClient::new(storage.deref().clone());
+
+        client.init_genesis(AppState::default()).await.unwrap();
+        client.commit().await.unwrap();
+
+        let mut request = BeginBlockRequest {
+            height: 7,
+            time: None,
+        };
+        request.time = Some(Default::default());
+        request.time.as_mut().unwrap().seconds = 1_700_000_000;
+
+        let begin_block = client.begin_block_request(request).await.unwrap();
+
+        assert_eq!(begin_block.header.height.value(), 7);
+        assert_eq!(
+            begin_block.header.chain_id.as_str(),
+            SYNTHETIC_HOST_CHAIN_ID
+        );
+        assert!(begin_block.last_commit_info.votes.is_empty());
+        assert!(begin_block.byzantine_validators.is_empty());
+    }
+
+    #[tokio::test]
+    async fn begin_block_request_requires_time() {
+        let storage = temp_storage().await;
+        let client = ExecutionClient::new(storage.deref().clone());
+
+        let err = client
+            .begin_block_request(BeginBlockRequest {
+                height: 7,
+                time: None,
+            })
+            .await
+            .expect_err("missing time must be rejected");
+
+        assert!(err.to_string().contains("missing begin_block time"));
     }
 }
