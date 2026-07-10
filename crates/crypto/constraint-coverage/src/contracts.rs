@@ -520,7 +520,7 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
     // located from the IR by op rather than pinned to a constant — the slice
     // bound still doubles as the guard that this is the real circuit, not a
     // synthetic fixture (a missing/short DTK segment falls through to `None`).
-    const DTK_ROWS: usize = 6329;
+    const DTK_ROWS: usize = 6077;
     if ir.circuit == "consolidate2x1" {
         if let Some(dtk_segment) = ir
             .segments

@@ -191,7 +191,24 @@ relative) row numbers below.
   against the real rows — all 250 rungs mine cleanly with the last accumulator
   row landing exactly on the segment's last row. High confidence, not a guess.
 
-**(b) BLOCKING (new, not previously scoped as its own item): `ltchain.rs`'s
+**(b) RESOLVED 2026-07-10 (local commit, deliberately NOT pushed — the new
+constants match the uncommitted regenerated `.sr1cs`, so this lands with the
+Lean layer): the ladders never moved rows — only WIRES. R/Q4 seatings in the
+new circuit are `bit_base=1890` (was 1187), start/end unchanged
+(R 1828..2345, Q4 2346..2715, DTK-segment-local). Found by
+`crates/crypto/constraint-coverage/examples/scan_lt.rs` (new, kept as the
+reusable re-seating locator: scans for the first-rung shape `1×(1−bit_252)`,
+derives bit_base from the row itself, confirms via full `recover_lt_chain` +
+parity gate — no Python port needed). `ltchain.rs` seats + tests re-pinned
+(DTK_OFFSET=1058, DTK_ROWS=6077, BIT_BASE=1890); stale `DTK_ROWS=6329` also
+fixed in `contracts.rs`/`main.rs`/seating JSON. Verified:
+`cargo test -p shieldd-constraint-coverage --lib ltchain` green (4/4) and
+`--lean-contract-out` regenerates ALL per-segment base contracts end-to-end
+(Seg46 for the new conservation segment emitted). Remaining crate test
+failures are the expected rvkfixed/rowmap row-offset re-pins (queued wave
+work, not ltchain). Original diagnosis kept below for the record.**
+
+**(b-original, superseded) BLOCKING: `ltchain.rs`'s
 `consolidate2x1_ladders()` (R/Q4 DTK canonicity-ladder recovery) is stale
 after T1-h's ivk-bit-threading change, and blocks `--lean-contract-out`
 (the mechanical per-segment base-contract regenerator) for the WHOLE circuit,
