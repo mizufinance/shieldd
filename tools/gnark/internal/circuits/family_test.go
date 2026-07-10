@@ -110,11 +110,11 @@ func testCircuitFamilies() []circuitFamily {
 			},
 		},
 		{
-			name:    "split1x4",
-			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(4) },
+			name:    "split1x8",
+			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadSplitWitnessV1("split1x4")
+				fixtureBytes := testfixtures.LoadSplitWitnessV1("split1x8")
 				assignment, _, err := abi.NewSplitCircuitAssignmentFromWitnessV1(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode split witness fixture: %v", err)
@@ -182,19 +182,9 @@ func compileCircuitFamilies() []struct {
 			stats:   circuitStats{constraints: 44665, public: 2, secret: 199, internal: 41691},
 		},
 		{
-			name:    "consolidate4x1",
-			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(4) },
-			stats:   circuitStats{constraints: 76063, public: 2, secret: 379, internal: 71503},
-		},
-		{
 			name:    "consolidate8x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(8) },
 			stats:   circuitStats{constraints: 138419, public: 2, secret: 739, internal: 130687},
-		},
-		{
-			name:    "split1x4",
-			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(4) },
-			stats:   circuitStats{constraints: 39484, public: 2, secret: 139, internal: 36256},
 		},
 		{
 			name:    "split1x8",

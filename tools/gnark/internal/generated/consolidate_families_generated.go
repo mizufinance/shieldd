@@ -10,7 +10,6 @@ type ConsolidateFamilySpec struct {
 
 var ConsolidateFamilies = []ConsolidateFamilySpec{
 	{ID: 1, Label: "consolidate2x1", ArtifactName: "consolidate2x1", NIn: 2, NOut: 1},
-	{ID: 2, Label: "consolidate4x1", ArtifactName: "consolidate4x1", NIn: 4, NOut: 1},
 	{ID: 3, Label: "consolidate8x1", ArtifactName: "consolidate8x1", NIn: 8, NOut: 1},
 }
 

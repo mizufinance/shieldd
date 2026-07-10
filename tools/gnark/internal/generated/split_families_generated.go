@@ -9,7 +9,6 @@ type SplitFamilySpec struct {
 }
 
 var SplitFamilies = []SplitFamilySpec{
-	{ID: 1, Label: "split1x4", ArtifactName: "split1x4", NIn: 1, NOut: 4},
 	{ID: 2, Label: "split1x8", ArtifactName: "split1x8", NIn: 1, NOut: 8},
 }
 

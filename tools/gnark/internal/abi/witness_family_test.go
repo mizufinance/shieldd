@@ -31,8 +31,8 @@ func testWitnessFamilies() []witnessFamily {
 			},
 		},
 		{
-			name:    "split1x4",
-			payload: func(t *testing.T) []byte { return testfixtures.LoadSplitWitnessV1("split1x4") },
+			name:    "split1x8",
+			payload: func(t *testing.T) []byte { return testfixtures.LoadSplitWitnessV1("split1x8") },
 			decode: func(payload []byte) error {
 				_, _, err := DecodeSplitWitnessV1(payload)
 				return err
