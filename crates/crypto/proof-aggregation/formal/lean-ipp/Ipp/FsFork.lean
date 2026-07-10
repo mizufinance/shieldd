@@ -17,12 +17,11 @@ namespace Ipp
 
 noncomputable section
 
-variable {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+variable {F G1 G2 GT : Type}
 
 /-- The structured point carrier recorded by the U5d(4) wrapper (DESIGN
 §U5d(4); `fs.stage-labels`, `tipp-mipp.gipa`). -/
-abbrev FsPoint := ChallengePoint F G1 GT RandomizerPayload X0Payload
-  BridgePayload KzgPayload
+abbrev FsPoint := ChallengePoint F G1 G2 GT
 
 /-- Uniform sampling plus the one fixed challenge-oracle index forked by U5c. -/
 abbrev FsWrappedSpec (F : Type) : OracleSpec (Nat ⊕ Unit) :=
@@ -344,76 +343,82 @@ private theorem fsSource_cache_logged {Point α : Type} [DecidableEq Point]
           apply List.mem_append_left
           exact hlog point' value hold
 
-/-- Every chronological round answer returned by `queryRounds` remains in the
-shared structured cache at its exact round point. -/
+/-- A successful bounded nonce loop leaves its accepted answer cached at the
+exact nonce-bearing point. -/
+private theorem queryAccepting_cached
+    {F G1 G2 GT : Type} [DecidableEq F] [DecidableEq G1]
+    [DecidableEq G2] [DecidableEq GT]
+    (mkPoint : Nat → FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+    (acceptable : F → Bool) : (fuel nonce : Nat) →
+    (cache0 : (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache) →
+    {x : F} → {used : Nat} →
+    {cache1 : (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache} →
+    (some (x, used), cache1) ∈ support ((simulateQ
+      (fsSourceOracle (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
+      (queryAccepting mkPoint acceptable fuel nonce)).run cache0) →
+    cache1 (mkPoint used) = some x
+  | 0, _, _, _, _, _, h => by simp [queryAccepting] at h
+  | fuel + 1, nonce, cache0, x, used, cache2, h => by
+      rw [queryAccepting, simulateQ_bind, StateT.run_bind, support_bind] at h
+      simp only [Set.mem_iUnion] at h
+      obtain ⟨⟨answer, cache1⟩, hanswer, hrest⟩ := h
+      split at hrest
+      · have hanswer' : (answer, cache1) ∈ support
+            (((fsSourceOracle
+              (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
+              (Sum.inr (mkPoint nonce))).run cache0) := by
+          simpa [simulateQ_query] using hanswer
+        have hcached := fsSourceOracle_query_caches (F := F) (mkPoint nonce)
+          cache0 answer cache1 hanswer'
+        simp only [simulateQ_pure, StateT.run_pure, support_pure,
+          Set.mem_singleton_iff] at hrest
+        obtain ⟨rfl, rfl⟩ := hrest
+        exact hcached
+      · exact queryAccepting_cached mkPoint acceptable fuel (nonce + 1)
+          cache1 hrest
+
+/-- Every accepted chronological round answer remains in the shared cache at
+its exact nonce-bearing Rust preimage. Round level is only the vector index. -/
 private theorem queryRounds_cached
-    {F G1 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
-    (level : Nat) (μ : Nat) (prev : F)
-    (rounds : Fin μ → RoundComs G1 GT)
-    (cache0 : (FsPoint (F := F) (G1 := G1) (GT := GT)
-      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache)
-    {z : RoundTranscript μ F ×
-      (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache}
-    (h : z ∈ support ((simulateQ
-      (fsSourceOracle
-        (FsPoint (F := F) (G1 := G1) (GT := GT)
-          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
-      (queryRounds
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)
-        level μ prev rounds)).run cache0)) :
-    ∀ i : Fin μ, z.2 (.round (level + (i : Nat)) (z.1.prev i) (rounds i)) =
-      some (z.1.answer i) := by
-  induction μ generalizing level prev cache0 with
+    {F G1 G2 GT : Type} [Zero F]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    (fuel μ : Nat) (prev : F) (rounds : Fin μ → RoundComs G1 GT)
+    (cache0 : (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache)
+    {out : RoundTranscript μ F}
+    {cache1 : (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache}
+    (h : (some out, cache1) ∈ support ((simulateQ
+      (fsSourceOracle (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
+      (queryRounds (G2 := G2) fuel μ prev rounds)).run cache0)) :
+    ∀ i : Fin μ, cache1 (.round (out.prev i) (rounds i) (out.nonce i)) =
+      some (out.answer i) := by
+  induction μ generalizing prev cache0 with
   | zero => intro i; exact Fin.elim0 i
   | succ μ ih =>
       rw [queryRounds, simulateQ_bind, StateT.run_bind, support_bind] at h
       simp only [Set.mem_iUnion] at h
-      obtain ⟨⟨x, cache1⟩, hx, hrest⟩ := h
-      rw [simulateQ_bind, StateT.run_bind, support_bind] at hrest
-      simp only [Set.mem_iUnion] at hrest
-      obtain ⟨⟨tail, cache2⟩, htail, hpure⟩ := hrest
-      simp only [simulateQ_pure, StateT.run_pure, support_pure,
-        Set.mem_singleton_iff] at hpure
-      subst z
-      intro i
-      refine Fin.cases ?_ (fun j => ?_) i
-      · have hx' : (x, cache1) ∈ support
-            (((fsSourceOracle
-              (FsPoint (F := F) (G1 := G1) (GT := GT)
-                (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-                (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
-              (Sum.inr (.round level prev (rounds 0)))).run cache0) := by
-            simpa [simulateQ_query] using hx
-        have hcached := fsSourceOracle_query_caches
-          (F := F)
-          (point := (.round level prev (rounds 0) :
-            FsPoint (F := F) (G1 := G1) (GT := GT)
-              (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-              (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)))
-          cache0 x cache1 hx'
-        exact (fsSourceOracle_cache_le
-          (oa := queryRounds
-            (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-            (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)
-            (level + 1) μ x (fun k => rounds k.succ))
-          cache1 (tail, cache2) htail) hcached
-      · change cache2
-          (.round (level + (j.succ : Nat)) (tail.prev j) (rounds j.succ)) =
-            some (tail.answer j)
-        have hj := ih (level + 1) x (fun k => rounds k.succ) cache1 htail j
-        have hsucc : (j.succ : Nat) = (j : Nat) + 1 := rfl
-        have hlevel : level + (j.succ : Nat) = level + 1 + (j : Nat) := by
-          rw [hsucc]
-          omega
-        rwa [hlevel]
+      obtain ⟨⟨sample, cache2⟩, hsample, hrest⟩ := h
+      cases sample with
+      | none => simp at hrest
+      | some pair =>
+        rcases pair with ⟨x, nonce⟩
+        rw [simulateQ_bind, StateT.run_bind, support_bind] at hrest
+        simp only [Set.mem_iUnion] at hrest
+        obtain ⟨⟨tailOpt, cache3⟩, htail, hpure⟩ := hrest
+        cases tailOpt with
+        | none => simp at hpure
+        | some tail =>
+          simp only [simulateQ_pure, StateT.run_pure, support_pure,
+            Set.mem_singleton_iff] at hpure
+          obtain ⟨rfl, rfl⟩ := hpure
+          intro i
+          refine Fin.cases ?_ (fun j => ?_) i
+          · have hcached := queryAccepting_cached
+              (fun n => ChallengePoint.round prev (rounds 0) n) nonzeroB
+              fuel 0 cache0 hsample
+            exact (fsSourceOracle_cache_le
+              (oa := queryRounds (G2 := G2) fuel μ x (fun k => rounds k.succ))
+              cache2 (some tail, cache1) htail) hcached
+          · simpa using ih x (fun k => rounds k.succ) cache2 htail j
 
 /-- The verifier's chronological round answers are the values stored at its
 structured round points in the final shared cache. Acceptance also exposes the
@@ -421,108 +426,132 @@ same leaf relation as the uncached verifier. -/
 private theorem fsVerifier_cached
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload) (proof : Proof μ F G1 G2 GT)
-    (cache0 : (FsPoint (F := F) (G1 := G1) (GT := GT)
-      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache)
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (cache0 : (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache)
     {z : FsResult μ F G1 G2 GT ×
-      (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache}
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache}
     (h : z ∈ support ((simulateQ
       (fsSourceOracle
-        (FsPoint (F := F) (G1 := G1) (GT := GT)
-          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
       (fsVerifier stmt proof)).run cache0)) :
-    (∀ i : Fin μ,
-      z.2 (.round (i : Nat) (z.1.transcript.roundPrev i) (z.1.proof.rounds i)) =
-        some (z.1.transcript.roundAnswer i)) ∧
-      (z.1.accept = true → LeafData stmt z.1.proof z.1.transcript) := by
+    z.1.accept = true →
+      (∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
+        (z.1.proof.rounds i) (z.1.transcript.roundNonce i)) =
+          some (z.1.transcript.roundAnswer i)) ∧
+      LeafData stmt z.1.proof z.1.transcript ∧ ChallengesAccepted z.1 := by
   rw [fsVerifier, simulateQ_bind, StateT.run_bind, support_bind] at h
   simp only [Set.mem_iUnion] at h
-  obtain ⟨⟨r, cache1⟩, hr, h⟩ := h
-  rw [simulateQ_bind, StateT.run_bind, support_bind] at h
-  simp only [Set.mem_iUnion] at h
-  obtain ⟨⟨x0, cache2⟩, hx0, h⟩ := h
-  rw [simulateQ_bind, StateT.run_bind, support_bind] at h
-  simp only [Set.mem_iUnion] at h
-  obtain ⟨⟨rounds, cache3⟩, hrounds, h⟩ := h
-  rw [simulateQ_bind, StateT.run_bind, support_bind] at h
-  simp only [Set.mem_iUnion] at h
-  obtain ⟨⟨bridge, cache4⟩, hbridge, h⟩ := h
-  rw [simulateQ_bind, StateT.run_bind, support_bind] at h
-  simp only [Set.mem_iUnion] at h
-  obtain ⟨⟨kzg, cache5⟩, hkzg, hpure⟩ := h
-  simp only [simulateQ_pure, StateT.run_pure, support_pure,
-    Set.mem_singleton_iff] at hpure
-  subst z
-  constructor
-  · intro i
-    have hround := queryRounds_cached
-      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)
-      0 μ x0 proof.rounds cache2 hrounds i
-    have hbridgeLe := fsSourceOracle_cache_le
-      (oa := ((unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-        BridgePayload KzgPayload).query
-        (Sum.inr (.bridge (stmt.payloads.bridge proof r x0 rounds.answer))) :
-          OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-            X0Payload BridgePayload KzgPayload) F))
-      cache3 (bridge, cache4) hbridge
-    have hkzgLe := fsSourceOracle_cache_le
-      (oa := ((unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-        BridgePayload KzgPayload).query
-        (Sum.inr (.kzg
-          (stmt.payloads.kzg proof r x0 rounds.answer bridge))) :
-          OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-            X0Payload BridgePayload KzgPayload) F))
-      cache4 (kzg, cache5) hkzg
-    have hzero : 0 + (i : Nat) = (i : Nat) := Nat.zero_add _
-    rw [hzero] at hround
-    exact hkzgLe (hbridgeLe hround)
-  · intro haccept
-    have hacc : FsAccepts stmt proof
-        { randomizer := r, x0 := x0, roundPrev := rounds.prev,
-          roundAnswer := rounds.answer, bridge := bridge, kzg := kzg } := by
-      simpa using haccept
-    exact hacc.1
+  obtain ⟨⟨rOpt, cache1⟩, hr, hrest⟩ := h
+  cases rOpt with
+  | none =>
+      simp only [simulateQ_pure, StateT.run_pure, support_pure,
+        Set.mem_singleton_iff] at hrest
+      subst z
+      simp [rejectedResult]
+  | some rPair =>
+    rcases rPair with ⟨r, rNonce⟩
+    rw [simulateQ_bind, StateT.run_bind, support_bind] at hrest
+    simp only [Set.mem_iUnion] at hrest
+    obtain ⟨⟨xOpt, cache2⟩, hx, hxrest⟩ := hrest
+    cases xOpt with
+    | none =>
+      simp only [simulateQ_pure, StateT.run_pure, support_pure,
+        Set.mem_singleton_iff] at hxrest
+      subst z
+      simp [rejectedResult]
+    | some xPair =>
+      rcases xPair with ⟨x0, x0Nonce⟩
+      rw [simulateQ_bind, StateT.run_bind, support_bind] at hxrest
+      simp only [Set.mem_iUnion] at hxrest
+      obtain ⟨⟨roundOpt, cache3⟩, hround, hrrest⟩ := hxrest
+      cases roundOpt with
+      | none =>
+        simp only [simulateQ_pure, StateT.run_pure, support_pure,
+          Set.mem_singleton_iff] at hrrest
+        subst z
+        simp [rejectedResult]
+      | some rounds =>
+        rw [simulateQ_bind, StateT.run_bind, support_bind] at hrrest
+        simp only [Set.mem_iUnion] at hrrest
+        obtain ⟨⟨bridgeOpt, cache4⟩, hbridge, hbrest⟩ := hrrest
+        cases bridgeOpt with
+        | none =>
+          simp only [simulateQ_pure, StateT.run_pure, support_pure,
+            Set.mem_singleton_iff] at hbrest
+          subst z
+          simp [rejectedResult]
+        | some bridgePair =>
+          rcases bridgePair with ⟨bridge, bridgeNonce⟩
+          rw [simulateQ_bind, StateT.run_bind, support_bind] at hbrest
+          simp only [Set.mem_iUnion] at hbrest
+          obtain ⟨⟨zOpt, cache5⟩, hz, hzrest⟩ := hbrest
+          cases zOpt with
+          | none =>
+            simp only [simulateQ_pure, StateT.run_pure, support_pure,
+              Set.mem_singleton_iff] at hzrest
+            subst z
+            simp [rejectedResult]
+          | some zPair =>
+            rcases zPair with ⟨kzg, kzgNonce⟩
+            simp only [simulateQ_pure, StateT.run_pure, support_pure,
+              Set.mem_singleton_iff] at hzrest
+            subst z
+            intro haccept
+            let transcript : FsTranscript μ F :=
+              { randomizer := r, randomizerNonce := rNonce
+                x0 := x0, x0Nonce := x0Nonce
+                roundPrev := rounds.prev, roundAnswer := rounds.answer,
+                roundNonce := rounds.nonce
+                bridge := bridge, bridgeNonce := bridgeNonce
+                kzg := kzg, kzgNonce := kzgNonce }
+            have hacc : FsAccepts stmt proof transcript := by
+              simpa [transcript] using haccept
+            have hround' := queryRounds_cached stmt.rejectionFuel μ x0 proof.rounds
+              cache2 hround
+            have hbridgeLe := fsSourceOracle_cache_le
+              (oa := queryAccepting
+                (fun nonce => ChallengePoint.bridge
+                  { lastRawChallenge := rounds.last, vFinal := proof.vFinal,
+                    wFinal := proof.wFinal, aFinal := proof.aFinal,
+                    bFinal := proof.bFinal, cFinal := proof.cFinal } nonce)
+                nonzeroB stmt.rejectionFuel 0)
+              cache3 (some (bridge, bridgeNonce), cache4) hbridge
+            have hkzgLe := fsSourceOracle_cache_le
+              (oa := queryAccepting
+                (fun nonce => ChallengePoint.kzg
+                  { bridgeChallenge := bridge, vFinal := proof.vFinal,
+                    wFinal := proof.wFinal } nonce)
+                nonzeroB stmt.rejectionFuel 0)
+              cache4 (some (kzg, kzgNonce), cache5) hz
+            refine ⟨?_, hacc.2.2.2.2.2.2.1, ?_⟩
+            · intro i
+              exact hkzgLe (hbridgeLe (hround' i))
+            · exact ⟨hacc.1, hacc.2.1, hacc.2.2.1, hacc.2.2.2.1,
+                hacc.2.2.2.2.1, hacc.2.2.2.2.2.1⟩
 
 /-- Cache/acceptance postcondition for the complete adversary-plus-verifier
 game, with the verifier starting from the adversary's live cache. -/
 private theorem fsGame_cached
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
-    (cache0 : (FsPoint (F := F) (G1 := G1) (GT := GT)
-      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache)
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (cache0 : (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache)
     {z : FsResult μ F G1 G2 GT ×
-      (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache}
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache}
     (h : z ∈ support ((simulateQ
       (fsSourceOracle
-        (FsPoint (F := F) (G1 := G1) (GT := GT)
-          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
       (FsGame stmt adv)).run cache0)) :
-    (∀ i : Fin μ,
-      z.2 (.round (i : Nat) (z.1.transcript.roundPrev i) (z.1.proof.rounds i)) =
-        some (z.1.transcript.roundAnswer i)) ∧
-      (z.1.accept = true → LeafData stmt z.1.proof z.1.transcript) := by
+    z.1.accept = true →
+      (∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
+        (z.1.proof.rounds i) (z.1.transcript.roundNonce i)) =
+          some (z.1.transcript.roundAnswer i)) ∧
+      LeafData stmt z.1.proof z.1.transcript ∧ ChallengesAccepted z.1 := by
   rw [FsGame, simulateQ_bind, StateT.run_bind, support_bind] at h
   simp only [Set.mem_iUnion] at h
   obtain ⟨⟨proof, cache1⟩, _, hverifier⟩ := h
@@ -533,30 +562,24 @@ cache, verifier round answers, and accepted leaf data. -/
 private theorem fsRandomFunction_replay_cached
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     {out : FsResult μ F G1 G2 GT}
-    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)}
+    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
     (h : (out, sourceLog) ∈ support
       (replayFirstRun (fsRandomFunction (FsGame stmt adv)))) :
-    ∃ cache : (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache,
+    ∃ cache : (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) →ₒ F).QueryCache,
       (∀ point value, QueryAnswered sourceLog (Sum.inr point) value →
         cache point = some value) ∧
       (∀ point value, cache point = some value →
         QueryAnswered sourceLog (Sum.inr point) value) ∧
-      (∀ i : Fin μ,
-        cache (.round (i : Nat) (out.transcript.roundPrev i) (out.proof.rounds i)) =
-          some (out.transcript.roundAnswer i)) ∧
-      (out.accept = true → LeafData stmt out.proof out.transcript) := by
+      (out.accept = true →
+        (∀ i : Fin μ, cache (.round (out.transcript.roundPrev i)
+          (out.proof.rounds i) (out.transcript.roundNonce i)) =
+            some (out.transcript.roundAnswer i)) ∧
+        LeafData stmt out.proof out.transcript ∧ ChallengesAccepted out) := by
   unfold replayFirstRun fsRandomFunction at h
   simp only [bind_pure_comp, simulateQ_map, WriterT.run_map', support_map] at h
   obtain ⟨stateLog, hstateLog, heq⟩ := h
@@ -570,22 +593,18 @@ private theorem fsRandomFunction_replay_cached
   subst sourceLog
   have hstate : stateLog.1 ∈ support ((simulateQ
       (fsSourceOracle
-        (FsPoint (F := F) (G1 := G1) (GT := GT)
-          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
       (FsGame stmt adv)).run ∅) := by
     have hm : stateLog.1 ∈ support (Prod.fst <$> replayFirstRun
         ((simulateQ
           (fsSourceOracle
-            (FsPoint (F := F) (G1 := G1) (GT := GT)
-              (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-              (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+            (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
           (FsGame stmt adv)).run ∅)) := by
       rw [support_map]
       exact ⟨stateLog, hstateLog, rfl⟩
     simpa using hm
   have hgame := fsGame_cached stmt adv ∅ hstate
-  refine ⟨stateLog.1.2, ?_, ?_, hgame.1, hgame.2⟩
+  refine ⟨stateLog.1.2, ?_, ?_, hgame⟩
   · exact fsSource_log_cached (FsGame stmt adv) ∅ hstateLog
   · exact fsSource_cache_logged (FsGame stmt adv) hstateLog
 
@@ -781,29 +800,22 @@ is within the proof transcript (DESIGN §U5d(4); `fs.stage-labels`). -/
 def wrappedRoundPoint {μ : Nat}
     (level : Nat)
     (run : WrappedFsRun
-      (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) :
-    Option (FsPoint (F := F) (G1 := G1) (GT := GT)
-      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) := by
+    Option (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) := by
   if hlevel : level < μ then
     let i : Fin μ := ⟨level, hlevel⟩
-    exact some (.round level (run.out.transcript.roundPrev i) (run.out.proof.rounds i))
+    exact some (.round (run.out.transcript.roundPrev i) (run.out.proof.rounds i)
+      (run.out.transcript.roundNonce i))
   else
     exact none
 
 /-- First occurrence of the run's round point in the structured side trace,
 bounded for U5c's `Fin (qb + 1)` selector (DESIGN §U5d(4)). -/
-def roundSlot [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+def roundSlot [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat} (qb level : Nat)
     (run : WrappedFsRun
-      (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) : Option (Fin (qb + 1)) := by
   match wrappedRoundPoint level run with
   | none => exact none
@@ -816,14 +828,10 @@ def roundSlot [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
 
 /-- Explicit U5a-accounted bad event: the requested round is absent/out of
 bounds, or its first trace occurrence exceeds the fork budget. -/
-def RoundPointUnqueried [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+def RoundPointUnqueried [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat} (qb level : Nat)
     (run : WrappedFsRun
-      (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) : Prop :=
   match wrappedRoundPoint level run with
   | none => True
@@ -832,14 +840,10 @@ def RoundPointUnqueried [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
 /-- Every round selector either returns its bounded first occurrence or lies
 in the explicit `RoundPointUnqueried` event. -/
 theorem roundSlot_some_or_unqueried
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat} (qb level : Nat)
     (run : WrappedFsRun
-      (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) :
     (∃ s, roundSlot qb level run = some s) ∨
       RoundPointUnqueried qb level run := by
@@ -863,59 +867,45 @@ leaf postcondition used by the round selector and tree assembly. -/
 theorem wrapped_source_leaf_data
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     {out : FsResult μ F G1 G2 GT}
-    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)}
+    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
     (h : (out, sourceLog) ∈ support
       (replayFirstRun (fsRandomFunction (FsGame stmt adv)))) :
     (({ out := out, trace := fsPointTrace sourceLog }, flattenFsLog sourceLog) ∈
         support (replayFirstRun (wrapFs (FsGame stmt adv)))) ∧
       accepted_run_leaf_data stmt out sourceLog := by
   refine ⟨(wrapFs_support_iff (FsGame stmt adv) out sourceLog).2 h, ?_⟩
-  obtain ⟨cache, _, hcacheLog, hround, hleaf⟩ :=
+  obtain ⟨cache, _, hcacheLog, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv h
   intro haccept
-  refine ⟨?_, ?_, hleaf haccept, ?_⟩
+  have hrun := haccepted haccept
+  refine ⟨?_, ?_, hrun.2.1, hrun.2.2⟩
   · intro i
-    exact hcacheLog _ _ (hround i)
+    exact hcacheLog _ _ (hrun.1 i)
   · intro i
     exact ⟨rfl, rfl⟩
-  · by_cases hz : ZeroChallenge out
-    · exact Or.inl hz
-    · exact Or.inr (fun i hi => hz ⟨i, hi⟩)
 
 /-- Accepting source runs therefore have a bounded round selector unless they
 fall in the explicit unqueried/out-of-budget event; its probability is U5a. -/
 theorem accepted_roundSlot_some_or_unqueried
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     (qb level : Nat)
     {out : FsResult μ F G1 G2 GT}
-    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)}
+    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
     (h : (out, sourceLog) ∈ support
       (replayFirstRun (fsRandomFunction (FsGame stmt adv))))
     (haccept : out.accept = true) :
     let run : WrappedFsRun
-        (FsPoint (F := F) (G1 := G1) (GT := GT)
-          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
         (FsResult μ F G1 G2 GT) :=
       { out := out, trace := fsPointTrace sourceLog }
     (∃ s, roundSlot qb level run = some s) ∨
@@ -930,35 +920,27 @@ managed-RO selector fact required by U5d(4)/R6. -/
 theorem roundSlot_answer_eq_transcript
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     (qb : Nat) (level : Fin μ)
     {out : FsResult μ F G1 G2 GT}
-    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)}
+    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
     (h : (out, sourceLog) ∈ support
       (replayFirstRun (fsRandomFunction (FsGame stmt adv))))
-    (_haccept : out.accept = true)
+    (haccept : out.accept = true)
     {slot : Fin (qb + 1)}
     (hslot : roundSlot qb (level : Nat)
       ({ out := out, trace := fsPointTrace sourceLog } :
         WrappedFsRun
-          (FsPoint (F := F) (G1 := G1) (GT := GT)
-            (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-            (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+          (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
           (FsResult μ F G1 G2 GT)) = some slot) :
     QueryLog.getQueryValue? (flattenFsLog sourceLog) (Sum.inr ()) (slot : Nat) =
       some (out.transcript.roundAnswer level) := by
-  let point : FsPoint (F := F) (G1 := G1) (GT := GT)
-      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) :=
-    .round (level : Nat) (out.transcript.roundPrev level) (out.proof.rounds level)
+  let point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) :=
+    .round (out.transcript.roundPrev level) (out.proof.rounds level)
+      (out.transcript.roundNonce level)
   let points := fsPointTrace sourceLog
   have hslot' : point ∈ points ∧
       ∃ hidx : points.findIdx (· == point) < qb + 1,
@@ -979,8 +961,9 @@ theorem roundSlot_answer_eq_transcript
       (Sum.inr (points[points.findIdx (· == point)]'hidxTrace)) answer at hanswered
     rw [hpointAt] at hanswered
     exact hanswered
-  obtain ⟨cache, hlogCache, _, hround, _⟩ :=
+  obtain ⟨cache, hlogCache, _, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv h
+  have hround := (haccepted haccept).1
   have hcacheAnswer := hlogCache point answer hanswered'
   have hcacheTranscript : cache point = some (out.transcript.roundAnswer level) := by
     simpa [point] using hround level
@@ -1025,8 +1008,7 @@ def LeafBaseComponents
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload) (proof : Proof μ F G1 G2 GT)
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
     (transcript : FsTranscript μ F) : Prop :=
   let folded := terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer
   let xV := reversedView transcript.roundAnswer
@@ -1050,8 +1032,7 @@ theorem leafData_to_base_components
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload) (proof : Proof μ F G1 G2 GT)
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
     (transcript : FsTranscript μ F)
     (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
     (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
@@ -1061,7 +1042,7 @@ theorem leafData_to_base_components
   dsimp [LeafBaseComponents]
   obtain ⟨h1, h2, h3, h4, h5, hkzgV, hkzgW⟩ := hleaf
   have hbase := leaf_accept_to_base stmt.e stmt.srsV stmt.srsW stmt.acceptV
-    stmt.acceptW (reversedView transcript.roundAnswer)
+    stmt.acceptW transcript.kzg (reversedView transcript.roundAnswer)
     (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
     transcript.randomizer⁻¹ proof.vFinal proof.vOpening proof.wFinal proof.wOpening
     proof.aFinal proof.cFinal proof.bFinal
@@ -1079,17 +1060,13 @@ theorem leafData_to_base_components
 /-- Acceptance and the two explicit U5a exclusions required on every wrapped
 run used by U5d(4) (`fs.stage-labels`, `tipp-mipp.gipa`). -/
 def WrappedRunGood
-    [Zero F] [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [Zero F] [One F] [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat} (qb : Nat)
     (run : WrappedFsRun
-      (FsPoint (F := F) (G1 := G1) (GT := GT)
-        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) : Prop :=
   run.out.accept = true ∧
-    ¬ZeroChallenge run.out ∧
+    ChallengesAccepted run.out ∧
     ∀ level, level < μ → ¬RoundPointUnqueried qb level run
 
 /-- Assemble the wrapped U5c replay tree into the product-lane `AcceptTree`
@@ -1102,22 +1079,16 @@ data still need to be threaded through the induction. -/
 theorem tree_to_acceptTree
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     (qb : (FsWrappedSpec F).Domain → Nat)
     (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
     (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
     {tree : RunTree (FsWrappedSpec F)
       (WrappedFsRun
-        (FsPoint (F := F) (G1 := G1) (GT := GT)
-          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
         (FsResult μ F G1 G2 GT)) μ}
     (hconsistent : TreeConsistent (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
       (fun level run => roundSlot (qb (Sum.inr ())) level run) 0 none tree)
@@ -1138,25 +1109,19 @@ consumed by `u4_capstone`. Probability accounting is deferred to U5e. -/
 theorem fsFork_success_acceptTree
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
-    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
-    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
     [IsUniformSpec (FsWrappedSpec F)]
     [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
     [unifSpec ⊂ₒ FsWrappedSpec F]
     {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     (qb : (FsWrappedSpec F).Domain → Nat)
     (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
     (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
     {tree : RunTree (FsWrappedSpec F)
       (WrappedFsRun
-        (FsPoint (F := F) (G1 := G1) (GT := GT)
-          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
         (FsResult μ F G1 G2 GT)) μ}
     (hsuccess : some tree ∈ support (forkTree μ (wrapFs (FsGame stmt adv)) qb
       (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)))

@@ -28,27 +28,65 @@ structure RoundComs (G1 GT : Type) where
   RT : GT × G1
 deriving DecidableEq
 
-/-- Structured Fiat--Shamir preimages in SnarkPack verifier order (DESIGN
-§U5d(1); `fs.stage-labels`, `fs.challenge-preimage`, `tipp-mipp.gipa`).
+/-- Exact Rust message fields hashed by `aggregate.randomizer`. `comA` and
+`comC` are the two components of the model's A-lane statement commitment.
+Injectivity of their byte serialization remains the shieldd-byte
+`fs.challenge-preimage` obligation. -/
+structure RandomizerPayload (GT : Type) where
+  comA : GT
+  comB : GT
+  comC : GT
+deriving DecidableEq
 
-Constructor disjointness makes stage/payload encoding injective in this model.
-Injectivity of the concrete byte encoding remains the responsibility of the
-shieldd-byte `fs.challenge-preimage` rows. -/
-inductive ChallengePoint (F G1 GT RandomizerPayload X0Payload BridgePayload
-    KzgPayload : Type) where
-  | randomizer (payload : RandomizerPayload)
-  | x0 (payload : X0Payload)
-  | round (level : Nat) (prev : F) (coms : RoundComs G1 GT)
-  | bridge (payload : BridgePayload)
-  | kzg (payload : KzgPayload)
+/-- Exact Rust message fields hashed by `tipp-mipp.x0`. Byte-serialization
+injectivity remains the shieldd-byte `fs.challenge-preimage` obligation. -/
+structure X0Payload (F G1 GT : Type) where
+  r : F
+  comA : GT
+  comB : GT
+  comC : GT
+  ipAb : GT
+  aggC : G1
+deriving DecidableEq
+
+/-- Exact Rust message fields hashed by `tipp-mipp.final-bridge`.
+Byte-serialization injectivity remains the shieldd-byte
+`fs.challenge-preimage` obligation. -/
+structure BridgePayload (F G1 G2 : Type) where
+  lastRawChallenge : F
+  vFinal : G2
+  wFinal : G1
+  aFinal : G1
+  bFinal : G2
+  cFinal : G1
+deriving DecidableEq
+
+/-- Exact Rust message fields hashed by `tipp-mipp.kzg`. Byte-serialization
+injectivity remains the shieldd-byte `fs.challenge-preimage` obligation. -/
+structure KzgPayload (F G1 G2 : Type) where
+  bridgeChallenge : F
+  vFinal : G2
+  wFinal : G1
+deriving DecidableEq
+
+/-- Structured Fiat--Shamir preimages in SnarkPack verifier order. Every point
+contains the nonce serialized by Rust as `u64_le(nonce)`; `Nat` models the
+non-overflowing prefix of that loop. Round level is deliberately out-of-band:
+Rust hashes only the prior raw challenge and the two commitment objects.
+Constructor disjointness and typed record equality give abstract injectivity;
+byte-level injectivity remains the shieldd-byte `fs.challenge-preimage` row. -/
+inductive ChallengePoint (F G1 G2 GT : Type) where
+  | randomizer (payload : RandomizerPayload GT) (nonce : Nat)
+  | x0 (payload : X0Payload F G1 GT) (nonce : Nat)
+  | round (prev : F) (coms : RoundComs G1 GT) (nonce : Nat)
+  | bridge (payload : BridgePayload F G1 G2) (nonce : Nat)
+  | kzg (payload : KzgPayload F G1 G2) (nonce : Nat)
 deriving DecidableEq
 
 /-- The uniform structured challenge oracle. Every stage has scalar range
 `F`; its sum constructors separate the five `fs.stage-labels`. -/
-abbrev SnarkpackFsSpec (F G1 GT RandomizerPayload X0Payload BridgePayload
-    KzgPayload : Type) : OracleSpec (ChallengePoint F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) :=
-  ChallengePoint F G1 GT RandomizerPayload X0Payload BridgePayload KzgPayload →ₒ F
+abbrev SnarkpackFsSpec (F G1 G2 GT : Type) : OracleSpec (ChallengePoint F G1 G2 GT) :=
+  ChallengePoint F G1 G2 GT →ₒ F
 
 /-- Aggregate proof data consumed by the U5d verifier. -/
 structure Proof (μ : Nat) (F G1 G2 GT : Type) where
@@ -64,25 +102,15 @@ structure Proof (μ : Nat) (F G1 G2 GT : Type) where
   aggC : G1
 deriving DecidableEq
 
-/-- The five stage payload constructors. Non-round payloads remain abstract,
-while their dependence on the proof and prior transcript is explicit. -/
-structure FsPayloads (μ : Nat) (F G1 G2 GT RandomizerPayload X0Payload
-    BridgePayload KzgPayload : Type) where
-  randomizer : Proof μ F G1 G2 GT → RandomizerPayload
-  x0 : Proof μ F G1 G2 GT → F → X0Payload
-  bridge : Proof μ F G1 G2 GT → F → F → (Fin μ → F) → BridgePayload
-  kzg : Proof μ F G1 G2 GT → F → F → (Fin μ → F) → F → KzgPayload
-
 /-- Public inputs and abstract verifier relations needed by U4. -/
-structure FsStatement (μ : Nat) (F G1 G2 GT RandomizerPayload X0Payload
-    BridgePayload KzgPayload : Type) [CommSemiring F]
+structure FsStatement (μ : Nat) (F G1 G2 GT : Type) [CommSemiring F]
     [AddCommMonoid G1] [Module F G1] [AddCommMonoid G2] [Module F G2]
     [AddCommMonoid GT] [Module F GT] where
   e : G1 →ₗ[F] G2 →ₗ[F] GT
   srsV : Fin (2 ^ μ) → G2
   srsW : Fin (2 ^ μ) → G1
-  acceptV : (Fin (2 ^ μ) → F) → G2 → G2 → Prop
-  acceptW : (Fin (2 ^ μ) → F) → G1 → G1 → Prop
+  acceptV : F → (Fin (2 ^ μ) → F) → G2 → G2 → Prop
+  acceptW : F → (Fin (2 ^ μ) → F) → G1 → G1 → Prop
   ComA : GT × GT
   ComB : GT
   alpha : G1
@@ -93,13 +121,14 @@ structure FsStatement (μ : Nat) (F G1 G2 GT RandomizerPayload X0Payload
   B : Fin (2 ^ μ) → G2
   C : Fin (2 ^ μ) → G1
   Aic : Fin (2 ^ μ) → G1
-  payloads : FsPayloads μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-    KzgPayload
+  /-- Maximum attempts per scalar stage. Exhaustion rejects the run. -/
+  rejectionFuel : Nat
 
 /-- Answers and input chaining for the consecutive round-stage queries. -/
 structure RoundTranscript (μ : Nat) (F : Type) where
   prev : Fin μ → F
   answer : Fin μ → F
+  nonce : Fin μ → Nat
   last : F
 deriving DecidableEq
 
@@ -107,11 +136,16 @@ deriving DecidableEq
 `SnarkpackOracle.lean`. -/
 structure FsTranscript (μ : Nat) (F : Type) where
   randomizer : F
+  randomizerNonce : Nat
   x0 : F
+  x0Nonce : Nat
   roundPrev : Fin μ → F
   roundAnswer : Fin μ → F
+  roundNonce : Fin μ → Nat
   bridge : F
+  bridgeNonce : Nat
   kzg : F
+  kzgNonce : Nat
 deriving DecidableEq
 
 /-- SnarkPack's notation swap: the GIPA verifier challenge is the inverse of
@@ -125,22 +159,48 @@ def gipaChallengeInv {F : Type} (x : F) : F := x
 def reversedView {F : Type} {μ : Nat} (x : Fin μ → F) : Fin μ → F :=
   fun i => x (Fin.rev i)
 
-def queryRounds
-    {F G1 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
-    (level : Nat) : (μ : Nat) → F → (Fin μ → RoundComs G1 GT) →
-      OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-        BridgePayload KzgPayload) (RoundTranscript μ F)
-  | 0, prev, _ => pure { prev := Fin.elim0, answer := Fin.elim0, last := prev }
+def nonzeroB {F : Type} [Zero F] (x : F) : Bool :=
+  @decide (x ≠ 0) (Classical.propDecidable _)
+
+def randomizerAcceptedB {F : Type} [Zero F] [One F] (x : F) : Bool :=
+  @decide (x ≠ 0 ∧ x ≠ 1) (Classical.propDecidable _)
+
+/-- Bounded model of Rust's nonce loop. Attempt `n` queries the point built
+with nonce `n`; rejected field answers advance the nonce. The oracle already
+ranges over decoded field elements, so byte-to-field decode failures are
+abstracted away. Fuel exhaustion returns `none` and the verifier rejects. -/
+def queryAccepting {F G1 G2 GT : Type}
+    (mkPoint : Nat → ChallengePoint F G1 G2 GT) (acceptable : F → Bool) :
+    Nat → Nat → OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Option (F × Nat))
+  | 0, _ => pure none
+  | fuel + 1, nonce => do
+      let x ← (unifSpec + SnarkpackFsSpec F G1 G2 GT).query
+        (Sum.inr (mkPoint nonce))
+      if acceptable x then
+        pure (some (x, nonce))
+      else
+        queryAccepting mkPoint acceptable fuel (nonce + 1)
+
+def queryRounds {F G1 G2 GT : Type} [Zero F]
+    (fuel : Nat) : (μ : Nat) → F → (Fin μ → RoundComs G1 GT) →
+      OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Option (RoundTranscript μ F))
+  | 0, prev, _ => pure (some {
+      prev := Fin.elim0, answer := Fin.elim0, nonce := Fin.elim0, last := prev })
   | μ + 1, prev, rounds => do
-      let x ← (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-        BridgePayload KzgPayload).query
-          (Sum.inr (.round level prev (rounds 0)))
-      let tail ← queryRounds (level + 1) μ x (fun i => rounds i.succ)
-      pure {
-        prev := Fin.cases prev tail.prev
-        answer := Fin.cases x tail.answer
-        last := tail.last
-      }
+      let sampled ← queryAccepting
+        (fun nonce => .round prev (rounds 0) nonce) nonzeroB fuel 0
+      match sampled with
+      | none => pure none
+      | some (x, nonce) =>
+          let tail ← queryRounds fuel μ x (fun i => rounds i.succ)
+          match tail with
+          | none => pure none
+          | some tail => pure (some {
+              prev := Fin.cases prev tail.prev
+              answer := Fin.cases x tail.answer
+              nonce := Fin.cases nonce tail.nonce
+              last := tail.last
+            })
 
 /-- The three lane-native commitment values folded by the verifier. -/
 structure FoldedValues (G1 GT : Type) where
@@ -190,12 +250,12 @@ theorem foldKey_public_eq_terminalR {F : Type} [Field F] {μ : Nat}
 
 /-- Exact U4 leaf payload: five terminal equations and the two KZG accepts at
 the recomputed transcript coefficients (DESIGN §U5d(3); `tipp-mipp.gipa`). -/
-def LeafData {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+def LeafData {F G1 G2 GT : Type}
     [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
     [AddCommGroup GT] [Module F GT] {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload) (proof : Proof μ F G1 G2 GT) (transcript : FsTranscript μ F) :
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F) :
     Prop :=
   let folded := terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer
   stmt.e proof.aFinal proof.vFinal = folded.comA.1 ∧
@@ -204,9 +264,10 @@ def LeafData {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : 
   stmt.e proof.cFinal proof.vFinal = folded.comA.2 ∧
   terminalR transcript.randomizer (reversedView transcript.roundAnswer) • proof.cFinal =
     folded.comT.2 ∧
-  stmt.acceptV (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
+  stmt.acceptV transcript.kzg
+    (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
     proof.vFinal proof.vOpening ∧
-  stmt.acceptW
+  stmt.acceptW transcript.kzg
     (transcriptCoeffs
       (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
       transcript.randomizer⁻¹) proof.wFinal proof.wOpening
@@ -224,14 +285,17 @@ theorem reversedView_two_round_parity {F : Type} [Field F] (x0 x1 r : F) :
   · simp [terminalR, reversedView]
 
 /-- All relations checked by the aggregate verifier. -/
-def FsAccepts {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+def FsAccepts {F G1 G2 GT : Type}
     [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
     [AddCommGroup GT] [Module F GT] {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload) (proof : Proof μ F G1 G2 GT) (transcript : FsTranscript μ F) :
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F) :
     Prop :=
-  LeafData stmt proof transcript ∧
+  transcript.randomizer ≠ 0 ∧ transcript.randomizer ≠ 1 ∧
+    transcript.x0 ≠ 0 ∧ (∀ i, transcript.roundAnswer i ≠ 0) ∧
+    transcript.bridge ≠ 0 ∧ transcript.kzg ≠ 0 ∧
+    LeafData stmt proof transcript ∧
     stmt.e ((∑ i : Fin (2 ^ μ), transcript.randomizer ^ (i : Nat)) • stmt.alpha)
         stmt.beta +
       stmt.e (∑ i : Fin (2 ^ μ), transcript.randomizer ^ (i : Nat) • stmt.Aic i)
@@ -245,51 +309,85 @@ structure FsResult (μ : Nat) (F G1 G2 GT : Type) where
   accept : Bool
 deriving DecidableEq
 
-/-- Straight-line verifier computation in the stage order randomizer, x0,
-rounds, final bridge, KZG (DESIGN §U5d(2); `fs.stage-labels`). -/
-def fsVerifier {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload :
-    Type} [Field F] [AddCommGroup G1] [Module F G1]
+/-- Canonical rejected output used only when a bounded nonce loop exhausts. -/
+def rejectedResult {F G1 G2 GT : Type} [Zero F] {μ : Nat}
+    (proof : Proof μ F G1 G2 GT) : FsResult μ F G1 G2 GT :=
+  { proof := proof
+    transcript :=
+      { randomizer := 0, randomizerNonce := 0
+        x0 := 0, x0Nonce := 0
+        roundPrev := fun _ => 0, roundAnswer := fun _ => 0,
+        roundNonce := fun _ => 0
+        bridge := 0, bridgeNonce := 0
+        kzg := 0, kzgNonce := 0 }
+    accept := false }
+
+/-- Verifier computation in Rust stage order with bounded nonce loops at every
+scalar stage. Fuel exhaustion stops immediately with a rejected result; on an
+accepting output the computation is the straight-line randomizer, x0, rounds,
+final bridge, KZG chain (DESIGN §U5d(2); `fs.stage-labels`). -/
+def fsVerifier {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload) (proof : Proof μ F G1 G2 GT) :
-    OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-      BridgePayload KzgPayload) (FsResult μ F G1 G2 GT) := do
-  let r ← (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-    BridgePayload KzgPayload).query (Sum.inr (.randomizer (stmt.payloads.randomizer proof)))
-  let x0 ← (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-    BridgePayload KzgPayload).query (Sum.inr (.x0 (stmt.payloads.x0 proof r)))
-  let rounds ← queryRounds 0 μ x0 proof.rounds
-  let bridge ← (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-    BridgePayload KzgPayload).query
-      (Sum.inr (.bridge (stmt.payloads.bridge proof r x0 rounds.answer)))
-  let z ← (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-    BridgePayload KzgPayload).query
-      (Sum.inr (.kzg (stmt.payloads.kzg proof r x0 rounds.answer bridge)))
-  let transcript : FsTranscript μ F :=
-    { randomizer := r
-      x0 := x0
-      roundPrev := rounds.prev
-      roundAnswer := rounds.answer
-      bridge := bridge
-      kzg := z }
-  pure {
-    proof := proof
-    transcript := transcript
-    accept := @ite Bool (FsAccepts stmt proof transcript)
-      (Classical.propDecidable _) true false
-  }
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT) :
+    OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (FsResult μ F G1 G2 GT) := do
+  let rSample ← queryAccepting
+    (fun nonce => .randomizer
+      { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 } nonce)
+    randomizerAcceptedB stmt.rejectionFuel 0
+  match rSample with
+  | none => pure (rejectedResult proof)
+  | some (r, rNonce) =>
+    let x0Sample ← queryAccepting
+      (fun nonce => .x0
+        { r := r, comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2,
+          ipAb := proof.ipAb, aggC := proof.aggC } nonce)
+      nonzeroB stmt.rejectionFuel 0
+    match x0Sample with
+    | none => pure (rejectedResult proof)
+    | some (x0, x0Nonce) =>
+      let roundSample ← queryRounds stmt.rejectionFuel μ x0 proof.rounds
+      match roundSample with
+      | none => pure (rejectedResult proof)
+      | some rounds =>
+        let bridgeSample ← queryAccepting
+          (fun nonce => .bridge
+            { lastRawChallenge := rounds.last
+              vFinal := proof.vFinal, wFinal := proof.wFinal
+              aFinal := proof.aFinal, bFinal := proof.bFinal, cFinal := proof.cFinal }
+            nonce) nonzeroB stmt.rejectionFuel 0
+        match bridgeSample with
+        | none => pure (rejectedResult proof)
+        | some (bridge, bridgeNonce) =>
+          let zSample ← queryAccepting
+            (fun nonce => .kzg
+              { bridgeChallenge := bridge, vFinal := proof.vFinal,
+                wFinal := proof.wFinal } nonce) nonzeroB stmt.rejectionFuel 0
+          match zSample with
+          | none => pure (rejectedResult proof)
+          | some (z, zNonce) =>
+            let transcript : FsTranscript μ F :=
+              { randomizer := r, randomizerNonce := rNonce
+                x0 := x0, x0Nonce := x0Nonce
+                roundPrev := rounds.prev, roundAnswer := rounds.answer,
+                roundNonce := rounds.nonce
+                bridge := bridge, bridgeNonce := bridgeNonce
+                kzg := z, kzgNonce := zNonce }
+            pure {
+              proof := proof
+              transcript := transcript
+              accept := @ite Bool (FsAccepts stmt proof transcript)
+                (Classical.propDecidable _) true false
+            }
 
 /-- NMA-style FS game: the adversary chooses a proof and the verifier
 recomputes the complete structured transcript. -/
-def FsGame {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+def FsGame {F G1 G2 GT : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT)) :
-    OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-      BridgePayload KzgPayload) (FsResult μ F G1 G2 GT) := do
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT)) :
+    OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (FsResult μ F G1 G2 GT) := do
   let proof ← adv
   fsVerifier stmt proof
 
@@ -300,30 +398,31 @@ def QueryAnswered {ι : Type} {spec : OracleSpec ι} (log : QueryLog spec)
 
 /-- Every verifier round query occurs in the log with its chained input and
 the answer retained in the output transcript. -/
-def RoundQueries {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload :
-    Type} [Field F] {μ : Nat} (out : FsResult μ F G1 G2 GT)
-    (log : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)) : Prop :=
+def RoundQueries {F G1 G2 GT : Type} [Field F] {μ : Nat}
+    (out : FsResult μ F G1 G2 GT)
+    (log : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)) : Prop :=
   ∀ i : Fin μ, QueryAnswered log
-    (Sum.inr (.round (i : Nat) (out.transcript.roundPrev i) (out.proof.rounds i)))
+    (Sum.inr (.round (out.transcript.roundPrev i) (out.proof.rounds i)
+      (out.transcript.roundNonce i)))
     (out.transcript.roundAnswer i)
 
-/-- The separately-accounted bad event that a GIPA random-oracle answer is
-zero. -/
-def ZeroChallenge {F G1 G2 GT : Type} [Zero F] {μ : Nat}
+/-- Semantic acceptance conditions enforced by Rust's scalar nonce loops.
+Decode failure is absent because the model oracle already returns `F`. -/
+def ChallengesAccepted {F G1 G2 GT : Type} [Zero F] [One F] {μ : Nat}
     (out : FsResult μ F G1 G2 GT) : Prop :=
-  ∃ i, out.transcript.roundAnswer i = 0
+  out.transcript.randomizer ≠ 0 ∧ out.transcript.randomizer ≠ 1 ∧
+  out.transcript.x0 ≠ 0 ∧
+  (∀ i, out.transcript.roundAnswer i ≠ 0) ∧
+  out.transcript.bridge ≠ 0 ∧ out.transcript.kzg ≠ 0
 
 /-- Postcondition transferred from first-run support into the U5c fork tree
 (DESIGN §U5d(3); `fs.challenge-preimage`, `tipp-mipp.gipa`). -/
 def accepted_run_leaf_data
-    {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+    {F G1 G2 GT : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload) (out : FsResult μ F G1 G2 GT)
-    (log : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)) : Prop :=
+    (stmt : FsStatement μ F G1 G2 GT) (out : FsResult μ F G1 G2 GT)
+    (log : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)) : Prop :=
   out.accept = true →
     RoundQueries out log ∧
     (∀ i, gipaChallenge (out.transcript.roundAnswer i) =
@@ -331,95 +430,162 @@ def accepted_run_leaf_data
       gipaChallengeInv (out.transcript.roundAnswer i) =
         out.transcript.roundAnswer i) ∧
     LeafData stmt out.proof out.transcript ∧
-    (ZeroChallenge out ∨ ∀ i, out.transcript.roundAnswer i ≠ 0)
+    ChallengesAccepted out
+
+private theorem queryAccepting_logged
+    {F G1 G2 GT : Type}
+    (mkPoint : Nat → ChallengePoint F G1 G2 GT) (acceptable : F → Bool)
+    (fuel nonce : Nat) {x : F} {used : Nat}
+    {log : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
+    (h : (some (x, used), log) ∈ support
+      (replayFirstRun (queryAccepting mkPoint acceptable fuel nonce))) :
+    QueryAnswered log (Sum.inr (mkPoint used)) x ∧ acceptable x = true := by
+  induction fuel generalizing nonce log with
+  | zero => simp [replayFirstRun, queryAccepting] at h
+  | succ fuel ih =>
+      simp [replayFirstRun, queryAccepting] at h
+      obtain ⟨answer, qlog, hq, restLog, hrest, hlog⟩ := h
+      split at hrest
+      · simp at hrest
+        obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hrest
+        subst log
+        constructor
+        · have hqlog : qlog = [⟨Sum.inr (mkPoint used), x⟩] := by
+            have hqlog' : [⟨Sum.inr (mkPoint used), x⟩] = qlog := by
+              simpa [OracleSpec.loggingOracle, QueryImpl.withLogging_apply] using hq
+            exact hqlog'.symm
+          subst qlog
+          simp [QueryAnswered]
+        · assumption
+      · subst log
+        have hr := ih (nonce + 1) hrest
+        exact ⟨List.mem_append_right qlog hr.1, hr.2⟩
 
 private theorem queryRounds_logged
-    {F G1 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
-    (level : Nat) (μ : Nat) (prev : F) (rounds : Fin μ → RoundComs G1 GT)
+    {F G1 G2 GT : Type} [Zero F]
+    (fuel μ : Nat) (prev : F) (rounds : Fin μ → RoundComs G1 GT)
     {out : RoundTranscript μ F}
-    {log : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)}
-    (h : (out, log) ∈ support (replayFirstRun (queryRounds
-      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)
-      level μ prev rounds))) :
-    ∀ i : Fin μ, QueryAnswered log
-      (Sum.inr (.round (level + (i : Nat)) (out.prev i) (rounds i)))
-      (out.answer i) := by
-  induction μ generalizing level prev log with
-  | zero => intro i; exact Fin.elim0 i
+    {log : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
+    (h : (some out, log) ∈ support
+      (replayFirstRun (queryRounds (G2 := G2) fuel μ prev rounds))) :
+    (∀ i : Fin μ, QueryAnswered log
+      (Sum.inr (.round (out.prev i) (rounds i) (out.nonce i))) (out.answer i)) ∧
+    ∀ i : Fin μ, out.answer i ≠ 0 := by
+  induction μ generalizing prev log with
+  | zero =>
+      constructor <;> intro i <;> exact Fin.elim0 i
   | succ μ ih =>
       simp [replayFirstRun, queryRounds] at h
-      obtain ⟨x, qlog, hq, tail, tlog, ht, hout, hlog⟩ := h
-      subst out
-      subst log
-      intro i
-      refine Fin.cases ?_ (fun j => ?_) i
-      · have hqlog : qlog = [⟨Sum.inr (.round level prev (rounds 0)), x⟩] := by
-          have hqlog' : [⟨Sum.inr (.round level prev (rounds 0)), x⟩] = qlog := by
-            simpa [OracleSpec.loggingOracle, QueryImpl.withLogging_apply] using hq
-          exact hqlog'.symm
-        subst qlog
-        simp [QueryAnswered]
-      · apply List.mem_append_right qlog
-        change QueryAnswered tlog
-          (Sum.inr (.round (level + (j.succ : Nat)) (tail.prev j) (rounds j.succ)))
-          (tail.answer j)
-        have hsucc : (j.succ : Nat) = (j : Nat) + 1 := rfl
-        have hlevel : level + ((j : Nat) + 1) = level + 1 + (j : Nat) := by omega
-        rw [hsucc, hlevel]
-        exact ih (level + 1) x (fun k => rounds k.succ) ht j
+      obtain ⟨sample, sampleLog, hs, restLog, hrest, hlog⟩ := h
+      cases sample with
+      | none => simp at hrest
+      | some pair =>
+        rcases pair with ⟨x, nonce⟩
+        simp at hrest
+        obtain ⟨tailOpt, tailLog, ht, outLog, hout, hrestLog⟩ := hrest
+        cases tailOpt with
+        | none => simp at hout
+        | some tail =>
+          simp at hout
+          obtain ⟨hout, rfl⟩ := hout
+          subst out
+          subst restLog
+          subst log
+          have hs' := queryAccepting_logged
+            (fun n => ChallengePoint.round prev (rounds 0) n) nonzeroB fuel 0 hs
+          have ht' := ih x (fun i => rounds i.succ) ht
+          constructor
+          · intro i
+            refine Fin.cases ?_ (fun j => ?_) i
+            · exact List.mem_append_left _ hs'.1
+            · apply List.mem_append_right sampleLog
+              apply List.mem_append_left
+              simpa using ht'.1 j
+          · intro i
+            refine Fin.cases ?_ (fun j => ?_) i
+            · simpa [nonzeroB] using hs'.2
+            · exact ht'.2 j
 
 private theorem fsVerifier_logged
-    {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+    {F G1 G2 GT : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload) (proof : Proof μ F G1 G2 GT)
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
     {out : FsResult μ F G1 G2 GT}
-    {log : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)}
+    {log : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
     (h : (out, log) ∈ support (replayFirstRun (fsVerifier stmt proof))) :
-    RoundQueries out log ∧
-      (out.accept = true → LeafData stmt out.proof out.transcript) := by
+    out.accept = true →
+      RoundQueries out log ∧ LeafData stmt out.proof out.transcript ∧
+        ChallengesAccepted out := by
   simp [replayFirstRun, fsVerifier] at h
-  obtain ⟨r, rLog, hr, x0, x0Log, hx0, rounds, roundLog, hrounds,
-    bridge, bridgeLog, hbridge, z, zLog, hz, hout, hlog⟩ := h
-  subst out
-  subst log
-  constructor
-  · intro i
-    apply List.mem_append_right rLog
-    apply List.mem_append_right x0Log
-    apply List.mem_append_left
-    have hi := queryRounds_logged
-      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
-      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)
-      0 μ x0 proof.rounds hrounds i
-    have hzero : 0 + (i : Nat) = (i : Nat) := Nat.zero_add _
-    rw [hzero] at hi
-    exact hi
-  · intro ha
-    have hacc : FsAccepts stmt proof
-        { randomizer := r, x0 := x0, roundPrev := rounds.prev,
-          roundAnswer := rounds.answer, bridge := bridge, kzg := z } := by
-      simpa using ha
-    exact hacc.1
+  intro ha
+  obtain ⟨rOpt, rLog, hr, restLog, hrest, hlog⟩ := h
+  cases rOpt with
+  | none => simp [rejectedResult] at hrest; simp_all
+  | some rPair =>
+    rcases rPair with ⟨r, rNonce⟩
+    simp at hrest
+    obtain ⟨xOpt, xLog, hx, xRestLog, hxrest, hxlog⟩ := hrest
+    cases xOpt with
+    | none => simp [rejectedResult] at hxrest; simp_all
+    | some xPair =>
+      rcases xPair with ⟨x0, x0Nonce⟩
+      simp at hxrest
+      obtain ⟨roundOpt, roundLog, hround, roundRestLog, hrrest, hrlog⟩ := hxrest
+      cases roundOpt with
+      | none => simp [rejectedResult] at hrrest; simp_all
+      | some rounds =>
+        simp at hrrest
+        obtain ⟨bridgeOpt, bridgeLog, hbridge, bridgeRestLog, hbrest, hblog⟩ := hrrest
+        cases bridgeOpt with
+        | none => simp [rejectedResult] at hbrest; simp_all
+        | some bridgePair =>
+          rcases bridgePair with ⟨bridge, bridgeNonce⟩
+          simp at hbrest
+          obtain ⟨zOpt, zLog, hz, zRestLog, hzrest, hzlog⟩ := hbrest
+          cases zOpt with
+          | none => simp [rejectedResult] at hzrest; simp_all
+          | some zPair =>
+            rcases zPair with ⟨z, zNonce⟩
+            simp at hzrest
+            obtain ⟨hout, rfl⟩ := hzrest
+            subst out
+            subst bridgeRestLog
+            subst roundRestLog
+            subst xRestLog
+            subst restLog
+            subst log
+            let transcript : FsTranscript μ F :=
+              { randomizer := r, randomizerNonce := rNonce
+                x0 := x0, x0Nonce := x0Nonce
+                roundPrev := rounds.prev, roundAnswer := rounds.answer,
+                roundNonce := rounds.nonce
+                bridge := bridge, bridgeNonce := bridgeNonce
+                kzg := z, kzgNonce := zNonce }
+            have hacc : FsAccepts stmt proof transcript := by simpa [transcript] using ha
+            have hround' := queryRounds_logged stmt.rejectionFuel μ x0 proof.rounds hround
+            constructor
+            · intro i
+              apply List.mem_append_right rLog
+              apply List.mem_append_right xLog
+              apply List.mem_append_left
+              exact hround'.1 i
+            · exact ⟨hacc.2.2.2.2.2.2.1,
+                ⟨hacc.1, hacc.2.1, hacc.2.2.1, hacc.2.2.2.1,
+                  hacc.2.2.2.2.1, hacc.2.2.2.2.2.1⟩⟩
 
 /-- Every accepting first-run support point carries the exact round queries,
 challenge swap, U4 leaf payload, and explicit zero-challenge split required by
 U5d(3). -/
 theorem accepted_supports_leaf_data
-    {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+    {F G1 G2 GT : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
     {out : FsResult μ F G1 G2 GT}
-    {log : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)}
+    {log : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
     (h : (out, log) ∈ support (replayFirstRun (FsGame stmt adv))) :
     accepted_run_leaf_data stmt out log := by
   classical
@@ -427,44 +593,34 @@ theorem accepted_supports_leaf_data
   obtain ⟨proof, advLog, hadv, verifierLog, hver, hlog⟩ := h
   subst log
   intro haccept
-  have hv := fsVerifier_logged stmt proof hver
-  refine ⟨?_, ?_, hv.2 haccept, ?_⟩
+  have hv := fsVerifier_logged stmt proof hver haccept
+  refine ⟨?_, ?_, hv.2.1, hv.2.2⟩
   · intro i
     apply List.mem_append_right advLog
     exact hv.1 i
   · intro i
     exact ⟨rfl, rfl⟩
-  · by_cases hz : ZeroChallenge out
-    · exact Or.inl hz
-    · exact Or.inr (fun i hi => hz ⟨i, hi⟩)
 
 /-- End-to-end U5c transfer demonstration. This deliberately stops at a
 `RunTree` whose runs carry `accepted_run_leaf_data`; U5d(4) will assemble the
 corresponding product-lane `AcceptTree`. -/
 theorem fsGame_forkTree_leaf_data
-    {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+    {F G1 G2 GT : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
-    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
-      KzgPayload)
-    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
-    [((unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-      BridgePayload KzgPayload)).DecidableEq]
-    [IsUniformSpec (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)]
-    [∀ j, SampleableType ((unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload).Range j)]
-    [unifSpec ⊂ₒ (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload)]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    [((unifSpec + SnarkpackFsSpec F G1 G2 GT)).DecidableEq]
+    [IsUniformSpec (unifSpec + SnarkpackFsSpec F G1 G2 GT)]
+    [∀ j, SampleableType ((unifSpec + SnarkpackFsSpec F G1 G2 GT).Range j)]
+    [unifSpec ⊂ₒ (unifSpec + SnarkpackFsSpec F G1 G2 GT)]
     (depth : Nat)
-    (qb : (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-      BridgePayload KzgPayload).Domain → Nat)
-    (i : (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
-      BridgePayload KzgPayload).Domain)
+    (qb : (unifSpec + SnarkpackFsSpec F G1 G2 GT).Domain → Nat)
+    (i : (unifSpec + SnarkpackFsSpec F G1 G2 GT).Domain)
     (cf : Nat → FsResult μ F G1 G2 GT → Option (Fin (qb i + 1)))
-    {tree : RunTree (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
-      X0Payload BridgePayload KzgPayload) (FsResult μ F G1 G2 GT) depth}
+    {tree : RunTree (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (FsResult μ F G1 G2 GT) depth}
     (h : some tree ∈ support (forkTree depth (FsGame stmt adv) qb i cf)) :
     TreeConsistent (FsGame stmt adv) qb i cf 0 none tree ∧
       tree.All (fun run => accepted_run_leaf_data stmt run.1 run.2) :=

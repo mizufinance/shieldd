@@ -148,12 +148,12 @@ variable [AddCommGroup G2] [Module F G2]
     `hbind` is the named q-SDH-type binding. Spec `tipp-mipp.kzg-equations`,
     `gipa.round-folding`. -/
 theorem kzg_final_key_structured {μ : ℕ} {G : Type*} [AddCommGroup G] [Module F G]
-    (srs : Fin (2 ^ μ) → G) (accept : (Fin (2 ^ μ) → F) → G → G → Prop)
-    (x : Fin μ → F) (rShift : F) (key opening : G)
+    (srs : Fin (2 ^ μ) → G) (accept : F → (Fin (2 ^ μ) → F) → G → G → Prop)
+    (z : F) (x : Fin μ → F) (rShift : F) (key opening : G)
     (hbind : KzgStructuredKeyBinding srs accept)
-    (hacc : accept (transcriptCoeffs x rShift) key opening) :
+    (hacc : accept z (transcriptCoeffs x rShift) key opening) :
     key = msm (transcriptCoeffs x rShift) srs :=
-  hbind _ _ _ hacc
+  hbind z _ _ _ hacc
 
 /-- U3 capstone (exact shape U4 consumes): the combined verifier's two accepted
     openings pin both final keys to the honest structured MSMs. `v` is opened on
@@ -163,16 +163,16 @@ theorem kzg_final_key_structured {μ : ℕ} {G : Type*} [AddCommGroup G] [Module
     `gipa.round-folding`. -/
 theorem kzg_final_keys_structured {μ : ℕ}
     (srsV : Fin (2 ^ μ) → G2) (srsW : Fin (2 ^ μ) → G1)
-    (acceptV : (Fin (2 ^ μ) → F) → G2 → G2 → Prop)
-    (acceptW : (Fin (2 ^ μ) → F) → G1 → G1 → Prop)
-    (xV xW : Fin μ → F) (rShiftV rShiftW : F)
+    (acceptV : F → (Fin (2 ^ μ) → F) → G2 → G2 → Prop)
+    (acceptW : F → (Fin (2 ^ μ) → F) → G1 → G1 → Prop)
+    (z : F) (xV xW : Fin μ → F) (rShiftV rShiftW : F)
     (vFinal vOpening : G2) (wFinal wOpening : G1)
     (hbindV : KzgStructuredKeyBinding srsV acceptV)
     (hbindW : KzgStructuredKeyBinding srsW acceptW)
-    (haccV : acceptV (transcriptCoeffs xV rShiftV) vFinal vOpening)
-    (haccW : acceptW (transcriptCoeffs xW rShiftW) wFinal wOpening) :
+    (haccV : acceptV z (transcriptCoeffs xV rShiftV) vFinal vOpening)
+    (haccW : acceptW z (transcriptCoeffs xW rShiftW) wFinal wOpening) :
     vFinal = msm (transcriptCoeffs xV rShiftV) srsV ∧
     wFinal = msm (transcriptCoeffs xW rShiftW) srsW :=
-  ⟨hbindV _ _ _ haccV, hbindW _ _ _ haccW⟩
+  ⟨hbindV z _ _ _ haccV, hbindW z _ _ _ haccW⟩
 
 end Ipp

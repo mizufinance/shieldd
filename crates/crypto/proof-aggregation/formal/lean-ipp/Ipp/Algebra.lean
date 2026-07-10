@@ -30,22 +30,25 @@ def ipE (a : Fin n → G1) (b : Fin n → G2) : GT := ∑ i, e (a i) (b i)
 def msm {G : Type*} [AddCommGroup G] [Module F G] (c : Fin n → F) (g : Fin n → G) : G :=
   ∑ i, c i • g i
 
-/-- q-SDH-type KZG structured-key binding (U3; maps 1:1 to a future
+/-- q-SDH-type KZG structured-key binding and z-challenge SZ step (U3/U5a;
+    maps 1:1 to a future
     `formal-handoff.md` assumption row `assume.kzg-structured-key-binding`;
     spec rows `tipp-mipp.kzg-equations`, `tipp-mipp.power-sequence`).
 
     `srs` is the structured commitment-key basis (the SRS powers `h·βⁱ` / `g·αⁱ`
-    the opening is checked against). `accept coeffs key opening` abstracts the
+    the opening is checked against). `accept z coeffs key opening` abstracts the
     verifier's pairing check on a claimed final key `key` and opening proof
     `opening` for the transcript polynomial with coefficients `coeffs` at the KZG
-    challenge — its concrete instance is `verify_commitment_key_g{1,2}_kzg_opening`
-    in `tipa/mod.rs`. The binding: any pair the check accepts pins the key to the
-    honest structured MSM of the SRS with those coefficients. Stated as an
-    explicit hypothesis (never an axiom), discharged at S1 handoff. -/
+    challenge `z` — its concrete instance is
+    `verify_commitment_key_g{1,2}_kzg_opening` in `tipa/mod.rs`. For every `z`,
+    an accepted pair pins the key to the honest structured MSM. This row bundles
+    q-SDH binding with the z-challenge Schwartz--Zippel step; failure of the
+    required z-goodness condition is a U5a bad event. Stated as an explicit
+    hypothesis (never an axiom), discharged at S1 handoff. -/
 def KzgStructuredKeyBinding {G : Type*} [AddCommGroup G] [Module F G] {N : ℕ}
-    (srs : Fin N → G) (accept : (Fin N → F) → G → G → Prop) : Prop :=
-  ∀ (coeffs : Fin N → F) (key opening : G),
-    accept coeffs key opening → key = msm coeffs srs
+    (srs : Fin N → G) (accept : F → (Fin N → F) → G → G → Prop) : Prop :=
+  ∀ (z : F) (coeffs : Fin N → F) (key opening : G),
+    accept z coeffs key opening → key = msm coeffs srs
 
 /-- AFGHO/double-pairing commitment binding (U2; maps 1:1 to a future
     `formal-handoff.md` assumption row `assume.pairing-commitment-binding`;

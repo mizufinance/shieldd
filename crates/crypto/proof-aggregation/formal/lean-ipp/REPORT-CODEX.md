@@ -1948,6 +1948,155 @@ AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
   (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC))
 ```
 
+## R5 game-faithfulness repair (2026-07-10)
+
+R5 implements design-review MAJOR 1, MAJOR 2, MINOR 1, and the game-model
+half of MAJOR 6. `FsPayloads` and all four abstract payload type parameters
+were deleted. The verifier now constructs canonical payload records directly
+from the statement, proof, and transcript.
+
+### Payload records (verbatim)
+
+```lean
+structure RandomizerPayload (GT : Type) where
+  comA : GT
+  comB : GT
+  comC : GT
+deriving DecidableEq
+
+structure X0Payload (F G1 GT : Type) where
+  r : F
+  comA : GT
+  comB : GT
+  comC : GT
+  ipAb : GT
+  aggC : G1
+deriving DecidableEq
+
+structure BridgePayload (F G1 G2 : Type) where
+  lastRawChallenge : F
+  vFinal : G2
+  wFinal : G1
+  aFinal : G1
+  bFinal : G2
+  cFinal : G1
+deriving DecidableEq
+
+structure KzgPayload (F G1 G2 : Type) where
+  bridgeChallenge : F
+  vFinal : G2
+  wFinal : G1
+deriving DecidableEq
+```
+
+Their docstrings state that byte-serialization injectivity remains the
+shieldd-byte `fs.challenge-preimage` obligation. `FsStatement.ComA.1` is
+`com_a`, `ComB` is `com_b`, and `FsStatement.ComA.2` is `com_c`.
+
+The structured point is now:
+
+```lean
+inductive ChallengePoint (F G1 G2 GT : Type) where
+  | randomizer (payload : RandomizerPayload GT) (nonce : Nat)
+  | x0 (payload : X0Payload F G1 GT) (nonce : Nat)
+  | round (prev : F) (coms : RoundComs G1 GT) (nonce : Nat)
+  | bridge (payload : BridgePayload F G1 G2) (nonce : Nat)
+  | kzg (payload : KzgPayload F G1 G2) (nonce : Nat)
+deriving DecidableEq
+```
+
+Thus round `level` is no longer part of the hashed identity. `FsTranscript`
+records each accepted round nonce, and `wrappedRoundPoint` uses the level only
+to select `(roundPrev, proof.rounds, roundNonce)`. The cached-RO first-miss
+selector and `roundSlot_answer_eq_transcript` were re-proved for that point.
+
+### z-parametrized KZG binding (verbatim)
+
+```lean
+/-- q-SDH-type KZG structured-key binding and z-challenge SZ step (U3/U5a;
+    maps 1:1 to a future
+    `formal-handoff.md` assumption row `assume.kzg-structured-key-binding`;
+    spec rows `tipp-mipp.kzg-equations`, `tipp-mipp.power-sequence`).
+
+    `srs` is the structured commitment-key basis (the SRS powers `h·βⁱ` / `g·αⁱ`
+    the opening is checked against). `accept z coeffs key opening` abstracts the
+    verifier's pairing check on a claimed final key `key` and opening proof
+    `opening` for the transcript polynomial with coefficients `coeffs` at the KZG
+    challenge `z` — its concrete instance is
+    `verify_commitment_key_g{1,2}_kzg_opening` in `tipa/mod.rs`. For every `z`,
+    an accepted pair pins the key to the honest structured MSM. This row bundles
+    q-SDH binding with the z-challenge Schwartz--Zippel step; failure of the
+    required z-goodness condition is a U5a bad event. Stated as an explicit
+    hypothesis (never an axiom), discharged at S1 handoff. -/
+def KzgStructuredKeyBinding {G : Type*} [AddCommGroup G] [Module F G] {N : ℕ}
+    (srs : Fin N → G) (accept : F → (Fin N → F) → G → G → Prop) : Prop :=
+  ∀ (z : F) (coeffs : Fin N → F) (key opening : G),
+    accept z coeffs key opening → key = msm coeffs srs
+```
+
+`FsStatement.acceptV/acceptW`, `kzg_final_key_structured`,
+`kzg_final_keys_structured`, `u4_key_identification`, and
+`leaf_accept_to_base` now take `z`. `LeafData` passes `transcript.kzg` to both
+acceptance relations. Consequently the concrete bridge payload determines the
+KZG point, and the resulting `z` is consumed by both opening checks.
+
+### Rejection sampling
+
+The chosen formulation is a fuel-bounded `queryAccepting`. Each attempt queries
+the nonce-bearing structured point, starting at nonce zero and incrementing
+only after rejection. Fuel exhaustion returns `none`; `fsVerifier` immediately
+returns a canonical rejected result. This keeps every successful path a finite,
+straight-line `OracleComp` while making termination explicit and leaving fuel
+exhaustion available for the later U5a accounting.
+
+The oracle range is already `F`, so byte-to-field decode failure is abstracted
+at this layer. The semantic gates follow the Rust source exactly:
+
+- randomizer: reject `0` and `1`;
+- x0, every round, final bridge, and KZG: reject `0`.
+
+`FsAccepts` includes those accepted-value facts and accepted cached runs expose
+them as `ChallengesAccepted`. Therefore the former `ZeroChallenge` bad event
+and its `ZeroChallenge ∨ ...` split are vacuous and were deleted. In particular,
+accepted runs retain both `r ≠ 0` and `r ≠ 1` for U4/U5e consumers, and every
+accepted round answer is nonzero by construction.
+
+### Verification
+
+All Lean commands used the pinned Lean 4.30.0 `lake.exe`, one at a time, with
+`LEAN_NUM_THREADS=1`; output was written to `build.log`.
+
+- `lake build Ipp.Kzg`: pass (1278 jobs).
+- `lake build Ipp.Composition`: pass (1671 jobs).
+- `lake build Ipp.FsGame`: pass (3311 jobs).
+- `lake build Ipp.FsFork`: pass (3314 jobs).
+- final `lake build Ipp`: pass (3323 jobs).
+- `git diff --check`: pass.
+
+The temp-file axiom audit reported exactly:
+
+```text
+'Ipp.u4_capstone' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.roundSlot_answer_eq_transcript' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+No `axiom` or `native_decide` was added. No prover/release-gated tests were
+run; this task exercised the requested Lean package builds.
+
+The sole remaining `sorry` is the permitted R6 `tree_to_acceptTree`. Its exact
+goal remains:
+
+```lean
+let r := tree.root.1.out.transcript.randomizer
+AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+  (u4TLanePairing stmt.e) μ
+  (fun i => (stmt.srsV i, stmt.srsV i))
+  (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+  (fun i => r ^ (i : Nat))
+  (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
+  (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC))
+```
+
 No additional unproved goals, axioms, or `native_decide` uses remain.
 
 ## R4 design-review repair: public B-side lane (2026-07-10)

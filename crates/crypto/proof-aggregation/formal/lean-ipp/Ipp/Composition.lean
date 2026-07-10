@@ -322,17 +322,17 @@ private theorem foldKey_prod {μ : ℕ}
     `tipp-mipp.power-sequence`, `gipa.round-folding`. -/
 theorem u4_key_identification {μ : ℕ}
     (srsV : Fin (2 ^ μ) → G2) (srsW : Fin (2 ^ μ) → G1)
-    (acceptV : (Fin (2 ^ μ) → F) → G2 → G2 → Prop)
-    (acceptW : (Fin (2 ^ μ) → F) → G1 → G1 → Prop)
-    (xV xW : Fin μ → F) (rShiftV rShiftW : F)
+    (acceptV : F → (Fin (2 ^ μ) → F) → G2 → G2 → Prop)
+    (acceptW : F → (Fin (2 ^ μ) → F) → G1 → G1 → Prop)
+    (z : F) (xV xW : Fin μ → F) (rShiftV rShiftW : F)
     (vFinal vOpening : G2) (wFinal wOpening : G1)
     (hbindV : KzgStructuredKeyBinding srsV acceptV)
     (hbindW : KzgStructuredKeyBinding srsW acceptW)
-    (haccV : acceptV (transcriptCoeffs xV rShiftV) vFinal vOpening)
-    (haccW : acceptW (transcriptCoeffs xW rShiftW) wFinal wOpening) :
+    (haccV : acceptV z (transcriptCoeffs xV rShiftV) vFinal vOpening)
+    (haccW : acceptW z (transcriptCoeffs xW rShiftW) wFinal wOpening) :
     vFinal = msm (transcriptCoeffs xV rShiftV) srsV ∧
     wFinal = msm (transcriptCoeffs xW rShiftW) srsW :=
-  kzg_final_keys_structured srsV srsW acceptV acceptW xV xW rShiftV rShiftW
+  kzg_final_keys_structured srsV srsW acceptV acceptW z xV xW rShiftV rShiftW
     vFinal vOpening wFinal wOpening hbindV hbindW haccV haccW
 
 /-- Convert the five real terminal verifier equations and the two KZG checks
@@ -341,9 +341,9 @@ theorem u4_key_identification {μ : ℕ}
 theorem leaf_accept_to_base {μ : ℕ}
     (e : G1 →ₗ[F] G2 →ₗ[F] GT)
     (srsV : Fin (2 ^ μ) → G2) (srsW : Fin (2 ^ μ) → G1)
-    (acceptV : (Fin (2 ^ μ) → F) → G2 → G2 → Prop)
-    (acceptW : (Fin (2 ^ μ) → F) → G1 → G1 → Prop)
-    (xV xW : Fin μ → F) (rShift : F)
+    (acceptV : F → (Fin (2 ^ μ) → F) → G2 → G2 → Prop)
+    (acceptW : F → (Fin (2 ^ μ) → F) → G1 → G1 → Prop)
+    (z : F) (xV xW : Fin μ → F) (rShift : F)
     (vFinal vOpening : G2) (wFinal wOpening : G1)
     (aFinal cFinal : G1) (bFinal : G2) (rFinal : F)
     (foldedComA foldedComB foldedIpAb foldedComC : GT)
@@ -355,8 +355,8 @@ theorem leaf_accept_to_base {μ : ℕ}
     (hterminalR : rFinal • cFinal = foldedAggC)
     (hbindV : KzgStructuredKeyBinding srsV acceptV)
     (hbindW : KzgStructuredKeyBinding srsW acceptW)
-    (haccV : acceptV (transcriptCoeffs xV 1) vFinal vOpening)
-    (haccW : acceptW (transcriptCoeffs xW rShift) wFinal wOpening) :
+    (haccV : acceptV z (transcriptCoeffs xV 1) vFinal vOpening)
+    (haccW : acceptW z (transcriptCoeffs xW rShift) wFinal wOpening) :
     (foldedComA, foldedComC) =
         u4ALaneAtom e
           ((foldKey xV (fun i => (srsV i, srsV i))) 0) (aFinal, cFinal) ∧
@@ -366,7 +366,7 @@ theorem leaf_accept_to_base {μ : ℕ}
           bFinal ∧
     (foldedIpAb, foldedAggC) =
         u4TLanePairing e (aFinal, cFinal) (bFinal, rFinal) := by
-  obtain ⟨hv, hw⟩ := u4_key_identification srsV srsW acceptV acceptW
+  obtain ⟨hv, hw⟩ := u4_key_identification srsV srsW acceptV acceptW z
     xV xW 1 rShift vFinal vOpening wFinal wOpening hbindV hbindW haccV haccW
   have hfoldV : foldKey xV srsV 0 = vFinal := by
     rw [foldKey_transcriptCoeffs]
