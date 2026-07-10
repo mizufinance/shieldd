@@ -1949,3 +1949,284 @@ AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
 ```
 
 No additional unproved goals, axioms, or `native_decide` uses remain.
+
+## R4 design-review repair: public B-side lane (2026-07-10)
+
+Scope was limited to R4 / CRITICAL 4. `DESIGN.md` and `.lake/packages/**`
+were not edited. No commit was created.
+
+The synthetic scalar commitment column is gone. `RoundComs.LB/RB`,
+`FsStatement.ComB`, and `FoldedValues.comB` are now `GT`; the B commitment
+atom has G1 keys, G2 messages, and GT output. The public scalar family is
+threaded separately through GIPA and is used only as the second component of
+the T-lane message.
+
+The node convention now names the raw oracle answer `c`: A keys, B messages,
+and the public family fold by `c`; B keys and A messages fold by `c⁻¹`; the
+verifier commitment fold uses `c⁻¹`. This is the orientation in
+`gipa.rs:549-573`. In particular, the public family follows the real B message,
+not the B commitment key.
+
+### U2 public statements (verbatim)
+
+```lean
+def InputRelation (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) {μ : ℕ}
+    (ck_a : Fin (2 ^ μ) → K1) (ck_b : Fin (2 ^ μ) → K2)
+    (pub : Fin (2 ^ μ) → P) (ComA ComB ComT : M) : Prop :=
+  ∃ a b,
+    ComA = commitV cmA ck_a a ∧
+    ComB = commitV cmB ck_b b ∧
+    ComT = cmT (ipm ip a (fun i => (b i, pub i)))
+
+inductive AcceptTree (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) :
+    (μ : ℕ) → (ck_a : Fin (2 ^ μ) → K1) → (ck_b : Fin (2 ^ μ) → K2) →
+      (pub : Fin (2 ^ μ) → P) → (ComA ComB ComT : M) → Prop
+  | base {ck_a : Fin (2 ^ 0) → K1} {ck_b : Fin (2 ^ 0) → K2} {ComA ComB ComT : M}
+      {pub : Fin (2 ^ 0) → P}
+      (a0 : Msg1) (b0 : Msg2)
+      (hA : ComA = cmA (ck_a 0) a0)
+      (hB : ComB = cmB (ck_b 0) b0)
+      (hT : ComT = cmT (ip a0 (b0, pub 0))) :
+      AcceptTree cmA cmB cmT ip 0 ck_a ck_b pub ComA ComB ComT
+  | node {μ : ℕ} {ck_a : Fin (2 ^ (μ + 1)) → K1} {ck_b : Fin (2 ^ (μ + 1)) → K2}
+      {pub : Fin (2 ^ (μ + 1)) → P} {ComA ComB ComT : M}
+      (LA RA LB RB LT RT : M) (c : Fin 4 → F)
+      (hinj : Function.Injective c) (hnz : ∀ k, c k ≠ 0)
+      (child : ∀ k, AcceptTree cmA cmB cmT ip μ
+        (foldPow (K1 := K1) μ (c k) ck_a)
+        (foldPow (K1 := K2) μ (c k)⁻¹ ck_b)
+        (foldPow (K1 := P) μ (c k) pub)
+        (foldCom (c k)⁻¹ LA ComA RA)
+        (foldCom (c k)⁻¹ LB ComB RB)
+        (foldCom (c k)⁻¹ LT ComT RT)) :
+      AcceptTree cmA cmB cmT ip (μ + 1) ck_a ck_b pub ComA ComB ComT
+
+theorem round_extract (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) {μ : ℕ}
+    (ck_a : Fin (2 ^ (μ + 1)) → K1) (ck_b : Fin (2 ^ (μ + 1)) → K2)
+    (pub : Fin (2 ^ (μ + 1)) → P)
+    (ComA ComB ComT LA RA LB RB LT RT : M)
+    (c : Fin 4 → F) (hinj : Function.Injective c) (hnz : ∀ k, c k ≠ 0)
+    (hbindA : PairingCommitmentBinding cmA ck_a)
+    (hbindB : PairingCommitmentBinding cmB ck_b)
+    (hchild : ∀ k, InputRelation cmA cmB cmT ip
+      (foldPow (K1 := K1) μ (c k)⁻¹ ck_a)
+      (foldPow (K1 := K2) μ (c k) ck_b)
+      (foldPow (K1 := P) μ (c k)⁻¹ pub)
+      (foldCom (c k) LA ComA RA)
+      (foldCom (c k) LB ComB RB)
+      (foldCom (c k) LT ComT RT)) :
+    InputRelation cmA cmB cmT ip ck_a ck_b pub ComA ComB ComT := by
+
+theorem gipa_extract (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) {μ : ℕ}
+    (ck_a : Fin (2 ^ μ) → K1) (ck_b : Fin (2 ^ μ) → K2)
+    (pub : Fin (2 ^ μ) → P) (ComA ComB ComT : M)
+    (hbindA : PairingCommitmentBinding cmA ck_a)
+    (hbindB : PairingCommitmentBinding cmB ck_b)
+    (hacc : AcceptTree cmA cmB cmT ip μ ck_a ck_b pub ComA ComB ComT) :
+    ∃ a b,
+      ComA = commitV cmA ck_a a ∧
+      ComB = commitV cmB ck_b b ∧
+      ComT = cmT (ipm ip a (fun i => (b i, pub i))) := by
+```
+
+The public-lane Laurent/Vandermonde helpers are:
+
+```lean
+theorem laurent_interpolate_unique (hinj : Function.Injective c) (hnz : ∀ k, c k ≠ 0)
+    (z : Fin 3 → M) (l m r l' m' r' : M)
+    (h : ∀ j, c j • l + m + (c j)⁻¹ • r = z j)
+    (h' : ∀ j, c j • l' + m' + (c j)⁻¹ • r' = z j) :
+    l = l' ∧ m = m' ∧ r = r' :=
+  laurent_unique hinj hnz l m r l' m' r' fun j => (h j).trans (h' j).symm
+
+theorem embed_foldMsg_laurent (c : F) (hc : c ≠ 0) (v : Fin (m + m) → V) :
+    embed c (foldMsg c⁻¹ v) = c • foldLaurentL v + v + c⁻¹ • foldLaurentR v := by
+```
+
+`round_extract` interpolates the embedded public child openings, proves that
+the honest embedded fold solves the same three-point system, and applies
+`laurent_interpolate_unique` to identify the interpolated middle coefficient
+with the carried parent `pub`. No commitment binding is used for this step.
+
+### U4 lane definitions and capstone (verbatim)
+
+```lean
+def u4ALaneAtom (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
+    (G2 × G2) →ₗ[F] (G1 × G1) →ₗ[F] (GT × GT) where
+  toFun k :=
+    { toFun := fun m => (e m.1 k.1, e m.2 k.2)
+      map_add' := by
+        intro x y
+        ext <;> simp
+      map_smul' := by
+        intro s x
+        ext <;> simp }
+  map_add' := by
+    intro x y
+    ext m <;> simp
+  map_smul' := by
+    intro s x
+    ext m <;> simp
+
+def u4BLaneAtom (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
+    G1 →ₗ[F] G2 →ₗ[F] GT where
+  toFun k :=
+    { toFun := fun m => e k m
+      map_add' := map_add (e k)
+      map_smul' := map_smul (e k) }
+  map_add' := by
+    intro x y
+    ext m
+    simp
+  map_smul' := by
+    intro s x
+    ext m
+    simp
+
+def u4TLanePairing (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
+    (G1 × G1) →ₗ[F] (G2 × F) →ₗ[F] (GT × G1) where
+  toFun a :=
+    { toFun := fun b => (e a.1 b.1, b.2 • a.2)
+      map_add' := by
+        intro x y
+        ext <;> simp [add_smul]
+      map_smul' := by
+        intro s x
+        ext <;> simp [smul_smul] }
+  map_add' := by
+    intro x y
+    ext b <;> simp [smul_add]
+  map_smul' := by
+    intro s x
+    ext b <;> simp [smul_smul, mul_comm]
+
+abbrev U4Commitment (_F G1 GT : Type*) :=
+  ((GT × GT) × GT) × (GT × G1)
+
+def u4ACommitAtom (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
+    (G2 × G2) →ₗ[F] (G1 × G1) →ₗ[F] U4Commitment F G1 GT :=
+  u4LiftAtom u4AEmbedding (u4ALaneAtom e)
+
+def u4BCommitAtom (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
+    G1 →ₗ[F] G2 →ₗ[F] U4Commitment F G1 GT :=
+  u4LiftAtom u4BEmbedding (u4BLaneAtom e)
+
+def u4TCommitMap :
+    (GT × G1) →ₗ[F] U4Commitment F G1 GT :=
+  u4TEmbedding
+
+theorem u4_capstone (e : G1 →ₗ[F] G2 →ₗ[F] GT) {μ : ℕ}
+    (srsV : Fin (2 ^ μ) → G2) (srsW : Fin (2 ^ μ) → G1)
+    (ComA ComB : U4Commitment F G1 GT)
+    (ip_ab : GT) (agg_c : G1)
+    (α : G1) (β γ δ : G2)
+    (A C Aic : Fin (2 ^ μ) → G1) (Bv : Fin (2 ^ μ) → G2)
+    (r : F) (r_sum : F) (g_ic : G1)
+    (hbindA : PairingCommitmentBinding (u4ACommitAtom e)
+      (fun i => (srsV i, srsV i)))
+    (hbindB : PairingCommitmentBinding (u4BCommitAtom e)
+      (fun i => (r ^ (i : ℕ))⁻¹ • srsW i))
+    (hComA : ComA = commitV (u4ACommitAtom e)
+      (fun i => (srsV i, srsV i)) (fun i => (A i, C i)))
+    (hComB : ComB = commitV (u4BCommitAtom e)
+      (fun i => (r ^ (i : ℕ))⁻¹ • srsW i)
+      (fun i => r ^ (i : ℕ) • Bv i))
+    (hacc : AcceptTree (u4ACommitAtom e) (u4BCommitAtom e) u4TCommitMap
+      (u4TLanePairing e) μ
+      (fun i => (srsV i, srsV i))
+      (fun i => (r ^ (i : ℕ))⁻¹ • srsW i)
+      (fun i => r ^ (i : ℕ))
+      ComA ComB (u4TCommitMap (ip_ab, agg_c)))
+    (hrsum : r_sum = ∑ i : Fin (2 ^ μ), r ^ (i : ℕ))
+    (hgic : g_ic = ∑ i : Fin (2 ^ μ), r ^ (i : ℕ) • Aic i)
+    (hppe : e (r_sum • α) β + e g_ic γ + e agg_c δ = ip_ab)
+    (hroot : r ∉ discrepancyRootSet
+      (fun i => groth16Discrepancy e α β γ δ A C Aic Bv i)) :
+    ∀ i, e (A i) (Bv i) = groth16Rhs e α (Aic i) (C i) β γ δ := by
+```
+
+The terminal public-fold identity was proved, so no additional permitted
+`sorry` was needed:
+
+```lean
+theorem foldKey_public_terminal {μ : ℕ} (x : Fin μ → F) (r : F) :
+    foldKey x (fun i : Fin (2 ^ μ) => r ^ (i : ℕ)) 0 =
+      ∏ j : Fin μ, (1 + x j * r ^ (2 ^ (j : ℕ))) := by
+
+theorem foldKey_public_eq_terminalR {F : Type} [Field F] {μ : Nat}
+    (x : Fin μ → F) (randomizer : F) :
+    foldKey x (fun i : Fin (2 ^ μ) => randomizer ^ (i : Nat)) 0 =
+      terminalR randomizer x := by
+  simpa [terminalR] using foldKey_public_terminal x randomizer
+```
+
+### FS leaf statement (verbatim)
+
+```lean
+def LeafData {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+    [Field F]
+    [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT] {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
+      KzgPayload) (proof : Proof μ F G1 G2 GT) (transcript : FsTranscript μ F) :
+    Prop :=
+  let folded := terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer
+  stmt.e proof.aFinal proof.vFinal = folded.comA.1 ∧
+  stmt.e proof.wFinal proof.bFinal = folded.comB ∧
+  stmt.e proof.aFinal proof.bFinal = folded.comT.1 ∧
+  stmt.e proof.cFinal proof.vFinal = folded.comA.2 ∧
+  terminalR transcript.randomizer (reversedView transcript.roundAnswer) • proof.cFinal =
+    folded.comT.2 ∧
+  stmt.acceptV (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
+    proof.vFinal proof.vOpening ∧
+  stmt.acceptW
+    (transcriptCoeffs
+      (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
+      transcript.randomizer⁻¹) proof.wFinal proof.wOpening
+```
+
+This is five real terminal equations plus the two KZG accepts. The DESIGN
+§U5d(4) paragraph permitting a sixth verifier check is superseded by this R4
+repair: the identity is now `foldKey_public_eq_terminalR`, a theorem about
+public data, rather than an adversary-facing check or hash field.
+
+### Axiom and build audits
+
+The temp-file audit reported exactly:
+
+```text
+'Ipp.gipa_extract' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.u4_capstone' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+All builds used the pinned Lean 4.30.0 `lake.exe`, one build at a time, with
+`LEAN_NUM_THREADS=1`, and wrote output to `build.log`.
+
+- `lake build Ipp.Gipa`: pass; 1670 jobs; final focused run 29s.
+- `lake build Ipp.Composition`: pass; 1671 jobs; final focused run 28s.
+- `lake build Ipp.FsGame`: pass; 3311 jobs; final focused run 35s.
+- `lake build Ipp.FsFork`: pass; 3314 jobs; final focused run 43s.
+- `lake build Ipp`: pass; 3323 jobs.
+- `git diff --check`: pass.
+
+No prover/release-gated tests were run; this Lean package has no separate
+prover/release gate in the requested workflow. No `axiom` or `native_decide`
+was added.
+
+The only remaining `sorry` is the pre-existing permitted R6 assembly theorem.
+Its exact current goal is:
+
+```lean
+let r := tree.root.1.out.transcript.randomizer
+AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+  (u4TLanePairing stmt.e) μ
+  (fun i => (stmt.srsV i, stmt.srsV i))
+  (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+  (fun i => r ^ (i : Nat))
+  (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
+  (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC))
+```

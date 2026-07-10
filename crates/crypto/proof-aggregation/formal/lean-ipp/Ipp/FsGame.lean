@@ -14,16 +14,16 @@ namespace Ipp
 
 noncomputable section
 
-/-- The six product-lane commitments hashed at one GIPA round, carried
+/-- The six lane-native commitments hashed at one GIPA round, carried
 LANE-NATIVELY (the per-lane group elements the real proof transports;
 DESIGN §U5d(4) lane-nativity decision). Tagged `U4Commitment` values are
 CONSTRUCTED from these via the lane-pure embeddings, so off-lane
 components are zero by construction. -/
-structure RoundComs (F G1 GT : Type) where
+structure RoundComs (G1 GT : Type) where
   LA : GT × GT
   RA : GT × GT
-  LB : GT × F
-  RB : GT × F
+  LB : GT
+  RB : GT
   LT : GT × G1
   RT : GT × G1
 deriving DecidableEq
@@ -38,7 +38,7 @@ inductive ChallengePoint (F G1 GT RandomizerPayload X0Payload BridgePayload
     KzgPayload : Type) where
   | randomizer (payload : RandomizerPayload)
   | x0 (payload : X0Payload)
-  | round (level : Nat) (prev : F) (coms : RoundComs F G1 GT)
+  | round (level : Nat) (prev : F) (coms : RoundComs G1 GT)
   | bridge (payload : BridgePayload)
   | kzg (payload : KzgPayload)
 deriving DecidableEq
@@ -52,7 +52,7 @@ abbrev SnarkpackFsSpec (F G1 GT RandomizerPayload X0Payload BridgePayload
 
 /-- Aggregate proof data consumed by the U5d verifier. -/
 structure Proof (μ : Nat) (F G1 G2 GT : Type) where
-  rounds : Fin μ → RoundComs F G1 GT
+  rounds : Fin μ → RoundComs G1 GT
   aFinal : G1
   bFinal : G2
   cFinal : G1
@@ -84,7 +84,7 @@ structure FsStatement (μ : Nat) (F G1 G2 GT RandomizerPayload X0Payload
   acceptV : (Fin (2 ^ μ) → F) → G2 → G2 → Prop
   acceptW : (Fin (2 ^ μ) → F) → G1 → G1 → Prop
   ComA : GT × GT
-  ComB : GT × F
+  ComB : GT
   alpha : G1
   beta : G2
   gamma : G2
@@ -127,7 +127,7 @@ def reversedView {F : Type} {μ : Nat} (x : Fin μ → F) : Fin μ → F :=
 
 def queryRounds
     {F G1 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
-    (level : Nat) : (μ : Nat) → F → (Fin μ → RoundComs F G1 GT) →
+    (level : Nat) : (μ : Nat) → F → (Fin μ → RoundComs G1 GT) →
       OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
         BridgePayload KzgPayload) (RoundTranscript μ F)
   | 0, prev, _ => pure { prev := Fin.elim0, answer := Fin.elim0, last := prev }
@@ -143,24 +143,24 @@ def queryRounds
       }
 
 /-- The three lane-native commitment values folded by the verifier. -/
-structure FoldedValues (F G1 GT : Type) where
+structure FoldedValues (G1 GT : Type) where
   comA : GT × GT
-  comB : GT × F
+  comB : GT
   comT : GT × G1
 
 private def foldOne {F G1 GT : Type} [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
-    (x : F) (coms : RoundComs F G1 GT)
-    (acc : FoldedValues F G1 GT) :
-    FoldedValues F G1 GT :=
+    (x : F) (coms : RoundComs G1 GT)
+    (acc : FoldedValues G1 GT) :
+    FoldedValues G1 GT :=
   { comA := foldCom (gipaChallenge x) coms.LA acc.comA coms.RA
     comB := foldCom (gipaChallenge x) coms.LB acc.comB coms.RB
     comT := foldCom (gipaChallenge x) coms.LT acc.comT coms.RT }
 
 private def foldRounds {F G1 GT : Type} [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT] :
-    (μ : Nat) → (Fin μ → F) → (Fin μ → RoundComs F G1 GT) →
-      FoldedValues F G1 GT → FoldedValues F G1 GT
+    (μ : Nat) → (Fin μ → F) → (Fin μ → RoundComs G1 GT) →
+      FoldedValues G1 GT → FoldedValues G1 GT
   | 0, _, _, acc => acc
   | μ + 1, x, rounds, acc =>
       foldRounds μ (fun i => x i.succ) (fun i => rounds i.succ)
@@ -169,9 +169,9 @@ private def foldRounds {F G1 GT : Type} [Field F]
 /-- Lane-native commitment values at the terminal verifier leaf. -/
 def terminalFold {F G1 G2 GT : Type} [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
-    {μ : Nat} (ComA : GT × GT) (ComB : GT × F)
+    {μ : Nat} (ComA : GT × GT) (ComB : GT)
     (proof : Proof μ F G1 G2 GT) (x : Fin μ → F) :
-    FoldedValues F G1 GT :=
+    FoldedValues G1 GT :=
   foldRounds μ x proof.rounds
     { comA := ComA, comB := ComB, comT := (proof.ipAb, proof.aggC) }
 
@@ -179,6 +179,14 @@ def terminalFold {F G1 G2 GT : Type} [Field F]
 def terminalR {F : Type} [Field F] {μ : Nat} (randomizer : F)
     (x : Fin μ → F) : F :=
   ∏ i : Fin μ, (1 + x i * randomizer ^ (2 ^ (i : Nat)))
+
+/-- The public `r_vec` lane folded by the reversed raw transcript is exactly
+the terminal scalar used by the fifth real leaf equation. -/
+theorem foldKey_public_eq_terminalR {F : Type} [Field F] {μ : Nat}
+    (x : Fin μ → F) (randomizer : F) :
+    foldKey x (fun i : Fin (2 ^ μ) => randomizer ^ (i : Nat)) 0 =
+      terminalR randomizer x := by
+  simpa [terminalR] using foldKey_public_terminal x randomizer
 
 /-- Exact U4 leaf payload: five terminal equations and the two KZG accepts at
 the recomputed transcript coefficients (DESIGN §U5d(3); `tipp-mipp.gipa`). -/
@@ -191,18 +199,11 @@ def LeafData {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : 
     Prop :=
   let folded := terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer
   stmt.e proof.aFinal proof.vFinal = folded.comA.1 ∧
-  stmt.e proof.wFinal proof.bFinal = folded.comB.1 ∧
+  stmt.e proof.wFinal proof.bFinal = folded.comB ∧
   stmt.e proof.aFinal proof.bFinal = folded.comT.1 ∧
   stmt.e proof.cFinal proof.vFinal = folded.comA.2 ∧
   terminalR transcript.randomizer (reversedView transcript.roundAnswer) • proof.cFinal =
     folded.comT.2 ∧
-  -- Sixth model-level check (DESIGN §U5d(4)): the bookkeeping B-scalar
-  -- column folds to the public product — definitionally satisfied by the
-  -- honest prover (GIPA per-lane invariant), absent from the real object.
-  folded.comB.2 =
-    ((foldKey (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
-      (fun i => (transcript.randomizer⁻¹ ^ (i : Nat) • stmt.srsW i, (1 : F)))) 0).2 *
-      terminalR transcript.randomizer (reversedView transcript.roundAnswer) ∧
   stmt.acceptV (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
     proof.vFinal proof.vOpening ∧
   stmt.acceptW
@@ -334,7 +335,7 @@ def accepted_run_leaf_data
 
 private theorem queryRounds_logged
     {F G1 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
-    (level : Nat) (μ : Nat) (prev : F) (rounds : Fin μ → RoundComs F G1 GT)
+    (level : Nat) (μ : Nat) (prev : F) (rounds : Fin μ → RoundComs G1 GT)
     {out : RoundTranscript μ F}
     {log : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
       X0Payload BridgePayload KzgPayload)}

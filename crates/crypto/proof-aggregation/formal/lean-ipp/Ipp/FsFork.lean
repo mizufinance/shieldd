@@ -352,7 +352,7 @@ private theorem queryRounds_cached
     [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
     [DecidableEq BridgePayload] [DecidableEq KzgPayload]
     (level : Nat) (μ : Nat) (prev : F)
-    (rounds : Fin μ → RoundComs F G1 GT)
+    (rounds : Fin μ → RoundComs G1 GT)
     (cache0 : (FsPoint (F := F) (G1 := G1) (GT := GT)
       (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
       (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache)
@@ -989,40 +989,33 @@ theorem roundSlot_answer_eq_transcript
   cases hslotEq
   simpa [hanswer] using houter
 
-/-- One sound U5d(4) node: four distinct nonzero oracle answers become the
-inverse challenges consumed by `AcceptTree.node` (`tipp-mipp.gipa`). -/
+/-- One sound U5d(4) node: four distinct nonzero oracle answers are the raw
+public/B-message fold scalars consumed by `AcceptTree.node`; their inverses
+fold the verifier commitments (`tipp-mipp.gipa`). -/
 theorem acceptTree_node_of_answers
-    {K1 K2 Msg1 Msg2 M IPv : Type}
+    {K1 K2 Msg1 Msg2 P M IPv : Type}
     [Field F]
     [AddCommGroup K1] [Module F K1] [AddCommGroup K2] [Module F K2]
     [AddCommGroup Msg1] [Module F Msg1] [AddCommGroup Msg2] [Module F Msg2]
+    [AddCommGroup P] [Module F P]
     [AddCommGroup M] [Module F M] [AddCommGroup IPv] [Module F IPv]
     (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
-    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] Msg2 →ₗ[F] IPv)
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv)
     {μ : Nat} {ckA : Fin (2 ^ (μ + 1)) → K1}
-    {ckB : Fin (2 ^ (μ + 1)) → K2} {ComA ComB ComT : M}
+    {ckB : Fin (2 ^ (μ + 1)) → K2} {pub : Fin (2 ^ (μ + 1)) → P}
+    {ComA ComB ComT : M}
     (LA RA LB RB LT RT : M) (answer : Fin 4 → F)
     (hinjective : Function.Injective answer)
     (hnonzero : ∀ k, answer k ≠ 0)
     (child : ∀ k, AcceptTree cmA cmB cmT ip μ
       (foldPow (K1 := K1) μ (answer k) ckA)
       (foldPow (K1 := K2) μ (answer k)⁻¹ ckB)
+      (foldPow (K1 := P) μ (answer k) pub)
       (foldCom (answer k)⁻¹ LA ComA RA)
       (foldCom (answer k)⁻¹ LB ComB RB)
       (foldCom (answer k)⁻¹ LT ComT RT)) :
-    AcceptTree cmA cmB cmT ip (μ + 1) ckA ckB ComA ComB ComT := by
-  let c : Fin 4 → F := fun k => (answer k)⁻¹
-  have hcinjective : Function.Injective c := by
-    intro a b hab
-    apply hinjective
-    have := congrArg Inv.inv hab
-    simpa [c] using this
-  have hcnonzero : ∀ k, c k ≠ 0 := by
-    intro k
-    simpa [c] using hnonzero k
-  refine .node LA RA LB RB LT RT c hcinjective hcnonzero ?_
-  intro k
-  simpa [c] using child k
+    AcceptTree cmA cmB cmT ip (μ + 1) ckA ckB pub ComA ComB ComT := by
+  exact .node LA RA LB RB LT RT answer hinjective hnonzero child
 
 /-- The three lane equalities supplied by `leaf_accept_to_base` from U5d(3)
 leaf data. With lane-native folds (DESIGN §U5d(4) lane-nativity) these are
@@ -1045,10 +1038,8 @@ def LeafBaseComponents
         (proof.aFinal, proof.cFinal)) ∧
   (folded.comB =
       u4BLaneAtom stmt.e
-        ((foldKey xW
-          (fun i => (rShift ^ (i : Nat) • stmt.srsW i, (1 : F)))) 0)
-        (proof.bFinal,
-          terminalR transcript.randomizer (reversedView transcript.roundAnswer))) ∧
+        ((foldKey xW (fun i => rShift ^ (i : Nat) • stmt.srsW i)) 0)
+        proof.bFinal) ∧
   (folded.comT =
       u4TLanePairing stmt.e (proof.aFinal, proof.cFinal)
         (proof.bFinal,
@@ -1068,7 +1059,7 @@ theorem leafData_to_base_components
     LeafBaseComponents stmt proof transcript := by
   dsimp [LeafData] at hleaf
   dsimp [LeafBaseComponents]
-  obtain ⟨h1, h2, h3, h4, h5, h6, hkzgV, hkzgW⟩ := hleaf
+  obtain ⟨h1, h2, h3, h4, h5, hkzgV, hkzgW⟩ := hleaf
   have hbase := leaf_accept_to_base stmt.e stmt.srsV stmt.srsW stmt.acceptV
     stmt.acceptW (reversedView transcript.roundAnswer)
     (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
@@ -1076,15 +1067,14 @@ theorem leafData_to_base_components
     proof.aFinal proof.cFinal proof.bFinal
     (terminalR transcript.randomizer (reversedView transcript.roundAnswer))
     (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB.1
+    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB
     (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.1
     (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.2
     (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2
     h1 h2 h3 h4 h5 hbindV hbindW hkzgV hkzgW
   obtain ⟨hA1, hA2⟩ := Prod.ext_iff.mp hbase.1
-  obtain ⟨hB1, hB2⟩ := Prod.ext_iff.mp hbase.2.1
   obtain ⟨hT1, hT2⟩ := Prod.ext_iff.mp hbase.2.2
-  exact ⟨Prod.ext hA1 hA2, Prod.ext hB1 (h6.trans hB2), Prod.ext hT1 hT2⟩
+  exact ⟨Prod.ext hA1 hA2, hbase.2.1, Prod.ext hT1 hT2⟩
 
 /-- Acceptance and the two explicit U5a exclusions required on every wrapped
 run used by U5d(4) (`fs.stage-labels`, `tipp-mipp.gipa`). -/
@@ -1136,7 +1126,8 @@ theorem tree_to_acceptTree
     AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
       (u4TLanePairing stmt.e) μ
       (fun i => (stmt.srsV i, stmt.srsV i))
-      (fun i => ((r ^ (i : Nat))⁻¹ • stmt.srsW i, (1 : F)))
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+      (fun i => r ^ (i : Nat))
       (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
   sorry
@@ -1174,7 +1165,8 @@ theorem fsFork_success_acceptTree
     AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
       (u4TLanePairing stmt.e) μ
       (fun i => (stmt.srsV i, stmt.srsV i))
-      (fun i => ((r ^ (i : Nat))⁻¹ • stmt.srsW i, (1 : F)))
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+      (fun i => r ^ (i : Nat))
       (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
   apply tree_to_acceptTree stmt adv qb hbindV hbindW

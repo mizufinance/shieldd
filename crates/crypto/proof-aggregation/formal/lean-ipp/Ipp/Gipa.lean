@@ -213,6 +213,16 @@ theorem laurent_unique (hinj : Function.Injective c) (hnz : ∀ k, c k ≠ 0)
     Matrix.cons_val_two, Matrix.tail_cons, sub_eq_zero] at h0 h1 h2
   exact ⟨h2, h1, h0⟩
 
+/-- Two Laurent interpolants through the same three distinct nonzero points
+    have identical coefficients. This is the public-lane pinning step: unlike
+    committed lanes, it uses only Vandermonde uniqueness. -/
+theorem laurent_interpolate_unique (hinj : Function.Injective c) (hnz : ∀ k, c k ≠ 0)
+    (z : Fin 3 → M) (l m r l' m' r' : M)
+    (h : ∀ j, c j • l + m + (c j)⁻¹ • r = z j)
+    (h' : ∀ j, c j • l' + m' + (c j)⁻¹ • r' = z j) :
+    l = l' ∧ m = m' ∧ r = r' :=
+  laurent_unique hinj hnz l m r l' m' r' fun j => (h j).trans (h' j).symm
+
 /-- A module-valued cubic vanishing at four distinct points has all
     coefficients zero. -/
 theorem cubic_vanishing {c4 : Fin 4 → F} (hinj4 : Function.Injective c4)
@@ -254,6 +264,14 @@ def foldMsg (s : F) (v : Fin (m + m) → V) : Fin m → V :=
 def embed (s : F) (w : Fin m → V) : Fin (m + m) → V :=
   Fin.addCases w (fun i => s • w i)
 
+/-- Leading Laurent coefficient of `embed c (foldMsg c⁻¹ v)`. -/
+def foldLaurentL (v : Fin (m + m) → V) : Fin (m + m) → V :=
+  Fin.addCases (fun _ => 0) (fun i => v (Fin.castAdd m i))
+
+/-- Trailing Laurent coefficient of `embed c (foldMsg c⁻¹ v)`. -/
+def foldLaurentR (v : Fin (m + m) → V) : Fin (m + m) → V :=
+  Fin.addCases (fun i => v (Fin.natAdd m i)) (fun _ => 0)
+
 @[simp] lemma embed_lower (s : F) (w : Fin m → V) (i : Fin m) :
     embed s w (Fin.castAdd m i) = w i := by
   simp only [embed, Fin.addCases_left]
@@ -269,6 +287,21 @@ theorem embed_injective (s : F) : Function.Injective (embed (V := V) (m := m) s)
   funext i
   have := congrFun h (Fin.castAdd m i)
   simpa using this
+
+/-- The public B-side fold is itself a Laurent interpolant whose middle
+    coefficient is the unfurled public family. -/
+theorem embed_foldMsg_laurent (c : F) (hc : c ≠ 0) (v : Fin (m + m) → V) :
+    embed c (foldMsg c⁻¹ v) = c • foldLaurentL v + v + c⁻¹ • foldLaurentR v := by
+  funext i
+  refine Fin.addCases ?_ ?_ i
+  · intro j
+    simp [embed, foldMsg, foldLaurentL, foldLaurentR]
+    abel
+  · intro j
+    simp only [embed_upper, foldMsg, Pi.add_apply, Pi.smul_apply,
+      foldLaurentL, foldLaurentR, Fin.addCases_right, smul_add, smul_smul]
+    rw [mul_inv_cancel₀ hc, one_smul]
+    module
 
 end Fold
 
@@ -380,9 +413,10 @@ and child accepting trees. It carries no parent opening or relation evidence. -/
 section Extract
 
 variable {F : Type*} [Field F]
-variable {K1 K2 Msg1 Msg2 M IPv : Type*}
+variable {K1 K2 Msg1 Msg2 P M IPv : Type*}
 variable [AddCommGroup K1] [Module F K1] [AddCommGroup K2] [Module F K2]
 variable [AddCommGroup Msg1] [Module F Msg1] [AddCommGroup Msg2] [Module F Msg2]
+variable [AddCommGroup P] [Module F P]
 variable [AddCommGroup M] [Module F M] [AddCommGroup IPv] [Module F IPv]
 
 /-- Power-of-two split used to view a size `2^(μ+1)` vector as two halves of
@@ -433,38 +467,40 @@ def foldCom (c : F) (L Com R : M) : M :=
 /-- Extracted GIPA input relation at one recursive size.
     Spec `gipa.input-relation`, `tipp-mipp.gipa`. -/
 def InputRelation (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
-    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] Msg2 →ₗ[F] IPv) {μ : ℕ}
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) {μ : ℕ}
     (ck_a : Fin (2 ^ μ) → K1) (ck_b : Fin (2 ^ μ) → K2)
-    (ComA ComB ComT : M) : Prop :=
+    (pub : Fin (2 ^ μ) → P) (ComA ComB ComT : M) : Prop :=
   ∃ a b,
     ComA = commitV cmA ck_a a ∧
     ComB = commitV cmB ck_b b ∧
-    ComT = cmT (ipm ip a b)
+    ComT = cmT (ipm ip a (fun i => (b i, pub i)))
 
 /-- Accepting transcript tree for GIPA, with four-way rewinding at each round.
     The top challenge peels the highest remaining bit, matching the transcript
     order consumed by U3. Spec `gipa.verifier-folding`, `tipp-mipp.gipa`. -/
 inductive AcceptTree (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
-    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] Msg2 →ₗ[F] IPv) :
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) :
     (μ : ℕ) → (ck_a : Fin (2 ^ μ) → K1) → (ck_b : Fin (2 ^ μ) → K2) →
-      (ComA ComB ComT : M) → Prop
+      (pub : Fin (2 ^ μ) → P) → (ComA ComB ComT : M) → Prop
   | base {ck_a : Fin (2 ^ 0) → K1} {ck_b : Fin (2 ^ 0) → K2} {ComA ComB ComT : M}
+      {pub : Fin (2 ^ 0) → P}
       (a0 : Msg1) (b0 : Msg2)
       (hA : ComA = cmA (ck_a 0) a0)
       (hB : ComB = cmB (ck_b 0) b0)
-      (hT : ComT = cmT (ip a0 b0)) :
-      AcceptTree cmA cmB cmT ip 0 ck_a ck_b ComA ComB ComT
+      (hT : ComT = cmT (ip a0 (b0, pub 0))) :
+      AcceptTree cmA cmB cmT ip 0 ck_a ck_b pub ComA ComB ComT
   | node {μ : ℕ} {ck_a : Fin (2 ^ (μ + 1)) → K1} {ck_b : Fin (2 ^ (μ + 1)) → K2}
-      {ComA ComB ComT : M}
+      {pub : Fin (2 ^ (μ + 1)) → P} {ComA ComB ComT : M}
       (LA RA LB RB LT RT : M) (c : Fin 4 → F)
       (hinj : Function.Injective c) (hnz : ∀ k, c k ≠ 0)
       (child : ∀ k, AcceptTree cmA cmB cmT ip μ
-        (foldPow (K1 := K1) μ (c k)⁻¹ ck_a)
-        (foldPow (K1 := K2) μ (c k) ck_b)
-        (foldCom (c k) LA ComA RA)
-        (foldCom (c k) LB ComB RB)
-        (foldCom (c k) LT ComT RT)) :
-      AcceptTree cmA cmB cmT ip (μ + 1) ck_a ck_b ComA ComB ComT
+        (foldPow (K1 := K1) μ (c k) ck_a)
+        (foldPow (K1 := K2) μ (c k)⁻¹ ck_b)
+        (foldPow (K1 := P) μ (c k) pub)
+        (foldCom (c k)⁻¹ LA ComA RA)
+        (foldCom (c k)⁻¹ LB ComB RB)
+        (foldCom (c k)⁻¹ LT ComT RT)) :
+      AcceptTree cmA cmB cmT ip (μ + 1) ck_a ck_b pub ComA ComB ComT
 
 /-- One-round extraction surface. Spec `gipa.round-folding`,
     `gipa.verifier-folding`, `gipa.input-relation`.
@@ -476,8 +512,9 @@ inductive AcceptTree (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] M
     binding to pin each child vector equation, collapse the half-projections by
     Laurent vanishing, pin the T lane, and assemble the parent openings. -/
 theorem round_extract (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
-    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] Msg2 →ₗ[F] IPv) {μ : ℕ}
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) {μ : ℕ}
     (ck_a : Fin (2 ^ (μ + 1)) → K1) (ck_b : Fin (2 ^ (μ + 1)) → K2)
+    (pub : Fin (2 ^ (μ + 1)) → P)
     (ComA ComB ComT LA RA LB RB LT RT : M)
     (c : Fin 4 → F) (hinj : Function.Injective c) (hnz : ∀ k, c k ≠ 0)
     (hbindA : PairingCommitmentBinding cmA ck_a)
@@ -485,10 +522,11 @@ theorem round_extract (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] 
     (hchild : ∀ k, InputRelation cmA cmB cmT ip
       (foldPow (K1 := K1) μ (c k)⁻¹ ck_a)
       (foldPow (K1 := K2) μ (c k) ck_b)
+      (foldPow (K1 := P) μ (c k)⁻¹ pub)
       (foldCom (c k) LA ComA RA)
       (foldCom (c k) LB ComB RB)
       (foldCom (c k) LT ComT RT)) :
-    InputRelation cmA cmB cmT ip ck_a ck_b ComA ComB ComT := by
+    InputRelation cmA cmB cmT ip ck_a ck_b pub ComA ComB ComT := by
   classical
   -- The child openings are intentionally destructed here; the parent relation is
   -- not a tree field. The remaining proof obligation is the DESIGN §U2.4
@@ -517,6 +555,25 @@ theorem round_extract (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] 
     laurent_interpolate hinj3 hnz3 (fun j => zA j.castSucc)
   obtain ⟨lB, b, rB, hBinterp⟩ :=
     laurent_interpolate hinj3 hnz3 (fun j => zB j.castSucc)
+  let pubSplit : Fin (2 ^ μ + 2 ^ μ) → P :=
+    fun i => pub (Fin.cast (pow_succ_two μ).symm i)
+  let zPub : Fin 4 → Fin (2 ^ (μ + 1)) → P := fun k i =>
+    embed (c k) (foldMsg (c k)⁻¹ pubSplit) (Fin.cast (pow_succ_two μ) i)
+  let lPub : Fin (2 ^ (μ + 1)) → P := fun i =>
+    foldLaurentL pubSplit (Fin.cast (pow_succ_two μ) i)
+  let rPub : Fin (2 ^ (μ + 1)) → P := fun i =>
+    foldLaurentR pubSplit (Fin.cast (pow_succ_two μ) i)
+  obtain ⟨lPub', pub', rPub', hPubInterp⟩ :=
+    laurent_interpolate hinj3 hnz3 (fun j => zPub j.castSucc)
+  have hPubKnown : ∀ j, c3 j • lPub + pub + (c3 j)⁻¹ • rPub = zPub j.castSucc := by
+    intro j
+    funext i
+    have h := congrFun (embed_foldMsg_laurent (c3 j) (hnz3 j) pubSplit)
+      (Fin.cast (pow_succ_two μ) i)
+    simpa [c3, zPub, lPub, rPub, pubSplit] using h.symm
+  have hPubMiddle : pub' = pub :=
+    (laurent_interpolate_unique hinj3 hnz3 (fun j => zPub j.castSucc)
+      lPub' pub' rPub' lPub pub rPub hPubInterp hPubKnown).2.1
   have hAcoeff : LA = commitV cmA ck_a lA ∧ ComA = commitV cmA ck_a a ∧
       RA = commitV cmA ck_a rA := by
     apply laurent_unique hinj3 hnz3
@@ -670,40 +727,58 @@ theorem round_extract (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] 
     fun i => a (Fin.cast (pow_succ_two μ).symm i)
   let bSplit : Fin (2 ^ μ + 2 ^ μ) → Msg2 :=
     fun i => b (Fin.cast (pow_succ_two μ).symm i)
+  let bpSplit : Fin (2 ^ μ + 2 ^ μ) → Msg2 × P :=
+    fun i => (bSplit i, pub' (Fin.cast (pow_succ_two μ).symm i))
   let tL := ipm ip (fun i => aSplit (Fin.natAdd (2 ^ μ) i))
-    (fun i => bSplit (Fin.castAdd (2 ^ μ) i))
-  let tM := ipm ip aSplit bSplit
+    (fun i => bpSplit (Fin.castAdd (2 ^ μ) i))
+  let tM := ipm ip aSplit bpSplit
   let tR := ipm ip (fun i => aSplit (Fin.castAdd (2 ^ μ) i))
-    (fun i => bSplit (Fin.natAdd (2 ^ μ) i))
+    (fun i => bpSplit (Fin.natAdd (2 ^ μ) i))
+  have hfoldBP : ∀ k,
+      (fun i => (bChild k i, foldPow (K1 := P) μ (c k)⁻¹ pub i)) =
+        foldMsg (c k)⁻¹ bpSplit := by
+    intro k
+    funext i
+    have hb := congrFun (hfoldB k) i
+    ext
+    · exact hb
+    · simp only [bpSplit]
+      rw [hPubMiddle]
+      simp [foldPow, foldMsg]
   have hTlaurent : ∀ k, c k • LT + ComT + (c k)⁻¹ • RT =
       c k • cmT tL + cmT tM + (c k)⁻¹ • cmT tR := by
     intro k
     calc
-      _ = cmT (ipm ip (aChild k) (bChild k)) := hTChild k
-      _ = cmT (ipm ip (foldMsg (c k) aSplit) (foldMsg (c k)⁻¹ bSplit)) := by
-        rw [hfoldA k, hfoldB k]
+      _ = cmT (ipm ip (aChild k)
+          (fun i => (bChild k i, foldPow (K1 := P) μ (c k)⁻¹ pub i))) := hTChild k
+      _ = cmT (ipm ip (foldMsg (c k) aSplit) (foldMsg (c k)⁻¹ bpSplit)) := by
+        rw [hfoldA k, hfoldBP k]
       _ = cmT (c k • tL + tM + (c k)⁻¹ • tR) := by
-        rw [ipm_foldMsg ip (c k) (hnz k) aSplit bSplit]
+        rw [ipm_foldMsg ip (c k) (hnz k) aSplit bpSplit]
       _ = _ := by simp only [map_add, map_smul]
   have hTcoeff := laurent_unique hinj3 hnz3 LT ComT RT (cmT tL) (cmT tM) (cmT tR)
     (fun j => hTlaurent j.castSucc)
   refine ⟨a, b, hComA, hComB, ?_⟩
   rw [hTcoeff.2.1]
-  exact congrArg cmT (ipm_reindex (pow_succ_two μ).symm ip a b)
+  have hmid : ipm ip a (fun i => (b i, pub' i)) = ipm ip a (fun i => (b i, pub i)) := by
+    rw [hPubMiddle]
+  rw [← hmid]
+  exact congrArg cmT
+    (ipm_reindex (pow_succ_two μ).symm ip a (fun i => (b i, pub' i)))
 
 /-- GIPA extraction by induction over `AcceptTree`.
     Spec `gipa.input-relation`, `tipp-mipp.gipa`. -/
 theorem gipa_extract (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
-    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] Msg2 →ₗ[F] IPv) {μ : ℕ}
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) {μ : ℕ}
     (ck_a : Fin (2 ^ μ) → K1) (ck_b : Fin (2 ^ μ) → K2)
-    (ComA ComB ComT : M)
+    (pub : Fin (2 ^ μ) → P) (ComA ComB ComT : M)
     (hbindA : PairingCommitmentBinding cmA ck_a)
     (hbindB : PairingCommitmentBinding cmB ck_b)
-    (hacc : AcceptTree cmA cmB cmT ip μ ck_a ck_b ComA ComB ComT) :
+    (hacc : AcceptTree cmA cmB cmT ip μ ck_a ck_b pub ComA ComB ComT) :
     ∃ a b,
       ComA = commitV cmA ck_a a ∧
       ComB = commitV cmB ck_b b ∧
-      ComT = cmT (ipm ip a b) := by
+      ComT = cmT (ipm ip a (fun i => (b i, pub i))) := by
   revert hbindA hbindB
   induction hacc with
   | base a0 b0 hA hB hT =>
@@ -714,11 +789,23 @@ theorem gipa_extract (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] M
       · simpa [ipm] using hT
   | node LA RA LB RB LT RT c hinj hnz child ih =>
       intro hbindA hbindB
-      exact round_extract cmA cmB cmT ip _ _ _ _ _ LA RA LB RB LT RT
-        c hinj hnz hbindA hbindB
-        (fun k => ih k
-          (binding_foldPow (K1 := K1) (Msg1 := Msg1) (M := M) cmA (c k)⁻¹ _ hbindA)
-          (binding_foldPow (K1 := K2) (Msg1 := Msg2) (M := M) cmB (c k) _ hbindB))
+      let q : Fin 4 → F := fun k => (c k)⁻¹
+      have hqinj : Function.Injective q := by
+        intro i j hij
+        apply hinj
+        have := congrArg Inv.inv hij
+        simpa [q] using this
+      have hqnz : ∀ k, q k ≠ 0 := fun k => inv_ne_zero (hnz k)
+      exact round_extract cmA cmB cmT ip _ _ _ _ _ _ LA RA LB RB LT RT
+        q hqinj hqnz hbindA hbindB
+        (fun k => by
+          obtain ⟨a, b, ha, hb, ht⟩ := ih k
+            (binding_foldPow (K1 := K1) (Msg1 := Msg1) (M := M) cmA (c k) _ hbindA)
+            (binding_foldPow (K1 := K2) (Msg1 := Msg2) (M := M) cmB (c k)⁻¹ _ hbindB)
+          refine ⟨a, b, ?_, ?_, ?_⟩
+          · simpa [q] using ha
+          · simpa [q] using hb
+          · simpa [q] using ht)
 
 end Extract
 

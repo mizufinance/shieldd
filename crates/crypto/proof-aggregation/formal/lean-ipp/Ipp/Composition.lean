@@ -18,10 +18,9 @@ variable [AddCommGroup GT] [Module F GT]
 
 /-! ### U4 product-lane atoms (DESIGN §U4)
 
-These are the concrete product-module bilinear atoms used to instantiate U2's
-generic GIPA lanes in the combined TIPP/MIPP argument. The B-lane uses an `F`
-scalar key component instead of `Unit`; the terminal verifier instantiates that
-component at `1`, while preserving F-linearity of the commitment atom. -/
+These are the concrete bilinear atoms used to instantiate U2's GIPA lanes in
+the combined TIPP/MIPP argument. The randomizer coordinate is public data in
+the T lane; the committed B lane contains only the real G1/G2 pairing row. -/
 
 /-- U4 A/C lane atom: keys `(vA, vC)`, messages `(A, C)`,
     commitment `(e A vA, e C vC)`. Spec rows `tipp-mipp.base-equations`,
@@ -43,29 +42,21 @@ def u4ALaneAtom (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
     intro s x
     ext m <;> simp
 
-/-- U4 B/randomizer lane atom: keys `(w, q)`, messages `(B, s)`,
-    commitment `(e w B, q*s)`. The scalar key component replaces the informal
-    `Unit` column in DESIGN §U4 so the atom remains F-bilinear. Spec rows
-    `tipp-mipp.base-equations`, `gipa.input-relation`. -/
+/-- U4 B lane atom: G1 keys, G2 messages, and the real pairing commitment. -/
 def u4BLaneAtom (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
-    (G1 × F) →ₗ[F] (G2 × F) →ₗ[F] (GT × F) where
+    G1 →ₗ[F] G2 →ₗ[F] GT where
   toFun k :=
-    { toFun := fun m => (e k.1 m.1, k.2 * m.2)
-      map_add' := by
-        intro x y
-        ext <;> simp [mul_add]
-      map_smul' := by
-        intro s x
-        ext
-        · simp
-        · simp
-          ring }
+    { toFun := fun m => e k m
+      map_add' := map_add (e k)
+      map_smul' := map_smul (e k) }
   map_add' := by
     intro x y
-    ext m <;> simp [add_mul]
+    ext m
+    simp
   map_smul' := by
     intro s x
-    ext m <;> simp [mul_assoc]
+    ext m
+    simp
 
 /-- U4 T lane pairing: `(A, C)` paired with `(B, s)` gives
     `(e A B, s • C)`. Spec rows `tipp-mipp.base-equations`,
@@ -89,15 +80,15 @@ def u4TLanePairing (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
 
 /-- Shared tagged codomain used to place all three concrete U4 lanes in one
     `AcceptTree` without discarding any commitment component. -/
-abbrev U4Commitment (F G1 GT : Type*) :=
-  ((GT × GT) × (GT × F)) × (GT × G1)
+abbrev U4Commitment (_F G1 GT : Type*) :=
+  ((GT × GT) × GT) × (GT × G1)
 
 /-- A-lane embedding into the tagged codomain (lane-pure: zeros off-lane).
     Public so the FS game (U5d) can construct tagged values from lane-native
     proof payloads — see DESIGN §U5d(4) lane-nativity decision. -/
 def u4AEmbedding :
     (GT × GT) →ₗ[F] U4Commitment F G1 GT where
-  toFun t := ((t, (0, 0)), (0, 0))
+  toFun t := ((t, 0), (0, 0))
   map_add' := by
     intro x y
     ext <;> simp
@@ -107,7 +98,7 @@ def u4AEmbedding :
 
 /-- B-lane embedding into the tagged codomain (lane-pure). -/
 def u4BEmbedding :
-    (GT × F) →ₗ[F] U4Commitment F G1 GT where
+    GT →ₗ[F] U4Commitment F G1 GT where
   toFun t := (((0, 0), t), (0, 0))
   map_add' := by
     intro x y
@@ -119,7 +110,7 @@ def u4BEmbedding :
 /-- T-lane embedding into the tagged codomain (lane-pure). -/
 def u4TEmbedding :
     (GT × G1) →ₗ[F] U4Commitment F G1 GT where
-  toFun t := (((0, 0), (0, 0)), t)
+  toFun t := (((0, 0), 0), t)
   map_add' := by
     intro x y
     ext <;> simp
@@ -171,9 +162,9 @@ def u4ACommitAtom (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
     (G2 × G2) →ₗ[F] (G1 × G1) →ₗ[F] U4Commitment F G1 GT :=
   u4LiftAtom u4AEmbedding (u4ALaneAtom e)
 
-/-- B/randomizer commitment atom tagged into the common U4 tree codomain. -/
+/-- B commitment atom tagged into the common U4 tree codomain. -/
 def u4BCommitAtom (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
-    (G1 × F) →ₗ[F] (G2 × F) →ₗ[F] U4Commitment F G1 GT :=
+    G1 →ₗ[F] G2 →ₗ[F] U4Commitment F G1 GT :=
   u4LiftAtom u4BEmbedding (u4BLaneAtom e)
 
 /-- T-value injection into the common U4 tree codomain. -/
@@ -283,6 +274,39 @@ theorem msm_shift {μ : ℕ} {G : Type*} [AddCommGroup G] [Module F G]
   simp only [smul_smul]
   rw [mul_comm]
 
+/-- Folding the public power family produces the structured terminal scalar.
+    This is the derived public-lane identity that replaces the former sixth
+    verifier equation. -/
+theorem foldKey_public_terminal {μ : ℕ} (x : Fin μ → F) (r : F) :
+    foldKey x (fun i : Fin (2 ^ μ) => r ^ (i : ℕ)) 0 =
+      ∏ j : Fin μ, (1 + x j * r ^ (2 ^ (j : ℕ))) := by
+  induction μ with
+  | zero => simp [foldKey]
+  | succ μ ih =>
+      let x' : Fin μ → F := fun j => x (Fin.castSucc j)
+      let factor : F := 1 + x ⟨μ, Nat.lt_succ_self μ⟩ * r ^ (2 ^ μ)
+      have hround :
+          foldKeyRound (x ⟨μ, Nat.lt_succ_self μ⟩)
+              (fun i : Fin (2 ^ (μ + 1)) => r ^ (i : ℕ)) =
+            fun i : Fin (2 ^ μ) => factor * r ^ (i : ℕ) := by
+        funext i
+        simp [foldKeyRound, foldMsg, factor, smul_eq_mul, pow_add]
+        ring
+      have hscale :
+          foldKey x' (fun i : Fin (2 ^ μ) => factor * r ^ (i : ℕ)) 0 =
+            factor * foldKey x' (fun i : Fin (2 ^ μ) => r ^ (i : ℕ)) 0 := by
+        simp only [foldKey_transcriptCoeffs, msm, smul_eq_mul]
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro i _
+        ring
+      simp only [foldKey]
+      rw [hround, hscale, ih]
+      rw [Fin.prod_univ_castSucc]
+      let p : F := ∏ j : Fin μ, (1 + x' j * r ^ (2 ^ (j : ℕ)))
+      change factor * p = p * factor
+      exact mul_comm _ _
+
 private theorem foldKey_prod {μ : ℕ}
     {G G' : Type*} [AddCommGroup G] [Module F G]
     [AddCommGroup G'] [Module F G']
@@ -312,9 +336,8 @@ theorem u4_key_identification {μ : ℕ}
     vFinal vOpening wFinal wOpening hbindV hbindW haccV haccW
 
 /-- Convert the five real terminal verifier equations and the two KZG checks
-    into the three componentwise equations carried by an `AcceptTree.base`
-    leaf at the honestly folded U4 product keys. The scalar B-commitment
-    component is canonical and therefore needs no sixth verifier equation. -/
+    into the three equations carried by an `AcceptTree.base` leaf at the
+    honestly folded U4 keys and public scalar. -/
 theorem leaf_accept_to_base {μ : ℕ}
     (e : G1 →ₗ[F] G2 →ₗ[F] GT)
     (srsV : Fin (2 ^ μ) → G2) (srsW : Fin (2 ^ μ) → G1)
@@ -337,13 +360,10 @@ theorem leaf_accept_to_base {μ : ℕ}
     (foldedComA, foldedComC) =
         u4ALaneAtom e
           ((foldKey xV (fun i => (srsV i, srsV i))) 0) (aFinal, cFinal) ∧
-    (foldedComB,
-        ((foldKey xW
-          (fun i => (rShift ^ (i : ℕ) • srsW i, (1 : F)))) 0).2 * rFinal) =
+    foldedComB =
         u4BLaneAtom e
-          ((foldKey xW
-            (fun i => (rShift ^ (i : ℕ) • srsW i, (1 : F)))) 0)
-          (bFinal, rFinal) ∧
+          ((foldKey xW (fun i => rShift ^ (i : ℕ) • srsW i)) 0)
+          bFinal ∧
     (foldedIpAb, foldedAggC) =
         u4TLanePairing e (aFinal, cFinal) (bFinal, rFinal) := by
   obtain ⟨hv, hw⟩ := u4_key_identification srsV srsW acceptV acceptW
@@ -359,53 +379,56 @@ theorem leaf_accept_to_base {μ : ℕ}
   · rw [foldKey_prod]
     ext <;> simp [u4ALaneAtom, hfoldV, hterminalA, hterminalC]
   constructor
-  · rw [foldKey_prod]
-    ext <;> simp [u4BLaneAtom, hfoldW, hterminalB]
+  · simp [u4BLaneAtom, hfoldW, hterminalB]
   · ext <;> simp [u4TLanePairing, hterminalT, hterminalR]
 
 /-- U4 extraction-instantiation lemma: an accepted 4-ary GIPA tree yields
     openings for the instantiated lanes, via U2's `gipa_extract`. Spec rows
     `gipa.input-relation`, `tipp-mipp.gipa`, `tipp-mipp.base-equations`. -/
 theorem u4_gipa_extraction
-    {K1 K2 Msg1 Msg2 M IPv : Type*}
+    {K1 K2 Msg1 Msg2 P M IPv : Type*}
     [AddCommGroup K1] [Module F K1] [AddCommGroup K2] [Module F K2]
     [AddCommGroup Msg1] [Module F Msg1] [AddCommGroup Msg2] [Module F Msg2]
+    [AddCommGroup P] [Module F P]
     [AddCommGroup M] [Module F M] [AddCommGroup IPv] [Module F IPv]
     (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
-    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] Msg2 →ₗ[F] IPv) {μ : ℕ}
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) {μ : ℕ}
     (ck_a : Fin (2 ^ μ) → K1) (ck_b : Fin (2 ^ μ) → K2)
-    (ComA ComB ComT : M)
+    (pub : Fin (2 ^ μ) → P) (ComA ComB ComT : M)
     (hbindA : PairingCommitmentBinding cmA ck_a)
     (hbindB : PairingCommitmentBinding cmB ck_b)
-    (hacc : AcceptTree cmA cmB cmT ip μ ck_a ck_b ComA ComB ComT) :
+    (hacc : AcceptTree cmA cmB cmT ip μ ck_a ck_b pub ComA ComB ComT) :
     ∃ a b,
       ComA = commitV cmA ck_a a ∧
       ComB = commitV cmB ck_b b ∧
-      ComT = cmT (ipm ip a b) :=
-  gipa_extract cmA cmB cmT ip ck_a ck_b ComA ComB ComT
+      ComT = cmT (ipm ip a (fun i => (b i, pub i))) :=
+  gipa_extract cmA cmB cmT ip ck_a ck_b pub ComA ComB ComT
     hbindA hbindB hacc
 
 /-- Root binding pins U2's extracted openings to the vectors whose root
     commitments were accepted. This is the clean U2-to-U4 handoff before the
     verifier-specific terminal-equation decoder. -/
 theorem u4_gipa_pins_committed_vectors
-    {K1 K2 Msg1 Msg2 M IPv : Type*}
+    {K1 K2 Msg1 Msg2 P M IPv : Type*}
     [AddCommGroup K1] [Module F K1] [AddCommGroup K2] [Module F K2]
     [AddCommGroup Msg1] [Module F Msg1] [AddCommGroup Msg2] [Module F Msg2]
+    [AddCommGroup P] [Module F P]
     [AddCommGroup M] [Module F M] [AddCommGroup IPv] [Module F IPv]
     (cmA : K1 →ₗ[F] Msg1 →ₗ[F] M) (cmB : K2 →ₗ[F] Msg2 →ₗ[F] M)
-    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] Msg2 →ₗ[F] IPv) {μ : ℕ}
+    (cmT : IPv →ₗ[F] M) (ip : Msg1 →ₗ[F] (Msg2 × P) →ₗ[F] IPv) {μ : ℕ}
     (ck_a : Fin (2 ^ μ) → K1) (ck_b : Fin (2 ^ μ) → K2)
-    (ComA ComB ComT : M) (aExpected : Fin (2 ^ μ) → Msg1)
+    (pub : Fin (2 ^ μ) → P) (ComA ComB ComT : M)
+    (aExpected : Fin (2 ^ μ) → Msg1)
     (bExpected : Fin (2 ^ μ) → Msg2)
     (hbindA : PairingCommitmentBinding cmA ck_a)
     (hbindB : PairingCommitmentBinding cmB ck_b)
     (hComA : ComA = commitV cmA ck_a aExpected)
     (hComB : ComB = commitV cmB ck_b bExpected)
-    (hacc : AcceptTree cmA cmB cmT ip μ ck_a ck_b ComA ComB ComT) :
-    ComT = cmT (ipm ip aExpected bExpected) := by
+    (hacc : AcceptTree cmA cmB cmT ip μ ck_a ck_b pub ComA ComB ComT) :
+    ComT = cmT (ipm ip aExpected (fun i => (bExpected i, pub i))) := by
   obtain ⟨a, b, ha, hb, ht⟩ :=
-    u4_gipa_extraction cmA cmB cmT ip ck_a ck_b ComA ComB ComT hbindA hbindB hacc
+    u4_gipa_extraction cmA cmB cmT ip ck_a ck_b pub ComA ComB ComT
+      hbindA hbindB hacc
   have hea : aExpected = a := hbindA (hComA.symm.trans ha)
   have heb : bExpected = b := hbindB (hComB.symm.trans hb)
   simpa [hea, heb] using ht
@@ -541,16 +564,17 @@ theorem u4_capstone (e : G1 →ₗ[F] G2 →ₗ[F] GT) {μ : ℕ}
     (hbindA : PairingCommitmentBinding (u4ACommitAtom e)
       (fun i => (srsV i, srsV i)))
     (hbindB : PairingCommitmentBinding (u4BCommitAtom e)
-      (fun i => ((r ^ (i : ℕ))⁻¹ • srsW i, (1 : F))))
+      (fun i => (r ^ (i : ℕ))⁻¹ • srsW i))
     (hComA : ComA = commitV (u4ACommitAtom e)
       (fun i => (srsV i, srsV i)) (fun i => (A i, C i)))
     (hComB : ComB = commitV (u4BCommitAtom e)
-      (fun i => ((r ^ (i : ℕ))⁻¹ • srsW i, (1 : F)))
-      (fun i => (r ^ (i : ℕ) • Bv i, r ^ (i : ℕ))))
+      (fun i => (r ^ (i : ℕ))⁻¹ • srsW i)
+      (fun i => r ^ (i : ℕ) • Bv i))
     (hacc : AcceptTree (u4ACommitAtom e) (u4BCommitAtom e) u4TCommitMap
       (u4TLanePairing e) μ
       (fun i => (srsV i, srsV i))
-      (fun i => ((r ^ (i : ℕ))⁻¹ • srsW i, (1 : F)))
+      (fun i => (r ^ (i : ℕ))⁻¹ • srsW i)
+      (fun i => r ^ (i : ℕ))
       ComA ComB (u4TCommitMap (ip_ab, agg_c)))
     (hrsum : r_sum = ∑ i : Fin (2 ^ μ), r ^ (i : ℕ))
     (hgic : g_ic = ∑ i : Fin (2 ^ μ), r ^ (i : ℕ) • Aic i)
@@ -561,10 +585,11 @@ theorem u4_capstone (e : G1 →ₗ[F] G2 →ₗ[F] GT) {μ : ℕ}
   have hpin := u4_gipa_pins_committed_vectors
     (u4ACommitAtom e) (u4BCommitAtom e) u4TCommitMap (u4TLanePairing e)
     (fun i => (srsV i, srsV i))
-    (fun i => ((r ^ (i : ℕ))⁻¹ • srsW i, (1 : F)))
+    (fun i => (r ^ (i : ℕ))⁻¹ • srsW i)
+    (fun i => r ^ (i : ℕ))
     ComA ComB (u4TCommitMap (ip_ab, agg_c))
     (fun i => (A i, C i))
-    (fun i => (r ^ (i : ℕ) • Bv i, r ^ (i : ℕ)))
+    (fun i => r ^ (i : ℕ) • Bv i)
     hbindA hbindB hComA hComB hacc
   have ht : (ip_ab, agg_c) =
       ipm (u4TLanePairing e) (fun i => (A i, C i))
