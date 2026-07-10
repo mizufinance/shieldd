@@ -495,14 +495,48 @@ accepted. Repairs, in execution order:
   selected-slot stage ordering, ancestor-answer/path correspondence
   (chronological prefix + its reversed view), shared randomizer/root-data
   across the tree (`all_randomizer_eq`).
-- **R7 (MAJORs 3,4,6) — quantitative redesign (U5a/U5e).** Replace the
-  pointwise `ForkTreeNodeLowerBound` interface with an AVERAGED,
-  goodness-conditioned recurrence (base mass `Pr[accept ∧ Good]`); prove
-  the per-level four-child conditioning lemma; gate selectors on goodness
-  so tree success ⇒ `All Good`; model rejection sampling (nonzero, and
-  `r ∉ {0,1}` per `groth16.randomizer`) or an explicit ideal-real
-  coupling term; add the dependency-order condition (randomizer/x0 chain
-  precedes each fork slot).
+- **R7 (MAJORs 3,4,6) — quantitative redesign (U5a/U5e).** Frontier
+  design pass 2026-07-10; replaces the pointwise `ForkTreeNodeLowerBound`
+  interface entirely:
+  1. **Gated recursion** (review's gated-selector route): `forkTreeFrom`
+     gains a leaf-acceptance gate `leafOk : run → Prop` (decidable) and
+     REJECTS at depth 0 when `¬leafOk`; `TreeConsistent.leaf` carries the
+     gate fact. Tree success then implies `tree.All leafOk`
+     STRUCTURALLY — no separate `All Good` probability step. Instantiate
+     `leafOk := accept ∧ WrappedRunGood`-conjuncts (post-R5 shape).
+  2. **Predicate-parametrized U5b machinery**: generalize the U5b
+     quantitative identities/bound over an arbitrary success predicate
+     `S : α × QueryLog → Prop` in place of raw fork success (the proofs
+     of the marginal identities and the CS chain are generic in the
+     predicate; this is mechanical). Deliverable:
+     `forkReplay4_bound_pred : (accS·(accS/q − h⁻¹))⁴ − 3·h⁻¹ ≤
+      Pr[4 children, distinct answers, ALL satisfying S]` with
+     `accS := Pr[S | replayFirstRun main]`.
+  3. **Averaged per-level recurrence**: define
+     `S_0 := leafOk`,
+     `S_{ℓ+1}(run) := the gated (µ−ℓ−1)-deep subtree from this run
+     succeeds` (this is a support/probability statement about
+     `forkTreeFrom` at the run, not a new structure), and
+     `Q_ℓ := Pr[S_ℓ | replayFirstRun (wrapped main)]`. Prove by applying
+     deliverable 2 at each level (child 0 is the run's own continuation;
+     the 3 trials are the conditional draws the U5b machinery already
+     integrates over):
+     `Q_{ℓ+1} ≥ (Q_ℓ · (Q_ℓ / q − h⁻¹))⁴ − 3·h⁻¹ =: G(Q_ℓ)`,
+     hence `Pr[forkTree succeeds] = Q_µ ≥ G^[µ](Q_0)` with
+     `Q_0 = Pr[accept ∧ Good]` — geometrically degrading, ACCEPTED per
+     the strict-composition decision; monotone `G` recorded as a lemma.
+  4. **U5a events (post-R5 shapes)**: `Q_0 ≥ acc − err_bad` where
+     `err_bad` sums: randomizer in `discrepancyRootSet` (size ≤ 2^µ−1,
+     `discrepancyRootSet_card`), KZG `z`-goodness (consumer restored by
+     R5's z-parametrization), round-point dependency-order violations
+     (fork slot must postdate the r/x0 chain — selector-order fact from
+     the cached wrapper), and any residual rejection-sampling coupling
+     term R5 documents. Each an RO union bound over ≤ qb+1 queries.
+  5. **U5e composition**: `G^[µ](acc − err_bad) > 0` ⇒ forkTree support
+     inhabited ⇒ (gated) `tree.All Good` + `TreeConsistent` ⇒
+     `tree_to_acceptTree` (R6) ⇒ `u4_capstone` ⇒ per-proof PPEs. `err`
+     in the S1 statement is the explicit expression making the iterate
+     positive.
 
 Execution: R2+R3 (one session, FsGame/FsFork-local), then R4 (Gipa/
 Composition surgery per (b)), then R5, then R6 (assembly proof), then R7.
