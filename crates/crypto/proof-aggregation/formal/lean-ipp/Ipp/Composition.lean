@@ -465,16 +465,49 @@ theorem u4_terminal_decoder (e : G1 →ₗ[F] G2 →ₗ[F] GT) {n : ℕ}
   rw [← hppe']
   abel
 
+/-- THE U1 bad set for a discrepancy vector: the challenges at which the
+    `r`-weighted discrepancy sum vanishes despite a nonzero discrepancy.
+    Determined by `d` alone (before `r` is sampled); finite of size `≤ n-1`
+    by `rootSet_card_le`. Spec row `groth16.randomizer`. -/
+def discrepancyRootSet {M : Type*} [AddCommGroup M] [Module F M]
+    {n : ℕ} (d : Fin n → M) : Set F :=
+  {x : F | (∃ i, d i ≠ 0) ∧ ∑ i : Fin n, x ^ (i : ℕ) • d i = 0}
+
 /-- U4 randomizer-lift wrapper: if the aggregate discrepancy vanishes at a
-    challenge outside every U1 bad set of size `≤ n-1`, all discrepancies are
-    zero. Spec rows `groth16.randomizer`, `groth16.folded-inputs`. -/
+    challenge outside THE discrepancy root set (the single pre-`r` bad set —
+    NOT universal avoidance of all small sets, which is contradictory), all
+    discrepancies are zero. Spec rows `groth16.randomizer`,
+    `groth16.folded-inputs`. -/
 theorem u4_randomizer_lift_pointwise {M : Type*} [AddCommGroup M] [Module F M]
     {n : ℕ} (d : Fin n → M) (r : F)
-    (hgeneric : ∀ B : Set F, B.Finite → Nat.card B ≤ n - 1 → r ∉ B)
+    (hroot : r ∉ discrepancyRootSet d)
     (hvanish : ∑ i : Fin n, r ^ (i : ℕ) • d i = 0) :
     ∀ i, d i = 0 := by
-  obtain ⟨B, hfin, hcard, hstrip⟩ := randomizer_lift (F := F) d
-  exact hstrip r (hgeneric B hfin hcard) hvanish
+  by_contra hne
+  push_neg at hne
+  obtain ⟨i, hi⟩ := hne
+  exact hroot ⟨⟨i, hi⟩, hvanish⟩
+
+/-- The discrepancy root set is finite with at most `n - 1` elements —
+    the quantitative carrier U5a's randomizer bound consumes.
+    Spec row `groth16.randomizer`. -/
+theorem discrepancyRootSet_card {M : Type*} [AddCommGroup M] [Module F M]
+    {n : ℕ} (d : Fin n → M) :
+    (discrepancyRootSet (F := F) d).Finite ∧
+      Nat.card (discrepancyRootSet (F := F) d) ≤ n - 1 := by
+  by_cases hd : ∃ i, d i ≠ 0
+  · obtain ⟨hfin, hcard⟩ := rootSet_card_le (F := F) d hd
+    have hset : discrepancyRootSet d
+        = {x : F | ∑ i : Fin n, x ^ (i : ℕ) • d i = 0} := by
+      ext x
+      simp [discrepancyRootSet, hd]
+    rw [hset]
+    exact ⟨hfin, hcard⟩
+  · have hset : discrepancyRootSet d = (∅ : Set F) := by
+      ext x
+      simp [discrepancyRootSet, hd]
+    rw [hset]
+    simp
 
 /-- U4 capstone PPE-per-index lemma: after U2/U3 have reduced the accepted
     aggregate to the randomized PPE discrepancy equation, U1 strips the
@@ -483,14 +516,15 @@ theorem u4_randomizer_lift_pointwise {M : Type*} [AddCommGroup M] [Module F M]
 theorem u4_ppe_per_index (e : G1 →ₗ[F] G2 →ₗ[F] GT) {n : ℕ}
     (α : G1) (β γ δ : G2)
     (A C Aic : Fin n → G1) (Bv : Fin n → G2) (r : F)
-    (hgeneric : ∀ Bbad : Set F, Bbad.Finite → Nat.card Bbad ≤ n - 1 → r ∉ Bbad)
+    (hroot : r ∉ discrepancyRootSet
+      (fun i => groth16Discrepancy e α β γ δ A C Aic Bv i))
     (haggregate :
       ∑ i : Fin n, r ^ (i : ℕ) • groth16Discrepancy e α β γ δ A C Aic Bv i = 0) :
     ∀ i, e (A i) (Bv i) = groth16Rhs e α (Aic i) (C i) β γ δ := by
   intro i
   have hzero := u4_randomizer_lift_pointwise
     (F := F) (d := fun i => groth16Discrepancy e α β γ δ A C Aic Bv i)
-    r hgeneric haggregate i
+    r hroot haggregate i
   dsimp [groth16Discrepancy] at hzero
   exact sub_eq_zero.mp hzero
 
@@ -521,8 +555,8 @@ theorem u4_capstone (e : G1 →ₗ[F] G2 →ₗ[F] GT) {μ : ℕ}
     (hrsum : r_sum = ∑ i : Fin (2 ^ μ), r ^ (i : ℕ))
     (hgic : g_ic = ∑ i : Fin (2 ^ μ), r ^ (i : ℕ) • Aic i)
     (hppe : e (r_sum • α) β + e g_ic γ + e agg_c δ = ip_ab)
-    (hgeneric : ∀ Bbad : Set F, Bbad.Finite →
-      Nat.card Bbad ≤ 2 ^ μ - 1 → r ∉ Bbad) :
+    (hroot : r ∉ discrepancyRootSet
+      (fun i => groth16Discrepancy e α β γ δ A C Aic Bv i)) :
     ∀ i, e (A i) (Bv i) = groth16Rhs e α (Aic i) (C i) β γ δ := by
   have hpin := u4_gipa_pins_committed_vectors
     (u4ACommitAtom e) (u4BCommitAtom e) u4TCommitMap (u4TLanePairing e)
@@ -544,7 +578,7 @@ theorem u4_capstone (e : G1 →ₗ[F] G2 →ₗ[F] GT) {μ : ℕ}
   have hagg : agg_c =
       ∑ i : Fin (2 ^ μ), r ^ (i : ℕ) • C i :=
     congrArg (fun z : GT × G1 => z.2) ht
-  apply u4_ppe_per_index e α β γ δ A C Aic Bv r hgeneric
+  apply u4_ppe_per_index e α β γ δ A C Aic Bv r hroot
   exact u4_terminal_decoder e α β γ δ A C Aic Bv r
     ip_ab agg_c r_sum g_ic hip hagg hrsum hgic hppe
 
