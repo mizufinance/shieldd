@@ -47,15 +47,16 @@ fn spec_submodule(circuit: &str, segment_index: usize) -> &'static str {
         return "Specs";
     }
     match segment_index {
-        6 | 15 | 24 | 33 | 42 | 54 => "Specs.Compress",
-        7 | 25 | 43 => "Specs.NoteCommitment",
-        9 | 27 => "Specs.Nullifier",
-        13 | 31 => "Specs.Rvk",
-        16 | 34 | 45 => "Specs.Dtk",
-        52 => "Specs.Nb",
-        11 | 29 => "Specs.Scp",
-        // on-curve, assert-eq, assert-equivalent glue rows, and the
-        // statement-hash endpoint (seg 59).
+        8 | 17 | 24 | 33 | 40 | 50 => "Specs.Compress",
+        9 | 25 | 41 => "Specs.NoteCommitment",
+        11 | 27 => "Specs.Nullifier",
+        15 | 31 => "Specs.Rvk",
+        5 => "Specs.Dtk",
+        48 => "Specs.Nb",
+        13 | 29 => "Specs.Scp",
+        // on-curve, assert-eq, assert-equivalent glue rows, seg6 (DTK
+        // consumer, post-hoist single instance), and the statement-hash
+        // endpoint (seg 55).
         _ => "Specs.Glue",
     }
 }
@@ -514,15 +515,22 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
     // Tier-3 inherent-topology gate: recover and parity-check the consolidate2x1
     // DTK canonicity ladders at extraction time (fail-closed), the analogue of
     // `structure_lc`'s in-line parity assert.
-    // DTK segment slice `[13677, 13677+6329)`; ladder rows are DTK-relative. The
-    // ladders exist only in the full deployed artifact; the slice bound doubles
-    // as the guard that this is the real circuit, not a synthetic fixture.
-    const DTK_OFFSET: usize = 13677;
+    // The DTK segment's row range moves whenever gnark's constraint-emission
+    // order changes (e.g. hoisting DTK computation earlier), so its offset is
+    // located from the IR by op rather than pinned to a constant — the slice
+    // bound still doubles as the guard that this is the real circuit, not a
+    // synthetic fixture (a missing/short DTK segment falls through to `None`).
     const DTK_ROWS: usize = 6329;
     if ir.circuit == "consolidate2x1" {
-        if let Some(dtk) = rows.get(DTK_OFFSET..DTK_OFFSET + DTK_ROWS) {
-            crate::ltchain::verify_consolidate2x1_lt_ladders(dtk)
-                .map_err(CoverageError::LtLadderParity)?;
+        if let Some(dtk_segment) = ir
+            .segments
+            .iter()
+            .find(|s| s.op == "decaf.diversified_transmission_key")
+        {
+            if let Some(dtk) = rows.get(dtk_segment.start..dtk_segment.start + DTK_ROWS) {
+                crate::ltchain::verify_consolidate2x1_lt_ladders(dtk)
+                    .map_err(CoverageError::LtLadderParity)?;
+            }
         }
     }
     Ok(files)
@@ -672,7 +680,7 @@ mod tests {
             nb_constraints: 1,
             classes: Vec::new(),
             segments: vec![SegmentIr {
-                index: 8,
+                index: 100,
                 op: "assert.eq".to_owned(),
                 kind: "glue".to_owned(),
                 start: 0,
@@ -696,26 +704,27 @@ mod tests {
         let files = generate(&ir, &sr1cs).expect("generate contract");
         assert_eq!(files.len(), 1);
         let file = &files[0];
-        assert_eq!(file.segment_index, 8);
-        assert_eq!(file.file_name, "Consolidate2x1/Seg8.lean");
+        assert_eq!(file.segment_index, 100);
+        assert_eq!(file.file_name, "Consolidate2x1/Seg100.lean");
         assert_eq!(
             file.module,
-            "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg8"
+            "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg100"
         );
-        assert!(file.contents.contains("segmentIndex := 8"));
+        assert!(file.contents.contains("segmentIndex := 100"));
         assert!(file.contents.contains("relationSha256Hex := \"relation\""));
         assert!(file.contents.contains("wireRoleSha256Hex := \"roles\""));
         assert!(file
             .contents
             .contains("((2 : F) * rho 1) * ((3 : F) * rho 2) = ((6 : F) * rho 3)"));
-        // seg8 is a glue (assert.eq) endpoint, so it imports the narrow
+        // seg100 is a synthetic index outside every family's segment-index
+        // list, so it imports the narrow
         // `Specs.Glue` submodule, not the monolithic `Specs` aggregator.
         assert!(file
             .contents
             .contains("import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Glue\n"));
         assert!(file
             .contents
-            .contains("def spec (rho : Nat -> F) : Prop := Specs.deployedSpec8 rho"));
+            .contains("def spec (rho : Nat -> F) : Prop := Specs.deployedSpec100 rho"));
         assert!(file.contents.contains("set_option maxRecDepth 1000000"));
         assert!(file.contents.contains("set_option maxHeartbeats 50000000"));
         assert!(!file.contents.contains("set_option maxHeartbeats 0"));

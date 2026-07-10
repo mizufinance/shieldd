@@ -38,6 +38,11 @@ set -euo pipefail
 #     search path. BENCH_OLEAN_OUT preserves the successful fresh artifact at
 #     a caller-selected path, enabling serial generated-module overlay checks.
 #   - LEAN_NUM_THREADS=1 is forced (single heavy worker, bounded memory).
+#   - `contract` tier passes `--tstack=65520` to `lean` by default (override
+#     with BENCH_TSTACK_KB): large generated Seg*.lean files can overflow
+#     Lean's worker-thread stack while elaborating a multi-thousand-conjunct
+#     relation, independent of the process `ulimit -s` (worker threads don't
+#     inherit it) and independent of the time/RSS budgets above.
 
 set -m  # job control: each background job gets its own process group
 
@@ -94,9 +99,25 @@ if [[ -n "$LEAN_PATH_PREPEND" ]]; then
   LEAN_CMD=(lake env env "LEAN_PATH=$LEAN_PATH_PREPEND:$BASE_LEAN_PATH" lean)
 fi
 
+# `contract` tier files are large mechanically-generated single-module
+# relation conjunctions (thousands of `relationRowN`/`relationPartN`
+# theorems in one file); Lean's *thread* stack (not the process `ulimit -s`,
+# which the elaborator's worker threads don't inherit) can overflow while
+# elaborating them even well inside the time/RSS budget above. `--tstack`
+# sets Lean's own worker-thread stack size in Kb; 65520 is the largest value
+# accepted on macOS (its pthread hard cap). Only applied at `contract` tier
+# by default since smaller leaf/aggregator modules haven't needed it.
+TSTACK_KB="${BENCH_TSTACK_KB:-}"
+if [[ -z "$TSTACK_KB" && "$TIER" == "contract" ]]; then
+  TSTACK_KB=65520
+fi
+TSTACK_ARGS=()
+[[ -n "$TSTACK_KB" ]] && TSTACK_ARGS=(--tstack="$TSTACK_KB")
+
 # Launch the compile as the leader of its own process group.
 LEAN_NUM_THREADS=1 "${LEAN_CMD[@]}" "$FILE" \
-  -o "$OUT_OLEAN" -i "$OUT_ILEAN" --json ${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"} \
+  -o "$OUT_OLEAN" -i "$OUT_ILEAN" --json \
+  ${TSTACK_ARGS[@]+"${TSTACK_ARGS[@]}"} ${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"} \
   >"$TMP/lean.out" 2>"$TMP/lean.err" &
 LEAN_PID=$!
 PGID=$LEAN_PID   # under `set -m`, the job's pgid == its leader pid

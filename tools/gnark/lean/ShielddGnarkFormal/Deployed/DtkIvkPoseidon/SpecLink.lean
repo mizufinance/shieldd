@@ -11,10 +11,10 @@ namespace Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon
 open Shieldd.GnarkFormal.Poseidon2Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon2Link
 
-variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e8acc1.Order)]
+variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_20212c.Order)]
 
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Poseidon2.Order) :=
-  inferInstanceAs (Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e8acc1.Order))
+  inferInstanceAs (Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_20212c.Order))
 
 theorem spec38_eq_permSpec (sin0 : F) (sin1 : F) :
     (spec38 sin0 sin1)[1] = permSpec2 ivkDomainLit sin0 sin1 := by

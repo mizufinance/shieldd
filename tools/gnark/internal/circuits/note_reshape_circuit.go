@@ -80,6 +80,26 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.traceWiring("decaf.assert_on_curve", "point=shared.transmission")
 	assertDecafPointOnCurve(api, sharedTransmission)
 
+	// T1-d: DTK depends only on circuit-global nk/ak/ivk and shared.div_gen
+	// (every note's div_gen is asserted decaf-equivalent to shared.div_gen,
+	// and scalar-mul commutes with the decaf coset), so compute it once here
+	// instead of once per spend/output. The per-note transmission≡shared
+	// asserts below carry the binding through to each note.
+	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen=shared.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out=shared.transmission.computed")
+	computedSharedTransmission, err := DiversifiedTransmissionKey(
+		api,
+		c.Auth.NK,
+		sharedAK,
+		sharedDivGen,
+		c.Auth.IVKReduced,
+		c.Auth.IVKQuotientA,
+	)
+	if err != nil {
+		return err
+	}
+	c.traceWiring("decaf.assert_equivalent", "lhs=shared.transmission.computed", "rhs=shared.transmission")
+	decafgnark.AssertEquivalent(api, computedSharedTransmission, sharedTransmission)
+
 	inputAmounts := make([]frontend.Variable, 0, c.nIn)
 	outputAmounts := make([]frontend.Variable, 0, c.nOut)
 	statementFields := make([]frontend.Variable, 0, NoteReshapeStatementFieldCount(c.nIn, c.nOut))
@@ -254,22 +274,8 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 		return nil, nil, nil, err
 	}
 
-	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen="+name+".note.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out="+name+".transmission.computed")
-	computedTransmission, err := DiversifiedTransmissionKey(
-		api,
-		c.Auth.NK,
-		sharedAK,
-		spentDivGen,
-		c.Auth.IVKReduced,
-		c.Auth.IVKQuotientA,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
 	c.traceWiring("decaf.assert_on_curve", "point="+name+".note.transmission")
 	assertDecafPointOnCurve(api, spentTransmission)
-	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission")
-	decafgnark.AssertEquivalent(api, computedTransmission, spentTransmission)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")
 	decafgnark.AssertEquivalent(api, spentDivGen, sharedDivGen)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
@@ -322,22 +328,8 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	c.traceWiring("assert.eq", "lhs="+name+".note.commitment.computed", "rhs="+name+".note_commitment")
 	api.AssertIsEqual(noteCommitment, output.NoteCommitment)
 
-	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen="+name+".note.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out="+name+".transmission.computed")
-	computedTransmission, err := DiversifiedTransmissionKey(
-		api,
-		c.Auth.NK,
-		sharedAK,
-		createdDivGen,
-		c.Auth.IVKReduced,
-		c.Auth.IVKQuotientA,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
 	c.traceWiring("decaf.assert_on_curve", "point="+name+".note.transmission")
 	assertDecafPointOnCurve(api, createdTransmission)
-	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission")
-	decafgnark.AssertEquivalent(api, computedTransmission, createdTransmission)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.div_gen", "rhs=shared.div_gen")
 	decafgnark.AssertEquivalent(api, createdDivGen, sharedDivGen)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")

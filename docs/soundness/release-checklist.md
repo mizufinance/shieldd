@@ -81,7 +81,8 @@ deployment (an honest user who cannot produce an accepted proof).
   explicitly accepted (rowed) by the crypto/security owner. Current open items to
   confirm are still acceptable: Gap #1 (R2.2 repeated-nullifier rejection test),
   Gap #2 (R3.2 spend-auth rdsa row), R5.2 (encryption security properties), R5.3
-  (consolidate2x1 compliance exemption — awaiting human confirmation).
+  (consolidate2x1 compliance exemption — discharged by protocol-owner decision
+  on 2026-07-08; reopen if consolidate gains a cross-owner output path).
 - [ ] Confirm no edge flipped to a *finding* (contradicted evidence) since the last
   release.
 

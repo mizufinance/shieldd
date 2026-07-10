@@ -14,12 +14,14 @@ AGG_OUT = CONTRACTS / "CompressAdapters.lean"
 
 SEGMENTS = [
     # seg, x, y, internal wire offset for base wires 210..912
-    (6, 17, 18, 0),
-    (15, 12, 13, 12174),
+    # Post-T1-d: re-derived from consolidate2x1-deployed-slice-ir.json (do not
+    # reuse pre-hoist offsets; the DTK/NB hoists shifted everything downstream).
+    (8, 17, 18, 5816),
+    (17, 12, 13, 17990),
     (24, 107, 108, 18700),
     (33, 102, 103, 30874),
-    (42, 195, 196, 37400),
-    (54, 52987, 52988, 52781),
+    (40, 195, 196, 31584),
+    (50, 40715, 40716, 40509),
 ]
 
 
@@ -178,7 +180,7 @@ def main() -> None:
         "import Mathlib.Tactic.Ring",
         "",
         "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 0",
+        "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
@@ -200,7 +202,7 @@ def main() -> None:
             "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
             "",
             "set_option maxRecDepth 1000000",
-            "set_option maxHeartbeats 0",
+            "set_option maxHeartbeats 20000000",
             "set_option linter.unusedVariables false",
             "",
             "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",

@@ -49,7 +49,7 @@ assert NoDoubleSpend {
   validChain implies (all n: Nullifier | lone b: Block | n in b.spent)
 }
 
-check NoDoubleSpend for 6
+check NoDoubleSpend for 10
 
 // ---------------------------------------------------------------------------
 // Indexed Merkle Tree — sorted linked list of leaves
@@ -92,7 +92,7 @@ assert GapImpliesAbsent {
     (all v: Value, low: Leaf | gapWitness[v, low] implies v not in IMT.leaves.value)
 }
 
-check GapImpliesAbsent for 6
+check GapImpliesAbsent for 10
 
 // Insert v into its gap below `low`: low -> nu -> old-next. Inserting an absent
 // value at a valid gap keeps the list sorted.
@@ -106,7 +106,7 @@ assert InsertKeepsSorted {
         (vord/lt[low.value, nu.value] and vord/lt[nu.value, low.next.value]))
 }
 
-check InsertKeepsSorted for 6
+check InsertKeepsSorted for 10
 
 // ---------------------------------------------------------------------------
 // Non-vacuity: the modeled world is satisfiable (guards against vacuous checks)
@@ -119,4 +119,4 @@ pred show {
   validChain
 }
 
-run show for 6
+run show for 10

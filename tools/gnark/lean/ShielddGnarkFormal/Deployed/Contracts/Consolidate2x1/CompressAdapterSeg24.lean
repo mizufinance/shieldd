@@ -3,7 +3,7 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg24
 import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1

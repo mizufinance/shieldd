@@ -31,28 +31,33 @@ OUT = (
 #   arity "group"  -> emit `def : List Nat`, take the role list verbatim.
 # `extra_inputs`: (seg_index, wire) membership assertions cross-checking that
 # the named wire is consumed where its protocol meaning says it is.
+# Post-T1-d: segment indices below are the post-DTK-hoist numbering (see
+# consolidate2x1-deployed-slice-ir.json). anchor/spend1NoteCommitmentLeaf/
+# spend2NoteCommitmentLeaf/spend2NullifierOut/statementHashPublic happen to
+# keep their old numeric wire values (unaffected by the hoist); the others
+# shift with their owning segment's renumbering.
 NAMED = [
     ("statementHashPublic", "Public statement-hash wire the verifier reads.",
-     60, "output", "scalar", []),
+     56, "output", "scalar", []),
     ("anchor", "Merkle anchor: common root both spend paths open to.",
-     12, "output", "scalar", []),
+     14, "output", "scalar", []),
     ("spend1NoteCommitmentLeaf",
      "Spend 1 note-commitment leaf opened in the state tree.",
-     8, "output", "scalar", [(11, "state_commitment_path input")]),
+     10, "output", "scalar", [(13, "state_commitment_path input")]),
     ("spend2NoteCommitmentLeaf",
      "Spend 2 note-commitment leaf opened in the state tree.",
      26, "output", "scalar", [(29, "state_commitment_path input")]),
     ("spend1NullifierOut", "Spend 1 nullifier gadget output lanes.",
-     9, "output", "group", []),
+     11, "output", "group", []),
     ("spend2NullifierOut", "Spend 2 nullifier gadget output lanes.",
      27, "output", "group", []),
     ("outputNoteCommitmentOut", "Output note-commitment gadget output lanes.",
-     43, "output", "group", []),
+     41, "output", "group", []),
     ("netBalanceCommitmentCompressed",
      "Compressed net-balance commitment lanes fed into the statement hash.",
-     54, "output", "group", []),
+     50, "output", "group", []),
     ("statementHashOut", "Statement-hash transcript output lanes.",
-     59, "output", "group", []),
+     55, "output", "group", []),
 ]
 
 # Wire 0 is the R1CS constant `one`; it carries no gadget role. Named directly

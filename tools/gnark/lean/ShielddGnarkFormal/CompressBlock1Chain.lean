@@ -3,7 +3,7 @@ import ShielddGnarkFormal.CanonicalFqBitsChainAcc
 import ShielddGnarkFormal.CanonicalFqBitsDeployedKernel
 import ShielddGnarkFormal.RvkToBinary
 
-set_option maxHeartbeats 0
+set_option maxHeartbeats 20000000
 set_option maxRecDepth 100000
 set_option linter.unusedVariables false
 set_option linter.unreachableTactic false

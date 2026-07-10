@@ -68,7 +68,7 @@ assert BindingImpliesConservation {
   (independentGenerators and bindingValid) implies conserves
 }
 
-check BindingImpliesConservation for 4 but 5 int
+check BindingImpliesConservation for 7 but 6 int
 
 // Non-vacuity: a non-trivial balanced transaction exists (some input and some
 // output of the same asset cancelling), so the check is not vacuous.
@@ -79,4 +79,4 @@ pred show {
   some x: Tx.actions | lt[x.value, 0]
 }
 
-run show for 4 but 5 int
+run show for 7 but 6 int

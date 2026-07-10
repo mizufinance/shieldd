@@ -29,7 +29,7 @@ CONFIGS = {
     "net_balance": dict(
         W=2,
         leaf="NetBalancePoseidon",
-        slice_stem="NetBalancePoseidon230_6eb4e5",
+        slice_stem="NetBalancePoseidon230_980d2f",
         link="Poseidon1Link",
         bridge_ns="Poseidon1Bridge",
         deployed_bridge="NetBalancePoseidonDeployedBridge",
@@ -40,7 +40,7 @@ CONFIGS = {
     "dtk_ivk": dict(
         W=3,
         leaf="DtkIvkPoseidon",
-        slice_stem="DtkIvkPoseidon270_e8acc1",
+        slice_stem="DtkIvkPoseidon270_20212c",
         link="Poseidon2Link",
         bridge_ns="Poseidon2Bridge",
         deployed_bridge="DtkIvkPoseidonDeployedBridge",

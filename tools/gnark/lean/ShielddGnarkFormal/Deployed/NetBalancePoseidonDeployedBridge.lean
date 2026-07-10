@@ -1,13 +1,13 @@
-import ShielddGnarkFormal.Extracted.Deployed.NetBalancePoseidon230_6eb4e5
+import ShielddGnarkFormal.Extracted.Deployed.NetBalancePoseidon230_980d2f
 import ShielddGnarkFormal.Poseidon1Bridge
 
 namespace Shieldd.GnarkFormal.Deployed.NetBalancePoseidon
 
 open Shieldd.GnarkFormal.Poseidon1Bridge
 
-variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.NetBalancePoseidon230_6eb4e5.Order)]
+variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.NetBalancePoseidon230_980d2f.Order)]
 
-abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.NetBalancePoseidon230_6eb4e5.F
+abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.NetBalancePoseidon230_980d2f.F
 
 def netBalanceDomainLit : F := (6888358618106443442961843809729175081075858965522240584763322653509542282215 : F)
 

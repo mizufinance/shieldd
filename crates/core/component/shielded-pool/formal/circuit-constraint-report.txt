@@ -2,7 +2,7 @@ tool: Picus
 solver: cvc5
 safety: weak
 scope: decomposed-gadget
-timeout_ms: 120000
+timeout_ms: 30000
 total_timeout_seconds: 120
 GADGET gadget-poseidon-hash1 safe
   sr1cs_sha256: 7d2329fdfb1c417d326fc4b013b8daaa0f70c506e17da2dea4beae17e1634965
@@ -85,20 +85,20 @@ GADGET gadget-ivk-mod-r safe
   precondition_sha256: none
   picus_exit: 8
 GADGET gadget-scalar-mul-step safe
-  sr1cs_sha256: dea8004618cac9c3e1a3bdf1cea50eeba2880484d3f569c43587d5f5ceac8f97
-  precondition_sha256: 2793d0ca29fa32d84fb38d9c6bc4dbe086f72bf7c96bd7bb4debf4c8e45b9972
+  sr1cs_sha256: 4db77dbc1bb54de709f011fff2413619601959b86126a20eb7c89f4b345be8ac
+  precondition_sha256: 87b45789e1013551d914c3383efcb0b9a0587ad9d1477a1b3ba679c1057d92c8
   picus_exit: 8
 GADGET gadget-scalar-mul-two-step safe
-  sr1cs_sha256: b534afaf2cb440c928702e16eac50701306a732d1308d1355cdbc4d537394a9b
-  precondition_sha256: d4b982c15ceef1392d42d5ea37b4b0c149f21a0d06fe6c4697a40d19456e1bd5
+  sr1cs_sha256: f35f62f657352ef681d45fccda8a5372c280d71de4d837fc429d2ae22cc257cc
+  precondition_sha256: fd064f1ae49c4ab62275aa9f42e2ed398e4eb3d0f8de2e492823b134aeafced8
   picus_exit: 8
 GADGET gadget-ack-two-step safe
-  sr1cs_sha256: d71bad5e1f64edc04c82e21c8fa057524f95fb7a394a63b24ffafcedae66aac6
+  sr1cs_sha256: d2fbc37ad78acbe0e6bdc5ec280afd2966d24cdcb09676d808b5d3a6bd5f33aa
   precondition_sha256: none
   picus_exit: 8
 GADGET gadget-dleq safe
-  sr1cs_sha256: c3092671887725681649f0de59e68483428fc79a3e4c25f75bfad06c1b99eb74
-  precondition_sha256: none
+  sr1cs_sha256: c1bc84db98ce96bc00856876468c8b473362ded5c56bf8e765d73d8e610a68d0
+  precondition_sha256: 11ffad68ad7ac94fa11566252848dc7f9bed096eaed65bfee420f3926f3315fc
   picus_exit: 8
 COMPOSITE scalar-mul-le-128 safe-by-composition
   note: scalar-mul-step folded 128x over canonical-fq-bits boolean decomposition
@@ -125,9 +125,12 @@ COMPOSITE dtk safe-by-composition
   note: compress-to-field + poseidon2 + ivk-mod-r + scalar-mul ladder leaves
 COMPOSITE net-balance-commitment safe-by-composition
   note: poseidon1 + encode-to-curve + scalar-mul + edwards-add leaves
+COMPOSITE net-balance-commitment2 safe-by-composition
+  note: 2-in-2-out transfer balance; poseidon1 + encode-to-curve + four value scalar-mul ladders (two negated outputs) + blinding ladder + edwards-add/neg leaves
+  lean_lift: Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound
 COMPOSITE transfer-dleq safe-by-composition
   note: Poseidon7 challenge + paired scalar-mul response ladders + Decaf equivalence checks
-  boundary_probe: gadget-dleq (response join seam safe)
+  boundary_probe: gadget-dleq (one response equation s*B1 + c*B2; both equations share this shape, and sharing the s/c bits across two individually-deterministic equations adds no free signal)
   lean_lift: Shieldd.GnarkFormal.DleqBridge.dleq_sound
 FAMILY transfer undischarged-by-design
   note: whole-circuit Picus times out (Poseidon+Merkle+Decaf377); not retried

@@ -3,7 +3,7 @@ import ShielddGnarkFormal.RvkDeployedRung
 
 /-! # Literal binding for the fixed-base blinding constants (generated, i = 0..250)
 
-`L i` is the numeral point `2^i * blindGen` for the seg52 net-balance blinding
+`L i` is the numeral point `2^i * blindGen` for the seg48 net-balance blinding
 ladder; `C_eq_L i` binds `Deployed.NetBalance.Cb` to these literals via kernel
 `decide` on the two `doubleSpec` equations + `doubleSpec_eq`. Mirror of
 `RvkFixedBaseLiteral` (see its docstring); no `native_decide`.

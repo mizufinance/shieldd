@@ -7,7 +7,7 @@ obligations, not blockers on this document.
 **Scope:** the deployed `transfer` (2×2) circuit slice.
 **Purpose:** transfer twin of the
 [consolidate2x1 statement-binding inventory](consolidate2x1-statement-binding-inventory.md),
-in identical format so the Phase C Alloy *statement-sufficiency* model (hole
+in identical format so the Alloy *statement-sufficiency* model (hole
 **H2**) can be written once and instantiated on both circuits.
 
 Same read-only, lake-free method as Task 6, with three transfer-specific twists,
@@ -179,14 +179,13 @@ proving its dossier class.
   balance_fq, nullifiers+rks) are a strict subset of transfer's groups A–D.
   (Consolidate binds 1 output commitment; transfer binds 2.)
 
-**Asymmetry worth flagging to H2:** consolidate2x1 carries **no regulated /
-compliance binding whatsoever**. If the protocol assumes consolidate operations
-are exempt from the compliance surface that transfer enforces, that exemption is
-an *unstated statement-level assumption* — a consolidate proof cannot attest to
-asset-registry membership, sender/recipient compliance, detection, or threshold.
-Whether that is intended (same-owner note reshaping is out of scope for
-detection) or a gap is exactly an H2 question. It is cheap to note now and
-exactly the kind of asymmetry that hides a real gap.
+**Resolved asymmetry:** consolidate2x1 carries **no regulated / compliance
+binding whatsoever**. This is intended protocol design: consolidate reshapes
+notes under one owner and cannot create a cross-owner output, so compliance is
+enforced at transfer rather than repeated on a same-owner reshape. The circuit
+binds both spends to shared owner key material and derives the output
+transmission key from that same material. Reopen this decision if consolidate
+ever gains a recipient or another cross-owner output path.
 
 ---
 
@@ -199,10 +198,9 @@ exactly the kind of asymmetry that hides a real gap.
 - The Alloy model should carry each `ASSUMED[…@seg]` as a named per-class
   assumption predicate, so instantiating H2 on transfer vs consolidate differs
   only in *which assumption predicates are live* — the model text is shared.
-- **Two live gaps for H2 to settle:** (i) does `AssetAnchor` membership force
-  `is_regulated`, closing candidate-gap §5.1; (ii) is consolidate's total
-  absence of a compliance surface (§6) an intended exemption or an unstated
-  assumption.
+- `AssetAnchor` membership forcing `is_regulated` closes candidate-gap §5.1.
+  The former gap (ii) is closed by the 2026-07-08 protocol-owner decision that
+  consolidate's same-owner reshape is intentionally compliance-exempt.
 
 ---
 

@@ -333,14 +333,14 @@ fn consolidate2x1_ladders() -> Vec<LadderSeat> {
     vec![
         LadderSeat {
             label: "R",
-            bit_base: 14064,
+            bit_base: 1187,
             start: 1828,
             end: 2345,
             bound: r,
         },
         LadderSeat {
             label: "Q4",
-            bit_base: 14064,
+            bit_base: 1187,
             start: 2346,
             end: 2715,
             bound: q4,
@@ -351,7 +351,8 @@ fn consolidate2x1_ladders() -> Vec<LadderSeat> {
 /// Production enforcement: recover and **parity-gate** both consolidate2x1 DTK
 /// canonicity ladders at extraction time (fail-closed), the analogue of
 /// `structure_lc`'s in-line parity assert. `dtk_rows` is the DTK segment slice
-/// (`[13677, 13677+6329)` of the whole `.sr1cs`). Returns the recovered chains,
+/// (a 6329-row slice of the whole `.sr1cs`, offset varies by circuit revision).
+/// Returns the recovered chains,
 /// or a descriptive error if recovery, the bound-pinning, or the gate fails.
 pub fn verify_consolidate2x1_lt_ladders(
     dtk_rows: &[Constraint],
@@ -401,10 +402,14 @@ pub fn scalar_order() -> BigUint {
 
 /// Recover, parity-gate, and serialize both consolidate2x1 DTK canonicity
 /// ladders as the Pass-3 seating handoff the Python generator consumes. `dtk`
-/// is the DTK segment slice `[13677, 13677+6329)`. Fails closed if either
+/// is the DTK segment slice (`dtk_offset` records where in the whole `.sr1cs`
+/// it was taken from, for the emitted JSON). Fails closed if either
 /// ladder fails recovery, bound-pinning, or the parity gate — so a consumer that
 /// trusts this JSON is trusting the same gate the extractor enforces.
-pub fn consolidate2x1_lt_seating_json(dtk: &[Constraint]) -> Result<serde_json::Value, String> {
+pub fn consolidate2x1_lt_seating_json(
+    dtk: &[Constraint],
+    dtk_offset: usize,
+) -> Result<serde_json::Value, String> {
     let chains = verify_consolidate2x1_lt_ladders(dtk)?;
     let labels = ["R", "Q4"];
     let ladders: Vec<_> = chains
@@ -417,7 +422,7 @@ pub fn consolidate2x1_lt_seating_json(dtk: &[Constraint]) -> Result<serde_json::
         })
         .collect();
     Ok(serde_json::json!({
-        "dtk_offset": 13677,
+        "dtk_offset": dtk_offset,
         "dtk_rows": 6329,
         "ladders": ladders,
     }))
@@ -475,10 +480,12 @@ mod tests {
     use crate::load_sr1cs;
 
     // DTK segment global offset and R/Q4 ladder seating, mirroring
-    // gen_dtk_slice.py::dtk_ltc_traces (the current Python recovery).
-    const DTK_OFFSET: usize = 13677;
+    // gen_dtk_slice.py::dtk_ltc_traces (the current Python recovery). T1-d
+    // hoisted DTK computation into Define(), moving it from segment 16 to
+    // segment 5 in emission order (was offset 13677, now 12).
+    const DTK_OFFSET: usize = 12;
     const DTK_ROWS: usize = 6329;
-    const BIT_BASE: usize = 14064;
+    const BIT_BASE: usize = 1187;
 
     fn dtk_rows() -> Vec<Constraint> {
         let path = concat!(

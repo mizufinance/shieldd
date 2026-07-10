@@ -1,44 +1,40 @@
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg2
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg3
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg4
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg17
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg35
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg46
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg8
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg18
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg34
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg43
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg10
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg12
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg14
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg21
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg26
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg28
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg30
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg39
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg44
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg50
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg60
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg37
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg42
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg46
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg56
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NullifierAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NoteCommitmentAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.StatementHashAdapters
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapters
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg13
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg31
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg16
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg34
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg45
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg11
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg5
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg6
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg13
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg29
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg14
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg18
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg16
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg19
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg20
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg32
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg36
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg37
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg38
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg47
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg48
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg35
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg44
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg45
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg49
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg53
 import Mathlib.Tactic.LinearCombination
 
 set_option maxRecDepth 100000
@@ -88,39 +84,25 @@ theorem inst4_bound :
       Seg4.contract.relationSha256Hex Seg4.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ ⟨h0, h1, h2, h3⟩ => onCurveAt_of_rows _ _ _ _ _ h0 h1 h2 h3⟩
 
-/-- seg17 `decaf.assert_on_curve`. -/
-theorem inst17_bound :
-    Deployed.BoundDeployedSound Seg17.contract
-      Seg17.contract.relationSha256Hex Seg17.contract.wireRoleSha256Hex :=
+/-- seg18 `decaf.assert_on_curve`. -/
+theorem inst18_bound :
+    Deployed.BoundDeployedSound Seg18.contract
+      Seg18.contract.relationSha256Hex Seg18.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ ⟨h0, h1, h2, h3⟩ => onCurveAt_of_rows _ _ _ _ _ h0 h1 h2 h3⟩
 
-/-- seg35 `decaf.assert_on_curve`. -/
-theorem inst35_bound :
-    Deployed.BoundDeployedSound Seg35.contract
-      Seg35.contract.relationSha256Hex Seg35.contract.wireRoleSha256Hex :=
+/-- seg34 `decaf.assert_on_curve`. -/
+theorem inst34_bound :
+    Deployed.BoundDeployedSound Seg34.contract
+      Seg34.contract.relationSha256Hex Seg34.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ ⟨h0, h1, h2, h3⟩ => onCurveAt_of_rows _ _ _ _ _ h0 h1 h2 h3⟩
 
-/-- seg46 `decaf.assert_on_curve`. -/
-theorem inst46_bound :
-    Deployed.BoundDeployedSound Seg46.contract
-      Seg46.contract.relationSha256Hex Seg46.contract.wireRoleSha256Hex :=
+/-- seg43 `decaf.assert_on_curve`. -/
+theorem inst43_bound :
+    Deployed.BoundDeployedSound Seg43.contract
+      Seg43.contract.relationSha256Hex Seg43.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ ⟨h0, h1, h2, h3⟩ => onCurveAt_of_rows _ _ _ _ _ h0 h1 h2 h3⟩
 
-/-- seg7 `gadget.note_commitment`. -/
-theorem inst7_bound :
-    Deployed.BoundDeployedSound Seg7.contract
-      Seg7.contract.relationSha256Hex Seg7.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg7_sound⟩
-
-/-- seg8 `assert.eq`. -/
-theorem inst8_bound :
-    Deployed.BoundDeployedSound Seg8.contract
-      Seg8.contract.relationSha256Hex Seg8.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, fun _ h => by
-    simp only [Seg8.contract, Seg8.relation, Seg8.spec, Specs.deployedSpec8] at h ⊢
-    linear_combination -h⟩
-
-/-- seg9 `gadget.nullifier`. -/
+/-- seg9 `gadget.note_commitment`. -/
 theorem inst9_bound :
     Deployed.BoundDeployedSound Seg9.contract
       Seg9.contract.relationSha256Hex Seg9.contract.wireRoleSha256Hex :=
@@ -134,6 +116,12 @@ theorem inst10_bound :
     simp only [Seg10.contract, Seg10.relation, Seg10.spec, Specs.deployedSpec10] at h ⊢
     linear_combination -h⟩
 
+/-- seg11 `gadget.nullifier`. -/
+theorem inst11_bound :
+    Deployed.BoundDeployedSound Seg11.contract
+      Seg11.contract.relationSha256Hex Seg11.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg11_sound⟩
+
 /-- seg12 `assert.eq`. -/
 theorem inst12_bound :
     Deployed.BoundDeployedSound Seg12.contract
@@ -142,11 +130,19 @@ theorem inst12_bound :
     simp only [Seg12.contract, Seg12.relation, Seg12.spec, Specs.deployedSpec12] at h ⊢
     linear_combination -h⟩
 
-/-- seg13 `decaf.randomized_verification_key`. -/
-theorem inst13_bound :
-    Deployed.BoundDeployedSound Seg13.contract
-      Seg13.contract.relationSha256Hex Seg13.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg13_sound⟩
+/-- seg14 `assert.eq`. -/
+theorem inst14_bound :
+    Deployed.BoundDeployedSound Seg14.contract
+      Seg14.contract.relationSha256Hex Seg14.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, fun _ h => by
+    simp only [Seg14.contract, Seg14.relation, Seg14.spec, Specs.deployedSpec14] at h ⊢
+    linear_combination -h⟩
+
+/-- seg15 `decaf.randomized_verification_key`. -/
+theorem inst15_bound :
+    Deployed.BoundDeployedSound Seg15.contract
+      Seg15.contract.relationSha256Hex Seg15.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg15_sound⟩
 
 /-- seg31 `decaf.randomized_verification_key`. -/
 theorem inst31_bound :
@@ -154,34 +150,24 @@ theorem inst31_bound :
       Seg31.contract.relationSha256Hex Seg31.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, seg31_sound⟩
 
-/-- seg16 `decaf.diversified_transmission_key`. -/
-theorem inst16_bound :
-    Deployed.BoundDeployedSound Seg16.contract
-      Seg16.contract.relationSha256Hex Seg16.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg16_sound⟩
+/-- seg5 `decaf.diversified_transmission_key`: the hoist collapsed the three
+per-note DTK-producer instances (formerly segs 16/34/45) into this single
+shared segment. -/
+theorem inst5_bound :
+    Deployed.BoundDeployedSound Seg5.contract
+      Seg5.contract.relationSha256Hex Seg5.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg5_sound⟩
 
-/-- seg34 `decaf.diversified_transmission_key`. -/
-theorem inst34_bound :
-    Deployed.BoundDeployedSound Seg34.contract
-      Seg34.contract.relationSha256Hex Seg34.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg34_sound⟩
+/-- seg48 `decaf.net_balance_commitment`. -/
+theorem inst48_bound :
+    Deployed.BoundDeployedSound Seg48.contract
+      Seg48.contract.relationSha256Hex Seg48.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg48_sound⟩
 
-/-- seg45 `decaf.diversified_transmission_key`. -/
-theorem inst45_bound :
-    Deployed.BoundDeployedSound Seg45.contract
-      Seg45.contract.relationSha256Hex Seg45.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg45_sound⟩
-
-/-- seg52 `decaf.net_balance_commitment`. -/
-theorem inst52_bound :
-    Deployed.BoundDeployedSound Seg52.contract
-      Seg52.contract.relationSha256Hex Seg52.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg52_sound⟩
-
-theorem inst11_bound :
-    Deployed.BoundDeployedSound Seg11.contract
-      Seg11.contract.relationSha256Hex Seg11.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg11_sound⟩
+theorem inst13_bound :
+    Deployed.BoundDeployedSound Seg13.contract
+      Seg13.contract.relationSha256Hex Seg13.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg13_sound⟩
 
 theorem inst29_bound :
     Deployed.BoundDeployedSound Seg29.contract
@@ -232,64 +218,67 @@ theorem inst30_bound :
     simp only [Seg30.contract, Seg30.relation, Seg30.spec, Specs.deployedSpec30] at h ⊢
     linear_combination -h⟩
 
-/-- seg39 `assert.eq`. -/
-theorem inst39_bound :
-    Deployed.BoundDeployedSound Seg39.contract
-      Seg39.contract.relationSha256Hex Seg39.contract.wireRoleSha256Hex :=
+/-- seg37 `assert.eq`. -/
+theorem inst37_bound :
+    Deployed.BoundDeployedSound Seg37.contract
+      Seg37.contract.relationSha256Hex Seg37.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg39.contract, Seg39.relation, Seg39.spec, Specs.deployedSpec39] at h ⊢
+    simp only [Seg37.contract, Seg37.relation, Seg37.spec, Specs.deployedSpec37] at h ⊢
     linear_combination -h⟩
 
-/-- seg43 `gadget.note_commitment`. -/
-theorem inst43_bound :
-    Deployed.BoundDeployedSound Seg43.contract
-      Seg43.contract.relationSha256Hex Seg43.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg43_sound⟩
+/-- seg41 `gadget.note_commitment`. -/
+theorem inst41_bound :
+    Deployed.BoundDeployedSound Seg41.contract
+      Seg41.contract.relationSha256Hex Seg41.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg41_sound⟩
 
-/-- seg44 `assert.eq`. -/
-theorem inst44_bound :
-    Deployed.BoundDeployedSound Seg44.contract
-      Seg44.contract.relationSha256Hex Seg44.contract.wireRoleSha256Hex :=
+/-- seg42 `assert.eq`. -/
+theorem inst42_bound :
+    Deployed.BoundDeployedSound Seg42.contract
+      Seg42.contract.relationSha256Hex Seg42.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg44.contract, Seg44.relation, Seg44.spec, Specs.deployedSpec44] at h ⊢
+    simp only [Seg42.contract, Seg42.relation, Seg42.spec, Specs.deployedSpec42] at h ⊢
     linear_combination -h⟩
 
-/-- seg50 `assert.eq`. -/
-theorem inst50_bound :
-    Deployed.BoundDeployedSound Seg50.contract
-      Seg50.contract.relationSha256Hex Seg50.contract.wireRoleSha256Hex :=
+/-- seg46 `assert.eq`. -/
+theorem inst46_bound :
+    Deployed.BoundDeployedSound Seg46.contract
+      Seg46.contract.relationSha256Hex Seg46.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg50.contract, Seg50.relation, Seg50.spec, Specs.deployedSpec50] at h ⊢
+    simp only [Seg46.contract, Seg46.relation, Seg46.spec, Specs.deployedSpec46] at h ⊢
     linear_combination -h⟩
 
-/-- seg59 `statement.hash`. -/
-theorem inst59_bound :
-    Deployed.BoundDeployedSound Seg59.contract
-      Seg59.contract.relationSha256Hex Seg59.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg59_sound⟩
+/-- seg55 `statement.hash`. -/
+theorem inst55_bound :
+    Deployed.BoundDeployedSound Seg55.contract
+      Seg55.contract.relationSha256Hex Seg55.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg55_sound⟩
 
-/-- seg60 `assert.eq`. -/
-theorem inst60_bound :
-    Deployed.BoundDeployedSound Seg60.contract
-      Seg60.contract.relationSha256Hex Seg60.contract.wireRoleSha256Hex :=
+/-- seg56 `assert.eq`. -/
+theorem inst56_bound :
+    Deployed.BoundDeployedSound Seg56.contract
+      Seg56.contract.relationSha256Hex Seg56.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg60.contract, Seg60.relation, Seg60.spec, Specs.deployedSpec60] at h ⊢
+    simp only [Seg56.contract, Seg56.relation, Seg56.spec, Specs.deployedSpec56] at h ⊢
     linear_combination -h⟩
 
-/-- seg14 `decaf.assert_equivalent`. -/
-theorem inst14_bound :
-    Deployed.BoundDeployedSound Seg14.contract
-      Seg14.contract.relationSha256Hex Seg14.contract.wireRoleSha256Hex :=
+/-- seg16 `decaf.assert_equivalent`. -/
+theorem inst16_bound :
+    Deployed.BoundDeployedSound Seg16.contract
+      Seg16.contract.relationSha256Hex Seg16.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg14.contract, Seg14.relation, Seg14.spec, Specs.deployedSpec14] at h ⊢ <;>
+    simp only [Seg16.contract, Seg16.relation, Seg16.spec, Specs.deployedSpec16] at h ⊢ <;>
       · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
 
-/-- seg18 `decaf.assert_equivalent`. -/
-theorem inst18_bound :
-    Deployed.BoundDeployedSound Seg18.contract
-      Seg18.contract.relationSha256Hex Seg18.contract.wireRoleSha256Hex :=
+/-- seg6 `decaf.assert_equivalent`: the hoist collapsed the three per-note
+DTK-consumer instances (formerly segs 18/36/47) into this single shared
+segment; its relation has the same 3-row shape as the generic
+`assert_equivalent` family, so the generic tactic applies verbatim. -/
+theorem inst6_bound :
+    Deployed.BoundDeployedSound Seg6.contract
+      Seg6.contract.relationSha256Hex Seg6.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg18.contract, Seg18.relation, Seg18.spec, Specs.deployedSpec18] at h ⊢ <;>
+    simp only [Seg6.contract, Seg6.relation, Seg6.spec, Specs.deployedSpec6] at h ⊢ <;>
       · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
 
 /-- seg19 `decaf.assert_equivalent`. -/
@@ -324,36 +313,28 @@ theorem inst36_bound :
     simp only [Seg36.contract, Seg36.relation, Seg36.spec, Specs.deployedSpec36] at h ⊢ <;>
       · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
 
-/-- seg37 `decaf.assert_equivalent`. -/
-theorem inst37_bound :
-    Deployed.BoundDeployedSound Seg37.contract
-      Seg37.contract.relationSha256Hex Seg37.contract.wireRoleSha256Hex :=
+/-- seg35 `decaf.assert_equivalent`. -/
+theorem inst35_bound :
+    Deployed.BoundDeployedSound Seg35.contract
+      Seg35.contract.relationSha256Hex Seg35.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg37.contract, Seg37.relation, Seg37.spec, Specs.deployedSpec37] at h ⊢ <;>
+    simp only [Seg35.contract, Seg35.relation, Seg35.spec, Specs.deployedSpec35] at h ⊢ <;>
       · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
 
-/-- seg38 `decaf.assert_equivalent`. -/
-theorem inst38_bound :
-    Deployed.BoundDeployedSound Seg38.contract
-      Seg38.contract.relationSha256Hex Seg38.contract.wireRoleSha256Hex :=
+/-- seg44 `decaf.assert_equivalent`. -/
+theorem inst44_bound :
+    Deployed.BoundDeployedSound Seg44.contract
+      Seg44.contract.relationSha256Hex Seg44.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg38.contract, Seg38.relation, Seg38.spec, Specs.deployedSpec38] at h ⊢ <;>
+    simp only [Seg44.contract, Seg44.relation, Seg44.spec, Specs.deployedSpec44] at h ⊢ <;>
       · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
 
-/-- seg47 `decaf.assert_equivalent`. -/
-theorem inst47_bound :
-    Deployed.BoundDeployedSound Seg47.contract
-      Seg47.contract.relationSha256Hex Seg47.contract.wireRoleSha256Hex :=
+/-- seg45 `decaf.assert_equivalent`. -/
+theorem inst45_bound :
+    Deployed.BoundDeployedSound Seg45.contract
+      Seg45.contract.relationSha256Hex Seg45.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, fun _ h => by
-    simp only [Seg47.contract, Seg47.relation, Seg47.spec, Specs.deployedSpec47] at h ⊢ <;>
-      · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
-
-/-- seg48 `decaf.assert_equivalent`. -/
-theorem inst48_bound :
-    Deployed.BoundDeployedSound Seg48.contract
-      Seg48.contract.relationSha256Hex Seg48.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, fun _ h => by
-    simp only [Seg48.contract, Seg48.relation, Seg48.spec, Specs.deployedSpec48] at h ⊢ <;>
+    simp only [Seg45.contract, Seg45.relation, Seg45.spec, Specs.deployedSpec45] at h ⊢ <;>
       · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
 
 /-- seg49 `decaf.assert_equivalent`. -/
@@ -364,25 +345,17 @@ theorem inst49_bound :
     simp only [Seg49.contract, Seg49.relation, Seg49.spec, Specs.deployedSpec49] at h ⊢ <;>
       · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
 
-/-- seg53 `decaf.assert_equivalent`. -/
-theorem inst53_bound :
-    Deployed.BoundDeployedSound Seg53.contract
-      Seg53.contract.relationSha256Hex Seg53.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, fun _ h => by
-    simp only [Seg53.contract, Seg53.relation, Seg53.spec, Specs.deployedSpec53] at h ⊢ <;>
-      · obtain ⟨h0, h1, h2⟩ := h; linear_combination h0 - h1 + h2⟩
+/-- seg8 `decaf.compress_to_field`. -/
+theorem inst8_bound :
+    Deployed.BoundDeployedSound Seg8.contract
+      Seg8.contract.relationSha256Hex Seg8.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg8_sound⟩
 
-/-- seg6 `decaf.compress_to_field`. -/
-theorem inst6_bound :
-    Deployed.BoundDeployedSound Seg6.contract
-      Seg6.contract.relationSha256Hex Seg6.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg6_sound⟩
-
-/-- seg15 `decaf.compress_to_field`. -/
-theorem inst15_bound :
-    Deployed.BoundDeployedSound Seg15.contract
-      Seg15.contract.relationSha256Hex Seg15.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg15_sound⟩
+/-- seg17 `decaf.compress_to_field`. -/
+theorem inst17_bound :
+    Deployed.BoundDeployedSound Seg17.contract
+      Seg17.contract.relationSha256Hex Seg17.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg17_sound⟩
 
 /-- seg24 `decaf.compress_to_field`. -/
 theorem inst24_bound :
@@ -396,16 +369,16 @@ theorem inst33_bound :
       Seg33.contract.relationSha256Hex Seg33.contract.wireRoleSha256Hex :=
   ⟨rfl, rfl, seg33_sound⟩
 
-/-- seg42 `decaf.compress_to_field`. -/
-theorem inst42_bound :
-    Deployed.BoundDeployedSound Seg42.contract
-      Seg42.contract.relationSha256Hex Seg42.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg42_sound⟩
+/-- seg40 `decaf.compress_to_field`. -/
+theorem inst40_bound :
+    Deployed.BoundDeployedSound Seg40.contract
+      Seg40.contract.relationSha256Hex Seg40.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg40_sound⟩
 
-/-- seg54 `decaf.compress_to_field`. -/
-theorem inst54_bound :
-    Deployed.BoundDeployedSound Seg54.contract
-      Seg54.contract.relationSha256Hex Seg54.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg54_sound⟩
+/-- seg50 `decaf.compress_to_field`. -/
+theorem inst50_bound :
+    Deployed.BoundDeployedSound Seg50.contract
+      Seg50.contract.relationSha256Hex Seg50.contract.wireRoleSha256Hex :=
+  ⟨rfl, rfl, seg50_sound⟩
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1

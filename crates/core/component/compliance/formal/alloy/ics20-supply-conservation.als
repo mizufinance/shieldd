@@ -79,7 +79,7 @@ assert SupplyBackedByEscrow {
   all s: Step | gte[s.balance, 0]
 }
 
-check SupplyBackedByEscrow for 6 but 6 int
+check SupplyBackedByEscrow for 8 but 7 int
 
 // Non-vacuity: a real trace that both locks and releases value (a deposit
 // followed by a backed withdrawal), so the check is not vacuously true.
@@ -88,4 +88,4 @@ pred show {
   some s: Step - last | s.op = Release
 }
 
-run show for 6 but 6 int
+run show for 8 but 7 int

@@ -1,13 +1,13 @@
 [
  [
-  "edwards-denominator-1plus-w13-nonzero",
+  "edwards-denominator-1plus-w19-nonzero",
   [
    "rassert",
    [
     "rneq",
     [
      "rvar",
-     13
+     19
     ],
     [
      "rint",
@@ -17,14 +17,14 @@
   ]
  ],
  [
-  "edwards-denominator-1minus-w13-nonzero",
+  "edwards-denominator-1minus-w19-nonzero",
   [
    "rassert",
    [
     "rneq",
     [
      "rvar",
-     13
+     19
     ],
     [
      "rint",

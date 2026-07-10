@@ -321,6 +321,92 @@ the §4a 10% estimate.
      "deserialized elements are subgroup-valid" premise is still discharged, now by
      the batch.
 
+**Added by the 2026-07-07 deep audit (each still goes through §3–§4):**
+
+2. **Defer the GIPA commitment folds into one GT multi-exponentiation.**
+   `_compute_recursive_challenges` (gipa.rs:657) interleaves challenge hashing
+   with `fold_output` — 2 GT exponentiations × 3 commitments × log₂n rounds,
+   each a standalone 128-bit square-and-multiply. The challenge for round i
+   hashes only the previous challenge and that round's `com_1`/`com_2`
+   (gipa.rs:672–679), **never the running folded com** — so the folds are
+   deferrable: run the hash loop first, then compute each final com as one
+   multi-exp over 2·log₂n GT bases (Straus, shared cyclotomic squarings).
+   Saves ~(2·log₂n − 1) × 128 GT squarings per commitment (×3, ×2 for the
+   combined TIPP/MIPP transcript). Category 1 (identical GT values, transcript
+   untouched — the trace baseline proves it). Verify `challenge_ms`/
+   `tipp_mipp_ms` share first; below the 10% bar at small n, real at n ≥ 256.
+
+3. **Confirm GT exponentiation uses cyclotomic squaring throughout.**
+   `mul_helper` on `PairingOutput` routes through arkworks' `Group` impl,
+   whose `double()` is `cyclotomic_square` — good. But any site exponentiating
+   a raw `Fp12` (not `PairingOutput`) pays generic `square()`, ~2× slower.
+   One-line audit: grep for `pow(` / `mul_assign` on `Fp12`-typed values
+   outside `PairingOutput`. Zero-risk category 1 if any site is found.
+
+4. **Category 2 (parked): cyclotomic/torus GT compression on the wire.**
+   The aggregate proof is dominated by GT elements (~576 bytes each
+   uncompressed Fp12); Karabina/torus compression halves them and shrinks the
+   deserialize hotspot's parsing share. Wire-encoding only (category 2,
+   version bump + baseline regen). Interacts with candidate 1: decompression
+   cost partially offsets the subgroup-check saving — evaluate them together,
+   not separately.
+
+5. **Cross-family batch verification (amortization lens, 2026-07-07).** The
+   chain verifies up to 7 family aggregates per block as independent
+   `verify_family_aggregate` calls, each paying its own PPE final
+   exponentiation and KZG multi-pairings. Verifier-local random combiners
+   r₁…r₇ (fresh, post-deserialization, never transcript-derived) can merge
+   the 7 PPE checks — distinct prepared VKs are fine, Miller loops just
+   concatenate — into one multi-pairing with a **single** final
+   exponentiation, and likewise the 14 KZG opening checks. Saves ~6 final
+   exps + final-exp-per-KZG-pair per block; fixed-cost stage, so it matters
+   most at small n where per-aggregate overhead dominates. Batching changes
+   accept/reject *granularity* (one bit for the whole block — on failure,
+   fall back to per-family to attribute blame), and it is a
+   validation-strength change like candidate 1: byte-stable but needs the
+   same security-review checklist (randomizer sizing per cofactor prime,
+   independence from proof bytes, negative tests planting a bad element in
+   each family slot). Lives *above* this crate's per-aggregate API — the
+   batching seam belongs in the caller that sees all 7 families.
+
+6. **Padding-aware commitment coalescing (prover, 2026-07-07).** Padding
+   repeats the final row to the next power of two
+   (`pad_items_to_power_of_two`, padding.rs) — at n = 2^k + 1 nearly half the
+   commit work runs over *identical* elements. Pairing commitments collapse
+   algebraically: Π e(A, vᵢ) over the duplicated tail = e(A, Σ vᵢ), trading
+   up-to-half the Miller loops for cheap G2 adds of SRS keys (likewise
+   repeated-base MSM terms: sum the scalars). The commitment *values* are
+   bit-identical, so transcript and wire bytes are untouched — category 1,
+   provable by the byte baseline at a padded count. Win is shape-dependent
+   (zero at exact powers of two); measure against the real family-count
+   distribution before building. GIPA's fold rounds don't preserve the
+   duplication past round one, so only the initial commit stage coalesces.
+
+7. **Per-proof final-exp fusion inside one verify (verifier, 2026-07-07).**
+   Within a single `verify_family_aggregate`, the two KZG opening checks
+   (`verify_commitment_key_g2/g1_kzg_opening`, tipa/mod.rs:1137/1160) and the
+   base-commitment + PPE checks each pay their own final exponentiation on a
+   2–4-pair multi-pairing. All are of the form `multi_pairing(...) == 0`, so
+   the same verifier-local-randomizer argument as candidate 5 fuses them
+   into one Miller-loop concatenation + one final exp *per proof* — the
+   intra-proof version of candidate 5, worth doing first since it needs no
+   cross-crate seam. Note the KZG pair inputs are challenge-dependent, so
+   prepared-point caching does not apply here (the fixed-SRS prepared trick
+   is already spent on the PPE, §11); the fusion is the whole remaining win.
+   Same security-review checklist as candidates 1/5. Also confirmed while
+   sweeping: `deserialize_aggregate_proof` uses `deserialize_compressed`
+   (full per-point subgroup validation) — that cost is exactly what
+   candidate 1's batched subgroup check targets; no separate finding.
+
+**Lineage cross-check (2026-07-07):** against bellperson/Filecoin SnarkPack
+and the SnarkPack v2 paper, this backend already has every headline verifier
+trick: merged TIPP/MIPP transcript (single `r_commitment_steps`), O(log n)
+final-ck verification via KZG openings (`verify_commitment_key_*_kzg_opening`
+— the O(n) `_compute_final_commitment_keys` MSM is not on the production
+verify path), 128-bit rescaled challenges (`c`/`c_inv` swap, gipa.rs:694),
+prepared-G2 PPE reuse (§11), MSM final-key recombination (§9). The genuinely
+open deltas are candidates 1–7 above plus the §10 fixed-base SRS tables.
+
 **Deferred to the §10 benchmark matrix (not pursued as optimizations here):**
 
 - *Large fixed-base MSM tables for the SRS generators* (windowed comb/Pippenger,

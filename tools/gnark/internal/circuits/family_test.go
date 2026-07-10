@@ -179,27 +179,27 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "consolidate2x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(2) },
-			stats:   circuitStats{constraints: 57329, public: 2, secret: 199, internal: 53323},
+			stats:   circuitStats{constraints: 44665, public: 2, secret: 199, internal: 41691},
 		},
 		{
 			name:    "consolidate4x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(4) },
-			stats:   circuitStats{constraints: 101391, public: 2, secret: 379, internal: 94767},
+			stats:   circuitStats{constraints: 76063, public: 2, secret: 379, internal: 71503},
 		},
 		{
 			name:    "consolidate8x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(8) },
-			stats:   circuitStats{constraints: 189075, public: 2, secret: 739, internal: 177215},
+			stats:   circuitStats{constraints: 138419, public: 2, secret: 739, internal: 130687},
 		},
 		{
 			name:    "split1x4",
 			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(4) },
-			stats:   circuitStats{constraints: 64812, public: 2, secret: 139, internal: 59520},
+			stats:   circuitStats{constraints: 39484, public: 2, secret: 139, internal: 36256},
 		},
 		{
 			name:    "split1x8",
 			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
-			stats:   circuitStats{constraints: 103284, public: 2, secret: 179, internal: 94532},
+			stats:   circuitStats{constraints: 52628, public: 2, secret: 179, internal: 48004},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Generate consolidate2x1 RVK deployed-slice adapters for segments 13 and 31.
+"""Generate consolidate2x1 RVK deployed-slice adapters for segments 15 and 31
+(post-T1-d; seg13 renumbered to seg15 with a +5816 internal-wire shift since
+DTK hoisting moved everything downstream; seg31 is unchanged).
 
 The deployed RVK slice has three pieces:
 
@@ -29,27 +31,27 @@ CONT_START = 150
 
 
 INSTANCES = {
-    13: dict(
+    15: dict(
         inst="Inst0",
-        b0=10571,
-        prefix_x1=10825,
-        prefix_y1=10826,
-        cont_x150=11573,
-        cont_y150=11574,
+        b0=16387,
+        prefix_x1=16641,
+        prefix_y1=16642,
+        cont_x150=17389,
+        cont_y150=17390,
         vbase=247,
         split_row0=997,
         split_lc0=739,
-        out=(12380, 12381),
+        out=(18196, 18197),
         akX=6,
         akY=7,
         lcx=1448,
         lcy=1447,
         lc46=1446,
-        i75=12375,
-        i76=12376,
-        i77=12377,
-        i78=12378,
-        i79=12379,
+        i75=18191,
+        i76=18192,
+        i77=18193,
+        i78=18194,
+        i79=18195,
         r1805=1805,
         tail=dict(pre=1806, x7=1807, y8=1808, d9=1809, outx=1810, outy=1811),
     ),

@@ -24,10 +24,14 @@ task actually needs it.
 - **DLEQ challenge truncation** to 250 bits — soundness ≈ 2⁻²⁴⁹·⁹.
 - **gnark backend** (Groth16/Plonk, KZG, pairing, prover Fiat-Shamir) — a named
   crypto trust assumption, not self-proved.
-- **gnark frontend** is partially covered for `consolidate2x1` and `transfer`:
-  Lean checks the Define wiring transcript, and an independent Rust parser checks
-  compiled `.sr1cs` partition/hash/VK binding. Segment identity remains a named
-  trust gap.
+- **gnark frontend** coverage differs per circuit. For `consolidate2x1` the
+  deployed segment-identity gap is **closed**: every compiled `.sr1cs` segment
+  (49/49) is proved directly from its raw deployed rows (`inst*_bound` →
+  capstone `consolidate2x1_deployed_sound` → `Statement.lean`), on top of the
+  wiring-transcript and Rust partition/hash/VK checks. For `transfer` (still on
+  standalone bridge composition: wiring transcript + partition check only),
+  segment identity — that a deployed segment's rows equal the standalone proved
+  gadget — remains a named trust gap.
 
 The authoritative per-row list with status + removal path is the **assumption
 ledger** at `crates/core/component/compliance/formal/assumption-ledger.md`.
@@ -35,7 +39,8 @@ ledger** at `crates/core/component/compliance/formal/assumption-ledger.md`.
 ## What is open
 
 The governing plan is [full-verification-plan.md](full-verification-plan.md)
-(layers, hole inventory, phases A–H, promotion rules, §8 backlog). The
+(layer stack, hole inventory §3, FV + optimization queues §4, promotion
+rules, §8 backlog). The
 composition of all claims across tools is
 [assurance-case.md](assurance-case.md) — every protocol claim traces to a
 stamped artifact, a named ledger row, or an explicit TODO.
@@ -63,8 +68,12 @@ stamped artifact, a named ledger row, or an explicit TODO.
   design of the implemented Alloy H2 models (maintain the `.als` against it).
 - Evidence bases: [reference/consolidate2x1-statement-binding-inventory.md](reference/consolidate2x1-statement-binding-inventory.md),
   [reference/transfer-statement-binding-inventory.md](reference/transfer-statement-binding-inventory.md),
-  [reference/transfer-deployed-bridge-dossier.md](reference/transfer-deployed-bridge-dossier.md),
-  [reference/picus-composition-note.md](reference/picus-composition-note.md).
+  [reference/transfer-deployed-bridge-dossier.md](reference/transfer-deployed-bridge-dossier.md);
+  Picus determinism composition is §C2b of
+  [reference/constraint-system-assurance.md](reference/constraint-system-assurance.md).
+- **[reference/external-incidents-coverage.md](reference/external-incidents-coverage.md)** —
+  real-world ZK incident catalog mapped to our coverage, plus the Zcash
+  (Tachyon/Ironwood) FV-program comparison; open gaps G1–G4.
 - **[reference/history.md](reference/history.md)** — the single backward-looking
   ledger: resolved incidents, closed scoping memos, point-in-time audits.
 

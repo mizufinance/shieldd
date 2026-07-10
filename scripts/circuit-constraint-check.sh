@@ -105,7 +105,7 @@ trap 'rm -f "$tmp_report" "$underconstrained_files" "$undischarged_gadgets"' EXI
   echo "solver: $PICUS_SOLVER"
   echo "safety: $PICUS_SAFETY"
   echo "scope: decomposed-gadget"
-  echo "timeout_ms: ${PICUS_TIMEOUT_MS:-120000}"
+  echo "timeout_ms: ${PICUS_TIMEOUT_MS:-30000}"
   echo "total_timeout_seconds: ${PICUS_TOTAL_TIMEOUT_SECONDS:-120}"
 } >"$tmp_report"
 
@@ -119,7 +119,12 @@ for gadget in "${gadgets[@]}"; do
   output="$WORK_DIR/$gadget.picus.txt"
 
   # Optional per-gadget precondition + safety-mode flags.
-  picus_flags=(--solver "$PICUS_SOLVER" --timeout "${PICUS_TIMEOUT_MS:-120000}")
+  # Per-SMT-query timeout is deliberately much shorter than the per-leaf wall
+  # watchdog: Picus recovers from a timed-out query via propagation and later
+  # queries, so failing single queries fast is what lets a hard leaf
+  # (gadget-dleq) converge inside the wall budget; 120 s per query let one
+  # stuck query eat the entire budget.
+  picus_flags=(--solver "$PICUS_SOLVER" --timeout "${PICUS_TIMEOUT_MS:-30000}")
   [ "$PICUS_SAFETY" = "strong" ] && picus_flags+=(--strong)
   precond="$PRECOND_DIR/$gadget.json"
   precond_sha="none"
@@ -147,7 +152,7 @@ for gadget in "${gadgets[@]}"; do
   # Self-pin the leaf artifact to the exact constraint system Picus consumed.
   # Without this the .picus.txt fingerprints only the verdict text (which many
   # leaves share), so its sha256 cannot attest *which* R1CS was checked
-  # (picus-composition-note gap 3). The footer makes each artifact independently
+  # (constraint-system-assurance §C2b). The footer makes each artifact independently
   # load-bearing: its hash moves iff the input .sr1cs, precondition, or verdict
   # moves. Kept free of the token "underconstrained" so the post-loop safety
   # re-scan is unaffected.
@@ -212,7 +217,7 @@ fi
   echo "  lean_lift: Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound"
   echo "COMPOSITE transfer-dleq safe-by-composition"
   echo "  note: Poseidon7 challenge + paired scalar-mul response ladders + Decaf equivalence checks"
-  echo "  boundary_probe: gadget-dleq (response join seam safe)"
+  echo "  boundary_probe: gadget-dleq (one response equation s*B1 + c*B2; both equations share this shape, and sharing the s/c bits across two individually-deterministic equations adds no free signal)"
   echo "  lean_lift: Shieldd.GnarkFormal.DleqBridge.dleq_sound"
 } >>"$tmp_report"
 

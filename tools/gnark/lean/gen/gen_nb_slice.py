@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Generate the deployed net-balance-commitment adapter for consolidate2x1 seg52.
+"""Generate the deployed net-balance-commitment adapter for consolidate2x1 seg48.
 
 Sibling of `gen_dtk_slice.py` (see its module docstring for the StructuredLC
-contract; the same rules apply verbatim). Seg52 is one instance, not a seated
+contract; the same rules apply verbatim). Seg48 is one instance, not a seated
 family: 2-in/1-out net balance = poseidonPerm1 prefix + encode-to-curve +
 three variable-base value ladders (DTK rung shape, 128 rungs each) + one
 fixed-base blinding ladder (rvk rung shape, 251 bits) + final Edwards add.
@@ -11,7 +11,7 @@ Bridge target is `NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound
 (the non-"2" variant: zero+in0+in1+out0+blind legs — structurally exact for the
 2x1 gate stream; only the zero leg is synthetic). The manifest's per-op
 `bridge_theorem` string names the "2" variant because the op is shared with
-transfer 2x2; the coverage gate pins inst52_bound + Seg52, not that string.
+transfer 2x2; the coverage gate pins inst52_bound + Seg48, not that string.
 
 Recovery layer below is self-checking (fail-closed asserts against the raw
 `.sr1cs` rows); emitters land in a follow-up.
@@ -39,8 +39,8 @@ SR1CS = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1.sr1cs"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 NB_GX = 4661681602708190761543544705274244814260880986867766715334030151044279151219
 NB_GYM1 = 4337336842509898676347982752646772244181661588533917621717979456142867120377
-SEG_START, ROW_COUNT = 47848, 7961
-OUT_X_WIRE, OUT_Y_WIRE = 52347, 52348
+SEG_START, ROW_COUNT = 35184, 7961
+OUT_X_WIRE, OUT_Y_WIRE = 40715, 40716
 FINAL_ADD_ROWS = range(7955, 7961)
 
 Lc = dict[int, int]
@@ -72,7 +72,7 @@ def sr1cs_rows() -> list[tuple[Lc, Lc, Lc]]:
             rows.append(tuple(sides))
         index += 1
     if len(rows) != ROW_COUNT:
-        raise ValueError(f"expected {ROW_COUNT} seg52 rows, got {len(rows)}")
+        raise ValueError(f"expected {ROW_COUNT} seg48 rows, got {len(rows)}")
     return rows
 
 
@@ -100,35 +100,35 @@ class ValueLadder:
 
 
 VALUE_LADDERS = (
-    ValueLadder("in0", 45168, (776, 903), 904, 15, 45296, 904, 2563),
-    ValueLadder("in1", 46954, (2563, 2690), 2691, 105, 47082, 2691, 4356),
-    ValueLadder("out0", 48746, (4356, 4483), 4484, 193, 48874, 4484, 6149),
+    ValueLadder("in0", 33536, (776, 903), 904, 15, 33664, 904, 2563),
+    ValueLadder("in1", 35322, (2563, 2690), 2691, 105, 35450, 2691, 4356),
+    ValueLadder("out0", 37114, (4356, 4483), 4484, 193, 37242, 4484, 6149),
 )
 
 # Blinding fixed-base ladder (rvk shape). Seed term: bits[0] wire folded into
 # every accumulator row (same encoding as rvk — see memory rvk-fixedbase-bit0).
-BLIND_BIT_BASE = 50538          # booleanity wires 50538 .. 50788 (251 bits)
+BLIND_BIT_BASE = 38906          # booleanity wires 38906 .. 39156 (251 bits)
 BLIND_BINARY_ROWS = (6149, 6399)
 BLIND_COPY_ROW = 6400           # 1*Lc13 = 1*rho 5
 BLIND_WIRE = 5
 # Accumulator wire pairs: 149 at stride 5, then 101 at stride 8 (250 rungs;
 # rung k consumes bit wire BLIND_BIT_BASE+1+k).
 BLIND_ACCS = tuple(
-    [(50792 + 5 * k, 50793 + 5 * k) for k in range(149)]
-    + [(51540 + 8 * j, 51541 + 8 * j) for j in range(101)]
+    [(39160 + 5 * k, 39161 + 5 * k) for k in range(149)]
+    + [(39908 + 8 * j, 39909 + 8 * j) for j in range(101)]
 )
 
 ASSET_ID_WIRE = 16
 POSEIDON_PREFIX_ROWS = (0, 232)
 POSEIDON_ROW_COUNT = 230
 POSEIDON_DOMAIN = 6888358618106443442961843809729175081075858965522240584763322653509542282215
-POSEIDON_MODULE = "NetBalancePoseidon230_6eb4e5"
+POSEIDON_MODULE = "NetBalancePoseidon230_980d2f"
 ENCODE_BINARY_ROWS = (258, 510)  # encode's 253-bit to_binary
-ENCODE_COPY_ROW = 511            # 1*Lc9 = 1*rho 44814
-ENCODE_INPUT_WIRE = 44814
-ENCODE_BIT_BASE = 44818
-ENCODE_OUTPUT_X = 45162
-ENCODE_OUTPUT_Y = 45164
+ENCODE_COPY_ROW = 511            # 1*Lc9 = 1*rho 33182
+ENCODE_INPUT_WIRE = 33182
+ENCODE_BIT_BASE = 33186
+ENCODE_OUTPUT_X = 33530
+ENCODE_OUTPUT_Y = 33532
 ENCODE_CANON = dtk.CanonicalBlock(
     "Canon", ENCODE_INPUT_WIRE, ENCODE_BIT_BASE, ENCODE_BINARY_ROWS[0],
     ENCODE_COPY_ROW, ENCODE_COPY_ROW + 1,
@@ -200,7 +200,7 @@ def generate_poseidon_shape() -> list[list[int]]:
         raise ValueError(f"Poseidon shape changed: {module}")
     if args[0] != [ASSET_ID_WIRE]:
         raise ValueError(f"unexpected Poseidon live inputs {args[0]}")
-    if exits[-1] != [44790, 44795]:
+    if exits[-1] != [33158, 33163]:
         raise ValueError(f"unexpected Poseidon exits {exits[-1]}")
 
     lines = [
@@ -308,7 +308,7 @@ def emit_poseidon_adapter(sbox_outputs: list[list[int]]) -> str:
     cfg = configure_contract_helpers()
     keep = set(range(POSEIDON_ROW_COUNT))
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Base",
         "import ShielddGnarkFormal.Deployed.NetBalancePoseidon.SemanticBridge",
         "",
         "set_option maxRecDepth 1000000",
@@ -317,14 +317,14 @@ def emit_poseidon_adapter(sbox_outputs: list[list[int]]) -> str:
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        "def seg52PoseidonOut (rho : Nat -> Seg52.F) : Seg52.F :=",
-        "  5629641166285580282832549959187697687583932890102709218623488970611606159361 * rho 44790 +",
-        "    6333346312071277818186618704086159898531924501365547870951425091938056929281 * rho 44795",
+        "def seg48PoseidonOut (rho : Nat -> Seg48.F) : Seg48.F :=",
+        "  5629641166285580282832549959187697687583932890102709218623488970611606159361 * rho 33158 +",
+        "    6333346312071277818186618704086159898531924501365547870951425091938056929281 * rho 33163",
         "",
-        "theorem seg52_poseidon_eq (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :",
-        "    seg52PoseidonOut rho =",
+        "theorem seg48_poseidon_eq (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
+        "    seg48PoseidonOut rho =",
         "      Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1",
-        f"        ({POSEIDON_DOMAIN} : Seg52.F) (rho {ASSET_ID_WIRE}) := by",
+        f"        ({POSEIDON_DOMAIN} : Seg48.F) (rho {ASSET_ID_WIRE}) := by",
     ]
     dtk.emit_unpack(lines, cfg, keep)
     relation = (
@@ -333,7 +333,7 @@ def emit_poseidon_adapter(sbox_outputs: list[list[int]]) -> str:
     )
     lines += [
         f"  have hrel : {relation} (rho {ASSET_ID_WIRE})",
-        "      (fun x y => x = rho 44790 ∧ y = rho 44795) := by",
+        "      (fun x y => x = rho 33158 ∧ y = rho 33163) := by",
         f"    unfold {relation}",
     ]
     for segment, outputs in enumerate(sbox_outputs):
@@ -346,23 +346,23 @@ def emit_poseidon_adapter(sbox_outputs: list[list[int]]) -> str:
         )
         proofs = []
         for row in range(5 * segment, 5 * segment + 5):
-            lcs = dtk.row_lc_defs(52, row)
+            lcs = dtk.row_lc_defs(48, row)
             if lcs:
                 names = " ".join(
-                    [f"Seg52.relationRow{row}"] + [f"Seg52.{name}" for name in lcs]
+                    [f"Seg48.relationRow{row}"] + [f"Seg48.{name}" for name in lcs]
                 )
                 proofs.append(
                     f"(by unfold {names} at r{row}; linear_combination r{row})"
                 )
             else:
-                proofs.append(f"(by simpa [Seg52.relationRow{row}] using r{row})")
+                proofs.append(f"(by simpa [Seg48.relationRow{row}] using r{row})")
         lines.append(", ".join(proofs) + ", ?_⟩")
     lines += [
         "    exact ⟨rfl, rfl⟩",
         "  have hs := Shieldd.GnarkFormal.Deployed.NetBalancePoseidon.relation_sound_permSpec "
         f"(rho {ASSET_ID_WIRE}) _ hrel",
         "  rcases hs with ⟨x, y, ⟨rfl, rfl⟩, hs⟩",
-        "  simpa [seg52PoseidonOut,",
+        "  simpa [seg48PoseidonOut,",
         "    Shieldd.GnarkFormal.Deployed.NetBalancePoseidon.s38_1,",
         "    Shieldd.GnarkFormal.Deployed.Poseidon1Link.row2,",
         "    Shieldd.GnarkFormal.Deployed.NetBalancePoseidon.netBalanceDomainLit] using hs",
@@ -376,7 +376,7 @@ def emit_poseidon_adapter(sbox_outputs: list[list[int]]) -> str:
 def emit_encode_pre() -> str:
     cfg = configure_contract_helpers()
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Poseidon",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Poseidon",
         "import ShielddGnarkFormal.NetBalanceCommitmentBridge",
         "import ShielddGnarkFormal.CompressDeployedGadgets",
         "",
@@ -388,99 +388,99 @@ def emit_encode_pre() -> str:
         "",
         "open Shieldd.GnarkFormal.DeployedGadgets",
         "",
-        "def seg52YDen (rho : Nat -> Seg52.F) : Seg52.F :=",
-        "  36517849 * rho 44817 - 1",
+        "def seg48YDen (rho : Nat -> Seg48.F) : Seg48.F :=",
+        "  36517849 * rho 33185 - 1",
         "",
-        "theorem seg52_encode_pre (rho : Nat -> Seg52.F) (h : Seg52.relation rho)",
-        "    (k : Seg52.F -> Seg52.F -> Prop) (hk : k (rho 44814) (seg52YDen rho)) :",
+        "theorem seg48_encode_pre (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
+        "    (k : Seg48.F -> Seg48.F -> Prop) (hk : k (rho 33182) (seg48YDen rho)) :",
         "    Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.encodeSeg0",
-        "      (seg52PoseidonOut rho) (rho 44799) (rho 44800) k := by",
+        "      (seg48PoseidonOut rho) (rho 33167) (rho 33168) k := by",
     ]
     dtk.emit_unpack(lines, cfg, set(range(230, 258)))
     for row in range(230, 258):
         dtk.emit_row_unfold(lines, cfg, row)
     lines += [
-        "  have hp0 : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg52.F) = 0 := by decide",
-        "  have hws : GatesDef.is_bool (rho 44799) :=",
+        "  have hp0 : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg48.F) = 0 := by decide",
+        "  have hws : GatesDef.is_bool (rho 33167) :=",
         "    is_bool_of_row _ (by linear_combination r233)",
-        "  have hz : GatesDef.is_zero (rho 44798) (rho 44801) := by",
-        "    refine is_zero_of_hint _ (rho 44802) _ ?_ ?_",
+        "  have hz : GatesDef.is_zero (rho 33166) (rho 33169) := by",
+        "    refine is_zero_of_hint _ (rho 33170) _ ?_ ?_",
         "    · linear_combination -r234",
         "    · linear_combination r235",
-        "  have hzBool : GatesDef.is_bool (rho 44801) := by",
+        "  have hzBool : GatesDef.is_bool (rho 33169) := by",
         "    rcases hz with hz | hz",
         "    · rw [hz.2]; exact is_bool_of_row 0 (by ring)",
         "    · rw [hz.2]; exact is_bool_of_row 1 (by ring)",
-        "  have hsel15 : GatesDef.select (rho 44801) 1 (rho 44798)",
-        "      (rho 44798 + rho 44803) := by",
+        "  have hsel15 : GatesDef.select (rho 33169) 1 (rho 33166)",
+        "      (rho 33166 + rho 33171) := by",
         "    refine select_of_row _ _ _ _ hzBool ?_",
         "    linear_combination -r236",
-        "  have hinv16 : GatesDef.inv (rho 44798 + rho 44803) (rho 44804) :=",
+        "  have hinv16 : GatesDef.inv (rho 33166 + rho 33171) (rho 33172) :=",
         "    inv_of_mul _ _ (by linear_combination r237)",
-        "  have hnotWs : GatesDef.is_bool (1 - rho 44799) := by",
+        "  have hnotWs : GatesDef.is_bool (1 - rho 33167) := by",
         "    apply is_bool_of_row",
         "    linear_combination r241",
-        "  have hnotZ : GatesDef.is_bool (1 - rho 44801) := by",
+        "  have hnotZ : GatesDef.is_bool (1 - rho 33169) := by",
         "    apply is_bool_of_row",
         "    linear_combination r243",
-        "  have hand22 : GatesDef.and (1 - rho 44799) (rho 44801) (rho 44807) := by",
+        "  have hand22 : GatesDef.and (1 - rho 33167) (rho 33169) (rho 33175) := by",
         "    refine and_of_row _ _ _ hnotWs hzBool ?_",
         "    linear_combination -r242",
-        "  have hand23 : GatesDef.and (1 - rho 44799) (1 - rho 44801) (rho 44808) := by",
+        "  have hand23 : GatesDef.and (1 - rho 33167) (1 - rho 33169) (rho 33176) := by",
         "    refine and_of_row _ _ _ hnotWs hnotZ ?_",
         "    linear_combination -r244",
-        "  have hsel36 : GatesDef.select (rho 44799) 1 (-1) (-1 + 2 * rho 44799) := by",
+        "  have hsel36 : GatesDef.select (rho 33167) 1 (-1) (-1 + 2 * rho 33167) := by",
         "    refine select_of_row _ _ _ _ hws ?_",
         "    ring",
-        "  have hsel37 : GatesDef.select (rho 44799) 1 (seg52PoseidonOut rho)",
-        "      (seg52PoseidonOut rho + rho 44812) := by",
+        "  have hsel37 : GatesDef.select (rho 33167) 1 (seg48PoseidonOut rho)",
+        "      (seg48PoseidonOut rho + rho 33180) := by",
         "    refine select_of_row _ _ _ _ hws ?_",
-        "    unfold seg52PoseidonOut",
-        "    linear_combination -r252 + (rho 44790 * rho 44799 + rho 44795 * rho 44799) * hp0",
-        "  have hz31 : (51846360469424372753315419490737795860130232637253383835608017626494646496029159208 : Seg52.F) * rho 44796 - (73721756659725413972062831735380724728489729224093916166732287877872185443385920499235863720254620945400714281000442622466140288089673656635275829952593339392 : Seg52.F) * (rho 44796 * rho 44796) = 0 := by",
-        "    linear_combination (rho 44796 * (6139688 : Seg52.F) - rho 44796 * rho 44796 * (8730190134938541092346690271902776538042097147509701931043324177298716948926374912 : Seg52.F)) * hp0",
-        "  have hz32 : (17176035198337305442922109925481665644818579247703365826020264849336010392209394 : Seg52.F) * (rho 44797 * rho 44796) = 0 := by",
-        "    linear_combination rho 44797 * rho 44796 * (2034 : Seg52.F) * hp0",
+        "    unfold seg48PoseidonOut",
+        "    linear_combination -r252 + (rho 33158 * rho 33167 + rho 33163 * rho 33167) * hp0",
+        "  have hz31 : (51846360469424372753315419490737795860130232637253383835608017626494646496029159208 : Seg48.F) * rho 33164 - (73721756659725413972062831735380724728489729224093916166732287877872185443385920499235863720254620945400714281000442622466140288089673656635275829952593339392 : Seg48.F) * (rho 33164 * rho 33164) = 0 := by",
+        "    linear_combination (rho 33164 * (6139688 : Seg48.F) - rho 33164 * rho 33164 * (8730190134938541092346690271902776538042097147509701931043324177298716948926374912 : Seg48.F)) * hp0",
+        "  have hz32 : (17176035198337305442922109925481665644818579247703365826020264849336010392209394 : Seg48.F) * (rho 33165 * rho 33164) = 0 := by",
+        "    linear_combination rho 33165 * rho 33164 * (2034 : Seg48.F) * hp0",
         "  unfold Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.encodeSeg0",
         "  simp only [Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.Gates,",
         "    GatesGnark9, GatesGnark8, GatesDef.mul, GatesDef.add, GatesDef.sub,",
         "    GatesDef.neg, GatesDef.eq]",
-        "  refine ⟨rho 44796, ?_,",
-        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44796 : Seg52.F), rfl,",
-        "    (3022 : Seg52.F), (by decide),",
-        "    (3021 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44796) : Seg52.F), rfl,",
-        "    (3021 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44796) - 3022 : Seg52.F), rfl,",
-        "    (3022 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44796) : Seg52.F), rfl,",
-        "    (3022 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44796) - 3021 : Seg52.F), rfl,",
-        "    rho 44797, ?_,",
-        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44796 + 1 : Seg52.F), rfl,",
-        "    (6042 : Seg52.F), rfl, (-6043 : Seg52.F), (by decide),",
-        "    ((2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44796 + 1) * (-6043) : Seg52.F), rfl,",
-        "    rho 44798, ?_, hws, rho 44801, hz,",
-        "    rho 44798 + rho 44803, hsel15, rho 44804, hinv16,",
-        "    rho 44805, (by linear_combination -r238),",
-        "    rho 44806, (by linear_combination -r239), (by linear_combination r240),",
-        "    (1 - rho 44799 : Seg52.F), rfl, (1 - rho 44801 : Seg52.F), rfl,",
-        "    rho 44807, hand22, rho 44808, hand23,",
-        "    rho 44805 - rho 44804, rfl, rho 44809, (by linear_combination -r245),",
-        "    (by linear_combination r246), rho 44810, (by linear_combination -r247),",
+        "  refine ⟨rho 33164, ?_,",
+        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164 : Seg48.F), rfl,",
+        "    (3022 : Seg48.F), (by decide),",
+        "    (3021 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164) : Seg48.F), rfl,",
+        "    (3021 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164) - 3022 : Seg48.F), rfl,",
+        "    (3022 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164) : Seg48.F), rfl,",
+        "    (3022 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164) - 3021 : Seg48.F), rfl,",
+        "    rho 33165, ?_,",
+        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164 + 1 : Seg48.F), rfl,",
+        "    (6042 : Seg48.F), rfl, (-6043 : Seg48.F), (by decide),",
+        "    ((2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164 + 1) * (-6043) : Seg48.F), rfl,",
+        "    rho 33166, ?_, hws, rho 33169, hz,",
+        "    rho 33166 + rho 33171, hsel15, rho 33172, hinv16,",
+        "    rho 33173, (by linear_combination -r238),",
+        "    rho 33174, (by linear_combination -r239), (by linear_combination r240),",
+        "    (1 - rho 33167 : Seg48.F), rfl, (1 - rho 33169 : Seg48.F), rfl,",
+        "    rho 33175, hand22, rho 33176, hand23,",
+        "    rho 33173 - rho 33172, rfl, rho 33177, (by linear_combination -r245),",
+        "    (by linear_combination r246), rho 33178, (by linear_combination -r247),",
         "    (by linear_combination r248),",
-        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44804 : Seg52.F), rfl,",
-        "    (rho 44805 - 2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44804 : Seg52.F), rfl,",
-        "    rho 44811, (by linear_combination -r249 + rho 44808 * rho 44804 * hp0), (by linear_combination r250),",
-        "    rho 44799 + rho 44807, rfl, rho 44799 + rho 44807 + rho 44808, rfl,",
+        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33172 : Seg48.F), rfl,",
+        "    (rho 33173 - 2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33172 : Seg48.F), rfl,",
+        "    rho 33179, (by linear_combination -r249 + rho 33176 * rho 33172 * hp0), (by linear_combination r250),",
+        "    rho 33167 + rho 33175, rfl, rho 33167 + rho 33175 + rho 33176, rfl,",
         "    (by linear_combination r251),",
-        "    (-1 + 2 * rho 44799 : Seg52.F), hsel36,",
-        "    seg52PoseidonOut rho + rho 44812, hsel37,",
-        "    rho 44813, (by unfold seg52PoseidonOut; linear_combination -r253),",
-        "    rho 44814, (by linear_combination -r254 + rho 44813 * rho 44796 * (2034 : Seg52.F) * hp0),",
-        "    (6042 : Seg52.F), rfl, (-6043 : Seg52.F), (by decide), (1 - 2 * rho 44799 : Seg52.F), (by ring),",
-        "    rho 44815, (by linear_combination -r255),",
-        "    rho 44816, (by linear_combination -r256),",
-        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 44796 - 1 : Seg52.F), rfl,",
-        "    rho 44817, (by linear_combination -r257), (36517849 : Seg52.F), (by decide),",
-        "    (36517849 * rho 44817 : Seg52.F), (by ring), seg52YDen rho, (by rfl), hk⟩",
-        "  · unfold seg52PoseidonOut",
+        "    (-1 + 2 * rho 33167 : Seg48.F), hsel36,",
+        "    seg48PoseidonOut rho + rho 33180, hsel37,",
+        "    rho 33181, (by unfold seg48PoseidonOut; linear_combination -r253),",
+        "    rho 33182, (by linear_combination -r254 + rho 33181 * rho 33164 * (2034 : Seg48.F) * hp0),",
+        "    (6042 : Seg48.F), rfl, (-6043 : Seg48.F), (by decide), (1 - 2 * rho 33167 : Seg48.F), (by ring),",
+        "    rho 33183, (by linear_combination -r255),",
+        "    rho 33184, (by linear_combination -r256),",
+        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164 - 1 : Seg48.F), rfl,",
+        "    rho 33185, (by linear_combination -r257), (36517849 : Seg48.F), (by decide),",
+        "    (36517849 * rho 33185 : Seg48.F), (by ring), seg48YDen rho, (by rfl), hk⟩",
+        "  · unfold seg48PoseidonOut",
         "    linear_combination -r230",
         "  · linear_combination -r231 + hz31",
         "  · linear_combination -r232 + hz32",
@@ -494,8 +494,8 @@ def emit_encode_pre() -> str:
 def emit_encode_post() -> str:
     cfg = configure_contract_helpers()
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Canon",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52EncodePre",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Canon",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48EncodePre",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
@@ -505,61 +505,61 @@ def emit_encode_post() -> str:
         "",
         "open Shieldd.GnarkFormal.DeployedGadgets",
         "",
-        "theorem seg52_encode_post (rho : Nat -> Seg52.F) (h : Seg52.relation rho)",
-        "    (k : Seg52.F -> Seg52.F -> Prop) (hk : k (rho 45162) (rho 45164)) :",
+        "theorem seg48_encode_post (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
+        "    (k : Seg48.F -> Seg48.F -> Prop) (hk : k (rho 33530) (rho 33532)) :",
         "    Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbEncodeSeg1K",
-        "      (rho 44799) (rho 44814) (seg52YDen rho) k := by",
+        "      (rho 33167) (rho 33182) (seg48YDen rho) k := by",
         "  have hrel := h",
     ]
     dtk.emit_unpack(lines, cfg, set(range(764, 776)))
     for row in range(764, 776):
         dtk.emit_row_unfold(lines, cfg, row)
     lines += [
-        "  have hp0 : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg52.F) = 0 := by decide",
-        "  have hz : GatesDef.is_zero (rho 44818 - rho 44799) (rho 45157) := by",
-        "    refine is_zero_of_hint _ (rho 45158) _ ?_ ?_",
+        "  have hp0 : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg48.F) = 0 := by decide",
+        "  have hz : GatesDef.is_zero (rho 33186 - rho 33167) (rho 33525) := by",
+        "    refine is_zero_of_hint _ (rho 33526) _ ?_ ?_",
         "    · linear_combination -r764",
         "    · linear_combination r765",
-        "  have hzBool : GatesDef.is_bool (rho 45157) := by",
+        "  have hzBool : GatesDef.is_bool (rho 33525) := by",
         "    rcases hz with hz | hz",
         "    · rw [hz.2]; exact is_bool_of_row 0 (by ring)",
         "    · rw [hz.2]; exact is_bool_of_row 1 (by ring)",
-        "  have hsel : GatesDef.select (rho 45157) (-rho 44814) (rho 44814)",
-        "      (rho 44814 + rho 45159) := by",
+        "  have hsel : GatesDef.select (rho 33525) (-rho 33182) (rho 33182)",
+        "      (rho 33182 + rho 33527) := by",
         "    refine select_of_row _ _ _ _ hzBool ?_",
         "    linear_combination -r766",
-        "  have hinvX : GatesDef.inv (1 - rho 45160) (rho 45161) :=",
+        "  have hinvX : GatesDef.inv (1 - rho 33528) (rho 33529) :=",
         "    inv_of_mul _ _ (by linear_combination r768)",
-        "  have hinvY : GatesDef.inv (seg52YDen rho) (rho 45163) := by",
+        "  have hinvY : GatesDef.inv (seg48YDen rho) (rho 33531) := by",
         "    apply inv_of_mul",
-        "    unfold seg52YDen",
+        "    unfold seg48YDen",
         "    linear_combination r770",
         "  unfold Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbEncodeSeg1K",
-        "  refine seg52Canon_canonical rho hrel _ ?_",
+        "  refine seg48Canon_canonical rho hrel _ ?_",
         "  simp only [Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.Gates,",
         "    GatesGnark9, GatesGnark8, GatesDef.mul, GatesDef.add, GatesDef.sub,",
         "    GatesDef.neg, GatesDef.eq]",
-        "  refine ⟨_, rfl, rho 45157, ?_,",
-        "    -rho 44814, (by ring), rho 44814 + rho 45159, hsel,",
-        "    rho 45160, (by linear_combination -r767),",
-        "    (2 * (rho 44814 + rho 45159) : Seg52.F), rfl,",
-        "    -rho 45160, (by linear_combination -rho 45160 * hp0),",
-        "    (1 - rho 45160 : Seg52.F), (by ring),",
-        "    -rho 45160, (by linear_combination -rho 45160 * hp0),",
-        "    (1 + rho 45160 : Seg52.F), (by ring),",
-        "    rho 45161, hinvX, rho 45162, (by linear_combination -r769),",
-        "    rho 45163, hinvY, rho 45164, (by linear_combination -r771),",
-        "    rho 45165, (by linear_combination -r772),",
-        "    rho 45166, (by linear_combination -r773),",
-        "    rho 45166 - rho 45165, rfl, (3021 * rho 45165 : Seg52.F), rfl,",
-        "    rho 45167, (by linear_combination -r774), (1 + rho 45167 : Seg52.F), rfl,",
+        "  refine ⟨_, rfl, rho 33525, ?_,",
+        "    -rho 33182, (by ring), rho 33182 + rho 33527, hsel,",
+        "    rho 33528, (by linear_combination -r767),",
+        "    (2 * (rho 33182 + rho 33527) : Seg48.F), rfl,",
+        "    -rho 33528, (by linear_combination -rho 33528 * hp0),",
+        "    (1 - rho 33528 : Seg48.F), (by ring),",
+        "    -rho 33528, (by linear_combination -rho 33528 * hp0),",
+        "    (1 + rho 33528 : Seg48.F), (by ring),",
+        "    rho 33529, hinvX, rho 33530, (by linear_combination -r769),",
+        "    rho 33531, hinvY, rho 33532, (by linear_combination -r771),",
+        "    rho 33533, (by linear_combination -r772),",
+        "    rho 33534, (by linear_combination -r773),",
+        "    rho 33534 - rho 33533, rfl, (3021 * rho 33533 : Seg48.F), rfl,",
+        "    rho 33535, (by linear_combination -r774), (1 + rho 33535 : Seg48.F), rfl,",
         "    (by linear_combination r775), hk⟩",
-        "  · simp only [seg52CanonBits, List.Vector.getElem_def,",
+        "  · simp only [seg48CanonBits, List.Vector.getElem_def,",
         "      List.Vector.toList_ofFn, List.getElem_ofFn]",
         "    simpa using hz",
         "",
-        "theorem seg52_value_base_onCurve (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :",
-        "    EdwardsBridge.onCurve ⟨rho 45162, rho 45164⟩ := by",
+        "theorem seg48_value_base_onCurve (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
+        "    EdwardsBridge.onCurve ⟨rho 33530, rho 33532⟩ := by",
     ]
     dtk.emit_unpack(lines, cfg, set(range(772, 776)), hname="h")
     for row in range(772, 776):
@@ -567,8 +567,8 @@ def emit_encode_post() -> str:
     lines += [
         "  simp only [EdwardsBridge.onCurve, EdwardsBridge.d]",
         "  linear_combination r775 - r772 + r773 - r774 -",
-        "    (3021 : Seg52.F) * rho 45165 * r773 -",
-        "    (3021 : Seg52.F) * rho 45164 * rho 45164 * r772",
+        "    (3021 : Seg48.F) * rho 33533 * r773 -",
+        "    (3021 : Seg48.F) * rho 33532 * rho 33532 * r772",
         "",
         "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
@@ -818,7 +818,7 @@ def emit_fixed_base_literal(rows: list[tuple[Lc, Lc, Lc]]) -> str:
         "",
         "/-! # Literal binding for the fixed-base blinding constants (generated, i = 0..250)",
         "",
-        "`L i` is the numeral point `2^i * blindGen` for the seg52 net-balance blinding",
+        "`L i` is the numeral point `2^i * blindGen` for the seg48 net-balance blinding",
         "ladder; `C_eq_L i` binds `Deployed.NetBalance.Cb` to these literals via kernel",
         "`decide` on the two `doubleSpec` equations + `doubleSpec_eq`. Mirror of",
         "`RvkFixedBaseLiteral` (see its docstring); no `native_decide`.",
@@ -878,7 +878,7 @@ def emit_fixed_base_literal(rows: list[tuple[Lc, Lc, Lc]]) -> str:
 def emit_base() -> str:
     """Shared bit-vector seating and the deployed prime instance."""
     out = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg52",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg48",
         "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
         "import ShielddGnarkFormal.Extracted.CanonicalFqBits",
         "",
@@ -887,23 +887,23 @@ def emit_base() -> str:
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        "instance seg52NbFactPrime : Fact (Nat.Prime Seg52.Order) :=",
+        "instance seg48NbFactPrime : Fact (Nat.Prime Seg48.Order) :=",
         "  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩",
         "",
     ]
     bit_vectors = [
-        ("seg52CanonBits", ENCODE_BIT_BASE, 253,
+        ("seg48CanonBits", ENCODE_BIT_BASE, 253,
          "Shieldd.GnarkFormal.Extracted.CanonicalFqBits.F"),
-        *[(f"seg52{lad.label.capitalize()}Bits", lad.bit_base, 128, "Seg52.F")
+        *[(f"seg48{lad.label.capitalize()}Bits", lad.bit_base, 128, "Seg48.F")
           for lad in VALUE_LADDERS],
-        ("seg52BlindBits", BLIND_BIT_BASE, 251, "Seg52.F"),
+        ("seg48BlindBits", BLIND_BIT_BASE, 251, "Seg48.F"),
     ]
     for name, base, width, field in bit_vectors:
         out += [
-            f"def {name} (rho : Nat -> Seg52.F) : List.Vector {field} {width} :=",
+            f"def {name} (rho : Nat -> Seg48.F) : List.Vector {field} {width} :=",
             f"  List.Vector.ofFn (fun i : Fin {width} => rho ({base} + i.val))",
             "",
-            f"theorem {name}_get (rho : Nat -> Seg52.F) (i : Nat) (hi : i < {width}) :",
+            f"theorem {name}_get (rho : Nat -> Seg48.F) (i : Nat) (hi : i < {width}) :",
             f"    ({name} rho)[i]! = rho ({base} + i) := by",
             "  rw [getElem!_pos _ i (by simpa using hi)]",
             "  conv_lhs => rw [List.Vector.getElem_def]",
@@ -918,12 +918,12 @@ def emit_canonical_modules() -> dict[str, str]:
     """Reuse the DTK canonical-chain emitter for the encode-to-curve block."""
     dtk.SOURCE_CONTRACTS = CONTRACTS_SOURCE
     dtk.ROW_COUNT = ROW_COUNT
-    cfg = SimpleNamespace(seg=52)
-    rows = dtk.relation_rows(52)
-    stem = "NbAdapterSeg52Canon"
+    cfg = SimpleNamespace(seg=48)
+    rows = dtk.relation_rows(48)
+    stem = "NbAdapterSeg48Canon"
     modules = {
         f"{stem}Rec": dtk.emit_canon_recover(
-            cfg, ENCODE_CANON, None, "NbAdapterSeg52Base"
+            cfg, ENCODE_CANON, None, "NbAdapterSeg48Base"
         ),
         f"{stem}Binary": dtk.emit_canon_binary(
             cfg, ENCODE_CANON, f"{stem}Rec"
@@ -967,11 +967,11 @@ VALUE_CHUNK_SIZE = 11
 def configure_contract_helpers() -> SimpleNamespace:
     dtk.SOURCE_CONTRACTS = CONTRACTS_SOURCE
     dtk.ROW_COUNT = ROW_COUNT
-    return SimpleNamespace(seg=52)
+    return SimpleNamespace(seg=48)
 
 
 def value_prefix(ladder: ValueLadder) -> str:
-    return f"seg52{ladder.label.capitalize()}"
+    return f"seg48{ladder.label.capitalize()}"
 
 
 def value_acc_name(ladder: ValueLadder, axis: str, index: int) -> str:
@@ -989,7 +989,7 @@ def emit_value_defs_module(
     ladders: dict[str, tuple[ScalarRung, ...]],
 ) -> str:
     out = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Base",
         "import ShielddGnarkFormal.Deployed.NetBalance.Ladder",
         "import ShielddGnarkFormal.RvkDeployedRung",
         "import ShielddGnarkFormal.StructuredLC",
@@ -1007,19 +1007,19 @@ def emit_value_defs_module(
         xs = [rung.delta_x for rung in rungs]
         ys = [rung.delta_y for rung in rungs]
         out += [
-            f"def {prefix}AccX0 (_rho : Nat -> Seg52.F) : Seg52.F := 0",
-            f"def {prefix}AccY0 (_rho : Nat -> Seg52.F) : Seg52.F := 1",
+            f"def {prefix}AccX0 (_rho : Nat -> Seg48.F) : Seg48.F := 0",
+            f"def {prefix}AccY0 (_rho : Nat -> Seg48.F) : Seg48.F := 1",
         ]
         for index in range(1, len(rungs) + 1):
             out += [
-                f"def {prefix}AccX{index} (rho : Nat -> Seg52.F) : Seg52.F := "
-                f"{dtk.compact_wire_expr(0, xs[:index], 'Seg52.F')}",
-                f"def {prefix}AccY{index} (rho : Nat -> Seg52.F) : Seg52.F := "
-                f"{dtk.compact_wire_expr(1, ys[:index], 'Seg52.F')}",
+                f"def {prefix}AccX{index} (rho : Nat -> Seg48.F) : Seg48.F := "
+                f"{dtk.compact_wire_expr(0, xs[:index], 'Seg48.F')}",
+                f"def {prefix}AccY{index} (rho : Nat -> Seg48.F) : Seg48.F := "
+                f"{dtk.compact_wire_expr(1, ys[:index], 'Seg48.F')}",
             ]
         out += [
             "",
-            f"def {prefix}AccState (rho : Nat -> Seg52.F) : Nat -> EdwardsBridge.Point",
+            f"def {prefix}AccState (rho : Nat -> Seg48.F) : Nat -> EdwardsBridge.Point",
         ]
         for index in range(len(rungs) + 1):
             out.append(
@@ -1028,7 +1028,7 @@ def emit_value_defs_module(
         out += [
             "  | _ => ⟨0, 1⟩",
             "",
-            f"def {prefix}CurState (rho : Nat -> Seg52.F) : Nat -> EdwardsBridge.Point",
+            f"def {prefix}CurState (rho : Nat -> Seg48.F) : Nat -> EdwardsBridge.Point",
             f"  | 0 => ⟨rho {rungs[0].cur_x}, rho {rungs[0].cur_y}⟩",
         ]
         for index, rung in enumerate(rungs, start=1):
@@ -1045,9 +1045,9 @@ def emit_value_row_projection(
 ) -> None:
     cfg = configure_contract_helpers()
     ordered = sorted(keep_rows)
-    conjunction = " ∧ ".join(f"Seg52.relationRow{row} rho" for row in ordered)
+    conjunction = " ∧ ".join(f"Seg48.relationRow{row} rho" for row in ordered)
     lines += [
-        f"theorem {name} (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :",
+        f"theorem {name} (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
         f"    {conjunction} := by",
     ]
     dtk.emit_unpack(lines, cfg, keep_rows)
@@ -1080,7 +1080,7 @@ def emit_value_rung(
     projection = f"{prefix}_rows{index}"
     emit_value_row_projection(lines, projection, rrows)
     lines += [
-        f"theorem {prefix}_rung{index} (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :",
+        f"theorem {prefix}_rung{index} (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
         f"    ∀ (bit : Bool), rho {rung.bit} = Bool.toZMod bit →",
         f"      EdwardsBridge.onCurve ⟨{ax}, {ay}⟩ →",
         f"      EdwardsBridge.onCurve ⟨{cur_x}, {cur_y}⟩ →",
@@ -1223,8 +1223,8 @@ def emit_value_hstep_chunk(
     prefix = value_prefix(ladder)
     lo, hi = subset[0].index, subset[-1].index + 1
     lines += [
-        f"theorem {prefix}_hstep_c{chunk_index} (rho : Nat -> Seg52.F)",
-        "    (h : Seg52.relation rho) (bits : List.Vector Bool 128)",
+        f"theorem {prefix}_hstep_c{chunk_index} (rho : Nat -> Seg48.F)",
+        "    (h : Seg48.relation rho) (bits : List.Vector Bool 128)",
         f"    (hbitAt : ∀ i, i < 128 → rho ({ladder.bit_base} + i) = Bool.toZMod bits[i]!) :",
         f"    ∀ i, {lo} ≤ i → i < {hi} →",
         f"      EdwardsBridge.onCurve ({prefix}AccState rho i) →",
@@ -1248,7 +1248,7 @@ def emit_value_chunk(
     rows: list[tuple[Lc, Lc, Lc]],
 ) -> str:
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52ValueDefs",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48ValueDefs",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
@@ -1272,7 +1272,7 @@ def emit_value_ladder(
     lines = [
         *[
             f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1."
-            f"NbAdapterSeg52{ladder.label.capitalize()}R{index}"
+            f"NbAdapterSeg48{ladder.label.capitalize()}R{index}"
             for index in range(len(chunks))
         ],
         "",
@@ -1282,21 +1282,21 @@ def emit_value_ladder(
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        f"theorem {prefix}_ladder (rho : Nat -> Seg52.F) (h : Seg52.relation rho)",
+        f"theorem {prefix}_ladder (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
         "    (bits : List.Vector Bool 128)",
-        f"    (hbits : seg52{ladder.label.capitalize()}Bits rho = bits.map Bool.toZMod)",
-        "    (k : List.Vector Seg52.F 4 → Prop)",
+        f"    (hbits : seg48{ladder.label.capitalize()}Bits rho = bits.map Bool.toZMod)",
+        "    (k : List.Vector Seg48.F 4 → Prop)",
         f"    (hk : k vec![({prefix}AccState rho 128).x, ({prefix}AccState rho 128).y,",
         f"      ({prefix}CurState rho 128).x, ({prefix}CurState rho 128).y])",
         f"    (hbase : EdwardsBridge.onCurve ⟨rho {rungs[0].cur_x}, rho {rungs[0].cur_y}⟩) :",
         "    Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbLadderK",
-        f"      (seg52{ladder.label.capitalize()}Bits rho) k 128 0 ⟨0, 1⟩",
+        f"      (seg48{ladder.label.capitalize()}Bits rho) k 128 0 ⟨0, 1⟩",
         f"      ⟨rho {rungs[0].cur_x}, rho {rungs[0].cur_y}⟩ ∧",
         f"    EdwardsBridge.onCurve ({prefix}AccState rho 128) := by",
         "  have hbitAt : ∀ i, i < 128 →",
         f"      rho ({ladder.bit_base} + i) = Bool.toZMod bits[i]! := by",
         "    intro i hi",
-        f"    rw [← seg52{ladder.label.capitalize()}Bits_get rho i hi, hbits]",
+        f"    rw [← seg48{ladder.label.capitalize()}Bits_get rho i hi, hbits]",
         "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),",
         "      getElem!_pos bits i (by simpa using hi), List.Vector.getElem_map]",
         "  have hstep : ∀ i, i < 128 →",
@@ -1343,15 +1343,15 @@ def emit_value_modules(
     seating: dict,
 ) -> dict[str, str]:
     modules = {
-        "NbAdapterSeg52ValueDefs": emit_value_defs_module(seating["value"]),
+        "NbAdapterSeg48ValueDefs": emit_value_defs_module(seating["value"]),
     }
     for ladder in VALUE_LADDERS:
         rungs = seating["value"][ladder.label]
         for chunk_index, subset in enumerate(value_chunks(rungs)):
-            modules[f"NbAdapterSeg52{ladder.label.capitalize()}R{chunk_index}"] = (
+            modules[f"NbAdapterSeg48{ladder.label.capitalize()}R{chunk_index}"] = (
                 emit_value_chunk(ladder, chunk_index, subset, seating["rows"])
             )
-        modules[f"NbAdapterSeg52{ladder.label.capitalize()}"] = (
+        modules[f"NbAdapterSeg48{ladder.label.capitalize()}"] = (
             emit_value_ladder(ladder, rungs)
         )
     return modules
@@ -1361,7 +1361,7 @@ BLIND_CHUNK_SIZE = 10
 
 
 def blind_delta_name(axis: str, index: int) -> str:
-    return f"seg52BlindDelta{axis}{index}"
+    return f"seg48BlindDelta{axis}{index}"
 
 
 def blind_chunks(
@@ -1377,9 +1377,9 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
     xs = [rung.acc_x for rung in rungs]
     ys = [rung.acc_y for rung in rungs]
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Base",
         "import ShielddGnarkFormal.Deployed.NetBalance.Ladder",
-        "import ShielddGnarkFormal.NbFixedGenSeg52",
+        "import ShielddGnarkFormal.NbFixedGenSeg48",
         "import ShielddGnarkFormal.NbFixedBaseLiteral",
         "import ShielddGnarkFormal.RvkFixedSplitRung",
         "import ShielddGnarkFormal.StructuredLC",
@@ -1392,25 +1392,25 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
         "",
     ]
     for axis, wires in (("X", xs), ("Y", ys)):
-        lines.append(f"def {blind_delta_name(axis, 0)} (_rho : Nat -> Seg52.F) : Seg52.F := 0")
+        lines.append(f"def {blind_delta_name(axis, 0)} (_rho : Nat -> Seg48.F) : Seg48.F := 0")
         for index in range(1, len(wires) + 1):
             lines.append(
-                f"def {blind_delta_name(axis, index)} (rho : Nat -> Seg52.F) : Seg52.F := "
-                f"{dtk.compact_wire_expr(0, wires[:index], 'Seg52.F')}"
+                f"def {blind_delta_name(axis, index)} (rho : Nat -> Seg48.F) : Seg48.F := "
+                f"{dtk.compact_wire_expr(0, wires[:index], 'Seg48.F')}"
             )
         lines.append("")
     lines += [
-        "def seg52BlindAccState (rho : Nat -> Seg52.F) : Nat -> EdwardsBridge.Point",
+        "def seg48BlindAccState (rho : Nat -> Seg48.F) : Nat -> EdwardsBridge.Point",
         "  | 0 => ⟨0, 1⟩",
-        "  | 1 => Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 50538)",
+        "  | 1 => Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 38906)",
     ]
     for state in range(2, 252):
         delta = state - 1
         lines.append(
-            f"  | {state} => ⟨(({NB_GX} : Seg52.F) * rho 50538 + "
-            f"{blind_delta_name('X', delta)} rho : Seg52.F), "
-            f"((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + "
-            f"{blind_delta_name('Y', delta)} rho : Seg52.F)⟩"
+            f"  | {state} => ⟨(({NB_GX} : Seg48.F) * rho 38906 + "
+            f"{blind_delta_name('X', delta)} rho : Seg48.F), "
+            f"((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + "
+            f"{blind_delta_name('Y', delta)} rho : Seg48.F)⟩"
         )
     lines += [
         "  | _ => ⟨0, 1⟩",
@@ -1424,7 +1424,7 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
 def emit_blind_projection(
     lines: list[str], k: int, keep_rows: set[int],
 ) -> None:
-    emit_value_row_projection(lines, f"seg52Blind_rows{k}", keep_rows)
+    emit_value_row_projection(lines, f"seg48Blind_rows{k}", keep_rows)
 
 
 def emit_blind_delta_step(
@@ -1459,36 +1459,36 @@ def emit_blind_fused_rung(
     keep = set(rung.block_rows) | {bit_row}
     emit_blind_projection(lines, k, keep)
     lines += [
-        f"theorem seg52Blind_rung{k} (rho : Nat -> Seg52.F) (h : Seg52.relation rho)",
+        f"theorem seg48Blind_rung{k} (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
         f"    (bit : Bool) (hbitValue : rho {rung.bit} = Bool.toZMod bit)",
-        f"    (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho {k})) :",
+        f"    (hacc : EdwardsBridge.onCurve (seg48BlindAccState rho {k})) :",
         "    Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel",
-        f"      {k} (Bool.toZMod bit) (seg52BlindAccState rho {k})",
-        f"      (seg52BlindAccState rho {k + 1}) := by",
-        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(keep))}⟩ := seg52Blind_rows{k} rho h",
+        f"      {k} (Bool.toZMod bit) (seg48BlindAccState rho {k})",
+        f"      (seg48BlindAccState rho {k + 1}) := by",
+        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(keep))}⟩ := seg48Blind_rows{k} rho h",
     ]
     for row in sorted(keep):
         dtk.emit_row_unfold(lines, cfg, row)
     emit_blind_delta_step(lines, rungs, k)
     previous = k - 1
     if k == 1:
-        # Arm 1 of seg52BlindAccState is `seedAcc (rho 50538)`; `x + DeltaX0`
+        # Arm 1 of seg48BlindAccState is `seedAcc (rho 38906)`; `x + DeltaX0`
         # (i.e. `x + 0`) is not defeq for opaque ZMod terms, so state the
         # acc1-shaped pair without the zero delta.
         prev_pair = [
-            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 50538 : Seg52.F),",
-            f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 : Seg52.F)⟩",
+            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg48.F) * rho 38906 : Seg48.F),",
+            f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 : Seg48.F)⟩",
         ]
     else:
         prev_pair = [
-            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 50538 + {blind_delta_name('X', previous)} rho : Seg52.F),",
-            f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + {blind_delta_name('Y', previous)} rho : Seg52.F)⟩",
+            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg48.F) * rho 38906 + {blind_delta_name('X', previous)} rho : Seg48.F),",
+            f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + {blind_delta_name('Y', previous)} rho : Seg48.F)⟩",
         ]
     lines += [
         f"  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel {k}",
         *prev_pair,
-        f"    ⟨(({NB_GX} : Seg52.F) * rho 50538 + {blind_delta_name('X', k)} rho : Seg52.F),",
-        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + {blind_delta_name('Y', k)} rho : Seg52.F)⟩",
+        f"    ⟨(({NB_GX} : Seg48.F) * rho 38906 + {blind_delta_name('X', k)} rho : Seg48.F),",
+        f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + {blind_delta_name('Y', k)} rho : Seg48.F)⟩",
         # k=1: next-state deltas are single wires, defeq by delta unfold; the
         # hnext rewrites would introduce a non-defeq `Delta0 + wire` shape.
         ("  rw [← hbitValue]" if k == 1 else "  rw [hnextx, hnexty, ← hbitValue]"),
@@ -1498,7 +1498,7 @@ def emit_blind_fused_rung(
     sx = singleton_wire(rows[r_add_x][0])
     sy = singleton_wire(rows[r_add_y][0])
     theorem = "rung1" if k == 1 else f"rung{k}_wide"
-    args = ["(rho 50538)", f"(rho {rung.bit})"]
+    args = ["(rho 38906)", f"(rho {rung.bit})"]
     if k > 1:
         args += [
             f"({blind_delta_name('X', previous)} rho)",
@@ -1512,7 +1512,7 @@ def emit_blind_fused_rung(
 
     both = f"{blind_delta_name('X', previous)} {blind_delta_name('Y', previous)}"
     lines += [
-        f"  apply Shieldd.GnarkFormal.NbFixedGenSeg52.{theorem} {' '.join(args)} hacc",
+        f"  apply Shieldd.GnarkFormal.NbFixedGenSeg48.{theorem} {' '.join(args)} hacc",
         *seat(r_v2, both),
         *seat(r_add_x, both),
         *seat(r_add_y, both),
@@ -1532,13 +1532,13 @@ def emit_blind_split_rung(
     keep = set(cert.rows) | {bit_row}
     emit_blind_projection(lines, k, keep)
     lines += [
-        f"theorem seg52Blind_rung{k} (rho : Nat -> Seg52.F) (h : Seg52.relation rho)",
+        f"theorem seg48Blind_rung{k} (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
         f"    (bit : Bool) (hbitValue : rho {cert.bit} = Bool.toZMod bit)",
-        f"    (hacc : EdwardsBridge.onCurve (seg52BlindAccState rho {k})) :",
+        f"    (hacc : EdwardsBridge.onCurve (seg48BlindAccState rho {k})) :",
         "    Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel",
-        f"      {k} (Bool.toZMod bit) (seg52BlindAccState rho {k})",
-        f"      (seg52BlindAccState rho {k + 1}) := by",
-        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(keep))}⟩ := seg52Blind_rows{k} rho h",
+        f"      {k} (Bool.toZMod bit) (seg48BlindAccState rho {k})",
+        f"      (seg48BlindAccState rho {k + 1}) := by",
+        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(keep))}⟩ := seg48Blind_rows{k} rho h",
     ]
     for row in sorted(keep):
         dtk.emit_row_unfold(lines, cfg, row)
@@ -1548,25 +1548,25 @@ def emit_blind_split_rung(
     dy = f"{blind_delta_name('Y', previous)} rho"
     lines += [
         f"  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel {k}",
-        f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg52.F) * rho 50538 + {dx} : Seg52.F),",
-        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + {dy} : Seg52.F)⟩",
-        f"    ⟨(({NB_GX} : Seg52.F) * rho 50538 + {blind_delta_name('X', k)} rho : Seg52.F),",
-        f"      ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538 + {blind_delta_name('Y', k)} rho : Seg52.F)⟩",
+        f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg48.F) * rho 38906 + {dx} : Seg48.F),",
+        f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + {dy} : Seg48.F)⟩",
+        f"    ⟨(({NB_GX} : Seg48.F) * rho 38906 + {blind_delta_name('X', k)} rho : Seg48.F),",
+        f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + {blind_delta_name('Y', k)} rho : Seg48.F)⟩",
         "  rw [hnextx, hnexty, ← hbitValue]",
         # splitRung_stepRel's select-Y third arg is left-associated
         # ((1+g*b0+d1y) + sdy); reassociate the goal to match.
-        f"  rw [← add_assoc ((1 : Seg52.F) + ({NB_GYM1} : Seg52.F) * rho 50538)",
+        f"  rw [← add_assoc ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906)",
         f"    ({dy}) (rho {cert.sdy})]",
         "  exact Shieldd.GnarkFormal.RvkFixedSplitRung.splitRung_stepRel",
         f"    (Shieldd.GnarkFormal.Deployed.NetBalance.Cb {k})",
-        f"    ({NB_GX} : Seg52.F) ({NB_GYM1} : Seg52.F)",
-        f"    ({cert.ak_x} : Seg52.F) ({cert.ak_y} : Seg52.F)",
-        f"    ({cert.ev} : Seg52.F) ({cert.kv} : Seg52.F)",
-        f"    ({cert.la} : Seg52.F) ({cert.lb} : Seg52.F)",
-        f"    ({cert.rb} : Seg52.F) ({cert.cc} : Seg52.F)",
-        f"    ({cert.px} : Seg52.F) ({cert.py} : Seg52.F)",
-        f"    ({cert.qb0} : Seg52.F) ({cert.neg_gx} : Seg52.F) ({cert.neg_gym1} : Seg52.F)",
-        f"    (rho 50538) ({dx}) ({dy}) (rho {cert.bit})",
+        f"    ({NB_GX} : Seg48.F) ({NB_GYM1} : Seg48.F)",
+        f"    ({cert.ak_x} : Seg48.F) ({cert.ak_y} : Seg48.F)",
+        f"    ({cert.ev} : Seg48.F) ({cert.kv} : Seg48.F)",
+        f"    ({cert.la} : Seg48.F) ({cert.lb} : Seg48.F)",
+        f"    ({cert.rb} : Seg48.F) ({cert.cc} : Seg48.F)",
+        f"    ({cert.px} : Seg48.F) ({cert.py} : Seg48.F)",
+        f"    ({cert.qb0} : Seg48.F) ({cert.neg_gx} : Seg48.F) ({cert.neg_gym1} : Seg48.F)",
+        f"    (rho 38906) ({dx}) ({dy}) (rho {cert.bit})",
         f"    (rho {cert.i67}) (rho {cert.i68}) (rho {cert.i69}) (rho {cert.i71})",
         f"    (rho {cert.out_x}) (rho {cert.out_y}) (rho {cert.sdx}) (rho {cert.sdy}) hacc",
         f"    (Shieldd.GnarkFormal.Deployed.NetBalance.Cb_onCurve {k})",
@@ -1595,7 +1595,7 @@ def emit_blind_chunk(
     rungs: tuple[BlindRung, ...], rows: list[tuple[Lc, Lc, Lc]],
 ) -> str:
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52BlindDefs",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48BlindDefs",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
@@ -1612,21 +1612,21 @@ def emit_blind_chunk(
             emit_blind_fused_rung(lines, rungs, k, rows)
     lo, hi = subset[0].index + 1, subset[-1].index + 2
     lines += [
-        f"theorem seg52Blind_hstep_c{chunk_index} (rho : Nat -> Seg52.F)",
-        "    (h : Seg52.relation rho) (bits : List.Vector Bool 251)",
-        "    (hbitAt : ∀ i, i < 251 → rho (50538 + i) = Bool.toZMod bits[i]!) :",
+        f"theorem seg48Blind_hstep_c{chunk_index} (rho : Nat -> Seg48.F)",
+        "    (h : Seg48.relation rho) (bits : List.Vector Bool 251)",
+        "    (hbitAt : ∀ i, i < 251 → rho (38906 + i) = Bool.toZMod bits[i]!) :",
         f"    ∀ i, {lo} ≤ i → i < {hi} →",
-        "      EdwardsBridge.onCurve (seg52BlindAccState rho i) →",
+        "      EdwardsBridge.onCurve (seg48BlindAccState rho i) →",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i",
-        "        (Bool.toZMod bits[i]!) (seg52BlindAccState rho i)",
-        "        (seg52BlindAccState rho (i + 1)) := by",
+        "        (Bool.toZMod bits[i]!) (seg48BlindAccState rho i)",
+        "        (seg48BlindAccState rho (i + 1)) := by",
         "  intro i hlo hhi hacc",
         "  interval_cases i",
     ]
     for rung in subset:
         k = rung.index + 1
         lines.append(
-            f"  · exact seg52Blind_rung{k} rho h bits[{k}]! "
+            f"  · exact seg48Blind_rung{k} rho h bits[{k}]! "
             f"(hbitAt {k} (by omega)) hacc"
         )
     lines += ["", "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
@@ -1637,7 +1637,7 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
     chunks = blind_chunks(rungs)
     lines = [
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52BlindR{index}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48BlindR{index}"
             for index in range(len(chunks))
         ],
         "",
@@ -1647,35 +1647,35 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        "theorem seg52Blind_ladder (rho : Nat -> Seg52.F) (h : Seg52.relation rho)",
+        "theorem seg48Blind_ladder (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
         "    (bits : List.Vector Bool 251)",
-        "    (hbits : seg52BlindBits rho = bits.map Bool.toZMod)",
-        "    (k : List.Vector Seg52.F 4 → Prop)",
-        "    (hk : k vec![(seg52BlindAccState rho 251).x,",
-        "      (seg52BlindAccState rho 251).y,",
+        "    (hbits : seg48BlindBits rho = bits.map Bool.toZMod)",
+        "    (k : List.Vector Seg48.F 4 → Prop)",
+        "    (hk : k vec![(seg48BlindAccState rho 251).x,",
+        "      (seg48BlindAccState rho 251).y,",
         "      (Shieldd.GnarkFormal.Deployed.NetBalance.Cb 251).x,",
         "      (Shieldd.GnarkFormal.Deployed.NetBalance.Cb 251).y]) :",
         "    Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbLadderK",
-        "      (seg52BlindBits rho) k 251 0 ⟨0, 1⟩",
+        "      (seg48BlindBits rho) k 251 0 ⟨0, 1⟩",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.blindGen ∧",
-        "    EdwardsBridge.onCurve (seg52BlindAccState rho 251) := by",
+        "    EdwardsBridge.onCurve (seg48BlindAccState rho 251) := by",
         "  have hbitAt : ∀ i, i < 251 →",
-        "      rho (50538 + i) = Bool.toZMod bits[i]! := by",
+        "      rho (38906 + i) = Bool.toZMod bits[i]! := by",
         "    intro i hi",
-        "    rw [← seg52BlindBits_get rho i hi, hbits]",
+        "    rw [← seg48BlindBits_get rho i hi, hbits]",
         "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),",
         "      getElem!_pos bits i (by simpa using hi), List.Vector.getElem_map]",
         "  have hstep : ∀ i, i < 251 →",
-        "      EdwardsBridge.onCurve (seg52BlindAccState rho i) →",
+        "      EdwardsBridge.onCurve (seg48BlindAccState rho i) →",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i",
-        "        (Bool.toZMod bits[i]!) (seg52BlindAccState rho i)",
-        "        (seg52BlindAccState rho (i + 1)) := by",
+        "        (Bool.toZMod bits[i]!) (seg48BlindAccState rho i)",
+        "        (seg48BlindAccState rho (i + 1)) := by",
         "    intro i hi hacc",
         "    by_cases hzero : i = 0",
         "    · subst i",
-        "      have hb0 : rho 50538 = Bool.toZMod bits[0]! := by",
+        "      have hb0 : rho 38906 = Bool.toZMod bits[0]! := by",
         "        simpa using hbitAt 0 (by omega)",
-        "      simpa [seg52BlindAccState, hb0] using",
+        "      simpa [seg48BlindAccState, hb0] using",
         "        (Shieldd.GnarkFormal.Deployed.NetBalance.seedStepRel bits[0]!)",
         "    ·",
     ]
@@ -1684,24 +1684,24 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
         lo_arg = "(by omega)" if chunk_index == 0 else f"hb{chunk_index - 1}"
         if chunk_index == len(chunks) - 1:
             lines.append(
-                f"      exact seg52Blind_hstep_c{chunk_index} rho h bits hbitAt i "
+                f"      exact seg48Blind_hstep_c{chunk_index} rho h bits hbitAt i "
                 f"{lo_arg} hi hacc"
             )
         else:
             lines += [
                 f"      rcases Nat.lt_or_ge i {hi_c} with hb{chunk_index}|hb{chunk_index}",
-                f"      · exact seg52Blind_hstep_c{chunk_index} rho h bits hbitAt i "
+                f"      · exact seg48Blind_hstep_c{chunk_index} rho h bits hbitAt i "
                 f"{lo_arg} hb{chunk_index} hacc",
             ]
     lines += [
         "  constructor",
         "  · rw [hbits]",
         "    apply Shieldd.GnarkFormal.Deployed.NetBalance.fixedTrace_to_nbLadderK",
-        "      bits k (seg52BlindAccState rho) hstep (by intro _; exact hk)",
+        "      bits k (seg48BlindAccState rho) hstep (by intro _; exact hk)",
         "      251 0 (by omega)",
         "    exact EdwardsBridge.identity_onCurve",
         "  · exact Shieldd.GnarkFormal.Deployed.NetBalance.fixedTrace_final_onCurve",
-        "      bits (seg52BlindAccState rho) hstep EdwardsBridge.identity_onCurve",
+        "      bits (seg48BlindAccState rho) hstep EdwardsBridge.identity_onCurve",
         "",
         "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
@@ -1711,12 +1711,12 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
 
 def emit_blind_modules(seating: dict) -> dict[str, str]:
     rungs = seating["blind"]
-    modules = {"NbAdapterSeg52BlindDefs": emit_blind_defs_module(rungs)}
+    modules = {"NbAdapterSeg48BlindDefs": emit_blind_defs_module(rungs)}
     for chunk_index, subset in enumerate(blind_chunks(rungs)):
-        modules[f"NbAdapterSeg52BlindR{chunk_index}"] = emit_blind_chunk(
+        modules[f"NbAdapterSeg48BlindR{chunk_index}"] = emit_blind_chunk(
             chunk_index, subset, rungs, seating["rows"]
         )
-    modules["NbAdapterSeg52Blind"] = emit_blind_ladder(rungs)
+    modules["NbAdapterSeg48Blind"] = emit_blind_ladder(rungs)
     return modules
 
 
@@ -1730,7 +1730,7 @@ def emit_to_binary_module(
         raise ValueError(f"{label}: {len(rows)} booleanity rows for width {width}")
     block = dtk.CanonicalBlock(label, input_wire, bit_base, bit_rows[0], rec_row, rec_row + 1)
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Base",
         "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon",
         "import ShielddGnarkFormal.RvkToBinary",
         "",
@@ -1740,12 +1740,12 @@ def emit_to_binary_module(
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        f"theorem {bits_name}_toBinary (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :",
+        f"theorem {bits_name}_toBinary (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
         f"    GatesDef.to_binary (rho {input_wire}) {width} ({bits_name} rho) := by",
     ]
     dtk.emit_unpack(lines, cfg, set(rows + [rec_row]))
     for row in rows:
-        lines.append(f"  unfold Seg52.relationRow{row} at r{row}\n")
+        lines.append(f"  unfold Seg48.relationRow{row} at r{row}\n")
     dtk.emit_recomposition(lines, cfg, block, f"({bits_name} rho)", f"r{rec_row}", width)
     lines += [
         f"  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho {input_wire}) ({bits_name} rho)",
@@ -1772,13 +1772,13 @@ def emit_to_binary_module(
 def emit_to_binary_modules() -> dict[str, str]:
     modules = {}
     for ladder in VALUE_LADDERS:
-        name = f"seg52{ladder.label.capitalize()}Bits"
-        modules[f"NbAdapterSeg52{ladder.label.capitalize()}Bits"] = emit_to_binary_module(
+        name = f"seg48{ladder.label.capitalize()}Bits"
+        modules[f"NbAdapterSeg48{ladder.label.capitalize()}Bits"] = emit_to_binary_module(
             ladder.label.capitalize(), name, ladder.bit_base, 128,
             ladder.binary_rows, ladder.copy_row, ladder.amount_wire,
         )
-    modules["NbAdapterSeg52BlindBits"] = emit_to_binary_module(
-        "Blind", "seg52BlindBits", BLIND_BIT_BASE, 251,
+    modules["NbAdapterSeg48BlindBits"] = emit_to_binary_module(
+        "Blind", "seg48BlindBits", BLIND_BIT_BASE, 251,
         BLIND_BINARY_ROWS, BLIND_COPY_ROW, BLIND_WIRE,
     )
     return modules
@@ -1788,10 +1788,10 @@ def emit_adds() -> str:
     cfg = configure_contract_helpers()
     rows = [*range(4990, 4996), *range(6783, 6789), *range(8595, 8601)]
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52In0",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52In1",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Out0",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Blind",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48In0",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48In1",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Out0",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Blind",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
@@ -1830,14 +1830,14 @@ def emit_adds() -> str:
         p, q, out = pt(p), pt(q), pt(out)
         # p/q stay projection-form so h0–h2 leaves are homogeneous; out is
         # always a literal pair, and its components sit next to numerals in
-        # h4/h5, so they must be the raw Seg52.F wires.
+        # h4/h5, so they must be the raw Seg48.F wires.
         px, py = f"({p}).x", f"({p}).y"
         qx, qy = f"({q}).x", f"({q}).y"
         rx, ry = rc if rc else (f"({out}).x", f"({out}).y")
         lines.extend([
-            f"theorem {name} (rho : Nat -> Seg52.F) (h : Seg52.relation rho)",
+            f"theorem {name} (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
             f"    (hp : EdwardsBridge.onCurve ({p})) (hq : EdwardsBridge.onCurve ({q}))" +
-            (" :" if final else " (k : Seg52.F -> Seg52.F -> Prop) (hk : k " + rx + " " + ry + ") :"),
+            (" :" if final else " (k : Seg48.F -> Seg48.F -> Prop) (hk : k " + rx + " " + ry + ") :"),
             ("    EdwardsBridge.addSpec (" + p + ") (" + q + ") (" + out + ") := by") if final else
             ("    Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbAddK " +
              px + " " + py + " " + qx + " " + qy + " k ∧\n" +
@@ -1853,9 +1853,9 @@ def emit_adds() -> str:
             f"  have h0 : ({px} + {py}) * ({qx} + {qy}) = rho {t0} := by",
             f"  have h1 : {px} * {qy} = rho {t1} := by",
             f"  have h2 : {py} * {qx} = rho {t2} := by",
-            f"  have h3 : (3021 : Seg52.F) * rho {t1} * rho {t2} = rho {t3} := by",
-            f"  have h4 : {rx} * ((1 : Seg52.F) + rho {t3}) = rho {t1} + rho {t2} := by",
-            f"  have h5 : {ry} * ((1 : Seg52.F) - rho {t3}) = rho {t0} - rho {t1} - rho {t2} := by",
+            f"  have h3 : (3021 : Seg48.F) * rho {t1} * rho {t2} = rho {t3} := by",
+            f"  have h4 : {rx} * ((1 : Seg48.F) + rho {t3}) = rho {t1} + rho {t2} := by",
+            f"  have h5 : {ry} * ((1 : Seg48.F) - rho {t3}) = rho {t0} - rho {t1} - rho {t2} := by",
         ]
         for index, head in enumerate(eqs):
             lines.append(head)
@@ -1866,10 +1866,10 @@ def emit_adds() -> str:
                 # sum above p; ring works over ZZ, so discharge the p-multiple
                 # residual with a decided characteristic fact.
                 lines.extend([
-                    "    have hchar : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg52.F) = 0 := by decide",
+                    "    have hchar : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg48.F) = 0 := by decide",
                     f"    first",
-                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} + (({p_sum}) * rho 50538) * hchar",
-                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} - (({p_sum}) * rho 50538) * hchar",
+                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} + (({p_sum}) * rho 38906) * hchar",
+                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} - (({p_sum}) * rho 38906) * hchar",
                 ])
             else:
                 lines.append(f"    linear_combination r{row0 + index}")
@@ -1888,25 +1888,25 @@ def emit_adds() -> str:
         lines.append("")
 
     theorem(
-        "seg52_add_inputs", 4350,
-        "seg52In0AccState rho 128", "seg52In1AccState rho 128", "⟨rho 48744, rho 48745⟩",
-        (48740, 48741, 48742, 48743),
-        ["seg52In0AccState", "seg52In0AccX128", "seg52In0AccY128",
-         "seg52In1AccState", "seg52In1AccX128", "seg52In1AccY128"],
+        "seg48_add_inputs", 4350,
+        "seg48In0AccState rho 128", "seg48In1AccState rho 128", "⟨rho 37112, rho 37113⟩",
+        (37108, 37109, 37110, 37111),
+        ["seg48In0AccState", "seg48In0AccX128", "seg48In0AccY128",
+         "seg48In1AccState", "seg48In1AccX128", "seg48In1AccY128"],
     )
     theorem(
-        "seg52_add_output", 6143, "⟨rho 48744, rho 48745⟩",
-        "⟨-(seg52Out0AccState rho 128).x, (seg52Out0AccState rho 128).y⟩",
-        "⟨rho 50536, rho 50537⟩", (50532, 50533, 50534, 50535),
-        ["seg52Out0AccState", "seg52Out0AccX128", "seg52Out0AccY128"],
+        "seg48_add_output", 6143, "⟨rho 37112, rho 37113⟩",
+        "⟨-(seg48Out0AccState rho 128).x, (seg48Out0AccState rho 128).y⟩",
+        "⟨rho 38904, rho 38905⟩", (38900, 38901, 38902, 38903),
+        ["seg48Out0AccState", "seg48Out0AccX128", "seg48Out0AccY128"],
     )
     theorem(
-        "seg52_final_addSpec", 7955, "⟨rho 50536, rho 50537⟩",
-        "seg52BlindAccState rho 251", "⟨rho 52347, rho 52348⟩",
-        (52343, 52344, 52345, 52346),
-        ["seg52BlindAccState", "seg52BlindDeltaX250", "seg52BlindDeltaY250"],
+        "seg48_final_addSpec", 7955, "⟨rho 38904, rho 38905⟩",
+        "seg48BlindAccState rho 251", "⟨rho 40715, rho 40716⟩",
+        (40711, 40712, 40713, 40714),
+        ["seg48BlindAccState", "seg48BlindDeltaX250", "seg48BlindDeltaY250"],
         final=True,
-        sum_wire_row=7954, p_sum="rho 50536 + rho 50537",
+        sum_wire_row=7954, p_sum="rho 38904 + rho 38905",
     )
     lines += ["end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
     return "\n".join(lines)
@@ -1914,12 +1914,12 @@ def emit_adds() -> str:
 
 def emit_top() -> str:
     return f"""import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Nb
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52EncodePost
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Adds
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52In0Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52In1Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52Out0Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg52BlindBits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48EncodePost
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Adds
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48In0Bits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48In1Bits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Out0Bits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48BlindBits
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -1929,95 +1929,95 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 
 open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
 
-theorem seg52_nbBody (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    nbBody (rho 45162) (rho 45164) (rho 15) (rho 105) (rho 193) (rho 5)
-      (rho 52347) (rho 52348) := by
-  have hbase := seg52_value_base_onCurve rho h
-  have hIn0Bin := seg52In0Bits_toBinary rho h
-  have hIn1Bin := seg52In1Bits_toBinary rho h
-  have hOut0Bin := seg52Out0Bits_toBinary rho h
-  have hBlindBin := seg52BlindBits_toBinary rho h
+theorem seg48_nbBody (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :
+    nbBody (rho 33530) (rho 33532) (rho 15) (rho 105) (rho 193) (rho 5)
+      (rho 40715) (rho 40716) := by
+  have hbase := seg48_value_base_onCurve rho h
+  have hIn0Bin := seg48In0Bits_toBinary rho h
+  have hIn1Bin := seg48In1Bits_toBinary rho h
+  have hOut0Bin := seg48Out0Bits_toBinary rho h
+  have hBlindBin := seg48BlindBits_toBinary rho h
   obtain ⟨in0Bool, hIn0Eq⟩ := is_vector_binary_iff_exists_bool_vec.mp hIn0Bin.2
   obtain ⟨in1Bool, hIn1Eq⟩ := is_vector_binary_iff_exists_bool_vec.mp hIn1Bin.2
   obtain ⟨out0Bool, hOut0Eq⟩ := is_vector_binary_iff_exists_bool_vec.mp hOut0Bin.2
   obtain ⟨blindBool, hBlindEq⟩ := is_vector_binary_iff_exists_bool_vec.mp hBlindBin.2
-  have hP1On := (seg52In0_ladder rho h in0Bool hIn0Eq (fun _ => True)
+  have hP1On := (seg48In0_ladder rho h in0Bool hIn0Eq (fun _ => True)
     True.intro hbase).2
-  have hP2On := (seg52In1_ladder rho h in1Bool hIn1Eq (fun _ => True)
+  have hP2On := (seg48In1_ladder rho h in1Bool hIn1Eq (fun _ => True)
     True.intro hbase).2
-  have hP3On := (seg52Out0_ladder rho h out0Bool hOut0Eq (fun _ => True)
+  have hP3On := (seg48Out0_ladder rho h out0Bool hOut0Eq (fun _ => True)
     True.intro hbase).2
-  have hAdd1 := (seg52_add_inputs rho h hP1On hP2On (fun _ _ => True) True.intro).2
+  have hAdd1 := (seg48_add_inputs rho h hP1On hP2On (fun _ _ => True) True.intro).2
   have hA1Eq := EdwardsBridge.addSpec_eq
-    (seg52In0AccState rho 128) (seg52In1AccState rho 128)
-    ⟨rho 48744, rho 48745⟩ hP1On hP2On hAdd1
-  have hA1On : EdwardsBridge.onCurve ⟨rho 48744, rho 48745⟩ :=
+    (seg48In0AccState rho 128) (seg48In1AccState rho 128)
+    ⟨rho 37112, rho 37113⟩ hP1On hP2On hAdd1
+  have hA1On : EdwardsBridge.onCurve ⟨rho 37112, rho 37113⟩ :=
     hA1Eq ▸ EdwardsBridge.add_onCurve _ _ hP1On hP2On
   have hNegOn : EdwardsBridge.onCurve
-      ⟨-(seg52Out0AccState rho 128).x, (seg52Out0AccState rho 128).y⟩ := by
+      ⟨-(seg48Out0AccState rho 128).x, (seg48Out0AccState rho 128).y⟩ := by
     simpa [EdwardsBridge.negF] using
-      EdwardsBridge.neg_onCurve (seg52Out0AccState rho 128) hP3On
-  have hAdd2 := (seg52_add_output rho h hA1On hNegOn (fun _ _ => True) True.intro).2
-  have hA2Eq := EdwardsBridge.addSpec_eq ⟨rho 48744, rho 48745⟩
-    ⟨-(seg52Out0AccState rho 128).x, (seg52Out0AccState rho 128).y⟩
-    ⟨rho 50536, rho 50537⟩ hA1On hNegOn hAdd2
-  have hA2On : EdwardsBridge.onCurve ⟨rho 50536, rho 50537⟩ :=
+      EdwardsBridge.neg_onCurve (seg48Out0AccState rho 128) hP3On
+  have hAdd2 := (seg48_add_output rho h hA1On hNegOn (fun _ _ => True) True.intro).2
+  have hA2Eq := EdwardsBridge.addSpec_eq ⟨rho 37112, rho 37113⟩
+    ⟨-(seg48Out0AccState rho 128).x, (seg48Out0AccState rho 128).y⟩
+    ⟨rho 38904, rho 38905⟩ hA1On hNegOn hAdd2
+  have hA2On : EdwardsBridge.onCurve ⟨rho 38904, rho 38905⟩ :=
     hA2Eq ▸ EdwardsBridge.add_onCurve _ _ hA1On hNegOn
-  have hBlindOn := (seg52Blind_ladder rho h blindBool hBlindEq (fun _ => True)
+  have hBlindOn := (seg48Blind_ladder rho h blindBool hBlindEq (fun _ => True)
     True.intro).2
-  have hFinalAdd := seg52_final_addSpec rho h hA2On hBlindOn
-  have hOutEq := EdwardsBridge.addSpec_eq ⟨rho 50536, rho 50537⟩
-    (seg52BlindAccState rho 251) ⟨rho 52347, rho 52348⟩
+  have hFinalAdd := seg48_final_addSpec rho h hA2On hBlindOn
+  have hOutEq := EdwardsBridge.addSpec_eq ⟨rho 38904, rho 38905⟩
+    (seg48BlindAccState rho 251) ⟨rho 40715, rho 40716⟩
     hA2On hBlindOn hFinalAdd
-  have hOutOn : EdwardsBridge.onCurve ⟨rho 52347, rho 52348⟩ :=
+  have hOutOn : EdwardsBridge.onCurve ⟨rho 40715, rho 40716⟩ :=
     hOutEq ▸ EdwardsBridge.add_onCurve _ _ hA2On hBlindOn
-  have hFinalK : nbFinalK (rho 50536) (rho 50537)
-      (seg52BlindAccState rho 251).x (seg52BlindAccState rho 251).y
-      (rho 52347) (rho 52348) :=
-    nbFinalK_of_addSpec ⟨rho 50536, rho 50537⟩ (seg52BlindAccState rho 251)
-      ⟨rho 52347, rho 52348⟩ hFinalAdd hOutOn
+  have hFinalK : nbFinalK (rho 38904) (rho 38905)
+      (seg48BlindAccState rho 251).x (seg48BlindAccState rho 251).y
+      (rho 40715) (rho 40716) :=
+    nbFinalK_of_addSpec ⟨rho 38904, rho 38905⟩ (seg48BlindAccState rho 251)
+      ⟨rho 40715, rho 40716⟩ hFinalAdd hOutOn
   unfold nbBody
-  refine ⟨seg52In0Bits rho, hIn0Bin, ?_⟩
-  refine (seg52In0_ladder rho h in0Bool hIn0Eq _ ?_ hbase).1
-  refine ⟨seg52In1Bits rho, hIn1Bin, ?_⟩
-  refine (seg52In1_ladder rho h in1Bool hIn1Eq _ ?_ hbase).1
-  refine ⟨seg52Out0Bits rho, hOut0Bin, ?_⟩
-  refine (seg52Out0_ladder rho h out0Bool hOut0Eq _ ?_ hbase).1
-  refine nbAddK_of_addSpec ⟨0, 1⟩ (seg52In0AccState rho 128)
-    (seg52In0AccState rho 128) _ 
+  refine ⟨seg48In0Bits rho, hIn0Bin, ?_⟩
+  refine (seg48In0_ladder rho h in0Bool hIn0Eq _ ?_ hbase).1
+  refine ⟨seg48In1Bits rho, hIn1Bin, ?_⟩
+  refine (seg48In1_ladder rho h in1Bool hIn1Eq _ ?_ hbase).1
+  refine ⟨seg48Out0Bits rho, hOut0Bin, ?_⟩
+  refine (seg48Out0_ladder rho h out0Bool hOut0Eq _ ?_ hbase).1
+  refine nbAddK_of_addSpec ⟨0, 1⟩ (seg48In0AccState rho 128)
+    (seg48In0AccState rho 128) _ 
     (Shieldd.GnarkFormal.Deployed.NetBalance.identity_addSpec _) ?_
-  refine (seg52_add_inputs rho h hP1On hP2On _ ?_).1
-  refine ⟨-(seg52Out0AccState rho 128).x, ?_, ?_⟩
+  refine (seg48_add_inputs rho h hP1On hP2On _ ?_).1
+  refine ⟨-(seg48Out0AccState rho 128).x, ?_, ?_⟩
   · simp [Extracted.NetBalanceCommitment.Gates, GatesGnark9, GatesGnark8,
       GatesDef.neg]
-  refine (seg52_add_output rho h hA1On hNegOn _ ?_).1
-  refine ⟨seg52BlindBits rho, hBlindBin, ?_⟩
-  refine (seg52Blind_ladder rho h blindBool hBlindEq _ ?_).1
+  refine (seg48_add_output rho h hA1On hNegOn _ ?_).1
+  refine ⟨seg48BlindBits rho, hBlindBin, ?_⟩
+  refine (seg48Blind_ladder rho h blindBool hBlindEq _ ?_).1
   simpa using hFinalK
 
-theorem seg52_sound (rho : Nat -> Seg52.F) (h : Seg52.relation rho) :
-    Specs.deployedSpec52 rho := by
-  have hbody := seg52_nbBody rho h
-  have hpost := seg52_encode_post rho h
+theorem seg48_sound (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :
+    Specs.deployedSpec48 rho := by
+  have hbody := seg48_nbBody rho h
+  have hpost := seg48_encode_post rho h
     (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-      (rho 52347) (rho 52348)) hbody
-  have hpre := seg52_encode_pre rho h
-    (fun T YDen => nbEncodeSeg1K (rho 44799) T YDen
+      (rho 40715) (rho 40716)) hbody
+  have hpre := seg48_encode_pre rho h
+    (fun T YDen => nbEncodeSeg1K (rho 33167) T YDen
       (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-        (rho 52347) (rho 52348))) hpost
-  rw [seg52_poseidon_eq rho h] at hpre
+        (rho 40715) (rho 40716))) hpost
+  rw [seg48_poseidon_eq rho h] at hpre
   have hposeidon := (Shieldd.GnarkFormal.Poseidon1Bridge.perm1_uncps
-    ({POSEIDON_DOMAIN} : Seg52.F) (rho 16)
+    ({POSEIDON_DOMAIN} : Seg48.F) (rho 16)
     (fun gate_0 => Extracted.DecafEncodeToCurve.encodeSeg0 gate_0
-      (rho 44799) (rho 44800)
-      (fun T YDen => nbEncodeSeg1K (rho 44799) T YDen
+      (rho 33167) (rho 33168)
+      (fun T YDen => nbEncodeSeg1K (rho 33167) T YDen
         (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-          (rho 52347) (rho 52348))))).mpr hpre
+          (rho 40715) (rho 40716))))).mpr hpre
   have hcircuit := (nb_circuit_eq (rho 15) (rho 105) (rho 193) (rho 16)
-    (rho 5) (rho 44799) (rho 44800) (rho 52347) (rho 52348)).mpr hposeidon
+    (rho 5) (rho 33167) (rho 33168) (rho 40715) (rho 40716)).mpr hposeidon
   apply Shieldd.GnarkFormal.NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound
-    (rho 15) (rho 105) (rho 193) (rho 16) (rho 5) ⟨rho 52347, rho 52348⟩
-  exact ⟨rho 44799, rho 44800, hcircuit⟩
+    (rho 15) (rho 105) (rho 193) (rho 16) (rho 5) ⟨rho 40715, rho 40716⟩
+  exact ⟨rho 33167, rho 33168, hcircuit⟩
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 """
@@ -2038,13 +2038,13 @@ def main() -> None:
     seating = recover()
     poseidon_sboxes = generate_poseidon_shape()
     print("wrote net-balance Poseidon slice and semantic-bridge metadata")
-    (CONTRACTS / "NbAdapterSeg52Poseidon.lean").write_text(
+    (CONTRACTS / "NbAdapterSeg48Poseidon.lean").write_text(
         emit_poseidon_adapter(poseidon_sboxes)
     )
-    print("wrote seg52 Poseidon adapter")
-    (CONTRACTS / "NbAdapterSeg52EncodePre.lean").write_text(emit_encode_pre())
-    (CONTRACTS / "NbAdapterSeg52EncodePost.lean").write_text(emit_encode_post())
-    print("wrote seg52 encode adapters")
+    print("wrote seg48 Poseidon adapter")
+    (CONTRACTS / "NbAdapterSeg48EncodePre.lean").write_text(emit_encode_pre())
+    (CONTRACTS / "NbAdapterSeg48EncodePost.lean").write_text(emit_encode_post())
+    print("wrote seg48 encode adapters")
     for label, rungs in seating["value"].items():
         span = (rungs[0].select_x_row, rungs[-1].double_rows[-1])
         print(f"value ladder {label}: 128 rungs, rows {span[0]}..{span[1]}")
@@ -2054,23 +2054,23 @@ def main() -> None:
     literal = emit_fixed_base_literal(seating["rows"])
     (FORMAL / "NbFixedBaseLiteral.lean").write_text(literal)
     print(f"wrote NbFixedBaseLiteral.lean ({len(literal.splitlines())} lines)")
-    (CONTRACTS / "NbAdapterSeg52Base.lean").write_text(emit_base())
+    (CONTRACTS / "NbAdapterSeg48Base.lean").write_text(emit_base())
     for module, contents in emit_canonical_modules().items():
         (CONTRACTS / f"{module}.lean").write_text(contents)
-    print("wrote seg52 base and canonical-chain modules")
+    print("wrote seg48 base and canonical-chain modules")
     for module, contents in emit_value_modules(seating).items():
         (CONTRACTS / f"{module}.lean").write_text(contents)
-    print("wrote seg52 value-ladder modules")
+    print("wrote seg48 value-ladder modules")
     for module, contents in emit_blind_modules(seating).items():
         (CONTRACTS / f"{module}.lean").write_text(contents)
-    print("wrote seg52 blinding-ladder modules")
+    print("wrote seg48 blinding-ladder modules")
     for module, contents in emit_to_binary_modules().items():
         (CONTRACTS / f"{module}.lean").write_text(contents)
-    print("wrote seg52 to-binary modules")
-    (CONTRACTS / "NbAdapterSeg52Adds.lean").write_text(emit_adds())
-    print("wrote seg52 add adapters")
-    (CONTRACTS / "NbAdapterSeg52.lean").write_text(emit_top())
-    print("wrote seg52 top adapter")
+    print("wrote seg48 to-binary modules")
+    (CONTRACTS / "NbAdapterSeg48Adds.lean").write_text(emit_adds())
+    print("wrote seg48 add adapters")
+    (CONTRACTS / "NbAdapterSeg48.lean").write_text(emit_top())
+    print("wrote seg48 top adapter")
 
 
 if __name__ == "__main__":

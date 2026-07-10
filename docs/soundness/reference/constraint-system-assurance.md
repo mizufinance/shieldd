@@ -227,6 +227,39 @@ theorem connecting "no under-constraint found" to `NO-DOUBLE-SPEND` /
 ACL2/Axe gadget theorems reach `proved` only in the gadget ledger, and property
 rows still require whole-circuit composition artifacts.
 
+## C2b — Determinism composition: per-leaf → whole circuit (consolidate2x1)
+
+*(absorbs `picus-composition-note.md`; frontier-reviewed 2026-07-06, accepted
+as supporting evidence, NOT promotable to a ledger/property row — the Lean
+deployed bridges remain the primary authority.)*
+
+All 24 leaf gadgets verify `properly constrained` (per-leaf verdicts +
+`picus-input-fingerprint` footers live in
+`shielded-pool/formal/.generated/constraints/*.picus.txt`; the whole-circuit
+run remains a killed attempt, C0). Determinism composes over an acyclic gadget
+graph: if each leaf's non-input wires are a function of its inputs and wiring
+is acyclic with one producer per wire, substitution along a topological order
+makes the whole circuit's witness a function of its inputs. That structural
+premise is mechanized, fail-closed, by the **gadget-wiring certificate**
+(`shieldd-constraint-coverage --wiring-cert-out`, pinned at
+`shielded-pool/formal/<circuit>-wiring-cert.json`): nodes = the 49 deployed
+instances, producer = the instance whose row range holds a wire's algebraic
+def row, checks = single-producer + Kahn acyclicity, with the emitted
+`topological_order` as witness. For consolidate2x1: 49 nodes, 20 edges,
+acyclic; 193 declared inputs, 13 635 internal-witness wires (uniqueness =
+that instance's per-leaf Picus verdict), and exactly 6 `shared_witness_wires`
+— the decaf point-coordinate seams (segments 13→14, 31→32, 52→53→54) jointly
+determined by a ladder and its following equivalence/compress constraint;
+those seams are precisely what the rvk/dtk/net-balance Lean bridges reason
+over, and the certificate enumerates them so the Picus/Lean boundary is
+auditable, not silent.
+
+Honest residue: per-wire uniqueness is Picus's job (leaf scope), cross-seam
+semantics is the Lean bridges' job, and the leaf→segment usage mapping is
+asserted by the 49/49 Lean coverage, not derived independently. Promotion to
+a property row is deferred until the whole-circuit run verifies or the
+composition itself is machine-checked end-to-end.
+
 ## Follow-Up Track C
 
 | Tool | Disposition | Reason |
@@ -332,18 +365,24 @@ labels plus bridge-theorem name strings, and emits per-segment constraint hashes
 `scripts/check-constraint-coverage.sh` binds the `.sr1cs`, manifest, coverage
 report, circuit metadata, and bundled verifying key.
 
-This is a partition/assignment gate, **not** a byte-level proof that each gadget
-segment equals its proved gadget. The check verifies every compiled row falls in
-exactly one declared segment and that non-gadget segments are constraint-free; it
-does **not** re-derive a gadget segment's rows from the proved gadget. That
-identity is currently trusted from the Go emitter's trace boundaries. Note the
-deployed gadgets are inlined *partial evaluations* of their standalone proved
-counterparts — e.g. `gadget-poseidon-hash6` is 436 constraints standalone but the
-inlined note-commitment instance is 430 with folded round constants — so the
-per-gadget `*Bridge.lean` proofs do not yet directly cover the deployed rows.
-Closing this requires either deploy-granularity extraction of each segment or a
-partial-evaluation check against the standalone gadget under declared constant
-inputs.
+This is a partition/assignment gate, **not** by itself a proof that each gadget
+segment equals its proved gadget. For circuits covered only by the standalone
+bridge composition (currently `transfer`), that identity is trusted from the Go
+emitter's trace boundaries, and the deployed gadgets are inlined *partial
+evaluations* of their standalone proved counterparts — e.g.
+`gadget-poseidon-hash6` is 436 constraints standalone but the inlined
+note-commitment instance is 430 with folded round constants — so the per-gadget
+`*Bridge.lean` proofs do not directly cover the deployed rows there.
+
+For `consolidate2x1` this gap is **closed** by the deployed raw-row proof
+architecture: each of the 49 compiled segments has a Lean relation extracted
+from the actual `.sr1cs` rows and discharged as an `inst*_bound` theorem, the
+capstone `consolidate2x1_deployed_sound` composes them, and `Statement.lean`
+projects the result onto the public statement. Trace boundaries there serve
+only as segment *labels*; the semantics are proved from the deployed rows
+themselves. Closing the same gap for `transfer` requires the same
+deploy-granularity extraction (or a partial-evaluation check against the
+standalone gadget under declared constant inputs).
 
 The Decaf377 boundary for these artifacts is now constraint-derived in Lean:
 compress, assert-equivalent, encode-to-curve, RVK, DTK, scalar ladders, Edwards

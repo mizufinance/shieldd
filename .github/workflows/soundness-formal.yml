@@ -101,6 +101,29 @@ jobs:
       - name: Manifest-pin tripwire (recompile R1CS, assert sr1cs_sha256_hex)
         run: bash scripts/check-manifest-pin.sh
 
+  # VK <-> .sr1cs derivation pinning: metadata pins match deployed key
+  # artifacts, verifying_key.json encodes verifying_key.bin, and the pinned
+  # source recompiles to a byte-identical .sr1cs. No --prove in CI (the
+  # prove+verify round trip is run locally per the playbook).
+  vk-derivation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        circuit: [consolidate2x1, transfer]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true # deployed key/.sr1cs artifacts are LFS-tracked
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/gnark/go.mod
+          cache-dependency-path: tools/gnark/go.sum
+      - name: VK derivation pinning (${{ matrix.circuit }})
+        run: bash scripts/check-vk-derivation.sh ${{ matrix.circuit }}
+
   # Alloy bounded-model outcome check on PRs (the same gate the nightly `provers`
   # job runs). Asserts every declared `check` is UNSAT and each `run show` is SAT
   # across all compliance models, including the two statement-sufficiency models.

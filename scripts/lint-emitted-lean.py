@@ -30,6 +30,12 @@ Rules (hard-fail unless noted):
       `def` state-dispatch tables (data, never simp-unfolded) are not proofs and
       are exempt.
 
+  R6  unbounded heartbeats.  `set_option maxHeartbeats 0` removes the only
+      kill switch on elaboration: a bad emission (e.g. stale wire ids feeding
+      a mismatch into unification) spins for hours at 100% CPU instead of
+      failing in seconds with a named declaration. Emitted modules must keep a
+      finite bound.
+
   R5  module size (WARNING by default).  Theorems-per-module over --max-theorems
       or olean over --max-olean-mb risks the 12GB machine-safety ceiling from
       cumulative environment growth. Promote to hard-fail with --size-hard once
@@ -278,6 +284,19 @@ def lint_file(path: Path, args) -> list[Finding]:
             findings += check_r1_fuel(text, rel, d)
             findings += check_r2_destructure(text, rel, d, args.max_destructure)
             findings += check_r4_match(text, rel, d, args.max_match_arms)
+
+    # R6 unbounded heartbeats.
+    for m in re.finditer(r"(?m)^\s*set_option maxHeartbeats 0\b", text):
+        findings.append(
+            Finding(
+                "R6",
+                rel,
+                _line_of(text, m.start()),
+                "«module»",
+                "set_option maxHeartbeats 0 removes the elaboration kill "
+                "switch; emitted modules must keep a finite bound",
+            )
+        )
 
     # R5 module size (warning unless --size-hard).
     n_thm = sum(1 for d in decls if d.kind in ("theorem", "lemma"))

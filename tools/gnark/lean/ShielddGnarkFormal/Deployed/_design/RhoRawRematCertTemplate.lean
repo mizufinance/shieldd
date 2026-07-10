@@ -1,7 +1,7 @@
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Tactic.LinearCombination
 set_option maxRecDepth 100000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 20000000
 namespace TemplateProto
 abbrev Order : ℕ := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order

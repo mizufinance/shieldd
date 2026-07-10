@@ -4,7 +4,7 @@ To run `pindexer`, you will need to create two postgres databases: one for the r
 
 `pindexer` will read from the raw data database and write to the compiled data database, but doing so also requires a local database of ABCI events to be present. The most straightforward way to create such a database is by following the devnet instructions in the [Shieldd Guide].
 
-[Shieldd Guide]: ../../../docs/guide/README.md
+[Shieldd Guide]: https://github.com/mizufinance/guide
 
 # macos 
 
