@@ -161,12 +161,15 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		outputCommitments = append(outputCommitments, commitment)
 	}
 
-	c.traceWiring("decaf.net_balance_commitment", "inputs=input_amounts", "outputs=output_amounts", "asset_id=shared.asset_id", "blinding=action_balance_blinding", "out=balance_commitment.computed")
-	balanceCommitmentPoint, err := computeTransferNetBalanceCommitment(
+	// NB-1: note_reshape is always conservation-exact (single asset ID shared
+	// by every spend/output, net value change is always zero), so the
+	// balance commitment collapses to a Sigma(in)=Sigma(out) assert plus the
+	// blinding ladder - no per-amount value-generator ladders are needed.
+	c.traceWiring("decaf.conservation_net_balance_commitment", "inputs=input_amounts", "outputs=output_amounts", "blinding=action_balance_blinding", "out=balance_commitment.computed")
+	balanceCommitmentPoint, err := computeConservationNetBalanceCommitment(
 		api,
 		inputAmounts,
 		outputAmounts,
-		sharedAssetID,
 		c.ActionBalanceBlinding,
 	)
 	if err != nil {

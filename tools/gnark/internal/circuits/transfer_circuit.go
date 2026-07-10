@@ -232,6 +232,61 @@ func computeTransferNetBalanceCommitment(
 	return curve.Add(sum, blindingPoint), nil
 }
 
+// computeConservationNetBalanceCommitment is NB-1: the net-balance
+// commitment for shapes that are conservation-exact by construction (every
+// note_reshape family: consolidate/split always net to zero value change on
+// a single shared asset ID). Sigma(inputAmounts) = Sigma(outputAmounts) is
+// asserted directly as one linear row instead of building the balance from
+// per-amount value-generator ladders (computeTransferNetBalanceCommitment),
+// and the commitment collapses to the blinding ladder alone - the correct
+// value when conservation holds, since the value terms cancel exactly.
+//
+// The per-amount api.ToBinary(amount, 128) calls are the ZK-ASSUME-AMOUNT-RANGE
+// enforcement carried over from the deleted ladders (load-bearing: without it
+// amounts could overflow the scalar field and falsify the Sigma(in)=Sigma(out)
+// assert); pinned by TestAmountRangeBoundIs128Bits and the parity test below.
+// transfer/ics20 keep computeTransferNetBalanceCommitment unchanged - their
+// net balance is not conservation-exact (fees, cross-chain amounts).
+func computeConservationNetBalanceCommitment(
+	api frontend.API,
+	inputAmounts []frontend.Variable,
+	outputAmounts []frontend.Variable,
+	blinding frontend.Variable,
+) (gnarkte.Point, error) {
+	vectors, err := LoadPrototypeVectors()
+	if err != nil {
+		return gnarkte.Point{}, err
+	}
+	curve, err := gnarkte.NewEdCurve(api, curves.BLS12_377)
+	if err != nil {
+		return gnarkte.Point{}, err
+	}
+	valueBlindingGenerator := gnarkte.Point{
+		X: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
+		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
+	}
+
+	sumIn := frontend.Variable(0)
+	for _, amount := range inputAmounts {
+		api.ToBinary(amount, 128)
+		sumIn = api.Add(sumIn, amount)
+	}
+	sumOut := frontend.Variable(0)
+	for _, amount := range outputAmounts {
+		api.ToBinary(amount, 128)
+		sumOut = api.Add(sumOut, amount)
+	}
+	api.AssertIsEqual(sumIn, sumOut)
+
+	return ScalarMulLE(
+		api,
+		curve,
+		valueBlindingGenerator,
+		blinding,
+		MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen(),
+	), nil
+}
+
 func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transferSharedContext, error) {
 	c.traceWiring(
 		"shared.bind",

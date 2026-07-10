@@ -57,7 +57,7 @@ shape n_in=2 n_out=1
 0043 decaf.assert_equivalent lhs=output0.note.transmission rhs=shared.transmission
 0044 assert.eq lhs=output0.note.asset_id rhs=shared.asset_id
 0045 output.collect output0 amount->output_amounts commitment->statement.output_commitments
-0046 decaf.net_balance_commitment inputs=input_amounts outputs=output_amounts asset_id=shared.asset_id blinding=action_balance_blinding out=balance_commitment.computed
+0046 decaf.conservation_net_balance_commitment inputs=input_amounts outputs=output_amounts blinding=action_balance_blinding out=balance_commitment.computed
 0047 decaf.assert_equivalent lhs=balance_commitment.computed rhs=claimed.balance_commitment
 0048 decaf.compress_to_field in=balance_commitment.computed out=balance_commitment.fq
 0049 statement.append field=anchor

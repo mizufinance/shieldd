@@ -179,17 +179,17 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "consolidate2x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(2) },
-			stats:   circuitStats{constraints: 42321, public: 2, secret: 199, internal: 40034},
+			stats:   circuitStats{constraints: 36553, public: 2, secret: 199, internal: 34439},
 		},
 		{
 			name:    "consolidate8x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(8) },
-			stats:   circuitStats{constraints: 129799, public: 2, secret: 739, internal: 124812},
+			stats:   circuitStats{constraints: 114047, public: 2, secret: 739, internal: 109233},
 		},
 		{
 			name:    "split1x8",
 			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
-			stats:   circuitStats{constraints: 44008, public: 2, secret: 179, internal: 42129},
+			stats:   circuitStats{constraints: 28256, public: 2, secret: 179, internal: 26550},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",

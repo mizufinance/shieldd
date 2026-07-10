@@ -332,6 +332,12 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 		return "gadget-dtk", "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound", true
 	case "decaf.net_balance_commitment":
 		return "gadget-net-balance-commitment2", "Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound", true
+	// NB-1 (Wave 2): conservation-exact note_reshape shapes no longer build
+	// their balance commitment from computeTransferNetBalanceCommitment's
+	// value ladders. Pending Phase 3 re-stamp: bridge theorem name below is
+	// the Phase-3 target, not yet landed in lean/.
+	case "decaf.conservation_net_balance_commitment":
+		return "gadget-conservation-net-balance-commitment", "Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound", true
 	case "decaf.ack":
 		return "gadget-ack-two-step", "Shieldd.GnarkFormal.AckBridge.ack_sound", true
 	case "decaf.shared_secret":
