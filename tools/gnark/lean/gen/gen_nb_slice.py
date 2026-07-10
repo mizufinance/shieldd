@@ -1996,7 +1996,7 @@ theorem seg48_nbBody (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :
   simpa using hFinalK
 
 theorem seg48_sound (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :
-    Specs.deployedSpec52 rho := by
+    Specs.deployedSpec48 rho := by
   have hbody := seg48_nbBody rho h
   have hpost := seg48_encode_post rho h
     (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
