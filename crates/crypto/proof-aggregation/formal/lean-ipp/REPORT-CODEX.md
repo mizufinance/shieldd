@@ -1563,3 +1563,389 @@ Builds: `lake build Ipp.FsGame` (3311 jobs) and `lake build Ipp.FsFork`
 (3312 jobs) green; sole remaining `sorry` = `tree_to_acceptTree` (the
 recursion), unchanged in role but its leaf obligation now follows from
 `leafData_to_base_components` + embedding injectivity + `foldCom_map`.
+
+## Design review (pre-final-proofs)
+
+Fresh-eyes read-only review against `DESIGN.md`, the current Lean statement
+surfaces, VCVio's oracle semantics, the Rust verifier, `ripp-spec.md`, and
+`SnarkpackOracle.lean`. No Lean build was needed: the findings below concern
+already-elaborated statement shapes and cross-model equations.
+
+### CRITICAL
+
+1. **`Ipp/Composition.lean:u4_randomizer_lift_pointwise`,
+   `u4_ppe_per_index`, and `u4_capstone`; DESIGN §U4 and §U5a/§U5e — the
+   `hgeneric` hypothesis is contradictory for every nontrivial aggregation.**
+   The hypothesis quantifies over *all* finite `Bbad : Set F` of cardinality at
+   most `n - 1` and concludes `r ∉ Bbad`. When `n ≥ 2`, instantiate it with
+   `{r}`: the set is finite, has cardinality one, and contains `r`. Thus
+   `u4_capstone` is vacuous for every `μ ≥ 1`, and no random-oracle union bound
+   can discharge it: the singleton `{r}` is chosen after seeing `r`. The U1
+   argument only needs avoidance of the one root set determined before `r` is
+   sampled. **Resolution:** expose the concrete discrepancy root set (or return
+   it from a preparatory lemma) and state `r ∉ rootSet d`; alternatively quantify
+   over a bad set/family with an explicit pre-sampling independence interface.
+   Rewrite the U5a target to bound that exact event, not universal avoidance of
+   every small set.
+
+2. **`Ipp/FsGame.lean:SnarkpackFsSpec`, `FsGame`, `QueryAnswered`;
+   `Ipp/FsFork.lean:fsSingleImpl`, `wrapFs`, `roundSlot`, `WrappedRunGood`;
+   DESIGN §U5d wrapper decision — the model is not a random function, and the
+   selected fork answer need not be the verifier's transcript answer.**
+   `Point →ₒ F` is only an `OracleSpec`; direct queries are fresh independent
+   occurrences. VCVio's actual lazy random oracle is
+   `OracleSpec.randomOracle = uniformSampleImpl.withCaching` and explicitly
+   guarantees that equal inputs have equal outputs. `FsGame` never runs through
+   that cache, and `fsSingleImpl` deliberately issues a fresh `Unit` query for
+   every occurrence. Consequently, if the adversary queried the eventual round
+   point before verification, `roundSlot` selects the point's first trace
+   occurrence, while `RoundQueries` merely proves that the verifier's later
+   occurrence exists. Those two occurrences may have different answers.
+   `TreeConsistent.hanswers` then supplies the first answer, whereas
+   `terminalFold`, `LeafData`, and the intended child fold use
+   `transcript.roundAnswer` from the later verifier query. This makes the
+   planned path-fold invariant false, not merely difficult to prove. It also
+   invalidates the claim that non-caching preserves real random-oracle support.
+   **Resolution:** run the adversary and verifier against one managed cached
+   structured RO. The single-index adapter should issue a `Unit` sample only on
+   a cache miss, record the structured point for that miss, and replay the
+   changed value through the cache so verifier re-queries see it. Then prove a
+   selector theorem equating the selected sampled answer with the verifier's
+   `roundAnswer`. Do not proceed with the current non-caching wrapper.
+
+3. **`Ipp/FsGame.lean:queryRounds`, `terminalFold`, `terminalR`, `LeafData`;
+   `Ipp/FsFork.lean:LeafBaseComponents`, `tree_to_acceptTree`;
+   `Ipp/Gipa.lean:foldKey`; DESIGN §U2.6/§U5d(4) — the KZG/final-scalar
+   transcript is reversed incorrectly.** Rust verifies proof rounds in reverse
+   storage order, accumulates the raw challenges in verifier chronology, and
+   then reverses both raw and inverse transcripts before the KZG checks
+   (`groth16_aggregation.rs:1382-1435`); `structured_scalar_final_from_raw_transcript`
+   consumes that reversed vector (`1514`, `1526-1536`). `foldKey` likewise uses
+   `x (μ-1)` for the first highest-bit fold. Lean stores `queryRounds` answers in
+   verifier chronology but passes that vector directly to `transcriptCoeffs`,
+   `foldKey`, and `terminalR`. For two rounds, Rust's coefficients/final scalar
+   use `[x₁, x₀]`, while Lean uses `[x₀, x₁]`. Commitment folding itself is
+   correctly chronological, so one vector cannot serve both roles unchanged.
+   This also means the node answers along a path cannot equal the current
+   leaf-side `foldKey transcript.roundAnswer` in the required index
+   orientation. **Resolution:** keep an explicit chronological round view for
+   challenge chaining and `terminalFold`, and define a reversed/KZG view for
+   `transcriptCoeffs`, both final keys, and `terminalR` (with inverse applied on
+   the W side after reindexing). Add a two-round parity test/lemma against the
+   Rust exponent formula before restarting `tree_to_acceptTree`.
+
+4. **`Ipp/Composition.lean:u4BLaneAtom`, `u4BCommitAtom`, `u4_capstone`;
+   `Ipp/FsGame.lean:RoundComs`, `FsStatement.ComB`, sixth `LeafData` conjunct;
+   DESIGN §U4 and §U5d(4) SIXTH-leaf decision — the B-scalar bookkeeping lane
+   is neither cryptographically bound nor honest-definitional in the present
+   model.** At the root, the scalar key column is all ones, so the scalar part
+   of `commitV u4BCommitAtom` is only the sum of the scalar messages. For
+   `n ≥ 2`, two different scalar vectors with the same sum and zero G2
+   components collide. Therefore the advertised
+   `PairingCommitmentBinding (u4BCommitAtom ...)` cannot be justified by the
+   AFGHO binding row and is uninstantiable for the concrete product lane. In
+   addition, `FsStatement.ComB.2` is fixed before the randomizer but
+   `u4_capstone.hComB` requires it to equal the commitment of `(r^i)`, hence
+   `∑ r^i`. The synthetic `LB.2/RB.2` fields are adversary-provided and are
+   included in `ChallengePoint.round`, although Rust's round commitment has no
+   such fields. The sixth leaf equation constrains only their final fold; it
+   does not make the root or round fields definitional, and it gives the
+   adversary hash inputs that do not exist in Rust. The other five folded lane
+   components are checked; no additional unchecked real component was found.
+   **Resolution:** remove the synthetic scalar column from the proof object,
+   structured hash payload, and pairing-binding assumption. Carry it as a pure
+   public fold computed from `r` and the chronological challenges, and prove
+   its terminal identity separately. Rework the U4 lane/extraction boundary so
+   binding applies only to the real B commitment while the known scalar
+   coordinate is fixed by construction. The sixth identity may remain as a
+   derived lemma, not an extra adversary-controlled verifier check.
+
+### MAJOR
+
+1. **`Ipp/FsGame.lean:FsPayloads`, `ChallengePoint`, `FsStatement`;
+   DESIGN §U5d(1) — the non-round challenge preimages are under-constrained.**
+   The four payload builders are arbitrary functions and may ignore every
+   listed argument (for example, all payload carriers can be `Unit`). Function
+   arguments document possible dependencies but do not enforce that the real
+   fields are present or injectively encoded. Constructor disjointness only
+   separates stages; it does not establish the claimed challenge-preimage
+   injectivity. In particular, nothing forces the randomizer to bind exactly
+   `com_a/com_b/com_c`, x0 to bind `r/com_a/com_b/com_c/ip_ab/agg_c`, the bridge
+   to bind the last raw challenge/final keys/final messages, or KZG to bind the
+   bridge/final keys. **Resolution:** replace abstract payload carriers with
+   canonical typed records containing exactly the Rust fields, leaving only
+   byte serialization as the external `fs.challenge-preimage` obligation; or
+   add explicit injectivity and field-projection hypotheses consumed by the S1
+   theorem. Also keep selector metadata such as the round number out of the
+   hashed record unless Rust hashes it.
+
+2. **`Ipp/Algebra.lean:KzgStructuredKeyBinding`;
+   `Ipp/FsGame.lean:FsStatement.acceptV/acceptW`, `LeafData`, `fsVerifier`;
+   DESIGN §U3/§U5a — the bridge and KZG challenges are recomputed but the KZG
+   challenge is absent from acceptance.** The real equations in
+   `tipa/mod.rs:1137-1180` depend on `kzg_challenge`, and the bridge matters by
+   feeding the preimage that derives it. Lean's fixed `acceptV/acceptW`
+   relations take only coefficients, key, and opening; they cannot depend on
+   the run's dynamic `transcript.kzg`. Thus `bridge` and `kzg` are dead values
+   for `FsAccepts`, the planned KZG-stage goodness bound has no consumer, and
+   the named binding hypothesis directly supplies key identification without
+   modeling the checked equation. **Resolution:** parameterize the concrete
+   acceptance relations and binding statement by `z` (and the needed SRS
+   verification elements), pass `transcript.kzg` in `LeafData`, and state the
+   exact `z`-goodness premise required by U3. This restores the final-bridge →
+   KZG → opening dependency chain.
+
+3. **`Ipp/ForkTree.lean:ForkTreeNodeLowerBound`, `forkTree_bound_param`;
+   `Ipp/Fork.lean:forkReplay4_bound`; DESIGN §U5c/§U5e — the current parametric
+   tree theorem is not conceptually instantiated by the closed U5b bound.**
+   `ForkTreeNodeLowerBound` is pointwise over *every* supported fixed first run,
+   and `forkTree_bound_param` starts the iteration at `1`. If any supported run
+   is rejecting/bad or has `cf = none`, the depth-zero-to-one obligation forces
+   any positive `f 1` to be at most zero. The U5b theorem, in contrast, is an
+   averaged bound in the global mass `acc := Pr[cf isSome]`; it does not prove
+   that pointwise fixed-root interface, nor does it bound four recursively
+   conditioned child subtrees. No theorem currently connects the two surfaces.
+   **Resolution:** redesign U5c's quantitative interface around an averaged or
+   goodness-conditioned recurrence with base mass `Pr[Good ∧ accepting]`, and
+   prove the per-level four-child product/conditioning lemma explicitly. A
+   pointwise version would need a uniform conditional lower bound over every
+   good supported root, which the current `acc` theorem does not provide.
+
+4. **DESIGN §U5e `s1_tree_probability`; `Ipp/FsFork.lean:WrappedRunGood` and
+   `fsFork_success_acceptTree` — subtracting a one-run bad-event bound does not
+   yet produce a successful tree whose every leaf is good.** The U5c theorem
+   bounds only `tree.isSome`; `tree_to_acceptTree` separately assumes
+   `tree.All WrappedRunGood`. Applying the node bound to
+   `acc - wrapped_run_good_bound` is not a proved event transformation. One
+   must either gate every level's selector on goodness and prove tree success
+   implies `All Good`, or bound bad replay leaves under their conditional replay
+   distributions (with the corresponding `4^μ` accounting). **Resolution:**
+   choose and state one of those routes before U5e. The gated-selector route is
+   cleaner, but it must be combined with the revised averaged U5c recurrence.
+
+5. **`Ipp/ForkTree.lean:TreeConsistent`; `Ipp/FsFork.lean:roundSlot`,
+   `tree_to_acceptTree`; REPORT's latest induction plan — the current invariant
+   does not supply the required leaf path-fold correspondence.** Generic
+   `TreeConsistent` gives a Unit-oracle ordinal and outer-log prefix facts; it
+   does not state that this ordinal is the exact logical round sample, that its
+   value equals `out.transcript.roundAnswer[level]`, or that the sequence of
+   selected node answers is the correctly reversed leaf transcript view. Under
+   current non-caching semantics the first equality is actually false (CRITICAL
+   2), and under the current transcript indexing the second is false
+   (CRITICAL 3). It also lacks a packaged lemma that all leaves share the
+   randomizer/root proof prefix. **Resolution:** after fixing the managed RO and
+   transcript views, strengthen the wrapper-specific assembly boundary (either
+   `TreeConsistent` fields or proved wrapper lemmas carried into the induction)
+   with: selected-point/answer correctness, selected-slot stage ordering,
+   ancestor-answer/path correspondence, and shared randomizer/root-data facts.
+   Then formulate the induction with an explicit accumulated chronological
+   prefix and its reversed coefficient view.
+
+6. **`Ipp/FsGame.lean:WrappedRunGood` inputs and challenge queries; Rust
+   `derive_scalar_challenge`/`derive_randomizer`; DESIGN §U5a — rejection
+   sampling and stage-order bad events are missing.** Rust rejection-samples
+   every scalar stage until nonzero and rejects `r = 1` as well as `r = 0`.
+   Lean makes one uniform query per stage and only excludes zero round answers.
+   Moreover, to charge the randomizer once, the chosen first round occurrence
+   must be after the queries that determine `r` and `x0`; the current
+   `RoundPointUnqueried` checks only absence/budget, not dependency order. This
+   is particularly important when the adversary pre-queries its eventual FS
+   points, which is normal. **Resolution:** model nonce/rejection sampling (or
+   prove an explicit ideal-to-real coupling/error term), include the real bad
+   values at every stage, and add a selector/dependency-order condition ensuring
+   the randomizer and prior challenge chain lie before each fork slot.
+
+### MINOR
+
+1. **`Ipp/FsGame.lean:ChallengePoint.round`; Rust
+   `derive_round_challenge`; DESIGN §U5d(1) — `level` is modeled as hashed
+   input although Rust hashes only the common stage label, prior raw challenge,
+   and the two round commitment objects.** This makes equal real preimages at
+   different levels distinct model oracle points. **Resolution:** keep `level`
+   as out-of-band selector/index metadata and remove it from the structured
+   preimage identity.
+
+2. **`Ipp/Composition.lean:leaf_accept_to_base` docstring and
+   `Ipp/FsFork.lean:tree_to_acceptTree` docstring; REPORT U5d(4) stalled-boundary
+   text — documentation still describes the pre-refactor five-equation/full-tag
+   blocker.** The code now has the sixth conjunct and lane-native embeddings;
+   the actual blockers are the oracle, indexing, and recursive correspondence
+   issues above. **Resolution:** update these comments when the design is
+   repaired so the final proof prompt does not target an obsolete stalled goal.
+
+### NOTE
+
+1. **`Ipp/Gipa.lean:foldMsg`, `foldCom`, `AcceptTree.node`, `round_extract`,
+   `gipa_extract`; `Ipp/FsFork.lean:acceptTree_node_of_answers` — the local GIPA
+   split and `c = x⁻¹`, `c_inv = x` orientation are otherwise faithful.** A
+   raw oracle answer `x` becomes the AcceptTree challenge `c = x⁻¹`; A keys fold
+   by `x`, B keys by `x⁻¹`, commitments by `x⁻¹·L + Com + x·R`, A messages by
+   `x⁻¹`, and B messages by `x`, matching `gipa.rs:469-479, 549-574, 693-705`.
+   The defect is the cross-round vector indexing described in CRITICAL 3, not
+   the one-round swap.
+
+2. **DESIGN §U5e positive-probability trick — positive probability implying
+   inhabited support is a sound non-expected-time capstone technique.** The
+   accepted looseness of the strict bound is not itself a soundness problem.
+   It becomes usable only after the event being lower-bounded is aligned with
+   successful assembly and the U5b/U5c quantitative interfaces are connected.
+
+3. **Shared-randomizer-prefix plan — plausible after, but not before, the
+   wrapper/invariant repairs.** A fork at correctly ordered round cache misses
+   has `r` in the common replay prefix, and prefix chaining should propagate one
+   `r` through the whole tree. The current first-occurrence/non-caching model and
+   missing stage-order fact do not establish it. Add an explicit
+   `TreeConsistent.all_randomizer_eq`-style lemma before charging the root-set
+   event only once.
+
+### Go / no-go
+
+- **(i) `tree_to_acceptTree` as planned: NO-GO.** Its statement/invariant is
+  blocked by the non-caching first-occurrence answer mismatch and the reversed
+  transcript error; the current leaf path-fold correspondence is false. Repair
+  those models, then strengthen the wrapper-specific induction facts as in
+  MAJOR 5.
+- **(ii) U5a prompt as sketched in DESIGN §U5a: NO-GO.** It currently targets a
+  contradictory U4 goodness premise and omits managed-RO consistency,
+  dependency-order/selector events, rejection sampling, and the exact KZG
+  challenge consumer. Restate the concrete bad events first.
+- **(iii) U5e plan as sketched: NO-GO.** The positive-support final step is fine,
+  but the advertised probability lower bound does not follow from the current
+  pointwise U5c interface, and no bound yet yields `tree.All WrappedRunGood`.
+  Redesign the goodness-conditioned averaged recurrence before final proof work.
+
+## R2 + R3 design-review repairs (2026-07-10)
+
+Scope was limited to R2/R3. The synthetic B-scalar column remains unchanged;
+R4 was not started. `DESIGN.md` and `.lake/packages/**` were not edited in this
+session.
+
+### R2: transcript views
+
+`Ipp/FsGame.lean` now defines
+
+```lean
+def reversedView {F : Type} {μ : Nat} (x : Fin μ → F) : Fin μ → F :=
+  fun i => x (Fin.rev i)
+```
+
+Call-site audit:
+
+| Occurrence | View | Reason |
+| --- | --- | --- |
+| `queryRounds` previous-answer chaining | chronological | Rust derives each round challenge from the immediately preceding verifier-chronology answer. |
+| `terminalFold` / `foldRounds` commitment folding | chronological | Rust folds commitments while iterating verifier rounds; the local one-round `x⁻¹`/`x` swap was already correct. |
+| `LeafData` V-side `transcriptCoeffs` | reversed | Rust reverses the raw verifier transcript before the KZG key-opening check. |
+| `LeafData` W-side `transcriptCoeffs` | reversed, then `gipaChallenge` | Rust reverses the inverse transcript; inversion is applied after reindexing. |
+| Synthetic sixth-check W-side `foldKey` in `LeafData` | reversed, then `gipaChallenge` | `foldKey` consumes highest-bit-first transcript order; the scalar lane remains only because R4 is deferred. |
+| `LeafBaseComponents` V-side `foldKey` (`xV`) | reversed | Final V key uses the same reversed raw transcript as the V KZG coefficients. |
+| `LeafBaseComponents` W-side `foldKey` (`xW`) | reversed, then `gipaChallenge` | Final W key reindexes first and takes inverses second. |
+| `leaf_accept_to_base` instantiation in `leafData_to_base_components` | V reversed; W reversed then inverse | Keeps the key-identification inputs identical to the repaired leaf checks. |
+| Every `terminalR` consumer in `LeafData`, `LeafBaseComponents`, and `leafData_to_base_components` | reversed | Rust starts at power `r` and squares after each entry of the reversed raw transcript. |
+
+Two-round parity lemma (verbatim statement):
+
+```lean
+theorem reversedView_two_round_parity {F : Type} [Field F] (x0 x1 r : F) :
+    transcriptCoeffs (reversedView ![x0, x1]) 1 =
+        transcriptCoeffs ![x1, x0] 1 ∧
+      terminalR r (reversedView ![x0, x1]) =
+        (1 + x1 * r) * (1 + x0 * r ^ 2) := by
+```
+
+Verdict: matches `groth16_aggregation.rs:1526-1536`. For chronological
+answers `[x0, x1]`, Rust first reverses to `[x1, x0]`; it assigns `r` to
+`x1`, squares the power, and assigns `r²` to `x0`. This agrees with the task
+sketch once its placeholders are resolved.
+
+### R3: cached managed random oracle
+
+Chosen construction:
+
+- `fsSourceOracle` is
+  `fsSourceUnifFwd + QueryImpl.withCaching (fsSourceImpl Point F)`.
+- `QueryImpl.withCaching` is VCVio's lazy cache transformer from
+  `OracleComp.QueryTracking.CachingOracle`; internally it consults
+  `OracleSpec.QueryCache` and installs misses with `QueryCache.cacheQuery`.
+- `StateT.run (simulateQ (fsSourceOracle ...) oa) ∅` surrounds the complete
+  `FsGame`, so the adversary and verifier share one cache.
+- On a hit, `withCaching` returns the cached answer and `fsSourceImpl` is not
+  called. On a miss, `fsSourceImpl` emits one structured source query; only
+  those miss queries reach `fsMissImpl`, which emits one `Sum.inr ()` query.
+- `fsPointTrace` and `flattenFsLog` now operate on that random-function miss
+  log. The miss order is therefore exactly the fork-slot order, and replay
+  reprogramming supplies the value that is inserted into the shared cache.
+- `wrapFs_support_iff` now relates the wrapped run to
+  `replayFirstRun (fsRandomFunction oa)`, not to fresh-occurrence semantics.
+
+The cache/log proof is bidirectional from the empty cache: every structured
+miss-log entry is preserved in the final cache, and every final cache entry has
+an exact miss-log witness. `wrapped_source_leaf_data`, `RoundQueries`,
+`roundSlot`, `RoundPointUnqueried`, and
+`accepted_roundSlot_some_or_unqueried` are re-established over those miss
+semantics. `tree_to_acceptTree` and `fsFork_success_acceptTree` elaborate with
+the new wrapper types.
+
+Selector deliverable, verbatim:
+
+```lean
+theorem roundSlot_answer_eq_transcript
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
+    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
+    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
+      KzgPayload)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (qb : Nat) (level : Fin μ)
+    {out : FsResult μ F G1 G2 GT}
+    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+      X0Payload BridgePayload KzgPayload)}
+    (h : (out, sourceLog) ∈ support
+      (replayFirstRun (fsRandomFunction (FsGame stmt adv))))
+    (_haccept : out.accept = true)
+    {slot : Fin (qb + 1)}
+    (hslot : roundSlot qb (level : Nat)
+      ({ out := out, trace := fsPointTrace sourceLog } :
+        WrappedFsRun
+          (FsPoint (F := F) (G1 := G1) (GT := GT)
+            (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+            (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+          (FsResult μ F G1 G2 GT)) = some slot) :
+    QueryLog.getQueryValue? (flattenFsLog sourceLog) (Sum.inr ()) (slot : Nat) =
+      some (out.transcript.roundAnswer level) := by
+```
+
+This theorem is proved. It is the property that was false for the former
+fresh-occurrence adapter.
+
+### Verification and remaining proof
+
+All commands used the pinned Lean 4.30.0 `lake.exe`, one build at a time, with
+`LEAN_NUM_THREADS=1`, and wrote output to `build.log`.
+
+- `lake build Ipp.FsGame`: pass; 3311 jobs.
+- `lake build Ipp.FsFork`: pass; `Ipp.FsFork` built in 42s; 3314 jobs.
+- `lake build Ipp`: pass; 3323 jobs.
+- `git diff --check`: pass.
+
+No prover/release-gated tests were run; this Lean package has no separate
+prover/release gate in the requested workflow.
+
+The only remaining `sorry` is the permitted pre-existing R6 assembly proof
+`tree_to_acceptTree`. Its exact target is:
+
+```lean
+let r := tree.root.1.out.transcript.randomizer
+AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+  (u4TLanePairing stmt.e) μ
+  (fun i => (stmt.srsV i, stmt.srsV i))
+  (fun i => ((r ^ (i : Nat))⁻¹ • stmt.srsW i, (1 : F)))
+  (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
+  (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC))
+```
+
+No additional unproved goals, axioms, or `native_decide` uses remain.

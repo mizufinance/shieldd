@@ -1,13 +1,14 @@
 /-
-U5d(4): single-index Fiat--Shamir wrapping and replay-tree assembly.
+U5d(4): cached single-index Fiat--Shamir wrapping and replay-tree assembly.
 
-The wrapper preserves the occurrence-by-occurrence semantics of `FsGame`:
-structured challenge queries are not cached, and every occurrence is forwarded
-to the single challenge index while its structured point is recorded.
+The wrapper runs the complete adversary-and-verifier computation through one
+structured cache. Only cache misses reach the single forkable challenge index;
+their structured points are recorded in miss order.
 
 Spec rows: `tipp-mipp.gipa`, `fs.stage-labels`.
 -/
 import Ipp.FsGame
+import VCVio.OracleComp.QueryTracking.CachingOracle
 
 open OracleSpec OracleComp Function
 open scoped OracleSpec.PrimitiveQuery
@@ -33,14 +34,569 @@ structure WrappedFsRun (Point α : Type) where
   trace : List Point
 deriving DecidableEq
 
+/-- Forward ambient uniform sampling while threading the structured cache. -/
+def fsSourceUnifFwd (Point F : Type) [DecidableEq Point] :
+    QueryImpl unifSpec
+      (StateT (Point →ₒ F).QueryCache
+        (OracleComp (unifSpec + (Point →ₒ F)))) :=
+  fun n => monadLift
+    ((unifSpec + (Point →ₒ F)).query (Sum.inl n) :
+      OracleComp (unifSpec + (Point →ₒ F)) _)
+
+/-- The miss source for the structured cache. -/
+def fsSourceImpl (Point F : Type) :
+    QueryImpl (Point →ₒ F) (OracleComp (unifSpec + (Point →ₒ F))) :=
+  fun point => (unifSpec + (Point →ₒ F)).query (Sum.inr point)
+
+/-- The shared-cache interpretation used by `fsRandomFunction`. -/
+def fsSourceOracle (Point F : Type) [DecidableEq Point] :
+    QueryImpl (unifSpec + (Point →ₒ F))
+      (StateT (Point →ₒ F).QueryCache
+        (OracleComp (unifSpec + (Point →ₒ F)))) :=
+  fsSourceUnifFwd Point F + QueryImpl.withCaching (fsSourceImpl Point F)
+
+/-- Lazy random-function semantics for one shared structured oracle. The
+`withCaching` state surrounds the whole computation, so adversary queries and
+verifier re-queries consult the same cache. -/
+def fsRandomFunction {Point α : Type} [DecidableEq Point]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α) :
+    OracleComp (unifSpec + (Point →ₒ F)) α := do
+  let (out, _cache) ← StateT.run
+    (simulateQ (fsSourceOracle Point F) oa) ∅
+  pure out
+
+/-- The shared structured cache only grows during a source computation. -/
+private theorem fsSourceOracle_cache_le {Point α : Type} [DecidableEq Point]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    (cache0 : (Point →ₒ F).QueryCache)
+    (z : α × (Point →ₒ F).QueryCache)
+    (h : z ∈ support ((simulateQ (fsSourceOracle Point F) oa).run cache0)) :
+    cache0 ≤ z.2 := by
+  induction oa using OracleComp.inductionOn generalizing cache0 z with
+  | pure a =>
+      simp only [simulateQ_pure, StateT.run_pure, support_pure,
+        Set.mem_singleton_iff] at h
+      subst z
+      exact le_rfl
+  | query_bind t next ih =>
+      rw [simulateQ_query_bind, StateT.run_bind, support_bind] at h
+      simp only [Set.mem_iUnion] at h
+      obtain ⟨⟨u, cache1⟩, hstep, hrest⟩ := h
+      have hle : cache0 ≤ cache1 := by
+        cases t with
+        | inl n =>
+            simp [fsSourceOracle, fsSourceUnifFwd,
+              QueryImpl.add_apply_inl] at hstep
+            obtain ⟨_, hstep⟩ := hstep
+            have hc : cache0 = cache1 := congrArg Prod.snd hstep
+            subst cache1
+            exact le_rfl
+        | inr point =>
+            exact QueryImpl.withCaching_cache_le
+              (fsSourceImpl Point F) point cache0 (u, cache1) hstep
+      exact le_trans hle (ih u cache1 z hrest)
+
+/-- A structured query result is installed in the cache, on both hits and
+misses. -/
+private theorem fsSourceOracle_query_caches {Point : Type} [DecidableEq Point]
+    (point : Point) (cache0 : (Point →ₒ F).QueryCache)
+    (value : F) (cache1 : (Point →ₒ F).QueryCache)
+    (h : (value, cache1) ∈ support
+      (((fsSourceOracle Point F) (Sum.inr point)).run cache0)) :
+    cache1 point = some value := by
+  change (value, cache1) ∈ support
+    ((QueryImpl.withCaching (fsSourceImpl Point F) point).run cache0) at h
+  cases hc : cache0 point with
+  | some cached =>
+      rw [QueryImpl.withCaching_run_some _ hc] at h
+      simp only [support_pure, Set.mem_singleton_iff] at h
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj h
+      exact hc
+  | none =>
+      rw [QueryImpl.withCaching_run_none _ hc] at h
+      rw [support_map] at h
+      obtain ⟨sample, _, h⟩ := h
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj h
+      exact QueryCache.cacheQuery_self cache0 point sample
+
+/-- One forwarded ambient-uniform step logs that query and leaves the
+structured cache unchanged. -/
+private lemma fsSource_support_step_inl {Point : Type} [DecidableEq Point]
+    (n : Nat) (cache : (Point →ₒ F).QueryCache)
+    (z : ((unifSpec + (Point →ₒ F)).Range (Sum.inl n) ×
+      (Point →ₒ F).QueryCache) × QueryLog (unifSpec + (Point →ₒ F))) :
+    z ∈ support (replayFirstRun
+      (((fsSourceOracle Point F) (Sum.inl n)).run cache)) ↔
+    ∃ u, z = ((u, cache), [⟨Sum.inl n, u⟩]) := by
+  have hrun : ((fsSourceOracle Point F) (Sum.inl n)).run cache =
+      (liftM ((unifSpec + (Point →ₒ F)).query (Sum.inl n)) :
+        OracleComp (unifSpec + (Point →ₒ F)) _) >>= fun u => pure (u, cache) := by
+    simp [fsSourceOracle, fsSourceUnifFwd, QueryImpl.add_apply_inl]
+  rw [hrun]
+  change z ∈ support ((simulateQ (unifSpec + (Point →ₒ F)).loggingOracle
+    ((liftM ((unifSpec + (Point →ₒ F)).query (Sum.inl n)) :
+      OracleComp (unifSpec + (Point →ₒ F)) _) >>= fun u => pure (u, cache))).run) ↔ _
+  rw [OracleComp.run_simulateQ_loggingOracle_query_bind
+    (spec := unifSpec + (Point →ₒ F)) (Sum.inl n) (fun u => pure (u, cache))]
+  simp only [support_bind, support_map, support_query, Set.mem_univ,
+    simulateQ_pure, WriterT.run_pure', support_pure, Set.image_singleton,
+    Set.iUnion_const]
+  refine ⟨?_, ?_⟩
+  · rintro ⟨_, ⟨u, rfl⟩, hzeq⟩; exact ⟨u, hzeq⟩
+  · rintro ⟨u, rfl⟩; exact ⟨_, ⟨u, rfl⟩, rfl⟩
+
+/-- A structured cache hit emits no source query; a miss emits exactly its
+structured point and installs that logged answer. -/
+private lemma fsSource_support_step_inr {Point : Type} [DecidableEq Point]
+    (point : Point) (cache : (Point →ₒ F).QueryCache)
+    (z : (F × (Point →ₒ F).QueryCache) ×
+      QueryLog (unifSpec + (Point →ₒ F))) :
+    z ∈ support (replayFirstRun
+      (((fsSourceOracle Point F) (Sum.inr point)).run cache)) ↔
+    (∃ value, cache point = some value ∧ z = ((value, cache), [])) ∨
+    (cache point = none ∧ ∃ value,
+      z = ((value, cache.cacheQuery point value), [⟨Sum.inr point, value⟩])) := by
+  by_cases hcache : cache point = none
+  · have hrun : ((fsSourceOracle Point F) (Sum.inr point)).run cache =
+        (liftM ((unifSpec + (Point →ₒ F)).query (Sum.inr point)) :
+          OracleComp (unifSpec + (Point →ₒ F)) F) >>= fun value =>
+            pure (value, cache.cacheQuery point value) := by
+      simp [fsSourceOracle, QueryImpl.add_apply_inr, QueryImpl.withCaching_apply,
+        StateT.run_bind, StateT.run_get, fsSourceImpl, hcache]
+    rw [hrun]
+    simp [replayFirstRun, OracleSpec.loggingOracle,
+      QueryImpl.withLogging_apply, OracleQuery.cont_query, Function.id_def,
+      hcache]
+    constructor <;> rintro ⟨value, rfl⟩ <;> exact ⟨value, rfl⟩
+  · rcases Option.ne_none_iff_exists.mp hcache with ⟨value, hvalue⟩
+    have hrun : ((fsSourceOracle Point F) (Sum.inr point)).run cache =
+        pure (value, cache) := by
+      simp [fsSourceOracle, QueryImpl.add_apply_inr, QueryImpl.withCaching_apply,
+        StateT.run_bind, StateT.run_get, ← hvalue]
+    rw [hrun]
+    change z ∈ support (replayFirstRun
+      (pure (value, cache) : OracleComp (unifSpec + (Point →ₒ F)) _)) ↔ _
+    simp only [replayFirstRun, simulateQ_pure, WriterT.run_pure', support_pure]
+    refine ⟨?_, ?_⟩
+    · rintro rfl; exact Or.inl ⟨value, hvalue.symm, rfl⟩
+    · rintro (⟨value', hv', hzeq⟩ | ⟨h0, _⟩)
+      · have hvv : value = value' := by
+          rw [← hvalue] at hv'
+          exact (Option.some_inj.mp hv'.symm).symm
+        rw [hzeq, hvv]
+        simp
+      · exact absurd h0 (Option.ne_none_iff_exists.mpr ⟨value, hvalue⟩)
+
+/-- Generic invariant lifting for the cached source interpreter followed by
+source-query logging. -/
+private theorem fsSource_preservesInv {Point α : Type} [DecidableEq Point]
+    (Inv : (Point →ₒ F).QueryCache →
+      QueryLog (unifSpec + (Point →ₒ F)) → Prop)
+    (hstep : ∀ t (cache : (Point →ₒ F).QueryCache)
+      (log : QueryLog (unifSpec + (Point →ₒ F))), Inv cache log →
+      ∀ z ∈ support (replayFirstRun (((fsSourceOracle Point F) t).run cache)),
+        Inv z.1.2 (log ++ z.2))
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    (cache0 : (Point →ₒ F).QueryCache)
+    (log0 : QueryLog (unifSpec + (Point →ₒ F)))
+    (hinit : Inv cache0 log0)
+    {z : (α × (Point →ₒ F).QueryCache) ×
+      QueryLog (unifSpec + (Point →ₒ F))}
+    (h : z ∈ support (replayFirstRun
+      ((simulateQ (fsSourceOracle Point F) oa).run cache0))) :
+    Inv z.1.2 (log0 ++ z.2) := by
+  classical
+  induction oa using OracleComp.inductionOn generalizing cache0 log0 z with
+  | pure x =>
+      simp only [simulateQ_pure, StateT.run_pure, replayFirstRun,
+        WriterT.run_pure', support_pure, Set.mem_singleton_iff] at h
+      subst h
+      simpa using hinit
+  | query_bind t next ih =>
+      have hoa : (simulateQ (fsSourceOracle Point F)
+            ((liftM (query t) : OracleComp _ _) >>= next)).run cache0 =
+          (((fsSourceOracle Point F) t).run cache0) >>= fun tc =>
+            (simulateQ (fsSourceOracle Point F) (next tc.1)).run tc.2 := by
+        simp [simulateQ_bind, simulateQ_query, StateT.run_bind,
+          monad_norm, OracleQuery.cont_query, OracleQuery.input_query]
+      unfold replayFirstRun at h
+      rw [hoa, simulateQ_bind, WriterT.run_bind', support_bind] at h
+      simp only [Set.mem_iUnion, support_map, Set.mem_image] at h
+      obtain ⟨stepLog, hstepLog, restLog, hrestLog, hz⟩ := h
+      have hpres : Inv stepLog.1.2 (log0 ++ stepLog.2) :=
+        hstep t cache0 log0 hinit stepLog hstepLog
+      have hrest : (restLog.1, restLog.2) ∈ support (replayFirstRun
+          ((simulateQ (fsSourceOracle Point F) (next stepLog.1.1)).run
+            stepLog.1.2)) := hrestLog
+      have hih := ih stepLog.1.1 stepLog.1.2 (log0 ++ stepLog.2)
+        hpres hrest
+      have hz' : z = (restLog.1, stepLog.2 ++ restLog.2) := by
+        have heq : (restLog.1, stepLog.2 ++ restLog.2) =
+            Prod.map id (stepLog.2 ++ ·) restLog := rfl
+        rw [heq]
+        exact hz.symm
+      rw [hz']
+      change Inv restLog.1.2 (log0 ++ (stepLog.2 ++ restLog.2))
+      rw [← List.append_assoc]
+      exact hih
+
+/-- Every structured cache-miss answer in the random-function source log is
+present with the same value in the final shared cache. -/
+private theorem fsSource_log_cached {Point α : Type} [DecidableEq Point]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    (cache0 : (Point →ₒ F).QueryCache)
+    {z : (α × (Point →ₒ F).QueryCache) ×
+      QueryLog (unifSpec + (Point →ₒ F))}
+    (h : z ∈ support (replayFirstRun
+      ((simulateQ (fsSourceOracle Point F) oa).run cache0))) :
+    ∀ point value, QueryAnswered z.2 (Sum.inr point) value →
+      z.1.2 point = some value := by
+  let Inv : (Point →ₒ F).QueryCache →
+      QueryLog (unifSpec + (Point →ₒ F)) → Prop := fun cache log =>
+    ∀ point value, QueryAnswered log (Sum.inr point) value →
+      cache point = some value
+  have hinv := fsSource_preservesInv Inv (hstep := ?_) oa cache0 []
+    (by intro point value hmem; simp [QueryAnswered] at hmem) h
+  simpa [Inv] using hinv
+  intro t cache log hlog step hstepMem
+  cases t with
+  | inl n =>
+      have hs := (fsSource_support_step_inl (F := F) n cache step).mp hstepMem
+      obtain ⟨u, rfl⟩ := hs
+      intro point value hmem
+      unfold QueryAnswered at hmem
+      rw [List.mem_append] at hmem
+      rcases hmem with hold | hnew
+      · exact hlog point value hold
+      · simp only [List.mem_singleton] at hnew
+        have hinput := congrArg Sigma.fst hnew
+        cases hinput
+  | inr point =>
+      have hs := (fsSource_support_step_inr (F := F) point cache step).mp hstepMem
+      rcases hs with ⟨cached, hcached, rfl⟩ | ⟨hmiss, sampled, rfl⟩
+      · simpa using hlog
+      · intro point' value hmem
+        change QueryAnswered (log ++ [⟨Sum.inr point, sampled⟩])
+          (Sum.inr point') value at hmem
+        change (cache.cacheQuery point sampled) point' = some value
+        unfold QueryAnswered at hmem
+        rw [List.mem_append] at hmem
+        rcases hmem with hold | hnew
+        · have hold' : QueryAnswered log (Sum.inr point') value := hold
+          have hc := hlog point' value hold'
+          by_cases heq : point' = point
+          · subst point'
+            rw [hmiss] at hc
+            simp at hc
+          · rw [QueryCache.cacheQuery_of_ne _ _ heq]
+            exact hc
+        · simp only [List.mem_singleton] at hnew
+          obtain ⟨heq, hvalue⟩ := Sigma.mk.inj hnew
+          have hp : point' = point := Sum.inr.inj heq
+          subst point'
+          have hv : value = sampled := eq_of_heq hvalue
+          subst value
+          exact QueryCache.cacheQuery_self cache point sampled
+
+/-- Conversely, every final cache entry that was absent initially appears as
+an exact structured miss entry in the source log. -/
+private theorem fsSource_cache_logged {Point α : Type} [DecidableEq Point]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    {z : (α × (Point →ₒ F).QueryCache) ×
+      QueryLog (unifSpec + (Point →ₒ F))}
+    (h : z ∈ support (replayFirstRun
+      ((simulateQ (fsSourceOracle Point F) oa).run ∅))) :
+    ∀ point value, z.1.2 point = some value →
+      QueryAnswered z.2 (Sum.inr point) value := by
+  let Inv : (Point →ₒ F).QueryCache →
+      QueryLog (unifSpec + (Point →ₒ F)) → Prop := fun cache log =>
+    ∀ point value, cache point = some value →
+      QueryAnswered log (Sum.inr point) value
+  have hinv := fsSource_preservesInv Inv (hstep := ?_) oa ∅ []
+    (by intro point value hcache; simp at hcache) h
+  simpa [Inv] using hinv
+  intro t cache log hlog step hstepMem
+  cases t with
+  | inl n =>
+      have hs := (fsSource_support_step_inl (F := F) n cache step).mp hstepMem
+      obtain ⟨u, rfl⟩ := hs
+      intro point value hcache
+      apply List.mem_append_left
+      exact hlog point value hcache
+  | inr point =>
+      have hs := (fsSource_support_step_inr (F := F) point cache step).mp hstepMem
+      rcases hs with ⟨cached, hcached, rfl⟩ | ⟨hmiss, sampled, rfl⟩
+      · simpa using hlog
+      · intro point' value hcache
+        change (cache.cacheQuery point sampled) point' = some value at hcache
+        change QueryAnswered (log ++ [⟨Sum.inr point, sampled⟩])
+          (Sum.inr point') value
+        by_cases heq : point' = point
+        · subst point'
+          have hself : (cache.cacheQuery point sampled) point = some sampled :=
+            QueryCache.cacheQuery_self cache point sampled
+          have hvalue : value = sampled := Option.some.inj (hcache.symm.trans hself)
+          subst value
+          apply List.mem_append_right
+          simp
+        · have hold : cache point' = some value := by
+            rwa [QueryCache.cacheQuery_of_ne _ _ heq] at hcache
+          apply List.mem_append_left
+          exact hlog point' value hold
+
+/-- Every chronological round answer returned by `queryRounds` remains in the
+shared structured cache at its exact round point. -/
+private theorem queryRounds_cached
+    {F G1 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
+    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
+    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
+    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    (level : Nat) (μ : Nat) (prev : F)
+    (rounds : Fin μ → RoundComs F G1 GT)
+    (cache0 : (FsPoint (F := F) (G1 := G1) (GT := GT)
+      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache)
+    {z : RoundTranscript μ F ×
+      (FsPoint (F := F) (G1 := G1) (GT := GT)
+        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache}
+    (h : z ∈ support ((simulateQ
+      (fsSourceOracle
+        (FsPoint (F := F) (G1 := G1) (GT := GT)
+          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+      (queryRounds
+        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)
+        level μ prev rounds)).run cache0)) :
+    ∀ i : Fin μ, z.2 (.round (level + (i : Nat)) (z.1.prev i) (rounds i)) =
+      some (z.1.answer i) := by
+  induction μ generalizing level prev cache0 with
+  | zero => intro i; exact Fin.elim0 i
+  | succ μ ih =>
+      rw [queryRounds, simulateQ_bind, StateT.run_bind, support_bind] at h
+      simp only [Set.mem_iUnion] at h
+      obtain ⟨⟨x, cache1⟩, hx, hrest⟩ := h
+      rw [simulateQ_bind, StateT.run_bind, support_bind] at hrest
+      simp only [Set.mem_iUnion] at hrest
+      obtain ⟨⟨tail, cache2⟩, htail, hpure⟩ := hrest
+      simp only [simulateQ_pure, StateT.run_pure, support_pure,
+        Set.mem_singleton_iff] at hpure
+      subst z
+      intro i
+      refine Fin.cases ?_ (fun j => ?_) i
+      · have hx' : (x, cache1) ∈ support
+            (((fsSourceOracle
+              (FsPoint (F := F) (G1 := G1) (GT := GT)
+                (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+                (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+              (Sum.inr (.round level prev (rounds 0)))).run cache0) := by
+            simpa [simulateQ_query] using hx
+        have hcached := fsSourceOracle_query_caches
+          (F := F)
+          (point := (.round level prev (rounds 0) :
+            FsPoint (F := F) (G1 := G1) (GT := GT)
+              (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+              (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)))
+          cache0 x cache1 hx'
+        exact (fsSourceOracle_cache_le
+          (oa := queryRounds
+            (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+            (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)
+            (level + 1) μ x (fun k => rounds k.succ))
+          cache1 (tail, cache2) htail) hcached
+      · change cache2
+          (.round (level + (j.succ : Nat)) (tail.prev j) (rounds j.succ)) =
+            some (tail.answer j)
+        have hj := ih (level + 1) x (fun k => rounds k.succ) cache1 htail j
+        have hsucc : (j.succ : Nat) = (j : Nat) + 1 := rfl
+        have hlevel : level + (j.succ : Nat) = level + 1 + (j : Nat) := by
+          rw [hsucc]
+          omega
+        rwa [hlevel]
+
+/-- The verifier's chronological round answers are the values stored at its
+structured round points in the final shared cache. Acceptance also exposes the
+same leaf relation as the uncached verifier. -/
+private theorem fsVerifier_cached
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
+    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
+    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
+      KzgPayload) (proof : Proof μ F G1 G2 GT)
+    (cache0 : (FsPoint (F := F) (G1 := G1) (GT := GT)
+      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache)
+    {z : FsResult μ F G1 G2 GT ×
+      (FsPoint (F := F) (G1 := G1) (GT := GT)
+        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache}
+    (h : z ∈ support ((simulateQ
+      (fsSourceOracle
+        (FsPoint (F := F) (G1 := G1) (GT := GT)
+          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+      (fsVerifier stmt proof)).run cache0)) :
+    (∀ i : Fin μ,
+      z.2 (.round (i : Nat) (z.1.transcript.roundPrev i) (z.1.proof.rounds i)) =
+        some (z.1.transcript.roundAnswer i)) ∧
+      (z.1.accept = true → LeafData stmt z.1.proof z.1.transcript) := by
+  rw [fsVerifier, simulateQ_bind, StateT.run_bind, support_bind] at h
+  simp only [Set.mem_iUnion] at h
+  obtain ⟨⟨r, cache1⟩, hr, h⟩ := h
+  rw [simulateQ_bind, StateT.run_bind, support_bind] at h
+  simp only [Set.mem_iUnion] at h
+  obtain ⟨⟨x0, cache2⟩, hx0, h⟩ := h
+  rw [simulateQ_bind, StateT.run_bind, support_bind] at h
+  simp only [Set.mem_iUnion] at h
+  obtain ⟨⟨rounds, cache3⟩, hrounds, h⟩ := h
+  rw [simulateQ_bind, StateT.run_bind, support_bind] at h
+  simp only [Set.mem_iUnion] at h
+  obtain ⟨⟨bridge, cache4⟩, hbridge, h⟩ := h
+  rw [simulateQ_bind, StateT.run_bind, support_bind] at h
+  simp only [Set.mem_iUnion] at h
+  obtain ⟨⟨kzg, cache5⟩, hkzg, hpure⟩ := h
+  simp only [simulateQ_pure, StateT.run_pure, support_pure,
+    Set.mem_singleton_iff] at hpure
+  subst z
+  constructor
+  · intro i
+    have hround := queryRounds_cached
+      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)
+      0 μ x0 proof.rounds cache2 hrounds i
+    have hbridgeLe := fsSourceOracle_cache_le
+      (oa := ((unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
+        BridgePayload KzgPayload).query
+        (Sum.inr (.bridge (stmt.payloads.bridge proof r x0 rounds.answer))) :
+          OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+            X0Payload BridgePayload KzgPayload) F))
+      cache3 (bridge, cache4) hbridge
+    have hkzgLe := fsSourceOracle_cache_le
+      (oa := ((unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
+        BridgePayload KzgPayload).query
+        (Sum.inr (.kzg
+          (stmt.payloads.kzg proof r x0 rounds.answer bridge))) :
+          OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+            X0Payload BridgePayload KzgPayload) F))
+      cache4 (kzg, cache5) hkzg
+    have hzero : 0 + (i : Nat) = (i : Nat) := Nat.zero_add _
+    rw [hzero] at hround
+    exact hkzgLe (hbridgeLe hround)
+  · intro haccept
+    have hacc : FsAccepts stmt proof
+        { randomizer := r, x0 := x0, roundPrev := rounds.prev,
+          roundAnswer := rounds.answer, bridge := bridge, kzg := kzg } := by
+      simpa using haccept
+    exact hacc.1
+
+/-- Cache/acceptance postcondition for the complete adversary-plus-verifier
+game, with the verifier starting from the adversary's live cache. -/
+private theorem fsGame_cached
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
+    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
+    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
+      KzgPayload)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (cache0 : (FsPoint (F := F) (G1 := G1) (GT := GT)
+      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache)
+    {z : FsResult μ F G1 G2 GT ×
+      (FsPoint (F := F) (G1 := G1) (GT := GT)
+        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache}
+    (h : z ∈ support ((simulateQ
+      (fsSourceOracle
+        (FsPoint (F := F) (G1 := G1) (GT := GT)
+          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+      (FsGame stmt adv)).run cache0)) :
+    (∀ i : Fin μ,
+      z.2 (.round (i : Nat) (z.1.transcript.roundPrev i) (z.1.proof.rounds i)) =
+        some (z.1.transcript.roundAnswer i)) ∧
+      (z.1.accept = true → LeafData stmt z.1.proof z.1.transcript) := by
+  rw [FsGame, simulateQ_bind, StateT.run_bind, support_bind] at h
+  simp only [Set.mem_iUnion] at h
+  obtain ⟨⟨proof, cache1⟩, _, hverifier⟩ := h
+  exact fsVerifier_cached stmt proof cache1 hverifier
+
+/-- Replay-visible random-function runs couple the exact miss log, final
+cache, verifier round answers, and accepted leaf data. -/
+private theorem fsRandomFunction_replay_cached
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
+    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
+    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
+      KzgPayload)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    {out : FsResult μ F G1 G2 GT}
+    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+      X0Payload BridgePayload KzgPayload)}
+    (h : (out, sourceLog) ∈ support
+      (replayFirstRun (fsRandomFunction (FsGame stmt adv)))) :
+    ∃ cache : (FsPoint (F := F) (G1 := G1) (GT := GT)
+        (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+        (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) →ₒ F).QueryCache,
+      (∀ point value, QueryAnswered sourceLog (Sum.inr point) value →
+        cache point = some value) ∧
+      (∀ point value, cache point = some value →
+        QueryAnswered sourceLog (Sum.inr point) value) ∧
+      (∀ i : Fin μ,
+        cache (.round (i : Nat) (out.transcript.roundPrev i) (out.proof.rounds i)) =
+          some (out.transcript.roundAnswer i)) ∧
+      (out.accept = true → LeafData stmt out.proof out.transcript) := by
+  unfold replayFirstRun fsRandomFunction at h
+  simp only [bind_pure_comp, simulateQ_map, WriterT.run_map', support_map] at h
+  obtain ⟨stateLog, hstateLog, heq⟩ := h
+  have hout : out = stateLog.1.1 := by
+    have := congrArg Prod.fst heq
+    simpa [Prod.map_apply] using this.symm
+  have hlog : sourceLog = stateLog.2 := by
+    have := congrArg Prod.snd heq
+    simpa [Prod.map_apply] using this.symm
+  subst out
+  subst sourceLog
+  have hstate : stateLog.1 ∈ support ((simulateQ
+      (fsSourceOracle
+        (FsPoint (F := F) (G1 := G1) (GT := GT)
+          (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+          (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+      (FsGame stmt adv)).run ∅) := by
+    have hm : stateLog.1 ∈ support (Prod.fst <$> replayFirstRun
+        ((simulateQ
+          (fsSourceOracle
+            (FsPoint (F := F) (G1 := G1) (GT := GT)
+              (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+              (BridgePayload := BridgePayload) (KzgPayload := KzgPayload)) F)
+          (FsGame stmt adv)).run ∅)) := by
+      rw [support_map]
+      exact ⟨stateLog, hstateLog, rfl⟩
+    simpa using hm
+  have hgame := fsGame_cached stmt adv ∅ hstate
+  refine ⟨stateLog.1.2, ?_, ?_, hgame.1, hgame.2⟩
+  · exact fsSource_log_cached (FsGame stmt adv) ∅ hstateLog
+  · exact fsSource_cache_logged (FsGame stmt adv) hstateLog
+
 /-- Forward ambient uniform sampling without changing the structured trace. -/
 def fsUnifFwd (Point F : Type) :
     QueryImpl unifSpec (StateT (List Point) (OracleComp (FsWrappedSpec F))) :=
   fun n => (FsWrappedSpec F).query (Sum.inl n)
 
-/-- Forward every structured challenge occurrence to the fixed `Unit` index
-and append its point to the side trace.  This deliberately does not cache. -/
-def fsSingleImpl (Point F : Type) :
+/-- Erase each structured cache miss to the fixed `Unit` index and append its
+point to the miss trace. Cache hits never reach this adapter. -/
+def fsMissImpl (Point F : Type) :
     QueryImpl (Point →ₒ F)
       (StateT (List Point) (OracleComp (FsWrappedSpec F))) :=
   fun point => do
@@ -54,24 +610,24 @@ def wrapFsFrom {Point α : Type}
     (oa : OracleComp (unifSpec + (Point →ₒ F)) α) (initial : List Point) :
     OracleComp (FsWrappedSpec F) (WrappedFsRun Point α) := do
   let (out, trace) ← StateT.run
-    (simulateQ (fsUnifFwd Point F + fsSingleImpl Point F) oa) initial
+    (simulateQ (fsUnifFwd Point F + fsMissImpl Point F) oa) initial
   pure { out := out, trace := trace }
 
 /-- Route a structured FS computation through one challenge index and retain
 the structured query sequence (DESIGN §U5d(4); `fs.stage-labels`). -/
-def wrapFs {Point α : Type}
+def wrapFs {Point α : Type} [DecidableEq Point]
     (oa : OracleComp (unifSpec + (Point →ₒ F)) α) :
     OracleComp (FsWrappedSpec F) (WrappedFsRun Point α) :=
-  wrapFsFrom oa []
+  wrapFsFrom (fsRandomFunction oa) []
 
-/-- Structured points in a source log, in chronological occurrence order. -/
+/-- Structured cache-miss points in random-function source-log order. -/
 def fsPointTrace {Point : Type} :
     QueryLog (unifSpec + (Point →ₒ F)) → List Point
   | [] => []
   | ⟨Sum.inl _, _⟩ :: rest => fsPointTrace rest
   | ⟨Sum.inr point, _⟩ :: rest => point :: fsPointTrace rest
 
-/-- Erase structured challenge indices to the wrapper's fixed `Unit` index. -/
+/-- Erase structured cache-miss indices to the wrapper's fixed `Unit` index. -/
 def flattenFsLog {Point : Type} :
     QueryLog (unifSpec + (Point →ₒ F)) → QueryLog (FsWrappedSpec F)
   | [] => []
@@ -80,9 +636,60 @@ def flattenFsLog {Point : Type} :
   | ⟨Sum.inr _, value⟩ :: rest =>
       ⟨Sum.inr (), value⟩ :: flattenFsLog rest
 
-/-- Support-level occurrence bijection for the non-caching U5d(4) wrapper:
-the wrapped run has exactly the erased outer log and exactly the structured
-points from the source log, in order. -/
+/-- The `i`th structured miss point and the `i`th erased `Unit` answer are
+the same source-log entry. -/
+private theorem fsPointTrace_flatten_at {Point : Type} [DecidableEq F]
+    (sourceLog : QueryLog (unifSpec + (Point →ₒ F)))
+    (i : Nat) (hi : i < (fsPointTrace sourceLog).length) :
+    ∃ value : F,
+      QueryAnswered sourceLog
+        (Sum.inr ((fsPointTrace sourceLog)[i]'hi)) value ∧
+      QueryLog.getQueryValue? (flattenFsLog sourceLog) (Sum.inr ()) i =
+        some value := by
+  induction sourceLog generalizing i with
+  | nil => simp [fsPointTrace] at hi
+  | cons entry rest ih =>
+      rcases entry with ⟨t, value⟩
+      cases t with
+      | inl n =>
+          have hi' : i < (fsPointTrace rest).length := by
+            simpa [fsPointTrace] using hi
+          obtain ⟨answer, hmem, hget⟩ := ih i hi'
+          refine ⟨answer, ?_, ?_⟩
+          · exact List.mem_cons_of_mem _ hmem
+          · change QueryLog.getQueryValue?
+              ((⟨Sum.inl n, value⟩ :
+                (j : Nat ⊕ Unit) × (FsWrappedSpec F).Range j) ::
+                flattenFsLog rest) (Sum.inr ()) i =
+                some answer
+            rw [QueryLog.getQueryValue?_cons_of_ne]
+            · exact hget
+            · exact Sum.inl_ne_inr
+      | inr point =>
+          cases i with
+          | zero =>
+              refine ⟨value, ?_, ?_⟩
+              · change QueryAnswered (⟨Sum.inr point, value⟩ :: rest)
+                  (Sum.inr point) value
+                simp [QueryAnswered]
+              · exact QueryLog.getQueryValue?_cons_self_zero
+                  (Sum.inr ()) value (flattenFsLog rest)
+          | succ i =>
+              have hi' : i < (fsPointTrace rest).length := by
+                simpa [fsPointTrace] using hi
+              obtain ⟨answer, hmem, hget⟩ := ih i hi'
+              refine ⟨answer, ?_, ?_⟩
+              · exact List.mem_cons_of_mem _ hmem
+              · change QueryLog.getQueryValue?
+                  ((⟨Sum.inr (), value⟩ :
+                    (j : Nat ⊕ Unit) × (FsWrappedSpec F).Range j) ::
+                    flattenFsLog rest) (Sum.inr ()) (i + 1) =
+                    some answer
+                rw [QueryLog.getQueryValue?_cons_self_succ]
+                exact hget
+
+/-- Support-level erasure bijection for a computation that already emits only
+structured cache misses. -/
 private theorem wrapFsFrom_support_iff {Point α : Type}
     (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
     (initial expected : List Point) (out : α)
@@ -129,17 +736,17 @@ private theorem wrapFsFrom_support_iff {Point α : Type}
       | inr point =>
           cases sourceLog with
           | nil =>
-              simp [replayFirstRun, wrapFsFrom, fsSingleImpl,
+              simp [replayFirstRun, wrapFsFrom, fsMissImpl,
                 OracleSpec.loggingOracle, QueryImpl.withLogging_apply, flattenFsLog]
           | cons q rest =>
               rcases q with ⟨t, value⟩
               cases t with
               | inl n =>
-                  simp [replayFirstRun, wrapFsFrom, fsSingleImpl,
+                  simp [replayFirstRun, wrapFsFrom, fsMissImpl,
                     OracleSpec.loggingOracle, QueryImpl.withLogging_apply,
                     fsPointTrace, flattenFsLog]
               | inr point' =>
-                  simp [replayFirstRun, wrapFsFrom, fsSingleImpl,
+                  simp [replayFirstRun, wrapFsFrom, fsMissImpl,
                     OracleSpec.loggingOracle, QueryImpl.withLogging_apply,
                     fsPointTrace, flattenFsLog]
                   have hrec := ih value (initial ++ [point]) (expected ++ [point']) out rest
@@ -157,16 +764,17 @@ private theorem wrapFsFrom_support_iff {Point α : Type}
                     simpa [replayFirstRun, wrapFsFrom, List.append_assoc] using
                       hrec.mpr ⟨hs, rfl⟩
 
-/-- Support-level occurrence bijection for the non-caching U5d(4) wrapper:
-the wrapped run has exactly the erased outer log and exactly the structured
-points from the source log, in order. -/
-theorem wrapFs_support_iff {Point α : Type}
+/-- Support correspondence with lazy random-function semantics. `sourceLog`
+contains only structured cache misses; the wrapped run has exactly those
+points and their `Unit`-index answers, in order. -/
+theorem wrapFs_support_iff {Point α : Type} [DecidableEq Point]
     (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
     (out : α) (sourceLog : QueryLog (unifSpec + (Point →ₒ F))) :
     ({ out := out, trace := fsPointTrace sourceLog }, flattenFsLog sourceLog) ∈
         support (replayFirstRun (wrapFs oa)) ↔
-      (out, sourceLog) ∈ support (replayFirstRun oa) := by
-  simpa [wrapFs] using wrapFsFrom_support_iff oa [] [] out sourceLog
+      (out, sourceLog) ∈ support (replayFirstRun (fsRandomFunction oa)) := by
+  simpa [wrapFs] using
+    wrapFsFrom_support_iff (fsRandomFunction oa) [] [] out sourceLog
 
 /-- The round-`level` point determined by a wrapped FS output, when the level
 is within the proof transcript (DESIGN §U5d(4); `fs.stage-labels`). -/
@@ -255,6 +863,9 @@ leaf postcondition used by the round selector and tree assembly. -/
 theorem wrapped_source_leaf_data
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
+    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
+    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
     {μ : Nat}
     (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
       KzgPayload)
@@ -263,12 +874,23 @@ theorem wrapped_source_leaf_data
     {out : FsResult μ F G1 G2 GT}
     {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
       X0Payload BridgePayload KzgPayload)}
-    (h : (out, sourceLog) ∈ support (replayFirstRun (FsGame stmt adv))) :
+    (h : (out, sourceLog) ∈ support
+      (replayFirstRun (fsRandomFunction (FsGame stmt adv)))) :
     (({ out := out, trace := fsPointTrace sourceLog }, flattenFsLog sourceLog) ∈
         support (replayFirstRun (wrapFs (FsGame stmt adv)))) ∧
       accepted_run_leaf_data stmt out sourceLog := by
-  exact ⟨(wrapFs_support_iff (FsGame stmt adv) out sourceLog).2 h,
-    accepted_supports_leaf_data stmt adv h⟩
+  refine ⟨(wrapFs_support_iff (FsGame stmt adv) out sourceLog).2 h, ?_⟩
+  obtain ⟨cache, _, hcacheLog, hround, hleaf⟩ :=
+    fsRandomFunction_replay_cached stmt adv h
+  intro haccept
+  refine ⟨?_, ?_, hleaf haccept, ?_⟩
+  · intro i
+    exact hcacheLog _ _ (hround i)
+  · intro i
+    exact ⟨rfl, rfl⟩
+  · by_cases hz : ZeroChallenge out
+    · exact Or.inl hz
+    · exact Or.inr (fun i hi => hz ⟨i, hi⟩)
 
 /-- Accepting source runs therefore have a bounded round selector unless they
 fall in the explicit unqueried/out-of-budget event; its probability is U5a. -/
@@ -287,7 +909,8 @@ theorem accepted_roundSlot_some_or_unqueried
     {out : FsResult μ F G1 G2 GT}
     {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
       X0Payload BridgePayload KzgPayload)}
-    (h : (out, sourceLog) ∈ support (replayFirstRun (FsGame stmt adv)))
+    (h : (out, sourceLog) ∈ support
+      (replayFirstRun (fsRandomFunction (FsGame stmt adv))))
     (haccept : out.accept = true) :
     let run : WrappedFsRun
         (FsPoint (F := F) (G1 := G1) (GT := GT)
@@ -300,6 +923,71 @@ theorem accepted_roundSlot_some_or_unqueried
   intro run
   have _hleaf := (wrapped_source_leaf_data stmt adv h).2 haccept
   exact roundSlot_some_or_unqueried qb level run
+
+/-- The answer at the cache miss selected by `roundSlot` is exactly the
+verifier's chronological transcript answer at that round. This is the cached
+managed-RO selector fact required by U5d(4)/R6. -/
+theorem roundSlot_answer_eq_transcript
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq GT]
+    [DecidableEq RandomizerPayload] [DecidableEq X0Payload]
+    [DecidableEq BridgePayload] [DecidableEq KzgPayload]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT RandomizerPayload X0Payload BridgePayload
+      KzgPayload)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+      X0Payload BridgePayload KzgPayload) (Proof μ F G1 G2 GT))
+    (qb : Nat) (level : Fin μ)
+    {out : FsResult μ F G1 G2 GT}
+    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload
+      X0Payload BridgePayload KzgPayload)}
+    (h : (out, sourceLog) ∈ support
+      (replayFirstRun (fsRandomFunction (FsGame stmt adv))))
+    (_haccept : out.accept = true)
+    {slot : Fin (qb + 1)}
+    (hslot : roundSlot qb (level : Nat)
+      ({ out := out, trace := fsPointTrace sourceLog } :
+        WrappedFsRun
+          (FsPoint (F := F) (G1 := G1) (GT := GT)
+            (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+            (BridgePayload := BridgePayload) (KzgPayload := KzgPayload))
+          (FsResult μ F G1 G2 GT)) = some slot) :
+    QueryLog.getQueryValue? (flattenFsLog sourceLog) (Sum.inr ()) (slot : Nat) =
+      some (out.transcript.roundAnswer level) := by
+  let point : FsPoint (F := F) (G1 := G1) (GT := GT)
+      (RandomizerPayload := RandomizerPayload) (X0Payload := X0Payload)
+      (BridgePayload := BridgePayload) (KzgPayload := KzgPayload) :=
+    .round (level : Nat) (out.transcript.roundPrev level) (out.proof.rounds level)
+  let points := fsPointTrace sourceLog
+  have hslot' : point ∈ points ∧
+      ∃ hidx : points.findIdx (· == point) < qb + 1,
+        (⟨points.findIdx (· == point), hidx⟩ : Fin (qb + 1)) = slot := by
+    simpa [roundSlot, wrappedRoundPoint, level.isLt, point, points] using hslot
+  obtain ⟨hmem, hidxBound, hslotEq⟩ := hslot'
+  have hidxTrace : points.findIdx (· == point) < points.length :=
+    List.findIdx_lt_length_of_exists ⟨point, hmem, by simp⟩
+  have hpointAt : points[points.findIdx (· == point)]'hidxTrace = point := by
+    simpa [points] using
+      (List.findIdx_getElem (xs := points) (p := fun x => x == point)
+        (w := hidxTrace))
+  obtain ⟨answer, hanswered, houter⟩ :=
+    fsPointTrace_flatten_at sourceLog (points.findIdx (· == point))
+      (by simpa [points] using hidxTrace)
+  have hanswered' : QueryAnswered sourceLog (Sum.inr point) answer := by
+    change QueryAnswered sourceLog
+      (Sum.inr (points[points.findIdx (· == point)]'hidxTrace)) answer at hanswered
+    rw [hpointAt] at hanswered
+    exact hanswered
+  obtain ⟨cache, hlogCache, _, hround, _⟩ :=
+    fsRandomFunction_replay_cached stmt adv h
+  have hcacheAnswer := hlogCache point answer hanswered'
+  have hcacheTranscript : cache point = some (out.transcript.roundAnswer level) := by
+    simpa [point] using hround level
+  have hanswer : answer = out.transcript.roundAnswer level :=
+    Option.some.inj (hcacheAnswer.symm.trans hcacheTranscript)
+  cases hslotEq
+  simpa [hanswer] using houter
 
 /-- One sound U5d(4) node: four distinct nonzero oracle answers become the
 inverse challenges consumed by `AcceptTree.node` (`tipp-mipp.gipa`). -/
@@ -348,8 +1036,8 @@ def LeafBaseComponents
       KzgPayload) (proof : Proof μ F G1 G2 GT)
     (transcript : FsTranscript μ F) : Prop :=
   let folded := terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer
-  let xV := transcript.roundAnswer
-  let xW := fun i => gipaChallenge (transcript.roundAnswer i)
+  let xV := reversedView transcript.roundAnswer
+  let xW := fun i => gipaChallenge (reversedView transcript.roundAnswer i)
   let rShift := transcript.randomizer⁻¹
   (folded.comA =
       u4ALaneAtom stmt.e
@@ -359,10 +1047,12 @@ def LeafBaseComponents
       u4BLaneAtom stmt.e
         ((foldKey xW
           (fun i => (rShift ^ (i : Nat) • stmt.srsW i, (1 : F)))) 0)
-        (proof.bFinal, terminalR transcript.randomizer transcript.roundAnswer)) ∧
+        (proof.bFinal,
+          terminalR transcript.randomizer (reversedView transcript.roundAnswer))) ∧
   (folded.comT =
       u4TLanePairing stmt.e (proof.aFinal, proof.cFinal)
-        (proof.bFinal, terminalR transcript.randomizer transcript.roundAnswer))
+        (proof.bFinal,
+          terminalR transcript.randomizer (reversedView transcript.roundAnswer)))
 
 /-- U5d(4) leaf assembly up to the full-tag purity boundary. -/
 theorem leafData_to_base_components
@@ -380,11 +1070,11 @@ theorem leafData_to_base_components
   dsimp [LeafBaseComponents]
   obtain ⟨h1, h2, h3, h4, h5, h6, hkzgV, hkzgW⟩ := hleaf
   have hbase := leaf_accept_to_base stmt.e stmt.srsV stmt.srsW stmt.acceptV
-    stmt.acceptW transcript.roundAnswer
-    (fun i => gipaChallenge (transcript.roundAnswer i))
+    stmt.acceptW (reversedView transcript.roundAnswer)
+    (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
     transcript.randomizer⁻¹ proof.vFinal proof.vOpening proof.wFinal proof.wOpening
     proof.aFinal proof.cFinal proof.bFinal
-    (terminalR transcript.randomizer transcript.roundAnswer)
+    (terminalR transcript.randomizer (reversedView transcript.roundAnswer))
     (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1
     (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB.1
     (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.1
@@ -416,9 +1106,9 @@ def WrappedRunGood
 consumed by `u4_capstone` (DESIGN §U5d(4); `tipp-mipp.gipa`,
 `fs.stage-labels`).
 
-The proof is stalled at the full tagged-leaf equality recorded in
-`REPORT-CODEX.md`: `LeafData` proves only the lane projections exposed by
-`leaf_accept_to_base`, while `AcceptTree.base` requires all tagged components. -/
+The remaining proof is the R6 tree/path assembly: selected answers now agree
+with verifier transcripts, but ancestor-prefix correspondence and shared-root
+data still need to be threaded through the induction. -/
 theorem tree_to_acceptTree
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]

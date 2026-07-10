@@ -121,7 +121,11 @@ def gipaChallenge {F : Type} [Inv F] (x : F) : F := x⁻¹
 /-- SnarkPack's `c_inv` is the random-oracle answer itself. -/
 def gipaChallengeInv {F : Type} (x : F) : F := x
 
-private def queryRounds
+/-- Reverse verifier chronology for final-key and structured-scalar consumers. -/
+def reversedView {F : Type} {μ : Nat} (x : Fin μ → F) : Fin μ → F :=
+  fun i => x (Fin.rev i)
+
+def queryRounds
     {F G1 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}
     (level : Nat) : (μ : Nat) → F → (Fin μ → RoundComs F G1 GT) →
       OracleComp (unifSpec + SnarkpackFsSpec F G1 GT RandomizerPayload X0Payload
@@ -190,20 +194,33 @@ def LeafData {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : 
   stmt.e proof.wFinal proof.bFinal = folded.comB.1 ∧
   stmt.e proof.aFinal proof.bFinal = folded.comT.1 ∧
   stmt.e proof.cFinal proof.vFinal = folded.comA.2 ∧
-  terminalR transcript.randomizer transcript.roundAnswer • proof.cFinal =
+  terminalR transcript.randomizer (reversedView transcript.roundAnswer) • proof.cFinal =
     folded.comT.2 ∧
   -- Sixth model-level check (DESIGN §U5d(4)): the bookkeeping B-scalar
   -- column folds to the public product — definitionally satisfied by the
   -- honest prover (GIPA per-lane invariant), absent from the real object.
   folded.comB.2 =
-    ((foldKey (fun i => gipaChallenge (transcript.roundAnswer i))
+    ((foldKey (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
       (fun i => (transcript.randomizer⁻¹ ^ (i : Nat) • stmt.srsW i, (1 : F)))) 0).2 *
-      terminalR transcript.randomizer transcript.roundAnswer ∧
-  stmt.acceptV (transcriptCoeffs transcript.roundAnswer 1)
+      terminalR transcript.randomizer (reversedView transcript.roundAnswer) ∧
+  stmt.acceptV (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
     proof.vFinal proof.vOpening ∧
   stmt.acceptW
-    (transcriptCoeffs (fun i => gipaChallenge (transcript.roundAnswer i))
+    (transcriptCoeffs
+      (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
       transcript.randomizer⁻¹) proof.wFinal proof.wOpening
+
+/-- Two-round parity with `structured_scalar_final_from_raw_transcript` in
+`groth16_aggregation.rs`: verifier chronology `[x0, x1]` is reversed before
+the KZG coefficients and before assigning powers `r, r^2` to `terminalR`. -/
+theorem reversedView_two_round_parity {F : Type} [Field F] (x0 x1 r : F) :
+    transcriptCoeffs (reversedView ![x0, x1]) 1 =
+        transcriptCoeffs ![x1, x0] 1 ∧
+      terminalR r (reversedView ![x0, x1]) =
+        (1 + x1 * r) * (1 + x0 * r ^ 2) := by
+  constructor
+  · rfl
+  · simp [terminalR, reversedView]
 
 /-- All relations checked by the aggregate verifier. -/
 def FsAccepts {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : Type}

@@ -433,6 +433,82 @@ bounded delegable task, all in-package (`Ipp/Fork.lean`,
 Order: U5b → U5c (risk path, DONE) → U5b-quant → U5d(1–3) → U5a →
 U5d(4) → U5e.
 
+## Design-review repair plan (2026-07-10; REPORT-CODEX.md "Design review")
+
+The pre-final-proofs review returned 4 CRITICAL / 6 MAJOR findings; all
+accepted. Repairs, in execution order:
+
+- **R1 (CRITICAL 1) — DONE** (commit f625a8ace): `discrepancyRootSet d` =
+  THE single statement-determined bad set; `hroot : r ∉ discrepancyRootSet d`
+  replaces the contradictory universal `hgeneric`;
+  `discrepancyRootSet_card` is U5a's quantitative carrier.
+- **R2 (CRITICAL 3) — transcript views.** Keep the CHRONOLOGICAL round
+  vector for challenge chaining and commitment folding; define
+  `reversedView x := fun i => x (Fin.rev i)` and use it for
+  `transcriptCoeffs`, both `foldKey`s, and `terminalR` (W side takes
+  inverses AFTER reindexing), matching
+  `groth16_aggregation.rs:1382-1435,1514,1526-1536`. Add a two-round
+  parity lemma against the Rust exponent formula
+  (`coeff = [x₁·?, x₀·?]` orientation check) before any assembly proof.
+- **R3 (CRITICAL 2) — cached managed RO.** Replace the non-caching
+  wrapper: adversary AND verifier run against one cached structured RO
+  (VCVio `withCaching` / `randomOracle` shape); the single-index adapter
+  issues a fresh `Unit` sample only on a cache MISS, records the
+  structured point for that miss, and replays reprogrammed values through
+  the cache so verifier re-queries see them. Selector theorem: the
+  fork-selected sampled answer EQUALS the verifier's `roundAnswer` at that
+  level. `roundSlot` then points at the miss occurrence, and
+  first-occurrence/answer mismatch disappears.
+- **R4 (CRITICAL 4) — remove the synthetic B-scalar column; public-lane
+  extraction.** The B-lane binding at the all-ones scalar key column is
+  uninstantiable (only the SUM is bound). Redesign:
+  (a) `Proof`/`RoundComs` lose the B-scalar components; the real B round
+  commitment is GT only; `FsStatement.ComB : GT`. The r_vec coordinate
+  becomes PUBLIC data folded from `r` and the chronological challenges.
+  (b) U2 generalization (`Gipa.lean`): AcceptTree gains a PUBLIC lane —
+  an F-module family `pub : Fin (2^μ) → P` carried as tree data with
+  `node` requiring `child pub = foldMsg (c k) pub` (B-side orientation)
+  and NO commitment; the T-lane pairing becomes
+  `ip : Msg1 →ₗ (Msg2 × P) →ₗ IPv`. `round_extract`'s Laurent chain pins
+  the committed columns via binding as before; the interpolants' public
+  column equals the carried public family by Vandermonde UNIQUENESS
+  (the public fold is a solution of the same 3-point system — no binding
+  needed). `gipa_extract` concludes
+  `ComT = cmT (ipm ip a (b ⊗ pub))`.
+  (c) U4: `u4BCommitAtom` binds G2-column only (AFGHO row instantiable);
+  the combined instance's public lane P := F with `pub i = rⁱ`;
+  `hComB` pins only the B column; the sixth leaf check becomes a DERIVED
+  lemma about the public fold (not an adversary-facing check); DecidableEq
+  hash payloads shrink accordingly (Rust parity: nothing synthetic is
+  hashed).
+- **R5 (MAJORs 1,2 + MINOR 1) — game faithfulness.** Concrete typed
+  payload records with exactly the Rust-hashed fields (randomizer binds
+  com_a/com_b/com_c; x0 binds r+coms+ip_ab+agg_c; bridge binds last raw
+  challenge+final keys+final messages; kzg binds bridge+final keys);
+  `level` removed from the hashed round preimage (selector metadata only);
+  `acceptV/acceptW` and `KzgStructuredKeyBinding` parametrized by the KZG
+  challenge `z`; `LeafData` passes `transcript.kzg`; restores the
+  bridge → kzg → opening dependency chain.
+- **R6 (MAJOR 5) — assembly boundary.** After R2/R3: strengthen the
+  wrapper-side facts carried into the `tree_to_acceptTree` induction:
+  selected-point/answer correctness (via R3's selector theorem),
+  selected-slot stage ordering, ancestor-answer/path correspondence
+  (chronological prefix + its reversed view), shared randomizer/root-data
+  across the tree (`all_randomizer_eq`).
+- **R7 (MAJORs 3,4,6) — quantitative redesign (U5a/U5e).** Replace the
+  pointwise `ForkTreeNodeLowerBound` interface with an AVERAGED,
+  goodness-conditioned recurrence (base mass `Pr[accept ∧ Good]`); prove
+  the per-level four-child conditioning lemma; gate selectors on goodness
+  so tree success ⇒ `All Good`; model rejection sampling (nonzero, and
+  `r ∉ {0,1}` per `groth16.randomizer`) or an explicit ideal-real
+  coupling term; add the dependency-order condition (randomizer/x0 chain
+  precedes each fork slot).
+
+Execution: R2+R3 (one session, FsGame/FsFork-local), then R4 (Gipa/
+Composition surgery per (b)), then R5, then R6 (assembly proof), then R7.
+The NOTE findings confirm: per-round swap orientation and the U5e
+positive-support technique are sound as designed.
+
 ## Conventions
 
 - No `sorry`; no `axiom` (assumptions are hypotheses via named `Prop` defs in
