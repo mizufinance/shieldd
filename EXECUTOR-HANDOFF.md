@@ -270,6 +270,74 @@ standing incident, not a hypothetical). Picking this up: start from the
 section by section, leaf-bench each new lemma before any adapter build, one
 `lake` at a time.
 
+**2026-07-10 Phase 3 session 3 — generator-rewrite scoping pass, no code
+changed (deliberately stopping before the hand-authored bridge, not blocked
+by a repeated failure):**
+
+Confirmed the `ltchain.rs` fix from session 2 is in place (commit
+`509c12d98`, `--lean-contract-out` regenerates all per-segment base contracts
+end-to-end incl. `Seg46.lean`) and re-read the full mechanical surface of
+`gen_nb_slice.py` (2,077 lines) against `NB1-SLICE-SPEC.md`'s relation shape.
+Findings that de-risk the rewrite for whoever runs it next:
+
+- `emit_to_binary_module`/`emit_to_binary_modules` (lines 1723-1784) are
+  **already fully generic** over `ValueLadder` (bit_base/binary_rows/
+  copy_row/amount_wire) and the blind ladder — no new emitter is needed for
+  the 3 amount ToBinary blocks or the blind ToBinary block, only updated
+  `VALUE_LADDERS`/`BLIND_*` constants (session 2's part (a) numbers) and a
+  `.capitalize()`-derived rename sweep `seg48*`/`Seg48*` -> `seg46*`/`Seg46*`.
+- Functions confirmed DELETE-outright (no callers survive once poseidon/
+  encode/value-ladder/final-add are gone): `generate_poseidon_shape`,
+  `emit_poseidon_adapter`, `emit_encode_pre`, `emit_encode_post`,
+  `ENCODE_CANON`/`emit_canonical_modules` (only consumer was encode/DTK-style
+  canonical checks tied to the deleted value ladders — confirm no other
+  caller before deleting), `value_rungs`/`ScalarRung`/`emit_value_defs_module`/
+  `emit_value_row_projection`/`emit_value_rung`/`emit_value_hstep_chunk`/
+  `emit_value_chunk`/`emit_value_ladder`/`emit_value_modules`, `emit_adds`.
+  Functions confirmed KEEP verbatim (only row/wire constants move): blinding
+  ladder family (`blind_rungs` through `emit_blind_modules`,
+  `blind_split_cert`, `blind_gen_doubles`, `emit_fixed_base_literal`) and
+  `emit_base`/`configure_contract_helpers`/`sr1cs_rows`/`singleton_wire`.
+- New pieces needed, not yet written: (1) a `conservation_row` mining/emit
+  function — single linear-row `1*(w_in0+w_in1) = 1*w_out0` at segment-local
+  row 387, structurally trivial (one `linear_combination` line, no booleanity
+  loop) but has no template in this file since nothing like it existed
+  before; (2) `emit_top`'s replacement — the OLD `emit_top` (lines 1915-2023)
+  wires `seg48_nbBody`/`seg48_sound` through Poseidon -> encode-to-curve ->
+  two variable-base adds -> final blind add, and calls
+  `Shieldd.GnarkFormal.NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound`
+  (523-line hand-authored bridge at `ShielddGnarkFormal/
+  NetBalanceCommitmentBridge.lean`) — **none of this survives**; the new
+  `emit_top` is just booleanity(3x128) ∧ recompose(3) ∧ conservation ∧
+  ladderTrace(blind) ∧ `out = ladderResult` (per spec) feeding the NEW
+  `ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound`,
+  which does not exist yet and has no prior-art file to crib structurally
+  (closest analog is the blind-ladder-to-EdwardsBridge glue already inside
+  the old `emit_top`/`emit_blind_ladder`, which DOES carry over almost
+  verbatim for the "out = ladderResult" conjunct — reuse that half).
+- `Specs/Nb.lean`'s `deployedSpec48` (hand-authored, line 9) also needs a
+  `deployedSpec46` replacement matching the new conjunct shape, and
+  `contracts.rs`'s spec_submodule table needs the seg46 pointer (per queue
+  item 3).
+
+**Why stopping here rather than pushing through:** the hand-authored bridge
+(`ConservationNetBalanceCommitmentBridge.lean`) is the only genuinely novel
+soundness artifact in this wave — it is a real ECC lemma (fixed-base ladder
+trace + a linear conservation row ⟹ curve-point equation), not a mechanical
+regen, and per Agents.md/hard-rule 6 must not be guess-patched: writing it
+correctly means drafting the lemma, debugging it in a `lake env lean` leaf
+probe per `lean-leaf-bench.sh` budgets, iterating until it typechecks, THEN
+running the serialized adapter/Bounds/Capstone/Statement `lake` campaign
+(historically 20-40 min/stage per T1-d) with an RSS watcher live the whole
+time. That loop cannot be safely compressed into a single non-interactive
+pass without risking exactly the failure mode this file has twice already
+declined to rush (2026-07-08 third session, session 2 above). No files were
+changed this session (read-only scoping); `git status` is unchanged from
+session 2 (still just the uncommitted `.sr1cs`/manifest artifacts). Next
+session: rewrite `gen_nb_slice.py` per the DELETE/KEEP/NEW list above, draft
+`ConservationNetBalanceCommitmentBridge.lean`, leaf-bench it, then run the
+lake campaign one stage at a time with a monitored background process.
+
 ### Q3 — post-boundary optimization queue (superseded by Q5 for consolidate)
 The 2026-07-07 audit ranked the candidates in
 `docs/soundness/optimization-playbook.md` §2/§2t/§2x. (1) **T1-d** — DONE, see
