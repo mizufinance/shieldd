@@ -49,6 +49,13 @@ func pointSub(curve gnarkte.Curve, left, right gnarkte.Point) gnarkte.Point {
 
 func ScalarMulLE(api frontend.API, curve gnarkte.Curve, base gnarkte.Point, scalar frontend.Variable, nBits int) gnarkte.Point {
 	bits := api.ToBinary(scalar, nBits)
+	return ScalarMulLEBits(api, curve, base, bits)
+}
+
+// ScalarMulLEBits is ScalarMulLE for a caller that already holds the
+// little-endian bit decomposition of the scalar (e.g. reusing a canonicity
+// decomposition performed elsewhere), avoiding a redundant api.ToBinary.
+func ScalarMulLEBits(api frontend.API, curve gnarkte.Curve, base gnarkte.Point, bits []frontend.Variable) gnarkte.Point {
 	result := gnarkte.Point{X: 0, Y: 1}
 	current := base
 

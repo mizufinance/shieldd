@@ -36,14 +36,29 @@ func IncomingViewingKey(
 	ivkReduced frontend.Variable,
 	quotientA frontend.Variable,
 ) (frontend.Variable, error) {
+	ivk, _, err := incomingViewingKeyWithBits(api, nk, ak, ivkReduced, quotientA)
+	return ivk, err
+}
+
+// incomingViewingKeyWithBits is IncomingViewingKey plus the 253-bit
+// decomposition already produced by IVKModRDecomposition, so callers that
+// need ivkReduced's bits (T1-h: DiversifiedTransmissionKey's ladder) don't
+// pay for a second api.ToBinary of the same wire.
+func incomingViewingKeyWithBits(
+	api frontend.API,
+	nk frontend.Variable,
+	ak gnarkte.Point,
+	ivkReduced frontend.Variable,
+	quotientA frontend.Variable,
+) (frontend.Variable, []frontend.Variable, error) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	akFq, err := decafgnark.CompressToField(api, ak)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ivkModQ, err := Poseidon377Hash2(
 		api,
@@ -51,28 +66,31 @@ func IncomingViewingKey(
 		[2]frontend.Variable{nk, akFq},
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err := IVKModRDecomposition(api, ivkModQ, quotientA, ivkReduced); err != nil {
-		return nil, err
+	bits, err := IVKModRDecomposition(api, ivkModQ, quotientA, ivkReduced)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return ivkReduced, nil
+	return ivkReduced, bits, nil
 }
 
 // IVKModRDecomposition pins ivkModQ = r*quotientA + ivkReduced with
 // quotientA in {0..4}, ivkReduced < r, and (when quotientA = 4)
-// ivkReduced < q - 4r so the split cannot wrap mod q.
+// ivkReduced < q - 4r so the split cannot wrap mod q. Returns the 253-bit
+// little-endian decomposition of ivkReduced so callers can reuse it (T1-h)
+// instead of re-decomposing the same wire.
 func IVKModRDecomposition(
 	api frontend.API,
 	ivkModQ frontend.Variable,
 	quotientA frontend.Variable,
 	ivkReduced frontend.Variable,
-) error {
+) ([]frontend.Variable, error) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rModulus := MustBigInt(vectors.Decaf377CompanionCurve.Order)
@@ -93,9 +111,18 @@ func IVKModRDecomposition(
 	isA4 := api.IsZero(api.Sub(quotientA, 4))
 	api.AssertIsEqual(api.Mul(isA4, api.Sub(1, isLessThanQMinus4R)), 0)
 
-	return nil
+	return bits, nil
 }
 
+// DiversifiedTransmissionKey computes ivkReduced * diversifiedGenerator.
+//
+// T1-h: LessThanConstant253(bits, r) inside IVKModRDecomposition forces
+// ivkReduced < r < 2^251 (Decaf377CompanionCurve.Order.BitLen() == 251) in
+// any satisfying assignment, so bits[251] and bits[252] of the 253-bit
+// decomposition are always 0 — a 251-bit ladder over bits[0:251] equals the
+// full ivkReduced*G. Reusing those bits here (instead of a second
+// api.ToBinary(ivk, 251) inside ScalarMulLE) removes one redundant 251-bit
+// decomposition per DTK instance.
 func DiversifiedTransmissionKey(
 	api frontend.API,
 	nk frontend.Variable,
@@ -112,16 +139,16 @@ func DiversifiedTransmissionKey(
 	if err != nil {
 		return gnarkte.Point{}, err
 	}
-	ivk, err := IncomingViewingKey(api, nk, ak, ivkReduced, quotientA)
+	_, ivkBits, err := incomingViewingKeyWithBits(api, nk, ak, ivkReduced, quotientA)
 	if err != nil {
 		return gnarkte.Point{}, err
 	}
-	return ScalarMulLE(
+	order := MustBigInt(vectors.Decaf377CompanionCurve.Order)
+	return ScalarMulLEBits(
 		api,
 		curve,
 		diversifiedGenerator,
-		ivk,
-		MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen(),
+		ivkBits[:order.BitLen()],
 	), nil
 }
 

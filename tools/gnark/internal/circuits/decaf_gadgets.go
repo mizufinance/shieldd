@@ -46,7 +46,8 @@ type IvkModRGadget struct {
 }
 
 func (c *IvkModRGadget) Define(api frontend.API) error {
-	return IVKModRDecomposition(api, c.IvkModQ, c.QuotientA, c.IvkReduced)
+	_, err := IVKModRDecomposition(api, c.IvkModQ, c.QuotientA, c.IvkReduced)
+	return err
 }
 
 // CompressToFieldGadget is the hint-free extraction mirror of
@@ -225,7 +226,7 @@ func (c *DecafDtkGadget) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
-	if err := IVKModRDecomposition(api, ivkModQ, c.IvkQuotient, c.IvkReduced); err != nil {
+	if _, err := IVKModRDecomposition(api, ivkModQ, c.IvkQuotient, c.IvkReduced); err != nil {
 		return err
 	}
 	out := scalarMulLEMirror(

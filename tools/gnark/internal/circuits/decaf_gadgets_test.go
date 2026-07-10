@@ -486,7 +486,7 @@ func (c *dtkParityCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
-	if err := IVKModRDecomposition(api, ivkModQ, c.IvkQuotient, c.IvkReduced); err != nil {
+	if _, err := IVKModRDecomposition(api, ivkModQ, c.IvkQuotient, c.IvkReduced); err != nil {
 		return err
 	}
 	mirror := scalarMulLEMirror(api, divGen, c.IvkReduced, 251)
