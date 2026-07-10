@@ -517,6 +517,18 @@ CI runner's resource pressure.
 
 ## Recently completed
 
+- 2026-07-10: T1-d CI fallout closed — audited all 7 deployed circuits for
+  constraint-count drift post-DTK-hoist (NoteReshape backs all consolidateN/
+  splitN members): consolidate4x1 101,391→76,063, consolidate8x1 189,075→
+  138,419, split1x4 64,812→39,484, split1x8 103,284→52,628 all had stale
+  groth16 setups (pcli split1x4 flow was dying on the artifact-mismatch
+  check); re-ran `gnarkctl setup` for all 4 and committed the fresh
+  pk/vk/sr1cs/metadata sets (transfer + shielded_ics20_withdrawal unaffected,
+  0 drift). Also closed the PR97 transfer-stamp-refresh pending item: only 2
+  of ~40 fields were stale (scalar_mul_gadgets_go_source_sha256,
+  constraint_coverage_main_source_sha256), both pure bookkeeping — no
+  contract drift in transfer's Lean model/wiring. All gates GREEN; addendum
+  in `docs/soundness/records/t1d-gate-record.md`.
 - 2026-07-10: Q3 (1) T1-d done — DTK hoisted to one call per consolidate2x1
   (57,329 → 44,665 rows, −22.1%); fixed 2 stale Lean refs (NullifierAdapters
   seg11→seg9 clobber, NbAdapterSeg48 deployedSpec52→48), re-stamped 3 coverage
@@ -542,8 +554,6 @@ CI runner's resource pressure.
   byte-identical to standalone `fv-census.py` on consolidate2x1; exact-dup
   and net-balance x4 triage confirmed already recorded in the playbook
   (folded into T1-d / NB-2). Transfer census run remains open (off-peak).
-- 2026-07-07: Q3 evidence gaps closed (repeated-nullifier handler test → R2.2;
-  `ZK-ASSUME-SPEND-AUTH-RDSA` ledger row + mirror → R3.2).
 
 ## Blocked
 

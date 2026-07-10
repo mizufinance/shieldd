@@ -37,3 +37,80 @@ change tracked as T1-d in `docs/soundness/optimization-playbook.md` §2.
 - `cargo fmt --check` (constraint-coverage crate touched this pass): clean.
 - `cargo test -p shieldd-constraint-coverage`: 66/66 passing.
 - `go test ./internal/circuits/ -count=1`: passing (also exercised inside the `wiring-transcript+parity-tests` gate above).
+
+## Addendum (2026-07-10) — CI-caught fallout: stale groth16 setups + transfer stamp refresh
+
+CI on `c9edba2f8` flagged two follow-ups from the DTK hoist, both landed in this addendum pass:
+
+### 1. Constraint-count drift audit across all deployed circuits
+
+`NoteReshapeCircuit` (shared spend/output gadget code) backs every `consolidateN`
+and `splitN` family member, not just `consolidate2x1` — the DTK hoist changed
+constraint counts for all of them, but only consolidate2x1's groth16 setup had
+been refreshed. `pcli`'s split1x4 flow died with `artifact mismatch: compiled
+circuit has 39484 constraints but metadata says 64812` because `split1x4`'s
+committed `proving_key.bin`/`circuit_metadata.json` still pinned the pre-hoist
+count.
+
+Audited all 7 deployed circuit families by running `go run ./cmd/gnarkctl
+setup --circuit <c> --out-dir <tmp>` for each and diffing `nb_constraints`
+against the committed `circuit_metadata.json`:
+
+| Circuit | Committed (pre-hoist) | Fresh (post-hoist) | Delta | Status |
+| --- | --- | --- | --- | --- |
+| transfer | 251,973 | 251,973 | 0 | unaffected (does not route spend/output through NoteReshape's shared-DTK path the same way) |
+| consolidate2x1 | 44,665 | 44,665 | 0 | already fixed (this record, main section above) |
+| consolidate4x1 | 101,391 | 76,063 | −25,328 (−25.0%) | **stale, re-set-up** |
+| consolidate8x1 | 189,075 | 138,419 | −50,656 (−26.8%) | **stale, re-set-up** |
+| split1x4 | 64,812 | 39,484 | −25,328 (−39.1%) | **stale, re-set-up** |
+| split1x8 | 103,284 | 52,628 | −50,656 (−49.0%) | **stale, re-set-up** |
+| shielded_ics20_withdrawal | 90,718 | 90,718 | 0 | unaffected |
+
+Ran full `groth16.Setup` (via `gnarkctl setup`) for the 4 stale circuits and
+replaced their committed `proving_key.bin`, `verifying_key.bin`,
+`verifying_key.json`, `<circuit>.sr1cs`, and `circuit_metadata.json` with the
+freshly derived, internally-consistent set (all 5 files from the same setup
+run, so pk/vk/sr1cs/metadata all agree with each other and with the recompiled
+circuit). `crates/crypto/proof-params/src/gen/gnark/{consolidate,split}_registry.rs`
+`include_bytes!` directly from these artifact paths, so no separate embed step
+was needed.
+
+Verified: `check-vk-derivation.sh` GREEN for all 4 (pk/vk/sr1cs mutually
+consistent, sr1cs byte-identical on recompile); `go test ./internal/circuits/
+-count=1` green; `cargo test -p shieldd-sdk-shielded-pool --features
+bundled-proving-keys` 69/69 green, including
+`gnark::artifacts::statement_parity_tests::committed_family_artifacts_carry_verified_hashes`
+(the Rust-side parity gate that would have caught this same drift for the
+other 3 circuits had it been run standalone against the committed artifacts).
+
+### 2. transfer whole-circuit Lean artifact stamp refresh (PR97 pending item)
+
+Per PR97 policy (stamp refresh only, no contract fan-out): diffed every one of
+the ~40 hash fields in `transfer-whole-circuit-lean-artifact.txt` against a
+freshly computed hash of each field's source file. Exactly 2 fields were
+stale, both pure Go/Rust source-hash bookkeeping from earlier commits that
+never touched this artifact:
+
+- `scalar_mul_gadgets_go_source_sha256` — stale since Q2's `gadget-scalar-mul-step`
+  Picus fix (`2ff6e5492`); transfer's own Lean model/wiring-transcript fields
+  were unaffected (confirmed not-stale), so this is bookkeeping only, not a
+  contract change.
+- `constraint_coverage_main_source_sha256` — stale since the T1-d rustfmt fix
+  (`f98cc12fb`), same source file already re-stamped for consolidate2x1's
+  artifact in this record's main section.
+
+No other field drifted — in particular `whole_circuit_sr1cs_sha256`,
+`manifest_sha256`, `nb_constraints`, `verifying_key_sha256_hex`,
+`wiring_transcript_source_sha256`, and all bridge/extracted Lean source
+hashes matched committed values exactly, confirming **no contract drift**:
+transfer's compiled circuit, Lean model, and wiring transcript are unchanged
+by the DTK hoist. Re-stamped the 2 stale fields and the artifact's `.sha256`
+sidecar. Verified `check-lean-circuit-fv.sh stamps --circuit transfer` and
+`--circuit consolidate2x1` both GREEN, and `check-vk-derivation.sh transfer`
+GREEN.
+
+### Local CI equivalents (addendum)
+
+- `go test ./internal/circuits/ -count=1`: green.
+- `cargo fmt --check -p shieldd-sdk-shielded-pool -p shieldd-sdk-proof-params`: clean.
+- `cargo test -p shieldd-sdk-shielded-pool --features bundled-proving-keys`: 69 passed, 0 failed, 3 ignored.
