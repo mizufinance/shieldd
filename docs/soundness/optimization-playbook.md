@@ -608,6 +608,7 @@ record; distill it into a row here on commit.
 | Opt | Landed | Rows before → after (Δ) | Prover wall time before → after | Proof size | Segments flipped | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | T1-a seed-ladder elimination | 2026-07-08 (gate battery GREEN, record: `records/t1a-gate-record.md`) | 57,969 → 57,329 (−640, −1.1%) | no pre-T1-a bench; post: 142–161 ms (`gnarkctl replay --mode prove`, 3 runs, no accel) | unchanged (Groth16) | seg52 family | shared fn: also flips transfer/ics20 net-balance segs; 49/49 discharged post-flip |
+| T1-d DTK-once-not-per-note | 2026-07-10 (gate battery GREEN, record: `records/t1d-gate-record.md`) | 57,329 → 44,665 (−12,664, −22.1%) | not benched this pass (`--prove` not run) | unchanged (Groth16) | full DTK/nullifier/rvk adapter family renumbered; Lean regen only, no lake failures beyond stale-reference fixups | 45/45 discharged post-flip; also surfaced and fixed a hand-authored wiring-transcript drift (transcript still modeled per-note DTK calls after Go's Define path was hoisted) |
 
 ## 6. Measurement discipline
 

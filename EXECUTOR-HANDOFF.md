@@ -57,69 +57,9 @@ finish a task: commit, delete its section here, and add one dated line under
 ### Q3 — post-boundary optimization queue (after Q1+Q2 green)
 The 2026-07-07 audit ranked the candidates in
 `docs/soundness/optimization-playbook.md` §2/§2t/§2x. Executor-startable, in
-order: (1) **T1-d Go change** — Go side DONE (commit 48aede47d on
-`optimization-loop-boundaries`), Lean/manifest re-stamp still needed, see
-"Q3 (1) T1-d" below; (2) **TC-1** base-select in `DeriveSharedSecretsSpend`;
-(3) **T1-h** ToBinary dedup; (4) **F-1** census tooling — PARTIALLY DONE, see
-checkpoint below.
-
-### Q3 (1) T1-d — Go side done, Lean/manifest re-stamp PENDING (2026-07-08)
-Commit `48aede47d`: hoisted `DiversifiedTransmissionKey` out of
-`verifyNoteReshapeSpend`/`verifyNoteReshapeOutput` into `NoteReshapeCircuit.Define`
-(computed once from `sharedDivGen`, asserted ≡ `sharedTransmission`), matching
-the T1-d inventory exactly — compiled `consolidate2x1` segments 34/36 + 45/47
-disappear, segment 16 renumbers to segment 5 (hoisted, same relation, input
-still the same wire since spend0's div_gen == sharedDivGen). `go test
-./internal/circuits/ -count=1` is green (golden wiring transcript and
-consolidate2x1/4x1/8x1 + split1x4/8 constraint-count fixtures updated:
-consolidate2x1 57,329 → 44,665, i.e. −12,664 rows, matching the inventoried
-−12,658 within rounding of the two 3-row consumer asserts).
-
-`scripts/fv-opt-loop.sh diff --circuit consolidate2x1 --allow-flips 16
---allow-remove 34,36,45,47` fails at the **recompile/re-extract step**, before
-containment is even checked:
-```
-Error: deployed slice IR .sr1cs hash 1019bf22... != actual d47b0646...
-```
-This is expected and mechanical, not a design problem: the committed
-`consolidate2x1-deployed-slice-ir.json` (+ `-coverage-manifest.json`,
-`-constraint-coverage-report.json`, `-whole-circuit-lean-artifact.txt`, all
-their `.sha256` stamps) still pin the pre-T1-d `.sr1cs`. The T1-a precedent
-(commits `f118c7fcc`, `351cb8786`, `0b80c8109`, `04e62349a`) is the template,
-but T1-d is the ~20x-larger case flagged in the playbook: the DTK manifest
-class currently has 3 instances (segments 16/34/45,
-`crates/core/component/shielded-pool/formal/consolidate2x1-coverage-manifest.json`,
-class `decaf.diversified_transmission_key@42fa5fd...`) and needs to drop to 1;
-its paired consumer-assert class similarly drops from 3 instances (18/36/47)
-to 1; and — per hard rule 8 — every segment after 34 renumbers, so
-`Bounds.lean`/`Wiring.lean`/`Statement.lean`/any hand-authored `Specs/` wire
-indices downstream of seg34 need re-grepping for staleness before any Lean
-proof reruns.
-
-**Remaining steps (not started, do NOT rush under weak resource discipline —
-follow `tools/gnark/lean/AGENTS.md` one-`lake`-at-a-time rules):**
-1. `go run ./cmd/gnarkctl export-r1cs`/`export-manifest` into
-   `tools/gnark/artifacts/consolidate2x1/` (refresh the committed
-   `.sr1cs`/manifest/metadata the coverage tooling reads).
-2. `cargo run -p shieldd-constraint-coverage -- --ir-out ...` to regenerate
-   `consolidate2x1-deployed-slice-ir.json` against the new `.sr1cs`.
-3. Regenerate `consolidate2x1-coverage-manifest.json`: drop the 34/45 DTK
-   instances and 36/47 consumer-assert instances, re-pin segment 16's (now
-   renumbered) instance and every instance whose `segment_index` shifted.
-4. Regenerate/delete the corresponding Lean contracts under
-   `tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1/`
-   (`Seg34`, `Seg36`, `Seg45`, `Seg47` deleted; `Seg16`'s renumbered sibling
-   regenerated via `gen_dtk_slice.py`), re-grep `Specs/`/`Bounds.lean`/
-   `Wiring.lean`/`Statement.lean` for stale indices, rebuild the capstone
-   `consolidate2x1_deployed_sound` — one `lake build` at a time,
-   `LEAN_NUM_THREADS=1`, narrowest module, detached + RSS-watched.
-5. Re-stamp every `.sha256` sidecar (report, manifest, IR, whole-circuit
-   artifact), re-run `scripts/fv-opt-loop.sh diff` then `gates` for
-   consolidate2x1.
-This is large enough (comparable to the still-in-flight T1-a `NbAdapterSeg52`
-keystone build mentioned in "Current state" above) that it should get its own
-session rather than be folded into a quick pass — flagging here rather than
-attempting a rushed Lean regen.
+order: (1) **T1-d** — DONE, see "Recently completed"; (2) **TC-1** base-select
+in `DeriveSharedSecretsSpend`; (3) **T1-h** ToBinary dedup; (4) **F-1** census
+tooling — PARTIALLY DONE, see checkpoint below.
 
 **2026-07-08 follow-up session — mechanical scope confirmed, materially bigger
 than "downstream shift after 34" (STOPPING here, do not rush the Lean layer):**
@@ -577,6 +517,14 @@ CI runner's resource pressure.
 
 ## Recently completed
 
+- 2026-07-10: Q3 (1) T1-d done — DTK hoisted to one call per consolidate2x1
+  (57,329 → 44,665 rows, −22.1%); fixed 2 stale Lean refs (NullifierAdapters
+  seg11→seg9 clobber, NbAdapterSeg48 deployedSpec52→48), re-stamped 3 coverage
+  sidecars + the whole-circuit artifact (7 fields), and fixed a real
+  wiring-transcript drift (hand-authored transcript still modeled per-note DTK
+  after Go's hoist). All 5 Lean builds green, full gate battery + diff +
+  vk-derivation + soundness-invariants GREEN; §5 row + record landed
+  (`docs/soundness/records/t1d-gate-record.md`).
 - 2026-07-08: Q2 done — full 24/24 Picus battery `safe` post-T1-a, report +
   sidecar re-stamped. Two real fixes en route: (1) stale `safe` for
   `gadget-scalar-mul-step` (underconstrained at (0,0)) fixed via
@@ -596,9 +544,6 @@ CI runner's resource pressure.
   (folded into T1-d / NB-2). Transfer census run remains open (off-peak).
 - 2026-07-07: Q3 evidence gaps closed (repeated-nullifier handler test → R2.2;
   `ZK-ASSUME-SPEND-AUTH-RDSA` ledger row + mirror → R3.2).
-- 2026-07-07: `scripts/fv-opt-loop.sh` orchestrator landed (diff containment +
-  gate battery + measurement record); playbook gained leeway map (§2b),
-  SnarkPack boundary (§3), results ledger (§5).
 
 ## Blocked
 
