@@ -80,6 +80,19 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.traceWiring("decaf.assert_on_curve", "point=shared.transmission")
 	assertDecafPointOnCurve(api, sharedTransmission)
 
+	// T1-f: decaf compress is coset-invariant, so every note's div_gen (which
+	// is only ever bound by AssertEquivalent to shared.div_gen, never
+	// consumed directly by the note commitment) can use the shared point's
+	// compressed field element instead of re-compressing its own. Nothing
+	// downstream depends on the per-note div_gen beyond the equivalence
+	// assert, so this is sound; membership still flows through
+	// shared.div_gen's on-curve assert (:79) + this single compress.
+	c.traceWiring("decaf.compress_to_field", "in=shared.div_gen", "out=shared.div_gen_fq")
+	sharedDivGenFq, err := decafgnark.CompressToField(api, sharedDivGen)
+	if err != nil {
+		return err
+	}
+
 	// T1-d: DTK depends only on circuit-global nk/ak/ivk and shared.div_gen
 	// (every note's div_gen is asserted decaf-equivalent to shared.div_gen,
 	// and scalar-mul commutes with the decaf coset), so compute it once here
@@ -114,6 +127,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 			spendName,
 			sharedAK,
 			sharedDivGen,
+			sharedDivGenFq,
 			sharedTransmission,
 			sharedAssetID,
 			&c.Spends[i],
@@ -134,6 +148,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 			outputName,
 			sharedAK,
 			sharedDivGen,
+			sharedDivGenFq,
 			sharedTransmission,
 			sharedAssetID,
 			&c.Outputs[i],
@@ -205,6 +220,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 	name string,
 	sharedAK gnarkte.Point,
 	sharedDivGen gnarkte.Point,
+	sharedDivGenFq frontend.Variable,
 	sharedTransmission gnarkte.Point,
 	sharedAssetID frontend.Variable,
 	spend *TransferSpendCircuitFields,
@@ -213,11 +229,8 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 	spentTransmission := gnarkte.Point{X: spend.Note.Transmission.X, Y: spend.Note.Transmission.Y}
 	rkClaimed := gnarkte.Point{X: spend.RK.X, Y: spend.RK.Y}
 
-	c.traceWiring("decaf.compress_to_field", "in="+name+".note.div_gen", "out="+name+".note.div_gen_fq")
-	spentDivGenFq, err := decafgnark.CompressToField(api, spentDivGen)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	// T1-f: use shared.div_gen's compressed form (computed once in Define);
+	// the per-note div_gen is bound only by the AssertEquivalent below.
 	c.traceWiring(
 		"gadget.note_commitment",
 		"blinding="+name+".note.blinding",
@@ -233,7 +246,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 		spend.Note.Blinding,
 		spend.Note.Amount,
 		spend.Note.AssetID,
-		spentDivGenFq,
+		sharedDivGenFq,
 		spend.Note.TransmissionKeyS,
 		spend.Note.ClueKey,
 	)
@@ -291,6 +304,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	name string,
 	sharedAK gnarkte.Point,
 	sharedDivGen gnarkte.Point,
+	sharedDivGenFq frontend.Variable,
 	sharedTransmission gnarkte.Point,
 	sharedAssetID frontend.Variable,
 	output *NoteReshapeOutputCircuitFields,
@@ -298,11 +312,8 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	createdDivGen := gnarkte.Point{X: output.Note.DivGen.X, Y: output.Note.DivGen.Y}
 	createdTransmission := gnarkte.Point{X: output.Note.Transmission.X, Y: output.Note.Transmission.Y}
 
-	c.traceWiring("decaf.compress_to_field", "in="+name+".note.div_gen", "out="+name+".note.div_gen_fq")
-	createdDivGenFq, err := decafgnark.CompressToField(api, createdDivGen)
-	if err != nil {
-		return nil, nil, err
-	}
+	// T1-f: use shared.div_gen's compressed form (computed once in Define);
+	// the per-note div_gen is bound only by the AssertEquivalent below.
 	c.traceWiring(
 		"gadget.note_commitment",
 		"blinding="+name+".note.blinding",
@@ -318,7 +329,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 		output.Note.Blinding,
 		output.Note.Amount,
 		output.Note.AssetID,
-		createdDivGenFq,
+		sharedDivGenFq,
 		output.Note.TransmissionKeyS,
 		output.Note.ClueKey,
 	)
