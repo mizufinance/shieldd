@@ -305,7 +305,7 @@ mod tests {
                     aggregate_proof: vec![1, 2, 3],
                 },
                 FamilyAggregate {
-                    family_id: ProofFamilyId::Split(SplitFamilyId::OneByFour),
+                    family_id: ProofFamilyId::Split(SplitFamilyId::OneByEight),
                     real_count: 2,
                     padded_count: 2,
                     aggregate_proof: vec![4, 5, 6],
