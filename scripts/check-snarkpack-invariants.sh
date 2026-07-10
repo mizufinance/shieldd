@@ -397,7 +397,7 @@ if [[ -f "$hax_targets" ]]; then
     [[ -z "$target" || "$target" =~ ^# ]] && continue
     rg -F "| \`$target\` |" "$hax_boundary" >/dev/null \
       || fail "hax target $target is missing extraction-boundary metadata"
-  done < "$hax_targets"
+  done < <(tr -d '\r' < "$hax_targets")
 fi
 
 if rg -n "assume val" scripts/snarkpack-formal.sh >/dev/null; then
@@ -405,7 +405,7 @@ if rg -n "assume val" scripts/snarkpack-formal.sh >/dev/null; then
     [[ -z "$assumed_symbol" ]] && continue
     rg -F "$assumed_symbol" "$hax_boundary" >/dev/null \
       || fail "hax assume val $assumed_symbol lacks extraction-boundary metadata"
-  done < <(sed -n 's/^assume val \([^:]*\):.*/\1/p' scripts/snarkpack-formal.sh)
+  done < <(sed -n 's/^assume val \([^:]*\):.*/\1/p' scripts/snarkpack-formal.sh | tr -d '\r')
 fi
 
 ripp_scope=crates/crypto/proof-aggregation/formal/snarkpack/ripp-refinement-scope.txt
@@ -442,13 +442,13 @@ if [[ -f "$ripp_scope" ]]; then
       [[ -n "$reviewer" && "$reviewer" != "pending" ]] \
         || fail "RIPP refinement row $symbol_id needs reviewer/date"
     fi
-  done < "$ripp_scope"
+  done < <(tr -d '\r' < "$ripp_scope")
 
   while IFS= read -r mapped_symbol; do
     [[ -z "$mapped_symbol" ]] && continue
     grep -Fx "$mapped_symbol" "$ripp_scope" >/dev/null \
       || fail "RIPP refinement map contains unscoped symbol $mapped_symbol"
-  done < <(sed -n 's/^| `\([^`]*\)` |.*/\1/p' "$ripp_map")
+  done < <(sed -n 's/^| `\([^`]*\)` |.*/\1/p' "$ripp_map" | tr -d '\r')
 fi
 
 ripp_spec=crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md
@@ -470,7 +470,7 @@ if [[ -f "$ripp_spec" ]]; then
       || fail "RIPP spec row $spec_id has invalid primary comparison level $primary_level"
     [[ -n "$required_evidence" && "$required_evidence" != "pending" ]] \
       || fail "RIPP spec row $spec_id lacks required evidence"
-  done < <(sed -n '/^| `[^`]*` |/p' "$ripp_spec")
+  done < <(sed -n '/^| `[^`]*` |/p' "$ripp_spec" | tr -d '\r')
 fi
 
 adaptation_scope=crates/crypto/proof-aggregation/formal/snarkpack/adaptation-scope.txt
@@ -515,7 +515,7 @@ if [[ -f "$adaptation_scope" ]]; then
       rg -F "$pattern" "$file" >/dev/null \
         || fail "adaptation scoped pattern $pattern is missing from $file"
     fi
-  done < "$adaptation_scope"
+  done < <(tr -d '\r' < "$adaptation_scope")
 
   duplicate_adaptation_map_rows="$(
     sed -n 's/^| `\([^`]*\)` |.*/\1/p' "$adaptation_map" | sort | uniq -d
@@ -558,7 +558,7 @@ if [[ -f "$adaptation_scope" ]]; then
       && [[ "$status" != '`open`' ]]; then
       fail "filecoin-shape adaptation row $adaptation_id cannot leave open until filecoin.normative-pin is reviewed"
     fi
-  done < <(sed -n '/^| `[^`]*` |/p' "$adaptation_map")
+  done < <(sed -n '/^| `[^`]*` |/p' "$adaptation_map" | tr -d '\r')
 fi
 
 formal_handoff=crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md
@@ -593,7 +593,7 @@ while IFS= read -r row; do
   if [[ "$evidence" == *"planned"* || "$evidence" == *"required tests"* || "$evidence" == *"Required tests"* ]]; then
     fail "assumption row $assumption still names planned or required tests instead of passing tests"
   fi
-done < <(awk '/^## Assumptions$/ { in_table = 1; next } /^## / && in_table { in_table = 0 } in_table && /^\|/ && $0 !~ /^\| ---/ && $0 !~ /^\| Assumption / { print }' "$formal_handoff")
+done < <(awk '/^## Assumptions$/ { in_table = 1; next } /^## / && in_table { in_table = 0 } in_table && /^\|/ && $0 !~ /^\| ---/ && $0 !~ /^\| Assumption / { print }' "$formal_handoff" | tr -d '\r')
 
 check_reference_crate_boundary
 check_fuzz_crate_boundary

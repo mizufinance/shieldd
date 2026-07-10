@@ -532,6 +532,15 @@ accepted. Repairs, in execution order:
      (fork slot must postdate the r/x0 chain — selector-order fact from
      the cached wrapper), and any residual rejection-sampling coupling
      term R5 documents. Each an RO union bound over ≤ qb+1 queries.
+     Dependency-order detail (Fable 2026-07-10, R6 prep): the ordering
+     event is REAL — an adversary may pre-query round points before the
+     randomizer point, so `all_randomizer_eq` must be CONDITIONED on a
+     `DependencyOrdered` good-event (added to `WrappedRunGood` in R6).
+     Its bound: an accepted run whose round-ℓ point was cache-missed
+     before the x0 miss requires that point's `prev` component to equal
+     the later-sampled fresh-uniform x0/previous-round answer — a
+     guessing event, ≤ (qb+1)/|F| per level by union bound over the
+     candidate early misses.
   5. **U5e composition**: `G^[µ](acc − err_bad) > 0` ⇒ forkTree support
      inhabited ⇒ (gated) `tree.All Good` + `TreeConsistent` ⇒
      `tree_to_acceptTree` (R6) ⇒ `u4_capstone` ⇒ per-proof PPEs. `err`
