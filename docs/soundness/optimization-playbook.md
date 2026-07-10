@@ -633,30 +633,58 @@ neither has a Lean stack; only consolidate2x1 and transfer do.
 - Payoff beyond hygiene: every future wave regenerates 2 fewer groth16 setups,
   and CI/flow surface shrinks.
 
-### Phase 1 — frontier design pass (freeze the batch before any Go edit)
-Decide and pin soundness arguments for each candidate; output is a frozen
-batch list + per-candidate flipped/deleted-segment inventory:
-1. **T1-f** compress `sharedDivGen` once (~−2k rows). Coset-invariance argument
-   already pinned in §2. Executor-safe. IN by default.
-2. **T1-h (consolidate slice)** ivk bits shared between `IVKModRDecomposition`
-   and the remaining DTK ladder (~−1k). Needs a bits-in ladder variant —
-   signature change fans out to transfer's DTK call sites; inventory first. IN
-   if the fan-out stays stamp-only for transfer.
-3. **NB-1** conservation short-circuit (~−3–4k, ~40% of net-balance). T2-class:
-   frontier writes the new net-balance spec + `gen_nb_slice.py` relation shape
-   first (linear conservation + load-bearing `ToBinary(amount,128)` range rows
-   — ZK-ASSUME-AMOUNT-RANGE must survive). **NB-2** (Straus fold, ~−1.3k,
-   seg52-only flip) is the fallback if the NB-1 spec doesn't converge in the
-   design pass. Exactly one of the two goes IN.
-4. **T2-c** upstream 2-bit windowed `ScalarMul` for the remaining ladders
-   (~25–35% of every ladder; the single biggest remaining prize). Gate on the
-   design pass: check the pinned gnark version's audited gadget, and whether
-   the StructuredLC/step-cert substrates extend to `Lookup2` selection rows.
-   If a new Lean substrate is needed and doesn't fit the pass, OUT — parked
-   for Wave 3, not allowed to hold Wave 2 hostage.
-5. **T1-g is VOID** (per CF-1: `AssertEquivalent` does not imply curve
+### Phase 1 — design pass DONE 2026-07-10: batch FROZEN = {T1-f, T1-h, NB-1}
+
+1. **T1-f IN** — compress `sharedDivGen` once (~−2k rows: 2 of 3 ~1,046-row
+   compress instances). Per-note sites: `note_reshape_circuit.go:217/302`
+   (`CompressToField(spent/createdDivGen)` feeding the note commitment), with
+   `AssertEquivalent(noteDivGen, sharedDivGen)` at :280/:334. Compress
+   `sharedDivGen` once in `Define`, pass the fq wire into
+   verifyNoteReshapeSpend/Output. Pinned soundness: decaf compress is
+   coset-invariant, so equivalent representatives give the same fq; the note
+   commitment therefore binds the shared address. **Membership subtlety
+   (pinned):** deleting per-note compress also deletes its internal on-curve
+   check, and `AssertEquivalent` does NOT imply membership (CF-1) — so the
+   per-note `div_gen` witness is left bound only by cross-ratio equivalence.
+   That is sufficient: nothing downstream consumes per-note `div_gen` except
+   the equivalence assert; commitment soundness flows through
+   `sharedDivGen`'s on-curve (:79) + compress. Spec must state this.
+2. **T1-h IN** — thread ivk bits into the DTK ladder (~−0.5–1k in
+   consolidate; bigger in transfer where 2 DTK instances remain).
+   `IVKModRDecomposition` (spend_auth_shared.go:87) does
+   `ToBinary(ivkReduced, 253)`; `ScalarMulLE` inside
+   `DiversifiedTransmissionKey` re-decomposes the same wire at
+   `order.BitLen()` = 251 bits. Fix: return the 253 bits from the
+   decomposition, add a bits-in `ScalarMulLEBits`, feed bits[0:251].
+   Pinned width argument: `LessThanConstant253(bits, r)` forces the
+   decomposed value < r < 2^251, so bits 251/252 are 0 in any satisfying
+   assignment and the 251-bit ladder equals `ivkReduced·G`. Fan-out:
+   `DiversifiedTransmissionKey` signature change touches transfer (:475) and
+   ics20 (:316/:368) — **checked: transfer's segment-level Lean layer is
+   entirely `pending` (0 discharged theorems in
+   transfer-coverage-manifest.json), so the fan-out is contract/stamp regen
+   only, no proof debt.** ics20 has no Lean layer.
+3. **NB-1 IN, NB-2 dropped** — conservation short-circuit (~−3k net in
+   consolidate2x1; scales with amounts in 8x1). New relation for
+   conservation-exact reshapes: assert `Σin = Σout` (one linear row), keep an
+   explicit `ToBinary(amount, 128)` per amount (ZK-ASSUME-AMOUNT-RANGE stays
+   load-bearing — booleanity + recomposition rows), commitment collapses to
+   `blinding·G_b` (the one fixed-base ladder that already exists). Statement
+   value unchanged (natively the commitment equals `blinding·G_b` when
+   conservation holds). Generator feasibility checked: `gen_nb_slice.py`'s
+   value-ladder mining (`value_rungs`) is deleted, the blinding (rvk-shape)
+   ladder section is unchanged, and the new rows are booleanity + one linear
+   row — the simplest shapes in the substrate vocabulary. Frontier writes the
+   new slice spec; executor implements.
+4. **T2-c OUT → Wave 3** — the 2-bit `Lookup2` window changes the per-rung
+   relation shape; the StructuredLC/step-cert ladder substrates certify
+   1-bit rungs and would need a new rung lemma family. Park; revisit when
+   transfer FV ramps (transfer's 14+ compliance ladders multiply the payoff).
+5. **T1-g VOID** (per CF-1: `AssertEquivalent` does not imply curve
    membership; the per-note transmission on-curve asserts are load-bearing).
    Recorded so it isn't re-derived.
+
+Projected batch total: ~−5.5–6k → consolidate2x1 ≈ 38–39k rows.
 
 ### Phase 2 — one batched Go change
 All frozen candidates land as one reviewed change-set on the reshape/shared
