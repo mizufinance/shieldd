@@ -137,6 +137,107 @@ generators must re-derive wire offsets from the fresh IR directly per
 AGENTS.md ("re-derive from IR, never reuse"), not by reusing this table's
 arithmetic.
 
+**2026-07-10 Phase 3 session 2 — NB-1 mining fully derived and validated
+(generator rewrite NOT yet applied); new BLOCKING prerequisite found in
+`ltchain.rs`, root-cause narrowed but NOT fixed (genuinely stopping here, not
+rushing a guess-patch on a fail-closed soundness gate):**
+
+**(a) NB-1 seg46 mining constants — DONE, fully validated against the fresh
+`.sr1cs` (zero row gaps, byte-exact), ready to drop into `gen_nb_slice.py`:**
+Segment 46 = absolute rows 32840..35032 (2,193 rows). All local (segment-
+relative) row numbers below.
+- `in0` ToBinary: bit_base=31277, booleanity rows 0..127, recompose row 128,
+  amount wire 15.
+- `in1` ToBinary: bit_base=31405, booleanity rows 129..256, recompose row 257,
+  amount wire 105.
+- `out0` ToBinary: bit_base=31533, booleanity rows 258..385, recompose row 386,
+  amount wire 193.
+- Conservation row **387**: `1*(w15+w105) = 1*w193` (in0+in1=out0), single
+  linear row, no booleanity.
+- Blinding ToBinary (rvk shape, unchanged mining code): bit_base=31661,
+  booleanity rows 388..638, recompose row 639, wire 5 (blind).
+- Blinding accumulator ladder: rows 640..2192 (all 250 rungs, `blind_rungs`'
+  existing mining logic works UNCHANGED against this new range — verified by
+  reimplementing it in Python against the real rows, zero mismatches).
+  `BLIND_ACCS = [(31915+5*k, 31916+5*k) for k in range(149)] +
+  [(32663+8*j, 32664+8*j) for j in range(101)]` (250 pairs total).
+- **Output wires are the LAST accumulator pair directly: (33463, 33464)** —
+  confirmed the final rung's own x/y rows are rows 2191/2192 (the very last
+  rows of the segment); there is NO separate final-Edwards-add tail block
+  (matches spec: "output = ladder result directly"). This also means
+  `blind_rungs`'s current hardcoded `range(6401, 7961)` search window and its
+  `prev_end != 7953` assertion must become `range(BLIND_COPY_ROW+1, ROW_COUNT)`
+  / `prev_end != ROW_COUNT - 1` (dynamic, not hardcoded old-segment numbers).
+- Poseidon prefix (`generate_poseidon_shape`/`emit_poseidon_adapter`,
+  ~lines 138-345) and encode-to-curve (`emit_encode_pre`/`emit_encode_post`,
+  ~lines 376-580, plus `ENCODE_CANON`/`emit_canonical_modules`) are GONE from
+  the relation entirely — no `G_v` is derived from `asset_id` anymore (no
+  variable-base scalar mult over amounts either) — delete these functions
+  outright, no aliases. Same for `value_rungs`/`ScalarRung`/`emit_value_*`
+  (DTK-shape variable-base amount ladders, ~lines 580-1360) and `emit_adds`
+  (final Edwards add, ~lines 1787-1915) — all deleted per spec, replaced by
+  the ToBinary blocks + conservation row above. The existing generic
+  `emit_to_binary_module` (already used for the blind ladder's own ToBinary)
+  is the right emitter to reuse for all 4 ToBinary blocks (3 amounts + blind);
+  it just needs the new bit_base/rows/copy_row/wire per block, no logic
+  changes. All `Seg48`/`seg48`-prefixed identifiers throughout the file need
+  renaming to `Seg46`/`seg46` (manifest now points at seg 46, not 48) — this
+  also requires the mechanical per-segment base contracts to be regenerated
+  first (see blocker below) so `Seg46.lean` exists to import.
+- Validation method (reusable): parsed the real `.sr1cs` constraint rows for
+  the segment directly in Python, asserted exact `(L,R,O)` shape at every
+  claimed row/wire, and for the blind ladder independently reimplemented
+  `blind_rungs`' row-scanning algorithm in Python and ran it end-to-end
+  against the real rows — all 250 rungs mine cleanly with the last accumulator
+  row landing exactly on the segment's last row. High confidence, not a guess.
+
+**(b) BLOCKING (new, not previously scoped as its own item): `ltchain.rs`'s
+`consolidate2x1_ladders()` (R/Q4 DTK canonicity-ladder recovery) is stale
+after T1-h's ivk-bit-threading change, and blocks `--lean-contract-out`
+(the mechanical per-segment base-contract regenerator) for the WHOLE circuit,
+not just NB-1/DTK — `cargo run -p shieldd-constraint-coverage --
+--lean-contract-out ...` fails outright before producing any `Seg{N}.lean`
+files, because `contracts::generate` calls
+`ltchain::verify_consolidate2x1_lt_ladders` unconditionally as a gate.
+Diagnosis so far: old `bit_base=1187`/`start=1828`/`end=2345` (R) and
+`start=2346`/`end=2715` (Q4) (local, DTK-segment-relative) no longer match.
+The DTK segment itself is correctly located from the IR by op (seg 6,
+absolute rows 1058..7134, 6,077 rows — the `-252` matches T1-h's claimed
+delta exactly). Searched the segment for 253-wide pure-booleanity runs
+(candidates for the ivk canonical decomposition the ladder compares): found
+one at local rows 28..280 (bit_base=934, recompose target wire 1187 — note
+old `bit_base` constant 1187 numerically equals THIS run's recompose target,
+which may be coincidence or may mean the old code's naming is misleading) and
+another at rows 538..790 (bit_base=1276, recompose target wire 1275).
+Reimplemented `recover_lt_chain`/`lc_mul_at` in Python (byte-faithful port,
+including the "operand proportional to the constant-1 LC needs no row" short
+circuit) and brute-force/exact-pattern-searched for a valid start row
+immediately after either candidate's recompose row, for both R and Q4 bounds
+— **no match found for either candidate in the neighborhood searched**. This
+means either: the ivk ladder consumes rows further away from its own
+recompose row than expected (other unrelated constraints interleaved between
+recompose and ladder start — plausible, gnark's per-gadget row order isn't
+guaranteed contiguous), or neither 253-run found so far is actually the ivk
+value the ladder compares (there may be a third one, or the two found runs
+belong to unrelated DTK-internal values like div_x/div_y canonical checks).
+**Next step (not yet done):** dump ALL 253-wide pure-boolean runs in the
+segment (there were more than the two inspected — the search script exists,
+just needs full output review instead of only the first two), then for each
+candidate's recompose row, widen the post-recompose search window (try
+hundreds of rows, not ~40) using the Python `recover_lt_chain` port already
+written (round-trips: it exactly reproduces the Rust error format when it
+fails, so it's a faithful oracle) — the fix, once located, is a 4-number
+constant update (bit_base/start/end for R, and Q4's for its own end) in
+`consolidate2x1_ladders()`, not a logic change. This one function gates
+ALL of Phase 3 (every family's base-contract regen), so it should be fixed
+before any other generator work, including the NB-1 mining above.
+No code committed this session (working tree unchanged beyond the pre-existing
+uncommitted `.sr1cs`/manifest artifacts from Phase 2/3 session 1) — did not
+want to land a half-verified guess-patch on a fail-closed gate per Agents.md
+("if the same error hits twice, research 3-5 fixes and pick the best, do not
+flail") and per AGENTS.md hard rule 1 (never modify parity-assertion
+semantics by hand without confidence).
+
 Explicitly NOT done in this pass (deliberately stopping before starting, not
 blocked): `gen_nb_slice.py` (2,077 lines) and `gen_dtk_slice.py` (3,317 lines)
 redesigns, adapter regen/lint, the serialized `lake` campaign
