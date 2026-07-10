@@ -610,6 +610,86 @@ record; distill it into a row here on commit.
 | T1-a seed-ladder elimination | 2026-07-08 (gate battery GREEN, record: `records/t1a-gate-record.md`) | 57,969 → 57,329 (−640, −1.1%) | no pre-T1-a bench; post: 142–161 ms (`gnarkctl replay --mode prove`, 3 runs, no accel) | unchanged (Groth16) | seg52 family | shared fn: also flips transfer/ics20 net-balance segs; 49/49 discharged post-flip |
 | T1-d DTK-once-not-per-note | 2026-07-10 (gate battery GREEN, record: `records/t1d-gate-record.md`) | 57,329 → 44,665 (−12,664, −22.1%) | not benched this pass (`--prove` not run) | unchanged (Groth16) | full DTK/nullifier/rvk adapter family renumbered; Lean regen only, no lake failures beyond stale-reference fixups | 45/45 discharged post-flip; also surfaced and fixed a hand-authored wiring-transcript drift (transcript still modeled per-note DTK calls after Go's Define path was hoisted) |
 
+## 5b. Wave 2 — batch the remaining consolidate optimizations, one re-stamp
+
+T1-a and T1-d each paid a full Lean re-stamp (T1-d: ~15h of serialized lake
+builds). The re-stamp cost is per *wave*, not per candidate — segment
+renumbering, generator re-derivation, and the build campaign are the same
+whether one relation changed or five. Wave 2 therefore lands every remaining
+consolidate candidate in ONE Go change-set, then re-stamps ONCE.
+
+### Phase 0 — family pruning (independent, do first)
+Delete `consolidate4x1` and `split1x4` (keep 2x1, 8x1, 1x8). Not an FV event:
+neither has a Lean stack; only consolidate2x1 and transfer do.
+- Remove from `tools/gnark/internal/generated/{consolidate,split}_families_generated.go`
+  (and whatever manifest generates them — README §"family registries" says
+  manifest-driven; find it, don't hand-edit generated output),
+  `crates/crypto/proof-params/src/gen/gnark/{consolidate,split}_registry.rs`,
+  `crates/core/component/shielded-pool/src/{consolidate,split}/generated.rs` +
+  `gnark/*.rs`, prover daemon registration, artifacts dirs, tests, docs.
+- Keep family IDs stable for the survivors (canonical identifiers: 8x1 stays
+  ID 3 / 1x8 keeps its ID; delete rows, never renumber).
+- Prototype contract policy applies: delete the paths outright, no aliases.
+- Payoff beyond hygiene: every future wave regenerates 2 fewer groth16 setups,
+  and CI/flow surface shrinks.
+
+### Phase 1 — frontier design pass (freeze the batch before any Go edit)
+Decide and pin soundness arguments for each candidate; output is a frozen
+batch list + per-candidate flipped/deleted-segment inventory:
+1. **T1-f** compress `sharedDivGen` once (~−2k rows). Coset-invariance argument
+   already pinned in §2. Executor-safe. IN by default.
+2. **T1-h (consolidate slice)** ivk bits shared between `IVKModRDecomposition`
+   and the remaining DTK ladder (~−1k). Needs a bits-in ladder variant —
+   signature change fans out to transfer's DTK call sites; inventory first. IN
+   if the fan-out stays stamp-only for transfer.
+3. **NB-1** conservation short-circuit (~−3–4k, ~40% of net-balance). T2-class:
+   frontier writes the new net-balance spec + `gen_nb_slice.py` relation shape
+   first (linear conservation + load-bearing `ToBinary(amount,128)` range rows
+   — ZK-ASSUME-AMOUNT-RANGE must survive). **NB-2** (Straus fold, ~−1.3k,
+   seg52-only flip) is the fallback if the NB-1 spec doesn't converge in the
+   design pass. Exactly one of the two goes IN.
+4. **T2-c** upstream 2-bit windowed `ScalarMul` for the remaining ladders
+   (~25–35% of every ladder; the single biggest remaining prize). Gate on the
+   design pass: check the pinned gnark version's audited gadget, and whether
+   the StructuredLC/step-cert substrates extend to `Lookup2` selection rows.
+   If a new Lean substrate is needed and doesn't fit the pass, OUT — parked
+   for Wave 3, not allowed to hold Wave 2 hostage.
+5. **T1-g is VOID** (per CF-1: `AssertEquivalent` does not imply curve
+   membership; the per-note transmission on-curve asserts are load-bearing).
+   Recorded so it isn't re-derived.
+
+### Phase 2 — one batched Go change
+All frozen candidates land as one reviewed change-set on the reshape/shared
+paths. Unit + parity tests per candidate (identity-term deadness, coset
+invariance probes) BEFORE compiling artifacts. Measure per §6: recompile all
+circuits once, record rows before/after per candidate where separable (land
+candidates as separate commits compiling independently, so the per-candidate
+Δ is measurable, then re-stamp on the batch tip).
+
+### Phase 3 — one FV re-stamp (the T1-d machinery, now cheaper)
+Same pipeline as T1-d, run once: derive the old→new segment mapping table,
+re-derive generator wire offsets from fresh IR, regen + lint, re-point
+hand-authored layers (Bounds/Wiring/Statement/Specs/Glue + the hand-authored
+wiring transcript — T1-d's late catch; regenerate it from
+`gnarkctl export-wiring-transcript`, Go as ground truth), serialized lake
+campaign (one lake, LEAN_NUM_THREADS=1, nohup+log), gate battery, ONE
+`records/wave2-gate-record.md`, one §5 ledger row per candidate.
+Known-trap checklist from T1-d (verify each): `contracts.rs spec_submodule`
+table, extracted-namespace `seg{i}` positional indices (never blanket-rename),
+adapter files with no generator (NullifierAdapters), stale `deployedSpecN`
+references in emitted adapters.
+
+### Phase 4 — artifact + CI closure (one pass)
+`gnarkctl setup` for ALL surviving reshape circuits in the same commit as the
+Go change reaches CI (T1-d lesson: split1x4's stale keys broke the flow job a
+full push later). Refresh transfer/ics20 stamps if the shared-source hashes
+moved (stamp-only; STOP on contract drift). Local CI equivalents before every
+push. One PR, watch to green.
+
+### Wave 2 projected outcome (consolidate2x1, from 44,665)
+T1-f + T1-h + NB-1 ≈ −6–7k → ~38k; if T2-c makes the batch, ladders drop a
+further ~25–35% → low 30ks. Record actuals in §5, projections are not results.
+
 ## 6. Measurement discipline
 
 - Constraint counts from the coverage report JSON (source of truth), not gnark

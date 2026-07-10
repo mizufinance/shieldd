@@ -54,12 +54,22 @@ finish a task: commit, delete its section here, and add one dated line under
 
 ## Active queue (in order)
 
-### Q3 — post-boundary optimization queue (after Q1+Q2 green)
+### Q5 — Wave 2: batched consolidate optimizations + family pruning (governing)
+Strategy: `docs/soundness/optimization-playbook.md` §5b (2026-07-10). Order:
+Phase 0 family pruning (delete consolidate4x1 + split1x4; executor-startable
+now — not an FV event) → Phase 1 frontier design pass (freezes the batch:
+T1-f, T1-h, NB-1-or-NB-2, T2-c in/out; NOT executor work) → Phase 2 one
+batched Go change-set → Phase 3 ONE Lean re-stamp → Phase 4 setups for all
+surviving circuits + stamps + CI green in one pass. Do not start any single
+candidate's Lean regen on its own — the whole point is one re-stamp per wave.
+
+### Q3 — post-boundary optimization queue (superseded by Q5 for consolidate)
 The 2026-07-07 audit ranked the candidates in
-`docs/soundness/optimization-playbook.md` §2/§2t/§2x. Executor-startable, in
-order: (1) **T1-d** — DONE, see "Recently completed"; (2) **TC-1** base-select
-in `DeriveSharedSecretsSpend`; (3) **T1-h** ToBinary dedup; (4) **F-1** census
-tooling — PARTIALLY DONE, see checkpoint below.
+`docs/soundness/optimization-playbook.md` §2/§2t/§2x. (1) **T1-d** — DONE, see
+"Recently completed"; (2) **TC-1** base-select in `DeriveSharedSecretsSpend`
+(transfer-side, stays queued independently of Wave 2); (3) **T1-h** ToBinary
+dedup — folded into Wave 2 Phase 1; (4) **F-1** census tooling — PARTIALLY
+DONE, see checkpoint below.
 
 **2026-07-08 follow-up session — mechanical scope confirmed, materially bigger
 than "downstream shift after 34" (STOPPING here, do not rush the Lean layer):**
