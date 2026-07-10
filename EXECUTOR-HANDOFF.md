@@ -56,12 +56,36 @@ finish a task: commit, delete its section here, and add one dated line under
 
 ### Q5 — Wave 2: batched consolidate optimizations + family pruning (governing)
 Strategy: `docs/soundness/optimization-playbook.md` §5b (2026-07-10). Order:
-Phase 0 family pruning (delete consolidate4x1 + split1x4 — DONE, see
-"Recently completed") → Phase 1 frontier design pass (freezes the batch:
-T1-f, T1-h, NB-1-or-NB-2, T2-c in/out; NOT executor work) → Phase 2 one
-batched Go change-set → Phase 3 ONE Lean re-stamp → Phase 4 setups for all
-surviving circuits + stamps + CI green in one pass. Do not start any single
-candidate's Lean regen on its own — the whole point is one re-stamp per wave.
+Phase 0 family pruning (delete consolidate4x1 + split1x4 — DONE) → Phase 1
+frontier design pass (froze the batch: T1-f, T1-h, NB-1 IN / NB-2, T2-c OUT —
+DONE) → **Phase 2 DONE** (batched Go change-set, landed as 3 independently
+compiling/passing commits: T1-f, T1-h, NB-1) → **Phase 3 NEXT** — one Lean
+re-stamp for the whole batch (the T1-d machinery, now cheaper: derive
+old->new segment mapping, regen adapters, re-point hand-authored layers incl.
+the wiring transcript, one serialized lake campaign, gate battery, one
+`records/wave2-gate-record.md`) → Phase 4 setups for all surviving circuits +
+stamps + CI green in one pass. Do not start any single candidate's Lean regen
+on its own — the whole point is one re-stamp per wave.
+
+**Phase 2 measured per-candidate deltas (consolidate2x1, baseline 44,665;
+`TestCircuitFamiliesCompile` golden is the source of truth, updated in each
+commit):**
+- T1-f (compress sharedDivGen once): 44,665 -> 42,573 (-2,092)
+- T1-h (thread ivk bits into DTK ladder): 42,573 -> 42,321 (-252); also
+  transfer 251,973->251,469 (-504), ics20 90,718->89,962 (-756)
+- NB-1 (conservation short-circuit, NB-2 dropped): 42,321 -> 36,553 (-5,768)
+- **Batch total: 44,665 -> 36,553 (-8,112, -18.2%)**, ahead of the -6-7k
+  projection. consolidate8x1: 138,419->114,047; split1x8: 52,628->28,256
+  (both scale further since NB-1's savings grow with amount count).
+
+lean-circuit-fv / vk-derivation CI is expected RED until Phase 3 lands — by
+design, same pattern as T1-d (transfer's Lean layer is entirely `pending`, 0
+discharged theorems, so T1-h's transfer/ics20 fan-out is stamp-only debt;
+consolidate2x1's Lean layer needs the actual re-stamp for the T1-f/NB-1
+relation changes and T1-h's dropped ToBinary). New wiring-transcript op
+`decaf.conservation_net_balance_commitment` (gadget label
+`gadget-conservation-net-balance-commitment`) has no Lean bridge yet —
+Phase 3 lands `Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge`.
 
 ### Q3 — post-boundary optimization queue (superseded by Q5 for consolidate)
 The 2026-07-07 audit ranked the candidates in
@@ -527,6 +551,13 @@ CI runner's resource pressure.
 
 ## Recently completed
 
+- 2026-07-10: Q5 Phase 2 done — landed the frozen Wave 2 batch (T1-f, T1-h,
+  NB-1; NB-2/T2-c stay out) as 3 independently compiling/passing Go commits
+  on `optimization-consolidate`. consolidate2x1: 44,665 -> 36,553 (-8,112,
+  -18.2%), ahead of the -6-7k projection; see Q5 section above for
+  per-candidate deltas. Lean/`formal/` untouched (Phase 3's job); expect
+  lean-circuit-fv/vk-derivation CI red until then, by design. Next: Phase 3
+  one Lean re-stamp for the whole batch.
 - 2026-07-10: Q5 Phase 0 done — deleted consolidate4x1 and split1x4 families
   end-to-end (Go family specs, Rust registries/generated.rs, gnark
   consolidate.rs/split.rs/artifacts.rs/mod.rs, proof-aggregation backend match
