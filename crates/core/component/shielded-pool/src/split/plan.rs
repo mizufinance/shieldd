@@ -433,17 +433,16 @@ mod tests {
 
     #[test]
     fn split_family_specs_cover_expected_shapes() {
-        assert_eq!(SplitFamilyId::OneByFour.output_count(), 4);
         assert_eq!(SplitFamilyId::OneByEight.output_count(), 8);
         assert!(SplitFamilyId::ALL
             .iter()
             .all(|family| family.input_count() == 1));
         assert_eq!(
-            SplitFamilyId::smallest_covering_output_count(4),
-            Some(SplitFamilyId::OneByFour)
+            SplitFamilyId::smallest_covering_output_count(5),
+            Some(SplitFamilyId::OneByEight)
         );
         assert_eq!(
-            SplitFamilyId::smallest_covering_output_count(5),
+            SplitFamilyId::smallest_covering_output_count(8),
             Some(SplitFamilyId::OneByEight)
         );
     }

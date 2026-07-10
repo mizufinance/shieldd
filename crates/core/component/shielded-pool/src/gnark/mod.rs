@@ -71,7 +71,7 @@ mod repo_local_demo_library_tests {
             ),
             (
                 "split",
-                "artifacts/split1x4",
+                "artifacts/split1x8",
                 b"shieldd_gnark_split_init" as &[u8],
             ),
             (
@@ -193,10 +193,10 @@ mod soundness_fixture_tests {
         let (split_public, split_private) =
             proof_test_helpers::build_split_roundtrip_inputs_with_rng(
                 &mut split_rng,
-                SplitFamilyId::OneByFour,
+                SplitFamilyId::OneByEight,
             );
         write_fixture(
-            "split1x4_witness_v1.bin",
+            "split1x8_witness_v1.bin",
             encode_split_witness_v1(&split_public, &split_private).expect("encode split witness"),
         );
 

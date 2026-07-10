@@ -33,7 +33,7 @@ const SPLIT_FREE_SYMBOL: &[u8] = b"shieldd_gnark_split_free";
 const SPLIT_SHUTDOWN_SYMBOL: &[u8] = b"shieldd_gnark_split_shutdown";
 
 static SPLIT_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "split1x4",
+    family: "split1x8",
     env_artifact_dir: SPLIT_ENV_ARTIFACT_DIR,
     env_lib: SPLIT_ENV_LIB,
     env_daemon: SPLIT_ENV_DAEMON,
@@ -44,11 +44,6 @@ static SPLIT_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     shutdown_symbol: SPLIT_SHUTDOWN_SYMBOL,
 };
 
-static SPLIT_FAMILY_CONFIG_1X4: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "split1x4",
-    ..SPLIT_FAMILY_CONFIG
-};
-
 static SPLIT_FAMILY_CONFIG_1X8: GnarkFamilyConfig = GnarkFamilyConfig {
     family: "split1x8",
     ..SPLIT_FAMILY_CONFIG
@@ -56,7 +51,6 @@ static SPLIT_FAMILY_CONFIG_1X8: GnarkFamilyConfig = GnarkFamilyConfig {
 
 fn split_family_config(family_id: SplitFamilyId) -> &'static GnarkFamilyConfig {
     match family_id {
-        SplitFamilyId::OneByFour => &SPLIT_FAMILY_CONFIG_1X4,
         SplitFamilyId::OneByEight => &SPLIT_FAMILY_CONFIG_1X8,
         _ => panic!("unknown split family id {}", family_id.get()),
     }
@@ -283,7 +277,7 @@ mod tests {
 
     fn corrupt() -> Vec<u8> {
         let (public, private) =
-            proof_test_helpers::build_split_roundtrip_inputs(SplitFamilyId::OneByFour);
+            proof_test_helpers::build_split_roundtrip_inputs(SplitFamilyId::OneByEight);
         encode_split_witness_v1(&public, &private).expect("encode split witness")
     }
 
