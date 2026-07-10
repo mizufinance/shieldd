@@ -56,8 +56,8 @@ finish a task: commit, delete its section here, and add one dated line under
 
 ### Q5 — Wave 2: batched consolidate optimizations + family pruning (governing)
 Strategy: `docs/soundness/optimization-playbook.md` §5b (2026-07-10). Order:
-Phase 0 family pruning (delete consolidate4x1 + split1x4; executor-startable
-now — not an FV event) → Phase 1 frontier design pass (freezes the batch:
+Phase 0 family pruning (delete consolidate4x1 + split1x4 — DONE, see
+"Recently completed") → Phase 1 frontier design pass (freezes the batch:
 T1-f, T1-h, NB-1-or-NB-2, T2-c in/out; NOT executor work) → Phase 2 one
 batched Go change-set → Phase 3 ONE Lean re-stamp → Phase 4 setups for all
 surviving circuits + stamps + CI green in one pass. Do not start any single
@@ -527,6 +527,20 @@ CI runner's resource pressure.
 
 ## Recently completed
 
+- 2026-07-10: Q5 Phase 0 done — deleted consolidate4x1 and split1x4 families
+  end-to-end (Go family specs, Rust registries/generated.rs, gnark
+  consolidate.rs/split.rs/artifacts.rs/mod.rs, proof-aggregation backend match
+  arms, pcli ConsolidateFamilyArg, note_manager auto-selection, transaction
+  signing test-vector strategy, family/abi Go tests, witness fixtures, deleted
+  `tools/gnark/artifacts/{consolidate4x1,split1x4}/`); no generator/manifest
+  actually produces these registries (transfer's `transfer_families_manifest.json`
+  is also just a hand-synced mirror, not consumed by build.rs) — hand-edited
+  and documented here per that finding. consolidate2x1 stays ID 1,
+  consolidate8x1 stays ID 3, split1x8 stays ID 2 (canonical IDs stable).
+  Left stale `split1x4` mentions inside the sha256-stamped
+  `circuit-constraint-report.txt`/`circuit-whole-picus-report.txt` untouched
+  (hand-editing would invalidate their stamps without a real Picus rerun);
+  Phase 4's stamp re-pass is the right place to regenerate them.
 - 2026-07-10: T1-d CI fallout closed — audited all 7 deployed circuits for
   constraint-count drift post-DTK-hoist (NoteReshape backs all consolidateN/
   splitN members): consolidate4x1 101,391→76,063, consolidate8x1 189,075→
@@ -560,11 +574,6 @@ CI runner's resource pressure.
   coverage report 49/49 discharged, stamps refreshed, diff containment GREEN
   (57,329 identical to pins), full gate battery + prover round-trip GREEN;
   §5 T1-a row landed (record: `docs/soundness/records/t1a-gate-record.md`).
-- 2026-07-07: Q3 F-1 checkpoint closed out — `census` mode confirmed
-  byte-identical to standalone `fv-census.py` on consolidate2x1; exact-dup
-  and net-balance x4 triage confirmed already recorded in the playbook
-  (folded into T1-d / NB-2). Transfer census run remains open (off-peak).
-
 ## Blocked
 
 (none)
