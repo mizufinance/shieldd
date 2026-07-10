@@ -1057,17 +1057,80 @@ theorem leafData_to_base_components
   obtain ⟨hT1, hT2⟩ := Prod.ext_iff.mp hbase.2.2
   exact ⟨Prod.ext hA1 hA2, hbase.2.1, Prod.ext hT1 hT2⟩
 
-/-- Acceptance and the two explicit U5a exclusions required on every wrapped
-run used by U5d(4) (`fs.stage-labels`, `tipp-mipp.gipa`). -/
+/-- First-occurrence position of a structured point in the run's miss
+trace, `none` when never missed. -/
+def tracePos [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+    (run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)) : Option Nat :=
+  if point ∈ run.trace then some (run.trace.findIdx (· == point)) else none
+
+/-- The accepted randomizer point of a run (stage `aggregate.randomizer`;
+payload construction mirrors `fsVerifier`). -/
+def wrappedRandomizerPoint {μ : Nat}
+    [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)) :
+    FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) :=
+  .randomizer { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+    run.out.transcript.randomizerNonce
+
+/-- The accepted x0 point of a run (stage `tipp-mipp.x0`; payload
+construction mirrors `fsVerifier`). -/
+def wrappedX0Point {μ : Nat}
+    [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)) :
+    FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) :=
+  .x0 { r := run.out.transcript.randomizer, comA := stmt.ComA.1,
+        comB := stmt.ComB, comC := stmt.ComA.2,
+        ipAb := run.out.proof.ipAb, aggC := run.out.proof.aggC }
+    run.out.transcript.x0Nonce
+
+/-- Dependency-order good event (DESIGN §R7 item 4, added per the R6
+boundary analysis): the randomizer and x0 misses precede every in-budget
+round slot, so forked children share the pre-slot prefix that determines
+`r` and `x0`. An adversary CAN violate this by pre-querying round points;
+the violation probability is bounded in U5a (`dependency_order_bound`),
+not here. Spec rows `groth16.randomizer`, `fs.challenge-preimage`. -/
+def DependencyOrdered
+    [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)) : Prop :=
+  ∀ level (s : Fin (qb + 1)), roundSlot qb level run = some s →
+    (∃ ir, tracePos (wrappedRandomizerPoint stmt run) run = some ir ∧
+      ir < (s : Nat)) ∧
+    (∃ ix, tracePos (wrappedX0Point stmt run) run = some ix ∧
+      ix < (s : Nat))
+
+/-- Acceptance and the explicit U5a exclusions required on every wrapped
+run used by U5d(4): accepted challenges, in-budget round slots, and the
+dependency-order event (`fs.stage-labels`, `tipp-mipp.gipa`,
+`groth16.randomizer`). -/
 def WrappedRunGood
-    [Zero F] [One F] [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
-    {μ : Nat} (qb : Nat)
+    [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (run : WrappedFsRun
       (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) : Prop :=
   run.out.accept = true ∧
     ChallengesAccepted run.out ∧
-    ∀ level, level < μ → ¬RoundPointUnqueried qb level run
+    (∀ level, level < μ → ¬RoundPointUnqueried qb level run) ∧
+    DependencyOrdered qb stmt run
 
 /-- Assemble the wrapped U5c replay tree into the product-lane `AcceptTree`
 consumed by `u4_capstone` (DESIGN §U5d(4); `tipp-mipp.gipa`,
@@ -1092,7 +1155,7 @@ theorem tree_to_acceptTree
         (FsResult μ F G1 G2 GT)) μ}
     (hconsistent : TreeConsistent (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
       (fun level run => roundSlot (qb (Sum.inr ())) level run) 0 none tree)
-    (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) run.1)) :
+    (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1)) :
     let r := tree.root.1.out.transcript.randomizer
     AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
       (u4TLanePairing stmt.e) μ
@@ -1125,7 +1188,7 @@ theorem fsFork_success_acceptTree
         (FsResult μ F G1 G2 GT)) μ}
     (hsuccess : some tree ∈ support (forkTree μ (wrapFs (FsGame stmt adv)) qb
       (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)))
-    (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) run.1)) :
+    (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1)) :
     let r := tree.root.1.out.transcript.randomizer
     AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
       (u4TLanePairing stmt.e) μ
