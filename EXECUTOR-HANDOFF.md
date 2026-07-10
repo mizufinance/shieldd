@@ -87,6 +87,71 @@ relation changes and T1-h's dropped ToBinary). New wiring-transcript op
 `gadget-conservation-net-balance-commitment`) has no Lean bridge yet —
 Phase 3 lands `Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge`.
 
+**2026-07-10 Phase 3 checkpoint (mapping table derived, generator rewrite NOT
+started — stopping here to avoid rushing a soundness-critical multi-hour lake
+campaign in one pass):**
+
+Confirmed frontier's `tools/gnark/lean/gen/NB1-SLICE-SPEC.md` (commit
+`91e1dfec3`) against a fresh `export-r1cs`/`export-manifest` run (36,553
+constraints, matches Phase 2 golden exactly; seg 46 =
+`decaf.conservation_net_balance_commitment`, 2,193 rows, `bridge_theorem =
+Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound`
+— matches the spec's citation byte-for-byte). Regenerated artifacts are
+**uncommitted** in the working tree at `tools/gnark/artifacts/consolidate2x1/`
+(`.sr1cs` + manifest), same as T1-d's convention (Lean layer not yet
+consistent with them).
+
+Old->new nonzero-segment mapping (old = committed
+`consolidate2x1-coverage-manifest.json`, 45 obligation-bearing segments; new =
+fresh export, 43 obligation-bearing segments after excluding zero-row
+structural markers `shared.bind`/`spend.begin`/`spend.collect`/
+`output.begin`/`output.collect`/`statement.append`/`statement.append_all`):
+
+| old seg | old op | new seg | new op | note |
+|---|---|---|---|---|
+| 2,3,4 | decaf.assert_on_curve | 2,3,4 | same | unchanged |
+| -- | -- | 5 | decaf.compress_to_field | NEW: shared sharedDivGen compress (T1-f), computed once before DTK |
+| 5 | decaf.diversified_transmission_key | 6 | same | now consumes threaded ivk bits (T1-h), no internal ToBinary |
+| 6 | decaf.assert_equivalent | 7 | same | |
+| 8 | decaf.compress_to_field | -- | -- | DELETED (spend0 per-note divGen compress; superseded by shared seg5) |
+| 9,10,11,12,13,14 | note_commitment/eq/nullifier/eq/state_commitment_path/eq | 9,10,11,12,13,14 | same | unchanged |
+| 15 | decaf.randomized_verification_key | 15 | same | |
+| 16 | decaf.assert_equivalent | 16 | same | |
+| 17 | decaf.compress_to_field | 17 | same | different compress site (post-rvk), NOT the divGen one -- unaffected by T1-f |
+| 18,19,20,21 | on_curve/assert_equiv/assert_equiv/eq | 18,19,20,21 | same | |
+| 24 | decaf.compress_to_field | -- | -- | DELETED (spend1 per-note divGen compress) |
+| 25..37 | note_commitment..eq (spend1 body) | 24..36 | same ops | shifted -1 |
+| 40 | decaf.compress_to_field | -- | -- | DELETED (output0 per-note divGen compress) |
+| 41..46 | note_commitment..assert.eq (output0 body incl. old net-balance-adjacent eq) | 39..44 | same ops shifted | |
+| 48 | decaf.net_balance_commitment | 46 | decaf.conservation_net_balance_commitment | REPLACED -- NB-1, see NB1-SLICE-SPEC.md; relation shape entirely different (3x128 booleanity+recompose + 1 linear row + unchanged blinding ladder, no final Edwards add) |
+| 49 | decaf.assert_equivalent | 47 | same | spec unchanged modulo renumbering per NB1-SLICE-SPEC.md |
+| 50 | decaf.compress_to_field | 48 | same | |
+| 55 | statement.hash | 53 | same | |
+| 56 | assert.eq | 54 | same | |
+
+Net: -3 divGen compress sites + 1 shared insertion (T1-f, -2 net instances,
+matches -2,092 rows), DTK unchanged position count but internal ladder now
+251-bit-vs-threaded (T1-h, -252 rows), net-balance segment fully replaced
+(NB-1, -5,768 rows). This table is advisory for the generator rewrite --
+generators must re-derive wire offsets from the fresh IR directly per
+AGENTS.md ("re-derive from IR, never reuse"), not by reusing this table's
+arithmetic.
+
+Explicitly NOT done in this pass (deliberately stopping before starting, not
+blocked): `gen_nb_slice.py` (2,077 lines) and `gen_dtk_slice.py` (3,317 lines)
+redesigns, adapter regen/lint, the serialized `lake` campaign
+(Bounds->Capstone->Statement, each historically 20-40 min per T1-d), gate
+battery, Phase 4 setups (consolidate2x1/8x1/split1x8) + transfer/ics20 stamp
+audits, `wave2-gate-record.md`. Rationale: both generators are large enough,
+and NB-1's relation is novel enough (not a mechanical wire-shift like T1-d),
+that rewriting them correctly requires the same iterative
+`lean-leaf-bench.sh`-driven debug loop T1-d needed, run by a session that can
+monitor each `lake` build to completion before proceeding (OOM risk is a
+standing incident, not a hypothetical). Picking this up: start from the
+"Old->new mapping" above, implement `gen_nb_slice.py` per `NB1-SLICE-SPEC.md`
+section by section, leaf-bench each new lemma before any adapter build, one
+`lake` at a time.
+
 ### Q3 — post-boundary optimization queue (superseded by Q5 for consolidate)
 The 2026-07-07 audit ranked the candidates in
 `docs/soundness/optimization-playbook.md` §2/§2t/§2x. (1) **T1-d** — DONE, see
