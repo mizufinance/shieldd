@@ -446,7 +446,7 @@ if [[ -f "$ripp_scope" ]]; then
 
   while IFS= read -r mapped_symbol; do
     [[ -z "$mapped_symbol" ]] && continue
-    grep -Fx "$mapped_symbol" "$ripp_scope" >/dev/null \
+    tr -d '\r' < "$ripp_scope" | grep -Fx "$mapped_symbol" >/dev/null \
       || fail "RIPP refinement map contains unscoped symbol $mapped_symbol"
   done < <(sed -n 's/^| `\([^`]*\)` |.*/\1/p' "$ripp_map" | tr -d '\r')
 fi
