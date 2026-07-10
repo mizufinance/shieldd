@@ -399,14 +399,36 @@ bounded delegable task, all in-package (`Ipp/Fork.lean`,
      five terminal lane equations. Do NOT add tag-purity checks to the
      verifier's acceptance — purity is a representation invariant of the
      model, not a check the real verifier performs.
-- **U5e — S1 capstone.** One theorem: any adversary winning `FsGame`
-  with probability `acc > err(qH, µ, n, |F|)` yields (constructively) the
-  U4 capstone hypotheses, hence per-proof Groth16 PPEs — assumptions:
-  `KzgStructuredKeyBinding`, `PairingCommitmentBinding` only.
-  `err` composes: the U5c parametric bound instantiated with the U5b
-  closed node bound, plus the U5a scalar-stage/zero-challenge union
-  bounds. Looseness is a documented footnote in the ledger row, not an
-  assumption.
+     One exception (Fable 2026-07-10): the B-atom's SCALAR column is a
+     bookkeeping lane (the real com_b carries no scalar component; rⁱ is
+     public), and its folded component is checked by no real equation. The
+     model verifier therefore carries a SIXTH leaf check
+     `folded.comB.2 = (foldKey …).2 * terminalR` — satisfied by honest
+     provers definitionally (GIPA per-lane invariant: folded commitment =
+     atom(folded key, folded message)) and constraining only a component
+     that does not exist in the real proof object. Ledger note: this check
+     is a model-bookkeeping identity, not a divergence from the Rust
+     verifier.
+- **U5e — S1 capstone** (concretized 2026-07-10). Two-step shape:
+  1. `s1_tree_probability`: `Pr[forkTree succeeds with all leaves
+     accepting ∧ WrappedRunGood] ≥ F(acc)` where
+     `F = (U5c parametric composition of the U5b closed node bound)
+     applied to (acc − U5a wrapped_run_good_bound)`. Forking happens only
+     at round slots, so all runs in the tree share the randomizer prefix:
+     one `r` for the whole tree, and `randomizer_good_bound` (d = 2^µ−1,
+     the U1 root-set size) is charged once, discharging `u4_capstone`'s
+     `hgeneric`.
+  2. `s1_soundness` (THE S1 theorem): if `F(acc) > 0` then the forkTree
+     support is inhabited; `tree_to_acceptTree` + `u4_capstone` then give
+     the DETERMINISTIC conclusion `∀ i, e (A i) (B i) = groth16Rhs …`
+     for the statement's committed vectors. Stated hypotheses:
+     `KzgStructuredKeyBinding` (both sides), `PairingCommitmentBinding`
+     (both lanes), the statement openings (`hComA`/`hComB` as in
+     `u4_capstone`), and `acc > err` with `err` the explicit expression
+     making `F(acc) > 0`. Positive probability ⇒ support inhabitation is
+     the strict-composition trick that keeps U5e free of expected-time
+     machinery. Bound looseness is a documented ledger footnote, not an
+     assumption.
 
 Order: U5b → U5c (risk path, DONE) → U5b-quant → U5d(1–3) → U5a →
 U5d(4) → U5e.

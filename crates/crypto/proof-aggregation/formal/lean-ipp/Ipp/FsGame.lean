@@ -14,14 +14,18 @@ namespace Ipp
 
 noncomputable section
 
-/-- The six product-lane commitments hashed at one GIPA round. -/
+/-- The six product-lane commitments hashed at one GIPA round, carried
+LANE-NATIVELY (the per-lane group elements the real proof transports;
+DESIGN §U5d(4) lane-nativity decision). Tagged `U4Commitment` values are
+CONSTRUCTED from these via the lane-pure embeddings, so off-lane
+components are zero by construction. -/
 structure RoundComs (F G1 GT : Type) where
-  LA : U4Commitment F G1 GT
-  RA : U4Commitment F G1 GT
-  LB : U4Commitment F G1 GT
-  RB : U4Commitment F G1 GT
-  LT : U4Commitment F G1 GT
-  RT : U4Commitment F G1 GT
+  LA : GT × GT
+  RA : GT × GT
+  LB : GT × F
+  RB : GT × F
+  LT : GT × G1
+  RT : GT × G1
 deriving DecidableEq
 
 /-- Structured Fiat--Shamir preimages in SnarkPack verifier order (DESIGN
@@ -79,8 +83,8 @@ structure FsStatement (μ : Nat) (F G1 G2 GT RandomizerPayload X0Payload
   srsW : Fin (2 ^ μ) → G1
   acceptV : (Fin (2 ^ μ) → F) → G2 → G2 → Prop
   acceptW : (Fin (2 ^ μ) → F) → G1 → G1 → Prop
-  ComA : U4Commitment F G1 GT
-  ComB : U4Commitment F G1 GT
+  ComA : GT × GT
+  ComB : GT × F
   alpha : G1
   beta : G2
   gamma : G2
@@ -134,17 +138,17 @@ private def queryRounds
         last := tail.last
       }
 
-/-- The three U4 commitment values folded by the verifier. -/
-structure FoldedValues (M : Type) where
-  comA : M
-  comB : M
-  comT : M
+/-- The three lane-native commitment values folded by the verifier. -/
+structure FoldedValues (F G1 GT : Type) where
+  comA : GT × GT
+  comB : GT × F
+  comT : GT × G1
 
 private def foldOne {F G1 GT : Type} [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
     (x : F) (coms : RoundComs F G1 GT)
-    (acc : FoldedValues (U4Commitment F G1 GT)) :
-    FoldedValues (U4Commitment F G1 GT) :=
+    (acc : FoldedValues F G1 GT) :
+    FoldedValues F G1 GT :=
   { comA := foldCom (gipaChallenge x) coms.LA acc.comA coms.RA
     comB := foldCom (gipaChallenge x) coms.LB acc.comB coms.RB
     comT := foldCom (gipaChallenge x) coms.LT acc.comT coms.RT }
@@ -152,21 +156,20 @@ private def foldOne {F G1 GT : Type} [Field F]
 private def foldRounds {F G1 GT : Type} [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT] :
     (μ : Nat) → (Fin μ → F) → (Fin μ → RoundComs F G1 GT) →
-      FoldedValues (U4Commitment F G1 GT) →
-        FoldedValues (U4Commitment F G1 GT)
+      FoldedValues F G1 GT → FoldedValues F G1 GT
   | 0, _, _, acc => acc
   | μ + 1, x, rounds, acc =>
       foldRounds μ (fun i => x i.succ) (fun i => rounds i.succ)
         (foldOne (x 0) (rounds 0) acc)
 
-/-- Commitment values at the terminal verifier leaf. -/
+/-- Lane-native commitment values at the terminal verifier leaf. -/
 def terminalFold {F G1 G2 GT : Type} [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
-    {μ : Nat} (ComA ComB : U4Commitment F G1 GT)
+    {μ : Nat} (ComA : GT × GT) (ComB : GT × F)
     (proof : Proof μ F G1 G2 GT) (x : Fin μ → F) :
-    FoldedValues (U4Commitment F G1 GT) :=
+    FoldedValues F G1 GT :=
   foldRounds μ x proof.rounds
-    { comA := ComA, comB := ComB, comT := u4TCommitMap (proof.ipAb, proof.aggC) }
+    { comA := ComA, comB := ComB, comT := (proof.ipAb, proof.aggC) }
 
 /-- The scalar terminal message checked in the fifth base equation. -/
 def terminalR {F : Type} [Field F] {μ : Nat} (randomizer : F)
@@ -183,12 +186,19 @@ def LeafData {F G1 G2 GT RandomizerPayload X0Payload BridgePayload KzgPayload : 
       KzgPayload) (proof : Proof μ F G1 G2 GT) (transcript : FsTranscript μ F) :
     Prop :=
   let folded := terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer
-  stmt.e proof.aFinal proof.vFinal = folded.comA.1.1.1 ∧
-  stmt.e proof.wFinal proof.bFinal = folded.comB.1.2.1 ∧
-  stmt.e proof.aFinal proof.bFinal = folded.comT.2.1 ∧
-  stmt.e proof.cFinal proof.vFinal = folded.comA.1.1.2 ∧
+  stmt.e proof.aFinal proof.vFinal = folded.comA.1 ∧
+  stmt.e proof.wFinal proof.bFinal = folded.comB.1 ∧
+  stmt.e proof.aFinal proof.bFinal = folded.comT.1 ∧
+  stmt.e proof.cFinal proof.vFinal = folded.comA.2 ∧
   terminalR transcript.randomizer transcript.roundAnswer • proof.cFinal =
-    folded.comT.2.2 ∧
+    folded.comT.2 ∧
+  -- Sixth model-level check (DESIGN §U5d(4)): the bookkeeping B-scalar
+  -- column folds to the public product — definitionally satisfied by the
+  -- honest prover (GIPA per-lane invariant), absent from the real object.
+  folded.comB.2 =
+    ((foldKey (fun i => gipaChallenge (transcript.roundAnswer i))
+      (fun i => (transcript.randomizer⁻¹ ^ (i : Nat) • stmt.srsW i, (1 : F)))) 0).2 *
+      terminalR transcript.randomizer transcript.roundAnswer ∧
   stmt.acceptV (transcriptCoeffs transcript.roundAnswer 1)
     proof.vFinal proof.vOpening ∧
   stmt.acceptW

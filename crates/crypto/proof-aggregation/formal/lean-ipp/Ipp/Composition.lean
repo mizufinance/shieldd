@@ -92,7 +92,10 @@ def u4TLanePairing (e : G1 →ₗ[F] G2 →ₗ[F] GT) :
 abbrev U4Commitment (F G1 GT : Type*) :=
   ((GT × GT) × (GT × F)) × (GT × G1)
 
-private def u4AEmbedding :
+/-- A-lane embedding into the tagged codomain (lane-pure: zeros off-lane).
+    Public so the FS game (U5d) can construct tagged values from lane-native
+    proof payloads — see DESIGN §U5d(4) lane-nativity decision. -/
+def u4AEmbedding :
     (GT × GT) →ₗ[F] U4Commitment F G1 GT where
   toFun t := ((t, (0, 0)), (0, 0))
   map_add' := by
@@ -102,7 +105,8 @@ private def u4AEmbedding :
     intro s x
     ext <;> simp
 
-private def u4BEmbedding :
+/-- B-lane embedding into the tagged codomain (lane-pure). -/
+def u4BEmbedding :
     (GT × F) →ₗ[F] U4Commitment F G1 GT where
   toFun t := (((0, 0), t), (0, 0))
   map_add' := by
@@ -112,7 +116,8 @@ private def u4BEmbedding :
     intro s x
     ext <;> simp
 
-private def u4TEmbedding :
+/-- T-lane embedding into the tagged codomain (lane-pure). -/
+def u4TEmbedding :
     (GT × G1) →ₗ[F] U4Commitment F G1 GT where
   toFun t := (((0, 0), (0, 0)), t)
   map_add' := by
@@ -121,6 +126,29 @@ private def u4TEmbedding :
   map_smul' := by
     intro s x
     ext <;> simp
+
+theorem u4AEmbedding_injective :
+    Function.Injective (u4AEmbedding (F := F) (G1 := G1) (GT := GT)) := by
+  intro a b h
+  exact congrArg (fun z : U4Commitment F G1 GT => z.1.1) h
+
+theorem u4BEmbedding_injective :
+    Function.Injective (u4BEmbedding (F := F) (G1 := G1) (GT := GT)) := by
+  intro a b h
+  exact congrArg (fun z : U4Commitment F G1 GT => z.1.2) h
+
+theorem u4TEmbedding_injective :
+    Function.Injective (u4TEmbedding (F := F) (G1 := G1) (GT := GT)) := by
+  intro a b h
+  exact congrArg (fun z : U4Commitment F G1 GT => z.2) h
+
+/-- Any linear map commutes with the verifier fold — in particular the
+    lane embeddings: folding lane-natively then embedding equals embedding
+    then folding tagged (DESIGN §U5d(4) lane-nativity). -/
+theorem foldCom_map {M N : Type*} [AddCommGroup M] [Module F M]
+    [AddCommGroup N] [Module F N] (f : M →ₗ[F] N) (c : F) (L X R : M) :
+    f (foldCom c L X R) = foldCom c (f L) (f X) (f R) := by
+  simp [foldCom, map_add, map_smul]
 
 private def u4LiftAtom
     {K Msg Out M : Type*}

@@ -1538,3 +1538,28 @@ Anything unproved:
 
 - `tree_to_acceptTree` only, for the exact full-tag leaf goal above.
   `fsFork_success_acceptTree` depends on it.
+
+## U5d(4) lane-nativity refactor (Fable, 2026-07-10)
+
+Implemented the DESIGN SU5d(4) lane-nativity decision directly (reviewer-
+implemented; Codex usage-limited at the time):
+
+- `Ipp/Composition.lean`: `u4AEmbedding`/`u4BEmbedding`/`u4TEmbedding` made
+  public with docstrings; added `u4AEmbedding_injective`,
+  `u4BEmbedding_injective`, `u4TEmbedding_injective`, and `foldCom_map`
+  (linear maps commute with the verifier fold).
+- `Ipp/FsGame.lean`: `RoundComs` fields, `FsStatement.ComA/ComB`,
+  `FoldedValues`, `foldOne`/`foldRounds`/`terminalFold` all LANE-NATIVE;
+  `LeafData` projections cleaned; added the SIXTH model-level leaf check
+  (B-scalar bookkeeping fold = public product; DESIGN SU5d(4) exception
+  paragraph documents why this is honest-definitional and absent from the
+  real object).
+- `Ipp/FsFork.lean`: `LeafBaseComponents` now states FULL lane equalities
+  (comB included via the sixth check); `leafData_to_base_components`
+  re-proved; `tree_to_acceptTree`/`fsFork_success_acceptTree` root
+  commitments now `u4AEmbedding stmt.ComA` / `u4BEmbedding stmt.ComB`.
+
+Builds: `lake build Ipp.FsGame` (3311 jobs) and `lake build Ipp.FsFork`
+(3312 jobs) green; sole remaining `sorry` = `tree_to_acceptTree` (the
+recursion), unchanged in role but its leaf obligation now follows from
+`leafData_to_base_components` + embedding injectivity + `foldCom_map`.

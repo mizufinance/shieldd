@@ -336,9 +336,10 @@ theorem acceptTree_node_of_answers
   intro k
   simpa [c] using child k
 
-/-- The exact three lane equalities supplied by `leaf_accept_to_base` from
-U5d(3) leaf data.  Full tagged-commitment equality additionally requires
-off-lane purity, which `FsGame` currently does not state. -/
+/-- The three lane equalities supplied by `leaf_accept_to_base` from U5d(3)
+leaf data. With lane-native folds (DESIGN §U5d(4) lane-nativity) these are
+the FULL lane values — the tagged `AcceptTree.base` equalities follow by
+the lane-pure embeddings. -/
 def LeafBaseComponents
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
@@ -350,19 +351,16 @@ def LeafBaseComponents
   let xV := transcript.roundAnswer
   let xW := fun i => gipaChallenge (transcript.roundAnswer i)
   let rShift := transcript.randomizer⁻¹
-  (folded.comA.1.1 =
+  (folded.comA =
       u4ALaneAtom stmt.e
         ((foldKey xV (fun i => (stmt.srsV i, stmt.srsV i))) 0)
         (proof.aFinal, proof.cFinal)) ∧
-  ((folded.comB.1.2.1,
-      ((foldKey xW
-        (fun i => (rShift ^ (i : Nat) • stmt.srsW i, (1 : F)))) 0).2 *
-          terminalR transcript.randomizer transcript.roundAnswer) =
+  (folded.comB =
       u4BLaneAtom stmt.e
         ((foldKey xW
           (fun i => (rShift ^ (i : Nat) • stmt.srsW i, (1 : F)))) 0)
         (proof.bFinal, terminalR transcript.randomizer transcript.roundAnswer)) ∧
-  (folded.comT.2 =
+  (folded.comT =
       u4TLanePairing stmt.e (proof.aFinal, proof.cFinal)
         (proof.bFinal, terminalR transcript.randomizer transcript.roundAnswer))
 
@@ -380,19 +378,23 @@ theorem leafData_to_base_components
     LeafBaseComponents stmt proof transcript := by
   dsimp [LeafData] at hleaf
   dsimp [LeafBaseComponents]
-  exact leaf_accept_to_base stmt.e stmt.srsV stmt.srsW stmt.acceptV stmt.acceptW
-    transcript.roundAnswer
+  obtain ⟨h1, h2, h3, h4, h5, h6, hkzgV, hkzgW⟩ := hleaf
+  have hbase := leaf_accept_to_base stmt.e stmt.srsV stmt.srsW stmt.acceptV
+    stmt.acceptW transcript.roundAnswer
     (fun i => gipaChallenge (transcript.roundAnswer i))
     transcript.randomizer⁻¹ proof.vFinal proof.vOpening proof.wFinal proof.wOpening
     proof.aFinal proof.cFinal proof.bFinal
     (terminalR transcript.randomizer transcript.roundAnswer)
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1.1.1
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB.1.2.1
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2.1
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1.1.2
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2.2
-    hleaf.1 hleaf.2.1 hleaf.2.2.1 hleaf.2.2.2.1 hleaf.2.2.2.2.1
-    hbindV hbindW hleaf.2.2.2.2.2.1 hleaf.2.2.2.2.2.2
+    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1
+    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB.1
+    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.1
+    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.2
+    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2
+    h1 h2 h3 h4 h5 hbindV hbindW hkzgV hkzgW
+  obtain ⟨hA1, hA2⟩ := Prod.ext_iff.mp hbase.1
+  obtain ⟨hB1, hB2⟩ := Prod.ext_iff.mp hbase.2.1
+  obtain ⟨hT1, hT2⟩ := Prod.ext_iff.mp hbase.2.2
+  exact ⟨Prod.ext hA1 hA2, Prod.ext hB1 (h6.trans hB2), Prod.ext hT1 hT2⟩
 
 /-- Acceptance and the two explicit U5a exclusions required on every wrapped
 run used by U5d(4) (`fs.stage-labels`, `tipp-mipp.gipa`). -/
@@ -445,7 +447,7 @@ theorem tree_to_acceptTree
       (u4TLanePairing stmt.e) μ
       (fun i => (stmt.srsV i, stmt.srsV i))
       (fun i => ((r ^ (i : Nat))⁻¹ • stmt.srsW i, (1 : F)))
-      stmt.ComA stmt.ComB
+      (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
   sorry
 
@@ -483,7 +485,7 @@ theorem fsFork_success_acceptTree
       (u4TLanePairing stmt.e) μ
       (fun i => (stmt.srsV i, stmt.srsV i))
       (fun i => ((r ^ (i : Nat))⁻¹ • stmt.srsW i, (1 : F)))
-      stmt.ComA stmt.ComB
+      (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
   apply tree_to_acceptTree stmt adv qb hbindV hbindW
     (forkTree_support_props μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
