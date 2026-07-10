@@ -9,10 +9,9 @@ pub struct ConsolidateFamilyId(pub u32);
 #[allow(non_upper_case_globals)]
 impl ConsolidateFamilyId {
     pub const TwoByOne: Self = Self(1);
-    pub const FourByOne: Self = Self(2);
     pub const EightByOne: Self = Self(3);
 
-    pub const ALL: [Self; 3] = [Self::TwoByOne, Self::FourByOne, Self::EightByOne];
+    pub const ALL: [Self; 2] = [Self::TwoByOne, Self::EightByOne];
 
     pub const fn get(self) -> u32 {
         self.0
@@ -79,19 +78,12 @@ pub struct ConsolidateFamilySpec {
     pub n_out: usize,
 }
 
-pub const CONSOLIDATE_FAMILY_SPECS: [ConsolidateFamilySpec; 3] = [
+pub const CONSOLIDATE_FAMILY_SPECS: [ConsolidateFamilySpec; 2] = [
     ConsolidateFamilySpec {
         id: ConsolidateFamilyId::TwoByOne,
         label: "consolidate2x1",
         artifact_name: "consolidate2x1",
         n_in: 2,
-        n_out: 1,
-    },
-    ConsolidateFamilySpec {
-        id: ConsolidateFamilyId::FourByOne,
-        label: "consolidate4x1",
-        artifact_name: "consolidate4x1",
-        n_in: 4,
         n_out: 1,
     },
     ConsolidateFamilySpec {
