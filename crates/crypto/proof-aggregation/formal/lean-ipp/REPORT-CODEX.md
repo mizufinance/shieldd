@@ -2859,3 +2859,139 @@ The requested `just snarkpack-lean-ipp` gate could not be launched because
 build was run directly and passed as recorded above. Zero-`sorry` and clean
 axiom-audit success criteria are not met solely because `tree_to_acceptTree`
 remains blocked as described.
+
+## U5a (opus session)
+
+New file: `Ipp/FsBadEvents.lean` (import-only w.r.t. existing `Ipp/*.lean`;
+imports `Ipp.FsFork`). No existing file edited except this report. No `sorry`,
+no `axiom`, no `native_decide` in the new file.
+
+### Probability space and events
+
+All bounds are over
+`fsProbComp stmt adv := replayFirstRun (fsRandomFunction (FsGame stmt adv))`
+(the lazy structured random function: fresh uniform `F` on structured cache
+misses, ≤ qb+1 in scope). Support points are `(out, sourceLog)`; the wrapped
+image is `wrappedOf z = { out := z.1, trace := fsPointTrace z.2 }`.
+
+Bad-event predicates (all in `Ipp` namespace):
+- `BadCollision z := ¬ StructuredAnswersInjective (fsPointTrace z.2).length (flattenFsLog z.2)`
+- `BadRandomizer badR z := z.1.transcript.randomizer ∈ badR`
+- `BadDependency qb stmt z := ¬ DependencyOrdered qb stmt (wrappedOf z)`
+- `BadKzg badZ z := z.1.transcript.kzg ∈ badZ`
+- `BadUnqueried qb z := ∃ level, level < μ ∧ RoundPointUnqueried qb level (wrappedOf z)`
+- `RunGoodFull qb stmt badR badZ z := WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) ∧ randomizer ∉ badR ∧ kzg ∉ badZ`
+
+The randomizer/KZG bad sets are modelled as abstract `Set F` (with size
+parameters `dR`, `dZ`) rather than `discrepancyRootSet d` directly, so the U5e
+consumer instantiates `badR := discrepancyRootSet d`, `dR := 2^μ − 1` via
+`discrepancyRootSet_card`, and `badZ`/`dZ` from the KZG challenge-goodness set.
+
+### Verbatim statements
+
+1. `answer_collision_bound` (field of `BadEventBudget`):
+   `Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤ ↑((qb+1)^2) / ↑(Fintype.card F)`
+
+2. `randomizer_rootset_bound` (field):
+   `Pr[fun z => Accepted z ∧ BadRandomizer badR z | fsProbComp stmt adv] ≤ ↑((qb+1)*dR) / (↑(Fintype.card F) - 2)`
+   (consumer sets dR = 2^µ−1 from `discrepancyRootSet_card`; the `−2`
+   denominator is the randomizer stage rejecting {0,1}.)
+
+3. `dependency_order_bound` (field):
+   `Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤ ↑(μ*(qb+1)) / ↑(Fintype.card F)`
+
+4. `kzg_z_bound` (field, parametric bad set of size ≤ dZ):
+   `Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤ ↑((qb+1)*dZ) / ↑(Fintype.card F)`
+
+5. `round_unqueried_bound` (field, fully parametric value `bUnq`):
+   `Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq`
+
+The five are bundled into
+`structure BadEventBudget qb stmt adv [Fintype F] badR badZ dR dZ bUnq`.
+
+Item 5 (`q0_lower_bound`, THE deliverable, proved concretely):
+```
+theorem q0_lower_bound [Fintype F] (qb) (stmt) (adv) (badR badZ : Set F) (dR dZ : Nat) (bUnq)
+    (H : BadEventBudget qb stmt adv badR badZ dR dZ bUnq) :
+    Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z | fsProbComp stmt adv] ≥
+      Pr[fun z => Accepted z | fsProbComp stmt adv]
+        - (↑((qb+1)^2)/↑(card F)
+           + (↑((qb+1)*dR)/(↑(card F)-2)
+              + (↑(μ*(qb+1))/↑(card F)
+                 + (↑((qb+1)*dZ)/↑(card F) + bUnq))))
+```
+plus the abstract engine `q0_lower_bound_abstract` (same conclusion with the
+five RHS as opaque `ℝ≥0∞` hypotheses `bCol … bUnq`).
+
+### What is proved vs. parametric
+
+- PROVED concretely (pure ENNReal event algebra, no sorry):
+  - `q0_lower_bound_abstract` / `q0_lower_bound`: the complement/union-bound
+    lower bound. Chain: `Pr[accept] ≤ Pr[accept∧good ∨ accept∧¬good]`
+    (`probEvent_mono''`) `≤ Pr[good] + Pr[accept∧¬good]` (`probEvent_or_le`)
+    `≤ Pr[good] + Σ Pr[accept∧badᵢ]` (`probEvent_mono` on support + iterated
+    `probEvent_or_le`) `≤ Pr[good] + err`; then `tsub_le_iff_right`.
+  - `accepted_challengesAccepted`: accepting support runs satisfy
+    `ChallengesAccepted`, extracted from the public
+    `wrapped_source_leaf_data`. This discharges the `ChallengesAccepted`
+    conjunct of `WrappedRunGood` for free — no separate bad event needed.
+  - `accepted_not_good_bad`: the pointwise support decomposition of
+    `accept ∧ ¬RunGoodFull` into the five bad events (case split on
+    `randomizer ∈ badR`, `kzg ∈ badZ`, then `not_and_or` + `push_neg` on the
+    remaining `WrappedRunGood` conjuncts).
+
+- PARAMETRIC (stated as `BadEventBudget` fields, i.e. named hypotheses): all
+  four per-event probability bounds (items 1–4) and the round-unqueried bound
+  (the item-5 note term). These are the RO union-bound / birthday counting
+  facts over the cached uniform sampler. They were NOT discharged from scratch
+  this session: each requires threading VCVio's per-query uniform-sampling
+  distribution through `fsRandomFunction`'s `withCaching` state and the four
+  rejection-sampled scalar stages — substantially more sampling-distribution
+  infrastructure than fits here. Per the task's "parametric-but-stated beats
+  stalled-concrete" clause they are stated at the exact constants requested
+  (with `round_unqueried_bound` left as an abstract `bUnq`, matching DESIGN
+  §R7 item 4's note that a clean concrete round-unqueried bound may resist).
+
+### Constants / corrections chosen
+
+- Collision: `(qb+1)^2 / |F|` (birthday over ordinal pairs, denominator |F|).
+  The rejection-sampling `1/(|F|−2)` correction the task mentions is folded
+  into the field's stated RHS as `/|F|`; if the concrete proof needs the
+  `−2` slack it should be applied when that field is discharged. Documented
+  as a known slack point.
+- Randomizer: denominator `|F| − 2` (stage rejects {0,1}); numerator
+  `(qb+1)·dR`, dR ≤ 2^µ−1 via `discrepancyRootSet_card`.
+- Dependency: `μ·(qb+1)/|F|` (union over µ levels × candidate early misses,
+  each a 1/|F| guess of the fresh x0/prev answer).
+- KZG: `(qb+1)·dZ/|F|`.
+- All numerics use `ℕ → ℝ≥0∞` coercions; `|F| = Fintype.card F`.
+
+### Build results (one lake at a time, LEAN_NUM_THREADS=1)
+
+- `lake build Ipp.FsBadEvents`: SUCCESS, exit 0, no errors.
+- `lake build Ipp` (full package): SUCCESS, exit 0, 3324 jobs (prior 3323 +
+  the new module).
+- Warnings only: `push_neg` deprecation (repo-wide, pre-existing style);
+  one `linter.unusedSectionVars` on `accepted_challengesAccepted` (the
+  uniform-spec section instances are unused by that particular lemma —
+  cosmetic); the pre-existing `Ipp.FsFork` `sorry` at `tree_to_acceptTree`
+  (NOT introduced here and NOT referenced by any U5a theorem).
+
+Note on build discipline: the first two build attempts silently ran `lake`
+from the repo ROOT (the PowerShell tool's cwd), which built an unrelated
+cached target and returned exit 1 without touching the new module. Fixed by
+`Set-Location` into `lean-ipp` before invoking lake; recorded here so future
+sessions set the working directory explicitly.
+
+### Exact remaining gaps
+
+1. Discharge the four `BadEventBudget` probability fields (items 1–4) as
+   concrete RO union bounds. Requires: (a) a per-structured-miss uniform-mass
+   lemma for `fsRandomFunction` (fresh sample distribution on a cache miss,
+   ≤ 1/|F|, and ≤ 1/(|F|−2) inside the randomizer rejection loop); (b) a
+   union bound over the ≤ qb+1 miss ordinals of `fsPointTrace`; (c) for
+   randomizer/dependency, coupling the pre-slot prefix to the sampled answer.
+2. The `round_unqueried_bound` term (`bUnq`) — DESIGN flags this as possibly
+   resisting a clean concrete bound; left abstract.
+3. The collision `1/(|F|−2)` rejection-sampling correction is not reflected
+   in the stated `/|F|` denominator; reconcile when field 1 is discharged.
