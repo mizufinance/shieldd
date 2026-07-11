@@ -393,6 +393,56 @@ theorem forkTree_probability_eq_average [spec.DecidableEq] [IsUniformSpec spec]
       averagedForkTreeSuccess main qb i cf leafOk 0 none depth := by
   rfl
 
+/-- The depth-`depth` child continuation selected by a parent run.  The
+sampled parent slot is the lower bound passed to every child subtree. -/
+noncomputable def forkTreeChildContinuation [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (level depth : Nat) (first : α × QueryLog spec) :
+    OracleComp spec (Option (RunTree spec α depth)) :=
+  match cf level first.1 with
+  | none => pure none
+  | some s =>
+      forkTreeFrom main qb i cf leafOk (level + 1) (some s) depth first
+
+/-- Canonical success mass entering one continued four-way fork.  Unlike a
+fixed-lower average, this threads the slot sampled from the parent run. -/
+noncomputable def forkTreeContinuationMass [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (level : Nat) (lower : Option (Fin (qb i + 1))) (depth : Nat) : ℝ≥0∞ :=
+  ∑ s, Pr[= some s |
+    continuedForkSelector qb i (cf level) lower <$> continuedForkMain main
+      (forkTreeChildContinuation main qb i cf leafOk level depth)]
+
+/-- Sound one-level endpoint with the sampled child slot threaded through the
+continuation.  Identifying its right side with `forkTreeFrom` requires a
+separate replay-order coupling theorem. -/
+theorem forkTreeContinuationMass_step [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    [unifSpec ˡ⊂ₒ spec]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (level : Nat) (lower : Option (Fin (qb i + 1))) (depth : Nat)
+    (hreach : CfReachable
+      (continuedForkMain main
+        (forkTreeChildContinuation main qb i cf leafOk level depth)) qb i
+      (continuedForkSelector qb i (cf level) lower)) :
+    forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))
+        (forkTreeContinuationMass main qb i cf leafOk level lower depth) ≤
+      Pr[fun r : Option (Fin 4 →
+          (α × QueryLog spec) × Option (RunTree spec α depth)) => r.isSome |
+        forkReplay4Continue main qb i (cf level) lower
+          (forkTreeChildContinuation main qb i cf leafOk level depth)] := by
+  simpa [forkTreeStep, forkTreeContinuationMass] using
+    forkReplay4Continue_bound main qb i (cf level) lower
+      (forkTreeChildContinuation main qb i cf leafOk level depth) hreach
+
 /-- Scalar recurrence iteration, used once the continuation-aware one-level
 estimate identifies the successive averaged quantities. -/
 theorem forkTree_iterate_bound (q h : ℝ≥0∞) (Q : Nat → ℝ≥0∞)

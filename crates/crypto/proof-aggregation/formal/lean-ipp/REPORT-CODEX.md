@@ -3450,3 +3450,105 @@ All builds used pinned
 
 No prover/release-gated tests were applicable or run. No commit was made;
 `DESIGN.md` and `.lake/packages/**` were not edited.
+
+## R7 recurrence follow-up — coupling decision and sound endpoint (2026-07-11)
+
+### Coupling decision
+
+Neither proposed generic coupling is sound for the current interfaces. Route A
+cannot make a fixed-root `forkTreeFrom ... first` invoke the averaged combined
+replay experiment recursively while retaining the R6 invariant
+`result.root = first`: `forkReplay4Continue` samples a new canonical run. Route
+B is not a generic bind-commutation theorem. The combined experiment executes
+and logs `next` inside the computation being replayed, while fixed-root
+`forkTreeFrom` forks the parent runs first and executes the four continuations
+afterward. An adaptive continuation, or one which repeats an earlier oracle
+query, can distinguish those orders.
+
+There is also no unconditional scalar recurrence for arbitrary `cf`. For
+example, `cf level := fun _ => none` makes the positive-depth tree success
+probability zero and satisfies `CfReachable` vacuously, while for a certain leaf
+gate and sufficiently large range the proposed `forkTreeStep q h Q₀` is
+positive. Thus reachability alone cannot prove the requested recurrence.
+
+The design decision recorded under DESIGN R7 item 3 is to expose the sound
+child-slot-threaded continuation mass and require any later iteration theorem
+to supply a protocol-specific replay-compatibility hypothesis (or first change
+the tree semantics to carry the combined replay trace). No equality with the
+context-free average is assumed.
+
+### Strengthened one-level endpoint
+
+The child continuation now threads the sampled slot `s` exactly:
+
+```lean
+noncomputable def forkTreeChildContinuation [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (level depth : Nat) (first : α × QueryLog spec) :
+    OracleComp spec (Option (RunTree spec α depth)) :=
+  match cf level first.1 with
+  | none => pure none
+  | some s =>
+      forkTreeFrom main qb i cf leafOk (level + 1) (some s) depth first
+```
+
+The sound contextual quantity (the `Q` available to the one-level theorem) is,
+verbatim:
+
+```lean
+noncomputable def forkTreeContinuationMass [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (level : Nat) (lower : Option (Fin (qb i + 1))) (depth : Nat) : ℝ≥0∞ :=
+  ∑ s, Pr[= some s |
+    continuedForkSelector qb i (cf level) lower <$> continuedForkMain main
+      (forkTreeChildContinuation main qb i cf leafOk level depth)]
+```
+
+`forkTreeContinuationMass_step` proves
+`forkTreeStep (qb i + 1) |Range i| Q ≤ Pr[forkReplay4Continue ... isSome]`
+for this exact `Q`, under the exact continued-selector `CfReachable` premise.
+It is a direct specialization of `forkReplay4Continue_bound` and is green.
+
+### Remaining exact goal
+
+`forkTree_bound` is intentionally absent: declaring it from the current
+hypotheses would be false. The single missing protocol-specific premise is an
+equality or lower bound connecting
+
+```lean
+Pr[fun r : Option (Fin 4 →
+      (α × QueryLog spec) × Option (RunTree spec α depth)) => r.isSome |
+  forkReplay4Continue main qb i (cf level) lower
+    (forkTreeChildContinuation main qb i cf leafOk level depth)]
+```
+
+to
+
+```lean
+averagedForkTreeSuccess main qb i cf leafOk level lower (depth + 1)
+```
+
+and, for scalar iteration, an identification/lower bound from the preceding
+level's success to `forkTreeContinuationMass ... level lower depth`. Such a
+premise must state why continuation oracle queries commute with replay (or why
+the concrete continuation makes no distinguishing queries); it is not implied
+by `CfReachable`.
+
+### Verification
+
+- `lake build Ipp.ForkTree`: success (3301 jobs).
+- final `lake build Ipp`: success (3324 jobs).
+- recursive `Ipp/*.lean` scan: `sorry_count=0`,
+  `axiom_decl_count=0`, `native_decide_count=0`.
+- `git diff --check`: success.
+- temporary-file `#print axioms` for `forkTreeContinuationMass_step` and
+  `forkTree_iterate_bound`: exactly
+  `[propext, Classical.choice, Quot.sound]` for both.
+- no prover/release-gated tests were applicable or run.
+- no `.lake/packages/**` files were edited and no commit was made.

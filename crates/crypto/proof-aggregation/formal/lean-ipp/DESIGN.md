@@ -561,6 +561,20 @@ accepted. Repairs, in execution order:
      `G` monotone on all of ℝ≥0∞ (review NOTE: no interval restriction
      needed); positive-probability ⇒ support via VCVio's
      `probEvent_pos_iff` (review-confirmed sound).
+
+     **Coupling decision (2026-07-11).** Neither proposed bridge is sound at
+     the current generality. Route A cannot replace fixed-root recursion by an
+     averaged combined replay while preserving the invariant that the
+     resulting subtree root is the supplied run. Route B is not a generic
+     bind-commutation law: combined replay executes and logs the randomized
+     continuation as part of the replayed computation, whereas `forkTreeFrom`
+     executes it after forking the parent runs; adaptive or repeated oracle
+     queries can distinguish these orders. The sound one-level quantity is
+     therefore `forkTreeContinuationMass`, whose continuation selects `s` from
+     the parent and calls the child with `(level + 1, some s)`. Iteration needs
+     an additional protocol-specific replay-compatibility hypothesis or a
+     redesigned tree semantics that carries the combined replay trace; no
+     context-free equality with `averagedForkTreeSuccess` is assumed.
   4. **U5a events (post-R5 shapes)**: `Q_0 ≥ acc − err_bad` where
      `err_bad` sums: randomizer in `discrepancyRootSet` (size ≤ 2^µ−1,
      `discrepancyRootSet_card`), KZG `z`-goodness (consumer restored by
