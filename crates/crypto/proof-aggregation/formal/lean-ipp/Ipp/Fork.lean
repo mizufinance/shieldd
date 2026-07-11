@@ -19,6 +19,53 @@ open scoped OracleSpec.PrimitiveQuery
 
 variable {ι : Type} {spec : OracleSpec ι} {α : Type}
 
+/-- Canonical-run acceptance at a fork level: the selector returns a slot,
+that slot is reachable in the recorded log, and it is strictly above the
+parent slot when one exists. -/
+def ForkSelectorAccepted [spec.DecidableEq]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (lower : Option (Fin (qb i + 1))) (first : α × QueryLog spec) : Prop :=
+  CfReachable main qb i cf ∧
+    ∃ s, cf first.1 = some s ∧
+      (QueryLog.getQueryValue? first.2 i ↑s).isSome ∧
+      ∀ previous, lower = some previous → previous < s
+
+/-- Restrict a selector to slots strictly above the optional parent slot. -/
+def gatedForkSelector (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (lower : Option (Fin (qb i + 1))) :
+    α → Option (Fin (qb i + 1)) := fun x =>
+  match cf x with
+  | none => none
+  | some s =>
+      match lower with
+      | none => some s
+      | some previous => if previous < s then some s else none
+
+/-- Reachability is preserved when the lower-slot gate only rejects selector
+outputs. -/
+theorem CfReachable.gated [spec.DecidableEq]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (lower : Option (Fin (qb i + 1)))
+    (hreach : CfReachable main qb i cf) :
+    CfReachable main qb i (gatedForkSelector qb i cf lower) := by
+  intro x log hrun s hs
+  unfold gatedForkSelector at hs
+  rcases hcf : cf x with _ | selected
+  · simp [hcf] at hs
+  · rcases lower with _ | previous
+    · simp only [hcf] at hs
+      have hsel : selected = s := Option.some.inj hs
+      subst s
+      exact hreach hrun selected hcf
+    · by_cases hstrict : previous < selected
+      · simp [hcf, hstrict] at hs
+        subst s
+        exact hreach hrun selected hcf
+      · simp [hcf, hstrict] at hs
+
 private lemma take_eq_of_getElem?_eq_below {β : Type} (xs ys : List β) (n : Nat)
     (h : ∀ m, m < n → xs[m]? = ys[m]?) : xs.take n = ys.take n := by
   induction n generalizing xs ys with
@@ -721,6 +768,81 @@ private noncomputable def replayTrialSuccessProbability [spec.DecidableEq]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] : ℝ≥0∞ :=
   Pr[fun z => z.isSome | replayTrialFromFirst main qb i cf first]
 
+/-- Run a randomized continuation after a successful replay child. -/
+noncomputable def replayContinueFromFirst [spec.DecidableEq]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1))) (first : α × QueryLog spec)
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
+    OracleComp spec (Option β) := do
+  let child? ← replayTrialFromFirst main qb i cf first
+  match child? with
+  | none => pure none
+  | some (_, child) => next (child.1, child.2.observed)
+
+/-- Conditional success probability of one replay child followed by `next`. -/
+noncomputable def replayContinuationSuccessProbability [spec.DecidableEq]
+    [IsUniformSpec spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1))) (first : α × QueryLog spec)
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] : ℝ≥0∞ :=
+  Pr[fun z => z.isSome | replayContinueFromFirst main qb i cf first next]
+
+/-- The canonical child and one replay child, each followed independently by
+the same continuation. -/
+noncomputable def forkReplayPairContinue [spec.DecidableEq]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
+    OracleComp spec (Option β × Option β) := do
+  let first ← replayFirstRun main
+  let canonical? ← next first
+  let replay? ← replayContinueFromFirst main qb i cf first next
+  pure (canonical?, replay?)
+
+/-- Raw four-child continuation experiment before replacement-collision
+filtering. Child zero is the canonical run; the other three are independent
+replays from its selected slot. -/
+noncomputable def forkReplay4ContinueRaw [spec.DecidableEq]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
+    OracleComp spec (Option β × Option β × Option β × Option β) := do
+  let first ← replayFirstRun main
+  let canonical? ← next first
+  let replay₁? ← replayContinueFromFirst main qb i cf first next
+  let replay₂? ← replayContinueFromFirst main qb i cf first next
+  let replay₃? ← replayContinueFromFirst main qb i cf first next
+  pure (canonical?, replay₁?, replay₂?, replay₃?)
+
+/-- Fork four collision-free logged children from a fixed canonical run and
+run `next` independently on all four, including child zero. -/
+noncomputable def forkReplay4ContinueFrom [spec.DecidableEq]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1))) (first : α × QueryLog spec)
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
+    OracleComp spec (Option (Fin 4 → β)) := do
+  let runs? ← forkReplay4From main qb i cf first
+  match runs? with
+  | none => pure none
+  | some runs =>
+      let z₀? ← next (runs 0)
+      let z₁? ← next (runs 1)
+      let z₂? ← next (runs 2)
+      let z₃? ← next (runs 3)
+      match z₀?, z₁?, z₂?, z₃? with
+      | some z₀, some z₁, some z₂, some z₃ => pure (some ![z₀, z₁, z₂, z₃])
+      | _, _, _, _ => pure none
+
 /-- VCVio's pair-fork trial and `replayTrial` have the same success event. -/
 private lemma probEvent_pairTrial_eq_replayTrialSuccessProbability
     [spec.DecidableEq] [IsUniformSpec spec]
@@ -811,6 +933,87 @@ private lemma probEvent_three_isSome
         simp [pair, seq_eq_bind_map]]
   simpa [hpair, pow_succ] using htriple
 
+/-- Weighted pair marginal for an arbitrary randomized continuation. -/
+theorem probEvent_forkReplayPairContinue_eq_tsum
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β)) :
+    Pr[fun z : Option β × Option β => z.1.isSome ∧ z.2.isSome |
+        forkReplayPairContinue main qb i cf next] =
+      ∑' first, Pr[= first | replayFirstRun main] *
+        (Pr[fun z => z.isSome | next first] *
+          replayContinuationSuccessProbability main qb i cf first next) := by
+  classical
+  rw [forkReplayPairContinue, probEvent_bind_eq_tsum]
+  refine tsum_congr fun first => ?_
+  congr 1
+  let replay := replayContinueFromFirst main qb i cf first next
+  have hprod := probEvent_seq_map_eq_mul
+    (mx := next first) (my := replay) (f := fun x y => (x, y))
+    (p := fun z : Option β × Option β => z.1.isSome ∧ z.2.isSome)
+    (q1 := fun x : Option β => x.isSome) (q2 := fun y : Option β => y.isSome)
+    (by intro x _ y _; rfl)
+  rw [show (do
+      let canonical? ← next first
+      let replay? ← replay
+      pure (canonical?, replay?)) =
+      (fun x y => (x, y)) <$> next first <*> replay by simp [seq_eq_bind_map]]
+  simpa [replay, replayContinuationSuccessProbability] using hprod
+
+/-- Weighted raw-four marginal for an arbitrary randomized continuation. The
+canonical continuation contributes one factor and each replay continuation
+contributes an independent factor. -/
+theorem probEvent_forkReplay4ContinueRaw_eq_tsum
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β)) :
+    Pr[fun z : Option β × Option β × Option β × Option β =>
+          z.1.isSome ∧ z.2.1.isSome ∧ z.2.2.1.isSome ∧ z.2.2.2.isSome |
+        forkReplay4ContinueRaw main qb i cf next] =
+      ∑' first, Pr[= first | replayFirstRun main] *
+        (Pr[fun z => z.isSome | next first] *
+          (replayContinuationSuccessProbability main qb i cf first next) ^ 3) := by
+  classical
+  rw [forkReplay4ContinueRaw, probEvent_bind_eq_tsum]
+  refine tsum_congr fun first => ?_
+  congr 1
+  let replay := replayContinueFromFirst main qb i cf first next
+  let triple : OracleComp spec (Unit × Option β × Option β × Option β) := do
+    let z₁ ← replay
+    let z₂ ← replay
+    let z₃ ← replay
+    pure ((), z₁, z₂, z₃)
+  have hthree :
+      Pr[fun z : Unit × Option β × Option β × Option β =>
+          z.2.1.isSome ∧ z.2.2.1.isSome ∧ z.2.2.2.isSome | triple] =
+        Pr[fun z => z.isSome | replay] ^ 3 := by
+    exact probEvent_three_isSome (spec := spec) () (mx := replay)
+  have hprod := probEvent_seq_map_eq_mul
+    (mx := next first) (my := triple)
+    (f := fun x yz => (x, yz.2.1, yz.2.2.1, yz.2.2.2))
+    (p := fun z : Option β × Option β × Option β × Option β =>
+      z.1.isSome ∧ z.2.1.isSome ∧ z.2.2.1.isSome ∧ z.2.2.2.isSome)
+    (q1 := fun x : Option β => x.isSome)
+    (q2 := fun yz : Unit × Option β × Option β × Option β =>
+      yz.2.1.isSome ∧ yz.2.2.1.isSome ∧ yz.2.2.2.isSome)
+    (by intro x _ yz _; rfl)
+  rw [show (do
+      let canonical? ← next first
+      let replay₁? ← replay
+      let replay₂? ← replay
+      let replay₃? ← replay
+      pure (canonical?, replay₁?, replay₂?, replay₃?)) =
+      (fun x yz => (x, yz.2.1, yz.2.2.1, yz.2.2.2)) <$> next first <*> triple by
+        simp [triple, seq_eq_bind_map]]
+  rw [hprod, hthree]
+  rfl
+
 /-- Triple marginal expressed through the shared conditional trial probability. -/
 private lemma probEvent_forkReplay4RawSuccess_eq_tsum
     [spec.DecidableEq] [IsUniformSpec spec]
@@ -880,6 +1083,58 @@ private lemma pow_four_tsum_le_tsum_cube {δ : Type}
         p x ^ 4 = p x ^ 3 * p x := by ring
         _ ≤ p x ^ 3 * 1 := mul_le_mul' le_rfl (hp x)
         _ = p x ^ 3 := mul_one _
+
+/-- The pair/Jensen chain for continuation weights. -/
+theorem forkReplayPairContinue_pow_four_le_raw
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β)) :
+    Pr[fun z : Option β × Option β => z.1.isSome ∧ z.2.isSome |
+        forkReplayPairContinue main qb i cf next] ^ 4 ≤
+      Pr[fun z : Option β × Option β × Option β × Option β =>
+          z.1.isSome ∧ z.2.1.isSome ∧ z.2.2.1.isSome ∧ z.2.2.2.isSome |
+        forkReplay4ContinueRaw main qb i cf next] := by
+  let w : α × QueryLog spec → ℝ≥0∞ :=
+    fun first => Pr[= first | replayFirstRun main] *
+      Pr[fun z => z.isSome | next first]
+  let p : α × QueryLog spec → ℝ≥0∞ :=
+    fun first => replayContinuationSuccessProbability main qb i cf first next
+  have hw : ∑' first, w first ≤ 1 := by
+    calc
+      ∑' first, w first ≤ ∑' first, Pr[= first | replayFirstRun main] := by
+        apply ENNReal.tsum_le_tsum
+        intro first
+        exact mul_le_of_le_one_right' probEvent_le_one
+      _ ≤ 1 := tsum_probOutput_le_one
+  have hp : ∀ first, p first ≤ 1 := fun _ => probEvent_le_one
+  rw [probEvent_forkReplayPairContinue_eq_tsum main qb i cf next,
+    probEvent_forkReplay4ContinueRaw_eq_tsum main qb i cf next]
+  simpa [w, p, mul_assoc] using pow_four_tsum_le_tsum_cube w p hw hp
+
+/-- One-level continuation bound once the weighted pair-fork estimate is
+available. This isolates the pair-fork step from the four-child Jensen step. -/
+theorem forkReplay4ContinueRaw_bound_of_pair
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    (acc : ℝ≥0∞)
+    (hpair : acc * (acc / (qb i + 1) -
+        (Fintype.card (spec.Range i) : ℝ≥0∞)⁻¹) ≤
+      Pr[fun z : Option β × Option β => z.1.isSome ∧ z.2.isSome |
+        forkReplayPairContinue main qb i cf next]) :
+    (acc * (acc / (qb i + 1) -
+        (Fintype.card (spec.Range i) : ℝ≥0∞)⁻¹)) ^ 4 ≤
+      Pr[fun z : Option β × Option β × Option β × Option β =>
+          z.1.isSome ∧ z.2.1.isSome ∧ z.2.2.1.isSome ∧ z.2.2.2.isSome |
+        forkReplay4ContinueRaw main qb i cf next] :=
+  le_trans (pow_le_pow_left' hpair 4)
+    (forkReplayPairContinue_pow_four_le_raw main qb i cf next)
 
 /-- The raw three-trial success probability dominates the fourth power of
 VCVio's packaged pair-fork lower bound. -/
@@ -1269,6 +1524,60 @@ theorem forkReplay4_bound [spec.DecidableEq] [IsUniformSpec spec]
       tsub_le_tsub_left hcollision _
     _ ≤ Pr[fun r : Option (Fin 4 → α) => r.isSome |
         forkReplay4 main qb i cf] := forkReplay4_raw_bound main qb i cf
+
+/-- Execute a logged canonical run and then its randomized continuation. -/
+noncomputable def continuedForkMain {β : Type}
+    (main : OracleComp spec α)
+    (next : (α × QueryLog spec) → OracleComp spec (Option β)) :
+    OracleComp spec ((α × QueryLog spec) × Option β) := do
+  let first ← replayFirstRun main
+  let result? ← next first
+  pure (first, result?)
+
+/-- Selector for the continued experiment. It accepts exactly when the
+continuation succeeded and the original selector passes the lower-slot gate. -/
+def continuedForkSelector {β : Type}
+    (qb : ι → ℕ) (i : ι) (cf : α → Option (Fin (qb i + 1)))
+    (lower : Option (Fin (qb i + 1))) :
+    ((α × QueryLog spec) × Option β) → Option (Fin (qb i + 1))
+  | (first, some _) => gatedForkSelector qb i cf lower first.1
+  | (_, none) => none
+
+/-- Averaged continuation-parametrized four-child experiment. Forking the
+continued computation makes child zero and all three replays run `next`
+independently, while retaining the closed collision filter. -/
+noncomputable def forkReplay4Continue [spec.DecidableEq]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (lower : Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
+    OracleComp spec (Option (Fin 4 → (α × QueryLog spec) × Option β)) :=
+  forkReplay4 (continuedForkMain main next) qb i
+    (continuedForkSelector qb i cf lower)
+
+/-- Closed one-level continuation bound. Its acceptance mass includes
+continuation success, `cf = some s`, reachability, and the lower-slot gate. -/
+theorem forkReplay4Continue_bound [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    [unifSpec ˡ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (lower : Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    (hreach : CfReachable (continuedForkMain main next) qb i
+      (continuedForkSelector qb i cf lower)) :
+    (let acc : ℝ≥0∞ := ∑ s, Pr[= some s |
+        continuedForkSelector qb i cf lower <$> continuedForkMain main next]
+     let h : ℝ≥0∞ := Fintype.card (spec.Range i)
+     let q := qb i + 1
+     (acc * (acc / q - h⁻¹)) ^ 4 - 3 * h⁻¹) ≤
+      Pr[fun r : Option (Fin 4 → (α × QueryLog spec) × Option β) => r.isSome |
+        forkReplay4Continue main qb i cf lower next] := by
+  exact forkReplay4_bound (continuedForkMain main next) qb i
+    (continuedForkSelector qb i cf lower) hreach
 
 /-- Transfer a logged-run postcondition to every branch of a successful
 four-way replay fork, together with the common slot and distinct-answer facts

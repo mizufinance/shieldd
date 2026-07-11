@@ -59,13 +59,15 @@ the parent slot; requiring it to be smaller records stage ordering along every
 branch.  Leaf evidence also establishes global first-run support. -/
 inductive TreeConsistent [spec.DecidableEq]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
-    (cf : Nat → α → Option (Fin (qb i + 1))) :
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) :
     (level : Nat) → Option (Fin (qb i + 1)) →
       {depth : Nat} → RunTree spec α depth → Prop
   | leaf (level : Nat) (lower : Option (Fin (qb i + 1)))
       (run : α × QueryLog spec)
-      (hsupport : run ∈ support (replayFirstRun main)) :
-      TreeConsistent main qb i cf level lower (.leaf run)
+      (hsupport : run ∈ support (replayFirstRun main))
+      (hgate : leafOk run) :
+      TreeConsistent main qb i cf leafOk level lower (.leaf run)
   | node (level : Nat) (lower : Option (Fin (qb i + 1))) {depth : Nat}
       (children : Fin 4 → RunTree spec α depth)
       (s : Fin (qb i + 1)) (answers : Fin 4 → spec.Range i)
@@ -87,19 +89,20 @@ inductive TreeConsistent [spec.DecidableEq]
         (children a).root.2[n]? = (children b).root.2[n]?)
       (hstrict : ∀ previous, lower = some previous → previous < s)
       (hchildren : ∀ k,
-        TreeConsistent main qb i cf (level + 1) (some s) (children k)) :
-      TreeConsistent main qb i cf level lower (.node children)
+        TreeConsistent main qb i cf leafOk (level + 1) (some s) (children k)) :
+      TreeConsistent main qb i cf leafOk level lower (.node children)
 
 /-- Compose fixed-root four-way forks.  Only the root caller performs
 `replayFirstRun`; recursive calls replay each branch's own canonical log. -/
 noncomputable def forkTreeFrom [spec.DecidableEq]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
     (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
     (level : Nat) (lower : Option (Fin (qb i + 1)))
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
     (depth : Nat) → (α × QueryLog spec) →
       OracleComp spec (Option (RunTree spec α depth))
-  | 0, first => pure (some (.leaf first))
+  | 0, first => if leafOk first then pure (some (.leaf first)) else pure none
   | depth + 1, first => do
       match cf level first.1 with
       | none => pure none
@@ -109,10 +112,10 @@ noncomputable def forkTreeFrom [spec.DecidableEq]
             match runs? with
             | none => pure none
             | some runs =>
-                let t₀? ← forkTreeFrom main qb i cf (level + 1) (some s) depth (runs 0)
-                let t₁? ← forkTreeFrom main qb i cf (level + 1) (some s) depth (runs 1)
-                let t₂? ← forkTreeFrom main qb i cf (level + 1) (some s) depth (runs 2)
-                let t₃? ← forkTreeFrom main qb i cf (level + 1) (some s) depth (runs 3)
+                let t₀? ← forkTreeFrom main qb i cf leafOk (level + 1) (some s) depth (runs 0)
+                let t₁? ← forkTreeFrom main qb i cf leafOk (level + 1) (some s) depth (runs 1)
+                let t₂? ← forkTreeFrom main qb i cf leafOk (level + 1) (some s) depth (runs 2)
+                let t₃? ← forkTreeFrom main qb i cf leafOk (level + 1) (some s) depth (runs 3)
                 match t₀?, t₁?, t₂?, t₃? with
                 | some t₀, some t₁, some t₂, some t₃ =>
                     pure (some (.node ![t₀, t₁, t₂, t₃]))
@@ -126,27 +129,32 @@ per internal node (DESIGN §U5c; `tipp-mipp.gipa`). -/
 noncomputable def forkTree [spec.DecidableEq]
     (depth : Nat) (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
     (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
     OracleComp spec (Option (RunTree spec α depth)) := do
   let first ← replayFirstRun main
-  forkTreeFrom main qb i cf 0 none depth first
+  forkTreeFrom main qb i cf leafOk 0 none depth first
 
 private theorem forkTreeFrom_support_props [spec.DecidableEq] [IsUniformSpec spec]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
     (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
     (level : Nat) (lower : Option (Fin (qb i + 1)))
     (depth : Nat) (first : α × QueryLog spec)
     (hfirst : first ∈ support (replayFirstRun main))
     {tree : RunTree spec α depth}
-    (h : some tree ∈ support (forkTreeFrom main qb i cf level lower depth first)) :
-    tree.root = first ∧ TreeConsistent main qb i cf level lower tree := by
+    (h : some tree ∈ support (forkTreeFrom main qb i cf leafOk level lower depth first)) :
+    tree.root = first ∧ TreeConsistent main qb i cf leafOk level lower tree := by
   induction depth generalizing level lower first with
   | zero =>
-      simp only [forkTreeFrom, mem_support_pure_iff] at h
-      have htree : tree = .leaf first := Option.some.inj h
-      subst tree
-      exact ⟨rfl, .leaf level lower first hfirst⟩
+      simp only [forkTreeFrom] at h
+      split_ifs at h with hgate
+      · simp only [mem_support_pure_iff] at h
+        have htree : tree = .leaf first := Option.some.inj h
+        subst tree
+        exact ⟨rfl, .leaf level lower first hfirst hgate⟩
+      · simp at h
   | succ depth ih =>
       simp only [forkTreeFrom] at h
       split at h
@@ -230,27 +238,89 @@ theorem forkTree_support_props [spec.DecidableEq] [IsUniformSpec spec]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
     (depth : Nat) (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
     (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
     {tree : RunTree spec α depth}
-    (h : some tree ∈ support (forkTree depth main qb i cf)) :
-    TreeConsistent main qb i cf 0 none tree := by
+    (h : some tree ∈ support (forkTree depth main qb i cf leafOk)) :
+    TreeConsistent main qb i cf leafOk 0 none tree := by
   simp only [forkTree] at h
   rw [mem_support_bind_iff] at h
   obtain ⟨first, hfirst, htree⟩ := h
-  exact (forkTreeFrom_support_props main qb i cf 0 none depth first hfirst htree).2
+  exact (forkTreeFrom_support_props main qb i cf leafOk 0 none depth first hfirst htree).2
 
 /-- Consistency entails support for every run stored in the tree. -/
 theorem TreeConsistent.all_support [spec.DecidableEq]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
     (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop)
     {level : Nat} {lower : Option (Fin (qb i + 1))}
     {depth : Nat} {tree : RunTree spec α depth}
-    (h : TreeConsistent main qb i cf level lower tree) :
+    (h : TreeConsistent main qb i cf leafOk level lower tree) :
     tree.All (fun run => run ∈ support (replayFirstRun main)) := by
   induction h with
-  | leaf _ _ _ hsupport => exact hsupport
+  | leaf _ _ _ hsupport _ => exact hsupport
   | @node level lower depth children s answers cursor slotPos hcf hinjective hanswers
       hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict hchildren ih =>
       exact ih
+
+/-- Consistency carries the depth-zero gate to every leaf. -/
+theorem TreeConsistent.all_leafOk [spec.DecidableEq]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop)
+    {level : Nat} {lower : Option (Fin (qb i + 1))}
+    {depth : Nat} {tree : RunTree spec α depth}
+    (h : TreeConsistent main qb i cf leafOk level lower tree) :
+    tree.All leafOk := by
+  induction h with
+  | leaf _ _ _ _ hgate => exact hgate
+  | @node level lower depth children s answers cursor slotPos hcf hinjective hanswers
+      hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict hchildren ih =>
+      intro k
+      exact ih k
+
+/-- Success of gated recursion establishes the leaf gate structurally. -/
+theorem forkTree_success_all_leafOk [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (depth : Nat) (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    {tree : RunTree spec α depth}
+    (h : some tree ∈ support (forkTree depth main qb i cf leafOk)) :
+    tree.All leafOk :=
+  (forkTree_support_props depth main qb i cf leafOk h).all_leafOk
+
+/-- A successful positive-depth gated subtree aligns its canonical root with
+the exact selector event used by the quantitative fork bound. -/
+theorem TreeConsistent.root_selectorAccepted [spec.DecidableEq]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop)
+    {level : Nat} {lower : Option (Fin (qb i + 1))}
+    {depth : Nat} {tree : RunTree spec α depth}
+    (hreach : CfReachable main qb i (cf level))
+    (h : TreeConsistent main qb i cf leafOk level lower tree)
+    (hdepth : 0 < depth) :
+    ForkSelectorAccepted main qb i (cf level) lower tree.root := by
+  cases h with
+  | leaf _ _ _ _ _ => simp at hdepth
+  | node level lower children s answers cursor slotPos hcf hinjective hanswers
+      hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict hchildren =>
+      refine ⟨hreach, s, ?_, ?_, hstrict⟩
+      · simpa [RunTree.root] using hcf 0
+      · simpa [RunTree.root] using congrArg Option.isSome (hanswers 0)
+
+/-- Support-level event alignment for gated depth-`d+1` recursion. -/
+theorem forkTree_success_selectorAccepted [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (depth : Nat) (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hreach : CfReachable main qb i (cf 0))
+    {tree : RunTree spec α (depth + 1)}
+    (h : some tree ∈ support (forkTree (depth + 1) main qb i cf leafOk)) :
+    ForkSelectorAccepted main qb i (cf 0) none tree.root :=
+  TreeConsistent.root_selectorAccepted main qb i cf leafOk hreach
+    (forkTree_support_props (depth + 1) main qb i cf leafOk h) (by omega)
 
 /-- Transfer any first-run postcondition to every run of a successful U5c
 tree, packaged with all consistency facts (DESIGN §U5c;
@@ -259,74 +329,80 @@ theorem forkTree_propertyTransfer [spec.DecidableEq] [IsUniformSpec spec]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
     (depth : Nat) (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
     (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
     (P_out : α → QueryLog spec → Prop)
     (hP : ∀ {x log}, (x, log) ∈ support (replayFirstRun main) → P_out x log)
     {tree : RunTree spec α depth}
-    (h : some tree ∈ support (forkTree depth main qb i cf)) :
-    TreeConsistent main qb i cf 0 none tree ∧
+    (h : some tree ∈ support (forkTree depth main qb i cf leafOk)) :
+    TreeConsistent main qb i cf leafOk 0 none tree ∧
       tree.All (fun run => P_out run.1 run.2) := by
-  have hconsistent := forkTree_support_props depth main qb i cf h
+  have hconsistent := forkTree_support_props depth main qb i cf leafOk h
   refine ⟨hconsistent, ?_⟩
   have hall := hconsistent.all_support
   exact hall.imp (fun run hrun => hP hrun)
 
-/-- Abstract one-level success interface for strict U5c composition.  It says
-that extending any supported canonical-run subtree by one replay-fork level
-lowers success by at most the monotone transformer `f`. -/
-def ForkTreeNodeLowerBound [spec.DecidableEq] [IsUniformSpec spec]
+/-- Quantitative one-level transformer from revised R7. -/
+noncomputable def forkTreeStep (q h x : ℝ≥0∞) : ℝ≥0∞ :=
+  (x * (x / q - h⁻¹)) ^ 4 - 3 * h⁻¹
+
+/-- The revised R7 transformer is globally monotone on `ℝ≥0∞`. -/
+theorem forkTreeStep_monotone (q h : ℝ≥0∞) : Monotone (forkTreeStep q h) := by
+  intro a b hab
+  unfold forkTreeStep
+  apply tsub_le_tsub_right
+  apply pow_le_pow_left'
+  exact mul_le_mul' hab (tsub_le_tsub_right (ENNReal.div_le_div_right hab q) _)
+
+/-- Averaged success of the exact gated depth-`depth` continuation at a
+separate transcript `level` and parent slot. -/
+noncomputable def averagedForkTreeSuccess [spec.DecidableEq] [IsUniformSpec spec]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
-    (cf : Nat → α → Option (Fin (qb i + 1))) (f : ℝ≥0∞ → ℝ≥0∞) : Prop :=
-  ∀ (level : Nat) (lower : Option (Fin (qb i + 1)))
-      (depth : Nat) (first : α × QueryLog spec),
-    first ∈ support (replayFirstRun main) →
-    f Pr[fun tree : Option (RunTree spec α depth) => tree.isSome |
-        forkTreeFrom main qb i cf level lower depth first] ≤
-      Pr[fun tree : Option (RunTree spec α (depth + 1)) => tree.isSome |
-        forkTreeFrom main qb i cf level lower (depth + 1) first]
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (level : Nat) (lower : Option (Fin (qb i + 1))) (depth : Nat) : ℝ≥0∞ :=
+  Pr[fun tree : Option (RunTree spec α depth) => tree.isSome | do
+    let first ← replayFirstRun main
+    forkTreeFrom main qb i cf leafOk level lower depth first]
 
-/-- Parametric strict tree bound: an abstract per-node extension bound composes
-by function iteration over the U5c depth (DESIGN §U5c;
-`tipp-mipp.gipa`). -/
-theorem forkTree_bound_param [spec.DecidableEq] [IsUniformSpec spec]
+/-- Depth zero is exactly the averaged gated leaf event. -/
+theorem averagedForkTreeSuccess_zero [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (level : Nat) (lower : Option (Fin (qb i + 1))) :
+    averagedForkTreeSuccess main qb i cf leafOk level lower 0 =
+      Pr[leafOk | replayFirstRun main] := by
+  classical
+  unfold averagedForkTreeSuccess
+  rw [probEvent_bind_eq_tsum]
+  rw [probEvent_eq_tsum_ite]
+  refine tsum_congr fun first => ?_
+  by_cases hgate : leafOk first <;> simp [forkTreeFrom, hgate]
+
+/-- The public gated tree probability is the level-zero averaged
+continuation. -/
+theorem forkTree_probability_eq_average [spec.DecidableEq] [IsUniformSpec spec]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
     (depth : Nat) (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
     (cf : Nat → α → Option (Fin (qb i + 1)))
-    (f : ℝ≥0∞ → ℝ≥0∞) (hf : Monotone f)
-    (hnode : ForkTreeNodeLowerBound main qb i cf f) :
-    (f^[depth]) 1 ≤
-      Pr[fun tree : Option (RunTree spec α depth) => tree.isSome |
-        forkTree depth main qb i cf] := by
-  have hfrom : ∀ (d level : Nat) (lower : Option (Fin (qb i + 1)))
-      (first : α × QueryLog spec),
-      first ∈ support (replayFirstRun main) →
-      (f^[d]) 1 ≤
-        Pr[fun tree : Option (RunTree spec α d) => tree.isSome |
-          forkTreeFrom main qb i cf level lower d first] := by
-    intro d
-    induction d with
-    | zero =>
-        intro level lower first hfirst
-        simp [forkTreeFrom]
-    | succ d ih =>
-        intro level lower first hfirst
-        calc
-          (f^[d + 1]) 1 = f ((f^[d]) 1) := by
-            rw [Function.iterate_succ_apply']
-          _ ≤ f Pr[fun tree : Option (RunTree spec α d) => tree.isSome |
-              forkTreeFrom main qb i cf level lower d first] :=
-            hf (ih level lower first hfirst)
-          _ ≤ Pr[fun tree : Option (RunTree spec α (d + 1)) => tree.isSome |
-              forkTreeFrom main qb i cf level lower (d + 1) first] :=
-            hnode level lower d first hfirst
-  have hbind := mul_le_probEvent_bind
-    (mx := replayFirstRun main)
-    (my := fun first => forkTreeFrom main qb i cf 0 none depth first)
-    (p := fun _ => True)
-    (q := fun tree : Option (RunTree spec α depth) => tree.isSome)
-    (r := 1) (r' := (f^[depth]) 1)
-    (by simp)
-    (fun first hfirst _ => hfrom depth 0 none first hfirst)
-  simpa [forkTree] using hbind
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk] :
+    Pr[fun tree : Option (RunTree spec α depth) => tree.isSome |
+        forkTree depth main qb i cf leafOk] =
+      averagedForkTreeSuccess main qb i cf leafOk 0 none depth := by
+  rfl
+
+/-- Scalar recurrence iteration, used once the continuation-aware one-level
+estimate identifies the successive averaged quantities. -/
+theorem forkTree_iterate_bound (q h : ℝ≥0∞) (Q : Nat → ℝ≥0∞)
+    (hrec : ∀ d, forkTreeStep q h (Q d) ≤ Q (d + 1)) :
+    ∀ depth, ((forkTreeStep q h)^[depth]) (Q 0) ≤ Q depth := by
+  intro depth
+  induction depth with
+  | zero => simp
+  | succ depth ih =>
+      rw [Function.iterate_succ_apply']
+      exact le_trans (forkTreeStep_monotone q h ih) (hrec depth)
 
 end Ipp

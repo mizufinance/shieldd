@@ -2335,7 +2335,9 @@ private theorem tree_to_acceptTree_aux
         (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
         (FsResult μ F G1 G2 GT)) depth}
     (hconsistent : TreeConsistent (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
-      (fun level run => roundSlot (qb (Sum.inr ())) level run) level lower tree)
+      (fun level run => roundSlot (qb (Sum.inr ())) level run)
+      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+      level lower tree)
     (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2))
     (root : WrappedFsRun
       (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
@@ -2359,7 +2361,7 @@ private theorem tree_to_acceptTree_aux
       (u4AEmbedding folded.comA) (u4BEmbedding folded.comB)
       (u4TCommitMap folded.comT) := by
   induction hconsistent generalizing root slot with
-  | leaf level lower run hsupport =>
+  | leaf level lower run hsupport hgate =>
       have hlevel : level = μ := by omega
       subst level
       dsimp only [RunTree.root] at hpath hgood ⊢
@@ -2499,7 +2501,9 @@ private theorem tree_to_acceptTree_aux
       have hsupport (k : Fin 4) : (children k).root ∈ support
           (replayFirstRun (wrapFs (FsGame stmt adv))) :=
         (TreeConsistent.all_support (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
-          (fun level run => roundSlot (qb (Sum.inr ())) level run) (hchildren k)).root
+          (fun level run => roundSlot (qb (Sum.inr ())) level run)
+          (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+          (hchildren k)).root
       have hgoodRoot (k : Fin 4) :
           WrappedRunGood (qb (Sum.inr ())) stmt (children k).root.1 (children k).root.2 :=
         (hgood k).root
@@ -2676,8 +2680,9 @@ theorem tree_to_acceptTree
         (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
         (FsResult μ F G1 G2 GT)) μ}
     (hconsistent : TreeConsistent (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
-      (fun level run => roundSlot (qb (Sum.inr ())) level run) 0 none tree)
-    (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)) :
+      (fun level run => roundSlot (qb (Sum.inr ())) level run)
+      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+      0 none tree) :
     let r := tree.root.1.out.transcript.randomizer
     AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
       (u4TLanePairing stmt.e) μ
@@ -2687,13 +2692,27 @@ theorem tree_to_acceptTree
       (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
   have hsupport := TreeConsistent.all_support (wrapFs (FsGame stmt adv)) qb
-    (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run) hconsistent
+    (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)
+    (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2) hconsistent
+  have hgood := hconsistent.all_leafOk
   have hchain := wrapped_supports_transcript_chaining stmt adv hsupport.root hgood.root.1
   apply tree_to_acceptTree_aux stmt adv qb hbindV hbindW (hsize := by omega)
     hconsistent hgood tree.root.1 (fun _ => 0)
   · exact PathPrefix.refl tree.root.1 (fun _ => 0)
       (by intro a b hab hb; omega) (by intro j hj; omega) hchain
   · rfl
+
+noncomputable local instance wrappedRunGoodDecidablePred
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat} (stmt : FsStatement μ F G1 G2 GT) (qb : Nat) :
+    DecidablePred (fun run :
+      WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT) × QueryLog (FsWrappedSpec F) =>
+      WrappedRunGood qb stmt run.1 run.2) :=
+  fun _ => Classical.propDecidable _
 
 /-- Support-level U5d endpoint: successful wrapped `forkTree` construction,
 together with accepting good leaves, yields the exact `AcceptTree` statement
@@ -2716,8 +2735,8 @@ theorem fsFork_success_acceptTree
         (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
         (FsResult μ F G1 G2 GT)) μ}
     (hsuccess : some tree ∈ support (forkTree μ (wrapFs (FsGame stmt adv)) qb
-      (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)))
-    (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)) :
+      (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)
+      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2))) :
     let r := tree.root.1.out.transcript.randomizer
     AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
       (u4TLanePairing stmt.e) μ
@@ -2728,8 +2747,8 @@ theorem fsFork_success_acceptTree
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
   apply tree_to_acceptTree stmt adv qb hbindV hbindW
     (forkTree_support_props μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
-      (fun level run => roundSlot (qb (Sum.inr ())) level run) hsuccess)
-    hgood
+      (fun level run => roundSlot (qb (Sum.inr ())) level run)
+      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2) hsuccess)
 
 end
 

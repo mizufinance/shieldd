@@ -3217,3 +3217,236 @@ mass ≤ 1/|F| by `fresh_miss_uniform`), so it stays parametric.
   admit`): clean (0 matches).
 - No prover/release-gated tests were run; only the requested focused and full
   Lean package gates.
+
+## R7 revised — gated recursion and continuation-parametrized recurrence attempt (2026-07-11)
+
+Prerequisite R6 was verified before edits: `lake build Ipp.FsFork` succeeded
+(3314 jobs), the recursive `Ipp/*.lean` scan found no `sorry`, declared
+`axiom`, or `native_decide`, and `#print axioms` for both
+`tree_to_acceptTree` and `fsFork_success_acceptTree` reported only
+`[propext, Classical.choice, Quot.sound]`.
+
+### Item 1 — gated recursion: complete and green
+
+`forkTreeFrom` and `forkTree` now take
+`leafOk : α × QueryLog spec → Prop` with `[DecidablePred leafOk]`. Depth zero
+returns `some (.leaf first)` exactly when `leafOk first`; otherwise it returns
+`none`. `TreeConsistent.leaf` now stores both first-run support and the gate
+fact. The structural endpoint is:
+
+```lean
+theorem forkTree_success_all_leafOk [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (depth : Nat) (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    {tree : RunTree spec α depth}
+    (h : some tree ∈ support (forkTree depth main qb i cf leafOk)) :
+    tree.All leafOk
+```
+
+The concrete `FsFork` gate is exactly
+`fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2`.
+`tree_to_acceptTree` no longer has a separate `tree.All WrappedRunGood`
+argument; it derives it using `hconsistent.all_leafOk`.
+`fsFork_success_acceptTree` likewise has only the successful gated-fork
+hypothesis. A local noncomputable `DecidablePred` instance uses
+`Classical.propDecidable`; it changes no proposition and adds no axiom beyond
+the already-audited `Classical.choice`.
+
+The replaced prototype interface was deleted outright: there are no remaining
+definitions or references named `ForkTreeNodeLowerBound` or
+`forkTree_bound_param`.
+
+### Item 2 — continuation machinery and weighted identities: complete and green
+
+The fixed-root composite is `forkReplay4ContinueFrom`: it forks four
+collision-free logged children and independently invokes `next` on all four,
+including child zero. The averaged closed experiment is
+`forkReplay4Continue`, obtained by applying the existing collision-accounted
+U5b theorem to `continuedForkMain main next` and a selector which rejects when
+`next` fails or the lower-slot gate fails.
+
+Weighted pair identity, verbatim:
+
+```lean
+theorem probEvent_forkReplayPairContinue_eq_tsum
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β)) :
+    Pr[fun z : Option β × Option β => z.1.isSome ∧ z.2.isSome |
+        forkReplayPairContinue main qb i cf next] =
+      ∑' first, Pr[= first | replayFirstRun main] *
+        (Pr[fun z => z.isSome | next first] *
+          replayContinuationSuccessProbability main qb i cf first next)
+```
+
+Weighted raw-four identity, verbatim:
+
+```lean
+theorem probEvent_forkReplay4ContinueRaw_eq_tsum
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β)) :
+    Pr[fun z : Option β × Option β × Option β × Option β =>
+          z.1.isSome ∧ z.2.1.isSome ∧ z.2.2.1.isSome ∧ z.2.2.2.isSome |
+        forkReplay4ContinueRaw main qb i cf next] =
+      ∑' first, Pr[= first | replayFirstRun main] *
+        (Pr[fun z => z.isSome | next first] *
+          (replayContinuationSuccessProbability main qb i cf first next) ^ 3)
+```
+
+This is the precise canonical-child form: the first-child continuation factor
+is present once, while the replay-continuation factor is cubed. The Jensen
+proof absorbs the canonical factor into the subprobability weight and proves:
+
+```lean
+theorem forkReplayPairContinue_pow_four_le_raw
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β)) :
+    Pr[fun z : Option β × Option β => z.1.isSome ∧ z.2.isSome |
+        forkReplayPairContinue main qb i cf next] ^ 4 ≤
+      Pr[fun z : Option β × Option β × Option β × Option β =>
+          z.1.isSome ∧ z.2.1.isSome ∧ z.2.2.1.isSome ∧ z.2.2.2.isSome |
+        forkReplay4ContinueRaw main qb i cf next]
+```
+
+Closed one-level bound, verbatim:
+
+```lean
+theorem forkReplay4Continue_bound [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    [unifSpec ˡ⊂ₒ spec]
+    {β : Type}
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    (lower : Option (Fin (qb i + 1)))
+    (next : (α × QueryLog spec) → OracleComp spec (Option β))
+    (hreach : CfReachable (continuedForkMain main next) qb i
+      (continuedForkSelector qb i cf lower)) :
+    (let acc : ℝ≥0∞ := ∑ s, Pr[= some s |
+        continuedForkSelector qb i cf lower <$> continuedForkMain main next]
+     let h : ℝ≥0∞ := Fintype.card (spec.Range i)
+     let q := qb i + 1
+     (acc * (acc / q - h⁻¹)) ^ 4 - 3 * h⁻¹) ≤
+      Pr[fun r : Option (Fin 4 → (α × QueryLog spec) × Option β) => r.isSome |
+        forkReplay4Continue main qb i cf lower next]
+```
+
+`continuedForkSelector` bundles continuation success, `cf = some s`, and the
+`lower < s` gate; the theorem requires `CfReachable` for that exact selector.
+`ForkSelectorAccepted` records those same facts at support level, and
+`forkTree_success_selectorAccepted` proves that successful positive-depth
+gated recursion entails them.
+
+The pre-existing closed `forkReplay4_bound` was preserved without statement
+or proof changes. The new closed theorem instantiates it at
+`continuedForkMain`/`continuedForkSelector`; the direct weighted identities
+specialize to the old trial-success marginal when `next` is the always-success
+continuation. Thus collision accounting remains the existing `3 / h` proof,
+not a duplicated or weakened argument.
+
+### Item 3 — recurrence: partial; exact coupling stall, no `sorry`
+
+Delivered and green:
+
+```lean
+noncomputable def forkTreeStep (q h x : ℝ≥0∞) : ℝ≥0∞ :=
+  (x * (x / q - h⁻¹)) ^ 4 - 3 * h⁻¹
+
+theorem forkTreeStep_monotone (q h : ℝ≥0∞) : Monotone (forkTreeStep q h)
+```
+
+`averagedForkTreeSuccess main qb i cf leafOk level lower depth` is the exact
+success probability of the gated `forkTreeFrom` continuation, averaged over
+`replayFirstRun main`, with transcript level and lower slot carried separately.
+The following endpoints are proved:
+
+```lean
+theorem averagedForkTreeSuccess_zero ... :
+    averagedForkTreeSuccess main qb i cf leafOk level lower 0 =
+      Pr[leafOk | replayFirstRun main]
+
+theorem forkTree_probability_eq_average ... :
+    Pr[fun tree : Option (RunTree spec α depth) => tree.isSome |
+        forkTree depth main qb i cf leafOk] =
+      averagedForkTreeSuccess main qb i cf leafOk 0 none depth
+```
+
+The monotone scalar iteration is also closed:
+
+```lean
+theorem forkTree_iterate_bound (q h : ℝ≥0∞) (Q : Nat → ℝ≥0∞)
+    (hrec : ∀ d, forkTreeStep q h (Q d) ≤ Q (d + 1)) :
+    ∀ depth, ((forkTreeStep q h)^[depth]) (Q 0) ≤ Q depth
+```
+
+The unconditional recurrence and requested `forkTree_bound` were **not**
+landed. No false level-independent theorem and no `sorry` were introduced.
+The exact remaining distributional goal is to couple the closed averaged
+continued experiment with the existing fixed-root top-down recursion. For
+
+```lean
+next_d first :=
+  match cf level first.1 with
+  | none => pure none
+  | some s =>
+      forkTreeFrom main qb i cf leafOk (level + 1) (some s) d first
+```
+
+the missing equality/inequality bridge is:
+
+```lean
+Pr[fun r : Option (Fin 4 →
+      (α × QueryLog spec) × Option (RunTree spec α d)) => r.isSome |
+    forkReplay4Continue main qb i (cf level) lower next_d]
+  ≤
+Pr[fun tree : Option (RunTree spec α (d + 1)) => tree.isSome | do
+    let first ← replayFirstRun main
+    forkTreeFrom main qb i cf leafOk level lower (d + 1) first]
+```
+
+together with identification of the continued selector mass `acc` with the
+context-averaged `Q_d`. The two computations order randomness differently:
+`forkReplay4Continue` replays the combined `(main; next_d)` computation,
+whereas `forkTreeFrom` first fixes/forks the four completed parent runs and
+then invokes four independent recursive continuations. Proving their
+probability coupling requires a bind-commutation/replay-log theorem not present
+in VCVio. Moreover the child lower slot is the sampled `s`, so replacing this
+context average by `averagedForkTreeSuccess ... (level+1) none d` would be
+incorrect for arbitrary selectors. This is the exact stalled recurrence goal;
+consequently there is no `forkTree_bound` statement to quote verbatim.
+
+### Verification
+
+All builds used pinned
+`C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe`,
+`LEAN_NUM_THREADS=1`, and one Lake/Lean process machine-wide, with output in
+`build.log`/`build.err.log`:
+
+- `lake build Ipp.Fork`: success (3300 jobs).
+- `lake build Ipp.ForkTree`: success (3301 jobs).
+- `lake build Ipp.FsGame`: success (3311 jobs).
+- `lake build Ipp.FsFork`: success (3314 jobs).
+- final `lake build Ipp`: success (3324 jobs).
+- recursive `Ipp/*.lean` scan: zero `sorry`, zero declared `axiom`, zero
+  `native_decide`.
+- `git diff --check`: success.
+- `#print axioms` for both weighted identities, the Jensen theorem, the closed
+  continuation bound, `forkTree_success_all_leafOk`, `forkTreeStep_monotone`,
+  `forkTree_iterate_bound`, `tree_to_acceptTree`, and
+  `fsFork_success_acceptTree`: every result was exactly
+  `[propext, Classical.choice, Quot.sound]`.
+
+No prover/release-gated tests were applicable or run. No commit was made;
+`DESIGN.md` and `.lake/packages/**` were not edited.
