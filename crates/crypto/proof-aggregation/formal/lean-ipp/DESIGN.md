@@ -489,12 +489,40 @@ accepted. Repairs, in execution order:
   `acceptV/acceptW` and `KzgStructuredKeyBinding` parametrized by the KZG
   challenge `z`; `LeafData` passes `transcript.kzg`; restores the
   bridge → kzg → opening dependency chain.
-- **R6 (MAJOR 5) — assembly boundary.** After R2/R3: strengthen the
-  wrapper-side facts carried into the `tree_to_acceptTree` induction:
-  selected-point/answer correctness (via R3's selector theorem),
-  selected-slot stage ordering, ancestor-answer/path correspondence
-  (chronological prefix + its reversed view), shared randomizer/root-data
-  across the tree (`all_randomizer_eq`).
+- **R6 (MAJOR 5) — assembly boundary.** REVISED per Design review 2
+  (Part A; 2026-07-10). The argument-passing induction shape and the
+  fold orientation stand; the boundary must FIRST provide, in order:
+  1. `trace_prefix_of_log_prefix` (the CRITICAL enabler): equality of the
+     wrapped oracle-answer log prefix transports to equality of the
+     generated `WrappedFsRun.trace` prefix (including the selected
+     entries). The flattened log erases structured points, so this is NOT
+     derivable from `TreeConsistent`'s generic fields — prove it from
+     `wrapFs`/replay execution determinism by induction on the
+     computation (two supported runs of the same wrapped computation
+     whose logs agree below `n` have equal outputs/traces below the
+     corresponding miss count). Only after this may constructor
+     injectivity recover shared `RoundComs`/nonces/x0/randomizer
+     payloads across children.
+  2. Filtered-rank/position lemma: the absolute position of the `s`-th
+     `Sum.inr ()` entry bounds the absolute positions of all earlier
+     structured entries; connects `DependencyOrdered`'s `tracePos`
+     ordinals to `hprefixValues`' absolute positions. Never conflate `s`
+     with `slotPos`.
+  3. Transcript-chaining export (semantically true, currently
+     unexported): from `queryRounds`/`fsVerifier_logged`, an accepted
+     run has `roundPrev 0 = x0` and `roundPrev (j+1) = roundAnswer j`;
+     plus x0-point payload equality across children gives shared
+     `ipAb`/`aggC` (and, with 1–2 and `DependencyOrdered`, shared
+     randomizer and x0 — `all_randomizer_eq`).
+  4. The helper invariant is a PATH-PREFIX RECORD indexed by `j < level`
+     (answer, `RoundComs`, nonce, chaining equality) carried for the
+     subtree root and all leaves, extended at each node, preserved into
+     all four children — not a single per-node constructor-injectivity
+     step.
+  5. Housekeeping: `foldCom_map` lives in Ipp/Composition.lean (import,
+     do not re-prove); add the `(r ^ i)⁻¹ = (r⁻¹) ^ i` normalization for
+     the B key; prove the general `Fin.rev`/`foldKey` index relation
+     rather than relying on the two-round parity example.
 - **R7 (MAJORs 3,4,6) — quantitative redesign (U5a/U5e).** Frontier
   design pass 2026-07-10; replaces the pointwise `ForkTreeNodeLowerBound`
   interface entirely:
@@ -504,27 +532,35 @@ accepted. Repairs, in execution order:
      gate fact. Tree success then implies `tree.All leafOk`
      STRUCTURALLY — no separate `All Good` probability step. Instantiate
      `leafOk := accept ∧ WrappedRunGood`-conjuncts (post-R5 shape).
-  2. **Predicate-parametrized U5b machinery**: generalize the U5b
-     quantitative identities/bound over an arbitrary success predicate
-     `S : α × QueryLog → Prop` in place of raw fork success (the proofs
-     of the marginal identities and the CS chain are generic in the
-     predicate; this is mechanical). Deliverable:
-     `forkReplay4_bound_pred : (accS·(accS/q − h⁻¹))⁴ − 3·h⁻¹ ≤
-      Pr[4 children, distinct answers, ALL satisfying S]` with
-     `accS := Pr[S | replayFirstRun main]`.
-  3. **Averaged per-level recurrence**: define
-     `S_0 := leafOk`,
-     `S_{ℓ+1}(run) := the gated (µ−ℓ−1)-deep subtree from this run
-     succeeds` (this is a support/probability statement about
-     `forkTreeFrom` at the run, not a new structure), and
-     `Q_ℓ := Pr[S_ℓ | replayFirstRun (wrapped main)]`. Prove by applying
-     deliverable 2 at each level (child 0 is the run's own continuation;
-     the 3 trials are the conditional draws the U5b machinery already
-     integrates over):
-     `Q_{ℓ+1} ≥ (Q_ℓ · (Q_ℓ / q − h⁻¹))⁴ − 3·h⁻¹ =: G(Q_ℓ)`,
-     hence `Pr[forkTree succeeds] = Q_µ ≥ G^[µ](Q_0)` with
-     `Q_0 = Pr[accept ∧ Good]` — geometrically degrading, ACCEPTED per
-     the strict-composition decision; monotone `G` recorded as a lemma.
+  2. **Continuation-parametrized one-level bound** (REVISED per Design
+     review 2 Part B — a deterministic-predicate interface cannot compose
+     randomized subtrees): formulate the one-level lemma over a
+     CONTINUATION `next : (α × QueryLog spec) → OracleComp spec
+     (Option β)` (with the level/lower parameters). Prove the exact
+     expansion of "fork four children at the slot, run `next`
+     independently on all four (canonical child-0 factor included)":
+     the weighted marginal identities
+     `pair = ∑' first, μ(first) · w(first)` and
+     `raw-four = ∑' first, μ(first) · w(first)³`
+     where `w(first)` is the CONDITIONAL continuation-success
+     probability (U5b's existing identities are the `w = trial-success`
+     instance; the proofs generalize over the weight), then the
+     pair-fork/Jensen chain on `w`. The acceptance event must bundle
+     `cf = some s`, reachability (`CfReachable`), and the `lower < s`
+     gate — and a lemma that gated depth-`d` success entails those
+     selector facts.
+  3. **Averaged per-depth recurrence** (indexing fixed per review):
+     `Q_d := averaged success probability of the gated depth-`d`
+     continuation` — depth 0 = the gated leaf event, depth d+1 = one
+     fork level followed by four INDEPENDENT depth-d continuations;
+     transcript level = µ − d, carried separately. Deliverable:
+     `Q_{d+1} ≥ (Q_d · (Q_d / q − h⁻¹))⁴ − 3·h⁻¹ =: G(Q_d)` via item 2
+     with `next := the depth-d gated forkTreeFrom continuation`, hence
+     `Pr[gated forkTree succeeds] = Q_µ ≥ G^[µ] Q_0` with
+     `Q_0 = Pr[accept ∧ Good]` — geometrically degrading, ACCEPTED;
+     `G` monotone on all of ℝ≥0∞ (review NOTE: no interval restriction
+     needed); positive-probability ⇒ support via VCVio's
+     `probEvent_pos_iff` (review-confirmed sound).
   4. **U5a events (post-R5 shapes)**: `Q_0 ≥ acc − err_bad` where
      `err_bad` sums: randomizer in `discrepancyRootSet` (size ≤ 2^µ−1,
      `discrepancyRootSet_card`), KZG `z`-goodness (consumer restored by

@@ -2379,3 +2379,278 @@ AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
   (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
   (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC))
 ```
+
+## Design review 2 (R6 architecture + R7 quantitative)
+
+Review date: 2026-07-10. This was a source-level, read-only review of
+`codex-r6-impl.md`, DESIGN R7 items 1--5, and the current Lean surfaces. No
+Lean build was run: the issues below are statement/invariant issues rather
+than elaboration uncertainties. The pre-existing build logs were not touched.
+
+### Part A -- R6 induction architecture
+
+There are CRITICAL findings for Part A.
+
+#### CRITICAL
+
+1. **`codex-r6-impl.md` Step 1/per-node argument; `Ipp/FsFork.lean:27,
+   613-652, 798-827, 1060-1116`; `Ipp/ForkTree.lean:62-81` -- wrapped-log
+   prefix agreement does not imply structured-point/trace agreement.**
+   `FsWrappedSpec` records a structured miss only as the fixed input
+   `Sum.inr ()` and its field answer. The actual `FsPoint` is kept separately
+   in `WrappedFsRun.trace`; `flattenFsLog` deliberately erases it.
+   `TreeConsistent.hprefix` and `hprefixValues` therefore equate only erased
+   inputs and answers. They cannot establish that two children have the same
+   `trace[n]`, nor that their selected round points, randomizer points, or x0
+   points are equal. `roundSlot` says that each child's *own* round point is at
+   its own trace index; `roundSlot_answer_eq_transcript` identifies its answer,
+   but neither theorem relates the point to another child. Thus the prompt's
+   implication "prefix/value agreement ... => same `RoundComs`" and its
+   proposed derivation of `all_randomizer_eq` do not follow from the current
+   invariant.
+
+   **Resolution:** add and prove a wrapper-specific replay-prefix theorem that
+   transports equality of the wrapped oracle-answer prefix to equality of the
+   generated `WrappedFsRun.trace` prefix (including the selected entry), then
+   thread that fact through `TreeConsistent` or a wrapper-specific consistency
+   refinement. An equally sound redesign is to retain an authenticated point
+   observation in the fork boundary instead of erasing it. The theorem must be
+   proved from `wrapFs`/replay execution semantics; it cannot be postulated from
+   the current generic log fields. Only after this theorem may constructor
+   injectivity be used to recover shared `RoundComs`, nonces, x0 root data, and
+   randomizer-point payloads.
+
+#### MAJOR
+
+1. **`Ipp/FsFork.lean:1104-1116` versus `Ipp/ForkTree.lean:64-79` -- the
+   dependency-order index is not yet connected to the prefix-value index.**
+   `DependencyOrdered` proves `tracePos ... = some i` and `i < (s : Nat)`,
+   where `s` is the ordinal among `Sum.inr ()` queries. Cross-child value
+   agreement is stated at absolute list positions `n < slotPos`.
+   `hslotPos : slotPos < cursor` does not imply that the absolute position of
+   the `i`th structured query is below `slotPos`. This fact is true for the
+   ordered filtered log but no such bridge is exposed here.
+
+   **Resolution:** prove a query-log rank/position lemma: if `slotPos` is the
+   absolute position of the `s`th `Sum.inr ()` entry, then every `i < s` has a
+   unique absolute position below `slotPos`, with `getQueryValue?` equal to the
+   value stored at that position. Combine it with the trace-prefix theorem from
+   CRITICAL 1. Do not silently rewrite `s` as `slotPos`.
+
+2. **`codex-r6-impl.md` "three bridging lemmas"; `Ipp/FsGame.lean:184-203,
+   220-236`; `Ipp/FsFork.lean:1007-1058` -- the listed bridges are not
+   sufficient for the leaf or node cases.** In addition to truncated-fold
+   extension, terminal-fold completion, and key/public alignment, the proof
+   needs exposed semantic lemmas establishing, for every accepted supported
+   run,
+   `roundPrev 0 = x0` and
+   `roundPrev (j.succ) = roundAnswer j`. These are true by `queryRounds`, but
+   are not fields of `FsTranscript`, `LeafData`, `RoundQueries`, or
+   `WrappedRunGood`, and no current public lemma states them. It also needs the
+   wrapper-prefix consequences that all leaf proofs share `ipAb`/`aggC` (from
+   the x0 point) and that ancestor `proof.rounds` payloads persist down a path,
+   plus the tagged-embedding/fold commutation used to pass from lane-native
+   `terminalFold` values to `AcceptTree` commitments. The prompt mentions
+   `foldCom_map`, but no such lemma currently exists in `FsFork.lean`.
+
+   **Resolution:** expose an accepted-transcript chaining record/lemma from
+   `fsVerifier_logged`/`queryRounds_logged`; prove wrapper-prefix root-data and
+   ancestor-payload lemmas; and add the linear-map/fold commutation (plus the
+   elementary `(r ^ i)⁻¹ = (r⁻¹) ^ i` normalization needed by the B key) before
+   attempting the generalized induction. Treat these as part of the assembly
+   boundary, not as consequences of the three advertised fold lemmas.
+
+3. **`codex-r6-impl.md` run-correspondence invariant -- current-level point
+   injectivity alone does not give ancestor-level `proof.rounds` agreement.**
+   Equality of two `.round` constructors at level `level` gives equality of
+   that level's `prev`, `RoundComs`, and nonce only. Agreement at every
+   ancestor must be carried inductively and preserved across each later fork.
+   `hstrict` orders the selected *structured ordinals*, which is enough only
+   after the rank/position and trace-prefix bridges above are available.
+
+   **Resolution:** state the helper invariant explicitly as a path-prefix
+   record indexed by `j < level`, containing answer, `RoundComs`, nonce, and
+   chaining equality for the current subtree root/all leaves. Prove extension
+   at a node and preservation into all four child subtrees. Do not replace this
+   with a single per-node constructor-injectivity step.
+
+#### NOTE
+
+1. **`Ipp/FsGame.lean:184-203` -- the proposed `roundPrev` chain is
+   semantically correct, not false.** Round zero uses x0, and the recursive
+   call uses the previous answer as the next `prev`. Hence shared x0 plus
+   shared answers below level `j` does imply shared `roundPrev j`. The defect
+   is that this semantic fact is not currently exported to the R6 boundary.
+
+2. **`Ipp/Gipa.lean:427-429, 478-503, 822-832`; `Ipp/FsGame.lean:158-160,
+   275-280` -- the key/public orientation in the prompt is correct if the
+   truncation is defined carefully.** `AcceptTree.node`/`foldPow` peels the
+   highest remaining vector bit. `foldKey` first consumes `x (last)`. For
+   `x = reversedView roundAnswer`, that value is chronological answer zero;
+   recursion then consumes chronological answers one, two, and so on. Thus an
+   R6 accumulator extended in chronological order matches
+   `foldKey (reversedView ...)` at the leaf. The two-round parity lemma is a
+   useful sanity check, though the general proof should unfold the
+   `Fin.rev`/`foldKey` index relation rather than rely on the two-round example.
+
+**Part A go/no-go:** **NO-GO** for implementing R6 per
+`codex-r6-impl.md` as written. The argument-passing induction shape is viable,
+and the fold orientation is right, but the current boundary cannot prove its
+central shared-point premise and the advertised bridge set is incomplete.
+
+### Part B -- R7 quantitative design
+
+There are CRITICAL findings for Part B.
+
+#### CRITICAL
+
+1. **DESIGN R7 items 2-3; `Ipp/Fork.lean:605-824`; `Ipp/ForkTree.lean:86-113`
+   -- a predicate-parametrized four-run bound does not compose randomized
+   recursive subtrees.** Existing U5b has the exact marginal identities
+
+   ```text
+   pair success = sum_first w(first) * p(first)
+   raw three-replay success = sum_first w(first) * p(first)^3,
+   ```
+
+   where `first` is sampled by `replayFirstRun main` and `p(first)` is the
+   conditional probability of one replay trial. For a deterministic predicate
+   `S` on completed runs, the required predicate versions would instead be
+
+   ```text
+   pair-all-S = sum_first w(first) * 1[S first] * pS(first)
+   raw-four-all-S = sum_first w(first) * 1[S first] * pS(first)^3,
+   ```
+
+   together with a forking lower bound for `pair-all-S`, not merely the current
+   unpredicated marginal identities. These identities are not currently
+   present, but are at least a coherent generalization.
+
+   The planned `S_l`, however, is not a deterministic predicate on a completed
+   run: success of `forkTreeFrom ... depth run` contains fresh oracle randomness.
+   Replacing it by "support is inhabited" discards the success probability and
+   cannot prove the quantitative recurrence. Conversely, embedding recursive
+   subtree computations after each child changes `pS(first)` into a continuation
+   success probability and requires a continuation-parametrized theorem plus
+   four conditional-product identities. `forkReplay4_bound_pred` as stated does
+   not provide that theorem.
+
+   **Resolution:** formulate the one-level lemma over a continuation
+   `next : loggedRun -> OracleComp spec (Option beta)` (with the appropriate
+   `level/lower` parameters). Prove an exact expansion for the computation that
+   forks four children and runs `next` independently on all four, including the
+   canonical child-zero factor, and generalize the pair-fork/Jensen step to the
+   resulting conditional success function. Only then define
+   `Q_d` as the averaged probability of a depth-`d` gated continuation and
+   derive `G(Q_d) <= Q_(d+1)`.
+
+2. **DESIGN R7 item 3 -- the stated `S_l` indexing contradicts its claimed
+   endpoints.** It defines `S_0 := leafOk` but then says
+   `S_(l+1)` is success of a `(mu-l-1)`-deep subtree. Consequently `S_mu` is a
+   depth-zero leaf event again, while `S_1` is depth `mu-1`; it cannot also be
+   true that `Q_mu` is the full depth-`mu` tree success probability.
+
+   **Resolution:** use `S_d(run)`/`Q_d` for the exact depth-`d` continuation:
+   depth zero is the gated leaf and depth `d+1` is one fork level followed by
+   four depth-`d` continuations. Keep transcript `level` as the separate value
+   `mu - remainingDepth` (or index by `(level, depth)` with their sum fixed).
+
+#### MAJOR
+
+1. **DESIGN R7 items 2-3; `Ipp/Fork.lean:788-824, 1144-1169` -- `accS` is not
+   yet aligned with the selector/reachability event consumed by U5b.** The
+   current lower bound starts from
+   `sum s, Pr[cf output = some s | main]` and requires `CfReachable`.
+   A valid predicate theorem must start from the probability that the canonical
+   logged run both satisfies `S` and supplies a reachable current-level slot
+   (and, below the root, satisfies the `lower < slot` gate). `S : alpha x
+   QueryLog -> Prop` cannot simply replace `cf : alpha -> Option slot` in the
+   existing theorem, and the current `probEvent_fst_replayFirstRun` identity
+   only handles predicates of `alpha`, not log-dependent subtree conditions.
+
+   **Resolution:** prove the two weighted predicate identities displayed in
+   CRITICAL 1 and a predicate-aware replay-fork lower bound whose acceptance
+   event explicitly includes `cf = some s`, reachability, and the lower-slot
+   gate. For this application, also prove that the depth-`d` gated success event
+   entails those selector facts. This is the precise bridge missing between
+   the canonical-run U5b machinery and the proposed `Q_d` average.
+
+2. **DESIGN R7 item 4; `Ipp/FsFork.lean:829-838, 1122-1133` -- the proposed
+   `q0_lower_bound` event list does not equal `WrappedRunGood`.**
+   `WrappedRunGood` includes every `not RoundPointUnqueried qb level run`.
+   Item 4 mentions dependency-order violations but gives no term or deterministic
+   query-budget hypothesis for a round point whose first miss is outside
+   `qb + 1`. Acceptance ensures the verifier issued the logical query, but does
+   not by itself bound its miss ordinal; the adversary has no query-bound
+   hypothesis in the displayed R7 design. Thus the planned union bound does not
+   yet lower-bound the exact `Q_0` gate.
+
+   **Resolution:** state the adversary/wrapped-main query-budget hypothesis and
+   prove `RoundPointUnqueried` impossible under it, or add its actual bad-event
+   bound to `err_bad`. Define `leafOk` verbatim first, then make every U5a term
+   correspond to one conjunct of that definition.
+
+3. **DESIGN R7 items 4-5; `Ipp/FsFork.lean:639-652, 786-796` -- the probability
+   space for `Q_0` is not connected quantitatively to the planned base
+   acceptance bound.** `wrapFs_support_iff` is only a support equivalence.
+   `Q_0` is an event under `replayFirstRun (wrapFs ...)`, whereas the cached FS
+   acceptance/U5a analysis naturally runs under `fsRandomFunction (FsGame ...)`.
+   Support equivalence is insufficient to rewrite probabilities.
+
+   **Resolution:** prove a probability-preserving wrapper identity (or an
+   explicit coupling equality) for the exact output/trace/good event, then use
+   `probEvent_fst_replayFirstRun` to move between output and logged-run views.
+   Record this equality in the statement of `q0_lower_bound` rather than relying
+   on the existing support theorem.
+
+4. **DESIGN R7 item 4; `Ipp/Algebra.lean:33-51` -- KZG z-goodness is currently
+   already bundled into the `KzgStructuredKeyBinding` hypothesis.** Charging a
+   separate z bad-event while still assuming the all-z binding definition
+   double-counts/changes the intended boundary. In addition, root-set avoidance
+   is needed by `u4_capstone` but is not a conjunct of current
+   `WrappedRunGood`, so it is not structurally supplied by the proposed leaf
+   gate.
+
+   **Resolution:** choose one KZG boundary: retain the current all-z explicit
+   binding hypothesis and remove the z term, or weaken binding to a z-good
+   statement and gate/bound that exact event. Add root randomizer avoidance as
+   a separately gated root event (charge it once after shared-randomizer is
+   proved), or explicitly include it in `leafOk` and prove equivalence using
+   shared randomizer.
+
+#### MINOR
+
+1. **DESIGN R7 item 1; `Ipp/ForkTree.lean:125-258` -- gated recursion changes
+   theorem signatures but does not invalidate the existing one-way support
+   facts.** Adding a depth-zero rejection and a gate field to
+   `TreeConsistent.leaf` preserves "success implies consistency/all support"
+   after threading `leafOk`. `TreeConsistent.all_support` and property transfer
+   remain derivable. The old `forkTree_bound_param` base case uses success
+   probability one and will no longer hold, but item 2 says that pointwise
+   interface is to be deleted, so it must be removed rather than shimmed.
+
+   **Resolution:** update the support theorem signatures and callers in one
+   change, retain both leaf support and leaf gate evidence, and delete
+   `ForkTreeNodeLowerBound`/`forkTree_bound_param` when the averaged theorem
+   replaces them.
+
+#### NOTE
+
+1. **DESIGN R7 item 3 -- `G` is monotone on `ENNReal`.** Division by the fixed
+   positive query-count cast is monotone, truncated subtraction by `h^-1` is
+   monotone, multiplication of the two nonnegative monotone factors is
+   monotone, and so are fourth power and final truncated subtraction. The lemma
+   should be proved globally; no extra interval restriction is needed.
+
+2. **DESIGN R7 item 5; VCVio `EvalDist/Defs/Basic.lean:239-261` -- the final
+   probability-to-support step is sound.** VCVio exposes
+   `probEvent_pos_iff`/`probEvent_ne_zero_iff`: positive probability of
+   `Option.isSome` gives an `isSome` output in support, hence a concrete tree.
+   This step becomes applicable once the lower bound targets the exact gated
+   `forkTree` computation.
+
+**Part B go/no-go:** **NO-GO** for implementing R7 per DESIGN items 1--5 as
+written. Gated support propagation, monotonicity of `G`, and the final
+positive-support step are sound, but the per-level quantitative theorem and
+indexing must be redesigned, and `Q_0` must be aligned with the exact gate and
+probability space before implementation.
