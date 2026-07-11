@@ -2995,3 +2995,136 @@ sessions set the working directory explicitly.
    resisting a clean concrete bound; left abstract.
 3. The collision `1/(|F|−2)` rejection-sampling correction is not reflected
    in the stated `/|F|` denominator; reconcile when field 1 is discharged.
+
+## U5a-quant (opus session 2)
+
+Scope: begin discharging the parametric `BadEventBudget` fields concretely,
+starting from the foundational per-miss uniform mass. Edited ONLY
+`Ipp/FsBadEvents.lean` (two new theorems in a new `section FreshMiss`, plus a
+module-header note) and this report. No other `Ipp/*.lean`, no `DESIGN.md`, no
+`.lake/packages/**`. No `sorry`, no `axiom`, no `native_decide` introduced.
+
+### Item 1 — foundational uniform-miss lemma: DELIVERED (concrete, green)
+
+Two theorems, verbatim:
+
+```lean
+theorem fresh_miss_uniform {Point : Type} [DecidableEq Point] [Fintype F]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    (point : Point) (cache : (Point →ₒ F).QueryCache)
+    (hmiss : cache point = none) (v : F) :
+    Pr[= v | Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache] =
+      (Fintype.card F : ℝ≥0∞)⁻¹
+
+theorem fresh_miss_mem_le {Point : Type} [DecidableEq Point] [Fintype F]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    (point : Point) (cache : (Point →ₒ F).QueryCache)
+    (hmiss : cache point = none) (bad : Finset F) :
+    Pr[fun z => z.1 ∈ bad |
+        ((fsSourceOracle Point F) (Sum.inr point)).run cache] ≤
+      (bad.card : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+```
+
+`fresh_miss_uniform` is the load-bearing item: at a structured cache MISS
+(`cache point = none`) the sampled answer (first component of the StateT run of
+the source oracle at index `Sum.inr point`) equals any fixed `v` with
+probability EXACTLY `1/|F|`. This is the plain-uniform version the task asked to
+state first: the raw per-miss sample is uniform on `F`; the rejection layer of
+`queryAccepting` sits above it.
+
+Proof route (short, direct — matches the technique of `Ipp/Fork.lean`'s
+`probOutput_replayTrial_hasReplacement_le`):
+- Unfold the miss step. On `cache point = none`,
+  `Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache`
+  reduces (same `simp` set as `fsSource_support_step_inr`'s `hrun`:
+  `fsSourceOracle, QueryImpl.add_apply_inr, QueryImpl.withCaching_apply,
+  StateT.run_bind, StateT.run_get, fsSourceImpl, hmiss`) to the raw
+  `(unifSpec + (Point →ₒ F)).query (Sum.inr point)` — the cache write is erased
+  by `Prod.fst`.
+- `probOutput_query` (VCVio `EvalDist.lean`, needs `[IsUniformSpec spec]`) gives
+  `(Fintype.card ((unifSpec + (Point →ₒ F)).Range (Sum.inr point)))⁻¹`.
+- Reconcile that range-card with `Fintype.card F`: the range is defeq `F`, but
+  the two `Fintype` instances differ (the goal's comes from the opaque
+  `[IsUniformSpec …]` hypothesis, not the local `[Fintype F]`). `congr` unifies
+  the defeq types and leaves a single `Fintype F = Fintype F` instance goal,
+  closed by `Subsingleton.elim` (`Subsingleton (Fintype α)` from Mathlib
+  `Data/Fintype/Defs`). This instance-reconciliation was the only real friction
+  (several build iterations); `Nat.card_eq_fintype_card`, `Fintype.card_congr`,
+  and explicit-instance `congrArg` all fail because `rw`/TC re-synthesize a
+  non-defeq instance — `congr` + `Subsingleton.elim` is the working idiom.
+
+`fresh_miss_mem_le` is the set form used by the KZG/randomizer union bounds:
+`probEvent_map` to push the event onto the first component, then
+`probEvent_eq_sum_fintype_ite` over `F`, each term rewritten by
+`fresh_miss_uniform`, then `Finset.sum_filter`/`Finset.filter_univ_mem`/
+`Finset.sum_const` collapse the constant indicator sum to `|bad|·|F|⁻¹`.
+
+Design note: both are stated generically in `Point` (not fixed to `FsPoint`) so
+the concrete `BadEventBudget` discharge can instantiate `Point := FsPoint`,
+`spec := FsSourceSpec` — the section-`Quantitative` instances already provide
+`IsUniformSpec (FsSourceSpec …)`. The parametric `BadEventBudget` structure and
+`q0_lower_bound`/`q0_lower_bound_abstract` are UNCHANGED.
+
+### Item 2 — `kzg_z_bound_concrete`: NOT delivered (stays parametric)
+
+Left the `BadEventBudget.kzg_z_bound` field parametric. Reason: the step from
+the per-slot `fresh_miss_mem_le` to the field bound
+`Pr[Accepted z ∧ z.1.transcript.kzg ∈ badZ | fsProbComp stmt adv]
+   ≤ (qb+1)·dZ / |F|`
+requires a DISTRIBUTIONAL union bound over the ≤ qb+1 structured miss ordinals
+of the whole game `replayFirstRun (fsRandomFunction (FsGame stmt adv))`, which
+does not yet exist and is a large development (the previous session's "remaining
+gap (b)"). Concretely the missing pieces are:
+
+1. A support/extraction lemma: an accepting run caches its KZG challenge at the
+   kzg-stage structured point, i.e.
+   `Accepted z → ∃ point, (point is a `ChallengePoint.kzg _` and)
+       QueryAnswered z.2 (Sum.inr point) z.1.transcript.kzg`.
+   `fsRandomFunction_replay_cached` already gives round-answer caching and
+   `LeafData ∧ ChallengesAccepted`, and `queryAccepting_cached` caches an
+   accepted scalar answer at its nonce-bearing point — but no current lemma
+   projects the kzg-challenge caching out of `fsVerifier`/`FsGame`. This is a
+   `queryAccepting_cached`-style extraction for the kzg stage; tractable but new.
+
+2. THE BLOCKER — a distributional union-over-misses lemma, exact goal:
+   ```
+   Pr[fun z => ∃ point, QueryAnswered z.2 (Sum.inr point) v ∧ v ∈ badZ
+      | replayFirstRun (fsRandomFunction (FsGame stmt adv))]
+     ≤ (numStructuredMisses) * (dZ / |F|)
+   ```
+   with `numStructuredMisses ≤ qb + 1`. This is the analogue of VCVio's
+   `probEvent_cache_has_value_le_of_unique_preimage`
+   (`QueryTracking/Unpredictability.lean`), but for `fsSourceOracle`
+   (= `fsSourceUnifFwd + withCaching fsSourceImpl`) rather than the plain
+   `cachingOracle`, and for a `Finset` bad set rather than a single value. It
+   needs a `probEvent`-level induction over `FsGame`'s bind structure that at
+   each source step invokes `fresh_miss_mem_le` on the fresh miss and carries a
+   union bound — the distributional counterpart of the SUPPORT-level
+   `fsSource_preservesInv`/`fsSource_log_cached` inductions in `Ipp/FsFork.lean`.
+   Building it (or adapting the VCVio lemma across the oracle-structure gap)
+   exceeds the ~10-iteration item budget, especially after the instance-wall
+   iterations spent landing item 1. Not attempted rather than left half-built.
+
+The `(qb+1)` miss-count bound itself is a separate obligation: nothing in
+`FsBadEvents.lean` currently ties `numStructuredMisses` to `qb`; that budget
+link is a hypothesis the concrete discharge must add (the fork budget from U5b).
+
+### Item 3 — `answer_collision_bound_concrete`: NOT attempted
+
+Blocked on the same distributional machinery as item 2 (a birthday union over
+ordered miss-ordinal pairs, the later miss hitting the earlier fixed answer with
+mass ≤ 1/|F| by `fresh_miss_uniform`), so it stays parametric.
+
+### Build results (one lake at a time, LEAN_NUM_THREADS=1, cwd = lean-ipp)
+
+- Process check (Get-Process lake|lean) empty before every build.
+- `lake build Ipp.FsBadEvents`: SUCCESS, exit 0. Only warnings are pre-existing:
+  the `push_neg` deprecation and one `linter.unusedSectionVars` on
+  `accepted_challengesAccepted` (both pre-existing from session 1), and the
+  pre-existing `Ipp/FsFork.lean:1437` `sorry` (`tree_to_acceptTree`, NOT mine
+  and NOT referenced by any FsBadEvents theorem).
+- `lake build Ipp` (full package): SUCCESS, exit 0.
+- Forbidden-token scan of `Ipp/FsBadEvents.lean` (`sorry|native_decide|axiom |
+  admit`): clean (0 matches).
+- No prover/release-gated tests were run; only the requested focused and full
+  Lean package gates.

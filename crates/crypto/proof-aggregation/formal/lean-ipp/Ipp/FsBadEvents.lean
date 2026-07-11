@@ -12,11 +12,20 @@ The `WrappedRunGood` predicate consumed by U5d(4) excludes five bad events; this
 file states the union-bound accounting for them and proves the quantitative
 lower bound `Q_0 ≥ Pr[accept] − err_bad` by pure ENNReal event algebra.
 
-R7(4) status (opus session): the FIVE per-event bounds are stated as the
-parametric interface `BadEventBudget` (a clearly-named hypothesis bundle); the
-`q0_lower_bound` complement/union algebra over them is proved concretely. See
-the REPORT-CODEX "U5a (opus session)" section for the constants chosen, which
-bounds went parametric, and the exact remaining gaps.
+R7(4) status: the FIVE per-event bounds are stated as the parametric interface
+`BadEventBudget` (a clearly-named hypothesis bundle); the `q0_lower_bound`
+complement/union algebra over them is proved concretely. See the REPORT-CODEX
+"U5a (opus session)" section for the constants chosen, which bounds went
+parametric, and the exact remaining gaps.
+
+U5a-quant (opus session 2): the foundational per-miss uniform mass is now proved
+concretely as `fresh_miss_uniform` (a structured cache MISS installs each fixed
+`v : F` with probability exactly `1/|F|`) and its set form `fresh_miss_mem_le`
+(a miss lands in a finite set `bad` with probability ≤ `|bad|/|F|`). These are
+the load-bearing per-slot masses the KZG/randomizer/birthday union bounds
+consume; the remaining gap to discharge the `BadEventBudget` fields concretely
+is the distributional union bound over the ≤ qb+1 miss ordinals of the whole
+game (see REPORT-CODEX "U5a-quant").
 
 Spec rows: `fs.stage-labels`, `groth16.randomizer`, `tipp-mipp.gipa`,
 `tipp-mipp.kzg`, `fs.challenge-preimage`.
@@ -99,6 +108,65 @@ def RunGoodFull {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (badR badZ : Set F) (z : FsRunLog μ F G1 G2 GT) : Prop :=
   WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) ∧
     z.1.transcript.randomizer ∉ badR ∧ z.1.transcript.kzg ∉ badZ
+
+section FreshMiss
+
+/-- **U5a foundational uniform-miss lemma.** In the cached structured source
+oracle, the fresh answer installed at a structured cache MISS is uniform on `F`.
+Concretely: the first component (the sampled answer) of one miss step at an
+uncached `point` equals any fixed `v` with probability exactly `1/|F|`. This is
+the load-bearing per-miss uniform mass on which the KZG / birthday union bounds
+build; it is a direct `probOutput_query` computation once the miss step is
+unfolded to its `$ᵗ F` sampling. -/
+theorem fresh_miss_uniform {Point : Type} [DecidableEq Point] [Fintype F]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    (point : Point) (cache : (Point →ₒ F).QueryCache)
+    (hmiss : cache point = none) (v : F) :
+    Pr[= v | Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache] =
+      (Fintype.card F : ℝ≥0∞)⁻¹ := by
+  have hrun : Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache =
+      ((unifSpec + (Point →ₒ F)).query (Sum.inr point) :
+        OracleComp (unifSpec + (Point →ₒ F)) F) := by
+    simp [fsSourceOracle, QueryImpl.add_apply_inr, QueryImpl.withCaching_apply,
+      StateT.run_bind, StateT.run_get, fsSourceImpl, hmiss]
+  rw [hrun, probOutput_query]
+  congr
+  exact Subsingleton.elim _ _
+
+/-- **Set form of the uniform-miss lemma.** The fresh answer installed at a
+structured cache miss lands in any finite set `bad` with probability at most
+`|bad|/|F|` — the per-slot mass consumed by the KZG and randomizer union
+bounds. -/
+theorem fresh_miss_mem_le {Point : Type} [DecidableEq Point] [Fintype F]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    (point : Point) (cache : (Point →ₒ F).QueryCache)
+    (hmiss : cache point = none) (bad : Finset F) :
+    Pr[fun z => z.1 ∈ bad |
+        ((fsSourceOracle Point F) (Sum.inr point)).run cache] ≤
+      (bad.card : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) := by
+  classical
+  have hterm : ∀ w : F,
+      (if w ∈ bad then
+        Pr[= w | Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache]
+       else 0) =
+        (if w ∈ bad then (Fintype.card F : ℝ≥0∞)⁻¹ else 0) := by
+    intro w
+    by_cases hw : w ∈ bad
+    · rw [if_pos hw, if_pos hw, fresh_miss_uniform point cache hmiss w]
+    · rw [if_neg hw, if_neg hw]
+  have hmap : Pr[fun z => z.1 ∈ bad |
+        ((fsSourceOracle Point F) (Sum.inr point)).run cache] =
+      Pr[(· ∈ bad) |
+        Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache] := by
+    rw [probEvent_map]; rfl
+  refine le_of_eq ?_
+  rw [hmap, probEvent_eq_sum_fintype_ite]
+  trans (∑ x : F, if x ∈ bad then (Fintype.card F : ℝ≥0∞)⁻¹ else 0)
+  · exact Finset.sum_congr rfl (fun w _ => hterm w)
+  · rw [← Finset.sum_filter, Finset.filter_univ_mem, Finset.sum_const, nsmul_eq_mul,
+      div_eq_mul_inv]
+
+end FreshMiss
 
 section Quantitative
 
