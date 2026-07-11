@@ -74,6 +74,8 @@ inductive TreeConsistent [spec.DecidableEq]
       (hslotPos : slotPos < cursor)
       (hslotInput : ∀ k,
         QueryLog.inputAt? (children k).root.2 slotPos = some i)
+      (hslotRank : ∀ k,
+        (QueryLog.getQ ((children k).root.2.take slotPos) (· = i)).length = (s : Nat))
       (hprefixValues : ∀ a b n, n < slotPos →
         (children a).root.2[n]? = (children b).root.2[n]?)
       (hstrict : ∀ previous, lower = some previous → previous < s)
@@ -163,7 +165,8 @@ private theorem forkTreeFrom_support_props [spec.DecidableEq] [IsUniformSpec spe
             subst tree
             rcases forkReplay4From_support_props main qb i (cf level) first hfirst hruns? with
               ⟨slot, answers, cursor, slotPos, hruns₀, hrunsSupport, hcf, hinj,
-                hanswers, hcursor, hprefix, hslotPos, hslotInput, hprefixValues⟩
+                hanswers, hcursor, hprefix, hslotPos, hslotInput, hslotRank,
+                hprefixValues⟩
             have hslot : slot = s := by
               have := hcf 0
               simp [hruns₀, hcf₀] at this
@@ -185,7 +188,7 @@ private theorem forkTreeFrom_support_props [spec.DecidableEq] [IsUniformSpec spe
               · exact hc₂.1
               · exact hc₃.1
             refine ⟨?_, .node level lower ![t₀, t₁, t₂, t₃] s answers cursor slotPos
-              ?_ hinj ?_ hcursor ?_ hslotPos ?_ ?_ hstrict ?_⟩
+              ?_ hinj ?_ hcursor ?_ hslotPos ?_ ?_ ?_ hstrict ?_⟩
             · simpa [RunTree.root] using hc₀.1.trans hruns₀
             · intro k
               rw [hroot k]
@@ -199,6 +202,9 @@ private theorem forkTreeFrom_support_props [spec.DecidableEq] [IsUniformSpec spe
             · intro k
               rw [hroot k]
               exact hslotInput k
+            · intro k
+              rw [hroot k]
+              exact hslotRank k
             · intro a b n hn
               rw [hroot a, hroot b]
               exact hprefixValues a b n hn
@@ -236,7 +242,7 @@ theorem TreeConsistent.all_support [spec.DecidableEq]
   induction h with
   | leaf _ _ _ hsupport => exact hsupport
   | @node level lower depth children s answers cursor slotPos hcf hinjective hanswers
-      hcursor hprefix hslotPos hslotInput hprefixValues hstrict hchildren ih =>
+      hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict hchildren ih =>
       exact ih
 
 /-- Transfer any first-run postcondition to every run of a successful U5c

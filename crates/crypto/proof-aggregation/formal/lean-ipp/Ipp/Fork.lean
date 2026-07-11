@@ -19,6 +19,27 @@ open scoped OracleSpec.PrimitiveQuery
 
 variable {ι : Type} {spec : OracleSpec ι} {α : Type}
 
+private lemma take_eq_of_getElem?_eq_below {β : Type} (xs ys : List β) (n : Nat)
+    (h : ∀ m, m < n → xs[m]? = ys[m]?) : xs.take n = ys.take n := by
+  induction n generalizing xs ys with
+  | zero => rfl
+  | succ n ih =>
+      cases xs with
+      | nil =>
+          cases ys with
+          | nil => rfl
+          | cons y ys => simpa using h 0 (Nat.zero_lt_succ n)
+      | cons x xs =>
+          cases ys with
+          | nil => simpa using h 0 (Nat.zero_lt_succ n)
+          | cons y ys =>
+              have hxy : x = y := by simpa using h 0 (Nat.zero_lt_succ n)
+              subst y
+              simp only [List.take_succ_cons, List.cons.injEq, true_and]
+              apply ih
+              intro m hm
+              simpa using h (m + 1) (Nat.succ_lt_succ hm)
+
 /-- Replay once from `trace` at `s`, retaining only runs that consume the fork
 without a prefix mismatch and whose output selects the same slot. -/
 private def checkedReplay [spec.DecidableEq]
@@ -216,6 +237,7 @@ theorem forkReplay4From_support_props [spec.DecidableEq] [IsUniformSpec spec]
         QueryLog.inputAt? (runs a).2 n = QueryLog.inputAt? (runs b).2 n) ∧
       slotPos < cursor ∧
       (∀ k, QueryLog.inputAt? (runs k).2 slotPos = some i) ∧
+      (∀ k, (QueryLog.getQ ((runs k).2.take slotPos) (· = i)).length = (s : Nat)) ∧
       (∀ a b n, n < slotPos → (runs a).2[n]? = (runs b).2[n]?) := by
   simp only [forkReplay4From, support_map, Set.mem_image] at h
   obtain ⟨core, hcore, hout⟩ := h
@@ -271,7 +293,7 @@ theorem forkReplay4From_support_props [spec.DecidableEq] [IsUniformSpec spec]
                 (replacement := u₃) hz₃ hf₃).1
               dsimp only [cursor]
               omega
-            refine ⟨s, answers, cursor, slotPos, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+            refine ⟨s, answers, cursor, slotPos, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
             · rfl
             · intro k
               fin_cases k
@@ -415,6 +437,82 @@ theorem forkReplay4From_support_props [spec.DecidableEq] [IsUniformSpec spec]
                     (replacement := u₃) hz₃ (by dsimp only [slotPos, cursor]; omega)).trans
                     (by rw [ht₃]; exact hbase)
                 fin_cases k <;> simp_all
+            · have ht₁ := replayRunWithTraceValue_trace_eq
+                (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                (replacement := u₁) hz₁
+              have ht₂ := replayRunWithTraceValue_trace_eq
+                (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                (replacement := u₂) hz₂
+              have ht₃ := replayRunWithTraceValue_trace_eq
+                (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                (replacement := u₃) hz₃
+              have htake₁ : z₁.2.observed.take slotPos = first.2.take slotPos := by
+                apply take_eq_of_getElem?_eq_below
+                intro n hn
+                have hp := replayRunWithTraceValue_prefix_getElem?_eq
+                  (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                  (replacement := u₁) hz₁ (by
+                    simpa [hf₁] using (show n < z₁.2.cursor - 1 by
+                      dsimp only [slotPos, cursor] at hn
+                      omega))
+                rwa [ht₁] at hp
+              have htake₂ : z₂.2.observed.take slotPos = first.2.take slotPos := by
+                apply take_eq_of_getElem?_eq_below
+                intro n hn
+                have hp := replayRunWithTraceValue_prefix_getElem?_eq
+                  (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                  (replacement := u₂) hz₂ (by
+                    simpa [hf₂] using (show n < z₂.2.cursor - 1 by
+                      dsimp only [slotPos, cursor] at hn
+                      omega))
+                rwa [ht₂] at hp
+              have htake₃ : z₃.2.observed.take slotPos = first.2.take slotPos := by
+                apply take_eq_of_getElem?_eq_below
+                intro n hn
+                have hp := replayRunWithTraceValue_prefix_getElem?_eq
+                  (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                  (replacement := u₃) hz₃ (by
+                    simpa [hf₃] using (show n < z₃.2.cursor - 1 by
+                      dsimp only [slotPos, cursor] at hn
+                      omega))
+                rwa [ht₃] at hp
+              have hc : cursor = z₁.2.cursor ∨ cursor = z₂.2.cursor ∨
+                  cursor = z₃.2.cursor := by
+                simp only [cursor]
+                omega
+              have hbase :
+                  (QueryLog.getQ (first.2.take slotPos) (· = i)).length = (s : Nat) := by
+                rcases hc with hc | hc | hc
+                · have hcount := replayRunWithTraceValue_forkConsumed_imp_prefix_count
+                    (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                    (replacement := u₁) hz₁ hf₁
+                  rw [replayRunWithTraceValue_forkQuery_eq
+                    (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                    (replacement := u₁) hz₁] at hcount
+                  rw [← htake₁]
+                  simpa [slotPos, hc] using hcount
+                · have hcount := replayRunWithTraceValue_forkConsumed_imp_prefix_count
+                    (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                    (replacement := u₂) hz₂ hf₂
+                  rw [replayRunWithTraceValue_forkQuery_eq
+                    (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                    (replacement := u₂) hz₂] at hcount
+                  rw [← htake₂]
+                  simpa [slotPos, hc] using hcount
+                · have hcount := replayRunWithTraceValue_forkConsumed_imp_prefix_count
+                    (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                    (replacement := u₃) hz₃ hf₃
+                  rw [replayRunWithTraceValue_forkQuery_eq
+                    (main := main) (i := i) (trace := first.2) (forkQuery := ↑s)
+                    (replacement := u₃) hz₃] at hcount
+                  rw [← htake₃]
+                  simpa [slotPos, hc] using hcount
+              intro k
+              fin_cases k
+              · simpa using hbase
+              · simpa [htake₁] using hbase
+              · simpa [htake₂] using hbase
+              · simpa [htake₃] using hbase
             · intro a b n hn
               have hn₁ : n < z₁.2.cursor - 1 := by
                 dsimp only [slotPos, cursor] at hn

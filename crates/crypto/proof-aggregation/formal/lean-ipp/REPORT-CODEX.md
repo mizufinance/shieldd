@@ -2654,3 +2654,208 @@ written. Gated support propagation, monotonicity of `G`, and the final
 positive-support step are sound, but the per-level quantitative theorem and
 indexing must be redesigned, and `Q_0` must be aligned with the exact gate and
 probability space before implementation.
+
+## Revised R6 boundary attempt (2026-07-10)
+
+Status: R6 items 1 and 2 are complete and green. The transcript-chaining part
+of item 3 is complete. Work stopped at item 3 because the requested x0-payload,
+shared-`ipAb`/`aggC`, and `all_randomizer_eq` conclusions do not follow from
+the current good-event boundary. No statement was weakened and no additional
+`sorry` was introduced; the pre-existing `tree_to_acceptTree` is still the
+package's sole `sorry`.
+
+Files changed:
+
+- `Ipp/Fork.lean`
+- `Ipp/ForkTree.lean`
+- `Ipp/FsGame.lean`
+- `Ipp/FsFork.lean`
+- `REPORT-CODEX.md`
+
+`DESIGN.md` and `.lake/packages/**` were not edited. No commit was created.
+
+### Boundary 1: deterministic replay
+
+Statement verbatim:
+
+```lean
+theorem trace_prefix_of_log_prefix {Point α : Type} [DecidableEq Point]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    {runA runB : WrappedFsRun Point α}
+    {logA logB : QueryLog (FsWrappedSpec F)} (n : Nat)
+    (hsupportA : (runA, logA) ∈ support (replayFirstRun (wrapFs oa)))
+    (hsupportB : (runB, logB) ∈ support (replayFirstRun (wrapFs oa)))
+    (hprefix : ∀ m, m < n → logA[m]? = logB[m]?)
+    (hinputA : QueryLog.inputAt? logA n = some (Sum.inr ()))
+    (hinputB : QueryLog.inputAt? logB n = some (Sum.inr ())) :
+    runA.trace.take (structuredMissCountBefore logA n + 1) =
+      runB.trace.take (structuredMissCountBefore logA n + 1) := by
+```
+
+The proof is by `OracleComp.inductionOn` over the wrapped computation. It
+separates ambient-uniform and structured-miss steps, uses equality of the
+dependent logged head entries to identify the continuation before recursing,
+and deliberately does not require equality of the selected answer. The
+selected structured point is included. A supporting induction proves that
+`wrapFsFrom` only appends to its initial trace. The theorem took six focused
+proof iterations, below the task's approximately-twelve-iteration stop rule.
+
+### Boundary 2: filtered rank and absolute position
+
+Statement verbatim:
+
+```lean
+theorem filtered_rank_position
+    [DecidableEq F]
+    (log : QueryLog (FsWrappedSpec F)) (slotPos s : Nat)
+    (hrank : structuredMissCountBefore log slotPos = s) :
+    ∀ i, i < s → ∃ pos value, pos < slotPos ∧
+      log[pos]? = some ⟨Sum.inr (), value⟩ ∧
+      QueryLog.getQueryValue? log (Sum.inr ()) i = some value := by
+```
+
+The generic fork boundary was strengthened with the missing rank fact. The
+new `TreeConsistent.node` field is verbatim:
+
+```lean
+(hslotRank : ∀ k,
+  (QueryLog.getQ ((children k).root.2.take slotPos) (· = i)).length = (s : Nat))
+```
+
+`forkReplay4From_support_props` proves this from VCVio's
+`replayRunWithTraceValue_forkConsumed_imp_prefix_count`, immutable fork-query
+state, and pairwise replay-prefix equality. `forkTreeFrom_support_props`
+threads it into every node. Thus `s` is never identified with `slotPos`.
+
+### Boundary 3: transcript chaining
+
+Record and projection statements verbatim:
+
+```lean
+structure TranscriptChaining {F : Type} {μ : Nat} (x0 : F)
+    (roundPrev roundAnswer : Fin μ → F) : Prop where
+  zero : ∀ hμ : 0 < μ, roundPrev ⟨0, hμ⟩ = x0
+  succ : ∀ (j : Nat) (hj : j + 1 < μ),
+    roundPrev ⟨j + 1, hj⟩ = roundAnswer ⟨j, Nat.lt_of_succ_lt hj⟩
+
+theorem roundPrev_zero {F : Type} {μ : Nat} {x0 : F}
+    {roundPrev roundAnswer : Fin μ → F}
+    (h : TranscriptChaining x0 roundPrev roundAnswer) (hμ : 0 < μ) :
+    roundPrev ⟨0, hμ⟩ = x0 := h.zero hμ
+
+theorem roundPrev_succ {F : Type} {μ : Nat} {x0 : F}
+    {roundPrev roundAnswer : Fin μ → F}
+    (h : TranscriptChaining x0 roundPrev roundAnswer)
+    (j : Nat) (hj : j + 1 < μ) :
+    roundPrev ⟨j + 1, hj⟩ = roundAnswer ⟨j, Nat.lt_of_succ_lt hj⟩ := h.succ j hj
+
+theorem wrapped_supports_transcript_chaining
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {log : QueryLog (FsWrappedSpec F)}
+    (h : (run, log) ∈ support (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (haccept : run.out.accept = true) :
+    TranscriptChaining run.out.transcript.x0 run.out.transcript.roundPrev
+      run.out.transcript.roundAnswer := by
+```
+
+The cached `queryRounds` invariant now proves chaining together with cache
+correctness. It is propagated through `fsVerifier_cached`, `fsGame_cached`,
+and `fsRandomFunction_replay_cached`; a support-preservation induction for
+`wrapFsFrom` exports it for arbitrary accepted supported wrapped runs.
+
+### Exact item-3 blocker
+
+The next required node facts are, for the four child roots:
+
+```lean
+∀ a b : Fin 4,
+  (children a).root.1.out.proof.ipAb =
+      (children b).root.1.out.proof.ipAb ∧
+  (children a).root.1.out.proof.aggC =
+      (children b).root.1.out.proof.aggC
+```
+
+and the shared-randomizer consequence needed globally:
+
+```lean
+∀ k : Fin 4,
+  (children k).root.1.out.transcript.randomizer =
+    (children 0).root.1.out.transcript.randomizer
+```
+
+Current hypotheses provide:
+
+```lean
+hslotRank : ∀ k,
+  structuredMissCountBefore (children k).root.2 slotPos = (s : Nat)
+hprefixValues : ∀ a b n, n < slotPos →
+  (children a).root.2[n]? = (children b).root.2[n]?
+htrace : ∀ a b,
+  ((children a).root.1.trace.take (s + 1) =
+    (children b).root.1.trace.take (s + 1))
+```
+
+together with `DependencyOrdered` and `TranscriptChaining`. These facts do
+make the selected round points equal, hence expose equal `roundPrev`,
+`RoundComs`, and round nonces. They do not make the accepted x0 points equal.
+
+A permitted execution can cache two distinct x0 points `P ≠ Q` before the
+selected round miss, with the random function assigning the same accepted
+field answer to both. Both points are then present in the common trace prefix;
+one replay branch may use `P` and another `Q`. Since the x0 payload contains
+`ipAb` and `aggC`, the branches can have different root T-lane data while all
+current `WrappedRunGood`, prefix, rank, and chaining hypotheses hold. Random
+functions are not injective, so equality of x0 answers does not imply equality
+of x0 payloads.
+
+Closing the displayed goals requires an additional event/premise, for example
+collision-freedom of the structured random function on the relevant pre-slot
+trace (with its probability charged in R7), or a stronger selector invariant
+that identifies the same accepted x0 point across replays. Neither is present
+in revised R6's binding boundary or current `WrappedRunGood`. Consequently
+`all_randomizer_eq`, the path-prefix record, the generalized fold induction,
+and `tree_to_acceptTree` were not attempted past this point.
+
+### Path-prefix helper invariant
+
+No helper invariant declaration was landed because item 3 did not establish
+the root data required to state its subtree-root fields soundly. Therefore
+there is no verbatim helper invariant statement to report; adding one would
+only move the unproved x0-payload goal into a record constructor.
+
+### Verification and axiom audit
+
+All Lean commands used the pinned Lean 4.30.0 `lake.exe`, one at a time, with
+`LEAN_NUM_THREADS=1`, and wrote output to `build.log`.
+
+- `lake build Ipp.Fork`: pass (3300 jobs).
+- `lake build Ipp.ForkTree`: pass (3301 jobs).
+- `lake build Ipp.FsGame`: pass (3311 jobs).
+- `lake build Ipp.FsFork`: pass (3314 jobs); sole warning is the pre-existing
+  `tree_to_acceptTree` `sorry`.
+- `lake build Ipp`: pass (3323 jobs); same sole `sorry` warning.
+
+Temporary-file `#print axioms` output:
+
+```text
+'Ipp.trace_prefix_of_log_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.filtered_rank_position' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.wrapped_supports_transcript_chaining' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.tree_to_acceptTree' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Ipp.fsFork_success_acceptTree' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+```
+
+The requested `just snarkpack-lean-ipp` gate could not be launched because
+`just` is not installed or present on either the PowerShell or Git Bash PATH
+(`which just` reported no executable). The package's underlying full Lean
+build was run directly and passed as recorded above. Zero-`sorry` and clean
+axiom-audit success criteria are not met solely because `tree_to_acceptTree`
+remains blocked as described.

@@ -148,6 +148,27 @@ structure FsTranscript (μ : Nat) (F : Type) where
   kzgNonce : Nat
 deriving DecidableEq
 
+/-- Chronological Fiat--Shamir chaining exported to the replay-tree assembly
+boundary. -/
+structure TranscriptChaining {F : Type} {μ : Nat} (x0 : F)
+    (roundPrev roundAnswer : Fin μ → F) : Prop where
+  zero : ∀ hμ : 0 < μ, roundPrev ⟨0, hμ⟩ = x0
+  succ : ∀ (j : Nat) (hj : j + 1 < μ),
+    roundPrev ⟨j + 1, hj⟩ = roundAnswer ⟨j, Nat.lt_of_succ_lt hj⟩
+
+/-- Round zero is chained from x0. -/
+theorem roundPrev_zero {F : Type} {μ : Nat} {x0 : F}
+    {roundPrev roundAnswer : Fin μ → F}
+    (h : TranscriptChaining x0 roundPrev roundAnswer) (hμ : 0 < μ) :
+    roundPrev ⟨0, hμ⟩ = x0 := h.zero hμ
+
+/-- Each later round is chained from the preceding round answer. -/
+theorem roundPrev_succ {F : Type} {μ : Nat} {x0 : F}
+    {roundPrev roundAnswer : Fin μ → F}
+    (h : TranscriptChaining x0 roundPrev roundAnswer)
+    (j : Nat) (hj : j + 1 < μ) :
+    roundPrev ⟨j + 1, hj⟩ = roundAnswer ⟨j, Nat.lt_of_succ_lt hj⟩ := h.succ j hj
+
 /-- SnarkPack's notation swap: the GIPA verifier challenge is the inverse of
 the random-oracle answer. -/
 def gipaChallenge {F : Type} [Inv F] (x : F) : F := x⁻¹
