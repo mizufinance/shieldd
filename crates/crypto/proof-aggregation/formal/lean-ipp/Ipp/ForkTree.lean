@@ -45,6 +45,13 @@ theorem All.imp {P Q : α × QueryLog spec → Prop}
       intro k
       exact ih k (h k)
 
+/-- A predicate holding throughout a run tree holds at its canonical root. -/
+theorem All.root {P : α × QueryLog spec → Prop}
+    {depth : Nat} {tree : RunTree spec α depth} (h : tree.All P) : P tree.root := by
+  induction tree with
+  | leaf run => exact h
+  | node children ih => exact ih 0 (h 0)
+
 end RunTree
 
 /-- Per-node consistency for the U5c replay tree.  The optional lower slot is

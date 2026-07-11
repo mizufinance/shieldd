@@ -8,6 +8,7 @@ their structured points are recorded in miss order.
 Spec rows: `tipp-mipp.gipa`, `fs.stage-labels`.
 -/
 import Ipp.FsGame
+import Ipp.Composition
 import VCVio.OracleComp.QueryTracking.CachingOracle
 
 open OracleSpec OracleComp Function
@@ -453,12 +454,19 @@ private theorem fsVerifier_cached
         (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
       (fsVerifier stmt proof)).run cache0)) :
     z.1.accept = true →
-      (∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
-        (z.1.proof.rounds i) (z.1.transcript.roundNonce i)) =
-          some (z.1.transcript.roundAnswer i)) ∧
-      TranscriptChaining z.1.transcript.x0 z.1.transcript.roundPrev
-        z.1.transcript.roundAnswer ∧
-      LeafData stmt z.1.proof z.1.transcript ∧ ChallengesAccepted z.1 := by
+      ((∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
+          (z.1.proof.rounds i) (z.1.transcript.roundNonce i)) =
+            some (z.1.transcript.roundAnswer i)) ∧
+        TranscriptChaining z.1.transcript.x0 z.1.transcript.roundPrev
+          z.1.transcript.roundAnswer ∧
+        LeafData stmt z.1.proof z.1.transcript ∧ ChallengesAccepted z.1) ∧
+      z.2 (.randomizer
+        { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+        z.1.transcript.randomizerNonce) = some z.1.transcript.randomizer ∧
+      z.2 (.x0
+        { r := z.1.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
+          comC := stmt.ComA.2, ipAb := z.1.proof.ipAb, aggC := z.1.proof.aggC }
+        z.1.transcript.x0Nonce) = some z.1.transcript.x0 := by
   rw [fsVerifier, simulateQ_bind, StateT.run_bind, support_bind] at h
   simp only [Set.mem_iUnion] at h
   obtain ⟨⟨rOpt, cache1⟩, hr, hrest⟩ := h
@@ -528,6 +536,25 @@ private theorem fsVerifier_cached
               simpa [transcript] using haccept
             have hround' := queryRounds_cached stmt.rejectionFuel μ x0 proof.rounds
               cache2 hround
+            have hrCached := queryAccepting_cached
+              (fun nonce => ChallengePoint.randomizer
+                { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 } nonce)
+              randomizerAcceptedB stmt.rejectionFuel 0 cache0 hr
+            have hxCached := queryAccepting_cached
+              (fun nonce => ChallengePoint.x0
+                { r := r, comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2,
+                  ipAb := proof.ipAb, aggC := proof.aggC } nonce)
+              nonzeroB stmt.rejectionFuel 0 cache1 hx
+            have hxLe := fsSourceOracle_cache_le
+              (oa := queryAccepting
+                (fun nonce => ChallengePoint.x0
+                  { r := r, comA := stmt.ComA.1, comB := stmt.ComB,
+                    comC := stmt.ComA.2, ipAb := proof.ipAb, aggC := proof.aggC } nonce)
+                nonzeroB stmt.rejectionFuel 0)
+              cache1 (some (x0, x0Nonce), cache2) hx
+            have hroundLe := fsSourceOracle_cache_le
+              (oa := queryRounds (G2 := G2) stmt.rejectionFuel μ x0 proof.rounds)
+              cache2 (some rounds, cache3) hround
             have hbridgeLe := fsSourceOracle_cache_le
               (oa := queryAccepting
                 (fun nonce => ChallengePoint.bridge
@@ -543,12 +570,15 @@ private theorem fsVerifier_cached
                     wFinal := proof.wFinal } nonce)
                 nonzeroB stmt.rejectionFuel 0)
               cache4 (some (kzg, kzgNonce), cache5) hz
-            refine ⟨?_, ?_, hacc.2.2.2.2.2.2.1, ?_⟩
+            have hfinalLe := le_trans hroundLe (le_trans hbridgeLe hkzgLe)
+            refine ⟨⟨?_, ?_, hacc.2.2.2.2.2.2.1, ?_⟩, ?_, ?_⟩
             · intro i
               exact hkzgLe (hbridgeLe (hround'.1 i))
             · simpa [transcript] using hround'.2
             · exact ⟨hacc.1, hacc.2.1, hacc.2.2.1, hacc.2.2.2.1,
                 hacc.2.2.2.2.1, hacc.2.2.2.2.2.1⟩
+            · simpa [transcript] using hfinalLe (hxLe hrCached)
+            · simpa [transcript] using hfinalLe hxCached
 
 /-- Cache/acceptance postcondition for the complete adversary-plus-verifier
 game, with the verifier starting from the adversary's live cache. -/
@@ -567,12 +597,19 @@ private theorem fsGame_cached
         (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
       (FsGame stmt adv)).run cache0)) :
     z.1.accept = true →
-      (∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
-        (z.1.proof.rounds i) (z.1.transcript.roundNonce i)) =
-          some (z.1.transcript.roundAnswer i)) ∧
-      TranscriptChaining z.1.transcript.x0 z.1.transcript.roundPrev
-        z.1.transcript.roundAnswer ∧
-      LeafData stmt z.1.proof z.1.transcript ∧ ChallengesAccepted z.1 := by
+      ((∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
+          (z.1.proof.rounds i) (z.1.transcript.roundNonce i)) =
+            some (z.1.transcript.roundAnswer i)) ∧
+        TranscriptChaining z.1.transcript.x0 z.1.transcript.roundPrev
+          z.1.transcript.roundAnswer ∧
+        LeafData stmt z.1.proof z.1.transcript ∧ ChallengesAccepted z.1) ∧
+      z.2 (.randomizer
+        { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+        z.1.transcript.randomizerNonce) = some z.1.transcript.randomizer ∧
+      z.2 (.x0
+        { r := z.1.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
+          comC := stmt.ComA.2, ipAb := z.1.proof.ipAb, aggC := z.1.proof.aggC }
+        z.1.transcript.x0Nonce) = some z.1.transcript.x0 := by
   rw [FsGame, simulateQ_bind, StateT.run_bind, support_bind] at h
   simp only [Set.mem_iUnion] at h
   obtain ⟨⟨proof, cache1⟩, _, hverifier⟩ := h
@@ -597,12 +634,19 @@ private theorem fsRandomFunction_replay_cached
       (∀ point value, cache point = some value →
         QueryAnswered sourceLog (Sum.inr point) value) ∧
       (out.accept = true →
-        (∀ i : Fin μ, cache (.round (out.transcript.roundPrev i)
-          (out.proof.rounds i) (out.transcript.roundNonce i)) =
-            some (out.transcript.roundAnswer i)) ∧
-        TranscriptChaining out.transcript.x0 out.transcript.roundPrev
-          out.transcript.roundAnswer ∧
-        LeafData stmt out.proof out.transcript ∧ ChallengesAccepted out) := by
+        ((∀ i : Fin μ, cache (.round (out.transcript.roundPrev i)
+            (out.proof.rounds i) (out.transcript.roundNonce i)) =
+              some (out.transcript.roundAnswer i)) ∧
+          TranscriptChaining out.transcript.x0 out.transcript.roundPrev
+            out.transcript.roundAnswer ∧
+          LeafData stmt out.proof out.transcript ∧ ChallengesAccepted out) ∧
+        cache (.randomizer
+          { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+          out.transcript.randomizerNonce) = some out.transcript.randomizer ∧
+        cache (.x0
+          { r := out.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
+            comC := stmt.ComA.2, ipAb := out.proof.ipAb, aggC := out.proof.aggC }
+          out.transcript.x0Nonce) = some out.transcript.x0) := by
   unfold replayFirstRun fsRandomFunction at h
   simp only [bind_pure_comp, simulateQ_map, WriterT.run_map', support_map] at h
   obtain ⟨stateLog, hstateLog, heq⟩ := h
@@ -817,6 +861,65 @@ theorem wrapFs_support_iff {Point α : Type} [DecidableEq Point]
       (out, sourceLog) ∈ support (replayFirstRun (fsRandomFunction oa)) := by
   simpa [wrapFs] using
     wrapFsFrom_support_iff (fsRandomFunction oa) [] [] out sourceLog
+
+/-- Every wrapped support point has a source-log representative; its trace and
+erased log are exactly the two projections of that representative. -/
+private theorem wrapFsFrom_support_exists_source {Point α : Type}
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α) (initial : List Point)
+    {run : WrappedFsRun Point α} {log : QueryLog (FsWrappedSpec F)}
+    (h : (run, log) ∈ support (replayFirstRun (wrapFsFrom oa initial))) :
+    ∃ sourceLog : QueryLog (unifSpec + (Point →ₒ F)),
+      run.trace = initial ++ fsPointTrace sourceLog ∧
+      log = flattenFsLog sourceLog := by
+  induction oa using OracleComp.inductionOn generalizing initial run log with
+  | pure x =>
+      simp [replayFirstRun, wrapFsFrom] at h
+      obtain ⟨rfl, rfl⟩ := h
+      exact ⟨[], by simp [fsPointTrace], by simp [flattenFsLog]⟩
+  | query_bind t next ih =>
+      cases t with
+      | inl n =>
+          simp [replayFirstRun, wrapFsFrom, fsUnifFwd,
+            OracleSpec.loggingOracle, QueryImpl.withLogging_apply] at h
+          obtain ⟨u, out, trace, logTail, hs, rfl, rfl⟩ := h
+          obtain ⟨sourceLog, htrace, hlog⟩ :=
+            ih u (initial := initial)
+              (run := { out := out, trace := trace }) (log := logTail) (by
+              simpa [replayFirstRun, wrapFsFrom] using hs)
+          refine ⟨⟨Sum.inl n, u⟩ :: sourceLog, ?_, ?_⟩
+          · simpa [fsPointTrace] using htrace
+          · simpa [flattenFsLog] using congrArg (List.cons ⟨Sum.inl n, u⟩) hlog
+      | inr point =>
+          simp [replayFirstRun, wrapFsFrom, fsMissImpl,
+            OracleSpec.loggingOracle, QueryImpl.withLogging_apply] at h
+          obtain ⟨value, out, trace, logTail, hs, rfl, rfl⟩ := h
+          obtain ⟨sourceLog, htrace, hlog⟩ :=
+            ih value (initial := initial ++ [point])
+              (run := { out := out, trace := trace }) (log := logTail) (by
+              simpa [replayFirstRun, wrapFsFrom] using hs)
+          refine ⟨⟨Sum.inr point, value⟩ :: sourceLog, ?_, ?_⟩
+          · simpa [fsPointTrace, List.append_assoc] using htrace
+          · simpa [flattenFsLog] using congrArg (List.cons ⟨Sum.inr (), value⟩) hlog
+
+theorem wrapFs_support_exists_source {Point α : Type} [DecidableEq Point]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    {run : WrappedFsRun Point α} {log : QueryLog (FsWrappedSpec F)}
+    (h : (run, log) ∈ support (replayFirstRun (wrapFs oa))) :
+    ∃ sourceLog : QueryLog (unifSpec + (Point →ₒ F)),
+      run.trace = fsPointTrace sourceLog ∧ log = flattenFsLog sourceLog ∧
+      (run.out, sourceLog) ∈ support
+        (replayFirstRun (fsRandomFunction oa)) := by
+  obtain ⟨sourceLog, htrace, hlog⟩ :=
+    wrapFsFrom_support_exists_source (fsRandomFunction oa) [] (by
+      simpa [wrapFs] using h)
+  refine ⟨sourceLog, by simpa using htrace, hlog, ?_⟩
+  apply (wrapFs_support_iff oa run.out sourceLog).mp
+  have hrun : ({ out := run.out, trace := fsPointTrace sourceLog } :
+      WrappedFsRun Point α) = run := by
+    cases run
+    simp_all
+  rw [hrun, ← hlog]
+  exact h
 
 /-- Number of structured misses strictly before an absolute wrapped-log
 position. -/
@@ -1130,7 +1233,7 @@ theorem wrapped_source_leaf_data
   obtain ⟨cache, _, hcacheLog, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv h
   intro haccept
-  have hrun := haccepted haccept
+  have hrun := (haccepted haccept).1
   refine ⟨?_, ?_, hrun.2.2.1, hrun.2.2.2⟩
   · intro i
     exact hcacheLog _ _ (hrun.1 i)
@@ -1167,7 +1270,7 @@ theorem wrapped_supports_transcript_chaining
   change out = run.out at houtEq
   subst out
   exact ((fsRandomFunction_replay_cached stmt adv hsource).choose_spec.2.2
-    haccept).2.1
+    haccept).1.2.1
 
 /-- Accepting source runs therefore have a bounded round selector unless they
 fall in the explicit unqueried/out-of-budget event; its probability is U5a. -/
@@ -1243,7 +1346,7 @@ theorem roundSlot_answer_eq_transcript
     exact hanswered
   obtain ⟨cache, hlogCache, _, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv h
-  have hround := (haccepted haccept).1
+  have hround := (haccepted haccept).1.1
   have hcacheAnswer := hlogCache point answer hanswered'
   have hcacheTranscript : cache point = some (out.transcript.roundAnswer level) := by
     simpa [point] using hround level
@@ -1337,6 +1440,194 @@ theorem leafData_to_base_components
   obtain ⟨hT1, hT2⟩ := Prod.ext_iff.mp hbase.2.2
   exact ⟨Prod.ext hA1 hA2, hbase.2.1, Prod.ext hT1 hT2⟩
 
+/-- `foldKey` over a reversed transcript consumes the chronological head
+first, exactly as one `AcceptTree` node folds its key vector. -/
+theorem foldKey_reversedView_succ
+    {F G : Type} [Field F] [AddCommGroup G] [Module F G]
+    {μ : Nat} (x : Fin (μ + 1) → F) (srs : Fin (2 ^ (μ + 1)) → G) :
+    foldKey (reversedView x) srs =
+      foldKey (reversedView (fun i : Fin μ => x i.succ))
+        (foldPow (K1 := G) μ (x 0) srs) := by
+  simp only [foldKey]
+  congr 2
+  · funext j
+    simp only [reversedView, Fin.rev_castSucc]
+  · simp only [reversedView]
+    apply congrArg x
+    apply Fin.ext
+    simp [Fin.rev]
+
+/-- The inverse randomizer power family is the power family of the inverse. -/
+theorem inv_pow_eq_pow_inv {F : Type} [Field F] (r : F) (i : Nat) :
+    (r ^ i)⁻¹ = r⁻¹ ^ i := by
+  exact (inv_pow r i).symm
+
+/-- Chronological verifier folds through exactly `level` rounds, with `depth`
+rounds left. The equality argument keeps the changing power-of-two size
+visible to the induction. -/
+def foldRoundsUpTo
+    {F G1 GT : Type} [Field F]
+    [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
+    {μ : Nat} (x : Fin μ → F) (rounds : Fin μ → RoundComs G1 GT)
+    (initial : FoldedValues G1 GT) :
+    (level depth : Nat) → level + depth = μ → FoldedValues G1 GT
+  | 0, _, _ => initial
+  | level + 1, depth, h =>
+      foldOne (x ⟨level, by omega⟩) (rounds ⟨level, by omega⟩)
+        (foldRoundsUpTo x rounds initial level (depth + 1) (by omega))
+
+/-- Key/public vector after the chronological prefix of transcript folds. -/
+def foldKeysUpTo
+    {F G : Type} [Field F] [AddCommGroup G] [Module F G]
+    {μ : Nat} (challenge : F → F) (x : Fin μ → F)
+    (initial : Fin (2 ^ μ) → G) :
+    (level depth : Nat) → level + depth = μ → Fin (2 ^ depth) → G
+  | 0, depth, h => fun i =>
+      initial (Fin.cast (congrArg (fun n : Nat => 2 ^ n)
+        (by omega : depth = μ)) i)
+  | level + 1, depth, h =>
+      foldPow (K1 := G) depth (challenge (x ⟨level, by omega⟩))
+        (foldKeysUpTo challenge x initial level (depth + 1) (by omega))
+
+@[simp]
+theorem foldRoundsUpTo_succ
+    {F G1 GT : Type} [Field F]
+    [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
+    {μ level depth : Nat} (h : level + 1 + depth = μ)
+    (x : Fin μ → F) (rounds : Fin μ → RoundComs G1 GT)
+    (initial : FoldedValues G1 GT) :
+    foldRoundsUpTo x rounds initial (level + 1) depth h =
+      foldOne (x ⟨level, by omega⟩) (rounds ⟨level, by omega⟩)
+        (foldRoundsUpTo x rounds initial level (depth + 1) (by omega)) := rfl
+
+@[simp]
+theorem foldKeysUpTo_succ
+    {F G : Type} [Field F] [AddCommGroup G] [Module F G]
+    {μ level depth : Nat} (h : level + 1 + depth = μ)
+    (challenge : F → F) (x : Fin μ → F) (initial : Fin (2 ^ μ) → G) :
+    foldKeysUpTo challenge x initial (level + 1) depth h =
+      foldPow (K1 := G) depth (challenge (x ⟨level, by omega⟩))
+        (foldKeysUpTo challenge x initial level (depth + 1) (by omega)) := rfl
+
+private theorem foldRoundsUpTo_castSucc
+    {F G1 GT : Type} [Field F]
+    [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
+    {μ level depth : Nat} (h : level + depth = μ)
+    (x : Fin (μ + 1) → F) (rounds : Fin (μ + 1) → RoundComs G1 GT)
+    (initial : FoldedValues G1 GT) :
+    foldRoundsUpTo x rounds initial level (depth + 1) (by omega) =
+      foldRoundsUpTo (fun i => x i.castSucc) (fun i => rounds i.castSucc)
+        initial level depth h := by
+  induction level generalizing depth with
+  | zero => rfl
+  | succ level ih =>
+      rw [foldRoundsUpTo_succ, foldRoundsUpTo_succ]
+      congr 1
+      simpa using ih (depth := depth + 1) (by omega)
+
+/-- Completing the chronological accumulator is the verifier's terminal fold. -/
+private theorem foldRoundsUpTo_complete_aux
+    {F G1 GT : Type} [Field F]
+    [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
+    {μ : Nat} (x : Fin μ → F) (rounds : Fin μ → RoundComs G1 GT)
+    (initial : FoldedValues G1 GT) :
+    foldRoundsUpTo x rounds initial μ 0 (by omega) =
+      foldRounds μ x rounds initial := by
+  induction μ generalizing initial with
+  | zero => rfl
+  | succ μ ih =>
+      rw [foldRoundsUpTo_succ, foldRounds_succ_last]
+      congr 1
+      exact (foldRoundsUpTo_castSucc (μ := μ) (level := μ) (depth := 0)
+        (h := rfl) x rounds initial).trans
+        (ih (fun i => x i.castSucc) (fun i => rounds i.castSucc) initial)
+
+theorem foldRoundsUpTo_complete
+    {F G1 G2 GT : Type} [Field F]
+    [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
+    {μ : Nat} (ComA : GT × GT) (ComB : GT) (proof : Proof μ F G1 G2 GT)
+    (x : Fin μ → F) :
+    foldRoundsUpTo x proof.rounds
+        { comA := ComA, comB := ComB, comT := (proof.ipAb, proof.aggC) }
+        μ 0 (by omega) =
+      terminalFold ComA ComB proof x := by
+  exact foldRoundsUpTo_complete_aux x proof.rounds _
+
+theorem foldKeysUpTo_congr
+    {F G : Type} [Field F] [AddCommGroup G] [Module F G]
+    {μ level depth : Nat} (h : level + depth = μ)
+    (challenge : F → F) (x y : Fin μ → F) (initial : Fin (2 ^ μ) → G)
+    (hxy : ∀ j, (hj : j < level) →
+      x ⟨j, Nat.lt_of_lt_of_le hj (by omega)⟩ =
+        y ⟨j, Nat.lt_of_lt_of_le hj (by omega)⟩) :
+    foldKeysUpTo challenge x initial level depth h =
+      foldKeysUpTo challenge y initial level depth h := by
+  induction level generalizing depth with
+  | zero => rfl
+  | succ level ih =>
+      rw [foldKeysUpTo_succ, foldKeysUpTo_succ, hxy level (by omega)]
+      congr 1
+      exact ih (depth := depth + 1) (by omega)
+        (fun j hj => hxy j (by omega))
+
+theorem foldRoundsUpTo_congr
+    {F G1 GT : Type} [Field F]
+    [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
+    {μ level depth : Nat} (h : level + depth = μ)
+    (x y : Fin μ → F) (rounds rounds' : Fin μ → RoundComs G1 GT)
+    (initial : FoldedValues G1 GT)
+    (hx : ∀ j, (hj : j < level) →
+      x ⟨j, Nat.lt_of_lt_of_le hj (by omega)⟩ =
+        y ⟨j, Nat.lt_of_lt_of_le hj (by omega)⟩)
+    (hr : ∀ j, (hj : j < level) →
+      rounds ⟨j, Nat.lt_of_lt_of_le hj (by omega)⟩ =
+        rounds' ⟨j, Nat.lt_of_lt_of_le hj (by omega)⟩) :
+    foldRoundsUpTo x rounds initial level depth h =
+      foldRoundsUpTo y rounds' initial level depth h := by
+  induction level generalizing depth with
+  | zero => rfl
+  | succ level ih =>
+      rw [foldRoundsUpTo_succ, foldRoundsUpTo_succ,
+        hx level (by omega), hr level (by omega)]
+      congr 1
+      exact ih (depth := depth + 1) (by omega)
+        (fun j hj => hx j (by omega)) (fun j hj => hr j (by omega))
+
+private theorem foldKeysUpTo_tail
+    {F G : Type} [Field F] [AddCommGroup G] [Module F G]
+    {μ level depth : Nat} (h : level + depth = μ)
+    (challenge : F → F) (x : Fin (μ + 1) → F)
+    (initial : Fin (2 ^ (μ + 1)) → G) :
+    foldKeysUpTo challenge x initial (level + 1) depth (by omega) =
+      foldKeysUpTo challenge (fun i => x i.succ)
+        (foldPow (K1 := G) μ (challenge (x 0)) initial) level depth h := by
+  induction level generalizing depth with
+  | zero =>
+      have hd : μ = depth := by omega
+      subst hd
+      funext i
+      simp only [foldKeysUpTo_succ]
+      simp [foldKeysUpTo]
+  | succ level ih =>
+      rw [foldKeysUpTo_succ, foldKeysUpTo_succ]
+      congr 1
+      exact ih (depth := depth + 1) (by omega)
+
+/-- Completing all chronological key folds is `foldKey` over the reversed
+transcript view used by the KZG/leaf equations. -/
+theorem foldKeysUpTo_complete
+    {F G : Type} [Field F] [AddCommGroup G] [Module F G]
+    {μ : Nat} (challenge : F → F) (x : Fin μ → F)
+    (initial : Fin (2 ^ μ) → G) :
+    foldKeysUpTo challenge x initial μ 0 (by omega) =
+      foldKey (reversedView (fun i => challenge (x i))) initial := by
+  induction μ with
+  | zero => simp [foldKeysUpTo, foldKey]
+  | succ μ ih =>
+      rw [foldKeysUpTo_tail (μ := μ) (level := μ) (depth := 0) (h := rfl)]
+      rw [ih]
+      exact (foldKey_reversedView_succ (fun i => challenge (x i)) initial).symm
+
 /-- First-occurrence position of a structured point in the run's miss
 trace, `none` when never missed. -/
 def tracePos [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
@@ -1426,6 +1717,606 @@ def WrappedRunGood
     (∀ level, level < μ → ¬RoundPointUnqueried qb level run) ∧
     DependencyOrdered qb stmt run ∧
     StructuredAnswersInjective (F := F) run.trace.length log
+
+private theorem take_eq_of_getElem?_eq {α : Type} {xs ys : List α} (n : Nat)
+    (h : ∀ i, i < n → xs[i]? = ys[i]?) : xs.take n = ys.take n := by
+  induction n generalizing xs ys with
+  | zero => simp
+  | succ n ih =>
+      cases xs with
+      | nil =>
+          have hnil := h 0 (Nat.zero_lt_succ n)
+          cases ys <;> simp_all
+      | cons x xs =>
+          cases ys with
+          | nil =>
+              have hnil := h 0 (Nat.zero_lt_succ n)
+              simp at hnil
+          | cons y ys =>
+              have hhead := h 0 (Nat.zero_lt_succ n)
+              simp only [List.getElem?_cons_zero, Option.some.injEq] at hhead
+              subst y
+              simp only [List.take_succ_cons, List.cons.injEq, true_and]
+              apply ih
+              intro i hi
+              simpa using h (i + 1) (Nat.succ_lt_succ hi)
+
+/-- Equal wrapped prefixes with the same structured rank expose equal answers
+at every earlier structured ordinal. -/
+private theorem structuredValue_eq_of_prefix [DecidableEq F]
+    (logA logB : QueryLog (FsWrappedSpec F)) (slotPos s i : Nat)
+    (hrankA : structuredMissCountBefore logA slotPos = s)
+    (hrankB : structuredMissCountBefore logB slotPos = s)
+    (hprefix : ∀ n, n < slotPos → logA[n]? = logB[n]?)
+    (hi : i < s) :
+    QueryLog.getQueryValue? logA (Sum.inr ()) i =
+      QueryLog.getQueryValue? logB (Sum.inr ()) i := by
+  have htake : logA.take slotPos = logB.take slotPos :=
+    take_eq_of_getElem?_eq slotPos hprefix
+  have hiA : i < (QueryLog.getQ (logA.take slotPos) (· = Sum.inr ())).length := by
+    unfold structuredMissCountBefore at hrankA
+    omega
+  have hiB : i < (QueryLog.getQ (logB.take slotPos) (· = Sum.inr ())).length := by
+    unfold structuredMissCountBefore at hrankB
+    omega
+  have hfullA :
+      (QueryLog.getQ logA (· = Sum.inr ()))[i]? =
+        (QueryLog.getQ (logA.take slotPos) (· = Sum.inr ()))[i]? := by
+    conv_lhs => rw [← List.take_append_drop slotPos logA, QueryLog.getQ_append]
+    exact List.getElem?_append_left hiA
+  have hfullB :
+      (QueryLog.getQ logB (· = Sum.inr ()))[i]? =
+        (QueryLog.getQ (logB.take slotPos) (· = Sum.inr ()))[i]? := by
+    conv_lhs => rw [← List.take_append_drop slotPos logB, QueryLog.getQ_append]
+    exact List.getElem?_append_left hiB
+  have hget :
+      (QueryLog.getQ logA (· = Sum.inr ()))[i]? =
+        (QueryLog.getQ logB (· = Sum.inr ()))[i]? := by
+    rw [hfullA, hfullB, htake]
+  cases hA : QueryLog.getQueryValue? logA (Sum.inr ()) i with
+  | none =>
+      cases hB : QueryLog.getQueryValue? logB (Sum.inr ()) i with
+      | none => rfl
+      | some answer =>
+          have hentryB := QueryLog.getQ_getElem?_eq_of_getQueryValue?_eq_some
+            logB (Sum.inr ()) i answer hB
+          have hentryA := hget.trans hentryB
+          have := QueryLog.getQueryValue?_eq_some_of_getQ_getElem?
+            logA (Sum.inr ()) i answer hentryA
+          simp [hA] at this
+  | some answer =>
+      have hentryA := QueryLog.getQ_getElem?_eq_of_getQueryValue?_eq_some
+        logA (Sum.inr ()) i answer hA
+      have hentryB := hget.symm.trans hentryA
+      have hB := QueryLog.getQueryValue?_eq_some_of_getQ_getElem?
+        logB (Sum.inr ()) i answer hentryB
+      exact hB.symm
+
+/-- A successful selector identifies the first trace ordinal of that round. -/
+theorem roundSlot_tracePos
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ qb level : Nat}
+    (run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT))
+    (hlevel : level < μ) {s : Fin (qb + 1)}
+    (hslot : roundSlot qb level run = some s) :
+    tracePos (.round
+      (run.out.transcript.roundPrev ⟨level, hlevel⟩)
+      (run.out.proof.rounds ⟨level, hlevel⟩)
+      (run.out.transcript.roundNonce ⟨level, hlevel⟩)) run = some (s : Nat) := by
+  have h := hslot
+  simp [roundSlot, wrappedRoundPoint, hlevel] at h
+  obtain ⟨hmem, _hbound, heq⟩ := h
+  unfold tracePos
+  rw [if_pos hmem]
+  exact congrArg some (congrArg Fin.val heq)
+
+/-- Wrapped-support form of the selector-answer theorem. -/
+theorem wrapped_roundSlot_answer_eq_transcript
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ qb : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (level : Fin μ)
+    {run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {log : QueryLog (FsWrappedSpec F)} {slot : Fin (qb + 1)}
+    (hsupport : (run, log) ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (haccept : run.out.accept = true)
+    (hslot : roundSlot qb (level : Nat) run = some slot) :
+    QueryLog.getQueryValue? log (Sum.inr ()) (slot : Nat) =
+      some (run.out.transcript.roundAnswer level) := by
+  obtain ⟨sourceLog, htrace, hlog, hsource⟩ :=
+    wrapFs_support_exists_source (FsGame stmt adv) hsupport
+  have hrun : ({ out := run.out, trace := fsPointTrace sourceLog } :
+      WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) = run := by
+    cases run
+    simp_all
+  simpa [hlog, hrun] using
+    roundSlot_answer_eq_transcript stmt adv qb level hsource haccept (by
+      simpa [hrun] using hslot)
+
+/-- A point with a recorded first trace position occurs there. -/
+theorem tracePos_get
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    {run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)} {i : Nat}
+    (hpos : tracePos point run = some i) :
+    ∃ hi : i < run.trace.length, run.trace[i] = point := by
+  unfold tracePos at hpos
+  split at hpos
+  · rename_i hmem
+    have hi : run.trace.findIdx (· == point) < run.trace.length :=
+      List.findIdx_lt_length_of_exists ⟨point, hmem, by simp⟩
+    have heq : i = run.trace.findIdx (· == point) := (Option.some.inj hpos).symm
+    subst i
+    have hp := List.findIdx_getElem
+      (xs := run.trace) (p := fun x => x == point) (w := hi)
+    have hpoint : run.trace[run.trace.findIdx (· == point)] = point := by
+      simpa using hp
+    exact ⟨hi, hpoint⟩
+  · exact False.elim (by simpa using hpos)
+
+/-- The selected round point itself is shared by two replay children, even
+though the selected answers at that point are deliberately different. -/
+private theorem selectedRoundPoint_eq_of_prefix
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ qb level slotPos : Nat} (hlevel : level < μ)
+    {runA runB : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {logA : QueryLog (FsWrappedSpec F)} {s : Fin (qb + 1)}
+    (hslotA : roundSlot qb level runA = some s)
+    (hslotB : roundSlot qb level runB = some s)
+    (hrank : structuredMissCountBefore logA slotPos = (s : Nat))
+    (htrace : runA.trace.take (structuredMissCountBefore logA slotPos + 1) =
+      runB.trace.take (structuredMissCountBefore logA slotPos + 1)) :
+    (ChallengePoint.round
+        (runA.out.transcript.roundPrev ⟨level, hlevel⟩)
+        (runA.out.proof.rounds ⟨level, hlevel⟩)
+        (runA.out.transcript.roundNonce ⟨level, hlevel⟩) :
+      FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) =
+      (ChallengePoint.round
+        (runB.out.transcript.roundPrev ⟨level, hlevel⟩)
+        (runB.out.proof.rounds ⟨level, hlevel⟩)
+        (runB.out.transcript.roundNonce ⟨level, hlevel⟩) :
+      FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) := by
+  have hposA := roundSlot_tracePos runA hlevel hslotA
+  have hposB := roundSlot_tracePos runB hlevel hslotB
+  obtain ⟨hlenA, hpointA⟩ := tracePos_get hposA
+  obtain ⟨hlenB, hpointB⟩ := tracePos_get hposB
+  rw [hrank] at htrace
+  have hget := congrArg (fun xs => xs[(s : Nat)]?) htrace
+  have hsle : (s : Nat) ≤ (s : Nat) := le_rfl
+  have htraceAt : runA.trace[(s : Nat)]? = runB.trace[(s : Nat)]? := by
+    simpa [List.getElem?_take, hsle] using hget
+  have hsomeA : runA.trace[(s : Nat)]? = some (.round
+      (runA.out.transcript.roundPrev ⟨level, hlevel⟩)
+      (runA.out.proof.rounds ⟨level, hlevel⟩)
+      (runA.out.transcript.roundNonce ⟨level, hlevel⟩)) := by
+    simp [hlenA, hpointA]
+  have hsomeB : runB.trace[(s : Nat)]? = some (.round
+      (runB.out.transcript.roundPrev ⟨level, hlevel⟩)
+      (runB.out.proof.rounds ⟨level, hlevel⟩)
+      (runB.out.transcript.roundNonce ⟨level, hlevel⟩)) := by
+    simp [hlenB, hpointB]
+  exact Option.some.inj (hsomeA.symm.trans (htraceAt.trans hsomeB))
+
+/-- The wrapped log answer at the accepted randomizer point is the transcript
+randomizer. -/
+theorem wrappedRandomizer_answer_at_tracePos
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {log : QueryLog (FsWrappedSpec F)} {i : Nat}
+    (hsupport : (run, log) ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (haccept : run.out.accept = true)
+    (hpos : tracePos (wrappedRandomizerPoint stmt run) run = some i) :
+    QueryLog.getQueryValue? log (Sum.inr ()) i =
+      some run.out.transcript.randomizer := by
+  obtain ⟨sourceLog, htrace, hlog, hsource⟩ :=
+    wrapFs_support_exists_source (FsGame stmt adv) hsupport
+  obtain ⟨hi, hpoint⟩ := tracePos_get hpos
+  have hi' : i < (fsPointTrace sourceLog).length := by simpa [htrace] using hi
+  obtain ⟨answer, hanswered, hvalue⟩ := fsPointTrace_flatten_at sourceLog i hi'
+  have hpoint' : (fsPointTrace sourceLog)[i] = wrappedRandomizerPoint stmt run := by
+    simpa [htrace] using hpoint
+  rw [hpoint'] at hanswered
+  obtain ⟨cache, hcache, _, haccepted⟩ :=
+    fsRandomFunction_replay_cached stmt adv hsource
+  have hcached := (haccepted haccept).2.1
+  have hanswer : answer = run.out.transcript.randomizer :=
+    Option.some.inj ((hcache _ _ hanswered).symm.trans (by
+      simpa [wrappedRandomizerPoint] using hcached))
+  simpa [hlog, hanswer] using hvalue
+
+/-- The wrapped log answer at the accepted x0 point is the transcript x0. -/
+theorem wrappedX0_answer_at_tracePos
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {log : QueryLog (FsWrappedSpec F)} {i : Nat}
+    (hsupport : (run, log) ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (haccept : run.out.accept = true)
+    (hpos : tracePos (wrappedX0Point stmt run) run = some i) :
+    QueryLog.getQueryValue? log (Sum.inr ()) i = some run.out.transcript.x0 := by
+  obtain ⟨sourceLog, htrace, hlog, hsource⟩ :=
+    wrapFs_support_exists_source (FsGame stmt adv) hsupport
+  obtain ⟨hi, hpoint⟩ := tracePos_get hpos
+  have hi' : i < (fsPointTrace sourceLog).length := by simpa [htrace] using hi
+  obtain ⟨answer, hanswered, hvalue⟩ := fsPointTrace_flatten_at sourceLog i hi'
+  have hpoint' : (fsPointTrace sourceLog)[i] = wrappedX0Point stmt run := by
+    simpa [htrace] using hpoint
+  rw [hpoint'] at hanswered
+  obtain ⟨cache, hcache, _, haccepted⟩ :=
+    fsRandomFunction_replay_cached stmt adv hsource
+  have hcached := (haccepted haccept).2.2
+  have hanswer : answer = run.out.transcript.x0 :=
+    Option.some.inj ((hcache _ _ hanswered).symm.trans (by
+      simpa [wrappedX0Point] using hcached))
+  simpa [hlog, hanswer] using hvalue
+
+/-- Collision freedom pins two pre-slot structured points once their answers
+and the replay prefixes agree. -/
+private theorem structuredPoint_eq_of_prefix
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ slotPos s iA iB : Nat}
+    {runA runB : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {logA logB : QueryLog (FsWrappedSpec F)}
+    {pointA pointB : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)}
+    (hrankA : structuredMissCountBefore logA slotPos = s)
+    (hrankB : structuredMissCountBefore logB slotPos = s)
+    (hprefix : ∀ n, n < slotPos → logA[n]? = logB[n]?)
+    (htrace : runA.trace.take (s + 1) = runB.trace.take (s + 1))
+    (hinjective : StructuredAnswersInjective (F := F) runA.trace.length logA)
+    (hposA : tracePos pointA runA = some iA) (hiA : iA < s)
+    (hposB : tracePos pointB runB = some iB) (hiB : iB < s)
+    {answer : F}
+    (hanswerA : QueryLog.getQueryValue? logA (Sum.inr ()) iA = some answer)
+    (hanswerB : QueryLog.getQueryValue? logB (Sum.inr ()) iB = some answer) :
+    pointA = pointB ∧ iA = iB := by
+  obtain ⟨hlenA, hpointA⟩ := tracePos_get hposA
+  obtain ⟨hlenB, hpointB⟩ := tracePos_get hposB
+  have traceAt (i : Nat) (hi : i < s) : runA.trace[i]? = runB.trace[i]? := by
+    have hget := congrArg (fun xs => xs[i]?) htrace
+    have his : i ≤ s := Nat.le_of_lt hi
+    simpa [List.getElem?_take, his] using hget
+  have hsomeB : runB.trace[iB]? = some pointB := by simp [hlenB, hpointB]
+  have hpointBInA : runA.trace[iB]? = some pointB := (traceAt iB hiB).trans hsomeB
+  have hlenBInA : iB < runA.trace.length := by
+    by_contra h
+    simp [Nat.not_lt.mp h] at hpointBInA
+  have htransport := structuredValue_eq_of_prefix logA logB slotPos s iB
+    hrankA hrankB hprefix hiB
+  have hsameA : QueryLog.getQueryValue? logA (Sum.inr ()) iA =
+      QueryLog.getQueryValue? logA (Sum.inr ()) iB :=
+    hanswerA.trans (htransport.trans hanswerB).symm
+  have hiEq : iA = iB := hinjective iA iB hlenA hlenBInA hsameA
+  subst iB
+  have hsomeA : runA.trace[iA]? = some pointA := by simp [hlenA, hpointA]
+  exact ⟨Option.some.inj (hsomeA.symm.trans ((traceAt iA hiA).trans hsomeB)), rfl⟩
+
+/-- A reference point inside the shared prefix pins an equal-answer point in
+the other child even when that child's own ordinal is not known to precede the
+current fork. -/
+private theorem structuredPoint_eq_to_shared_prefix
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ slotPos s iA iB : Nat}
+    {runA runB : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {logA logB : QueryLog (FsWrappedSpec F)}
+    {pointA pointB : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)}
+    (hrankA : structuredMissCountBefore logA slotPos = s)
+    (hrankB : structuredMissCountBefore logB slotPos = s)
+    (hprefix : ∀ n, n < slotPos → logA[n]? = logB[n]?)
+    (htrace : runA.trace.take (s + 1) = runB.trace.take (s + 1))
+    (hinjective : StructuredAnswersInjective (F := F) runB.trace.length logB)
+    (hposA : tracePos pointA runA = some iA) (hiA : iA < s)
+    (hposB : tracePos pointB runB = some iB)
+    {answer : F}
+    (hanswerA : QueryLog.getQueryValue? logA (Sum.inr ()) iA = some answer)
+    (hanswerB : QueryLog.getQueryValue? logB (Sum.inr ()) iB = some answer) :
+    pointA = pointB ∧ iA = iB := by
+  obtain ⟨hlenA, hpointA⟩ := tracePos_get hposA
+  obtain ⟨hlenB, hpointB⟩ := tracePos_get hposB
+  have hget := congrArg (fun xs => xs[iA]?) htrace
+  have htraceAt : runA.trace[iA]? = runB.trace[iA]? := by
+    simpa [List.getElem?_take, Nat.le_of_lt hiA] using hget
+  have hsomeA : runA.trace[iA]? = some pointA := by simp [hlenA, hpointA]
+  have hpointAInB : runB.trace[iA]? = some pointA :=
+    htraceAt.symm.trans hsomeA
+  have hlenAInB : iA < runB.trace.length := by
+    by_contra h
+    simp [Nat.not_lt.mp h] at hpointAInB
+  have htransport := structuredValue_eq_of_prefix logA logB slotPos s iA
+    hrankA hrankB hprefix hiA
+  have hsameB : QueryLog.getQueryValue? logB (Sum.inr ()) iA =
+      QueryLog.getQueryValue? logB (Sum.inr ()) iB :=
+    htransport.symm.trans (hanswerA.trans hanswerB.symm)
+  have hiEq : iA = iB := hinjective iA iB hlenAInB hlenB hsameB
+  subst iB
+  have hsomeB : runB.trace[iA]? = some pointB := by simp [hlenB, hpointB]
+  exact ⟨Option.some.inj (hpointAInB.symm.trans hsomeB), rfl⟩
+
+/-- At one fork node, equality of the chained x0 answers pins the complete x0
+payload, hence the randomizer and the two root T-lane values. -/
+theorem sharedRootData_of_x0
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ qb level slotPos : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {runA runB : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {logA logB : QueryLog (FsWrappedSpec F)} {s : Fin (qb + 1)}
+    (hsupportA : (runA, logA) ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (hsupportB : (runB, logB) ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (hacceptA : runA.out.accept = true) (hacceptB : runB.out.accept = true)
+    (hslotA : roundSlot qb level runA = some s)
+    (hslotB : roundSlot qb level runB = some s)
+    (hrankA : structuredMissCountBefore logA slotPos = (s : Nat))
+    (hrankB : structuredMissCountBefore logB slotPos = (s : Nat))
+    (hprefix : ∀ n, n < slotPos → logA[n]? = logB[n]?)
+    (hinputA : QueryLog.inputAt? logA slotPos = some (Sum.inr ()))
+    (hinputB : QueryLog.inputAt? logB slotPos = some (Sum.inr ()))
+    (hdepA : DependencyOrdered qb stmt runA)
+    (hdepB : DependencyOrdered qb stmt runB)
+    (hinjective : StructuredAnswersInjective (F := F) runA.trace.length logA)
+    (hx0 : runA.out.transcript.x0 = runB.out.transcript.x0) :
+    runA.out.transcript.randomizer = runB.out.transcript.randomizer ∧
+      runA.out.proof.ipAb = runB.out.proof.ipAb ∧
+      runA.out.proof.aggC = runB.out.proof.aggC := by
+  obtain ⟨_, ⟨iA, hposA, hiA⟩⟩ := hdepA level s hslotA
+  obtain ⟨_, ⟨iB, hposB, hiB⟩⟩ := hdepB level s hslotB
+  have htrace := trace_prefix_of_log_prefix (FsGame stmt adv) slotPos
+    hsupportA hsupportB hprefix hinputA hinputB
+  rw [hrankA] at htrace
+  have hanswerA := wrappedX0_answer_at_tracePos stmt adv hsupportA hacceptA hposA
+  have hanswerB := wrappedX0_answer_at_tracePos stmt adv hsupportB hacceptB hposB
+  have hpoint := (structuredPoint_eq_of_prefix hrankA hrankB hprefix htrace
+    hinjective hposA hiA hposB hiB hanswerA (by simpa [hx0] using hanswerB)
+    ).1
+  change ChallengePoint.x0 _ _ = ChallengePoint.x0 _ _ at hpoint
+  injection hpoint with hpayload _
+  injection hpayload with hr _ _ _ hip hagg
+  exact ⟨hr, hip, hagg⟩
+
+/-- Data fixed by the replay path before a subtree at `level`: root payloads,
+each earlier round record, its selector ordinal, and transcript chaining. -/
+structure PathPrefix
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat} (qb level : Nat) (slot : Nat → Fin (qb + 1))
+    (root run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)) : Prop where
+  slot_strict : ∀ a b, a < b → b < level → slot a < slot b
+  randomizer : run.out.transcript.randomizer = root.out.transcript.randomizer
+  x0 : run.out.transcript.x0 = root.out.transcript.x0
+  ipAb : run.out.proof.ipAb = root.out.proof.ipAb
+  aggC : run.out.proof.aggC = root.out.proof.aggC
+  round : ∀ (j : Nat) (hj : j < level) (hjμ : j < μ),
+    run.out.transcript.roundAnswer ⟨j, hjμ⟩ =
+        root.out.transcript.roundAnswer ⟨j, hjμ⟩ ∧
+      run.out.proof.rounds ⟨j, hjμ⟩ = root.out.proof.rounds ⟨j, hjμ⟩ ∧
+      run.out.transcript.roundNonce ⟨j, hjμ⟩ =
+        root.out.transcript.roundNonce ⟨j, hjμ⟩ ∧
+      run.out.transcript.roundPrev ⟨j, hjμ⟩ =
+        root.out.transcript.roundPrev ⟨j, hjμ⟩ ∧
+      roundSlot qb j root = some (slot j) ∧
+      roundSlot qb j run = some (slot j)
+  chaining : TranscriptChaining run.out.transcript.x0
+    run.out.transcript.roundPrev run.out.transcript.roundAnswer
+
+theorem PathPrefix.refl
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ qb level : Nat}
+    (run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT))
+    (slot : Nat → Fin (qb + 1))
+    (hstrict : ∀ a b, a < b → b < level → slot a < slot b)
+    (hslots : ∀ j, j < level → j < μ → roundSlot qb j run = some (slot j))
+    (hchain : TranscriptChaining run.out.transcript.x0
+      run.out.transcript.roundPrev run.out.transcript.roundAnswer) :
+    PathPrefix qb level slot run run := by
+  refine ⟨hstrict, rfl, rfl, rfl, rfl, ?_, hchain⟩
+  intro j hj hjμ
+  have hs := hslots j hj hjμ
+  exact ⟨rfl, rfl, rfl, rfl, hs, hs⟩
+
+private def extendPathSlot {qb : Nat} (level : Nat)
+    (slot : Nat → Fin (qb + 1)) (s : Fin (qb + 1)) : Nat → Fin (qb + 1) :=
+  fun j => if j = level then s else slot j
+
+/-- Extend a path record by the current node after the current round point and
+answer have been identified. -/
+theorem PathPrefix.extend
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ qb level : Nat} (hlevel : level < μ)
+    {root run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {slot : Nat → Fin (qb + 1)} {s : Fin (qb + 1)}
+    (hpath : PathPrefix qb level slot root run)
+    (hgreater : ∀ j, j < level → slot j < s)
+    (hanswer : run.out.transcript.roundAnswer ⟨level, hlevel⟩ =
+      root.out.transcript.roundAnswer ⟨level, hlevel⟩)
+    (hround : run.out.proof.rounds ⟨level, hlevel⟩ =
+      root.out.proof.rounds ⟨level, hlevel⟩)
+    (hnonce : run.out.transcript.roundNonce ⟨level, hlevel⟩ =
+      root.out.transcript.roundNonce ⟨level, hlevel⟩)
+    (hprev : run.out.transcript.roundPrev ⟨level, hlevel⟩ =
+      root.out.transcript.roundPrev ⟨level, hlevel⟩)
+    (hslotRoot : roundSlot qb level root = some s)
+    (hslotRun : roundSlot qb level run = some s) :
+    PathPrefix qb (level + 1) (extendPathSlot level slot s) root run := by
+  refine ⟨?_, hpath.randomizer, hpath.x0, hpath.ipAb, hpath.aggC, ?_,
+    hpath.chaining⟩
+  · intro a b hab hb
+    by_cases hbeq : b = level
+    · subst b
+      have ha : a ≠ level := by omega
+      simp [extendPathSlot, ha, hgreater a hab]
+    · have hb' : b < level := by omega
+      have hae : a ≠ level := by omega
+      simp [extendPathSlot, hae, hbeq, hpath.slot_strict a b hab hb']
+  · intro j hj hjμ
+    by_cases hjeq : j = level
+    · subst j
+      simpa [extendPathSlot] using
+        And.intro hanswer (And.intro hround
+          (And.intro hnonce (And.intro hprev (And.intro hslotRoot hslotRun))))
+    · have hj' : j < level := by omega
+      simpa [extendPathSlot, hjeq] using hpath.round j hj' hjμ
+
+/-- A fork preserves every earlier path record in all four replay children.
+The proof walks the transcript chain backwards from the shared current round
+point, using collision freedom to pin each predecessor point. -/
+theorem PathPrefix.preserveChild
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ qb level slotPos : Nat} (hlevel : level < μ)
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {root runA runB : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {logA logB : QueryLog (FsWrappedSpec F)}
+    {slot : Nat → Fin (qb + 1)} {s : Fin (qb + 1)}
+    (hsupportA : (runA, logA) ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (hsupportB : (runB, logB) ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (hgoodA : WrappedRunGood qb stmt runA logA)
+    (hgoodB : WrappedRunGood qb stmt runB logB)
+    (hpath : PathPrefix qb level slot root runA)
+    (hgreater : ∀ j, j < level → slot j < s)
+    (hslotA : roundSlot qb level runA = some s)
+    (hslotB : roundSlot qb level runB = some s)
+    (hrankA : structuredMissCountBefore logA slotPos = (s : Nat))
+    (hrankB : structuredMissCountBefore logB slotPos = (s : Nat))
+    (hprefix : ∀ n, n < slotPos → logA[n]? = logB[n]?)
+    (hinputA : QueryLog.inputAt? logA slotPos = some (Sum.inr ()))
+    (hinputB : QueryLog.inputAt? logB slotPos = some (Sum.inr ())) :
+    PathPrefix qb level slot root runB := by
+  have htrace := trace_prefix_of_log_prefix (FsGame stmt adv) slotPos
+    hsupportA hsupportB hprefix hinputA hinputB
+  have hselected := selectedRoundPoint_eq_of_prefix hlevel hslotA hslotB hrankA htrace
+  injection hselected with hprevLevel _ _
+  have hchainB := wrapped_supports_transcript_chaining stmt adv hsupportB hgoodB.1
+  let P : (j : Nat) → j ≤ level → Prop := fun j hj =>
+    runB.out.transcript.roundPrev ⟨j, Nat.lt_of_le_of_lt hj hlevel⟩ =
+        runA.out.transcript.roundPrev ⟨j, Nat.lt_of_le_of_lt hj hlevel⟩ ∧
+      ∀ t, (hjt : j ≤ t) → (ht : t < level) →
+        runB.out.transcript.roundAnswer ⟨t, Nat.lt_trans ht hlevel⟩ =
+            runA.out.transcript.roundAnswer ⟨t, Nat.lt_trans ht hlevel⟩ ∧
+          runB.out.proof.rounds ⟨t, Nat.lt_trans ht hlevel⟩ =
+            runA.out.proof.rounds ⟨t, Nat.lt_trans ht hlevel⟩ ∧
+          runB.out.transcript.roundNonce ⟨t, Nat.lt_trans ht hlevel⟩ =
+            runA.out.transcript.roundNonce ⟨t, Nat.lt_trans ht hlevel⟩ ∧
+          runB.out.transcript.roundPrev ⟨t, Nat.lt_trans ht hlevel⟩ =
+            runA.out.transcript.roundPrev ⟨t, Nat.lt_trans ht hlevel⟩ ∧
+          roundSlot qb t runB = some (slot t)
+  have hrecover : P 0 (Nat.zero_le level) := by
+    apply Nat.decreasingInduction (motive := P)
+    · intro k hk ih
+      dsimp [P] at ih ⊢
+      have hkμ : k < μ := by omega
+      have hksμ : k + 1 < μ := by omega
+      have hanswerBA :
+          runB.out.transcript.roundAnswer ⟨k, hkμ⟩ =
+            runA.out.transcript.roundAnswer ⟨k, hkμ⟩ := by
+        calc
+          _ = runB.out.transcript.roundPrev ⟨k + 1, hksμ⟩ :=
+            (roundPrev_succ hchainB k hksμ).symm
+          _ = runA.out.transcript.roundPrev ⟨k + 1, hksμ⟩ := by
+            simpa using ih.1
+          _ = runA.out.transcript.roundAnswer ⟨k, hkμ⟩ :=
+            roundPrev_succ hpath.chaining k hksμ
+      have hroundA := hpath.round k hk hkμ
+      obtain ⟨q, hq⟩ := (roundSlot_some_or_unqueried qb k runB).resolve_right
+        (hgoodB.2.2.1 k hkμ)
+      have hposA := roundSlot_tracePos runA hkμ hroundA.2.2.2.2.2
+      have hposB := roundSlot_tracePos runB hkμ hq
+      have hlogA := wrapped_roundSlot_answer_eq_transcript stmt adv ⟨k, hkμ⟩
+        hsupportA hgoodA.1 hroundA.2.2.2.2.2
+      have hlogB := wrapped_roundSlot_answer_eq_transcript stmt adv ⟨k, hkμ⟩
+        hsupportB hgoodB.1 hq
+      have htrace' : runA.trace.take ((s : Nat) + 1) =
+          runB.trace.take ((s : Nat) + 1) := by simpa [hrankA] using htrace
+      have hpin := structuredPoint_eq_to_shared_prefix hrankA hrankB hprefix htrace'
+        hgoodB.2.2.2.2 hposA (by exact_mod_cast hgreater k hk) hposB hlogA
+        (by simpa [hanswerBA] using hlogB)
+      injection hpin.1 with hp hr hn
+      have hqeq : q = slot k := by
+        apply Fin.ext
+        exact hpin.2.symm
+      refine ⟨hp.symm, ?_⟩
+      intro t hkt ht
+      by_cases htk : t = k
+      · subst t
+        exact ⟨hanswerBA, hr.symm, hn.symm, hp.symm, by simpa [hqeq] using hq⟩
+      · exact ih.2 t (by omega) ht
+    · dsimp [P]
+      exact ⟨hprevLevel.symm, by intro t htl ht; omega⟩
+    · exact Nat.zero_le level
+  dsimp [P] at hrecover
+  have hx0BA : runB.out.transcript.x0 = runA.out.transcript.x0 := by
+    have hzeroB := roundPrev_zero hchainB (by omega : 0 < μ)
+    have hzeroA := roundPrev_zero hpath.chaining (by omega : 0 < μ)
+    exact hzeroB.symm.trans (hrecover.1.trans hzeroA)
+  have hroot := sharedRootData_of_x0 stmt adv hsupportA hsupportB hgoodA.1 hgoodB.1
+    hslotA hslotB hrankA hrankB hprefix hinputA hinputB
+    hgoodA.2.2.2.1 hgoodB.2.2.2.1 hgoodA.2.2.2.2 hx0BA.symm
+  refine ⟨hpath.slot_strict, hroot.1.symm.trans hpath.randomizer,
+    hx0BA.trans hpath.x0, hroot.2.1.symm.trans hpath.ipAb,
+    hroot.2.2.symm.trans hpath.aggC, ?_, hchainB⟩
+  intro j hj hjμ
+  have hfields := hrecover.2 j (Nat.zero_le j) hj
+  have hrootFields := hpath.round j hj hjμ
+  exact ⟨hfields.1.trans hrootFields.1,
+    hfields.2.1.trans hrootFields.2.1,
+    hfields.2.2.1.trans hrootFields.2.2.1,
+    hfields.2.2.2.1.trans hrootFields.2.2.2.1,
+    hrootFields.2.2.2.2.1, hfields.2.2.2.2⟩
 
 /-- Assemble the wrapped U5c replay tree into the product-lane `AcceptTree`
 consumed by `u4_capstone` (DESIGN §U5d(4); `tipp-mipp.gipa`,

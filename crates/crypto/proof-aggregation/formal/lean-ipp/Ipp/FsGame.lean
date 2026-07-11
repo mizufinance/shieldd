@@ -229,7 +229,7 @@ structure FoldedValues (G1 GT : Type) where
   comB : GT
   comT : GT × G1
 
-private def foldOne {F G1 GT : Type} [Field F]
+def foldOne {F G1 GT : Type} [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
     (x : F) (coms : RoundComs G1 GT)
     (acc : FoldedValues G1 GT) :
@@ -238,7 +238,7 @@ private def foldOne {F G1 GT : Type} [Field F]
     comB := foldCom (gipaChallenge x) coms.LB acc.comB coms.RB
     comT := foldCom (gipaChallenge x) coms.LT acc.comT coms.RT }
 
-private def foldRounds {F G1 GT : Type} [Field F]
+def foldRounds {F G1 GT : Type} [Field F]
     [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT] :
     (μ : Nat) → (Fin μ → F) → (Fin μ → RoundComs G1 GT) →
       FoldedValues G1 GT → FoldedValues G1 GT
@@ -246,6 +246,21 @@ private def foldRounds {F G1 GT : Type} [Field F]
   | μ + 1, x, rounds, acc =>
       foldRounds μ (fun i => x i.succ) (fun i => rounds i.succ)
         (foldOne (x 0) (rounds 0) acc)
+
+/-- Chronological folding can equivalently peel its last round. -/
+theorem foldRounds_succ_last {F G1 GT : Type} [Field F]
+    [AddCommGroup G1] [Module F G1] [AddCommGroup GT] [Module F GT]
+    {μ : Nat} (x : Fin (μ + 1) → F) (rounds : Fin (μ + 1) → RoundComs G1 GT)
+    (acc : FoldedValues G1 GT) :
+    foldRounds (μ + 1) x rounds acc =
+      foldOne (x (Fin.last μ)) (rounds (Fin.last μ))
+        (foldRounds μ (fun i => x i.castSucc) (fun i => rounds i.castSucc) acc) := by
+  induction μ generalizing acc with
+  | zero => rfl
+  | succ μ ih =>
+      conv_lhs => rw [foldRounds]
+      rw [ih]
+      rfl
 
 /-- Lane-native commitment values at the terminal verifier leaf. -/
 def terminalFold {F G1 G2 GT : Type} [Field F]
