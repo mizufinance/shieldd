@@ -264,6 +264,25 @@ structure BadEventBudget {μ : Nat}
   round_unqueried_bound :
     Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq
 
+/-- Assemble a bad-event budget from the bounds that have actually been
+established.  Fields whose distributional reductions remain open stay explicit
+hypotheses rather than being hidden behind an unsound query-budget assumption. -/
+protected theorem BadEventBudget.ofBounds [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR badZ : Set F) (dR dZ : Nat) (bUnq : ℝ≥0∞)
+    (hCol : Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤
+      (((qb + 1) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
+    (hRnd : Pr[fun z => Accepted z ∧ BadRandomizer badR z | fsProbComp stmt adv] ≤
+      (((qb + 1) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2))
+    (hDep : Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤
+      ((μ * (qb + 1) : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
+    (hKzg : Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤
+      (((qb + 1) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
+    (hUnq : Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq) :
+    BadEventBudget qb stmt adv badR badZ dR dZ bUnq :=
+  ⟨hCol, hRnd, hDep, hKzg, hUnq⟩
+
 /-- **U5a core (item 5), abstract form.** Pure ENNReal event algebra: the
 accepting-and-good probability is at least the accepting probability minus the
 sum of the five per-event bounds. Union bound over the complement events;

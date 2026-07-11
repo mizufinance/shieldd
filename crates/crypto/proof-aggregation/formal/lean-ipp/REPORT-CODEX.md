@@ -3552,3 +3552,76 @@ by `CfReachable`.
   `[propext, Classical.choice, Quot.sound]` for both.
 - no prover/release-gated tests were applicable or run.
 - no `.lake/packages/**` files were edited and no commit was made.
+
+## U5a-quant-2
+
+Scope: attempted to discharge the five `BadEventBudget` fields from the
+per-miss lemmas. Edited only `Ipp/FsBadEvents.lean` and this report. No commit;
+no edits to `DESIGN.md`, other `Ipp/*.lean`, or `.lake/packages/**`.
+
+### Core union-bound goal and blocking invariant
+
+The requested load-bearing statement is, schematically:
+
+```lean
+Pr[fun z => ∃ i < qb + 1,
+    (flattenFsLog z.2)[i]? ∈ bad | fsProbComp stmt adv] ≤
+  (((qb + 1) * bad.card : Nat) : ℝ≥0∞) /
+    (Fintype.card F : ℝ≥0∞)
+```
+
+Equivalently at the cache level, each witness must be a structured entry that
+was absent initially and installed at one of the first `qb + 1` miss ordinals.
+The exact induction premise needed to cover *all* structured misses of the
+whole game is:
+
+```lean
+IsTotalQueryBound (FsGame stmt adv) (qb + 1)
+```
+
+(or a structured-query-only analogue). That premise is absent from
+`BadEventBudget`, from `fsProbComp`, and from the quantitative section's type
+class context. `adv` is an arbitrary `OracleComp`; `qb` currently appears only
+in fork-slot selectors and bad-event predicates and has no theorem relating it
+to the number of adversary/game queries or misses.
+
+This is not merely a tactic stall. The referenced VCVio theorem
+`probEvent_cache_has_value_le_of_unique_preimage` explicitly assumes
+`IsTotalQueryBound oa n`; dropping that hypothesis would allow an arbitrary
+computation to make more than `n` fresh draws, invalidating the `n/|F|` union
+bound. Therefore no theorem asserting the requested whole-`fsProbComp`
+`qb + 1` bound was added, and no false statement, `sorry`, or `axiom` was used.
+
+### Budget fields
+
+- `kzg_z_bound`: still parametric. Besides KZG cache extraction, it needs a
+  sound bound on the adversary's opportunities to pre-cache the adaptive KZG
+  point; no relation between `qb` and `adv` exists.
+- `answer_collision_bound`: still parametric. Bounding all collisions among
+  structured misses by `(qb+1)^2/|F|` directly requires the same missing miss
+  bound.
+- `randomizer_rootset_bound`: still parametric. The `{0,1}` rejection
+  correction does not repair the missing opportunity bound; a later proof must
+  also derive the conditional denominator `|F|-2` from `queryAccepting`.
+- `dependency_order_bound`: still parametric. Its adaptive chain-guessing
+  reduction is not a fixed-set hit and also needs bounded early miss slots.
+- `round_unqueried_bound`: remains parametric by design.
+
+Added `BadEventBudget.ofBounds`, a constructor that keeps precisely these five
+unproved bounds as explicit hypotheses. This preserves the structure and makes
+the remaining assumptions visible rather than hiding the absent query-budget
+contract.
+
+### Verification
+
+- Focused `LEAN_NUM_THREADS=1 lake build Ipp.FsBadEvents`: success (3315 jobs).
+- Full `LEAN_NUM_THREADS=1 lake build Ipp`: success.
+- `#print axioms Ipp.BadEventBudget.ofBounds`: only standard Lean foundations;
+  no project axiom and no `sorryAx`.
+- Recursive scans of `Ipp/FsBadEvents.lean` for `sorry`, `axiom`, and
+  `native_decide`: zero matches (excluding explanatory comments as noted in
+  the command output).
+- `git diff --check`: success.
+
+No prover/release-gated tests were run; the requested focused and full Lean
+builds were run.
