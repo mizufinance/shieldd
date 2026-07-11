@@ -2318,13 +2318,349 @@ theorem PathPrefix.preserveChild
     hfields.2.2.2.1.trans hrootFields.2.2.2.1,
     hrootFields.2.2.2.2.1, hfields.2.2.2.2⟩
 
+private theorem tree_to_acceptTree_aux
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
+    (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
+    {depth level : Nat} (hsize : level + depth = μ)
+    {lower : Option (Fin (qb (Sum.inr ()) + 1))}
+    {tree : RunTree (FsWrappedSpec F)
+      (WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) depth}
+    (hconsistent : TreeConsistent (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+      (fun level run => roundSlot (qb (Sum.inr ())) level run) level lower tree)
+    (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2))
+    (root : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT))
+    (slot : Nat → Fin (qb (Sum.inr ()) + 1))
+    (hpath : PathPrefix (qb (Sum.inr ())) level slot root tree.root.1)
+    (hlower : lower = if level = 0 then none else some (slot (level - 1))) :
+    let r := root.out.transcript.randomizer
+    let folded := foldRoundsUpTo root.out.transcript.roundAnswer root.out.proof.rounds
+      { comA := stmt.ComA, comB := stmt.ComB,
+        comT := (root.out.proof.ipAb, root.out.proof.aggC) }
+      level depth hsize
+    AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+      (u4TLanePairing stmt.e) depth
+      (foldKeysUpTo id root.out.transcript.roundAnswer
+        (fun i => (stmt.srsV i, stmt.srsV i)) level depth hsize)
+      (foldKeysUpTo gipaChallenge root.out.transcript.roundAnswer
+        (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i) level depth hsize)
+      (foldKeysUpTo id root.out.transcript.roundAnswer
+        (fun i => r ^ (i : Nat)) level depth hsize)
+      (u4AEmbedding folded.comA) (u4BEmbedding folded.comB)
+      (u4TCommitMap folded.comT) := by
+  induction hconsistent generalizing root slot with
+  | leaf level lower run hsupport =>
+      have hlevel : level = μ := by omega
+      subst level
+      dsimp only [RunTree.root] at hpath hgood ⊢
+      obtain ⟨sourceLog, htrace, hlog, hsource⟩ :=
+        wrapFs_support_exists_source (FsGame stmt adv) hsupport
+      have hleaf : LeafData stmt run.1.out.proof run.1.out.transcript := by
+        exact ((wrapped_source_leaf_data stmt adv hsource).2 hgood.1).2.2.1
+      have hbase := leafData_to_base_components stmt run.1.out.proof
+        run.1.out.transcript hbindV hbindW hleaf
+      have hx (j : Nat) (hj : j < μ) :
+          root.out.transcript.roundAnswer ⟨j, hj⟩ =
+            run.1.out.transcript.roundAnswer ⟨j, hj⟩ :=
+        (hpath.round j (by omega) hj).1.symm
+      have hrounds (j : Nat) (hj : j < μ) :
+          root.out.proof.rounds ⟨j, hj⟩ = run.1.out.proof.rounds ⟨j, hj⟩ :=
+        (hpath.round j (by omega) hj).2.1.symm
+      have hfold :
+          foldRoundsUpTo root.out.transcript.roundAnswer root.out.proof.rounds
+              { comA := stmt.ComA, comB := stmt.ComB,
+                comT := (root.out.proof.ipAb, root.out.proof.aggC) }
+              μ 0 hsize =
+            terminalFold stmt.ComA stmt.ComB run.1.out.proof
+              run.1.out.transcript.roundAnswer := by
+        calc
+          _ = foldRoundsUpTo run.1.out.transcript.roundAnswer run.1.out.proof.rounds
+                { comA := stmt.ComA, comB := stmt.ComB,
+                  comT := (run.1.out.proof.ipAb, run.1.out.proof.aggC) }
+                μ 0 (by omega) := by
+              rw [← hpath.ipAb, ← hpath.aggC]
+              apply foldRoundsUpTo_congr
+              · exact hx
+              · exact hrounds
+          _ = _ := foldRoundsUpTo_complete stmt.ComA stmt.ComB run.1.out.proof _
+      have hkeyA :
+          foldKeysUpTo id root.out.transcript.roundAnswer
+              (fun i => (stmt.srsV i, stmt.srsV i)) μ 0 hsize =
+            foldKey (reversedView run.1.out.transcript.roundAnswer)
+              (fun i => (stmt.srsV i, stmt.srsV i)) := by
+        calc
+          _ = foldKeysUpTo id run.1.out.transcript.roundAnswer
+                (fun i => (stmt.srsV i, stmt.srsV i)) μ 0 (by omega) := by
+              apply foldKeysUpTo_congr
+              exact hx
+          _ = _ := foldKeysUpTo_complete id _ _
+      have hkeyB :
+          foldKeysUpTo gipaChallenge root.out.transcript.roundAnswer
+              (fun i => (root.out.transcript.randomizer ^ (i : Nat))⁻¹ • stmt.srsW i)
+              μ 0 hsize =
+            foldKey (fun i => gipaChallenge
+                (reversedView run.1.out.transcript.roundAnswer i))
+              (fun i => run.1.out.transcript.randomizer⁻¹ ^ (i : Nat) • stmt.srsW i) := by
+        calc
+          _ = foldKeysUpTo gipaChallenge run.1.out.transcript.roundAnswer
+                (fun i => (run.1.out.transcript.randomizer ^ (i : Nat))⁻¹ • stmt.srsW i)
+                μ 0 (by omega) := by
+              rw [← hpath.randomizer]
+              apply foldKeysUpTo_congr
+              exact hx
+          _ = foldKey (reversedView (fun i =>
+                gipaChallenge (run.1.out.transcript.roundAnswer i)))
+                (fun i => (run.1.out.transcript.randomizer ^ (i : Nat))⁻¹ • stmt.srsW i) :=
+              foldKeysUpTo_complete gipaChallenge _ _
+          _ = _ := by
+            congr 2
+            funext i
+            rw [inv_pow_eq_pow_inv]
+      have hpub :
+          foldKeysUpTo id root.out.transcript.roundAnswer
+              (fun i => root.out.transcript.randomizer ^ (i : Nat)) μ 0 hsize =
+            foldKey (reversedView run.1.out.transcript.roundAnswer)
+              (fun i => run.1.out.transcript.randomizer ^ (i : Nat)) := by
+        calc
+          _ = foldKeysUpTo id run.1.out.transcript.roundAnswer
+                (fun i => run.1.out.transcript.randomizer ^ (i : Nat)) μ 0 (by omega) := by
+              rw [← hpath.randomizer]
+              apply foldKeysUpTo_congr
+              exact hx
+          _ = foldKey (reversedView run.1.out.transcript.roundAnswer)
+                (fun i => run.1.out.transcript.randomizer ^ (i : Nat)) :=
+              foldKeysUpTo_complete id _ _
+      have hpub0 :
+          (foldKeysUpTo id root.out.transcript.roundAnswer
+              (fun i => root.out.transcript.randomizer ^ (i : Nat)) μ 0 hsize) 0 =
+            terminalR run.1.out.transcript.randomizer
+              (reversedView run.1.out.transcript.roundAnswer) :=
+        (congrFun hpub 0).trans (foldKey_public_eq_terminalR _ _)
+      refine .base (run.1.out.proof.aFinal, run.1.out.proof.cFinal)
+        run.1.out.proof.bFinal ?_ ?_ ?_
+      · change u4AEmbedding _ = u4AEmbedding (u4ALaneAtom stmt.e _ _)
+        apply congrArg u4AEmbedding
+        calc
+          _ = (terminalFold stmt.ComA stmt.ComB run.1.out.proof
+                run.1.out.transcript.roundAnswer).comA := congrArg FoldedValues.comA hfold
+          _ = u4ALaneAtom stmt.e
+                ((foldKey (reversedView run.1.out.transcript.roundAnswer)
+                  (fun i => (stmt.srsV i, stmt.srsV i))) 0)
+                (run.1.out.proof.aFinal, run.1.out.proof.cFinal) := hbase.1
+          _ = _ := by rw [hkeyA]
+      · change u4BEmbedding _ = u4BEmbedding (u4BLaneAtom stmt.e _ _)
+        apply congrArg u4BEmbedding
+        calc
+          _ = (terminalFold stmt.ComA stmt.ComB run.1.out.proof
+                run.1.out.transcript.roundAnswer).comB := congrArg FoldedValues.comB hfold
+          _ = u4BLaneAtom stmt.e
+                ((foldKey (fun i => gipaChallenge
+                    (reversedView run.1.out.transcript.roundAnswer i))
+                  (fun i => run.1.out.transcript.randomizer⁻¹ ^ (i : Nat) • stmt.srsW i)) 0)
+                run.1.out.proof.bFinal := hbase.2.1
+          _ = _ := by rw [hkeyB]
+      · change u4TCommitMap _ = u4TCommitMap (u4TLanePairing stmt.e _ (_, _))
+        apply congrArg u4TCommitMap
+        calc
+          _ = (terminalFold stmt.ComA stmt.ComB run.1.out.proof
+                run.1.out.transcript.roundAnswer).comT := congrArg FoldedValues.comT hfold
+          _ = u4TLanePairing stmt.e
+                (run.1.out.proof.aFinal, run.1.out.proof.cFinal)
+                (run.1.out.proof.bFinal,
+                  terminalR run.1.out.transcript.randomizer
+                    (reversedView run.1.out.transcript.roundAnswer)) := hbase.2.2
+          _ = _ := by rw [hpub0]
+  | @node level lower depth children s answers cursor slotPos hcf hinjective hanswers
+      hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict hchildren ih =>
+      dsimp only [RunTree.root] at hpath ⊢
+      change Fin 4 → F at answers
+      have hlevel : level < μ := by omega
+      have hlevelPos : 0 < level ∨ level = 0 := Nat.eq_zero_or_pos level |>.symm
+      have hgreater : ∀ j, j < level → slot j < s := by
+        intro j hj
+        rcases hlevelPos with hpos | rfl
+        · have hlower' : lower = some (slot (level - 1)) := by
+            simpa [Nat.ne_of_gt hpos] using hlower
+          have hlast : slot (level - 1) < s := hstrict _ hlower'
+          by_cases hjlast : j = level - 1
+          · simpa [hjlast] using hlast
+          · exact lt_trans (hpath.slot_strict j (level - 1) (by omega) (by omega)) hlast
+        · omega
+      have hsupport (k : Fin 4) : (children k).root ∈ support
+          (replayFirstRun (wrapFs (FsGame stmt adv))) :=
+        (TreeConsistent.all_support (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+          (fun level run => roundSlot (qb (Sum.inr ())) level run) (hchildren k)).root
+      have hgoodRoot (k : Fin 4) :
+          WrappedRunGood (qb (Sum.inr ())) stmt (children k).root.1 (children k).root.2 :=
+        (hgood k).root
+      have hrank (k : Fin 4) :
+          structuredMissCountBefore (children k).root.2 slotPos = (s : Nat) := by
+        simpa [structuredMissCountBefore] using hslotRank k
+      have hpathK (k : Fin 4) :
+          PathPrefix (qb (Sum.inr ())) level slot root (children k).root.1 := by
+        exact PathPrefix.preserveChild hlevel stmt adv (hsupport 0) (hsupport k)
+          (hgoodRoot 0) (hgoodRoot k) hpath hgreater (hcf 0) (hcf k)
+          (hrank 0) (hrank k) (hprefixValues 0 k)
+          (hslotInput 0) (hslotInput k)
+      have hanswer (k : Fin 4) :
+          (children k).root.1.out.transcript.roundAnswer ⟨level, hlevel⟩ = answers k := by
+        have ha := wrapped_roundSlot_answer_eq_transcript stmt adv ⟨level, hlevel⟩
+          (hsupport k) (hgoodRoot k).1 (hcf k)
+        exact Option.some.inj (ha.symm.trans (hanswers k))
+      have htrace (k : Fin 4) :
+          (children 0).root.1.trace.take ((s : Nat) + 1) =
+            (children k).root.1.trace.take ((s : Nat) + 1) := by
+        have ht := trace_prefix_of_log_prefix (FsGame stmt adv) slotPos
+          (hsupport 0) (hsupport k) (hprefixValues 0 k)
+          (hslotInput 0) (hslotInput k)
+        simpa [hrank 0] using ht
+      have hround (k : Fin 4) :
+          (children k).root.1.out.proof.rounds ⟨level, hlevel⟩ =
+            (children 0).root.1.out.proof.rounds ⟨level, hlevel⟩ := by
+        have hp := selectedRoundPoint_eq_of_prefix hlevel (hcf 0) (hcf k)
+          (hrank 0) (by simpa [hrank 0] using htrace k)
+        injection hp with _ hr _
+        exact hr.symm
+      have hkeyA (k : Fin 4) :
+          foldKeysUpTo id (children k).root.1.out.transcript.roundAnswer
+              (fun i => (stmt.srsV i, stmt.srsV i)) (level + 1) depth (by omega) =
+            foldPow depth (answers k)
+              (foldKeysUpTo id root.out.transcript.roundAnswer
+                (fun i => (stmt.srsV i, stmt.srsV i)) level (depth + 1) (by omega)) := by
+        rw [foldKeysUpTo_succ, hanswer]
+        congr 1
+        apply foldKeysUpTo_congr
+        intro j hj
+        exact (hpathK k).round j hj (by omega) |>.1
+      have hkeyB (k : Fin 4) :
+          foldKeysUpTo gipaChallenge (children k).root.1.out.transcript.roundAnswer
+              (fun i => ((children k).root.1.out.transcript.randomizer ^ (i : Nat))⁻¹ •
+                stmt.srsW i) (level + 1) depth (by omega) =
+            foldPow depth (answers k)⁻¹
+              (foldKeysUpTo gipaChallenge root.out.transcript.roundAnswer
+                (fun i => (root.out.transcript.randomizer ^ (i : Nat))⁻¹ • stmt.srsW i)
+                level (depth + 1) (by omega)) := by
+        rw [foldKeysUpTo_succ, hanswer, gipaChallenge]
+        congr 1
+        rw [(hpathK k).randomizer]
+        apply foldKeysUpTo_congr
+        intro j hj
+        exact (hpathK k).round j hj (by omega) |>.1
+      have hpub (k : Fin 4) :
+          foldKeysUpTo id (children k).root.1.out.transcript.roundAnswer
+              (fun i => (children k).root.1.out.transcript.randomizer ^ (i : Nat))
+              (level + 1) depth (by omega) =
+            foldPow depth (answers k)
+              (foldKeysUpTo id root.out.transcript.roundAnswer
+                (fun i => root.out.transcript.randomizer ^ (i : Nat))
+                level (depth + 1) (by omega)) := by
+        rw [foldKeysUpTo_succ, hanswer]
+        congr 1
+        rw [(hpathK k).randomizer]
+        apply foldKeysUpTo_congr
+        intro j hj
+        exact (hpathK k).round j hj (by omega) |>.1
+      have hfold (k : Fin 4) :
+          foldRoundsUpTo (children k).root.1.out.transcript.roundAnswer
+              (children k).root.1.out.proof.rounds
+              { comA := stmt.ComA, comB := stmt.ComB,
+                comT := ((children k).root.1.out.proof.ipAb,
+                  (children k).root.1.out.proof.aggC) }
+              (level + 1) depth (by omega) =
+            foldOne (answers k)
+              ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩)
+              (foldRoundsUpTo root.out.transcript.roundAnswer root.out.proof.rounds
+                { comA := stmt.ComA, comB := stmt.ComB,
+                  comT := (root.out.proof.ipAb, root.out.proof.aggC) }
+                level (depth + 1) (by omega)) := by
+        rw [foldRoundsUpTo_succ, hanswer, hround]
+        congr 1
+        rw [(hpathK k).ipAb, (hpathK k).aggC]
+        apply foldRoundsUpTo_congr
+        · intro j hj
+          exact (hpathK k).round j hj (by omega) |>.1
+        · intro j hj
+          exact (hpathK k).round j hj (by omega) |>.2.1
+      have hchild (k : Fin 4) :
+          AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+            (u4TLanePairing stmt.e) depth
+            (foldPow depth (answers k)
+              (foldKeysUpTo id root.out.transcript.roundAnswer
+                (fun i => (stmt.srsV i, stmt.srsV i)) level (depth + 1) (by omega)))
+            (foldPow depth (answers k)⁻¹
+              (foldKeysUpTo gipaChallenge root.out.transcript.roundAnswer
+                (fun i => (root.out.transcript.randomizer ^ (i : Nat))⁻¹ • stmt.srsW i)
+                level (depth + 1) (by omega)))
+            (foldPow depth (answers k)
+              (foldKeysUpTo id root.out.transcript.roundAnswer
+                (fun i => root.out.transcript.randomizer ^ (i : Nat))
+                level (depth + 1) (by omega)))
+            (foldCom (answers k)⁻¹
+              (u4AEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LA)
+              (u4AEmbedding (foldRoundsUpTo root.out.transcript.roundAnswer
+                root.out.proof.rounds
+                { comA := stmt.ComA, comB := stmt.ComB,
+                  comT := (root.out.proof.ipAb, root.out.proof.aggC) }
+                level (depth + 1) (by omega)).comA)
+              (u4AEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RA))
+            (foldCom (answers k)⁻¹
+              (u4BEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LB)
+              (u4BEmbedding (foldRoundsUpTo root.out.transcript.roundAnswer
+                root.out.proof.rounds
+                { comA := stmt.ComA, comB := stmt.ComB,
+                  comT := (root.out.proof.ipAb, root.out.proof.aggC) }
+                level (depth + 1) (by omega)).comB)
+              (u4BEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RB))
+            (foldCom (answers k)⁻¹
+              (u4TCommitMap ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LT)
+              (u4TCommitMap (foldRoundsUpTo root.out.transcript.roundAnswer
+                root.out.proof.rounds
+                { comA := stmt.ComA, comB := stmt.ComB,
+                  comT := (root.out.proof.ipAb, root.out.proof.aggC) }
+                level (depth + 1) (by omega)).comT)
+              (u4TCommitMap ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RT)) := by
+        have hself : PathPrefix (qb (Sum.inr ())) level slot
+            (children k).root.1 (children k).root.1 :=
+          PathPrefix.refl (children k).root.1 slot (hpathK k).slot_strict
+            (fun j hj hjμ => ((hpathK k).round j hj hjμ).2.2.2.2.2)
+            (hpathK k).chaining
+        have hext := PathPrefix.extend hlevel hself hgreater rfl rfl rfl rfl
+          (hcf k) (hcf k)
+        have hc := ih k (hsize := by omega) (hgood k) (children k).root.1
+          (extendPathSlot level slot s) hext (by simp [extendPathSlot])
+        dsimp only at hc
+        rw [hkeyA k, hkeyB k, hpub k, hfold k] at hc
+        simpa only [foldOne, foldCom_map] using hc
+      apply acceptTree_node_of_answers (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e)
+        u4TCommitMap (u4TLanePairing stmt.e)
+        (u4AEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LA)
+        (u4AEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RA)
+        (u4BEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LB)
+        (u4BEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RB)
+        (u4TCommitMap ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LT)
+        (u4TCommitMap ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RT)
+        answers hinjective
+      · intro k
+        rw [← hanswer k]
+        exact (hgoodRoot k).2.1.2.2.2.1 ⟨level, hlevel⟩
+      · exact hchild
+
 /-- Assemble the wrapped U5c replay tree into the product-lane `AcceptTree`
 consumed by `u4_capstone` (DESIGN §U5d(4); `tipp-mipp.gipa`,
 `fs.stage-labels`).
 
-The remaining proof is the R6 tree/path assembly: selected answers now agree
-with verifier transcripts, but ancestor-prefix correspondence and shared-root
-data still need to be threaded through the induction. -/
+The proof threads ancestor-prefix correspondence, shared root data, and the
+three truncated fold accumulators through the replay-tree induction. -/
 theorem tree_to_acceptTree
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
@@ -2350,7 +2686,14 @@ theorem tree_to_acceptTree
       (fun i => r ^ (i : Nat))
       (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
-  sorry
+  have hsupport := TreeConsistent.all_support (wrapFs (FsGame stmt adv)) qb
+    (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run) hconsistent
+  have hchain := wrapped_supports_transcript_chaining stmt adv hsupport.root hgood.root.1
+  apply tree_to_acceptTree_aux stmt adv qb hbindV hbindW (hsize := by omega)
+    hconsistent hgood tree.root.1 (fun _ => 0)
+  · exact PathPrefix.refl tree.root.1 (fun _ => 0)
+      (by intro a b hab hb; omega) (by intro j hj; omega) hchain
+  · rfl
 
 /-- Support-level U5d endpoint: successful wrapped `forkTree` construction,
 together with accepting good leaves, yields the exact `AcceptTree` statement

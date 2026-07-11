@@ -2996,6 +2996,95 @@ sessions set the working directory explicitly.
 3. The collision `1/(|F|−2)` rejection-sampling correction is not reflected
    in the stated `/|F|` denominator; reconcile when field 1 is discharged.
 
+## R6 `tree_to_acceptTree` completion (2026-07-11)
+
+Status: complete. The package's last `sorry` was replaced by a structural
+induction over `TreeConsistent`; `fsFork_success_acceptTree` was re-derived from
+the completed theorem. No statement was weakened, no axiom or `native_decide`
+was added, and no design or package-cache file was edited.
+
+The private generalized helper statement is verbatim:
+
+```lean
+private theorem tree_to_acceptTree_aux
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
+    (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
+    {depth level : Nat} (hsize : level + depth = μ)
+    {lower : Option (Fin (qb (Sum.inr ()) + 1))}
+    {tree : RunTree (FsWrappedSpec F)
+      (WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) depth}
+    (hconsistent : TreeConsistent (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+      (fun level run => roundSlot (qb (Sum.inr ())) level run) level lower tree)
+    (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2))
+    (root : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT))
+    (slot : Nat → Fin (qb (Sum.inr ()) + 1))
+    (hpath : PathPrefix (qb (Sum.inr ())) level slot root tree.root.1)
+    (hlower : lower = if level = 0 then none else some (slot (level - 1))) :
+    let r := root.out.transcript.randomizer
+    let folded := foldRoundsUpTo root.out.transcript.roundAnswer root.out.proof.rounds
+      { comA := stmt.ComA, comB := stmt.ComB,
+        comT := (root.out.proof.ipAb, root.out.proof.aggC) }
+      level depth hsize
+    AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+      (u4TLanePairing stmt.e) depth
+      (foldKeysUpTo id root.out.transcript.roundAnswer
+        (fun i => (stmt.srsV i, stmt.srsV i)) level depth hsize)
+      (foldKeysUpTo gipaChallenge root.out.transcript.roundAnswer
+        (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i) level depth hsize)
+      (foldKeysUpTo id root.out.transcript.roundAnswer
+        (fun i => r ^ (i : Nat)) level depth hsize)
+      (u4AEmbedding folded.comA) (u4BEmbedding folded.comB)
+      (u4TCommitMap folded.comT) := by
+```
+
+The node case consumes `TreeConsistent`'s selector/rank/value facts,
+`TreeConsistent.all_support`, `PathPrefix.preserveChild`, `PathPrefix.refl`,
+`PathPrefix.extend`, `trace_prefix_of_log_prefix`,
+`selectedRoundPoint_eq_of_prefix`, `wrapped_roundSlot_answer_eq_transcript`,
+the truncated-fold successor/congruence lemmas, `acceptTree_node_of_answers`,
+and `foldCom_map`. `PathPrefix.preserveChild` in turn consumes the
+collision-freedom pin `sharedRootData_of_x0` and the structured-point boundary.
+The `lower`/last-slot equality in the helper is what turns the node's immediate
+`hstrict` fact plus `PathPrefix.slot_strict` into strictness against every prior
+path slot.
+
+The leaf case consumes `wrapFs_support_exists_source`,
+`wrapped_source_leaf_data`, `leafData_to_base_components`,
+`foldKeysUpTo_complete`, `foldRoundsUpTo_complete`, both truncated-fold
+congruence lemmas, `inv_pow_eq_pow_inv`, and
+`foldKey_public_eq_terminalR`. The `PathPrefix` fields align all chronological
+answers, rounds, the randomizer, `ipAb`, and `aggC` before the three lane-native
+base equations are lifted through `u4AEmbedding`, `u4BEmbedding`, and
+`u4TCommitMap`.
+
+Verification used the pinned Lean 4.30.0 `lake.exe`, one process at a time,
+with `LEAN_NUM_THREADS=1` and build output in `build.log`:
+
+- `lake build Ipp.FsFork`: success (3314 jobs), no `sorry` warning.
+- `lake build Ipp`: success (3324 jobs).
+- Temporary-file axiom audit:
+  - `'Ipp.tree_to_acceptTree' depends on axioms: [propext, Classical.choice, Quot.sound]`
+  - `'Ipp.fsFork_success_acceptTree' depends on axioms: [propext, Classical.choice, Quot.sound]`
+- Recursive `Ipp/` scan for `sorry`: 0 matches.
+- Recursive `Ipp/` scan for `axiom `: 0 matches (therefore comments-only
+  vacuously).
+- `git diff --check`: success.
+
+Nothing remains unproved, so there is no stuck goal to report. No separate
+prover/release-gated tests were run; the requested focused and full Lean package
+gates were run.
+
 ## U5a-quant (opus session 2)
 
 Scope: begin discharging the parametric `BadEventBudget` fields concretely,
