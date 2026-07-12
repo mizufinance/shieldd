@@ -1255,6 +1255,125 @@ theorem forkTreeCombined_support_invariant
     exact forkTreeCombined_support_invariant_core total built
       (Nat.le_of_lt hbuilt) main qb i cf leafOk hbaseReach hrun
 
+/-- A finite sum of disjoint `some` singleton events is exactly option success. -/
+theorem sum_probEvent_eq_some_eq_probEvent_isSome
+    [IsUniformSpec spec] {beta : Type} [Fintype beta]
+    (mx : OracleComp spec (Option beta)) :
+    (∑ x, Pr[= some x | mx]) = Pr[fun x => x.isSome | mx] := by
+  classical
+  rw [probEvent_eq_sum_fintype_ite]
+  simp
+
+/-- Selector success can only occur on a successful child tree. -/
+theorem combinedTreeSelector_eq_some_implies_isSome
+    (qb : ι → Nat) (i : ι) (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (hbuilt : built < total)
+    (tree? : Option (RunTree spec α built)) (s : Fin (qb i + 1))
+    (hselector : combinedTreeSelector qb i cf total built hbuilt tree? = some s) :
+    tree?.isSome := by
+  cases tree? <;> simp_all
+
+/-- Totality supplies a slot at the next combined level for every successful
+tree.  Turning it into selector success additionally requires that slot to
+precede the tree's first stored slot. -/
+theorem combinedTreeSelector_cf_some_of_consistent
+    [spec.DecidableEq]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop)
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    {tree : RunTree spec α built} {outerLog : QueryLog spec}
+    (hconsistent :
+      CombinedReplayConsistent total main qb i cf leafOk built tree outerLog) :
+    ∃ s, cf (combinedLevel total built hbuilt) tree.root.1 = some s := by
+  rcases hconsistent.canonicalProjection with
+    ⟨baseRun, hsupport, hroot, hprefix⟩
+  have hgate : leafOk baseRun := by
+    simpa [← hroot] using hconsistent.all_leafOk.root
+  obtain ⟨s, hs⟩ := hselectorTotal hsupport hgate
+    (combinedLevel total built hbuilt) (by simp [combinedLevel]; omega)
+  exact ⟨s, by simpa [hroot] using hs⟩
+
+/-- Selector mass is the extractor's success mass once selector success is
+known on every successful logged extractor run. -/
+theorem forkTreeCombined_selectorMass_of_selector_success
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hselectorSuccess : ∀ {tree outerLog},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))) →
+      ∃ s, combinedTreeSelector qb i cf total built hbuilt (some tree) = some s) :
+    (∑ s, Pr[= some s |
+      continuedForkSelector qb i
+        (combinedTreeSelector qb i cf total built hbuilt) none <$>
+      continuedForkMain
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))
+        keepCombinedChild]) =
+      Pr[fun tree => tree.isSome |
+        forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt)] := by
+  classical
+  let extractor := forkTreeCombined total main qb i cf leafOk built
+    (Nat.le_of_lt hbuilt)
+  let selector : Option (RunTree spec α built) → Option (Fin (qb i + 1)) :=
+    combinedTreeSelector qb i cf total built hbuilt
+  let continued := continuedForkMain extractor keepCombinedChild
+  calc
+    (∑ s, Pr[= some s |
+        continuedForkSelector qb i selector none <$> continued]) =
+        Pr[fun s => s.isSome |
+          continuedForkSelector qb i selector none <$> continued] :=
+      sum_probEvent_eq_some_eq_probEvent_isSome _
+    _ = Pr[fun z => z.2.isSome | continued] := by
+      rw [probEvent_map]
+      apply probEvent_ext
+      intro z hz
+      rcases z with ⟨⟨tree?, innerLog⟩, child?⟩
+      have hz' : ((tree?, innerLog), child?) ∈ support
+          (continuedForkMain extractor keepCombinedChild) := by
+        simpa [continued] using hz
+      simp only [continuedForkMain, mem_support_bind_iff, mem_support_pure_iff] at hz'
+      obtain ⟨first, hfirst, result, hresult, hout⟩ := hz'
+      have hfirstEq : first = (tree?, innerLog) := congrArg Prod.fst hout.symm
+      have hresultEq : result = child? := congrArg Prod.snd hout.symm
+      subst first
+      subst result
+      rcases tree? with _ | tree
+      · simp [keepCombinedChild] at hresult
+        simp [continuedForkSelector, hresult]
+      · simp [keepCombinedChild] at hresult
+        subst child?
+        obtain ⟨s, hs⟩ := hselectorSuccess (by simpa [extractor] using hfirst)
+        simp only [Function.comp_apply, continuedForkSelector, Option.isSome_some,
+          iff_true]
+        change (match combinedTreeSelector qb i cf total built hbuilt (some tree) with
+          | none => none
+          | some s => some s).isSome = true
+        simpa [gatedForkSelector, selector, hs]
+    _ = Pr[fun tree => tree.isSome | extractor] := by
+      have hmap : Prod.snd <$> continued = extractor := by
+        calc
+          Prod.snd <$> continued = Prod.fst <$> replayFirstRun extractor := by
+            simp only [continued, continuedForkMain, map_eq_pure_bind, bind_assoc]
+            refine bind_congr fun first => ?_
+            rcases first with ⟨tree?, log⟩
+            rcases tree? with _ | tree <;> rfl
+          _ = extractor := fst_map_replayFirstRun extractor
+      rw [← hmap, probEvent_map]
+      simp [Function.comp_def]
+    _ = Pr[fun tree => tree.isSome |
+        forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt)] := rfl
+
 /-- Consistency entails support for every run stored in the tree. -/
 theorem TreeConsistent.all_support [spec.DecidableEq]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)

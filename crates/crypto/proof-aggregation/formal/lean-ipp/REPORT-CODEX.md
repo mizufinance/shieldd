@@ -4325,3 +4325,88 @@ passed (3301 jobs), and final `lake build Ipp` passed in 124.6 seconds (3324
 jobs). Scans of `Ipp/Fork.lean` and `Ipp/ForkTree.lean` found no `sorry`,
 `axiom`, or `native_decide`; `git diff --check` passed. Prover/release-gated
 tests were not run.
+
+## A? session 9
+
+Session 9 landed the event-extensional selector-mass machinery, but the
+unconditional design theorem is not derivable from the stated hypotheses.
+The proved mass theorem is:
+
+```lean
+theorem forkTreeCombined_selectorMass_of_selector_success
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hselectorSuccess : ∀ {tree outerLog},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))) →
+      ∃ s, combinedTreeSelector qb i cf total built hbuilt (some tree) = some s) :
+    (∑ s, Pr[= some s |
+      continuedForkSelector qb i
+        (combinedTreeSelector qb i cf total built hbuilt) none <$>
+      continuedForkMain
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))
+        keepCombinedChild]) =
+      Pr[fun tree => tree.isSome |
+        forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt)]
+```
+
+The proof is event extensionality.  The new
+`sum_probEvent_eq_some_eq_probEvent_isSome` rewrites the finite sum of
+disjoint `some s` singleton events to the mapped selector's `isSome` event.
+`combinedTreeSelector_eq_some_implies_isSome` handles the reverse direction.
+On a successful child, support inversion of `continuedForkMain` reduces
+`keepCombinedChild` to the original successful tree; its output marginal is
+then identified with the extractor by
+`Prod.fst <$> replayFirstRun extractor = extractor`.
+
+The attempted successful-tree selector-totality proof got as far as the
+public `combinedTreeSelector_cf_some_of_consistent`: session 8's
+`CombinedReplayConsistent.canonicalProjection`, `all_leafOk`, and
+`hselectorTotal` prove
+
+```lean
+∃ selected,
+  cf (combinedLevel total built hbuilt) tree.root.1 = some selected
+```
+
+for every successful tree.  At positive depth, unfolding
+`combinedTreeSelector` additionally leaves the exact goal
+
+```lean
+selected next : Fin (qb i + 1)
+hselected :
+  cf (combinedLevel total built hbuilt) tree.root.1 = some selected
+hfirst : treeFirstSlot cf total built tree = some next
+⊢ selected < next
+```
+
+No session-8 invariant or stated session-9 hypothesis relates the new level's
+slot to the first stored slot.  In particular, `hselectorTotal` asserts only
+existence.  A level-constant `cf` is permitted: a depth-one tree can succeed
+using that slot, while the next `combinedTreeSelector` rejects because the new
+slot equals the stored first slot.  Thus the requested unconditional mass
+identity (and therefore the combined three-conjunct theorem) needs a
+cross-level strict-order hypothesis or a strengthened invariant; it cannot be
+proved from the DESIGN statement without an axiom.
+
+`#print axioms` results:
+
+```text
+'Ipp.sum_probEvent_eq_some_eq_probEvent_isSome' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.combinedTreeSelector_eq_some_implies_isSome' depends on axioms: [propext]
+'Ipp.combinedTreeSelector_cf_some_of_consistent' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.forkTreeCombined_selectorMass_of_selector_success' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+These are the project's standard logical/quotient axioms; there is no `sorry`,
+custom `axiom`, or `native_decide`.  Focused `lake build Ipp.ForkTree` passed
+(3301 jobs).  Final `lake build Ipp` passed (3324 jobs, 124.8 seconds).  The
+prover/release-gated circuit tests were not run; this session changed only the
+Lean IPP package and its report.
