@@ -1047,6 +1047,23 @@ private theorem getQueryValue_isSome_of_prefix [spec.DecidableEq]
   · exact hget
   · exact (List.getElem?_eq_some_iff.mp hget).1
 
+/-- Every leaf of an arbitrary successful combined subtree satisfies the
+construction gate. -/
+theorem forkTreeCombined_support_all_leafOk
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built ≤ total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total → CfReachable main qb i (cf level))
+    {tree : RunTree spec α built} {outerLog : QueryLog spec}
+    (hrun : (some tree, outerLog) ∈ support (replayFirstRun
+      (forkTreeCombined total main qb i cf leafOk built hbuilt))) :
+    tree.All leafOk :=
+  (forkTreeCombined_support_invariant_core total built hbuilt main qb i cf leafOk
+    hbaseReach hrun).all_leafOk
+
 /-- Successful combined extraction has a reachable next selector and carries
 the complete construction-side replay invariant.  Selector mass is session 9. -/
 theorem forkTreeCombined_support_invariant

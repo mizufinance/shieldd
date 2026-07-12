@@ -1761,6 +1761,19 @@ def DependencyOrdered
     (∃ ix, tracePos (wrappedX0Point stmt run) run = some ix ∧
       ix < (s : Nat))
 
+/-- Chronological round-slot good event: first occurrences of accepted round
+points follow protocol round order. Pre-querying a later round point can
+violate this; U5a accounts for that guessing event. -/
+def RoundSlotOrdered
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat} (qb : Nat)
+    (run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)) : Prop :=
+  ∀ earlier later, earlier < later → later < μ → ∀ {s t},
+    roundSlot qb earlier run = some s →
+    roundSlot qb later run = some t → s < t
+
 /-- Collision-freedom of the structured random-function answers: distinct
 miss ordinals carry distinct answers. Under caching every traced point
 misses at most once, so this is exactly "no two distinct queried points
@@ -1775,8 +1788,8 @@ def StructuredAnswersInjective [DecidableEq F]
       QueryLog.getQueryValue? log (Sum.inr ()) j → i = j
 
 /-- Acceptance and the explicit U5a exclusions required on every wrapped
-run used by U5d(4): accepted challenges, in-budget round slots, the
-dependency-order event, and structured-answer collision freedom
+run used by U5d(4): accepted challenges, in-budget and chronologically ordered
+round slots, the dependency-order event, and structured-answer collision freedom
 (`fs.stage-labels`, `tipp-mipp.gipa`, `groth16.randomizer`). -/
 def WrappedRunGood
     [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
@@ -1790,6 +1803,7 @@ def WrappedRunGood
   run.out.accept = true ∧
     ChallengesAccepted run.out ∧
     (∀ level, level < μ → ¬RoundPointUnqueried qb level run) ∧
+    RoundSlotOrdered qb run ∧
     DependencyOrdered qb stmt run ∧
     StructuredAnswersInjective (F := F) run.trace.length log
 
@@ -2358,7 +2372,7 @@ theorem PathPrefix.preserveChild
       have htrace' : runA.trace.take ((s : Nat) + 1) =
           runB.trace.take ((s : Nat) + 1) := by simpa [hrankA] using htrace
       have hpin := structuredPoint_eq_to_shared_prefix hrankA hrankB hprefix htrace'
-        hgoodB.2.2.2.2 hposA (by exact_mod_cast hgreater k hk) hposB hlogA
+        hgoodB.2.2.2.2.2 hposA (by exact_mod_cast hgreater k hk) hposB hlogA
         (by simpa [hanswerBA] using hlogB)
       injection hpin.1 with hp hr hn
       have hqeq : q = slot k := by
@@ -2380,7 +2394,7 @@ theorem PathPrefix.preserveChild
     exact hzeroB.symm.trans (hrecover.1.trans hzeroA)
   have hroot := sharedRootData_of_x0 stmt adv hsupportA hsupportB hgoodA.1 hgoodB.1
     hslotA hslotB hrankA hrankB hprefix hinputA hinputB
-    hgoodA.2.2.2.1 hgoodB.2.2.2.1 hgoodA.2.2.2.2 hx0BA.symm
+    hgoodA.2.2.2.2.1 hgoodB.2.2.2.2.1 hgoodA.2.2.2.2.2 hx0BA.symm
   refine ⟨hpath.slot_strict, hroot.1.symm.trans hpath.randomizer,
     hx0BA.trans hpath.x0, hroot.2.1.symm.trans hpath.ipAb,
     hroot.2.2.symm.trans hpath.aggC, ?_, hchainB⟩
@@ -2851,6 +2865,93 @@ theorem fs_roundSlot_selector_total
   intro level hlevel
   exact (roundSlot_some_or_unqueried qb level first.1).resolve_right
     (hgood.2.2.1 level hlevel)
+
+/-- The chronological-round conjunct in every successful leaf gate supplies
+the cross-level selector order required by combined replay. -/
+theorem fs_roundSlot_order
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat) :
+    ∀ {depth} (hdepth : depth < μ)
+      {tree : RunTree (FsWrappedSpec F)
+        (WrappedFsRun
+          (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+          (FsResult μ F G1 G2 GT)) depth}
+      {outerLog : QueryLog (FsWrappedSpec F)},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+          (fun level run => roundSlot (qb (Sum.inr ())) level run)
+          (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+          depth (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        roundSlot (qb (Sum.inr ())) (combinedLevel μ depth hdepth)
+          tree.root.1 = some selected →
+        treeFirstSlot
+          (fun level run => roundSlot (qb (Sum.inr ())) level run)
+          μ depth tree = some next →
+        selected < next := by
+  intro depth hdepth tree outerLog hrun selected next hselected hfirst
+  have hgood := forkTreeCombined_support_all_leafOk μ depth
+    (Nat.le_of_lt hdepth) (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+    (fun level run => roundSlot (qb (Sum.inr ())) level run)
+    (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+    (fun level _ => fs_roundSlot_reachable stmt adv qb level) hrun
+  have hrootGood := hgood.root
+  have hpos : 0 < depth := by
+    by_contra h
+    have : depth = 0 := Nat.eq_zero_of_not_pos h
+    subst depth
+    simp [treeFirstSlot] at hfirst
+  have hnext : roundSlot (qb (Sum.inr ())) (μ - depth) tree.root.1 = some next := by
+    simpa [treeFirstSlot, hpos] using hfirst
+  have hearlier : μ - (depth + 1) < μ - depth := by omega
+  have hlater : μ - depth < μ := by omega
+  apply hrootGood.2.2.2.1 (μ - (depth + 1)) (μ - depth) hearlier hlater
+  · simpa [combinedLevel] using hselected
+  · exact hnext
+
+/-- FS specialization of the combined-tree probability recurrence. Cross-round
+slot order is discharged from `WrappedRunGood`, not supplied by the caller. -/
+theorem fsFork_bound
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F] [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat) :
+    ((forkTreeStep (qb (Sum.inr ()) + 1)
+        (Fintype.card ((FsWrappedSpec F).Range (Sum.inr ()))))^[μ])
+        (Pr[fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2 |
+          replayFirstRun (wrapFs (FsGame stmt adv))]) ≤
+      Pr[fun tree : Option (RunTree (FsWrappedSpec F)
+          (WrappedFsRun
+            (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+            (FsResult μ F G1 G2 GT)) μ) => tree.isSome |
+        forkTreeCombined μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+          (fun level run => roundSlot (qb (Sum.inr ())) level run)
+          (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+          μ (Nat.le_refl μ)] := by
+  apply forkTree_bound μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+    (fun level run => roundSlot (qb (Sum.inr ())) level run)
+    (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+  · intro level hlevel
+    exact fs_roundSlot_reachable stmt adv qb level
+  · intro first hfirst hgood
+    exact fs_roundSlot_selector_total stmt adv (qb (Sum.inr ())) hfirst hgood
+  · exact fs_roundSlot_order stmt adv qb
 
 /-- Support-level U5d endpoint: successful wrapped combined-tree construction,
 together with accepting good leaves, yields the exact `AcceptTree` statement

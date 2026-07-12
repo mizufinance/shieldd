@@ -4245,6 +4245,117 @@ Scans of the two edited Lean files found no `sorry`, `axiom`, or
 `native_decide`; `git diff --check` passed. Prover/release-gated tests were not
 run.
 
+### A? session 12b implementation details
+
+Session 12b took the strengthened-good-event route.  Existing
+`DependencyOrdered` cannot soundly imply cross-round order: it constrains the
+randomizer/x0 dependencies relative to round slots, while an adversary may
+pre-query a later accepted round point.  The new `RoundSlotOrdered` event says
+that accepted round-point first-occurrence ordinals follow protocol round
+order.  Its complement, `BadRoundOrder`, is a separate U5a guessing event.
+
+The updated good-event statement is verbatim:
+
+```lean
+def WrappedRunGood
+    [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT))
+    (log : QueryLog (FsWrappedSpec F)) : Prop :=
+  run.out.accept = true ∧
+    ChallengesAccepted run.out ∧
+    (∀ level, level < μ → ¬RoundPointUnqueried qb level run) ∧
+    RoundSlotOrdered qb run ∧
+    DependencyOrdered qb stmt run ∧
+    StructuredAnswersInjective (F := F) run.trace.length log
+```
+
+`fs_roundSlot_order` discharges the exact deferred session-12 goal.  For an
+arbitrary successful depth-`depth` extractor support run, the already-proved
+combined invariant yields `all_leafOk.root`; its `RoundSlotOrdered` conjunct is
+instantiated at `μ - (depth + 1)` and `μ - depth`.  A `treeFirstSlot = some`
+witness forces `0 < depth`, and arithmetic gives the strict level order.
+`forkTreeCombined_support_all_leafOk` is the small generic projection exposing
+this existing invariant fact.  `fsFork_bound` now specializes `forkTree_bound`
+using `fs_roundSlot_order`, so its FS caller has no external `hslotOrder`.
+
+The updated support endpoint remains premise-free with respect to slot order;
+its statement is verbatim:
+
+```lean
+theorem fsFork_success_acceptTree
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
+    (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
+    {tree : RunTree (FsWrappedSpec F)
+      (WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) μ}
+    (hsuccess : some tree ∈ support
+      (forkTreeCombined μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+        (fun level run => roundSlot (qb (Sum.inr ())) level run)
+        (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+        μ (Nat.le_refl μ))) :
+    let r := tree.root.1.out.transcript.randomizer
+    AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+      (u4TLanePairing stmt.e) μ
+      (fun i => (stmt.srsV i, stmt.srsV i))
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+      (fun i => r ^ (i : Nat))
+      (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
+      (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC))
+```
+
+`RunGoodFull` inherits the new conjunct through `WrappedRunGood`.
+`accepted_not_good_bad`, `q0_lower_bound_abstract`, and `q0_lower_bound` now
+account for six bad events.  The new U5a signature left for sessions 13--14 is:
+
+```lean
+round_slot_order_bound :
+  Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
+    ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+```
+
+`BadEventBudget.ofBounds` takes the corresponding `hOrd` premise.  The concrete
+`q0_lower_bound` subtracts a second `μ * Q qb / |F|` term; proving that numeric
+field is intentionally deferred to U5a sessions 13--14.  No consumer re-proofs
+remain.
+
+`#print axioms`:
+
+```text
+'Ipp.fs_roundSlot_order' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.fsFork_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.fsFork_success_acceptTree' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.q0_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Verification used pinned Lean 4.30.0, `LEAN_NUM_THREADS=1`, and one Lake/Lean
+process at a time:
+
+```text
+lake build Ipp.FsFork: passed (3314 jobs, 66.3 seconds on final focused run).
+lake build Ipp.FsBadEvents: passed (3315 jobs, 45.1 seconds).
+lake build Ipp: passed (3324 jobs, 45.3 seconds).
+```
+
+The `Ipp/` scan is empty for `sorry`, custom `axiom`, and `native_decide`.
+`DESIGN.md` and `.lake/packages/**` were not edited; no commit was made.
+Prover/release-gated circuit tests were not run.
+
 ## A? session 8
 
 Proved the support/invariant half as the discoverable standalone theorem below;
@@ -4867,3 +4978,10 @@ Deleted-name grep over `Ipp/` is empty.  No `sorry`, custom `axiom`, or
 `native_decide` was added.  `DESIGN.md` and `.lake/packages/**` were not
 edited, no commit was made, and prover/release-gated circuit tests were not
 run.
+
+## A? session 12b
+
+The implementation details, verbatim statements, U5a bound signature, axiom
+prints, and focused verification are recorded above under
+“A? session 12b implementation details”.  Final `lake build Ipp`: passed
+(3324 jobs, 45.3 seconds).

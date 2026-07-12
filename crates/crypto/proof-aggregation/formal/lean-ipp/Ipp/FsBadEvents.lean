@@ -8,11 +8,11 @@ fresh uniform `F` samples on structured cache misses, of which ≤ `Q qb` occur 
 scope. Its support points are `(out, sourceLog)` pairs whose wrapped image is
 `{ out := out, trace := fsPointTrace sourceLog }`.
 
-The `WrappedRunGood` predicate consumed by U5d(4) excludes five bad events; this
+The `WrappedRunGood` predicate consumed by U5d(4) excludes six bad events; this
 file states the union-bound accounting for them and proves the quantitative
 lower bound `Q_0 ≥ Pr[accept] − err_bad` by pure ENNReal event algebra.
 
-R7(4) status: the FIVE per-event bounds are stated as the parametric interface
+R7(4) status: the SIX per-event bounds are stated as the parametric interface
 `BadEventBudget` (a clearly-named hypothesis bundle); the `q0_lower_bound`
 complement/union algebra over them is proved concretely. See the REPORT-CODEX
 "U5a (opus session)" section for the constants chosen, which bounds went
@@ -113,19 +113,26 @@ def BadDependency {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (z : FsRunLog μ F G1 G2 GT) : Prop :=
   ¬ DependencyOrdered qb stmt (wrappedOf z)
 
-/-- Bad event 4 (`kzg_z_bound`): the KZG challenge landed in the per-statement
+/-- Bad event 4 (`round_slot_order_bound`): accepted round-point first
+occurrences are not chronological. A misordered pre-query must guess a later
+fresh-uniform round challenge. -/
+def BadRoundOrder {μ : Nat} (qb : Nat) (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  ¬ RoundSlotOrdered qb (wrappedOf z)
+
+/-- Bad event 5 (`kzg_z_bound`): the KZG challenge landed in the per-statement
 bad set (`tipp-mipp.kzg`). Abstract `Set F` of size ≤ `dZ`. -/
 def BadKzg {μ : Nat} (badZ : Set F) (z : FsRunLog μ F G1 G2 GT) : Prop :=
   z.1.transcript.kzg ∈ badZ
 
-/-- Bad event 5 (`round_unqueried_bound`): some transcript round point was
+/-- Bad event 6 (`round_unqueried_bound`): some transcript round point was
 never cache-missed, or its first miss exceeds the fork budget. -/
 def BadUnqueried {μ : Nat} (qb : Nat) (z : FsRunLog μ F G1 G2 GT) : Prop :=
   ∃ level, level < μ ∧ RoundPointUnqueried qb level (wrappedOf z)
 
 /-- The complete goodness event carried into U5d(4): `WrappedRunGood` (accept,
-challenge acceptance, in-budget round slots, dependency order, structured-answer
-injectivity) together with the randomizer- and KZG-goodness excluded in U5e. -/
+challenge acceptance, in-budget chronologically ordered round slots, dependency
+order, and structured-answer injectivity) together with the randomizer- and
+KZG-goodness excluded in U5e. -/
 def RunGoodFull {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (badR badZ : Set F) (z : FsRunLog μ F G1 G2 GT) : Prop :=
   WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) ∧
@@ -211,7 +218,7 @@ theorem accepted_challengesAccepted {μ : Nat}
   exact (hleaf hacc).2.2.2
 
 /-- Pointwise complement decomposition on the support: an accepting run whose
-full goodness fails must witness one of the five bad events. This is the union
+full goodness fails must witness one of the six bad events. This is the union
 step of the U5a accounting; `ChallengesAccepted` is discharged for free on
 accepting support points. -/
 theorem accepted_not_good_bad {μ : Nat}
@@ -223,30 +230,35 @@ theorem accepted_not_good_bad {μ : Nat}
     (hacc : Accepted z)
     (hnot : ¬ RunGoodFull qb stmt badR badZ z) :
     (Accepted z ∧ BadCollision z) ∨ (Accepted z ∧ BadRandomizer badR z) ∨
-      (Accepted z ∧ BadDependency qb stmt z) ∨ (Accepted z ∧ BadKzg badZ z) ∨
-      (Accepted z ∧ BadUnqueried qb z) := by
+    (Accepted z ∧ BadDependency qb stmt z) ∨
+      (Accepted z ∧ BadRoundOrder qb z) ∨
+      (Accepted z ∧ BadKzg badZ z) ∨ (Accepted z ∧ BadUnqueried qb z) := by
   classical
   by_cases hR : z.1.transcript.randomizer ∈ badR
   · exact Or.inr (Or.inl ⟨hacc, hR⟩)
   by_cases hZ : z.1.transcript.kzg ∈ badZ
-  · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨hacc, hZ⟩)))
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨hacc, hZ⟩))))
   · have hWRG : ¬ WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) :=
       fun hw => hnot ⟨hw, hR, hZ⟩
     have hCA : ChallengesAccepted (wrappedOf z).out :=
       accepted_challengesAccepted stmt adv hz hacc
     have hrest : ¬ ((∀ level, level < μ →
-          ¬ RoundPointUnqueried qb level (wrappedOf z)) ∧
+        ¬ RoundPointUnqueried qb level (wrappedOf z)) ∧
+        RoundSlotOrdered qb (wrappedOf z) ∧
         DependencyOrdered qb stmt (wrappedOf z) ∧
         StructuredAnswersInjective (F := F) (wrappedOf z).trace.length
           (flattenFsLog z.2)) := by
       intro h
-      exact hWRG ⟨hacc, hCA, h.1, h.2.1, h.2.2⟩
-    rw [not_and_or, not_and_or] at hrest
-    rcases hrest with hu | hd | hs
+      exact hWRG ⟨hacc, hCA, h.1, h.2.1, h.2.2.1, h.2.2.2⟩
+    rw [not_and_or, not_and_or, not_and_or] at hrest
+    rcases hrest with hu | ho | hd | hs
     · -- some round point unqueried / out of budget
       push_neg at hu
       obtain ⟨level, hlevel, hunq⟩ := hu
-      exact Or.inr (Or.inr (Or.inr (Or.inr ⟨hacc, ⟨level, hlevel, hunq⟩⟩)))
+      exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
+        ⟨hacc, ⟨level, hlevel, hunq⟩⟩))))
+    · -- cross-round order violated
+      exact Or.inr (Or.inr (Or.inr (Or.inl ⟨hacc, ho⟩)))
     · -- dependency order violated
       exact Or.inr (Or.inr (Or.inl ⟨hacc, hd⟩))
     · -- structured-answer collision
@@ -254,7 +266,7 @@ theorem accepted_not_good_bad {μ : Nat}
 
 /-- The parametric U5a bad-event interface (DESIGN §R7 item 4). Each field is an
 RO union bound over the ≤ `Q qb` structured misses in scope; the concrete-constant
-proofs are the remaining U5a work (see the report). Naming matches the five
+proofs are the remaining U5a work (see the report). Naming matches the six
 deliverable bounds. -/
 structure BadEventBudget {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
@@ -275,6 +287,11 @@ structure BadEventBudget {μ : Nat}
   later fresh-uniform x0/prev answer; union over levels and early misses. -/
   dependency_order_bound :
     Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤
+      ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+  /-- Cross-round pre-query guessing event; union over adjacent round
+  dependencies and early misses. Sessions 13--14 discharge this field. -/
+  round_slot_order_bound :
+    Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
       ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
   /-- KZG bad-set hit over ≤ `Q qb` candidate KZG points, bad set of size ≤ dZ. -/
   kzg_z_bound :
@@ -299,29 +316,32 @@ protected theorem BadEventBudget.ofBounds [Fintype F] {μ : Nat}
       (((Q qb) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2))
     (hDep : Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤
       ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
+    (hOrd : Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
+      ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
     (hKzg : Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤
       (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
     (hUnq : Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq) :
     BadEventBudget qb stmt adv badR badZ dR dZ bUnq :=
-  ⟨hCol, hRnd, hDep, hKzg, hUnq⟩
+  ⟨hCol, hRnd, hDep, hOrd, hKzg, hUnq⟩
 
 /-- **U5a core (item 5), abstract form.** Pure ENNReal event algebra: the
 accepting-and-good probability is at least the accepting probability minus the
-sum of the five per-event bounds. Union bound over the complement events;
+sum of the six per-event bounds. Union bound over the complement events;
 `ChallengesAccepted` is free on accepting support points. -/
 theorem q0_lower_bound_abstract {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     (badR badZ : Set F)
-    (bCol bRnd bDep bKzg bUnq : ℝ≥0∞)
+    (bCol bRnd bDep bOrd bKzg bUnq : ℝ≥0∞)
     (hCol : Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤ bCol)
     (hRnd : Pr[fun z => Accepted z ∧ BadRandomizer badR z | fsProbComp stmt adv] ≤ bRnd)
     (hDep : Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤ bDep)
+    (hOrd : Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤ bOrd)
     (hKzg : Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤ bKzg)
     (hUnq : Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq) :
     Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z | fsProbComp stmt adv] ≥
       Pr[fun z => Accepted z | fsProbComp stmt adv] -
-        (bCol + (bRnd + (bDep + (bKzg + bUnq)))) := by
+        (bCol + (bRnd + (bDep + (bOrd + (bKzg + bUnq))))) := by
   classical
   set mx := fsProbComp stmt adv with hmx
   -- Abbreviations for the good event and the accepting-but-not-good residual.
@@ -329,11 +349,11 @@ theorem q0_lower_bound_abstract {μ : Nat}
     fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z with hG
   set R : FsRunLog μ F G1 G2 GT → Prop :=
     fun z => Accepted z ∧ ¬ RunGoodFull qb stmt badR badZ z with hR
-  -- The five accepting bad events, right-nested.
+  -- The six accepting bad events, right-nested.
   set q : FsRunLog μ F G1 G2 GT → Prop :=
     fun z => (Accepted z ∧ BadCollision z) ∨ (Accepted z ∧ BadRandomizer badR z) ∨
-      (Accepted z ∧ BadDependency qb stmt z) ∨ (Accepted z ∧ BadKzg badZ z) ∨
-      (Accepted z ∧ BadUnqueried qb z) with hq
+      (Accepted z ∧ BadDependency qb stmt z) ∨ (Accepted z ∧ BadRoundOrder qb z) ∨
+      (Accepted z ∧ BadKzg badZ z) ∨ (Accepted z ∧ BadUnqueried qb z) with hq
   rw [ge_iff_le, tsub_le_iff_right]
   -- Goal: Pr[Accepted] ≤ Pr[G] + (bCol + (bRnd + (bDep + (bKzg + bUnq)))).
   -- Step 1: accept splits into good and accepting-not-good.
@@ -346,37 +366,41 @@ theorem q0_lower_bound_abstract {μ : Nat}
   -- Step 2: union bound on good ∨ residual.
   have hor : Pr[fun z => G z ∨ R z | mx] ≤ Pr[G | mx] + Pr[R | mx] :=
     probEvent_or_le mx G R
-  -- Step 3: the residual is covered by the five accepting bad events.
+  -- Step 3: the residual is covered by the six accepting bad events.
   have hRq : Pr[R | mx] ≤ Pr[q | mx] := by
     apply probEvent_mono
     intro z hz hzR
     exact accepted_not_good_bad qb stmt adv badR badZ hz hzR.1 hzR.2
-  -- Step 4: union bound across the five bad events.
+  -- Step 4: union bound across the six bad events.
   have hqsum : Pr[q | mx] ≤
       Pr[fun z => Accepted z ∧ BadCollision z | mx] +
         (Pr[fun z => Accepted z ∧ BadRandomizer badR z | mx] +
           (Pr[fun z => Accepted z ∧ BadDependency qb stmt z | mx] +
-            (Pr[fun z => Accepted z ∧ BadKzg badZ z | mx] +
-              Pr[fun z => Accepted z ∧ BadUnqueried qb z | mx]))) := by
+            (Pr[fun z => Accepted z ∧ BadRoundOrder qb z | mx] +
+              (Pr[fun z => Accepted z ∧ BadKzg badZ z | mx] +
+                Pr[fun z => Accepted z ∧ BadUnqueried qb z | mx])))) := by
     rw [hq]
+    refine le_trans (probEvent_or_le _ _ _) (add_le_add le_rfl ?_)
     refine le_trans (probEvent_or_le _ _ _) (add_le_add le_rfl ?_)
     refine le_trans (probEvent_or_le _ _ _) (add_le_add le_rfl ?_)
     refine le_trans (probEvent_or_le _ _ _) (add_le_add le_rfl ?_)
     exact probEvent_or_le _ _ _
   -- Assemble the numeric bound on the residual.
-  have hresidual : Pr[R | mx] ≤ bCol + (bRnd + (bDep + (bKzg + bUnq))) := by
+  have hresidual : Pr[R | mx] ≤
+      bCol + (bRnd + (bDep + (bOrd + (bKzg + bUnq)))) := by
     refine le_trans hRq (le_trans hqsum ?_)
-    exact add_le_add hCol (add_le_add hRnd (add_le_add hDep (add_le_add hKzg hUnq)))
+    exact add_le_add hCol (add_le_add hRnd
+      (add_le_add hDep (add_le_add hOrd (add_le_add hKzg hUnq))))
   -- Combine everything.
   calc Pr[fun z => Accepted z | mx]
       ≤ Pr[fun z => G z ∨ R z | mx] := hsplit
     _ ≤ Pr[G | mx] + Pr[R | mx] := hor
-    _ ≤ Pr[G | mx] + (bCol + (bRnd + (bDep + (bKzg + bUnq)))) :=
+    _ ≤ Pr[G | mx] + (bCol + (bRnd + (bDep + (bOrd + (bKzg + bUnq))))) :=
         add_le_add le_rfl hresidual
 
 /-- **U5a core (item 5), concrete form.** Instantiates the abstract lower bound
 with the parametric `BadEventBudget` constants: `Q_0 ≥ acc − err_bad` with
-`Q := qb + 1` (the whole-game cap), `Q²/|F|`, `Q·dR/(|F|−2)`, `μ·Q/|F|`,
+`Q := qb + 1` (the whole-game cap), `Q²/|F|`, `Q·dR/(|F|−2)`, two `μ·Q/|F|`,
 `Q·dZ/|F|`, and `bUnq` (DESIGN §U5a, §R7 item 4). -/
 theorem q0_lower_bound [Fintype F] {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
@@ -388,11 +412,12 @@ theorem q0_lower_bound [Fintype F] {μ : Nat}
         ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
           ((((Q qb) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2) +
             (((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
-              ((((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
-                bUnq)))) :=
-  q0_lower_bound_abstract qb stmt adv badR badZ _ _ _ _ _
+              (((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
+                ((((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
+                  bUnq))))) :=
+  q0_lower_bound_abstract qb stmt adv badR badZ _ _ _ _ _ _
     H.answer_collision_bound H.randomizer_rootset_bound H.dependency_order_bound
-    H.kzg_z_bound H.round_unqueried_bound
+    H.round_slot_order_bound H.kzg_z_bound H.round_unqueried_bound
 
 end Quantitative
 
