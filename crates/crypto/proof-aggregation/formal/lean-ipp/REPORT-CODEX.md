@@ -5414,3 +5414,134 @@ Explicit axiom audit:
 
 No `sorry`, project `axiom`, or `native_decide` was introduced. No
 prover/release-gated circuit tests were applicable or run.
+
+## S2/S3 continuation
+
+Scope: pure Lean continuation only. No commit was made. Cargo, hax, Rust,
+F*/opam, and the gnark Lean lane were not run. All Lean invocations used the
+pinned Lean 4.30.0 `lake.exe`, `LEAN_NUM_THREADS=1`, and one Lean/Lake process
+at a time.
+
+### U5a budget discharge
+
+`Ipp/FsMissBounds.lean` now exposes the structured answer sequence explicitly
+and proves its parity with the flattened fork log. The adaptive birthday stack
+is complete:
+
+- `structured_answer_mem_at_le` bounds a fixed structured ordinal while
+  ignoring ambient queries;
+- `structured_answer_collision_at_le` conditions the later ordinal on the
+  earlier sampled singleton;
+- `structured_answer_collision_before_le` unions over ordered pairs;
+- `structured_answers_not_injective_le` transports failure of
+  `StructuredAnswersInjective` through the total query cap.
+
+`Ipp.answer_collision_bound` therefore proves the accepted collision event is
+at most `Q^2/card(F)`. The adaptive-collision blocker closed after ten narrow
+`Ipp.FsMissBounds` proof/build iterations; no parametric collision premise
+remains.
+
+`BadEventBudget` was replaced rather than compatibility-wrapped. Its bad sets
+are finite carriers and the discharged fields were deleted. Field status is:
+
+- fully concrete probability bounds: `answer_collision_bound`,
+  `randomizer_rootset_bound`, and `kzg_z_bound`;
+- conditional probability fields: none. Their non-probabilistic prerequisites
+  are explicit inputs to `q0_lower_bound`: the whole-game query cap and finite
+  carrier cardinalities. `s1_soundness` proves the randomizer carrier equality
+  and `badR.card <= 2^μ-1` internally, and retains only `hquery` and
+  `hZcard`;
+- parametric residual fields: `dependency_order_bound`,
+  `round_slot_order_bound`, `round_unqueried_bound`, and
+  `wrapped_good_lower_bound`.
+
+`BadEventBudget.ofBounds` now assembles exactly those four residual fields.
+`q0_lower_bound` constructs collision, randomizer, and KZG bounds internally
+from the query/cardinality prerequisites. `s1_soundness` now accepts finite
+`badZ`, its cardinality fact, the whole-game query bound, and the four-field
+residual budget. `s1BadRandomizers`, `coe_s1BadRandomizers`, and
+`s1BadRandomizers_card` construct and discharge the discrepancy carrier.
+
+The two protocol-order goals did not close. Their exact remaining probability
+statements are:
+
+```lean
+Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤
+  ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+
+Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
+  ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+```
+
+The sharpened blocker is not adaptive answer collision. `BadDependency` must
+extract an early round-point payload whose embedded `prev` guessed the later
+x0/previous-round answer; `BadRoundOrder` must extract the analogous
+cross-round prequery. Neither event is a collision between two logged answers,
+so the completed birthday theorem cannot discharge it. A new point-payload
+guessing lemma, indexed by `(level, early miss ordinal)`, plus accepted-trace
+reductions to that lemma are required to obtain the requested `μ*Q/card(F)`
+shape. `round_unqueried_bound` and quantitative `wrapFs` pushforward remain the
+previously documented independent boundaries.
+
+### Final `s1_soundness` assumption surface
+
+The explicit theorem inputs are:
+
+- computational binding: `hbindV`, `hbindW : KzgStructuredKeyBinding` and
+  `hbindA`, `hbindB : PairingCommitmentBinding`;
+- commitment/model premises: `hComA`, `hComB`;
+- finite bad-set/query facts: `hZcard`, `hquery`; the randomizer carrier and
+  bound are internal theorems;
+- residual ROM bundle `H : BadEventBudget ...` with the four fields above;
+- the quantitative positivity premise `hpositive`.
+
+Thus the final surface is not yet only the two named cryptographic assumption
+families. The explicit axiom audit is:
+
+```text
+'Ipp.s1_soundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+### S2 Tier-2 deepening
+
+`Ipp/ChallengeEncoding.lean` adds:
+
+- `challengePreimage_stage_eq`, a narrow stage recovery theorem;
+- `append_serializers_injective`, reducing fixed-length field concatenation to
+  injectivity of each canonical component serializer;
+- `fixed_pair_serialization_injective`, proving the byte boundary between two
+  fixed vectors cannot collide.
+
+`Ipp/FsGame.lean` now maps the five modeled `ChallengePoint` constructors to
+the exact deployed stages with `challengePointStage`. `challengePointPreimage`
+uses the proved byte framing, and `challengePoint_frame_eq_same_constructor`
+proves that equal framed bytes imply the same constructor. The model's
+constructor-disjointness claim is therefore backed by deployed label framing,
+not merely asserted from inductive tags. The residual serializer row is now
+limited to injectivity/parity of canonical field/group component serializers;
+fixed-length concatenation and cross-stage separation are proved in Lean.
+
+### Ledger and verification
+
+`formal-handoff.md` deletes the three discharged assumption rows:
+`assume.ro-answer-collision-union-bound`,
+`assume.ro-randomizer-rootset-union-bound`, and
+`assume.ro-kzg-z-union-bound`. The S1 row now records the four residual ROM
+hypotheses, and the serializer row records the component-concatenation and
+`ChallengePoint` framing theorems. The dependency/order, round-unqueried, and
+wrapped-transport rows remain assumed.
+
+Focused builds passed for `Ipp.FsMissBounds`, `Ipp.FsBadEvents`,
+`Ipp.ChallengeEncoding`, `Ipp.FsGame`, and `Ipp.S1`. The final pinned
+`LEAN_NUM_THREADS=1 lake build Ipp` passed: the cold invalidation run took
+386 seconds and rebuilt `Ipp.FsFork`, `Ipp.FsMissBounds`, `Ipp.FsBadEvents`,
+and `Ipp.S1`; the final post-signature-reduction run passed 3327 jobs in
+19.6 seconds with warnings only.
+
+The recursive `Ipp/*.lean` scan found zero `sorry`, project `axiom`
+declarations, or `native_decide`; `git diff --check` passed. The direct
+`check-snarkpack-invariants.sh` body passed with `snarkpack invariants ok` under
+a temporary tracked-tree `git grep` compatibility wrapper (removed after the
+run); the stock fallback timed out because it recursively scanned the OneDrive
+tree without `rg`. No prover/release-gated circuit tests were applicable or
+run.

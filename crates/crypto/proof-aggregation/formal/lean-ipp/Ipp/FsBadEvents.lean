@@ -12,19 +12,16 @@ The `WrappedRunGood` predicate consumed by U5d(4) excludes six bad events; this
 file states the union-bound accounting for them and proves the quantitative
 lower bound `Q_0 ≥ Pr[accept] − err_bad` by pure ENNReal event algebra.
 
-R7(4) status: the SIX per-event bounds are stated as the parametric interface
-`BadEventBudget` (a clearly-named hypothesis bundle); the `q0_lower_bound`
-complement/union algebra over them is proved concretely. See the REPORT-CODEX
-"U5a (opus session)" section for the constants chosen, which bounds went
-parametric, and the exact remaining gaps.
+R7(4) status: collision, randomizer, and KZG bounds are concrete from the
+whole-game query cap and finite bad sets. `BadEventBudget` retains only the two
+protocol-order reductions, round-unqueried, and wrapped probability transport.
 
 U5a hardening proves the mixed-source transport in `FsMissBounds.lean`:
 `structured_log_mem_at_le`, `structured_log_mem_before_le`, and
 `structured_log_mem_le` bound fixed finite bad sets across the structured
-ordinals while ignoring unrelated ambient-uniform ranges. The remaining field
-gaps are the protocol-local reductions from each accepted bad event to such a
-logged witness (or an adaptive pair for collisions), the corresponding bad-set
-cardinality premises, and quantitative `wrapFs` transport.
+ordinals while ignoring unrelated ambient-uniform ranges. The remaining gaps
+are the protocol-local dependency/order reductions, round-unqueried reduction,
+and quantitative `wrapFs` transport.
 
 Spec rows: `fs.stage-labels`, `groth16.randomizer`, `tipp-mipp.gipa`,
 `tipp-mipp.kzg`, `fs.challenge-preimage`.
@@ -261,6 +258,21 @@ theorem accepted_badRandomizer_log_witness {μ : Nat}
     z.1.transcript.randomizer, ?_, hbad.2⟩
   exact accepted_source_randomizer_query stmt adv hz hbad.1
 
+/-- Concrete birthday bound for accepted structured-answer collisions. -/
+theorem answer_collision_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤
+      (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) := by
+  apply le_trans (probEvent_mono (q := fun z => BadCollision z) (by
+    intro z _ h
+    exact h.2))
+  simpa [BadCollision] using
+    (structured_answers_not_injective_le
+      (fsRandomFunction (FsGame stmt adv)) (Q qb)
+      (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound))
+
 /-- The KZG bad-set field follows from the mixed-log union bound once the
 whole-game query cap and finite bad-set cardinality are supplied. -/
 theorem kzg_z_bound_of_query_bound [Fintype F] {μ : Nat}
@@ -377,25 +389,14 @@ theorem accepted_not_good_bad {μ : Nat}
     · -- structured-answer collision
       exact Or.inl ⟨hacc, hs⟩
 
-/-- The parametric U5a bad-event interface (DESIGN §R7 item 4). Each field is an
-RO union bound over the ≤ `Q qb` structured misses in scope; the concrete-constant
-proofs are the remaining U5a work (see the report). Naming matches the six
-deliverable bounds. -/
+/-- The residual U5a interface. Birthday, randomizer, and KZG bounds are
+derived from the whole-game query cap; only protocol-order, unqueried, and
+wrapped-distribution reductions remain explicit. -/
 structure BadEventBudget {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     [Fintype F]
-    (badR badZ : Set F) (dR dZ : Nat) (bUnq : ℝ≥0∞) : Prop where
-  /-- Birthday union bound over ordinal pairs. -/
-  answer_collision_bound :
-    Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤
-      (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
-  /-- Randomizer root-set miss over ≤ `Q qb` candidate randomizer points; the
-  randomizer stage rejects `{0,1}` so the per-slot conditional uniform mass is
-  ≤ 1/(|F|−2). -/
-  randomizer_rootset_bound :
-    Pr[fun z => Accepted z ∧ BadRandomizer badR z | fsProbComp stmt adv] ≤
-      (((Q qb) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2)
+    (badR badZ : Finset F) (bUnq : ℝ≥0∞) : Prop where
   /-- Dependency-order guessing event: an early round-ℓ miss must match the
   later fresh-uniform x0/prev answer; union over levels and early misses. -/
   dependency_order_bound :
@@ -406,10 +407,6 @@ structure BadEventBudget {μ : Nat}
   round_slot_order_bound :
     Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
       ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
-  /-- KZG bad-set hit over ≤ `Q qb` candidate KZG points, bad set of size ≤ dZ. -/
-  kzg_z_bound :
-    Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤
-      (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
   /-- Round-point-unqueried bound (kept fully parametric per DESIGN §R7 item 4 /
   the item-5 note: an accepting run with an unqueried round point already
   satisfies the acceptance chain on a fresh answer). -/
@@ -419,9 +416,9 @@ structure BadEventBudget {μ : Nat}
   experiment used by the forking recurrence. This remains explicit until the
   `wrapFs` erasure map has a quantitative (not only support) theorem. -/
   wrapped_good_lower_bound :
-    Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z |
+    Pr[fun z => Accepted z ∧ RunGoodFull qb stmt (badR : Set F) (badZ : Set F) z |
       fsProbComp stmt adv] ≤
-    Pr[WrappedRunGoodFull qb stmt badR badZ |
+    Pr[WrappedRunGoodFull qb stmt (badR : Set F) (badZ : Set F) |
       replayFirstRun (wrapFs (FsGame stmt adv))]
 
 /-- Assemble a bad-event budget from the bounds that have actually been
@@ -430,24 +427,19 @@ hypotheses rather than being hidden behind an unsound query-budget assumption. -
 protected theorem BadEventBudget.ofBounds [Fintype F] {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
-    (badR badZ : Set F) (dR dZ : Nat) (bUnq : ℝ≥0∞)
-    (hCol : Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤
-      (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
-    (hRnd : Pr[fun z => Accepted z ∧ BadRandomizer badR z | fsProbComp stmt adv] ≤
-      (((Q qb) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2))
+    (badR badZ : Finset F) (bUnq : ℝ≥0∞)
     (hDep : Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤
       ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
     (hOrd : Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
       ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
-    (hKzg : Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤
-      (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
     (hUnq : Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq)
-    (hWrap : Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z |
+    (hWrap : Pr[fun z => Accepted z ∧
+        RunGoodFull qb stmt (badR : Set F) (badZ : Set F) z |
         fsProbComp stmt adv] ≤
-      Pr[WrappedRunGoodFull qb stmt badR badZ |
+      Pr[WrappedRunGoodFull qb stmt (badR : Set F) (badZ : Set F) |
         replayFirstRun (wrapFs (FsGame stmt adv))]) :
-    BadEventBudget qb stmt adv badR badZ dR dZ bUnq :=
-  ⟨hCol, hRnd, hDep, hOrd, hKzg, hUnq, hWrap⟩
+    BadEventBudget qb stmt adv badR badZ bUnq :=
+  ⟨hDep, hOrd, hUnq, hWrap⟩
 
 /-- **U5a core (item 5), abstract form.** Pure ENNReal event algebra: the
 accepting-and-good probability is at least the accepting probability minus the
@@ -524,15 +516,20 @@ theorem q0_lower_bound_abstract {μ : Nat}
         add_le_add le_rfl hresidual
 
 /-- **U5a core (item 5), concrete form.** Instantiates the abstract lower bound
-with the parametric `BadEventBudget` constants: `Q_0 ≥ acc − err_bad` with
+with concrete collision/root-set bounds and the residual budget:
+`Q_0 ≥ acc − err_bad` with
 `Q := qb + 1` (the whole-game cap), `Q²/|F|`, `Q·dR/(|F|−2)`, two `μ·Q/|F|`,
 `Q·dZ/|F|`, and `bUnq` (DESIGN §U5a, §R7 item 4). -/
 theorem q0_lower_bound [Fintype F] {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
-    (badR badZ : Set F) (dR dZ : Nat) (bUnq : ℝ≥0∞)
-    (H : BadEventBudget qb stmt adv badR badZ dR dZ bUnq) :
-    Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z | fsProbComp stmt adv] ≥
+    (badR badZ : Finset F) (dR dZ : Nat) (bUnq : ℝ≥0∞)
+    (hRcard : badR.card ≤ dR) (hZcard : badZ.card ≤ dZ)
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb))
+    (H : BadEventBudget qb stmt adv badR badZ bUnq) :
+    Pr[fun z => Accepted z ∧
+        RunGoodFull qb stmt (badR : Set F) (badZ : Set F) z |
+      fsProbComp stmt adv] ≥
       Pr[fun z => Accepted z | fsProbComp stmt adv] -
         ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
           ((((Q qb) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2) +
@@ -540,9 +537,11 @@ theorem q0_lower_bound [Fintype F] {μ : Nat}
               (((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
                 ((((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
                   bUnq))))) :=
-  q0_lower_bound_abstract qb stmt adv badR badZ _ _ _ _ _ _
-    H.answer_collision_bound H.randomizer_rootset_bound H.dependency_order_bound
-    H.round_slot_order_bound H.kzg_z_bound H.round_unqueried_bound
+  q0_lower_bound_abstract qb stmt adv (badR : Set F) (badZ : Set F) _ _ _ _ _ _
+    (answer_collision_bound qb stmt adv hbound)
+    (randomizer_rootset_bound qb stmt adv badR dR hRcard hbound)
+    H.dependency_order_bound H.round_slot_order_bound
+    (kzg_z_bound qb stmt adv badZ dZ hZcard hbound) H.round_unqueried_bound
 
 end Quantitative
 

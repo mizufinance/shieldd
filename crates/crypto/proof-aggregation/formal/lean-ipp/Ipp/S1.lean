@@ -26,10 +26,42 @@ def badEventError [Fintype F] (μ qb dR dZ : Nat) (bUnq : ℝ≥0∞) : ℝ≥0�
         (((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
           ((((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) + bUnq)))))
 
-/-- `assume.kzg-structured-key-binding` and
-`assume.pairing-commitment-binding`: a positive quantitative fork bound maps
-an accepting FS execution to every per-proof Groth16 PPE, removing the
-Filecoin-lineage S1 assumption rows. -/
+/-- Canonical finite carrier of the per-statement randomizer discrepancy set. -/
+noncomputable def s1BadRandomizers {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT] [DecidableEq F] {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) : Finset F :=
+  (discrepancyRootSet_card (F := F) (fun i =>
+    groth16Discrepancy stmt.e stmt.alpha stmt.beta stmt.gamma stmt.delta
+      stmt.A stmt.C stmt.Aic stmt.B i)).1.toFinset
+
+@[simp] theorem coe_s1BadRandomizers {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT] [DecidableEq F] {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) :
+    (s1BadRandomizers stmt : Set F) =
+      discrepancyRootSet (fun i =>
+        groth16Discrepancy stmt.e stmt.alpha stmt.beta stmt.gamma stmt.delta
+          stmt.A stmt.C stmt.Aic stmt.B i) := by
+  exact (discrepancyRootSet_card (F := F) (fun i =>
+    groth16Discrepancy stmt.e stmt.alpha stmt.beta stmt.gamma stmt.delta
+      stmt.A stmt.C stmt.Aic stmt.B i)).1.coe_toFinset
+
+theorem s1BadRandomizers_card {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT] [DecidableEq F] {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) :
+    (s1BadRandomizers stmt).card ≤ 2 ^ μ - 1 := by
+  let d := fun i => groth16Discrepancy stmt.e stmt.alpha stmt.beta stmt.gamma
+    stmt.delta stmt.A stmt.C stmt.Aic stmt.B i
+  have h := discrepancyRootSet_card (F := F) d
+  change h.1.toFinset.card ≤ 2 ^ μ - 1
+  rw [← Set.ncard_eq_toFinset_card _ h.1]
+  exact h.2
+
+/-- A positive quantitative fork bound maps an accepting FS execution to every
+per-proof Groth16 PPE. Cryptographic binding plus the residual ROM budget are
+explicit inputs; collision and finite bad-set bounds are derived internally. -/
 theorem s1_soundness [Fintype F]
     [(FsSourceSpec F G1 G2 GT).DecidableEq]
     [IsUniformSpec (FsSourceSpec F G1 G2 GT)]
@@ -42,7 +74,7 @@ theorem s1_soundness [Fintype F]
     (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     (qb : (FsWrappedSpec F).Domain → Nat)
-    (badZ : Set F) (dZ : Nat) (bUnq : ℝ≥0∞)
+    (badZ : Finset F) (dZ : Nat) (bUnq : ℝ≥0∞)
     (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
     (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
     (hbindA : PairingCommitmentBinding (u4ACommitAtom stmt.e)
@@ -54,10 +86,10 @@ theorem s1_soundness [Fintype F]
     (hComB : ∀ r : F, u4BEmbedding stmt.ComB = commitV (u4BCommitAtom stmt.e)
       (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
       (fun i => r ^ (i : Nat) • stmt.B i))
+    (hZcard : badZ.card ≤ dZ)
+    (hquery : IsTotalQueryBound (FsGame stmt adv) (Q (qb (Sum.inr ()))))
     (H : BadEventBudget (qb (Sum.inr ())) stmt adv
-      (discrepancyRootSet (fun i => groth16Discrepancy stmt.e stmt.alpha
-        stmt.beta stmt.gamma stmt.delta stmt.A stmt.C stmt.Aic stmt.B i))
-      badZ (2 ^ μ - 1) dZ bUnq)
+      (s1BadRandomizers stmt) badZ bUnq)
     (hpositive : 0 <
       ((forkTreeStep (qb (Sum.inr ()) + 1)
         (Fintype.card F))^[μ])
@@ -67,13 +99,11 @@ theorem s1_soundness [Fintype F]
       groth16Rhs stmt.e stmt.alpha (stmt.Aic i) (stmt.C i)
         stmt.beta stmt.gamma stmt.delta := by
   classical
-  let badR : Set F := discrepancyRootSet (fun i =>
-    groth16Discrepancy stmt.e stmt.alpha stmt.beta stmt.gamma stmt.delta
-      stmt.A stmt.C stmt.Aic stmt.B i)
+  let badR := s1BadRandomizers stmt
   let leafOk : (WrappedFsRun
       (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT) × QueryLog (FsWrappedSpec F)) → Prop :=
-    WrappedRunGoodFull (qb (Sum.inr ())) stmt badR badZ
+    WrappedRunGoodFull (qb (Sum.inr ())) stmt (badR : Set F) (badZ : Set F)
   let main : OracleComp (FsWrappedSpec F) (WrappedFsRun
       (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) := wrapFs (FsGame stmt adv)
@@ -82,11 +112,17 @@ theorem s1_soundness [Fintype F]
       (FsResult μ F G1 G2 GT) → Option (Fin (qb (Sum.inr ()) + 1)) :=
     fun level run => roundSlot (qb (Sum.inr ())) level run
   have hq0 := q0_lower_bound (qb (Sum.inr ())) stmt adv badR badZ
-    (2 ^ μ - 1) dZ bUnq H
+    (2 ^ μ - 1) dZ bUnq (s1BadRandomizers_card stmt) hZcard hquery (by
+      simpa [badR] using H)
   have hbase : Pr[Accepted | fsProbComp stmt adv] -
       badEventError (F := F) μ (qb (Sum.inr ())) (2 ^ μ - 1) dZ bUnq ≤
       Pr[leafOk | replayFirstRun main] := by
-    exact le_trans (by simpa [badEventError, badR] using hq0) H.wrapped_good_lower_bound
+    calc
+      _ ≤ Pr[fun z => Accepted z ∧ RunGoodFull (qb (Sum.inr ())) stmt
+          (badR : Set F) (badZ : Set F) z | fsProbComp stmt adv] := by
+        simpa only [badEventError] using hq0
+      _ ≤ Pr[leafOk | replayFirstRun main] := by
+        simpa [leafOk, main, badR] using H.wrapped_good_lower_bound
   have hselector : ∀ {first}, first ∈ support (replayFirstRun main) → leafOk first →
       ∀ level, level < μ → ∃ s, cf level first.1 = some s := by
     intro first hfirst hgood level hlevel
@@ -174,7 +210,7 @@ theorem s1_soundness [Fintype F]
     · rfl
     · rfl
     · simpa [r] using haccepts.2.2.2.2.2.2.2
-    · exact hallFull.root.2.1
+    · simpa [r, badR] using hallFull.root.2.1
 
 end
 

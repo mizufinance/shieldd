@@ -6,6 +6,7 @@ The tree-to-`AcceptTree` assembly is deliberately left to U5d(4).
 -/
 import Ipp.Composition
 import Ipp.ForkTree
+import Ipp.ChallengeEncoding
 
 open OracleSpec OracleComp
 open scoped BigOperators OracleSpec.PrimitiveQuery
@@ -73,8 +74,8 @@ deriving DecidableEq
 contains the nonce serialized by Rust as `u64_le(nonce)`; `Nat` models the
 non-overflowing prefix of that loop. Round level is deliberately out-of-band:
 Rust hashes only the prior raw challenge and the two commitment objects.
-Constructor disjointness and typed record equality give abstract injectivity;
-byte-level injectivity remains the shieldd-byte `fs.challenge-preimage` row. -/
+Constructor disjointness is backed below by the deployed stage-label framing;
+within-constructor payload serialization remains the residual byte boundary. -/
 inductive ChallengePoint (F G1 G2 GT : Type) where
   | randomizer (payload : RandomizerPayload GT) (nonce : Nat)
   | x0 (payload : X0Payload F G1 GT) (nonce : Nat)
@@ -82,6 +83,52 @@ inductive ChallengePoint (F G1 G2 GT : Type) where
   | bridge (payload : BridgePayload F G1 G2) (nonce : Nat)
   | kzg (payload : KzgPayload F G1 G2) (nonce : Nat)
 deriving DecidableEq
+
+/-- Deployed challenge label selected by each modeled verifier point. -/
+def challengePointStage {F G1 G2 GT : Type} :
+    ChallengePoint F G1 G2 GT → ChallengeEncoding.Stage
+  | .randomizer .. => .aggregateRandomizer
+  | .x0 .. => .tippMippX0
+  | .round .. => .tippMippGipaRound
+  | .bridge .. => .tippMippFinalBridge
+  | .kzg .. => .tippMippKzg
+
+/-- Two points use the same typed payload constructor. -/
+def SameChallengeConstructor {F G1 G2 GT : Type} :
+    ChallengePoint F G1 G2 GT → ChallengePoint F G1 G2 GT → Prop
+  | .randomizer .., .randomizer .. => True
+  | .x0 .., .x0 .. => True
+  | .round .., .round .. => True
+  | .bridge .., .bridge .. => True
+  | .kzg .., .kzg .. => True
+  | _, _ => False
+
+/-- Byte preimage associated with a modeled point after supplying the context,
+bounded nonce bytes, and stage payload serializer. -/
+def challengePointPreimage
+    {F G1 G2 GT : Type}
+    (context : ChallengePoint F G1 G2 GT → ChallengeEncoding.Context)
+    (nonce : ChallengePoint F G1 G2 GT → ChallengeEncoding.Nonce)
+    (messages : ChallengePoint F G1 G2 GT → List UInt8)
+    (point : ChallengePoint F G1 G2 GT) : List UInt8 :=
+  ChallengeEncoding.challengePreimage (challengePointStage point)
+    (context point) (nonce point) (messages point)
+
+/-- Equal deployed byte frames must come from the same `ChallengePoint`
+constructor; cross-stage disjointness is therefore proved by byte framing. -/
+theorem challengePoint_frame_eq_same_constructor
+    {F G1 G2 GT : Type}
+    (context : ChallengePoint F G1 G2 GT → ChallengeEncoding.Context)
+    (nonce : ChallengePoint F G1 G2 GT → ChallengeEncoding.Nonce)
+    (messages : ChallengePoint F G1 G2 GT → List UInt8)
+    {a b : ChallengePoint F G1 G2 GT}
+    (h : challengePointPreimage context nonce messages a =
+      challengePointPreimage context nonce messages b) :
+    SameChallengeConstructor a b := by
+  have hstage : challengePointStage a = challengePointStage b :=
+    ChallengeEncoding.challengePreimage_stage_eq h
+  cases a <;> cases b <;>
+    simp [challengePointStage, SameChallengeConstructor] at hstage ⊢
 
 /-- The uniform structured challenge oracle. Every stage has scalar range
 `F`; its sum constructors separate the five `fs.stage-labels`. -/

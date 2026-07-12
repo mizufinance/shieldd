@@ -123,6 +123,19 @@ theorem challengePreimage_injective :
   subst messages₂
   rfl
 
+/-- Equal framed preimages use the same deployed stage label. -/
+theorem challengePreimage_stage_eq {stage₁ stage₂ : Stage}
+    {context₁ context₂ : Context} {nonce₁ nonce₂ : Nonce}
+    {messages₁ messages₂ : List UInt8}
+    (h : challengePreimage stage₁ context₁ nonce₁ messages₁ =
+      challengePreimage stage₂ context₂ nonce₂ messages₂) :
+    stage₁ = stage₂ := by
+  have hframe :
+      stageFrame stage₁ ++ (contextBytes context₁ ++ (u64LE nonce₁ ++ messages₁)) =
+        stageFrame stage₂ ++ (contextBytes context₂ ++ (u64LE nonce₂ ++ messages₂)) := by
+    simpa [challengePreimage] using h
+  exact stageFrame_separates stage₁ stage₂ _ _ hframe
+
 /-- The only remaining message-layer premise: canonical object serialization
 must itself be injective. Framing adds no collisions. -/
 theorem serialized_challenge_preimage_injective {Message : Type}
@@ -148,6 +161,33 @@ theorem serialized_challenge_preimage_injective {Message : Type}
   subst nonce₂
   subst message₂
   rfl
+
+/-- Fixed-length component concatenation reduces message injectivity to the
+injectivity of each canonical component serializer. -/
+theorem append_serializers_injective {A B : Type} (serializeA : A → List UInt8)
+    (serializeB : B → List UInt8) (n : Nat)
+    (hlenA : ∀ a, (serializeA a).length = n)
+    (hinjA : Function.Injective serializeA)
+    (hinjB : Function.Injective serializeB) :
+    Function.Injective (fun input : A × B => serializeA input.1 ++ serializeB input.2) := by
+  rintro ⟨a₁, b₁⟩ ⟨a₂, b₂⟩ h
+  have hlen : (serializeA a₁).length = (serializeA a₂).length :=
+    (hlenA a₁).trans (hlenA a₂).symm
+  have hparts := List.append_inj h hlen
+  have ha := hinjA hparts.1
+  have hb := hinjB hparts.2
+  exact Prod.ext ha hb
+
+/-- Concatenating two fixed byte vectors is injective; their boundary cannot
+create a serializer collision. -/
+theorem fixed_pair_serialization_injective (n m : Nat) :
+    Function.Injective (fun input : (Fin n → UInt8) × (Fin m → UInt8) =>
+      List.ofFn input.1 ++ List.ofFn input.2) := by
+  apply append_serializers_injective List.ofFn List.ofFn n
+  · intro a
+    simp
+  · exact List.ofFn_injective
+  · exact List.ofFn_injective
 
 end ChallengeEncoding
 
