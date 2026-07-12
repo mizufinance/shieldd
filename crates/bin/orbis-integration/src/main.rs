@@ -608,7 +608,11 @@ async fn seed(repo: &RepoPaths) -> Result<()> {
             "400regulated_usd",
             "300regulated_usd",
             "600regulated_usd",
-            "998700regulated_usd",
+            "100regulated_usd",
+            "100regulated_usd",
+            "100regulated_usd",
+            "100regulated_usd",
+            "998300regulated_usd",
         ],
     )?;
     sync_wallets(repo, &env, &["ALICE_HOME", "BOB_HOME", "CHARLIE_HOME"])?;
