@@ -1682,4 +1682,186 @@ theorem forkTree_iterate_bound (q h : ℝ≥0∞) (Q : Nat → ℝ≥0∞)
       rw [Function.iterate_succ_apply']
       exact le_trans (forkTreeStep_monotone q h ih) (hrec depth)
 
+private theorem cfReachable_continuedKeepCombinedChild [spec.DecidableEq]
+    {depth : Nat}
+    (main : OracleComp spec (Option (RunTree spec α depth)))
+    (qb : ι → Nat) (i : ι)
+    (cf : Option (RunTree spec α depth) → Option (Fin (qb i + 1)))
+    (lower : Option (Fin (qb i + 1)))
+    (hreach : CfReachable main qb i cf) :
+    CfReachable (continuedForkMain main keepCombinedChild) qb i
+      (continuedForkSelector qb i cf lower) := by
+  have hgated : CfReachable main qb i (gatedForkSelector qb i cf lower) :=
+    CfReachable.gated (main := main) (qb := qb) (i := i) (cf := cf)
+      (lower := lower) hreach
+  intro z log hz s hs
+  rcases z with ⟨⟨tree?, innerLog⟩, child?⟩
+  cases child? with
+  | none => simp [continuedForkSelector] at hs
+  | some child =>
+      obtain ⟨htree, hinner, hout⟩ :=
+        continuedForkMain_keepCombinedChild_some_support_props main hz
+      subst tree?
+      have hselector : gatedForkSelector qb i cf lower child = some s := by
+        simpa [continuedForkSelector] using hs
+      have hquery := hgated hinner s hselector
+      simpa [hout] using hquery
+
+/-- One combined-replay level satisfies the revised R7 scalar recurrence. -/
+theorem forkTreeCombined_step
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    (hslotOrder : ∀ {depth} (hdepth : depth < total)
+      {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk depth
+          (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+        treeFirstSlot cf total depth tree = some next →
+        selected < next) :
+    forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))
+        (Pr[fun t : Option (RunTree spec α built) => t.isSome |
+          forkTreeCombined total main qb i cf leafOk built
+            (Nat.le_of_lt hbuilt)]) ≤
+      Pr[fun t : Option (RunTree spec α (built + 1)) => t.isSome |
+        forkTreeCombined total main qb i cf leafOk (built + 1)
+          (Nat.succ_le_of_lt hbuilt)] := by
+  let extractor := forkTreeCombined total main qb i cf leafOk built
+    (Nat.le_of_lt hbuilt)
+  let selector : Option (RunTree spec α built) → Option (Fin (qb i + 1)) :=
+    combinedTreeSelector qb i cf total built hbuilt
+  have hcentral := forkTreeCombined_support_invariant_and_selectorMass
+    total built hbuilt main qb i cf leafOk hbaseReach hselectorTotal hslotOrder
+  have hreach : CfReachable (continuedForkMain extractor keepCombinedChild) qb i
+      (continuedForkSelector qb i selector none) := by
+    apply cfReachable_continuedKeepCombinedChild (main := extractor) (qb := qb)
+      (i := i) (cf := selector) (lower := none)
+    intro x log hrun s hs
+    exact hcentral.1 (by simpa [extractor] using hrun) s
+      (by simpa [selector] using hs)
+  have hbound := forkReplay4Continue_bound extractor qb i selector none
+    keepCombinedChild hreach
+  have hmass :
+      (∑ s, Pr[= some s |
+        continuedForkSelector qb i selector none <$>
+        continuedForkMain extractor keepCombinedChild]) =
+      Pr[fun tree => tree.isSome | extractor] := by
+    simpa [extractor, selector] using hcentral.2.2
+  have hstep :
+      forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))
+          (Pr[fun t : Option (RunTree spec α built) => t.isSome | extractor]) ≤
+        Pr[fun r : Option (Fin 4 →
+            (Option (RunTree spec α built) × QueryLog spec) ×
+              Option (RunTree spec α built)) => r.isSome |
+          forkReplay4Continue extractor qb i selector none keepCombinedChild] := by
+    calc
+      forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))
+            (Pr[fun t : Option (RunTree spec α built) => t.isSome | extractor]) =
+          forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))
+            (∑ s, Pr[= some s |
+              continuedForkSelector qb i selector none <$>
+              continuedForkMain extractor keepCombinedChild]) := by
+            rw [hmass]
+      _ ≤ Pr[fun r : Option (Fin 4 →
+            (Option (RunTree spec α built) × QueryLog spec) ×
+              Option (RunTree spec α built)) => r.isSome |
+          forkReplay4Continue extractor qb i selector none keepCombinedChild] := by
+            simpa [forkTreeStep] using hbound
+  calc
+    forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))
+          (Pr[fun t : Option (RunTree spec α built) => t.isSome |
+            forkTreeCombined total main qb i cf leafOk built
+              (Nat.le_of_lt hbuilt)]) =
+        forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))
+          (Pr[fun t : Option (RunTree spec α built) => t.isSome | extractor]) := rfl
+    _ ≤ Pr[fun r : Option (Fin 4 →
+          (Option (RunTree spec α built) × QueryLog spec) ×
+            Option (RunTree spec α built)) => r.isSome |
+        forkReplay4Continue extractor qb i selector none keepCombinedChild] := hstep
+    _ = Pr[fun t : Option (RunTree spec α (built + 1)) => t.isSome |
+        assembleCombinedNode <$> forkReplay4Continue extractor qb i selector none
+          keepCombinedChild] := by
+      symm
+      exact probEvent_isSome_assembleCombinedNode_forkReplay4Continue
+        extractor qb i selector
+    _ = Pr[fun t : Option (RunTree spec α (built + 1)) => t.isSome |
+        forkTreeCombined total main qb i cf leafOk (built + 1)
+          (Nat.succ_le_of_lt hbuilt)] := by
+      rw [forkTreeCombined_succ]
+
+/-- Iterating the combined-replay recurrence gives the full-depth endpoint. -/
+theorem forkTree_bound
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total : Nat)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    (hslotOrder : ∀ {depth} (hdepth : depth < total)
+      {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk depth
+          (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+        treeFirstSlot cf total depth tree = some next →
+        selected < next) :
+    ((forkTreeStep (qb i + 1) (Fintype.card (spec.Range i)))^[total])
+        (Pr[leafOk | replayFirstRun main]) ≤
+      Pr[fun t : Option (RunTree spec α total) => t.isSome |
+        forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total)] := by
+  let Q : Nat → ℝ≥0∞ := fun depth =>
+    if hdepth : depth ≤ total then
+      Pr[fun t : Option (RunTree spec α depth) => t.isSome |
+        forkTreeCombined total main qb i cf leafOk depth hdepth]
+    else ⊤
+  have hrec : ∀ depth,
+      forkTreeStep (qb i + 1) (Fintype.card (spec.Range i)) (Q depth) ≤
+        Q (depth + 1) := by
+    intro depth
+    by_cases hlt : depth < total
+    · have hnext : depth + 1 ≤ total := by omega
+      have hstep := forkTreeCombined_step total depth hlt main qb i cf leafOk
+        hbaseReach hselectorTotal hslotOrder
+      simpa [Q, Nat.le_of_lt hlt, hnext] using hstep
+    · by_cases heq : depth = total
+      · subst depth
+        simp [Q]
+      · have hgt : total < depth := by omega
+        have hgtNext : total < depth + 1 := by omega
+        simp [Q, Nat.not_le_of_gt hgt, Nat.not_le_of_gt hgtNext]
+  have hQ0 : Q 0 = Pr[leafOk | replayFirstRun main] := by
+    simp only [Q, dif_pos (Nat.zero_le total)]
+    rw [forkTreeCombined_zero]
+    rw [probEvent_bind_eq_tsum, probEvent_eq_tsum_ite]
+    refine tsum_congr fun first => ?_
+    by_cases hgate : leafOk first <;> simp [hgate]
+  calc
+    ((forkTreeStep (qb i + 1) (Fintype.card (spec.Range i)))^[total])
+          (Pr[leafOk | replayFirstRun main]) =
+        ((forkTreeStep (qb i + 1) (Fintype.card (spec.Range i)))^[total])
+          (Q 0) := by rw [hQ0]
+    _ ≤ Q total := forkTree_iterate_bound
+      (qb i + 1) (Fintype.card (spec.Range i)) Q hrec total
+    _ = Pr[fun t : Option (RunTree spec α total) => t.isSome |
+        forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total)] := by
+      simp [Q]
+
 end Ipp

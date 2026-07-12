@@ -4536,3 +4536,91 @@ Final `lake build Ipp`: passed (3324 jobs, 124.8 seconds).
 The pinned Lean 4.30.0 toolchain was used with `LEAN_NUM_THREADS=1` and one
 machine-wide Lake/Lean process at a time.  No `sorry`, custom `axiom`, or
 `native_decide` was added.  Prover/release-gated circuit tests were not run.
+
+## A? session 10
+
+Implemented the one-step combined-replay recurrence and its total-depth
+iteration.  The private reachability bridge is specialized to the query-free
+`keepCombinedChild` continuation and uses its existing outer-log support
+lemma.
+
+`forkTreeCombined_step` statement:
+
+```lean
+theorem forkTreeCombined_step
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    (hslotOrder : ∀ {depth} (hdepth : depth < total)
+      {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk depth
+          (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+        treeFirstSlot cf total depth tree = some next →
+        selected < next) :
+    forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))
+        (Pr[fun t : Option (RunTree spec α built) => t.isSome |
+          forkTreeCombined total main qb i cf leafOk built
+            (Nat.le_of_lt hbuilt)]) ≤
+      Pr[fun t : Option (RunTree spec α (built + 1)) => t.isSome |
+        forkTreeCombined total main qb i cf leafOk (built + 1)
+          (Nat.succ_le_of_lt hbuilt)]
+```
+
+`forkTree_bound` statement:
+
+```lean
+theorem forkTree_bound
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total : Nat)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    (hslotOrder : ∀ {depth} (hdepth : depth < total)
+      {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk depth
+          (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+        treeFirstSlot cf total depth tree = some next →
+        selected < next) :
+    ((forkTreeStep (qb i + 1) (Fintype.card (spec.Range i)))^[total])
+        (Pr[leafOk | replayFirstRun main]) ≤
+      Pr[fun t : Option (RunTree spec α total) => t.isSome |
+        forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total)]
+```
+
+Verification:
+
+```text
+Ipp.forkTreeCombined_step
+depends on axioms: [propext, Classical.choice, Quot.sound]
+Ipp.forkTree_bound
+depends on axioms: [propext, Classical.choice, Quot.sound]
+Focused `lake build Ipp.ForkTree`: passed (3301 jobs).
+Final `lake build Ipp`: passed (3324 jobs, 124.5 seconds).
+```
+
+The pinned Lean 4.30.0 toolchain was used with `LEAN_NUM_THREADS=1`, one
+machine-wide Lake/Lean process at a time, and no `lake update` or Mathlib
+build.  No `sorry`, custom `axiom`, or `native_decide` was added.  Prover and
+release-gated circuit tests were not run.
