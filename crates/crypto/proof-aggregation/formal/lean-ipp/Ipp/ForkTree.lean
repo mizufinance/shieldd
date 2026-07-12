@@ -510,6 +510,188 @@ theorem forkTree_support_props [spec.DecidableEq] [IsUniformSpec spec]
   obtain ⟨first, hfirst, htree⟩ := h
   exact (forkTreeFrom_support_props main qb i cf leafOk 0 none depth first hfirst htree).2
 
+/-- The canonical base run exposed by an outer combined-extractor log.  The
+prefix clause is the explicit session-7 replay projection obligation. -/
+def CombinedCanonicalProjection [spec.DecidableEq]
+    (main : OracleComp spec α) {built : Nat} (tree : RunTree spec α built)
+    (outerLog : QueryLog spec) : Prop :=
+  ∃ baseRun : α × QueryLog spec,
+    baseRun ∈ support (replayFirstRun main) ∧ tree.root = baseRun ∧
+      ∀ n, n < baseRun.2.length → outerLog[n]? = baseRun.2[n]?
+
+/-- The nested replay-prefix witness needed to turn one combined node into an
+R6 node.  Session 7 must construct this witness from replay-log prefixes. -/
+def CombinedNodePrefixProjection [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1))) {built : Nat}
+    (children : Fin 4 → RunTree spec α built) (outerLog : QueryLog spec) : Prop :=
+  ∃ slot : Fin (qb i + 1), ∃ answers : Fin 4 → spec.Range i,
+    ∃ cursor slotPos : Nat,
+      CombinedCanonicalProjection main (.node children) outerLog ∧
+      (∀ k, cf (total - (built + 1)) (children k).root.1 = some slot) ∧
+      Function.Injective answers ∧
+      (∀ k, QueryLog.getQueryValue? (children k).root.2 i ↑slot = some (answers k)) ∧
+      0 < cursor ∧
+      (∀ a b n, n < cursor → QueryLog.inputAt? (children a).root.2 n =
+        QueryLog.inputAt? (children b).root.2 n) ∧
+      slotPos < cursor ∧
+      (∀ k, QueryLog.inputAt? (children k).root.2 slotPos = some i) ∧
+      (∀ k, (QueryLog.getQ ((children k).root.2.take slotPos) (· = i)).length = (slot : Nat)) ∧
+      (∀ a b n, n < slotPos → (children a).root.2[n]? = (children b).root.2[n]?) ∧
+      (∀ k next, treeFirstSlot cf total built (children k) = some next → slot < next)
+
+/-- An optional parent slot is admissible when it is absent, a leaf has no
+first slot, or it is strictly below the first slot of a positive-depth tree. -/
+def CombinedSlotLower
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (tree : RunTree spec α built)
+    (lower : Option (Fin (qb i + 1))) : Prop :=
+  lower = none ∨ built = 0 ∨ ∃ first,
+    treeFirstSlot cf total built tree = some first ∧
+      ∀ previous, lower = some previous → previous < first
+
+/-- Construction-side invariant for bottom-up combined replay.  Its node
+projection is deliberately an explicit witness until session 7 proves it. -/
+inductive CombinedReplayConsistent [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) :
+    (built : Nat) → RunTree spec α built → QueryLog spec → Prop
+  | leaf (outerLog : QueryLog spec) (run : α × QueryLog spec)
+      (hprojection : CombinedCanonicalProjection main (.leaf run) outerLog)
+      (hgate : leafOk run) :
+      CombinedReplayConsistent total main qb i cf leafOk 0 (.leaf run) outerLog
+  | node {built : Nat} (outerLog : QueryLog spec)
+      (children : Fin 4 → RunTree spec α built) (hcover : built + 1 ≤ total)
+      (hprojection : CombinedNodePrefixProjection total main qb i cf children outerLog)
+      (childLogs : Fin 4 → QueryLog spec)
+      (hchildren : ∀ k,
+        CombinedReplayConsistent total main qb i cf leafOk built (children k) (childLogs k)) :
+      CombinedReplayConsistent total main qb i cf leafOk (built + 1) (.node children) outerLog
+
+namespace CombinedReplayConsistent
+
+/-- Introduce a successful combined leaf from its canonical base projection. -/
+theorem leaf_intro [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) (outerLog : QueryLog spec)
+    (run : α × QueryLog spec)
+    (hprojection : CombinedCanonicalProjection main (.leaf run) outerLog)
+    (hgate : leafOk run) :
+    CombinedReplayConsistent total main qb i cf leafOk 0 (.leaf run) outerLog :=
+  .leaf outerLog run hprojection hgate
+
+/-- Every stored combined-tree leaf is a canonical first run. -/
+theorem all_support [spec.DecidableEq]
+    {total : Nat} {main : OracleComp spec α} {qb : ι → Nat} {i : ι}
+    {cf : Nat → α → Option (Fin (qb i + 1))} {leafOk : α × QueryLog spec → Prop}
+    {built : Nat} {tree : RunTree spec α built} {outerLog : QueryLog spec}
+    (h : CombinedReplayConsistent total main qb i cf leafOk built tree outerLog) :
+    tree.All (fun run => run ∈ support (replayFirstRun main)) := by
+  induction h with
+  | leaf outerLog run hprojection hgate =>
+      rcases hprojection with ⟨baseRun, hsupport, hroot, hprefix⟩
+      change run ∈ support (replayFirstRun main)
+      have hrun : run = baseRun := by simpa [RunTree.root] using hroot
+      simpa [hrun] using hsupport
+  | node outerLog children hcover hprojection childLogs hchildren ih =>
+      intro k
+      exact ih k
+
+/-- Every stored combined-tree leaf satisfies the construction gate. -/
+theorem all_leafOk [spec.DecidableEq]
+    {total : Nat} {main : OracleComp spec α} {qb : ι → Nat} {i : ι}
+    {cf : Nat → α → Option (Fin (qb i + 1))} {leafOk : α × QueryLog spec → Prop}
+    {built : Nat} {tree : RunTree spec α built} {outerLog : QueryLog spec}
+    (h : CombinedReplayConsistent total main qb i cf leafOk built tree outerLog) :
+    tree.All leafOk := by
+  induction h with
+  | leaf outerLog run hprojection hgate => exact hgate
+  | node outerLog children hcover hprojection childLogs hchildren ih =>
+      intro k
+      exact ih k
+
+/-- Positive-depth combined trees expose their first slot. -/
+theorem firstSlot_some [spec.DecidableEq]
+    {total : Nat} {main : OracleComp spec α} {qb : ι → Nat} {i : ι}
+    {cf : Nat → α → Option (Fin (qb i + 1))} {leafOk : α × QueryLog spec → Prop}
+    {built : Nat} {tree : RunTree spec α built} {outerLog : QueryLog spec}
+    (h : CombinedReplayConsistent total main qb i cf leafOk built tree outerLog)
+    (hpositive : 0 < built) :
+    ∃ slot, treeFirstSlot cf total built tree = some slot := by
+  cases h with
+  | leaf => simp at hpositive
+  | node outerLog children hcover hprojection childLogs hchildren =>
+      rcases hprojection with ⟨slot, answers, cursor, slotPos, hbase, hcf, hinjective,
+        hanswers, hcursor, hprefix, hslotPos, hslotInput, hslotRank, hprefixValues,
+        hslotOrder⟩
+      refine ⟨slot, ?_⟩
+      simpa [treeFirstSlot_succ] using hcf 0
+
+/-- The newly exposed slot of a combined node precedes every child first slot. -/
+theorem slot_lt_child_first [spec.DecidableEq]
+    {total : Nat} {main : OracleComp spec α} {qb : ι → Nat} {i : ι}
+    {cf : Nat → α → Option (Fin (qb i + 1))} {leafOk : α × QueryLog spec → Prop}
+    {built : Nat} {children : Fin 4 → RunTree spec α built} {outerLog : QueryLog spec}
+    (h : CombinedReplayConsistent total main qb i cf leafOk (built + 1) (.node children) outerLog)
+    (k : Fin 4) (next : Fin (qb i + 1))
+    (hfirst : treeFirstSlot cf total built (children k) = some next) :
+    ∃ slot, cf (total - (built + 1)) (children 0).root.1 = some slot ∧ slot < next := by
+  cases h with
+  | node outerLog children hcover hprojection childLogs hchildren =>
+      rcases hprojection with ⟨slot, answers, cursor, slotPos, hbase, hcf, hinjective,
+        hanswers, hcursor, hprefix, hslotPos, hslotInput, hslotRank, hprefixValues,
+        hslotOrder⟩
+      exact ⟨slot, hcf 0, hslotOrder k next hfirst⟩
+
+/-- Forget the construction-only outer-log projection, retaining precisely the
+unchanged R6 tree interface. -/
+theorem forget [spec.DecidableEq]
+    {total : Nat} {main : OracleComp spec α} {qb : ι → Nat} {i : ι}
+    {cf : Nat → α → Option (Fin (qb i + 1))} {leafOk : α × QueryLog spec → Prop}
+    {built : Nat} {tree : RunTree spec α built} {outerLog : QueryLog spec}
+    (h : CombinedReplayConsistent total main qb i cf leafOk built tree outerLog)
+    (lower : Option (Fin (qb i + 1)))
+    (hlower : CombinedSlotLower qb i cf total built tree lower) :
+    TreeConsistent main qb i cf leafOk (total - built) lower tree := by
+  induction h generalizing lower with
+  | leaf outerLog run hprojection hgate =>
+      rcases hprojection with ⟨baseRun, hsupport, hroot, hprefix⟩
+      have hrun : run = baseRun := by simpa [RunTree.root] using hroot
+      exact .leaf (total - 0) lower run (by simpa [hrun] using hsupport) hgate
+  | @node built outerLog children hcover hprojection childLogs hchildren ih =>
+      rcases hprojection with ⟨slot, answers, cursor, slotPos, hbase, hcf, hinjective,
+        hanswers, hcursor, hprefix, hslotPos, hslotInput, hslotRank, hprefixValues,
+        hslotOrder⟩
+      have hstrict : ∀ previous, lower = some previous → previous < slot := by
+        intro previous hlowerEq
+        rcases hlower with hnone | hzero | ⟨first, hfirst, hbelow⟩
+        · simp [hnone] at hlowerEq
+        · omega
+        · have hfirstSlot : first = slot := by
+            have hfirst' : cf (total - (built + 1)) (children 0).root.1 = some first := by
+              simpa [treeFirstSlot_succ] using hfirst
+            exact Option.some.inj (hfirst'.symm.trans (hcf 0))
+          simpa [hfirstSlot] using hbelow previous hlowerEq
+      refine .node (total - (built + 1)) lower children slot answers cursor slotPos hcf
+        hinjective hanswers hcursor hprefix hslotPos hslotInput hslotRank hprefixValues
+        hstrict ?_
+      intro k
+      have hchildLower : CombinedSlotLower qb i cf total built (children k) (some slot) := by
+        by_cases hzero : built = 0
+        · exact Or.inr (Or.inl hzero)
+        · obtain ⟨next, hnext⟩ := firstSlot_some (hchildren k) (by omega)
+          exact Or.inr (Or.inr ⟨next, hnext,
+            fun previous hprevious => by
+              have hprevious' : previous = slot := Option.some.inj hprevious.symm
+              simpa [hprevious'] using hslotOrder k next hnext⟩)
+      have htree := ih k (some slot) hchildLower
+      convert htree using 1 <;> omega
+
+end CombinedReplayConsistent
+
 /-- Consistency entails support for every run stored in the tree. -/
 theorem TreeConsistent.all_support [spec.DecidableEq]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)

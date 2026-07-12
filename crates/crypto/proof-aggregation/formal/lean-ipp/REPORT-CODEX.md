@@ -4110,3 +4110,62 @@ theorem probEvent_isSome_assembleCombinedNode_forkReplay4Continue
 Termination is structural on `built`; the successor call decreases from `built + 1` to `built`, and `omega` discharges both the recursive bound and `built < total`. No private step or index cast was needed. The unfold proofs use `simp only [forkTreeCombined]` because generated proof arguments prevent raw `rfl`.
 
 Verification: pinned Lean 4.30.0, `LEAN_NUM_THREADS=1`; focused `lake build Ipp.ForkTree` passed, and final serial `lake build Ipp` passed in 125.3 seconds (3324 jobs). Dedicated `#print axioms` checks for the definition and five lemmas reported only `propext`, `Classical.choice`, and `Quot.sound`; zero `sorry`, custom axioms, or `native_decide`. Prover/release-gated tests were not run. Nothing was deferred.
+
+## A? session 6
+
+Implemented the construction-side shell in `Ipp/ForkTree.lean`; R6's
+`TreeConsistent`, `AcceptTree`, and all R6 lemmas remain unchanged.
+
+The `CombinedReplayConsistent` definition is:
+
+```lean
+inductive CombinedReplayConsistent [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) :
+    (built : Nat) → RunTree spec α built → QueryLog spec → Prop
+  | leaf (outerLog : QueryLog spec) (run : α × QueryLog spec)
+      (hprojection : CombinedCanonicalProjection main (.leaf run) outerLog)
+      (hgate : leafOk run) :
+      CombinedReplayConsistent total main qb i cf leafOk 0 (.leaf run) outerLog
+  | node {built : Nat} (outerLog : QueryLog spec)
+      (children : Fin 4 → RunTree spec α built) (hcover : built + 1 ≤ total)
+      (hprojection : CombinedNodePrefixProjection total main qb i cf children outerLog)
+      (childLogs : Fin 4 → QueryLog spec)
+      (hchildren : ∀ k,
+        CombinedReplayConsistent total main qb i cf leafOk built (children k) (childLogs k)) :
+      CombinedReplayConsistent total main qb i cf leafOk (built + 1) (.node children) outerLog
+```
+
+Session 7's explicit projection field is exactly
+`CombinedNodePrefixProjection total main qb i cf children outerLog`: it
+existentially carries the canonical base-run/outer-log prefix witness, common
+level slot, four distinct answers, cursor and slot position, and all existing
+R6 `hprefix`, `hslotInput`, `hslotRank`, and `hprefixValues` facts, followed
+by `∀ k next, treeFirstSlot cf total built (children k) = some next → slot < next`.
+`CombinedCanonicalProjection` records `baseRun ∈ support (replayFirstRun
+main)`, `tree.root = baseRun`, and `∀ n, n < baseRun.2.length →
+outerLog[n]? = baseRun.2[n]?`.
+
+The forgetful theorem statement is:
+
+```lean
+theorem CombinedReplayConsistent.forget [spec.DecidableEq]
+    {total : Nat} {main : OracleComp spec α} {qb : ι → Nat} {i : ι}
+    {cf : Nat → α → Option (Fin (qb i + 1))} {leafOk : α × QueryLog spec → Prop}
+    {built : Nat} {tree : RunTree spec α built} {outerLog : QueryLog spec}
+    (h : CombinedReplayConsistent total main qb i cf leafOk built tree outerLog)
+    (lower : Option (Fin (qb i + 1)))
+    (hlower : CombinedSlotLower qb i cf total built tree lower) :
+    TreeConsistent main qb i cf leafOk (total - built) lower tree
+```
+
+`CombinedSlotLower` permits `none`, the depth-zero case, or an explicit strict
+lower-than-`treeFirstSlot` witness. Helpers include `leaf_intro`, `all_support`,
+`all_leafOk`, `firstSlot_some`, and `slot_lt_child_first`.
+
+Verification: pinned Lean 4.30.0 with `LEAN_NUM_THREADS=1`; focused `lake
+build Ipp.ForkTree` passed, then serial `lake build Ipp` passed in 125.1s
+(3324 jobs). Warnings were pre-existing plus one local tactic-style linter
+warning; no `sorry`, `axiom`, or `native_decide` was introduced. Prover/release-
+gated tests were not run.
