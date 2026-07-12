@@ -3911,3 +3911,108 @@ theorem fsProbComp_isTotalQueryBound {μ : Nat}
   Instantiating `n := Q qb` and `h := FsGame_isTotalQueryBound_of_le stmt adv hadv hcap` gives the design's same-`Q` cap at each layer. The two wrapper lemmas expose the total source-query cap; structured misses are a subset because cache hits make zero source queries and each miss makes one, so this supports the later `Sum.inr ()` ordinal consumers.
 
 - Verification: focused pinned (`LEAN_NUM_THREADS=1`) builds of `Ipp.FsGame`, `Ipp.FsFork`, and `Ipp.FsBadEvents` passed. Final pinned `lake build Ipp` passed; `build.log` contains its tail output. Warnings were pre-existing lint/deprecation warnings. Prover/release-gated tests were not run. Deferred to sol: nothing; the caching transfer was available in usable form.
+
+## A? session 4
+
+Added the combined-experiment data layer in `Ipp/ForkTree.lean`; the old experiment remains unchanged and `forkTreeCombined` is deliberately not defined.
+
+```lean
+def combinedLevel (total built : Nat) (h : built < total) : Nat
+
+def treeFirstSlot {qb : ι → Nat} {i : ι}
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (tree : RunTree spec α built) :
+    Option (Fin (qb i + 1))
+
+def combinedTreeSelector
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) :
+    Option (RunTree spec α built) → Option (Fin (qb i + 1))
+
+def keepCombinedChild {depth : Nat} :
+    (Option (RunTree spec α depth) × QueryLog spec) →
+      OracleComp spec (Option (RunTree spec α depth))
+
+def assembleCombinedNode {depth : Nat} :
+    Option (Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth)) →
+      Option (RunTree spec α (depth + 1))
+
+@[simp] theorem combinedLevel_eq (total built : Nat) (h : built < total) :
+    combinedLevel total built h = total - (built + 1)
+
+@[simp] theorem treeFirstSlot_zero (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total : Nat) (tree : RunTree spec α 0) :
+    treeFirstSlot cf total 0 tree = none
+
+@[simp] theorem treeFirstSlot_succ (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (tree : RunTree spec α (built + 1)) :
+    treeFirstSlot cf total (built + 1) tree = cf (total - (built + 1)) tree.root.1
+
+@[simp] theorem combinedTreeSelector_none (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) :
+    combinedTreeSelector qb i cf total built h
+      (none : Option (RunTree spec α built)) = none
+
+@[simp] theorem combinedTreeSelector_some_cf_none (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) (tree : RunTree spec α built)
+    (hcf : cf (combinedLevel total built h) tree.root.1 = none) :
+    combinedTreeSelector qb i cf total built h (some tree) = none
+
+@[simp] theorem combinedTreeSelector_some_first_none (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) (tree : RunTree spec α built)
+    (s : Fin (qb i + 1))
+    (hcf : cf (combinedLevel total built h) tree.root.1 = some s)
+    (hfirst : treeFirstSlot cf total built tree = none) :
+    combinedTreeSelector qb i cf total built h (some tree) = some s
+
+@[simp] theorem combinedTreeSelector_some_first_some (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) (tree : RunTree spec α built)
+    (s next : Fin (qb i + 1))
+    (hcf : cf (combinedLevel total built h) tree.root.1 = some s)
+    (hfirst : treeFirstSlot cf total built tree = some next) :
+    combinedTreeSelector qb i cf total built h (some tree) =
+      if s < next then some s else none
+
+@[simp] theorem keepCombinedChild_some {depth : Nat}
+    (tree : RunTree spec α depth) (log : QueryLog spec) :
+    keepCombinedChild (some tree, log) = pure (some tree)
+
+@[simp] theorem keepCombinedChild_none {depth : Nat} (log : QueryLog spec) :
+    keepCombinedChild ((none : Option (RunTree spec α depth)), log) = pure none
+
+@[simp] theorem some_mem_support_keepCombinedChild_iff {depth : Nat}
+    (tree : RunTree spec α depth) (child : Option (RunTree spec α depth))
+    (log : QueryLog spec) :
+    some tree ∈ support (keepCombinedChild (child, log)) ↔ child = some tree
+
+@[simp] theorem assembleCombinedNode_none {depth : Nat} :
+    assembleCombinedNode (α := α) (spec := spec) (depth := depth) none = none
+
+@[simp] theorem assembleCombinedNode_some_of_all_isSome {depth : Nat}
+    (branches : Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth))
+    (h : forall k, (branches k).2.isSome) :
+    assembleCombinedNode (some branches) =
+      some (.node (fun k => (branches k).2.get (h k)))
+
+@[simp] theorem assembleCombinedNode_some_of_not_all_isSome {depth : Nat}
+    (branches : Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth))
+    (h : ¬ forall k, (branches k).2.isSome) :
+    assembleCombinedNode (some branches) = none
+```
+
+Elaboration deviation: `treeFirstSlot` needs inferred `{qb : ι → Nat}` and `{i : ι}` binders because its contractual `cf` argument mentions `qb i` while this project disables auto-implicit binders. This does not change argument order, result type, or behavior. The `keepCombinedChild_none` and selector-`none` lemmas carry explicit `Option (RunTree ...)` annotations solely to resolve erased dependent indices.
+
+Verification: the pinned Lean 4.30.0, `LEAN_NUM_THREADS=1` focused `lake build Ipp.ForkTree` passed (warnings only: two unused proof binders). I attempted the required final `lake build Ipp` serially; the environment's 60-second command ceiling terminated it twice while it was still compiling its final downstream modules, so it did not produce a passing final package result. `build.log` contains the tail from the last attempt. Prover/release-gated tests were not run.

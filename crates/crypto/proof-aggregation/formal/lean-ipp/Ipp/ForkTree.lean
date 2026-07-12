@@ -135,6 +135,163 @@ noncomputable def forkTree [spec.DecidableEq]
   let first ← replayFirstRun main
   forkTreeFrom main qb i cf leafOk 0 none depth first
 
+/-- The transcript level added while bottom-up combined replay extends a tree. -/
+def combinedLevel (total built : Nat) (h : built < total) : Nat :=
+  total - (built + 1)
+
+/-- The first extracted slot stored along a combined-replay tree's root path. -/
+def treeFirstSlot
+    {qb : ι → Nat}
+    {i : ι}
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (tree : RunTree spec α built) :
+    Option (Fin (qb i + 1)) :=
+  if h : 0 < built then cf (total - built) tree.root.1 else none
+
+/-- Select the new replay slot only when it precedes the child tree's first slot. -/
+def combinedTreeSelector
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) :
+    Option (RunTree spec α built) → Option (Fin (qb i + 1))
+  | none => none
+  | some tree =>
+      match cf (combinedLevel total built h) tree.root.1 with
+      | none => none
+      | some s =>
+          match treeFirstSlot cf total built tree with
+          | none => some s
+          | some next => if s < next then some s else none
+
+/-- Keep a successfully extracted child and discard its outer replay log. -/
+def keepCombinedChild {depth : Nat} :
+    (Option (RunTree spec α depth) × QueryLog spec) →
+      OracleComp spec (Option (RunTree spec α depth))
+  | (some tree, _) => pure (some tree)
+  | (none, _) => pure none
+
+/-- Join four successful extracted children under one combined-replay node. -/
+def assembleCombinedNode {depth : Nat} :
+    Option (Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth)) →
+      Option (RunTree spec α (depth + 1))
+  | some branches =>
+      if h : forall k, (branches k).2.isSome then
+        some (.node (fun k => (branches k).2.get (h k)))
+      else none
+  | none => none
+
+@[simp] theorem combinedLevel_eq (total built : Nat) (h : built < total) :
+    combinedLevel total built h = total - (built + 1) := rfl
+
+@[simp] theorem treeFirstSlot_zero
+    (qb : ι → Nat)
+    (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total : Nat) (tree : RunTree spec α 0) :
+    treeFirstSlot cf total 0 tree = none := by
+  simp [treeFirstSlot]
+
+@[simp] theorem treeFirstSlot_succ
+    (qb : ι → Nat)
+    (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (tree : RunTree spec α (built + 1)) :
+    treeFirstSlot cf total (built + 1) tree = cf (total - (built + 1)) tree.root.1 := by
+  simp [treeFirstSlot]
+
+@[simp] theorem combinedTreeSelector_none
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) :
+    combinedTreeSelector qb i cf total built h
+      (none : Option (RunTree spec α built)) = none := rfl
+
+@[simp] theorem combinedTreeSelector_some_cf_none
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) (tree : RunTree spec α built)
+    (hcf : cf (combinedLevel total built h) tree.root.1 = none) :
+    combinedTreeSelector qb i cf total built h (some tree) = none := by
+  change (match cf (combinedLevel total built h) tree.root.1 with
+    | none => none
+    | some s =>
+        match treeFirstSlot cf total built tree with
+        | none => some s
+        | some next => if s < next then some s else none) = none
+  rw [hcf]
+
+@[simp] theorem combinedTreeSelector_some_first_none
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) (tree : RunTree spec α built)
+    (s : Fin (qb i + 1))
+    (hcf : cf (combinedLevel total built h) tree.root.1 = some s)
+    (hfirst : treeFirstSlot cf total built tree = none) :
+    combinedTreeSelector qb i cf total built h (some tree) = some s := by
+  change (match cf (combinedLevel total built h) tree.root.1 with
+    | none => none
+    | some s =>
+        match treeFirstSlot cf total built tree with
+        | none => some s
+        | some next => if s < next then some s else none) = some s
+  rw [hcf, hfirst]
+
+@[simp] theorem combinedTreeSelector_some_first_some
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) (tree : RunTree spec α built)
+    (s next : Fin (qb i + 1))
+    (hcf : cf (combinedLevel total built h) tree.root.1 = some s)
+    (hfirst : treeFirstSlot cf total built tree = some next) :
+    combinedTreeSelector qb i cf total built h (some tree) =
+      if s < next then some s else none := by
+  change (match cf (combinedLevel total built h) tree.root.1 with
+    | none => none
+    | some s =>
+        match treeFirstSlot cf total built tree with
+        | none => some s
+        | some next => if s < next then some s else none) =
+      if s < next then some s else none
+  rw [hcf, hfirst]
+
+@[simp] theorem keepCombinedChild_some {depth : Nat}
+    (tree : RunTree spec α depth) (log : QueryLog spec) :
+    keepCombinedChild (some tree, log) = pure (some tree) := rfl
+
+@[simp] theorem keepCombinedChild_none {depth : Nat} (log : QueryLog spec) :
+    keepCombinedChild ((none : Option (RunTree spec α depth)), log) =
+      pure none := rfl
+
+@[simp] theorem some_mem_support_keepCombinedChild_iff {depth : Nat}
+    (tree : RunTree spec α depth) (child : Option (RunTree spec α depth))
+    (log : QueryLog spec) :
+    some tree ∈ support (keepCombinedChild (child, log)) ↔ child = some tree := by
+  cases child <;> simp [keepCombinedChild, eq_comm]
+
+@[simp] theorem assembleCombinedNode_none {depth : Nat} :
+    assembleCombinedNode (α := α) (spec := spec) (depth := depth) none = none := rfl
+
+@[simp] theorem assembleCombinedNode_some_of_all_isSome {depth : Nat}
+    (branches : Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth))
+    (h : forall k, (branches k).2.isSome) :
+    assembleCombinedNode (some branches) =
+      some (.node (fun k => (branches k).2.get (h k))) := by
+  simp [assembleCombinedNode, h]
+
+@[simp] theorem assembleCombinedNode_some_of_not_all_isSome {depth : Nat}
+    (branches : Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth))
+    (h : ¬ forall k, (branches k).2.isSome) :
+    assembleCombinedNode (some branches) = none := by
+  simp [assembleCombinedNode, h]
+
+-- Session 5 adds `forkTreeCombined` below this data-layer boundary.
+
 private theorem forkTreeFrom_support_props [spec.DecidableEq] [IsUniformSpec spec]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
