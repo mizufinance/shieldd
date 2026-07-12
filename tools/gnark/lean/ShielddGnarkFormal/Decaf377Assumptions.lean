@@ -214,6 +214,16 @@ def NetBalanceCommitmentSpec
     (input0 input1 output assetID balanceBlinding : F) (out : Point) : Prop :=
   out = netBalanceCommit input0 input1 output assetID balanceBlinding
 
+/-- NB-1 spec: the 128-bit range facts are load-bearing (they are
+ZK-ASSUME-AMOUNT-RANGE — the value ladders that used to enforce them are gone),
+conservation is a field equation whose operands are range-bounded below the
+modulus, and the commitment collapses to the blinding ladder alone. -/
+def ConservationNetBalanceCommitmentSpec
+    (input0 input1 output balanceBlinding : F) (out : Point) : Prop :=
+  input0.val < 2 ^ 128 ∧ input1.val < 2 ^ 128 ∧ output.val < 2 ^ 128 ∧
+  input0 + input1 = output ∧
+  out = scalarMulLE 251 valueBlindingGenerator balanceBlinding
+
 def NetBalanceCommitment2Spec
     (input0 input1 output0 output1 assetID balanceBlinding : F) (out : Point) : Prop :=
   out = netBalanceCommit2 input0 input1 output0 output1 assetID balanceBlinding

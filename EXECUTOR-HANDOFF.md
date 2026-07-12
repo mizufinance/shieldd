@@ -59,7 +59,9 @@ Strategy: `docs/soundness/optimization-playbook.md` §5b (2026-07-10). Order:
 Phase 0 family pruning (delete consolidate4x1 + split1x4 — DONE) → Phase 1
 frontier design pass (froze the batch: T1-f, T1-h, NB-1 IN / NB-2, T2-c OUT —
 DONE) → **Phase 2 DONE** (batched Go change-set, landed as 3 independently
-compiling/passing commits: T1-f, T1-h, NB-1) → **Phase 3 NEXT** — one Lean
+compiling/passing commits: T1-f, T1-h, NB-1) → **Phase 3 DONE 2026-07-12**
+(see `docs/soundness/records/wave2-gate-record.md`) → **Phase 4 DONE
+2026-07-12** (setups + stamps + record; CI green pending push) — one Lean
 re-stamp for the whole batch (the T1-d machinery, now cheaper: derive
 old->new segment mapping, regen adapters, re-point hand-authored layers incl.
 the wiring transcript, one serialized lake campaign, gate battery, one
@@ -802,6 +804,20 @@ CI runner's resource pressure.
 
 ## Recently completed
 
+- 2026-07-12: **Q5 DONE (Phases 3+4)** — one Lean re-stamp for the whole Wave 2
+  batch: serialized lake campaign GREEN (NbAdapterSeg46 → CompressAdapters →
+  Bounds → Capstone → Statement → WiringTranscript → Consolidate2x1);
+  `consolidate2x1_circuit_sound` and `transfer_circuit_sound` both on base
+  axioms only; 43/43 obligations discharged; full gate battery GREEN
+  (lean-circuit-fv both circuits, vk-derivation both, constraint-coverage,
+  soundness-invariants, lints); fresh setups for all surviving families;
+  transfer stamps + 16 Seg contracts refreshed per PR97 policy (evaluated:
+  wire shifts only, transcript hash unchanged — NOT contract drift). Local CI
+  equivalents all green (constraint-coverage 66/66, sdk bundled-proving-keys
+  69/69, go circuits ok). Record: `docs/soundness/records/wave2-gate-record.md`;
+  §5 ledger rows added. Fixes en route: gen_dtk_slice.py hardcoded Q4-guard
+  wires (2412/2413/2414 → 3115/3116/3117), stale Specs/{Dtk,Scp}.lean,
+  NullifierAdapters deployedSpec27→26.
 - 2026-07-10: Q5 Phase 2 done — landed the frozen Wave 2 batch (T1-f, T1-h,
   NB-1; NB-2/T2-c stay out) as 3 independently compiling/passing Go commits
   on `optimization-consolidate`. consolidate2x1: 44,665 -> 36,553 (-8,112,

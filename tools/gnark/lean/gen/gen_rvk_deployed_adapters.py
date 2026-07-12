@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate consolidate2x1 RVK deployed-slice adapters for segments 15 and 31
-(post-T1-d; seg13 renumbered to seg15 with a +5816 internal-wire shift since
-DTK hoisting moved everything downstream; seg31 is unchanged).
+"""Generate consolidate2x1 RVK deployed-slice adapters for segments 15 and 30
+(Wave-2 layout: inst0 wires shifted -251, inst1 -954 vs the T1-d layout; pins
+re-derived from consolidate2x1-deployed-slice-ir.json).
 
 The deployed RVK slice has three pieces:
 
@@ -33,49 +33,49 @@ CONT_START = 150
 INSTANCES = {
     15: dict(
         inst="Inst0",
-        b0=16387,
-        prefix_x1=16641,
-        prefix_y1=16642,
-        cont_x150=17389,
-        cont_y150=17390,
+        b0=16136,
+        prefix_x1=16390,
+        prefix_y1=16391,
+        cont_x150=17138,
+        cont_y150=17139,
         vbase=247,
         split_row0=997,
         split_lc0=739,
-        out=(18196, 18197),
+        out=(17945, 17946),
         akX=6,
         akY=7,
         lcx=1448,
         lcy=1447,
         lc46=1446,
-        i75=18191,
-        i76=18192,
-        i77=18193,
-        i78=18194,
-        i79=18195,
+        i75=17940,
+        i76=17941,
+        i77=17942,
+        i78=17943,
+        i79=17944,
         r1805=1805,
         tail=dict(pre=1806, x7=1807, y8=1808, d9=1809, outx=1810, outy=1811),
     ),
-    31: dict(
+    30: dict(
         inst="Inst1",
-        b0=29271,
-        prefix_x1=29525,
-        prefix_y1=29526,
-        cont_x150=30273,
-        cont_y150=30274,
+        b0=28317,
+        prefix_x1=28571,
+        prefix_y1=28572,
+        cont_x150=29319,
+        cont_y150=29320,
         vbase=247,
         split_row0=997,
         split_lc0=739,
-        out=(31080, 31081),
+        out=(30126, 30127),
         akX=6,
         akY=7,
         lcx=1448,
         lcy=1447,
         lc46=1446,
-        i75=31075,
-        i76=31076,
-        i77=31077,
-        i78=31078,
-        i79=31079,
+        i75=30121,
+        i76=30122,
+        i77=30123,
+        i78=30124,
+        i79=30125,
         r1805=1805,
         tail=dict(pre=1806, x7=1807, y8=1808, d9=1809, outx=1810, outy=1811),
     ),

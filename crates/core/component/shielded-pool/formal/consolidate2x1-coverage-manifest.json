@@ -15,24 +15,24 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst10_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg10",
           "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
-          "relation_sha256_hex": "f2adc4f813bca95ac676f89fc8a537d2c3c4fb50b7df438b81ef5f466ea8f231",
-          "wire_role_sha256_hex": "1acce880d9f1623f76b38923b5450b371a6fc6ca62ac1f5c15c6c4f61ae5de85"
+          "relation_sha256_hex": "7136a32814217c612a20ae06b4608f42391e4b10115e03b76648223e47e4c78b",
+          "wire_role_sha256_hex": "cc23b03860b124971965da24e733efad30a9292c5e996816909c1fae3f405c9a"
         },
         {
-          "segment_index": 26,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst26_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg26",
+          "segment_index": 25,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst25_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg25",
           "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
-          "relation_sha256_hex": "0cf45c5ad08194c79110e060de79c6d8de862780ade24cebb2fc8d6e90d552a4",
-          "wire_role_sha256_hex": "edb2b274a6e03325f14dbd83329791c56def8c0a53e064041cbb53d9210f8356"
+          "relation_sha256_hex": "6b551fb1ab2163c06c1efed8300a18cdeac5973315b8c5d2eb73bc7babf9475b",
+          "wire_role_sha256_hex": "8c084646eec94d4157e42dd17304cecaeba839873f43e5fe6d3c9a2c42fb6100"
         },
         {
-          "segment_index": 42,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst42_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg42",
+          "segment_index": 40,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst40_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg40",
           "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
-          "relation_sha256_hex": "748317cab69a7c54139b4f8ed019e124a1b88c39300910753762b60b2238fec9",
-          "wire_role_sha256_hex": "691dfe20945dc0b44cdf1fe8fc0a3b8e552f654aa4137d9e5a8b5598f5b1edd7"
+          "relation_sha256_hex": "2fc0a73f0caac6f0c33761fc342802b67c5f3769aaa7880529a30158c886d0fc",
+          "wire_role_sha256_hex": "bdb491af457d45322aee5edf664c0487c5d35b78f1b8fdab980804f3b15bff8a"
         }
       ],
       "note": "deployed glue slice => enforced algebraic equality; axiom-clean"
@@ -49,16 +49,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst12_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg12",
           "constant_vector_sha256_hex": "910dabe3b4845cbdaea2b5042b08e67a0e0020ed3d574b9af73b4356fc1a5fd3",
-          "relation_sha256_hex": "d504f1c06e48635fb44e1c20755a6718963363db98191738602def73fbc1b32c",
-          "wire_role_sha256_hex": "c99998defc0eb4c7de8942bc09b86885a2999453e700558ebf88a9e4536ae8e7"
+          "relation_sha256_hex": "1e1cbb4f98e5e60fd24c0fe14e965df63e342d91fee7dd7f6dcb7f17d8500c89",
+          "wire_role_sha256_hex": "cce7d39c1aeb565873917ebe947ef291c5c93e6eb705c433032fe71b4da4188b"
         },
         {
-          "segment_index": 28,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst28_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg28",
+          "segment_index": 27,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst27_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg27",
           "constant_vector_sha256_hex": "910dabe3b4845cbdaea2b5042b08e67a0e0020ed3d574b9af73b4356fc1a5fd3",
-          "relation_sha256_hex": "3f7123b16e70c6db57567b13b1a108d07460b57da3743c6b732863575cc2b2ec",
-          "wire_role_sha256_hex": "11dc5644abe37c4ea7f2fecbc9bafbb4fb2ce7d115a2e3bcf69468691f19c4eb"
+          "relation_sha256_hex": "7004e8e0ae9f6a1aa44d6ece203f98c776e9b3dbf6cac9650ffbab6b38a1eae5",
+          "wire_role_sha256_hex": "4e6f8998bd5df6d9c95f00a4a0ebb514148772dbe5347f70abc63d01cbd1a204"
         }
       ],
       "note": "redundant row (lone existential, no cross-boundary wire); spec True"
@@ -93,16 +93,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst14_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg14",
           "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
-          "relation_sha256_hex": "a3e105ecfb3e72c606c0f4391f61b143bba704b0cfc17dcebf1dc3ca69f66c7e",
-          "wire_role_sha256_hex": "9d73f5b79e6c2ab4b97aa9919ad76555ca4e1a2327eee14c803df815cf612b3f"
+          "relation_sha256_hex": "dc95ea0a7592659dac3b3a2915b8d6cb93948a0d239d8c036af210665faa24a6",
+          "wire_role_sha256_hex": "1b56dadde8daff7030e651522a5f89ca808d93d7cbda2affb9dd3d64642e75be"
         },
         {
-          "segment_index": 30,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst30_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg30",
+          "segment_index": 29,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst29_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg29",
           "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
-          "relation_sha256_hex": "ccc26735670b4c7977c958ea5a88f97dba19b775a34c8fd22033e1eeb3bd2661",
-          "wire_role_sha256_hex": "82316283701196da0fdd3cfd4b873c9a0e95d0a5e501516e338baf10e8015dc3"
+          "relation_sha256_hex": "c5fd71a1fadfd80e5bb1292de2d1d7716f541c2753342c7fb1699ecdbec179f1",
+          "wire_role_sha256_hex": "461fa4026c0fe5f308efdc882b2bd0f586f0464998e9d4caaf5e17a141951e29"
         }
       ],
       "note": "deployed glue slice => enforced algebraic equality; axiom-clean"
@@ -115,17 +115,17 @@
       "shape_sha256_hex": "944014bd89e246a56bbe732f9d28f76f007b1067b88e1c73b6521cb414cb2499",
       "instances": [
         {
-          "segment_index": 37,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst37_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg37",
+          "segment_index": 36,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst36_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg36",
           "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
           "relation_sha256_hex": "86ed2f5c5b9acefc13e7423579ba6b81aa6d329e955b4ef9d27495254a0e0c48",
           "wire_role_sha256_hex": "0ddfd2818a27ef90e8826a0cbedfdddc70e1de65a80104bb68fa458b3267b7ae"
         },
         {
-          "segment_index": 46,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst46_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg46",
+          "segment_index": 44,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst44_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg44",
           "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
           "relation_sha256_hex": "70c5db5dde7e5ea4544d146f3d499018eae13418c025cba8667d7e5ea422ff9a",
           "wire_role_sha256_hex": "966126af11b0390f30d323ad9d9607ce09e1f91b024bb0117558c4c154b082e5"
@@ -141,12 +141,12 @@
       "shape_sha256_hex": "fcdce018977caef8841bd7700ba41d2ed471c63bd0c9ca1ea5ff6b831b71b392",
       "instances": [
         {
-          "segment_index": 56,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst56_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg56",
+          "segment_index": 54,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst54_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg54",
           "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
-          "relation_sha256_hex": "3658b44469a12d50a49e3063b6d329906b77e393986258b56745841882ad2e96",
-          "wire_role_sha256_hex": "cd318d55eae7a808a6c5cf8906cfe10960f42d78cc68ea1bd268c18b1c671253"
+          "relation_sha256_hex": "b5308186a645c0a7ab9f897d99b48d1c03260bfd578bde0d089311370a657a1e",
+          "wire_role_sha256_hex": "2f4821c877cc682f2d54699300755fdc16fd362f1dc692729a1c65f3b8107552"
         }
       ],
       "note": "deployed glue slice => enforced algebraic equality; axiom-clean"
@@ -159,12 +159,20 @@
       "shape_sha256_hex": "33ce4e8355a9a6717032b9bb7823e36192f09e6538cc6a9bd5c57cdd2e5b020e",
       "instances": [
         {
-          "segment_index": 6,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst6_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg6",
+          "segment_index": 7,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst7_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg7",
           "constant_vector_sha256_hex": "c78e793aa4d8f81f40305396be86cc7512337ae2cb7ba50a1a55806d07607754",
-          "relation_sha256_hex": "cbb6050f0654ae27dc5d24b46ce7ac1c5f26b1be5da48fea43365d4b6644c3cb",
-          "wire_role_sha256_hex": "016b9188003b355da37192435b0737c0aca50de70b564aafada6464bc20c89fa"
+          "relation_sha256_hex": "200f7328de80f8207b50505d81d1cabba4542de9d0946fe46e59a67d24e8bc7e",
+          "wire_role_sha256_hex": "46049e52dc1eb36157840edd2d63eab79fa3961ca495aaa8dd5a51060ce89577"
+        },
+        {
+          "segment_index": 47,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst47_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg47",
+          "constant_vector_sha256_hex": "528dcca721223d426f26acde59e09b3253ac9d0e717e2fc65f97e6f7141684b0",
+          "relation_sha256_hex": "d5d065e903e8f7e8b96d552fb315350298394554e023d024781a132e73796ccf",
+          "wire_role_sha256_hex": "d2583292c51685b2ffa79a0faf4816b0df93244c06d62385d60c9752ca314c10"
         }
       ],
       "note": "deployed glue slice => enforced algebraic equality; axiom-clean"
@@ -181,72 +189,64 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst16_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg16",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "80dd93bcd19aae0535c01a79aa9dcb6b1e0553fa6e0aa33af4eb09322cf67832",
-          "wire_role_sha256_hex": "9c878d0dcd6043bf77b3fd4fb50c079bf880f84a593f250f8ca4f36f949bdc3a"
+          "relation_sha256_hex": "28b265229afc2d5630c3840fef592fd932886a937eaabbfd21debf2c3b987024",
+          "wire_role_sha256_hex": "95bb18fbf91fa09615141216f18e78a256f74d6689702850595ff690260229a5"
         },
         {
           "segment_index": 19,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst19_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg19",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "5e88f6cf83225ce616e2585dca6d0478c57ef06997d37cab992bb79680a951f2",
-          "wire_role_sha256_hex": "e8214ca258390e3e574b1dd368f12a9365beb45b2957ff105a952b81621e2d19"
+          "relation_sha256_hex": "d53efc63b71bb429225daf61c051347f31c21f50ad6619b5fbd17c6ccceeff4b",
+          "wire_role_sha256_hex": "ff8d5bc9e06a8fc1b0da1c9af0112b0858ea14d43ea2ef832207091b861457c0"
         },
         {
           "segment_index": 20,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst20_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg20",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "e77105225ea6d49708819aa6667bf8d0b53c34659372b245f5f94fcdda20f3ae",
-          "wire_role_sha256_hex": "2095710281ab0b88625b9e6e604a3a65d66010b510617feb875b9cc588d7d344"
+          "relation_sha256_hex": "9780d9daa39ac93f4776621a3c20001246ca2a9c5eef3781a7ca093f1c75fb14",
+          "wire_role_sha256_hex": "ebeea4aebdcfa0f430050792768abbc7c908893bf84d79cdc82ce0c40e36347c"
         },
         {
-          "segment_index": 32,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst32_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg32",
+          "segment_index": 31,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst31_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg31",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "71aa3636ae0f10dfeef80c6194089a22a4d93d796bc05711e783515c59ff4ead",
-          "wire_role_sha256_hex": "a9fdcb198338a173787fae84f311a426fbd12f6517ad681d04fdedc0302def93"
+          "relation_sha256_hex": "8c448d71358b5b11beb6424987b6e453af46c7a3a88734651896fb7f3e10dbc1",
+          "wire_role_sha256_hex": "02471996ca096d37b152d34ab630b3a37b97b61c6cfc9a9a3c30f2f0b05dac94"
+        },
+        {
+          "segment_index": 34,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst34_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg34",
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "relation_sha256_hex": "4899c8b43db7b34a393c1a20c9e6a23bcdc0516c71e99dd73135b3cc9ae26084",
+          "wire_role_sha256_hex": "641532aaeb4ea720705bc85beb829a05c2b95a402de24d864f9560cfc9d918af"
         },
         {
           "segment_index": 35,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst35_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg35",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "6590361029b9969932f21fad7329b45ae3b1d0e4cef1354b61f18e34439172e0",
-          "wire_role_sha256_hex": "fb1212928bc8ba52397f8a4b429fd0a92593b8acc8b2cb1e2913b2b30413d45d"
+          "relation_sha256_hex": "c920982adbed2a4dd37223704188a79a6081eda3d1e6e84077829019a7a22d8e",
+          "wire_role_sha256_hex": "b0a0e3458dd104a54793bc56e7b93c6be24f9850765e1b85534af2afaac2e267"
         },
         {
-          "segment_index": 36,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst36_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg36",
+          "segment_index": 42,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst42_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg42",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "274fb6bb91e8288fb841664888724a0a68bc78104176ebfdd09430a23acb6890",
-          "wire_role_sha256_hex": "b86de30ebcde38af96618c21fab59f8ba8543aaea0ca86e3f7749ddf3c1cc952"
+          "relation_sha256_hex": "25f0dd1bf6b54ccbb543a5adadddde1b5d88e3e67622ef2aa98d710cd5b3e1c6",
+          "wire_role_sha256_hex": "f4e5808bd5715c8923f59d9ec019d771c824541ae30cf99cdad58875514910b1"
         },
         {
-          "segment_index": 44,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst44_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg44",
+          "segment_index": 43,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst43_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg43",
           "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "dfc5a3cc044ee97c6ad67cbcf127911678f4f44a89a657bb08a8e87cb5f4ecc9",
-          "wire_role_sha256_hex": "f330fadcc5fa27057054c18860e793034548208a62a0c61c4ee6cc25b6e8a5f3"
-        },
-        {
-          "segment_index": 45,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst45_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg45",
-          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "a6a9bec30d74ca2c90cccf5ac840de12ad56bca222cb0220b492eacf187a5e52",
-          "wire_role_sha256_hex": "985ac793fd2d75556d235c0dadef03040d4ae62adbaa3c166d49efeebf62a0df"
-        },
-        {
-          "segment_index": 49,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst49_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg49",
-          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-          "relation_sha256_hex": "fdb13090919d92e2198e94e3bc6656a9d106a3fcda39747f05d31edd1e2a75e1",
-          "wire_role_sha256_hex": "a416fe7219ab24bf88f7db874eae30edb6800780d8ab53c0aaaafa6f136bb29a"
+          "relation_sha256_hex": "f9fdfd23f44dc1d5da61f9feebdf8811748b64fc577e51e904ad20d1d919bbe6",
+          "wire_role_sha256_hex": "4dae5b01fd264d283314f56dbd945fec71084980ed5db4973548df9961c9bb91"
         }
       ],
       "note": "deployed glue slice => enforced algebraic equality; axiom-clean"
@@ -287,27 +287,45 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst18_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg18",
           "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-          "relation_sha256_hex": "52d05c83246a848b5819e1614be93b2dd6e0b49b871d9c0dd87398da5201f356",
-          "wire_role_sha256_hex": "e974b1458c2b80fa1968db6c3e0aac8e9a7e4488500dd6086c73a529529be0a2"
+          "relation_sha256_hex": "c288bb4d9071afdd08fe23141589b357b882eebb8e24b8d540887579f2ab9b56",
+          "wire_role_sha256_hex": "84693b4bf8604200830850b3cd1bd262750d40b11d7b792df2b4f3fb8f16ad7c"
         },
         {
-          "segment_index": 34,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst34_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg34",
+          "segment_index": 33,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst33_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg33",
           "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-          "relation_sha256_hex": "11f34ef171e67e2c74e085de04a0e6fd6a14260598be3fc1db82a9b37ce0d4e0",
-          "wire_role_sha256_hex": "a806e9cdfa0a0e4b505e0642c503cbe27d5c8057494395269c5ed9d906d58e56"
+          "relation_sha256_hex": "fe51da7ec6b486b317002a2c3526ce972d8b4c49cd74e58bbc6cb2694a136a57",
+          "wire_role_sha256_hex": "6128d27fab755f42bc59b452b2166fa05e3ddcdeea6a2cbc0e18223609690371"
         },
         {
-          "segment_index": 43,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst43_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg43",
+          "segment_index": 41,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst41_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg41",
           "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-          "relation_sha256_hex": "8422fdb9546be437d5bd2ffea3246856ca829af43b82ea05ee1d0ddd74cfa43c",
-          "wire_role_sha256_hex": "dd5b943b4152a131a64f6223e461b2ea9f5a569e771126ca2acb7f44dc969067"
+          "relation_sha256_hex": "a8fc5dd76ab41548443897863282f45709dd040b7d3143e0b825b85b167258cf",
+          "wire_role_sha256_hex": "d0bc6da4565ae79fcd3991cb99057da248471fc5848c8072f4ab0b9f6b65fed8"
         }
       ],
       "note": "flat decaf.assert_on_curve slice => EdwardsBridge.onCurve (folded d=3021); axiom-clean, regression-biting"
+    },
+    {
+      "class_key": "decaf.compress_to_field@aaf77ee7e9fa9bd1",
+      "op": "decaf.compress_to_field",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "aaf77ee7e9fa9bd1d02f32114826d4026f8ad480f9641579f2a54fe57c0eb9c6",
+      "instances": [
+        {
+          "segment_index": 48,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst48_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg48",
+          "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
+          "relation_sha256_hex": "38bbe56a5859354333df4d5912c3a88bfc9dc0277046e4b8f1e872bee3771e37",
+          "wire_role_sha256_hex": "d6b157ae4f7560906fd7be88c9f6e0c774a7b9317ffb4924f0bae06a7203f600"
+        }
+      ],
+      "note": ""
     },
     {
       "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
@@ -317,88 +335,64 @@
       "shape_sha256_hex": "c7b7aeec064cedd7c8f6b7ba01df2138308c97883811dee9e212e804b918f4ac",
       "instances": [
         {
-          "segment_index": 8,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst8_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg8",
+          "segment_index": 5,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst5_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg5",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "007688e5439d1ba148206c8e158f4f576a8e5171a0b9e91f2e0c8d344c33e490",
-          "wire_role_sha256_hex": "5402190732226636cc7509a9ffc05bb8d110d5fb48d9aac4029cace2a05e2c64"
+          "relation_sha256_hex": "c7044169b63bcd7e2abba6870bc8179c936ede6fb4d53bc6b77193d55f4f24d4",
+          "wire_role_sha256_hex": "6e158c03e511e252c62c5b0506c53e92eb8a1ec1ca7ae6d7d26e3aab3c60f726"
         },
         {
           "segment_index": 17,
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst17_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg17",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "8f030cab87c549cd7df92f9574806f15619d61d40c594f02f3e5ebf3b406c6f2",
-          "wire_role_sha256_hex": "5aa30ad0fba628d8973385a92f210bae00923375f3dca89b3043628279d6eee1"
+          "relation_sha256_hex": "60fc853050c041f98967e3c8e46311eeb0f25a1c55d6358793e89cfd6cced186",
+          "wire_role_sha256_hex": "a9d18340e48b324635f79467ae9f482e235d60cefd1f4cbd447d883cac134231"
         },
         {
-          "segment_index": 24,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst24_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg24",
+          "segment_index": 32,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst32_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg32",
           "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "ea634de86db2fba95f9ac6df3c6e1c832302ac857b038b415e19d67d7c5a7f75",
-          "wire_role_sha256_hex": "b14159ee40b48ef930fb791fca75402d2d67a5766d8730efaa22df2bfb855d9a"
-        },
-        {
-          "segment_index": 33,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst33_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg33",
-          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "712bc6bb1d58c5c5c6a2f715e6deb08c0f7a7a771de90110fda2d85c1d74639f",
-          "wire_role_sha256_hex": "e46cb36af03e12a81c565bb76f5e9ebc2ef482d3562b98d6f533b4bc7857b03a"
-        },
-        {
-          "segment_index": 40,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst40_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg40",
-          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "a5e36b1d9ebad6a5d7d1acc0a046334cfd464fc0b803ac330f0bb6734b30335a",
-          "wire_role_sha256_hex": "8bea58d98d5880378ee2b2bd4832e2e222351475636d61a08a4ba3265387944f"
-        },
-        {
-          "segment_index": 50,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst50_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg50",
-          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-          "relation_sha256_hex": "2ca1e6e7e9a164d91f2fc2920793a74bb9a07c60a6183409bae56d04a93767d6",
-          "wire_role_sha256_hex": "54a96f7fa3dacf4c4a1701b7e5943841fb4033c098e5996c16c4514edc7a5a80"
+          "relation_sha256_hex": "6c7f9ceeb6ebdae2b1cd3973355101b48a59b6812cb042cdcf4f5cc817242431",
+          "wire_role_sha256_hex": "d4c908c946e6fb9465092660a31a7b87c343f593d9defd22adacade6c8e34978"
         }
       ],
       "note": "deployed BoundDeployedSound wrapper (partial-state compress relation endpoint)"
     },
     {
-      "class_key": "decaf.diversified_transmission_key@42fa5fd16924cc5b",
-      "op": "decaf.diversified_transmission_key",
+      "class_key": "decaf.conservation_net_balance_commitment@0e9794fce60e864b",
+      "op": "decaf.conservation_net_balance_commitment",
       "status": "proven",
       "assumption_id": "",
-      "shape_sha256_hex": "42fa5fd16924cc5b1ab5edc242627e1572284274f6d75be682d96df154b1bbd1",
+      "shape_sha256_hex": "0e9794fce60e864b1aea26252c38a08a0ca33821754e44aae5cba73f05fbdf04",
       "instances": [
         {
-          "segment_index": 5,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst5_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg5",
-          "constant_vector_sha256_hex": "23c6647d07912604f8388ebcef78e8bd736ee865e2753cfd4705b562930c726e",
-          "relation_sha256_hex": "a7d432cca0c2df531393f85236da17c4280c518102603f85036b7747ccd72dc7",
-          "wire_role_sha256_hex": "d36547bfe3219a51628ae141f0e3a4214c66e9bf2a1641e91c669fa92460702c"
+          "segment_index": 46,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst46_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg46",
+          "constant_vector_sha256_hex": "cab153871312b7e2464004ac1ca19d63ebd2a65161ed4fd56f6ecaac5d94f13f",
+          "relation_sha256_hex": "d20f3bbe23fbf01bccaae8362593b096c516ab69d4bbaaaeefd6999d8e6d860c",
+          "wire_role_sha256_hex": "aeed5aaae5b1c3ab9d51a2cea3a56669d5a227aaf8fef24289e06cd2bc6150bd"
         }
       ],
       "note": ""
     },
     {
-      "class_key": "decaf.net_balance_commitment@72fe1288e66d0e52",
-      "op": "decaf.net_balance_commitment",
+      "class_key": "decaf.diversified_transmission_key@f7b90071283b887a",
+      "op": "decaf.diversified_transmission_key",
       "status": "proven",
       "assumption_id": "",
-      "shape_sha256_hex": "72fe1288e66d0e527017bca53324702669cf3ae5a415d2f3a8570d4ef5298692",
+      "shape_sha256_hex": "f7b90071283b887ae65b28b4581097dad79b7ed929c7d416718063d586a63dc4",
       "instances": [
         {
-          "segment_index": 48,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst48_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg48",
-          "constant_vector_sha256_hex": "1f315ac3616448676e5e877161b3a9a4ec9b68f247423fcceec60b4164b229bb",
-          "relation_sha256_hex": "b6fa21d9e920215c60d9c2f406063bbe19312eabe168d4056e765067fc120f89",
-          "wire_role_sha256_hex": "4f817ff947923e06c7c41b87d55929fc1d6e173158ed4f8723a2fd30ded80a8d"
+          "segment_index": 6,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst6_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg6",
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "relation_sha256_hex": "24c921308a9027038185a265ab86d86b3e9837f30a51ff1c9b8a3c61a9f07603",
+          "wire_role_sha256_hex": "2ab8d7dcb5b3bc6e3060d9b665c814dd1243eed22419e3e491746a6de14bbbf7"
         }
       ],
       "note": ""
@@ -415,16 +409,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst15_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg15",
           "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
-          "relation_sha256_hex": "846d3e691dece8d38775d5ea3b5339f719542932e82e68b9d166cdd47f388d49",
-          "wire_role_sha256_hex": "06d9ed114fae59a43c9765e555fd24632bdb09a8b53d4e3aac4490e235efe5cb"
+          "relation_sha256_hex": "c1820400c27688aff02758d426f41b5bb426059209f8b598ca04538b3aa7c911",
+          "wire_role_sha256_hex": "d57d255ab914bc365249a1d78c4be852e76d5e5d36bd85a551cd706d780d8f7d"
         },
         {
-          "segment_index": 31,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst31_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg31",
+          "segment_index": 30,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst30_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg30",
           "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
-          "relation_sha256_hex": "d83fff1b9ac9cbdd8b6984a73c57f5f592068bf5aef7d6018ef1cedcb10fd7a9",
-          "wire_role_sha256_hex": "053f2045017493acfe5c8a1d03e3570dc454c3e0f94613476a9b164184a93938"
+          "relation_sha256_hex": "7d91b33ae356928125279de73939fa528a84b14beaad0581f5eb2dc739d31784",
+          "wire_role_sha256_hex": "14f8c847c74e89d148d2850345a7ab540b20334fc7155d604469b4bbd7d3900d"
         }
       ],
       "note": ""
@@ -441,24 +435,24 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst9_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg9",
           "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
-          "relation_sha256_hex": "95f82c244574738c024a95510b507e754b07ac018cd41ffc16ac21338b41419c",
-          "wire_role_sha256_hex": "6a6b815a3618f0f997d3eee5e164103d85c572d2d5db2357fc337b2e2e0302b8"
+          "relation_sha256_hex": "e6f00db41cb53b5c4820ac98b084a947af6a5702c6834c8494a2f17ad073702e",
+          "wire_role_sha256_hex": "a41ad64542a8ade3a9734825f4fcd30d636be28db6e8836f1b4950ac292f5dad"
         },
         {
-          "segment_index": 25,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst25_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg25",
+          "segment_index": 24,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst24_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg24",
           "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
-          "relation_sha256_hex": "552d5e3b4fb6c41c34d622cfe003157626dd61d3655daeb3d0adf52e243244d8",
-          "wire_role_sha256_hex": "fca2b7beffef40adaf00d7c737576c9dc44273ac1f9e251d2f888a496b101aed"
+          "relation_sha256_hex": "e99c66ad51f706b1c23e73da740cd83d7b3fd8434566456ddddb7d47a45d95dd",
+          "wire_role_sha256_hex": "bbc933d1ff2692c751875528abbfde1a2cc3e06db14aaf8942002ecdc026735c"
         },
         {
-          "segment_index": 41,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst41_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg41",
+          "segment_index": 39,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst39_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg39",
           "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
-          "relation_sha256_hex": "286acd384e41b1616e03cd2818fb7f1bb011d541420581de627f1134d1db78ab",
-          "wire_role_sha256_hex": "a075671900aa696b3c48814d3e27afdf9bc878027c54afc5173650c74b3170b3"
+          "relation_sha256_hex": "452eaa25b8ec3bb397d39332a39fec427ea40b272525da0bded52a4db51c61b5",
+          "wire_role_sha256_hex": "b7cae422dd0239f3926a12b0f9d06295f3ae4dc845f61fccd997c05b8a7abe8f"
         }
       ],
       "note": "deployed note-commitment Poseidon partial-state endpoint via typed semantic bridge; uses named deployed prime-order assumption"
@@ -475,16 +469,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst11_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg11",
           "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
-          "relation_sha256_hex": "ebdd93b5680c56ad2a5a6d7205283dd034e62de05325055eff53ee19be35f0c2",
-          "wire_role_sha256_hex": "f05dbc5dd4e0330ee3b4813a9b74f1d97fa04b686bf0ed06da385c2a648dffa9"
+          "relation_sha256_hex": "6c177c7c2cd76431a96e8accd8b6f2d3a6cb285e8670e4cf5c22d0c4e3f96750",
+          "wire_role_sha256_hex": "009561bc8813cce3f13d0de74c37ec5902b9fc16914d5e9a3509bc1857b27114"
         },
         {
-          "segment_index": 27,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst27_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg27",
+          "segment_index": 26,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst26_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg26",
           "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
-          "relation_sha256_hex": "cac5a10bd5f11fe2cb01483d26696539c18688c9e8a7fc0e0dcdf3e69dd2ee93",
-          "wire_role_sha256_hex": "9a6e34bcde90fb2399ace231c5da2ede038706ce166c6e23dc11d09b40669618"
+          "relation_sha256_hex": "243564994df90eb37189019670820b665ebb363d224a22bda8ad54d65a3a99b9",
+          "wire_role_sha256_hex": "25d4556137a1cf8988ca6c7facaab029e635d7e06c99cca72fbb0b5c0088d6e7"
         }
       ],
       "note": "deployed nullifier Poseidon endpoint via typed semantic bridge; uses named deployed prime-order assumption"
@@ -501,16 +495,16 @@
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst13_bound",
           "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg13",
           "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
-          "relation_sha256_hex": "44ccdbc4823fc7a27c3c906bdc2cb33368f5c894c9b338e980503586902dfc2c",
-          "wire_role_sha256_hex": "04b5fa1b6ad998f9c39d33d483a7e2366ff62723506d1fa0e3f3120123621a64"
+          "relation_sha256_hex": "b90be521e6ee4a89aa1584a994db7ead5c9fe79bb39104466549d152a0245428",
+          "wire_role_sha256_hex": "e357aa0986bead1ca6d103353394b7dc30881d3a8c0a0552e65a1ab835cef9b9"
         },
         {
-          "segment_index": 29,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst29_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg29",
+          "segment_index": 28,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst28_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg28",
           "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
-          "relation_sha256_hex": "fd76a5671c3cd4389cd53c60cf20206017fb3ddbe316985dc9afc0159d73b7ba",
-          "wire_role_sha256_hex": "09d40d45413291b92412067b3b8f76a470e9405529bafc46efbc7cca27dfbb05"
+          "relation_sha256_hex": "a7fb9e4901c9eb182ce406d4e2175d926222a2e6be2418b53b5acc24d17ff789",
+          "wire_role_sha256_hex": "61e1b8aac54ea15c1f68f3a2cf68a459c03138cfc16e8eb883611e7c6a8fbda2"
         }
       ],
       "note": ""
@@ -523,12 +517,12 @@
       "shape_sha256_hex": "33a145d438545b5d82928c65e70f65d9484a8379a26d60be1c27d412b1ef611a",
       "instances": [
         {
-          "segment_index": 55,
-          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst55_bound",
-          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg55",
+          "segment_index": 53,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst53_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg53",
           "constant_vector_sha256_hex": "4075c83513915417cc58a11f75e715c91728f27fb81d1a48f9fc46831a72f7a6",
-          "relation_sha256_hex": "8d657cb458aab8ae14384c5054e57fee123547b0f028c70818e201b8c1440308",
-          "wire_role_sha256_hex": "ffe25ad0ecbd412b5e0231d76d23cf12e07a7229352f542299114ed63be2edbc"
+          "relation_sha256_hex": "8af67f1845ddc7acbc2a3b66f24da6455a56bd6642a167d0d43eb903ff8ae290",
+          "wire_role_sha256_hex": "59f2475759d40ff83c5f717734b3a76b6638db462603bc19fd400a5ac07b79a5"
         }
       ],
       "note": "deployed statement-hash Poseidon partial-state endpoint via typed semantic bridge; uses named deployed prime-order assumption"

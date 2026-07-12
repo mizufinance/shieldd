@@ -14,9 +14,9 @@ Post-T1-d: old seg13 -> new seg15 (output wires shifted from 12380/12381 to
 18196/18197 per the fresh ir.json; the following assert_equivalent segment's
 input confirms this). seg31 is unchanged. -/
 def deployedSpec15 (rho : Nat → DeployedF) : Prop :=
-  onCurveAt (rho 6) (rho 7) → onCurveAt (rho 18196) (rho 18197)
+  onCurveAt (rho 6) (rho 7) → onCurveAt (rho 17945) (rho 17946)
 
-def deployedSpec31 (rho : Nat → DeployedF) : Prop :=
-  onCurveAt (rho 6) (rho 7) → onCurveAt (rho 31080) (rho 31081)
+def deployedSpec30 (rho : Nat → DeployedF) : Prop :=
+  onCurveAt (rho 6) (rho 7) → onCurveAt (rho 30126) (rho 30127)
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Specs

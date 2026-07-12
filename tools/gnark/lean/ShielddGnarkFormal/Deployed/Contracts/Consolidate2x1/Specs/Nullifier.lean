@@ -9,14 +9,14 @@ seg11, internal wires shifted +5816 (DTK hoist); public wires 8/23/24
 unchanged. -/
 def deployedSpec11 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Deployed.Nullifier.s38_1
-      (rho 7453) (rho 7458) (rho 7463) (rho 7468) =
+      (rho 7202) (rho 7207) (rho 7212) (rho 7217) =
     Shieldd.GnarkFormal.Poseidon3Bridge.permSpec3
       Shieldd.GnarkFormal.Poseidon3Bridge.nullifierDomainLit
       (rho 8) (rho 23) (rho 24)
 
-def deployedSpec27 (rho : Nat → DeployedF) : Prop :=
+def deployedSpec26 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Deployed.Nullifier.s38_1
-      (rho 20337) (rho 20342) (rho 20347) (rho 20352) =
+      (rho 19383) (rho 19388) (rho 19393) (rho 19398) =
     Shieldd.GnarkFormal.Poseidon3Bridge.permSpec3
       Shieldd.GnarkFormal.Poseidon3Bridge.nullifierDomainLit
       (rho 8) (rho 113) (rho 114)

@@ -47,16 +47,16 @@ fn spec_submodule(circuit: &str, segment_index: usize) -> &'static str {
         return "Specs";
     }
     match segment_index {
-        8 | 17 | 24 | 33 | 40 | 50 => "Specs.Compress",
-        9 | 25 | 41 => "Specs.NoteCommitment",
-        11 | 27 => "Specs.Nullifier",
-        15 | 31 => "Specs.Rvk",
-        5 => "Specs.Dtk",
-        48 => "Specs.Nb",
-        13 | 29 => "Specs.Scp",
-        // on-curve, assert-eq, assert-equivalent glue rows, seg6 (DTK
+        5 | 17 | 32 | 48 => "Specs.Compress",
+        9 | 24 | 39 => "Specs.NoteCommitment",
+        11 | 26 => "Specs.Nullifier",
+        15 | 30 => "Specs.Rvk",
+        6 => "Specs.Dtk",
+        46 => "Specs.Nb",
+        13 | 28 => "Specs.Scp",
+        // on-curve, assert-eq, assert-equivalent glue rows, seg7 (DTK
         // consumer, post-hoist single instance), and the statement-hash
-        // endpoint (seg 55).
+        // endpoint (seg 53).
         _ => "Specs.Glue",
     }
 }
