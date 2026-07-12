@@ -3844,3 +3844,70 @@ theorem fsVerifier_isTotalQueryBound {F G1 G2 GT : Type}
 - Verified VCVio names exactly match the design: `OracleComp.IsTotalQueryBound`, `isTotalQueryBound_bind`, `IsTotalQueryBound.mono`, `isTotalQueryBound_query_bind_iff`, and the `pure` structural case.  No API-name correction.  `queryRounds` has a phantom `G2` argument, so its statement and proof applications require `(G2 := G2)`; this is an elaboration annotation only.
 - Query counts match the design.  `fsVerifier` has randomizer, x0, `μ` rounds, bridge, and KZG stages: `(μ + 4) * rejectionFuel`.  The proof composes the stage bounds with `isTotalQueryBound_bind` and normalizes the arithmetic with `.mono`.
 - Build results: focused `LEAN_NUM_THREADS=1` pinned Lean 4.30.0 Lake build of `Ipp.FsGame` and final `lake build Ipp` both passed (warnings only, all pre-existing).  Output is in `build.log`.  Prover/release-gated tests were not run.  Deferred: session 3 game/cache transfer only; no transfer lemma was added.
+
+## A? session 3
+
+- **Caching-transfer verification (performed first): found and used.** VCVio provides `OracleComp.IsTotalQueryBound.simulateQ_run_withCaching` in `.lake/packages/VCVio/VCVio/OracleComp/QueryTracking/CachingOracle.lean` with the usable signature
+
+```lean
+theorem IsTotalQueryBound.simulateQ_run_withCaching
+    (so : QueryImpl spec (OracleComp spec'))
+    {oa : OracleComp spec α} {n : ℕ}
+    (h : IsTotalQueryBound oa n)
+    (hstep : ∀ t, IsTotalQueryBound (so t) 1)
+    (cache : spec.QueryCache) :
+    IsTotalQueryBound ((simulateQ so.withCaching oa).run cache) n
+```
+
+  The FS source has an ambient-uniform forwarding branch in addition to the cached structured branch, so `fsRandomFunction_isTotalQueryBound` uses VCVio's stateful `IsTotalQueryBound.simulateQ_run_of_step` to combine the two one-query steps; its structured step is discharged by VCVio's `QueryImpl.isTotalQueryBound_run_withCaching`. `fsProbComp_isTotalQueryBound` uses VCVio's `isTotalQueryBound_run_simulateQ_loggingOracle_iff`.
+
+- Added the adversary/game composition lemmas in `Ipp/FsGame.lean`:
+
+```lean
+theorem FsGame_isTotalQueryBound {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ qa : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (hadv : IsTotalQueryBound adv qa) :
+    IsTotalQueryBound (FsGame stmt adv)
+      (qa + (μ + 4) * stmt.rejectionFuel)
+
+theorem FsGame_isTotalQueryBound_of_le {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ qa qb : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (hadv : IsTotalQueryBound adv qa)
+    (hcap : qa + (μ + 4) * stmt.rejectionFuel ≤ qb + 1) :
+    IsTotalQueryBound (FsGame stmt adv) (qb + 1)
+```
+
+- Added the same-bound transfer lemmas in `Ipp/FsFork.lean` and `Ipp/FsBadEvents.lean`:
+
+```lean
+theorem fsRandomFunction_isTotalQueryBound {Point α : Type} [DecidableEq Point]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α) {n : Nat}
+    (h : IsTotalQueryBound oa n) :
+    IsTotalQueryBound (fsRandomFunction oa) n
+
+theorem wrapFs_isTotalQueryBound {Point α : Type} [DecidableEq Point]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))] [IsUniformSpec (FsWrappedSpec F)]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α) {n : Nat}
+    (h : IsTotalQueryBound oa n) :
+    IsTotalQueryBound (wrapFs oa) n
+
+theorem fsProbComp_isTotalQueryBound {μ : Nat}
+    [IsUniformSpec (FsSourceSpec F G1 G2 GT)]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {n : Nat} (h : IsTotalQueryBound (FsGame stmt adv) n) :
+    IsTotalQueryBound (fsProbComp stmt adv) n
+```
+
+  Instantiating `n := Q qb` and `h := FsGame_isTotalQueryBound_of_le stmt adv hadv hcap` gives the design's same-`Q` cap at each layer. The two wrapper lemmas expose the total source-query cap; structured misses are a subset because cache hits make zero source queries and each miss makes one, so this supports the later `Sum.inr ()` ordinal consumers.
+
+- Verification: focused pinned (`LEAN_NUM_THREADS=1`) builds of `Ipp.FsGame`, `Ipp.FsFork`, and `Ipp.FsBadEvents` passed. Final pinned `lake build Ipp` passed; `build.log` contains its tail output. Warnings were pre-existing lint/deprecation warnings. Prover/release-gated tests were not run. Deferred to sol: nothing; the caching transfer was available in usable form.

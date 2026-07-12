@@ -70,6 +70,18 @@ abbrev fsProbComp {μ : Nat}
     OracleComp (FsSourceSpec F G1 G2 GT) (FsRunLog μ F G1 G2 GT) :=
   replayFirstRun (fsRandomFunction (FsGame stmt adv))
 
+/-- Query logging preserves the cached game's whole-query cap. -/
+theorem fsProbComp_isTotalQueryBound {μ : Nat}
+    [IsUniformSpec (FsSourceSpec F G1 G2 GT)]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {n : Nat} (h : IsTotalQueryBound (FsGame stmt adv) n) :
+    IsTotalQueryBound (fsProbComp stmt adv) n := by
+  unfold fsProbComp replayFirstRun
+  apply (isTotalQueryBound_run_simulateQ_loggingOracle_iff
+    (fsRandomFunction (FsGame stmt adv)) n).mpr
+  exact fsRandomFunction_isTotalQueryBound (FsGame stmt adv) h
+
 /-- The wrapped run determined by a source support point: the recomputed
 verifier result plus the structured miss trace. -/
 def wrappedOf {μ : Nat} (z : FsRunLog μ F G1 G2 GT) :

@@ -521,6 +521,31 @@ def FsGame {F G1 G2 GT : Type}
   let proof ← adv
   fsVerifier stmt proof
 
+/-- The game spends the adversary budget followed by the complete verifier budget. -/
+theorem FsGame_isTotalQueryBound {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ qa : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (hadv : IsTotalQueryBound adv qa) :
+    IsTotalQueryBound (FsGame stmt adv)
+      (qa + (μ + 4) * stmt.rejectionFuel) := by
+  unfold FsGame
+  exact isTotalQueryBound_bind hadv (fsVerifier_isTotalQueryBound stmt)
+
+/-- A caller-supplied whole-game cap weakens the composed adversary/verifier bound. -/
+theorem FsGame_isTotalQueryBound_of_le {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ qa qb : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (hadv : IsTotalQueryBound adv qa)
+    (hcap : qa + (μ + 4) * stmt.rejectionFuel ≤ qb + 1) :
+    IsTotalQueryBound (FsGame stmt adv) (qb + 1) :=
+  (FsGame_isTotalQueryBound stmt adv hadv).mono hcap
+
 /-- One exact input/answer pair occurs in a query log. -/
 def QueryAnswered {ι : Type} {spec : OracleSpec ι} (log : QueryLog spec)
     (t : spec.Domain) (u : spec.Range t) : Prop :=

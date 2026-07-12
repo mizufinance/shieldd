@@ -65,6 +65,40 @@ def fsRandomFunction {Point α : Type} [DecidableEq Point]
     (simulateQ (fsSourceOracle Point F) oa) ∅
   pure out
 
+private theorem fsSourceImpl_isTotalQueryBound (Point F : Type) (point : Point) :
+    IsTotalQueryBound (fsSourceImpl Point F point) 1 := by
+  unfold fsSourceImpl
+  exact (OracleComp.isQueryBound_query_iff (Sum.inr point) 1 _ _).mpr Nat.one_pos
+
+private theorem fsSourceUnifFwd_run_isTotalQueryBound {Point F : Type}
+    [DecidableEq Point] (n : unifSpec.Domain) (cache : (Point →ₒ F).QueryCache) :
+    IsTotalQueryBound ((fsSourceUnifFwd Point F n).run cache) 1 := by
+  change IsTotalQueryBound
+    (liftM ((unifSpec + (Point →ₒ F)).query (Sum.inl n)) :
+      OracleComp (unifSpec + (Point →ₒ F)) _) 1
+  exact (OracleComp.isQueryBound_query_iff (Sum.inl n) 1 _ _).mpr Nat.one_pos
+
+private theorem fsSourceOracle_structured_run_isTotalQueryBound {Point F : Type}
+    [DecidableEq Point] (point : Point) (cache : (Point →ₒ F).QueryCache) :
+    IsTotalQueryBound ((QueryImpl.withCaching (fsSourceImpl Point F) point).run cache) 1 :=
+  QueryImpl.isTotalQueryBound_run_withCaching (fsSourceImpl Point F) point
+    (fsSourceImpl_isTotalQueryBound Point F point) cache
+
+/-- Caching structured queries and forwarding ambient queries preserve a whole-game cap. -/
+theorem fsRandomFunction_isTotalQueryBound {Point α : Type} [DecidableEq Point]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α) {n : Nat}
+    (h : IsTotalQueryBound oa n) :
+    IsTotalQueryBound (fsRandomFunction oa) n := by
+  unfold fsRandomFunction
+  simp only [bind_pure_comp]
+  apply (isQueryBound_map_iff _ _ _ _ _).mpr
+  refine IsTotalQueryBound.simulateQ_run_of_step h ?_ ∅
+  intro t cache
+  cases t with
+  | inl n => exact fsSourceUnifFwd_run_isTotalQueryBound n cache
+  | inr point => exact fsSourceOracle_structured_run_isTotalQueryBound point cache
+
 /-- The shared structured cache only grows during a source computation. -/
 private theorem fsSourceOracle_cache_le {Point α : Type} [DecidableEq Point]
     (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
@@ -705,6 +739,47 @@ def wrapFs {Point α : Type} [DecidableEq Point]
     (oa : OracleComp (unifSpec + (Point →ₒ F)) α) :
     OracleComp (FsWrappedSpec F) (WrappedFsRun Point α) :=
   wrapFsFrom (fsRandomFunction oa) []
+
+private theorem fsUnifFwd_run_isTotalQueryBound {Point F : Type}
+    (n : unifSpec.Domain) (trace : List Point) :
+    IsTotalQueryBound ((fsUnifFwd Point F n).run trace) 1 := by
+  change IsTotalQueryBound
+    (liftM ((FsWrappedSpec F).query (Sum.inl n)) : OracleComp (FsWrappedSpec F) _) 1
+  exact (OracleComp.isQueryBound_query_iff (Sum.inl n) 1 _ _).mpr Nat.one_pos
+
+private theorem fsMissImpl_run_isTotalQueryBound {Point F : Type}
+    (point : Point) (trace : List Point) :
+    IsTotalQueryBound ((fsMissImpl Point F point).run trace) 1 := by
+  change IsTotalQueryBound
+    ((fun value : F => (value, trace ++ [point])) <$>
+      (liftM ((FsWrappedSpec F).query (Sum.inr ())) : OracleComp (FsWrappedSpec F) F)) 1
+  apply (isQueryBound_map_iff _ _ _ _ _).mpr
+  exact (OracleComp.isQueryBound_query_iff (Sum.inr ()) 1 _ _).mpr Nat.one_pos
+
+/-- The wrapper only erases cached structured misses, so it preserves the cap. -/
+theorem wrapFsFrom_isTotalQueryBound {Point α : Type}
+    [IsUniformSpec (FsWrappedSpec F)]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α) (initial : List Point) {n : Nat}
+    (h : IsTotalQueryBound oa n) :
+    IsTotalQueryBound (wrapFsFrom oa initial) n := by
+  unfold wrapFsFrom
+  simp only [bind_pure_comp]
+  apply (isQueryBound_map_iff _ _ _ _ _).mpr
+  refine IsTotalQueryBound.simulateQ_run_of_step h ?_ initial
+  intro t trace
+  cases t with
+  | inl n => exact fsUnifFwd_run_isTotalQueryBound n trace
+  | inr point => exact fsMissImpl_run_isTotalQueryBound point trace
+
+/-- Caching followed by the single-index wrapper preserves a whole-game cap. -/
+theorem wrapFs_isTotalQueryBound {Point α : Type} [DecidableEq Point]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))] [IsUniformSpec (FsWrappedSpec F)]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α) {n : Nat}
+    (h : IsTotalQueryBound oa n) :
+    IsTotalQueryBound (wrapFs oa) n := by
+  unfold wrapFs
+  exact wrapFsFrom_isTotalQueryBound (fsRandomFunction oa) []
+    (fsRandomFunction_isTotalQueryBound oa h)
 
 /-- Structured cache-miss points in random-function source-log order. -/
 def fsPointTrace {Point : Type} :
