@@ -138,6 +138,17 @@ def RunGoodFull {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
   WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) ∧
     z.1.transcript.randomizer ∉ badR ∧ z.1.transcript.kzg ∉ badZ
 
+/-- Wrapped-image form of `RunGoodFull`, used as the gate of the final fork
+experiment so root randomizer goodness is retained through extraction. -/
+def WrappedRunGoodFull {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (badR badZ : Set F)
+    (z : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT) × QueryLog (FsWrappedSpec F)) : Prop :=
+  WrappedRunGood qb stmt z.1 z.2 ∧
+    z.1.out.transcript.randomizer ∉ badR ∧
+    z.1.out.transcript.kzg ∉ badZ
+
 section FreshMiss
 
 /-- **U5a foundational uniform-miss lemma.** In the cached structured source
@@ -203,6 +214,7 @@ variable [(FsSourceSpec F G1 G2 GT).DecidableEq]
   [IsUniformSpec (FsSourceSpec F G1 G2 GT)]
   [∀ j, SampleableType ((FsSourceSpec F G1 G2 GT).Range j)]
   [unifSpec ⊂ₒ FsSourceSpec F G1 G2 GT]
+  [IsUniformSpec (FsWrappedSpec F)]
 
 /-- Accepting support runs satisfy `ChallengesAccepted`: the four scalar nonce
 loops only accept nonzero (and `≠ 1` for the randomizer) answers. Extracted from
@@ -302,6 +314,14 @@ structure BadEventBudget {μ : Nat}
   satisfies the acceptance chain on a fresh answer). -/
   round_unqueried_bound :
     Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq
+  /-- Probability transport from the source miss-log experiment to the wrapped
+  experiment used by the forking recurrence. This remains explicit until the
+  `wrapFs` erasure map has a quantitative (not only support) theorem. -/
+  wrapped_good_lower_bound :
+    Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z |
+      fsProbComp stmt adv] ≤
+    Pr[WrappedRunGoodFull qb stmt badR badZ |
+      replayFirstRun (wrapFs (FsGame stmt adv))]
 
 /-- Assemble a bad-event budget from the bounds that have actually been
 established.  Fields whose distributional reductions remain open stay explicit
@@ -320,9 +340,13 @@ protected theorem BadEventBudget.ofBounds [Fintype F] {μ : Nat}
       ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
     (hKzg : Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤
       (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))
-    (hUnq : Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq) :
+    (hUnq : Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq)
+    (hWrap : Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z |
+        fsProbComp stmt adv] ≤
+      Pr[WrappedRunGoodFull qb stmt badR badZ |
+        replayFirstRun (wrapFs (FsGame stmt adv))]) :
     BadEventBudget qb stmt adv badR badZ dR dZ bUnq :=
-  ⟨hCol, hRnd, hDep, hOrd, hKzg, hUnq⟩
+  ⟨hCol, hRnd, hDep, hOrd, hKzg, hUnq, hWrap⟩
 
 /-- **U5a core (item 5), abstract form.** Pure ENNReal event algebra: the
 accepting-and-good probability is at least the accepting probability minus the

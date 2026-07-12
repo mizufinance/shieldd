@@ -4985,3 +4985,171 @@ The implementation details, verbatim statements, U5a bound signature, axiom
 prints, and focused verification are recorded above under
 “A? session 12b implementation details”.  Final `lake build Ipp`: passed
 (3324 jobs, 45.3 seconds).
+
+## A? sessions 13–15 (finish)
+
+Scope: one ordered run over sessions 13, 14, and 15. Edited
+`Ipp/FsBadEvents.lean`, `Ipp/ForkTree.lean`, `Ipp/FsFork.lean`, and added
+`Ipp/S1.lean`. No commit; no edit to `DESIGN.md` or `.lake/packages/**`.
+
+### Phase 13 — concrete cache bad-event bounds
+
+The requested whole-game finite-set union bound was not completed. No theorem
+with a false or unproved conclusion was added. The exact remaining core goal is:
+
+```lean
+Pr[fun z => ∃ i, i < Q qb ∧ ∃ point answer,
+    z.2[i]? = some ⟨Sum.inr point, answer⟩ ∧ answer ∈ bad |
+  fsProbComp stmt adv] ≤
+  (((Q qb) * bad.card : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+```
+
+under `IsTotalQueryBound (FsGame stmt adv) (Q qb)`. The existing VCVio
+birthday theorem cannot be instantiated directly: `FsSourceSpec` also contains
+ambient-uniform indices whose ranges are not uniformly lower-bounded by `|F|`,
+while the event must count only `Sum.inr` structured misses. The required proof
+is therefore the custom `probEvent` induction described in the task. The source
+to wrapped quantitative erasure induction was also attempted; its precise
+recursive bind goal was equality between the wrapped replay distribution and
+the pushforward of the source replay by
+`(out, log) ↦ ({out, trace := fsPointTrace log}, flattenFsLog log)`. It reduced
+correctly to ambient and structured bind cases, but the dependent uniform
+`Fintype` instances and mapped continuation distributions did not close within
+the bounded attempts.
+
+Consequently none of the following `BadEventBudget` fields was discharged by a
+new concrete theorem in this phase; their field statements remain verbatim:
+
+```lean
+answer_collision_bound :
+  Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤
+    (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+
+randomizer_rootset_bound :
+  Pr[fun z => Accepted z ∧ BadRandomizer badR z | fsProbComp stmt adv] ≤
+    (((Q qb) * dR : Nat) : ℝ≥0∞) /
+      ((Fintype.card F : ℝ≥0∞) - 2)
+
+kzg_z_bound :
+  Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤
+    (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+```
+
+The `|F|-2` randomizer denominator continues to document conditioning after
+rejecting `{0,1}`; it has not been derived from the rejection loop.
+`lake build Ipp.FsBadEvents` passed after the Phase-14 interface change below.
+
+### Phase 14 — protocol-local bounds and assembly
+
+The dependency and cross-round guessing reductions remain explicit parametric
+fields; no concrete theorem was asserted:
+
+```lean
+dependency_order_bound :
+  Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤
+    ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+
+round_slot_order_bound :
+  Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
+    ((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)
+```
+
+`BadEventBudget.ofBounds` remains the honest assembly constructor. Its six bad
+event arguments are explicit, and it now also takes the exact quantitative
+source-to-wrapped premise needed by session 15:
+
+```lean
+hWrap :
+  Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z |
+      fsProbComp stmt adv] ≤
+    Pr[WrappedRunGoodFull qb stmt badR badZ |
+      replayFirstRun (wrapFs (FsGame stmt adv))]
+```
+
+This is parametric because the repository previously proved only a support
+bijection for `wrapFs`, not preservation of probability mass. The new
+`WrappedRunGoodFull` gate retains the randomizer and KZG exclusions in the
+actual fork experiment; using plain `WrappedRunGood` here would lose the
+root-set premise required by `u4_capstone`.
+
+Concrete versus parametric status: the per-miss lemmas, query-bound transfers,
+event-union algebra, `q0_lower_bound`, fork recurrence, stronger-gate
+monotonicity, and deterministic verifier/tree projections are concrete. All six
+per-event budget fields plus `wrapped_good_lower_bound` are parametric. The
+round-unqueried field remains parametric by design.
+
+### Phase 15 — U5e S1 capstone
+
+Added `Ipp/S1.lean`. `TreeConsistent.mono_leafOk` forgets the extra full-good
+gate only at the existing `tree_to_acceptTree` boundary. `FsFork` now retains
+the already-proved `FsAccepts` fact from an accepting cached verifier run and
+exports `wrapped_support_accepts`, supplying the aggregate PPE checked by the
+verifier. The capstone uses `q0_lower_bound`, the explicit
+`wrapped_good_lower_bound`, `forkTree_bound`, `forkTreeStep_monotone`,
+`probEvent_pos_iff`, `tree_to_acceptTree`, and `u4_capstone`.
+
+The theorem statement is verbatim:
+
+```lean
+theorem s1_soundness [Fintype F]
+    [(FsSourceSpec F G1 G2 GT).DecidableEq]
+    [IsUniformSpec (FsSourceSpec F G1 G2 GT)]
+    [∀ j, SampleableType ((FsSourceSpec F G1 G2 GT).Range j)]
+    [unifSpec ⊂ₒ FsSourceSpec F G1 G2 GT]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F] [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Set F) (dZ : Nat) (bUnq : ℝ≥0∞)
+    (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
+    (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
+    (hbindA : PairingCommitmentBinding (u4ACommitAtom stmt.e)
+      (fun i => (stmt.srsV i, stmt.srsV i)))
+    (hbindB : ∀ r : F, PairingCommitmentBinding (u4BCommitAtom stmt.e)
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i))
+    (hComA : u4AEmbedding stmt.ComA = commitV (u4ACommitAtom stmt.e)
+      (fun i => (stmt.srsV i, stmt.srsV i)) (fun i => (stmt.A i, stmt.C i)))
+    (hComB : ∀ r : F, u4BEmbedding stmt.ComB = commitV (u4BCommitAtom stmt.e)
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+      (fun i => r ^ (i : Nat) • stmt.B i))
+    (H : BadEventBudget (qb (Sum.inr ())) stmt adv
+      (discrepancyRootSet (fun i => groth16Discrepancy stmt.e stmt.alpha
+        stmt.beta stmt.gamma stmt.delta stmt.A stmt.C stmt.Aic stmt.B i))
+      badZ (2 ^ μ - 1) dZ bUnq)
+    (hpositive : 0 <
+      ((forkTreeStep (qb (Sum.inr ()) + 1) (Fintype.card F))^[μ])
+        (Pr[Accepted | fsProbComp stmt adv] -
+          badEventError (F := F) μ (qb (Sum.inr ())) (2 ^ μ - 1) dZ bUnq)) :
+    ∀ i, stmt.e (stmt.A i) (stmt.B i) =
+      groth16Rhs stmt.e stmt.alpha (stmt.Aic i) (stmt.C i)
+        stmt.beta stmt.gamma stmt.delta
+```
+
+The strict premise is DESIGN §R7(5)'s exact
+`G^[μ](acc - err_bad) > 0`, rather than a separately inverted closed-form
+`acc > err`; no inverse threshold lemma was fabricated.
+
+Temporary-file axiom audit output:
+
+```text
+'Ipp.s1_soundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Verification and gate substance:
+
+- `lake build Ipp.FsFork`: passed (3314 jobs).
+- `lake build Ipp.FsBadEvents`: passed (3315 jobs).
+- `lake build Ipp.S1`: passed (3316 jobs).
+- final `lake build Ipp`: passed (3325 jobs).
+- recursive `Ipp/*.lean` scan: `sorry` count 0.
+- recursive `Ipp/*.lean` scan: `axiom ` count 0.
+- recursive `Ipp/*.lean` scan: `native_decide` count 0.
+- `git diff --check`: passed.
+- No prover/release-gated circuit tests were applicable or run.
+
+The requested success condition is therefore met for the proved, axiom-clean
+`s1_soundness` capstone and package gates, but not for concrete sessions 13–14:
+their probability bounds remain explicit hypotheses for the reasons above.
