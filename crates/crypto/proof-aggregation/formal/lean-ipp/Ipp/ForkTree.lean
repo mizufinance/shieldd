@@ -572,6 +572,45 @@ private theorem continuedForkMain_keepCombinedChild_support_props
     simpa only [fst_map_replayFirstRun] using hmapped
   · rfl
 
+private theorem replayFirstRun_map_support_props {β : Type}
+    (oa : OracleComp spec α) (f : α → β) {y : β} {outerLog : QueryLog spec}
+    (h : (y, outerLog) ∈ support (replayFirstRun (f <$> oa))) :
+    ∃ x, (x, outerLog) ∈ support (replayFirstRun oa) ∧ f x = y := by
+  change (y, outerLog) ∈ support (f <$> oa).withQueryLog at h
+  rw [map_eq_pure_bind, OracleComp.withQueryLog_bind, mem_support_bind_iff] at h
+  obtain ⟨⟨x, innerLog⟩, hx, h⟩ := h
+  simp only [OracleComp.withQueryLog_pure, map_pure, mem_support_pure_iff] at h
+  have hy : f x = y := by simpa using (congrArg Prod.fst h).symm
+  have hlog : outerLog = innerLog := by simpa using congrArg Prod.snd h
+  exact ⟨x, by simpa [hlog] using hx, hy⟩
+
+private theorem continuedForkMain_keepCombinedChild_some_support_props
+    {depth : Nat} (extractor : OracleComp spec (Option (RunTree spec α depth)))
+    {tree? : Option (RunTree spec α depth)} {tree : RunTree spec α depth}
+    {innerLog outerLog : QueryLog spec}
+    (h : (((tree?, innerLog), some tree), outerLog) ∈ support
+      (replayFirstRun (continuedForkMain extractor keepCombinedChild))) :
+    tree? = some tree ∧
+      (some tree, innerLog) ∈ support (replayFirstRun extractor) ∧
+      outerLog = innerLog := by
+  have hmain : ((tree?, innerLog), some tree) ∈ support
+      (continuedForkMain extractor keepCombinedChild) := by
+    have hmapped : ((tree?, innerLog), some tree) ∈ support
+        (Prod.fst <$> replayFirstRun (continuedForkMain extractor keepCombinedChild)) := by
+      rw [support_map, Set.mem_image]
+      exact ⟨(((tree?, innerLog), some tree), outerLog), h, rfl⟩
+    simpa only [fst_map_replayFirstRun] using hmapped
+  simp only [continuedForkMain, mem_support_bind_iff, mem_support_pure_iff] at hmain
+  obtain ⟨first, hfirst, result, hresult, hout⟩ := hmain
+  have hfirstEq : first = (tree?, innerLog) := congrArg Prod.fst hout.symm
+  have hresultEq : result = some tree := congrArg Prod.snd hout.symm
+  subst first
+  subst result
+  have htree : tree? = some tree :=
+    (some_mem_support_keepCombinedChild_iff tree tree? innerLog).mp hresult
+  subst tree?
+  exact ⟨rfl, continuedForkMain_keepCombinedChild_support_props extractor h⟩
+
 private lemma take_eq_of_getElem?_eq_below_combined {β : Type}
     (xs ys : List β) (n : Nat) (h : ∀ m, m < n → xs[m]? = ys[m]?) :
     xs.take n = ys.take n := by
@@ -849,6 +888,22 @@ theorem all_leafOk [spec.DecidableEq]
       intro k
       exact ih k
 
+/-- Expose the canonical base-run projection carried by either invariant constructor. -/
+theorem canonicalProjection [spec.DecidableEq]
+    {total : Nat} {main : OracleComp spec α} {qb : ι → Nat} {i : ι}
+    {cf : Nat → α → Option (Fin (qb i + 1))} {leafOk : α × QueryLog spec → Prop}
+    {built : Nat} {tree : RunTree spec α built} {outerLog : QueryLog spec}
+    (h : CombinedReplayConsistent total main qb i cf leafOk built tree outerLog) :
+    CombinedCanonicalProjection main tree outerLog := by
+  cases h with
+  | leaf outerLog run hprojection hgate => exact hprojection
+  | node outerLog children hcover hprojection childLogs hchildren =>
+      rcases hprojection with
+        ⟨slot, answers, cursor, slotPos, hbase, hcf, hinjective, hanswers,
+          hcursor, hprefix, hslotPos, hslotInput, hslotRank, hprefixValues,
+          hslotOrder⟩
+      exact hbase
+
 /-- Positive-depth combined trees expose their first slot. -/
 theorem firstSlot_some [spec.DecidableEq]
     {total : Nat} {main : OracleComp spec α} {qb : ι → Nat} {i : ι}
@@ -927,6 +982,278 @@ theorem forget [spec.DecidableEq]
       convert htree using 1 <;> omega
 
 end CombinedReplayConsistent
+
+private theorem forkTreeCombined_leaf_support_props
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    {tree : RunTree spec α 0} {outerLog : QueryLog spec}
+    (h : (some tree, outerLog) ∈ support (replayFirstRun
+      (forkTreeCombined total main qb i cf leafOk 0 (Nat.zero_le total)))) :
+    CombinedReplayConsistent total main qb i cf leafOk 0 tree outerLog := by
+  change (some tree, outerLog) ∈ support
+    (forkTreeCombined total main qb i cf leafOk 0 (Nat.zero_le total)).withQueryLog at h
+  rw [forkTreeCombined_zero, OracleComp.withQueryLog_bind,
+    mem_support_bind_iff] at h
+  obtain ⟨⟨first, prefixLog⟩, hfirst, hrest⟩ := h
+  split_ifs at hrest with hgate
+  · simp only [OracleComp.withQueryLog_pure, map_pure, mem_support_pure_iff] at hrest
+    have htree : tree = .leaf first := by
+      exact Option.some.inj (by simpa using congrArg Prod.fst hrest)
+    have houter : outerLog = prefixLog := by simpa using congrArg Prod.snd hrest
+    have hlogs₀ := OracleComp.withQueryLog_self_log_eq main hfirst
+    have hlogs : prefixLog = first.2 := hlogs₀.symm
+    have hfirstNested : (first, first.2) ∈ support
+        (replayFirstRun (replayFirstRun main)) := by simpa [hlogs] using hfirst
+    have hsupport : first ∈ support (replayFirstRun main) := by
+      have hmapped : first ∈ support
+          (Prod.fst <$> replayFirstRun (replayFirstRun main)) := by
+        rw [support_map, Set.mem_image]
+        exact ⟨(first, first.2), hfirstNested, rfl⟩
+      simpa only [fst_map_replayFirstRun] using hmapped
+    subst tree
+    have houter' : outerLog = first.2 := houter.trans hlogs
+    rw [houter']
+    exact .leaf first.2 first ⟨first, hsupport, rfl, fun _ _ => rfl⟩ (by simpa using hgate)
+  · simp only [OracleComp.withQueryLog_pure, map_pure, mem_support_pure_iff] at hrest
+    simp at hrest
+
+private theorem forkTreeCombined_support_invariant_core
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built ≤ total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level)) :
+    ∀ {tree outerLog},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk built hbuilt)) →
+      CombinedReplayConsistent total main qb i cf leafOk built tree outerLog := by
+  induction built with
+  | zero =>
+      intro tree outerLog h
+      exact forkTreeCombined_leaf_support_props total main qb i cf leafOk h
+  | succ built ih =>
+      intro tree outerLog h
+      rw [forkTreeCombined_succ] at h
+      obtain ⟨branches?, hbranchesOuter, hassemble⟩ :=
+        replayFirstRun_map_support_props
+          (forkReplay4Continue
+            (forkTreeCombined total main qb i cf leafOk built (by omega)) qb i
+            (combinedTreeSelector qb i cf total built (by omega)) none
+            keepCombinedChild)
+          assembleCombinedNode h
+      rcases branches? with _ | branches
+      · simp at hassemble
+      by_cases hall : ∀ k, (branches k).2.isSome
+      · have hsome : some (.node (fun k => (branches k).2.get (hall k))) = some tree := by
+          simpa [assembleCombinedNode, hall] using hassemble
+        have htree : tree = .node (fun k => (branches k).2.get (hall k)) :=
+          (Option.some.inj hsome).symm
+        subst tree
+        let children : Fin 4 → RunTree spec α built :=
+          fun k => (branches k).2.get (hall k)
+        let childLogs : Fin 4 → QueryLog spec := fun k => (branches k).1.2
+        have hfork : some branches ∈ support
+            (forkReplay4Continue
+              (forkTreeCombined total main qb i cf leafOk built (by omega)) qb i
+              (combinedTreeSelector qb i cf total built (by omega)) none
+              keepCombinedChild) := by
+          have hmapped : some branches ∈ support (Prod.fst <$> replayFirstRun
+              (forkReplay4Continue
+                (forkTreeCombined total main qb i cf leafOk built (by omega)) qb i
+                (combinedTreeSelector qb i cf total built (by omega)) none
+                keepCombinedChild)) := by
+            rw [support_map, Set.mem_image]
+            exact ⟨(some branches, outerLog), hbranchesOuter, rfl⟩
+          simpa only [fst_map_replayFirstRun] using hmapped
+        rcases forkReplay4_support_props_full
+            (continuedForkMain
+              (forkTreeCombined total main qb i cf leafOk built (by omega))
+              keepCombinedChild) qb i
+            (continuedForkSelector qb i
+              (combinedTreeSelector qb i cf total built (by omega)) none) hfork with
+          ⟨runs, slot, answers, cursor, slotPos, hrunsOutput, hrunsSupport,
+            hselector, hinjective, hanswers, hcursor, hprefix, hslotPos,
+            hslotInput, hslotRank, hprefixValues⟩
+        have hrunSupport : ∀ k, (branches k, (runs k).2) ∈ support
+            (replayFirstRun (continuedForkMain
+              (forkTreeCombined total main qb i cf leafOk built (by omega))
+              keepCombinedChild)) := by
+          intro k
+          rw [hrunsOutput k]
+          exact hrunsSupport k
+        have hbranchProps : ∀ k,
+            (branches k).1.1 = some (children k) ∧
+            (some (children k), childLogs k) ∈ support (replayFirstRun
+              (forkTreeCombined total main qb i cf leafOk built (by omega))) ∧
+            (runs k).2 = childLogs k := by
+          intro k
+          rcases hb : branches k with ⟨⟨tree?, innerLog⟩, child?⟩
+          cases child? with
+          | none =>
+              have hk := hall k
+              simp [hb] at hk
+          | some child =>
+              have hp := continuedForkMain_keepCombinedChild_some_support_props
+                (forkTreeCombined total main qb i cf leafOk built (by omega))
+                (tree? := tree?) (tree := child) (innerLog := innerLog)
+                (outerLog := (runs k).2) (by simpa [hb] using hrunSupport k)
+              simpa [children, childLogs, hb] using hp
+        have hbranches : ∀ k,
+            branches k = ((some (children k), childLogs k), some (children k)) := by
+          intro k
+          rcases hb : branches k with ⟨⟨tree?, innerLog⟩, child?⟩
+          cases child? with
+          | none =>
+              have hk := hall k
+              simp [hb] at hk
+          | some child =>
+              have hp := hbranchProps k
+              simp only [hb] at hp
+              have htree? : tree? = some (children k) := hp.1
+              have hchild : children k = child := by simp [children, hb]
+              subst tree?
+              simpa [childLogs, hb, hchild]
+        have hchildren : ∀ k,
+            CombinedReplayConsistent total main qb i cf leafOk built
+              (children k) (childLogs k) := by
+          intro k
+          exact ih (by omega) (hbranchProps k).2.1
+        obtain ⟨firstRunLog, hfirstRun, hfirstPrefix⟩ :=
+          forkReplay4_firstRun_prefix_of_outerReplay
+            (continuedForkMain
+              (forkTreeCombined total main qb i cf leafOk built (by omega))
+              keepCombinedChild) qb i
+            (continuedForkSelector qb i
+              (combinedTreeSelector qb i cf total built (by omega)) none)
+            hbranchesOuter
+        have hfirstRunProps := continuedForkMain_keepCombinedChild_some_support_props
+          (forkTreeCombined total main qb i cf leafOk built (by omega))
+          (tree? := some (children 0)) (tree := children 0)
+          (innerLog := childLogs 0) (outerLog := firstRunLog)
+          (by simpa [hbranches 0] using hfirstRun)
+        have hcanonical : CombinedCanonicalProjection main (.node children) outerLog := by
+          rcases (hchildren 0).canonicalProjection with
+            ⟨baseRun, hsupport, hroot, hprefixBase⟩
+          refine ⟨baseRun, hsupport, by simpa [RunTree.root] using hroot, ?_⟩
+          intro n hn
+          rcases hfirstPrefix with ⟨tail, hp₂⟩
+          rw [← hp₂, List.getElem?_append_left]
+          · rw [hfirstRunProps.2.2]
+            exact hprefixBase n hn
+          · rw [hfirstRunProps.2.2]
+            by_contra hnot
+            have hnone : (childLogs 0)[n]? = none := by
+              rw [List.getElem?_eq_none_iff]
+              omega
+            have hp := hprefixBase n hn
+            rw [hnone] at hp
+            have hbaseNone : baseRun.2[n]? = none := hp.symm
+            rw [List.getElem?_eq_none_iff] at hbaseNone
+            omega
+        have hprojection := combinedNodePrefixProjection_of_outerReplay
+          total built (by omega) main qb i cf
+          (forkTreeCombined total main qb i cf leafOk built (by omega))
+          (hbaseReach (combinedLevel total built (by omega)) (by
+            simp [combinedLevel]; omega)) hfork hbranches
+          (fun k => (hchildren k).canonicalProjection)
+          hcanonical
+        exact .node outerLog children (by omega) hprojection childLogs hchildren
+      · simp [assembleCombinedNode, hall] at hassemble
+
+private theorem combinedTreeSelector_cf_eq_some
+    (qb : ι → Nat) (i : ι) (cf : Nat → α → Option (Fin (qb i + 1)))
+    (total built : Nat) (hbuilt : built < total) (tree : RunTree spec α built)
+    (s : Fin (qb i + 1))
+    (h : combinedTreeSelector qb i cf total built hbuilt (some tree) = some s) :
+    cf (combinedLevel total built hbuilt) tree.root.1 = some s := by
+  change cf (total - (built + 1)) tree.root.1 = some s
+  change (match cf (total - (built + 1)) tree.root.1 with
+    | none => none
+    | some current =>
+        match treeFirstSlot cf total built tree with
+        | none => some current
+        | some next => if current < next then some current else none) = some s at h
+  rcases hcf : cf (total - (built + 1)) tree.root.1 with _ | current
+  · simp [hcf] at h
+  rcases hfirst : treeFirstSlot cf total built tree with _ | next
+  · simpa [hcf, hfirst] using h
+  by_cases hlt : current < next
+  · simpa [hcf, hfirst, hlt] using h
+  · simp [hcf, hfirst, hlt] at h
+
+private theorem getQueryValue_isSome_of_prefix [spec.DecidableEq]
+    (inner outer : QueryLog spec) (i : ι) (s : Nat)
+    (hprefix : inner <+: outer)
+    (hinner : (QueryLog.getQueryValue? inner i s).isSome) :
+    (QueryLog.getQueryValue? outer i s).isSome := by
+  obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp hinner
+  apply Option.isSome_iff_exists.mpr
+  refine ⟨u, QueryLog.getQueryValue?_eq_some_of_getQ_getElem? outer i s u ?_⟩
+  have hget := QueryLog.getQ_getElem?_eq_of_getQueryValue?_eq_some inner i s u hu
+  have hprefQ := getQ_prefix_combined inner outer (· = i) hprefix
+  rcases hprefQ with ⟨tail, hprefQ⟩
+  rw [← hprefQ, List.getElem?_append_left]
+  · exact hget
+  · exact (List.getElem?_eq_some_iff.mp hget).1
+
+/-- Successful combined extraction has a reachable next selector and carries
+the complete construction-side replay invariant.  Selector mass is session 9. -/
+theorem forkTreeCombined_support_invariant
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s) :
+    CfReachable
+      (forkTreeCombined total main qb i cf leafOk built (Nat.le_of_lt hbuilt))
+      qb i (combinedTreeSelector qb i cf total built hbuilt) ∧
+    ∀ {tree outerLog},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))) →
+      CombinedReplayConsistent total main qb i cf leafOk built tree outerLog := by
+  constructor
+  · intro tree? outerLog hrun s hselector
+    rcases tree? with _ | tree
+    · simp at hselector
+    have hconsistent := forkTreeCombined_support_invariant_core total built
+      (Nat.le_of_lt hbuilt) main qb i cf leafOk hbaseReach hrun
+    have hcf := combinedTreeSelector_cf_eq_some qb i cf total built hbuilt tree s hselector
+    rcases hconsistent.canonicalProjection with
+      ⟨baseRun, hsupport, hroot, hprefixPoints⟩
+    have hgate : leafOk baseRun := by
+      simpa [← hroot] using hconsistent.all_leafOk.root
+    obtain ⟨selected, hselected⟩ := hselectorTotal hsupport hgate
+      (combinedLevel total built hbuilt) (by simp [combinedLevel]; omega)
+    have hselectedEq : selected = s := Option.some.inj (hselected.symm.trans (by
+      simpa [hroot] using hcf))
+    subst selected
+    have hbaseValue := hbaseReach (combinedLevel total built hbuilt) (by
+      simp [combinedLevel]
+      omega) hsupport s hselected
+    have hprefix : baseRun.2 <+: outerLog := by
+      have htake : outerLog.take baseRun.2.length = baseRun.2 := by
+        exact (take_eq_of_getElem?_eq_below_combined outerLog baseRun.2
+          baseRun.2.length (fun n hn => hprefixPoints n hn)).trans List.take_length
+      rw [← htake]
+      exact List.take_prefix _ _
+    exact getQueryValue_isSome_of_prefix baseRun.2 outerLog i s hprefix hbaseValue
+  · intro tree outerLog hrun
+    exact forkTreeCombined_support_invariant_core total built
+      (Nat.le_of_lt hbuilt) main qb i cf leafOk hbaseReach hrun
 
 /-- Consistency entails support for every run stored in the tree. -/
 theorem TreeConsistent.all_support [spec.DecidableEq]

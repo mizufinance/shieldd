@@ -4244,3 +4244,84 @@ passed (3301 jobs), and final `lake build Ipp` passed in 125.2s (3324 jobs).
 Scans of the two edited Lean files found no `sorry`, `axiom`, or
 `native_decide`; `git diff --check` passed. Prover/release-gated tests were not
 run.
+
+## A? session 8
+
+Proved the support/invariant half as the discoverable standalone theorem below;
+the selector-mass identity remains session 9.
+
+```lean
+theorem forkTreeCombined_support_invariant
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s) :
+    CfReachable
+      (forkTreeCombined total main qb i cf leafOk built (Nat.le_of_lt hbuilt))
+      qb i (combinedTreeSelector qb i cf total built hbuilt) ∧
+    ∀ {tree outerLog},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))) →
+      CombinedReplayConsistent total main qb i cf leafOk built tree outerLog
+```
+
+The bottom-up induction proves depth zero by unfolding `forkTreeCombined_zero`,
+projecting the nested logging support, checking `leafOk`, and applying the
+session-6 `CombinedReplayConsistent.leaf` constructor. At successor depth it
+unfolds `forkTreeCombined_succ` once, applies
+`forkReplay4_support_props_full` to the four executions, invokes the induction
+hypothesis on every successful child, and constructs the session-6
+`CombinedReplayConsistent.node`. The node projection is discharged by the
+session-7 `combinedNodePrefixProjection_of_outerReplay`; that lemma inverts
+`combinedTreeSelector` and supplies the common earlier slot plus its strict
+inequality to every present child first slot. Consequently the induction does
+not separately invoke the session-6 consumer lemmas `firstSlot_some` or
+`slot_lt_child_first`; those remain downstream eliminators for the invariant.
+The new `CombinedReplayConsistent.canonicalProjection` eliminator exposes the
+session-6 canonical field without dependent constructor case splits.
+
+Because replaying the whole fork has a longer outer log than its canonical
+first execution, session 8 also proves
+`forkReplay4_firstRun_prefix_of_outerReplay`. This connects the exact outer
+support witness to child zero's logged execution, allowing the child canonical
+prefix to be composed into the parent canonical prefix without choosing an
+unrelated support witness.
+
+The exact deferred session-9 goal is:
+
+```lean
+(∑ s, Pr[= some s |
+  continuedForkSelector qb i
+    (combinedTreeSelector qb i cf total built hbuilt) none <$>
+  continuedForkMain
+    (forkTreeCombined total main qb i cf leafOk built
+      (Nat.le_of_lt hbuilt))
+    keepCombinedChild] =
+  Pr[fun tree => tree.isSome |
+    forkTreeCombined total main qb i cf leafOk built
+      (Nat.le_of_lt hbuilt)])
+```
+
+`#print axioms` results:
+
+```text
+'Ipp.forkReplay4_firstRun_prefix_of_outerReplay' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.forkTreeCombined_support_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Verification used the pinned Lean 4.30.0 toolchain with
+`LEAN_NUM_THREADS=1` and one machine-wide Lake/Lean process at a time. Focused
+`lake build Ipp.Fork` passed (3300 jobs), focused `lake build Ipp.ForkTree`
+passed (3301 jobs), and final `lake build Ipp` passed in 124.6 seconds (3324
+jobs). Scans of `Ipp/Fork.lean` and `Ipp/ForkTree.lean` found no `sorry`,
+`axiom`, or `native_decide`; `git diff --check` passed. Prover/release-gated
+tests were not run.

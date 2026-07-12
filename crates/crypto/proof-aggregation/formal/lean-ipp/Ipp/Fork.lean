@@ -650,6 +650,90 @@ theorem forkReplay4_support_props_full [spec.DecidableEq] [IsUniformSpec spec]
     hrunsSupport, hcf, hinjective, hanswers, hcursor, hprefix, hslotPos,
     hslotInput, hslotRank, hprefixValues⟩
 
+private theorem forkReplay4FromCore_first_eq [spec.DecidableEq]
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : α → Option (Fin (qb i + 1))) (first : α × QueryLog spec)
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {core : (α × QueryLog spec) ×
+      Option (spec.Range i × (α × ReplayForkState spec i)) ×
+      Option (spec.Range i × (α × ReplayForkState spec i)) ×
+      Option (spec.Range i × (α × ReplayForkState spec i))}
+    (h : core ∈ support (forkReplay4FromCore main qb i cf first)) :
+    core.1 = first := by
+  simp only [forkReplay4FromCore] at h
+  split at h
+  · have heq : core = (first, none, none, none) := by simpa using h
+    simpa using congrArg Prod.fst heq
+  · split at h
+    · have heq : core = (first, none, none, none) := by simpa using h
+      simpa using congrArg Prod.fst heq
+    · rw [mem_support_bind_iff] at h
+      obtain ⟨z₁, hz₁, h⟩ := h
+      rw [mem_support_bind_iff] at h
+      obtain ⟨z₂, hz₂, h⟩ := h
+      rw [mem_support_bind_iff] at h
+      obtain ⟨z₃, hz₃, h⟩ := h
+      have heq : core = (first, z₁, z₂, z₃) := by simpa using h
+      simpa using congrArg Prod.fst heq
+
+/-- The canonical first execution of a successful four-way fork is a prefix of
+the log produced by replaying the entire fork experiment. -/
+theorem forkReplay4_firstRun_prefix_of_outerReplay
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    {xs : Fin 4 → α} {outerLog : QueryLog spec}
+    (h : (some xs, outerLog) ∈ support
+      (replayFirstRun (forkReplay4 main qb i cf))) :
+    ∃ firstLog, (xs 0, firstLog) ∈ support (replayFirstRun main) ∧
+      firstLog <+: outerLog := by
+  change (some xs, outerLog) ∈ support
+    (finishForkReplay4 <$> forkReplay4Core main qb i cf).withQueryLog at h
+  rw [map_eq_pure_bind, OracleComp.withQueryLog_bind, mem_support_bind_iff] at h
+  obtain ⟨⟨core, coreLog⟩, hcore, hfinish⟩ := h
+  simp only [OracleComp.withQueryLog_pure, map_pure, mem_support_pure_iff] at hfinish
+  have hfinishOutput : finishForkReplay4 core = some xs := by
+    simpa using congrArg Prod.fst hfinish.symm
+  have houterLog : coreLog = outerLog := by
+    simpa using congrArg Prod.snd hfinish.symm
+  simp only [forkReplay4Core, OracleComp.withQueryLog_bind,
+    mem_support_bind_iff] at hcore
+  obtain ⟨⟨first, prefixLog⟩, hfirst, hrest⟩ := hcore
+  rw [support_map, Set.mem_image] at hrest
+  obtain ⟨⟨core', restLog⟩, hcore', hout⟩ := hrest
+  simp only [Prod.map_apply, id_eq, Prod.mk.injEq] at hout
+  rcases hout with ⟨rfl, rfl⟩
+  have hlogs := OracleComp.withQueryLog_self_log_eq main hfirst
+  subst prefixLog
+  have hcoreSupport : core' ∈ support (forkReplay4FromCore main qb i cf first) := by
+    have hmapped : core' ∈ support
+        (Prod.fst <$> replayFirstRun (forkReplay4FromCore main qb i cf first)) := by
+      rw [support_map, Set.mem_image]
+      exact ⟨(core', restLog), hcore', rfl⟩
+    simpa only [fst_map_replayFirstRun] using hmapped
+  have hfirstEq := forkReplay4FromCore_first_eq main qb i cf first hcoreSupport
+  rcases core' with ⟨first', z₁?, z₂?, z₃?⟩
+  rcases z₁? with _ | ⟨u₁, z₁⟩
+  · simp [finishForkReplay4] at hfinishOutput
+  rcases z₂? with _ | ⟨u₂, z₂⟩
+  · simp [finishForkReplay4] at hfinishOutput
+  rcases z₃? with _ | ⟨u₃, z₃⟩
+  · simp [finishForkReplay4] at hfinishOutput
+  simp only [finishForkReplay4] at hfinishOutput
+  split_ifs at hfinishOutput with hu₂₁ hu₃₁ hu₃₂
+  have hxs : xs = ![first'.1, z₁.1, z₂.1, z₃.1] :=
+    Option.some.inj hfinishOutput.symm
+  have hfirst' : first' = first := by simpa using hfirstEq
+  subst first'
+  have hfirstSupport : first ∈ support (replayFirstRun main) := by
+    have hmapped : first ∈ support (Prod.fst <$> replayFirstRun (replayFirstRun main)) := by
+      rw [support_map, Set.mem_image]
+      exact ⟨(first, first.2), hfirst, rfl⟩
+    simpa only [fst_map_replayFirstRun] using hmapped
+  subst outerLog
+  refine ⟨first.2, by simpa [hxs] using hfirstSupport, ⟨restLog, rfl⟩⟩
+
 /-- A successful four-way fork supplies four accepting logged runs at one
 selected slot, pairwise-distinct answers there, and a common interleaved query
 prefix.  This is the qualitative `fs.challenge-preimage` boundary consumed by

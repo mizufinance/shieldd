@@ -602,6 +602,440 @@ Composition surgery per (b)), then R5, then R6 (assembly proof), then R7.
 The NOTE findings confirm: per-round swap orientation and the U5e
 positive-support technique are sound as designed.
 
+### R7-A? execution design
+
+This subsection is the implementation contract for option A? (full
+mechanization).  It supersedes R7 items 2--5 above where they describe the
+old top-down `forkTreeFrom` distribution.  It does not weaken or assume the
+R7 theorem.  The redesign makes the recursively extracted computation itself
+the computation replayed at the next level.  Consequently it uses the proved
+one-level replay theorem in its actual execution order and never commutes an
+adaptive continuation across a replay.
+
+#### 1. One query-bound contract
+
+There is one numerical meaning throughout R7:
+
+```text
+Q := qb + 1
+```
+
+`Q`, not `qb`, is an upper bound on the **whole uncached FS game**, counting
+all oracle queries at all indices.  Thus the public quantitative hypothesis is
+
+```lean
+hgame : OracleComp.IsTotalQueryBound (FsGame stmt adv) (qb + 1)
+```
+
+This is deliberately stronger and simpler than a bound on structured cache
+misses.  It counts adversary and verifier queries, including ambient-uniform
+queries.  Under `fsRandomFunction`, structured cache hits cost zero source
+queries and misses cost one, while ambient-uniform queries are forwarded at
+cost one.  The VCVio `CachingOracle` total-bound transfer therefore gives a
+source-computation bound of the same `Q`; logging and `wrapFs` preserve that
+bound.  In particular the number of structured misses, and hence every
+`Sum.inr ()` ordinal used by `roundSlot`, is at most `Q`.  No proof may treat
+`qb` as an adversary bound or as the number of misses.
+
+The convenient caller-facing form separates the adversary budget:
+
+```lean
+hadv : OracleComp.IsTotalQueryBound adv qa
+hcap : qa + (mu + 4) * stmt.rejectionFuel <= qb + 1
+```
+
+(`mu` is written `μ` in Lean.)  Implement these exact lemmas:
+
+```lean
+theorem queryAccepting_isTotalQueryBound ... (fuel nonce : Nat) :
+    IsTotalQueryBound (queryAccepting mkPoint acceptable fuel nonce) fuel
+
+theorem queryRounds_isTotalQueryBound ... (fuel μ : Nat) ... :
+    IsTotalQueryBound (queryRounds fuel μ prev rounds) (μ * fuel)
+
+theorem fsVerifier_isTotalQueryBound ... (proof : Proof μ F G1 G2 GT) :
+    IsTotalQueryBound (fsVerifier stmt proof)
+      ((μ + 4) * stmt.rejectionFuel)
+
+theorem FsGame_isTotalQueryBound ...
+    (hadv : IsTotalQueryBound adv qa) :
+    IsTotalQueryBound (FsGame stmt adv)
+      (qa + (μ + 4) * stmt.rejectionFuel)
+
+theorem FsGame_isTotalQueryBound_of_le ...
+    (hadv : IsTotalQueryBound adv qa)
+    (hcap : qa + (μ + 4) * stmt.rejectionFuel <= qb + 1) :
+    IsTotalQueryBound (FsGame stmt adv) (qb + 1)
+```
+
+The first two proofs are structural inductions; the latter two use
+`isTotalQueryBound_bind` and `IsTotalQueryBound.mono`.  Also prove transfer
+lemmas for `fsRandomFunction (FsGame stmt adv)`, `wrapFs (FsGame stmt adv)`,
+and `fsProbComp stmt adv`.  Use VCVio's
+`IsTotalQueryBound.simulateQ_run_withCaching` (plus the one-query forwarding
+step), its logging equivalence, and the state/output projections already used
+by `fsRandomFunction`/`wrapFs`.  Do not add a second budget predicate.
+
+All later constants use `Q = qb + 1` exactly:
+
+- `roundSlot qb level` has codomain `Option (Fin Q)`.
+- The fork selector has `Q` candidate ordinals and the one-level transformer
+  is `forkTreeStep Q |F|`; in existing APIs this is the expression
+  `forkTreeStep (qb i + 1) (Fintype.card (spec.Range i))`.
+- `answer_collision_bound` uses `Q^2 / |F|` (retain the existing loose ordered
+  pair bound unless a separate tightening session is requested).
+- `randomizer_rootset_bound` uses `Q * dR / (|F| - 2)`.
+- `dependency_order_bound` uses `μ * Q / |F|`.
+- `kzg_z_bound` uses `Q * dZ / |F|`.
+- `round_unqueried_bound` remains the declared `bUnq`, but its event uses the
+  same `roundSlot qb`, hence the same `Q` cutoff.
+
+`BadEventBudget.ofBounds`, `RunGoodFull`, and every U5a theorem take this
+predecessor-style `qb`; public theorem documentation must always print
+`Q := qb + 1`.  The apparent `+1` is therefore not an extra oracle query.  It
+is the size of `Fin (qb + 1)`.  A caller with a natural cap `Q0 > 0` supplies
+`qb := Q0 - 1` and proves `Q0 = qb + 1`; extraction at `Q0 = 0` is excluded by
+the positive R7 premise (and should not acquire a special compatibility path).
+
+#### 2. Combined-replay tree experiment
+
+Retire `forkTreeFrom`, `forkTree`, `averagedForkTreeSuccess`,
+`forkTreeChildContinuation`, and `forkTreeContinuationMass` after their
+consumers move.  They describe the wrong top-down distribution and must not
+remain as aliases.  Introduce `forkTreeCombined`; that name remains public so
+proof statements cannot silently refer to the obsolete experiment.
+
+The construction is bottom-up.  For a requested total depth `total`, the
+depth-`built` computation has already extracted transcript levels
+`total - built, ..., total - 1`.  Extending it to `built + 1` replays the
+**entire depth-`built` computation** at level
+`total - (built + 1)` and joins the four successful replay outputs under a new
+node.  Therefore all sampling and adaptive oracle work used to construct a
+child subtree occurs inside the computation being replayed.
+
+Use these definitions (universe/instance binders may be inferred, but the
+argument order and result types are contractual):
+
+```lean
+def combinedLevel (total built : Nat) (h : built < total) : Nat :=
+  total - (built + 1)
+
+def treeFirstSlot
+    (cf : Nat -> α -> Option (Fin (qb i + 1)))
+    (total built : Nat) (tree : RunTree spec α built) :
+    Option (Fin (qb i + 1)) :=
+  if h : 0 < built then cf (total - built) tree.root.1 else none
+
+def combinedTreeSelector
+    (qb : ι -> Nat) (i : ι)
+    (cf : Nat -> α -> Option (Fin (qb i + 1)))
+    (total built : Nat) (h : built < total) :
+    Option (RunTree spec α built) -> Option (Fin (qb i + 1))
+  | none => none
+  | some tree =>
+      match cf (combinedLevel total built h) tree.root.1 with
+      | none => none
+      | some s =>
+          match treeFirstSlot cf total built tree with
+          | none => some s
+          | some next => if s < next then some s else none
+
+def keepCombinedChild {depth : Nat} :
+    (Option (RunTree spec α depth) × QueryLog spec) ->
+      OracleComp spec (Option (RunTree spec α depth))
+  | (some tree, _) => pure (some tree)
+  | (none, _) => pure none
+
+def assembleCombinedNode {depth : Nat} :
+    Option (Fin 4 ->
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth)) ->
+      Option (RunTree spec α (depth + 1))
+  | some branches =>
+      if h : forall k, (branches k).2.isSome then
+        some (.node (fun k => (branches k).2.get (h k)))
+      else none
+  | none => none
+
+noncomputable def forkTreeCombined [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α)
+    (qb : ι -> Nat) (i : ι)
+    (cf : Nat -> α -> Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec -> Prop) [DecidablePred leafOk] :
+    (built : Nat) -> built <= total ->
+      OracleComp spec (Option (RunTree spec α built))
+  | 0, _ => do
+      let first <- replayFirstRun main
+      if leafOk first then pure (some (.leaf first)) else pure none
+  | built + 1, hle =>
+      assembleCombinedNode <$> forkReplay4Continue
+        (forkTreeCombined total main qb i cf leafOk built (by omega))
+        qb i (combinedTreeSelector qb i cf total built (by omega)) none
+        keepCombinedChild
+```
+
+The implementation may split the last equation into a private step definition
+to help elaboration.  It must not change its distribution.  In particular,
+`forkTreeCombined ... built` is the `main` argument to
+`forkReplay4Continue`, not a continuation launched after replaying the
+original `main`.  `keepCombinedChild` is query-free; it only rejects failed
+child extraction and exposes the successful child tree.  The `QueryLog` in a
+branch is the log of the whole depth-`built` extractor and is retained for the
+support invariant below.
+
+For the final FS instantiation use `total = built = μ`,
+`main := wrapFs (FsGame stmt adv)`, `i := Sum.inr ()`,
+`cf level run := roundSlot (qb (Sum.inr ())) level run`, and
+`leafOk run := WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2` (or the
+definitionally equal `RunGoodFull` gate at the source-log boundary).
+
+This definition yields the honest recurrence.  Put
+
+```lean
+Q d := Pr[fun t => t.isSome |
+  forkTreeCombined total main qb i cf leafOk d hd]
+```
+
+for `d <= total`.  Success of depth `d < total`, together with the leaf
+selector-totality premise and intrinsic slot-order invariant, makes
+`combinedTreeSelector ... d` return a reachable slot.  Since
+`keepCombinedChild` succeeds exactly on a successful child tree,
+the selector mass in `forkReplay4Continue_bound` is exactly `Q d`, while
+`assembleCombinedNode` succeeds exactly when that theorem's four-way output
+succeeds.  Hence
+
+```text
+forkTreeStep (qb i + 1) |Range i| (Q d) <= Q (d + 1),
+Q 0 = Pr[leafOk | replayFirstRun main],
+G^[total](Q 0) <= Q total.
+```
+
+This is not the rejected generic coupling.  No equality is asserted between
+`forkTreeCombined` and old `forkTreeFrom`, and no oracle continuation is moved
+through a replay.  The recursive extractor is syntactically inside the
+replayed `main` of the next step.
+
+#### 3. Reconnect the R6 support boundary
+
+Keep `RunTree` and `TreeConsistent` as the R6-facing abstract interface.
+Strengthen the construction-side induction with a private/publicly named
+predicate `CombinedReplayConsistent`; do not add fields to `AcceptTree`.
+It must record, for a successful depth-`built` output and its outer extractor
+log:
+
+1. every stored leaf is in `support (replayFirstRun main)` and satisfies
+   `leafOk`;
+2. the tree covers exactly levels `total - built, ..., total - 1`;
+3. `tree.root` is the projection of the canonical base run nested in the
+   outer extractor execution;
+4. for `built > 0`, `treeFirstSlot` is present and all slots down every path
+   are strictly increasing;
+5. a replay-prefix relation on the outer depth-`built` logs projects to the
+   prefix/cursor/slot-rank/value facts on the four child `tree.root` base logs;
+6. for any optional earlier `lower` below `treeFirstSlot` (or for `none`), the
+   predicate can be forgotten to
+   `TreeConsistent main qb i cf leafOk (total - built) lower tree`.
+
+Re-prove/replace the following experiment-facing theorems:
+
+- `forkTreeFrom_support_props`: delete it.  Its replacement is the recursive
+  `forkTreeCombined_support_invariant` in section 4.
+- `forkTree_support_props`: replace by
+  `forkTreeCombined_support_props`, specialized to `built = total`, returning
+  `TreeConsistent ... 0 none tree`.
+- `forkTree_success_all_leafOk`: replace by
+  `forkTreeCombined_success_all_leafOk` using the new support theorem.
+- `forkTree_success_selectorAccepted`: replace by the selector-mass/support
+  lemma used by the recurrence; it is indexed by `built < total`, not by a
+  top-down `level/lower` pair.
+- `forkTree_propertyTransfer`: replace by
+  `forkTreeCombined_propertyTransfer`; it still transfers a postcondition on
+  `support (replayFirstRun main)` to every leaf.
+- `fsFork_success_acceptTree` and the small `FsGame` property-transfer
+  endpoint must mention `forkTreeCombined ... total total` and invoke the new
+  support theorem.
+
+The following remain unchanged because they consume only an abstract
+`TreeConsistent`: `TreeConsistent.all_support`,
+`TreeConsistent.all_leafOk`, `TreeConsistent.root_selectorAccepted`,
+`tree_to_acceptTree_aux`, and `tree_to_acceptTree`.  All R6 path-prefix,
+filtered-rank, transcript-chaining, shared-root, fold, and `AcceptTree`
+lemmas below `tree_to_acceptTree` remain untouched.  Only their experiment
+entry point changes.  If implementation shows that item 5 above cannot be
+forgotten into the current `hprefix`/`hprefixValues` fields, strengthen
+`CombinedReplayConsistent`, not `TreeConsistent`; the latter is already the
+minimal sufficient R6 interface.
+
+#### 4. Hardest theorem: recursive support plus mass identification
+
+Define `CombinedReplayConsistent` with the parameters described above and
+state the central induction as one theorem so support and probability cannot
+drift apart:
+
+```lean
+theorem forkTreeCombined_support_invariant_and_selectorMass
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι -> Nat) (i : ι)
+    (cf : Nat -> α -> Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec -> Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total ->
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) -> leafOk first ->
+      ∀ level, level < total -> ∃ s, cf level first.1 = some s) :
+    CfReachable
+      (forkTreeCombined total main qb i cf leafOk built (Nat.le_of_lt hbuilt))
+      qb i (combinedTreeSelector qb i cf total built hbuilt) ∧
+    (∀ {tree outerLog},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))) ->
+      CombinedReplayConsistent total main qb i cf leafOk built tree outerLog) ∧
+    (∑ s, Pr[= some s |
+      continuedForkSelector qb i
+        (combinedTreeSelector qb i cf total built hbuilt) none <$>
+      continuedForkMain
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))
+        keepCombinedChild] =
+      Pr[fun tree => tree.isSome |
+        forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt)])
+```
+
+If elaboration makes the conjunction unwieldy, split it into three theorems
+proved by the same private induction, but retain these exact conclusions.  For
+FS, `hselectorTotal` is exactly the consequence of
+`WrappedRunGood`'s `not RoundPointUnqueried` field and
+`roundSlot_some_or_unqueried`; it is not implied by `CfReachable` alone.  Also
+expose:
+
+```lean
+theorem forkTreeCombined_step ... (hbuilt : built < total) ... :
+  forkTreeStep (qb i + 1) (Fintype.card (spec.Range i)) (Q built) <=
+    Q (built + 1)
+```
+
+The induction is bottom-up.  At `built = 0`, unfold the leaf gate, use logging
+support projection, use `hbaseReach` and `hselectorTotal`, and prove selector
+mass by `probEvent_bind_eq_tsum`.  At `built + 1`, unfold exactly one
+`forkReplay4Continue`; apply its support theorem to the four executions of the
+depth-`built` computation, apply the induction hypothesis to each successful
+child, use `combinedTreeSelector` to obtain the common earlier slot and its
+strict inequality to every child's first slot, and assemble the intrinsic
+slot/tree invariant.
+
+The relational-logic step is precise: relate two executions of
+`forkTreeCombined ... built` replayed with equal outer log entries before the
+new selected ordinal.  Maintain a relation consisting of (a) equal replay
+state before that ordinal, (b) equal projection to the canonical nested
+`replayFirstRun main` until its corresponding base-log cursor, and (c) the
+induction hypothesis for every already completed nested child.  A query step
+of the recursive extractor either belongs to completed subtree construction
+(handled by (c)) or to the canonical root path; in the latter case replay
+state equality and the recorded projection give the current
+`TreeConsistent.node` `hprefix`, `hslotRank`, and `hprefixValues`.  At the fork
+query, VCVio replay replacement gives the four distinct answers and common
+slot; after it, no prefix equality is claimed.  This is a computation-specific
+coupling proved by `OracleComp` induction/VCVio relational program logic, not
+`probEvent_bind_bind_swap` and not equality with the old experiment.
+
+The selector-mass half is then event extensionality, not a coupling:
+`keepCombinedChild` is query-free and succeeds iff its input tree is `some`;
+`hselectorTotal` plus the support invariant proves that every successful tree
+has exactly one valid next selector slot; and
+`combinedTreeSelector = some s` implies that the child tree succeeded.
+Summing the disjoint `Option (Fin Q)` singleton events gives
+the depth-`built` success event.  The RHS of
+`forkReplay4Continue_bound` is definitionally the pre-map computation used by
+`forkTreeCombined ... (built + 1)`, and `assembleCombinedNode` preserves its
+`isSome` event.
+
+Residual uncertainty: VCVio has the required replay state/support and general
+relational machinery, but no packaged theorem projecting a replay prefix of a
+nested `forkTreeCombined` execution to the canonical base-run log.  The
+computation-specific relation in the preceding paragraph is new and is the
+single highest-risk proof.  If it fails, the acceptable repair is to make the
+projection witness explicit in `CombinedReplayConsistent`/the internal result
+carrier.  It is not acceptable to postulate a commutation equality or weaken
+`TreeConsistent`.
+
+#### 5. Ordered implementation sessions
+
+Each item is intended to fit one focused Codex session.  `HARD (sol)` means
+proof search/design judgment is expected; `MECHANICAL (terra)` means the
+interfaces above fix the work sufficiently for direct implementation.
+
+1. **MECHANICAL (terra) — scalar and naming cleanup.** Add `Q := qb + 1`
+   documentation/helpers, normalize all U5a constants to that notation, and
+   add scalar monotonicity/iterate lemmas needed by the final recurrence.
+   Depends on: none.
+2. **MECHANICAL (terra) — verifier bounds.** Prove the
+   `queryAccepting`, `queryRounds`, and `fsVerifier` total-query lemmas with
+   focused tests.  Depends on: 1.
+3. **MECHANICAL (terra) — game/cache transfer.** Prove the adversary-to-game
+   composition and transfers through `fsRandomFunction`, `wrapFs`, and
+   `fsProbComp`; add tests/examples showing the same `Q` reaches structured
+   miss consumers.  Depends on: 2.
+4. **MECHANICAL (terra) — combined experiment data layer.** Implement
+   `combinedLevel`, `treeFirstSlot`, `combinedTreeSelector`,
+   `keepCombinedChild`, `assembleCombinedNode`, and executable simp/support
+   lemmas.  Do not yet delete the old experiment.  Depends on: 1.
+5. **HARD (sol) — recursive combined experiment.** Implement
+   `forkTreeCombined`, prove termination and the exact unfold equations, and
+   prove `isSome` equivalence between node assembly and the underlying
+   `forkReplay4Continue`.  Depends on: 4.
+6. **MECHANICAL (terra) — strengthened invariant shell.** Define
+   `CombinedReplayConsistent`, its leaf constructor/helpers, intrinsic slot
+   ordering operations, and its forgetful theorem to `TreeConsistent` assuming
+   the nested-prefix projection field.  Depends on: 4.
+7. **HARD (sol) — nested replay-prefix projection.** Prove the
+   computation-specific relational invariant taking outer extractor-log
+   prefix equality to canonical base-run prefix/cursor/rank/value facts.
+   Deliver this as a standalone lemma used by the node induction.  Depends
+   on: 5, 6.
+8. **HARD (sol) — recursive support theorem.** Prove the support/invariant
+   half of `forkTreeCombined_support_invariant_and_selectorMass`, including
+   four child applications and strict slot threading.  Depends on: 7.
+9. **HARD (sol) — selector mass identity.** Prove singleton-event disjointness,
+   successful-tree selector totality, and the exact selector-mass equality.
+   Depends on: 5, 8.
+10. **MECHANICAL (terra) — one-step and iterate recurrence.** Instantiate
+    `forkReplay4Continue_bound`, rewrite with session 9, prove
+    `forkTreeCombined_step`, and apply `forkTree_iterate_bound`.  Depends on:
+    9.
+11. **MECHANICAL (terra) — public support API.** Add
+    `forkTreeCombined_support_props`,
+    `forkTreeCombined_success_all_leafOk`, and
+    `forkTreeCombined_propertyTransfer`; port the small `FsGame` consumer.
+    Depends on: 8.
+12. **MECHANICAL (terra) — R6 reconnection.** Change only
+    `fsFork_success_acceptTree` to consume combined-tree support and confirm
+    `tree_to_acceptTree_aux`/`tree_to_acceptTree` are unchanged.  Then delete
+    the old `forkTreeFrom`/`forkTree` experiment and obsolete quantitative
+    helpers.  Depends on: 11.
+13. **HARD (sol) — concrete U5a cache bounds.** Prove answer-collision and
+    randomizer/KZG bad-set bounds from `hgame`/cache transfer with the exact
+    constants `Q^2/|F|`, `Q*dR/(|F|-2)`, and `Q*dZ/|F|`.  Depends on: 3.
+14. **HARD (sol) — protocol-local U5a bounds.** Prove the dependency-order
+    reduction `μ*Q/|F|`; retain `round_unqueried_bound` as the explicit
+    `bUnq` premise unless its separate protocol reduction is requested.
+    Assemble `BadEventBudget.ofBounds`.  Depends on: 3, 13.
+15. **HARD (sol) — U5e quantitative capstone.** Identify `Q 0` with the
+    `Accepted ∧ RunGoodFull` source event, combine `q0_lower_bound` with the
+    iterate recurrence, use positive probability to obtain support, then call
+    `fsFork_success_acceptTree` and `u4_capstone`.  Run focused and relevant
+    full package checks and report prover/release-gated coverage explicitly.
+    Depends on: 10, 12, 14.
+
+Sessions 2--3 and 4--6 are parallel-safe after session 1; sessions 13--14 can
+proceed once session 3 fixes the query contract and need not wait for the tree
+support proof.  The critical path is 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 15.
+The plan is 15 sessions, within the assessed 10--18 range.
+
 ## Conventions
 
 - No `sorry`; no `axiom` (assumptions are hypotheses via named `Prop` defs in
