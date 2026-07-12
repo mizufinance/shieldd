@@ -38,8 +38,10 @@ padding, and challenge preflight, and reached a local RIPP implementation
 reviewed against the intended algorithm. Validity then depends only on named
 cryptographic, arkworks, hax, and refinement assumptions.
 
-This is a composition claim, not a full mechanized SnarkPack/RIPP/Groth16
-soundness theorem.
+The aggregate-to-per-proof S1 implication is machine-checked by
+`Ipp.s1_soundness`. The claim remains conditional on the named cryptographic
+assumptions and quantitative random-oracle bounds below; implementation/model
+faithfulness and Groth16 circuit soundness remain separate ledger boundaries.
 
 ## Completion Rules
 
@@ -92,6 +94,7 @@ classification defaults to the higher-risk class until resolved.
 | untrusted-byte fuzz smoke coverage | `crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs`; `src/preflight.rs`; `src/backend.rs`; `crates/core/app/src/app/preconsensus.rs`; `crates/core/app/src/app/mod.rs`; `crates/crypto/proof-aggregation-fuzz` | wrapper, preflight, aggregate deserialization, sidecar, aggregate-bundle shape, and proposal-validation byte boundaries | Stable proptest plus cargo-fuzz smoke targets | `just snarkpack-fuzz-smoke`; `scripts/check-snarkpack-invariants.sh` | byte-boundary entrypoints return bounded Ok/Err without panics in smoke coverage | composed | n/a | test, fuzz, and invariant gates passed |
 | optimization preserves byte trace or versions the protocol | `crates/crypto/proof-aggregation/src/backend.rs`; `crates/crypto/proof-aggregation-reference/src/lib.rs`; `crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs`; `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs`; `../../optimization-playbook.md`; `crates/bench/benches/vanilla/snarkpack.rs` | committed aggregate-byte and ShielddByte-trace baselines; `msm_keys` final commitment-key recombination; corpus-backed bench plus compile-time `bench-baseline` A/B seam | Rust golden-baseline tests plus unit equivalence; documented playbook process | `aggregate_bytes_match_committed_baseline`; `shieldd_byte_trace_matches_committed_baseline`; `msm_keys_equals_sequential_fold`; committed fixtures under `tests/fixtures/`; `../../optimization-playbook.md` | aggregate bytes and transcript are locked to a version-tagged baseline; the playbook constrains optimizations to categories 1/2 (never transcript), measured honestly, so a change either preserves bytes or bumps `AGGREGATE_PROTOCOL_VERSION` with an adaptation-register row | composed | n/a | test gates passed |
 | local RIPP implementation maps to intended algorithm | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src` | proof-relevant RIPP symbols | refinement map plus tests/review | `ripp-refinement.md` | all scoped rows refined against `ripp-spec.md` | refined | n/a | ripp refinement reviewed; invariant gate passed |
+| SnarkPack aggregation implies every per-proof Groth16 pairing equation (S1) | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs`; `tipa`; `groth16_aggregation` | abstract FS-compiled combined-verifier game | Lean (`lean-ipp`) | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/S1.lean` | `Ipp.s1_soundness` (module `Ipp.S1`) | proved | Lean `v4.30.0` | `just snarkpack-lean-ipp`; axiom audit: `propext`, `Classical.choice`, `Quot.sound` only |
 
 ## Assumptions
 
@@ -101,8 +104,15 @@ classification defaults to the higher-risk class until resolved.
 | SHA-256 preimage resistance | cryptography lead | Challenge context and wrapper digests use SHA-256-derived commitments. | External cryptographic primitive assumption. | Postcondition: attacker cannot choose proof/wrapper/challenge bytes that invert the recorded SHA-256 commitments at the chosen security margins; evidence is standard SHA-256 analysis plus fixed domain prefixes. | replace primitive or obtain external audit evidence; no end-to-end FV is planned for this primitive | security/crypto | assumed |
 | Domain separation by fixed distinct prefixes | proof-aggregation maintainers | Separate statement digest, challenge context, challenge preimage, VK digest, and wrapper domains. | Reduces to fixed-prefix review plus hash assumptions. | Postcondition: statement digest, challenge context, challenge preimage, VK digest, and wrapper domains have disjoint fixed prefixes; evidence is golden-layout tests plus invariant review. | prove prefix disjointness mechanically if this becomes proof-critical | security/crypto | assumed |
 | abstract Groth16 soundness | cryptography lead | Aggregate verification ultimately depends on Groth16 proof soundness. | Out of implementation-boundary FV scope. | Postcondition: accepted Groth16 proofs satisfy the verified circuits under the published Groth16 assumptions; evidence is published Groth16 proof material and existing Shieldd circuit audits. | standing assumption; replace only with external audit or separate Groth16 proof campaign | security/crypto | assumed |
-| abstract RIPP/GIPA/TIPA/SnarkPack algebraic soundness | cryptography lead | Local implementation is reviewed against the algorithm, but algebraic soundness is external. | End-to-end FV out of scope; paper + Filecoin impl assumed sound. | Postcondition: the reviewed local RIPP/GIPA/TIPA equations are sound under the published SnarkPack/RIPP algebraic assumptions; evidence is published proof material, `ripp-refinement.md`, and the implemented Stage 9 Lean differential conformance gate (`just snarkpack-lean-conformance`). | standing assumption; removal requires a separate algebraic proof or external audit; Lean conformance remains supporting evidence, not a proof | security/crypto | assumed |
-| SnarkPack aggregation implies each per-proof Groth16 verification (S1 decision) | cryptography lead (human decision 2026-07-06) | The final SnarkPack claim is a composition claim: accepting one aggregate proof must imply each underlying per-proof Groth16 verification equation holds. Human-decided 2026-07-06 to accept for now on Filecoin lineage plus paper review rather than block on a mechanized IPP soundness theorem (plan §3, S1 DECIDED; assurance-case R1.3). Distinct from and composed with the abstract algebraic-soundness row above. | End-to-end mechanization of the aggregate→per-proof implication is deferred; re-proving the IPP paper is explicitly out of scope. | Postcondition: an accepted aggregate verification equation implies each per-proof Groth16 verification equation under the BLS12-377 pairing and KZG/SRS assumptions; evidence is the published SnarkPack/RIPP proof material, the Filecoin Bellperson v0.21.0 implementation lineage, `ripp-refinement.md`, and the Stage 9 Lean differential conformance gate (`just snarkpack-lean-conformance`) as supporting evidence. | Lean mechanization that the aggregated verification equation implies each per-proof Groth16 equation under the pairing assumptions — a bounded, statement-shaped target, NOT a re-proof of the IPP paper (plan §3 removal path). | security/crypto | assumed |
+| `assume.kzg-structured-key-binding` | cryptography lead | q-SDH-type binding of the structured KZG keys; bundles the KZG-challenge Schwartz--Zippel step because the verifier checks only the evaluation at `z`. | Computational BLS12-377 assumption, represented exactly by the `Ipp.KzgStructuredKeyBinding` `Prop` definition in `Ipp/Algebra.lean`. | Postcondition: every accepted `(final key, opening)` equals the honest structured SRS MSM at the transcript coefficients; consumed explicitly by `Ipp.s1_soundness`. | replace with a reduction for the deployed KZG scheme and curve | security/crypto | assumed |
+| `assume.pairing-commitment-binding` | cryptography lead | AFGHO/double-pairing binding at the SRS keys for the A/C product lane and real B lane. | Computational BLS12-377 assumption, represented exactly by the `Ipp.PairingCommitmentBinding` `Prop` definition in `Ipp/Algebra.lean`. | Postcondition: the pairing vector commitment is message-injective at the supplied keys; the removed synthetic scalar column is not an instance. | replace with a reduction for the deployed pairing commitment | security/crypto | assumed |
+| `assume.ro-answer-collision-union-bound` | formal verification owner | Supplies `BadEventBudget.answer_collision_bound`, `Q^2/card(F)`. | Fixed-set structured-miss union bounds are proved; the adaptive pair-collision reduction is not. | Postcondition: the accepted collision event has probability at most `Q^2/card(F)`; evidence is `Ipp.structured_log_mem_before_le` and the explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | prove the mixed-log structured pair bound and reduce `BadCollision` to it | security/crypto/formal | assumed |
+| `assume.ro-randomizer-rootset-union-bound` | formal verification owner | Supplies `BadEventBudget.randomizer_rootset_bound`, `Q*dR/(card(F)-2)`. | The mixed structured-log union is proved, but the accepted-stage log witness, bad-set cardinality premise, and rejection-loop conditioning are not connected to this field. | Postcondition: the accepted randomizer-root event has probability at most `Q*dR/(card(F)-2)`; evidence is `Ipp.structured_log_mem_le` and the explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | export the accepted randomizer log witness, add the cardinality premise, and prove `{0,1}` rejection conditioning | security/crypto/formal | assumed |
+| `assume.ro-dependency-order-union-bound` | formal verification owner | Supplies `BadEventBudget.dependency_order_bound`, `mu*Q/card(F)`. | The protocol-local early-query guessing reduction has not been transported through the full probability game. | Postcondition: the accepted dependency-order event has probability at most `mu*Q/card(F)`; evidence is the support-level dependency lemmas and explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | prove the protocol-local reduction from a bad dependency trace to a fresh miss guess | security/crypto/formal | assumed |
+| `assume.ro-round-slot-order-union-bound` | formal verification owner | Supplies `BadEventBudget.round_slot_order_bound`, `mu*Q/card(F)`. | The cross-round pre-query guessing reduction remains parametric. | Postcondition: the accepted round-order event has probability at most `mu*Q/card(F)`; evidence is the chronological support lemmas and explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | prove the adjacent-round guessing reduction over structured miss ordinals | security/crypto/formal | assumed |
+| `assume.ro-kzg-z-union-bound` | formal verification owner | Supplies `BadEventBudget.kzg_z_bound`, `Q*dZ/card(F)`. | The mixed structured-log union is proved, but the cached-verifier postcondition does not retain/export the accepted KZG log witness and the field interface lacks the bad-set cardinality premise. | Postcondition: the accepted KZG bad-set event has probability at most `Q*dZ/card(F)`; evidence is `Ipp.structured_log_mem_le` and the explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | retain/export the accepted KZG cache/log witness and add the `badZ.ncard <= dZ` premise | security/crypto/formal | assumed |
+| `assume.ro-round-unqueried-bound` | formal verification owner | Supplies the explicit `BadEventBudget.round_unqueried_bound` parameter `bUnq`. | Kept parametric by the S1 design: acceptance on a never-missed round point already constrains a fresh answer. | Postcondition: the accepted unqueried-round event has probability at most `bUnq`; evidence is the explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | give a separate ROM reduction if a non-parametric bound is required | security/crypto/formal | assumed |
+| `assume.fs-wrapped-probability-transport` | formal verification owner | Transfers accepted-and-good probability from the source miss-log experiment to the wrapped forking experiment. | Only support transport is proved; quantitative mass preservation through `wrapFs` is not. | Postcondition: source accepted-and-good probability is no greater than the wrapped good-event probability; evidence is `BadEventBudget.wrapped_good_lower_bound` and support transport in `Ipp/FsFork.lean`. | prove the pushforward distribution equality for `wrapFs`/logging | security/crypto/formal | assumed |
 | arkworks field/group/pairing mathematical operation implementations | proof-aggregation maintainers | The implementation calls arkworks arithmetic primitives. | Full library verification is outside this scope. | Postcondition: arkworks field, group, and pairing operations implement the algebra used by SnarkPack; evidence is upstream tests plus `arkworks_pairing_identity_and_generator_consistency`, `arkworks_g1_g2_compressed_round_trip_and_identity`, and `arkworks_g1_g2_subgroup_and_torsion_rejection`. | verified arithmetic backend or external audit artifact | security/crypto | assumed |
 | arkworks MSM implementation computes intended linear combination | proof-aggregation maintainers | MSM is an implementation-heavy dependency, not a pure algebra axiom. | Full arkworks MSM verification is outside this scope. | Postcondition: arkworks MSM returns the same linear combination as the naive fold for the boundary cases used by aggregation; evidence is `arkworks_msm_boundary_zero_scalar_identity_and_random_parity`. | verified MSM or external audit artifact | security/crypto | assumed |
 | arkworks serialization and subgroup behavior | proof-aggregation maintainers | SRS, VK, proof bytes, and digests depend on arkworks encoding checks. | Full serialization/subgroup proof is outside this scope. | Postcondition: checked compressed G1/G2 decoding rejects malformed and non-subgroup encodings and round-trips valid/identity encodings; evidence is `arkworks_g1_g2_compressed_round_trip_and_identity`, `arkworks_g1_g2_malformed_compressed_bytes_reject`, and `arkworks_g1_g2_subgroup_and_torsion_rejection`. | verified serialization backend or external audit artifact | security/crypto | assumed |
@@ -152,20 +162,33 @@ unmapped RIPP refinement symbols are rejected by `just snarkpack-invariants`.
 Any recorded extraction-only traversal branch must have a boundary row and
 normal plus `cfg(hax)` parity coverage.
 
-## Soundness Assumption And Differential Conformance
+## S1 Mechanization Boundary Notes
 
-End-to-end formal verification is **out of scope**. SnarkPack/RIPP/Groth16
-algebraic soundness is a standing assumption, inherited from the published paper
-and the Filecoin (Bellperson v0.21.0) implementation, both assumed sound. There
-is no Lean algebraic proof and no EasyCrypt Fiat-Shamir proof.
+`Ipp.s1_soundness` replaces both Filecoin-lineage trust rows. Its strict
+four-way combined-replay tree recurrence is unconditional but geometrically
+loose in the round count; tightening it with an expected-time/ACK-style
+extractor is future work, not an additional assumption.
 
-Instead, algebraic/transcript conformance is **exhaustively cross-checked over a
-bounded domain** by ALG-I4 (verification.md): an independent, hand-built Lean model of
-the transcript and folding discipline, differentially tested against the Rust by
-enumerating every distinct transcript shape (one per power of two up to the SRS
-max) rather than sampling. This is evidence, not proof (bounded by the SRS max,
-algebra abstract), and is non-blocking. F* via hax remains the executed-Rust
-implementation-boundary proof backend and stays a completion blocker.
+The six quantitative random-oracle event bounds and the source-to-wrapped
+probability transport remain the explicit named assumption sub-rows above.
+Their union algebra, per-structured-miss uniformity, fixed-set union over mixed
+structured log ordinals, query-bound transfer, forking recurrence, deterministic
+projections, and final S1 composition are proved. No parametric bound is hidden
+in the S1 theorem statement.
+
+The Lean game uses structured challenge-preimage records whose encoding is
+injective by construction. Byte-level layout/injectivity and hash-as-RO remain
+at the existing `fs.challenge-preimage` Shieldd-byte rows and trace-parity
+boundary. Fuel-bounded nonce rejection mirrors `challenge.rs`: the randomizer
+rejects `{0,1}` and scalar stages reject zero. `DependencyOrdered` is extraction
+bookkeeping, not a verifier check, and the reversed transcript view is pinned
+to Rust by the proved two-round parity lemma.
+
+Lean models abstract `F`-modules and a bilinear pairing. Faithfulness to
+`gipa.rs`, `tipa`, and `groth16_aggregation` therefore remains at the
+abstract-trace/refinement rows until S2. ALG-I4 continues to exhaustively
+cross-check transcript shapes through the SRS maximum; it is model/implementation
+evidence, not the S1 soundness proof.
 
 ## Gates
 
@@ -178,6 +201,8 @@ The clean-image `.github/workflows/snarkpack-formal.yml` job installs the pinned
 Z3, F*, and hax versions from `toolchain.toml`, runs `just snarkpack-formal`,
 then runs `just snarkpack-invariants`, `just snarkpack-fuzz-smoke`,
 `just snarkpack-filecoin-shape`, `just snarkpack-dos-gate`, and
-`just snarkpack-lean-conformance`. Keep the full
+`just snarkpack-lean-conformance`. Its separate `lean-ipp` job installs Lean
+`v4.30.0` and runs `just snarkpack-lean-ipp`, including the package build,
+zero-`sorry` scan, and axiom-declaration guard. Keep the full
 formal gate out of default `just check` unless it satisfies the default CI
 runtime policy; it remains a required SnarkPack workflow gate.

@@ -45,6 +45,24 @@ permissions:
   contents: read
 
 jobs:
+  lean-ipp:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
+
+      - name: Install pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain leanprover/lean4:v4.30.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Build and audit the SnarkPack S1 mechanization
+        run: just snarkpack-lean-ipp
+
   formal:
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 90

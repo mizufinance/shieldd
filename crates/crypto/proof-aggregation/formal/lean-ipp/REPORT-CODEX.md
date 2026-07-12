@@ -5153,3 +5153,117 @@ Verification and gate substance:
 The requested success condition is therefore met for the proved, axiom-clean
 `s1_soundness` capstone and package gates, but not for concrete sessions 13–14:
 their probability bounds remain explicit hypotheses for the reasons above.
+
+## S1 finish: Phase 6 + U5a
+
+Scope: Phase 6 ledger/CI/scope delivery first, followed by a bounded U5a
+hardening attempt. No commit was made. Existing edits to `Ipp/ForkTree.lean`
+and `Ipp/FsFork.lean` were preserved.
+
+### Phase 6 ledger flip
+
+The two Filecoin-lineage assumption rows were deleted. The replacement proved
+row is verbatim:
+
+```text
+| SnarkPack aggregation implies every per-proof Groth16 pairing equation (S1) | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs`; `tipa`; `groth16_aggregation` | abstract FS-compiled combined-verifier game | Lean (`lean-ipp`) | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/S1.lean` | `Ipp.s1_soundness` (module `Ipp.S1`) | proved | Lean `v4.30.0` | `just snarkpack-lean-ipp`; axiom audit: `propext`, `Classical.choice`, `Quot.sound` only |
+```
+
+The two cryptographic assumption rows, each mapping 1:1 to its
+`Ipp/Algebra.lean` `Prop` definition, are verbatim:
+
+```text
+| `assume.kzg-structured-key-binding` | cryptography lead | q-SDH-type binding of the structured KZG keys; bundles the KZG-challenge Schwartz--Zippel step because the verifier checks only the evaluation at `z`. | Computational BLS12-377 assumption, represented exactly by the `Ipp.KzgStructuredKeyBinding` `Prop` definition in `Ipp/Algebra.lean`. | Postcondition: every accepted `(final key, opening)` equals the honest structured SRS MSM at the transcript coefficients; consumed explicitly by `Ipp.s1_soundness`. | replace with a reduction for the deployed KZG scheme and curve | security/crypto | assumed |
+| `assume.pairing-commitment-binding` | cryptography lead | AFGHO/double-pairing binding at the SRS keys for the A/C product lane and real B lane. | Computational BLS12-377 assumption, represented exactly by the `Ipp.PairingCommitmentBinding` `Prop` definition in `Ipp/Algebra.lean`. | Postcondition: the pairing vector commitment is message-injective at the supplied keys; the removed synthetic scalar column is not an instance. | replace with a reduction for the deployed pairing commitment | security/crypto | assumed |
+```
+
+Because the quantitative fields remain parametric, the additional explicit
+assumption sub-rows are verbatim:
+
+```text
+| `assume.ro-answer-collision-union-bound` | formal verification owner | Supplies `BadEventBudget.answer_collision_bound`, `Q^2/card(F)`. | Fixed-set structured-miss union bounds are proved; the adaptive pair-collision reduction is not. | Postcondition: the accepted collision event has probability at most `Q^2/card(F)`; evidence is `Ipp.structured_log_mem_before_le` and the explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | prove the mixed-log structured pair bound and reduce `BadCollision` to it | security/crypto/formal | assumed |
+| `assume.ro-randomizer-rootset-union-bound` | formal verification owner | Supplies `BadEventBudget.randomizer_rootset_bound`, `Q*dR/(card(F)-2)`. | The mixed structured-log union is proved, but the accepted-stage log witness, bad-set cardinality premise, and rejection-loop conditioning are not connected to this field. | Postcondition: the accepted randomizer-root event has probability at most `Q*dR/(card(F)-2)`; evidence is `Ipp.structured_log_mem_le` and the explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | export the accepted randomizer log witness, add the cardinality premise, and prove `{0,1}` rejection conditioning | security/crypto/formal | assumed |
+| `assume.ro-dependency-order-union-bound` | formal verification owner | Supplies `BadEventBudget.dependency_order_bound`, `mu*Q/card(F)`. | The protocol-local early-query guessing reduction has not been transported through the full probability game. | Postcondition: the accepted dependency-order event has probability at most `mu*Q/card(F)`; evidence is the support-level dependency lemmas and explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | prove the protocol-local reduction from a bad dependency trace to a fresh miss guess | security/crypto/formal | assumed |
+| `assume.ro-round-slot-order-union-bound` | formal verification owner | Supplies `BadEventBudget.round_slot_order_bound`, `mu*Q/card(F)`. | The cross-round pre-query guessing reduction remains parametric. | Postcondition: the accepted round-order event has probability at most `mu*Q/card(F)`; evidence is the chronological support lemmas and explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | prove the adjacent-round guessing reduction over structured miss ordinals | security/crypto/formal | assumed |
+| `assume.ro-kzg-z-union-bound` | formal verification owner | Supplies `BadEventBudget.kzg_z_bound`, `Q*dZ/card(F)`. | The mixed structured-log union is proved, but the cached-verifier postcondition does not retain/export the accepted KZG log witness and the field interface lacks the bad-set cardinality premise. | Postcondition: the accepted KZG bad-set event has probability at most `Q*dZ/card(F)`; evidence is `Ipp.structured_log_mem_le` and the explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | retain/export the accepted KZG cache/log witness and add the `badZ.ncard <= dZ` premise | security/crypto/formal | assumed |
+| `assume.ro-round-unqueried-bound` | formal verification owner | Supplies the explicit `BadEventBudget.round_unqueried_bound` parameter `bUnq`. | Kept parametric by the S1 design: acceptance on a never-missed round point already constrains a fresh answer. | Postcondition: the accepted unqueried-round event has probability at most `bUnq`; evidence is the explicit theorem hypothesis in `Ipp/FsBadEvents.lean`. | give a separate ROM reduction if a non-parametric bound is required | security/crypto/formal | assumed |
+| `assume.fs-wrapped-probability-transport` | formal verification owner | Transfers accepted-and-good probability from the source miss-log experiment to the wrapped forking experiment. | Only support transport is proved; quantitative mass preservation through `wrapFs` is not. | Postcondition: source accepted-and-good probability is no greater than the wrapped good-event probability; evidence is `BadEventBudget.wrapped_good_lower_bound` and support transport in `Ipp/FsFork.lean`. | prove the pushforward distribution equality for `wrapFs`/logging | security/crypto/formal | assumed |
+```
+
+The boundary notes record the strict geometric four-way recurrence and its
+loose bound, the structured-model/byte split, nonce rejection and dependency
+bookkeeping, and the abstract F-module/pairing model-fidelity boundary.
+
+### Scope, CI, and S2/S3 artifact
+
+`formal/snarkpack/s1-mechanization-scope.md` is now a completion memo: U1--U4,
+U5b--U5e are marked complete; the combined-replay redesign and arity `Fin 4`
+are recorded; U5a's split is explicit. The same file contains the reviewable S2
+Tier-1/Tier-2 and S3 go/no-go sketches.
+
+`.github/workflows/snarkpack-formal.yml` now has a separate `lean-ipp` job. It
+checks out the repository, installs `just` and `leanprover/lean4:v4.30.0`, and
+runs `just snarkpack-lean-ipp` under a 30-minute timeout. The heavy Lean build
+is not added to default `ci-check`/`ci-test`.
+
+### U5a outcome
+
+Added `Ipp/FsMissBounds.lean` and imported it from `Ipp/FsBadEvents.lean`.
+After 18 narrow elaboration/build iterations, the previously load-bearing
+mixed-source probability transport closed without `sorry` or axioms:
+
+- `structured_log_mem_at_le`: at any fixed mixed log ordinal, a structured
+  answer hits finite `bad` with probability at most `|bad|/|F|`;
+- `structured_log_mem_before_le`: union over the first `n` ordinals gives
+  `n*|bad|/|F|`;
+- `structured_log_mem_le`: `IsTotalQueryBound oa n` lifts this to any
+  structured entry in the complete logged run.
+
+The proof structurally inducts through `replayFirstRun`; the `Sum.inl` ambient
+branch contributes zero and therefore never imposes a range-cardinality
+premise. `lake build Ipp.FsMissBounds` and `lake build Ipp.FsBadEvents` passed.
+
+No `BadEventBudget` field was changed to concrete, so `BadEventBudget.ofBounds`
+remains the honest assembly constructor. Parametric fields are:
+`answer_collision_bound`, `randomizer_rootset_bound`,
+`dependency_order_bound`, `round_slot_order_bound`, `kzg_z_bound`,
+`round_unqueried_bound`, and `wrapped_good_lower_bound`.
+
+The exact next accepted-stage transport goal for KZG is:
+
+```lean
+z ∈ support (fsProbComp stmt adv) →
+Accepted z ∧ BadKzg badZ z →
+∃ point answer,
+  QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badZ
+```
+
+The analogous randomizer goal is blocked at the same public boundary. The
+private cached-verifier result retains randomizer/x0 but does not publicly
+export that log witness, and it does not retain the accepted KZG cache entry.
+The budget interface also has no `badR.ncard <= dR` or `badZ.ncard <= dZ`
+premise, so even a witness cannot justify the numeric field as currently
+shaped. Collision additionally needs an adaptive structured-pair theorem
+(a prior answer is the later bad singleton), while dependency and round order
+need protocol-local reductions from their trace predicates to a fresh guess.
+`round_unqueried_bound` remains parametric by design; quantitative `wrapFs`
+pushforward remains independent work.
+
+### Verification
+
+Explicit axiom audit:
+
+```text
+'Ipp.s1_soundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+- final pinned `LEAN_NUM_THREADS=1 lake build Ipp`: passed, 3326 jobs,
+  165.4 seconds;
+- recursive `Ipp/*.lean` scan: `sorry` 0, `axiom` declarations 0,
+  `native_decide` 0;
+- `git diff --check`: passed;
+- invariant recipe body `./scripts/check-snarkpack-invariants.sh`: passed with
+  `snarkpack invariants ok` using the script's intended tracked-tree search
+  semantics; the exact `just snarkpack-invariants` launcher could not be run
+  because this sandbox denied access to the supplied WinGet `just` directory;
+- no prover/release-gated circuit tests were applicable or run.

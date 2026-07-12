@@ -18,19 +18,18 @@ complement/union algebra over them is proved concretely. See the REPORT-CODEX
 "U5a (opus session)" section for the constants chosen, which bounds went
 parametric, and the exact remaining gaps.
 
-U5a-quant (opus session 2): the foundational per-miss uniform mass is now proved
-concretely as `fresh_miss_uniform` (a structured cache MISS installs each fixed
-`v : F` with probability exactly `1/|F|`) and its set form `fresh_miss_mem_le`
-(a miss lands in a finite set `bad` with probability ≤ `|bad|/|F|`). These are
-the load-bearing per-slot masses the KZG/randomizer/birthday union bounds
-consume; the remaining gap to discharge the `BadEventBudget` fields concretely
-is the distributional union bound over the ≤ `Q qb` miss ordinals of the whole
-game (see REPORT-CODEX "U5a-quant").
+U5a hardening proves the mixed-source transport in `FsMissBounds.lean`:
+`structured_log_mem_at_le`, `structured_log_mem_before_le`, and
+`structured_log_mem_le` bound fixed finite bad sets across the structured
+ordinals while ignoring unrelated ambient-uniform ranges. The remaining field
+gaps are the protocol-local reductions from each accepted bad event to such a
+logged witness (or an adaptive pair for collisions), the corresponding bad-set
+cardinality premises, and quantitative `wrapFs` transport.
 
 Spec rows: `fs.stage-labels`, `groth16.randomizer`, `tipp-mipp.gipa`,
 `tipp-mipp.kzg`, `fs.challenge-preimage`.
 -/
-import Ipp.FsFork
+import Ipp.FsMissBounds
 
 open OracleSpec OracleComp ENNReal Function
 open scoped OracleSpec.PrimitiveQuery ENNReal BigOperators

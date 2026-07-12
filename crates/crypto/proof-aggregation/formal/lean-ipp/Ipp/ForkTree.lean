@@ -1390,6 +1390,24 @@ theorem TreeConsistent.all_support [spec.DecidableEq]
       hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict hchildren ih =>
       exact ih
 
+/-- Strengthening the leaf gate does not change the replay-consistency facts. -/
+theorem TreeConsistent.mono_leafOk [spec.DecidableEq]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk leafOk' : α × QueryLog spec → Prop)
+    (himp : ∀ run, leafOk run → leafOk' run)
+    {level : Nat} {lower : Option (Fin (qb i + 1))}
+    {depth : Nat} {tree : RunTree spec α depth}
+    (h : TreeConsistent main qb i cf leafOk level lower tree) :
+    TreeConsistent main qb i cf leafOk' level lower tree := by
+  induction h with
+  | leaf level lower run hsupport hgate =>
+      exact .leaf level lower run hsupport (himp run hgate)
+  | node level lower children s answers cursor slotPos hcf hinjective hanswers
+      hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict hchildren ih =>
+      exact .node level lower children s answers cursor slotPos hcf hinjective hanswers
+        hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict ih
+
 /-- Consistency carries the depth-zero gate to every leaf. -/
 theorem TreeConsistent.all_leafOk [spec.DecidableEq]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)

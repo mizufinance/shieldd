@@ -488,7 +488,7 @@ private theorem fsVerifier_cached
         (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
       (fsVerifier stmt proof)).run cache0)) :
     z.1.accept = true →
-      ((∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
+      (((∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
           (z.1.proof.rounds i) (z.1.transcript.roundNonce i)) =
             some (z.1.transcript.roundAnswer i)) ∧
         TranscriptChaining z.1.transcript.x0 z.1.transcript.roundPrev
@@ -500,7 +500,8 @@ private theorem fsVerifier_cached
       z.2 (.x0
         { r := z.1.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
           comC := stmt.ComA.2, ipAb := z.1.proof.ipAb, aggC := z.1.proof.aggC }
-        z.1.transcript.x0Nonce) = some z.1.transcript.x0 := by
+        z.1.transcript.x0Nonce) = some z.1.transcript.x0) ∧
+      FsAccepts stmt z.1.proof z.1.transcript := by
   rw [fsVerifier, simulateQ_bind, StateT.run_bind, support_bind] at h
   simp only [Set.mem_iUnion] at h
   obtain ⟨⟨rOpt, cache1⟩, hr, hrest⟩ := h
@@ -605,7 +606,7 @@ private theorem fsVerifier_cached
                 nonzeroB stmt.rejectionFuel 0)
               cache4 (some (kzg, kzgNonce), cache5) hz
             have hfinalLe := le_trans hroundLe (le_trans hbridgeLe hkzgLe)
-            refine ⟨⟨?_, ?_, hacc.2.2.2.2.2.2.1, ?_⟩, ?_, ?_⟩
+            refine ⟨⟨⟨?_, ?_, hacc.2.2.2.2.2.2.1, ?_⟩, ?_, ?_⟩, ?_⟩
             · intro i
               exact hkzgLe (hbridgeLe (hround'.1 i))
             · simpa [transcript] using hround'.2
@@ -613,6 +614,7 @@ private theorem fsVerifier_cached
                 hacc.2.2.2.2.1, hacc.2.2.2.2.2.1⟩
             · simpa [transcript] using hfinalLe (hxLe hrCached)
             · simpa [transcript] using hfinalLe hxCached
+            · simpa [transcript] using hacc
 
 /-- Cache/acceptance postcondition for the complete adversary-plus-verifier
 game, with the verifier starting from the adversary's live cache. -/
@@ -631,7 +633,7 @@ private theorem fsGame_cached
         (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
       (FsGame stmt adv)).run cache0)) :
     z.1.accept = true →
-      ((∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
+      (((∀ i : Fin μ, z.2 (.round (z.1.transcript.roundPrev i)
           (z.1.proof.rounds i) (z.1.transcript.roundNonce i)) =
             some (z.1.transcript.roundAnswer i)) ∧
         TranscriptChaining z.1.transcript.x0 z.1.transcript.roundPrev
@@ -643,7 +645,8 @@ private theorem fsGame_cached
       z.2 (.x0
         { r := z.1.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
           comC := stmt.ComA.2, ipAb := z.1.proof.ipAb, aggC := z.1.proof.aggC }
-        z.1.transcript.x0Nonce) = some z.1.transcript.x0 := by
+        z.1.transcript.x0Nonce) = some z.1.transcript.x0) ∧
+      FsAccepts stmt z.1.proof z.1.transcript := by
   rw [FsGame, simulateQ_bind, StateT.run_bind, support_bind] at h
   simp only [Set.mem_iUnion] at h
   obtain ⟨⟨proof, cache1⟩, _, hverifier⟩ := h
@@ -668,7 +671,7 @@ private theorem fsRandomFunction_replay_cached
       (∀ point value, cache point = some value →
         QueryAnswered sourceLog (Sum.inr point) value) ∧
       (out.accept = true →
-        ((∀ i : Fin μ, cache (.round (out.transcript.roundPrev i)
+        (((∀ i : Fin μ, cache (.round (out.transcript.roundPrev i)
             (out.proof.rounds i) (out.transcript.roundNonce i)) =
               some (out.transcript.roundAnswer i)) ∧
           TranscriptChaining out.transcript.x0 out.transcript.roundPrev
@@ -680,7 +683,8 @@ private theorem fsRandomFunction_replay_cached
         cache (.x0
           { r := out.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
             comC := stmt.ComA.2, ipAb := out.proof.ipAb, aggC := out.proof.aggC }
-          out.transcript.x0Nonce) = some out.transcript.x0) := by
+          out.transcript.x0Nonce) = some out.transcript.x0) ∧
+        FsAccepts stmt out.proof out.transcript) := by
   unfold replayFirstRun fsRandomFunction at h
   simp only [bind_pure_comp, simulateQ_map, WriterT.run_map', support_map] at h
   obtain ⟨stateLog, hstateLog, heq⟩ := h
@@ -1308,12 +1312,33 @@ theorem wrapped_source_leaf_data
   obtain ⟨cache, _, hcacheLog, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv h
   intro haccept
-  have hrun := (haccepted haccept).1
+  have hrun := (haccepted haccept).1.1
   refine ⟨?_, ?_, hrun.2.2.1, hrun.2.2.2⟩
   · intro i
     exact hcacheLog _ _ (hrun.1 i)
   · intro i
     exact ⟨rfl, rfl⟩
+
+/-- An accepting wrapped support run satisfies the verifier relation, including
+the aggregate Groth16 pairing equation consumed by the S1 capstone. -/
+theorem wrapped_support_accepts
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {log : QueryLog (FsWrappedSpec F)}
+    (h : (run, log) ∈ support (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (haccept : run.out.accept = true) :
+    FsAccepts stmt run.out.proof run.out.transcript := by
+  obtain ⟨sourceLog, _, _, hsource⟩ :=
+    wrapFs_support_exists_source (FsGame stmt adv) h
+  exact ((fsRandomFunction_replay_cached stmt adv hsource).choose_spec.2.2
+    haccept).2
 
 /-- Every accepted supported wrapped run exposes the verifier's chronological
 round chaining: round zero follows x0 and each successor follows the preceding
@@ -1345,7 +1370,7 @@ theorem wrapped_supports_transcript_chaining
   change out = run.out at houtEq
   subst out
   exact ((fsRandomFunction_replay_cached stmt adv hsource).choose_spec.2.2
-    haccept).1.2.1
+    haccept).1.1.2.1
 
 /-- Accepting source runs therefore have a bounded round selector unless they
 fall in the explicit unqueried/out-of-budget event; its probability is U5a. -/
@@ -1421,7 +1446,7 @@ theorem roundSlot_answer_eq_transcript
     exact hanswered
   obtain ⟨cache, hlogCache, _, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv h
-  have hround := (haccepted haccept).1.1
+  have hround := (haccepted haccept).1.1.1
   have hcacheAnswer := hlogCache point answer hanswered'
   have hcacheTranscript : cache point = some (out.transcript.roundAnswer level) := by
     simpa [point] using hround level
@@ -2030,7 +2055,7 @@ theorem wrappedRandomizer_answer_at_tracePos
   rw [hpoint'] at hanswered
   obtain ⟨cache, hcache, _, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv hsource
-  have hcached := (haccepted haccept).2.1
+  have hcached := (haccepted haccept).1.2.1
   have hanswer : answer = run.out.transcript.randomizer :=
     Option.some.inj ((hcache _ _ hanswered).symm.trans (by
       simpa [wrappedRandomizerPoint] using hcached))
@@ -2063,7 +2088,7 @@ theorem wrappedX0_answer_at_tracePos
   rw [hpoint'] at hanswered
   obtain ⟨cache, hcache, _, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv hsource
-  have hcached := (haccepted haccept).2.2
+  have hcached := (haccepted haccept).1.2.2
   have hanswer : answer = run.out.transcript.x0 :=
     Option.some.inj ((hcache _ _ hanswered).symm.trans (by
       simpa [wrappedX0Point] using hcached))
