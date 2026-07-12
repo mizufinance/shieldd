@@ -2789,7 +2789,70 @@ noncomputable local instance wrappedRunGoodDecidablePred
       WrappedRunGood qb stmt run.1 run.2) :=
   fun _ => Classical.propDecidable _
 
-/-- Support-level U5d endpoint: successful wrapped `forkTree` construction,
+/-- A bounded `roundSlot` always points at a recorded wrapped query. -/
+theorem fs_roundSlot_reachable
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat) (level : Nat) :
+    CfReachable (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+      (roundSlot (qb (Sum.inr ())) level) := by
+  intro run log hrun slot hslot
+  obtain ⟨sourceLog, htrace, hlog, _⟩ :=
+    wrapFs_support_exists_source (FsGame stmt adv) hrun
+  have hrun' : ({ out := run.out, trace := fsPointTrace sourceLog } :
+      WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) = run := by
+    cases run
+    simp_all
+  have hslot' : roundSlot (qb (Sum.inr ())) level
+      ({ out := run.out, trace := fsPointTrace sourceLog } :
+        WrappedFsRun
+          (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+          (FsResult μ F G1 G2 GT)) = some slot := by
+    simpa [hrun'] using hslot
+  have hlevel : level < μ := by
+    by_contra hμ
+    simp [roundSlot, wrappedRoundPoint, hμ] at hslot'
+  have hpos := roundSlot_tracePos
+    ({ out := run.out, trace := fsPointTrace sourceLog } :
+      WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) hlevel hslot'
+  obtain ⟨hi, _⟩ := tracePos_get hpos
+  have hi' : (slot : Nat) < (fsPointTrace sourceLog).length := by
+    simpa [hrun'] using hi
+  obtain ⟨value, _, hvalue⟩ := fsPointTrace_flatten_at sourceLog (slot : Nat) hi'
+  rw [hlog]
+  exact Option.isSome_iff_exists.mpr ⟨value, hvalue⟩
+
+/-- `WrappedRunGood` excludes exactly the unqueried alternative. -/
+theorem fs_roundSlot_selector_total
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : Nat) {first :
+      WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT) × QueryLog (FsWrappedSpec F)}
+    (_hfirst : first ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (hgood : WrappedRunGood qb stmt first.1 first.2) :
+    ∀ level, level < μ → ∃ s, roundSlot qb level first.1 = some s := by
+  intro level hlevel
+  exact (roundSlot_some_or_unqueried qb level first.1).resolve_right
+    (hgood.2.2.1 level hlevel)
+
+/-- Support-level U5d endpoint: successful wrapped combined-tree construction,
 together with accepting good leaves, yields the exact `AcceptTree` statement
 consumed by `u4_capstone`. Probability accounting is deferred to U5e. -/
 theorem fsFork_success_acceptTree
@@ -2809,9 +2872,11 @@ theorem fsFork_success_acceptTree
       (WrappedFsRun
         (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
         (FsResult μ F G1 G2 GT)) μ}
-    (hsuccess : some tree ∈ support (forkTree μ (wrapFs (FsGame stmt adv)) qb
-      (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)
-      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2))) :
+    (hsuccess : some tree ∈ support
+      (forkTreeCombined μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+        (fun level run => roundSlot (qb (Sum.inr ())) level run)
+        (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+        μ (Nat.le_refl μ))) :
     let r := tree.root.1.out.transcript.randomizer
     AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
       (u4TLanePairing stmt.e) μ
@@ -2821,9 +2886,10 @@ theorem fsFork_success_acceptTree
       (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
   apply tree_to_acceptTree stmt adv qb hbindV hbindW
-    (forkTree_support_props μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+    (forkTreeCombined_support_props μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
       (fun level run => roundSlot (qb (Sum.inr ())) level run)
-      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2) hsuccess)
+      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+      (fun level hlevel => fs_roundSlot_reachable stmt adv qb level) hsuccess)
 
 end
 

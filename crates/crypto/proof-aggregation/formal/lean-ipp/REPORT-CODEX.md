@@ -4704,3 +4704,166 @@ Final `lake build Ipp`: passed (3324 jobs, 92.1 seconds).
 No `sorry`, custom `axiom`, or `native_decide` was added.  No commit was made;
 `DESIGN.md` and `.lake/packages/**` were not edited.  Prover/release-gated
 circuit tests were not run.
+
+## A? session 12
+
+Session 12 removed the obsolete top-down experiment and reconnected the FS
+support endpoint to the full-depth combined experiment.  Two of the three FS
+premises are discharged below.  The hslot-order premise is deferred because
+the current FS contract does not imply it; the exact goal and reason are
+recorded at the end of this section.
+
+The reachability lemma is:
+
+```lean
+theorem fs_roundSlot_reachable
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat) (level : Nat) :
+    CfReachable (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+      (roundSlot (qb (Sum.inr ())) level)
+```
+
+It projects a wrapped support point to its source log, uses
+`roundSlot_tracePos`/`tracePos_get`, and obtains the corresponding flattened
+structured query value from `fsPointTrace_flatten_at`.
+
+The selector-totality lemma is:
+
+```lean
+theorem fs_roundSlot_selector_total
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : Nat) {first :
+      WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT) × QueryLog (FsWrappedSpec F)}
+    (_hfirst : first ∈ support
+      (replayFirstRun (wrapFs (FsGame stmt adv))))
+    (hgood : WrappedRunGood qb stmt first.1 first.2) :
+    ∀ level, level < μ → ∃ s, roundSlot qb level first.1 = some s
+```
+
+It is exactly `roundSlot_some_or_unqueried` resolved by
+`hgood.2.2.1`.
+
+The updated FS endpoint statement is:
+
+```lean
+theorem fsFork_success_acceptTree
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
+    (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
+    {tree : RunTree (FsWrappedSpec F)
+      (WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) μ}
+    (hsuccess : some tree ∈ support
+      (forkTreeCombined μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+        (fun level run => roundSlot (qb (Sum.inr ())) level run)
+        (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+        μ (Nat.le_refl μ))) :
+    let r := tree.root.1.out.transcript.randomizer
+    AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+      (u4TLanePairing stmt.e) μ
+      (fun i => (stmt.srsV i, stmt.srsV i))
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+      (fun i => r ^ (i : Nat))
+      (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
+      (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC))
+```
+
+The endpoint calls `forkTreeCombined_support_props` with
+`fs_roundSlot_reachable`; `tree_to_acceptTree_aux`, `tree_to_acceptTree`, and
+all R6 path-prefix, filtered-rank, transcript-chaining, shared-root, fold, and
+`AcceptTree` lemmas below them are unchanged.
+
+Deleted definitions:
+
+- `forkTreeFrom`
+- `forkTree`
+- `forkTreeFrom_support_props`
+- `forkTree_support_props`
+- `forkTree_success_all_leafOk`
+- `forkTree_success_selectorAccepted`
+- `forkTree_propertyTransfer`
+- `averagedForkTreeSuccess`
+- `averagedForkTreeSuccess_zero`
+- `forkTree_probability_eq_average`
+- `forkTreeChildContinuation`
+- `forkTreeContinuationMass`
+- `forkTreeContinuationMass_step`
+
+`forkReplay4Continue` and its support/bound machinery, `forkTreeCombined`,
+`forkTreeStep`, `forkTreeStep_monotone`, `forkTree_iterate_bound`, and all
+combined-tree support/mass/property-transfer APIs remain.
+
+Deferred hslot-order goal, specialized to the FS instantiation:
+
+```lean
+∀ {depth} (hdepth : depth < μ)
+  {tree : RunTree (FsWrappedSpec F)
+    (WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT) depth}
+  {outerLog : QueryLog (FsWrappedSpec F)},
+  (some tree, outerLog) ∈ support
+    (replayFirstRun
+      (forkTreeCombined μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+        (fun level run => roundSlot (qb (Sum.inr ())) level run)
+        (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+        depth (Nat.le_of_lt hdepth))) →
+  ∀ {selected next},
+    roundSlot (qb (Sum.inr ())) (combinedLevel μ depth hdepth)
+      tree.root.1 = some selected →
+    treeFirstSlot
+      (fun level run => roundSlot (qb (Sum.inr ())) level run)
+      μ depth tree = some next →
+    selected < next
+```
+
+The current `roundSlot` is the first occurrence in the complete
+adversary-plus-verifier miss trace.  `WrappedRunGood` supplies acceptance,
+challenge acceptance, `¬RoundPointUnqueried`, `DependencyOrdered` for
+randomizer/x0 versus round slots, and structured-answer injectivity, but no
+cross-round no-prequery/order invariant.  The existing `DependencyOrdered`
+documentation explicitly notes that an adversary can pre-query round points;
+`RoundQueries` supplies membership, not chronological positions.  Therefore
+the requested implication is not derivable soundly from the current fields;
+adding an axiom, `sorry`, or an unaccounted strengthened good-event field would
+be unsound.  This is the single deferred item for a follow-up sol session.
+
+Verification:
+
+```text
+LEAN_NUM_THREADS=1, pinned Lean 4.30.0, one Lake/Lean process at a time.
+lake build Ipp.FsFork: passed (3314 jobs).
+lake build Ipp.ForkTree: passed (3301 jobs).
+lake build Ipp: passed (3324 jobs).
+#print axioms Ipp.fsFork_success_acceptTree:
+'Ipp.fsFork_success_acceptTree' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Deleted-name grep over `Ipp/` is empty.  No `sorry`, custom `axiom`, or
+`native_decide` was added.  `DESIGN.md` and `.lake/packages/**` were not
+edited, no commit was made, and prover/release-gated circuit tests were not
+run.
