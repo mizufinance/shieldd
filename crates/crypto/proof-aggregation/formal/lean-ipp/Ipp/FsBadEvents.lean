@@ -228,6 +228,108 @@ theorem accepted_challengesAccepted {μ : Nat}
   have hleaf := (wrapped_source_leaf_data stmt adv (out := z.1) (sourceLog := z.2) hz).2
   exact (hleaf hacc).2.2.2
 
+/-- An accepted KZG bad-set hit is witnessed by the exact KZG answer in the
+mixed structured-miss log. -/
+theorem accepted_badKzg_log_witness {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badZ : Set F) {z : FsRunLog μ F G1 G2 GT}
+    (hz : z ∈ support (fsProbComp stmt adv))
+    (hbad : Accepted z ∧ BadKzg badZ z) :
+    ∃ point answer,
+      QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badZ := by
+  refine ⟨.kzg
+      { bridgeChallenge := z.1.transcript.bridge, vFinal := z.1.proof.vFinal,
+        wFinal := z.1.proof.wFinal }
+      z.1.transcript.kzgNonce,
+    z.1.transcript.kzg, ?_, hbad.2⟩
+  exact accepted_source_kzg_query stmt adv hz hbad.1
+
+/-- An accepted randomizer bad-set hit is witnessed by the exact randomizer
+answer in the mixed structured-miss log. -/
+theorem accepted_badRandomizer_log_witness {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR : Set F) {z : FsRunLog μ F G1 G2 GT}
+    (hz : z ∈ support (fsProbComp stmt adv))
+    (hbad : Accepted z ∧ BadRandomizer badR z) :
+    ∃ point answer,
+      QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badR := by
+  refine ⟨.randomizer
+      { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+      z.1.transcript.randomizerNonce,
+    z.1.transcript.randomizer, ?_, hbad.2⟩
+  exact accepted_source_randomizer_query stmt adv hz hbad.1
+
+/-- The KZG bad-set field follows from the mixed-log union bound once the
+whole-game query cap and finite bad-set cardinality are supplied. -/
+theorem kzg_z_bound_of_query_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badZ : Finset F)
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadKzg (badZ : Set F) z |
+      fsProbComp stmt adv] ≤
+      (((Q qb) * badZ.card : Nat) : ℝ≥0∞) /
+        (Fintype.card F : ℝ≥0∞) := by
+  apply le_trans (probEvent_mono (q := fun z =>
+    ∃ point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT),
+      ∃ answer : F,
+        QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badZ) ?_)
+  · exact structured_log_mem_le
+      (fsRandomFunction (FsGame stmt adv)) (Q qb)
+      (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound) badZ
+  · intro z hz hbad
+    simpa using accepted_badKzg_log_witness stmt adv (badZ : Set F) hz hbad
+
+/-- Cardinality-bounded form matching `BadEventBudget.kzg_z_bound`. -/
+theorem kzg_z_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badZ : Finset F) (dZ : Nat) (hcard : badZ.card ≤ dZ)
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadKzg (badZ : Set F) z |
+      fsProbComp stmt adv] ≤
+      (((Q qb) * dZ : Nat) : ℝ≥0∞) /
+        (Fintype.card F : ℝ≥0∞) := by
+  calc
+    _ ≤ (((Q qb) * badZ.card : Nat) : ℝ≥0∞) /
+          (Fintype.card F : ℝ≥0∞) :=
+      kzg_z_bound_of_query_bound qb stmt adv badZ hbound
+    _ ≤ (((Q qb) * dZ : Nat) : ℝ≥0∞) /
+          (Fintype.card F : ℝ≥0∞) := by
+      gcongr
+
+/-- Cardinality-bounded form matching
+`BadEventBudget.randomizer_rootset_bound`. The proof bounds the unconditional
+source misses by `1/|F|`, then weakens to the budget's `1/(|F|-2)` form. -/
+theorem randomizer_rootset_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR : Finset F) (dR : Nat) (hcard : badR.card ≤ dR)
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadRandomizer (badR : Set F) z |
+      fsProbComp stmt adv] ≤
+      (((Q qb) * dR : Nat) : ℝ≥0∞) /
+        ((Fintype.card F : ℝ≥0∞) - 2) := by
+  calc
+    _ ≤ (((Q qb) * badR.card : Nat) : ℝ≥0∞) /
+          (Fintype.card F : ℝ≥0∞) := by
+      apply le_trans (probEvent_mono (q := fun z =>
+        ∃ point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT),
+          ∃ answer : F,
+            QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badR) ?_)
+      · exact structured_log_mem_le
+          (fsRandomFunction (FsGame stmt adv)) (Q qb)
+          (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound) badR
+      · intro z hz hbad
+        simpa using
+          accepted_badRandomizer_log_witness stmt adv (badR : Set F) hz hbad
+    _ ≤ (((Q qb) * dR : Nat) : ℝ≥0∞) /
+          ((Fintype.card F : ℝ≥0∞) - 2) := by
+      gcongr
+      exact tsub_le_self
+
 /-- Pointwise complement decomposition on the support: an accepting run whose
 full goodness fails must witness one of the six bad events. This is the union
 step of the U5a accounting; `ChallengesAccepted` is discharged for free on

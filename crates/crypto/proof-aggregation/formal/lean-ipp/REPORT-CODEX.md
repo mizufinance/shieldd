@@ -5267,3 +5267,150 @@ Explicit axiom audit:
   semantics; the exact `just snarkpack-invariants` launcher could not be run
   because this sandbox denied access to the supplied WinGet `just` directory;
 - no prover/release-gated circuit tests were applicable or run.
+
+## S2/S3 kickoff
+
+Scope: four phases in order. No commit was made. Cargo, hax, Rust/F*/opam, and
+the gnark Lean lane were not run or touched because this Windows host lacks
+MSVC Build Tools and the Windows SDK.
+
+### Phase 1 — S2 Tier 2 challenge encoding
+
+Added `Ipp/ChallengeEncoding.lean`. It models the exact Rust framing
+
+```text
+"shieldd.snarkpack.challenge.v1\0"
+|| u32_le(stage_label.len())
+|| stage_label
+|| context[32]
+|| u64_le(nonce)
+|| messages
+```
+
+as `List UInt8`, including all twelve deployed labels accepted by
+`challenge.rs`. `Context` and `Nonce` are fixed-width 32- and 8-byte vectors;
+every 8-byte vector is exactly one `u64` little-endian representation. The
+checked label-length premise is proved for every closed `Stage` constructor.
+
+New theorems:
+
+- `Ipp.ChallengeEncoding.stageLabel_length_lt_u32`;
+- `Ipp.ChallengeEncoding.challengePreimage_injective`;
+- `Ipp.ChallengeEncoding.serialized_challenge_preimage_injective`.
+
+The first injectivity theorem proves that equality of encoded bytes recovers
+the stage label, context, nonce, and arbitrary final message bytes. Thus the
+domain constant, `u32_le` label-length framing, all stage-label distinctions,
+fixed 32-byte context boundary, fixed 8-byte nonce boundary, and unbounded final
+message suffix are proved collision-free. The serializer lift proves full typed
+payload injectivity from exactly `Function.Injective serialize`.
+
+The reduced serializer row is verbatim:
+
+```text
+| `assume.challenge-message-serialization-injective` | proof-aggregation maintainers | Connects the typed `ChallengePoint` payload objects to the final `messages` byte field framed by `challenge_preimage`. | Curve/field object serialization is outside the framing theorem. | Postcondition: for each deployed stage payload type, the exact Rust serializer used to build `messages` is injective; `Ipp.ChallengeEncoding.serialized_challenge_preimage_injective` then proves full `(stage, context, nonce, payload)` preimage injectivity. | prove canonical arkworks field/group serialization injective on checked subgroup objects and prove each stage's fixed-field concatenation equals the serializer supplied to the Lean theorem | security/crypto/formal | assumed |
+```
+
+Accordingly, the `fs.challenge-preimage` framing sub-facts are proved; typed
+field/group-object-to-`messages` injectivity is reduced to that row. Rust-to-Lean
+execution/byte parity remains the hax/F* and trace boundary, and hash-as-RO is
+unchanged. `formal-handoff.md` now records the Lean theorem alongside the
+existing hax/F* byte-layout proof rather than claiming that the new theorem
+proves executed-Rust parity.
+
+### Phase 2 — S2 Tier 1 design
+
+Wrote
+`crates/crypto/proof-aggregation/formal/snarkpack/s2-tier1-plan.md`. It inventories
+the exact `gipa.rs` fold/rescale/final-key/base functions, TIPA coefficient,
+product-evaluation, and G1/G2 KZG-verifier functions, and the executed
+Groth16 aggregate verification chain. Each entry has a theorem-shaped target
+against `foldMsg`, `foldCom`, `foldKey`/`transcriptCoeffs`, `terminalFold`,
+`LeafData`, `FsAccepts`, and the exact KZG accept equations. It also specifies
+the arithmetic-trait adapter, extraction order, target/boundary metadata
+updates, ledger rows retired, and stop conditions.
+
+Verdict: **GO on a toolchain-capable host; no-go on this host**. Estimate:
+8–12 engineer-weeks, with a stop/go review after coefficient and
+`rescale_fold` equivalence. Hax was not run.
+
+### Phase 3 — arithmetic implementation-correctness design
+
+Wrote
+`crates/crypto/proof-aggregation/formal/snarkpack/s3-arithmetic-plan.md`. It fixes
+the API boundary at arkworks `0.5.0` BLS12-377 field, short-Weierstrass,
+MSM, Miller-loop, final-exponentiation, and multi-pairing operations. The field
+decision prefers a fiat-crypto-verified swap only if corpus-backed aggregate and
+verify measurements on the real prover path are within/above the playbook's
+noise gate; otherwise hax post-hoc arkworks verification requires a successful
+limb multiplication/reduction spike.
+
+The EC plan uses the pinned Mathlib affine/projective/Jacobian formula modules,
+nonsingular points, coordinate conversions, and `AddCommGroup` instances. Its
+theorems relate monomorphized arkworks formulas to Mathlib point-class addition,
+doubling, negation, scalar multiplication, subgroup checks, and MSM. The pairing
+plan splits executable Miller-loop/final-exponentiation conformance from the
+cited mathematical statement that the pinned published optimal-ate pseudocode
+computes a non-degenerate bilinear pairing. The latter remains a literature row
+because the pinned Mathlib has no cryptographic ate-pairing/divisor correctness
+stack. S3 explicitly does not prove curve security.
+
+Verdict: **NO-GO as one monolithic campaign; GO as gated field, EC, and pairing
+stages**. Estimate: 15–26 engineer-months after S2 extraction works.
+
+### Phase 4 — S1 U5a hardening
+
+The attempt did not hit the previous public-boundary blocker. Strengthened the
+cached verifier postcondition in `Ipp/FsFork.lean` to retain the accepted KZG
+cache entry and exported:
+
+- `accepted_source_kzg_query`;
+- `accepted_source_randomizer_query`.
+
+Added the corresponding support-to-log witnesses and concrete probability
+theorems in `Ipp/FsBadEvents.lean`:
+
+- `accepted_badKzg_log_witness`;
+- `accepted_badRandomizer_log_witness`;
+- `kzg_z_bound_of_query_bound` and `kzg_z_bound`;
+- `randomizer_rootset_bound`.
+
+`kzg_z_bound` proves the exact `Q*dZ/|F|` budget from
+`IsTotalQueryBound (FsGame stmt adv) (Q qb)` and `badZ.card <= dZ`.
+`randomizer_rootset_bound` first proves the stronger unconditional source-miss
+bound `Q*|badR|/|F|`, then weakens it to the budget's
+`Q*dR/(|F|-2)` using `badR.card <= dR`. No rejection-loop conditioning
+assumption is needed for this event-subset argument.
+
+The two `BadEventBudget` fields remain parametric in the current S1 theorem only
+because that interface accepts abstract `Set`s and does not carry the whole-game
+query-bound/cardinality premises. The ledger rows now say exactly how to remove
+them. Collision still needs an adaptive structured-pair bound; dependency and
+round order still need protocol-local guessing reductions; round-unqueried stays
+parametric by design; quantitative `wrapFs` pushforward remains independent.
+
+### Verification
+
+Focused builds passed:
+
+- `lake build Ipp.ChallengeEncoding` (547 jobs);
+- `lake build Ipp.FsFork` (3314 jobs);
+- `lake build Ipp.FsBadEvents` (3316 jobs).
+
+Final pinned `LEAN_NUM_THREADS=1 lake build Ipp` passed (3327 jobs, 46.5 seconds
+with the focused-build cache warm).
+
+Explicit axiom audit:
+
+```text
+'Ipp.ChallengeEncoding.stageLabel_length_lt_u32' does not depend on any axioms
+'Ipp.ChallengeEncoding.challengePreimage_injective' depends on axioms: [propext, Quot.sound]
+'Ipp.ChallengeEncoding.serialized_challenge_preimage_injective' depends on axioms: [propext, Quot.sound]
+'Ipp.accepted_source_kzg_query' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.accepted_badKzg_log_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.kzg_z_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.randomizer_rootset_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+No `sorry`, project `axiom`, or `native_decide` was introduced. No
+prover/release-gated circuit tests were applicable or run.
