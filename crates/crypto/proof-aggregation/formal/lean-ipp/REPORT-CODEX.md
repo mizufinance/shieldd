@@ -3625,3 +3625,197 @@ contract.
 
 No prover/release-gated tests were run; the requested focused and full Lean
 builds were run.
+
+## R7 feasibility & soundness assessment
+
+### Q1 — A: tractable, but a substantial redesign rather than a missing lemma
+
+My assessment is that A is technically tractable. It is not blocked on an
+unknown mathematical conjecture. It is, however, not a small closure task on
+the current `forkTreeFrom`: the current recurrence is false at its advertised
+generality, and VCVio does not contain a theorem that repairs the ordering
+mismatch. A sound A must change the experiment and then re-establish its
+support connection to R6.
+
+What the pinned VCVio revision already provides:
+
+- `OracleComp.IsTotalQueryBound` is a structural, total query-count predicate,
+  with `pure`, query, monotonicity, bind/sequence composition, per-index and
+  predicate-targeted variants, dynamic-count soundness, and transfer through
+  `simulateQ`/stateful handlers. It also has query-count-preserving results for
+  tracing, counting, caching, and related handlers. Thus threading an explicit
+  adversary/game budget is supported by the library rather than requiring a
+  new query-cost framework.
+- The cache layer already exposes the right quantitative endpoints. In
+  particular, `probEvent_cache_has_value_le_of_unique_preimage` consumes an
+  `IsTotalQueryBound`, and `QueryTracking/Birthday.lean` has total-bound log and
+  cache birthday bounds. `CachingOracle.lean` transfers total bounds through
+  caching. These are useful foundations for U5a.
+- `SeededFork.lean` provides one-fork seeded execution, query-bound and
+  expected-query-work accounting, support facts, and the packaged
+  Bellare--Neven-style probability inequality. `ReplayFork.lean` provides a
+  logged canonical first run, re-execution against a trace with one replaced
+  answer, prefix/replacement/state correctness, support transfer, and the
+  packaged pair-fork lower bound. The local `Ipp/Fork.lean` has already built
+  and proved the four-way and continuation-aware one-level bounds on top of
+  those facilities.
+- VCVio has general SPMF coupling and relational-program-logic machinery, plus
+  ordinary probability bind algebra. The public
+  `probEvent_bind_bind_swap` only swaps two *independent* draws. It does not say
+  that an oracle computation may be moved into or out of a replay while
+  preserving its adaptive query log. The replay-specific query-bound theorem
+  in `ReplayFork.lean` is private, and there is no public replay/continuation
+  commutation theorem with the strength R7 would need.
+
+What VCVio does not provide is an iterated fork, transcript-tree extractor, or
+combined-replay recursion. `SeededFork` and `ReplayFork` are single-position,
+two-run constructions. A tree experiment is expressible in `OracleComp`—the
+local `forkReplay4Continue` already proves that a continuation can be executed
+inside the computation being replayed—but its recursive distribution and tree
+support theorem must be defined and proved in this package. The existing
+relational framework can help prove equality of two computations once an
+appropriate invariant/coupling is supplied; it does not manufacture the false
+generic coupling between the current top-down recursion and combined replay.
+
+The query-budget half of A is comparatively routine but not free. One should
+take an explicit bound on `adv`, prove a bound for the bounded verifier nonce
+loops, and compose them for `FsGame`. Notice that the full-game bound is not
+automatically the adversary bound: `fsVerifier` can make up to
+`(μ + 4) * stmt.rejectionFuel` structured queries. The API must say whether
+`qb + 1` bounds the adversary, structured cache misses, or the complete game,
+and all selector/error constants must use the same meaning. With that contract,
+the cache-hit and birthday bounds have a clear VCVio route. The adaptive
+`dependency_order_bound`, the `|F|-2` conditioning for the randomizer, and the
+currently parametric `round_unqueried_bound` still require protocol-local
+reductions; total-query-boundedness alone does not prove those event
+implications.
+
+The single hardest sub-goal is the recursive experiment theorem: define a
+bottom-up/combined-replay extractor whose level-`m` computation runs the
+level-`m+1` subtree extractor *inside* the replayed computation, prove that its
+successful output has exactly the R6 prefix/root/slot/tree invariants, and
+identify the selector mass in the one-level theorem with the preceding
+recursive success mass. This is the point at which logs, the sampled lower
+slot, sibling cache consistency, and the four child subtrees all meet. I see a
+credible path: make the recursively combined experiment the definition (in the
+style of the sub-extractors in the multi-round Fiat--Shamir literature), include
+the selected slot and the canonical logged run in its typed success output,
+filter structural consistency at each level, and prove probability recurrence
+directly from `forkReplay4Continue_bound`; then prove a new support induction
+into `AcceptTree`. That avoids proving any bind-commutation statement. It does
+mean replacing, not patching, the quantitative role of `forkTreeFrom`.
+
+Rough effort: about 10--18 focused Lean sessions if the quantitative expression
+and query-budget meaning are fixed up front: 2--3 for the budgeted game and
+verifier bounds, 3--5 for the four concrete U5a reductions, 3--6 for the new
+combined tree experiment and recurrence, and 2--4 for the R6/U5e support and
+assembly rework. The upper tail can exceed that if the exact `G` is held fixed
+after the redesigned experiment naturally yields a different conservative
+bound, or if `round_unqueried_bound` is expected to become a derived field
+rather than remain a declared loss. This is new formal probabilistic
+engineering on existing foundations, not research-open mathematics; the exact
+strict `G` theorem is nevertheless new to this codebase and not present in
+VCVio/Mathlib. My uncertainty is medium, concentrated in matching the current
+`G` and in how much R6 proof structure survives the bottom-up recursion.
+
+### Q2 — C: the broad theorem is standard; the proposed exact row is not obvious
+
+There is strong literature support for the *qualitative shape* “a
+query-bounded Fiat--Shamir prover can be rewound recursively to obtain a tree
+of accepting transcripts.” It is not accurate, however, to cite every part of
+the proposed C row as an immediate Bellare--Neven result.
+
+- Bellare--Neven's general forking lemma is the standard single-fork/two-run
+  result and is a good ancestor for VCVio's packaged pair bound. It does not by
+  itself give a depth-`μ`, 4-ary tree or this `G` iterate. See [Bellare--Neven,
+  *New Multi-Signature Schemes and a General Forking Lemma*](https://soc1024.ece.illinois.edu/teaching/ece498ac/fall2019/forkinglemma.pdf).
+- Bootle--Cerulli--Chaidos--Groth--Petit explicitly define an
+  `(n₁,...,nμ)`-tree of accepting transcripts and state a recursive general
+  forking lemma. Their proof is an expected-polynomial-time interactive
+  rewindable-transcript construction with asymptotic collision accounting; it
+  is not the present strict ROM experiment and does not state the
+  `G^[μ]` lower bound. See Lemma 1 of [BCC+16, *Efficient Zero-Knowledge
+  Arguments for Arithmetic Circuits in the Discrete Log Setting*](https://ora.ox.ac.uk/objects/uuid%3A2f919864-a097-48ce-9a28-2b9dc3e6382d/files/mda3d5f58ddbc3c92580ccda9599d3179).
+- The later multi-round Fiat--Shamir analysis is the closest standard result:
+  it recursively treats a sub-extractor as the random-oracle algorithm being
+  rewound, keeps oracle answers consistent within a recursion level, and
+  outputs `(k₁,...,kμ)` trees for a Q-query prover. Its stated success/runtime
+  theorem and knowledge error are different from the local strict four-way
+  `G` recurrence. See [*Fiat--Shamir Transformation of Multi-Round Interactive
+  Proofs*](https://link.springer.com/article/10.1007/s00145-023-09478-y),
+  especially the recursive sub-extractor construction and Proposition 2.
+
+Accordingly, a cryptographer should accept “multi-round FS tree extraction
+under a query bound” as established technique. They should *not* accept the
+exact proposed conjunction as an obvious library axiom without checking its
+experiment and losses. The exact row can be stronger than the textbook results
+in several ways: it asks for a particular strict, finite-run extractor rather
+than expected-time retries; fixes a particular fourth-power transformer and
+collision subtraction at every level; requires the local lower-slot and
+prefix/dependency conditions needed by R6; and folds acceptance together with
+`WrappedRunGood`. Conversely, its very lossy iterated `G` can be numerically
+weaker than modern multi-round extraction theorems. A weaker numerical bound
+does not automatically make it a corollary when the extractor distribution and
+good-event predicates differ.
+
+Most importantly, the five `BadEventBudget` fields are not all “the forking
+lemma.” Answer collisions and fixed bad-set hits are standard ROM union-bound
+applications after a sound total-query contract. The adaptive dependency-order
+event, conditional randomizer denominator, and especially the deliberately
+parametric round-unqueried loss are protocol-specific. Bundling them into one
+row labelled merely “general forking lemma” would assume away precisely the
+non-obvious part and could hide a real gap. The current generic statement
+without a query contract is false; adding the contract makes the goal
+plausible, not automatic.
+
+If C is chosen, the cleanest phrasing is a visibly protocol-specific
+`SnarkpackFsTreeExtractionAssumption`, not `ForkingLemma` alone. Its antecedent
+should state the exact structural/total query bound and field/cardinality
+side-conditions. Its conclusion should name one precise combined-replay
+experiment and assert
+
+```text
+G^[μ](Pr[Accepted] - err_bad)
+  ≤ Pr[the experiment returns an R6-compatible 4-ary AcceptTree]
+```
+
+with `G`, `err_bad`, the arity/depth, distinct-nonzero requirements, selector
+order, and `RunGoodFull` predicates expanded or referenced by exact definitions.
+Keep `BadEventBudget` as a separate named premise (or separate fields with the
+five inequalities), rather than presenting it as a consequence of the
+forking-tree row. If U5e only consumes positive support, an even more honest
+and smaller assumption is the implication
+
+```text
+0 < G^[μ](Pr[Accepted] - err_bad) -> Nonempty (R6-compatible AcceptTree)
+```
+
+but it must be labelled as a SnarkPack FS extraction assumption, not as the
+textbook Bellare--Neven lemma. This minimizes what is assumed while making the
+unmechanized cryptographic step unmistakable.
+
+**Recommendation: A, provided roughly 10--18 focused sessions are acceptable; confidence 0.72.**
+
+### R7-A? execution-design index
+
+The concrete option-A? blueprint is now in `DESIGN.md`, subsection
+**“R7-A? execution design”**: it fixes `Q := qb + 1` as the whole-game
+`IsTotalQueryBound`, replaces the unsound top-down quantitative experiment by
+the bottom-up `forkTreeCombined` replay of the entire preceding extractor,
+specifies the strengthened `CombinedReplayConsistent` support bridge back to
+unchanged R6 `TreeConsistent` consumers, and states the recursive
+support-plus-selector-mass theorem that gates the recurrence.  Its ordered
+15-session list is the implementation index (sessions 1--3 query/scalars,
+4--10 combined replay and recurrence, 11--12 R6 reconnection, 13--14 U5a,
+15 U5e capstone).  Confidence is **0.74** that this is buildable within the
+10--18-session envelope; the largest residual risk is the new relational proof
+that an outer replay-prefix of the nested extractor projects to the canonical
+base-run prefix/rank/value facts required by `TreeConsistent`, not any missing
+generic VCVio commutation lemma.
+
+## A? session 1
+
+- Added `Ipp.Q qb := qb + 1` in `Ipp/FsBadEvents.lean`, documented as the whole-game query cap and the size of `Fin (qb + 1)`; its `+1` is not an extra query.  Added simp-normal `Q_eq_add_one` and `Q_pos` helpers.
+- Normalized every U5a printed quantitative constant in `BadEventBudget`, `BadEventBudget.ofBounds`, and `q0_lower_bound` to `Q` forms: `Q^2/|F|`, `Q*dR/(|F|-2)`, `μ*Q/|F|`, `Q*dZ/|F|`, and unchanged `bUnq`.  Field types remain definitionally unchanged.
+- Confirmed `forkTreeStep`, `forkTreeStep_monotone`, and `forkTree_iterate_bound` already provide the scalar monotonicity and `Function.iterate` recurrence step needed by session 10; no additional scalar lemma was needed.
+- Deferred: none.  Build results: `LEAN_NUM_THREADS=1` with the pinned Lean 4.30.0 Lake binary passed `Ipp.FsBadEvents`, `Ipp.ForkTree`, and final `Ipp` (warnings only).
