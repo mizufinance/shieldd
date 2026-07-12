@@ -1374,6 +1374,106 @@ theorem forkTreeCombined_selectorMass_of_selector_success
         forkTreeCombined total main qb i cf leafOk built
           (Nat.le_of_lt hbuilt)] := rfl
 
+/-- The explicit cross-level slot order turns selector totality into selector
+success on every successful combined-tree support run. -/
+theorem forkTreeCombined_selectorMass
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    (hslotOrder : ∀ {depth} (hdepth : depth < total)
+      {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk depth
+          (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+        treeFirstSlot cf total depth tree = some next →
+        selected < next) :
+    (∑ s, Pr[= some s |
+      continuedForkSelector qb i
+        (combinedTreeSelector qb i cf total built hbuilt) none <$>
+      continuedForkMain
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))
+        keepCombinedChild]) =
+      Pr[fun tree => tree.isSome |
+        forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt)] := by
+  apply forkTreeCombined_selectorMass_of_selector_success total built hbuilt
+    main qb i cf leafOk
+  intro tree outerLog hrun
+  have hconsistent := forkTreeCombined_support_invariant_core total built
+    (Nat.le_of_lt hbuilt) main qb i cf leafOk hbaseReach hrun
+  obtain ⟨selected, hselected⟩ :=
+    combinedTreeSelector_cf_some_of_consistent total built hbuilt main qb i cf
+      leafOk hselectorTotal hconsistent
+  have hcf : cf (total - (built + 1)) tree.root.1 = some selected := by
+    simpa [combinedLevel] using hselected
+  rcases hfirst : treeFirstSlot cf total built tree with _ | next
+  · exact ⟨selected, by
+      simp [combinedTreeSelector, hcf, hfirst]
+    ⟩
+  · have hlt := hslotOrder hbuilt hrun hselected hfirst
+    exact ⟨selected, by
+      simp [combinedTreeSelector, hcf, hfirst, hlt]
+    ⟩
+
+/-- Combined support, invariant, and selector mass under explicit slot order. -/
+theorem forkTreeCombined_support_invariant_and_selectorMass
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    (hslotOrder : ∀ {depth} (hdepth : depth < total)
+      {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk depth
+          (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+        treeFirstSlot cf total depth tree = some next →
+        selected < next) :
+    CfReachable
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))
+        qb i (combinedTreeSelector qb i cf total built hbuilt) ∧
+      (∀ {tree outerLog},
+        (some tree, outerLog) ∈ support (replayFirstRun
+          (forkTreeCombined total main qb i cf leafOk built
+            (Nat.le_of_lt hbuilt))) →
+        CombinedReplayConsistent total main qb i cf leafOk built tree outerLog) ∧
+      ((∑ s, Pr[= some s |
+        continuedForkSelector qb i
+          (combinedTreeSelector qb i cf total built hbuilt) none <$>
+        continuedForkMain
+          (forkTreeCombined total main qb i cf leafOk built
+            (Nat.le_of_lt hbuilt))
+          keepCombinedChild]) =
+        Pr[fun tree => tree.isSome |
+          forkTreeCombined total main qb i cf leafOk built
+            (Nat.le_of_lt hbuilt)]) := by
+  have hsupport := forkTreeCombined_support_invariant total built hbuilt
+    main qb i cf leafOk hbaseReach hselectorTotal
+  have hmass := forkTreeCombined_selectorMass total built hbuilt
+    main qb i cf leafOk hbaseReach hselectorTotal hslotOrder
+  exact ⟨hsupport.1, hsupport.2, hmass⟩
+
 /-- Consistency entails support for every run stored in the tree. -/
 theorem TreeConsistent.all_support [spec.DecidableEq]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)

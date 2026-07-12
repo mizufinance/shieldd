@@ -4410,3 +4410,129 @@ custom `axiom`, or `native_decide`.  Focused `lake build Ipp.ForkTree` passed
 (3301 jobs).  Final `lake build Ipp` passed (3324 jobs, 124.8 seconds).  The
 prover/release-gated circuit tests were not run; this session changed only the
 Lean IPP package and its report.
+
+## A? session 9b
+
+Session 9b makes the missing cross-level ordering fact an explicit premise,
+discharges the session-9 conditional selector-mass lemma, and assembles the
+support/invariant/mass theorem.  The premise is universal over the combined
+depth so the later FS instantiation can discharge it at each `depth < total`:
+
+```lean
+(hslotOrder : ∀ {depth} (hdepth : depth < total)
+  {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+  (some tree, outerLog) ∈ support (replayFirstRun
+    (forkTreeCombined total main qb i cf leafOk depth
+      (Nat.le_of_lt hdepth))) →
+  ∀ {selected next},
+    cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+    treeFirstSlot cf total depth tree = some next →
+    selected < next)
+```
+
+The full mass theorem statement is:
+
+```lean
+theorem forkTreeCombined_selectorMass
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    (hslotOrder : ∀ {depth} (hdepth : depth < total)
+      {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk depth
+          (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+        treeFirstSlot cf total depth tree = some next →
+        selected < next) :
+    (∑ s, Pr[= some s |
+      continuedForkSelector qb i
+        (combinedTreeSelector qb i cf total built hbuilt) none <$>
+      continuedForkMain
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))
+        keepCombinedChild]) =
+      Pr[fun tree => tree.isSome |
+        forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt)]
+```
+
+It proves the existing `forkTreeCombined_selectorMass_of_selector_success`
+conditional by obtaining selector totality from
+`combinedTreeSelector_cf_some_of_consistent` and using `hslotOrder` exactly for
+the remaining `selected < next` branch.  The assembled central theorem
+statement is:
+
+```lean
+theorem forkTreeCombined_support_invariant_and_selectorMass
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)]
+    [unifSpec ⊂ₒ spec] [unifSpec ˡ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (hselectorTotal : ∀ {first},
+      first ∈ support (replayFirstRun main) → leafOk first →
+      ∀ level, level < total → ∃ s, cf level first.1 = some s)
+    (hslotOrder : ∀ {depth} (hdepth : depth < total)
+      {tree : RunTree spec α depth} {outerLog : QueryLog spec},
+      (some tree, outerLog) ∈ support (replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk depth
+          (Nat.le_of_lt hdepth))) →
+      ∀ {selected next},
+        cf (combinedLevel total depth hdepth) tree.root.1 = some selected →
+        treeFirstSlot cf total depth tree = some next →
+        selected < next) :
+    CfReachable
+        (forkTreeCombined total main qb i cf leafOk built
+          (Nat.le_of_lt hbuilt))
+        qb i (combinedTreeSelector qb i cf total built hbuilt) ∧
+      (∀ {tree outerLog},
+        (some tree, outerLog) ∈ support (replayFirstRun
+          (forkTreeCombined total main qb i cf leafOk built
+            (Nat.le_of_lt hbuilt))) →
+        CombinedReplayConsistent total main qb i cf leafOk built tree outerLog) ∧
+      ((∑ s, Pr[= some s |
+        continuedForkSelector qb i
+          (combinedTreeSelector qb i cf total built hbuilt) none <$>
+        continuedForkMain
+          (forkTreeCombined total main qb i cf leafOk built
+            (Nat.le_of_lt hbuilt))
+          keepCombinedChild]) =
+        Pr[fun tree => tree.isSome |
+          forkTreeCombined total main qb i cf leafOk built
+            (Nat.le_of_lt hbuilt)])
+```
+
+FS-facing discharge hook for session 11/15 (signature sketch only; no FS
+proof was added here): a `PathPrefix qb pathDepth slot root run` witness plus
+`selectedLevel < nextLevel < pathDepth`, and
+`roundSlot qb selectedLevel run = some selected` / `roundSlot qb nextLevel run =
+some next`, should expose `selected < next` through
+`PathPrefix.slot_strict`.  The combined instantiation uses
+`selectedLevel = total - (built + 1)` and `nextLevel = total - built`.
+
+Verification:
+
+```text
+Ipp.forkTreeCombined_support_invariant_and_selectorMass
+depends on axioms: [propext, Classical.choice, Quot.sound]
+Focused `lake build Ipp.ForkTree`: passed (3301 jobs).
+Final `lake build Ipp`: passed (3324 jobs, 124.8 seconds).
+```
+
+The pinned Lean 4.30.0 toolchain was used with `LEAN_NUM_THREADS=1` and one
+machine-wide Lake/Lean process at a time.  No `sorry`, custom `axiom`, or
+`native_decide` was added.  Prover/release-gated circuit tests were not run.
