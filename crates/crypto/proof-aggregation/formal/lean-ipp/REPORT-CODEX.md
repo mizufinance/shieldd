@@ -4624,3 +4624,83 @@ The pinned Lean 4.30.0 toolchain was used with `LEAN_NUM_THREADS=1`, one
 machine-wide Lake/Lean process at a time, and no `lake update` or Mathlib
 build.  No `sorry`, custom `axiom`, or `native_decide` was added.  Prover and
 release-gated circuit tests were not run.
+
+## A? session 11
+
+Added the public full-depth combined-tree support API.  The direct successful
+tree premise is bridged to an outer replay log, then the existing
+`forkTreeCombined_support_invariant_core` at `built = total` is forgotten with
+`lower = none`.  These qualitative endpoint theorems require `hbaseReach`;
+`hselectorTotal` and `hslotOrder` remain premises of the indexed selector and
+mass theorems used before the full-depth endpoint.
+
+The three theorem statements are:
+
+```lean
+theorem forkTreeCombined_support_props
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    {tree : RunTree spec α total}
+    (h : some tree ∈ support
+      (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) :
+    TreeConsistent main qb i cf leafOk 0 none tree
+
+theorem forkTreeCombined_success_all_leafOk
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    {tree : RunTree spec α total}
+    (h : some tree ∈ support
+      (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) :
+    tree.All leafOk
+
+theorem forkTreeCombined_propertyTransfer
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (P_out : α → QueryLog spec → Prop)
+    (hP : ∀ {x log}, (x, log) ∈ support (replayFirstRun main) → P_out x log)
+    {tree : RunTree spec α total}
+    (h : some tree ∈ support
+      (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) :
+    TreeConsistent main qb i cf leafOk 0 none tree ∧
+      tree.All (fun run => P_out run.1 run.2)
+```
+
+The small `fsGame_forkTree_leaf_data` consumer now invokes
+`forkTreeCombined_propertyTransfer` at `total = built`, with its explicit
+`hbaseReach` premise.  The old `forkTree` experiment remains for session 12.
+
+`#print axioms`:
+
+```text
+'Ipp.forkTreeCombined_support_props' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.forkTreeCombined_success_all_leafOk' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.forkTreeCombined_propertyTransfer' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Verification used the pinned Lean 4.30.0 toolchain with `LEAN_NUM_THREADS=1`
+and one Lake/Lean process at a time:
+
+```text
+Focused `lake build Ipp.ForkTree`: passed (3301 jobs).
+Focused `lake build Ipp.FsGame`: passed (3311 jobs).
+Final `lake build Ipp`: passed (3324 jobs, 92.1 seconds).
+```
+
+No `sorry`, custom `axiom`, or `native_decide` was added.  No commit was made;
+`DESIGN.md` and `.lake/packages/**` were not edited.  Prover/release-gated
+circuit tests were not run.

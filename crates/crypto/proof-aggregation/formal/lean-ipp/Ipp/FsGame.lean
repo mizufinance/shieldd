@@ -770,17 +770,21 @@ theorem fsGame_forkTree_leaf_data
     [IsUniformSpec (unifSpec + SnarkpackFsSpec F G1 G2 GT)]
     [∀ j, SampleableType ((unifSpec + SnarkpackFsSpec F G1 G2 GT).Range j)]
     [unifSpec ⊂ₒ (unifSpec + SnarkpackFsSpec F G1 G2 GT)]
-    (depth : Nat)
+    (total : Nat)
     (qb : (unifSpec + SnarkpackFsSpec F G1 G2 GT).Domain → Nat)
     (i : (unifSpec + SnarkpackFsSpec F G1 G2 GT).Domain)
     (cf : Nat → FsResult μ F G1 G2 GT → Option (Fin (qb i + 1)))
+    (hbaseReach : ∀ level, level < total →
+      CfReachable (FsGame stmt adv) qb i (cf level))
     {tree : RunTree (unifSpec + SnarkpackFsSpec F G1 G2 GT)
-      (FsResult μ F G1 G2 GT) depth}
-    (h : some tree ∈ support (forkTree depth (FsGame stmt adv) qb i cf
-      (fun _ => True))) :
+      (FsResult μ F G1 G2 GT) total}
+    (h : some tree ∈ support
+      (forkTreeCombined total (FsGame stmt adv) qb i cf (fun _ => True)
+        total (Nat.le_refl total))) :
     TreeConsistent (FsGame stmt adv) qb i cf (fun _ => True) 0 none tree ∧
       tree.All (fun run => accepted_run_leaf_data stmt run.1 run.2) :=
-  forkTree_propertyTransfer depth (FsGame stmt adv) qb i cf (fun _ => True)
+  forkTreeCombined_propertyTransfer total (FsGame stmt adv) qb i cf
+    (fun _ => True) hbaseReach
     (accepted_run_leaf_data stmt)
     (fun {_out _log} hrun => accepted_supports_leaf_data stmt adv hrun) h
 

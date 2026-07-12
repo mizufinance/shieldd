@@ -1474,6 +1474,45 @@ theorem forkTreeCombined_support_invariant_and_selectorMass
     main qb i cf leafOk hbaseReach hselectorTotal hslotOrder
   exact ⟨hsupport.1, hsupport.2, hmass⟩
 
+private theorem forkTreeCombined_success_with_outerLog
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    {tree : RunTree spec α total}
+    (h : some tree ∈ support
+      (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) :
+    ∃ outerLog, (some tree, outerLog) ∈ support (replayFirstRun
+      (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) := by
+  have hmap : some tree ∈ support
+      (Prod.fst <$> replayFirstRun
+        (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) := by
+    simpa only [fst_map_replayFirstRun] using h
+  rw [support_map, Set.mem_image] at hmap
+  obtain ⟨⟨result, outerLog⟩, hresult, hout⟩ := hmap
+  have hresult' : result = some tree := by simpa using hout
+  exact ⟨outerLog, by simpa [hresult'] using hresult⟩
+
+/-- A successful full-depth combined tree is R6-consistent. -/
+theorem forkTreeCombined_support_props
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    {tree : RunTree spec α total}
+    (h : some tree ∈ support
+      (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) :
+    TreeConsistent main qb i cf leafOk 0 none tree := by
+  obtain ⟨outerLog, houter⟩ := forkTreeCombined_success_with_outerLog
+    total main qb i cf leafOk h
+  have hconsistent := forkTreeCombined_support_invariant_core total total
+    (Nat.le_refl total) main qb i cf leafOk hbaseReach houter
+  simpa only [Nat.sub_self] using hconsistent.forget none (Or.inl rfl)
+
 /-- Consistency entails support for every run stored in the tree. -/
 theorem TreeConsistent.all_support [spec.DecidableEq]
     (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
@@ -1504,6 +1543,43 @@ theorem TreeConsistent.all_leafOk [spec.DecidableEq]
       hcursor hprefix hslotPos hslotInput hslotRank hprefixValues hstrict hchildren ih =>
       intro k
       exact ih k
+
+/-- Full-depth combined success preserves the leaf construction gate. -/
+theorem forkTreeCombined_success_all_leafOk
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    {tree : RunTree spec α total}
+    (h : some tree ∈ support
+      (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) :
+    tree.All leafOk :=
+  (forkTreeCombined_support_props total main qb i cf leafOk hbaseReach h).all_leafOk
+
+/-- Transfer a first-run postcondition to every full-depth combined-tree leaf. -/
+theorem forkTreeCombined_propertyTransfer
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    (hbaseReach : ∀ level, level < total →
+      CfReachable main qb i (cf level))
+    (P_out : α → QueryLog spec → Prop)
+    (hP : ∀ {x log}, (x, log) ∈ support (replayFirstRun main) → P_out x log)
+    {tree : RunTree spec α total}
+    (h : some tree ∈ support
+      (forkTreeCombined total main qb i cf leafOk total (Nat.le_refl total))) :
+    TreeConsistent main qb i cf leafOk 0 none tree ∧
+      tree.All (fun run => P_out run.1 run.2) := by
+  have hconsistent := forkTreeCombined_support_props total main qb i cf leafOk
+    hbaseReach h
+  refine ⟨hconsistent, ?_⟩
+  have hall := hconsistent.all_support
+  exact hall.imp (fun run hrun => hP hrun)
 
 /-- Success of gated recursion establishes the leaf gate structurally. -/
 theorem forkTree_success_all_leafOk [spec.DecidableEq] [IsUniformSpec spec]
