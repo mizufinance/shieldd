@@ -4016,3 +4016,97 @@ def assembleCombinedNode {depth : Nat} :
 Elaboration deviation: `treeFirstSlot` needs inferred `{qb : ι → Nat}` and `{i : ι}` binders because its contractual `cf` argument mentions `qb i` while this project disables auto-implicit binders. This does not change argument order, result type, or behavior. The `keepCombinedChild_none` and selector-`none` lemmas carry explicit `Option (RunTree ...)` annotations solely to resolve erased dependent indices.
 
 Verification: the pinned Lean 4.30.0, `LEAN_NUM_THREADS=1` focused `lake build Ipp.ForkTree` passed (warnings only: two unused proof binders). I attempted the required final `lake build Ipp` serially; the environment's 60-second command ceiling terminated it twice while it was still compiling its final downstream modules, so it did not produce a passing final package result. `build.log` contains the tail from the last attempt. Prover/release-gated tests were not run.
+
+## A? session 5
+
+Implemented the contractual bottom-up extractor verbatim:
+
+```lean
+noncomputable def forkTreeCombined [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α)
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
+    (built : Nat) → built ≤ total →
+      OracleComp spec (Option (RunTree spec α built))
+  | 0, _ => do
+      let first ← replayFirstRun main
+      if leafOk first then pure (some (.leaf first)) else pure none
+  | built + 1, hle =>
+      assembleCombinedNode <$> forkReplay4Continue
+        (forkTreeCombined total main qb i cf leafOk built (by omega))
+        qb i (combinedTreeSelector qb i cf total built (by omega)) none
+        keepCombinedChild
+termination_by built _ => built
+```
+
+Exact unfold equations:
+
+```lean
+@[simp] theorem forkTreeCombined_zero [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α)
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (hle : 0 ≤ total) :
+    forkTreeCombined total main qb i cf leafOk 0 hle = (do
+      let first ← replayFirstRun main
+      if leafOk first then pure (some (.leaf first)) else pure none)
+
+@[simp] theorem forkTreeCombined_succ [spec.DecidableEq]
+    (total built : Nat) (main : OracleComp spec α)
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (hle : built + 1 ≤ total) :
+    forkTreeCombined total main qb i cf leafOk (built + 1) hle =
+      assembleCombinedNode <$> forkReplay4Continue
+        (forkTreeCombined total main qb i cf leafOk built (by omega))
+        qb i (combinedTreeSelector qb i cf total built (by omega)) none
+        keepCombinedChild
+```
+
+isSome equivalence statements:
+
+```lean
+theorem assembleCombinedNode_isSome_iff {depth : Nat}
+    (branches? : Option (Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth))) :
+    (assembleCombinedNode branches?).isSome ↔
+      ∃ branches, branches? = some branches ∧ ∀ k, (branches k).2.isSome
+
+theorem forkReplay4Continue_success_all_isSome [spec.DecidableEq]
+    [IsUniformSpec spec] [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {depth : Nat}
+    (main : OracleComp spec (Option (RunTree spec α depth)))
+    (qb : ι → Nat) (i : ι)
+    (cf : Option (RunTree spec α depth) → Option (Fin (qb i + 1)))
+    {branches : Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth)}
+    (h : some branches ∈ support
+      (forkReplay4Continue main qb i cf none keepCombinedChild)) :
+    ∀ k, (branches k).2.isSome
+
+theorem probEvent_isSome_assembleCombinedNode_forkReplay4Continue
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {depth : Nat}
+    (main : OracleComp spec (Option (RunTree spec α depth)))
+    (qb : ι → Nat) (i : ι)
+    (cf : Option (RunTree spec α depth) → Option (Fin (qb i + 1))) :
+    Pr[fun tree : Option (RunTree spec α (depth + 1)) => tree.isSome |
+        assembleCombinedNode <$> forkReplay4Continue main qb i cf none keepCombinedChild] =
+      Pr[fun branches : Option (Fin 4 →
+          (Option (RunTree spec α depth) × QueryLog spec) ×
+            Option (RunTree spec α depth)) => branches.isSome |
+        forkReplay4Continue main qb i cf none keepCombinedChild]
+```
+
+Termination is structural on `built`; the successor call decreases from `built + 1` to `built`, and `omega` discharges both the recursive bound and `built < total`. No private step or index cast was needed. The unfold proofs use `simp only [forkTreeCombined]` because generated proof arguments prevent raw `rfl`.
+
+Verification: pinned Lean 4.30.0, `LEAN_NUM_THREADS=1`; focused `lake build Ipp.ForkTree` passed, and final serial `lake build Ipp` passed in 125.3 seconds (3324 jobs). Dedicated `#print axioms` checks for the definition and five lemmas reported only `propext`, `Classical.choice`, and `Quot.sound`; zero `sorry`, custom axioms, or `native_decide`. Prover/release-gated tests were not run. Nothing was deferred.

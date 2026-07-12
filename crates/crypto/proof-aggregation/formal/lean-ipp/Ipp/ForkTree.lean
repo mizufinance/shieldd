@@ -290,7 +290,113 @@ def assembleCombinedNode {depth : Nat} :
     assembleCombinedNode (some branches) = none := by
   simp [assembleCombinedNode, h]
 
--- Session 5 adds `forkTreeCombined` below this data-layer boundary.
+/-- Build a tree bottom-up by replaying the entire previously built extractor. -/
+noncomputable def forkTreeCombined [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α)
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec] :
+    (built : Nat) → built ≤ total →
+      OracleComp spec (Option (RunTree spec α built))
+  | 0, _ => do
+      let first ← replayFirstRun main
+      if leafOk first then pure (some (.leaf first)) else pure none
+  | built + 1, hle =>
+      assembleCombinedNode <$> forkReplay4Continue
+        (forkTreeCombined total main qb i cf leafOk built (by omega))
+        qb i (combinedTreeSelector qb i cf total built (by omega)) none
+        keepCombinedChild
+termination_by built _ => built
+
+/-- Unfold one leaf-gate layer of the combined extractor. -/
+@[simp] theorem forkTreeCombined_zero [spec.DecidableEq]
+    (total : Nat) (main : OracleComp spec α)
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (hle : 0 ≤ total) :
+    forkTreeCombined total main qb i cf leafOk 0 hle = (do
+      let first ← replayFirstRun main
+      if leafOk first then pure (some (.leaf first)) else pure none) := by
+  simp only [forkTreeCombined]
+
+/-- Unfold one replay-and-assembly layer of the combined extractor. -/
+@[simp] theorem forkTreeCombined_succ [spec.DecidableEq]
+    (total built : Nat) (main : OracleComp spec α)
+    (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (leafOk : α × QueryLog spec → Prop) [DecidablePred leafOk]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (hle : built + 1 ≤ total) :
+    forkTreeCombined total main qb i cf leafOk (built + 1) hle =
+      assembleCombinedNode <$> forkReplay4Continue
+        (forkTreeCombined total main qb i cf leafOk built (by omega))
+        qb i (combinedTreeSelector qb i cf total built (by omega)) none
+        keepCombinedChild := by
+  simp only [forkTreeCombined]
+
+/-- Assembly succeeds exactly when a four-way output exists and every child did. -/
+theorem assembleCombinedNode_isSome_iff {depth : Nat}
+    (branches? : Option (Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth))) :
+    (assembleCombinedNode branches?).isSome ↔
+      ∃ branches, branches? = some branches ∧ ∀ k, (branches k).2.isSome := by
+  cases branches? with
+  | none => simp
+  | some branches =>
+      by_cases h : ∀ k, (branches k).2.isSome <;>
+        simp [assembleCombinedNode, h]
+
+/-- Every successful continued fork has four successful child continuations. -/
+theorem forkReplay4Continue_success_all_isSome [spec.DecidableEq]
+    [IsUniformSpec spec] [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {depth : Nat}
+    (main : OracleComp spec (Option (RunTree spec α depth)))
+    (qb : ι → Nat) (i : ι)
+    (cf : Option (RunTree spec α depth) → Option (Fin (qb i + 1)))
+    {branches : Fin 4 →
+      (Option (RunTree spec α depth) × QueryLog spec) ×
+        Option (RunTree spec α depth)}
+    (h : some branches ∈ support
+      (forkReplay4Continue main qb i cf none keepCombinedChild)) :
+    ∀ k, (branches k).2.isSome := by
+  rcases forkReplay4_propertyTransfer
+      (continuedForkMain main keepCombinedChild) qb i
+      (continuedForkSelector qb i cf none) (fun _ _ => True)
+      (fun _ => trivial) h with ⟨_, s, _, hselector, _⟩
+  intro k
+  have hk := hselector k
+  rcases hbranch : branches k with ⟨⟨tree?, log⟩, child?⟩
+  simp only [hbranch, continuedForkSelector] at hk
+  cases child? with
+  | none => simp at hk
+  | some child => simp
+
+/-- Node assembly preserves the exact `isSome` success event of one replay level. -/
+theorem probEvent_isSome_assembleCombinedNode_forkReplay4Continue
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    {depth : Nat}
+    (main : OracleComp spec (Option (RunTree spec α depth)))
+    (qb : ι → Nat) (i : ι)
+    (cf : Option (RunTree spec α depth) → Option (Fin (qb i + 1))) :
+    Pr[fun tree : Option (RunTree spec α (depth + 1)) => tree.isSome |
+        assembleCombinedNode <$> forkReplay4Continue main qb i cf none keepCombinedChild] =
+      Pr[fun branches : Option (Fin 4 →
+          (Option (RunTree spec α depth) × QueryLog spec) ×
+            Option (RunTree spec α depth)) => branches.isSome |
+        forkReplay4Continue main qb i cf none keepCombinedChild] := by
+  rw [probEvent_map]
+  apply probEvent_ext
+  intro branches? hsupport
+  cases branches? with
+  | none => simp
+  | some branches =>
+      have hall := forkReplay4Continue_success_all_isSome main qb i cf hsupport
+      simp [assembleCombinedNode, hall]
 
 private theorem forkTreeFrom_support_props [spec.DecidableEq] [IsUniformSpec spec]
     [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
