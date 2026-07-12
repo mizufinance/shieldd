@@ -520,7 +520,7 @@ def CombinedCanonicalProjection [spec.DecidableEq]
       ∀ n, n < baseRun.2.length → outerLog[n]? = baseRun.2[n]?
 
 /-- The nested replay-prefix witness needed to turn one combined node into an
-R6 node.  Session 7 must construct this witness from replay-log prefixes. -/
+R6 node. -/
 def CombinedNodePrefixProjection [spec.DecidableEq]
     (total : Nat) (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
     (cf : Nat → α → Option (Fin (qb i + 1))) {built : Nat}
@@ -539,6 +539,242 @@ def CombinedNodePrefixProjection [spec.DecidableEq]
       (∀ k, (QueryLog.getQ ((children k).root.2.take slotPos) (· = i)).length = (slot : Nat)) ∧
       (∀ a b n, n < slotPos → (children a).root.2[n]? = (children b).root.2[n]?) ∧
       (∀ k next, treeFirstSlot cf total built (children k) = some next → slot < next)
+
+/-- A logged continued child exposes the successful nested extractor run, and
+the outer logging layer records exactly its embedded extractor log. -/
+private theorem continuedForkMain_keepCombinedChild_support_props
+    {depth : Nat} (extractor : OracleComp spec (Option (RunTree spec α depth)))
+    {tree : RunTree spec α depth} {innerLog outerLog : QueryLog spec}
+    (h : (((some tree, innerLog), some tree), outerLog) ∈ support
+      (replayFirstRun (continuedForkMain extractor keepCombinedChild))) :
+    (some tree, innerLog) ∈ support (replayFirstRun extractor) ∧ outerLog = innerLog := by
+  change (((some tree, innerLog), some tree), outerLog) ∈ support
+    (continuedForkMain extractor keepCombinedChild).withQueryLog at h
+  rw [continuedForkMain, OracleComp.withQueryLog_bind, mem_support_bind_iff] at h
+  obtain ⟨p, hp, h⟩ := h
+  rcases p with ⟨⟨tree?, logged⟩, prefixLog⟩
+  rcases tree? with _ | tree'
+  · simp [keepCombinedChild] at h
+  simp [keepCombinedChild] at h
+  rcases h with ⟨⟨⟨htree, hlog⟩, _⟩, houter⟩
+  subst tree'
+  subst logged
+  subst outerLog
+  have hlogs := OracleComp.withQueryLog_self_log_eq extractor hp
+  subst prefixLog
+  constructor
+  · have hmapped : (some tree, innerLog) ∈ support
+        (Prod.fst <$> (replayFirstRun extractor).withQueryLog) := by
+      rw [support_map, Set.mem_image]
+      exact ⟨((some tree, innerLog), innerLog), hp, rfl⟩
+    change (some tree, innerLog) ∈ support
+      (Prod.fst <$> replayFirstRun (replayFirstRun extractor)) at hmapped
+    simpa only [fst_map_replayFirstRun] using hmapped
+  · rfl
+
+private lemma take_eq_of_getElem?_eq_below_combined {β : Type}
+    (xs ys : List β) (n : Nat) (h : ∀ m, m < n → xs[m]? = ys[m]?) :
+    xs.take n = ys.take n := by
+  induction n generalizing xs ys with
+  | zero => rfl
+  | succ n ih =>
+      cases xs with
+      | nil =>
+          cases ys with
+          | nil => rfl
+          | cons y ys => simpa using h 0 (Nat.zero_lt_succ n)
+      | cons x xs =>
+          cases ys with
+          | nil => simpa using h 0 (Nat.zero_lt_succ n)
+          | cons y ys =>
+              have hxy : x = y := by simpa using h 0 (Nat.zero_lt_succ n)
+              subst y
+              simp only [List.take_succ_cons, List.cons.injEq, true_and]
+              apply ih
+              intro m hm
+              simpa using h (m + 1) (by omega)
+
+private lemma getQ_prefix_combined [spec.DecidableEq]
+    (xs ys : QueryLog spec) (p : ι → Prop) [DecidablePred p]
+    (h : xs <+: ys) : xs.getQ p <+: ys.getQ p := by
+  rcases h with ⟨tail, rfl⟩
+  exact ⟨QueryLog.getQ tail p, by simp⟩
+
+/-- Project the full replay-prefix relation of one successful combined fork to
+the canonical base runs stored at its four child roots.  The child projection
+hypotheses are precisely the already-completed nested-child component of the
+bottom-up induction; no relation is claimed after the selected fork query. -/
+theorem combinedNodePrefixProjection_of_outerReplay
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (extractor : OracleComp spec (Option (RunTree spec α built)))
+    (hbaseReach : CfReachable main qb i (cf (combinedLevel total built hbuilt)))
+    {children : Fin 4 → RunTree spec α built}
+    {childLogs : Fin 4 → QueryLog spec} {outerLog : QueryLog spec}
+    {branches : Fin 4 →
+      (Option (RunTree spec α built) × QueryLog spec) ×
+        Option (RunTree spec α built)}
+    (hfork : some branches ∈ support
+      (forkReplay4Continue extractor qb i
+        (combinedTreeSelector qb i cf total built hbuilt) none keepCombinedChild))
+    (hbranches : ∀ k,
+      branches k = ((some (children k), childLogs k), some (children k)))
+    (hchildren : ∀ k,
+      CombinedCanonicalProjection main (children k) (childLogs k))
+    (hcanonical : CombinedCanonicalProjection main (.node children) outerLog) :
+    CombinedNodePrefixProjection total main qb i cf children outerLog := by
+  unfold forkReplay4Continue at hfork
+  rcases forkReplay4_support_props_full
+      (continuedForkMain extractor keepCombinedChild) qb i
+      (continuedForkSelector qb i
+        (combinedTreeSelector qb i cf total built hbuilt) none) hfork with
+    ⟨runs, slot, answers, cursor, slotPos, hrunsOutput, hrunsSupport, hselector,
+      hinjective, hanswers, hcursor, hprefix, hslotPos, hslotInput, hslotRank,
+      hprefixValues⟩
+  have hrunsEq : ∀ k,
+      runs k = (((some (children k), childLogs k), some (children k)), childLogs k) := by
+    intro k
+    have hout := (hrunsOutput k).symm.trans (hbranches k)
+    have hs := continuedForkMain_keepCombinedChild_support_props extractor
+      (tree := children k) (innerLog := childLogs k) (outerLog := (runs k).2) (by
+        rw [← hout]
+        exact hrunsSupport k)
+    exact Prod.ext hout hs.2
+  have hcf : ∀ k,
+      cf (total - (built + 1)) (children k).root.1 = some slot := by
+    intro k
+    have hs := hselector k
+    rw [hrunsEq k] at hs
+    simp only [continuedForkSelector, gatedForkSelector] at hs
+    have hs' : combinedTreeSelector qb i cf total built hbuilt (some (children k)) =
+        some slot := by
+      rcases hz : combinedTreeSelector qb i cf total built hbuilt (some (children k)) with _ | s
+      · simp [hz] at hs
+      · simp [hz] at hs
+        simpa [hs] using hz
+    rcases hcurrent : cf (total - (built + 1)) (children k).root.1 with _ | s
+    · simp [combinedTreeSelector, hcurrent] at hs'
+    have hsEq : s = slot := by
+      rcases hfirst : treeFirstSlot cf total built (children k) with _ | next
+      · have : some s = some slot := by
+          simpa [combinedTreeSelector, hcurrent, hfirst] using hs'
+        exact Option.some.inj this
+      · by_cases hlt : s < next
+        · have : some s = some slot := by
+            simpa [combinedTreeSelector, hcurrent, hfirst, hlt] using hs'
+          exact Option.some.inj this
+        · simp [combinedTreeSelector, hcurrent, hfirst, hlt] at hs'
+    subst s
+    rfl
+  have hslotOrder : ∀ k next,
+      treeFirstSlot cf total built (children k) = some next → slot < next := by
+    intro k next hfirst
+    have hs := hselector k
+    rw [hrunsEq k] at hs
+    simp only [continuedForkSelector, gatedForkSelector] at hs
+    have hcurrent := hcf k
+    by_cases hlt : slot < next
+    · exact hlt
+    · simp [combinedTreeSelector, hcurrent, hfirst, hlt] at hs
+  have hrootPrefix : ∀ k n, n < (children k).root.2.length →
+      (childLogs k)[n]? = (children k).root.2[n]? := by
+    intro k n hn
+    rcases hchildren k with ⟨baseRun, hsupport, hroot, hpref⟩
+    rw [hroot]
+    exact hpref n (by simpa [← hroot] using hn)
+  have hrootSupport : ∀ k,
+      (children k).root ∈ support (replayFirstRun main) := by
+    intro k
+    rcases hchildren k with ⟨baseRun, hsupport, hroot, hpref⟩
+    simpa [hroot] using hsupport
+  have hslotWithin : ∀ k, slotPos < (children k).root.2.length := by
+    intro k
+    by_contra hnot
+    have hle : (children k).root.2.length ≤ slotPos := by omega
+    have htake : (childLogs k).take (children k).root.2.length =
+        (children k).root.2 := by
+      exact (take_eq_of_getElem?_eq_below_combined _ _ _ (hrootPrefix k)).trans
+        List.take_length
+    have hpref : (children k).root.2 <+: (childLogs k).take slotPos := by
+      rw [← htake]
+      have heq : ((childLogs k).take slotPos).take (children k).root.2.length =
+          (childLogs k).take (children k).root.2.length := by
+        simp [List.take_take, Nat.min_eq_left hle]
+      rw [← heq]
+      exact List.take_prefix _ _
+    have hprefQ := getQ_prefix_combined _ _ (· = i) hpref
+    have hcountLe := hprefQ.length_le
+    have hreachable := hbaseReach (hrootSupport k) slot (by
+      simpa [combinedLevel] using hcf k)
+    obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp hreachable
+    have hget := QueryLog.getQ_getElem?_eq_of_getQueryValue?_eq_some
+      (children k).root.2 i (slot : Nat) u hu
+    have hlt := (List.getElem?_eq_some_iff.1 hget).1
+    have hrank : (QueryLog.getQ ((childLogs k).take slotPos) (· = i)).length =
+        (slot : Nat) := by simpa [hrunsEq k] using hslotRank k
+    have hcountLe' : ((children k).root.2.getQ (· = i)).length ≤ (slot : Nat) :=
+      hcountLe.trans_eq hrank
+    omega
+  have hrootGetValue : ∀ k,
+      QueryLog.getQueryValue? (children k).root.2 i ↑slot = some (answers k) := by
+    intro k
+    have htake : (childLogs k).take (children k).root.2.length =
+        (children k).root.2 := by
+      exact (take_eq_of_getElem?_eq_below_combined _ _ _ (hrootPrefix k)).trans
+        List.take_length
+    have hpref : (children k).root.2 <+: childLogs k := by
+      rw [← htake]
+      exact List.take_prefix _ _
+    have hprefQ := getQ_prefix_combined _ _ (· = i) hpref
+    rcases hprefQ with ⟨tail, hprefQ⟩
+    apply QueryLog.getQueryValue?_eq_some_of_getQ_getElem?
+    have hchild := QueryLog.getQ_getElem?_eq_of_getQueryValue?_eq_some
+      (childLogs k) i (slot : Nat) (answers k) (by
+        simpa [hrunsEq k] using hanswers k)
+    rw [← hprefQ] at hchild
+    rw [List.getElem?_append_left] at hchild
+    · exact hchild
+    · have hreachable := hbaseReach (hrootSupport k) slot (by
+          simpa [combinedLevel] using hcf k)
+      obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp hreachable
+      exact (List.getElem?_eq_some_iff.1
+        (QueryLog.getQ_getElem?_eq_of_getQueryValue?_eq_some
+          (children k).root.2 i (slot : Nat) u hu)).1
+  refine ⟨slot, answers, slotPos + 1, slotPos, hcanonical, hcf, hinjective,
+    hrootGetValue, by omega, ?_, by omega, ?_, ?_, ?_, hslotOrder⟩
+  · intro a b n hn
+    have hna : n < (children a).root.2.length := lt_of_lt_of_le hn (by
+      have := hslotWithin a
+      omega)
+    have hnb : n < (children b).root.2.length := lt_of_lt_of_le hn (by
+      have := hslotWithin b
+      omega)
+    have hab := hprefix a b n (by omega)
+    rw [hrunsEq a, hrunsEq b] at hab
+    unfold QueryLog.inputAt? at hab ⊢
+    rw [← hrootPrefix a n hna, ← hrootPrefix b n hnb]
+    exact hab
+  · intro k
+    have hp := hrootPrefix k slotPos (hslotWithin k)
+    have hi := hslotInput k
+    rw [hrunsEq k] at hi
+    unfold QueryLog.inputAt? at hi ⊢
+    rw [← hp]
+    exact hi
+  · intro k
+    have htake := take_eq_of_getElem?_eq_below_combined
+      (childLogs k) (children k).root.2 slotPos (fun n hn =>
+        hrootPrefix k n (lt_trans hn (hslotWithin k)))
+    rw [← htake]
+    simpa [hrunsEq k] using hslotRank k
+  · intro a b n hn
+    have hna : n < (children a).root.2.length := lt_trans hn (hslotWithin a)
+    have hnb : n < (children b).root.2.length := lt_trans hn (hslotWithin b)
+    rw [← hrootPrefix a n hna, ← hrootPrefix b n hnb]
+    simpa [hrunsEq a, hrunsEq b] using hprefixValues a b n hn
 
 /-- An optional parent slot is admissible when it is absent, a leaf has no
 first slot, or it is strictly below the first slot of a positive-depth tree. -/

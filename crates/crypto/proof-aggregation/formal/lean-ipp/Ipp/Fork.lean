@@ -593,6 +593,63 @@ theorem forkReplay4From_support_props [spec.DecidableEq] [IsUniformSpec spec]
               rw [ht₃] at hp₃
               fin_cases a <;> fin_cases b <;> simp_all
 
+/-- A successful four-way fork retains the full logged-run facts proved by the
+fixed-root replay theorem, including the fork position, filtered rank, and
+value prefix. -/
+theorem forkReplay4_support_props_full [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (main : OracleComp spec α) (qb : ι → ℕ) (i : ι)
+    (cf : α → Option (Fin (qb i + 1)))
+    {xs : Fin 4 → α}
+    (h : some xs ∈ support (forkReplay4 main qb i cf)) :
+    ∃ (runs : Fin 4 → α × QueryLog spec) (s : Fin (qb i + 1))
+        (answers : Fin 4 → spec.Range i) (cursor slotPos : Nat),
+      (∀ k, xs k = (runs k).1) ∧
+      (∀ k, runs k ∈ support (replayFirstRun main)) ∧
+      (∀ k, cf (runs k).1 = some s) ∧
+      Function.Injective answers ∧
+      (∀ k, QueryLog.getQueryValue? (runs k).2 i ↑s = some (answers k)) ∧
+      0 < cursor ∧
+      (∀ a b n, n < cursor →
+        QueryLog.inputAt? (runs a).2 n = QueryLog.inputAt? (runs b).2 n) ∧
+      slotPos < cursor ∧
+      (∀ k, QueryLog.inputAt? (runs k).2 slotPos = some i) ∧
+      (∀ k, (QueryLog.getQ ((runs k).2.take slotPos) (· = i)).length = (s : Nat)) ∧
+      (∀ a b n, n < slotPos → (runs a).2[n]? = (runs b).2[n]?) := by
+  simp only [forkReplay4, support_map, Set.mem_image] at h
+  obtain ⟨core, hcore, hout⟩ := h
+  simp only [forkReplay4Core] at hcore
+  rw [mem_support_bind_iff] at hcore
+  obtain ⟨first, hfirst, hcore⟩ := hcore
+  rcases core with ⟨first', z₁?, z₂?, z₃?⟩
+  rcases z₁? with _ | ⟨u₁, z₁⟩
+  · simp [finishForkReplay4] at hout
+  rcases z₂? with _ | ⟨u₂, z₂⟩
+  · simp [finishForkReplay4] at hout
+  rcases z₃? with _ | ⟨u₃, z₃⟩
+  · simp [finishForkReplay4] at hout
+  simp only [finishForkReplay4] at hout
+  split_ifs at hout with hu₂₁ hu₃₁ hu₃₂
+  let runs : Fin 4 → α × QueryLog spec :=
+    ![first', (z₁.1, z₁.2.observed), (z₂.1, z₂.2.observed),
+      (z₃.1, z₃.2.observed)]
+  have hxs : ∀ k, xs k = (runs k).1 := by
+    have hxs' : xs = ![first'.1, z₁.1, z₂.1, z₃.1] := Option.some.inj hout.symm
+    intro k
+    rw [hxs']
+    fin_cases k <;> rfl
+  have hruns : some runs ∈ support (forkReplay4From main qb i cf first) := by
+    simp only [forkReplay4From, support_map, Set.mem_image]
+    refine ⟨(first', some (u₁, z₁), some (u₂, z₂), some (u₃, z₃)), hcore, ?_⟩
+    simp [finishForkReplay4From, runs, hu₂₁, hu₃₁, hu₃₂]
+  rcases forkReplay4From_support_props main qb i cf first hfirst hruns with
+    ⟨s, answers, cursor, slotPos, hruns₀, hrunsSupport, hcf, hinjective,
+      hanswers, hcursor, hprefix, hslotPos, hslotInput, hslotRank,
+      hprefixValues⟩
+  exact ⟨runs, s, answers, cursor, slotPos, hxs,
+    hrunsSupport, hcf, hinjective, hanswers, hcursor, hprefix, hslotPos,
+    hslotInput, hslotRank, hprefixValues⟩
+
 /-- A successful four-way fork supplies four accepting logged runs at one
 selected slot, pairwise-distinct answers there, and a common interleaved query
 prefix.  This is the qualitative `fs.challenge-preimage` boundary consumed by

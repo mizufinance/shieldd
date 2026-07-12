@@ -4169,3 +4169,78 @@ build Ipp.ForkTree` passed, then serial `lake build Ipp` passed in 125.1s
 (3324 jobs). Warnings were pre-existing plus one local tactic-style linter
 warning; no `sorry`, `axiom`, or `native_decide` was introduced. Prover/release-
 gated tests were not run.
+
+## A? session 7
+
+Proved the nested replay-prefix projection by the direct relational route; the
+sanctioned internal-carrier fallback was not used. The reusable standalone
+lemma statement is verbatim:
+
+```lean
+theorem combinedNodePrefixProjection_of_outerReplay
+    [spec.DecidableEq] [IsUniformSpec spec]
+    [∀ j, SampleableType (spec.Range j)] [unifSpec ⊂ₒ spec]
+    (total built : Nat) (hbuilt : built < total)
+    (main : OracleComp spec α) (qb : ι → Nat) (i : ι)
+    (cf : Nat → α → Option (Fin (qb i + 1)))
+    (extractor : OracleComp spec (Option (RunTree spec α built)))
+    (hbaseReach : CfReachable main qb i (cf (combinedLevel total built hbuilt)))
+    {children : Fin 4 → RunTree spec α built}
+    {childLogs : Fin 4 → QueryLog spec} {outerLog : QueryLog spec}
+    {branches : Fin 4 →
+      (Option (RunTree spec α built) × QueryLog spec) ×
+        Option (RunTree spec α built)}
+    (hfork : some branches ∈ support
+      (forkReplay4Continue extractor qb i
+        (combinedTreeSelector qb i cf total built hbuilt) none keepCombinedChild))
+    (hbranches : ∀ k,
+      branches k = ((some (children k), childLogs k), some (children k)))
+    (hchildren : ∀ k,
+      CombinedCanonicalProjection main (children k) (childLogs k))
+    (hcanonical : CombinedCanonicalProjection main (.node children) outerLog) :
+    CombinedNodePrefixProjection total main qb i cf children outerLog
+```
+
+The direct relation is represented by `hfork` (the four replayed outer
+executions), `hchildren` (the induction hypothesis for every completed nested
+child), and `hcanonical` (the canonical root projection of the enclosing
+extractor run). The proof uses these relational-induction steps:
+
+- Added `forkReplay4_support_props_full`, which retains VCVio ReplayFork's
+  common slot, distinct replacement answers, replay cursor, fork position,
+  input prefix, filtered slot rank, and value prefix. It is derived from the
+  fixed-root replay support theorem, not from a computation commutation.
+- Unfolded the actual `forkReplay4Continue` once. For every successful child,
+  `continuedForkMain_keepCombinedChild_support_props` applies VCVio's
+  `withQueryLog_self_log_eq` theorem (itself proved by `OracleComp.inductionOn`)
+  to recover the nested extractor support point and identify the replay run's
+  outer log with the embedded child extractor log. `keepCombinedChild` is pure,
+  so it adds no query-log entries.
+- Inverted `continuedForkSelector`/`combinedTreeSelector` to recover the common
+  current-level slot and prove it precedes each present child first slot.
+- Used `hbaseReach` and each completed child's canonical support projection to
+  prove the recorded outer fork position lies inside every canonical base log.
+  The contradiction compares the base log's reachable `slot`-th filtered query
+  with the outer prefix's recorded filtered rank.
+- Projected replay equality only through `slotPos`: input equality through
+  `slotPos + 1`, value equality strictly before `slotPos`, the exact filtered
+  rank at `slotPos`, the common slot input, and the four distinct replacement
+  values. No prefix equality is claimed after the fork query.
+
+No `probEvent_bind_bind_swap`, generic adaptive commutation, or equality with
+the retired top-down experiment is used. The recursive support induction is
+not included; it remains session 8.
+
+`#print axioms` results:
+
+```text
+'Ipp.forkReplay4_support_props_full' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.combinedNodePrefixProjection_of_outerReplay' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Verification used pinned Lean 4.30.0 and `LEAN_NUM_THREADS=1`, with one
+machine-wide Lake/Lean process at a time. Focused `lake build Ipp.ForkTree`
+passed (3301 jobs), and final `lake build Ipp` passed in 125.2s (3324 jobs).
+Scans of the two edited Lean files found no `sorry`, `axiom`, or
+`native_decide`; `git diff --check` passed. Prover/release-gated tests were not
+run.
