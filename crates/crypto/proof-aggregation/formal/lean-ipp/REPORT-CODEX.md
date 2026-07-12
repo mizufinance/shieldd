@@ -3819,3 +3819,28 @@ generic VCVio commutation lemma.
 - Normalized every U5a printed quantitative constant in `BadEventBudget`, `BadEventBudget.ofBounds`, and `q0_lower_bound` to `Q` forms: `Q^2/|F|`, `Q*dR/(|F|-2)`, `μ*Q/|F|`, `Q*dZ/|F|`, and unchanged `bUnq`.  Field types remain definitionally unchanged.
 - Confirmed `forkTreeStep`, `forkTreeStep_monotone`, and `forkTree_iterate_bound` already provide the scalar monotonicity and `Function.iterate` recurrence step needed by session 10; no additional scalar lemma was needed.
 - Deferred: none.  Build results: `LEAN_NUM_THREADS=1` with the pinned Lean 4.30.0 Lake binary passed `Ipp.FsBadEvents`, `Ipp.ForkTree`, and final `Ipp` (warnings only).
+
+## A? session 2
+
+- Added the verifier total-query proofs to `Ipp/FsGame.lean`:
+
+```lean
+theorem queryAccepting_isTotalQueryBound {F G1 G2 GT : Type}
+    (mkPoint : Nat → ChallengePoint F G1 G2 GT) (acceptable : F → Bool)
+    (fuel nonce : Nat) :
+    IsTotalQueryBound (queryAccepting mkPoint acceptable fuel nonce) fuel
+
+theorem queryRounds_isTotalQueryBound {F G1 G2 GT : Type} [Zero F]
+    (fuel μ : Nat) (prev : F) (rounds : Fin μ → RoundComs G1 GT) :
+    IsTotalQueryBound (queryRounds (G2 := G2) fuel μ prev rounds) (μ * fuel)
+
+theorem fsVerifier_isTotalQueryBound {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT) :
+    IsTotalQueryBound (fsVerifier stmt proof) ((μ + 4) * stmt.rejectionFuel)
+```
+
+- Verified VCVio names exactly match the design: `OracleComp.IsTotalQueryBound`, `isTotalQueryBound_bind`, `IsTotalQueryBound.mono`, `isTotalQueryBound_query_bind_iff`, and the `pure` structural case.  No API-name correction.  `queryRounds` has a phantom `G2` argument, so its statement and proof applications require `(G2 := G2)`; this is an elaboration annotation only.
+- Query counts match the design.  `fsVerifier` has randomizer, x0, `μ` rounds, bridge, and KZG stages: `(μ + 4) * rejectionFuel`.  The proof composes the stage bounds with `isTotalQueryBound_bind` and normalizes the arithmetic with `.mono`.
+- Build results: focused `LEAN_NUM_THREADS=1` pinned Lean 4.30.0 Lake build of `Ipp.FsGame` and final `lake build Ipp` both passed (warnings only, all pre-existing).  Output is in `build.log`.  Prover/release-gated tests were not run.  Deferred: session 3 game/cache transfer only; no transfer lemma was added.

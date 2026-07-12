@@ -415,6 +415,100 @@ def fsVerifier {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
                 (Classical.propDecidable _) true false
             }
 
+/-- The bounded rejection sampler makes at most one oracle query per unit of fuel. -/
+theorem queryAccepting_isTotalQueryBound {F G1 G2 GT : Type}
+    (mkPoint : Nat → ChallengePoint F G1 G2 GT) (acceptable : F → Bool)
+    (fuel nonce : Nat) :
+    IsTotalQueryBound (queryAccepting mkPoint acceptable fuel nonce) fuel := by
+  induction fuel generalizing nonce with
+  | zero => exact trivial
+  | succ fuel ih =>
+      rw [queryAccepting, isTotalQueryBound_query_bind_iff]
+      refine ⟨Nat.succ_pos _, fun x => ?_⟩
+      split
+      · exact trivial
+      · simpa using ih (nonce := nonce + 1)
+
+/-- Each round's bounded rejection sampler consumes at most `fuel` queries. -/
+theorem queryRounds_isTotalQueryBound {F G1 G2 GT : Type} [Zero F]
+    (fuel μ : Nat) (prev : F) (rounds : Fin μ → RoundComs G1 GT) :
+    IsTotalQueryBound (queryRounds (G2 := G2) fuel μ prev rounds) (μ * fuel) := by
+  induction μ generalizing prev with
+  | zero => exact trivial
+  | succ μ ih =>
+      rw [queryRounds]
+      have hsample :
+          IsTotalQueryBound
+            (queryAccepting (G2 := G2)
+              (fun nonce => .round prev (rounds 0) nonce) nonzeroB fuel 0)
+            fuel :=
+        queryAccepting_isTotalQueryBound (G2 := G2) _ _ _ _
+      have htail : ∀ (x : F) (_nonce : Nat),
+          IsTotalQueryBound
+            (queryRounds (G2 := G2) fuel μ x (fun i => rounds i.succ))
+            (μ * fuel) :=
+        fun x _ => ih x (fun i => rounds i.succ)
+      refine (isTotalQueryBound_bind (n₁ := fuel) (n₂ := μ * fuel) hsample ?_).mono ?_
+      · intro sampled
+        cases sampled with
+        | none => exact trivial
+        | some pair =>
+            rcases pair with ⟨x, nonce⟩
+            refine (isTotalQueryBound_bind (n₁ := μ * fuel) (n₂ := 0)
+              (htail x nonce) ?_).mono ?_
+            · intro tail
+              cases tail <;> exact trivial
+            · simp
+      · simp [Nat.succ_mul, Nat.add_comm]
+
+/-- The verifier has `μ + 4` bounded rejection-sampling stages. -/
+theorem fsVerifier_isTotalQueryBound {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT) :
+    IsTotalQueryBound (fsVerifier stmt proof) ((μ + 4) * stmt.rejectionFuel) := by
+  unfold fsVerifier
+  refine (isTotalQueryBound_bind (n₁ := stmt.rejectionFuel)
+    (n₂ := μ * stmt.rejectionFuel +
+      (stmt.rejectionFuel + (stmt.rejectionFuel + stmt.rejectionFuel)))
+    (queryAccepting_isTotalQueryBound (G2 := G2) _ _ stmt.rejectionFuel 0) ?_).mono ?_
+  · intro rSample
+    match rSample with
+    | none => exact trivial
+    | some (r, rNonce) =>
+        refine (isTotalQueryBound_bind (n₁ := stmt.rejectionFuel)
+          (n₂ := μ * stmt.rejectionFuel + (stmt.rejectionFuel + stmt.rejectionFuel))
+          (queryAccepting_isTotalQueryBound (G2 := G2) _ _ stmt.rejectionFuel 0) ?_).mono ?_
+        · intro x0Sample
+          match x0Sample with
+          | none => exact trivial
+          | some (x0, x0Nonce) =>
+              refine (isTotalQueryBound_bind (n₁ := μ * stmt.rejectionFuel)
+                (n₂ := stmt.rejectionFuel + stmt.rejectionFuel)
+                (queryRounds_isTotalQueryBound (G2 := G2)
+                  stmt.rejectionFuel μ x0 proof.rounds) ?_).mono ?_
+              · intro roundSample
+                match roundSample with
+                | none => exact trivial
+                | some rounds =>
+                    refine (isTotalQueryBound_bind (n₁ := stmt.rejectionFuel)
+                      (n₂ := stmt.rejectionFuel)
+                      (queryAccepting_isTotalQueryBound (G2 := G2) _ _ stmt.rejectionFuel 0) ?_).mono ?_
+                    · intro bridgeSample
+                      match bridgeSample with
+                      | none => exact trivial
+                      | some (bridge, bridgeNonce) =>
+                          refine isTotalQueryBound_bind (n₁ := stmt.rejectionFuel) (n₂ := 0)
+                            (queryAccepting_isTotalQueryBound (G2 := G2) _ _ stmt.rejectionFuel 0) ?_
+                          intro zSample
+                          match zSample with
+                          | none => exact trivial
+                          | some (z, zNonce) => exact trivial
+                    · omega
+              · omega
+        · omega
+  · simp [Nat.succ_mul, Nat.add_assoc, Nat.add_comm]
+
 /-- NMA-style FS game: the adversary chooses a proof and the verifier
 recomputes the complete structured transcript. -/
 def FsGame {F G1 G2 GT : Type}
@@ -657,10 +751,11 @@ theorem fsGame_forkTree_leaf_data
     (cf : Nat → FsResult μ F G1 G2 GT → Option (Fin (qb i + 1)))
     {tree : RunTree (unifSpec + SnarkpackFsSpec F G1 G2 GT)
       (FsResult μ F G1 G2 GT) depth}
-    (h : some tree ∈ support (forkTree depth (FsGame stmt adv) qb i cf)) :
-    TreeConsistent (FsGame stmt adv) qb i cf 0 none tree ∧
+    (h : some tree ∈ support (forkTree depth (FsGame stmt adv) qb i cf
+      (fun _ => True))) :
+    TreeConsistent (FsGame stmt adv) qb i cf (fun _ => True) 0 none tree ∧
       tree.All (fun run => accepted_run_leaf_data stmt run.1 run.2) :=
-  forkTree_propertyTransfer depth (FsGame stmt adv) qb i cf
+  forkTree_propertyTransfer depth (FsGame stmt adv) qb i cf (fun _ => True)
     (accepted_run_leaf_data stmt)
     (fun {_out _log} hrun => accepted_supports_leaf_data stmt adv hrun) h
 
