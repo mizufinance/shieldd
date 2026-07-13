@@ -810,6 +810,41 @@ def fsPointTrace {Point : Type} :
   | ⟨Sum.inl _, _⟩ :: rest => fsPointTrace rest
   | ⟨Sum.inr point, _⟩ :: rest => point :: fsPointTrace rest
 
+/-- A structured answered query contributes its point to the structured miss
+trace. -/
+theorem fsPointTrace_mem_of_queryAnswered {Point : Type}
+    {log : QueryLog (unifSpec + (Point →ₒ F))} {point : Point} {answer : F}
+    (h : QueryAnswered log (Sum.inr point) answer) :
+    point ∈ fsPointTrace log := by
+  induction log with
+  | nil => simp [QueryAnswered] at h
+  | cons entry rest ih =>
+      rcases entry with ⟨t, value⟩
+      cases t with
+      | inl n =>
+          simp only [fsPointTrace]
+          apply ih
+          simpa [QueryAnswered] using h
+      | inr point' =>
+          simp only [fsPointTrace, List.mem_cons]
+          simp only [QueryAnswered, List.mem_cons] at h
+          rcases h with hhead | htail
+          · left
+            exact Sum.inr.inj (congrArg Sigma.fst hhead)
+          · exact Or.inr (ih htail)
+
+/-- Removing ambient entries cannot increase the log length. -/
+theorem fsPointTrace_length_le {Point : Type}
+    (log : QueryLog (unifSpec + (Point →ₒ F))) :
+    (fsPointTrace log).length ≤ log.length := by
+  induction log with
+  | nil => exact Nat.le_refl 0
+  | cons entry rest ih =>
+      rcases entry with ⟨t, value⟩
+      cases t with
+      | inl n => simpa [fsPointTrace] using Nat.le_succ_of_le ih
+      | inr point => simpa [fsPointTrace] using Nat.succ_le_succ ih
+
 /-- Erase structured cache-miss indices to the wrapper's fixed `Unit` index. -/
 def flattenFsLog {Point : Type} :
     QueryLog (unifSpec + (Point →ₒ F)) → QueryLog (FsWrappedSpec F)
@@ -958,6 +993,77 @@ theorem wrapFs_support_iff {Point α : Type} [DecidableEq Point]
       (out, sourceLog) ∈ support (replayFirstRun (fsRandomFunction oa)) := by
   simpa [wrapFs] using
     wrapFsFrom_support_iff (fsRandomFunction oa) [] [] out sourceLog
+
+/-- `wrapFsFrom` is the pushforward of the source computation and its query
+log under structured-point erasure. -/
+private theorem probEvent_wrapFsFrom_eq {Point α : Type} [DecidableEq F] [Fintype F]
+    [hSource : IsUniformSpec (unifSpec + (Point →ₒ F))]
+    [hWrapped : IsUniformSpec (FsWrappedSpec F)]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    (initial : List Point)
+    (q : (WrappedFsRun Point α × QueryLog (FsWrappedSpec F)) → Prop) :
+    Pr[fun z => q ({ out := z.1, trace := initial ++ fsPointTrace z.2 },
+        flattenFsLog z.2) | replayFirstRun oa] =
+      Pr[q | replayFirstRun (wrapFsFrom oa initial)] := by
+  classical
+  induction oa using OracleComp.inductionOn generalizing initial q with
+  | pure x =>
+      simp [replayFirstRun, wrapFsFrom, fsPointTrace, flattenFsLog]
+  | query_bind t next ih =>
+      cases t with
+      | inl n =>
+          simp [replayFirstRun, wrapFsFrom, fsUnifFwd,
+            OracleSpec.loggingOracle, QueryImpl.withLogging_apply,
+            probEvent_bind_eq_tsum]
+          apply Finset.sum_congr rfl
+          intro x _hx
+          let q' : (WrappedFsRun Point α × QueryLog (FsWrappedSpec F)) → Prop :=
+            fun z => q (z.1, (⟨Sum.inl n, x⟩ :: z.2))
+          have hcard :
+              @Fintype.card _ (hSource.fintype.fintype_B (Sum.inl n)) =
+                @Fintype.card _ (hWrapped.fintype.fintype_B (Sum.inl n)) :=
+            @Fintype.card_congr _ _
+              (hSource.fintype.fintype_B (Sum.inl n))
+              (hWrapped.fintype.fintype_B (Sum.inl n))
+              (Equiv.refl (unifSpec n))
+          congr 1
+          · exact congrArg (fun k : Nat => (k : ENNReal)⁻¹)
+              hcard
+          · simpa [q', replayFirstRun, wrapFsFrom, Function.comp_def] using
+              (ih x initial q')
+      | inr point =>
+          simp [replayFirstRun, wrapFsFrom, fsMissImpl,
+            OracleSpec.loggingOracle, QueryImpl.withLogging_apply,
+            probEvent_bind_eq_tsum]
+          apply Finset.sum_congr (by ext; simp)
+          intro x _hx
+          let q' : (WrappedFsRun Point α × QueryLog (FsWrappedSpec F)) → Prop :=
+            fun z => q (z.1, (⟨Sum.inr (), x⟩ :: z.2))
+          have hcard :
+              @Fintype.card _ (hSource.fintype.fintype_B (Sum.inr point)) =
+                @Fintype.card _ (hWrapped.fintype.fintype_B (Sum.inr ())) :=
+            @Fintype.card_congr _ _
+              (hSource.fintype.fintype_B (Sum.inr point))
+              (hWrapped.fintype.fintype_B (Sum.inr ()))
+              (Equiv.refl F)
+          congr 1
+          · exact congrArg (fun k : Nat => (k : ENNReal)⁻¹) hcard
+          · simpa [q', replayFirstRun, wrapFsFrom, Function.comp_def,
+              List.append_assoc] using (ih x (initial ++ [point]) q')
+
+/-- `wrapFs` preserves the exact mass of every event pulled back along its
+structured-log erasure map. -/
+theorem probEvent_wrapFs_eq {Point α : Type} [DecidableEq Point]
+    [DecidableEq F] [Fintype F]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    [IsUniformSpec (FsWrappedSpec F)]
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    (q : (WrappedFsRun Point α × QueryLog (FsWrappedSpec F)) → Prop) :
+    Pr[fun z => q ({ out := z.1, trace := fsPointTrace z.2 },
+        flattenFsLog z.2) | replayFirstRun (fsRandomFunction oa)] =
+      Pr[q | replayFirstRun (wrapFs oa)] := by
+  simpa [wrapFs] using
+    (probEvent_wrapFsFrom_eq (fsRandomFunction oa) [] q)
 
 /-- Every wrapped support point has a source-log representative; its trace and
 erased log are exactly the two projections of that representative. -/

@@ -5545,3 +5545,131 @@ a temporary tracked-tree `git grep` compatibility wrapper (removed after the
 run); the stock fallback timed out because it recursively scanned the OneDrive
 tree without `rg`. No prover/release-gated circuit tests were applicable or
 run.
+
+## U5a residual discharge
+
+Scope: pure Lean on the pinned `v4.30.0` toolchain, one Lean/Lake process at a
+time with `LEAN_NUM_THREADS=1`. No commit was made. Two of the four residual
+fields were discharged; the two requested protocol-order bounds remain
+parametric after the adaptive-selection obstruction below was isolated.
+
+### Field status
+
+1. `assume.fs-wrapped-probability-transport` — **proved and deleted**.
+   `Ipp.probEvent_wrapFs_eq` proves exact event-mass preservation, not only the
+   requested inequality:
+
+   ```lean
+   Pr[fun z => q ({ out := z.1, trace := fsPointTrace z.2 },
+       flattenFsLog z.2) |
+     replayFirstRun (fsRandomFunction oa)] =
+   Pr[q | replayFirstRun (wrapFs oa)]
+   ```
+
+   The proof inducts over `OracleComp`, couples both ambient and structured
+   query branches, and handles the distinct source/wrapped inherited `Fintype`
+   instances by explicit cardinality equivalences. The protocol specialization
+   `Ipp.wrapped_good_probability_eq` gives equality between source
+   accepted-and-good mass and wrapped good-event mass. The
+   `BadEventBudget.wrapped_good_lower_bound` field was deleted and `S1` now uses
+   the theorem directly.
+
+2. `assume.ro-dependency-order-union-bound` — **partial; remains parametric**.
+   The exact intended per-`(level, early miss ordinal)` step would have to show
+   that an early round/x0 payload guess matches the later accepted x0,
+   randomizer, or previous-round answer with mass at most `1/card(F)`. The
+   sharpened blocked event has the shape
+
+   ```lean
+   Accepted z ∧ sourceLog[k] = (round guess coms nonce, answer) ∧
+     answer ≠ 0 ∧ k < targetSlot z ∧ acceptedTarget z = guess
+   ```
+
+   at probability `≤ 1/card(F)`. `structured_answer_mem_at_le` can bound a
+   fixed later raw miss ordinal, but `acceptedTarget z` is selected from an
+   adaptive set of later candidate points. In the current game `adv` chooses
+   the proof after its RO queries: it can query several early round payloads,
+   query several x0/target payload candidates (varying proof payload/nonce),
+   observe their answers, and output the proof selecting a matching pair. Thus
+   the model supplies a candidate-pair/birthday game, not the single fresh
+   sample needed for `μ*Q/card(F)`. A sound removal path is either a
+   commitment/non-adaptive payload-selection invariant before these samples or
+   a separately proved `Q^2/card(F)`-style pair bound. No such redesign was
+   silently introduced.
+
+3. `assume.ro-round-slot-order-union-bound` — **partial; remains parametric**.
+   Its adjacent-round reduction reaches the same wall: a later-round point's
+   `prev` must equal an accepted earlier-round answer, but the accepted proof
+   and both candidate point sets remain selectable after adaptive RO queries.
+   The missing quantitative step is the analogous fixed-level event above with
+   `acceptedTarget` equal to the preceding round challenge. Support-level
+   chronology and transcript chaining identify the required equality, but do
+   not collapse the adaptively selected later candidate set to one raw miss.
+   The ledger now records the commitment/non-adaptivity or pairwise-bound design
+   choices explicitly.
+
+4. `assume.ro-round-unqueried-bound` — **proved at zero and deleted**.
+   `Ipp.accepted_not_badUnqueried` uses the exported accepted round-query
+   witness and `fsPointTrace_mem_of_queryAnswered` to put every accepted round
+   point in the structured miss trace. `fsPointTrace_length_le` plus the
+   whole-game `Q qb = qb + 1` cap puts its first occurrence in the fork budget.
+   Therefore `Ipp.round_unqueried_bound` proves
+
+   ```lean
+   Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] = 0
+   ```
+
+   The `BadEventBudget.round_unqueried_bound` field, `bUnq`, and its
+   `badEventError` term were deleted.
+
+`BadEventBudget` and `BadEventBudget.ofBounds` now contain exactly two fields:
+`dependency_order_bound` and `round_slot_order_bound`.
+
+### Final `s1_soundness` surface
+
+The printed explicit inputs are:
+
+- computational binding: `hbindV`, `hbindW : KzgStructuredKeyBinding` and
+  `hbindA`, `hbindB : PairingCommitmentBinding`;
+- commitment/model openings: `hComA`, `hComB`;
+- finite KZG carrier and whole-game facts: `hZcard`, `hquery`;
+- residual `H : BadEventBudget ...`, now containing only the dependency-order
+  and round-slot-order probability fields;
+- quantitative positivity: `hpositive`.
+
+There is no transport, collision, randomizer, KZG, round-unqueried, or `bUnq`
+premise. The success target of zero parametric bad-event fields was not reached
+because the two order bounds above remain explicit.
+
+Explicit axiom audit:
+
+```text
+'Ipp.probEvent_wrapFs_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.wrapped_good_probability_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.round_unqueried_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.s1_soundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+### Ledger and verification
+
+`formal-handoff.md` promotes wrapped probability transport and accepted
+round-in-budget to proved theorem rows and deletes their assumption rows. The
+S1 row now names only the two residual order hypotheses. The remaining two
+assumption rows record the adaptive candidate-selection blocker and the two
+honest removal paths.
+
+- focused `lake build Ipp.FsFork`: passed (3315 jobs, 67.3 seconds on the final
+  focused transport run);
+- focused `lake build Ipp.FsBadEvents`: passed (3317 jobs; the final invalidated
+  unqueried run took 120.1 seconds);
+- focused `lake build Ipp.S1`: passed (3318 jobs, 73.2 seconds after signature
+  reduction);
+- final pinned `LEAN_NUM_THREADS=1 lake build Ipp`: passed, 3327 jobs, 147.1
+  seconds, warnings only;
+- `snarkpack-invariants`: passed with `snarkpack invariants ok` by running the
+  script under Git Bash with a temporary tracked-tree `git grep` compatibility
+  wrapper; the wrapper was removed;
+- recursive `Ipp/*.lean` scan: `sorry` 0, project `axiom` declarations 0,
+  `native_decide` 0;
+- `git diff --check`: passed;
+- no prover/release-gated circuit tests were applicable or run.

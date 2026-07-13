@@ -18,13 +18,13 @@ variable {F G1 G2 GT : Type}
   [AddCommGroup GT] [Module F GT]
   [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
 
-/-- Sum of the six U5a bounds, with `Q = qb + 1`. -/
-def badEventError [Fintype F] (μ qb dR dZ : Nat) (bUnq : ℝ≥0∞) : ℝ≥0∞ :=
+/-- Sum of the five nonzero U5a bounds, with `Q = qb + 1`. -/
+def badEventError [Fintype F] (μ qb dR dZ : Nat) : ℝ≥0∞ :=
   ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
     ((((Q qb) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2) +
       (((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
         (((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
-          ((((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) + bUnq)))))
+          (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)))))
 
 /-- Canonical finite carrier of the per-statement randomizer discrepancy set. -/
 noncomputable def s1BadRandomizers {F G1 G2 GT : Type}
@@ -74,7 +74,7 @@ theorem s1_soundness [Fintype F]
     (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     (qb : (FsWrappedSpec F).Domain → Nat)
-    (badZ : Finset F) (dZ : Nat) (bUnq : ℝ≥0∞)
+    (badZ : Finset F) (dZ : Nat)
     (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
     (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
     (hbindA : PairingCommitmentBinding (u4ACommitAtom stmt.e)
@@ -88,13 +88,12 @@ theorem s1_soundness [Fintype F]
       (fun i => r ^ (i : Nat) • stmt.B i))
     (hZcard : badZ.card ≤ dZ)
     (hquery : IsTotalQueryBound (FsGame stmt adv) (Q (qb (Sum.inr ()))))
-    (H : BadEventBudget (qb (Sum.inr ())) stmt adv
-      (s1BadRandomizers stmt) badZ bUnq)
+    (H : BadEventBudget (qb (Sum.inr ())) stmt adv)
     (hpositive : 0 <
       ((forkTreeStep (qb (Sum.inr ()) + 1)
         (Fintype.card F))^[μ])
         (Pr[Accepted | fsProbComp stmt adv] -
-          badEventError (F := F) μ (qb (Sum.inr ())) (2 ^ μ - 1) dZ bUnq)) :
+          badEventError (F := F) μ (qb (Sum.inr ())) (2 ^ μ - 1) dZ)) :
     ∀ i, stmt.e (stmt.A i) (stmt.B i) =
       groth16Rhs stmt.e stmt.alpha (stmt.Aic i) (stmt.C i)
         stmt.beta stmt.gamma stmt.delta := by
@@ -112,17 +111,18 @@ theorem s1_soundness [Fintype F]
       (FsResult μ F G1 G2 GT) → Option (Fin (qb (Sum.inr ()) + 1)) :=
     fun level run => roundSlot (qb (Sum.inr ())) level run
   have hq0 := q0_lower_bound (qb (Sum.inr ())) stmt adv badR badZ
-    (2 ^ μ - 1) dZ bUnq (s1BadRandomizers_card stmt) hZcard hquery (by
+    (2 ^ μ - 1) dZ (s1BadRandomizers_card stmt) hZcard hquery (by
       simpa [badR] using H)
   have hbase : Pr[Accepted | fsProbComp stmt adv] -
-      badEventError (F := F) μ (qb (Sum.inr ())) (2 ^ μ - 1) dZ bUnq ≤
+      badEventError (F := F) μ (qb (Sum.inr ())) (2 ^ μ - 1) dZ ≤
       Pr[leafOk | replayFirstRun main] := by
     calc
       _ ≤ Pr[fun z => Accepted z ∧ RunGoodFull (qb (Sum.inr ())) stmt
           (badR : Set F) (badZ : Set F) z | fsProbComp stmt adv] := by
         simpa only [badEventError] using hq0
       _ ≤ Pr[leafOk | replayFirstRun main] := by
-        simpa [leafOk, main, badR] using H.wrapped_good_lower_bound
+        simpa [leafOk, main, badR] using
+          (wrapped_good_probability_eq (qb (Sum.inr ())) stmt adv badR badZ).le
   have hselector : ∀ {first}, first ∈ support (replayFirstRun main) → leafOk first →
       ∀ level, level < μ → ∃ s, cf level first.1 = some s := by
     intro first hfirst hgood level hlevel
