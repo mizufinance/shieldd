@@ -881,7 +881,7 @@ mod tests {
                     }),
                     Action::Split(shieldd_sdk_shielded_pool::Split {
                         body: shieldd_sdk_shielded_pool::SplitBody {
-                            family_id: shieldd_sdk_shielded_pool::SplitFamilyId::OneByFour,
+                            family_id: shieldd_sdk_shielded_pool::SplitFamilyId::OneByEight,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(decaf377::Fr::from(13u64)),
                             inputs: vec![shieldd_sdk_shielded_pool::SplitInputBody {

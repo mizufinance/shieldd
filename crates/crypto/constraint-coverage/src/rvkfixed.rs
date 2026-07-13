@@ -482,7 +482,7 @@ pub fn emit_nb_header(neg_gx: &str, one_minus_gy: &str, gx: &str, gym1: &str) ->
     format!(
         "import ShielddGnarkFormal.Deployed.NetBalance.Ladder\n\
          import ShielddGnarkFormal.NbFixedBaseLiteral\n\
-         namespace Shieldd.GnarkFormal.NbFixedGenSeg48\n\
+         namespace Shieldd.GnarkFormal.NbFixedGenSeg46\n\
          open Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd (Order)\n\
          open Shieldd.GnarkFormal.EdwardsBridge (Point onCurve)\n\
          open Shieldd.GnarkFormal.Deployed.NetBalance (Cb NbFixedStepRel nbFixedRung_stepRel)\n\
@@ -535,7 +535,7 @@ pub fn emit_nb_file(rows: &[Constraint], fused_base: usize, n: usize) -> String 
         out.push_str(&c.theorem);
         out.push_str(&c.wide);
     }
-    out.push_str("end Cert\nend Shieldd.GnarkFormal.NbFixedGenSeg48\n");
+    out.push_str("end Cert\nend Shieldd.GnarkFormal.NbFixedGenSeg46\n");
     out
 }
 
@@ -1506,10 +1506,10 @@ mod tests {
         };
         let _ = &summ;
         // ladder output wires: rung i selX.O / selY.O for i in 1..=149.
-        // From dumps: rung i base = 11068+(i-1)*5; selX.O / selY.O are its rows +3,+4.
+        // From dumps: rung i base = 17148+(i-1)*5; selX.O / selY.O are its rows +3,+4.
         let mut ladder: std::collections::BTreeSet<usize> = Default::default();
         for i in 1..=149usize {
-            let base = 11068 + (i - 1) * 5;
+            let base = 17148 + (i - 1) * 5;
             ladder.insert(rows[base + 3].o[0].wire);
             ladder.insert(rows[base + 4].o[0].wire);
         }
@@ -1548,7 +1548,7 @@ mod tests {
             let mut sdx: std::collections::BTreeSet<usize> = Default::default();
             let mut sdy: std::collections::BTreeSet<usize> = Default::default();
             for i in 1..=149usize {
-                let base = 11068 + (i - 1) * 5;
+                let base = 17148 + (i - 1) * 5;
                 sdx.insert(rows[base + 3].o[0].wire);
                 sdy.insert(rows[base + 4].o[0].wire);
             }
@@ -1578,7 +1578,7 @@ mod tests {
                 rest.join(", ")
             );
         };
-        for r in 11813usize..=11818 {
+        for r in 17893usize..=17898 {
             eprintln!("== row {r} ==");
             exact("L", &rows[r].l);
             exact("R", &rows[r].r);
@@ -1591,7 +1591,7 @@ mod tests {
         let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
-        let fused_base = 11068usize;
+        let fused_base = 17148usize;
         for i in [1usize, 2, 3, 5] {
             let base = fused_base + (i - 1) * 5;
             let v2 = &rows[base];
@@ -1630,7 +1630,7 @@ mod tests {
         let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
-        let out = emit_tail(&rows, 18145, "inst0");
+        let out = emit_tail(&rows, 17893, "inst0");
         std::fs::write("/tmp/tail_gen.lean", &out).unwrap();
         // every baked literal must have been resolved (no `expect` panic) and the
         // 7 const-identity lemmas + tail theorem present.
@@ -1670,11 +1670,11 @@ mod tests {
 
     #[test]
     fn emit_tail_inst1() {
-        // inst1 rvk tail located at row 31821 (same i67 signature as inst0's 11813).
+        // inst1 rvk tail located at row 30523 (same i67 signature as inst0's 17893).
         let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
-        let out = emit_tail(&rows, 31821, "inst1");
+        let out = emit_tail(&rows, 30523, "inst1");
         std::fs::write("/tmp/tail_gen_inst1.lean", &out).unwrap();
         assert!(out.contains("deployedTail_addSpec"));
     }
@@ -1688,13 +1688,13 @@ mod tests {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(3);
-        let out = emit_rvk_file(&rows, 17400, n, "Inst0");
+        let out = emit_rvk_file(&rows, 17148, n, "Inst0");
         std::fs::write("/tmp/rvkfixed_gen.lean", &out).unwrap();
         eprintln!("wrote /tmp/rvkfixed_gen.lean ({} bytes)", out.len());
     }
 
     #[test]
-    fn emit_nb_seg48() {
+    fn emit_nb_seg46() {
         let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
@@ -1702,16 +1702,16 @@ mod tests {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(149);
-        // seg48 (was seg52 pre-T1-d) starts at absolute row 35184; first fused blinding rung at
-        // segment-relative 6401 (7041 before the T1-a seed-ladder removal
-        // deleted 640 rows inside seg52; see gen/gen_nb_slice.py BLIND_* constants).
-        let out = emit_nb_file(&rows, 35184 + 6401, n);
+        // seg46 (NB-1 conservation shape) starts at absolute row 32840; first
+        // fused blinding rung at segment-relative 640 (BLIND_COPY_ROW + 1; see
+        // gen/gen_nb_slice.py BLIND_* constants).
+        let out = emit_nb_file(&rows, 32840 + 640, n);
         std::fs::write(
-            "../../../tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg48.lean",
+            "../../../tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg46.lean",
             &out,
         )
         .unwrap();
-        eprintln!("wrote NbFixedGenSeg48.lean ({} bytes)", out.len());
+        eprintln!("wrote NbFixedGenSeg46.lean ({} bytes)", out.len());
     }
 
     #[test]
@@ -1723,8 +1723,8 @@ mod tests {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(3);
-        // inst1 fused ladder base = inst0 11068 + tail offset (31821-11813) = 31076.
-        let out = emit_rvk_file(&rows, 31076, n, "Inst1");
+        // inst1 fused ladder base = inst0 17148 + tail offset (30523-17893) = 29778.
+        let out = emit_rvk_file(&rows, 29778, n, "Inst1");
         std::fs::write("/tmp/rvkfixed_gen_inst1.lean", &out).unwrap();
         eprintln!("wrote /tmp/rvkfixed_gen_inst1.lean ({} bytes)", out.len());
     }
@@ -1739,7 +1739,7 @@ mod fanout_probe {
         let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
-        for (name, fb) in [("inst0", 11068usize), ("inst1", 31076usize)] {
+        for (name, fb) in [("inst0", 17148usize), ("inst1", 29778usize)] {
             let v2 = &rows[fb];
             eprintln!(
                 "{name} fb={fb}: L={:?} R.len={} O={:?}",

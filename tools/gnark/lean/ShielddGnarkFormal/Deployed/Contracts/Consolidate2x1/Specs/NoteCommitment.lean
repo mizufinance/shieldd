@@ -9,20 +9,20 @@ renumbered 7,25,43 -> 9,25,41; instance 1's internal/output wires shift +5816
 (re-derived from the fresh ir.json, matching the Compress seg40 offset). -/
 def deployedSpec9 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Deployed.NoteCommitment.spec38
-      (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) =
+      (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) =
     Shieldd.GnarkFormal.Deployed.NoteCommitment.st38
-      (rho 7128) (rho 7133) (rho 7138) (rho 7143) (rho 7148) (rho 7153) (rho 7158)
+      (rho 6877) (rho 6882) (rho 6887) (rho 6892) (rho 6897) (rho 6902) (rho 6907)
 
-def deployedSpec25 (rho : Nat → DeployedF) : Prop :=
+def deployedSpec24 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Deployed.NoteCommitment.spec38
-      (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) =
+      (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) =
     Shieldd.GnarkFormal.Deployed.NoteCommitment.st38
-      (rho 20012) (rho 20017) (rho 20022) (rho 20027) (rho 20032) (rho 20037) (rho 20042)
+      (rho 19058) (rho 19063) (rho 19068) (rho 19073) (rho 19078) (rho 19083) (rho 19088)
 
-def deployedSpec41 (rho : Nat → DeployedF) : Prop :=
+def deployedSpec39 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Deployed.NoteCommitment.spec38
-      (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) =
+      (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) =
     Shieldd.GnarkFormal.Deployed.NoteCommitment.st38
-      (rho 32896) (rho 32901) (rho 32906) (rho 32911) (rho 32916) (rho 32921) (rho 32926)
+      (rho 31239) (rho 31244) (rho 31249) (rho 31254) (rho 31259) (rho 31264) (rho 31269)
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Specs

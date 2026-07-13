@@ -2,32 +2,25 @@ tool: Picus
 solver: cvc5
 safety: weak
 scope: whole-circuit
-timeout_ms: 120000
-total_timeout_seconds: 180
-cvc5: 1.3.4-gpl-cocoa
-picus: Veridise/Picus HEAD via local run-picus
-date: 2026-06-17
+timeout_ms: 600000
+wall_budget_seconds: 180
+cvc5: 1.3.4
+picus: Veridise/Picus via /Users/antoinecyr/.local/opt/picus/run-picus
+date: 2026-07-12
+note: nightly-only, non-gating; whole-circuit Picus is expected to wall out
 
 FAMILY consolidate2x1 undischarged-timeout
-  sr1cs: tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs
-  sr1cs_sha256: 12bf600c30c5dac11d03784f5aa3d133ff86de5e67b8be9f7c6a79f0eda6e188
+  sr1cs: crates/core/component/shielded-pool/formal/.generated/whole-picus/consolidate2x1.sr1cs
+  sr1cs_sha256: 85e1cca3b4e4900d12ffa7932176a8c3249a13271fff24538033c0db88a109a7
   picus_output: crates/core/component/shielded-pool/formal/.generated/whole-picus/consolidate2x1.picus.txt
-  picus_output_sha256: ac09af46acc284a84e300e987d750778e6dd4c4a09d3ee41d7e2804c2e2736c9
+  picus_output_sha256: 696a2037e3b5142005659e73f1db892362eb4ed29579461290517a621de1c52c
   picus_exit: 143
-  note: no safe or underconstrained verdict before the process watchdog terminated the run
+  note: no safe or underconstrained verdict before the 180s budget elapsed
 
-FAMILY split1x4 undischarged-timeout
-  sr1cs: tools/gnark/artifacts/split1x4/split1x4.sr1cs
-  sr1cs_sha256: 05d85a1171d32922f3fff884a9b68957084b672e2e4c8fffc565af94f5464f3d
-  picus_output: crates/core/component/shielded-pool/formal/.generated/whole-picus/split1x4.picus.txt
-  picus_output_sha256: 9f6de6e0e0b36e092143410a615c5550800aa385cdde1c304450a9cdafe24b67
+FAMILY transfer undischarged-timeout
+  sr1cs: crates/core/component/shielded-pool/formal/.generated/whole-picus/transfer.sr1cs
+  sr1cs_sha256: 13549207c800729e713fff9bfb6ee04fc9a18aaace333b2401665e7e8f663cc6
+  picus_output: crates/core/component/shielded-pool/formal/.generated/whole-picus/transfer.picus.txt
+  picus_output_sha256: 8944dc00782eb2da52d198b6915f0bdaabff7f14ecc1b435b853defa19144968
   picus_exit: 143
-  note: no safe or underconstrained verdict before the process watchdog terminated the run
-
-FAMILY split1x8 undischarged-timeout
-  sr1cs: tools/gnark/artifacts/split1x8/split1x8.sr1cs
-  sr1cs_sha256: 36ab53d75abf214d977a52e0bc47f265d582f7ab6726be674181cf3a4a4de6c3
-  picus_output: crates/core/component/shielded-pool/formal/.generated/whole-picus/split1x8.picus.txt
-  picus_output_sha256: e49a32fa46f341ed3f3493e540933fe0c80dc79a9ecf19eb4e3fc8d4ee0d2220
-  picus_exit: 143
-  note: no safe or underconstrained verdict before the process watchdog terminated the run
+  note: no safe or underconstrained verdict before the 180s budget elapsed

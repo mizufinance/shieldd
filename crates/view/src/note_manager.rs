@@ -1422,7 +1422,6 @@ fn select_auto_consolidate_family(
 ) -> Option<ConsolidateFamilyId> {
     let direct_match = [
         ConsolidateFamilyId::TwoByOne,
-        ConsolidateFamilyId::FourByOne,
         ConsolidateFamilyId::EightByOne,
     ]
     .into_iter()
@@ -1441,7 +1440,6 @@ fn select_auto_consolidate_family(
 
     [
         ConsolidateFamilyId::EightByOne,
-        ConsolidateFamilyId::FourByOne,
         ConsolidateFamilyId::TwoByOne,
     ]
     .into_iter()
@@ -2088,7 +2086,7 @@ mod tests {
         assert!(matches!(
             maintenance_plan.actions.first(),
             Some(ActionPlan::Consolidate(consolidate))
-                if consolidate.family_id() == ConsolidateFamilyId::FourByOne
+                if consolidate.family_id() == ConsolidateFamilyId::TwoByOne
         ));
 
         view.replace_notes(vec![spendable_note_record(
@@ -2176,7 +2174,7 @@ mod tests {
         assert!(matches!(
             maintenance_plan.actions.first(),
             Some(ActionPlan::Consolidate(consolidate))
-                if consolidate.family_id() == ConsolidateFamilyId::FourByOne
+                if consolidate.family_id() == ConsolidateFamilyId::TwoByOne
         ));
 
         view.replace_notes(vec![spendable_note_record(
@@ -2428,7 +2426,7 @@ mod tests {
         let source = AddressIndex::new(0);
         let sender = test_address(5);
         let view_addresses = BTreeMap::from([(source, sender.clone())]);
-        let note_record = spendable_note_record(&mut rng, 20, source, sender, 1);
+        let note_record = spendable_note_record(&mut rng, 40, source, sender, 1);
         let mut view = MockNoteManagerView::new(vec![note_record.clone()], view_addresses);
         let mut note_manager = NoteManager::new(OsRng);
         note_manager.set_gas_prices(GasPrices::zero());
@@ -2438,7 +2436,16 @@ mod tests {
                 &mut view,
                 source,
                 note_record,
-                vec![5u64.into(), 5u64.into(), 5u64.into(), 5u64.into()],
+                vec![
+                    5u64.into(),
+                    5u64.into(),
+                    5u64.into(),
+                    5u64.into(),
+                    5u64.into(),
+                    5u64.into(),
+                    5u64.into(),
+                    5u64.into(),
+                ],
             )
             .await
             .expect("split planning succeeds");
@@ -2448,7 +2455,7 @@ mod tests {
         };
         assert!(matches!(
             transaction_plan.actions.first(),
-            Some(ActionPlan::Split(split)) if split.family_id() == SplitFamilyId::OneByFour
+            Some(ActionPlan::Split(split)) if split.family_id() == SplitFamilyId::OneByEight
         ));
     }
 }

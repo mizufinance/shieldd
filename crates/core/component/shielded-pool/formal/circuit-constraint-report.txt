@@ -135,5 +135,4 @@ COMPOSITE transfer-dleq safe-by-composition
 FAMILY transfer undischarged-by-design
   note: whole-circuit Picus times out (Poseidon+Merkle+Decaf377); not retried
 FAMILY consolidate2x1 undischarged-by-design
-FAMILY split1x4 undischarged-by-design
 FAMILY shielded_ics20_withdrawal undischarged-by-design

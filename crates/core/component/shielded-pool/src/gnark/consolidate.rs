@@ -49,11 +49,6 @@ static CONSOLIDATE_FAMILY_CONFIG_2X1: GnarkFamilyConfig = GnarkFamilyConfig {
     ..CONSOLIDATE_FAMILY_CONFIG
 };
 
-static CONSOLIDATE_FAMILY_CONFIG_4X1: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "consolidate4x1",
-    ..CONSOLIDATE_FAMILY_CONFIG
-};
-
 static CONSOLIDATE_FAMILY_CONFIG_8X1: GnarkFamilyConfig = GnarkFamilyConfig {
     family: "consolidate8x1",
     ..CONSOLIDATE_FAMILY_CONFIG
@@ -62,7 +57,6 @@ static CONSOLIDATE_FAMILY_CONFIG_8X1: GnarkFamilyConfig = GnarkFamilyConfig {
 fn consolidate_family_config(family_id: ConsolidateFamilyId) -> &'static GnarkFamilyConfig {
     match family_id {
         ConsolidateFamilyId::TwoByOne => &CONSOLIDATE_FAMILY_CONFIG_2X1,
-        ConsolidateFamilyId::FourByOne => &CONSOLIDATE_FAMILY_CONFIG_4X1,
         ConsolidateFamilyId::EightByOne => &CONSOLIDATE_FAMILY_CONFIG_8X1,
         _ => panic!("unknown consolidate family id {}", family_id.get()),
     }

@@ -23,7 +23,6 @@ import ShielddGnarkFormal.Extracted.NetBalanceCommitment
 import ShielddGnarkFormal.Extracted.NetBalanceCommitment2
 import ShielddGnarkFormal.Extracted.CanonicalFqBits
 import ShielddGnarkFormal.Extracted.Deployed.DecafAssertOnCurve4_e37c7d
-import ShielddGnarkFormal.Extracted.Deployed.DecafCompressToField1046_da99c8
 import ShielddGnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e
 import ShielddGnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c
 import ShielddGnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode0350_28e5d0
@@ -66,7 +65,6 @@ instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.NetBalanceCommitment.Or
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.NetBalanceCommitment2.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.CanonicalFqBits.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DecafAssertOnCurve4_e37c7d.Order) := ⟨decaf377ScalarFieldPrime⟩
-instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DecafCompressToField1046_da99c8.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode0350_28e5d0.Order) := ⟨decaf377ScalarFieldPrime⟩

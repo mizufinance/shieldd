@@ -13,8 +13,8 @@ open Shieldd.GnarkFormal.Deployed.Poseidon3Link
 
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.Order)]
 
-theorem spec38_eq_permSpec (w8 : F) (w23 : F) (w24 : F) :
-    (spec38 w8 w23 w24)[1] = permSpec3 nullifierDomainLit w8 w23 w24 := by
+theorem spec38_eq_permSpec (sin0 : F) (sin1 : F) (sin2 : F) :
+    (spec38 sin0 sin1 sin2)[1] = permSpec3 nullifierDomainLit sin0 sin1 sin2 := by
   unfold permSpec3 nullifierDomainLit
   rfl
 

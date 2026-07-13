@@ -14,15 +14,50 @@ AGG_OUT = CONTRACTS / "CompressAdapters.lean"
 
 SEGMENTS = [
     # seg, x, y, internal wire offset for base wires 210..912
-    # Post-T1-d: re-derived from consolidate2x1-deployed-slice-ir.json (do not
-    # reuse pre-hoist offsets; the DTK/NB hoists shifted everything downstream).
-    (8, 17, 18, 5816),
-    (17, 12, 13, 17990),
-    (24, 107, 108, 18700),
-    (33, 102, 103, 30874),
-    (40, 195, 196, 31584),
-    (50, 40715, 40716, 40509),
+    # Wave-2 layout (T1-f shared divGen): re-derived from
+    # consolidate2x1-deployed-slice-ir.json — 4 instances, contract seg = IR index + 1.
+    # Seg48 compresses the NB-1 conservation commitment whose coordinates are
+    # the unmaterialized ladder-accumulator LCs Specs.nbX/nbY, not wires: its
+    # x/y entries are Lean expressions and its rows are discharged through the
+    # flat-vs-stride-run bridge below.
+    (5, 17, 18, 0),
+    (17, 12, 13, 17739),
+    (32, 102, 103, 29920),
+    (48, "Specs.nbX rho", "Specs.nbY rho", 33257),
 ]
+
+# seg -> (lean name, sumAux runs [(start, stride, count)]) for LC-coordinate
+# segments; runs must match Specs.nbX/nbY definitionally.
+LC_COORDS = {
+    48: {
+        "x": ("Specs.nbX", [(31915, 5, 149), (32663, 8, 101)]),
+        "y": ("Specs.nbY", [(31916, 5, 149), (32664, 8, 101)]),
+    },
+}
+
+
+def first_operand(seg: int, row: int) -> str:
+    """Verbatim first (A-slot) operand of relationRow{row}, outer parens stripped."""
+    src = (CONTRACTS / f"Seg{seg}.lean").read_text()
+    m = re.search(
+        rf"def relationRow{row} \(rho : Nat -> F\) : Prop :=\n(.*?)(?=\n\ndef )", src, re.S
+    )
+    body = m.group(1).strip()
+    if not body.startswith("("):
+        raise ValueError(f"Seg{seg} row{row}: unexpected body start")
+    depth = 0
+    for i, ch in enumerate(body):
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return body[1:i]
+    raise ValueError(f"Seg{seg} row{row}: unbalanced parens")
+
+
+def bare_sum(start: int, stride: int, count: int) -> str:
+    return " + ".join(["0"] + [f"rho {start + i * stride}" for i in range(count)])
 
 
 def chunks(items: list[str], n: int) -> list[list[str]]:
@@ -86,12 +121,29 @@ def emit_part_unpack(lines: list[str], seg: int, parts: list[list[int]]) -> None
             lines.append(f"  rcases p{i} with ⟨{', '.join(f'r{r}' for r in rows)}⟩")
 
 
-def emit_rho_def(lines: list[str], seg: int, x: int, y: int, offset: int) -> None:
+def emit_rho_def(lines: list[str], seg: int, x, y, offset: int) -> None:
+    xs = x if isinstance(x, str) else f"rho {x}"
+    ys = y if isinstance(y, str) else f"rho {y}"
     lines.append(f"def seg{seg}Rho (rho : Nat → Seg{seg}.F) : Nat → Seg{seg}.F")
     lines.append("| 0 => 1")
-    lines.append(f"| 17 => rho {x}")
-    lines.append(f"| 18 => rho {y}")
+    lines.append(f"| 17 => {xs}")
+    lines.append(f"| 18 => {ys}")
     lines.append(f"| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + {offset}) else rho i")
+    lines.append("")
+
+
+def emit_lc_flat_lemma(lines: list[str], seg: int, coord: str, flat: str) -> None:
+    name, runs = LC_COORDS[seg][coord]
+    flat = flat.replace(" : F)", f" : Seg{seg}.F)")
+    lines.append(f"theorem seg{seg}_flat{coord.upper()} (rho : Nat → Seg{seg}.F) :")
+    lines.append(f"    {flat} = {name} rho := by")
+    lines.append(f"  unfold {name}")
+    for start, stride, count in runs:
+        lines.append(
+            f"  rw [show Shieldd.GnarkFormal.StrideRun.sumAux rho {start} {stride} {count} ="
+        )
+        lines.append(f"    {bare_sum(start, stride, count)} from rfl]")
+    lines.append("  ring")
     lines.append("")
 
 
@@ -163,9 +215,17 @@ def emit_segment(lines: list[str], seg: int, hyps: list[tuple[int, str]]) -> Non
     lines.append(f"    (seg{seg}Rho rho)")
     for chunk in chunks(arg_holes, 24):
         lines.append("    " + " ".join(chunk))
-    for h, _typ in hyps:
+    for h, typ in hyps:
         row = bridge_row_for_hyp(h)
         lines.append(f"  · unfold Seg{seg}.relationRow{row} at r{row}")
+        if seg in LC_COORDS:
+            rws = []
+            if re.search(r"\brho 17\b", typ):
+                rws.append(f"seg{seg}_flatX rho")
+            if re.search(r"\brho 18\b", typ):
+                rws.append(f"seg{seg}_flatY rho")
+            if rws:
+                lines.append(f"    rw [{', '.join(rws)}] at r{row}")
         lines.append(f"    simpa [seg{seg}Rho, mul_eq_zero] using r{row}")
     lines.append(f"  · exact seg{seg}_hrec1 rho r281")
     lines.append(f"  · exact seg{seg}_hrec2 rho r791")
@@ -215,6 +275,9 @@ def main() -> None:
         ]
         x, y, offset = next((a, b, c) for s, a, b, c in SEGMENTS if s == seg)
         emit_rho_def(lines, seg, x, y, offset)
+        if seg in LC_COORDS:
+            emit_lc_flat_lemma(lines, seg, "x", first_operand(seg, 0))
+            emit_lc_flat_lemma(lines, seg, "y", first_operand(seg, 1))
         emit_recomp_lemma(lines, seg, 1, 281, 231, 230)
         emit_recomp_lemma(lines, seg, 2, 791, 573, 572)
         emit_segment(lines, seg, hyps)

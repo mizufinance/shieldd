@@ -486,7 +486,7 @@ func (c *dtkParityCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
-	if err := IVKModRDecomposition(api, ivkModQ, c.IvkQuotient, c.IvkReduced); err != nil {
+	if _, err := IVKModRDecomposition(api, ivkModQ, c.IvkQuotient, c.IvkReduced); err != nil {
 		return err
 	}
 	mirror := scalarMulLEMirror(api, divGen, c.IvkReduced, 251)
@@ -750,6 +750,102 @@ func TestNetBalanceCommitmentGadgetParity(t *testing.T) {
 			ecc.BLS12_377.ScalarField(),
 		); err == nil {
 			t.Fatal("net-balance gadget accepted a wrong output")
+		}
+	}
+}
+
+type conservationNetBalanceGadgetParityCircuit struct {
+	Input0Amount    frontend.Variable `gnark:",public"`
+	Input1Amount    frontend.Variable `gnark:",public"`
+	OutputAmount    frontend.Variable `gnark:",public"`
+	BalanceBlinding frontend.Variable `gnark:",public"`
+}
+
+func (c *conservationNetBalanceGadgetParityCircuit) Define(api frontend.API) error {
+	production, err := computeConservationNetBalanceCommitment(
+		api,
+		[]frontend.Variable{c.Input0Amount, c.Input1Amount},
+		[]frontend.Variable{c.OutputAmount},
+		c.BalanceBlinding,
+	)
+	if err != nil {
+		return err
+	}
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		return err
+	}
+	blindingGen := gnarkte.Point{
+		X: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
+		Y: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
+	}
+	mirror := scalarMulLEMirror(api, blindingGen, c.BalanceBlinding, 251)
+	api.AssertIsEqual(production.X, mirror.X)
+	api.AssertIsEqual(production.Y, mirror.Y)
+	return nil
+}
+
+func TestConservationNetBalanceCommitmentGadgetParity(t *testing.T) {
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		t.Fatal(err)
+	}
+	blindingGen := gnarkte.Point{
+		X: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
+		Y: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
+	}
+	q := decaf377.FieldModulus()
+	for i := 0; i < 2; i++ {
+		input0, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 64))
+		if err != nil {
+			t.Fatal(err)
+		}
+		input1, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 64))
+		if err != nil {
+			t.Fatal(err)
+		}
+		output := new(big.Int).Add(input0, input1)
+		blinding, err := rand.Int(rand.Reader, decaf377.ScalarOrder())
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected, err := decafgnark.ScalarMulNative(blindingGen, blinding, 251)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := test.IsSolved(
+			&conservationNetBalanceGadgetParityCircuit{},
+			&conservationNetBalanceGadgetParityCircuit{
+				Input0Amount: input0, Input1Amount: input1, OutputAmount: output,
+				BalanceBlinding: blinding,
+			},
+			ecc.BLS12_377.ScalarField(),
+		); err != nil {
+			t.Fatalf("conservation net-balance mirror disagrees with production helper: %v", err)
+		}
+		if err := test.IsSolved(
+			&ConservationNetBalanceCommitmentGadget{},
+			&ConservationNetBalanceCommitmentGadget{
+				Input0Amount: input0, Input1Amount: input1, OutputAmount: output,
+				BalanceBlinding: blinding,
+				OutX:            expected.X, OutY: expected.Y,
+			},
+			ecc.BLS12_377.ScalarField(),
+		); err != nil {
+			t.Fatalf("conservation net-balance gadget rejected native output: %v", err)
+		}
+		wrongX := new(big.Int).Add(expected.X.(*big.Int), big.NewInt(1))
+		wrongX.Mod(wrongX, q)
+		if err := test.IsSolved(
+			&ConservationNetBalanceCommitmentGadget{},
+			&ConservationNetBalanceCommitmentGadget{
+				Input0Amount: input0, Input1Amount: input1, OutputAmount: output,
+				BalanceBlinding: blinding,
+				OutX:            wrongX, OutY: expected.Y,
+			},
+			ecc.BLS12_377.ScalarField(),
+		); err == nil {
+			t.Fatal("conservation net-balance gadget accepted a wrong output")
 		}
 	}
 }

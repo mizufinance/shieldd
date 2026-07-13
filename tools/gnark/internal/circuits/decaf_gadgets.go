@@ -46,7 +46,8 @@ type IvkModRGadget struct {
 }
 
 func (c *IvkModRGadget) Define(api frontend.API) error {
-	return IVKModRDecomposition(api, c.IvkModQ, c.QuotientA, c.IvkReduced)
+	_, err := IVKModRDecomposition(api, c.IvkModQ, c.QuotientA, c.IvkReduced)
+	return err
 }
 
 // CompressToFieldGadget is the hint-free extraction mirror of
@@ -128,6 +129,45 @@ type NetBalanceCommitmentGadget struct {
 	EncodeInvSqrt   frontend.Variable
 	OutX            frontend.Variable
 	OutY            frontend.Variable
+}
+
+// ConservationNetBalanceCommitmentGadget mirrors
+// computeConservationNetBalanceCommitment (NB-1): 2-in/1-out conservation-exact
+// net balance. No trailing on-curve assert — the deployed segment ends at the
+// blinding-ladder accumulator.
+type ConservationNetBalanceCommitmentGadget struct {
+	Input0Amount    frontend.Variable `gnark:",public"`
+	Input1Amount    frontend.Variable `gnark:",public"`
+	OutputAmount    frontend.Variable `gnark:",public"`
+	BalanceBlinding frontend.Variable `gnark:",public"`
+	OutX            frontend.Variable
+	OutY            frontend.Variable
+}
+
+func (c *ConservationNetBalanceCommitmentGadget) Define(api frontend.API) error {
+	vectors, err := LoadPrototypeVectors()
+	if err != nil {
+		return err
+	}
+	sumIn := frontend.Variable(0)
+	for _, amount := range []frontend.Variable{c.Input0Amount, c.Input1Amount} {
+		api.ToBinary(amount, 128)
+		sumIn = api.Add(sumIn, amount)
+	}
+	sumOut := frontend.Variable(0)
+	for _, amount := range []frontend.Variable{c.OutputAmount} {
+		api.ToBinary(amount, 128)
+		sumOut = api.Add(sumOut, amount)
+	}
+	api.AssertIsEqual(sumIn, sumOut)
+	blindingGen := gnarkte.Point{
+		X: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
+		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
+	}
+	out := scalarMulLEMirror(api, blindingGen, c.BalanceBlinding, 251)
+	api.AssertIsEqual(out.X, c.OutX)
+	api.AssertIsEqual(out.Y, c.OutY)
+	return nil
 }
 
 // NetBalanceCommitment2Gadget mirrors the transfer net-balance commitment:
@@ -225,7 +265,7 @@ func (c *DecafDtkGadget) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
-	if err := IVKModRDecomposition(api, ivkModQ, c.IvkQuotient, c.IvkReduced); err != nil {
+	if _, err := IVKModRDecomposition(api, ivkModQ, c.IvkQuotient, c.IvkReduced); err != nil {
 		return err
 	}
 	out := scalarMulLEMirror(

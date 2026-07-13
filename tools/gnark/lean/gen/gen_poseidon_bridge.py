@@ -40,7 +40,7 @@ CONFIGS = {
     "dtk_ivk": dict(
         W=3,
         leaf="DtkIvkPoseidon",
-        slice_stem="DtkIvkPoseidon270_20212c",
+        slice_stem="DtkIvkPoseidon270_bd78d2",
         link="Poseidon2Link",
         bridge_ns="Poseidon2Bridge",
         deployed_bridge="DtkIvkPoseidonDeployedBridge",

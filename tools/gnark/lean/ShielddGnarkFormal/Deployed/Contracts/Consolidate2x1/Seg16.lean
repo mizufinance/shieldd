@@ -12,9 +12,9 @@ def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233
 abbrev F := ZMod Order
 
 def relation (rho : Nat -> F) : Prop :=
-    ((1 : F) * rho 18196) * ((1 : F) * rho 13) = ((1 : F) * rho 18198) ∧
-    ((1 : F) * rho 12) * ((1 : F) * rho 18197) = ((1 : F) * rho 18199) ∧
-    ((1 : F)) * ((1 : F) * rho 18198) = ((1 : F) * rho 18199)
+    ((1 : F) * rho 17945) * ((1 : F) * rho 13) = ((1 : F) * rho 17947) ∧
+    ((1 : F) * rho 12) * ((1 : F) * rho 17946) = ((1 : F) * rho 17948) ∧
+    ((1 : F)) * ((1 : F) * rho 17947) = ((1 : F) * rho 17948)
 
 /-- Semantic projection: the hand-authored Layer-2 endpoint for this
 deployed segment, seated on this slice's wire roles. -/
@@ -22,8 +22,8 @@ def spec (rho : Nat -> F) : Prop := Specs.deployedSpec16 rho
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 16,
-relationSha256Hex := "80dd93bcd19aae0535c01a79aa9dcb6b1e0553fa6e0aa33af4eb09322cf67832",
-wireRoleSha256Hex := "9c878d0dcd6043bf77b3fd4fb50c079bf880f84a593f250f8ca4f36f949bdc3a",
+relationSha256Hex := "28b265229afc2d5630c3840fef592fd932886a937eaabbfd21debf2c3b987024",
+wireRoleSha256Hex := "95bb18fbf91fa09615141216f18e78a256f74d6689702850595ff690260229a5",
 relation := relation,
 spec := spec
 }

@@ -8,10 +8,9 @@ pub struct SplitFamilyId(pub u32);
 
 #[allow(non_upper_case_globals)]
 impl SplitFamilyId {
-    pub const OneByFour: Self = Self(1);
     pub const OneByEight: Self = Self(2);
 
-    pub const ALL: [Self; 2] = [Self::OneByFour, Self::OneByEight];
+    pub const ALL: [Self; 1] = [Self::OneByEight];
 
     pub const fn get(self) -> u32 {
         self.0
@@ -75,19 +74,10 @@ pub struct SplitFamilySpec {
     pub n_out: usize,
 }
 
-pub const SPLIT_FAMILY_SPECS: [SplitFamilySpec; 2] = [
-    SplitFamilySpec {
-        id: SplitFamilyId::OneByFour,
-        label: "split1x4",
-        artifact_name: "split1x4",
-        n_in: 1,
-        n_out: 4,
-    },
-    SplitFamilySpec {
-        id: SplitFamilyId::OneByEight,
-        label: "split1x8",
-        artifact_name: "split1x8",
-        n_in: 1,
-        n_out: 8,
-    },
-];
+pub const SPLIT_FAMILY_SPECS: [SplitFamilySpec; 1] = [SplitFamilySpec {
+    id: SplitFamilyId::OneByEight,
+    label: "split1x8",
+    artifact_name: "split1x8",
+    n_in: 1,
+    n_out: 8,
+}];

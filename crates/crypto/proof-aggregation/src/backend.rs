@@ -311,10 +311,6 @@ impl SnarkpackBackend {
         S: ChallengeTraceSink,
     {
         match family_id {
-            SplitFamilyId::OneByFour => aggregate_with_digest_with_trace::<
-                SplitTranscriptDigest<{ SplitFamilyId::OneByFour.get() }>,
-                S,
-            >(challenge_context, trace, items, srs),
             SplitFamilyId::OneByEight => aggregate_with_digest_with_trace::<
                 SplitTranscriptDigest<{ SplitFamilyId::OneByEight.get() }>,
                 S,
@@ -341,10 +337,6 @@ impl SnarkpackBackend {
                 ConsolidateTranscriptDigest<{ ConsolidateFamilyId::TwoByOne.get() }>,
                 S,
             >(challenge_context, trace, items, srs),
-            ConsolidateFamilyId::FourByOne => aggregate_with_digest_with_trace::<
-                ConsolidateTranscriptDigest<{ ConsolidateFamilyId::FourByOne.get() }>,
-                S,
-            >(challenge_context, trace, items, srs),
             ConsolidateFamilyId::EightByOne => aggregate_with_digest_with_trace::<
                 ConsolidateTranscriptDigest<{ ConsolidateFamilyId::EightByOne.get() }>,
                 S,
@@ -363,9 +355,6 @@ impl SnarkpackBackend {
         challenge_context: &ChallengeContext,
     ) -> Result<(Vec<u8>, AggregateBuildBackendProfile)> {
         match family_id {
-            SplitFamilyId::OneByFour => aggregate_with_digest_profiled::<
-                SplitTranscriptDigest<{ SplitFamilyId::OneByFour.get() }>,
-            >(items, srs, challenge_context),
             SplitFamilyId::OneByEight => aggregate_with_digest_profiled::<
                 SplitTranscriptDigest<{ SplitFamilyId::OneByEight.get() }>,
             >(items, srs, challenge_context),
@@ -386,9 +375,6 @@ impl SnarkpackBackend {
             ConsolidateFamilyId::TwoByOne => aggregate_with_digest_profiled::<
                 ConsolidateTranscriptDigest<{ ConsolidateFamilyId::TwoByOne.get() }>,
             >(items, srs, challenge_context),
-            ConsolidateFamilyId::FourByOne => aggregate_with_digest_profiled::<
-                ConsolidateTranscriptDigest<{ ConsolidateFamilyId::FourByOne.get() }>,
-            >(items, srs, challenge_context),
             ConsolidateFamilyId::EightByOne => aggregate_with_digest_profiled::<
                 ConsolidateTranscriptDigest<{ ConsolidateFamilyId::EightByOne.get() }>,
             >(items, srs, challenge_context),
@@ -408,15 +394,6 @@ impl SnarkpackBackend {
         srs: &DevSrs,
     ) -> Result<AggregateVerificationProfile, AggregateVerifyError> {
         match family_id {
-            SplitFamilyId::OneByFour => verify_with_digest_profiled::<
-                SplitTranscriptDigest<{ SplitFamilyId::OneByFour.get() }>,
-            >(
-                challenge_context,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
             SplitFamilyId::OneByEight => verify_with_digest_profiled::<
                 SplitTranscriptDigest<{ SplitFamilyId::OneByEight.get() }>,
             >(
@@ -446,17 +423,6 @@ impl SnarkpackBackend {
         S: ChallengeTraceSink,
     {
         match family_id {
-            SplitFamilyId::OneByFour => verify_with_digest_with_trace::<
-                SplitTranscriptDigest<{ SplitFamilyId::OneByFour.get() }>,
-                S,
-            >(
-                challenge_context,
-                trace,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
             SplitFamilyId::OneByEight => verify_with_digest_with_trace::<
                 SplitTranscriptDigest<{ SplitFamilyId::OneByEight.get() }>,
                 S,
@@ -486,15 +452,6 @@ impl SnarkpackBackend {
         match family_id {
             ConsolidateFamilyId::TwoByOne => verify_with_digest_profiled::<
                 ConsolidateTranscriptDigest<{ ConsolidateFamilyId::TwoByOne.get() }>,
-            >(
-                challenge_context,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
-            ConsolidateFamilyId::FourByOne => verify_with_digest_profiled::<
-                ConsolidateTranscriptDigest<{ ConsolidateFamilyId::FourByOne.get() }>,
             >(
                 challenge_context,
                 pvk,
@@ -533,17 +490,6 @@ impl SnarkpackBackend {
         match family_id {
             ConsolidateFamilyId::TwoByOne => verify_with_digest_with_trace::<
                 ConsolidateTranscriptDigest<{ ConsolidateFamilyId::TwoByOne.get() }>,
-                S,
-            >(
-                challenge_context,
-                trace,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
-            ConsolidateFamilyId::FourByOne => verify_with_digest_with_trace::<
-                ConsolidateTranscriptDigest<{ ConsolidateFamilyId::FourByOne.get() }>,
                 S,
             >(
                 challenge_context,
