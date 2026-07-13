@@ -5268,6 +5268,84 @@ Explicit axiom audit:
   because this sandbox denied access to the supplied WinGet `just` directory;
 - no prover/release-gated circuit tests were applicable or run.
 
+## GAP-00
+
+Implemented in `Ipp/CanonicalWire.lean`.
+
+The canonical byte/component model is:
+
+```lean
+abbrev Bytes (n : Nat) := Fin n → UInt8
+abbrev FqBytes := Bytes 48
+abbrev Fq2Bytes := Bytes 96
+abbrev Fq6Bytes := Bytes 288
+abbrev Fq12Bytes := Bytes 576
+
+structure FqWire where bytes : FqBytes
+structure Fq2Wire where c0 : FqWire; c1 : FqWire
+structure Fq6Wire where c0 : Fq2Wire; c1 : Fq2Wire; c2 : Fq2Wire
+structure Fq12Wire where c0 : Fq6Wire; c1 : Fq6Wire
+structure PointFlags where infinity : Bool; sign : Bool
+structure G1Wire where flags : PointFlags; x : FqWire
+structure G2Wire where flags : PointFlags; x : Fq2Wire
+structure PairingOutputWire where value : Fq12Wire
+```
+
+`CommitmentWire` contains three GT `ab` entries and one GT `c` entry plus its
+G1 component. `RoundWire` contains left and right commitments. The
+`AggregateProofWire` record contains the four top-level GT values (`comA`,
+`comB`, `comC`, `ipAb`), `aggC`, both final-key pairs, the three final-message
+points, and `Fin μ → RoundWire`.
+
+The curve-dependent decoder signatures are:
+
+```lean
+structure DecoderFamily (F Fq2 Fq12 G1 G2 GT : Type*) where
+  decodeFq : FqWire → Option F
+  decodeFq2 : Fq2Wire → Option Fq2
+  decodeFq12 : Fq12Wire → Option Fq12
+  decodeG1 : G1Wire → Option G1
+  decodeG2 : G2Wire → Option G2
+  decodePairingOutput : PairingOutputWire → Option GT
+```
+
+The exported `decodeFq`, `decodeFq2`, `decodeFq12`, `decodeG1`, `decodeG2`,
+and `decodePairingOutput` definitions are projections of this bundle. They
+assert no field, curve, subgroup, or pairing law; those remain GAP-01..07.
+
+Coverage lemma, verbatim:
+
+```lean
+theorem aggregateProofWire_coverage {μ : Nat} (p : AggregateProofWire μ) :
+    p.gtElements.length = 4 + 8 * μ ∧
+    p.g1Elements.length = 5 + 2 * μ ∧
+    p.g2Elements.length = 3 := by
+  exact ⟨p.gtElements_length, p.g1Elements_length, p.g2Elements_length⟩
+```
+
+The traversal definitions include every top-level and per-round field. The GT
+count is four top-level values plus eight per round; the corresponding G1 and
+G2 counts are five plus two per round, and three top-level respectively.
+
+Focused result:
+
+- `LEAN_NUM_THREADS=1 C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe build Ipp.CanonicalWire` — passed (547 jobs).
+- `#print axioms Ipp.CanonicalWire.aggregateProofWire_coverage` —
+  `[propext, Quot.sound]`; no `sorryAx`, project axiom, or `native_decide`.
+- Decoder projection `Ipp.CanonicalWire.decodeFq` has no axioms.
+
+Final full-build result and final forbidden-token scan are recorded below after
+the gate. No prover/release-gated tests were run; GAP-00 is pure Lean framing
+and coverage only. GAP-01..07 remain responsible for canonical decode
+injectivity and subgroup/torsion proofs; no per-component injectivity was
+attempted here.
+
+Final gate:
+
+- `LEAN_NUM_THREADS=1 C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe build Ipp` — passed (3328 jobs, about 208 seconds).
+- `Ipp/*.lean` forbidden-token scan for `sorry`, `axiom `, and `native_decide` — clean.
+- `git diff --check` — passed.
+
 ## S2/S3 kickoff
 
 Scope: four phases in order. No commit was made. Cargo, hax, Rust/F*/opam, and
