@@ -19,11 +19,11 @@ variable {F G1 G2 GT : Type}
   [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
 
 /-- Sum of the five nonzero U5a bounds, with `Q = qb + 1`. -/
-def badEventError [Fintype F] (μ qb dR dZ : Nat) : ℝ≥0∞ :=
+def badEventError [Fintype F] (qb dR dZ : Nat) : ℝ≥0∞ :=
   ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
     ((((Q qb) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2) +
-      (((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
-        (((μ * Q qb : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
+      ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
+        ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
           (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)))))
 
 /-- Canonical finite carrier of the per-statement randomizer discrepancy set. -/
@@ -60,8 +60,8 @@ theorem s1BadRandomizers_card {F G1 G2 GT : Type}
   exact h.2
 
 /-- A positive quantitative fork bound maps an accepting FS execution to every
-per-proof Groth16 PPE. Cryptographic binding plus the residual ROM budget are
-explicit inputs; collision and finite bad-set bounds are derived internally. -/
+per-proof Groth16 PPE. Cryptographic binding is explicit; every ROM bad-event
+bound is derived internally. -/
 theorem s1_soundness [Fintype F]
     [(FsSourceSpec F G1 G2 GT).DecidableEq]
     [IsUniformSpec (FsSourceSpec F G1 G2 GT)]
@@ -88,12 +88,11 @@ theorem s1_soundness [Fintype F]
       (fun i => r ^ (i : Nat) • stmt.B i))
     (hZcard : badZ.card ≤ dZ)
     (hquery : IsTotalQueryBound (FsGame stmt adv) (Q (qb (Sum.inr ()))))
-    (H : BadEventBudget (qb (Sum.inr ())) stmt adv)
     (hpositive : 0 <
       ((forkTreeStep (qb (Sum.inr ()) + 1)
         (Fintype.card F))^[μ])
         (Pr[Accepted | fsProbComp stmt adv] -
-          badEventError (F := F) μ (qb (Sum.inr ())) (2 ^ μ - 1) dZ)) :
+          badEventError (F := F) (qb (Sum.inr ())) (2 ^ μ - 1) dZ)) :
     ∀ i, stmt.e (stmt.A i) (stmt.B i) =
       groth16Rhs stmt.e stmt.alpha (stmt.Aic i) (stmt.C i)
         stmt.beta stmt.gamma stmt.delta := by
@@ -111,10 +110,9 @@ theorem s1_soundness [Fintype F]
       (FsResult μ F G1 G2 GT) → Option (Fin (qb (Sum.inr ()) + 1)) :=
     fun level run => roundSlot (qb (Sum.inr ())) level run
   have hq0 := q0_lower_bound (qb (Sum.inr ())) stmt adv badR badZ
-    (2 ^ μ - 1) dZ (s1BadRandomizers_card stmt) hZcard hquery (by
-      simpa [badR] using H)
+    (2 ^ μ - 1) dZ (s1BadRandomizers_card stmt) hZcard hquery
   have hbase : Pr[Accepted | fsProbComp stmt adv] -
-      badEventError (F := F) μ (qb (Sum.inr ())) (2 ^ μ - 1) dZ ≤
+      badEventError (F := F) (qb (Sum.inr ())) (2 ^ μ - 1) dZ ≤
       Pr[leafOk | replayFirstRun main] := by
     calc
       _ ≤ Pr[fun z => Accepted z ∧ RunGoodFull (qb (Sum.inr ())) stmt

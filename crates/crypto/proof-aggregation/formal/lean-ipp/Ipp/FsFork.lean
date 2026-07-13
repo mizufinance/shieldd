@@ -1490,6 +1490,31 @@ theorem accepted_source_randomizer_query
     fsRandomFunction_replay_cached stmt adv h
   exact hcacheLog _ _ (haccepted haccept).1.1.2.1
 
+/-- An accepting source run's x0 transcript value occurs in the structured
+miss log at the exact x0 point. -/
+theorem accepted_source_x0_query
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    {out : FsResult μ F G1 G2 GT}
+    {sourceLog : QueryLog (unifSpec + SnarkpackFsSpec F G1 G2 GT)}
+    (h : (out, sourceLog) ∈ support
+      (replayFirstRun (fsRandomFunction (FsGame stmt adv))))
+    (haccept : out.accept = true) :
+    QueryAnswered sourceLog
+      (Sum.inr (.x0
+        { r := out.transcript.randomizer, comA := stmt.ComA.1,
+          comB := stmt.ComB, comC := stmt.ComA.2,
+          ipAb := out.proof.ipAb, aggC := out.proof.aggC }
+        out.transcript.x0Nonce)) out.transcript.x0 := by
+  obtain ⟨_cache, _hlogCache, hcacheLog, haccepted⟩ :=
+    fsRandomFunction_replay_cached stmt adv h
+  exact hcacheLog _ _ (haccepted haccept).1.1.2.2
+
 /-- An accepting wrapped support run satisfies the verifier relation, including
 the aggregate Groth16 pairing equation consumed by the S1 capstone. -/
 theorem wrapped_support_accepts

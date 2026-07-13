@@ -5268,6 +5268,136 @@ Explicit axiom audit:
   because this sandbox denied access to the supplied WinGet `just` directory;
 - no prover/release-gated circuit tests were applicable or run.
 
+## NOW batch
+
+### U5a-R1 — dependency-order candidate-pair bound
+
+**Proved.** Adaptive accepted-proof selection is reduced to an ordered pair of
+structured RO misses and bounded by the pairwise union bound
+`Q(qb)^2 / card(F)`. The exact public theorem statements are:
+
+```lean
+theorem structured_point_candidate_before_le
+    (oa : OracleComp (unifSpec + (Point →ₒ F)) α)
+    (candidate : Point → Option F) (n : Nat) :
+    Pr[fun z => ∃ i, i < n ∧ ∃ j, j < n ∧ i ≤ j ∧ ∃ point answer,
+        (fsPointTrace z.2)[i]? = some point ∧
+        candidate point = some answer ∧
+        (structuredAnswers z.2)[j]? = some answer | replayFirstRun oa] ≤
+      (((n ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)) := by
+
+theorem dependency_order_candidate_bound {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (qb + 1)) :
+    Pr[fun z => z.1.accept = true ∧
+        ¬ DependencyOrdered qb stmt
+          ({ out := z.1, trace := fsPointTrace z.2 } :
+            WrappedFsRun (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+              (FsResult μ F G1 G2 GT)) |
+      replayFirstRun (fsRandomFunction (FsGame stmt adv))] ≤
+      ((((qb + 1) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)) := by
+
+theorem dependency_order_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤
+      (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) := by
+```
+
+`#print axioms`:
+
+```text
+'Ipp.structured_point_candidate_before_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.dependency_order_candidate_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.dependency_order_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+### U5a-R2 — adjacent-round candidate-pair bound and S1 integration
+
+**Proved.** The accepted adjacent-round chain supplies the same ordered
+candidate-pair witness, so the concrete bound is also `Q(qb)^2 / card(F)`:
+
+```lean
+theorem round_slot_order_candidate_bound {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (qb + 1)) :
+    Pr[fun z => z.1.accept = true ∧
+        ¬ RoundSlotOrdered qb
+          ({ out := z.1, trace := fsPointTrace z.2 } :
+            WrappedFsRun (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+              (FsResult μ F G1 G2 GT)) |
+      replayFirstRun (fsRandomFunction (FsGame stmt adv))] ≤
+      ((((qb + 1) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞)) := by
+
+theorem round_slot_order_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
+      (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) := by
+```
+
+`BadEventBudget` and `BadEventBudget.ofBounds` were deleted. The final concrete
+`q0_lower_bound` uses collision `Q²/card(F)`, randomizer-root
+`Q*dR/(card(F)-2)`, dependency-order `Q²/card(F)`, round-slot-order
+`Q²/card(F)`, KZG `Q*dZ/card(F)`, and the zero unqueried bound.
+
+The final explicit `s1_soundness` hypotheses, verbatim from its declaration,
+are:
+
+```lean
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F) (dZ : Nat)
+    (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
+    (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
+    (hbindA : PairingCommitmentBinding (u4ACommitAtom stmt.e)
+      (fun i => (stmt.srsV i, stmt.srsV i)))
+    (hbindB : ∀ r : F, PairingCommitmentBinding (u4BCommitAtom stmt.e)
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i))
+    (hComA : u4AEmbedding stmt.ComA = commitV (u4ACommitAtom stmt.e)
+      (fun i => (stmt.srsV i, stmt.srsV i)) (fun i => (stmt.A i, stmt.C i)))
+    (hComB : ∀ r : F, u4BEmbedding stmt.ComB = commitV (u4BCommitAtom stmt.e)
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+      (fun i => r ^ (i : Nat) • stmt.B i))
+    (hZcard : badZ.card ≤ dZ)
+    (hquery : IsTotalQueryBound (FsGame stmt adv) (Q (qb (Sum.inr ()))))
+    (hpositive : 0 <
+      ((forkTreeStep (qb (Sum.inr ()) + 1)
+        (Fintype.card F))^[μ])
+        (Pr[Accepted | fsProbComp stmt adv] -
+          badEventError (F := F) (qb (Sum.inr ())) (2 ^ μ - 1) dZ))
+```
+
+There is no residual ROM-budget hypothesis. `#print axioms`:
+
+```text
+'Ipp.round_slot_order_candidate_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.round_slot_order_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.q0_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.s1_soundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Ledger promotion: `formal-handoff.md` now has proved dependency-order and
+adjacent-round candidate-pair rows and no longer contains
+`assume.ro-dependency-order-union-bound` or
+`assume.ro-round-slot-order-union-bound`. Its S1 row records that all ROM
+bad-event bounds are concrete.
+
+Verification: direct checks passed for `Ipp.FsBadEvents` and `Ipp.S1`; focused
+`lake build Ipp.S1` passed 3322 jobs in 183.4 seconds, warnings only. The first
+focused `Ipp.FsBadEvents` attempt timed out after 240.9 seconds while replaying
+dependencies; after directly rebuilding the missing support artifact, the
+module and the enclosing `Ipp.S1` focused build passed. No concurrent Lean or
+Lake invocation was used. The final `lake build Ipp` remains for the batch-end
+verification.
+
 ## GAP-00
 
 Implemented in `Ipp/CanonicalWire.lean`.
@@ -5751,3 +5881,158 @@ honest removal paths.
   `native_decide` 0;
 - `git diff --check`: passed;
 - no prover/release-gated circuit tests were applicable or run.
+
+## S2 Tier1 kickoff
+
+### Target and extraction scope
+
+The kickoff target is `ark_ip_proofs::gipa::fold_output`, the smallest S2
+theorem-sized target in `s2-tier1-plan.md`. The production function is a
+straight-line mutation: `mem::take(current)`, two calls to the executed
+`mul_helper`, and two additions. The default `parallel` feature does not affect
+this closure. `bench-baseline` is disabled and remains outside the release
+gate.
+
+Hax's `-i` selector is not supported by the Aeneas backend and is ignored. The
+working scope control is Charon's `--start-from`, which follows only the named
+function's referenced closure. Cargo's target directory must be on WSL's ext4
+filesystem rather than the OneDrive/DrvFS source tree, and the cold Charon
+build must be serialized on this machine.
+
+Exact working PowerShell/WSL invocation:
+
+```text
+wsl -d Ubuntu -e bash -lc 'source $HOME/.cargo/env; export PATH=/root/.cargo/bin:$PATH; export CARGO_TARGET_DIR=/root/.cache/shieldd-hax-target; export CARGO_BUILD_JOBS=1; eval $(opam env --switch=hax 2>/dev/null); cd /mnt/c/Users/acyrn/OneDrive/Documents/source/shieldd/crates/crypto/proof-aggregation/src/ipp/ip_proofs; cargo hax into -v --output-dir /root/shieldd-s2-fold-output-scoped aeneas-lean --charon-args='"'"'--start-from crate::gipa::fold_output'"'"' --lakefile'
+```
+
+The operative Cargo command is therefore:
+
+```text
+cargo hax into -v \
+  --output-dir /root/shieldd-s2-fold-output-scoped \
+  aeneas-lean \
+  --charon-args='--start-from crate::gipa::fold_output' \
+  --lakefile
+```
+
+The command completed successfully. Charon emitted a 98,925-byte LLBC file and
+Aeneas translated it in 0.379 seconds. Artifact hashes are:
+
+```text
+3af81530a773d466f6a1108c038a5f9c1338beda9957de50786696f3d472f1d6  ark_ip_proofs.llbc
+35ca6256244053dc76be6732a4f2764a4ccb20e0e55622f0a1e210adb52e792d  Types.lean
+79241f3b828ad6169c19fcc1a8fb867b459a31229e5293e7694650e1df5bddab  Funs.lean
+6423f1ceba71a299545f2c174a67f6ef7871d3c66db66debd65f4faf68bcfb34  FunsExternal_Template.lean
+```
+
+The installed hax reports untagged commit
+`c8e27c5945f7fc5791939cff7c1277f4ab768fe1`. Hax warned that the Aeneas
+binary reports commit `unknown` rather than the expected `e0a1596`; this did
+not prevent LLBC import or Lean generation. That provenance warning must be
+removed before generated-code freshness becomes a release gate.
+
+### Extracted Lean and runtime integration
+
+The generated semantic definitions are:
+
+```lean
+def mul_helper
+  {T : Type} {F : Type} (mulAssignInst : core.ops.arith.MulAssign T F)
+  (cloneT : core.clone.Clone T) (cloneF : core.clone.Clone F)
+  (t : T) (f : F) : Result T := do
+  let clone ← cloneT.clone t
+  let f' ← cloneF.clone f
+  mulAssignInst.mul_assign clone f'
+
+def gipa.fold_output
+  {T : Type} {S : Type} (cloneT : core.clone.Clone T)
+  (defaultT : core.default.Default T) (addT : core.ops.arith.Add T T T)
+  (mulAssign : core.ops.arith.MulAssign T S)
+  (cloneS : core.clone.Clone S)
+  (left current right : T) (c c_inv : S) : Result T := do
+  let (current_value, _) ← core.mem.take defaultT current
+  let t ← mul_helper mulAssign cloneT cloneS left c
+  let t1 ← addT.add t current_value
+  let t2 ← mul_helper mulAssign cloneT cloneS right c_inv
+  addT.add t1 t2
+```
+
+The raw Aeneas project pins Lean `v4.30.0-rc2`, Aeneas `e0a1596`, and Hax
+Lean `v0.1.0`. Its blanket `import Aeneas` builds unrelated upstream tactic
+benchmark modules such as `AeneasMeta.Async.Test` and
+`Aeneas.Tactic.Step.Test`; that support project is not compatible as a clean
+dependency of the repository's final Lean `v4.30.0` build. It was fetched for
+evaluation but is neither retained in `lakefile.lean` nor vendored wholesale.
+
+Instead, `Ipp/Extracted/AeneasRuntime.lean` vendors the exact executable subset
+needed here: Aeneas-shaped `Error`/`Result`, lawful result bind, `Clone`,
+`Default`, and a transparent `core.mem.take` returning `(old, default)`. It has
+no axiom. `Ipp/Extracted/FoldOutputGenerated.lean` preserves the generated
+`mul_helper` and `fold_output` bodies, with generator metadata attributes and
+the oversized umbrella import removed. The target-specific runtime is not a
+claim that future Vec/iterator/loop extractions need no additional Aeneas
+semantics; every extension must be recorded at the extraction boundary.
+
+### Refinement theorem
+
+`Ipp/Extracted/FoldOutput.lean` supplies transparent S2 adapters:
+
+- clone is identity in `Result.ok`;
+- default is `Result.ok 0`;
+- addition is `Result.ok (x + y)`;
+- multiplication-assignment is `Result.ok (s • x)`.
+
+The completed theorem is:
+
+```lean
+theorem hax_translated_fold_output_eq_foldCom
+    {F M : Type} [Field F] [AddCommGroup M] [Module F M]
+    (left current right : M) (c : F) (_hc : c ≠ 0) :
+    ark_ip_proofs.gipa.fold_output
+        (cloneModel M) (defaultModel M) (addModel M) (smulAssignModel F M)
+        (cloneModel F) left current right c c⁻¹ =
+      .ok (Ipp.foldCom c left current right) := by
+  rfl
+```
+
+Status: proved, not scaffolded. No bridging lemma is needed for this target;
+the generated monadic binds and `mem::take` reduce definitionally through the
+transparent runtime and adapters. The `c ≠ 0` premise records the verifier
+call-site condition; `fold_output` itself accepts `c_inv` as an explicit input.
+
+### Metadata and verification
+
+`hax-targets.txt` now records `mul_helper` and `gipa::fold_output`.
+`hax-extraction-boundary.md` records their trait/arithmetic boundary,
+bench-only exclusion, and the executable `core_mem_take` postcondition.
+
+- focused pinned Windows `LEAN_NUM_THREADS=1 lake build
+  Ipp.Extracted.FoldOutput`: passed, 1,673 jobs;
+- full pinned Windows `LEAN_NUM_THREADS=1 lake build Ipp`: passed, 3,335 jobs,
+  warnings only;
+- theorem axiom audit: `[propext, Classical.choice, Quot.sound]` only;
+- `scripts/check-snarkpack-invariants.sh`: passed with
+  `snarkpack invariants ok` using a temporary tracked-tree `rg` compatibility
+  wrapper; the wrapper was removed;
+- `Ipp/Extracted/*.lean`: no `sorry`, project `axiom` declaration, or
+  `native_decide`;
+- scoped `git diff --check`: passed;
+- no prover, release-gated circuit, `bench-baseline`, or Rust test suite was
+  run. The WSL Charon invocation itself compiled the selected Rust crate and
+  dependencies.
+
+### Go-forward
+
+Use `--charon-args='--start-from crate::<path>'`, the ext4 Cargo target, and
+`CARGO_BUILD_JOBS=1` for every remaining S2 extraction. Do not use hax `-i` for
+the Aeneas backend and do not broaden to the entire aggregation crate.
+
+The next stop/go slice should add one target at a time: the transcript
+coefficient/evaluation helpers (S2-06/S2-07) or `rescale_fold` (S2-03). Those
+will introduce Vec/iterator or loop semantics; add only their observed Aeneas
+runtime definitions, with executable postconditions and no opaque result shim.
+Keep the full Aeneas runtime external until a pinned final-4.30-compatible
+revision excludes its tactic tests. After each target, preserve the raw LLBC
+and generator hashes, prove the adapter/refinement theorem, run the focused
+module plus full `lake build Ipp`, and stop if the executed result needs an
+opaque semantic assumption.
