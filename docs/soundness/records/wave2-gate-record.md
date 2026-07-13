@@ -107,3 +107,37 @@ root-caused, single-file or generator fix, relaunch):
   report refreshed, both families `undischarged-timeout` as expected
   (nightly-only, non-gating); sr1cs hashes match the coverage-report pins.
 - Prover round-trip bench: NOT RUN this pass.
+
+## Addendum (2026-07-12) — PR #103 CI-caught fallout (commit db05c2b74)
+
+Two failures on the first CI run, both fixed in one follow-up commit; all FV
+gates (lean-circuit-fv, vk-derivation, formal, alloy, seam-and-pin) were green
+on the first run. A third surfaced on the second run (CI nextest cancels at
+first failure, so it was masked in round 1) — see item 3.
+
+1. **Stale ics20 groth16 setup** — T1-h changed `shielded_ics20_withdrawal`
+   (90,718 → 89,962) but only the four shielded-pool families were re-set-up;
+   the app-tests `ics20_transfer_no_timeouts` died on `artifact mismatch:
+   compiled circuit has 89962 constraints but metadata says 90718`. Same drift
+   class as the T1-d addendum — the drift-audit lesson there ("shared gadget
+   code backs every family, audit ALL deployed circuits after a shared-path
+   change") applies verbatim and should be a pre-push checklist item for every
+   wave. Fixed with a fresh `gnarkctl setup`; `check-vk-derivation.sh
+   shielded_ics20_withdrawal` GREEN, sdk parity tests 69/69.
+2. **Orbis flow still split 4 ways** — `orbis-integration` issued a 4-output
+   `tx split`; split1x4 was deleted in Phase 0 and family selection now
+   requires an exact match ("split output count 4 must exactly match an active
+   split family"). Padded the flow to the surviving 1x8 family, keeping the
+   same 400/300/600 notes the downstream transfers consume.
+3. **Stale ShielddByte trace baseline** —
+   `shieldd_byte_trace_matches_committed_baseline`
+   (proof-aggregation-reference) locks the transcript trace to a committed
+   fixture whose vector inventory enumerates `parity_families()`; deleting
+   split1x4 renumbered the surviving split family's rows to SplitFamilyId(2).
+   Diff audit before regenerating: 71 changed lines, ALL in Split vectors,
+   Transfer/Consolidate/ICS20 rows byte-identical — a family-inventory change,
+   not a transcript-protocol change, so the baseline was regenerated at the
+   same `AGGREGATE_PROTOCOL_VERSION=1` (sanctioned path via the ignored
+   `regenerate_shieldd_byte_trace_baseline` test). The sibling
+   `aggregate_byte_baseline` fixture in proof-aggregation did not drift.
+   Both crates green locally (17/17 + 61/61).
