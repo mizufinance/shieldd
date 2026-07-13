@@ -5,11 +5,15 @@ universe u v
 
 inductive Error where
   | panic
+  | arrayOutOfBounds
+  | maximumSizeExceeded
 
 inductive Result (α : Type u) where
   | ok (value : α)
   | fail (error : Error)
   | div
+
+instance {α : Type u} : Inhabited (Result α) := ⟨.div⟩
 
 namespace Result
 
@@ -26,10 +30,81 @@ instance : Monad Result where
 
 end Result
 
-namespace ControlFlow
-end ControlFlow
+def lift {α : Type u} (value : α) : Result α := .ok value
+
+inductive ControlFlow (α : Type u) (β : Type v) where
+  | cont (value : α)
+  | done (value : β)
+
+partial def loop {α : Type u} {β : Type v}
+    (body : α → Result (ControlFlow α β)) (state : α) : Result β :=
+  match body state with
+  | .ok (.cont next) => loop body next
+  | .ok (.done value) => .ok value
+  | .fail error => .fail error
+  | .div => .div
 
 namespace Std
+
+structure Usize where
+  val : Nat
+deriving DecidableEq, Repr
+
+namespace Usize
+
+def ofNat (value : Nat) : Usize := ⟨value⟩
+
+end Usize
+
+instance : LT Usize where
+  lt left right := left.val < right.val
+
+instance (left right : Usize) : Decidable (left < right) :=
+  inferInstanceAs (Decidable (left.val < right.val))
+
+instance : HAdd Usize Usize (Result Usize) where
+  hAdd left right := .ok ⟨left.val + right.val⟩
+
+macro:max value:term:max noWs "#usize" : term =>
+  `(Usize.ofNat $value)
+
+structure Slice (T : Type u) where
+  val : List T
+deriving Repr
+
+namespace Slice
+
+def len {T : Type u} (slice : Slice T) : Usize := ⟨slice.val.length⟩
+
+def index_usize {T : Type u} (slice : Slice T) (index : Usize) : Result T :=
+  match slice.val[index.val]? with
+  | some value => .ok value
+  | none => .fail .arrayOutOfBounds
+
+end Slice
+
+namespace alloc.vec
+
+structure Vec (T : Type u) where
+  val : List T
+deriving Repr
+
+namespace Vec
+
+def with_capacity (T : Type u) (_capacity : Usize) : Vec T := ⟨[]⟩
+
+def push {T : Type u} (items : Vec T) (value : T) : Result (Vec T) :=
+  .ok ⟨items.val ++ [value]⟩
+
+end Vec
+end alloc.vec
+
+namespace core.cmp.impls.OrdUsize
+
+def min (left right : Usize) : Usize :=
+  if left.val ≤ right.val then left else right
+
+end core.cmp.impls.OrdUsize
 
 namespace Do
 end Do

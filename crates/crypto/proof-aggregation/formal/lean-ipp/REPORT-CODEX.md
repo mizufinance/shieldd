@@ -5398,6 +5398,189 @@ module and the enclosing `Ipp.S1` focused build passed. No concurrent Lean or
 Lake invocation was used. The final `lake build Ipp` remains for the batch-end
 verification.
 
+### GAP-01 — canonical field-component decode injectivity
+
+**Proved** in `Ipp/CanonicalDecode.lean` against the pinned
+`ark-bls12-377 0.5.0` modulus. `decodeLE` is the exact 48-byte little-endian
+integer model; `decodeFqCanonical` accepts exactly values below the modulus.
+The proof covers fixed-width left inversion, accepted-wire injectivity,
+noncanonical values, the seven spare high bits of the 384-bit container,
+wrong/trailing byte counts, and component lifts through Fq12.
+
+Theorem statements, verbatim:
+
+```lean
+theorem encodeLE_decodeLE (xs : List UInt8) :
+    encodeLE xs.length (decodeLE xs) = xs := by
+
+theorem decodeLE_encodeLE_of_lt (width n : Nat) (h : n < 256 ^ width) :
+    decodeLE (encodeLE width n) = n := by
+
+theorem decodeFqCanonical_injective {x y : FqWire} {v : FqValue}
+    (hx : decodeFqCanonical x = some v)
+    (hy : decodeFqCanonical y = some v) : x = y := by
+
+theorem decodeFqCanonical_rejects_noncanonical (w : FqWire)
+    (h : fqModulus ≤ w.value) : decodeFqCanonical w = none := by
+
+theorem decodeFqCanonical_rejects_spare_bits (w : FqWire)
+    (h : 2 ^ 377 ≤ w.value) : decodeFqCanonical w = none := by
+
+theorem decodeFqList_rejects_wrong_length (xs : List UInt8)
+    (h : xs.length ≠ 48) : decodeFqList xs = none := by
+
+theorem decodeFqList_exact_consumption {xs : List UInt8} {x : FqValue}
+    (h : decodeFqList xs = some x) : xs.length = 48 := by
+
+theorem decodeFq2Canonical_injective {x y : Fq2Wire} {v : Fq2Value}
+    (hx : decodeFq2Canonical x = some v)
+    (hy : decodeFq2Canonical y = some v) : x = y := by
+
+theorem decodeFq6Canonical_injective {x y : Fq6Wire} {v : Fq6Value}
+    (hx : decodeFq6Canonical x = some v)
+    (hy : decodeFq6Canonical y = some v) : x = y := by
+
+theorem decodeFq12Canonical_injective {x y : Fq12Wire} {v : Fq12Value}
+    (hx : decodeFq12Canonical x = some v)
+    (hy : decodeFq12Canonical y = some v) : x = y := by
+```
+
+`CanonicalWire.DecoderFamily` now includes the previously missing Fq6 type and
+`decodeFq6` signature, so the wire family covers every extension level named by
+GAP-01.
+
+`#print axioms`:
+
+```text
+'Ipp.CanonicalWire.encodeLE_decodeLE' depends on axioms: [propext]
+'Ipp.CanonicalWire.decodeLE_encodeLE_of_lt' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.CanonicalWire.decodeFqCanonical_injective' depends on axioms: [propext, Quot.sound]
+'Ipp.CanonicalWire.decodeFqCanonical_rejects_noncanonical' depends on axioms: [propext]
+'Ipp.CanonicalWire.decodeFqCanonical_rejects_spare_bits' depends on axioms: [propext]
+'Ipp.CanonicalWire.decodeFqList_exact_consumption' depends on axioms: [propext]
+'Ipp.CanonicalWire.decodeFq2Canonical_injective' depends on axioms: [propext, Quot.sound]
+'Ipp.CanonicalWire.decodeFq6Canonical_injective' depends on axioms: [propext, Quot.sound]
+'Ipp.CanonicalWire.decodeFq12Canonical_injective' depends on axioms: [propext, Quot.sound]
+```
+
+Focused `lake build Ipp.CanonicalDecode` passed 548 jobs in 46.7 seconds;
+after adding the bounded decode/encode direction, `lake build
+Ipp.CanonicalGtDecode` passed 549 jobs in 47.4 seconds. Both completed with
+warnings only.
+
+### GAP-02 — G1 compressed decode injectivity
+
+**Stalled before a Lean goal could be elaborated.** The session's named
+dependency, the pure Mathlib BLS12-377 G1 curve instantiation from S3-C01, is
+absent from this branch. There is no G1 affine/projective point type, curve
+equation, square-root/sign selector, infinity convention, or reviewed
+on-curve facts under `Ipp/`; only GAP-00's abstract
+`G1Wire → Option G1` signature exists. The exact unformable target is the
+injectivity of the accepted canonical compressed decoder
+`decodeG1Canonical : G1Wire → Option G1Point377`, including malformed flags,
+infinity uniqueness, root selection, on-curve validity, and exact
+consumption. Introducing `G1Point377` or those curve facts as hypotheses here
+would merely restate the missing S3-C01 dependency, so no tautological theorem
+was added.
+
+### GAP-03 — G2 compressed decode injectivity
+
+**Stalled for the same explicit dependency reason.** S3-C01's BLS12-377 twist
+instantiation over Fq2 is absent: no `G2Point377`, twist equation, Fq2 root/sign
+selection, infinity convention, or reviewed on-curve facts exist. The exact
+unformable target is accepted-wire injectivity for
+`decodeG2Canonical : G2Wire → Option G2Point377` with the listed malformed,
+infinity, sign, on-curve, and exact-consumption cases. No axiom or abstract
+decoder-law assumption was introduced.
+
+### GAP-04 — GT canonical decode injectivity
+
+**Proved** in `Ipp/CanonicalGtDecode.lean`. The pinned PairingOutput wire is
+decoded solely as the GAP-01 canonical Fq12 value, while the order-`r`
+predicate is modeled as a distinct subsequent filter.
+
+Theorem statements, verbatim:
+
+```lean
+theorem decodePairingOutputCanonical_injective
+    {x y : PairingOutputWire} {v : PairingOutputValue}
+    (hx : decodePairingOutputCanonical x = some v)
+    (hy : decodePairingOutputCanonical y = some v) : x = y := by
+
+theorem decodePairingOutputChecked_eq_some_iff
+    (member : PairingOutputValue → Bool) (w : PairingOutputWire)
+    (v : PairingOutputValue) :
+    decodePairingOutputChecked member w = some v ↔
+      decodePairingOutputCanonical w = some v ∧ member v = true := by
+```
+
+`canonicalDecoderFamily` connects the GAP-01/GAP-04 concrete field and
+PairingOutput decoders to GAP-00's decoder signatures while leaving the
+dependency-blocked G1/G2 functions explicit.
+
+`#print axioms`:
+
+```text
+'Ipp.CanonicalWire.decodePairingOutputCanonical_injective' depends on axioms: [propext, Quot.sound]
+'Ipp.CanonicalWire.decodePairingOutputChecked_eq_some_iff' depends on axioms: [propext]
+```
+
+Focused `lake build Ipp.CanonicalGtDecode` passed 549 jobs in 27.3 seconds,
+warnings only.
+
+### GAP-05 — G1 subgroup/torsion membership statement
+
+**Stalled before elaboration on the named dependency.** S3-C01 and its
+reviewed BLS12-377 G1 order/cofactor facts are absent. Consequently there is
+no exact checked-membership predicate, scalar multiplication on a G1 curve
+model, intended order-`r` subgroup, cofactor decomposition, or identity
+semantics to relate. The missing goal is the equivalence between that concrete
+checked predicate and order-`r` membership together with exclusion of every
+nonidentity cofactor component. No replacement `Prop`, axiom, or assumed
+factorization was added.
+
+### GAP-06 — G2 subgroup/torsion membership statement
+
+**Stalled before elaboration on the named dependency.** The S3-C01 G2 twist
+model and reviewed order/cofactor/twist facts are absent. The exact missing
+goal is checked-membership equivalence to the intended order-`r` subgroup on
+the BLS12-377 twist, including identity and exclusion of all nontrivial torsion
+components. No abstract fact was promoted as a proof.
+
+### GAP-07 — GT subgroup membership statement
+
+**Stalled after GAP-04 because S3-P00 is absent.** GAP-04 supplies the
+canonical Fq12 value, but this branch has no Fq12 multiplication, `1`,
+exponentiation, scalar order `r`, zero/identity convention, or reviewed
+factorization facts. The exact unformable goal is equivalence of the pinned
+checked PairingOutput predicate with `x ^ r = 1`, and then with the intended
+order-`r` target subgroup. `decodePairingOutputChecked_eq_some_iff` deliberately
+keeps the later membership predicate explicit rather than assuming this goal.
+
+### GAP-12 — batched GT membership soundness
+
+**Not started because GAP-07 is not available.** GAP-00 already proves the
+aggregate contains exactly `4 + 8 * μ` GT wires, but no exact BLS12-377
+off-subgroup quotient/factorization, fresh verifier coefficient distribution,
+or concrete batch predicate exists in Lean. The missing quantitative goal is
+that the actual randomized predicate over all `4 + 8 * μ` decoded values
+accepts any list containing an off-subgroup value with at most its stated
+field/cofactor error, without adversary-chosen coefficient gaps. Proving only
+the coverage count or postulating a random-linear-check lemma would not meet
+the session acceptance criteria, so neither was presented as GAP-12.
+
+### NOW batch final verification
+
+- final pinned `LEAN_NUM_THREADS=1 lake build Ipp`: passed 3,339 jobs in 20.6
+  seconds, warnings only;
+- recursive `Ipp/*.lean` scan: zero `sorry`, project `axiom` declarations, or
+  `native_decide`;
+- all temporary `NOW-*-Audit.lean` files were removed and no temporary `.log`
+  file was created;
+- `git diff --check`: passed;
+- no commit was made;
+- no prover/release-gated circuit tests were applicable or run.
+
 ## GAP-00
 
 Implemented in `Ipp/CanonicalWire.lean`.

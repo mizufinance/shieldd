@@ -67,26 +67,29 @@ structure AggregateProofWire (μ : Nat) where
   finalMessages : G1Wire × G2Wire × G1Wire
 
 /-- Curve-dependent canonical decoders, stated without committing to a model. -/
-structure DecoderFamily (F Fq2 Fq12 G1 G2 GT : Type*) where
+structure DecoderFamily (F Fq2 Fq6 Fq12 G1 G2 GT : Type*) where
   decodeFq : FqWire → Option F
   decodeFq2 : Fq2Wire → Option Fq2
+  decodeFq6 : Fq6Wire → Option Fq6
   decodeFq12 : Fq12Wire → Option Fq12
   decodeG1 : G1Wire → Option G1
   decodeG2 : G2Wire → Option G2
   decodePairingOutput : PairingOutputWire → Option GT
 
-def decodeFq {F Fq2 Fq12 G1 G2 GT : Type*}
-    (D : DecoderFamily F Fq2 Fq12 G1 G2 GT) := D.decodeFq
-def decodeFq2 {F Fq2 Fq12 G1 G2 GT : Type*}
-    (D : DecoderFamily F Fq2 Fq12 G1 G2 GT) := D.decodeFq2
-def decodeFq12 {F Fq2 Fq12 G1 G2 GT : Type*}
-    (D : DecoderFamily F Fq2 Fq12 G1 G2 GT) := D.decodeFq12
-def decodeG1 {F Fq2 Fq12 G1 G2 GT : Type*}
-    (D : DecoderFamily F Fq2 Fq12 G1 G2 GT) := D.decodeG1
-def decodeG2 {F Fq2 Fq12 G1 G2 GT : Type*}
-    (D : DecoderFamily F Fq2 Fq12 G1 G2 GT) := D.decodeG2
-def decodePairingOutput {F Fq2 Fq12 G1 G2 GT : Type*}
-    (D : DecoderFamily F Fq2 Fq12 G1 G2 GT) :=
+def decodeFq {F Fq2 Fq6 Fq12 G1 G2 GT : Type*}
+    (D : DecoderFamily F Fq2 Fq6 Fq12 G1 G2 GT) := D.decodeFq
+def decodeFq2 {F Fq2 Fq6 Fq12 G1 G2 GT : Type*}
+    (D : DecoderFamily F Fq2 Fq6 Fq12 G1 G2 GT) := D.decodeFq2
+def decodeFq6 {F Fq2 Fq6 Fq12 G1 G2 GT : Type*}
+    (D : DecoderFamily F Fq2 Fq6 Fq12 G1 G2 GT) := D.decodeFq6
+def decodeFq12 {F Fq2 Fq6 Fq12 G1 G2 GT : Type*}
+    (D : DecoderFamily F Fq2 Fq6 Fq12 G1 G2 GT) := D.decodeFq12
+def decodeG1 {F Fq2 Fq6 Fq12 G1 G2 GT : Type*}
+    (D : DecoderFamily F Fq2 Fq6 Fq12 G1 G2 GT) := D.decodeG1
+def decodeG2 {F Fq2 Fq6 Fq12 G1 G2 GT : Type*}
+    (D : DecoderFamily F Fq2 Fq6 Fq12 G1 G2 GT) := D.decodeG2
+def decodePairingOutput {F Fq2 Fq6 Fq12 G1 G2 GT : Type*}
+    (D : DecoderFamily F Fq2 Fq6 Fq12 G1 G2 GT) :=
   D.decodePairingOutput
 
 def CommitmentWire.gtElements (c : CommitmentWire) : List Fq12Wire :=
