@@ -1,6 +1,10 @@
 # S3 — arithmetic implementation correctness
 
-Status: design complete; implementation is toolchain-blocked on this machine.
+Status: foundations started. `Ipp/Bls12377.lean` pins the BLS12-377 moduli,
+optimal-ate loop parameter, scalar bit/radix bounds, curve representations,
+Mathlib Jacobian point groups conditional on named arithmetic certificates,
+and an executable Miller-loop/final-exponent split. Arkworks conformance and
+the mathematical bilinearity theorem remain open.
 S3 proves that deployed arithmetic computes the specified mathematics. It does
 **not** prove BLS12-377 security, discrete-log hardness, q-SDH, SXDH/co-CDH,
 subgroup parameter provenance, or the security of Groth16/SnarkPack.
@@ -25,6 +29,19 @@ for G1/G2, and a specified optimal-ate Miller loop plus final exponentiation.
 Every executable theorem is total only on the same checked input domain as
 Rust; failed inversion, malformed points, and non-subgroup inputs remain
 explicit result cases.
+
+The current S3-F00 certificate boundary is explicit: primality of the 377-bit
+base modulus, primality of the 253-bit scalar modulus, and nonsquareness of
+`-5` in the base field are fields of the named proposition
+`Ipp.Bls12377.ArithmeticFacts`. No `sorry`, axiom declaration, or
+`native_decide` substitutes for those certificates. S3-C01 exposes exact G1
+and G2 Weierstrass/Jacobian representations and proves Mathlib group-instance
+availability from those arithmetic facts. S3-C02 begins with a typed affine
+representation relation including the infinity case. S3-P00 currently pins
+the positive loop parameter and its bit schedule plus the Miller/final-exp
+split; line functions, Frobenius constants, and final-exponentiation chain
+remain the next executable-spec work. Bilinearity/non-degeneracy stays a cited
+mathematics row, not a theorem about the pseudocode.
 
 ## Field operations: backend swap versus post-hoc proof
 

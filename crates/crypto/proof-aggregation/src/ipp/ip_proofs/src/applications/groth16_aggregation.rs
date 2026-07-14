@@ -1403,57 +1403,74 @@ where
     let mut last_raw_challenge = prior_raw_challenge;
     let mut raw_transcript_chrono = Vec::new();
     let mut inv_transcript_chrono = Vec::new();
+    let mut round_error = None;
 
     for (left, right) in tipp_mipp.gipa_proof.r_commitment_steps.iter().rev() {
-        let raw_challenge =
-            derive_round_challenge::<P, D, S>(context, trace, &prior_raw_challenge, left, right)?;
-        let inv_challenge = raw_challenge.inverse().ok_or_else(|| {
-            Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "round challenge must be non-zero",
-            )) as Error
-        })?;
+        if round_error.is_none() {
+            match derive_round_challenge::<P, D, S>(
+                context,
+                trace,
+                &prior_raw_challenge,
+                left,
+                right,
+            ) {
+                Err(error) => round_error = Some(error),
+                Ok(raw_challenge) => match raw_challenge.inverse() {
+                    None => {
+                        round_error = Some(Box::new(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "round challenge must be non-zero",
+                        )) as Error)
+                    }
+                    Some(inv_challenge) => {
+                        fold_output(
+                            &left.ab.0,
+                            &mut com_a,
+                            &right.ab.0,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+                        fold_output(
+                            &left.ab.1,
+                            &mut com_b,
+                            &right.ab.1,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+                        fold_output(
+                            &left.ab.2,
+                            &mut com_t,
+                            &right.ab.2,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+                        fold_output(
+                            &left.c.0,
+                            &mut com_c,
+                            &right.c.0,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+                        fold_output(
+                            &left.c.1,
+                            &mut com_z,
+                            &right.c.1,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
 
-        fold_output(
-            &left.ab.0,
-            &mut com_a,
-            &right.ab.0,
-            &inv_challenge,
-            &raw_challenge,
-        );
-        fold_output(
-            &left.ab.1,
-            &mut com_b,
-            &right.ab.1,
-            &inv_challenge,
-            &raw_challenge,
-        );
-        fold_output(
-            &left.ab.2,
-            &mut com_t,
-            &right.ab.2,
-            &inv_challenge,
-            &raw_challenge,
-        );
-        fold_output(
-            &left.c.0,
-            &mut com_c,
-            &right.c.0,
-            &inv_challenge,
-            &raw_challenge,
-        );
-        fold_output(
-            &left.c.1,
-            &mut com_z,
-            &right.c.1,
-            &inv_challenge,
-            &raw_challenge,
-        );
+                        raw_transcript_chrono.push(raw_challenge);
+                        inv_transcript_chrono.push(inv_challenge);
+                        prior_raw_challenge = raw_challenge;
+                        last_raw_challenge = raw_challenge;
+                    }
+                },
+            }
+        }
+    }
 
-        raw_transcript_chrono.push(raw_challenge);
-        inv_transcript_chrono.push(inv_challenge);
-        prior_raw_challenge = raw_challenge;
-        last_raw_challenge = raw_challenge;
+    if let Some(error) = round_error {
+        return Err(error);
     }
 
     raw_transcript_chrono.reverse();
@@ -1555,10 +1572,7 @@ fn structured_scalar_final_from_raw_transcript<P: Pairing>(
     structured_scalar_final_from_raw_transcript_inner(raw_transcript_reversed, r)
 }
 
-fn structured_scalar_final_from_raw_transcript_inner<F>(
-    raw_transcript_reversed: &[F],
-    r: &F,
-) -> F
+fn structured_scalar_final_from_raw_transcript_inner<F>(raw_transcript_reversed: &[F], r: &F) -> F
 where
     F: Clone + One + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
 {

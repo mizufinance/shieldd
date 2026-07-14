@@ -28,6 +28,15 @@ instance : Monad Result where
   pure := .ok
   bind := bind
 
+@[simp] theorem bind_ok {α : Type u} {β : Type u} (value : α)
+    (next : α → Result β) : (.ok value >>= next) = next value := rfl
+
+@[simp] theorem bind_fail {α : Type u} {β : Type u} (error : Error)
+    (next : α → Result β) : ((.fail error : Result α) >>= next) = .fail error := rfl
+
+@[simp] theorem bind_div {α : Type u} {β : Type u} (next : α → Result β) :
+    ((.div : Result α) >>= next) = .div := rfl
+
 end Result
 
 def lift {α : Type u} (value : α) : Result α := .ok value
@@ -36,13 +45,127 @@ inductive ControlFlow (α : Type u) (β : Type v) where
   | cont (value : α)
   | done (value : β)
 
-partial def loop {α : Type u} {β : Type v}
+inductive LoopResult {α : Type u} {β : Type v}
+    (body : α → Result (ControlFlow α β)) : α → Result β → Prop where
+  | done {state value} (h : body state = .ok (.done value)) :
+      LoopResult body state (.ok value)
+  | next {state next result}
+      (hstep : body state = .ok (.cont next))
+      (hnext : LoopResult body next result) :
+      LoopResult body state result
+  | fail {state error} (h : body state = .fail error) :
+      LoopResult body state (.fail error)
+  | div {state} (h : body state = .div) :
+      LoopResult body state .div
+
+namespace LoopResult
+
+theorem unique {α : Type u} {β : Type v}
+    {body : α → Result (ControlFlow α β)} {state : α} {left right : Result β}
+    (hleft : LoopResult body state left) (hright : LoopResult body state right) :
+    left = right := by
+  induction hleft generalizing right with
+  | done h =>
+      cases hright with
+      | done h' => rw [h] at h'; cases h'; rfl
+      | next h' _ => simp_all
+      | fail h' => simp_all
+      | div h' => simp_all
+  | next hstep hnext ih =>
+      cases hright with
+      | done h => simp_all
+      | next hstep' hnext' =>
+          rw [hstep] at hstep'
+          cases hstep'
+          exact ih hnext'
+      | fail h => simp_all
+      | div h => simp_all
+  | fail h =>
+      cases hright with
+      | done h' => simp_all
+      | next h' _ => simp_all
+      | fail h' => rw [h] at h'; cases h'; rfl
+      | div h' => simp_all
+  | div h =>
+      cases hright with
+      | done h' => simp_all
+      | next h' _ => simp_all
+      | fail h' => simp_all
+      | div h' => rfl
+
+end LoopResult
+
+/-- A finite execution witness for an extracted Rust loop. -/
+def loopFuel {α : Type u} {β : Type v}
+    (body : α → Result (ControlFlow α β)) : Nat → α → Result β
+  | 0, _ => .div
+  | fuel + 1, state =>
+      match body state with
+      | .ok (.cont next) => loopFuel body fuel next
+      | .ok (.done value) => .ok value
+      | .fail error => .fail error
+      | .div => .div
+
+private theorem loopResult_of_loopFuel_eq {α : Type u} {β : Type v}
+    {body : α → Result (ControlFlow α β)} {fuel : Nat} {state : α}
+    {result : Result β} (hresult : result ≠ .div)
+    (h : loopFuel body fuel state = result) : LoopResult body state result := by
+  induction fuel generalizing state with
+  | zero =>
+      simp only [loopFuel] at h
+      exact (hresult h.symm).elim
+  | succ fuel ih =>
+      cases hbody : body state with
+      | ok flow =>
+          cases flow with
+          | cont next =>
+              simp only [loopFuel, hbody] at h
+              exact .next hbody (ih h)
+          | done value =>
+              simp only [loopFuel, hbody] at h
+              subst result
+              exact .done hbody
+      | fail error =>
+          simp only [loopFuel, hbody] at h
+          subst result
+          exact .fail hbody
+      | div =>
+          simp only [loopFuel, hbody] at h
+          exact (hresult h.symm).elim
+
+/-- The extracted loop result is the unique finite result when one exists;
+    otherwise the Rust divergence marker is returned. -/
+unsafe def loopImpl {α : Type u} {β : Type v}
     (body : α → Result (ControlFlow α β)) (state : α) : Result β :=
   match body state with
-  | .ok (.cont next) => loop body next
+  | .ok (.cont next) => loopImpl body next
   | .ok (.done value) => .ok value
   | .fail error => .fail error
   | .div => .div
+
+@[implemented_by loopImpl]
+noncomputable def loop {α : Type u} {β : Type v}
+    (body : α → Result (ControlFlow α β)) (state : α) : Result β :=
+  by
+    classical
+    exact if h : ∃ result, LoopResult body state result then Classical.choose h else .div
+
+theorem loop_eq_of_result {α : Type u} {β : Type v}
+    {body : α → Result (ControlFlow α β)} {state : α} {result : Result β}
+    (hresult : LoopResult body state result) : loop body state = result := by
+  classical
+  unfold loop
+  split
+  · rename_i h
+    exact LoopResult.unique (Classical.choose_spec h) hresult
+  · rename_i h
+    exact False.elim (h ⟨result, hresult⟩)
+
+theorem loop_eq_of_fuel {α : Type u} {β : Type v}
+    {body : α → Result (ControlFlow α β)} {fuel : Nat} {state : α}
+    {result : Result β} (hresult : result ≠ .div)
+    (h : loopFuel body fuel state = result) : loop body state = result :=
+  loop_eq_of_result (loopResult_of_loopFuel_eq hresult h)
 
 namespace Std
 

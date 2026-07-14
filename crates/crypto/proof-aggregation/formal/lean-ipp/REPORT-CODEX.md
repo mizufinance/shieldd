@@ -6515,3 +6515,98 @@ two TIPA polynomial targets, both KZG opening verifiers, the three isolated
 Groth16 arithmetic helpers, and the Groth16 verify/PPE path. The previously
 validated `gipa::fold_output` remains proved by `rfl`. No prover or
 release-gated tests were run.
+
+## S2/S3 adapt+continue
+
+### Redesign and plan updates
+
+The pairing blocker was split at a real external-arithmetic boundary instead
+of waiting for a concrete S3 pairing. `PairingEquation<G1, G2>` exposes only
+the two-pairing zero test needed by the KZG equations. The production
+`ArkworksPairingEquation<P>` delegates to the existing
+`cfg_multi_pairing::<P>` path and maps failure to `false`; the two generic
+equation kernels construct all group operands themselves. Scoped hax/Aeneas
+extraction completed for both kernels, and Lean interprets their pairing
+dictionary with the existing bilinear map model. This proves the S2 equation
+shape without claiming arkworks pairing conformance, which remains S3.
+
+`verify_tipp_mipp` was behavior-preservingly changed to record the first
+challenge/inversion error, make later loop iterations no-ops, and return that
+error after the loop. The normal and hax-compilation Rust suites pass. A scoped
+full-verifier extraction no longer reports hax's early-loop-return diagnostic;
+it now stops only in the mixed arkworks field/group/pairing associated-type
+graph.
+
+The minimal Aeneas runtime's opaque `partial def loop` was also replaced by a
+finite relational `LoopResult` semantics, a uniqueness theorem, an executable
+fuel witness, and logical/executable correspondence lemmas. This enabled the
+first exact generated-loop proof without replacing generated code.
+
+The adapted status and next steps are recorded in `s2-tier1-plan.md`,
+`s3-arithmetic-plan.md`, and `s2-s3-sessions.md`. The two generic kernels were
+added to `hax-targets.txt` and `hax-extraction-boundary.md`; the latter also
+records the single-exit verifier and proved loop target.
+
+### S2 target status
+
+| Target | Status | Exact result or remaining goal |
+| --- | --- | --- |
+| `gipa::fold_output` | proved=model (pre-existing) | `hax_translated_fold_output_eq_foldCom` |
+| `inverse_powers_with_inverse` | proved=model | `hax_translated_inverse_powers_eq` and the nonzero-inverse specialization prove the extracted vector is `i ↦ rInv^i` |
+| G2 generic KZG equation kernel | proved=model | `hax_translated_verify_g2_kzg_eq` and `_true_iff` prove exact operands, sign, order, and boolean equation |
+| G1 generic KZG equation kernel | proved=model | `hax_translated_verify_g1_kzg_eq` and `_true_iff` prove exact operands, sign, order, and boolean equation |
+| public G1/G2 KZG wrappers | scaffolded | compose extracted product-form evaluation with the proved equation kernels; arkworks pairing conformance is S3 |
+| `rescale_fold_inner` | scaffolded | generated-loop/list result equals `Ipp.foldMsg` |
+| final commitment keys | scaffolded | arkworks Field/MSM associated-type extraction, then equality with `foldKey`/`transcriptCoeffs` |
+| polynomial coefficients | scaffolded | generated nested vector/interleave result has the exact length/even coefficient/odd-zero shape |
+| polynomial product evaluation | scaffolded | generated product loop equals `transcript_prod_form_eval` |
+| shifted commitment key | scaffolded | generated paired-slice loop is the pointwise scalar action |
+| structured terminal scalar | scaffolded | generated squaring/product loop equals `Ipp.terminalR` |
+| public-input fold | scaffolded | extracted nested folds equal the Groth16 `gIC` sum |
+| prepared PPE | scaffolded | abstract prepared-pairing effect plus exact final equation |
+| full `verify_tipp_mipp` | scaffolded | early-return blocker retired; abstract remaining arkworks trait groups and prove `run = true ↔ LeafData` |
+| aggregate verifier | scaffolded | compose the verifier, public-input, PPE, and trace/profile projections to `FsAccepts` |
+
+`formal-handoff.md` promotes only the inverse-power portion of
+`tipp-mipp.power-sequence` and the G1/G2 accept-shape portions of
+`tipp-mipp.kzg-equations`. Product evaluation, shifted-key composition, the
+public wrappers, and arkworks arithmetic are explicitly not promoted.
+
+### S3 foundations
+
+`Ipp/Bls12377.lean` starts S3-F00/C01/C02/P00. It pins the exact BLS12-377 base
+and scalar moduli and positive optimal-ate loop parameter; proves the parameter
+identities and scalar bit/Montgomery-radix bounds; defines `Fq`, `Fr`, `Fq2`,
+the G1 curve and exact G2 twist; proves both discriminant formulas; exposes
+Mathlib Jacobian G1/G2 group availability from named arithmetic certificates;
+defines a typed affine representation with the infinity theorem; and gives an
+executable loop-bit Miller/final-exponent split.
+
+The 377/253-bit primality certificates, `-5` nonresidue certificate,
+ellipticity instances, exact line/Frobenius/final-exponentiation chain,
+arkworks refinement, and published bilinearity/non-degeneracy connection
+remain open named goals. The pseudocode is not labeled bilinear. Consequently
+GAP-02/03/05/06/07/12 remain gated on the unfinished concrete representation,
+decoder/subgroup, and pairing-conformance work.
+
+### Verification
+
+- `cargo test -p ark-ip-proofs --quiet`: 16 passed, 2 ignored, 0 failed after
+  each Rust redesign section and again at final handoff.
+- `RUSTFLAGS="--cfg hax_compilation" cargo test -p ark-ip-proofs --quiet`:
+  16 passed, 2 ignored, 0 failed.
+- Pinned Windows Lean with `LEAN_NUM_THREADS=1`: focused new-module builds and
+  final `lake build Ipp` passed; the final build completed 3,378 jobs.
+- Axiom audit for every new theorem: only `propext`, `Classical.choice`, and
+  `Quot.sound` (some arithmetic theorems use a subset).
+- No `sorry`, axiom declaration, `admit`, or `native_decide` in the new Lean.
+- `scripts/check-snarkpack-invariants.sh`: `snarkpack invariants ok`.
+- Temporary extraction/build logs were removed; the pre-existing untracked
+  `hooks/` directory was left untouched.
+- No prover, circuit, or release-gated tests were applicable or run.
+
+Remaining S2 work is the scaffold list above, led by product evaluation into
+the now-proved KZG kernels and the remaining generic arithmetic boundaries for
+the full verifier/PPE. Remaining S3 starts with checked large-number
+certificates and the exact Fq2/Fq12/curve representation, followed by the
+pinned line functions and final-exponentiation chain. No commits were made.

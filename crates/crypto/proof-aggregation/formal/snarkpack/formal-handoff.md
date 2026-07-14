@@ -99,6 +99,9 @@ classification defaults to the higher-risk class until resolved.
 | accepted round points are queried and in the whole-game budget | abstract cached FS verifier game | accepted round query export plus `Q qb = qb + 1` total-query cap | Lean (`lean-ipp`) | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/FsBadEvents.lean` | `Ipp.accepted_not_badUnqueried`; `Ipp.round_unqueried_bound` | proved | Lean `v4.30.0` | bad-event probability is exactly zero; focused builds and axiom audit |
 | dependency-order candidate-pair ROM bound | abstract cached FS verifier game | accepted dependency chain plus ordered structured-query candidates | Lean (`lean-ipp`) | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/FsCandidateBounds.lean`; `Ipp/FsOrderEvents.lean`; `Ipp/FsBadEvents.lean` | `Ipp.dependency_order_candidate_bound`; `Ipp.dependency_order_bound` | proved | Lean `v4.30.0` | adaptive payload selection is covered by a pairwise union bound of `Q^2/card(F)`; focused builds and axiom audit |
 | adjacent-round candidate-pair ROM bound | abstract cached FS verifier game | accepted adjacent-round chain plus ordered structured-query candidates | Lean (`lean-ipp`) | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/FsCandidateBounds.lean`; `Ipp/FsOrderEvents.lean`; `Ipp/FsBadEvents.lean` | `Ipp.round_slot_order_candidate_bound`; `Ipp.round_slot_order_bound` | proved | Lean `v4.30.0` | adaptive adjacent-round selection is covered by a pairwise union bound of `Q^2/card(F)`; focused builds and axiom audit |
+| inverse-power construction refines the `tipp-mipp.power-sequence` model | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs` | `inverse_powers_with_inverse` | Lean via hax/Aeneas | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/InversePowers.lean` | `Ipp.Extracted.hax_translated_inverse_powers_eq`; `Ipp.Extracted.hax_translated_inverse_powers_nonzero_eq` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact extracted loop result and nonzero-inverse specialization; shifted-key composition remains open |
+| G2 commitment-key KZG accept equation refines the `tipp-mipp.kzg-equations` abstract pairing shape | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs` | `verify_commitment_key_g2_kzg_equation` | Lean via hax/Aeneas, abstract pairing effect | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/KzgVerifiers.lean` | `Ipp.Extracted.hax_translated_verify_g2_kzg_eq`; `Ipp.Extracted.hax_translated_verify_g2_kzg_true_iff` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact operand/sign/order and boolean equation; product-evaluation composition and arkworks pairing conformance remain open |
+| G1 commitment-key KZG accept equation refines the `tipp-mipp.kzg-equations` abstract pairing shape | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs` | `verify_commitment_key_g1_kzg_equation` | Lean via hax/Aeneas, abstract pairing effect | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/KzgVerifiers.lean` | `Ipp.Extracted.hax_translated_verify_g1_kzg_eq`; `Ipp.Extracted.hax_translated_verify_g1_kzg_true_iff` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact operand/sign/order and boolean equation; product-evaluation composition and arkworks pairing conformance remain open |
 
 ## Assumptions
 
@@ -257,6 +260,28 @@ The generated Lean for the four helper extractions is vendored under
 `Ipp/Extracted/*Generated.lean`; each corresponding public file contains a
 no-sorry refinement statement. None of these loop-to-`Fin`/`Finset` bridges is
 proved yet, so no abstract-trace row is promoted.
+
+## S2 pairing/loop adaptation and promotions
+
+The Aeneas runtime now gives generated loops a finite relational semantics,
+proves result uniqueness, and connects an executable fuel witness to the
+logical loop. This closes the previously opaque loop boundary for
+`inverse_powers_with_inverse`, whose exact power sequence is now proved.
+
+The public KZG verifiers retain their existing product evaluation and delegate
+the final check to extracted generic G1/G2 equation kernels. Those kernels are
+parametric over one `PairingEquation` effect; the production implementation is
+the existing arkworks multi-pairing check and preserves failure-as-`false`.
+Their exact equations are proved against the Ipp bilinear-map model. Therefore
+the inverse-power portion of `tipp-mipp.power-sequence` and the G1/G2
+accept-shape portions of `tipp-mipp.kzg-equations` are promoted in the proof
+index above. The product-evaluation, shifted-key, and arkworks arithmetic
+conformance portions remain open and are not promoted.
+
+`verify_tipp_mipp` has a single error exit after its round loop. Normal Rust
+tests preserve behavior, and scoped hax no longer reports the early-loop-return
+diagnostic; the closed verifier graph remains scaffolded at arkworks
+trait/associated-type operations.
 
 ## Gates
 

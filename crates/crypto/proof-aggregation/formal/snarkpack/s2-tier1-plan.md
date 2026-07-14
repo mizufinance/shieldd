@@ -1,8 +1,35 @@
 # S2 Tier 1 — executed Rust to Lean model equivalence
 
-Status: design complete; execution is blocked on this machine because hax must
-consume a Rust build and the installed Windows environment has neither MSVC
-Build Tools nor the Windows SDK. Do not start extraction here.
+Status: executing on the installed Windows/WSL toolchain. The obsolete host
+blocker is retired. The pairing and loop blockers are handled by the adapted
+boundary below; remaining rows are tracked per target rather than as a global
+toolchain stop.
+
+## 2026-07-13 adapted boundary
+
+The S2 pairing path remains abstract instead of waiting for S3. Two generic
+KZG equation kernels construct the exact group operands and call one
+`PairingEquation` effect. The production `ArkworksPairingEquation<P>` adapter
+delegates to the pre-existing `cfg_multi_pairing::<P>` operation, including
+mapping pairing failure to `false`. Hax extracts the generic kernels, and Lean
+interprets the effect as the existing bilinear map
+`e : G1 →ₗ[F] G2 →ₗ[F] GT`. This separates the proved S2 equation shape from
+the still-open S3 claim that arkworks implements the published pairing.
+
+`verify_tipp_mipp` now records the first challenge/inversion error and returns
+it once after its round loop. Later iterations are no-ops after an error, so
+the result and all observable caller behavior are unchanged. Scoped extraction
+no longer reports hax's early-loop-return error; its remaining stop is the
+arkworks trait/associated-type graph. Generated loops use a finite relational
+`LoopResult` semantics with a proved unique result and an executable fuel
+witness, replacing the earlier opaque `partial def loop` proof barrier.
+
+Green refinements in this adaptation are
+`inverse_powers_with_inverse` and both generic KZG equation kernels. The public
+KZG wrappers remain scaffolded until the extracted product-form evaluation is
+composed with the kernel theorems. Full `verify_tipp_mipp`, prepared PPE, final
+keys, rescale, shifted-key construction, structured scalar, coefficients, and
+product evaluation retain explicit scaffold goals.
 
 ## Objective and boundary
 

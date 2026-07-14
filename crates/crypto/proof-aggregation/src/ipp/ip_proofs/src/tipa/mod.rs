@@ -1133,7 +1133,66 @@ pub fn prove_commitment_key_kzg_opening_with_affine_profiled<G: CurveGroup>(
     Ok((opening, profile))
 }
 
-//TODO: Figure out how to avoid needing two separate methods for verification of opposite groups
+trait PairingEquation<G1, G2> {
+    fn two_pairing_is_zero(left_0: G1, right_0: G2, left_1: G1, right_1: G2) -> bool;
+}
+
+struct ArkworksPairingEquation<P: Pairing>(PhantomData<P>);
+
+impl<P: Pairing> PairingEquation<P::G1, P::G2> for ArkworksPairingEquation<P> {
+    fn two_pairing_is_zero(left_0: P::G1, right_0: P::G2, left_1: P::G1, right_1: P::G2) -> bool {
+        cfg_multi_pairing::<P>(&[left_0, left_1], &[right_0, right_1])
+            .map(|output| output == ark_ec::pairing::PairingOutput::<P>::zero())
+            .unwrap_or(false)
+    }
+}
+
+fn verify_commitment_key_g2_kzg_equation<F, G1, G2, E>(
+    g: &G1,
+    g_beta: &G1,
+    h: &G2,
+    ck_final: &G2,
+    ck_opening: &G2,
+    eval: &F,
+    z: &F,
+) -> bool
+where
+    F: Clone,
+    G1: Clone
+        + std::ops::Mul<F, Output = G1>
+        + std::ops::Sub<Output = G1>
+        + std::ops::Neg<Output = G1>,
+    G2: Clone + std::ops::Mul<F, Output = G2> + std::ops::Sub<Output = G2>,
+    E: PairingEquation<G1, G2>,
+{
+    let right_0 = ck_final.clone() - h.clone() * eval.clone();
+    let left_1 = -(g_beta.clone() - g.clone() * z.clone());
+    E::two_pairing_is_zero(g.clone(), right_0, left_1, ck_opening.clone())
+}
+
+fn verify_commitment_key_g1_kzg_equation<F, G1, G2, E>(
+    g: &G1,
+    h_alpha: &G2,
+    h: &G2,
+    ck_final: &G1,
+    ck_opening: &G1,
+    eval: &F,
+    z: &F,
+) -> bool
+where
+    F: Clone,
+    G1: Clone
+        + std::ops::Mul<F, Output = G1>
+        + std::ops::Sub<Output = G1>
+        + std::ops::Neg<Output = G1>,
+    G2: Clone + std::ops::Mul<F, Output = G2> + std::ops::Sub<Output = G2>,
+    E: PairingEquation<G1, G2>,
+{
+    let left_0 = ck_final.clone() - g.clone() * eval.clone();
+    let right_1 = h_alpha.clone() - h.clone() * z.clone();
+    E::two_pairing_is_zero(left_0, h.clone(), -ck_opening.clone(), right_1)
+}
+
 pub fn verify_commitment_key_g2_kzg_opening<P: Pairing>(
     v_srs: &VerifierSRS<P>,
     ck_final: &P::G2,
@@ -1144,17 +1203,20 @@ pub fn verify_commitment_key_g2_kzg_opening<P: Pairing>(
 ) -> Result<bool, Error> {
     let ck_polynomial_c_eval =
         polynomial_evaluation_product_form_from_transcript(transcript, kzg_challenge, r_shift);
-    let left = vec![
-        v_srs.g.clone(),
-        -(v_srs.g_beta.clone() - v_srs.g.clone() * kzg_challenge),
-    ];
-    let right = vec![
-        *ck_final - v_srs.h.clone() * ck_polynomial_c_eval,
-        ck_opening.clone(),
-    ];
-    Ok(cfg_multi_pairing::<P>(&left, &right)
-        .map(|pairing_output| pairing_output == ark_ec::pairing::PairingOutput::<P>::zero())
-        .unwrap_or(false))
+    Ok(verify_commitment_key_g2_kzg_equation::<
+        _,
+        _,
+        _,
+        ArkworksPairingEquation<P>,
+    >(
+        &v_srs.g,
+        &v_srs.g_beta,
+        &v_srs.h,
+        ck_final,
+        ck_opening,
+        &ck_polynomial_c_eval,
+        kzg_challenge,
+    ))
 }
 
 pub fn verify_commitment_key_g1_kzg_opening<P: Pairing>(
@@ -1167,17 +1229,20 @@ pub fn verify_commitment_key_g1_kzg_opening<P: Pairing>(
 ) -> Result<bool, Error> {
     let ck_polynomial_c_eval =
         polynomial_evaluation_product_form_from_transcript(transcript, kzg_challenge, r_shift);
-    let left = vec![
-        *ck_final - v_srs.g.clone() * ck_polynomial_c_eval,
-        -ck_opening.clone(),
-    ];
-    let right = vec![
-        v_srs.h.clone(),
-        v_srs.h_alpha.clone() - v_srs.h.clone() * kzg_challenge,
-    ];
-    Ok(cfg_multi_pairing::<P>(&left, &right)
-        .map(|pairing_output| pairing_output == ark_ec::pairing::PairingOutput::<P>::zero())
-        .unwrap_or(false))
+    Ok(verify_commitment_key_g1_kzg_equation::<
+        _,
+        _,
+        _,
+        ArkworksPairingEquation<P>,
+    >(
+        &v_srs.g,
+        &v_srs.h_alpha,
+        &v_srs.h,
+        ck_final,
+        ck_opening,
+        &ck_polynomial_c_eval,
+        kzg_challenge,
+    ))
 }
 
 pub fn structured_generators_scalar_power<G: CurveGroup>(

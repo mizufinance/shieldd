@@ -34,6 +34,8 @@ ark_ip_proofs::tipa::polynomial_coefficients_from_transcript
 ark_ip_proofs::tipa::polynomial_evaluation_product_form_from_transcript
 ark_ip_proofs::tipa::verify_commitment_key_g2_kzg_opening
 ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_opening
+ark_ip_proofs::tipa::verify_commitment_key_g2_kzg_equation
+ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_equation
 ark_ip_proofs::applications::groth16_aggregation::structured_scalar_final_from_raw_transcript_inner
 ark_ip_proofs::applications::groth16_aggregation::inverse_powers_with_inverse
 ark_ip_proofs::applications::groth16_aggregation::build_shifted_ck_2_inner
