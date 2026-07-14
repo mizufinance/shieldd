@@ -6851,3 +6851,25 @@ ellipticity aliases, both zero-`Z` theorems, and both normalization theorems;
 audit source was removed. The two S3 modules still contain no `sorry`,
 `admit`, `native_decide`, or axiom declaration. Prover/release-gated tests were
 not run; the zk-circuit and `tools/gnark/lean` lanes were not touched.
+
+### 2026-07-14 final verification audit
+
+The requested S3 foundation implementation and plan adaptation were already
+present in commit `11879e2dc`; this audit made no Lean or plan changes and no
+commit. With the pinned Windows Lean executable, `LEAN_NUM_THREADS=1`, and one
+Lean/Lake process at a time:
+
+- focused `lake build Ipp.Bls12377 Ipp.Bls12377Pairing` passed, 1,964 jobs;
+- a fresh `#print axioms` audit of all 24 S3 theorem surfaces passed with only
+  `propext`, `Classical.choice`, and `Quot.sound` (or subsets thereof);
+- `scripts/check-snarkpack-invariants.sh` reported `snarkpack invariants ok`;
+- final `lake build Ipp` passed, 3,382 jobs, with pre-existing linter warnings;
+- both S3 modules remain free of `sorry`, `admit`, `native_decide`, and axiom
+  declarations, and the temporary audit source and build log were removed.
+
+No prover or release-gated tests were applicable or run. The zk-circuit and
+`tools/gnark/lean` lanes were not touched. The remaining S2 pairing blockers
+are unchanged: checked F00 primality/nonresidue certificates; reviewed curve,
+subgroup, and target-group factorization facts; arkworks/hax conformance for
+representations and pairing kernels; and the explicitly cited mathematical
+bilinearity/nondegeneracy row.
