@@ -1,11 +1,13 @@
 # S3 — arithmetic implementation correctness
 
-Status: foundations started. `Ipp/Bls12377.lean` pins the BLS12-377 moduli,
-optimal-ate loop parameter, scalar bit/radix bounds, curve representations,
-Mathlib Jacobian point groups conditional on named arithmetic certificates,
-a functional affine representation, exact field bit bounds and ate-loop
-density, and an executable Miller-loop/final-exponent split. Arkworks conformance and
-the mathematical bilinearity theorem remain open.
+Status: pure foundations green. `Ipp/Bls12377.lean` pins the BLS12-377 moduli,
+field characteristics, bit/radix bounds, exact G1/G2 curves, derived
+ellipticity, conditional Mathlib groups, subgroup/cofactor parameters, and
+affine/projective/Jacobian/Montgomery representation relations.
+`Ipp/Bls12377Pairing.lean` gives the concrete Fq2/Fq6/Fq12 tower, D-twist line
+formulas, sparse line evaluation, Miller schedule, and canonical final
+exponentiation. Large-prime certificates, arkworks conformance, and the cited
+mathematical bilinearity theorem remain open.
 S3 proves that deployed arithmetic computes the specified mathematics. It does
 **not** prove BLS12-377 security, discrete-log hardness, q-SDH, SXDH/co-CDH,
 subgroup parameter provenance, or the security of Groth16/SnarkPack.
@@ -35,14 +37,17 @@ The current S3-F00 certificate boundary is explicit: primality of the 377-bit
 base modulus, primality of the 253-bit scalar modulus, and nonsquareness of
 `-5` in the base field are fields of the named proposition
 `Ipp.Bls12377.ArithmeticFacts`. No `sorry`, axiom declaration, or
-`native_decide` substitutes for those certificates. S3-C01 exposes exact G1
-and G2 Weierstrass/Jacobian representations and proves Mathlib group-instance
-availability from those arithmetic facts. S3-C02 has a typed functional affine
-representation relation with infinity and finite witnesses. S3-P00 currently pins
-the positive loop parameter, its bit schedule and six non-leading set bits, plus the Miller/final-exp
-split; line functions, Frobenius constants, and final-exponentiation chain
-remain the next executable-spec work. Bilinearity/non-degeneracy stays a cited
-mathematics row, not a theorem about the pseudocode.
+`native_decide` substitutes for those certificates. Mathlib's `norm_num` does
+not synthesize either large primality proof; both exact `Nat.Prime` goals remain
+certificate inputs for a future checked-certificate session. S3-C01 derives
+both elliptic-curve instances from those inputs and records reviewed subgroup
+and cofactor parameters. S3-C02 relates raw affine/projective/Jacobian and
+Montgomery values to canonical Mathlib/ZMod values and proves zero-`Z` and
+normalization facts. S3-P00 pins the positive loop parameter, its bit schedule,
+the concrete extension tower, homogeneous D-twist line formulas, sparse `034`
+evaluation, and the Miller/final-exponentiation split. Bilinearity and
+non-degeneracy remain the explicit `PublishedPairingBilinearNondegenerate`
+cited-mathematics proposition, not a theorem about the pseudocode.
 
 ## Field operations: backend swap versus post-hoc proof
 
@@ -148,11 +153,15 @@ generic claim that both libraries implement “a Weierstrass law” is insuffici
 
 ### Provable implementation-correctness layer
 
-Pin one published optimal-ate/BLS12 pseudocode and its exact parameterization:
-signed loop parameter, NAF/bit order, twist map, Frobenius constants, line
-functions, sparse Fq12 multiplication, conjugations, and the easy/hard final
-exponentiation chain. The source and version become proof inputs; prose
-equations assembled from several papers are not an acceptable model.
+Pin the arkworks 0.5.0 BLS12 specialization of the optimal-ate/BLS12
+pseudocode and its exact parameterization: signed loop parameter, bit order,
+D-twist, homogeneous line functions, extension tower, sparse Fq12 line value,
+and canonical exponent `(q^12 - 1) / r`. The line formulas are the formulas
+identified by arkworks as ePrint 2013/722; the BLS12 family and optimal-pairing
+boundary use ePrint 2012/232. The pure specification uses direct exponentiation.
+Arkworks' optimized Frobenius/cyclotomic chain (identified in 0.5.0 as ePrint
+2020/875) belongs to S3-P04 and must refine the canonical power; duplicating
+that implementation optimization in the specification would weaken the check.
 
 Model the extension tower over the proved base field and establish:
 

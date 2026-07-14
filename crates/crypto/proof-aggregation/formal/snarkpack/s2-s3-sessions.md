@@ -12,11 +12,13 @@
   public arkworks wrappers remain trait-graph gated.
 - `verify_tipp_mipp` is single-exit after its loop. Its early-return blocker is
   retired; the full closed extraction remains gated by arkworks trait groups.
-- S3-F00/C01/C02/P00 have a green foundation module with exact constants,
-  explicit arithmetic/ellipticity certificate propositions, conditional
-  Mathlib groups, functional affine representation, exact field bit bounds and
-  ate-loop density, and an executable pairing split. It does not claim
-  primality, arkworks conformance, or bilinearity.
+- S3-C01/C02/P00 pure foundations are green: derived ellipticity and Mathlib
+  groups from explicit arithmetic certificates, reviewed subgroup/cofactor
+  parameters, affine/projective/Jacobian/Montgomery relations, a concrete
+  Fq2/Fq6/Fq12 tower, D-twist line formulas, Miller loop, and canonical final
+  exponentiation. S3-F00's two large `Nat.Prime` certificates and Fq2
+  nonresidue certificate remain explicit inputs. No arkworks conformance or
+  bilinearity is claimed.
 
 Status: executable work order. This file decomposes the remaining formal-verification
 work described by `s2-tier1-plan.md`, `s3-arithmetic-plan.md`,
@@ -221,9 +223,12 @@ delete the rejected experiment rather than maintaining dual production paths.
 
 ### Field377 and extension tower
 
-1. **S3-F00 — BLS12-377 modulus and `ZMod` foundations** — `HARD (sol)` — `NOW`
+1. **S3-F00 — BLS12-377 modulus and `ZMod` foundations** — `HARD (sol)` — `PARTIAL`
    - **Deliverable:** Prove the base/scalar moduli prime and record canonical `ZMod q`/`ZMod r`, limb-range, Montgomery-radix, encode/decode, and checked-input specifications used by both field spikes.
    - **Dependencies:** none.
+   - **Landed:** exact moduli/family equations, bit/radix bounds, `ZMod`
+     characteristics/cast lemmas, Montgomery decode relation, and named exact
+     certificate inputs. `norm_num` leaves both large `Nat.Prime` goals open.
 
 2. **S3-F01A — fiat-backed adapter feasibility slice** — `HARD (sol)` — `GATED`
    - **Deliverable:** Generate/instantiate fiat-crypto code for both moduli and prove one end-to-end adapter slice covering representation, Montgomery encode/decode, addition, multiplication, and square against S3-F00.
@@ -283,11 +288,11 @@ delete the rejected experiment rather than maintaining dual production paths.
     - **Deliverable:** Use the release-build deterministic corpus and existing GIPA/KZG/public-input profile fields to confirm which G1/G2 scalar-mul, normalization, or MSM kernel is above the end-to-end noise floor before committing production proof effort.
     - **Dependencies:** the S3-F02 measurement harness; the pure foundations below may proceed before this gate.
 
-16. **S3-C01 — Mathlib BLS12-377 G1/G2 instantiation** — `HARD (sol)` — `NOW`
+16. **S3-C01 — Mathlib BLS12-377 G1/G2 instantiation** — `HARD (sol)` — `DONE`
     - **Deliverable:** Instantiate the BLS12-377 G1 curve and G2 twist over `ZMod q`/Fq2, prove discriminants nonzero, and define the reviewed prime-order subgroup/cofactor parameters.
     - **Dependencies:** S3-F00.
 
-17. **S3-C02 — representation relations and normalization** — `HARD (sol)` — `NOW`
+17. **S3-C02 — representation relations and normalization** — `HARD (sol)` — `DONE`
     - **Deliverable:** Define affine/projective/Jacobian-to-Mathlib point-class relations and prove infinity, zero-`Z`, coordinate equivalence, affine conversion, and normalization preserve the represented point.
     - **Dependencies:** S3-C01.
 
@@ -314,8 +319,8 @@ delete the rejected experiment rather than maintaining dual production paths.
 
 ### Pairing377
 
-23. **S3-P00 — pinned optimal-ate executable specification** — `HARD (sol)` — `NOW`
-    - **Deliverable:** Pin one published optimal-ate/BLS12 algorithm and encode its exact signed loop parameter, bit/NAF order, twist map, line functions, Frobenius constants, sparse Fq12 operations, conjugations, and easy/hard final-exponentiation chain as Lean pseudocode.
+23. **S3-P00 — pinned optimal-ate executable specification** — `HARD (sol)` — `DONE`
+    - **Deliverable:** Pin the arkworks 0.5.0 specialization of published BLS12/optimal-ate formulas: positive loop parameter and bit order, D-twist homogeneous line formulas, concrete Fq2/Fq6/Fq12 tower, sparse `034` line evaluation, Miller loop, and canonical final exponentiation. The optimized Frobenius/cyclotomic implementation chain is an S3-P04 refinement target, not a second specification path.
     - **Dependencies:** S3-F00 and S3-C01; the literature claim of bilinearity/non-degeneracy remains a named assumption.
 
 24. **S3-P01 — pairing-kernel profile/A-B gate** — `MECHANICAL (luna)` — `GATED`
@@ -372,10 +377,11 @@ of the arithmetic premises then follows the selected
 `S3-F00 -> S3-F01A/F01B -> S3-F02 -> one field branch -> S3-F06`, after which
 Curve377 and the extension/Pairing377 paths proceed by their listed dependencies.
 
-Dispatchable `NOW` without MSVC/SDK/hax/Z3 work are `GAP-00`, `GAP-01`,
-`S3-F00`, `S3-C01`, `S3-P00`, and `U5a-R1`; after those foundations land,
-`GAP-02` through `GAP-07`, `GAP-12`, `S3-C02`, and `U5a-R2` become immediately
-dispatchable on the same pure-Lean host.
+Dispatchable `NOW` without MSVC/SDK/hax/Z3 work are the checked-certificate
+completion of `S3-F00`, `GAP-00` through `GAP-07`, `GAP-12`, `U5a-R1`, and
+`U5a-R2`. S3-C01/C02/P00 have landed their pure foundations; the GAP subgroup
+sessions still need the reviewed order/cofactor/factorization facts recorded by
+their dependencies.
 
 **Sequencing recommendation:** start `U5a-R1` and the pure GAP/S3 foundations
 now, bring up the supported hax host for S2-00 in parallel, finish S2 before

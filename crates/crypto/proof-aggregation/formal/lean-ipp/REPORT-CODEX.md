@@ -6657,3 +6657,174 @@ Remaining S2 is led by coefficient-vector generation, final commitment keys,
 public-input folding, prepared PPE, and the full `verify_tipp_mipp`/aggregate
 composition. The early-return blocker stays retired; the remaining closed-graph
 blocker is the arkworks field/group/pairing trait boundary.
+
+## S3 foundations
+
+Executed the serial S3-F00, S3-C01, S3-C02, and S3-P00 pure-Lean sessions.
+The generic `AteOps` placeholder and caller-supplied `CurveFacts` path were
+deleted. The result is split between `Ipp/Bls12377.lean` (field, curve, and
+representation foundations) and `Ipp/Bls12377Pairing.lean` (the concrete
+extension tower and executable optimal-ate specification).
+
+### S3-F00 — scaffolded certificate boundary, proved ring foundations
+
+Pinned the exact base/scalar moduli, family equations, bit bounds, Montgomery
+radices, `ZMod` characteristics, cast-to-zero lemmas, and a functional
+Montgomery decoding relation. The new proved statements are:
+
+```lean
+theorem fq_char : ringChar Fq = baseModulus
+theorem fr_char : ringChar Fr = scalarModulus
+theorem fq_natCast_eq_zero_iff (n : Nat) : (n : Fq) = 0 ↔ baseModulus ∣ n
+theorem fr_natCast_eq_zero_iff (n : Nat) : (n : Fr) = 0 ↔ scalarModulus ∣ n
+theorem fq_field_available (facts : ArithmeticFacts) : Nonempty (Field Fq)
+theorem fr_field_available (facts : ArithmeticFacts) : Nonempty (Field Fr)
+theorem fq2_field_available (facts : ArithmeticFacts) : Nonempty (Field Fq2)
+theorem montgomeryRepresents_unique (modulus radix : Nat) (rep : MontgomeryRep)
+    (x y : ZMod modulus) (hx : montgomeryRepresents modulus radix rep x)
+    (hy : montgomeryRepresents modulus radix rep y) : x = y
+```
+
+The exact green named certificate proposition remains:
+
+```lean
+structure ArithmeticFacts : Prop where
+  basePrime : baseModulus.Prime
+  scalarPrime : scalarModulus.Prime
+  fq2Nonresidue : ∀ x : ZMod baseModulus, x ^ 2 ≠ -5
+```
+
+`norm_num [baseModulus]` and `norm_num [scalarModulus]` each ran to an
+unchanged exact goal (`baseModulus.Prime` and `scalarModulus.Prime`) and did not
+construct certificates. No `native_decide`, `sorry`, or axiom declaration was
+substituted. A future checked-certificate session must discharge those two
+large-prime goals and the `-5` nonresidue goal.
+
+### S3-C01 — proved conditional concrete curves/groups
+
+The exact G1 curve `y² = x³ + 1` and the arkworks D-twist coefficient over Fq2
+are instantiated in Mathlib. Both ellipticity facts are derived from
+`ArithmeticFacts`; `CurveFacts` is gone. The reviewed G1/G2 cofactor constants
+and the order-`r` predicate are pinned. Statements:
+
+```lean
+theorem g1_isElliptic (facts : ArithmeticFacts) : g1Curve.IsElliptic
+theorem g2_isElliptic (facts : ArithmeticFacts) : g2Curve.IsElliptic
+theorem g1_group_available (arithmetic : ArithmeticFacts) :
+    Nonempty (AddCommGroup G1)
+theorem g2_group_available (arithmetic : ArithmeticFacts) :
+    Nonempty (AddCommGroup G2)
+theorem g1Cofactor_eq_parameter :
+    g1Cofactor = (ateLoopParameter - 1) ^ 2 / 3
+def inPrimeSubgroup {G : Type} [AddCommGroup G] (point : G) : Prop :=
+  scalarModulus • point = 0
+```
+
+The full reviewed group-order/cofactor factorization and generator-order proofs
+were not fabricated; they remain the arithmetic inputs needed by GAP-05/06.
+
+### S3-C02 — proved representation and normalization layer
+
+Added typed affine, homogeneous projective, Jacobian, and Montgomery
+representatives. Projective and Jacobian relations target Mathlib's canonical
+affine point, so projective equivalence is inherited from Mathlib rather than
+reimplemented. Statements:
+
+```lean
+def projectiveRepresents {F : Type} [Field F] (W : WeierstrassCurve F)
+    (rep : ProjectiveRep F) (point : W.toAffine.Point) : Prop
+def jacobianRepresents {F : Type} [Field F] (W : WeierstrassCurve F)
+    (rep : JacobianRep F) (point : W.toAffine.Point) : Prop
+theorem projective_zero_z_represents_infinity {F : Type} [Field F]
+    (W : WeierstrassCurve F) (rep : ProjectiveRep F)
+    (h : W.toProjective.Nonsingular (projectiveCoords rep)) (hz : rep.z = 0) :
+    projectiveRepresents W rep 0
+theorem jacobian_zero_z_represents_infinity {F : Type} [Field F]
+    (W : WeierstrassCurve F) (rep : JacobianRep F)
+    (h : W.toJacobian.Nonsingular (jacobianCoords rep)) (hz : rep.z = 0) :
+    jacobianRepresents W rep 0
+theorem normalizeProjective_represents {F : Type} [Field F] [DecidableEq F]
+    (W : WeierstrassCurve F) (rep : ProjectiveRep F)
+    (h : W.toProjective.Nonsingular (projectiveCoords rep)) :
+    affineRepresents W (normalizeProjective rep)
+      (WeierstrassCurve.Projective.Point.toAffine W (projectiveCoords rep))
+theorem normalizeJacobian_represents {F : Type} [Field F] [DecidableEq F]
+    (W : WeierstrassCurve F) (rep : JacobianRep F)
+    (h : W.toJacobian.Nonsingular (jacobianCoords rep)) :
+    affineRepresents W (normalizeJacobian rep)
+      (WeierstrassCurve.Jacobian.Point.toAffine W (jacobianCoords rep))
+```
+
+Arkworks affine/projective/Montgomery decoding conformance is deliberately left
+for the later hax extraction sessions. The pure relations and Mathlib
+normalization targets are now available to GAP-02/03/05/06 and S2 adapters.
+
+### S3-P00 — executable specification green
+
+Pinned arkworks 0.5.0's positive `x = 0x8508c00000000001`, D-twist, Fq2
+nonresidue `-5`, Fq6 polynomial `v³-u`, Fq12 polynomial `w²-v`, homogeneous
+double/add line formulas, sparse `034` D-twist evaluation, and the 63-bit
+Miller schedule. Final exponentiation is executable square-and-multiply at the
+canonical exponent; arkworks' optimized Frobenius/cyclotomic chain is a later
+S3-P04 implementation-refinement target. Statements:
+
+```lean
+def millerLoop (p : AffineRep Fq) (q : AffineRep Fq2) : Fq12Model
+def finalExponentiate (f : Fq12Model) : Fq12Model := fq12Pow f finalExponent
+def publishedAtePairing (p : AffineRep Fq) (q : AffineRep Fq2) : Fq12Model :=
+  finalExponentiate (millerLoop p q)
+theorem millerLoop_infinity_left (x y : Fq) (q : AffineRep Fq2) :
+    millerLoop ⟨true, x, y⟩ q = fq12One
+theorem millerLoop_infinity_right (p : AffineRep Fq) (x y : Fq2) :
+    millerLoop p ⟨true, x, y⟩ = fq12One
+theorem publishedAtePairing_split (p : AffineRep Fq) (q : AffineRep Fq2) :
+    publishedAtePairing p q = finalExponentiate (millerLoop p q)
+theorem finalExponentiate_eq_pow (f : Fq12Model) :
+    finalExponentiate f = fq12Pow f ((baseModulus ^ 12 - 1) / scalarModulus)
+```
+
+The cited-assumption row is explicit and has no proof or axiom declaration:
+
+```lean
+def PublishedPairingBilinearNondegenerate (facts : ArithmeticFacts) : Prop
+```
+
+Its body states left bilinearity, right bilinearity, and existence of a
+non-identity pairing value for `pairingOnMathlibPoints`. In substance: **the
+pinned optimal-ate pseudocode, instantiated with the reviewed BLS12-377
+parameters and prime-order subgroups, computes a non-degenerate bilinear
+pairing into the order-`r` target subgroup.** The formula boundary follows
+ePrint 2012/232 and 2013/722. Mathlib has no cryptographic pairing/divisor
+development, so this proposition stays cited mathematics.
+
+### Axiom audit and final gates
+
+`#print axioms` results for every new theorem listed above:
+
+- `fq_char`, `fr_char`, all three field-availability theorems,
+  `g1_isElliptic`, `g2_isElliptic`, both zero-`Z` theorems, and both
+  normalization theorems: `[propext, Classical.choice, Quot.sound]`.
+- `g1Cofactor_eq_parameter`: `[propext]`.
+- `montgomeryRepresents_unique`, both Miller infinity theorems,
+  `publishedAtePairing_split`, and `finalExponentiate_eq_pow`: `[propext,
+  Quot.sound]`.
+
+Verification:
+
+- pinned Windows Lean, `LEAN_NUM_THREADS=1`, one process at a time:
+  `lake build Ipp` passed, 3,382 jobs;
+- `scripts/check-snarkpack-invariants.sh`: `snarkpack invariants ok`;
+- changed Lean contains no `sorry`, `admit`, `native_decide`, or axiom
+  declaration; `git diff --check` passed;
+- no prover, circuit, or release-gated tests were applicable or run;
+- no commit was created, and the unrelated untracked `hooks/` directory was
+  left untouched.
+
+What remains for the S2 pairing path: checked F00 prime/nonresidue
+certificates; Fq6/Fq12 field-law and reviewed factorization facts for GAP-07;
+G1/G2 order/cofactor and subgroup-predicate equivalence for GAP-05/06;
+arkworks representation, line, Miller, final-exponentiation, and multi-pairing
+refinement through hax; and the cited bilinearity/nondegeneracy premise at the
+mathematics boundary. S2-08/09 now have a concrete pairing specification to
+target, but their public arkworks wrappers and GAP-02/03/05/06/07/12 are not
+thereby proved.
