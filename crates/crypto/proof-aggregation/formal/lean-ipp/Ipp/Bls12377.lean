@@ -32,6 +32,14 @@ theorem scalarModulus_lt_two_pow_253 : scalarModulus < 2 ^ 253 := by
 theorem two_pow_252_le_scalarModulus : 2 ^ 252 ≤ scalarModulus := by
   norm_num [scalarModulus]
 
+set_option exponentiation.threshold 400 in
+theorem baseModulus_lt_two_pow_377 : baseModulus < 2 ^ 377 := by
+  decide
+
+set_option exponentiation.threshold 400 in
+theorem two_pow_376_le_baseModulus : 2 ^ 376 ≤ baseModulus := by
+  decide
+
 def baseMontgomeryRadix : Nat := 2 ^ 384
 def scalarMontgomeryRadix : Nat := 2 ^ 256
 
@@ -107,6 +115,23 @@ theorem affineRepresents_infinity {F : Type} [Field F]
     affineRepresents W ⟨true, x, y⟩ 0 := by
   simp [affineRepresents]
 
+theorem affineRepresents_finite {F : Type} [Field F]
+    (W : WeierstrassCurve F) (x y : F) (h : W.toAffine.Nonsingular x y) :
+    affineRepresents W ⟨false, x, y⟩ (.some x y h) := by
+  exact ⟨h, rfl⟩
+
+/-- A checked affine representation denotes at most one Mathlib point. -/
+theorem affineRepresents_unique {F : Type} [Field F]
+    (W : WeierstrassCurve F) (rep : AffineRep F) (p q : W.toAffine.Point)
+    (hp : affineRepresents W rep p) (hq : affineRepresents W rep q) : p = q := by
+  by_cases hInf : rep.infinity
+  · simp [affineRepresents, hInf] at hp hq
+    rw [hp, hq]
+  · simp [affineRepresents, hInf] at hp hq
+    obtain ⟨_, rfl⟩ := hp
+    obtain ⟨_, hq⟩ := hq
+    exact hq.symm
+
 structure AteOps (G1 G2 GT : Type) where
   one : GT
   square : GT → GT
@@ -120,6 +145,9 @@ def ateLoopBits : List Bool :=
 
 theorem ateLoopBits_length : ateLoopBits.length = 63 := by
   simp [ateLoopBits]
+
+theorem ateLoopBits_true_count : ateLoopBits.count true = 6 := by
+  decide
 
 theorem ateLoopParameter_top_bit : ateLoopParameter.testBit 63 = true := by
   norm_num [ateLoopParameter, Nat.testBit, Nat.shiftRight_eq_div_pow]

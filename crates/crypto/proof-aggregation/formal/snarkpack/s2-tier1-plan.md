@@ -24,12 +24,14 @@ arkworks trait/associated-type graph. Generated loops use a finite relational
 `LoopResult` semantics with a proved unique result and an executable fuel
 witness, replacing the earlier opaque `partial def loop` proof barrier.
 
-Green refinements in this adaptation are
-`inverse_powers_with_inverse` and both generic KZG equation kernels. The public
-KZG wrappers remain scaffolded until the extracted product-form evaluation is
-composed with the kernel theorems. Full `verify_tipp_mipp`, prepared PPE, final
-keys, rescale, shifted-key construction, structured scalar, coefficients, and
-product evaluation retain explicit scaffold goals.
+Green refinements in this adaptation are `rescale_fold_inner`,
+`inverse_powers_with_inverse`, `build_shifted_ck_2_inner`,
+`structured_scalar_final_from_raw_transcript_inner`, product-form evaluation
+at `z²` (including its coefficient-sum corollary), and both generic KZG equation
+kernels. The public KZG wrappers remain scaffolded at the arkworks trait graph,
+but their product and equation components are separately proved and ready to
+compose. Full `verify_tipp_mipp`, prepared PPE, final keys, coefficient-vector
+construction, and public-input folding retain explicit scaffold goals.
 
 ## Objective and boundary
 
@@ -162,7 +164,8 @@ backend conformance.
 
 ## Go/no-go and estimate
 
-Verdict: **GO on a toolchain-capable host, no-go on this Windows host.** The
+Verdict: **GO on the installed Windows/WSL toolchain.** The obsolete host
+no-go is retired. The
 functions are pure orchestration with bounded vector traversals and already
 have close Lean counterparts. The main translation risks are arkworks trait
 associated types, iterator adapters (`zip`, `interleave`, `cycle`), mutable

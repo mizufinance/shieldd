@@ -1,19 +1,22 @@
 # S2, S3, and verifier-serialization session breakdown
 
-## 2026-07-13 serial adaptation status
+## 2026-07-14 serial adaptation status
 
 - S2-00 now includes a finite relational Aeneas loop semantics with uniqueness
   and fuel-to-result lemmas.
-- S2-08 and S2-09 are green for the extracted generic pairing-equation kernels;
-  composition with S2-07's still-scaffolded product evaluation remains open.
-- The `inverse_powers_with_inverse` half of S2-10 is green; shifted-key
-  construction remains scaffolded.
+- S2-03, S2-07, S2-10, and S2-11 are green for their extracted helpers.
+  S2-07 proves the exact product at `z²` and its coefficient-sum model; S2-10
+  proves inverse powers and pointwise shifted-key construction.
+- S2-08 and S2-09 are green for the extracted generic pairing-equation kernels.
+  Their product and equation components are now individually composable; the
+  public arkworks wrappers remain trait-graph gated.
 - `verify_tipp_mipp` is single-exit after its loop. Its early-return blocker is
   retired; the full closed extraction remains gated by arkworks trait groups.
 - S3-F00/C01/C02/P00 have a green foundation module with exact constants,
   explicit arithmetic/ellipticity certificate propositions, conditional
-  Mathlib groups, affine representation, and executable pairing split. It does
-  not claim primality, arkworks conformance, or bilinearity.
+  Mathlib groups, functional affine representation, exact field bit bounds and
+  ate-loop density, and an executable pairing split. It does not claim
+  primality, arkworks conformance, or bilinearity.
 
 Status: executable work order. This file decomposes the remaining formal-verification
 work described by `s2-tier1-plan.md`, `s3-arithmetic-plan.md`,

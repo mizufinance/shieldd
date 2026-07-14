@@ -3,7 +3,8 @@
 Status: foundations started. `Ipp/Bls12377.lean` pins the BLS12-377 moduli,
 optimal-ate loop parameter, scalar bit/radix bounds, curve representations,
 Mathlib Jacobian point groups conditional on named arithmetic certificates,
-and an executable Miller-loop/final-exponent split. Arkworks conformance and
+a functional affine representation, exact field bit bounds and ate-loop
+density, and an executable Miller-loop/final-exponent split. Arkworks conformance and
 the mathematical bilinearity theorem remain open.
 S3 proves that deployed arithmetic computes the specified mathematics. It does
 **not** prove BLS12-377 security, discrete-log hardness, q-SDH, SXDH/co-CDH,
@@ -36,9 +37,9 @@ base modulus, primality of the 253-bit scalar modulus, and nonsquareness of
 `Ipp.Bls12377.ArithmeticFacts`. No `sorry`, axiom declaration, or
 `native_decide` substitutes for those certificates. S3-C01 exposes exact G1
 and G2 Weierstrass/Jacobian representations and proves Mathlib group-instance
-availability from those arithmetic facts. S3-C02 begins with a typed affine
-representation relation including the infinity case. S3-P00 currently pins
-the positive loop parameter and its bit schedule plus the Miller/final-exp
+availability from those arithmetic facts. S3-C02 has a typed functional affine
+representation relation with infinity and finite witnesses. S3-P00 currently pins
+the positive loop parameter, its bit schedule and six non-leading set bits, plus the Miller/final-exp
 split; line functions, Frobenius constants, and final-exponentiation chain
 remain the next executable-spec work. Bilinearity/non-degeneracy stays a cited
 mathematics row, not a theorem about the pseudocode.

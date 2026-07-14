@@ -6610,3 +6610,50 @@ the now-proved KZG kernels and the remaining generic arithmetic boundaries for
 the full verifier/PPE. Remaining S3 starts with checked large-number
 certificates and the exact Fq2/Fq12/curve representation, followed by the
 pinned line functions and final-exponentiation chain. No commits were made.
+
+### Serial continuation — extracted loops and S3 representation
+
+This continuation preserved the abstract-pairing redesign and discharged four
+more generated Aeneas boundaries. It also corrected the S2-07 scaffold: Rust
+starts its factor power at `rShift * z²`, so the model is evaluated at `z²`,
+not `z`. No Rust source changed in this continuation.
+
+| Target | Status | Green theorem |
+| --- | --- | --- |
+| `gipa::rescale_fold_inner` | proved=model | `hax_translated_rescale_fold_eq` proves the exact upper/lower `Ipp.foldMsg` ordering |
+| `tipa::polynomial_evaluation_product_form_from_transcript` | proved=model | `hax_translated_polynomial_evaluation_product_form_eq` proves both extracted loops at `z²`; `_eq_coefficients` composes with `transcript_prod_form_eval` |
+| `build_shifted_ck_2_inner` | proved=model | `hax_translated_shifted_commitment_key_eq` proves pointwise scalar action and composes with the already-proved inverse powers |
+| `structured_scalar_final_from_raw_transcript_inner` | proved=model | `hax_translated_structured_scalar_final_eq` proves arbitrary-round `terminalR` with reversed chronology |
+
+`formal-handoff.md` now promotes these four rows, and
+`hax-extraction-boundary.md` marks their generated targets `proved-model`.
+The product evaluator and generic G1/G2 KZG equation kernels are individually
+proved and ready to compose; the public wrappers themselves remain scaffolded
+because their arkworks `Pairing` associated-type graph still does not extract.
+The plan/session documents record this narrower remaining boundary.
+
+S3-F00/C02/P00 also advanced without claiming pairing bilinearity:
+`Bls12377.lean` proves the base-field 377-bit bounds, finite and infinity
+affine-representation witnesses, representation functionality, and the exact
+six set bits below the ate loop parameter's leading bit. The large primality
+and nonresidue certificates, concrete Fq2/Fq12 representation, line functions,
+Frobenius/final-exponentiation chain, and arkworks refinement remain open.
+Accordingly GAP-02/03/05/06/07/12 remain gated and no GAP row was promoted.
+
+Final gates:
+
+- WSL `cargo test -p ark-ip-proofs --quiet`: 16 passed, 2 ignored.
+- WSL `RUSTFLAGS="--cfg hax_compilation" cargo test -p ark-ip-proofs --quiet`:
+  16 passed, 2 ignored; only the recorded cfg/unused-branch warnings.
+- Pinned Windows `LEAN_NUM_THREADS=1 lake build Ipp`: passed, 3,378 jobs.
+- New-theorem axiom audit: only `propext`, `Classical.choice`, and `Quot.sound`;
+  the loop-bit count uses only `propext`.
+- Changed Lean has no `sorry`, `admit`, axiom declaration, or `native_decide`.
+- `scripts/check-snarkpack-invariants.sh`: `snarkpack invariants ok`.
+- No prover, circuit, or release-gated tests were applicable or run. No commit
+  was created; the pre-existing untracked `hooks/` directory was untouched.
+
+Remaining S2 is led by coefficient-vector generation, final commitment keys,
+public-input folding, prepared PPE, and the full `verify_tipp_mipp`/aggregate
+composition. The early-return blocker stays retired; the remaining closed-graph
+blocker is the arkworks field/group/pairing trait boundary.
