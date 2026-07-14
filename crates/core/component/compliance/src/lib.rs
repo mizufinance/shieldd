@@ -120,6 +120,7 @@ pub use decode_object::{
 pub mod upload_package;
 pub use upload_package::{
     build_orbis_encrypted_seed_upload_package,
+    build_orbis_encrypted_seed_upload_package_from_statement,
     build_orbis_encrypted_seed_upload_package_with_randomness, decrypt_orbis_reencrypted_seed,
     encode_orbis_policy_metadata, OrbisEncryptedSeedUploadPackage, OrbisSecretEnvelope,
     TransferOrbisUploadBundle,

@@ -2,10 +2,10 @@ use anyhow::{anyhow, ensure, Result};
 use decaf377::Fr;
 use penumbra_sdk_asset::Value;
 use penumbra_sdk_compliance::{
-    build_orbis_encrypted_seed_upload_package_with_randomness, derive_transfer_salt,
-    encrypt_transfer, AssetPolicy, IndexedLeaf, TransferComplianceCiphertext,
-    TransferCompliancePublicInputs, TransferOrbisUploadBundle, TransferTierKind,
-    TransferTierMetadataStatement, TRANSFER_WIRE_BYTES,
+    build_orbis_encrypted_seed_upload_package_from_statement, derive_transfer_salt,
+    encrypt_transfer, indexed_tree::string_to_fq, AssetPolicy, IndexedLeaf,
+    TransferComplianceCiphertext, TransferCompliancePublicInputs, TransferOrbisUploadBundle,
+    TransferTierKind, TransferTierMetadataStatement, TRANSFER_WIRE_BYTES,
 };
 use rand::{rngs::StdRng, SeedableRng};
 
@@ -114,19 +114,41 @@ pub(crate) fn build_transfer_compliance(
     let ring_id = &asset_policy.ring.ring_id;
     let resource = &asset_policy.ring.resource;
     let permission = &asset_policy.ring.permission;
+    // The transfer circuit binds each tier statement's metadata hashes to the
+    // asset indexed leaf. For a regulated asset that leaf is the asset's own
+    // (hashes == hashes of the policy strings). For an unregulated asset the
+    // leaf is the non-membership *neighbor* — a real registered asset whose
+    // identifier strings the client does not know — so the dummy statements
+    // must carry the neighbor leaf's hashes verbatim or proving fails.
+    let (ring_id_hash, policy_id_hash, resource_hash, permission_hash) =
+        if receiver_output.is_regulated {
+            (
+                string_to_fq(ring_id),
+                string_to_fq(policy_id),
+                string_to_fq(resource),
+                string_to_fq(permission),
+            )
+        } else {
+            (
+                asset_indexed_leaf.ring.ring_id_hash,
+                asset_indexed_leaf.ring.policy_id_hash,
+                asset_indexed_leaf.ring.resource_hash,
+                asset_indexed_leaf.ring.permission_hash,
+            )
+        };
     let mut upload_rng = StdRng::from_seed(transfer_orbis_upload_rng_seed(transfer_nonce_root));
     let bundle = TransferOrbisUploadBundle {
-        sender_core: build_orbis_encrypted_seed_upload_package_with_randomness(
+        sender_core: build_orbis_encrypted_seed_upload_package_from_statement(
             &mut upload_rng,
             &ring_pk,
             encryption.sender.core.seed,
             encryption.sender.core.r,
-            TransferTierMetadataStatement::from_identifiers(
+            TransferTierMetadataStatement::new(
                 sender_b_d,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
+                ring_id_hash,
+                policy_id_hash,
+                resource_hash,
+                permission_hash,
                 TransferTierKind::SenderCore,
                 target_timestamp,
                 sender_core_salt,
@@ -139,17 +161,17 @@ pub(crate) fn build_transfer_compliance(
             target_timestamp,
             sender_core_salt,
         )?,
-        sender_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
+        sender_ext: build_orbis_encrypted_seed_upload_package_from_statement(
             &mut upload_rng,
             &ring_pk,
             encryption.sender.ext.seed,
             encryption.sender.ext.r,
-            TransferTierMetadataStatement::from_identifiers(
+            TransferTierMetadataStatement::new(
                 sender_b_d,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
+                ring_id_hash,
+                policy_id_hash,
+                resource_hash,
+                permission_hash,
                 TransferTierKind::SenderExt,
                 target_timestamp,
                 sender_ext_salt,
@@ -162,17 +184,17 @@ pub(crate) fn build_transfer_compliance(
             target_timestamp,
             sender_ext_salt,
         )?,
-        output_core: build_orbis_encrypted_seed_upload_package_with_randomness(
+        output_core: build_orbis_encrypted_seed_upload_package_from_statement(
             &mut upload_rng,
             &ring_pk,
             encryption.output.core.seed,
             encryption.output.core.r,
-            TransferTierMetadataStatement::from_identifiers(
+            TransferTierMetadataStatement::new(
                 receiver_b_d,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
+                ring_id_hash,
+                policy_id_hash,
+                resource_hash,
+                permission_hash,
                 TransferTierKind::OutputCore,
                 target_timestamp,
                 output_core_salt,
@@ -185,17 +207,17 @@ pub(crate) fn build_transfer_compliance(
             target_timestamp,
             output_core_salt,
         )?,
-        output_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
+        output_ext: build_orbis_encrypted_seed_upload_package_from_statement(
             &mut upload_rng,
             &ring_pk,
             encryption.output.ext.seed,
             encryption.output.ext.r,
-            TransferTierMetadataStatement::from_identifiers(
+            TransferTierMetadataStatement::new(
                 receiver_b_d,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
+                ring_id_hash,
+                policy_id_hash,
+                resource_hash,
+                permission_hash,
                 TransferTierKind::OutputExt,
                 target_timestamp,
                 output_ext_salt,
