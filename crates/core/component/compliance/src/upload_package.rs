@@ -130,22 +130,34 @@ impl OrbisEncryptedSeedUploadPackage {
 
     pub fn validate(&self) -> Result<()> {
         self.statement.validate_shape()?;
-        anyhow::ensure!(
-            string_to_fq(&self.ring_id) == self.statement.ring_id_hash()?,
-            "ring_id does not match statement ring_id_hash"
-        );
-        anyhow::ensure!(
-            string_to_fq(&self.policy_id) == self.statement.policy_id_hash()?,
-            "policy_id does not match statement policy_id_hash"
-        );
-        anyhow::ensure!(
-            string_to_fq(&self.resource) == self.statement.resource_hash()?,
-            "resource does not match statement resource_hash"
-        );
-        anyhow::ensure!(
-            string_to_fq(&self.permission) == self.statement.permission_hash()?,
-            "permission does not match statement permission_hash"
-        );
+        // The ring identifier strings hash to the statement's ring metadata
+        // hashes ONLY for regulated bundles, where those hashes come from the
+        // asset's own leaf. For an unregulated transfer the statement carries
+        // the non-membership neighbor leaf's hashes (so the transfer circuit
+        // verifies), while these identifier strings are the empty sink — the
+        // client cannot know the neighbor's strings, only its hashes. Skip the
+        // string==hash consistency check in that case; the statement hashes
+        // remain cryptographically bound by the DLEQ below, and unregulated
+        // bundles carry no ORBIS routing metadata to check anyway.
+        let is_unregulated_sink = self.ring_id.is_empty();
+        if !is_unregulated_sink {
+            anyhow::ensure!(
+                string_to_fq(&self.ring_id) == self.statement.ring_id_hash()?,
+                "ring_id does not match statement ring_id_hash"
+            );
+            anyhow::ensure!(
+                string_to_fq(&self.policy_id) == self.statement.policy_id_hash()?,
+                "policy_id does not match statement policy_id_hash"
+            );
+            anyhow::ensure!(
+                string_to_fq(&self.resource) == self.statement.resource_hash()?,
+                "resource does not match statement resource_hash"
+            );
+            anyhow::ensure!(
+                string_to_fq(&self.permission) == self.statement.permission_hash()?,
+                "permission does not match statement permission_hash"
+            );
+        }
         anyhow::ensure!(
             self.tier_label == self.statement.tier.label(),
             "tier_label does not match statement tier"
