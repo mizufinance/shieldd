@@ -233,6 +233,31 @@ No S2 abstract-trace row is promoted by this serial pass: rescale, final keys,
 and coefficients remain scaffolded until their extracted-result equalities are
 green. No prover or release-gated circuit tests were applicable or run.
 
+## S2 Tier1 scale-out (serial) — continuation
+
+This continuation processed the remaining isolated Tier 1 arithmetic helpers
+and attempted the KZG/Groth16 orchestration targets. Rust was adapted only for
+hax extraction: the production iterator/Rayon paths remain the normal paths,
+while named generic helpers expose equivalent indexed loops under
+`hax_compilation`. The `ark-ip-proofs` Rust tests passed after each adapted
+section (16 passed, 2 ignored, 0 failed in normal mode; the corresponding
+`RUSTFLAGS=--cfg hax_compilation` test runs also exited successfully). No
+prover or release-gated circuit tests were applicable or run.
+
+Rust adaptations:
+
+- `tipa::polynomial_evaluation_product_form_from_transcript` gained an
+  extraction-only owned-arithmetic/indexed-product implementation.
+- `applications::groth16_aggregation` gained the generic inner helpers
+  `structured_scalar_final_from_raw_transcript_inner`,
+  `inverse_powers_with_inverse`, and `build_shifted_ck_2_inner`; the existing
+  wrappers retain their production arithmetic and parallel branches.
+
+The generated Lean for the four helper extractions is vendored under
+`Ipp/Extracted/*Generated.lean`; each corresponding public file contains a
+no-sorry refinement statement. None of these loop-to-`Fin`/`Finset` bridges is
+proved yet, so no abstract-trace row is promoted.
+
 ## Gates
 
 Run `just snarkpack-formal` for the formal gate. It checks the pinned toolchain,

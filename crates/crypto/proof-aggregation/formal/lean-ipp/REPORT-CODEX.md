@@ -6323,3 +6323,195 @@ release-gated circuit tests were run. The final pinned Windows
 `LEAN_NUM_THREADS=1 lake build Ipp` passed successfully (3,341 jobs,
 warnings only), and `scripts/check-snarkpack-invariants.sh` passed with
 `snarkpack invariants ok`.
+
+## S2 Tier1 scale-out (serial)
+
+No commit was created. This continuation used one WSL hax extraction and one
+pinned Windows Lean build at a time. The adapted Rust crate passed normal and
+hax-configured tests after each extraction refactor: 16 passed, 0 failed, 2
+ignored. No prover or release-gated circuit tests were applicable or run.
+
+### Target ledger
+
+`gipa::rescale_fold_inner`, `gipa::compute_final_commitment_keys`, and
+`tipa::polynomial_coefficients_from_transcript` were already extracted in the
+prior serial section. Their exact no-sorry statements remain in
+`Ipp/Extracted/RescaleFold.lean`, `FinalCommitmentKeys.lean`, and
+`PolynomialCoefficients.lean`; all three remain scaffolded with, respectively,
+the `Vec` traversal/`Ipp.foldMsg` bridge, the Aeneas Field/associated-MSM
+blocker, and the coefficient Vec/array support bridge. Their hax invocations
+were `/root/shieldd-s2-rescale-fold-scoped-hax2`,
+`/root/shieldd-s2-final-keys2`, and `/root/shieldd-s2-coefficients2`.
+No abstract-trace row was promoted for any of them.
+
+#### `tipa::polynomial_evaluation_product_form_from_transcript`
+
+Rust gained only an hax-only owned-arithmetic/indexed product loop; the
+production iterator path is unchanged. Hax completed with:
+
+`cargo hax into -v --output-dir /root/shieldd-s2-product-form4 aeneas-lean --charon-args='--start-from crate::tipa::polynomial_evaluation_product_form_from_transcript' --lakefile`
+
+The generated code is `Ipp/Extracted/PolynomialEvaluationProductFormGenerated.lean`.
+It is scaffolded, not proved by `rfl` or a bridge. The exact statement is:
+
+```lean
+def polynomial_evaluation_product_form_refinement_statement
+    {F : Type} [Field F] {μ : ℕ} (x : Fin μ → F) (z rShift : F) : Prop :=
+  ark_ip_proofs.tipa.polynomial_evaluation_product_form_from_transcript
+      (cloneModel F) (oneModel F) (zeroModel F) (addModel F) (mulModel F)
+      (finVec x) z rShift =
+    .ok (∏ j : Fin μ, (1 + (x j * rShift ^ (2 ^ (j : ℕ))) *
+      z ^ (2 ^ (j : ℕ))))
+```
+
+The remaining goal is the extracted loop to `Finset.prod` bridge (the initial
+`rfl` attempt also exposed the extracted `z`/`rShift` argument reduction).
+Ledger row: `scaffolded`; no abstract-trace row promoted.
+
+#### KZG opening verifiers
+
+No production Rust refactor was needed for either verifier. Hax invocations
+were `/root/shieldd-s2-kzg-g2` for
+`crate::tipa::verify_commitment_key_g2_kzg_opening` and
+`/root/shieldd-s2-kzg-g1` for
+`crate::tipa::verify_commitment_key_g1_kzg_opening`. Charon completed both;
+Aeneas stopped on the mixed arkworks `Pairing`/`PairingOutput` trait group.
+Both exact equation statements are scaffolded in `Ipp/Extracted/KzgVerifiers.lean`:
+
+```lean
+def verify_commitment_key_g2_kzg_opening_refinement_statement
+    {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT]
+    (e : G1 → G2 → GT) (g gBeta : G1) (h : G2)
+    (key opening : G2) (eval z : F) (run : Bool) : Prop :=
+  run = true ↔
+    e g (key - eval • h) - e (gBeta - z • g) opening = 0
+
+def verify_commitment_key_g1_kzg_opening_refinement_statement
+    {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT]
+    (e : G1 → G2 → GT) (g : G1) (hAlpha : G2) (h : G2)
+    (key opening : G1) (eval z : F) (run : Bool) : Prop :=
+  run = true ↔
+    e (key - eval • g) h - e opening (hAlpha - z • h) = 0
+```
+
+The source theorem is the definition in `KzgVerifiers.lean` (with the exact
+single `[AddCommGroup GT]` constraint shown above). Both ledger rows are
+`scaffolded`; no abstract-trace row promoted.
+
+#### Groth16 arithmetic helpers
+
+The following behavior-preserving Rust helpers were added solely to isolate
+extractable arithmetic: `structured_scalar_final_from_raw_transcript_inner`,
+`inverse_powers_with_inverse`, and `build_shifted_ck_2_inner`. The production
+wrappers and parallel branches remain unchanged. Cargo tests passed after each
+edit. Hax completed in `/root/shieldd-s2-structured-scalar`,
+`/root/shieldd-s2-inverse-powers`, and `/root/shieldd-s2-shifted-ck2`, using
+the corresponding `--start-from crate::applications::groth16_aggregation::*`
+paths. All three generated modules are vendored and all three statements are
+scaffolded: indexed Vec-to-model bridges remain, with no `rfl` or bridge proof.
+The exact shifted-key statement is:
+
+```lean
+def shifted_commitment_key_refinement_statement
+    {F G : Type} [Field F] [AddCommGroup G] [Module F G]
+    {n : ℕ} (ck : Fin n → G) (powers : Fin n → F) : Prop :=
+  ark_ip_proofs.applications.groth16_aggregation.build_shifted_ck_2_inner
+      (copyModel G) (mulModel F G) (copyModel F)
+      (finSlice ck) (finSlice powers) =
+    .ok (finVec (fun i => powers i • ck i))
+```
+
+The other two exact statements are:
+
+```lean
+def structured_scalar_final_refinement_statement
+    {F : Type} [Field F] {μ : ℕ} (x : Fin μ → F) (r : F) : Prop :=
+  ark_ip_proofs.applications.groth16_aggregation.structured_scalar_final_from_raw_transcript_inner
+      (cloneModel F) (oneModel F) (addModel F) (mulModel F)
+      (finSlice (Ipp.reversedView x)) r =
+    .ok (Ipp.terminalR r (Ipp.reversedView x))
+
+def inverse_powers_refinement_statement
+    {F : Type} [Field F] {n : ℕ} (rInv : F) : Prop :=
+  ark_ip_proofs.applications.groth16_aggregation.inverse_powers_with_inverse
+      (cloneModel F) (oneModel F) (mulModel F) ⟨n⟩ rInv =
+    .ok (finVec (fun i : Fin n => rInv ^ (i : ℕ)))
+
+def inverse_powers_nonzero_refinement_statement
+    {F : Type} [Field F] {n : ℕ} (r : F) (hr : r ≠ 0) : Prop :=
+  inverse_powers_refinement_statement (n := n) (r⁻¹)
+```
+
+Their ledger rows are `scaffolded`, and no abstract-trace row was promoted.
+
+#### Groth16 verify path and PPE
+
+`fold_public_inputs` was attempted with `/root/shieldd-s2-fold-public-inputs`,
+`verify_ppe` with `/root/shieldd-s2-ppe`, and the full traced orchestration
+with `/root/shieldd-s2-aggregate-trace`. No Rust refactor was needed. Charon
+completed, but Aeneas rejected the arkworks Field/group/PairingOutput group.
+The full orchestration probe additionally reported the exact first control
+flow blocker: `Early returns inside of loops are not supported yet` at
+`groth16_aggregation.rs:1376:0-1549:1` in `verify_tipp_mipp`.
+
+The no-sorry abstract boundary is in `Ipp/Extracted/Groth16Verifier.lean`.
+The exact principal statements are:
+
+```lean
+def fold_public_inputs_refinement_statement
+    {F G : Type} [Field F] [AddCommGroup G] [Module F G]
+    {m n : ℕ} (gamma : Fin (n + 1) → G) (inputs : Fin m → Fin n → F)
+    (r runSum : F) (runGic : G) : Prop :=
+  runSum = (∑ i : Fin m, r ^ (i : ℕ)) ∧
+    runGic =
+      (runSum • gamma 0) +
+        ∑ j : Fin n,
+          (∑ i : Fin m, r ^ (i : ℕ) * inputs i j) • gamma (Fin.succ j)
+
+def verify_ppe_refinement_statement
+    {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (e : G1 → G2 → GT) (alpha : G1) (beta gamma delta : G2)
+    (gIC aggC : G1) (ipAb : GT) (rSum : F) (run : Bool) : Prop :=
+  run = true ↔
+    e (rSum • alpha) beta + e gIC gamma + e aggC delta = ipAb
+```
+
+```lean
+def verify_tipp_mipp_refinement_statement
+    {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT]
+    {μ : ℕ} (stmt : FsStatement μ F G1 G2 GT)
+    (proof : Proof μ F G1 G2 GT) (transcript : FsTranscript μ F)
+    (run : Bool) : Prop :=
+  run = true ↔ Ipp.LeafData stmt proof transcript
+
+def verify_aggregate_refinement_statement
+    {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT]
+    {μ : ℕ} (stmt : FsStatement μ F G1 G2 GT)
+    (proof : Proof μ F G1 G2 GT) (transcript : FsTranscript μ F)
+    (run : Bool) : Prop :=
+  run = true ↔ Ipp.FsAccepts stmt proof transcript
+```
+
+The profiled and traced orchestration rows use these exact boundaries plus
+their existing profile/trace projections; all Groth16 verify/PPE ledger rows
+remain `scaffolded`; no abstract-trace row promoted.
+
+### Final verification and remaining S2
+
+- Pinned Windows `LEAN_NUM_THREADS=1 lake build Ipp`: passed, 3,351 jobs,
+  warnings only.
+- `scripts/check-snarkpack-invariants.sh`: passed with `snarkpack invariants ok`.
+- Focused builds, including `Ipp.Extracted.KzgVerifiers`, passed.
+- No new `sorry`, project axiom declaration, or `native_decide`; no new
+  semantic axiom was introduced.
+
+All requested S2 Tier 1 targets remain scaffolded: the two GIPA targets, the
+two TIPA polynomial targets, both KZG opening verifiers, the three isolated
+Groth16 arithmetic helpers, and the Groth16 verify/PPE path. The previously
+validated `gipa::fold_output` remains proved by `rfl`. No prover or
+release-gated tests were run.

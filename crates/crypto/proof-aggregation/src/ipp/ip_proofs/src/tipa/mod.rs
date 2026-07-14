@@ -1200,6 +1200,7 @@ pub fn structured_generators_scalar_power<G: CurveGroup>(
         .collect()
 }
 
+#[cfg(not(hax_compilation))]
 fn polynomial_evaluation_product_form_from_transcript<F: Field>(
     transcript: &Vec<F>,
     z: &F,
@@ -1212,6 +1213,30 @@ fn polynomial_evaluation_product_form_from_transcript<F: Field>(
         power_2_zr *= power_2_zr;
     }
     product_form.iter().product()
+}
+
+#[cfg(hax_compilation)]
+fn polynomial_evaluation_product_form_from_transcript<F>(
+    transcript: &Vec<F>,
+    z: &F,
+    r_shift: &F,
+) -> F
+where
+    F: Clone + One + Zero + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
+{
+    let mut power_2_zr = (z.clone() * z.clone()) * r_shift.clone();
+    let mut product_form = Vec::new();
+    for i in 0..transcript.len() {
+        let x = transcript[i].clone();
+        product_form.push(F::one() + (x * power_2_zr.clone()));
+        power_2_zr = power_2_zr.clone() * power_2_zr;
+    }
+
+    let mut product = F::one();
+    for i in 0..product_form.len() {
+        product = product * product_form[i].clone();
+    }
+    product
 }
 
 #[cfg(not(hax_compilation))]

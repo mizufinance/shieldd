@@ -1248,7 +1248,12 @@ where
 fn build_shifted_ck_2<P: Pairing>(ck_2: &[P::G1], r: &P::ScalarField) -> Vec<P::G1> {
     let inverse_powers = inverse_powers::<P>(ck_2.len(), r);
 
-    #[cfg(feature = "parallel")]
+    #[cfg(hax_compilation)]
+    {
+        return build_shifted_ck_2_inner(ck_2, &inverse_powers);
+    }
+
+    #[cfg(all(not(hax_compilation), feature = "parallel"))]
     {
         ck_2.par_iter()
             .zip(inverse_powers.par_iter())
@@ -1256,7 +1261,7 @@ fn build_shifted_ck_2<P: Pairing>(ck_2: &[P::G1], r: &P::ScalarField) -> Vec<P::
             .collect()
     }
 
-    #[cfg(not(feature = "parallel"))]
+    #[cfg(all(not(hax_compilation), not(feature = "parallel")))]
     {
         ck_2.iter()
             .zip(inverse_powers.iter())
@@ -1265,14 +1270,34 @@ fn build_shifted_ck_2<P: Pairing>(ck_2: &[P::G1], r: &P::ScalarField) -> Vec<P::
     }
 }
 
+#[cfg(hax_compilation)]
+fn build_shifted_ck_2_inner<G, F>(ck_2: &[G], inverse_powers: &[F]) -> Vec<G>
+where
+    G: Copy + std::ops::Mul<F, Output = G>,
+    F: Copy,
+{
+    let mut shifted = Vec::with_capacity(ck_2.len());
+    for index in 0..ck_2.len() {
+        shifted.push(ck_2[index] * inverse_powers[index]);
+    }
+    shifted
+}
+
 fn inverse_powers<P: Pairing>(len: usize, r: &P::ScalarField) -> Vec<P::ScalarField> {
-    let mut powers = Vec::with_capacity(len);
     assert!(!r.is_zero(), "inverse_powers requires nonzero r");
     let r_inv = r.inverse().expect("inverse_powers requires nonzero r");
-    let mut current = P::ScalarField::one();
+    inverse_powers_with_inverse(len, &r_inv)
+}
+
+fn inverse_powers_with_inverse<F>(len: usize, r_inv: &F) -> Vec<F>
+where
+    F: Clone + One + std::ops::Mul<Output = F>,
+{
+    let mut powers = Vec::with_capacity(len);
+    let mut current = F::one();
     for _ in 0..len {
-        powers.push(current);
-        current *= r_inv;
+        powers.push(current.clone());
+        current = current * r_inv.clone();
     }
     powers
 }
@@ -1527,11 +1552,22 @@ fn structured_scalar_final_from_raw_transcript<P: Pairing>(
     raw_transcript_reversed: &[P::ScalarField],
     r: &P::ScalarField,
 ) -> P::ScalarField {
-    let mut power = *r;
-    let mut product = P::ScalarField::one();
-    for challenge in raw_transcript_reversed {
-        product *= P::ScalarField::one() + (*challenge * power);
-        power *= power;
+    structured_scalar_final_from_raw_transcript_inner(raw_transcript_reversed, r)
+}
+
+fn structured_scalar_final_from_raw_transcript_inner<F>(
+    raw_transcript_reversed: &[F],
+    r: &F,
+) -> F
+where
+    F: Clone + One + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
+{
+    let mut power = r.clone();
+    let mut product = F::one();
+    for i in 0..raw_transcript_reversed.len() {
+        let challenge = raw_transcript_reversed[i].clone();
+        product = product * (F::one() + (challenge * power.clone()));
+        power = power.clone() * power;
     }
     product
 }
