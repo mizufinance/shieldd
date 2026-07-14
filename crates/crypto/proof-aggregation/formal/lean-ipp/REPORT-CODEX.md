@@ -6828,3 +6828,26 @@ refinement through hax; and the cited bilinearity/nondegeneracy premise at the
 mathematics boundary. S2-08/09 now have a concrete pairing specification to
 target, but their public arkworks wrappers and GAP-02/03/05/06/07/12 are not
 thereby proved.
+
+### 2026-07-14 verification rerun
+
+The S3 foundation changes above are present in existing commit `11879e2dc`;
+this rerun made no Lean or plan change and created no commit. It independently
+rechecked the landed result with the pinned Windows Lean executable,
+`LEAN_NUM_THREADS=1`, and one Lean/Lake process at a time:
+
+- focused `lake build Ipp.Bls12377 Ipp.Bls12377Pairing`: passed, 1,964 jobs;
+- `scripts/check-snarkpack-invariants.sh`: `snarkpack invariants ok`;
+- final `lake build Ipp`: passed, 3,382 jobs, with pre-existing linter warnings;
+- all 23 S3 theorem surfaces were rerun through `#print axioms`.
+
+The individual audit results were `[propext, Classical.choice, Quot.sound]`
+for `fq_char`, `fr_char`, both cast-to-zero lemmas, all three field-availability
+theorems, both ellipticity theorems, both group-availability theorems, both
+ellipticity aliases, both zero-`Z` theorems, and both normalization theorems;
+`[propext]` for `g1Cofactor_eq_parameter`; and `[propext, Quot.sound]` for
+`montgomeryRepresents_unique`, both Miller infinity theorems,
+`publishedAtePairing_split`, and `finalExponentiate_eq_pow`. The temporary
+audit source was removed. The two S3 modules still contain no `sorry`,
+`admit`, `native_decide`, or axiom declaration. Prover/release-gated tests were
+not run; the zk-circuit and `tools/gnark/lean` lanes were not touched.
