@@ -36,6 +36,14 @@ must have a shim row with a semantic postcondition and removal path.
 | `ark_ip_proofs::challenge::challenge_context_preimage` | `Vec` allocation and slice appends | input is a 32-byte statement digest | none | branch-free | none | none | none | reviewed |
 | `ark_ip_proofs::challenge::challenge_preimage` | `Vec` allocation and slice appends | stage label length fits `u32` | `u64` little-endian nonce; checked stage length | branch-free after length conversion | `expect` on static stage-label length; accepted because all labels are compile-time constants and invariant-reviewed | none | none | reviewed |
 
+## S2 Tier 1 serial additions
+
+| target | Rust features used | precondition | arithmetic mode | control flow | panic/expect | unsafe | hax shims | status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ark_ip_proofs::gipa::rescale_fold_inner` | slices, `Vec`, indexed hax traversal; production Rayon threshold branch retained | equal slice lengths; bounded index range | abstract `MulAssign` and `Add` | production sequential/Rayon selection; `hax_compilation` indexed traversal preserves order | none in helper; caller owns length invariant | none | `hax_compilation` indexed traversal has the same elementwise result and ordering as the production iterator branches | scaffolded |
+| `ark_ip_proofs::gipa::compute_final_commitment_keys` | `Vec` exponent construction, field inversion, commitment-key MSM | nonempty power-of-two key vector; nonzero transcript challenges; matching final exponent length | abstract field operations; production `msm_keys`; hax sequential MSM view | nested bounded loops | `unwrap` on inverse is covered by nonzero challenge precondition; assertions enforce shape | none | hax sequential MSM branch; Aeneas still rejects the Field/associated-type closure before Lean output | scaffolded |
+| `ark_ip_proofs::tipa::polynomial_coefficients_from_transcript` | `Vec`, field arithmetic, bounded nested loops; production interleave retained | transcript length `μ`; output shape `2^(μ+1)-1` | abstract field operations | production iterator interleave; `hax_compilation` indexed coefficient/interleave loops | none | none | `hax_compilation` traversal is order/zero-position equivalent; generated Vec/array support remains to be integrated | scaffolded |
+
 ## Support Shims
 
 The statement target set has `cfg(hax)` helper branches for private

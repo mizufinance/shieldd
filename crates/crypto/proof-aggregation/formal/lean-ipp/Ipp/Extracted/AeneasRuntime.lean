@@ -133,5 +133,32 @@ def take {T : Type} (defaultInst : core.default.Default T) (value : T) :
 
 end core.mem
 
+namespace core.ops.range
+
+structure Range where
+  start : Usize
+  «end» : Usize
+
+end core.ops.range
+
+namespace core.iter.range
+
+structure Step (Self : Type) where
+
+def StepUsize : Step Usize := {}
+
+namespace IteratorRange
+
+def next (_step : Step Usize) (range : core.ops.range.Range) :
+    Result (Option Usize × core.ops.range.Range) :=
+  if range.start.val < range.«end».val then
+    .ok (some range.start,
+      { start := Usize.ofNat (range.start.val + 1), «end» := range.«end» })
+  else
+    .ok (none, range)
+
+end IteratorRange
+end core.iter.range
+
 end Std
 end Aeneas

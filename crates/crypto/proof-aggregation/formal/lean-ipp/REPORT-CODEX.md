@@ -6219,3 +6219,107 @@ revision excludes its tactic tests. After each target, preserve the raw LLBC
 and generator hashes, prove the adapter/refinement theorem, run the focused
 module plus full `lake build Ipp`, and stop if the executed result needs an
 opaque semantic assumption.
+
+## S2 Tier1 scale-out (serial)
+
+This pass covered the first three extractable targets in the requested order.
+No commit was created. Rust changes were limited to behavior-preserving
+extraction refactors: named free helpers, hax-only indexed loops, and the
+existing production Rayon/iterator paths retained under `not(hax_compilation)`.
+The adapted crate built and passed its tests in both configurations:
+`cargo build -p ark-ip-proofs`, normal `cargo test -p ark-ip-proofs`
+(16 passed, 2 ignored), and hax `RUSTFLAGS='--cfg hax_compilation'
+cargo test -p ark-ip-proofs` (16 passed, 2 ignored). The hax backend emitted
+its known Aeneas version warning (expected `e0a1596`, found `unknown`).
+
+### gipa::rescale_fold
+
+- Rust adapted for extraction: the method now delegates to the named
+  `rescale_fold_inner`. Under `hax_compilation` it uses a sequential
+  indexed loop; the production thresholded Rayon path is unchanged.
+- Hax invocation:
+
+  `cargo hax into -v --output-dir /root/shieldd-s2-rescale-fold-scoped-hax2 aeneas-lean --charon-args='--start-from crate::gipa::rescale_fold_inner' --lakefile`
+
+- Extraction completed. The generated loop body was integrated as
+  `Ipp/Extracted/RescaleFoldGenerated.lean`, using the observed range
+  iterator support added to `AeneasRuntime.lean`.
+- Result: scaffolded, not proved. The exact refinement statement is:
+
+  `def rescale_fold_refinement_statement
+      {F M : Type} [Field F] [AddCommGroup M] [Module F M]
+      {n : ℕ} (scaled_half unscaled_half : Fin n → M) (scalar : F) : Prop :=
+    ark_ip_proofs.gipa.rescale_fold_inner
+        (cloneModel M) (addModel M) (smulAssignModel F M) (cloneModel F)
+        (finSlice scaled_half) (finSlice unscaled_half) scalar =
+      .ok (finVec (Ipp.foldMsg scalar (Fin.addCases unscaled_half scaled_half)))`
+
+  The remaining goal is the list-backed Aeneas Vec traversal equals the
+  Fin-indexed `Ipp.foldMsg`; no bridge or admission was added.
+- Ledger: `ark_ip_proofs::gipa::rescale_fold_inner` was added to
+  `hax-targets.txt` and given a scaffolded row in
+  `hax-extraction-boundary.md`; no abstract-trace row was promoted.
+
+### gipa::_compute_final_commitment_keys
+
+- Rust adapted for extraction: the old method body was moved to the named
+  `compute_final_commitment_keys` helper. The hax path uses a sequential
+  `msm_keys_extraction` loop; normal and bench-baseline paths retain their
+  existing MSM implementations.
+- Hax invocation:
+
+  `cargo hax into -v --output-dir /root/shieldd-s2-final-keys2 aeneas-lean --charon-args='--start-from crate::gipa::compute_final_commitment_keys' --lakefile`
+
+- Result: scaffolded. Charon compiled the target, but Aeneas stopped before a
+  usable Lean function on the mixed mutually-recursive
+  `ark_ff::Field`/`PrimeField`/`FftField` associated-type group and the
+  `DoublyHomomorphicCommitment::msm_keys` closure. The reported failure was
+  Aeneas internal error while translating `compute_final_commitment_keys`;
+  no opaque runtime assumption was introduced.
+- The exact no-sorry scaffold is
+  `final_commitment_keys_refinement_statement`: for arbitrary translated
+  `G × G`, it requires equality to
+  `(Ipp.msm (Ipp.transcriptCoeffs (fun j => (x j)⁻¹) 1) ckA,
+  Ipp.msm (Ipp.transcriptCoeffs x 1) ckB)`.
+- Ledger: `ark_ip_proofs::gipa::compute_final_commitment_keys` was added to
+  `hax-targets.txt` and given a scaffolded blocker row in
+  `hax-extraction-boundary.md`; no abstract-trace row was promoted.
+
+### tipa::polynomial_coefficients_from_transcript
+
+- Rust adapted for extraction: the production itertools/interleave
+  implementation remains unchanged; a hax-only indexed nested loop preserves
+  the same coefficient placement and zero padding.
+- Hax invocation:
+
+  `cargo hax into -v --output-dir /root/shieldd-s2-coefficients2 aeneas-lean --charon-args='--start-from crate::tipa::polynomial_coefficients_from_transcript' --lakefile`
+
+- Extraction completed through Aeneas. Its generated Vec/array/index support
+  graph was not silently replaced; it remains to be integrated into the
+  vendored runtime. The exact scaffold is:
+
+  `def polynomial_coefficients_refinement_statement : Prop :=
+    ∀ {F : Type} [Field F] {μ : ℕ} (x : Fin μ → F) (rShift : F)
+      (coefficients : List F),
+      coefficients.length = 2 ^ (μ + 1) - 1 ∧
+      (∀ i : Fin (2 ^ μ), coefficients[2 * (i : ℕ)]? =
+        some (Ipp.transcriptCoeffs x rShift i)) ∧
+      (∀ i : ℕ, 2 * i + 1 < coefficients.length →
+        coefficients[2 * i + 1]? = some 0)`
+
+  It is scaffolded, not proved, and has no `sorry`, project axiom, or
+  `native_decide`.
+- Ledger: `ark_ip_proofs::tipa::polynomial_coefficients_from_transcript`
+  was added to `hax-targets.txt` and given a scaffolded row in
+  `hax-extraction-boundary.md`; no abstract-trace row was promoted.
+
+### Remaining S2 Tier1 targets
+
+`tipa::polynomial_evaluation_product_form_from_transcript`,
+`tipa::verify_commitment_key_g1_kzg_opening`,
+`tipa::verify_commitment_key_g2_kzg_opening`, and the Groth16 aggregation
+verify path/PPE were not processed in this serial pass and remain outstanding. No prover or
+release-gated circuit tests were run. The final pinned Windows
+`LEAN_NUM_THREADS=1 lake build Ipp` passed successfully (3,341 jobs,
+warnings only), and `scripts/check-snarkpack-invariants.sh` passed with
+`snarkpack invariants ok`.

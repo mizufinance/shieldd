@@ -83,6 +83,93 @@ pub struct GIPA<IP, LMC, RMC, IPC, D> {
 // rescale crossover among `{64, 128, 256, 512}` on the local machine.
 const GIPA_RESCALE_PARALLEL_THRESHOLD: usize = 64;
 
+fn rescale_fold_inner<T, S>(scaled_half: &[T], unscaled_half: &[T], scalar: &S) -> Vec<T>
+where
+    T: Clone + Add<Output = T> + MulAssign<S> + Send + Sync,
+    S: Clone + Sync,
+{
+    #[cfg(hax_compilation)]
+    {
+        let mut folded = Vec::with_capacity(scaled_half.len());
+        for index in 0..scaled_half.len() {
+            folded.push(mul_helper(&scaled_half[index], scalar) + unscaled_half[index].clone());
+        }
+        folded
+    }
+    #[cfg(not(hax_compilation))]
+    if scaled_half.len() >= GIPA_RESCALE_PARALLEL_THRESHOLD {
+        cfg_iter!(scaled_half)
+            .map(|point| mul_helper(point, scalar))
+            .zip(unscaled_half)
+            .map(|(scaled, base)| scaled + base.clone())
+            .collect()
+    } else {
+        scaled_half
+            .iter()
+            .map(|point| mul_helper(point, scalar))
+            .zip(unscaled_half.iter())
+            .map(|(scaled, base)| scaled + base.clone())
+            .collect()
+    }
+}
+
+fn compute_final_commitment_keys<LMC, RMC, IPC>(
+    ck: (&[LMC::Key], &[RMC::Key], &IPC::Key),
+    transcript: &Vec<LMC::Scalar>,
+) -> Result<(LMC::Key, RMC::Key), Error>
+where
+    LMC: DoublyHomomorphicCommitment,
+    RMC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
+    IPC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
+{
+    let (ck_a, ck_b, _) = ck;
+    assert!(ck_a.len().is_power_of_two());
+
+    let mut ck_a_agg_challenge_exponents = vec![LMC::Scalar::one()];
+    let mut ck_b_agg_challenge_exponents = vec![LMC::Scalar::one()];
+    for (i, c) in transcript.iter().enumerate() {
+        let c_inv = c.inverse().unwrap();
+        for j in 0..(2_usize).pow(i as u32) {
+            ck_a_agg_challenge_exponents.push(ck_a_agg_challenge_exponents[j] * &c_inv);
+            ck_b_agg_challenge_exponents.push(ck_b_agg_challenge_exponents[j] * c);
+        }
+    }
+    assert_eq!(ck_a_agg_challenge_exponents.len(), ck_a.len());
+
+    #[cfg(hax_compilation)]
+    let (ck_a_base, ck_b_base) = (
+        msm_keys_extraction(ck_a, &ck_a_agg_challenge_exponents),
+        msm_keys_extraction(ck_b, &ck_b_agg_challenge_exponents),
+    );
+    #[cfg(all(not(hax_compilation), not(feature = "bench-baseline")))]
+    let (ck_a_base, ck_b_base) = (
+        LMC::msm_keys(ck_a, &ck_a_agg_challenge_exponents),
+        RMC::msm_keys(ck_b, &ck_b_agg_challenge_exponents),
+    );
+    #[cfg(all(not(hax_compilation), feature = "bench-baseline"))]
+    let (ck_a_base, ck_b_base) = (
+        fold_keys_baseline::<LMC::Key, LMC::Scalar>(ck_a, &ck_a_agg_challenge_exponents),
+        fold_keys_baseline::<RMC::Key, RMC::Scalar>(ck_b, &ck_b_agg_challenge_exponents),
+    );
+    Ok((ck_a_base, ck_b_base))
+}
+
+#[cfg(hax_compilation)]
+fn msm_keys_extraction<K, S>(keys: &[K], scalars: &[S]) -> K
+where
+    K: Clone + Add<Output = K> + MulAssign<S>,
+    S: Copy,
+{
+    let mut acc = keys[0].clone();
+    acc.mul_assign(scalars[0]);
+    for index in 1..keys.len() {
+        let mut term = keys[index].clone();
+        term.mul_assign(scalars[index]);
+        acc = acc + term;
+    }
+    acc
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct GipaBuildProfile {
     pub total_ms: f64,
@@ -175,37 +262,11 @@ where
     RMC::Output: MulAssign<LMC::Scalar>,
     IPC::Output: MulAssign<LMC::Scalar>,
 {
-    #[inline]
-    fn use_parallel_rescale(len: usize) -> bool {
-        #[cfg(feature = "parallel")]
-        {
-            len >= GIPA_RESCALE_PARALLEL_THRESHOLD
-        }
-        #[cfg(not(feature = "parallel"))]
-        {
-            let _ = len;
-            false
-        }
-    }
-
     fn rescale_fold<T>(scaled_half: &[T], unscaled_half: &[T], scalar: &LMC::Scalar) -> Vec<T>
     where
         T: Clone + Add<Output = T> + MulAssign<LMC::Scalar> + Send + Sync,
     {
-        if Self::use_parallel_rescale(scaled_half.len()) {
-            cfg_iter!(scaled_half)
-                .map(|point| mul_helper(point, scalar))
-                .zip(unscaled_half)
-                .map(|(scaled, base)| scaled + base.clone())
-                .collect()
-        } else {
-            scaled_half
-                .iter()
-                .map(|point| mul_helper(point, scalar))
-                .zip(unscaled_half.iter())
-                .map(|(scaled, base)| scaled + base.clone())
-                .collect()
-        }
+        rescale_fold_inner(scaled_half, unscaled_half, scalar)
     }
 
     fn rescale_fold_profiled<T>(
@@ -712,38 +773,7 @@ where
         ck: (&[LMC::Key], &[RMC::Key], &IPC::Key),
         transcript: &Vec<LMC::Scalar>,
     ) -> Result<(LMC::Key, RMC::Key), Error> {
-        // Calculate base commitment keys
-        let (ck_a, ck_b, _) = ck;
-        assert!(ck_a.len().is_power_of_two());
-
-        let mut ck_a_agg_challenge_exponents = vec![LMC::Scalar::one()];
-        let mut ck_b_agg_challenge_exponents = vec![LMC::Scalar::one()];
-        for (i, c) in transcript.iter().enumerate() {
-            let c_inv = c.inverse().unwrap();
-            for j in 0..(2_usize).pow(i as u32) {
-                ck_a_agg_challenge_exponents.push(ck_a_agg_challenge_exponents[j] * &c_inv);
-                ck_b_agg_challenge_exponents.push(ck_b_agg_challenge_exponents[j] * c);
-            }
-        }
-        assert_eq!(ck_a_agg_challenge_exponents.len(), ck_a.len());
-        // Recombine the final commitment keys by multiexponentiation. The
-        // commitment trait's `msm_keys` is byte-identical to the prior
-        // sequential fold; group-backed keys (AFGHO) use a real MSM.
-        //
-        // The `bench-baseline` feature swaps in the pre-optimization sequential
-        // fold so the A/B harness can measure the MSM delta on the real verify
-        // path in the same release build. See the optimization playbook.
-        #[cfg(not(feature = "bench-baseline"))]
-        let (ck_a_base, ck_b_base) = (
-            LMC::msm_keys(ck_a, &ck_a_agg_challenge_exponents),
-            RMC::msm_keys(ck_b, &ck_b_agg_challenge_exponents),
-        );
-        #[cfg(feature = "bench-baseline")]
-        let (ck_a_base, ck_b_base) = (
-            fold_keys_baseline::<LMC::Key, LMC::Scalar>(ck_a, &ck_a_agg_challenge_exponents),
-            fold_keys_baseline::<RMC::Key, RMC::Scalar>(ck_b, &ck_b_agg_challenge_exponents),
-        );
-        Ok((ck_a_base, ck_b_base))
+        compute_final_commitment_keys::<LMC, RMC, IPC>(ck, transcript)
     }
 
     pub(crate) fn _verify_base_commitment(

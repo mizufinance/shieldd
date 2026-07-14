@@ -191,6 +191,48 @@ abstract-trace/refinement rows until S2. ALG-I4 continues to exhaustively
 cross-check transcript shapes through the SRS maximum; it is model/implementation
 evidence, not the S1 soundness proof.
 
+## S2 Tier1 scale-out (serial)
+
+Rust was adapted for extraction in three behavior-preserving changes. `gipa.rs`
+now forwards the associated `rescale_fold` method to the named
+`rescale_fold_inner` helper; its `hax_compilation` branch is an indexed traversal
+with the same output order as the production sequential/Rayon branches. The
+final-key method forwards to `compute_final_commitment_keys`; its hax-only MSM
+branch is the existing ordered MSM semantics expressed as an explicit fold.
+`tipa/mod.rs` retains the production iterator coefficient construction and adds
+an hax-only indexed construction with the same coefficient and zero positions.
+Normal Rust tests passed after each edit; the hax-compilation Rust test pass also
+covered the extraction views.
+
+The S2-03 rescale extraction completed with the scoped invocation
+`cargo hax into -v --output-dir /root/shieldd-s2-rescale-fold-scoped-hax2
+aeneas-lean --charon-args='--start-from crate::gipa::rescale_fold_inner'
+--lakefile`. Generated loop code is vendored in
+`Ipp/Extracted/RescaleFoldGenerated.lean`; the exact loop-to-`Fin` equality is
+the no-sorry scaffold `Ipp.Extracted.rescale_fold_refinement_statement` in
+`Ipp/Extracted/RescaleFold.lean`. Its remaining goal is the finite-list loop
+bridge from the Aeneas `Vec` model to `Ipp.foldMsg`.
+
+S2-04 used
+`cargo hax into -v --output-dir /root/shieldd-s2-final-keys2 aeneas-lean
+--charon-args='--start-from crate::gipa::compute_final_commitment_keys'
+--lakefile`. Charon compiled the target, but Aeneas stopped before Lean output
+on the mixed `ark_ff::Field`/`PrimeField` associated-type group and
+`DoublyHomomorphicCommitment::msm_keys`; the exact target proposition is kept
+as `Ipp.Extracted.final_commitment_keys_refinement_statement`.
+
+S2-06 used
+`cargo hax into -v --output-dir /root/shieldd-s2-coefficients2 aeneas-lean
+--charon-args='--start-from crate::tipa::polynomial_coefficients_from_transcript'
+--lakefile` and completed Aeneas generation. Its generated Vec/array support
+graph was not silently replaced by a handwritten implementation; the exact
+length/even-index/odd-zero goal is recorded as
+`Ipp.Extracted.polynomial_coefficients_refinement_statement`.
+
+No S2 abstract-trace row is promoted by this serial pass: rescale, final keys,
+and coefficients remain scaffolded until their extracted-result equalities are
+green. No prover or release-gated circuit tests were applicable or run.
+
 ## Gates
 
 Run `just snarkpack-formal` for the formal gate. It checks the pinned toolchain,
