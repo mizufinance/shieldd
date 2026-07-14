@@ -6873,3 +6873,82 @@ are unchanged: checked F00 primality/nonresidue certificates; reviewed curve,
 subgroup, and target-group factorization facts; arkworks/hax conformance for
 representations and pairing kernels; and the explicitly cited mathematical
 bilinearity/nondegeneracy row.
+
+### 2026-07-14 S3 foundation source-parity and certificate audit
+
+The requested S3 implementation and plan adaptation remain the landed work in
+commit `11879e2dc`; this pass made no Lean or plan change and no commit. The
+four targets were re-audited in order:
+
+- **S3-F00 — scaffolded, conditional on checked certificates.** The exact
+  moduli, family equations, `ZMod` aliases, characteristics, cast-to-zero
+  lemmas, bit/radix bounds, and conditional field instances are green. The
+  exact remaining goals are the fields of:
+
+  ```lean
+  structure ArithmeticFacts : Prop where
+    basePrime : baseModulus.Prime
+    scalarPrime : scalarModulus.Prime
+    fq2Nonresidue : ∀ x : ZMod baseModulus, x ^ 2 ≠ -5
+  ```
+
+  The pinned Mathlib `NormNum.Prime` implementation trial-divides and documents
+  a kernel-stack limitation above roughly 25 bits; it has no Pocklington,
+  Pratt, or ECPP certificate checker. Therefore the two 377/253-bit
+  `Nat.Prime` goals and the Fq2 nonsquare goal were not replaced by `decide`,
+  `native_decide`, an axiom declaration, or an unreviewed external result.
+- **S3-C01 — proved from `ArithmeticFacts`.** The concrete statements remain
+  `g1_isElliptic (facts : ArithmeticFacts) : g1Curve.IsElliptic`,
+  `g2_isElliptic (facts : ArithmeticFacts) : g2Curve.IsElliptic`,
+  `g1_group_available (arithmetic : ArithmeticFacts) : Nonempty (AddCommGroup G1)`,
+  and
+  `g2_group_available (arithmetic : ArithmeticFacts) : Nonempty (AddCommGroup G2)`.
+  The constants and twist were checked directly against local
+  `ark-bls12-377 0.5.0` sources.
+- **S3-C02 — proved pure representation layer.** The verbatim target
+  statements remain
+  `normalizeProjective_represents ... : affineRepresents W (normalizeProjective rep) (WeierstrassCurve.Projective.Point.toAffine W (projectiveCoords rep))`
+  and
+  `normalizeJacobian_represents ... : affineRepresents W (normalizeJacobian rep) (WeierstrassCurve.Jacobian.Point.toAffine W (jacobianCoords rep))`,
+  together with the zero-`Z`, uniqueness, and Montgomery-representation
+  theorems listed earlier in this section. Arkworks representation refinement
+  remains assigned to the later hax sessions.
+- **S3-P00 — executable specification proved/scaffolded at the intended split.**
+  The verbatim split statements remain
+  `publishedAtePairing p q = finalExponentiate (millerLoop p q)` and
+  `finalExponentiate f = fq12Pow f ((baseModulus ^ 12 - 1) / scalarModulus)`.
+  The positive `X`, bit order, D-twist coefficient ordering, homogeneous line
+  formulas, and sparse `034` evaluation were checked against local
+  `ark-ec 0.5.0` and `ark-bls12-377 0.5.0` sources. The cited-assumption row is
+  still exactly:
+
+  ```lean
+  def PublishedPairingBilinearNondegenerate (facts : ArithmeticFacts) : Prop
+  ```
+
+  It states left and right bilinearity plus existence of a non-identity value;
+  no theorem claims those facts. In substance: the pinned optimal-ate
+  pseudocode, on the reviewed BLS12-377 prime-order subgroups, computes a
+  non-degenerate bilinear pairing into the order-`r` target subgroup. This is
+  the cited ePrint 2012/232 and 2013/722 mathematics boundary because Mathlib
+  lacks the required divisor/pairing theory.
+
+Fresh verification used the pinned Windows Lean executable with
+`LEAN_NUM_THREADS=1` and one Lean/Lake process at a time:
+
+- focused `lake build Ipp.Bls12377 Ipp.Bls12377Pairing`: passed, 1,964 jobs;
+- fresh `#print axioms` on all 39 theorem surfaces in the two S3 modules:
+  only `propext`, `Classical.choice`, and `Quot.sound`, or subsets;
+- `scripts/check-snarkpack-invariants.sh`: `snarkpack invariants ok`;
+- final `lake build Ipp`: passed, 3,382 jobs, with pre-existing linter warnings;
+- no `sorry`, `admit`, `native_decide`, or axiom declaration is present in the
+  S3 modules; the temporary audit source was removed and no log was retained.
+
+What remains for the S2 pairing path is unchanged and explicit: checked F00
+prime/nonresidue certificates; reviewed G1/G2 order, cofactor, and subgroup
+factorizations for GAP-05/06; an Fq12 target-group factorization for GAP-07/12;
+arkworks/hax refinement of representations, extension arithmetic, line
+evaluation, Miller loop, final exponentiation, and multi-pairing; and the cited
+bilinearity/nondegeneracy proposition at the mathematical boundary. Prover and
+release-gated tests were not applicable and were not run; zk circuits and
+`tools/gnark/lean` were not touched.
