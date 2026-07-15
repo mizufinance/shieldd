@@ -145,6 +145,20 @@ theorem decodeFqList_exact_consumption {xs : List UInt8} {x : FqValue}
   rw [decodeFqList_rejects_wrong_length xs hlen] at h
   contradiction
 
+/-- Accepted canonical Fq byte lists have a unique representation. -/
+theorem decodeFqList_injective {xs ys : List UInt8} {v : FqValue}
+    (hx : decodeFqList xs = some v) (hy : decodeFqList ys = some v) : xs = ys := by
+  have hxl : xs.length = 48 := decodeFqList_exact_consumption hx
+  have hyl : ys.length = 48 := decodeFqList_exact_consumption hy
+  rw [decodeFqList, dif_pos hxl] at hx
+  rw [decodeFqList, dif_pos hyl] at hy
+  have hw := decodeFqCanonical_injective hx hy
+  have hbytes := congrArg FqWire.bytes hw
+  apply List.ext_get
+  · exact hxl.trans hyl.symm
+  · intro n hnx hny
+    exact congrFun hbytes ⟨n, by omega⟩
+
 private def decodePair {A B X Y : Type} (da : A → Option X) (db : B → Option Y)
     (p : A × B) : Option (X × Y) := do
   let x ← da p.1

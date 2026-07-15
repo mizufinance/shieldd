@@ -104,7 +104,7 @@ structure Point where
   y : FqValue
   deriving DecidableEq, Repr
 
-private def zeroFq : FqValue := ⟨0, by simp [fqModulus]⟩
+def zeroFq : FqValue := ⟨0, by simp [fqModulus]⟩
 
 def infinityEncoding : List UInt8 :=
   List.replicate 47 0 ++ [UInt8.ofNat infinityMask]
@@ -122,7 +122,7 @@ def selectRoot (flag : Flags) (root : Nat) : Nat :=
   | .largerRoot => max root other
   | .infinity => 0
 
-private def decodeFinite (flag : Flags) (x : FqValue) : Option Point := do
+def decodeFinite (flag : Flags) (x : FqValue) : Option Point := do
   let root ← sqrtFq (curveRhs x.1)
   let y := selectRoot flag root
   if hy : y < fqModulus then some ⟨false, x, ⟨y, hy⟩⟩ else none
@@ -143,7 +143,7 @@ def decode (xs : List UInt8) : Option Point := do
   | .smallerRoot => decodeFinite .smallerRoot x
   | .largerRoot => decodeFinite .largerRoot x
 
-private theorem decodeFinite_not_infinity {flag : Flags} {x : FqValue} {p : Point}
+theorem decodeFinite_not_infinity {flag : Flags} {x : FqValue} {p : Point}
     (h : decodeFinite flag x = some p) : p.infinity = false := by
   cases hs : sqrtFq (curveRhs x.1) with
   | none => simp [decodeFinite, hs] at h
@@ -186,7 +186,7 @@ theorem decode_exact_consumption {xs : List UInt8} {p : Point}
   · assumption
   · simp at h
 
-private def withLast (xs : List UInt8) (last : Nat) : List UInt8 :=
+def withLast (xs : List UInt8) (last : Nat) : List UInt8 :=
   xs.take 47 ++ [UInt8.ofNat last]
 
 example : decodeFlags (UInt8.ofNat 0xc0) = none := by decide
