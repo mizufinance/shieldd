@@ -1,4 +1,4 @@
-import Ipp.Extracted.VerifyTippMippGenerated
+import Ipp.Extracted.CombinedChecksGenerated
 import Ipp.Extracted.KzgVerifiers
 import Ipp.Extracted.BaseCommitment
 import Ipp.Extracted.StructuredScalar
