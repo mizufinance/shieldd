@@ -7,9 +7,6 @@ use std::{
 pub mod applications;
 pub mod challenge;
 pub mod gipa;
-#[cfg(hax_compilation)]
-#[doc(hidden)]
-pub mod s3_07_arkworks_fq_spike;
 pub mod tipa;
 
 pub type Error = Box<dyn ErrorTrait>;

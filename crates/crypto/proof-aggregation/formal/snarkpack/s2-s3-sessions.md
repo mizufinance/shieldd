@@ -1,6 +1,6 @@
 # S2/S3 completion work order
 
-Date: 2026-07-15. Status: S2-19..38 and S3-01..05 complete as of 2026-07-15; the code is
+Date: 2026-07-15. Status: S2-19..38 and S3-01..08 complete as of 2026-07-15; the code is
 the authority and the S2 task text below is retained as the execution record.
 S1, GAP-00/01/04, the
 finite Aeneas loop semantics, S2-01/03/07/10/11, the S2-08/09 generic equation
@@ -14,14 +14,15 @@ named refinement-theorem presence, focused Lean builds, the named axiom audit,
 one full `lake build Ipp`, and the Rust test pass all completed. S3 and GAP
 tracks below remain planned work except for S3-01..05.
 
-## S3-01..05 completion status
+## S3-01..08 completion status
 
-S3-01 through S3-05 are **DONE**. The checked scalar-modulus prime,
+S3-01 through S3-08 are **DONE**. The checked scalar-modulus prime,
 base-modulus prime, and Fq2 nonresidue theorems now assemble into the concrete
 `Ipp.Bls12377.arithmeticFacts` value. The BLS12-377 field, curve, and pairing
 foundations consume that value directly, with focused gates green under the
 pinned Lean v4.30.0 toolchain and no remaining `ArithmeticFacts` premise in
-the concrete path.
+the concrete path. The F01A/F01B feasibility evidence is recorded below; F02
+selects F01A and the losing F01B spike is deleted.
 
 `NOW` means every proof dependency is present and the installed Windows/WSL
 toolchain is sufficient. `GATED` means a listed predecessor must land first.
@@ -395,13 +396,47 @@ F01B fails the S3-07 design gate and supplies no basis for selecting arkworks
 in S3-08; retain F01A unless later work is explicitly re-scoped to a larger
 machine-arithmetic proof session. This result retires no ledger row.
 
-**S3-08 — F02 single field-route decision** — `MECHANICAL (luna)` — `GATED`
-on S3-06/07. Select F01A unless only F01B meets the no-opaque-boundary and
+**S3-08 — F02 single field-route decision** — `MECHANICAL (luna)` — **DONE
+(2026-07-15)**. Select F01A unless only F01B meets the no-opaque-boundary and
 whole-stack compatibility criteria; use deterministic SnarkPack release
 corpus measurements as a performance veto, record proof bytes/traces and
 hardware, delete the rejected spike, and name the one `Field377` facade and
 representation relation used below. Acceptance: one production path and one
 proof path remain. Narrows no ledger row by itself.
+
+**2026-07-15 S3-08 decision — select F01A, the generated verified Montgomery
+backend, as the single production field route.** S3-07 extracted the executed
+six-limb arkworks Fq multiplication graph but did not close even the first
+symbolic `mac` bridge, so F01B does not meet its mandatory no-opaque-arithmetic
+gate. Fiat's 1.50--1.64x multiplication/squaring and 3.55--3.73x addition
+microbenchmark deficits are an integration risk, but they are not the required
+deterministic end-to-end SnarkPack measurement and therefore do not constitute
+the F02 performance veto.
+
+Rejected option: **F01B arkworks post-hoc verification**, because no range,
+carry/reduction, or decode theorem was established over the executed path.
+
+`Field377` now means the one concrete safe-Rust Fq/Fr facade to be added under
+`src/ipp/ip_proofs/src/bls12_377/` directly over the pinned, vendored fiat-crypto
+outputs, with no arkworks field-arithmetic fallback. Its Lean representation
+relation is `Ipp.Bls12377.montgomeryRepresents`, specialized to
+`baseModulus`/`baseMontgomeryRadix` for Fq and
+`scalarModulus`/`scalarMontgomeryRadix` for Fr. S3-08 does not wire the facade
+into production.
+
+Consequences for S3-09..15: S3-09/10 and S3-12/13 use the exact generated fiat
+Rust operations and generator-certificate proof style--pin the generator,
+Coq-proof/output provenance, and vendored-output digests, then compose the
+operation postconditions with `montgomeryRepresents`; they do not extract or
+re-prove arkworks CIOS. S3-11 and S3-14 hax/Aeneas-extract only the handwritten
+fixed chains and canonical-byte facade code over those proved fiat effects,
+then prove the composition in Lean. S3-15 wires only this `Field377` facade
+through the whole curve/pairing stack and runs the deterministic release corpus
+for `aggregate_family` and `verify_family_aggregate` at `n ∈ {1,2,4,8,64}`
+(plus 1024/2048 prover scaling when available), recording hardware, medians,
+variance, profiles, proof bytes, and challenge traces. An above-noise
+end-to-end regression is a hard integration veto that blocks and reopens F02;
+it is not permission to restore the unproved F01B spike.
 
 **S3-09 — Fq representation and basic operations** — `HARD (sol)` — `GATED`
 on S3-08. Prove the selected facade's Fq limb invariant, Montgomery encode/
@@ -749,6 +784,6 @@ independent NOW work is S3-01, S3-23, GAP-02A, and GAP-03A in that serial order.
 Remaining mandatory work is **41 S3 sessions and 12 GAP sessions: 53 total
 estimated Codex sessions**. GAP-12 is deliberately excluded.
 There is no currently blocking owner question. Antoine's review/signoff is
-needed when S3-23 pins the exact curve-order citations, when S3-08 selects the
-production field route, and when S3-41 retains the cited pairing-mathematics
-row, but the preceding work can start without those decisions.
+needed when S3-23 pins the exact curve-order citations and when S3-41 retains
+the cited pairing-mathematics row. The owner-delegated S3-08 production field
+route decision is complete.

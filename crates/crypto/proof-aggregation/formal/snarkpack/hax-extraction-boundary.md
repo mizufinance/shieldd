@@ -105,9 +105,9 @@ and `sbb`, plus executable bounded-integer and array runtime operations. The
 installed hax frontend also warned that it expected Aeneas `e0a1596` but could
 not identify the installed Aeneas revision. The generated graph was not
 vendored because the required carry-closure theorem did not close; retaining
-an unproved generated path would misstate the feasibility result. The Rust
-copy and parity test remain disposable S3-08 evidence, not a formal target in
-`hax-targets.txt`.
+an unproved generated path would misstate the feasibility result. S3-08
+selected F01A and deleted the local Rust copy and parity test; neither was a
+formal target in `hax-targets.txt`.
 
 S2-25 extracts from `crate::gipa::verify_base_commitment_core` with
 `--charon-args=--start-from=crate::gipa::verify_base_commitment_core`. The
