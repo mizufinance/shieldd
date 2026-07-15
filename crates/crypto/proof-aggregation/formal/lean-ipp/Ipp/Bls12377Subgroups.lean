@@ -287,6 +287,18 @@ local instance : Fact baseModulus.Prime := ⟨arithmeticFacts.basePrime⟩
 local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
 
+/--
+The arkworks 0.5.0 checked G2 membership predicate: scalar multiplication by
+the `Fr` characteristic must be the identity. `ark-bls12-377-0.5.0/src/curves/g2.rs`
+does not override the default from
+`ark-ec-0.5.0/src/models/short_weierstrass/mod.rs` (`SWCurveConfig`), which
+evaluates `mul_affine(item, ScalarField::characteristic()).is_zero()`.
+The G2 psi endomorphisms are used for cofactor clearing, not membership checking;
+the executed scalar-multiplication conformance is outside this specification.
+-/
+def arkworksG2CheckedMembership (p : G2) : Prop :=
+  scalarModulus • p = 0
+
 /-- The concrete G2 points killed by the scalar-field modulus. -/
 def g2PrimeSubgroup : AddSubgroup G2 where
   carrier := {p | inPrimeSubgroup p}
@@ -302,6 +314,12 @@ def g2PrimeSubgroup : AddSubgroup G2 where
 @[simp]
 theorem mem_g2PrimeSubgroup (p : G2) :
     p ∈ g2PrimeSubgroup ↔ inPrimeSubgroup p :=
+  Iff.rfl
+
+/-- The pinned arkworks check is exactly membership in the G2 prime subgroup. -/
+@[simp]
+theorem arkworksG2CheckedMembership_iff_mem_g2PrimeSubgroup (p : G2) :
+    arkworksG2CheckedMembership p ↔ p ∈ g2PrimeSubgroup :=
   Iff.rfl
 
 /-- The multiplicative view of the G2 prime subgroup is an `r`-group. -/
@@ -344,6 +362,12 @@ theorem g2PrimeSubgroup_card (facts : PublishedCurveOrderFacts) :
     exact scalarModulus_prime.not_dvd_one hprime_dvd
   have : n = 1 := by omega
   rw [hn', this, pow_one]
+
+/-- The points accepted by the pinned arkworks check have cardinality `r`. -/
+theorem arkworksG2CheckedMembership_card (facts : PublishedCurveOrderFacts) :
+    Nat.card {p : G2 // arkworksG2CheckedMembership p} = scalarModulus := by
+  change Nat.card g2PrimeSubgroup = scalarModulus
+  exact g2PrimeSubgroup_card facts
 
 /-- Every order-`r` additive subgroup of G2 is the prime subgroup. -/
 theorem g2PrimeSubgroup_unique (facts : PublishedCurveOrderFacts)
@@ -404,6 +428,11 @@ theorem g2_sylow_unique (facts : PublishedCurveOrderFacts)
 theorem g2_identity_inPrimeSubgroup : inPrimeSubgroup (0 : G2) := by
   simp [inPrimeSubgroup]
 
+/-- Arkworks accepts the G2 identity. -/
+theorem arkworksG2CheckedMembership_identity :
+    arkworksG2CheckedMembership (0 : G2) := by
+  simp [arkworksG2CheckedMembership]
+
 /-- Cofactor torsion meets the prime subgroup only at the identity. -/
 theorem g2_cofactor_torsion_inPrimeSubgroup_iff (p : G2)
     (horder : addOrderOf p ∣ g2Cofactor) :
@@ -422,6 +451,18 @@ theorem g2_nonzero_cofactor_torsion_not_inPrimeSubgroup (p : G2)
     ¬ inPrimeSubgroup p := by
   rw [g2_cofactor_torsion_inPrimeSubgroup_iff p horder]
   exact hne
+
+/-- On cofactor torsion, the pinned arkworks check accepts only identity. -/
+theorem arkworksG2CheckedMembership_cofactor_torsion_iff (p : G2)
+    (horder : addOrderOf p ∣ g2Cofactor) :
+    arkworksG2CheckedMembership p ↔ p = 0 := by
+  exact g2_cofactor_torsion_inPrimeSubgroup_iff p horder
+
+/-- Every nonidentity G2 cofactor-torsion point fails the pinned arkworks check. -/
+theorem arkworksG2CheckedMembership_rejects_nonzero_cofactor_torsion (p : G2)
+    (hne : p ≠ 0) (horder : addOrderOf p ∣ g2Cofactor) :
+    ¬ arkworksG2CheckedMembership p := by
+  exact g2_nonzero_cofactor_torsion_not_inPrimeSubgroup p hne horder
 
 end G2
 
