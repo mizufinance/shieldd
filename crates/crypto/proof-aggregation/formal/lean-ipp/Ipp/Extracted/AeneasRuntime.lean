@@ -290,6 +290,26 @@ end core.iter.range
 end Std
 end Aeneas
 
+namespace ark_ip_proofs.core.mem
+
+open Aeneas Aeneas.Std
+
+/-- Rust `mem::take`: return the old value paired with `Default::default`. -/
+def take {T : Type} (defaultInst : core.default.Default T) (value : T) :
+    Result (T × T) :=
+  Aeneas.Std.core.mem.take defaultInst value
+
+@[simp] theorem take_eq_ok {T : Type} (defaultInst : core.default.Default T)
+    (value default : T) (hdefault : defaultInst.default = .ok default) :
+    take defaultInst value = .ok (value, default) := by
+  simp [take, Aeneas.Std.core.mem.take, hdefault]
+
+@[simp] theorem take_ok {T : Type} (value default : T) :
+    take { default := .ok default } value = .ok (value, default) :=
+  rfl
+
+end ark_ip_proofs.core.mem
+
 namespace ark_ip_proofs.core.num.Usize
 
 open Aeneas Aeneas.Std

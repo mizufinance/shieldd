@@ -337,22 +337,18 @@ instance : HSub Std.Usize Std.Usize (Aeneas.Result Std.Usize) where
   hSub left right :=
     if right.val ≤ left.val then .ok ⟨left.val - right.val⟩ else .fail .integerOverflow
 
-/-- [core::mem::take]:
-    Source: '/rustc/library/core/src/mem/mod.rs', lines 849:0-849:56
-    Name pattern: [core::mem::take]
-    Visibility: public -/
-axiom core.mem.take
-  {T : Type} (defaultDefaultInst : core.default.Default T) :
-  T → Result (T × T)
 /-- [rayon_core::join::join]:
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rayon-core-1.12.1/src/join/mod.rs', lines 93:0-98:13
     Name pattern: [rayon_core::join::join]
     Visibility: public -/
-axiom rayon_core.join.join
+def rayon_core.join.join
   {A : Type} {B : Type} {RA : Type} {RB : Type}
   (coreopsfunctionFnOnceATupleRAInst : core.ops.function.FnOnce A Unit RA)
   (coreopsfunctionFnOnceBTupleRBInst : core.ops.function.FnOnce B Unit RB) :
-  A → B → Result (RA × RB)
+  A → B → Result (RA × RB) := fun a b => do
+  let ra ← coreopsfunctionFnOnceATupleRAInst.call_once a ()
+  let rb ← coreopsfunctionFnOnceBTupleRBInst.call_once b ()
+  .ok (ra, rb)
 /-- [ark_ip_proofs::gipa::verify_base_commitment_core]:
     Source: 'crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs', lines 203:0-231:1 -/
 def gipa.verify_base_commitment_core

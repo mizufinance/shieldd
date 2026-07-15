@@ -112,6 +112,8 @@ calls the two existing KZG opening cores in both production branches, and
 routes the first three terminal lanes through `verify_base_commitment_core`
 in its S2-25 order. The output is vendored as
 `Ipp/Extracted/VerifyTippMippGenerated.lean`; no extraction split was needed.
+The vendored graph uses the shared executable `core.mem.take` support
+definition, which returns the old value together with `Default::default()`.
 
 ## S2 Tier 1 serial additions
 
