@@ -6952,3 +6952,24 @@ evaluation, Miller loop, final exponentiation, and multi-pairing; and the cited
 bilinearity/nondegeneracy proposition at the mathematical boundary. Prover and
 release-gated tests were not applicable and were not run; zk circuits and
 `tools/gnark/lean` were not touched.
+
+### 2026-07-14 S2/S3 completion-plan design decision
+
+The S2 pairing path will use one associated-type-free verifier core with
+explicit field/group types and opaque pairing effects, called directly by the
+existing production `P: Pairing` wrappers. This extends the already proved
+generic KZG-equation pattern; it does not create a monomorphic verifier copy or
+hand-model the public equations. Hax/Aeneas proves the executed orchestration
+core, thin delegator parity is pinned by Rust tests/invariants, and S3 later
+discharges the concrete BLS12-377 adapter laws. Consequently the S2 capstone
+may retire abstract-trace orchestration evidence while the arkworks arithmetic,
+MSM, serialization/subgroup, and cryptographic rows remain explicit.
+
+Key risks are keeping the delegators genuinely field-for-field thin, avoiding
+an opaque result-bearing effect, selecting a field backend with no hidden
+carry/reduction boundary, completing checked large-prime/nonresidue
+certificates, and proving the Fq12/order-`r`, curve/MSM, and optimized final-
+exponentiation tails. GAP-02/03 are now dispatchable from the landed curve
+foundations; GAP-05/06/07 remain gated on order/factorization theorems. GAP-12
+was removed from the mandatory finish path because no batch GT predicate is
+executed in production.
