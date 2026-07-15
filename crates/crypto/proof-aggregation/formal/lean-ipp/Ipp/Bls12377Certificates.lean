@@ -389,3 +389,175 @@ theorem scalarModulus_prime :
   simpa [scalarModulusCertificate, Ipp.Bls12377.scalarModulus] using h
 
 end Ipp.Bls12377Certificates.Certificate
+
+namespace Ipp.Bls12377Certificates.Certificate
+
+def baseModulusThreeCertificate : Certificate :=
+  .step 3 2 1 [(1, .two)]
+
+def baseModulusFiveCertificate : Certificate :=
+  .step 5 2 1 [(2, .two)]
+
+def baseModulusElevenCertificate : Certificate :=
+  .step 11 2 1 [(1, .two), (1, baseModulusFiveCertificate)]
+
+def baseModulusThirteenCertificate : Certificate :=
+  .step 13 2 3 [(2, .two)]
+
+def baseModulusSeventeenCertificate : Certificate :=
+  .step 17 3 1 [(4, .two)]
+
+def baseModulusNineteenCertificate : Certificate :=
+  .step 19 2 3 [(1, .two), (1, baseModulusThreeCertificate)]
+
+def baseModulusTwentyThreeCertificate : Certificate :=
+  .step 23 11 1 [(1, .two), (1, baseModulusElevenCertificate)]
+
+def baseModulusTwoHundredSeventySevenCertificate : Certificate :=
+  .step 277 11 12 [(1, baseModulusTwentyThreeCertificate)]
+
+def baseModulusTwelveThousandSevenHundredFortyThreeCertificate : Certificate :=
+  .step 12743 11 46 [(1, baseModulusTwoHundredSeventySevenCertificate)]
+
+def baseModulusFiveMillionThreeHundredEightNineCertificate : Certificate :=
+  .step 5301089 11 416
+    [(1, baseModulusTwelveThousandSevenHundredFortyThreeCertificate)]
+
+def baseModulusEightMillionFiveHundredEightyThreeFiveOneCertificate : Certificate :=
+  .step 8583511 6 1693
+    [(1, .two), (1, baseModulusThreeCertificate),
+      (1, baseModulusFiveCertificate), (2, baseModulusThirteenCertificate)]
+
+def baseModulusFiveQuadrillionCertificate : Certificate :=
+  .step 5187222954756607 11 114
+    [(1, baseModulusEightMillionFiveHundredEightyThreeFiveOneCertificate),
+      (1, baseModulusFiveMillionThreeHundredEightNineCertificate)]
+
+def baseModulusNinetyThreeBitCertificate : Certificate :=
+  .step 7880826209898991662826602799 11 1519276552914
+    [(1, baseModulusFiveQuadrillionCertificate)]
+
+def baseModulusTwoHundredTwentyNineCertificate : Certificate :=
+  .step 229 11 12 [(1, baseModulusNineteenCertificate)]
+
+def baseModulusFourHundredFortyThreeCertificate : Certificate :=
+  .step 443 11 2
+    [(1, baseModulusSeventeenCertificate), (1, baseModulusThirteenCertificate)]
+
+def baseModulusSeventySixBillionCertificate : Certificate :=
+  .step 76872275827 11 2622
+    [(2, baseModulusSeventeenCertificate),
+      (1, baseModulusTwoHundredTwentyNineCertificate),
+      (1, baseModulusFourHundredFortyThreeCertificate)]
+
+def baseModulusOnePointEightTrillionCertificate : Certificate :=
+  .step 1844934619849 11 24 [(1, baseModulusSeventySixBillionCertificate)]
+
+def baseModulusOneHundredElevenQuintillionCertificate : Certificate :=
+  .step 111286271775829695101 11 60319900
+    [(1, baseModulusOnePointEightTrillionCertificate)]
+
+def baseModulusTwoHundredTwentyTwoQuintillionCertificate : Certificate :=
+  .step 222572543551659390203 11 2
+    [(1, baseModulusOneHundredElevenQuintillionCertificate)]
+
+def baseModulusSeventySevenBitCertificate : Certificate :=
+  .step 97931919162730131689321 11 440
+    [(1, baseModulusTwoHundredTwentyTwoQuintillionCertificate)]
+
+def baseModulusEightyTwoBitCertificate : Certificate :=
+  .step 3721412928183745004194199 11 38
+    [(1, baseModulusSeventySevenBitCertificate)]
+
+def baseModulusNineteenMillionCertificate : Certificate :=
+  .step 2521 17 35 [(3, .two), (2, baseModulusThreeCertificate)]
+
+def baseModulusThreeHundredSeventeenCertificate : Certificate :=
+  .step 317 11 4 [(1, .step 79 11 6 [(1, baseModulusThirteenCertificate)])]
+
+def baseModulusSeventyOneMillionCertificate : Certificate :=
+  .step 71924131 11 90
+    [(1, baseModulusThreeHundredSeventeenCertificate),
+      (1, baseModulusNineteenMillionCertificate)]
+
+def baseModulusFortySevenThousandCertificate : Certificate :=
+  .step 47521 17 55 [(5, .two), (3, baseModulusThreeCertificate)]
+
+def baseModulusSixtyThreeBitCertificate : Certificate :=
+  .step 6633514200929891813 11 1940812
+    [(1, baseModulusSeventyOneMillionCertificate),
+      (1, baseModulusFortySevenThousandCertificate)]
+
+def baseModulusTwoHundredTwentySixBitCertificate : Certificate :=
+  .step 73387170334035996766247648424745786170238574695861388454532790956181
+    11 2502306649616180
+    [(1, baseModulusEightyTwoBitCertificate),
+      (1, baseModulusNinetyThreeBitCertificate)]
+
+/-- Pocklington data for the 377-bit BLS12-377 base modulus. -/
+def baseModulusCertificate : Certificate :=
+  .step 258664426012969094010652733694893533536393512754914660539884262666720468348340822774968888139573360124440321458177
+    11 531340473991726911341985792
+    [(1, baseModulusTwoHundredTwentySixBitCertificate),
+      (1, baseModulusSixtyThreeBitCertificate)]
+
+private theorem check_step_of_conditions {n witness cofactor : Nat}
+    {factors : List (Nat × Certificate)}
+    (hgreater : 2 < n)
+    (hdecomp : n - 1 = factoredPart factors * cofactor)
+    (hbound : n < factoredPart factors ^ 2)
+    (hfermat : powResidue witness (n - 1) n = 1 % n)
+    (hfactors : checkFactors n witness factors = true) :
+    check (.step n witness cofactor factors) = true := by
+  simp only [check]
+  rw [decide_eq_true hgreater, decide_eq_true hdecomp,
+    decide_eq_true hbound, decide_eq_true hfermat, hfactors]
+  rfl
+
+private theorem checkFactors_cons_of_conditions
+    {n witness : Nat} {factor : Nat × Certificate}
+    {factors : List (Nat × Certificate)}
+    (hpositive : 0 < factor.1)
+    (hcertificate : check factor.2 = true)
+    (hcoprime : Nat.Coprime
+      (powResidue witness ((n - 1) / factor.2.number) n + n - 1) n)
+    (htail : checkFactors n witness factors = true) :
+    checkFactors n witness (factor :: factors) = true := by
+  simp only [checkFactors]
+  rw [decide_eq_true hpositive, hcertificate,
+    decide_eq_true hcoprime, htail]
+  rfl
+
+set_option maxRecDepth 100000 in
+theorem baseModulusTwoHundredTwentySixBitCertificate_checked :
+    check baseModulusTwoHundredTwentySixBitCertificate = true := by
+  decide
+
+set_option maxRecDepth 100000 in
+theorem baseModulusSixtyThreeBitCertificate_checked :
+    check baseModulusSixtyThreeBitCertificate = true := by
+  decide
+
+set_option maxRecDepth 100000 in
+theorem baseModulusCertificate_checked : check baseModulusCertificate = true := by
+  apply check_step_of_conditions
+  · decide
+  · decide
+  · decide
+  · decide
+  · apply checkFactors_cons_of_conditions
+    · decide
+    · exact baseModulusTwoHundredTwentySixBitCertificate_checked
+    · decide
+    · apply checkFactors_cons_of_conditions
+      · decide
+      · exact baseModulusSixtyThreeBitCertificate_checked
+      · decide
+      · rfl
+
+theorem baseModulus_prime :
+    Ipp.Bls12377.baseModulus.Prime := by
+  have h := prime_of_check baseModulusCertificate_checked
+  simpa [baseModulusCertificate, Ipp.Bls12377.baseModulus] using h
+
+end Ipp.Bls12377Certificates.Certificate
