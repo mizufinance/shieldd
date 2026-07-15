@@ -73,13 +73,6 @@ def index_mut {T : Type} (_inst : Type) (items : alloc.vec.Vec T)
 end Vec
 end alloc.vec
 
-namespace core.cmp
-
-structure PartialEq (Self : Type) (Rhs : Type) where
-  eq : Self → Rhs → Result Bool
-
-end core.cmp
-
 namespace core.convert
 
 structure From (Self : Type) (T : Type) where

@@ -294,8 +294,29 @@ S2-34 now routes the profiled combined-check wrapper through the explicit
 for the standard-library functions required by the graph. The graph exposes
 `CombinedChecksPpeInput`, `CombinedChecksCoreInput`, `CombinedChecksError`,
 `CombinedChecksCoreOutput`, `verify_combined_ppe_core`, and
-`verify_combined_checks_core`. The S2-31..33 and S2-35 refinement theorems
-remain open; no theorem promotion is claimed by this extraction session.
+`verify_combined_checks_core`. The later S2-31..33 and S2-35 sessions proved
+the round/fold/leaf and combined-check refinements consumed by S2-36.
+
+## S2-36 aggregate verifier capstone
+
+`verify_aggregate_proof_with_trace` now delegates its non-benchmark result path
+to the associated-type-free `verify_aggregate_proof_core`. The scoped WSL
+Charon/Aeneas graph is vendored as
+`Ipp/Extracted/AggregateVerifierGenerated.lean`. Its effect state records the
+chronological randomizer attempts and the later combined call; the extracted
+loop retries exactly decoded `None`, zero, and one, starts at nonce zero,
+propagates challenge and combined errors unchanged, and returns the conjunction
+of the two combined checks.
+
+`Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_refinement_statement`
+composes that graph with S2-35 and proves acceptance iff `Ipp.FsAccepts`. The
+theorem consumes the existing combined-check structural/round/totality,
+TIPP/MIPP, fold, PPE, pairing, final-bridge, and KZG effect premises. The one
+outer semantic boundary is the named `RandomizerTrace` correspondence from the
+Rust commitment bytes/digest/decoded attempts to the typed randomizer trace;
+the aggregate effect's delegation to the landed combined core is explicit.
+Hash-as-random-oracle and serializer parity remain assumptions. This session
+does not claim the S2-37 profiled timing projection.
 
 ## Gates
 

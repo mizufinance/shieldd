@@ -90,7 +90,7 @@ def run
     (clone G1) (default G1) (add G1) (smulAssign F G1)
     effects tippPairing ppeEffect input effect tipp_pairing ppe_pairing
 
-private def runTipp
+def runTipp
     {F G1 G2 GT E FX PE : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
@@ -108,7 +108,7 @@ private def runTipp
     (clone G1) (default G1) (add G1) (smulAssign F G1)
     effects tippPairing input effect pairing
 
-private def runPpe
+def runPpe
     {F G1 G2 G2Prepared GT PPE : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup GT] [Module F GT]

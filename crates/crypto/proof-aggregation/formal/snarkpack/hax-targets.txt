@@ -25,6 +25,11 @@
 # formal/lean-ipp/Ipp/Extracted/CombinedChecksGenerated.lean. Its explicit
 # combined records, count checks, PPE delegation, result propagation, and
 # trace-preserving TIPP effect are extracted; S2-35 proves its refinement.
+# The S2-36 aggregate core graph is vendored in
+# formal/lean-ipp/Ipp/Extracted/AggregateVerifierGenerated.lean. Its typed
+# effect carries chronological randomizer attempts and the combined result;
+# the handwritten capstone composes it with S2-35 under the named byte/digest
+# trace correspondence.
 
 shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
 shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow
@@ -82,5 +87,7 @@ ark_ip_proofs::applications::groth16_aggregation::CombinedChecksError
 ark_ip_proofs::applications::groth16_aggregation::CombinedChecksCoreOutput
 ark_ip_proofs::applications::groth16_aggregation::verify_combined_ppe_core
 ark_ip_proofs::applications::groth16_aggregation::verify_combined_checks_core
-ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_with_trace
+ark_ip_proofs::applications::groth16_aggregation::AggregateVerifierEffect
+ark_ip_proofs::applications::groth16_aggregation::AggregateVerifierCoreOutput
+ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_core
 ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_profiled_with_trace

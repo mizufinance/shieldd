@@ -192,6 +192,9 @@ instance (left right : Usize) : Decidable (left < right) :=
 instance : HAdd Usize Usize (Result Usize) where
   hAdd left right := .ok ⟨left.val + right.val⟩
 
+@[simp] theorem add_eq (left right : Usize) :
+    (left + right : Result Usize) = .ok ⟨left.val + right.val⟩ := rfl
+
 macro:max value:term:max noWs "#usize" : term =>
   `(Usize.ofNat $value)
 
@@ -410,6 +413,19 @@ def is_none {T : Type} (value : Option T) : Bool :=
   | some _ => false
 
 end core.option.Option
+
+namespace core.cmp
+
+structure PartialEq (Self : Type) (Rhs : Type) where
+  eq : Self → Rhs → Result Bool
+
+/-- Executable Aeneas model of Rust's default `PartialEq::ne`. -/
+def PartialEq.ne {Self Rhs : Type} (inst : PartialEq Self Rhs)
+    (left : Self) (right : Rhs) : Result Bool := do
+  let equal ← inst.eq left right
+  .ok (!equal)
+
+end core.cmp
 
 namespace rayon_core.join
 

@@ -35,13 +35,6 @@ end Aeneas
 
 namespace ark_ip_proofs
 
-namespace core.cmp
-
-structure PartialEq (Self : Type) (Rhs : Type) where
-  eq : Self → Rhs → Result Bool
-
-end core.cmp
-
 namespace core.convert
 
 structure From (Self : Type) (T : Type) where

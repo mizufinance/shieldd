@@ -232,6 +232,47 @@ trait TippMippEffect<F, G1, G2, GT, ABT, CT, E>:
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+trait AggregateVerifierEffect<F, E> {
+    fn derive_randomizer(&mut self, nonce: u64) -> Result<Option<F>, E>;
+    fn verify_combined(&mut self, randomizer: &F) -> Result<(bool, bool), E>;
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+#[derive(Debug)]
+struct AggregateVerifierCoreOutput<F, FX> {
+    randomizer: F,
+    checks: (bool, bool),
+    accepted: bool,
+    effect: FX,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_aggregate_proof_core<F, E, FX>(
+    mut effect: FX,
+) -> Result<AggregateVerifierCoreOutput<F, FX>, E>
+where
+    F: PartialEq + Zero + One,
+    FX: AggregateVerifierEffect<F, E>,
+{
+    let mut nonce = 0u64;
+    loop {
+        let candidate = effect.derive_randomizer(nonce)?;
+        if let Some(randomizer) = candidate {
+            if randomizer != F::zero() && randomizer != F::one() {
+                let checks = effect.verify_combined(&randomizer)?;
+                return Ok(AggregateVerifierCoreOutput {
+                    randomizer,
+                    checks,
+                    accepted: checks.0 && checks.1,
+                    effect,
+                });
+            }
+        }
+        nonce += 1;
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
 struct CombinedChecksPpeInput<G1, G2Prepared, GT> {
     alpha_beta: GT,
     agg_c: G1,
@@ -1869,18 +1910,39 @@ where
     D: Digest,
     S: ChallengeTraceSink,
 {
-    let r = derive_randomizer::<P, D, S>(context, trace, proof)?;
-    let ((tipp_mipp_valid, ppe_valid), _) = verify_combined_checks_profiled::<P, D, S>(
-        context,
-        trace,
-        ip_verifier_srs,
-        pvk,
-        public_inputs,
-        proof,
-        &r,
-    )?;
+    #[cfg(not(feature = "bench-baseline"))]
+    {
+        let effect = ArkworksAggregateVerifierEffect {
+            context,
+            trace,
+            ip_verifier_srs,
+            pvk,
+            public_inputs,
+            proof,
+        };
+        let output = verify_aggregate_proof_core(effect)?;
+        let AggregateVerifierCoreOutput {
+            accepted, effect, ..
+        } = output;
+        drop(effect);
+        return Ok(accepted);
+    }
 
-    Ok(tipp_mipp_valid && ppe_valid)
+    #[cfg(feature = "bench-baseline")]
+    {
+        let r = derive_randomizer::<P, D, S>(context, trace, proof)?;
+        let ((tipp_mipp_valid, ppe_valid), _) = verify_combined_checks_profiled::<P, D, S>(
+            context,
+            trace,
+            ip_verifier_srs,
+            pvk,
+            public_inputs,
+            proof,
+            &r,
+        )?;
+
+        Ok(tipp_mipp_valid && ppe_valid)
+    }
 }
 
 pub fn verify_aggregate_proof_profiled<P, D>(
@@ -2166,6 +2228,59 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+struct ArkworksAggregateVerifierEffect<'a, P, D, S>
+where
+    P: Pairing,
+    D: Digest,
+    S: ChallengeTraceSink,
+{
+    context: &'a ChallengeContext,
+    trace: &'a mut S,
+    ip_verifier_srs: &'a VerifierSRS<P>,
+    pvk: &'a PreparedVerifyingKey<P>,
+    public_inputs: &'a [Vec<P::ScalarField>],
+    proof: &'a AggregateProof<P, D>,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+impl<P, D, S> AggregateVerifierEffect<P::ScalarField, Error>
+    for ArkworksAggregateVerifierEffect<'_, P, D, S>
+where
+    P: Pairing,
+    D: Digest,
+    S: ChallengeTraceSink,
+{
+    fn derive_randomizer(&mut self, nonce: u64) -> Result<Option<P::ScalarField>, Error> {
+        let mut hash_input = Vec::new();
+        self.proof.com_a.serialize_uncompressed(&mut hash_input)?;
+        self.proof.com_b.serialize_uncompressed(&mut hash_input)?;
+        self.proof.com_c.serialize_uncompressed(&mut hash_input)?;
+        Ok(P::ScalarField::from_random_bytes(
+            &challenge_digest::<D, _>(
+                self.context,
+                self.trace,
+                b"aggregate.randomizer",
+                nonce,
+                &hash_input,
+            ),
+        ))
+    }
+
+    fn verify_combined(&mut self, randomizer: &P::ScalarField) -> Result<(bool, bool), Error> {
+        let (checks, _) = verify_combined_checks_profiled::<P, D, S>(
+            self.context,
+            self.trace,
+            self.ip_verifier_srs,
+            self.pvk,
+            self.public_inputs,
+            self.proof,
+            randomizer,
+        )?;
+        Ok(checks)
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
 fn combined_checks_core_error(error: CombinedChecksError<String>) -> Error {
     match error.kind {
         0 => Box::new(std::io::Error::new(
@@ -2428,6 +2543,87 @@ mod tests {
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use ark_std::One;
     use blake2::Blake2b;
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[derive(Debug)]
+    struct ScriptedAggregateEffect {
+        candidates: Vec<Result<Option<u64>, &'static str>>,
+        next: usize,
+        combined: Result<(bool, bool), &'static str>,
+        events: Vec<(char, u64)>,
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    impl AggregateVerifierEffect<u64, &'static str> for ScriptedAggregateEffect {
+        fn derive_randomizer(&mut self, nonce: u64) -> Result<Option<u64>, &'static str> {
+            self.events.push(('r', nonce));
+            let result = self.candidates[self.next].clone();
+            self.next += 1;
+            result
+        }
+
+        fn verify_combined(&mut self, randomizer: &u64) -> Result<(bool, bool), &'static str> {
+            self.events.push(('c', *randomizer));
+            self.combined
+        }
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    fn scripted_aggregate_effect(
+        candidates: Vec<Result<Option<u64>, &'static str>>,
+        combined: Result<(bool, bool), &'static str>,
+    ) -> ScriptedAggregateEffect {
+        ScriptedAggregateEffect {
+            candidates,
+            next: 0,
+            combined,
+            events: Vec::new(),
+        }
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn aggregate_core_retries_invalid_decodings_and_degenerate_randomizers_in_order() {
+        let effect = scripted_aggregate_effect(
+            vec![Ok(None), Ok(Some(0)), Ok(Some(1)), Ok(Some(7))],
+            Ok((true, true)),
+        );
+        let output = verify_aggregate_proof_core(effect).expect("script succeeds");
+
+        assert_eq!(output.randomizer, 7);
+        assert_eq!(output.checks, (true, true));
+        assert!(output.accepted);
+        assert_eq!(
+            output.effect.events,
+            vec![('r', 0), ('r', 1), ('r', 2), ('r', 3), ('c', 7)]
+        );
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn aggregate_core_propagates_challenge_and_combined_errors() {
+        let challenge_error = scripted_aggregate_effect(vec![Err("challenge")], Ok((true, true)));
+        assert_eq!(
+            verify_aggregate_proof_core(challenge_error).unwrap_err(),
+            "challenge"
+        );
+
+        let combined_error = scripted_aggregate_effect(vec![Ok(Some(7))], Err("combined"));
+        assert_eq!(
+            verify_aggregate_proof_core(combined_error).unwrap_err(),
+            "combined"
+        );
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn aggregate_core_acceptance_is_exact_boolean_conjunction() {
+        for checks in [(false, false), (false, true), (true, false), (true, true)] {
+            let effect = scripted_aggregate_effect(vec![Ok(Some(7))], Ok(checks));
+            let output = verify_aggregate_proof_core(effect).expect("script succeeds");
+            assert_eq!(output.accepted, checks.0 && checks.1);
+        }
+    }
 
     fn zero_combined_inputs<P: Pairing>() -> (
         VerifierSRS<P>,
