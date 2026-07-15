@@ -178,6 +178,8 @@ namespace Usize
 
 def ofNat (value : Nat) : Usize := ⟨value⟩
 
+@[simp] theorem ofNat_val (value : Nat) : (ofNat value).val = value := rfl
+
 /-- Largest value representable by Rust's target-sized unsigned integer. -/
 def max : Nat := 2 ^ System.Platform.numBits - 1
 
@@ -238,6 +240,118 @@ end core.cmp.impls.OrdUsize
 
 namespace Do
 end Do
+
+/-! Executable fixed-width integers and arrays used by the MAC campaign. -/
+
+namespace MacCampaign
+
+def u64Base : Nat := 2 ^ 64
+def u128Base : Nat := 2 ^ 128
+def i32Base : Nat := 2 ^ 32
+
+structure U64 where
+  val : Nat
+  isLt : val < u64Base
+deriving DecidableEq, Repr
+
+namespace U64
+
+def ofNat (value : Nat) : U64 :=
+  ⟨value % u64Base, Nat.mod_lt _ (by decide)⟩
+
+end U64
+
+structure U128 where
+  val : Nat
+  isLt : val < u128Base
+deriving DecidableEq, Repr
+
+namespace U128
+
+def ofNat (value : Nat) : U128 :=
+  ⟨value % u128Base, Nat.mod_lt _ (by decide)⟩
+
+end U128
+
+structure I32 where
+  val : Nat
+  isLt : val < i32Base
+deriving DecidableEq, Repr
+
+namespace I32
+
+def ofNat (value : Nat) : I32 :=
+  ⟨value % i32Base, Nat.mod_lt _ (by decide)⟩
+
+end I32
+
+def castU128 (value : U64) : U128 :=
+  ⟨value.val, Nat.lt_trans value.isLt (by decide)⟩
+def castU64 (value : U128) : U64 := U64.ofNat value.val
+
+def add64 (left right : U64) : Result U64 :=
+  if h : left.val + right.val < u64Base then
+    .ok ⟨left.val + right.val, h⟩
+  else
+    .fail .integerOverflow
+
+def add128 (left right : U128) : Result U128 :=
+  if h : left.val + right.val < u128Base then
+    .ok ⟨left.val + right.val, h⟩
+  else
+    .fail .integerOverflow
+
+def mul128 (left right : U128) : Result U128 :=
+  if h : left.val * right.val < u128Base then
+    .ok ⟨left.val * right.val, h⟩
+  else
+    .fail .integerOverflow
+
+def shr128 (value : U128) (shift : I32) : Result U128 :=
+  if shift.val < 128 then
+    .ok (U128.ofNat (value.val / 2 ^ shift.val))
+  else
+    .fail .integerOverflow
+
+def wrappingMul64 (left right : U64) : U64 :=
+  U64.ofNat (left.val * right.val)
+
+def wrappingSub128 (left right : U128) : U128 :=
+  U128.ofNat (left.val + u128Base - right.val)
+
+instance : LT U64 where
+  lt left right := left.val < right.val
+
+instance : LE U64 where
+  le left right := left.val ≤ right.val
+
+instance (left right : U64) : Decidable (left < right) :=
+  inferInstanceAs (Decidable (left.val < right.val))
+
+instance (left right : U64) : Decidable (left ≤ right) :=
+  inferInstanceAs (Decidable (left.val ≤ right.val))
+
+structure Array (T : Type u) (size : Usize) where
+  val : List T
+  hlen : val.length = size.val
+
+namespace Array
+
+def make {T : Type u} (size : Usize) (items : List T)
+    (hlen : items.length = size.val := by simp) : Array T size :=
+  ⟨items, hlen⟩
+
+def replicate {T : Type u} (size : Usize) (value : T) : Array T size :=
+  ⟨List.replicate size.val value, by simp⟩
+
+def index_usize {T : Type u} {size : Usize} (items : Array T size)
+    (index : Usize) : Result T :=
+  match items.val[index.val]? with
+  | some value => .ok value
+  | none => .fail .arrayOutOfBounds
+
+end Array
+end MacCampaign
 
 namespace core.clone
 

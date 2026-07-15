@@ -787,3 +787,116 @@ There is no currently blocking owner question. Antoine's review/signoff is
 needed when S3-23 pins the exact curve-order citations and when S3-41 retains
 the cited pairing-mathematics row. The owner-delegated S3-08 production field
 route decision is complete.
+
+## MAC campaign
+
+### Session 1 — invariant design and first closed bridge (2026-07-15)
+
+Status: complete. The recovered Arkworks-path spike is re-landed as an
+experimental test/feature surface, its parity test passes, and its complete
+Hax/Aeneas closure is vendored in
+`Ipp/Extracted/ArkworksFqMulGenerated.lean`. Production builds do not expose
+the Rust spike unless `hax_compilation` or the `mac-campaign` feature is set.
+The extraction command was:
+
+```text
+cargo hax into -v --output-dir /root/shieldd-mac-campaign-session1-20260715 \
+  aeneas-lean \
+  --charon-args=--start-from=crate::s3_07_arkworks_fq_spike::mul \
+  --lakefile
+```
+
+The extracted closure is `mul -> round x6 -> mac`, followed by
+`subtract_modulus -> geq_modulus/sbb`. Hax reported that it could not identify
+the Aeneas revision, but the Lean package source in `.lake/packages/aeneas`
+is the required `e0a159645386230102a2bf89b4df2dcd2140777e` revision.
+
+The outer-loop invariant is committed verbatim as:
+
+```lean
+/-- Outer CIOS invariant for the extracted `(round index, accumulator)` state. -/
+def roundInvariant (a b : LimbArray) (state : Nat × LimbArray) : Prop :=
+  state.1 ≤ limbCount ∧
+  limbsToNat state.2 < 2 * Ipp.Bls12377.baseModulus ∧
+  Nat.ModEq Ipp.Bls12377.baseModulus
+    (limbsToNat state.2 * wordBase ^ state.1)
+    (prefixToNat b state.1 * limbsToNat a)
+```
+
+The full two-MAC-chain prefix invariant used to telescope one round is:
+
+```lean
+/-- Exact telescoping invariant for a prefix of one extracted CIOS round. -/
+def macChainInvariant (r a : LimbArray) (b k : Nat)
+    (state : MacChainState) : Prop :=
+  state.count ≤ limbCount ∧
+  state.reductionLows.length = state.count ∧
+  (∀ low ∈ state.reductionLows, low < wordBase) ∧
+  state.productCarry < wordBase ∧
+  state.reductionCarry < wordBase ∧
+  prefixToNat r state.count + b * prefixToNat a state.count +
+      k * prefixToNat ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS state.count =
+    lowListToNat state.reductionLows +
+      (state.productCarry + state.reductionCarry) * wordBase ^ state.count
+```
+
+Closed lemmas in `Ipp/Extracted/ArkworksFqMul.lean`:
+
+- `macModel_spec`: reusable Nat quotient/remainder specification, including
+  both output-limb bounds and the exact `acc + x * y + carry` equation.
+- `extracted_mac_eq_model`: executable Aeneas `mac` equals the Nat model under
+  64-bit input bounds; all checked U128 operations are proved successful.
+- `extracted_mac_spec` and `extracted_mac_result_spec`: direct Nat-level specs
+  for the extracted result.
+- `extracted_mac_with_carry_spec`: named carry-threading form of the same
+  primitive. The recovered code has one four-argument `mac`; there is no
+  separate extracted `mac_with_carry` function.
+- `macChainInvariant_initial`: zero-prefix base case.
+- `macChainInvariant_step`: one complete product-MAC plus reduction-MAC step
+  preserves the exact telescoping invariant.
+- `extracted_macChainInvariant_step`: applies two actual extracted `mac`
+  executions and proves the same full-step preservation result.
+
+Verification completed:
+
+- Rust parity: 36 edge pairs plus 512 deterministic random pairs passed.
+- Focused Lean: `lake build Ipp.Extracted.ArkworksFqMul` passed.
+- Full Lean: `lake build Ipp` passed, 3406 jobs, with the pinned Lean 4.30.0
+  lake and `LEAN_NUM_THREADS=1`.
+- `#print axioms` for the model, bridge, and step theorems is exactly within
+  `propext`, `Classical.choice`, and `Quot.sound`. There are no `sorry`s or
+  declared axioms in the campaign Lean files.
+- Prover, release, and release-gated tests were not run in session 1.
+
+Session 2 must continue in this order:
+
+1. Prove the constant facts: `limbsToNat MODULUS = baseModulus`, the low-limb
+   `INV` relation, and that the chosen reduction factor makes the first
+   reduction MAC's low result zero.
+2. Instantiate `extracted_macChainInvariant_step` for all six limb positions,
+   identify the six reduction lows with the shifted array returned by
+   `round`, and close the exact round equation
+   `wordBase * limbsToNat r' = limbsToNat r + b * limbsToNat a +
+   k * baseModulus`.
+3. Prove the final top-word addition is in range. The individual carry bounds
+   do not alone show `productCarry + reductionCarry < wordBase`; use the exact
+   chain equation and the modulus/input bounds.
+4. Prove the round output bound `< 2q`, then the one-step `roundInvariant`
+   transition and begin the six-round induction. Leave `sbb` and final
+   subtraction for session 3 unless the round proof closes early.
+
+Dead ends and load-bearing details:
+
+- Do not replace the generated scoped runtime with global Aeneas
+  `UScalarTy`/`Std.Array` definitions. Older checked-in generated modules carry
+  incompatible local definitions. `Aeneas.Std.MacCampaign` is intentionally
+  scoped and executable.
+- `omega` does not normalize the distributive carry expression in the chain
+  step. Expanding the two MAC equations and using `ring` closes the finite
+  telescoping identity cleanly.
+- Do not use `native_decide` for fixed shift facts: its generated-code axioms
+  violate the audit. Kernel `decide` closes them with the allowed audit.
+- The first Mathlib tactic import can rebuild roughly 2973 cached modules and
+  took about 70 seconds. This was cache setup, not a hung Lean process.
+- Continue to run exactly one pinned `lake` process at a time with
+  `LEAN_NUM_THREADS=1`.
