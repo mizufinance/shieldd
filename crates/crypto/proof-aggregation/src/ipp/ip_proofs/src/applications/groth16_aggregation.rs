@@ -1591,29 +1591,66 @@ fn fold_public_inputs<P: Pairing>(
     public_inputs: &[Vec<P::ScalarField>],
     r: &P::ScalarField,
 ) -> (P::ScalarField, P::G1) {
-    let r_sum = if *r == <P::ScalarField>::one() {
-        P::ScalarField::from(public_inputs.len() as u64)
+    let gamma_abc_g1 = vk
+        .gamma_abc_g1
+        .iter()
+        .map(|base| P::G1::from(*base))
+        .collect::<Vec<_>>();
+    fold_public_inputs_core(&gamma_abc_g1, public_inputs, r)
+}
+
+pub(crate) fn fold_public_inputs_core<F, G1>(
+    gamma_abc_g1: &[G1],
+    public_inputs: &[Vec<F>],
+    r: &F,
+) -> (F, G1)
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + std::ops::Add<Output = F>
+        + std::ops::Div<Output = F>
+        + std::ops::Mul<Output = F>
+        + std::ops::Sub<Output = F>,
+    G1: Clone + std::ops::Add<Output = G1> + std::ops::Mul<F, Output = G1>,
+{
+    assert!(!public_inputs.is_empty(), "public inputs must be non-empty");
+    let input_arity = public_inputs[0].len();
+    assert_eq!(gamma_abc_g1.len(), input_arity + 1);
+    for row_index in 0..public_inputs.len() {
+        assert_eq!(public_inputs[row_index].len(), input_arity);
+    }
+
+    let r_sum = if r.clone() == F::one() {
+        F::from(public_inputs.len() as u64)
     } else {
-        (r.pow(&[public_inputs.len() as u64]) - &<P::ScalarField>::one())
-            / &(r.clone() - &<P::ScalarField>::one())
+        let mut r_power = F::one();
+        for _ in 0..public_inputs.len() {
+            r_power = r_power * r.clone();
+        }
+        (r_power - F::one()) / (r.clone() - F::one())
     };
-    assert_eq!(vk.gamma_abc_g1.len(), public_inputs[0].len() + 1);
-    let r_vec = structured_scalar_power(public_inputs.len(), r);
-    let mut folded_public_inputs = vec![P::ScalarField::zero(); public_inputs[0].len()];
-    for (inputs, challenge_power) in public_inputs.iter().zip(&r_vec) {
-        for (acc, input) in folded_public_inputs.iter_mut().zip(inputs) {
-            *acc += *input * challenge_power;
+
+    let mut r_vec = vec![F::one(); public_inputs.len()];
+    for index in 1..public_inputs.len() {
+        r_vec[index] = r_vec[index - 1].clone() * r.clone();
+    }
+
+    let mut folded_public_inputs = vec![F::zero(); input_arity];
+    for row_index in 0..public_inputs.len() {
+        for input_index in 0..input_arity {
+            let term = public_inputs[row_index][input_index].clone() * r_vec[row_index].clone();
+            folded_public_inputs[input_index] = folded_public_inputs[input_index].clone() + term;
         }
     }
 
-    let mut g_ic = P::G1::from(vk.gamma_abc_g1[0]) * r_sum;
-    for (base, folded_input) in vk
-        .gamma_abc_g1
-        .iter()
-        .skip(1)
-        .zip(folded_public_inputs.iter())
-    {
-        g_ic += P::G1::from(*base) * folded_input;
+    let mut g_ic = gamma_abc_g1[0].clone() * r_sum.clone();
+    for input_index in 0..input_arity {
+        let term =
+            gamma_abc_g1[input_index + 1].clone() * folded_public_inputs[input_index].clone();
+        g_ic = g_ic + term;
     }
 
     (r_sum, g_ic)
@@ -1747,6 +1784,71 @@ mod tests {
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use ark_std::One;
     use blake2::Blake2b;
+
+    fn assert_fold_public_inputs_parity<P: Pairing>(rows: usize, r: P::ScalarField) {
+        let g1 = P::G1::generator();
+        let vk: VerifyingKey<P> = VerifyingKey {
+            alpha_g1: g1.into(),
+            beta_g2: P::G2::generator().into(),
+            gamma_g2: P::G2::generator().into(),
+            delta_g2: P::G2::generator().into(),
+            gamma_abc_g1: vec![
+                g1.into(),
+                (g1 * P::ScalarField::from(2u64)).into(),
+                (g1 * P::ScalarField::from(3u64)).into(),
+            ],
+        };
+        let public_inputs = (0..rows)
+            .map(|row| {
+                vec![
+                    P::ScalarField::from((row as u64) + 1),
+                    P::ScalarField::from((row as u64) + 2),
+                ]
+            })
+            .collect::<Vec<_>>();
+
+        let delegated = fold_public_inputs(&vk, &public_inputs, &r);
+        let gamma_abc_g1 = vk
+            .gamma_abc_g1
+            .iter()
+            .map(|base| P::G1::from(*base))
+            .collect::<Vec<_>>();
+        let core = fold_public_inputs_core(&gamma_abc_g1, &public_inputs, &r);
+
+        assert_eq!(delegated, core);
+    }
+
+    #[test]
+    fn fold_public_inputs_core_parity_r_one_one_row() {
+        assert_fold_public_inputs_parity::<Bls12_381>(
+            1,
+            <Bls12_381 as Pairing>::ScalarField::one(),
+        );
+    }
+
+    #[test]
+    fn fold_public_inputs_core_parity_r_one_multiple_rows() {
+        assert_fold_public_inputs_parity::<Bls12_381>(
+            3,
+            <Bls12_381 as Pairing>::ScalarField::one(),
+        );
+    }
+
+    #[test]
+    fn fold_public_inputs_core_parity_r_not_one_one_row() {
+        assert_fold_public_inputs_parity::<Bls12_381>(
+            1,
+            <Bls12_381 as Pairing>::ScalarField::from(2u64),
+        );
+    }
+
+    #[test]
+    fn fold_public_inputs_core_parity_r_not_one_multiple_rows() {
+        assert_fold_public_inputs_parity::<Bls12_381>(
+            3,
+            <Bls12_381 as Pairing>::ScalarField::from(2u64),
+        );
+    }
 
     #[cfg(not(feature = "bench-baseline"))]
     struct FailingPreparedPairingEffect;

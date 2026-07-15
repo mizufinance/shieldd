@@ -6,6 +6,9 @@
 # The S2-23 coefficient-vector graph is vendored in
 # formal/lean-ipp/Ipp/Extracted/PolynomialCoefficientsGenerated.lean; its
 # refinement theorem remains a separate proof-session deliverable.
+# The S2-26 public-input fold graph is vendored in
+# formal/lean-ipp/Ipp/Extracted/Groth16VerifierGenerated.lean; its refinement
+# theorem remains the S2-27 proof-session deliverable.
 
 shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
 shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow
@@ -50,7 +53,7 @@ ark_ip_proofs::applications::groth16_aggregation::build_shifted_ck_2_inner
 ark_ip_proofs::applications::groth16_aggregation::PreparedPairingEffect
 ark_ip_proofs::applications::groth16_aggregation::PreparedPpeVerifierCoreInput
 ark_ip_proofs::applications::groth16_aggregation::verify_ppe_core
-ark_ip_proofs::applications::groth16_aggregation::fold_public_inputs
+ark_ip_proofs::applications::groth16_aggregation::fold_public_inputs_core
 ark_ip_proofs::applications::groth16_aggregation::verify_ppe
 ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp
 ark_ip_proofs::applications::groth16_aggregation::verify_combined_checks_profiled
