@@ -343,6 +343,31 @@ no opaque carry/reduction result, safe Rust build, and a measured end-to-end
 prover/verify run within the recorded regression budget. This is evidence for
 F02, not ledger retirement.
 
+**2026-07-15 S3-06 result (feasibility evidence only).** Generated safe Rust
+word-by-word Montgomery backends for both moduli with the official published
+fiat-crypto JavaScript generator `v0.1.6-115-g3c5114cb1` (commit
+`3c5114cb11cdc1da781583543d5b42cf7c838d25`; artifact SHA-256
+`4c05afbf01098b4e4e154e82d8358629f6e54b9bab386c56a655e2ba24adf3f0`),
+using `--lang Rust --inline` under WSL. The disposable integration-test facade at
+`src/ipp/ip_proofs/tests/bls12_377_fiat_spike.rs` passed encode/decode, add,
+mul, and square parity against arkworks for 36 edge pairs plus 512 deterministic
+random pairs per field. `Ipp.Bls12377.FiatAdapter.fq_fiat_mul_decodes_to_zmod_mul`
+composes the explicitly transcribed fiat multiplication postcondition with the
+S3-F00 decode relation; the postcondition remains fiat's proof boundary, not a
+theorem about Rust established here. Focused and full single-threaded `Ipp`
+builds passed; the axiom audit lists only `propext` and `Quot.sound`.
+
+Release medians on Windows MSVC, rustc 1.89.0, AMD Ryzen 7 3700X (nine samples,
+200,000 operations/sample) were: Fq add 9.10 ns fiat / 2.44 ns arkworks (3.73x),
+mul 63.66 / 38.73 (1.64x), square 61.24 / 40.76 (1.50x); Fr add 7.58 / 2.13
+(3.55x), mul 28.71 / 17.74 (1.62x), square 27.50 / 19.78 (1.39x). The
+deterministic SnarkPack corpus was not run because replacing arkworks fields
+through the curve/pairing stack is invasive and outside this bounded slice.
+Verdict: F01A is feasible enough to remain preferred for S3-08, subject to a
+whole-stack facade/prover performance veto and a reviewed reproducible path
+from fiat's Coq proof artifact to the exact vendored Rust outputs. This does not
+retire any ledger row.
+
 **S3-07 — F01B monomorphic arkworks feasibility slice** — `HARD (sol)` —
 `GATED` on S3-05 and S2-19's extraction discipline. Extract one concrete Fq
 four-limb multiply/reduce wrapper and prove range preservation plus
