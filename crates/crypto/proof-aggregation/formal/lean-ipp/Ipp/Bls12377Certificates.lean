@@ -24,6 +24,49 @@ private theorem powResidue_eq_val {n witness exponent : Nat} :
   unfold powResidue
   rw [npowBinRec_eq_pow]
 
+/-- An Euler-criterion residue of `-1` certifies that `a` is not a square modulo an
+odd prime. -/
+theorem not_square_of_powResidue_eq_neg_one {p a : Nat}
+    (hp : p.Prime) (hodd : Odd p)
+    (hresidue : powResidue a ((p - 1) / 2) p = p - 1) :
+    ∀ x : ZMod p, x ^ 2 ≠ (a : ZMod p) := by
+  rcases hodd with ⟨k, hk⟩
+  have hpTwo : 2 < p := by
+    have := hp.two_le
+    omega
+  have hexponent : 0 < (p - 1) / 2 := by omega
+  have htwice : 2 * ((p - 1) / 2) = p - 1 := by omega
+  have hnegOneVal : (-1 : ZMod p).val = p - 1 := by
+    rw [show p = (p - 1).succ by omega]
+    exact ZMod.val_neg_one (p - 1)
+  have honeVal : (1 : ZMod p).val = 1 := ZMod.val_one'' (by omega)
+  have hnegOne_ne_one : (-1 : ZMod p) ≠ 1 := by
+    intro h
+    have hval := congrArg ZMod.val h
+    rw [hnegOneVal, honeVal] at hval
+    omega
+  letI : Fact p.Prime := ⟨hp⟩
+  have hapow_eq_negOne : (a : ZMod p) ^ ((p - 1) / 2) = -1 := by
+    apply ZMod.val_injective
+    rw [← powResidue_eq_val, hresidue, hnegOneVal]
+  intro x hx
+  have ha_ne_zero : (a : ZMod p) ≠ 0 := by
+    intro ha
+    rw [ha, zero_pow hexponent.ne'] at hapow_eq_negOne
+    exact neg_ne_zero.mpr one_ne_zero hapow_eq_negOne.symm
+  have hx_ne_zero : x ≠ 0 := by
+    intro hxzero
+    apply ha_ne_zero
+    rw [← hx, hxzero]
+    norm_num
+  apply hnegOne_ne_one
+  rw [← hapow_eq_negOne]
+  calc
+    (a : ZMod p) ^ ((p - 1) / 2) = (x ^ 2) ^ ((p - 1) / 2) := by rw [hx]
+    _ = x ^ (2 * ((p - 1) / 2)) := by rw [pow_mul]
+    _ = x ^ (p - 1) := by rw [htwice]
+    _ = 1 := ZMod.pow_card_sub_one_eq_one hx_ne_zero
+
 /-- A checked gcd exclusion remains nontrivial modulo every prime divisor. -/
 private theorem pow_ne_one_of_coprime {n p witness exponent : Nat}
     (hn : 0 < n) (hp : p.Prime) (hpn : p ∣ n)
@@ -561,3 +604,25 @@ theorem baseModulus_prime :
   simpa [baseModulusCertificate, Ipp.Bls12377.baseModulus] using h
 
 end Ipp.Bls12377Certificates.Certificate
+
+namespace Ipp.Bls12377Certificates
+
+set_option maxRecDepth 100000 in
+theorem baseModulus_minus_five_powResidue :
+    powResidue (Ipp.Bls12377.baseModulus - 5)
+        ((Ipp.Bls12377.baseModulus - 1) / 2) Ipp.Bls12377.baseModulus =
+      Ipp.Bls12377.baseModulus - 1 := by
+  rfl
+
+/-- The Fq2 defining constant `-5` is not a square in the BLS12-377 base field. -/
+theorem fq2Nonresidue :
+    ∀ x : ZMod Ipp.Bls12377.baseModulus, x ^ 2 ≠ -5 := by
+  have h := not_square_of_powResidue_eq_neg_one
+    Certificate.baseModulus_prime
+    (⟨129332213006484547005326366847446766768196756377457330269942131333360234174170411387484444069786680062220160729088,
+      by norm_num [Ipp.Bls12377.baseModulus]⟩ : Odd Ipp.Bls12377.baseModulus)
+    baseModulus_minus_five_powResidue
+  intro x
+  simpa [Ipp.Bls12377.baseModulus] using h x
+
+end Ipp.Bls12377Certificates
