@@ -241,4 +241,148 @@ theorem g1_nonzero_cofactor_torsion_not_inPrimeSubgroup (p : G1)
 
 end G1
 
+section G2
+
+local instance : Fact baseModulus.Prime := ⟨arithmeticFacts.basePrime⟩
+local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+  ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
+
+/-- The concrete G2 points killed by the scalar-field modulus. -/
+def g2PrimeSubgroup : AddSubgroup G2 where
+  carrier := {p | inPrimeSubgroup p}
+  zero_mem' := by simp [inPrimeSubgroup]
+  add_mem' := by
+    intro a b ha hb
+    simp only [Set.mem_setOf_eq, inPrimeSubgroup, nsmul_add] at ha hb ⊢
+    rw [ha, hb, add_zero]
+  neg_mem' := by
+    intro a ha
+    simpa [inPrimeSubgroup] using congrArg Neg.neg ha
+
+@[simp]
+theorem mem_g2PrimeSubgroup (p : G2) :
+    p ∈ g2PrimeSubgroup ↔ inPrimeSubgroup p :=
+  Iff.rfl
+
+/-- The multiplicative view of the G2 prime subgroup is an `r`-group. -/
+theorem g2PrimeSubgroup_isPGroup :
+    IsPGroup scalarModulus g2PrimeSubgroup.toSubgroup := by
+  intro x
+  refine ⟨1, ?_⟩
+  apply Subtype.ext
+  change scalarModulus • Multiplicative.toAdd x.1 = 0
+  exact x.2
+
+theorem g2PrimeSubgroup_card (facts : PublishedCurveOrderFacts) :
+    Nat.card g2PrimeSubgroup = scalarModulus := by
+  letI : Finite G2 := Nat.finite_of_card_ne_zero (by
+    rw [facts.g2_cardinality]
+    exact mul_ne_zero (by norm_num) scalarModulus_prime.ne_zero)
+  letI : Fact scalarModulus.Prime := ⟨scalarModulus_prime⟩
+  obtain ⟨x, hx⟩ := exists_prime_addOrderOf_dvd_card' scalarModulus (by
+    rw [facts.g2_cardinality]
+    exact dvd_mul_left _ _)
+  have hxmem : x ∈ g2PrimeSubgroup := by
+    rw [mem_g2PrimeSubgroup, inPrimeSubgroup,
+      ← addOrderOf_dvd_iff_nsmul_eq_zero, hx]
+  have hprime_dvd : scalarModulus ∣ Nat.card g2PrimeSubgroup := by
+    rw [← hx]
+    exact g2PrimeSubgroup.addOrderOf_dvd_natCard hxmem
+  obtain ⟨n, hn⟩ := (IsPGroup.iff_card.mp g2PrimeSubgroup_isPGroup)
+  have hn' : Nat.card g2PrimeSubgroup = scalarModulus ^ n := hn
+  have hpow_dvd : scalarModulus ^ n ∣ g2GroupOrder := by
+    rw [← facts.g2_cardinality_eq_groupOrder, ← hn']
+    exact g2PrimeSubgroup.card_addSubgroup_dvd_card
+  have hn_lt : n < 2 := by
+    by_contra hnlt
+    exact scalarModulus_sq_not_dvd_g2GroupOrder
+      ((Nat.pow_dvd_pow scalarModulus (Nat.le_of_not_gt hnlt)).trans hpow_dvd)
+  have hn_pos : 0 < n := by
+    by_contra hnpos
+    have hnzero : n = 0 := Nat.eq_zero_of_not_pos hnpos
+    rw [hn', hnzero, pow_zero] at hprime_dvd
+    exact scalarModulus_prime.not_dvd_one hprime_dvd
+  have : n = 1 := by omega
+  rw [hn', this, pow_one]
+
+/-- Every order-`r` additive subgroup of G2 is the prime subgroup. -/
+theorem g2PrimeSubgroup_unique (facts : PublishedCurveOrderFacts)
+    (H : AddSubgroup G2) (hH : Nat.card H = scalarModulus) :
+    H = g2PrimeSubgroup := by
+  letI : Finite G2 := Nat.finite_of_card_ne_zero (by
+    rw [facts.g2_cardinality]
+    exact mul_ne_zero (by norm_num) scalarModulus_prime.ne_zero)
+  apply AddSubgroup.eq_of_le_of_card_ge
+  · intro x hx
+    rw [mem_g2PrimeSubgroup, inPrimeSubgroup, ← hH]
+    exact congrArg Subtype.val (card_nsmul_eq_zero' (x := ⟨x, hx⟩))
+  · rw [g2PrimeSubgroup_card facts, hH]
+
+/-- The prime subgroup, viewed multiplicatively, is a Sylow-`r` subgroup. -/
+noncomputable def g2PrimeSubgroupSylow (facts : PublishedCurveOrderFacts) :
+    Sylow scalarModulus (Multiplicative G2) := by
+  letI : Finite G2 := Nat.finite_of_card_ne_zero (by
+    rw [facts.g2_cardinality]
+    exact mul_ne_zero (by norm_num) scalarModulus_prime.ne_zero)
+  letI : Fact scalarModulus.Prime := ⟨scalarModulus_prime⟩
+  apply g2PrimeSubgroup_isPGroup.toSylow
+  intro hdvd
+  apply scalarModulus_not_dvd_g2Cofactor
+  have hcard := Subgroup.card_mul_index g2PrimeSubgroup.toSubgroup
+  have hprimecard : Nat.card g2PrimeSubgroup.toSubgroup = scalarModulus :=
+    g2PrimeSubgroup_card facts
+  have hcard' :
+      scalarModulus * g2PrimeSubgroup.toSubgroup.index =
+        g2Cofactor * scalarModulus := by
+    calc
+      _ = Nat.card g2PrimeSubgroup.toSubgroup *
+          g2PrimeSubgroup.toSubgroup.index := by rw [hprimecard]
+      _ = Nat.card (Multiplicative G2) := hcard
+      _ = Nat.card G2 := rfl
+      _ = g2Cofactor * scalarModulus := facts.g2_cardinality
+  have hindex : g2PrimeSubgroup.toSubgroup.index = g2Cofactor :=
+    Nat.mul_right_cancel scalarModulus_prime.pos (by simpa [mul_comm] using hcard')
+  rwa [hindex] at hdvd
+
+/-- G2 has only one Sylow-`r` subgroup. -/
+theorem g2_sylow_unique (facts : PublishedCurveOrderFacts)
+    (P : Sylow scalarModulus (Multiplicative G2)) :
+    (P : Subgroup (Multiplicative G2)) = g2PrimeSubgroup.toSubgroup := by
+  letI : Finite G2 := Nat.finite_of_card_ne_zero (by
+    rw [facts.g2_cardinality]
+    exact mul_ne_zero (by norm_num) scalarModulus_prime.ne_zero)
+  letI : Fact scalarModulus.Prime := ⟨scalarModulus_prime⟩
+  letI : Finite (Sylow scalarModulus (Multiplicative G2)) :=
+    Sylow.finite_of_finiteIndex (g2PrimeSubgroupSylow facts)
+  letI : Unique (Sylow scalarModulus (Multiplicative G2)) :=
+    Sylow.unique_of_normal (g2PrimeSubgroupSylow facts) inferInstance
+  have hP : P = g2PrimeSubgroupSylow facts := Subsingleton.elim _ _
+  change (P : Subgroup (Multiplicative G2)) =
+    ((g2PrimeSubgroupSylow facts : Sylow scalarModulus (Multiplicative G2)) : Subgroup _)
+  exact congrArg Sylow.toSubgroup hP
+
+theorem g2_identity_inPrimeSubgroup : inPrimeSubgroup (0 : G2) := by
+  simp [inPrimeSubgroup]
+
+/-- Cofactor torsion meets the prime subgroup only at the identity. -/
+theorem g2_cofactor_torsion_inPrimeSubgroup_iff (p : G2)
+    (horder : addOrderOf p ∣ g2Cofactor) :
+    inPrimeSubgroup p ↔ p = 0 := by
+  constructor
+  · intro hp
+    have hr : addOrderOf p ∣ scalarModulus :=
+      addOrderOf_dvd_iff_nsmul_eq_zero.mpr hp
+    exact AddMonoid.addOrderOf_eq_one_iff.mp
+      (Nat.eq_one_of_dvd_coprimes g2Cofactor_coprime_scalarModulus horder hr)
+  · rintro rfl
+    exact g2_identity_inPrimeSubgroup
+
+theorem g2_nonzero_cofactor_torsion_not_inPrimeSubgroup (p : G2)
+    (hne : p ≠ 0) (horder : addOrderOf p ∣ g2Cofactor) :
+    ¬ inPrimeSubgroup p := by
+  rw [g2_cofactor_torsion_inPrimeSubgroup_iff p horder]
+  exact hne
+
+end G2
+
 end Ipp.Bls12377
