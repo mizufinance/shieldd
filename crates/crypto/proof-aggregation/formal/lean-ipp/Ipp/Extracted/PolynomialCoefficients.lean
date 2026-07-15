@@ -1,3 +1,4 @@
+import Ipp.Extracted.PolynomialCoefficientsGenerated
 import Ipp.Kzg
 
 namespace Ipp.Extracted
