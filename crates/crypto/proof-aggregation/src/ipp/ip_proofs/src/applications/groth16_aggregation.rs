@@ -30,7 +30,7 @@ use ark_dh_commitments::{
     afgho16::{AFGHOCommitmentG1, AFGHOCommitmentG2},
     identity::{IdentityCommitment, IdentityOutput},
 };
-#[cfg(feature = "bench-baseline")]
+#[cfg(any(feature = "bench-baseline", test))]
 use ark_inner_products::cfg_multi_pairing;
 #[cfg(not(feature = "bench-baseline"))]
 use ark_inner_products::cfg_multi_pairing_g1_affine_g2_prepared;
@@ -1658,7 +1658,7 @@ where
 
 #[cfg(not(feature = "bench-baseline"))]
 trait PreparedPairingEffect<G1, G2Prepared, GT> {
-    fn multi_pairing_prepared(&self, left: &[G1], right: &[G2Prepared]) -> Result<GT, Error>;
+    fn multi_pairing_prepared(&self, left: &[G1], right: &[G2Prepared]) -> Option<GT>;
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -1680,10 +1680,9 @@ impl<P: Pairing> PreparedPairingEffect<P::G1, P::G2Prepared, PairingOutput<P>>
         &self,
         left: &[P::G1],
         right: &[P::G2Prepared],
-    ) -> Result<PairingOutput<P>, Error> {
+    ) -> Option<PairingOutput<P>> {
         let left_affine = P::G1::normalize_batch(left);
         cfg_multi_pairing_g1_affine_g2_prepared::<P>(&left_affine, right)
-            .ok_or_else(|| Box::new(std::io::Error::other("prepared pairing unavailable")) as Error)
     }
 }
 
@@ -1715,10 +1714,10 @@ where
     let ip_ab = input.ip_ab;
     let left = [-input.g_ic, -input.agg_c];
     let right = [input.gamma_g2_neg_pc, input.delta_g2_neg_pc];
-    pairing
-        .multi_pairing_prepared(&left, &right)
-        .map(|folded| alpha_beta_rsum + folded == ip_ab)
-        .unwrap_or(false)
+    match pairing.multi_pairing_prepared(&left, &right) {
+        Some(folded) => alpha_beta_rsum + folded == ip_ab,
+        None => false,
+    }
 }
 
 /// PPE check `e(α·r_sum, β)·e(g_ic, γ)·e(agg_c, δ) == ip_ab`, computed by reusing
@@ -1861,10 +1860,8 @@ mod tests {
             &self,
             _left: &[G1],
             _right: &[G2Prepared],
-        ) -> Result<GT, crate::Error> {
-            Err(Box::new(std::io::Error::other(
-                "test prepared pairing failure",
-            )))
+        ) -> Option<GT> {
+            None
         }
     }
 
@@ -1917,6 +1914,110 @@ mod tests {
         assert_eq!(delegated, core);
         assert!(!delegated);
         assert!(!verify_ppe_core(input, &FailingPreparedPairingEffect));
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    struct RecordingPreparedPairingEffect<P: Pairing> {
+        left: std::cell::RefCell<Option<Vec<P::G1>>>,
+        right: std::cell::RefCell<Option<Vec<P::G2Prepared>>>,
+        output: std::cell::RefCell<Option<PairingOutput<P>>>,
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    impl<P: Pairing> Default for RecordingPreparedPairingEffect<P> {
+        fn default() -> Self {
+            Self {
+                left: std::cell::RefCell::new(None),
+                right: std::cell::RefCell::new(None),
+                output: std::cell::RefCell::new(None),
+            }
+        }
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    impl<P: Pairing> PreparedPairingEffect<P::G1, P::G2Prepared, PairingOutput<P>>
+        for RecordingPreparedPairingEffect<P>
+    {
+        fn multi_pairing_prepared(
+            &self,
+            left: &[P::G1],
+            right: &[P::G2Prepared],
+        ) -> Option<PairingOutput<P>> {
+            self.left.replace(Some(left.to_vec()));
+            self.right.replace(Some(right.to_vec()));
+            let output = cfg_multi_pairing_g1_affine_g2_prepared::<P>(
+                &P::G1::normalize_batch(left),
+                right,
+            )?;
+            self.output.replace(Some(output.clone()));
+            Some(output)
+        }
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    fn assert_prepared_ppe_matches_three_pair_baseline<P: Pairing>() {
+        let g1 = <P as Pairing>::G1::generator();
+        let g2 = <P as Pairing>::G2::generator();
+        let vk: VerifyingKey<P> = VerifyingKey {
+            alpha_g1: g1.into(),
+            beta_g2: g2.into(),
+            gamma_g2: g2.into(),
+            delta_g2: g2.into(),
+            gamma_abc_g1: vec![g1.into()],
+        };
+        let pvk = prepare_verifying_key(&vk);
+        let r_sum = <P as Pairing>::ScalarField::from(3u64);
+        let g_ic = g1;
+        let agg_c = g1 * <P as Pairing>::ScalarField::from(5u64);
+        let baseline_gt = cfg_multi_pairing::<P>(
+            &[
+                <P as Pairing>::G1::from(vk.alpha_g1) * r_sum,
+                g_ic,
+                agg_c,
+            ],
+            &[
+                <P as Pairing>::G2::from(vk.beta_g2),
+                <P as Pairing>::G2::from(vk.gamma_g2),
+                <P as Pairing>::G2::from(vk.delta_g2),
+            ],
+        )
+        .expect("test pairing should be available");
+        let input = PreparedPpeVerifierCoreInput {
+            alpha_beta: PairingOutput::<P>(pvk.alpha_g1_beta_g2),
+            r_sum,
+            g_ic,
+            agg_c,
+            gamma_g2_neg_pc: pvk.gamma_g2_neg_pc.clone(),
+            delta_g2_neg_pc: pvk.delta_g2_neg_pc.clone(),
+            ip_ab: baseline_gt.clone(),
+        };
+        let effect = RecordingPreparedPairingEffect::<P>::default();
+        assert!(verify_ppe_core(input, &effect));
+
+        assert_eq!(
+            effect.left.borrow().as_ref().unwrap(),
+            &vec![-g_ic, -agg_c]
+        );
+        assert_eq!(effect.right.borrow().as_ref().unwrap().len(), 2);
+        let expected_prepared_gt = cfg_multi_pairing_g1_affine_g2_prepared::<P>(
+            &P::G1::normalize_batch(&[-g_ic, -agg_c]),
+            &[pvk.gamma_g2_neg_pc, pvk.delta_g2_neg_pc],
+        )
+        .expect("test prepared pairing should be available");
+        assert_eq!(
+            effect.output.borrow().as_ref().unwrap(),
+            &expected_prepared_gt
+        );
+        let alpha_beta_rsum = PairingOutput::<P>(pvk.alpha_g1_beta_g2) * r_sum;
+        let optimized_gt = alpha_beta_rsum + effect.output.borrow().as_ref().unwrap().clone();
+        assert_eq!(optimized_gt, baseline_gt);
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn prepared_ppe_matches_three_pair_baseline_operands_and_gt() {
+        assert_prepared_ppe_matches_three_pair_baseline::<Bls12_381>();
+        assert_prepared_ppe_matches_three_pair_baseline::<Bls12_377>();
     }
 
     #[cfg(not(feature = "bench-baseline"))]

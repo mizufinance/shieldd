@@ -56,9 +56,9 @@ visible in an extracted core.
 | `ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_opening_core` | computes product-form `eval`, constructs `KzgG1VerifierCoreInput` from `g`, `h_alpha`, `h`, final/opening G1 points, `eval`, and `z`, then calls the existing G1 equation core once | finite transcript and total field/group operations; unavailable pairing remains `false`; no feature branch | one product evaluation followed by one `PairingEffect::multi_pairing` call through the equation core; no serialization or trace effect | proved-model |
 | `ark_ip_proofs::tipa::verify_commitment_key_g2_kzg_opening` | projects `VerifierSRS.{g,g_beta,h}` and clones the supplied final/opening G2 points; passes transcript, `r_shift`, and `kzg_challenge` to the opening core once | existing caller `parallel`/sequential branches remain unchanged; pairing failure remains `Ok(false)` rather than an error | installs `ArkworksPairingEffect<P>` at the concrete boundary; outer `Result<bool, Error>` shape is unchanged | proved-model |
 | `ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_opening` | projects `VerifierSRS.{g,h_alpha,h}` and clones the supplied final/opening G1 points; passes transcript, `r_shift`, and `kzg_challenge` to the opening core once | existing caller `parallel`/sequential branches remain unchanged; pairing failure remains `Ok(false)` rather than an error | installs `ArkworksPairingEffect<P>` at the concrete boundary; outer `Result<bool, Error>` shape is unchanged | proved-model |
-| `ark_ip_proofs::applications::groth16_aggregation::PreparedPairingEffect` | `multi_pairing_prepared(left, right)` consumes explicit G1 and prepared-G2 slices and returns explicit `Result<GT, Error>` | effect error maps to PPE `false`; optimized interface exists only under `not(feature = "bench-baseline")` | adapter may normalize the supplied G1 slice before the prepared pairing; it does not reorder or alter the two operands | proved-model |
+| `ark_ip_proofs::applications::groth16_aggregation::PreparedPairingEffect` | `multi_pairing_prepared(left, right)` consumes explicit G1 and prepared-G2 slices and returns `Option<GT>` | `None` maps to PPE `false`; optimized interface exists only under `not(feature = "bench-baseline")` | adapter may normalize the supplied G1 slice before the prepared pairing; it does not reorder or alter the two operands | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::PreparedPpeVerifierCoreInput` | carries `alpha_beta`, `r_sum`, `g_ic`, `agg_c`, `gamma_g2_neg_pc`, `delta_g2_neg_pc`, and `ip_ab`; core computes `alpha_beta * r_sum`, forms exact `[-g_ic, -agg_c]`, and pairs against `[gamma_g2_neg_pc, delta_g2_neg_pc]` | owned record; optimized interface exists only under `not(feature = "bench-baseline")` | record construction has no effect; prepared-point order is gamma then delta | proved-model |
-| `ark_ip_proofs::applications::groth16_aggregation::verify_ppe_core` | consumes the PPE record, performs the explicit GT scalar multiplication and addition, and compares the sum with `ip_ab` | prepared-pairing `Err`/unavailable result returns `false`; no trace or serialization branch | exactly one prepared-pairing effect call with the two negated G1 operands; comparison result is the sole Boolean output | proved-model |
+| `ark_ip_proofs::applications::groth16_aggregation::verify_ppe_core` | consumes the PPE record, computes `alpha_beta_rsum`, forms exact `[-g_ic, -agg_c]`, calls the prepared effect with `[gamma_g2_neg_pc, delta_g2_neg_pc]`, then compares the sum with `ip_ab` | prepared-pairing `None`/unavailable result returns `false`; no trace or serialization branch | exactly one prepared-pairing effect call; G1 negation and prepared-point order are fixed by the two array literals; no `Pairing` associated types occur in the extracted graph | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::verify_ppe` | projects `pvk.alpha_g1_beta_g2`, `pvk.gamma_g2_neg_pc`, `pvk.delta_g2_neg_pc`, and proof `agg_c`/`ip_ab`; constructs the record and delegates once | compiled only under `not(feature = "bench-baseline")`; the existing baseline branch remains selected by `verify_public_inputs_ppe_profiled` | `ArkworksPreparedPairingEffect<P>` normalizes the exact two core operands and calls unchanged `cfg_multi_pairing_g1_affine_g2_prepared::<P>`; Boolean/result behavior is unchanged | proved-model |
 
 The two adapter-parity test families cover BLS12-381 (the existing test
@@ -66,6 +66,22 @@ pairing) and BLS12-377. Each checks delegator/core equality for both KZG
 directions or the optimized PPE path, and injects an effect error to pin
 failure-as-`false`; no test changes public proof serialization or challenge
 trace output.
+
+S2-28 extraction is scoped at
+`crate::applications::groth16_aggregation::verify_ppe_core` with the pinned
+WSL command shape:
+`cargo hax into -v --output-dir /root/shieldd-s2-ppe-core-s2-28-scoped-option
+aeneas-lean --charon-args=--start-from=crate::applications::groth16_aggregation::verify_ppe_core
+--lakefile`.
+The installed hax CLI requires the single-token `--charon-args=--start-from=...`
+form; the spaced form is not forwarded to Charon. Aeneas also rejected the
+`Result<GT, Error>` effect boundary, so the Boolean-only core uses the same
+`Option<GT>` failure boundary as the KZG pairing core. The successful closed
+output is vendored in
+`formal/lean-ipp/Ipp/Extracted/Groth16VerifierGenerated.lean` with generated
+definitions `ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect`,
+`ark_ip_proofs.applications.groth16_aggregation.PreparedPpeVerifierCoreInput`,
+and `ark_ip_proofs.applications.groth16_aggregation.verify_ppe_core`.
 
 S2-20's closed extraction starts at the two `*_kzg_opening_core` functions;
 the public `Pairing` wrappers remain concrete one-call delegators and are not

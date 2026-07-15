@@ -9,6 +9,10 @@
 # The S2-26 public-input fold graph is vendored in
 # formal/lean-ipp/Ipp/Extracted/Groth16VerifierGenerated.lean; its refinement
 # theorem remains the S2-27 proof-session deliverable.
+# The S2-28 prepared-PPE graph is vendored in the same generated module; its
+# refinement theorem remains the S2-29 proof-session deliverable. The scoped
+# Charon target is verify_ppe_core; the concrete Pairing wrapper is not part of
+# the extracted graph.
 
 shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
 shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow
