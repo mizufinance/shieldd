@@ -113,9 +113,55 @@ where
     }
 }
 
+pub(crate) fn compute_final_commitment_keys_core<F, G1, G2>(
+    ck_a: &[G1],
+    ck_b: &[G2],
+    transcript: &[F],
+    transcript_inverses: &[F],
+    one: F,
+    #[cfg(not(hax_compilation))] msm_a: impl FnOnce(&[G1], &[F]) -> G1,
+    #[cfg(not(hax_compilation))] msm_b: impl FnOnce(&[G2], &[F]) -> G2,
+) -> (G1, G2)
+where
+    F: Copy + std::ops::Mul<Output = F>,
+    G1: Clone + Add<Output = G1> + MulAssign<F>,
+    G2: Clone + Add<Output = G2> + MulAssign<F>,
+{
+    assert!(ck_a.len().is_power_of_two());
+    assert_eq!(ck_a.len(), ck_b.len());
+    assert_eq!(transcript.len(), transcript_inverses.len());
+
+    let mut ck_a_agg_challenge_exponents = vec![one];
+    let mut ck_b_agg_challenge_exponents = vec![one];
+    for i in 0..transcript.len() {
+        let c = transcript[i];
+        let c_inv = transcript_inverses[i];
+        for j in 0..(2_usize).pow(i as u32) {
+            ck_a_agg_challenge_exponents.push(ck_a_agg_challenge_exponents[j] * c_inv);
+            ck_b_agg_challenge_exponents.push(ck_b_agg_challenge_exponents[j] * c);
+        }
+    }
+    assert_eq!(ck_a_agg_challenge_exponents.len(), ck_a.len());
+
+    #[cfg(hax_compilation)]
+    {
+        (
+            ordered_msm(ck_a, &ck_a_agg_challenge_exponents),
+            ordered_msm(ck_b, &ck_b_agg_challenge_exponents),
+        )
+    }
+    #[cfg(not(hax_compilation))]
+    {
+        (
+            msm_a(ck_a, &ck_a_agg_challenge_exponents),
+            msm_b(ck_b, &ck_b_agg_challenge_exponents),
+        )
+    }
+}
+
 fn compute_final_commitment_keys<LMC, RMC, IPC>(
     ck: (&[LMC::Key], &[RMC::Key], &IPC::Key),
-    transcript: &Vec<LMC::Scalar>,
+    transcript: &[LMC::Scalar],
 ) -> Result<(LMC::Key, RMC::Key), Error>
 where
     LMC: DoublyHomomorphicCommitment,
@@ -123,39 +169,28 @@ where
     IPC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
 {
     let (ck_a, ck_b, _) = ck;
-    assert!(ck_a.len().is_power_of_two());
-
-    let mut ck_a_agg_challenge_exponents = vec![LMC::Scalar::one()];
-    let mut ck_b_agg_challenge_exponents = vec![LMC::Scalar::one()];
-    for (i, c) in transcript.iter().enumerate() {
-        let c_inv = c.inverse().unwrap();
-        for j in 0..(2_usize).pow(i as u32) {
-            ck_a_agg_challenge_exponents.push(ck_a_agg_challenge_exponents[j] * &c_inv);
-            ck_b_agg_challenge_exponents.push(ck_b_agg_challenge_exponents[j] * c);
-        }
-    }
-    assert_eq!(ck_a_agg_challenge_exponents.len(), ck_a.len());
-
-    #[cfg(hax_compilation)]
-    let (ck_a_base, ck_b_base) = (
-        msm_keys_extraction(ck_a, &ck_a_agg_challenge_exponents),
-        msm_keys_extraction(ck_b, &ck_b_agg_challenge_exponents),
-    );
-    #[cfg(all(not(hax_compilation), not(feature = "bench-baseline")))]
-    let (ck_a_base, ck_b_base) = (
-        LMC::msm_keys(ck_a, &ck_a_agg_challenge_exponents),
-        RMC::msm_keys(ck_b, &ck_b_agg_challenge_exponents),
-    );
-    #[cfg(all(not(hax_compilation), feature = "bench-baseline"))]
-    let (ck_a_base, ck_b_base) = (
-        fold_keys_baseline::<LMC::Key, LMC::Scalar>(ck_a, &ck_a_agg_challenge_exponents),
-        fold_keys_baseline::<RMC::Key, RMC::Scalar>(ck_b, &ck_b_agg_challenge_exponents),
-    );
-    Ok((ck_a_base, ck_b_base))
+    let transcript_inverses = transcript
+        .iter()
+        .map(|challenge| challenge.inverse().unwrap())
+        .collect::<Vec<_>>();
+    Ok(compute_final_commitment_keys_core(
+        ck_a,
+        ck_b,
+        transcript,
+        &transcript_inverses,
+        LMC::Scalar::one(),
+        #[cfg(all(not(hax_compilation), not(feature = "bench-baseline")))]
+        LMC::msm_keys,
+        #[cfg(all(not(hax_compilation), not(feature = "bench-baseline")))]
+        RMC::msm_keys,
+        #[cfg(all(not(hax_compilation), feature = "bench-baseline"))]
+        fold_keys_baseline::<LMC::Key, LMC::Scalar>,
+        #[cfg(all(not(hax_compilation), feature = "bench-baseline"))]
+        fold_keys_baseline::<RMC::Key, RMC::Scalar>,
+    ))
 }
 
-#[cfg(hax_compilation)]
-fn msm_keys_extraction<K, S>(keys: &[K], scalars: &[S]) -> K
+fn ordered_msm<K, S>(keys: &[K], scalars: &[S]) -> K
 where
     K: Clone + Add<Output = K> + MulAssign<S>,
     S: Copy,
@@ -954,5 +989,62 @@ mod tests {
             &proof,
         )
         .unwrap());
+    }
+
+    #[test]
+    fn final_commitment_key_delegator_matches_core_and_transcript_orientation() {
+        type F = <Bls12_381 as Pairing>::ScalarField;
+        type IPC = IdentityCommitment<F, F>;
+        type ScalarGIPA = GIPA<ScalarInnerProduct<F>, SC2, SC2, IPC, Blake2b>;
+
+        let mut rng = StdRng::seed_from_u64(24u64);
+        let (ck_a, ck_b, ck_t) = ScalarGIPA::setup(&mut rng, TEST_SIZE).unwrap();
+        let transcript = vec![F::from(2u64), F::from(3u64), F::from(5u64)];
+
+        let delegated =
+            compute_final_commitment_keys::<SC2, SC2, IPC>((&ck_a, &ck_b, &ck_t), &transcript)
+                .unwrap();
+        let core = compute_final_commitment_keys_core(
+            &ck_a,
+            &ck_b,
+            &transcript,
+            &transcript
+                .iter()
+                .map(|challenge| challenge.inverse().unwrap())
+                .collect::<Vec<_>>(),
+            F::from(1u64),
+            #[cfg(not(hax_compilation))]
+            ordered_msm::<_, F>,
+            #[cfg(not(hax_compilation))]
+            ordered_msm::<_, F>,
+        );
+
+        let two_inv = transcript[0].inverse().unwrap();
+        let three_inv = transcript[1].inverse().unwrap();
+        let five_inv = transcript[2].inverse().unwrap();
+        let inverse_coefficients = vec![
+            F::from(1u64),
+            two_inv,
+            three_inv,
+            two_inv * three_inv,
+            five_inv,
+            two_inv * five_inv,
+            three_inv * five_inv,
+            two_inv * three_inv * five_inv,
+        ];
+        let raw_coefficients = vec![
+            F::from(1u64),
+            transcript[0],
+            transcript[1],
+            transcript[0] * transcript[1],
+            transcript[2],
+            transcript[0] * transcript[2],
+            transcript[1] * transcript[2],
+            transcript[0] * transcript[1] * transcript[2],
+        ];
+
+        assert_eq!(delegated, core);
+        assert_eq!(core.0, ordered_msm(&ck_a, &inverse_coefficients));
+        assert_eq!(core.1, ordered_msm(&ck_b, &raw_coefficients));
     }
 }
