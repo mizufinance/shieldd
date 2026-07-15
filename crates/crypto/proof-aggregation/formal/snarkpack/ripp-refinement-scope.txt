@@ -42,6 +42,7 @@ crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_mes
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:setup_inner_product
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:aggregate_proofs_profiled_with_trace
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:verify_aggregate_proof_profiled_with_trace
+crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:verify_aggregate_proof_core
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:derive_randomizer
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:prove_tipp_mipp_profiled
 crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs:prove_tipp_mipp_gipa_profiled

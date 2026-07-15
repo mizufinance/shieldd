@@ -34,6 +34,7 @@ on:
       - 'justfile'
       - 'scripts/check-snarkpack-filecoin-shape.sh'
       - 'scripts/check-snarkpack-invariants.sh'
+      - 'scripts/check-snarkpack-lean-ipp.sh'
       - 'scripts/snarkpack-lean-conformance.sh'
       - 'scripts/snarkpack-formal.sh'
 

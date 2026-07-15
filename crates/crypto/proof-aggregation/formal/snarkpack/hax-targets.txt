@@ -5,12 +5,12 @@
 # hax-extraction-boundary.md and parity-tested under cfg(hax).
 # The S2-23 coefficient-vector graph is vendored in
 # formal/lean-ipp/Ipp/Extracted/PolynomialCoefficientsGenerated.lean; its
-# refinement theorem remains a separate proof-session deliverable.
+# refinement theorem is PolynomialCoefficients.polynomial_coefficients_refinement.
 # The S2-26 public-input fold graph is vendored in
 # formal/lean-ipp/Ipp/Extracted/Groth16VerifierGenerated.lean; its refinement
-# theorem remains the S2-27 proof-session deliverable.
+# theorem is Groth16Verifier.fold_public_inputs_refinement_statement.
 # The S2-28 prepared-PPE graph is vendored in the same generated module; its
-# refinement theorem remains the S2-29 proof-session deliverable. The scoped
+# refinement theorem is Groth16Verifier.verify_combined_ppe_refinement_statement. The scoped
 # Charon target is verify_ppe_core; the concrete Pairing wrapper is not part of
 # the extracted graph.
 # The S2-25 base-commitment graph is vendored in
@@ -24,12 +24,13 @@
 # The S2-34 combined-check graph is vendored in
 # formal/lean-ipp/Ipp/Extracted/CombinedChecksGenerated.lean. Its explicit
 # combined records, count checks, PPE delegation, result propagation, and
-# trace-preserving TIPP effect are extracted; S2-35 proves its refinement.
+# trace-preserving TIPP effect are extracted; the refinement theorem is
+# CombinedChecks.verify_combined_checks_refinement_statement.
 # The S2-36 aggregate core graph is vendored in
 # formal/lean-ipp/Ipp/Extracted/AggregateVerifierGenerated.lean. Its typed
 # effect carries chronological randomizer attempts and the combined result;
-# the handwritten capstone composes it with S2-35 under the named byte/digest
-# trace correspondence.
+# the handwritten capstone is AggregateVerifier.verify_aggregate_proof_refinement_statement
+# under the named byte/digest trace correspondence.
 
 shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
 shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow

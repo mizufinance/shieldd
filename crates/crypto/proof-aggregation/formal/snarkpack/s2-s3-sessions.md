@@ -1,9 +1,18 @@
 # S2/S3 completion work order
 
-Date: 2026-07-14. Status: execution-ready, serial work order. The code is the
-authority; this file contains only remaining work. S1, GAP-00/01/04, the
+Date: 2026-07-14. Status: S2-19..38 complete as of 2026-07-15; the code is
+the authority and the S2 task text below is retained as the execution record.
+S1, GAP-00/01/04, the
 finite Aeneas loop semantics, S2-01/03/07/10/11, the S2-08/09 generic equation
 kernels, and S3-C01/C02/P00 are landed and are not repeated as tasks.
+
+## S2-19..38 completion status
+
+S2-19 through S2-38 are **DONE**. The S2-38 gate is green: hax target/source
+completeness, generated-artifact freshness, extracted-directory shim scan,
+named refinement-theorem presence, focused Lean builds, the named axiom audit,
+one full `lake build Ipp`, and the Rust test pass all completed. S3 and GAP
+tracks below remain planned work; their task text is unchanged.
 
 `NOW` means every proof dependency is present and the installed Windows/WSL
 toolchain is sufficient. `GATED` means a listed predecessor must land first.
@@ -640,7 +649,7 @@ boundary and state any other consumer explicitly. GAP-12 is not a dependency.
 
 ## Critical paths
 
-The S2 completion path is:
+The completed S2 path was:
 
 `S2-19 -> S2-20 -> S2-21/S2-22 -> S2-30 -> S2-31 -> S2-32 -> S2-33 -> S2-34 -> S2-35 -> S2-36 -> S2-37 -> S2-38`,
 
@@ -666,7 +675,7 @@ undifferentiated task.
 
 ## Immediate serial dispatch
 
-Start today in this order:
+The historical S2 dispatch order was:
 
 1. **S2-19** — luna, medium, one session: land the explicit verifier-core and
    effect boundary with Rust parity.
@@ -683,8 +692,8 @@ independent NOW work is S3-01, S3-23, GAP-02A, and GAP-03A in that serial order.
 
 ## Session count and owner questions
 
-Remaining mandatory work is **20 S2 sessions, 41 S3 sessions, and 12 GAP
-sessions: 73 total estimated Codex sessions**. GAP-12 is deliberately excluded.
+Remaining mandatory work is **41 S3 sessions and 12 GAP sessions: 53 total
+estimated Codex sessions**. GAP-12 is deliberately excluded.
 There is no currently blocking owner question. Antoine's review/signoff is
 needed when S3-23 pins the exact curve-order citations, when S3-08 selects the
 production field route, and when S3-41 retains the cited pairing-mathematics

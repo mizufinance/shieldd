@@ -1,10 +1,10 @@
 # SnarkPack Formal Handoff
 
 This is the typed evidence ledger. Implementation-boundary F* rows cover the
-current extracted Rust target set; the RIPP implementation map is reviewed; no
-rows remain `open`. The `assumed` rows are standing external/tool/cryptographic
-assumptions with named postconditions and removal paths, not missing
-implementation work.
+current extracted Rust target set, and the S2 executed verifier cores have
+conditional Lean refinements; no rows remain `open`. The `assumed` rows are
+standing external/tool/cryptographic assumptions with named postconditions and
+removal paths, not missing implementation work.
 
 Evidence statuses:
 
@@ -34,9 +34,16 @@ checked by `just snarkpack-invariants`.
 
 If Shieldd aggregate verification accepts, then the accepted backend call was
 produced from recomputed local artifacts, passed verified statement, wrapper,
-padding, and challenge preflight, and reached a local RIPP implementation
-reviewed against the intended algorithm. Validity then depends only on named
-cryptographic, arkworks, hax, and refinement assumptions.
+padding, and challenge preflight, and reached the executed RIPP verifier core.
+The S2 claim is that this core refines `Ipp.FsAccepts`, conditional on (a) the
+named challenge-serializer/digest trace boundary, (b) the explicit
+`OrderedMsmConformance` premise, (c) the commitment/pairing-effect adapter
+interpretation laws targeted by S3-41, and (d) the concrete delegator layer
+being pinned by Rust parity tests, not proofs.
+
+This claim makes no S3 arithmetic, serialization/subgroup, hash-as-a-random-
+oracle, KZG-binding, or pairing-commitment-binding claim. Those remain the
+separate assumptions and future tracks below.
 
 The aggregate-to-per-proof S1 implication is machine-checked by
 `Ipp.s1_soundness`. The claim remains conditional on the named cryptographic
@@ -104,8 +111,12 @@ classification defaults to the higher-risk class until resolved.
 | inverse-power construction refines the `tipp-mipp.power-sequence` model | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs` | `inverse_powers_with_inverse` | Lean via hax/Aeneas | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/InversePowers.lean` | `Ipp.Extracted.hax_translated_inverse_powers_eq`; `Ipp.Extracted.hax_translated_inverse_powers_nonzero_eq` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact extracted loop result and nonzero-inverse specialization |
 | shifted commitment-key construction is pointwise scalar action | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs` | `build_shifted_ck_2_inner` | Lean via hax/Aeneas | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/ShiftedCommitmentKey.lean` | `Ipp.Extracted.hax_translated_shifted_commitment_key_eq` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact paired-slice traversal; composes with the proved inverse-power vector |
 | structured terminal scalar refines `Ipp.terminalR` | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs` | `structured_scalar_final_from_raw_transcript_inner` | Lean via hax/Aeneas | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/StructuredScalar.lean` | `Ipp.Extracted.hax_translated_structured_scalar_final_eq` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | arbitrary round count, squared-power schedule, and explicit reversed chronology |
-| G2 commitment-key KZG accept equation refines the `tipp-mipp.kzg-equations` abstract pairing shape | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs` | `verify_commitment_key_g2_kzg_equation` | Lean via hax/Aeneas, abstract pairing effect | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/KzgVerifiers.lean` | `Ipp.Extracted.hax_translated_verify_g2_kzg_eq`; `Ipp.Extracted.hax_translated_verify_g2_kzg_true_iff` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact operand/sign/order and boolean equation; product evaluation is separately proved, while public-wrapper extraction and arkworks pairing conformance remain open |
-| G1 commitment-key KZG accept equation refines the `tipp-mipp.kzg-equations` abstract pairing shape | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs` | `verify_commitment_key_g1_kzg_equation` | Lean via hax/Aeneas, abstract pairing effect | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/KzgVerifiers.lean` | `Ipp.Extracted.hax_translated_verify_g1_kzg_eq`; `Ipp.Extracted.hax_translated_verify_g1_kzg_true_iff` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact operand/sign/order and boolean equation; product evaluation is separately proved, while public-wrapper extraction and arkworks pairing conformance remain open |
+| G2 commitment-key KZG accept equation refines the `tipp-mipp.kzg-equations` abstract pairing shape | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs` | `verify_commitment_key_g2_kzg_equation` | Lean via hax/Aeneas, abstract pairing effect | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/KzgVerifiers.lean` | `Ipp.Extracted.hax_translated_verify_g2_kzg_eq`; `Ipp.Extracted.hax_translated_verify_g2_kzg_true_iff` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact operand/sign/order and boolean equation; product evaluation is separately proved, while the concrete delegator is pinned by Rust parity and the pairing adapter law is an S3-41 target |
+| G1 commitment-key KZG accept equation refines the `tipp-mipp.kzg-equations` abstract pairing shape | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs` | `verify_commitment_key_g1_kzg_equation` | Lean via hax/Aeneas, abstract pairing effect | `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/KzgVerifiers.lean` | `Ipp.Extracted.hax_translated_verify_g1_kzg_eq`; `Ipp.Extracted.hax_translated_verify_g1_kzg_true_iff` | proved | hax/Aeneas installed toolchain, Lean `v4.30.0` | exact operand/sign/order and boolean equation; product evaluation is separately proved, while the concrete delegator is pinned by Rust parity and the pairing adapter law is an S3-41 target |
+| S2 extracted helper and terminal refinements | `gipa.rs`; `tipa/mod.rs`; `groth16_aggregation.rs` | generated S2 core graphs and handwritten refinements | Lean via hax/Aeneas | `formal/snarkpack/s2-refinement-theorems.txt`; `formal/lean-ipp/Ipp/S2AxiomAudit.lean` | named coefficient, final-key, base-commitment, round/fold, public-input, PPE, combined-check, and KZG theorems | proved | Lean `v4.30.0`, hax/Aeneas installed toolchain | focused S2 builds, named `#print axioms`, and source/artifact freshness manifest passed |
+| executed TIPP/MIPP and combined-check orchestration | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs` | `verify_tipp_mipp_core`; `verify_combined_checks_core` | Lean over explicit typed effects | `Ipp.Extracted.verify_tipp_mipp_refinement_statement`; `Ipp.Extracted.CombinedChecks.verify_combined_checks_refinement_statement` | exact round failure state, five terminal folds, downstream error propagation, count/round guards, and conjunction | proved | Lean `v4.30.0` | conditional on declared effect/commitment laws; delegator and scheduling parity remain Rust tests |
+| executed aggregate verifier core refines `Ipp.FsAccepts` | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs` | `verify_aggregate_proof_core` | Lean over the generated aggregate graph | `Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_refinement_statement` | fixed randomizer retry trace, combined result, errors, conjunction, and `Ipp.FsAccepts` iff | proved | Lean `v4.30.0` | conditional on the named challenge trace boundary, MSM premise, commitment/pairing-effect laws, and Rust delegator parity; no S3/serialization/hash/binding claim |
+| profiled aggregate projection | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs` | `verify_aggregate_proof_profiled_with_trace` | Lean projection plus Rust parity | `Ipp.Extracted.AggregateVerifier.profiledOutput_observational`; `verify_aggregate_proof_profiled_with_trace_refinement_statement` | timing fields are observational and `accepted` projects the S2-36 core Boolean | proved | Lean `v4.30.0` | normal/profiled and benchmark-baseline trace/acceptance parity tests; timing is not in the semantic theorem |
 
 ## Assumptions
 
@@ -193,10 +204,12 @@ bookkeeping, not a verifier check, and the reversed transcript view is pinned
 to Rust by the proved two-round parity lemma.
 
 Lean models abstract `F`-modules and a bilinear pairing. Faithfulness to
-`gipa.rs`, `tipa`, and `groth16_aggregation` therefore remains at the
-abstract-trace/refinement rows until S2. ALG-I4 continues to exhaustively
-cross-check transcript shapes through the SRS maximum; it is model/implementation
-evidence, not the S1 soundness proof.
+`gipa.rs`, `tipa`, and `groth16_aggregation` is now split: the named executed
+S2 cores have conditional Lean refinements, while byte/digest correspondence,
+concrete adapter laws, and the production delegators remain separate
+boundaries. ALG-I4 continues to exhaustively cross-check transcript shapes
+through the SRS maximum; it is model/implementation evidence, not the S1
+soundness proof.
 
 ## S2 Tier1 scale-out (serial)
 
@@ -211,34 +224,16 @@ an hax-only indexed construction with the same coefficient and zero positions.
 Normal Rust tests passed after each edit; the hax-compilation Rust test pass also
 covered the extraction views.
 
-The S2-03 rescale extraction completed with the scoped invocation
-`cargo hax into -v --output-dir /root/shieldd-s2-rescale-fold-scoped-hax2
-aeneas-lean --charon-args='--start-from crate::gipa::rescale_fold_inner'
---lakefile`. Generated loop code is vendored in
-`Ipp/Extracted/RescaleFoldGenerated.lean`; the exact loop-to-`Fin` equality is
-the no-sorry scaffold `Ipp.Extracted.rescale_fold_refinement_statement` in
-`Ipp/Extracted/RescaleFold.lean`. Its remaining goal is the finite-list loop
-bridge from the Aeneas `Vec` model to `Ipp.foldMsg`.
-
-S2-04 used
-`cargo hax into -v --output-dir /root/shieldd-s2-final-keys2 aeneas-lean
---charon-args='--start-from crate::gipa::compute_final_commitment_keys'
---lakefile`. Charon compiled the target, but Aeneas stopped before Lean output
-on the mixed `ark_ff::Field`/`PrimeField` associated-type group and
-`DoublyHomomorphicCommitment::msm_keys`; the exact target proposition is kept
-as `Ipp.Extracted.final_commitment_keys_refinement_statement`.
-
-S2-06 used
-`cargo hax into -v --output-dir /root/shieldd-s2-coefficients2 aeneas-lean
---charon-args='--start-from crate::tipa::polynomial_coefficients_from_transcript'
---lakefile` and completed Aeneas generation. Its generated Vec/array support
-graph was not silently replaced by a handwritten implementation; the exact
-length/even-index/odd-zero goal is recorded as
-`Ipp.Extracted.polynomial_coefficients_refinement_statement`.
-
-No S2 abstract-trace row is promoted by this serial pass: rescale, final keys,
-and coefficients remain scaffolded until their extracted-result equalities are
-green. No prover or release-gated circuit tests were applicable or run.
+The landed extracted helper graphs are now paired with their exact refinement
+theorems: `hax_translated_rescale_fold_eq`,
+`hax_translated_polynomial_evaluation_product_form_eq`,
+`hax_translated_inverse_powers_eq`,
+`hax_translated_shifted_commitment_key_eq`,
+`hax_translated_structured_scalar_final_eq`,
+`polynomial_coefficients_refinement`, and the final-key corollaries. The
+recorded hax/artifact hash manifest gates these vendored outputs against the
+target source snapshot; it is not a claim that hax semantic preservation or
+the concrete arithmetic backend has been proved here.
 
 ## S2 Tier1 scale-out (serial) — continuation
 
@@ -262,8 +257,9 @@ Rust adaptations:
 
 The generated Lean for the four helper extractions is vendored under
 `Ipp/Extracted/*Generated.lean`; each corresponding public file contains a
-no-sorry refinement statement. None of these loop-to-`Fin`/`Finset` bridges is
-proved yet, so no abstract-trace row is promoted.
+no-sorry refinement theorem listed in
+`formal/snarkpack/s2-refinement-theorems.txt`. Their production iterator/Rayon
+delegators remain pinned by Rust parity tests.
 
 ## S2 pairing/loop adaptation and promotions
 
@@ -281,7 +277,9 @@ generated product evaluator is now also proved at `z²`, both as a factor produc
 and as the `transcriptCoeffs` sum; rescale, inverse powers, shifted-key
 construction, and the structured terminal scalar are proved as well. These
 portions and the G1/G2 accept shapes are promoted in the proof index above.
-Public-wrapper extraction and arkworks arithmetic conformance remain open.
+The concrete commitment/pairing adapters, serialization/subgroup behavior,
+MSM implementation, and cryptographic binding rows remain assumptions or S3
+work; the public delegators are covered by Rust parity tests rather than Lean.
 
 `verify_tipp_mipp` now delegates to the explicit typed
 `verify_tipp_mipp_core`; the core has a single error exit after its round loop,
@@ -311,11 +309,13 @@ of the two combined checks.
 `Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_refinement_statement`
 composes that graph with S2-35 and proves acceptance iff `Ipp.FsAccepts`. The
 theorem consumes the existing combined-check structural/round/totality,
-TIPP/MIPP, fold, PPE, pairing, final-bridge, and KZG effect premises. The one
-outer semantic boundary is the named `RandomizerTrace` correspondence from the
-Rust commitment bytes/digest/decoded attempts to the typed randomizer trace;
-the aggregate effect's delegation to the landed combined core is explicit.
-Hash-as-random-oracle and serializer parity remain assumptions.
+TIPP/MIPP, fold, PPE, pairing, final-bridge, and KZG effect premises. Its four
+S2 conditions are explicit: the named `RandomizerTrace` challenge
+serializer/digest correspondence, `OrderedMsmConformance`, the
+commitment/pairing-effect interpretation laws targeted by S3-41, and Rust
+parity tests for the concrete delegators. Hash-as-random-oracle and serializer
+parity are not silently discharged by this theorem; serialization/subgroup,
+S3 arithmetic, KZG binding, and pairing-commitment binding remain outside S2.
 
 ## S2-37 profiled projection
 
@@ -346,7 +346,11 @@ Z3, F*, and hax versions from `toolchain.toml`, runs `just snarkpack-formal`,
 then runs `just snarkpack-invariants`, `just snarkpack-fuzz-smoke`,
 `just snarkpack-filecoin-shape`, `just snarkpack-dos-gate`, and
 `just snarkpack-lean-conformance`. Its separate `lean-ipp` job installs Lean
-`v4.30.0` and runs `just snarkpack-lean-ipp`, including the package build,
-zero-`sorry` scan, and axiom-declaration guard. Keep the full
-formal gate out of default `just check` unless it satisfies the default CI
-runtime policy; it remains a required SnarkPack workflow gate.
+`v4.30.0` and runs `just snarkpack-lean-ipp`, including focused S2 module
+builds, the named `#print axioms` audit, exactly one full `lake build Ipp`, the
+zero-`sorry`/`native_decide` scan, and the axiom-declaration guard. The static
+invariant gate also checks hax target/source completeness, the recorded
+generated-artifact freshness manifest, the named theorem list, and the
+extracted-directory no-shim scan. Keep the full formal gate out of default
+`just check` unless it satisfies the default CI runtime policy; it remains a
+required SnarkPack workflow gate.

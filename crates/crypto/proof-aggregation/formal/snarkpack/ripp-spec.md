@@ -52,6 +52,18 @@ binding is established by upstream `shieldd-byte` rows. In that case, the
 abstract row gates only the equation or event role; the upstream byte rows gate
 canonical framing and byte-to-object binding.
 
+### S2 executed-core refinement boundary
+
+For the covered verifier orchestration, the abstract-trace/review-only evidence
+is replaced by the named Lean theorem list in
+`formal/snarkpack/s2-refinement-theorems.txt`. The executed core refines
+`Ipp.FsAccepts` only under the named challenge-serializer/digest trace boundary,
+the explicit `OrderedMsmConformance` premise, the commitment and
+pairing-effect interpretation laws targeted by S3-41, and Rust parity tests for
+the concrete delegators. The theorem list does not prove S3 arithmetic,
+serialization/subgroup behavior, hash-as-a-random-oracle, KZG binding, or
+pairing-commitment binding; those remain separate ledger assumptions.
+
 ### How each level is verified
 
 The level determines the verification mechanism, not just the evidence standard.
@@ -500,18 +512,18 @@ the gate-checked source the trace-schema policy table must match.
 | `gipa.input-relation` | paper algebra and local implementation | `abstract-trace` | equation review and unit/property evidence |
 | `gipa.round-folding` | paper algebra and local implementation | `abstract-trace` | equation review and prover/verifier trace evidence |
 | `gipa.challenge-dependency` | Shieldd challenge helper and Filecoin v2 transcript-input discipline | `shieldd-byte` | trace parity over exact Shieldd challenge bytes |
-| `gipa.verifier-folding` | paper algebra and local implementation | `abstract-trace` | equation review and mutation rejection evidence |
+| `gipa.verifier-folding` | paper algebra and local implementation | `abstract-trace` | `Ipp.Extracted.final_commitment_keys_refinement`, `final_commitment_keys_foldKey_corollaries`, and `verify_base_commitment_refinement`, conditional on MSM/commitment-effect laws; Rust delegator parity |
 | `tipa.srs` | paper algebra and Shieldd SRS adaptation | `abstract-trace` | SRS dimension tests and refinement review |
 | `tipp-mipp.x0-seed` | SnarkPack paper and Bellperson v2 combined transcript seed | `shieldd-byte` | trace parity over exact Shieldd seed bytes and x0-omission mutant |
-| `tipp-mipp.gipa` | paper algebra and local combined TIPP/MIPP implementation | `abstract-trace` | combined GIPA trace/equation evidence |
+| `tipp-mipp.gipa` | paper algebra and local combined TIPP/MIPP implementation | `abstract-trace` | `Ipp.Extracted.verify_tipp_mipp_refinement_statement` and its named round/fold support theorems; challenge trace and delegator parity remain separate |
 | `tipp-mipp.final-bridge` | Bellperson v2 final-randomness link | `shieldd-byte` | trace parity over exact Shieldd bridge bytes and final-bridge mutant |
 | `tipp-mipp.kzg-challenge` | Shieldd challenge helper and Filecoin v2 transcript-input discipline | `shieldd-byte` | trace parity over exact Shieldd combined KZG challenge bytes |
-| `tipp-mipp.kzg-equations` | paper algebra and local implementation | `abstract-trace` | shared-key KZG equation review and mutation tests |
-| `tipp-mipp.power-sequence` | paper algebra and local implementation | `abstract-trace` | structured-power tests and equation review |
-| `tipp-mipp.base-equations` | paper algebra and local implementation | `abstract-trace` | combined base-equation review and mutation tests |
+| `tipp-mipp.kzg-equations` | paper algebra and local implementation | `abstract-trace` | `Ipp.Extracted.hax_translated_verify_g2_kzg_opening_true_iff`, `hax_translated_verify_g1_kzg_opening_true_iff`, and named equation/coefficient theorems; concrete pairing adapter parity |
+| `tipp-mipp.power-sequence` | paper algebra and local implementation | `abstract-trace` | `Ipp.Extracted.hax_translated_inverse_powers_eq`, `hax_translated_shifted_commitment_key_eq`, and `hax_translated_structured_scalar_final_eq` |
+| `tipp-mipp.base-equations` | paper algebra and local implementation | `abstract-trace` | `Ipp.Extracted.verify_base_commitment_refinement` and `verify_tipp_mipp_refinement_statement`, conditional on commitment-effect laws |
 | `groth16.randomizer` | Shieldd challenge helper and Filecoin v2 final-randomness bug class | `shieldd-byte` | randomizer trace parity and Filecoin bug-class review |
-| `groth16.folded-inputs` | Shieldd public-input adaptation and paper algebra; byte binding is covered by `curve.field.public-input` and `serialization.public-input-fields` adaptation rows | `abstract-trace` | public-input mutation tests and equation review |
-| `groth16.ppe` | paper algebra and local implementation | `abstract-trace` | PPE mutation tests and equation review |
+| `groth16.folded-inputs` | Shieldd public-input adaptation and paper algebra; byte binding is covered by `curve.field.public-input` and `serialization.public-input-fields` adaptation rows | `abstract-trace` | `Ipp.Extracted.fold_public_inputs_refinement_statement`; Rust `r=1`/`r!=1` delegator parity |
+| `groth16.ppe` | paper algebra and local implementation | `abstract-trace` | `Ipp.Extracted.verify_ppe_refinement_eq`, `verify_ppe_refinement_statement`, and `verify_combined_ppe_refinement_statement`, conditional on prepared-pairing laws; Rust optimized/baseline parity |
 
 ## Minimum Evidence Per Refinement Row
 

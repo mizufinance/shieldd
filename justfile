@@ -111,9 +111,10 @@ snarkpack-dos-gate:
 snarkpack-lean-conformance:
     ./scripts/snarkpack-lean-conformance.sh
 
-# Build the SnarkPack S1 Lean mechanization; fail on sorry or axioms outside Ipp/Algebra.lean.
+# Build the SnarkPack S1/S2 Lean mechanization; run focused S2 modules, named
+# theorem axiom audits, then exactly one full package build.
 snarkpack-lean-ipp:
-    bash -lc 'set -euo pipefail; cd crates/crypto/proof-aggregation/formal/lean-ipp; LEAN_NUM_THREADS=1 lake build Ipp; if grep -rn "sorry" Ipp/; then echo "sorry found in Ipp/" >&2; exit 1; fi; if grep -rn "axiom " Ipp/ | grep -v "^Ipp/Algebra.lean:"; then echo "axiom declared outside Ipp/Algebra.lean" >&2; exit 1; fi; echo "snarkpack lean ipp ok"'
+    bash scripts/check-snarkpack-lean-ipp.sh
 
 # Run the default gnark validation suite.
 gnark-proof-tests: gnark-proof-tests-fast

@@ -110,6 +110,124 @@ formal_proof_stamp() {
   } | hash_stdin
 }
 
+target_source_file() {
+  case "$1" in
+    shieldd_sdk_proof_aggregation::statement::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/statement.rs ;;
+    shieldd_sdk_proof_aggregation::srs::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/srs.rs ;;
+    shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs ;;
+    shieldd_sdk_proof_aggregation::preflight::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/preflight.rs ;;
+    shieldd_sdk_proof_aggregation::bundle::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/bundle.rs ;;
+    ark_ip_proofs::challenge::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs ;;
+    ark_ip_proofs::gipa::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs ;;
+    ark_ip_proofs::tipa::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs ;;
+    ark_ip_proofs::applications::groth16_aggregation::*)
+      printf '%s\n' crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs ;;
+    *)
+      return 1 ;;
+  esac
+}
+
+check_s2_target_completeness() {
+  local targets=crates/crypto/proof-aggregation/formal/snarkpack/hax-targets.txt
+  local boundary=crates/crypto/proof-aggregation/formal/snarkpack/hax-extraction-boundary.md
+  [[ -f "$targets" ]] || fail "S2 hax target list is missing"
+  [[ -f "$boundary" ]] || fail "S2 hax extraction boundary is missing"
+
+  local duplicates
+  duplicates="$({ sed -e 's/\r$//' -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$targets"; } | sort | uniq -d)"
+  if [[ -n "$duplicates" ]]; then
+    echo "$duplicates" >&2
+    fail "hax-targets.txt contains duplicate targets"
+  fi
+
+  local target source leaf
+  while IFS= read -r target; do
+    target="$(printf '%s' "$target" | tr -d '\r')"
+    [[ -z "$target" || "$target" =~ ^[[:space:]]*# ]] && continue
+    source="$(target_source_file "$target")" \
+      || fail "hax target $target has no production source mapping"
+    [[ -f "$source" ]] || fail "hax target $target source $source is missing"
+    leaf="${target##*::}"
+    grep -Eq "^[[:space:]]*(pub[[:space:]]*(\([^)]*\))?[[:space:]]*)?(fn|struct|enum|trait|type)[[:space:]]+$leaf([[:space:](<{]|$)" "$source" \
+      || fail "hax target $target has no declaration in $source"
+    grep -F "| \`$target\` |" "$boundary" >/dev/null \
+      || fail "hax target $target is missing extraction-boundary metadata"
+  done < "$targets"
+}
+
+check_s2_generated_freshness() {
+  local manifest=crates/crypto/proof-aggregation/formal/snarkpack/hax-generated-hashes.txt
+  local generated_dir=crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted
+  [[ -f "$manifest" ]] || fail "S2 generated freshness manifest is missing"
+  [[ -d "$generated_dir" ]] || fail "extracted Lean directory is missing"
+
+  local kind expected path actual
+  while read -r kind expected path; do
+    [[ -z "$kind" || "$kind" =~ ^# ]] && continue
+    [[ "$kind" == generated || "$kind" == source ]] \
+      || fail "invalid freshness manifest record kind: $kind"
+    [[ "$expected" =~ ^[0-9a-f]{64}$ ]] \
+      || fail "invalid freshness hash for $path"
+    [[ -f "$path" ]] || fail "freshness manifest path is missing: $path"
+    actual="$(hash_file "$path")"
+    [[ "$actual" == "$expected" ]] \
+      || fail "$kind artifact is stale: $path (expected $expected, got $actual)"
+  done < <(tr -d '\r' < "$manifest")
+
+  local recorded generated
+  recorded="$(awk '$1 == "generated" { print $3 }' "$manifest" | sort)"
+  generated="$(find "$generated_dir" -type f -name '*Generated.lean' | sort)"
+  if ! diff -u <(printf '%s\n' "$recorded") <(printf '%s\n' "$generated"); then
+    fail "freshness manifest does not cover exactly the generated Lean artifacts"
+  fi
+}
+
+check_s2_extracted_directory() {
+  local extracted_dir=crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted
+  local forbidden
+  forbidden="$(
+    grep -R -n -E '\b(axiom|sorry|admit|native_decide)\b' "$extracted_dir" \
+      | grep -vE '#print axioms|result axiom' || true
+  )"
+  if [[ -n "$forbidden" ]]; then
+    echo "$forbidden" >&2
+    fail "Ipp/Extracted contains an unrecorded axiom, sorry, admit, or native_decide"
+  fi
+}
+
+check_s2_refinement_theorems() {
+  local manifest=crates/crypto/proof-aggregation/formal/snarkpack/s2-refinement-theorems.txt
+  local audit=crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/S2AxiomAudit.lean
+  [[ -f "$manifest" ]] || fail "S2 refinement theorem list is missing"
+  [[ -f "$audit" ]] || fail "S2 axiom audit fixture is missing"
+
+  local duplicate_names
+  duplicate_names="$(awk -F'|' '!/^[[:space:]]*#/ && NF == 2 { print $2 }' "$manifest" | sort | uniq -d)"
+  if [[ -n "$duplicate_names" ]]; then
+    echo "$duplicate_names" >&2
+    fail "S2 refinement theorem list contains duplicate names"
+  fi
+
+  local source qualified name
+  while IFS='|' read -r source qualified; do
+    [[ -z "$source" || "$source" =~ ^[[:space:]]*# ]] && continue
+    [[ -f "crates/crypto/proof-aggregation/formal/lean-ipp/$source" ]] \
+      || fail "S2 theorem source is missing: $source"
+    name="${qualified##*.}"
+    grep -Eq "^[[:space:]]*(theorem|lemma|def)[[:space:]]+$name([[:space:](<{]|$)" \
+      "crates/crypto/proof-aggregation/formal/lean-ipp/$source" \
+      || fail "S2 theorem $qualified is not declared in $source"
+  done < <(tr -d '\r' < "$manifest")
+}
+
 check_reference_crate_boundary() {
   local manifest="crates/crypto/proof-aggregation-reference/Cargo.toml"
   local crate_dir="crates/crypto/proof-aggregation-reference"
@@ -594,6 +712,11 @@ while IFS= read -r row; do
     fail "assumption row $assumption still names planned or required tests instead of passing tests"
   fi
 done < <(awk '/^## Assumptions$/ { in_table = 1; next } /^## / && in_table { in_table = 0 } in_table && /^\|/ && $0 !~ /^\| ---/ && $0 !~ /^\| Assumption / { print }' "$formal_handoff" | tr -d '\r')
+
+check_s2_target_completeness
+check_s2_generated_freshness
+check_s2_extracted_directory
+check_s2_refinement_theorems
 
 check_reference_crate_boundary
 check_fuzz_crate_boundary
