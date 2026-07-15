@@ -1980,31 +1980,60 @@ where
     D: Digest,
     S: ChallengeTraceSink,
 {
-    let started = Instant::now();
+    #[cfg(not(feature = "bench-baseline"))]
+    {
+        let started = Instant::now();
+        let mut profile = AggregateProofVerificationProfile::default();
+        let effect = ProfiledAggregateVerifierEffect {
+            inner: ArkworksAggregateVerifierEffect {
+                context,
+                trace,
+                ip_verifier_srs,
+                pvk,
+                public_inputs,
+                proof,
+            },
+            profile: &mut profile,
+            challenge_started: Instant::now(),
+        };
+        let output = verify_aggregate_proof_core(effect)?;
+        let AggregateVerifierCoreOutput {
+            accepted, effect, ..
+        } = output;
+        drop(effect);
+        profile.core_total_ms = started.elapsed().as_secs_f64() * 1000.0;
+        profile.accepted = accepted;
+        return Ok(profile);
+    }
 
-    let challenge_started = Instant::now();
-    let r = derive_randomizer::<P, D, S>(context, trace, proof)?;
-    let challenge_ms = challenge_started.elapsed().as_secs_f64() * 1000.0;
+    #[cfg(feature = "bench-baseline")]
+    {
+        let started = Instant::now();
 
-    let ((tipp_mipp_valid, ppe_valid), (tipp_mipp_ms, public_input_fold_ms, ppe_ms)) =
-        verify_combined_checks_profiled::<P, D, S>(
-            context,
-            trace,
-            ip_verifier_srs,
-            pvk,
-            public_inputs,
-            proof,
-            &r,
-        )?;
+        let challenge_started = Instant::now();
+        let r = derive_randomizer::<P, D, S>(context, trace, proof)?;
+        let challenge_ms = challenge_started.elapsed().as_secs_f64() * 1000.0;
 
-    Ok(AggregateProofVerificationProfile {
-        challenge_ms,
-        tipp_mipp_ms,
-        public_input_fold_ms,
-        ppe_ms,
-        core_total_ms: started.elapsed().as_secs_f64() * 1000.0,
-        accepted: tipp_mipp_valid && ppe_valid,
-    })
+        let ((tipp_mipp_valid, ppe_valid), (tipp_mipp_ms, public_input_fold_ms, ppe_ms)) =
+            verify_combined_checks_profiled::<P, D, S>(
+                context,
+                trace,
+                ip_verifier_srs,
+                pvk,
+                public_inputs,
+                proof,
+                &r,
+            )?;
+
+        Ok(AggregateProofVerificationProfile {
+            challenge_ms,
+            tipp_mipp_ms,
+            public_input_fold_ms,
+            ppe_ms,
+            core_total_ms: started.elapsed().as_secs_f64() * 1000.0,
+            accepted: tipp_mipp_valid && ppe_valid,
+        })
+    }
 }
 
 fn build_shifted_ck_2<P: Pairing>(ck_2: &[P::G1], r: &P::ScalarField) -> Vec<P::G1> {
@@ -2243,6 +2272,29 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+impl<'a, P, D, S> ArkworksAggregateVerifierEffect<'a, P, D, S>
+where
+    P: Pairing,
+    D: Digest,
+    S: ChallengeTraceSink,
+{
+    fn verify_combined_profiled(
+        &mut self,
+        randomizer: &P::ScalarField,
+    ) -> Result<((bool, bool), (f64, f64, f64)), Error> {
+        verify_combined_checks_profiled::<P, D, S>(
+            self.context,
+            self.trace,
+            self.ip_verifier_srs,
+            self.pvk,
+            self.public_inputs,
+            self.proof,
+            randomizer,
+        )
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
 impl<P, D, S> AggregateVerifierEffect<P::ScalarField, Error>
     for ArkworksAggregateVerifierEffect<'_, P, D, S>
 where
@@ -2267,15 +2319,41 @@ where
     }
 
     fn verify_combined(&mut self, randomizer: &P::ScalarField) -> Result<(bool, bool), Error> {
-        let (checks, _) = verify_combined_checks_profiled::<P, D, S>(
-            self.context,
-            self.trace,
-            self.ip_verifier_srs,
-            self.pvk,
-            self.public_inputs,
-            self.proof,
-            randomizer,
-        )?;
+        Ok(self.verify_combined_profiled(randomizer)?.0)
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+struct ProfiledAggregateVerifierEffect<'a, P, D, S>
+where
+    P: Pairing,
+    D: Digest,
+    S: ChallengeTraceSink,
+{
+    inner: ArkworksAggregateVerifierEffect<'a, P, D, S>,
+    profile: &'a mut AggregateProofVerificationProfile,
+    challenge_started: Instant,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+impl<P, D, S> AggregateVerifierEffect<P::ScalarField, Error>
+    for ProfiledAggregateVerifierEffect<'_, P, D, S>
+where
+    P: Pairing,
+    D: Digest,
+    S: ChallengeTraceSink,
+{
+    fn derive_randomizer(&mut self, nonce: u64) -> Result<Option<P::ScalarField>, Error> {
+        self.inner.derive_randomizer(nonce)
+    }
+
+    fn verify_combined(&mut self, randomizer: &P::ScalarField) -> Result<(bool, bool), Error> {
+        self.profile.challenge_ms = self.challenge_started.elapsed().as_secs_f64() * 1000.0;
+        let (checks, (tipp_mipp_ms, public_input_fold_ms, ppe_ms)) =
+            self.inner.verify_combined_profiled(randomizer)?;
+        self.profile.tipp_mipp_ms = tipp_mipp_ms;
+        self.profile.public_input_fold_ms = public_input_fold_ms;
+        self.profile.ppe_ms = ppe_ms;
         Ok(checks)
     }
 }
@@ -2649,6 +2727,67 @@ mod tests {
             prepare_verifying_key(&vk),
             zero_tipp_mipp_proof(),
         )
+    }
+
+    fn assert_aggregate_profiled_parity<P: Pairing>() {
+        let (srs, pvk, proof) = zero_combined_inputs::<P>();
+        let context = ChallengeContext::from_statement_digest([0u8; 32]);
+        let public_inputs = vec![vec![]];
+
+        let mut normal_trace = crate::challenge::VecChallengeTraceSink::default();
+        let normal = verify_aggregate_proof_with_trace::<P, Blake2b, _>(
+            &context,
+            &mut normal_trace,
+            &srs,
+            &pvk,
+            &public_inputs,
+            &proof,
+        );
+
+        let mut profiled_trace = crate::challenge::VecChallengeTraceSink::default();
+        let profiled = verify_aggregate_proof_profiled_with_trace::<P, Blake2b, _>(
+            &context,
+            &mut profiled_trace,
+            &srs,
+            &pvk,
+            &public_inputs,
+            &proof,
+        );
+
+        assert_eq!(normal_trace.entries(), profiled_trace.entries());
+        match (normal, profiled) {
+            (Ok(normal), Ok(profile)) => {
+                assert_eq!(normal, profile.accepted);
+                for timing in [
+                    profile.challenge_ms,
+                    profile.tipp_mipp_ms,
+                    profile.public_input_fold_ms,
+                    profile.ppe_ms,
+                    profile.core_total_ms,
+                ] {
+                    assert!(timing.is_finite() && timing >= 0.0);
+                }
+            }
+            (Err(normal), Err(profiled)) => assert_eq!(normal.to_string(), profiled.to_string()),
+            (normal, profiled) => {
+                panic!(
+                    "normal/profiled result mismatch: {:?} vs {:?}",
+                    normal, profiled
+                )
+            }
+        }
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn aggregate_profiled_matches_normal_acceptance_and_trace() {
+        assert_aggregate_profiled_parity::<Bls12_381>();
+    }
+
+    #[cfg(feature = "bench-baseline")]
+    #[test]
+    fn aggregate_profiled_baseline_matches_normal_acceptance_and_trace() {
+        assert_aggregate_profiled_parity::<Bls12_381>();
     }
 
     #[cfg(not(feature = "bench-baseline"))]

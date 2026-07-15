@@ -315,8 +315,24 @@ TIPP/MIPP, fold, PPE, pairing, final-bridge, and KZG effect premises. The one
 outer semantic boundary is the named `RandomizerTrace` correspondence from the
 Rust commitment bytes/digest/decoded attempts to the typed randomizer trace;
 the aggregate effect's delegation to the landed combined core is explicit.
-Hash-as-random-oracle and serializer parity remain assumptions. This session
-does not claim the S2-37 profiled timing projection.
+Hash-as-random-oracle and serializer parity remain assumptions.
+
+## S2-37 profiled projection
+
+The non-benchmark `verify_aggregate_proof_profiled_with_trace` path now runs
+the same `verify_aggregate_proof_core` through a timing-recording delegator.
+`accepted` is copied from the core output, while the five elapsed-time fields
+are populated only by `Instant` observations. The benchmark-baseline path keeps
+its profiling implementation; normal/profiled acceptance and trace parity is
+tested in both configurations.
+
+`Ipp.Extracted.AggregateVerifier.profiledOutput_observational` proves that all
+timing fields are observational, and
+`verify_aggregate_proof_profiled_with_trace_refinement_statement` invokes the
+S2-36 semantic theorem exactly once while projecting its acceptance Boolean.
+The semantic statement contains no timing value. Rust tests are
+`aggregate_profiled_matches_normal_acceptance_and_trace` and
+`aggregate_profiled_baseline_matches_normal_acceptance_and_trace`.
 
 ## Gates
 

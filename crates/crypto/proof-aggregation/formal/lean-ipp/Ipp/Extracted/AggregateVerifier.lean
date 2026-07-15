@@ -46,6 +46,52 @@ def run {F E FX : Type} [Field F]
   ark_ip_proofs.applications.groth16_aggregation.verify_aggregate_proof_core
     (partialEq F) (zero F) (one F) effects effect
 
+structure ProfileTiming (T : Type) where
+  challenge_ms : T
+  tipp_mipp_ms : T
+  public_input_fold_ms : T
+  ppe_ms : T
+  core_total_ms : T
+
+structure ProfiledOutput (T : Type) where
+  challenge_ms : T
+  tipp_mipp_ms : T
+  public_input_fold_ms : T
+  ppe_ms : T
+  core_total_ms : T
+  accepted : Bool
+
+def profiledOutput {F FX T : Type}
+    (timing : ProfileTiming T)
+    (output : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierCoreOutput
+      F FX) : ProfiledOutput T :=
+  { challenge_ms := timing.challenge_ms
+    tipp_mipp_ms := timing.tipp_mipp_ms
+    public_input_fold_ms := timing.public_input_fold_ms
+    ppe_ms := timing.ppe_ms
+    core_total_ms := timing.core_total_ms
+    accepted := output.accepted }
+
+@[simp] theorem profiledOutput_accepted {F FX T : Type}
+    (timing : ProfileTiming T)
+    (output : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierCoreOutput
+      F FX) :
+    (profiledOutput timing output).accepted = output.accepted := by
+  rfl
+
+theorem profiledOutput_observational {F FX T : Type}
+    (timing : ProfileTiming T)
+    (output : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierCoreOutput
+      F FX) :
+    profiledOutput timing output = {
+      challenge_ms := timing.challenge_ms
+      tipp_mipp_ms := timing.tipp_mipp_ms
+      public_input_fold_ms := timing.public_input_fold_ms
+      ppe_ms := timing.ppe_ms
+      core_total_ms := timing.core_total_ms
+      accepted := output.accepted } := by
+  rfl
+
 /-- The named Rust-byte/digest-to-decoded-challenge boundary. Constructors
     record chronological nonce attempts; only `none`, zero, and one retry. -/
 inductive RandomizerTrace {F E FX : Type} [Zero F] [One F]
@@ -389,11 +435,92 @@ theorem verify_aggregate_proof_refinement_statement
       simp [Ipp.FsAccepts, hguards.1, hguards.2, hx0, hroundChallenges,
         hbridge, hkzg, hppeOutcome]
 
+/-- The profiled wrapper projects the core acceptance Boolean.  Its timing
+    fields are supplied observations and do not occur in the semantic claim. -/
+theorem verify_aggregate_proof_profiled_with_trace_refinement_statement
+    {F G1 G2 G2Prepared GT E FX PE PPE AE AFX T : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {n : Nat} (stmt : Ipp.FsStatement n F G1 G2 GT)
+    (proof : Ipp.Proof n F G1 G2 GT) (transcript : Ipp.FsTranscript n F)
+    (aggregateEffects :
+      ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
+        AFX F AE)
+    (aggregateEffect challengeEffect finalAggregateEffect : AFX)
+    (combinedResult : core.result.Result (Bool × Bool) AE)
+    (randomizerTrace : RandomizerTrace aggregateEffects.derive_randomizer
+      aggregateEffect 0#usize challengeEffect transcript.randomizer)
+    (aggregateCombined :
+      aggregateEffects.verify_combined challengeEffect transcript.randomizer =
+        .ok (combinedResult, finalAggregateEffect))
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.CombinedChecksCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (effect effect4 : FX) (tipp_pairing : PE) (ppe_pairing : PPE)
+    (ppeOutcome : PPE → Option Unit) (expected : Usize)
+    (aggregateDelegates : combinedResult = .Ok (true, true) ↔
+      Ipp.Extracted.CombinedChecks.run effects tippPairing ppeEffect input effect
+          tipp_pairing ppe_pairing =
+        .ok (.Ok { checks := (true, true), tipp_mipp_effect := effect4 }))
+    (hnonempty : ark_ip_proofs.alloc.vec.Vec.len input.public_inputs ≠ 0#usize)
+    (hpower : ark_ip_proofs.core.num.Usize.is_power_of_two
+      (ark_ip_proofs.alloc.vec.Vec.len input.public_inputs) = .ok true)
+    (hilog : ark_ip_proofs.core.num.Usize.ilog2
+      (ark_ip_proofs.alloc.vec.Vec.len input.public_inputs) = .ok expected)
+    (hrounds : ark_ip_proofs.alloc.vec.Vec.len input.tipp_mipp.proof.gipa_proof =
+      expected)
+    (htippTotal : ∃ valid nextEffect,
+      Ipp.Extracted.CombinedChecks.runTipp effects tippPairing input.tipp_mipp
+          effect tipp_pairing = .ok (.Ok valid, nextEffect))
+    (hppeTotal : ∃ valid,
+      Ipp.Extracted.CombinedChecks.runPpe ppeEffect input ppe_pairing = .ok valid)
+    (htipp : Ipp.Extracted.CombinedChecks.runTipp effects tippPairing
+        input.tipp_mipp effect tipp_pairing = .ok (.Ok true, effect4) ↔
+      Ipp.LeafData stmt proof transcript)
+    (hppe : Ipp.Extracted.CombinedChecks.runPpe ppeEffect input ppe_pairing =
+        .ok true ↔
+      ppeOutcome ppe_pairing = some () ∧
+        stmt.e ((∑ i : Fin (2 ^ n), transcript.randomizer ^ (i : Nat)) •
+            stmt.alpha) stmt.beta +
+          stmt.e (∑ i : Fin (2 ^ n),
+            transcript.randomizer ^ (i : Nat) • stmt.Aic i) stmt.gamma +
+          stmt.e proof.aggC stmt.delta = proof.ipAb)
+    (hx0 : transcript.x0 ≠ 0)
+    (hroundChallenges : ∀ i, transcript.roundAnswer i ≠ 0)
+    (hbridge : transcript.bridge ≠ 0) (hkzg : transcript.kzg ≠ 0)
+    (hppeOutcome : ppeOutcome ppe_pairing = some ())
+    (timing : ProfileTiming T) :
+    (run aggregateEffects aggregateEffect = .ok (.Ok {
+        randomizer := transcript.randomizer
+        checks := (true, true)
+        accepted := true
+        effect := finalAggregateEffect }) ∧
+      (profiledOutput timing {
+        randomizer := transcript.randomizer
+        checks := (true, true)
+        accepted := true
+        effect := finalAggregateEffect }).accepted = true) ↔
+      Ipp.FsAccepts stmt proof transcript := by
+  have hcore :=
+    verify_aggregate_proof_refinement_statement
+      stmt proof transcript aggregateEffects aggregateEffect challengeEffect
+      finalAggregateEffect combinedResult randomizerTrace aggregateCombined
+      effects tippPairing ppeEffect input effect effect4 tipp_pairing ppe_pairing
+      ppeOutcome expected aggregateDelegates hnonempty hpower hilog hrounds
+      htippTotal hppeTotal htipp hppe hx0 hroundChallenges hbridge hkzg hppeOutcome
+  simpa [profiledOutput] using hcore
+
 #print axioms run_of_trace
 #print axioms run_challenge_error
 #print axioms run_randomizer_error
 #print axioms run_combined_error
 #print axioms verify_aggregate_proof_refinement_statement
+#print axioms profiledOutput_observational
+#print axioms verify_aggregate_proof_profiled_with_trace_refinement_statement
 
 end
 end Ipp.Extracted.AggregateVerifier
