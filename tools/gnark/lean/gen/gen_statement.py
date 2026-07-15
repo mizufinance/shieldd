@@ -227,6 +227,9 @@ def render(ir: dict, manifest: dict) -> str:
     structures = []
     proof_groups = []
     top_fields = []
+    projection_index = {
+        segment: index for index, segment in enumerate(semantic_roles())
+    }
     for struct_name, doc, fields in ROLE_GROUPS:
         field_lines = "\n".join(
             f"  {field_name} : Specs.deployedSpec{segment} rho"
@@ -239,7 +242,14 @@ def render(ir: dict, manifest: dict) -> str:
         )
         top_name = TOP_FIELDS[struct_name]
         top_fields.append(f"  {top_name} : {struct_name} rho")
-        projections = [f"specOf{segment} rho h" for _, segment, _ in fields]
+        projections = []
+        for _, segment, _ in fields:
+            index = projection_index[segment]
+            projections.append(
+                "hs"
+                + "".join(".2" for _ in range(index))
+                + ("" if index == 42 else ".1")
+            )
         projection_lines = [
             ", ".join(projections[index : index + 4])
             for index in range(0, len(projections), 4)
@@ -275,6 +285,7 @@ structure Consolidate2x1Statement (rho : Nat → DeployedF) : Prop where
 /-- The exact deployed relation implies every named protocol obligation. -/
 theorem consolidate2x1_statement (rho : Nat → DeployedF) (h : relationAll rho) :
     Consolidate2x1Statement rho := by
+  have hs := consolidate2x1_deployed_sound rho h
   exact {{
 {"\n".join(proof_groups)}
   }}
