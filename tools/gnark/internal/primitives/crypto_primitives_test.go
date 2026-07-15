@@ -307,15 +307,15 @@ func TestNoteCommitmentDerivationMatchesShielddVectors(t *testing.T) {
 	)
 }
 
-// Consolidate2x1 statement-hash seam (H3 / Phase C). The 7 public statement
+// NoteReshape 2→1 statement-hash seam (H3 / Phase C). The 7 public statement
 // fields are assembled in the exact production order (NoteReshapeCircuit.Define:
 // anchor, output note commitment, balance commitment Fq, then per-input
-// nullifier+rk) and fed through the production ConsolidateStatementHashForShape
+// nullifier+rk) and fed through the production NoteReshapeStatementHashForShape
 // gadget. The asserted hash is the Rust reference (real poseidon377::hash_7 over
 // the consolidate2x1 domain) baked into phase05_vectors.json. Any wire-order,
 // endianness, domain, or padding drift between the Rust statement serialization
 // and the gnark gadget fails this test.
-type consolidateStatementSeamCircuit struct {
+type noteReshapeStatementSeamCircuit struct {
 	Anchor                frontend.Variable
 	OutputNoteCommitment0 frontend.Variable
 	BalanceCommitmentFq   frontend.Variable
@@ -327,7 +327,7 @@ type consolidateStatementSeamCircuit struct {
 	Expected frontend.Variable `gnark:",public"`
 }
 
-func (c *consolidateStatementSeamCircuit) Define(api frontend.API) error {
+func (c *noteReshapeStatementSeamCircuit) Define(api frontend.API) error {
 	// Production assembly order (mirrors NoteReshapeCircuit.Define for nIn=2).
 	fields := []frontend.Variable{
 		c.Anchor,
@@ -338,7 +338,7 @@ func (c *consolidateStatementSeamCircuit) Define(api frontend.API) error {
 		c.Nullifier1,
 		c.RK1,
 	}
-	h, err := ConsolidateStatementHashForShape(api, 2, fields)
+	h, err := NoteReshapeStatementHashForShape(api, "consolidate2x1", 2, 1, fields)
 	if err != nil {
 		return err
 	}
@@ -346,12 +346,12 @@ func (c *consolidateStatementSeamCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func TestConsolidate2x1StatementSeamMatchesShielddVectors(t *testing.T) {
+func TestNoteReshape2x1StatementSeamMatchesShielddVectors(t *testing.T) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		t.Fatalf("load vectors: %v", err)
 	}
-	fx := vectors.Consolidate2x1Stmt
+	fx := vectors.NoteReshape2x1Stmt
 	if got, want := fx.Label, "consolidate2x1"; got != want {
 		t.Fatalf("statement label mismatch: got %q want %q", got, want)
 	}
@@ -372,7 +372,7 @@ func TestConsolidate2x1StatementSeamMatchesShielddVectors(t *testing.T) {
 		}
 	}
 
-	valid := &consolidateStatementSeamCircuit{
+	valid := &noteReshapeStatementSeamCircuit{
 		Anchor:                fx.Fields[0],
 		OutputNoteCommitment0: fx.Fields[1],
 		BalanceCommitmentFq:   fx.Fields[2],
@@ -383,7 +383,7 @@ func TestConsolidate2x1StatementSeamMatchesShielddVectors(t *testing.T) {
 		Expected:              fx.StatementHash,
 	}
 	// Drift sentinel: swapping two fields must not reproduce the hash.
-	swapped := &consolidateStatementSeamCircuit{
+	swapped := &noteReshapeStatementSeamCircuit{
 		Anchor:                fx.Fields[3], // nullifier_0 in the anchor slot
 		OutputNoteCommitment0: fx.Fields[1],
 		BalanceCommitmentFq:   fx.Fields[2],
@@ -396,7 +396,7 @@ func TestConsolidate2x1StatementSeamMatchesShielddVectors(t *testing.T) {
 
 	assert := test.NewAssert(t)
 	assert.CheckCircuit(
-		&consolidateStatementSeamCircuit{},
+		&noteReshapeStatementSeamCircuit{},
 		test.WithCurves(ecc.BLS12_377),
 		test.WithBackends(backend.GROTH16),
 		test.WithValidAssignment(valid),

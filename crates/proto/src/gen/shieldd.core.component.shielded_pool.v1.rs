@@ -292,36 +292,20 @@ impl ::prost::Name for ZkTransferProof {
         "/shieldd.core.component.shielded_pool.v1.ZKTransferProof".into()
     }
 }
-/// A Shieldd ZK consolidate proof.
+/// A Shieldd ZK note reshape proof.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ZkConsolidateProof {
+pub struct ZkNoteReshapeProof {
     #[prost(bytes = "vec", tag = "1")]
     pub inner: ::prost::alloc::vec::Vec<u8>,
 }
-impl ::prost::Name for ZkConsolidateProof {
-    const NAME: &'static str = "ZKConsolidateProof";
+impl ::prost::Name for ZkNoteReshapeProof {
+    const NAME: &'static str = "ZKNoteReshapeProof";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ZKConsolidateProof".into()
+        "shieldd.core.component.shielded_pool.v1.ZKNoteReshapeProof".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ZKConsolidateProof".into()
-    }
-}
-/// A Shieldd ZK split proof.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ZkSplitProof {
-    #[prost(bytes = "vec", tag = "1")]
-    pub inner: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for ZkSplitProof {
-    const NAME: &'static str = "ZKSplitProof";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ZKSplitProof".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ZKSplitProof".into()
+        "/shieldd.core.component.shielded_pool.v1.ZKNoteReshapeProof".into()
     }
 }
 /// A Shieldd ZK shielded ICS-20 withdrawal proof.
@@ -755,7 +739,7 @@ impl ::prost::Name for ShieldedIcs20WithdrawalPlan {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ConsolidateInputBody {
+pub struct NoteReshapeInputBody {
     /// The nullifier of the spent note.
     #[prost(message, optional, tag = "1")]
     pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
@@ -767,19 +751,22 @@ pub struct ConsolidateInputBody {
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
     pub encrypted_backref: ::prost::alloc::vec::Vec<u8>,
+    /// Explicit proof-bound padding marker.
+    #[prost(bool, tag = "4")]
+    pub is_dummy: bool,
 }
-impl ::prost::Name for ConsolidateInputBody {
-    const NAME: &'static str = "ConsolidateInputBody";
+impl ::prost::Name for NoteReshapeInputBody {
+    const NAME: &'static str = "NoteReshapeInputBody";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ConsolidateInputBody".into()
+        "shieldd.core.component.shielded_pool.v1.NoteReshapeInputBody".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ConsolidateInputBody".into()
+        "/shieldd.core.component.shielded_pool.v1.NoteReshapeInputBody".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ConsolidateOutputBody {
+pub struct NoteReshapeOutputBody {
     /// The minimal data required to scan and process the created note.
     #[prost(message, optional, tag = "1")]
     pub note_payload: ::core::option::Option<NotePayload>,
@@ -789,44 +776,47 @@ pub struct ConsolidateOutputBody {
     /// The key material used for note encryption, wrapped to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
     pub ovk_wrapped_key: ::prost::alloc::vec::Vec<u8>,
+    /// Explicit proof-bound padding marker.
+    #[prost(bool, tag = "4")]
+    pub is_dummy: bool,
 }
-impl ::prost::Name for ConsolidateOutputBody {
-    const NAME: &'static str = "ConsolidateOutputBody";
+impl ::prost::Name for NoteReshapeOutputBody {
+    const NAME: &'static str = "NoteReshapeOutputBody";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ConsolidateOutputBody".into()
+        "shieldd.core.component.shielded_pool.v1.NoteReshapeOutputBody".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ConsolidateOutputBody".into()
+        "/shieldd.core.component.shielded_pool.v1.NoteReshapeOutputBody".into()
     }
 }
-/// Consolidates multiple notes owned by one address into fewer notes owned by that same address.
+/// Reshapes notes owned by one address without changing their total value.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Consolidate {
-    /// The effecting data of the consolidate action.
+pub struct NoteReshape {
+    /// The effecting data of the note reshape action.
     #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<ConsolidateBody>,
+    pub body: ::core::option::Option<NoteReshapeBody>,
     /// The authorizing signatures for each consumed input.
     #[prost(message, repeated, tag = "2")]
     pub auth_sigs: ::prost::alloc::vec::Vec<
         super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
     >,
-    /// The proof that the consolidate action is well-formed.
+    /// The proof that the note reshape action is well-formed.
     #[prost(message, optional, tag = "3")]
-    pub proof: ::core::option::Option<ZkConsolidateProof>,
+    pub proof: ::core::option::Option<ZkNoteReshapeProof>,
 }
-impl ::prost::Name for Consolidate {
-    const NAME: &'static str = "Consolidate";
+impl ::prost::Name for NoteReshape {
+    const NAME: &'static str = "NoteReshape";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.Consolidate".into()
+        "shieldd.core.component.shielded_pool.v1.NoteReshape".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.Consolidate".into()
+        "/shieldd.core.component.shielded_pool.v1.NoteReshape".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ConsolidateBody {
+pub struct NoteReshapeBody {
     /// The proving family this action uses.
     #[prost(uint32, tag = "1")]
     pub family_id: u32,
@@ -842,32 +832,32 @@ pub struct ConsolidateBody {
     >,
     /// The consumed notes.
     #[prost(message, repeated, tag = "4")]
-    pub inputs: ::prost::alloc::vec::Vec<ConsolidateInputBody>,
+    pub inputs: ::prost::alloc::vec::Vec<NoteReshapeInputBody>,
     /// The created notes.
     #[prost(message, repeated, tag = "5")]
-    pub outputs: ::prost::alloc::vec::Vec<ConsolidateOutputBody>,
+    pub outputs: ::prost::alloc::vec::Vec<NoteReshapeOutputBody>,
 }
-impl ::prost::Name for ConsolidateBody {
-    const NAME: &'static str = "ConsolidateBody";
+impl ::prost::Name for NoteReshapeBody {
+    const NAME: &'static str = "NoteReshapeBody";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ConsolidateBody".into()
+        "shieldd.core.component.shielded_pool.v1.NoteReshapeBody".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ConsolidateBody".into()
+        "/shieldd.core.component.shielded_pool.v1.NoteReshapeBody".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ConsolidateView {
-    #[prost(oneof = "consolidate_view::ConsolidateView", tags = "1, 2")]
-    pub consolidate_view: ::core::option::Option<consolidate_view::ConsolidateView>,
+pub struct NoteReshapeView {
+    #[prost(oneof = "note_reshape_view::NoteReshapeView", tags = "1, 2")]
+    pub note_reshape_view: ::core::option::Option<note_reshape_view::NoteReshapeView>,
 }
-/// Nested message and enum types in `ConsolidateView`.
-pub mod consolidate_view {
+/// Nested message and enum types in `NoteReshapeView`.
+pub mod note_reshape_view {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Visible {
         #[prost(message, optional, tag = "1")]
-        pub consolidate: ::core::option::Option<super::Consolidate>,
+        pub note_reshape: ::core::option::Option<super::NoteReshape>,
         #[prost(message, repeated, tag = "2")]
         pub spent_notes: ::prost::alloc::vec::Vec<super::NoteView>,
         #[prost(message, repeated, tag = "3")]
@@ -881,266 +871,71 @@ pub mod consolidate_view {
         const NAME: &'static str = "Visible";
         const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
         fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.ConsolidateView.Visible".into()
+            "shieldd.core.component.shielded_pool.v1.NoteReshapeView.Visible".into()
         }
         fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.ConsolidateView.Visible".into()
+            "/shieldd.core.component.shielded_pool.v1.NoteReshapeView.Visible".into()
         }
     }
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Opaque {
         #[prost(message, optional, tag = "1")]
-        pub consolidate: ::core::option::Option<super::Consolidate>,
+        pub note_reshape: ::core::option::Option<super::NoteReshape>,
     }
     impl ::prost::Name for Opaque {
         const NAME: &'static str = "Opaque";
         const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
         fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.ConsolidateView.Opaque".into()
+            "shieldd.core.component.shielded_pool.v1.NoteReshapeView.Opaque".into()
         }
         fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.ConsolidateView.Opaque".into()
+            "/shieldd.core.component.shielded_pool.v1.NoteReshapeView.Opaque".into()
         }
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum ConsolidateView {
+    pub enum NoteReshapeView {
         #[prost(message, tag = "1")]
         Visible(Visible),
         #[prost(message, tag = "2")]
         Opaque(Opaque),
     }
 }
-impl ::prost::Name for ConsolidateView {
-    const NAME: &'static str = "ConsolidateView";
+impl ::prost::Name for NoteReshapeView {
+    const NAME: &'static str = "NoteReshapeView";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ConsolidateView".into()
+        "shieldd.core.component.shielded_pool.v1.NoteReshapeView".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ConsolidateView".into()
+        "/shieldd.core.component.shielded_pool.v1.NoteReshapeView".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ConsolidatePlan {
+pub struct NoteReshapePlan {
     /// The public body this plan will produce.
     #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<ConsolidateBody>,
+    pub body: ::core::option::Option<NoteReshapeBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
     /// The net action balance committed by the action body.
     #[prost(message, optional, tag = "3")]
     pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
-    /// The shielded input plans fused into this consolidation.
+    /// The shielded input plans fused into this reshape.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
-    /// The shielded output plans fused into this consolidation.
+    /// The shielded output plans fused into this reshape.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
 }
-impl ::prost::Name for ConsolidatePlan {
-    const NAME: &'static str = "ConsolidatePlan";
+impl ::prost::Name for NoteReshapePlan {
+    const NAME: &'static str = "NoteReshapePlan";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ConsolidatePlan".into()
+        "shieldd.core.component.shielded_pool.v1.NoteReshapePlan".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ConsolidatePlan".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SplitInputBody {
-    /// The nullifier of the spent note.
-    #[prost(message, optional, tag = "1")]
-    pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
-    /// The randomized validating key for the spend authorization signature.
-    #[prost(message, optional, tag = "2")]
-    pub rk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
-    >,
-    /// An encryption of the commitment of the input note to the sender's OVK.
-    #[prost(bytes = "vec", tag = "3")]
-    pub encrypted_backref: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for SplitInputBody {
-    const NAME: &'static str = "SplitInputBody";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.SplitInputBody".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.SplitInputBody".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SplitOutputBody {
-    /// The minimal data required to scan and process the created note.
-    #[prost(message, optional, tag = "1")]
-    pub note_payload: ::core::option::Option<NotePayload>,
-    /// An encrypted key for decrypting the memo.
-    #[prost(bytes = "vec", tag = "2")]
-    pub wrapped_memo_key: ::prost::alloc::vec::Vec<u8>,
-    /// The key material used for note encryption, wrapped to the sender's OVK.
-    #[prost(bytes = "vec", tag = "3")]
-    pub ovk_wrapped_key: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for SplitOutputBody {
-    const NAME: &'static str = "SplitOutputBody";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.SplitOutputBody".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.SplitOutputBody".into()
-    }
-}
-/// Split-style note reshaping action.
-/// Current supported families consume one note and create multiple notes owned by the same address.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Split {
-    /// The effecting data of the split action.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<SplitBody>,
-    /// The authorizing signatures for each consumed input.
-    #[prost(message, repeated, tag = "2")]
-    pub auth_sigs: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
-    >,
-    /// The proof that the split action is well-formed.
-    #[prost(message, optional, tag = "3")]
-    pub proof: ::core::option::Option<ZkSplitProof>,
-}
-impl ::prost::Name for Split {
-    const NAME: &'static str = "Split";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.Split".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.Split".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SplitBody {
-    /// The proving family this action uses.
-    #[prost(uint32, tag = "1")]
-    pub family_id: u32,
-    /// The state commitment tree anchor used during proof generation.
-    #[prost(message, optional, tag = "2")]
-    pub anchor: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::MerkleRoot,
-    >,
-    /// A commitment to the net balance of the action.
-    #[prost(message, optional, tag = "3")]
-    pub balance_commitment: ::core::option::Option<
-        super::super::super::asset::v1::BalanceCommitment,
-    >,
-    /// The consumed notes.
-    #[prost(message, repeated, tag = "4")]
-    pub inputs: ::prost::alloc::vec::Vec<SplitInputBody>,
-    /// The created notes.
-    #[prost(message, repeated, tag = "5")]
-    pub outputs: ::prost::alloc::vec::Vec<SplitOutputBody>,
-}
-impl ::prost::Name for SplitBody {
-    const NAME: &'static str = "SplitBody";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.SplitBody".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.SplitBody".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SplitView {
-    #[prost(oneof = "split_view::SplitView", tags = "1, 2")]
-    pub split_view: ::core::option::Option<split_view::SplitView>,
-}
-/// Nested message and enum types in `SplitView`.
-pub mod split_view {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Visible {
-        #[prost(message, optional, tag = "1")]
-        pub split: ::core::option::Option<super::Split>,
-        #[prost(message, repeated, tag = "2")]
-        pub spent_notes: ::prost::alloc::vec::Vec<super::NoteView>,
-        #[prost(message, repeated, tag = "3")]
-        pub created_notes: ::prost::alloc::vec::Vec<super::NoteView>,
-        #[prost(message, optional, tag = "4")]
-        pub payload_key: ::core::option::Option<
-            super::super::super::super::keys::v1::PayloadKey,
-        >,
-    }
-    impl ::prost::Name for Visible {
-        const NAME: &'static str = "Visible";
-        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-        fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.SplitView.Visible".into()
-        }
-        fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.SplitView.Visible".into()
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Opaque {
-        #[prost(message, optional, tag = "1")]
-        pub split: ::core::option::Option<super::Split>,
-    }
-    impl ::prost::Name for Opaque {
-        const NAME: &'static str = "Opaque";
-        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-        fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.SplitView.Opaque".into()
-        }
-        fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.SplitView.Opaque".into()
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum SplitView {
-        #[prost(message, tag = "1")]
-        Visible(Visible),
-        #[prost(message, tag = "2")]
-        Opaque(Opaque),
-    }
-}
-impl ::prost::Name for SplitView {
-    const NAME: &'static str = "SplitView";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.SplitView".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.SplitView".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SplitPlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<SplitBody>,
-    /// The blinding factor to use for the net balance commitment.
-    #[prost(bytes = "vec", tag = "2")]
-    pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
-    /// The shielded input plans fused into this split.
-    #[prost(message, repeated, tag = "4")]
-    pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
-    /// The shielded output plans fused into this split.
-    #[prost(message, repeated, tag = "5")]
-    pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
-}
-impl ::prost::Name for SplitPlan {
-    const NAME: &'static str = "SplitPlan";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.SplitPlan".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.SplitPlan".into()
+        "/shieldd.core.component.shielded_pool.v1.NoteReshapePlan".into()
     }
 }
 /// ABCI Event recording a spent nullifier.

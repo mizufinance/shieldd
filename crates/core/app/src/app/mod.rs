@@ -142,10 +142,9 @@ fn aggregate_debug_root() -> Option<PathBuf> {
 fn action_family_id(action: &Action) -> Option<ProofFamilyId> {
     match action {
         Action::Transfer(_) => Some(ProofFamilyId::Transfer),
-        Action::Consolidate(consolidate) => {
-            Some(ProofFamilyId::Consolidate(consolidate.body.family_id))
+        Action::NoteReshape(note_reshape) => {
+            Some(ProofFamilyId::NoteReshape(note_reshape.body.family_id))
         }
-        Action::Split(split) => Some(ProofFamilyId::Split(split.body.family_id)),
         Action::ShieldedIcs20Withdrawal(withdrawal) => Some(
             ProofFamilyId::ShieldedIcs20Withdrawal(withdrawal.body.family_id),
         ),
@@ -158,8 +157,7 @@ fn proof_verification_key_for_family(
 ) -> &'static PreparedVerifyingKey<Bls12_377> {
     match family_id {
         ProofFamilyId::Transfer => shieldd_sdk_proof_params::transfer_proof_verification_key(),
-        ProofFamilyId::Consolidate(family_id) => family_id.proof_verification_key(),
-        ProofFamilyId::Split(family_id) => family_id.proof_verification_key(),
+        ProofFamilyId::NoteReshape(family_id) => family_id.proof_verification_key(),
         ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.proof_verification_key(),
     }
 }
@@ -167,8 +165,7 @@ fn proof_verification_key_for_family(
 fn proof_family_label(family_id: ProofFamilyId) -> &'static str {
     match family_id {
         ProofFamilyId::Transfer => shieldd_sdk_shielded_pool::TRANSFER_PROOF_LABEL,
-        ProofFamilyId::Consolidate(family_id) => family_id.label(),
-        ProofFamilyId::Split(family_id) => family_id.label(),
+        ProofFamilyId::NoteReshape(family_id) => family_id.label(),
         ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.label(),
     }
 }
@@ -176,8 +173,7 @@ fn proof_family_label(family_id: ProofFamilyId) -> &'static str {
 fn proof_family_batch_verify_stage(family_id: ProofFamilyId) -> &'static str {
     match family_id {
         ProofFamilyId::Transfer => "transfer_batch_verify",
-        ProofFamilyId::Consolidate(_) => "consolidate_batch_verify",
-        ProofFamilyId::Split(_) => "split_batch_verify",
+        ProofFamilyId::NoteReshape(_) => "note_reshape_batch_verify",
         ProofFamilyId::ShieldedIcs20Withdrawal(_) => "shielded_ics20_withdrawal_batch_verify",
     }
 }
@@ -504,8 +500,7 @@ impl AggregateBuildProfile {
     fn add_family_time(&mut self, family_id: ProofFamilyId, elapsed_ms: f64) {
         match family_id {
             ProofFamilyId::Transfer
-            | ProofFamilyId::Consolidate(_)
-            | ProofFamilyId::Split(_)
+            | ProofFamilyId::NoteReshape(_)
             | ProofFamilyId::ShieldedIcs20Withdrawal(_) => self.other_ms += elapsed_ms,
         }
     }
@@ -934,14 +929,9 @@ impl App {
     fn proof_family_ids() -> Vec<ProofFamilyId> {
         let mut family_ids = vec![ProofFamilyId::Transfer];
         family_ids.extend(
-            shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS
+            shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS
                 .into_iter()
-                .map(|spec| ProofFamilyId::Consolidate(spec.id)),
-        );
-        family_ids.extend(
-            shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS
-                .into_iter()
-                .map(|spec| ProofFamilyId::Split(spec.id)),
+                .map(|spec| ProofFamilyId::NoteReshape(spec.id)),
         );
         family_ids.extend(
             shieldd_sdk_shielded_pool::SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS
@@ -1450,67 +1440,35 @@ impl App {
                             .expect("shielded ICS-20 withdrawal family exists")
                             .push(item);
                     }
-                    Action::Consolidate(_) => {
-                        let consolidate = match action {
-                            Action::Consolidate(consolidate) => consolidate,
-                            _ => unreachable!(),
-                        };
+                    Action::NoteReshape(note_reshape) => {
                         let t1 = Instant::now();
                         let public =
-                            shieldd_sdk_shielded_pool::component::consolidate_extract_public(
-                                consolidate,
+                            shieldd_sdk_shielded_pool::component::note_reshape_extract_public(
+                                note_reshape,
                                 &context,
                             )
-                            .context("consolidate extract public failed")?;
+                            .context("note reshape extract public failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
 
                         let t2 = Instant::now();
-                        let item = shieldd_sdk_shielded_pool::component::consolidate_to_batch_item(
-                            consolidate,
-                            public,
-                        )
-                        .context("consolidate to_batch_item failed")?;
+                        let item =
+                            shieldd_sdk_shielded_pool::component::note_reshape_to_batch_item(
+                                note_reshape,
+                                public,
+                            )
+                            .context("note reshape to_batch_item failed")?;
                         profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
-                        let family_id = action_family_id(&Action::Consolidate(consolidate.clone()))
-                            .expect("consolidate has a proof family");
+                        let family_id =
+                            action_family_id(&Action::NoteReshape(note_reshape.clone()))
+                                .expect("note reshape has a proof family");
 
                         tx_proof_items
                             .get_mut(&family_id)
-                            .expect("consolidate family exists")
+                            .expect("note reshape family exists")
                             .push(item.clone());
                         proof_items
                             .get_mut(&family_id)
-                            .expect("consolidate family exists")
-                            .push(item);
-                    }
-                    Action::Split(_) => {
-                        let split = match action {
-                            Action::Split(split) => split,
-                            _ => unreachable!(),
-                        };
-                        let t1 = Instant::now();
-                        let public = shieldd_sdk_shielded_pool::component::split_extract_public(
-                            split, &context,
-                        )
-                        .context("split extract public failed")?;
-                        profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                        let t2 = Instant::now();
-                        let item = shieldd_sdk_shielded_pool::component::split_to_batch_item(
-                            split, public,
-                        )
-                        .context("split to_batch_item failed")?;
-                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
-                        let family_id = action_family_id(&Action::Split(split.clone()))
-                            .expect("split has a proof family");
-
-                        tx_proof_items
-                            .get_mut(&family_id)
-                            .expect("split family exists")
-                            .push(item.clone());
-                        proof_items
-                            .get_mut(&family_id)
-                            .expect("split family exists")
+                            .expect("note reshape family exists")
                             .push(item);
                     }
                     Action::ValidatorDefinition(action) => action.check_stateless(()).await?,
@@ -1802,8 +1760,7 @@ impl App {
     fn estimated_aggregate_proof_bytes(family_id: ProofFamilyId) -> usize {
         match family_id {
             ProofFamilyId::Transfer
-            | ProofFamilyId::Consolidate(_)
-            | ProofFamilyId::Split(_)
+            | ProofFamilyId::NoteReshape(_)
             | ProofFamilyId::ShieldedIcs20Withdrawal(_) => AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
         }
     }
@@ -2536,12 +2493,7 @@ impl App {
                                 .as_ref()
                                 .map(|body| body.inputs.len())
                                 .unwrap_or_default(),
-                            Some(ProtoAction::Consolidate(consolidate)) => consolidate
-                                .body
-                                .as_ref()
-                                .map(|body| body.inputs.len())
-                                .unwrap_or_default(),
-                            Some(ProtoAction::Split(split)) => split
+                            Some(ProtoAction::NoteReshape(note_reshape)) => note_reshape
                                 .body
                                 .as_ref()
                                 .map(|body| body.inputs.len())
@@ -2945,22 +2897,15 @@ impl App {
                         "converting proto transfer nullifier",
                     )?;
                 }
-                Some(ProtoAction::Consolidate(c)) => {
+                Some(ProtoAction::NoteReshape(note_reshape)) => {
                     push_nullifiers(
                         &mut spend_nullifiers,
-                        c.body
-                            .iter()
-                            .flat_map(|b| b.inputs.iter().filter_map(|i| i.nullifier.as_ref())),
-                        "converting proto consolidate nullifier",
-                    )?;
-                }
-                Some(ProtoAction::Split(s)) => {
-                    push_nullifiers(
-                        &mut spend_nullifiers,
-                        s.body
-                            .iter()
-                            .flat_map(|b| b.inputs.iter().filter_map(|i| i.nullifier.as_ref())),
-                        "converting proto split nullifier",
+                        note_reshape.body.iter().flat_map(|b| {
+                            b.inputs
+                                .iter()
+                                .filter_map(|i| i.nullifier.as_ref().filter(|_| !i.is_dummy))
+                        }),
+                        "converting proto note reshape nullifier",
                     )?;
                 }
                 Some(ProtoAction::ShieldedIcs20Withdrawal(w)) => {
@@ -7673,8 +7618,8 @@ mod tests {
                 aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
             },
             AggregateBundleFamilyEstimate {
-                family_id: ProofFamilyId::Consolidate(
-                    shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id,
+                family_id: ProofFamilyId::NoteReshape(
+                    shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS[0].id,
                 ),
                 real_count: 8,
                 padded_count: 8,
@@ -7689,8 +7634,8 @@ mod tests {
                 aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
             },
             AggregateBundleFamilyEstimate {
-                family_id: ProofFamilyId::Consolidate(
-                    shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id,
+                family_id: ProofFamilyId::NoteReshape(
+                    shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS[0].id,
                 ),
                 real_count: 256,
                 padded_count: 256,

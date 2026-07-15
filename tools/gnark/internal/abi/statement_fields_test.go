@@ -32,30 +32,6 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 		assertStatementFieldsMatch(t, "transfer", reconstructed, witness.StatementFields)
 	})
 
-	t.Run("consolidate2x1", func(t *testing.T) {
-		witness, _, err := DecodeConsolidateWitnessV1(testfixtures.LoadConsolidateWitnessV1("consolidate2x1"))
-		if err != nil {
-			t.Fatalf("decode consolidate witness: %v", err)
-		}
-		reconstructed, err := ReconstructedConsolidateStatementFieldsFromWitnessV1(witness)
-		if err != nil {
-			t.Fatalf("reconstruct consolidate statement fields: %v", err)
-		}
-		assertStatementFieldsMatch(t, "consolidate2x1", reconstructed, witness.StatementFields)
-	})
-
-	t.Run("split1x8", func(t *testing.T) {
-		witness, _, err := DecodeSplitWitnessV1(testfixtures.LoadSplitWitnessV1("split1x8"))
-		if err != nil {
-			t.Fatalf("decode split witness: %v", err)
-		}
-		reconstructed, err := ReconstructedSplitStatementFieldsFromWitnessV1(witness)
-		if err != nil {
-			t.Fatalf("reconstruct split statement fields: %v", err)
-		}
-		assertStatementFieldsMatch(t, "split1x8", reconstructed, witness.StatementFields)
-	})
-
 	t.Run("shielded_ics20_withdrawal", func(t *testing.T) {
 		witness, _, err := DecodeShieldedIcs20WithdrawalWitnessV1(
 			testfixtures.LoadShieldedIcs20WithdrawalWitnessV1("shielded_ics20_withdrawal"),
@@ -69,6 +45,30 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 		}
 		assertStatementFieldsMatch(t, "shielded_ics20_withdrawal", reconstructed, witness.StatementFields)
 	})
+
+	for _, tc := range []struct {
+		name  string
+		label string
+	}{
+		{name: "note_reshape2x1", label: "consolidate2x1"},
+		{name: "note_reshape1x8", label: "split1x8"},
+		{name: "note_reshape4x1", label: "consolidate4x1"},
+		{name: "note_reshape8x1", label: "consolidate8x1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			witness, _, err := DecodeNoteReshapeWitnessV1(
+				testfixtures.LoadNoteReshapeWitnessV1(tc.label),
+			)
+			if err != nil {
+				t.Fatalf("decode note reshape witness: %v", err)
+			}
+			reconstructed, err := ReconstructedNoteReshapeStatementFieldsFromWitnessV1(witness)
+			if err != nil {
+				t.Fatalf("reconstruct note reshape statement fields: %v", err)
+			}
+			assertStatementFieldsMatch(t, tc.name, reconstructed, witness.StatementFields)
+		})
+	}
 }
 
 func TestRustGoStatementFieldDifferentialDoesNotTrustStoredVector(t *testing.T) {

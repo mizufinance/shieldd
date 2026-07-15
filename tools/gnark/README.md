@@ -4,8 +4,7 @@ This directory contains the gnark proving runtime for Shieldd's supported
 shielded proof families:
 
 - `Transfer`
-- `Split`
-- `Consolidate`
+- `NoteReshape` (`2→1`, `1→8`, `8→1`, and `4→1`)
 - `ShieldedIcs20Withdrawal`
 
 Legacy standalone single-leg proving flows are not part of the active surface.
@@ -45,22 +44,19 @@ directory is configured and one transport is selected for that circuit:
 
 - `SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR`
 - `SHIELDD_GNARK_TRANSFER_LIB` or `SHIELDD_GNARK_TRANSFER_DAEMON`
-- `SHIELDD_GNARK_SPLIT_ARTIFACT_DIR`
-- `SHIELDD_GNARK_SPLIT_LIB` or `SHIELDD_GNARK_SPLIT_DAEMON`
-- `SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR`
-- `SHIELDD_GNARK_CONSOLIDATE_LIB` or `SHIELDD_GNARK_CONSOLIDATE_DAEMON`
+- `SHIELDD_GNARK_NOTE_RESHAPE_ARTIFACT_DIR`
+- `SHIELDD_GNARK_NOTE_RESHAPE_LIB` or `SHIELDD_GNARK_NOTE_RESHAPE_DAEMON`
 - `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
 - `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB` or `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_DAEMON`
 
 Verifier-key overrides for Rust verification and aggregation use:
 
 - `SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR`
-- `SHIELDD_GNARK_SPLIT_ARTIFACT_DIR`
-- `SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR`
+- `SHIELDD_GNARK_NOTE_RESHAPE_ARTIFACT_DIR`
 - `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
 
-The supported families share runtime plumbing where that reduces duplication,
-but each family still has its own artifact registry entry and transport target.
+The supported families share runtime plumbing, with NoteReshape selected by its
+manifest family ID and directional artifact label.
 
 ## Rust <-> Gnark Boundary
 
@@ -151,8 +147,7 @@ Files:
 - `internal/artifacts/`: verifier benchmark JSON helpers, metadata, and timing stats
 - `cmd/gnarkctl/main.go`: unified host CLI for setup, proving, replay, and verify benchmarking
 - `cmd/transferlib/main.go`: C-shared gnark prover for `transfer`
-- `cmd/consolidatelib/main.go`: C-shared gnark prover for `consolidate`
-- `cmd/splitlib/main.go`: C-shared gnark prover for `split`
+- `cmd/note_reshapelib/main.go`: C-shared gnark prover for NoteReshape
 - `cmd/proverdaemon/main.go`: long-lived stdin/stdout gnark prover daemon for supported shielded actions
 - `compatibility.md`: explicit Phase 0 / 0.5 verdict
 - `artifact-mapping.md`: current Shieldd transfer artifact boundary

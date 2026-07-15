@@ -113,7 +113,7 @@ struct DleqFixture {
 /// and asserts the in-circuit wire equals `statement_hash`. Any wire-order,
 /// endianness, or domain drift fails.
 #[derive(Serialize)]
-struct ConsolidateStatementFixture {
+struct NoteReshapeStatementFixture {
     label: String,
     domain: String,
     field_roles: Vec<String>,
@@ -128,7 +128,7 @@ struct Vectors {
     decaf377_compress_vectors: Vec<DecafCompressVector>,
     decaf377_encode_vectors: Vec<DecafEncodeVector>,
     dleq_fixture: DleqFixture,
-    consolidate2x1_statement: ConsolidateStatementFixture,
+    consolidate2x1_statement: NoteReshapeStatementFixture,
 }
 
 fn blake2b_fq(label: &[u8]) -> Fq {
@@ -462,7 +462,7 @@ fn main() {
             dleq_c: dleq_c.to_string(),
             dleq_s: Fq::from_le_bytes_mod_order(&dleq_s.to_bytes()).to_string(),
         },
-        consolidate2x1_statement: ConsolidateStatementFixture {
+        consolidate2x1_statement: NoteReshapeStatementFixture {
             label: "consolidate2x1".to_string(),
             domain: consolidate_statement_domain.to_string(),
             field_roles: consolidate_statement_roles

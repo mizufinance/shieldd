@@ -40,7 +40,7 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
-const consolidateProofResultMagic = "PCPR"
+const noteReshapeProofResultMagic = "PNRP"
 
 type proverContext struct {
 	circuitName string
@@ -51,36 +51,36 @@ type proverContext struct {
 
 var contexts = cshared.NewRegistry[proverContext]()
 
-func compileConsolidateCircuit(family generated.ConsolidateFamilySpec) (constraint.ConstraintSystem, error) {
+func compileNoteReshapeCircuit(family generated.NoteReshapeFamilySpec) (constraint.ConstraintSystem, error) {
 	return frontend.Compile(
 		primitives.ScalarField(),
 		r1cs.NewBuilder,
-		circuits.NewConsolidateCircuit(family.NIn),
+		circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut),
 	)
 }
 
-func consolidateFamilyForCircuit(circuit string) (generated.ConsolidateFamilySpec, error) {
-	family, ok := generated.ConsolidateFamilyByLabel(circuit)
+func noteReshapeFamilyForCircuit(circuit string) (generated.NoteReshapeFamilySpec, error) {
+	family, ok := generated.NoteReshapeFamilyByLabel(circuit)
 	if !ok {
-		return generated.ConsolidateFamilySpec{}, fmt.Errorf("unsupported consolidate circuit %q", circuit)
+		return generated.NoteReshapeFamilySpec{}, fmt.Errorf("unsupported noteReshape circuit %q", circuit)
 	}
 	return family, nil
 }
 
 func packProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeConsolidateWitnessV1(witnessPayload)
+	witness, _, err := abi.DecodeNoteReshapeWitnessV1(witnessPayload)
 	if err != nil {
-		return nil, fmt.Errorf("decode consolidate witness: %w", err)
+		return nil, fmt.Errorf("decode noteReshape witness: %w", err)
 	}
-	return cshared.PackProofResult(consolidateProofResultMagic, witness.ClaimedStatementHash, proof, proveMS)
+	return cshared.PackProofResult(noteReshapeProofResultMagic, witness.ClaimedStatementHash, proof, proveMS)
 }
 
 func initContext(circuit string, pk *groth16bls.ProvingKey, metadata *artifacts.CircuitMetadataJSON) (*proverContext, error) {
-	family, err := consolidateFamilyForCircuit(circuit)
+	family, err := noteReshapeFamilyForCircuit(circuit)
 	if err != nil {
 		return nil, err
 	}
-	ccs, err := compileConsolidateCircuit(family)
+	ccs, err := compileNoteReshapeCircuit(family)
 	if err != nil {
 		return nil, fmt.Errorf("compile %s circuit: %w", family.Label, err)
 	}
@@ -95,8 +95,8 @@ func initContext(circuit string, pk *groth16bls.ProvingKey, metadata *artifacts.
 	}, nil
 }
 
-//export shieldd_gnark_consolidate_init
-func shieldd_gnark_consolidate_init(artifactDir *C.char, artifactDirLen C.size_t, out *C.ShielddGnarkInitResult) {
+//export shieldd_gnark_note_reshape_init
+func shieldd_gnark_note_reshape_init(artifactDir *C.char, artifactDirLen C.size_t, out *C.ShielddGnarkInitResult) {
 	if out == nil {
 		return
 	}
@@ -109,8 +109,8 @@ func shieldd_gnark_consolidate_init(artifactDir *C.char, artifactDirLen C.size_t
 	))
 }
 
-//export shieldd_gnark_consolidate_init_from_bytes
-func shieldd_gnark_consolidate_init_from_bytes(
+//export shieldd_gnark_note_reshape_init_from_bytes
+func shieldd_gnark_note_reshape_init_from_bytes(
 	pkData unsafe.Pointer,
 	pkLen C.size_t,
 	metadataData unsafe.Pointer,
@@ -127,13 +127,13 @@ func shieldd_gnark_consolidate_init_from_bytes(
 		uint64(pkLen),
 		metadataData,
 		uint64(metadataLen),
-		"bundled consolidate circuit_metadata.json",
+		"bundled noteReshape circuit_metadata.json",
 		initContext,
 	))
 }
 
-//export shieldd_gnark_consolidate_prove
-func shieldd_gnark_consolidate_prove(handle C.uint64_t, witnessPtr unsafe.Pointer, witnessLen C.size_t, out *C.ShielddGnarkBytesResult) {
+//export shieldd_gnark_note_reshape_prove
+func shieldd_gnark_note_reshape_prove(handle C.uint64_t, witnessPtr unsafe.Pointer, witnessLen C.size_t, out *C.ShielddGnarkBytesResult) {
 	if out == nil {
 		return
 	}
@@ -142,13 +142,13 @@ func shieldd_gnark_consolidate_prove(handle C.uint64_t, witnessPtr unsafe.Pointe
 }
 
 func proveContext(ctx *proverContext, witnessPayload []byte) ([]byte, float64, error) {
-	assignment, family, err := abi.NewConsolidateCircuitAssignmentFromWitnessV1(witnessPayload)
+	assignment, family, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(witnessPayload)
 	if err != nil {
 		return nil, 0, fmt.Errorf("decode witness: %w", err)
 	}
 	if family.ID != ctx.familyID {
 		return nil, 0, fmt.Errorf(
-			"consolidate witness family mismatch: got %s (%d), expected %s (%d)",
+			"noteReshape witness family mismatch: got %s (%d), expected %s (%d)",
 			family.Label,
 			family.ID,
 			ctx.circuitName,
@@ -179,13 +179,13 @@ func proveContext(ctx *proverContext, witnessPayload []byte) ([]byte, float64, e
 	return payload, proveMS, nil
 }
 
-//export shieldd_gnark_consolidate_free
-func shieldd_gnark_consolidate_free(ptr unsafe.Pointer, _ C.size_t) {
+//export shieldd_gnark_note_reshape_free
+func shieldd_gnark_note_reshape_free(ptr unsafe.Pointer, _ C.size_t) {
 	cshared.Free(ptr)
 }
 
-//export shieldd_gnark_consolidate_shutdown
-func shieldd_gnark_consolidate_shutdown(handle C.uint64_t) {
+//export shieldd_gnark_note_reshape_shutdown
+func shieldd_gnark_note_reshape_shutdown(handle C.uint64_t) {
 	contexts.Delete(uint64(handle))
 }
 

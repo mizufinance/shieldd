@@ -5,11 +5,17 @@ import _ "embed"
 //go:embed vectors/transfer_witness_v1.bin
 var embeddedTransferWitnessV1 []byte
 
-//go:embed vectors/consolidate2x1_witness_v1.bin
-var embeddedConsolidate2x1WitnessV1 []byte
+//go:embed vectors/note_reshape2x1_witness_v1.bin
+var embeddedNoteReshape2x1WitnessV1 []byte
 
-//go:embed vectors/split1x8_witness_v1.bin
-var embeddedSplit1x8WitnessV1 []byte
+//go:embed vectors/note_reshape1x8_witness_v1.bin
+var embeddedNoteReshape1x8WitnessV1 []byte
+
+//go:embed vectors/note_reshape4x1_witness_v1.bin
+var embeddedNoteReshape4x1WitnessV1 []byte
+
+//go:embed vectors/note_reshape8x1_witness_v1.bin
+var embeddedNoteReshape8x1WitnessV1 []byte
 
 //go:embed vectors/shielded_ics20_withdrawal_witness_v1.bin
 var embeddedShieldedIcs20WithdrawalWitnessV1 []byte
@@ -23,21 +29,18 @@ func LoadTransferWitnessV1(label string) []byte {
 	}
 }
 
-func LoadConsolidateWitnessV1(label string) []byte {
+func LoadNoteReshapeWitnessV1(label string) []byte {
 	switch label {
 	case "consolidate2x1":
-		return append([]byte(nil), embeddedConsolidate2x1WitnessV1...)
-	default:
-		panic("unknown consolidate witness label: " + label)
-	}
-}
-
-func LoadSplitWitnessV1(label string) []byte {
-	switch label {
+		return append([]byte(nil), embeddedNoteReshape2x1WitnessV1...)
 	case "split1x8":
-		return append([]byte(nil), embeddedSplit1x8WitnessV1...)
+		return append([]byte(nil), embeddedNoteReshape1x8WitnessV1...)
+	case "consolidate4x1":
+		return append([]byte(nil), embeddedNoteReshape4x1WitnessV1...)
+	case "consolidate8x1":
+		return append([]byte(nil), embeddedNoteReshape8x1WitnessV1...)
 	default:
-		panic("unknown split witness label: " + label)
+		panic("unknown note reshape witness label: " + label)
 	}
 }
 

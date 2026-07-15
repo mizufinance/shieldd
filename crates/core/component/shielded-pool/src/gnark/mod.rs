@@ -1,13 +1,12 @@
 mod artifacts;
 mod binary;
-mod consolidate;
+mod note_reshape;
 mod note_reshape_witness;
 mod note_reshape_witness_binary;
 pub mod runtime;
 mod shielded_ics20_withdrawal;
 mod shielded_ics20_withdrawal_witness;
 mod shielded_ics20_withdrawal_witness_binary;
-mod split;
 mod transfer;
 mod transfer_proof_result;
 mod transfer_witness;
@@ -16,20 +15,16 @@ mod transport;
 mod typed;
 
 pub use artifacts::GnarkArtifactMetadata;
-pub use consolidate::{
-    decode_consolidate_witness_v1, encode_consolidate_witness_v1,
-    translate_consolidate_proof_result, GnarkConsolidateClient,
+pub use note_reshape::{
+    decode_note_reshape_witness_v1, encode_note_reshape_witness_v1,
+    translate_note_reshape_proof_result, GnarkNoteReshapeClient,
 };
-pub use note_reshape_witness::{ConsolidateWitnessV1, SplitWitnessV1};
+pub use note_reshape_witness::NoteReshapeWitnessV1;
 pub use shielded_ics20_withdrawal::{
     decode_shielded_ics20_withdrawal_witness_v1, encode_shielded_ics20_withdrawal_witness_v1,
     translate_shielded_ics20_withdrawal_proof_result, GnarkShieldedIcs20WithdrawalClient,
 };
 pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV1;
-pub use split::{
-    decode_split_witness_v1, encode_split_witness_v1, translate_split_proof_result,
-    GnarkSplitClient,
-};
 pub use transfer::{
     decode_transfer_witness_v1, encode_transfer_witness_v1, translate_transfer_proof_result,
     GnarkTransferClient,
@@ -67,36 +62,50 @@ mod repo_local_demo_library_tests {
             (
                 "transfer",
                 "artifacts/transfer",
+                "transfer",
                 b"shieldd_gnark_transfer_init" as &[u8],
             ),
             (
-                "split",
-                "artifacts/split1x8",
-                b"shieldd_gnark_split_init" as &[u8],
+                "consolidate2x1",
+                "artifacts/consolidate2x1",
+                "note_reshape",
+                b"shieldd_gnark_note_reshape_init" as &[u8],
             ),
             (
-                "consolidate",
-                "artifacts/consolidate2x1",
-                b"shieldd_gnark_consolidate_init" as &[u8],
+                "split1x8",
+                "artifacts/split1x8",
+                "note_reshape",
+                b"shieldd_gnark_note_reshape_init" as &[u8],
+            ),
+            (
+                "consolidate4x1",
+                "artifacts/consolidate4x1",
+                "note_reshape",
+                b"shieldd_gnark_note_reshape_init" as &[u8],
             ),
             (
                 "shielded_ics20_withdrawal",
                 "artifacts/shielded_ics20_withdrawal",
+                "shielded_ics20_withdrawal",
                 b"shieldd_gnark_shielded_ics20_withdrawal_init" as &[u8],
             ),
         ];
 
         let available_cases = cases
             .into_iter()
-            .map(|(family, artifact_dir, init_symbol)| {
+            .map(|(family, artifact_dir, library_name, init_symbol)| {
                 (
                     family,
                     artifact_dir,
+                    library_name,
                     init_symbol,
-                    gnark_dir.join(format!("libshieldd_gnark_{family}.{}", shared_lib_ext())),
+                    gnark_dir.join(format!(
+                        "libshieldd_gnark_{library_name}.{}",
+                        shared_lib_ext()
+                    )),
                 )
             })
-            .filter(|(_, _, _, lib_path)| lib_path.exists())
+            .filter(|(_, _, _, _, lib_path)| lib_path.exists())
             .collect::<Vec<_>>();
 
         if available_cases.is_empty() {
@@ -107,7 +116,7 @@ mod repo_local_demo_library_tests {
             return;
         }
 
-        for (family, artifact_dir, init_symbol, lib_path) in available_cases {
+        for (family, artifact_dir, _, init_symbol, lib_path) in available_cases {
             let metadata_path = gnark_dir.join(artifact_dir).join("circuit_metadata.json");
             assert!(
                 metadata_path.exists(),
@@ -143,11 +152,11 @@ mod soundness_fixture_tests {
 
     use crate::{
         gnark::{
-            encode_consolidate_witness_v1, encode_shielded_ics20_withdrawal_witness_v1,
-            encode_split_witness_v1, encode_transfer_witness_v1,
+            encode_note_reshape_witness_v1, encode_shielded_ics20_withdrawal_witness_v1,
+            encode_transfer_witness_v1,
         },
         test_proof_helpers::proof_test_helpers,
-        ConsolidateFamilyId, ShieldedIcs20WithdrawalFamilyId, SplitFamilyId,
+        NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId,
     };
 
     fn fixture_dir() -> PathBuf {
@@ -177,28 +186,53 @@ mod soundness_fixture_tests {
                 .expect("encode transfer witness"),
         );
 
-        let mut consolidate_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0043_3258_3101);
-        let (consolidate_public, consolidate_private) =
-            proof_test_helpers::build_consolidate_roundtrip_inputs_with_rng(
-                &mut consolidate_rng,
-                ConsolidateFamilyId::TwoByOne,
+        let mut note_reshape_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0043_3258_3101);
+        let (note_reshape_public, note_reshape_private) =
+            proof_test_helpers::build_note_reshape_roundtrip_inputs_with_rng(
+                &mut note_reshape_rng,
+                NoteReshapeFamilyId::TwoByOne,
             );
         write_fixture(
-            "consolidate2x1_witness_v1.bin",
-            encode_consolidate_witness_v1(&consolidate_public, &consolidate_private)
-                .expect("encode consolidate witness"),
+            "note_reshape2x1_witness_v1.bin",
+            encode_note_reshape_witness_v1(&note_reshape_public, &note_reshape_private)
+                .expect("encode note reshape witness"),
         );
 
-        let mut split_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0053_3158_3401);
-        let (split_public, split_private) =
-            proof_test_helpers::build_split_roundtrip_inputs_with_rng(
-                &mut split_rng,
-                SplitFamilyId::OneByEight,
+        let mut one_to_many_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0053_3158_3401);
+        let (one_to_many_public, one_to_many_private) =
+            proof_test_helpers::build_note_reshape_roundtrip_inputs_with_rng(
+                &mut one_to_many_rng,
+                NoteReshapeFamilyId::OneByEight,
             );
         write_fixture(
-            "split1x8_witness_v1.bin",
-            encode_split_witness_v1(&split_public, &split_private).expect("encode split witness"),
+            "note_reshape1x8_witness_v1.bin",
+            encode_note_reshape_witness_v1(&one_to_many_public, &one_to_many_private)
+                .expect("encode note reshape witness"),
         );
+
+        for (family_id, seed, filename) in [
+            (
+                NoteReshapeFamilyId::FourByOne,
+                0x0000_0043_3458_3101,
+                "note_reshape4x1_witness_v1.bin",
+            ),
+            (
+                NoteReshapeFamilyId::EightByOne,
+                0x0000_0043_3858_3101,
+                "note_reshape8x1_witness_v1.bin",
+            ),
+        ] {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
+            let (public, private) =
+                proof_test_helpers::build_note_reshape_roundtrip_inputs_with_rng(
+                    &mut rng, family_id,
+                );
+            write_fixture(
+                filename,
+                encode_note_reshape_witness_v1(&public, &private)
+                    .expect("encode note reshape witness"),
+            );
+        }
 
         let mut withdrawal_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0049_4353_3201);
         let (withdrawal_public, withdrawal_private) =

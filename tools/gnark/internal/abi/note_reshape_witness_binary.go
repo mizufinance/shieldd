@@ -8,17 +8,16 @@ import (
 )
 
 const (
-	consolidateWitnessV1Magic = "PCWG"
-	splitWitnessV1Magic       = "PSWG"
+	noteReshapeWitnessV1Magic = "PNWG"
 	noteReshapeWitnessVersion = 1
 	maxNoteReshapeItems       = 8
-	minNoteReshapeSpendBytes  = 32*7 + 8 + 4 + 32 + 64*3
-	minNoteReshapeOutputBytes = 32*6 + 64*2
-	minNoteReshapeTailBytes   = 64 * 2
 )
 
 type NoteReshapeSpendWitnessV1Binary struct {
+	IsDummy                   bool
 	Nullifier                 [32]byte
+	DummyNullifierSeed        [32]byte
+	DummySpendAuthKey         [32]byte
 	SpentNoteBlinding         [32]byte
 	SpentNoteAmount           [32]byte
 	SpentNoteAssetID          [32]byte
@@ -34,6 +33,7 @@ type NoteReshapeSpendWitnessV1Binary struct {
 }
 
 type NoteReshapeOutputWitnessV1Binary struct {
+	IsDummy                   bool
 	NoteCommitment            [32]byte
 	CreatedNoteBlinding       [32]byte
 	CreatedNoteAmount         [32]byte
@@ -44,240 +44,163 @@ type NoteReshapeOutputWitnessV1Binary struct {
 	CreatedTransmissionAffine PointAffineBinary
 }
 
-type ConsolidateWitnessV1Binary struct {
-	TotalLength uint32
-	FamilyID    uint32
-	NIn         uint32
-	NOut        uint32
-
-	Anchor                [32]byte
-	BalanceCommitment     [32]byte
-	ClaimedStatementHash  [32]byte
-	StatementFields       [][32]byte
-	ActionBalanceBlinding [32]byte
-	AK                    [32]byte
-	NK                    [32]byte
-
-	Spends  []NoteReshapeSpendWitnessV1Binary
-	Outputs []NoteReshapeOutputWitnessV1Binary
-
+type NoteReshapeWitnessV1Binary struct {
+	TotalLength             uint32
+	FamilyID                uint32
+	NIn                     uint32
+	NOut                    uint32
+	ActiveInputs            uint32
+	ActiveOutputs           uint32
+	Anchor                  [32]byte
+	BalanceCommitment       [32]byte
+	ClaimedStatementHash    [32]byte
+	StatementFields         [][32]byte
+	ActionBalanceBlinding   [32]byte
+	AK                      [32]byte
+	NK                      [32]byte
+	Spends                  []NoteReshapeSpendWitnessV1Binary
+	Outputs                 []NoteReshapeOutputWitnessV1Binary
 	BalanceCommitmentAffine PointAffineBinary
 	AKAffine                PointAffineBinary
 }
 
-type SplitWitnessV1Binary struct {
-	TotalLength uint32
-	FamilyID    uint32
-	NIn         uint32
-	NOut        uint32
-
-	Anchor                [32]byte
-	BalanceCommitment     [32]byte
-	ClaimedStatementHash  [32]byte
-	StatementFields       [][32]byte
-	ActionBalanceBlinding [32]byte
-	AK                    [32]byte
-	NK                    [32]byte
-
-	Spends  []NoteReshapeSpendWitnessV1Binary
-	Outputs []NoteReshapeOutputWitnessV1Binary
-
-	BalanceCommitmentAffine PointAffineBinary
-	AKAffine                PointAffineBinary
-}
-
-func DecodeConsolidateWitnessV1(payload []byte) (*ConsolidateWitnessV1Binary, generated.ConsolidateFamilySpec, error) {
-	decoded, familyID, nIn, nOut, err := decodeNoteReshapeWitnessV1(consolidateWitnessV1Magic, payload)
+func DecodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, generated.NoteReshapeFamilySpec, error) {
+	witness, err := decodeNoteReshapeWitnessV1(payload)
 	if err != nil {
-		return nil, generated.ConsolidateFamilySpec{}, err
+		return nil, generated.NoteReshapeFamilySpec{}, err
 	}
-	family, ok := generated.ConsolidateFamilyByID(familyID)
+	family, ok := generated.NoteReshapeFamilyByID(witness.FamilyID)
 	if !ok {
-		return nil, generated.ConsolidateFamilySpec{}, fmt.Errorf("unknown consolidate family id %d", familyID)
+		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("unknown note reshape family id %d", witness.FamilyID)
 	}
-	if nIn != family.NIn || nOut != family.NOut {
-		return nil, generated.ConsolidateFamilySpec{}, fmt.Errorf("consolidate witness shape mismatch: got %dx%d, expected %dx%d", nIn, nOut, family.NIn, family.NOut)
+	if int(witness.NIn) != family.NIn || int(witness.NOut) != family.NOut {
+		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("note reshape witness shape mismatch: got %dx%d, expected %dx%d", witness.NIn, witness.NOut, family.NIn, family.NOut)
 	}
-	return &ConsolidateWitnessV1Binary{
-		TotalLength:             decoded.TotalLength,
-		FamilyID:                decoded.FamilyID,
-		NIn:                     decoded.NIn,
-		NOut:                    decoded.NOut,
-		Anchor:                  decoded.Anchor,
-		BalanceCommitment:       decoded.BalanceCommitment,
-		ClaimedStatementHash:    decoded.ClaimedStatementHash,
-		StatementFields:         decoded.StatementFields,
-		ActionBalanceBlinding:   decoded.ActionBalanceBlinding,
-		AK:                      decoded.AK,
-		NK:                      decoded.NK,
-		Spends:                  decoded.Spends,
-		Outputs:                 decoded.Outputs,
-		BalanceCommitmentAffine: decoded.BalanceCommitmentAffine,
-		AKAffine:                decoded.AKAffine,
-	}, family, nil
+	if int(witness.ActiveInputs) < family.MinRealInputs || int(witness.ActiveInputs) > family.MaxRealInputs ||
+		int(witness.ActiveOutputs) < family.MinRealOutputs || int(witness.ActiveOutputs) > family.MaxRealOutputs {
+		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("note reshape active counts %dx%d are not canonical for %s", witness.ActiveInputs, witness.ActiveOutputs, family.Label)
+	}
+	return witness, family, nil
 }
 
-func DecodeSplitWitnessV1(payload []byte) (*SplitWitnessV1Binary, generated.SplitFamilySpec, error) {
-	decoded, familyID, nIn, nOut, err := decodeNoteReshapeWitnessV1(splitWitnessV1Magic, payload)
-	if err != nil {
-		return nil, generated.SplitFamilySpec{}, err
-	}
-	family, ok := generated.SplitFamilyByID(familyID)
-	if !ok {
-		return nil, generated.SplitFamilySpec{}, fmt.Errorf("unknown split family id %d", familyID)
-	}
-	if nIn != family.NIn || nOut != family.NOut {
-		return nil, generated.SplitFamilySpec{}, fmt.Errorf("split witness shape mismatch: got %dx%d, expected %dx%d", nIn, nOut, family.NIn, family.NOut)
-	}
-	return &SplitWitnessV1Binary{
-		TotalLength:             decoded.TotalLength,
-		FamilyID:                decoded.FamilyID,
-		NIn:                     decoded.NIn,
-		NOut:                    decoded.NOut,
-		Anchor:                  decoded.Anchor,
-		BalanceCommitment:       decoded.BalanceCommitment,
-		ClaimedStatementHash:    decoded.ClaimedStatementHash,
-		StatementFields:         decoded.StatementFields,
-		ActionBalanceBlinding:   decoded.ActionBalanceBlinding,
-		AK:                      decoded.AK,
-		NK:                      decoded.NK,
-		Spends:                  decoded.Spends,
-		Outputs:                 decoded.Outputs,
-		BalanceCommitmentAffine: decoded.BalanceCommitmentAffine,
-		AKAffine:                decoded.AKAffine,
-	}, family, nil
-}
-
-type decodedNoteReshapeWitnessV1 struct {
-	TotalLength uint32
-	FamilyID    uint32
-	NIn         uint32
-	NOut        uint32
-
-	Anchor                [32]byte
-	BalanceCommitment     [32]byte
-	ClaimedStatementHash  [32]byte
-	StatementFields       [][32]byte
-	ActionBalanceBlinding [32]byte
-	AK                    [32]byte
-	NK                    [32]byte
-
-	Spends  []NoteReshapeSpendWitnessV1Binary
-	Outputs []NoteReshapeOutputWitnessV1Binary
-
-	BalanceCommitmentAffine PointAffineBinary
-	AKAffine                PointAffineBinary
-}
-
-func decodeNoteReshapeWitnessV1(
-	expectedMagic string,
-	payload []byte,
-) (*decodedNoteReshapeWitnessV1, uint32, int, int, error) {
+func decodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, error) {
 	reader := bytes.NewReader(payload)
-
 	magic, err := readExact(reader, 4)
 	if err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
-	if string(magic) != expectedMagic {
-		return nil, 0, 0, 0, fmt.Errorf("invalid note reshape witness magic %q", string(magic))
+	if string(magic) != noteReshapeWitnessV1Magic {
+		return nil, fmt.Errorf("invalid note reshape witness magic %q", string(magic))
 	}
 	version, err := readU32(reader)
 	if err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if version != noteReshapeWitnessVersion {
-		return nil, 0, 0, 0, fmt.Errorf("unsupported note reshape witness version %d", version)
+		return nil, fmt.Errorf("unsupported note reshape witness version %d", version)
 	}
 	totalLength, err := readU32(reader)
 	if err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if totalLength != uint32(len(payload)) {
-		return nil, 0, 0, 0, fmt.Errorf("payload length mismatch: header=%d actual=%d", totalLength, len(payload))
+		return nil, fmt.Errorf("payload length mismatch: header=%d actual=%d", totalLength, len(payload))
 	}
-	familyID, err := readU32(reader)
-	if err != nil {
-		return nil, 0, 0, 0, err
+	witness := &NoteReshapeWitnessV1Binary{TotalLength: totalLength}
+	if witness.FamilyID, err = readU32(reader); err != nil {
+		return nil, err
 	}
-	nIn, err := readU32(reader)
-	if err != nil {
-		return nil, 0, 0, 0, err
+	if witness.NIn, err = readU32(reader); err != nil {
+		return nil, err
 	}
-	nOut, err := readU32(reader)
-	if err != nil {
-		return nil, 0, 0, 0, err
+	if witness.NOut, err = readU32(reader); err != nil {
+		return nil, err
 	}
-
-	witness := &decodedNoteReshapeWitnessV1{
-		TotalLength: totalLength,
-		FamilyID:    familyID,
-		NIn:         nIn,
-		NOut:        nOut,
+	if witness.ActiveInputs, err = readU32(reader); err != nil {
+		return nil, err
+	}
+	if witness.ActiveOutputs, err = readU32(reader); err != nil {
+		return nil, err
 	}
 	if witness.Anchor, err = read32(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if witness.BalanceCommitment, err = read32(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if witness.ClaimedStatementHash, err = read32(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if witness.StatementFields, err = readVec32(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if witness.ActionBalanceBlinding, err = read32(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if witness.AK, err = read32(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if witness.NK, err = read32(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
-	if nIn > maxNoteReshapeItems {
-		return nil, 0, 0, 0, fmt.Errorf("note reshape witness nIn %d exceeds max %d", nIn, maxNoteReshapeItems)
+	if witness.NIn > maxNoteReshapeItems || witness.NOut > maxNoteReshapeItems {
+		return nil, fmt.Errorf("note reshape witness exceeds maximum item count")
 	}
-	if nOut > maxNoteReshapeItems {
-		return nil, 0, 0, 0, fmt.Errorf("note reshape witness nOut %d exceeds max %d", nOut, maxNoteReshapeItems)
-	}
-	minRemaining := int(nIn)*minNoteReshapeSpendBytes + int(nOut)*minNoteReshapeOutputBytes + minNoteReshapeTailBytes
-	if reader.Len() < minRemaining {
-		return nil, 0, 0, 0, fmt.Errorf(
-			"note reshape witness too short for %dx%d items: remaining=%d min=%d",
-			nIn, nOut, reader.Len(), minRemaining,
-		)
-	}
-
-	witness.Spends = make([]NoteReshapeSpendWitnessV1Binary, nIn)
+	witness.Spends = make([]NoteReshapeSpendWitnessV1Binary, witness.NIn)
 	for i := range witness.Spends {
 		if witness.Spends[i], err = readNoteReshapeSpend(reader); err != nil {
-			return nil, 0, 0, 0, err
+			return nil, err
 		}
 	}
-	witness.Outputs = make([]NoteReshapeOutputWitnessV1Binary, nOut)
+	witness.Outputs = make([]NoteReshapeOutputWitnessV1Binary, witness.NOut)
 	for i := range witness.Outputs {
 		if witness.Outputs[i], err = readNoteReshapeOutput(reader); err != nil {
-			return nil, 0, 0, 0, err
+			return nil, err
 		}
 	}
 	if witness.BalanceCommitmentAffine, err = readPointAffine(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if witness.AKAffine, err = readPointAffine(reader); err != nil {
-		return nil, 0, 0, 0, err
+		return nil, err
 	}
 	if reader.Len() != 0 {
-		return nil, 0, 0, 0, fmt.Errorf("trailing bytes in note reshape witness: %d", reader.Len())
+		return nil, fmt.Errorf("trailing bytes in note reshape witness: %d", reader.Len())
 	}
-	return witness, familyID, int(nIn), int(nOut), nil
+	activeInputs, activeOutputs := 0, 0
+	for _, spend := range witness.Spends {
+		if !spend.IsDummy {
+			activeInputs++
+		}
+	}
+	for _, output := range witness.Outputs {
+		if !output.IsDummy {
+			activeOutputs++
+		}
+	}
+	if witness.ActiveInputs != uint32(activeInputs) || witness.ActiveOutputs != uint32(activeOutputs) {
+		return nil, fmt.Errorf("note reshape active count does not match explicit flags")
+	}
+	return witness, nil
 }
 
 func readNoteReshapeSpend(reader *bytes.Reader) (NoteReshapeSpendWitnessV1Binary, error) {
 	var out NoteReshapeSpendWitnessV1Binary
-	var err error
+	flag, err := readU32(reader)
+	if err != nil {
+		return out, err
+	}
+	if flag > 1 {
+		return out, fmt.Errorf("invalid note reshape input dummy flag %d", flag)
+	}
+	out.IsDummy = flag == 1
 	if out.Nullifier, err = read32(reader); err != nil {
+		return out, err
+	}
+	if out.DummyNullifierSeed, err = read32(reader); err != nil {
+		return out, err
+	}
+	if out.DummySpendAuthKey, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.SpentNoteBlinding, err = read32(reader); err != nil {
@@ -321,7 +244,14 @@ func readNoteReshapeSpend(reader *bytes.Reader) (NoteReshapeSpendWitnessV1Binary
 
 func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessV1Binary, error) {
 	var out NoteReshapeOutputWitnessV1Binary
-	var err error
+	flag, err := readU32(reader)
+	if err != nil {
+		return out, err
+	}
+	if flag > 1 {
+		return out, fmt.Errorf("invalid note reshape output dummy flag %d", flag)
+	}
+	out.IsDummy = flag == 1
 	if out.NoteCommitment, err = read32(reader); err != nil {
 		return out, err
 	}

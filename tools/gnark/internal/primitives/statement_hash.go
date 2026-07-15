@@ -2,7 +2,6 @@ package primitives
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/consensys/gnark/frontend"
@@ -17,6 +16,7 @@ const TransferStatementFieldsPerOutput = 1
 const NoteReshapeStatementBaseFields = 2
 const NoteReshapeStatementFieldsPerInput = 2
 const NoteReshapeStatementFieldsPerOutput = 1
+const NoteReshapeStatementActiveCountFields = 2
 const ShieldedIcs20WithdrawalStatementBaseFields = 10
 const ShieldedIcs20WithdrawalStatementFieldsPerInput = 2
 
@@ -126,20 +126,16 @@ func transferStatementFieldCount(nIn, nOut int) int {
 }
 
 func NoteReshapeStatementFieldCount(nIn, nOut int) int {
-	return NoteReshapeStatementBaseFields +
+	count := NoteReshapeStatementBaseFields +
 		NoteReshapeStatementFieldsPerInput*nIn +
 		NoteReshapeStatementFieldsPerOutput*nOut
+	if nIn != 2 || nOut != 1 {
+		count += NoteReshapeStatementActiveCountFields
+	}
+	return count
 }
 
 func transferStatementLabel() string { return "transfer" }
-
-func consolidateStatementLabel(nIn int) string {
-	return fmt.Sprintf("consolidate%dx1", nIn)
-}
-
-func splitStatementLabel(nOut int) string {
-	return fmt.Sprintf("split1x%d", nOut)
-}
 
 func shieldedIcs20WithdrawalStatementLabel(nIn int) string {
 	_ = nIn
@@ -159,29 +155,18 @@ func TransferStatementHashForShape(
 	)
 }
 
-func ConsolidateStatementHashForShape(
+func NoteReshapeStatementHashForShape(
 	api frontend.API,
+	label string,
 	nIn int,
-	fields []frontend.Variable,
-) (frontend.Variable, error) {
-	return transferStatementHash(
-		api,
-		consolidateStatementLabel(nIn),
-		fields,
-		NoteReshapeStatementFieldCount(nIn, 1),
-	)
-}
-
-func SplitStatementHashForShape(
-	api frontend.API,
 	nOut int,
 	fields []frontend.Variable,
 ) (frontend.Variable, error) {
 	return transferStatementHash(
 		api,
-		splitStatementLabel(nOut),
+		label,
 		fields,
-		NoteReshapeStatementFieldCount(1, nOut),
+		NoteReshapeStatementFieldCount(nIn, nOut),
 	)
 }
 

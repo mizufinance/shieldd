@@ -692,8 +692,8 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                         .map(|output| output.note_payload.clone()),
                 );
             }
-            // Split and Consolidate have no nullifiers or compliance anchors to pre-read.
-            Action::Split(_) | Action::Consolidate(_) => {}
+            // Note reshape has no compliance anchors to pre-read.
+            Action::NoteReshape(_) => {}
             _ => anyhow::bail!(
                 "parallel prepare only supports transfer actions, found unsupported action {:?} at index {}",
                 action,
@@ -889,8 +889,8 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                         .map(|output| output.note_payload.clone()),
                 );
             }
-            // Split and Consolidate have no nullifiers or compliance anchors to pre-read.
-            Action::Split(_) | Action::Consolidate(_) => {}
+            // Note reshape has no compliance anchors to pre-read.
+            Action::NoteReshape(_) => {}
             _ => anyhow::bail!(
                 "parallel prepare only supports transfer actions, found unsupported action {:?} at index {}",
                 action,

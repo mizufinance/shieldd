@@ -240,6 +240,52 @@ cargo hax into \
   || fail "hax extraction failed for ip_proofs challenge boundary"
 popd >/dev/null
 
+pushd crates/core/component/shielded-pool >/dev/null
+echo "snarkpack formal: extracting NoteReshape family boundary"
+rm -rf proofs/fstar
+mkdir -p proofs/fstar/extraction
+cargo hax into \
+  -i '-** +shieldd_sdk_shielded_pool::note_reshape::generated::NoteReshapeFamilyId' \
+  fstar \
+  || fail "hax extraction failed for NoteReshape family boundary"
+
+cat > proofs/fstar/extraction/Anyhow.fst <<'FSTAR'
+module Anyhow
+#set-options "--fuel 0 --ifuel 1 --z3rlimit 15"
+
+type t_Error = | Error : t_Error
+FSTAR
+
+cat >> proofs/fstar/extraction/Shieldd_sdk_shielded_pool.Note_reshape.Generated.fst <<'FSTAR'
+
+[@@ FStar.Tactics.Typeclasses.tcinstance]
+let impl_NoteReshapeFamilyId__try_from:
+    Core_models.Convert.t_TryFrom t_NoteReshapeFamilyId u32 =
+  {
+    f_Error = Anyhow.t_Error;
+    f_try_from_pre = (fun (x: u32) -> true);
+    f_try_from_post
+    =
+    (fun (x: u32)
+        (out: Core_models.Result.t_Result t_NoteReshapeFamilyId Anyhow.t_Error) ->
+        true);
+    f_try_from
+    =
+    fun (x: u32) ->
+      if
+        x =. mk_u32 1 || x =. mk_u32 2 ||
+        x =. mk_u32 3 || x =. mk_u32 4
+      then
+        Core_models.Result.Result_Ok
+          (NoteReshapeFamilyId x <: t_NoteReshapeFamilyId)
+          <: Core_models.Result.t_Result t_NoteReshapeFamilyId Anyhow.t_Error
+      else
+        Core_models.Result.Result_Err (Anyhow.Error <: Anyhow.t_Error)
+          <: Core_models.Result.t_Result t_NoteReshapeFamilyId Anyhow.t_Error
+  }
+FSTAR
+popd >/dev/null
+
 prepare_fstar_inputs "$(find_hax_proof_libs)"
 
 FSTAR_FLAGS=(
@@ -250,6 +296,7 @@ FSTAR_FLAGS=(
   --include "$FSTAR_HAX_LIB_EXTRACTION"
   --include "crates/crypto/proof-aggregation/proofs/fstar/extraction"
   --include "crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/fstar/extraction"
+  --include "crates/core/component/shielded-pool/proofs/fstar/extraction"
   --include "$FORMAL_DIR/fstar"
 )
 

@@ -160,12 +160,7 @@ impl TransactionPlan {
             .iter()
             .flat_map(|action| match action {
                 ActionPlan::Transfer(plan) => plan.dest_addresses().collect::<Vec<_>>(),
-                ActionPlan::Consolidate(plan) => plan
-                    .outputs
-                    .iter()
-                    .map(|output| output.dest_address.clone())
-                    .collect::<Vec<_>>(),
-                ActionPlan::Split(plan) => plan
+                ActionPlan::NoteReshape(plan) => plan
                     .outputs
                     .iter()
                     .map(|output| output.dest_address.clone())
@@ -194,8 +189,7 @@ impl TransactionPlan {
             .iter()
             .map(|action| match action {
                 ActionPlan::Transfer(plan) => plan.outputs.len(),
-                ActionPlan::Consolidate(plan) => plan.outputs.len(),
-                ActionPlan::Split(plan) => plan.outputs.len(),
+                ActionPlan::NoteReshape(plan) => plan.outputs.len(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.note_creating_output_count(),
                 _ => 0,
             })
@@ -216,8 +210,7 @@ impl TransactionPlan {
             .iter()
             .map(|action| match action {
                 ActionPlan::Transfer(plan) => plan.spends.len(),
-                ActionPlan::Consolidate(plan) => plan.spends.len(),
-                ActionPlan::Split(plan) => plan.spends.len(),
+                ActionPlan::NoteReshape(plan) => plan.spends.len(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.spends.len(),
                 _ => 0,
             })
@@ -238,8 +231,7 @@ impl TransactionPlan {
             .iter()
             .map(|action| match action {
                 ActionPlan::Transfer(_)
-                | ActionPlan::Consolidate(_)
-                | ActionPlan::Split(_)
+                | ActionPlan::NoteReshape(_)
                 | ActionPlan::ShieldedIcs20Withdrawal(_) => 1,
                 _ => 0,
             })

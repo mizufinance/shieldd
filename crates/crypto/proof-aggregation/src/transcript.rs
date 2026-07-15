@@ -5,19 +5,14 @@ use blake2::{
     digest::{generic_array::GenericArray, FixedOutput, Reset, Update},
     Blake2b,
 };
-use shieldd_sdk_shielded_pool::{
-    ConsolidateFamilyId, ShieldedIcs20WithdrawalFamilyId, SplitFamilyId,
-};
+use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
 use crate::ProofFamilyId;
 
 pub fn transcript_family_domain(family_id: ProofFamilyId) -> Cow<'static, [u8]> {
     match family_id {
         ProofFamilyId::Transfer => Cow::Borrowed(b"shieldd.snarkpack.transfer.v1"),
-        ProofFamilyId::Consolidate(family_id) => {
-            Cow::Owned(format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes())
-        }
-        ProofFamilyId::Split(family_id) => {
+        ProofFamilyId::NoteReshape(family_id) => {
             Cow::Owned(format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes())
         }
         ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => {
@@ -110,71 +105,32 @@ impl FixedOutput for TransferTranscriptDigest {
 }
 
 #[derive(Clone)]
-pub(crate) struct SplitTranscriptDigest<const FAMILY_ID: u32>(Blake2b);
+pub(crate) struct NoteReshapeTranscriptDigest<const FAMILY_ID: u32>(Blake2b);
 
-impl<const FAMILY_ID: u32> Default for SplitTranscriptDigest<FAMILY_ID> {
+impl<const FAMILY_ID: u32> Default for NoteReshapeTranscriptDigest<FAMILY_ID> {
     fn default() -> Self {
         let mut inner = Blake2b::default();
         inner.update(
-            transcript_family_domain(ProofFamilyId::Split(SplitFamilyId(FAMILY_ID))).as_ref(),
-        );
-        Self(inner)
-    }
-}
-
-impl<const FAMILY_ID: u32> Update for SplitTranscriptDigest<FAMILY_ID> {
-    fn update(&mut self, data: impl AsRef<[u8]>) {
-        self.0.update(data);
-    }
-}
-
-impl<const FAMILY_ID: u32> Reset for SplitTranscriptDigest<FAMILY_ID> {
-    fn reset(&mut self) {
-        *self = Self::default();
-    }
-}
-
-impl<const FAMILY_ID: u32> FixedOutput for SplitTranscriptDigest<FAMILY_ID> {
-    type OutputSize = <Blake2b as FixedOutput>::OutputSize;
-
-    fn finalize_into(self, out: &mut GenericArray<u8, Self::OutputSize>) {
-        self.0.finalize_into(out);
-    }
-
-    fn finalize_into_reset(&mut self, out: &mut GenericArray<u8, Self::OutputSize>) {
-        let inner = mem::take(&mut self.0);
-        inner.finalize_into(out);
-        self.reset();
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct ConsolidateTranscriptDigest<const FAMILY_ID: u32>(Blake2b);
-
-impl<const FAMILY_ID: u32> Default for ConsolidateTranscriptDigest<FAMILY_ID> {
-    fn default() -> Self {
-        let mut inner = Blake2b::default();
-        inner.update(
-            transcript_family_domain(ProofFamilyId::Consolidate(ConsolidateFamilyId(FAMILY_ID)))
+            transcript_family_domain(ProofFamilyId::NoteReshape(NoteReshapeFamilyId(FAMILY_ID)))
                 .as_ref(),
         );
         Self(inner)
     }
 }
 
-impl<const FAMILY_ID: u32> Update for ConsolidateTranscriptDigest<FAMILY_ID> {
+impl<const FAMILY_ID: u32> Update for NoteReshapeTranscriptDigest<FAMILY_ID> {
     fn update(&mut self, data: impl AsRef<[u8]>) {
         self.0.update(data);
     }
 }
 
-impl<const FAMILY_ID: u32> Reset for ConsolidateTranscriptDigest<FAMILY_ID> {
+impl<const FAMILY_ID: u32> Reset for NoteReshapeTranscriptDigest<FAMILY_ID> {
     fn reset(&mut self) {
         *self = Self::default();
     }
 }
 
-impl<const FAMILY_ID: u32> FixedOutput for ConsolidateTranscriptDigest<FAMILY_ID> {
+impl<const FAMILY_ID: u32> FixedOutput for NoteReshapeTranscriptDigest<FAMILY_ID> {
     type OutputSize = <Blake2b as FixedOutput>::OutputSize;
 
     fn finalize_into(self, out: &mut GenericArray<u8, Self::OutputSize>) {
@@ -193,7 +149,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use crate::ProofFamilyId;
-    use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
+    use shieldd_sdk_shielded_pool::NoteReshapeFamilyId;
 
     use super::transcript_family_domain;
 
@@ -202,11 +158,10 @@ mod tests {
         let mut domains = BTreeSet::new();
         let mut families = vec![ProofFamilyId::Transfer];
         families.extend(
-            ConsolidateFamilyId::ALL
+            NoteReshapeFamilyId::ALL
                 .into_iter()
-                .map(ProofFamilyId::Consolidate),
+                .map(ProofFamilyId::NoteReshape),
         );
-        families.extend(SplitFamilyId::ALL.into_iter().map(ProofFamilyId::Split));
         for family in families {
             assert!(domains.insert(transcript_family_domain(family)));
         }

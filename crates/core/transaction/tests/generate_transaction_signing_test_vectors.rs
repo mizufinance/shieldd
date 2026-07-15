@@ -25,9 +25,8 @@ use shieldd_sdk_keys::{Address, FullViewingKey};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::{
-    ConsolidateFamilyId, ConsolidatePlan, Ics20Withdrawal, Note, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, SplitFamilyId, SplitPlan,
-    TransferPlan,
+    Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalFamilyId,
+    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled, ActionPlan, TransactionParameters, TransactionPlan,
@@ -297,7 +296,9 @@ fn transfer_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Transfe
         })
 }
 
-fn consolidate_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ConsolidatePlan> {
+fn note_reshape_two_to_one_plan_strategy(
+    fvk: &FullViewingKey,
+) -> impl Strategy<Value = NoteReshapePlan> {
     let addr = fvk.incoming().payment_address(0u32.into()).0;
     (
         note_strategy(addr.clone()),
@@ -315,8 +316,8 @@ fn consolidate_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Cons
                 },
                 addr.clone(),
             );
-            ConsolidatePlan::new(
-                ConsolidateFamilyId::TwoByOne,
+            NoteReshapePlan::new(
+                NoteReshapeFamilyId::TwoByOne,
                 vec![
                     ShieldedInputPlan::new(&mut OsRng, note_1, pos_1).into(),
                     ShieldedInputPlan::new(&mut OsRng, note_2, pos_2).into(),
@@ -324,11 +325,13 @@ fn consolidate_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Cons
                 vec![output.into()],
                 Fr::rand(&mut OsRng),
             )
-            .expect("valid consolidate plan")
+            .expect("valid note reshape plan")
         })
 }
 
-fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan> {
+fn note_reshape_one_to_eight_plan_strategy(
+    fvk: &FullViewingKey,
+) -> impl Strategy<Value = NoteReshapePlan> {
     let addr = fvk.incoming().payment_address(0u32.into()).0;
     (
         note_strategy(addr.clone()),
@@ -357,21 +360,21 @@ fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan>
                 addr.clone(),
             ));
 
-            SplitPlan::new(
-                SplitFamilyId::OneByEight,
+            NoteReshapePlan::new(
+                NoteReshapeFamilyId::OneByEight,
                 vec![ShieldedInputPlan::new(&mut OsRng, note, position).into()],
                 outputs,
                 Fr::rand(&mut OsRng),
             )
-            .expect("valid split plan")
+            .expect("valid note reshape plan")
         })
 }
 
 fn action_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ActionPlan> {
     prop_oneof![
         transfer_plan_strategy(fvk).prop_map(ActionPlan::Transfer),
-        consolidate_plan_strategy(fvk).prop_map(ActionPlan::Consolidate),
-        split_plan_strategy(fvk).prop_map(ActionPlan::Split),
+        note_reshape_two_to_one_plan_strategy(fvk).prop_map(ActionPlan::NoteReshape),
+        note_reshape_one_to_eight_plan_strategy(fvk).prop_map(ActionPlan::NoteReshape),
         validator_definition_strategy().prop_map(ActionPlan::ValidatorDefinition),
         proposal_submit_strategy().prop_map(ActionPlan::ProposalSubmit),
         ibc_action_strategy().prop_map(ActionPlan::IbcAction),
@@ -501,8 +504,10 @@ fn effect_hash_test_vectors() {
 
         let hash_file_path = format!("{}/effect_hash_{}.txt", test_vectors_dir, i);
         let expected_effect_hash = std::fs::read_to_string(&hash_file_path)
-            .expect("should be able to read expected effect hash");
-        assert_eq!(effect_hash_hex, expected_effect_hash);
+            .expect("should be able to read expected effect hash")
+            .trim()
+            .to_owned();
+        assert_eq!(effect_hash_hex, expected_effect_hash, "vector {i}");
         supported_vectors += 1;
     }
 

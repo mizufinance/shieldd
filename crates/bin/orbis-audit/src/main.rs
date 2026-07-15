@@ -913,7 +913,7 @@ mod tests {
     use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_proto::core::component::shielded_pool::v1::{
-        Consolidate, ConsolidateBody, Split, SplitBody, Transfer, TransferBody, TransferOutputBody,
+        NoteReshape, NoteReshapeBody, Transfer, TransferBody, TransferOutputBody,
     };
     use shieldd_sdk_proto::core::transaction::v1::action::Action;
     use std::collections::HashSet;
@@ -981,25 +981,15 @@ mod tests {
 
     #[test]
     fn extract_transfer_data_ignores_non_transfer_actions() {
-        let split_action = shieldd_sdk_proto::core::transaction::v1::Action {
-            action: Some(Action::Split(Split {
-                body: Some(SplitBody::default()),
-                ..Default::default()
-            })),
-        };
-        let consolidate_action = shieldd_sdk_proto::core::transaction::v1::Action {
-            action: Some(Action::Consolidate(Consolidate {
-                body: Some(ConsolidateBody::default()),
+        let note_reshape_action = shieldd_sdk_proto::core::transaction::v1::Action {
+            action: Some(Action::NoteReshape(NoteReshape {
+                body: Some(NoteReshapeBody::default()),
                 ..Default::default()
             })),
         };
 
         assert!(matches!(
-            extract_transfer_data(&split_action, 0),
-            TransferExtraction::Skipped(ExtractionSkip::NonTransferAction)
-        ));
-        assert!(matches!(
-            extract_transfer_data(&consolidate_action, 0),
+            extract_transfer_data(&note_reshape_action, 0),
             TransferExtraction::Skipped(ExtractionSkip::NonTransferAction)
         ));
     }

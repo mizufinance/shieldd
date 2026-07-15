@@ -416,8 +416,8 @@ impl Worker {
                                     )
                                 })
                                 .collect(),
-                            shieldd_sdk_transaction::Action::Consolidate(consolidate) => {
-                                consolidate
+                            shieldd_sdk_transaction::Action::NoteReshape(note_reshape) => {
+                                note_reshape
                                     .body
                                     .outputs
                                     .iter()
@@ -426,26 +426,12 @@ impl Worker {
                                             &output.note_payload.encrypted_note,
                                             output.ovk_wrapped_key.clone(),
                                             output.note_payload.note_commitment,
-                                            consolidate.body.balance_commitment,
+                                            note_reshape.body.balance_commitment,
                                             &output.note_payload.ephemeral_key,
                                         )
                                     })
                                     .collect()
                             }
-                            shieldd_sdk_transaction::Action::Split(split) => split
-                                .body
-                                .outputs
-                                .iter()
-                                .map(|output| {
-                                    (
-                                        &output.note_payload.encrypted_note,
-                                        output.ovk_wrapped_key.clone(),
-                                        output.note_payload.note_commitment,
-                                        split.body.balance_commitment,
-                                        &output.note_payload.ephemeral_key,
-                                    )
-                                })
-                                .collect(),
                             _ => Vec::new(),
                         };
 

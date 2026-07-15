@@ -89,48 +89,6 @@ func testCircuitFamilies() []circuitFamily {
 			},
 		},
 		{
-			name:    "consolidate2x1",
-			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(2) },
-			assignment: func(t *testing.T) frontend.Circuit {
-				t.Helper()
-				fixtureBytes := testfixtures.LoadConsolidateWitnessV1("consolidate2x1")
-				assignment, _, err := abi.NewConsolidateCircuitAssignmentFromWitnessV1(fixtureBytes)
-				if err != nil {
-					t.Fatalf("decode consolidate witness fixture: %v", err)
-				}
-				return assignment
-			},
-			mutateStatement: func(assignment frontend.Circuit) {
-				a := assignment.(*circuits.NoteReshapeCircuit)
-				a.ClaimedStatementHash = mutateFieldByOne(a.ClaimedStatementHash)
-			},
-			mutateSemantic: func(assignment frontend.Circuit) {
-				a := assignment.(*circuits.NoteReshapeCircuit)
-				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
-			},
-		},
-		{
-			name:    "split1x8",
-			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
-			assignment: func(t *testing.T) frontend.Circuit {
-				t.Helper()
-				fixtureBytes := testfixtures.LoadSplitWitnessV1("split1x8")
-				assignment, _, err := abi.NewSplitCircuitAssignmentFromWitnessV1(fixtureBytes)
-				if err != nil {
-					t.Fatalf("decode split witness fixture: %v", err)
-				}
-				return assignment
-			},
-			mutateStatement: func(assignment frontend.Circuit) {
-				a := assignment.(*circuits.NoteReshapeCircuit)
-				a.ClaimedStatementHash = mutateFieldByOne(a.ClaimedStatementHash)
-			},
-			mutateSemantic: func(assignment frontend.Circuit) {
-				a := assignment.(*circuits.NoteReshapeCircuit)
-				a.Outputs[0].NoteCommitment = mutateFieldByOne(a.Outputs[0].NoteCommitment)
-			},
-		},
-		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
 			assignment: func(t *testing.T) frontend.Circuit {
@@ -149,6 +107,50 @@ func testCircuitFamilies() []circuitFamily {
 			mutateSemantic: func(assignment frontend.Circuit) {
 				a := assignment.(*circuits.ShieldedIcs20WithdrawalCircuit)
 				a.WithdrawalEffectHashLo = mutateFieldByOne(a.WithdrawalEffectHashLo)
+			},
+		},
+		{
+			name: "consolidate2x1",
+			circuit: func() frontend.Circuit {
+				return circuits.NewNoteReshapeCircuit("consolidate2x1", 2, 1)
+			},
+			assignment: func(t *testing.T) frontend.Circuit {
+				t.Helper()
+				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("consolidate2x1")
+				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
+				if err != nil {
+					t.Fatalf("decode note reshape witness fixture: %v", err)
+				}
+				return assignment
+			},
+			mutateStatement: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.NoteReshapeCircuit)
+				a.ClaimedStatementHash = mutateFieldByOne(a.ClaimedStatementHash)
+			},
+			mutateSemantic: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.NoteReshapeCircuit)
+				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
+			},
+		},
+		{
+			name:    "split1x8",
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("split1x8", 1, 8) },
+			assignment: func(t *testing.T) frontend.Circuit {
+				t.Helper()
+				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("split1x8")
+				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
+				if err != nil {
+					t.Fatalf("decode note reshape witness fixture: %v", err)
+				}
+				return assignment
+			},
+			mutateStatement: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.NoteReshapeCircuit)
+				a.ClaimedStatementHash = mutateFieldByOne(a.ClaimedStatementHash)
+			},
+			mutateSemantic: func(assignment frontend.Circuit) {
+				a := assignment.(*circuits.NoteReshapeCircuit)
+				a.Outputs[0].Note.Amount = mutateFieldByOne(a.Outputs[0].Note.Amount)
 			},
 		},
 	}
@@ -178,18 +180,23 @@ func compileCircuitFamilies() []struct {
 		},
 		{
 			name:    "consolidate2x1",
-			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(2) },
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("consolidate2x1", 2, 1) },
 			stats:   circuitStats{constraints: 36553, public: 2, secret: 199, internal: 34439},
 		},
 		{
 			name:    "consolidate8x1",
-			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(8) },
-			stats:   circuitStats{constraints: 114047, public: 2, secret: 739, internal: 109233},
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("consolidate8x1", 8, 1) },
+			stats:   circuitStats{constraints: 194681, public: 2, secret: 740, internal: 185686},
+		},
+		{
+			name:    "consolidate4x1",
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("consolidate4x1", 4, 1) },
+			stats:   circuitStats{constraints: 102635, public: 2, secret: 380, internal: 97528},
 		},
 		{
 			name:    "split1x8",
-			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
-			stats:   circuitStats{constraints: 28256, public: 2, secret: 179, internal: 26550},
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("split1x8", 1, 8) },
+			stats:   circuitStats{constraints: 38774, public: 2, secret: 187, internal: 36520},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
@@ -360,6 +367,57 @@ func TestPaddedSpendCircuitsRejectMutatedDummyNullifierSeed(t *testing.T) {
 			)
 		})
 	}
+}
+
+func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
+	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("split1x8")
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
+	if err != nil {
+		t.Fatalf("decode note reshape witness fixture: %v", err)
+	}
+	noteReshape := assignment
+	mutated := false
+	for index, isDummy := range noteReshape.OutputDummyFlags {
+		if variableIsOne(isDummy) {
+			noteReshape.Outputs[index].NoteCommitment = mutateFieldByOne(noteReshape.Outputs[index].NoteCommitment)
+			mutated = true
+			break
+		}
+	}
+	if !mutated {
+		t.Fatal("split1x8 fixture must contain a dummy output")
+	}
+
+	assert := test.NewAssert(t)
+	assert.CheckCircuit(
+		circuits.NewNoteReshapeCircuit("split1x8", 1, 8),
+		test.WithCurves(ecc.BLS12_377),
+		test.WithBackends(backend.GROTH16),
+		test.WithInvalidAssignment(noteReshape),
+	)
+}
+
+func TestNoteReshapeRejectsWrongActiveOutputCount(t *testing.T) {
+	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("split1x8")
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
+	if err != nil {
+		t.Fatalf("decode note reshape witness fixture: %v", err)
+	}
+	noteReshape := assignment
+	for index, isDummy := range noteReshape.OutputDummyFlags {
+		if variableIsOne(isDummy) {
+			noteReshape.OutputDummyFlags[index] = 0
+			break
+		}
+	}
+
+	assert := test.NewAssert(t)
+	assert.CheckCircuit(
+		circuits.NewNoteReshapeCircuit("split1x8", 1, 8),
+		test.WithCurves(ecc.BLS12_377),
+		test.WithBackends(backend.GROTH16),
+		test.WithInvalidAssignment(noteReshape),
+	)
 }
 
 func TestTransferFamiliesRejectWrongReceiverOrdering(t *testing.T) {

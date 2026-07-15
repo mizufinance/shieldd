@@ -10,7 +10,7 @@ CONSOLIDATE2X1-LEAN-SOUNDNESS|tools/gnark/internal/circuits/note_reshape_circuit
 TRANSFER-LEAN-SOUNDNESS|tools/gnark/internal/circuits/transfer_circuit.go:func (c *TransferCircuit) Define
 ZK-FIND-GO-UNREGULATED-NONMEMBERSHIP|tools/gnark/internal/compliance/indexed_tree.go:func VerifyAssetRegistryIMT
 ZK-FIND-WITHDRAWAL-EFFECT-HASH-EXTERNAL|crates/core/component/shielded-pool/src/component/action_handler/shielded_ics20_withdrawal.rs:shielded_ics20_withdrawal_extract_public
-ZK-FIND-DUMMY-NULLIFIER-DOMAIN|crates/core/component/shielded-pool/src/note_reshape.rs:synthetic_dummy_nullifier
+ZK-FIND-DUMMY-NULLIFIER-DOMAIN|crates/core/component/shielded-pool/src/note_reshape_padding.rs:synthetic_dummy_nullifier
 ZK-FIND-RUST-GO-FIELD-CORRESPONDENCE|tools/gnark/internal/abi/statement_fields.go:ReconstructedTransferStatementFieldsFromWitnessV1
 ZK-PROP-AMOUNT-RANGE-128|tools/gnark/internal/circuits/amount_range_test.go:TestAmountRangeBoundIs128Bits
 ZK-PROP-C2X1-STATEMENT-SEAM|tools/gnark/internal/primitives/crypto_primitives_test.go:TestConsolidate2x1StatementSeamMatchesShielddVectors

@@ -23,28 +23,32 @@ func testWitnessFamilies() []witnessFamily {
 			},
 		},
 		{
-			name:    "consolidate2x1",
-			payload: func(t *testing.T) []byte { return testfixtures.LoadConsolidateWitnessV1("consolidate2x1") },
-			decode: func(payload []byte) error {
-				_, _, err := DecodeConsolidateWitnessV1(payload)
-				return err
-			},
-		},
-		{
-			name:    "split1x8",
-			payload: func(t *testing.T) []byte { return testfixtures.LoadSplitWitnessV1("split1x8") },
-			decode: func(payload []byte) error {
-				_, _, err := DecodeSplitWitnessV1(payload)
-				return err
-			},
-		},
-		{
 			name: "shielded_ics20_withdrawal",
 			payload: func(t *testing.T) []byte {
 				return testfixtures.LoadShieldedIcs20WithdrawalWitnessV1("shielded_ics20_withdrawal")
 			},
 			decode: func(payload []byte) error {
 				_, _, err := DecodeShieldedIcs20WithdrawalWitnessV1(payload)
+				return err
+			},
+		},
+		{
+			name: "note_reshape2x1",
+			payload: func(t *testing.T) []byte {
+				return testfixtures.LoadNoteReshapeWitnessV1("consolidate2x1")
+			},
+			decode: func(payload []byte) error {
+				_, _, err := DecodeNoteReshapeWitnessV1(payload)
+				return err
+			},
+		},
+		{
+			name: "note_reshape1x8",
+			payload: func(t *testing.T) []byte {
+				return testfixtures.LoadNoteReshapeWitnessV1("split1x8")
+			},
+			decode: func(payload []byte) error {
+				_, _, err := DecodeNoteReshapeWitnessV1(payload)
 				return err
 			},
 		},

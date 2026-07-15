@@ -1,4 +1,4 @@
-use anyhow::{anyhow, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
 use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
@@ -12,47 +12,49 @@ use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 
 use crate::{
-    public_input_hash::{consolidate_statement_hash_from_public, StatementHashError},
+    public_input_hash::{note_reshape_statement_hash_from_public, StatementHashError},
     Note,
 };
 
-use super::ConsolidateFamilyId;
+use super::NoteReshapeFamilyId;
 
-impl ConsolidateFamilyId {
+impl NoteReshapeFamilyId {
     pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        shieldd_sdk_proof_params::consolidate_proof_verification_key(self.get())
+        shieldd_sdk_proof_params::note_reshape_proof_verification_key(self.get())
     }
 
     pub fn proving_key_bytes(self) -> &'static [u8] {
-        shieldd_sdk_proof_params::consolidate_proving_key_bytes(self.get())
+        shieldd_sdk_proof_params::note_reshape_proving_key_bytes(self.get())
     }
 
     pub fn circuit_metadata_bytes(self) -> &'static [u8] {
-        shieldd_sdk_proof_params::consolidate_circuit_metadata(self.get())
+        shieldd_sdk_proof_params::note_reshape_circuit_metadata(self.get())
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct ConsolidateInputPublic {
+pub struct NoteReshapeInputPublic {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
+    pub is_dummy: bool,
 }
 
 #[derive(Clone, Debug)]
-pub struct ConsolidateOutputPublic {
+pub struct NoteReshapeOutputPublic {
     pub note_commitment: tct::StateCommitment,
+    pub is_dummy: bool,
 }
 
 #[derive(Clone, Debug)]
-pub struct ConsolidateProofPublic {
-    pub family_id: ConsolidateFamilyId,
+pub struct NoteReshapeProofPublic {
+    pub family_id: NoteReshapeFamilyId,
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
-    pub inputs: Vec<ConsolidateInputPublic>,
-    pub outputs: Vec<ConsolidateOutputPublic>,
+    pub inputs: Vec<NoteReshapeInputPublic>,
+    pub outputs: Vec<NoteReshapeOutputPublic>,
 }
 
-impl ConsolidateProofPublic {
+impl NoteReshapeProofPublic {
     pub fn validate_shape(&self) -> Result<()> {
         let spec = self.family_id.spec();
         ensure!(
@@ -69,37 +71,84 @@ impl ConsolidateProofPublic {
             spec.n_out,
             self.outputs.len()
         );
+        validate_dummy_suffix(
+            "input",
+            &self
+                .inputs
+                .iter()
+                .map(|input| input.is_dummy)
+                .collect::<Vec<_>>(),
+        )?;
+        validate_dummy_suffix(
+            "output",
+            &self
+                .outputs
+                .iter()
+                .map(|output| output.is_dummy)
+                .collect::<Vec<_>>(),
+        )?;
+        ensure!(
+            !self.inputs[0].is_dummy,
+            "note reshape input slot 0 must be real"
+        );
+        ensure!(
+            !self.outputs[0].is_dummy,
+            "note reshape output slot 0 must be real"
+        );
+        self.family_id.validate_real_counts(
+            self.inputs.iter().filter(|input| !input.is_dummy).count(),
+            self.outputs
+                .iter()
+                .filter(|output| !output.is_dummy)
+                .count(),
+        )?;
         Ok(())
     }
 
     pub fn statement_hash(&self) -> Result<Fq, StatementHashError> {
-        consolidate_statement_hash_from_public(self)
+        note_reshape_statement_hash_from_public(self)
     }
 }
 
+fn validate_dummy_suffix(label: &str, flags: &[bool]) -> Result<()> {
+    let mut saw_dummy = false;
+    for (index, is_dummy) in flags.iter().copied().enumerate() {
+        if is_dummy {
+            saw_dummy = true;
+        } else if saw_dummy {
+            bail!("note reshape {label} dummy flag at slot {index} is not a suffix")
+        }
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug)]
-pub struct ConsolidateInputPrivate {
+pub struct NoteReshapeInputPrivate {
     pub state_commitment_proof: tct::Proof,
     pub spent_note: Note,
     pub spend_auth_randomizer: Fr,
+    pub is_dummy: bool,
+    pub dummy_nullifier_seed: Fq,
+    pub dummy_spend_auth_key: Fr,
 }
 
 #[derive(Clone, Debug)]
-pub struct ConsolidateOutputPrivate {
+pub struct NoteReshapeOutputPrivate {
     pub created_note: Note,
+    pub is_dummy: bool,
 }
 
 #[derive(Clone, Debug)]
-pub struct ConsolidateProofPrivate {
-    pub family_id: ConsolidateFamilyId,
+pub struct NoteReshapeProofPrivate {
+    pub family_id: NoteReshapeFamilyId,
     pub action_balance_blinding: Fr,
     pub ak: VerificationKey<SpendAuth>,
     pub nk: NullifierKey,
-    pub inputs: Vec<ConsolidateInputPrivate>,
-    pub outputs: Vec<ConsolidateOutputPrivate>,
+    pub inputs: Vec<NoteReshapeInputPrivate>,
+    pub outputs: Vec<NoteReshapeOutputPrivate>,
 }
 
-impl ConsolidateProofPrivate {
+impl NoteReshapeProofPrivate {
     pub fn validate_shape(&self) -> Result<()> {
         let spec = self.family_id.spec();
         ensure!(
@@ -116,17 +165,48 @@ impl ConsolidateProofPrivate {
             spec.n_out,
             self.outputs.len()
         );
+        validate_dummy_suffix(
+            "private input",
+            &self
+                .inputs
+                .iter()
+                .map(|input| input.is_dummy)
+                .collect::<Vec<_>>(),
+        )?;
+        validate_dummy_suffix(
+            "private output",
+            &self
+                .outputs
+                .iter()
+                .map(|output| output.is_dummy)
+                .collect::<Vec<_>>(),
+        )?;
+        ensure!(
+            !self.inputs[0].is_dummy,
+            "note reshape input slot 0 must be real"
+        );
+        ensure!(
+            !self.outputs[0].is_dummy,
+            "note reshape output slot 0 must be real"
+        );
+        self.family_id.validate_real_counts(
+            self.inputs.iter().filter(|input| !input.is_dummy).count(),
+            self.outputs
+                .iter()
+                .filter(|output| !output.is_dummy)
+                .count(),
+        )?;
         Ok(())
     }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(transparent)]
-pub struct ConsolidateProof {
+pub struct NoteReshapeProof {
     pub inner: Vec<u8>,
 }
 
-impl ConsolidateProof {
+impl NoteReshapeProof {
     pub fn new(inner: Vec<u8>) -> Self {
         Self { inner }
     }
@@ -141,7 +221,7 @@ impl ConsolidateProof {
 
     pub fn to_batch_item(
         &self,
-        public: &ConsolidateProofPublic,
+        public: &NoteReshapeProofPublic,
     ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
         let proof = self.decoded_proof()?;
         let statement_hash = public.statement_hash()?;
@@ -152,22 +232,22 @@ impl ConsolidateProof {
         })
     }
 
-    pub fn for_family(&self, _family_id: ConsolidateFamilyId) -> anyhow::Result<()> {
+    pub fn for_family(&self, _family_id: NoteReshapeFamilyId) -> anyhow::Result<()> {
         let _: [u8; GROTH16_PROOF_LENGTH_BYTES] = self
             .inner
             .clone()
             .try_into()
-            .map_err(|_| anyhow!("malformed consolidate proof length"))?;
+            .map_err(|_| anyhow!("malformed note_reshape proof length"))?;
         Ok(())
     }
 
-    pub fn verify(&self, public: &ConsolidateProofPublic) -> anyhow::Result<()> {
+    pub fn verify(&self, public: &NoteReshapeProofPublic) -> anyhow::Result<()> {
         self.verify_with_prepared_vk(public, public.family_id.proof_verification_key())
     }
 
     pub fn verify_with_prepared_vk(
         &self,
-        public: &ConsolidateProofPublic,
+        public: &NoteReshapeProofPublic,
         vk: &PreparedVerifyingKey<Bls12_377>,
     ) -> anyhow::Result<()> {
         let item = self.to_batch_item(public)?;
@@ -185,8 +265,8 @@ impl ConsolidateProof {
 
     #[cfg(any(unix, windows))]
     pub fn prove(
-        public: ConsolidateProofPublic,
-        private: ConsolidateProofPrivate,
+        public: NoteReshapeProofPublic,
+        private: NoteReshapeProofPrivate,
     ) -> Result<Self, crate::ProofError> {
         let family_id = public.family_id;
         public
@@ -197,7 +277,7 @@ impl ConsolidateProof {
             .map_err(|e| crate::ProofError::InvalidPrivateInput(e.to_string()))?;
         if private.family_id != family_id {
             return Err(crate::ProofError::InvalidPublicInput(format!(
-                "consolidate family mismatch: public={} private={}",
+                "note_reshape family mismatch: public={} private={}",
                 family_id.label(),
                 private.family_id.label(),
             )));
@@ -212,20 +292,20 @@ impl ConsolidateProof {
     }
 }
 
-impl DomainType for ConsolidateProof {
-    type Proto = pb::ZkConsolidateProof;
+impl DomainType for NoteReshapeProof {
+    type Proto = pb::ZkNoteReshapeProof;
 }
 
-impl From<ConsolidateProof> for pb::ZkConsolidateProof {
-    fn from(value: ConsolidateProof) -> Self {
+impl From<NoteReshapeProof> for pb::ZkNoteReshapeProof {
+    fn from(value: NoteReshapeProof) -> Self {
         Self { inner: value.inner }
     }
 }
 
-impl TryFrom<pb::ZkConsolidateProof> for ConsolidateProof {
+impl TryFrom<pb::ZkNoteReshapeProof> for NoteReshapeProof {
     type Error = anyhow::Error;
 
-    fn try_from(value: pb::ZkConsolidateProof) -> Result<Self, Self::Error> {
+    fn try_from(value: pb::ZkNoteReshapeProof) -> Result<Self, Self::Error> {
         Ok(Self { inner: value.inner })
     }
 }

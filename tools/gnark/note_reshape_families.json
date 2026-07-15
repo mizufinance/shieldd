@@ -1,0 +1,53 @@
+{
+  "schema": "shieldd.note_reshape_families.v1",
+  "families": [
+    {
+      "id": 1,
+      "rust_name": "TwoByOne",
+      "label": "consolidate2x1",
+      "artifact_name": "consolidate2x1",
+      "n_in": 2,
+      "n_out": 1,
+      "min_real_inputs": 2,
+      "max_real_inputs": 2,
+      "min_real_outputs": 1,
+      "max_real_outputs": 1
+    },
+    {
+      "id": 2,
+      "rust_name": "OneByEight",
+      "label": "split1x8",
+      "artifact_name": "split1x8",
+      "n_in": 1,
+      "n_out": 8,
+      "min_real_inputs": 1,
+      "max_real_inputs": 1,
+      "min_real_outputs": 2,
+      "max_real_outputs": 8
+    },
+    {
+      "id": 3,
+      "rust_name": "EightByOne",
+      "label": "consolidate8x1",
+      "artifact_name": "consolidate8x1",
+      "n_in": 8,
+      "n_out": 1,
+      "min_real_inputs": 5,
+      "max_real_inputs": 8,
+      "min_real_outputs": 1,
+      "max_real_outputs": 1
+    },
+    {
+      "id": 4,
+      "rust_name": "FourByOne",
+      "label": "consolidate4x1",
+      "artifact_name": "consolidate4x1",
+      "n_in": 4,
+      "n_out": 1,
+      "min_real_inputs": 3,
+      "max_real_inputs": 4,
+      "min_real_outputs": 1,
+      "max_real_outputs": 1
+    }
+  ]
+}

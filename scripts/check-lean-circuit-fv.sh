@@ -30,6 +30,7 @@ fail() {
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LEAN_DIR="$ROOT/tools/gnark/lean"
+python3 "$ROOT/tools/gnark/check_note_reshape_registry.py"
 # Lean resource limits are load-bearing. Export the serial setting here so the
 # gate remains safe even when a caller forgets to provide it.
 export LEAN_NUM_THREADS=1

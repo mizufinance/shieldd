@@ -14,10 +14,12 @@ use crate::{component::NoteManager, event, NotePayload};
 pub(crate) struct NoteReshapeInputPublicParts {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
+    pub is_dummy: bool,
 }
 
 pub(crate) struct NoteReshapeOutputPublicParts {
     pub note_commitment: shieldd_sdk_tct::StateCommitment,
+    pub is_dummy: bool,
 }
 
 enum Padded<'a, T> {
@@ -71,8 +73,8 @@ pub(crate) fn verify_auth_sigs<I>(
 pub(crate) fn extract_public_parts<I, O>(
     inputs: &[I],
     outputs: &[O],
-    input_parts: impl Fn(&I) -> (Nullifier, &VerificationKey<SpendAuth>),
-    output_note_payload: impl Fn(&O) -> &NotePayload,
+    input_parts: impl Fn(&I) -> (Nullifier, &VerificationKey<SpendAuth>, bool),
+    output_parts: impl Fn(&O) -> (&NotePayload, bool),
 ) -> (
     Vec<NoteReshapeInputPublicParts>,
     Vec<NoteReshapeOutputPublicParts>,
@@ -80,14 +82,19 @@ pub(crate) fn extract_public_parts<I, O>(
     let inputs = inputs
         .iter()
         .map(|input| {
-            let (nullifier, rk) = input_parts(input);
-            NoteReshapeInputPublicParts { nullifier, rk: *rk }
+            let (nullifier, rk, is_dummy) = input_parts(input);
+            NoteReshapeInputPublicParts {
+                nullifier,
+                rk: *rk,
+                is_dummy,
+            }
         })
         .collect();
     let outputs = outputs
         .iter()
         .map(|output| NoteReshapeOutputPublicParts {
-            note_commitment: output_note_payload(output).note_commitment,
+            note_commitment: output_parts(output).0.note_commitment,
+            is_dummy: output_parts(output).1,
         })
         .collect();
     (inputs, outputs)

@@ -1,13 +1,13 @@
 {
   "curve": "bls12-377",
   "circuit": "consolidate8x1",
-  "compile_ms": 1206.146166,
-  "setup_ms": 4173.492042000001,
-  "proving_key_size_bytes": 29457973,
+  "compile_ms": 1720.7225830000002,
+  "setup_ms": 6904.75025,
+  "proving_key_size_bytes": 50236145,
   "verifying_key_size_bytes": 540,
-  "nb_constraints": 114047,
+  "nb_constraints": 194681,
   "nb_public_variables": 2,
-  "nb_secret_variables": 739,
-  "proving_key_sha256_hex": "09cb995bd8dcb7036787da0b38c101df690ed6fbf8f8c5a4cffe440b4a769ed4",
-  "verifying_key_sha256_hex": "3048a68c3f0804763af6cf8452b9e6460a1006986932c373d7f2a8c50b49b784"
+  "nb_secret_variables": 740,
+  "proving_key_sha256_hex": "95ed79248711551ae1077dd7b624bfbf4f65299e5999e93899fd5ae9ee68c02b",
+  "verifying_key_sha256_hex": "d7456aeb36997387aa219b96bccb58a7f38de246f8747ae927f67e66b7a7b58c"
 }

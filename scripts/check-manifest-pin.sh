@@ -11,7 +11,7 @@ set -euo pipefail
 # hashes via the Rust extractor). Both are cheap, deterministic, and lake-free.
 #
 # Usage:
-#   scripts/check-manifest-pin.sh                 # both circuits
+#   scripts/check-manifest-pin.sh                 # all deployed circuits
 #   scripts/check-manifest-pin.sh consolidate2x1  # one circuit
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,13 +24,13 @@ fail() {
 
 select_circuits() {
   if [[ "$#" -eq 0 ]]; then
-    printf '%s\n' consolidate2x1 transfer
+    printf '%s\n' consolidate2x1 consolidate4x1 consolidate8x1 split1x8 transfer
     return
   fi
   for c in "$@"; do
     case "$c" in
-      all) printf '%s\n' consolidate2x1 transfer ;;
-      consolidate2x1|transfer) printf '%s\n' "$c" ;;
+      all) printf '%s\n' consolidate2x1 consolidate4x1 consolidate8x1 split1x8 transfer ;;
+      consolidate2x1|consolidate4x1|consolidate8x1|split1x8|transfer) printf '%s\n' "$c" ;;
       *) fail "unsupported circuit $c" ;;
     esac
   done | awk '!seen[$0]++'
@@ -42,6 +42,7 @@ json_field() {
 }
 
 command -v go >/dev/null 2>&1 || fail "go toolchain not found"
+python3 "$GNARK_DIR/check_note_reshape_registry.py"
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT

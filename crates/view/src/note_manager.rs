@@ -8,9 +8,8 @@ use shieldd_sdk_keys::{keys::AddressIndex, Address};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::view::v1::NotesRequest;
 use shieldd_sdk_shielded_pool::{
-    note, ConsolidateFamilyId, ConsolidatePlan, Ics20Withdrawal, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, SplitFamilyId, SplitPlan,
-    TransferPlan,
+    note, Ics20Withdrawal, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalFamilyId,
+    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled,
@@ -46,17 +45,12 @@ pub struct ActionFundingResumeToken {
 }
 
 #[derive(Clone, Debug)]
-pub struct SplitResumeToken {
-    pub source: AddressIndex,
-    pub note: SpendableNoteRecord,
-    pub output_amounts: Vec<Amount>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ConsolidateResumeToken {
+pub struct NoteReshapeResumeToken {
     pub source: AddressIndex,
     pub asset_id: asset::Id,
-    pub family_id: Option<ConsolidateFamilyId>,
+    pub family_id: Option<NoteReshapeFamilyId>,
+    pub note: Option<SpendableNoteRecord>,
+    pub output_amounts: Vec<Amount>,
 }
 
 #[derive(Clone, Debug)]
@@ -64,8 +58,7 @@ pub enum NoteManagerResumeToken {
     Transfer(TransferResumeToken),
     Ics20Withdrawal(Ics20WithdrawalResumeToken),
     ActionFunding(ActionFundingResumeToken),
-    Split(SplitResumeToken),
-    Consolidate(ConsolidateResumeToken),
+    NoteReshape(NoteReshapeResumeToken),
 }
 
 #[derive(Clone, Debug)]
@@ -249,7 +242,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                     } => {
                         if action_needs_maintenance {
                             let Some(maintenance_plan) = self
-                                .plan_auto_consolidate_step(
+                                .plan_auto_note_reshape_step(
                                     view,
                                     source,
                                     value.asset_id,
@@ -259,7 +252,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             else {
                                 return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                                     reason: format!(
-                                        "transfer requires note maintenance for asset {}, but no supported consolidate family is currently applicable",
+                                        "transfer requires note maintenance for asset {}, but no supported note reshape family is currently applicable",
                                         value.asset_id
                                     ),
                                 });
@@ -335,12 +328,12 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 }
 
                 let Some(maintenance_plan) = self
-                    .plan_auto_consolidate_step(view, source, value.asset_id, selected.len())
+                    .plan_auto_note_reshape_step(view, source, value.asset_id, selected.len())
                     .await?
                 else {
                     return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                         reason: format!(
-                            "transfer requires note maintenance for asset {}, but no supported consolidate family is currently applicable",
+                            "transfer requires note maintenance for asset {}, but no supported note reshape family is currently applicable",
                             value.asset_id
                         ),
                     });
@@ -409,9 +402,8 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             NoteManagerResumeToken::ActionFunding(token) => {
                 self.resume_action_funding(view, token).await
             }
-            NoteManagerResumeToken::Split(token) => self.resume_split(view, token).await,
-            NoteManagerResumeToken::Consolidate(token) => {
-                self.resume_consolidate(view, token).await
+            NoteManagerResumeToken::NoteReshape(token) => {
+                self.resume_note_reshape(view, token).await
             }
         }
     }
@@ -538,12 +530,12 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                     } => {
                         if action_needs_maintenance {
                             let Some(maintenance_plan) = self
-                                .plan_auto_consolidate_step(view, source, asset_id, selected.len())
+                                .plan_auto_note_reshape_step(view, source, asset_id, selected.len())
                                 .await?
                             else {
                                 return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                                     reason: format!(
-                                        "ICS-20 withdrawal requires note maintenance for asset {}, but no supported consolidate family is currently applicable",
+                                        "ICS-20 withdrawal requires note maintenance for asset {}, but no supported note reshape family is currently applicable",
                                         asset_id
                                     ),
                                 });
@@ -618,12 +610,12 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 }
 
                 let Some(maintenance_plan) = self
-                    .plan_auto_consolidate_step(view, source, asset_id, selected.len())
+                    .plan_auto_note_reshape_step(view, source, asset_id, selected.len())
                     .await?
                 else {
                     return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                         reason: format!(
-                            "ICS-20 withdrawal requires note maintenance for asset {}, but no supported consolidate family is currently applicable",
+                        "ICS-20 withdrawal requires note maintenance for asset {}, but no supported note reshape family is currently applicable",
                             asset_id
                         ),
                     });
@@ -672,26 +664,36 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .await
     }
 
-    pub async fn resume_consolidate<V: ViewClient + Send + ?Sized>(
+    pub async fn resume_note_reshape<V: ViewClient + Send + ?Sized>(
         &mut self,
         view: &mut V,
-        resume_token: ConsolidateResumeToken,
+        resume_token: NoteReshapeResumeToken,
     ) -> Result<NoteManagerPlanningResult> {
-        self.plan_consolidate(
-            view,
-            resume_token.source,
-            resume_token.asset_id,
-            resume_token.family_id,
-        )
-        .await
+        if let Some(note) = resume_token.note {
+            self.plan_note_reshape_from_note(
+                view,
+                resume_token.source,
+                note,
+                resume_token.output_amounts,
+            )
+            .await
+        } else {
+            self.plan_note_reshape_from_notes(
+                view,
+                resume_token.source,
+                resume_token.asset_id,
+                resume_token.family_id,
+            )
+            .await
+        }
     }
 
-    pub async fn plan_consolidate<V: ViewClient + Send + ?Sized>(
+    pub async fn plan_note_reshape_from_notes<V: ViewClient + Send + ?Sized>(
         &mut self,
         view: &mut V,
         source: AddressIndex,
         asset_id: asset::Id,
-        family_id: Option<ConsolidateFamilyId>,
+        family_id: Option<NoteReshapeFamilyId>,
     ) -> Result<NoteManagerPlanningResult> {
         let gas_prices = self
             .gas_prices
@@ -703,33 +705,47 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         let mut notes = self.load_notes_for_asset(view, source, asset_id).await?;
         let family_id = if let Some(family_id) = family_id {
             family_id
-        } else if notes.len() >= 2 {
-            ConsolidateFamilyId::TwoByOne
+        } else if let Some(family_id) = NoteReshapeFamilyId::smallest_covering(
+            notes
+                .len()
+                .min(NoteReshapeFamilyId::EightByOne.max_real_inputs()),
+            1,
+        ) {
+            family_id
         } else {
             return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                 reason: format!(
-                    "no active consolidate family is applicable for asset {}",
+                    "no active note reshape family is applicable for asset {}",
                     asset_id
                 ),
             });
         };
 
-        let input_count = family_id.input_count();
-        if notes.len() < input_count {
+        if !family_id.is_many_to_one() {
             return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                 reason: format!(
-                    "consolidate family {} requires {} spendable notes, found {}",
+                    "note reshape family {} is not a many-to-one family",
                     family_id.label(),
-                    input_count,
+                ),
+            });
+        }
+        let real_input_count = notes.len().min(family_id.max_real_inputs());
+        if real_input_count < family_id.min_real_inputs() {
+            return Ok(NoteManagerPlanningResult::UnsupportedIntent {
+                reason: format!(
+                    "note reshape family {} requires between {} and {} spendable notes, found {}",
+                    family_id.label(),
+                    family_id.min_real_inputs(),
+                    family_id.max_real_inputs(),
                     notes.len()
                 ),
             });
         }
 
-        let selected: Vec<_> = (0..input_count).filter_map(|_| notes.pop()).collect();
+        let selected: Vec<_> = (0..real_input_count).filter_map(|_| notes.pop()).collect();
         if gas_prices_are_zero(gas_prices) {
             let Some(plan) = self
-                .build_consolidate_transaction(view, source, asset_id, family_id, selected)
+                .build_note_reshape_transaction(view, source, asset_id, family_id, selected)
                 .await?
             else {
                 return Ok(NoteManagerPlanningResult::InsufficientBalance);
@@ -742,7 +758,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             let sender_address = selected
                 .first()
                 .map(|record| record.note.address())
-                .ok_or_else(|| anyhow!("consolidate requires at least one selected note"))?;
+                .ok_or_else(|| anyhow!("note reshape requires at least one selected note"))?;
             let total_input = selected
                 .iter()
                 .map(|record| record.note.amount())
@@ -761,24 +777,26 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 },
                 sender_address,
             )];
-            let consolidate =
-                ConsolidatePlan::new(family_id, spends, outputs, Fr::rand(&mut self.rng))?;
-            let actions = vec![ActionPlan::Consolidate(consolidate.clone())];
+            let note_reshape =
+                NoteReshapePlan::new(family_id, spends, outputs, Fr::rand(&mut self.rng))?;
+            let actions = vec![ActionPlan::NoteReshape(note_reshape.clone())];
             self.plan_actions_with_base_fee_funding(
                 view,
                 source,
                 actions.clone(),
-                NoteManagerResumeToken::Consolidate(ConsolidateResumeToken {
+                NoteManagerResumeToken::NoteReshape(NoteReshapeResumeToken {
                     source,
                     asset_id,
                     family_id: Some(family_id),
+                    note: None,
+                    output_amounts: Vec::new(),
                 }),
             )
             .await
         }
     }
 
-    pub async fn plan_split<V: ViewClient + Send + ?Sized>(
+    pub async fn plan_note_reshape_from_note<V: ViewClient + Send + ?Sized>(
         &mut self,
         view: &mut V,
         source: AddressIndex,
@@ -792,22 +810,13 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             return Ok(result);
         }
 
-        let family_id = SplitFamilyId::smallest_covering_output_count(output_amounts.len())
+        let family_id = NoteReshapeFamilyId::smallest_covering(1, output_amounts.len())
             .ok_or_else(|| {
                 anyhow!(
-                    "no active split family supports {} outputs",
+                    "no active note reshape family supports {} outputs",
                     output_amounts.len()
                 )
             })?;
-        if family_id.output_count() != output_amounts.len() {
-            return Ok(NoteManagerPlanningResult::UnsupportedIntent {
-                reason: format!(
-                    "split output count {} must exactly match an active split family",
-                    output_amounts.len()
-                ),
-            });
-        }
-
         let sender_address = note.note.address();
         let asset_id = note.note.asset_id();
         let outputs_total = output_amounts
@@ -820,7 +829,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             let required_total = if gas_prices_are_zero(gas_prices) {
                 outputs_total
                     .checked_add(&fee.amount())
-                    .ok_or_else(|| anyhow!("split amount overflow while planning"))?
+                    .ok_or_else(|| anyhow!("note reshape amount overflow while planning"))?
             } else {
                 outputs_total
             };
@@ -831,11 +840,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 return Ok(NoteManagerPlanningResult::UnsupportedIntent {
                     reason: if gas_prices_are_zero(gas_prices) {
                         format!(
-                            "split output amounts plus fee must exactly consume the selected note"
+                            "note reshape output amounts plus fee must exactly consume the selected note"
                         )
                     } else {
                         format!(
-                            "split output amounts must exactly consume the selected note when fees are paid in the base asset"
+                            "note reshape output amounts must exactly consume the selected note when fees are paid in the base asset"
                         )
                     },
                 });
@@ -859,17 +868,18 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                     )
                 })
                 .collect::<Vec<_>>();
-            let split = SplitPlan::new(family_id, spends, outputs, Fr::rand(&mut self.rng))?;
+            let note_reshape =
+                NoteReshapePlan::new(family_id, spends, outputs, Fr::rand(&mut self.rng))?;
             if gas_prices_are_zero(gas_prices) {
                 let new_fee = gas_prices
-                    .fee(&ActionPlan::Split(split.clone()).gas_cost())
+                    .fee(&ActionPlan::NoteReshape(note_reshape.clone()).gas_cost())
                     .apply_tier(self.fee_tier);
                 if new_fee == fee {
                     let transaction_plan = self
                         .finalize_wallet_plan(
                             view,
                             source,
-                            vec![ActionPlan::Split(split)],
+                            vec![ActionPlan::NoteReshape(note_reshape)],
                             None,
                             new_fee,
                         )
@@ -878,15 +888,17 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 }
                 fee = new_fee;
             } else {
-                let actions = vec![ActionPlan::Split(split.clone())];
+                let actions = vec![ActionPlan::NoteReshape(note_reshape.clone())];
                 return self
                     .plan_actions_with_base_fee_funding(
                         view,
                         source,
                         actions.clone(),
-                        NoteManagerResumeToken::Split(SplitResumeToken {
+                        NoteManagerResumeToken::NoteReshape(NoteReshapeResumeToken {
                             source,
-                            note: note.clone(),
+                            asset_id,
+                            family_id: Some(family_id),
+                            note: Some(note.clone()),
                             output_amounts: output_amounts.clone(),
                         }),
                     )
@@ -894,24 +906,10 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             }
         }
 
-        Err(anyhow!("split planning did not converge"))
+        Err(anyhow!("note reshape planning did not converge"))
     }
 
-    pub async fn resume_split<V: ViewClient + Send + ?Sized>(
-        &mut self,
-        view: &mut V,
-        resume_token: SplitResumeToken,
-    ) -> Result<NoteManagerPlanningResult> {
-        self.plan_split(
-            view,
-            resume_token.source,
-            resume_token.note,
-            resume_token.output_amounts,
-        )
-        .await
-    }
-
-    async fn plan_auto_consolidate_step<V: ViewClient + Send + ?Sized>(
+    async fn plan_auto_note_reshape_step<V: ViewClient + Send + ?Sized>(
         &mut self,
         view: &mut V,
         source: AddressIndex,
@@ -920,7 +918,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
     ) -> Result<Option<TransactionPlan>> {
         let available_notes = self.load_notes_for_asset(view, source, asset_id).await?;
         let Some(family_id) =
-            select_auto_consolidate_family(selected_note_count, available_notes.len())
+            select_auto_note_reshape_family(selected_note_count, available_notes.len())
         else {
             return Ok(None);
         };
@@ -932,16 +930,16 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         let selected: Vec<_> = (0..family_id.input_count())
             .filter_map(|_| notes.pop())
             .collect();
-        self.build_consolidate_transaction(view, source, asset_id, family_id, selected)
+        self.build_note_reshape_transaction(view, source, asset_id, family_id, selected)
             .await
     }
 
-    async fn build_consolidate_transaction<V: ViewClient + Send + ?Sized>(
+    async fn build_note_reshape_transaction<V: ViewClient + Send + ?Sized>(
         &mut self,
         view: &mut V,
         source: AddressIndex,
         asset_id: asset::Id,
-        family_id: ConsolidateFamilyId,
+        family_id: NoteReshapeFamilyId,
         selected: Vec<SpendableNoteRecord>,
     ) -> Result<Option<TransactionPlan>> {
         let gas_prices = self
@@ -950,7 +948,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         let sender_address = selected
             .first()
             .map(|record| record.note.address())
-            .ok_or_else(|| anyhow!("consolidate requires at least one selected note"))?;
+            .ok_or_else(|| anyhow!("note reshape requires at least one selected note"))?;
         let mut fee = zero_base_fee();
 
         for _ in 0..4 {
@@ -976,17 +974,17 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 output_value,
                 sender_address.clone(),
             )];
-            let consolidate =
-                ConsolidatePlan::new(family_id, spends, outputs, Fr::rand(&mut self.rng))?;
+            let note_reshape =
+                NoteReshapePlan::new(family_id, spends, outputs, Fr::rand(&mut self.rng))?;
             let new_fee = gas_prices
-                .fee(&ActionPlan::Consolidate(consolidate.clone()).gas_cost())
+                .fee(&ActionPlan::NoteReshape(note_reshape.clone()).gas_cost())
                 .apply_tier(self.fee_tier);
             if new_fee == fee {
                 let plan = self
                     .finalize_wallet_plan(
                         view,
                         source,
-                        vec![ActionPlan::Consolidate(consolidate)],
+                        vec![ActionPlan::NoteReshape(note_reshape)],
                         None,
                         new_fee,
                     )
@@ -996,7 +994,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             fee = new_fee;
         }
 
-        Err(anyhow!("consolidate planning did not converge"))
+        Err(anyhow!("note reshape planning did not converge"))
     }
 
     fn build_transfer_plan(
@@ -1136,12 +1134,12 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
         if selected.len() > 2 {
             let Some(maintenance_plan) = self
-                .plan_auto_consolidate_step(view, source, *BASE_ASSET_ID, selected.len())
+                .plan_auto_note_reshape_step(view, source, *BASE_ASSET_ID, selected.len())
                 .await?
             else {
                 return Ok(BaseFeeFundingSelection::UnsupportedIntent {
                     reason: format!(
-                        "base-asset fee funding requires note maintenance, but no supported consolidate family is currently applicable"
+                        "base-asset fee funding requires note maintenance, but no supported note reshape family is currently applicable"
                     ),
                 });
             };
@@ -1398,8 +1396,7 @@ fn fee_funding_excluded_note_commitments(
     for action in actions {
         let spends = match action {
             ActionPlan::Transfer(plan) => Some(&plan.spends),
-            ActionPlan::Consolidate(plan) => Some(&plan.spends),
-            ActionPlan::Split(plan) => Some(&plan.spends),
+            ActionPlan::NoteReshape(plan) => Some(&plan.spends),
             ActionPlan::ShieldedIcs20Withdrawal(plan) => Some(&plan.spends),
             _ => None,
         };
@@ -1416,13 +1413,14 @@ fn fee_funding_excluded_note_commitments(
     commitments
 }
 
-fn select_auto_consolidate_family(
+fn select_auto_note_reshape_family(
     selected_note_count: usize,
     available_note_count: usize,
-) -> Option<ConsolidateFamilyId> {
+) -> Option<NoteReshapeFamilyId> {
     let direct_match = [
-        ConsolidateFamilyId::TwoByOne,
-        ConsolidateFamilyId::EightByOne,
+        NoteReshapeFamilyId::TwoByOne,
+        NoteReshapeFamilyId::FourByOne,
+        NoteReshapeFamilyId::EightByOne,
     ]
     .into_iter()
     .find(|family| {
@@ -1439,8 +1437,9 @@ fn select_auto_consolidate_family(
     }
 
     [
-        ConsolidateFamilyId::EightByOne,
-        ConsolidateFamilyId::TwoByOne,
+        NoteReshapeFamilyId::EightByOne,
+        NoteReshapeFamilyId::FourByOne,
+        NoteReshapeFamilyId::TwoByOne,
     ]
     .into_iter()
     .find(|family| available_note_count >= family.input_count())
@@ -2047,7 +2046,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn fragmented_transfer_requests_consolidate_then_resume_builds_transfer() {
+    async fn fragmented_transfer_requests_note_reshape_then_resume_builds_transfer() {
         let mut rng = OsRng;
         let source = AddressIndex::new(0);
         let sender = test_address(2);
@@ -2085,8 +2084,8 @@ mod tests {
         };
         assert!(matches!(
             maintenance_plan.actions.first(),
-            Some(ActionPlan::Consolidate(consolidate))
-                if consolidate.family_id() == ConsolidateFamilyId::TwoByOne
+            Some(ActionPlan::NoteReshape(note_reshape))
+                if note_reshape.family_id() == NoteReshapeFamilyId::FourByOne
         ));
 
         view.replace_notes(vec![spendable_note_record(
@@ -2143,7 +2142,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn fragmented_ics20_withdrawal_requests_consolidate_then_resume_builds_action() {
+    async fn fragmented_ics20_withdrawal_requests_note_reshape_then_resume_builds_action() {
         let mut rng = OsRng;
         let source = AddressIndex::new(0);
         let sender = test_address(22);
@@ -2173,8 +2172,8 @@ mod tests {
         };
         assert!(matches!(
             maintenance_plan.actions.first(),
-            Some(ActionPlan::Consolidate(consolidate))
-                if consolidate.family_id() == ConsolidateFamilyId::TwoByOne
+            Some(ActionPlan::NoteReshape(note_reshape))
+                if note_reshape.family_id() == NoteReshapeFamilyId::FourByOne
         ));
 
         view.replace_notes(vec![spendable_note_record(
@@ -2387,7 +2386,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn explicit_consolidate_returns_single_consolidate_transaction() {
+    async fn explicit_many_to_one_returns_single_note_reshape_transaction() {
         let mut rng = OsRng;
         let source = AddressIndex::new(0);
         let sender = test_address(4);
@@ -2401,27 +2400,67 @@ mod tests {
         note_manager.set_gas_prices(GasPrices::zero());
 
         let result = note_manager
-            .plan_consolidate(
+            .plan_note_reshape_from_notes(
                 &mut view,
                 source,
                 *BASE_ASSET_ID,
-                Some(ConsolidateFamilyId::TwoByOne),
+                Some(NoteReshapeFamilyId::TwoByOne),
             )
             .await
-            .expect("consolidate planning succeeds");
+            .expect("note reshape planning succeeds");
 
         let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("expected ready consolidate plan");
+            panic!("expected ready note reshape plan");
         };
         assert!(matches!(
             transaction_plan.actions.first(),
-            Some(ActionPlan::Consolidate(consolidate))
-                if consolidate.family_id() == ConsolidateFamilyId::TwoByOne
+            Some(ActionPlan::NoteReshape(note_reshape))
+                if note_reshape.family_id() == NoteReshapeFamilyId::TwoByOne
         ));
     }
 
     #[tokio::test]
-    async fn explicit_split_returns_single_split_transaction() {
+    async fn many_to_one_uses_padded_canonical_family() {
+        let mut rng = OsRng;
+        let source = AddressIndex::new(0);
+        let sender = test_address(6);
+        let view_addresses = BTreeMap::from([(source, sender.clone())]);
+        let notes = vec![
+            spendable_note_record(&mut rng, 7, source, sender.clone(), 1),
+            spendable_note_record(&mut rng, 5, source, sender.clone(), 2),
+            spendable_note_record(&mut rng, 3, source, sender, 3),
+        ];
+        let mut view = MockNoteManagerView::new(notes, view_addresses);
+        let mut note_manager = NoteManager::new(OsRng);
+        note_manager.set_gas_prices(GasPrices::zero());
+
+        let result = note_manager
+            .plan_note_reshape_from_notes(&mut view, source, *BASE_ASSET_ID, None)
+            .await
+            .expect("note reshape planning succeeds");
+
+        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+            panic!("expected ready note reshape plan");
+        };
+        let Some(ActionPlan::NoteReshape(note_reshape)) = transaction_plan.actions.first() else {
+            panic!("expected note reshape action");
+        };
+        assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::FourByOne);
+        assert_eq!(note_reshape.spends.len(), 3);
+        assert_eq!(note_reshape.body.inputs.len(), 4);
+        assert_eq!(
+            note_reshape
+                .body
+                .inputs
+                .iter()
+                .map(|input| input.is_dummy)
+                .collect::<Vec<_>>(),
+            vec![false, false, false, true]
+        );
+    }
+
+    #[tokio::test]
+    async fn one_to_many_pads_requested_outputs_to_family_capacity() {
         let mut rng = OsRng;
         let source = AddressIndex::new(0);
         let sender = test_address(5);
@@ -2432,30 +2471,32 @@ mod tests {
         note_manager.set_gas_prices(GasPrices::zero());
 
         let result = note_manager
-            .plan_split(
+            .plan_note_reshape_from_note(
                 &mut view,
                 source,
                 note_record,
-                vec![
-                    5u64.into(),
-                    5u64.into(),
-                    5u64.into(),
-                    5u64.into(),
-                    5u64.into(),
-                    5u64.into(),
-                    5u64.into(),
-                    5u64.into(),
-                ],
+                vec![10u64.into(), 15u64.into(), 15u64.into()],
             )
             .await
-            .expect("split planning succeeds");
+            .expect("note reshape planning succeeds");
 
         let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("expected ready split plan");
+            panic!("expected ready note reshape plan");
         };
-        assert!(matches!(
-            transaction_plan.actions.first(),
-            Some(ActionPlan::Split(split)) if split.family_id() == SplitFamilyId::OneByEight
-        ));
+        let Some(ActionPlan::NoteReshape(note_reshape)) = transaction_plan.actions.first() else {
+            panic!("expected note reshape action");
+        };
+        assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::OneByEight);
+        assert_eq!(note_reshape.outputs.len(), 3);
+        assert_eq!(note_reshape.body.outputs.len(), 8);
+        assert_eq!(
+            note_reshape
+                .body
+                .outputs
+                .iter()
+                .map(|output| output.is_dummy)
+                .collect::<Vec<_>>(),
+            vec![false, false, false, true, true, true, true, true]
+        );
     }
 }

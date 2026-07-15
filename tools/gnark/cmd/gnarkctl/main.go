@@ -85,12 +85,11 @@ func runExportWiringTranscript(args []string) error {
 	}
 	var out string
 	var err error
-	switch *circuit {
-	case "consolidate2x1":
-		out, err = circuits.ExportConsolidate2x1WiringTranscript()
-	case "transfer":
+	if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
+		out, err = circuits.ExportNoteReshapeWiringTranscript(family.Label, family.NIn, family.NOut)
+	} else if *circuit == "transfer" {
 		out, err = circuits.ExportTransferWiringTranscript()
-	default:
+	} else {
 		return fmt.Errorf("unsupported wiring transcript circuit %q", *circuit)
 	}
 	if err != nil {
@@ -119,12 +118,11 @@ func runExportManifest(args []string) error {
 	}
 	var manifest *circuits.ConstraintManifest
 	var err error
-	switch *circuit {
-	case "consolidate2x1":
-		manifest, err = circuits.ExportConsolidate2x1ConstraintManifest(*sr1csPath)
-	case "transfer":
+	if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
+		manifest, err = circuits.ExportNoteReshapeConstraintManifest(family.Label, family.NIn, family.NOut, *sr1csPath)
+	} else if *circuit == "transfer" {
 		manifest, err = circuits.ExportTransferConstraintManifest(*sr1csPath)
-	default:
+	} else {
 		return fmt.Errorf("unsupported constraint manifest circuit %q", *circuit)
 	}
 	if err != nil {
@@ -577,7 +575,7 @@ func runCheckVKJSON(args []string) error {
 
 func runReplay(args []string) error {
 	fs := flag.NewFlagSet("replay", flag.ContinueOnError)
-	circuit := fs.String("circuit", "transfer", "transfer, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
+	circuit := fs.String("circuit", "transfer", "transfer, note reshape, or shielded-ics20-withdrawal family label")
 	witnessPath := fs.String("witness", "", "witness binary path")
 	artifactDir := fs.String("artifact-dir", "", "artifact directory for prove mode")
 	mode := fs.String("mode", "decode", "decode, solve, or prove")
@@ -597,11 +595,9 @@ func runReplay(args []string) error {
 	switch *circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(*circuit); !ok {
-			if _, ok := generated.ConsolidateFamilyByLabel(*circuit); !ok {
-				if _, ok := generated.SplitFamilyByLabel(*circuit); !ok {
-					if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); !ok {
-						return fmt.Errorf("unsupported --circuit %q", *circuit)
-					}
+			if _, ok := generated.NoteReshapeFamilyByLabel(*circuit); !ok {
+				if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); !ok {
+					return fmt.Errorf("unsupported --circuit %q", *circuit)
 				}
 			}
 		}
@@ -638,20 +634,12 @@ func runReplay(args []string) error {
 			ccs, err = frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewTransferCircuit())
 			break
 		}
-		if family, ok := generated.ConsolidateFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewConsolidateCircuitAssignmentFromWitnessV1(payload)
+		if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
+			assignment, _, err = abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(payload)
 			if err != nil {
 				return err
 			}
-			ccs, err = frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewConsolidateCircuit(family.NIn))
-			break
-		}
-		if family, ok := generated.SplitFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewSplitCircuitAssignmentFromWitnessV1(payload)
-			if err != nil {
-				return err
-			}
-			ccs, err = frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewSplitCircuit(family.NOut))
+			ccs, err = frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut))
 			break
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); ok {
@@ -915,12 +903,8 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewTransferCircuit())
 			return ccs, time.Since(compileStart).Seconds() * 1000, err
 		}
-		if family, ok := generated.ConsolidateFamilyByLabel(circuit); ok {
-			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewConsolidateCircuit(family.NIn))
-			return ccs, time.Since(compileStart).Seconds() * 1000, err
-		}
-		if family, ok := generated.SplitFamilyByLabel(circuit); ok {
-			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewSplitCircuit(family.NOut))
+		if family, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
+			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut))
 			return ccs, time.Since(compileStart).Seconds() * 1000, err
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {
@@ -949,23 +933,12 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 				StatementFields:      vec32Strings(decoded.StatementFields),
 			}, err
 		}
-		if _, ok := generated.ConsolidateFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeConsolidateWitnessV1(witnessPayload)
+		if _, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
+			decoded, _, err := abi.DecodeNoteReshapeWitnessV1(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewConsolidateCircuitAssignmentFromWitnessV1(witnessPayload)
-			return assignment, witnessSummary{
-				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
-				StatementFields:      vec32Strings(decoded.StatementFields),
-			}, err
-		}
-		if _, ok := generated.SplitFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeSplitWitnessV1(witnessPayload)
-			if err != nil {
-				return nil, witnessSummary{}, err
-			}
-			assignment, _, err := abi.NewSplitCircuitAssignmentFromWitnessV1(witnessPayload)
+			assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(decoded.StatementFields),

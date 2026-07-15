@@ -204,38 +204,38 @@ func appendNoteReshapeStatementFields(
 	return fields, nil
 }
 
-// ReconstructedConsolidateStatementFieldsFromWitnessV1 mirrors the Go
-// consolidate circuit's statement-field order using decoded witness fields.
-func ReconstructedConsolidateStatementFieldsFromWitnessV1(
-	witness *ConsolidateWitnessV1Binary,
+// ReconstructedNoteReshapeStatementFieldsFromWitnessV1 mirrors the unified
+// note-reshape circuit's statement-field order using decoded witness fields.
+func ReconstructedNoteReshapeStatementFieldsFromWitnessV1(
+	witness *NoteReshapeWitnessV1Binary,
 ) ([][32]byte, error) {
 	expected := primitives.NoteReshapeStatementFieldCount(int(witness.NIn), int(witness.NOut))
-	return appendNoteReshapeStatementFields(
-		"consolidate",
+	coreExpected := expected
+	if !(witness.NIn == 2 && witness.NOut == 1) {
+		coreExpected -= 2
+	}
+	fields, err := appendNoteReshapeStatementFields(
+		"note reshape",
 		make([][32]byte, 0, expected),
 		witness.Anchor,
 		witness.BalanceCommitmentAffine,
 		witness.Spends,
 		witness.Outputs,
-		expected,
+		coreExpected,
 	)
-}
-
-// ReconstructedSplitStatementFieldsFromWitnessV1 mirrors the Go split circuit's
-// statement-field order using decoded witness fields.
-func ReconstructedSplitStatementFieldsFromWitnessV1(
-	witness *SplitWitnessV1Binary,
-) ([][32]byte, error) {
-	expected := primitives.NoteReshapeStatementFieldCount(int(witness.NIn), int(witness.NOut))
-	return appendNoteReshapeStatementFields(
-		"split",
-		make([][32]byte, 0, expected),
-		witness.Anchor,
-		witness.BalanceCommitmentAffine,
-		witness.Spends,
-		witness.Outputs,
-		expected,
-	)
+	if err != nil {
+		return nil, err
+	}
+	if len(fields) != expected {
+		fields = append(fields,
+			uint64ToLE32(uint64(witness.ActiveInputs)),
+			uint64ToLE32(uint64(witness.ActiveOutputs)),
+		)
+	}
+	if err := ensureFieldCount("note reshape", fields, expected); err != nil {
+		return nil, err
+	}
+	return fields, nil
 }
 
 // ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV1 mirrors the
