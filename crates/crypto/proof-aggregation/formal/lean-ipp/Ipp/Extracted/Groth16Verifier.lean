@@ -63,6 +63,10 @@ private def smulModel (F G : Type) [SMul F G] :
     ark_ip_proofs.core.ops.arith.Mul G F G where
   mul point scalar := .ok (scalar • point)
 
+private def negModel (G : Type) [Neg G] :
+    ark_ip_proofs.core.ops.arith.Neg G G where
+  neg point := .ok (-point)
+
 private theorem smulModel_mul {F G : Type} [SMul F G] (point : G) (scalar : F) :
     (smulModel F G).mul point scalar = .ok (scalar • point) := rfl
 
@@ -697,13 +701,101 @@ theorem fold_public_inputs_refinement_statement
     rw [gicPrefix_full, geometricSum_div r m hr]
     simp only [Result.bind_ok]
 
-def verify_ppe_refinement_statement
-    {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
+/-- The prepared PPE core exposes effect failure as `false` and, on success,
+    computes the baseline three-pairing equation from the adapter laws. -/
+theorem verify_ppe_refinement_eq
+    {F G1 G2 G2Prepared GT E : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    (e : G1 → G2 → GT) (alpha : G1) (beta gamma delta : G2)
-    (gIC aggC : G1) (ipAb : GT) (rSum : F) (run : Bool) : Prop :=
-  run = true ↔
-    e (rSum • alpha) beta + e gIC gamma + e aggC delta = ipAb
+    [DecidableEq GT]
+    (e : G1 →ₗ[F] G2 →ₗ[F] GT)
+    (normalize : G1 → G1) (preparedValue : G2Prepared → G2)
+    (outcome : E → Option Unit)
+    (effect : ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect
+      E G1 G2Prepared GT)
+    (pairing : E) (alpha : G1) (beta gamma delta : G2)
+    (gIC aggC : G1) (gammaNeg deltaNeg : G2Prepared)
+    (ipAb : GT) (rSum : F)
+    (normalization_law :
+      normalize (-gIC) = -gIC ∧ normalize (-aggC) = -aggC)
+    (prepared_negative_law :
+      preparedValue gammaNeg = -gamma ∧ preparedValue deltaNeg = -delta)
+    (pairing_effect_law :
+      effect.multi_pairing_prepared pairing ⟨[-gIC, -aggC]⟩
+          ⟨[gammaNeg, deltaNeg]⟩ =
+        .ok (match outcome pairing with
+          | none => none
+          | some () => some
+              (e (normalize (-gIC)) (preparedValue gammaNeg) +
+                e (normalize (-aggC)) (preparedValue deltaNeg)))) :
+    ark_ip_proofs.ark_ip_proofs.applications.groth16_aggregation.verify_ppe_core
+        (cloneModel F) (cloneModel G1) (negModel G1)
+        (cloneModel G2Prepared) (cloneModel GT) (smulModel F GT)
+        (addModel GT) (partialEqModel GT) effect
+        { alpha_beta := e alpha beta, r_sum := rSum, g_ic := gIC,
+          agg_c := aggC, gamma_g2_neg_pc := gammaNeg,
+          delta_g2_neg_pc := deltaNeg, ip_ab := ipAb } pairing =
+      .ok (match outcome pairing with
+        | none => false
+        | some () => decide
+            (e (rSum • alpha) beta + e gIC gamma + e aggC delta = ipAb)) := by
+  classical
+  unfold ark_ip_proofs.ark_ip_proofs.applications.groth16_aggregation.verify_ppe_core
+  simp only [negModel, smulModel, addModel, Result.bind_ok,
+    ark_ip_proofs.Array.make, ark_ip_proofs.Array.to_slice, lift]
+  rw [pairing_effect_law]
+  rcases normalization_law with ⟨hnormalizeGIC, hnormalizeAggC⟩
+  rcases prepared_negative_law with ⟨hpreparedGamma, hpreparedDelta⟩
+  simp only [Result.bind_ok, hnormalizeGIC, hnormalizeAggC,
+    hpreparedGamma, hpreparedDelta]
+  cases outcome pairing with
+  | none => rfl
+  | some effectUnit =>
+      rcases effectUnit with ⟨⟩
+      simp only [partialEqModel]
+      congr 2
+      simp [add_assoc]
+
+/-- The extracted prepared PPE core accepts exactly on successful pairing
+    evaluation and the canonical positive-sign PPE equation. -/
+theorem verify_ppe_refinement_statement
+    {F G1 G2 G2Prepared GT E : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq GT]
+    (e : G1 →ₗ[F] G2 →ₗ[F] GT)
+    (normalize : G1 → G1) (preparedValue : G2Prepared → G2)
+    (outcome : E → Option Unit)
+    (effect : ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect
+      E G1 G2Prepared GT)
+    (pairing : E) (alpha : G1) (beta gamma delta : G2)
+    (gIC aggC : G1) (gammaNeg deltaNeg : G2Prepared)
+    (ipAb : GT) (rSum : F)
+    (normalization_law :
+      normalize (-gIC) = -gIC ∧ normalize (-aggC) = -aggC)
+    (prepared_negative_law :
+      preparedValue gammaNeg = -gamma ∧ preparedValue deltaNeg = -delta)
+    (pairing_effect_law :
+      effect.multi_pairing_prepared pairing ⟨[-gIC, -aggC]⟩
+          ⟨[gammaNeg, deltaNeg]⟩ =
+        .ok (match outcome pairing with
+          | none => none
+          | some () => some
+              (e (normalize (-gIC)) (preparedValue gammaNeg) +
+                e (normalize (-aggC)) (preparedValue deltaNeg)))) :
+    ark_ip_proofs.ark_ip_proofs.applications.groth16_aggregation.verify_ppe_core
+        (cloneModel F) (cloneModel G1) (negModel G1)
+        (cloneModel G2Prepared) (cloneModel GT) (smulModel F GT)
+        (addModel GT) (partialEqModel GT) effect
+        { alpha_beta := e alpha beta, r_sum := rSum, g_ic := gIC,
+          agg_c := aggC, gamma_g2_neg_pc := gammaNeg,
+          delta_g2_neg_pc := deltaNeg, ip_ab := ipAb } pairing = .ok true ↔
+      outcome pairing = some () ∧
+        e (rSum • alpha) beta + e gIC gamma + e aggC delta = ipAb := by
+  rw [verify_ppe_refinement_eq e normalize preparedValue outcome effect pairing
+    alpha beta gamma delta gIC aggC gammaNeg deltaNeg ipAb rSum
+    normalization_law prepared_negative_law pairing_effect_law]
+  cases outcome pairing <;> simp
 
 def verify_tipp_mipp_refinement_statement
     {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
@@ -720,6 +812,9 @@ def verify_aggregate_refinement_statement
     (proof : Proof μ F G1 G2 GT) (transcript : FsTranscript μ F)
     (run : Bool) : Prop :=
   run = true ↔ Ipp.FsAccepts stmt proof transcript
+
+#print axioms verify_ppe_refinement_eq
+#print axioms verify_ppe_refinement_statement
 
 end
 end Ipp.Extracted
