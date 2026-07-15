@@ -26,6 +26,18 @@ open Ipp.CanonicalWire
 
 set_option maxHeartbeats 800000
 
+private theorem option_bind_eq_some {α β : Type} {o : Option α} {f : α → Option β} {b : β}
+    (h : o.bind f = some b) : ∃ a, o = some a ∧ f a = some b := by
+  cases o with
+  | none => simp at h
+  | some a => exact ⟨a, rfl, h⟩
+
+private theorem option_map_eq_some {α β : Type} {o : Option α} {f : α → β} {b : β}
+    (h : o.map f = some b) : ∃ a, o = some a ∧ f a = b := by
+  cases o with
+  | none => simp at h
+  | some a => exact ⟨a, rfl, Option.some.inj h⟩
+
 def compressedBytes : Nat := 96
 def componentBytes : Nat := 48
 def infinityMask : Nat := 0x40
@@ -82,6 +94,34 @@ def squareFq2 (a : Nat × Nat) : Nat × Nat := mulFq2 a a
 
 def negFq2 (a : Nat × Nat) : Nat × Nat := (negQ a.1, negQ a.2)
 
+/-- In the canonical residue operation, an Fq2 value equals its negation only at zero. -/
+theorem negFq2_eq_self_iff (a : Nat × Nat) : negFq2 a = a ↔ a = (0, 0) := by
+  have negQ_eq_self (n : Nat) (h : negQ n = n) : n = 0 := by
+    simp only [negQ] at h
+    split at h
+    · omega
+    · rename_i hn
+      have hqpos : 0 < fqModulus := by norm_num [fqModulus]
+      have hmodlt : modQ n < fqModulus := by
+        simpa [modQ] using Nat.mod_lt n hqpos
+      have hnlt : n < fqModulus := by omega
+      have hmod : modQ n = n := by simp [modQ, Nat.mod_eq_of_lt hnlt]
+      rw [hmod] at h hn
+      norm_num [fqModulus] at h
+      omega
+  rcases a with ⟨a0, a1⟩
+  constructor
+  · intro h
+    have h0 : negQ a0 = a0 := congrArg Prod.fst h
+    have h1 : negQ a1 = a1 := congrArg Prod.snd h
+    simp [negQ_eq_self a0 h0, negQ_eq_self a1 h1]
+  · intro h
+    have h0 : a0 = 0 := congrArg Prod.fst h
+    have h1 : a1 = 0 := congrArg Prod.snd h
+    subst a0
+    subst a1
+    simp [negFq2, negQ, modQ]
+
 /-- Arkworks Fq2 order: compare c1 first, then c0. -/
 def fq2Less (a b : Nat × Nat) : Bool :=
   a.2 < b.2 || (a.2 = b.2 && a.1 < b.1)
@@ -136,7 +176,7 @@ def infinityEncoding : List UInt8 :=
 
 def infinityPoint : Point := .infinity
 
-private def asNats (x : Fq2Value) : Nat × Nat := (x.1.1, x.2.1)
+def asNats (x : Fq2Value) : Nat × Nat := (x.1.1, x.2.1)
 
 def selectRoot (flag : Flags) (root : Nat × Nat) : Nat × Nat :=
   let other := negFq2 root
@@ -156,13 +196,28 @@ def decodeY (flag : Flags) (x : Fq2Value) : Option Fq2Value := do
     else none
   else none
 
+set_option maxHeartbeats 100000 in
+theorem decodeY_data {flag : Flags} {x y : Fq2Value}
+    (h : decodeY flag x = some y) :
+    ∃ root, sqrtFq2 (curveRhs (asNats x)) = some root ∧
+      selectRoot flag root = asNats y := by
+  change (sqrtFq2 (curveRhs (asNats x))).bind _ = some y at h
+  obtain ⟨root, hs, h⟩ := option_bind_eq_some h
+  by_cases h0 : (selectRoot flag root).1 < fqModulus
+  · by_cases h1 : (selectRoot flag root).2 < fqModulus
+    · simp [h0, h1] at h
+      subst y
+      exact ⟨root, hs, rfl⟩
+    · simp [h0, h1] at h
+  · simp [h0] at h
+
 /--
 Pure exact-input G2 decoder. It consumes exactly 96 bytes, decodes c0 then c1
 with GAP-01's canonical Fq decoder, reads flags from byte 95, requires the
 unique zero-x infinity encoding, and otherwise solves `y^2 = x^3 + b'` before
 selecting the root by arkworks' c1-major Fq2 lexicographic order.
 -/
-private def decodeFiniteExact (xs : List UInt8) : Option (Fq2Value × Fq2Value) := do
+def decodeFiniteExact (xs : List UInt8) : Option (Fq2Value × Fq2Value) := do
   let last <- xs[95]?
   let flags <- decodeFlags last
   match flags with
@@ -175,6 +230,37 @@ private def decodeFiniteExact (xs : List UInt8) : Option (Fq2Value × Fq2Value) 
       let x <- decodeFq2List (clearFlags xs)
       let y <- decodeY .largerRoot x
       some (x, y)
+
+set_option maxHeartbeats 100000 in
+theorem decodeFiniteExact_data {xs : List UInt8} {px py : Fq2Value}
+    (h : decodeFiniteExact xs = some (px, py)) :
+    ∃ last flags,
+      xs[95]? = some last ∧ decodeFlags last = some flags ∧
+      decodeFq2List (clearFlags xs) = some px ∧ decodeY flags px = some py ∧
+      flags ≠ .infinity := by
+  change (xs[95]?).bind _ = some (px, py) at h
+  obtain ⟨last, hlast, h⟩ := option_bind_eq_some h
+  obtain ⟨flags, hflags, h⟩ := option_bind_eq_some h
+  cases flags with
+  | infinity => simp at h
+  | smallerRoot =>
+      obtain ⟨x, hx, h⟩ := option_bind_eq_some h
+      obtain ⟨y, hy, h⟩ := option_bind_eq_some h
+      have hp := Option.some.inj h
+      have hpx : x = px := congrArg Prod.fst hp
+      have hpy : y = py := congrArg Prod.snd hp
+      subst x
+      subst y
+      exact ⟨last, .smallerRoot, hlast, hflags, hx, hy, by decide⟩
+  | largerRoot =>
+      obtain ⟨x, hx, h⟩ := option_bind_eq_some h
+      obtain ⟨y, hy, h⟩ := option_bind_eq_some h
+      have hp := Option.some.inj h
+      have hpx : x = px := congrArg Prod.fst hp
+      have hpy : y = py := congrArg Prod.snd hp
+      subst x
+      subst y
+      exact ⟨last, .largerRoot, hlast, hflags, hx, hy, by decide⟩
 
 def decode (xs : List UInt8) : Option Point :=
   if xs = infinityEncoding then some infinityPoint
@@ -205,6 +291,20 @@ theorem decode_exact_consumption {xs : List UInt8} {p : Point}
     split at h
     · assumption
     · simp at h
+
+theorem decode_finite_exact {xs : List UInt8} {px py : Fq2Value}
+    (h : decode xs = some (.finite px py)) : decodeFiniteExact xs = some (px, py) := by
+  have hlen := decode_exact_consumption h
+  have hne : xs ≠ infinityEncoding := by
+    intro heq
+    subst xs
+    simp [decode, infinityPoint] at h
+  rw [decode, if_neg hne, if_pos hlen] at h
+  obtain ⟨p, hp, heq⟩ := option_map_eq_some h
+  rcases p with ⟨x, y⟩
+  simp at heq
+  rcases heq with ⟨rfl, rfl⟩
+  exact hp
 
 private def encodeFq2 (c0 c1 : Nat) : List UInt8 :=
   encodeLE componentBytes c0 ++ encodeLE componentBytes c1
