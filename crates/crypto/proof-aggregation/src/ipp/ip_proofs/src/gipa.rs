@@ -54,7 +54,7 @@ where
     mul_helper(left, c) + current.clone() + mul_helper(right, c_inv)
 }
 
-fn fold_output<T, S>(left: &T, current: &mut T, right: &T, c: &S, c_inv: &S)
+pub(crate) fn fold_output<T, S>(left: &T, current: &mut T, right: &T, c: &S, c_inv: &S)
 where
     T: Clone + Default + Add<Output = T> + MulAssign<S>,
     S: Clone,
@@ -190,14 +190,14 @@ where
 }
 
 pub(crate) struct BaseCommitmentCoreInput<KA, KB, KT, MA, MB, OA, OB, OT> {
-    ck_a: KA,
-    ck_b: KB,
-    ck_t: Vec<KT>,
-    a: MA,
-    b: MB,
-    com_a: OA,
-    com_b: OB,
-    com_t: OT,
+    pub(crate) ck_a: KA,
+    pub(crate) ck_b: KB,
+    pub(crate) ck_t: Vec<KT>,
+    pub(crate) a: MA,
+    pub(crate) b: MB,
+    pub(crate) com_a: OA,
+    pub(crate) com_b: OB,
+    pub(crate) com_t: OT,
 }
 
 pub(crate) fn verify_base_commitment_core<KA, KB, KT, MA, MB, MT, OA, OB, OT, E, FX>(

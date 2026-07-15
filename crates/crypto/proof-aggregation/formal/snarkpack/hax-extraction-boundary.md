@@ -99,6 +99,20 @@ verifier graph must call this core with the same ordered effect state: singleton
 inner product, left commitment, right commitment, then target commitment, with
 `false` short-circuiting and the first reached error terminal.
 
+S2-30 extracts from
+`crate::applications::groth16_aggregation::verify_tipp_mipp_core` with
+`--charon-args=--start-from=crate::applications::groth16_aggregation::verify_tipp_mipp_core`.
+The closed graph contains the explicit `TippMippCoreInput`/
+`TippMippCoreProof` records and the `TippMippEffect` challenge interface; the
+concrete `ArkworksTippMippEffect` and `PairingEffect` adapters are not in the
+graph. The indexed reverse loop preserves the reversed round order while
+avoiding the pinned Aeneas missing-builtin path for iterator `.rev()`. The
+graph keeps the single post-loop round error exit, reverses both transcripts,
+calls the two existing KZG opening cores in both production branches, and
+routes the first three terminal lanes through `verify_base_commitment_core`
+in its S2-25 order. The output is vendored as
+`Ipp/Extracted/VerifyTippMippGenerated.lean`; no extraction split was needed.
+
 ## S2 Tier 1 serial additions
 
 | target | Rust features used | precondition | arithmetic mode | control flow | panic/expect | unsafe | hax shims | status |
@@ -112,7 +126,7 @@ inner product, left commitment, right commitment, then target commitment, with
 | `ark_ip_proofs::applications::groth16_aggregation::inverse_powers_with_inverse` | `Vec`, scalar multiplication, bounded loop | `r_inv` is the inverse of a nonzero randomizer; output length is bounded | abstract field operations | indexed loop from `0..len` | none | none | wrapper checks nonzero/inverts; extracted helper takes the resulting inverse explicitly | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::build_shifted_ck_2_inner` | paired slices, point scalar multiplication, bounded loop | equal key/power lengths | abstract group scalar action | hax indexed traversal; production Rayon/sequential branches retained | none | none | hax traversal preserves pointwise order and result; no performance branch is used in the extracted view | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::fold_public_inputs_core` | explicit `F`/`G1` slices, geometric scalar powers, and affine-to-projective group accumulation supplied by the delegator | public-input slice is nonempty; every row has the first row's arity; `gamma_abc_g1.len() = input_arity + 1` | ordinary `Clone`, `PartialEq`, `From<u64>`, `One`, `Zero`, `Add`, `Sub`, `Mul`, and `Div` for `F`; ordinary `Clone`, `Add`, and scalar `Mul` for `G1` | indexed bounded loops preserve row order, input order, and gamma slot order; `r = 1` uses the row count and `r != 1` uses the geometric-series quotient | nonempty/arity assertions and bounded slice/Vec indexing; no `expect` or `Pairing` effect | none | no semantic hax shim; scoped Aeneas output is vendored as `Ipp/Extracted/Groth16VerifierGenerated.lean`; installed CLI requires single-token `--charon-args=--start-from=...` forwarding | proved-model |
-| `ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp` | reversed round traversal, five fold accumulators, KZG calls, terminal checks | decoded challenges nonzero; all vector shapes match; failures reject | abstract field/group/pairing operations | reverse iteration with a single post-loop error exit, `Result` propagation, sequential/parallel KZG selection | challenge/inversion failures are accumulated and returned after the loop | none | no opaque verifier-result shim; Aeneas no longer reports early-loop-return rejection, but the closed graph remains arkworks trait/associated-type gated | scaffolded |
+| `ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp_core` | explicit challenge effect, reversed round traversal, five fold accumulators, transcript reversals, both KZG opening cores, and five terminal checks | decoded challenges/inversions may fail; all vector shapes match; failures reject | ordinary field/group operations plus typed challenge, base-commitment, and pairing effects | indexed reverse loop with a single post-loop error exit; sequential/Rayon branches call the same two KZG cores | challenge/inversion errors are stored through the round loop and the first reached error is returned after it; base-commitment false/error order is preserved | none | no result-bearing verifier shim and no Arkworks/associated-type graph; pinned Aeneas workaround is explicit reverse indexing because `.rev()` lacks the required builtin | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::verify_combined_checks_profiled` | TIPP/MIPP verification, public-input fold, PPE, profile projection | randomizer and all downstream shape preconditions | abstract field/group/pairing operations | profile timing is observational; result pair is preserved | inherited downstream failures | none | no timing semantic assumption; aggregate result remains scaffolded | scaffolded |
 | `ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_with_trace` | randomizer derivation, combined checks, trace sink, boolean conjunction | challenge trace correspondence and verifier shape preconditions | abstract field/group/pairing operations | executed orchestration and `Result` propagation | inherited downstream failures | none | challenge-byte correspondence remains a named boundary; no result shim | scaffolded |
 | `ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_profiled_with_trace` | profiled aggregate orchestration and trace sink | same as traced verifier; timing is observational | abstract field/group/pairing operations | same executed chain plus profile projection | inherited downstream failures | none | no timing shim; full result path remains scaffolded | scaffolded |

@@ -1133,12 +1133,12 @@ pub fn prove_commitment_key_kzg_opening_with_affine_profiled<G: CurveGroup>(
     Ok((opening, profile))
 }
 
-trait PairingEffect<G1, G2, GT> {
+pub(crate) trait PairingEffect<G1, G2, GT> {
     fn multi_pairing(&self, left: &[G1], right: &[G2]) -> Option<GT>;
 }
 
 #[derive(Clone, Copy)]
-struct ArkworksPairingEffect<P: Pairing>(PhantomData<P>);
+pub(crate) struct ArkworksPairingEffect<P: Pairing>(PhantomData<P>);
 
 impl<P: Pairing> Default for ArkworksPairingEffect<P> {
     fn default() -> Self {
@@ -1226,7 +1226,7 @@ where
     }
 }
 
-fn verify_commitment_key_g2_kzg_opening_core<F, G1, G2, GT, E>(
+pub(crate) fn verify_commitment_key_g2_kzg_opening_core<F, G1, G2, GT, E>(
     g: G1,
     g_beta: G1,
     h: G2,
@@ -1263,7 +1263,7 @@ where
     )
 }
 
-fn verify_commitment_key_g1_kzg_opening_core<F, G1, G2, GT, E>(
+pub(crate) fn verify_commitment_key_g1_kzg_opening_core<F, G1, G2, GT, E>(
     g: G1,
     h_alpha: G2,
     h: G2,

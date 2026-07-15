@@ -283,10 +283,13 @@ construction, and the structured terminal scalar are proved as well. These
 portions and the G1/G2 accept shapes are promoted in the proof index above.
 Public-wrapper extraction and arkworks arithmetic conformance remain open.
 
-`verify_tipp_mipp` has a single error exit after its round loop. Normal Rust
-tests preserve behavior, and scoped hax no longer reports the early-loop-return
-diagnostic; the closed verifier graph remains scaffolded at arkworks
-trait/associated-type operations.
+`verify_tipp_mipp` now delegates to the explicit typed
+`verify_tipp_mipp_core`; the core has a single error exit after its round loop,
+and its closed hax graph is vendored in
+`Ipp/Extracted/VerifyTippMippGenerated.lean`. Normal Rust tests preserve
+behavior, and scoped hax no longer reports the early-loop-return diagnostic.
+The S2-31..33 round, fold, and capstone refinement theorems remain open; no
+theorem promotion is claimed by this extraction session.
 
 ## Gates
 

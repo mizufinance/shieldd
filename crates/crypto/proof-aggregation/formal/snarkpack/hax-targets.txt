@@ -17,6 +17,10 @@
 # formal/lean-ipp/Ipp/Extracted/BaseCommitmentGenerated.lean. Its explicit
 # result/effect/input records preserve all four effect failures; the concrete
 # DoublyHomomorphicCommitment/InnerProduct adapter is not extracted.
+# The S2-30 verifier graph is vendored in
+# formal/lean-ipp/Ipp/Extracted/VerifyTippMippGenerated.lean. Its typed
+# challenge effect, five-lane fold state, and terminal checks are extracted;
+# the concrete Arkworks adapter remains outside the graph.
 
 shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
 shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow
@@ -67,7 +71,7 @@ ark_ip_proofs::applications::groth16_aggregation::PreparedPpeVerifierCoreInput
 ark_ip_proofs::applications::groth16_aggregation::verify_ppe_core
 ark_ip_proofs::applications::groth16_aggregation::fold_public_inputs_core
 ark_ip_proofs::applications::groth16_aggregation::verify_ppe
-ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp
+ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp_core
 ark_ip_proofs::applications::groth16_aggregation::verify_combined_checks_profiled
 ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_with_trace
 ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_profiled_with_trace

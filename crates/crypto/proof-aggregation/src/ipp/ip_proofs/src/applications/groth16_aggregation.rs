@@ -10,7 +10,7 @@ use ark_std::rand::Rng;
 use digest::Digest;
 use std::{
     marker::PhantomData,
-    ops::{Add, MulAssign},
+    ops::{Add, Mul, MulAssign, Neg, Sub},
     time::Instant,
 };
 
@@ -19,10 +19,15 @@ use rayon::prelude::*;
 
 use crate::{
     challenge::{challenge_digest, ChallengeContext, ChallengeTraceSink, NoopChallengeTraceSink},
+    gipa::{
+        fold_output, verify_base_commitment_core, BaseCommitmentCoreInput, BaseCommitmentEffect,
+        BaseCommitmentResult,
+    },
     tipa::{
         prove_commitment_key_kzg_opening_with_affine_profiled,
-        structured_scalar_message::structured_scalar_power, verify_commitment_key_g1_kzg_opening,
-        verify_commitment_key_g2_kzg_opening, PreparedProvingSrs, VerifierSRS, SRS, TIPA,
+        structured_scalar_message::structured_scalar_power,
+        verify_commitment_key_g1_kzg_opening_core, verify_commitment_key_g2_kzg_opening_core,
+        ArkworksPairingEffect, PairingEffect, PreparedProvingSrs, VerifierSRS, SRS, TIPA,
     },
     Error,
 };
@@ -159,6 +164,278 @@ pub struct TippMippProof<P: Pairing, D: Digest> {
     final_ck_proofs: (P::G2, P::G1),
     final_messages: (P::G1, P::G2, P::G1),
     _digest: PhantomData<fn() -> D>,
+}
+
+#[derive(Clone)]
+struct TippMippCoreCommitment<GT, ABT, CT> {
+    ab: (GT, GT, ABT),
+    c: (GT, CT),
+}
+
+#[derive(Clone)]
+struct TippMippCoreProof<G1, G2, GT, ABT, CT> {
+    gipa_proof: Vec<(
+        TippMippCoreCommitment<GT, ABT, CT>,
+        TippMippCoreCommitment<GT, ABT, CT>,
+    )>,
+    final_ck: (G2, G1),
+    final_ck_proofs: (G2, G1),
+    final_messages: (G1, G2, G1),
+}
+
+struct TippMippCoreInput<F, G1, G2, GT, ABT, CT> {
+    com_a: GT,
+    com_b: GT,
+    com_t: ABT,
+    com_c: GT,
+    com_z: CT,
+    ip_ab: GT,
+    agg_c: G1,
+    proof: TippMippCoreProof<G1, G2, GT, ABT, CT>,
+    verifier_g: G1,
+    verifier_g_beta: G1,
+    verifier_h: G2,
+    verifier_h_alpha: G2,
+    r: F,
+    kzg_g2_r_shift: F,
+}
+
+trait TippMippEffect<F, G1, G2, GT, ABT, CT, E>:
+    BaseCommitmentEffect<G2, G1, (), G1, G2, GT, GT, GT, ABT, E>
+{
+    fn derive_x0(
+        &mut self,
+        r: &F,
+        com_a: &GT,
+        com_b: &GT,
+        com_c: &GT,
+        ip_ab: &GT,
+        agg_c: &G1,
+    ) -> Result<F, E>;
+    fn derive_round(
+        &mut self,
+        prior_raw_challenge: &F,
+        left: &TippMippCoreCommitment<GT, ABT, CT>,
+        right: &TippMippCoreCommitment<GT, ABT, CT>,
+    ) -> Result<F, E>;
+    fn invert_round(&self, challenge: &F) -> Result<F, E>;
+    fn derive_final_bridge(
+        &mut self,
+        last_raw_challenge: &F,
+        final_ck: &(G2, G1),
+        final_messages: &(G1, G2, G1),
+    ) -> Result<F, E>;
+    fn derive_kzg(&mut self, final_bridge: &F, final_ck: &(G2, G1)) -> Result<F, E>;
+    fn invert_randomizer(&self, randomizer: &F) -> Result<F, E>;
+    fn verify_c(&self, messages: &[G1], keys: &[G2], commitment: &GT) -> Result<bool, E>;
+    fn verify_z(&self, messages: &[G1], scalars: &[F], commitment: &CT) -> Result<bool, E>;
+}
+
+fn verify_tipp_mipp_core<F, G1, G2, GT, ABT, CT, E, FX, PE>(
+    input: TippMippCoreInput<F, G1, G2, GT, ABT, CT>,
+    effect: &mut FX,
+    pairing: &PE,
+) -> Result<bool, E>
+where
+    F: Clone + One + Add<Output = F> + Mul<Output = F> + Sync,
+    G1: Clone + Mul<F, Output = G1> + Sub<Output = G1> + Neg<Output = G1> + Sync,
+    G2: Clone + Mul<F, Output = G2> + Sub<Output = G2> + Sync,
+    GT: Clone + Default + Add<Output = GT> + MulAssign<F> + Zero + Sync,
+    ABT: Clone + Default + Add<Output = ABT> + MulAssign<F> + Sync,
+    CT: Clone + Default + Add<Output = CT> + MulAssign<F> + Sync,
+    FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E>,
+    PE: PairingEffect<G1, G2, GT> + Sync,
+{
+    let mut com_a = input.com_a.clone();
+    let mut com_b = input.com_b.clone();
+    let mut com_t = input.com_t.clone();
+    let mut com_c = input.com_c.clone();
+    let mut com_z = input.com_z.clone();
+
+    let x0 = effect.derive_x0(
+        &input.r,
+        &input.com_a,
+        &input.com_b,
+        &input.com_c,
+        &input.ip_ab,
+        &input.agg_c,
+    )?;
+    let mut prior_raw_challenge = x0.clone();
+    let mut last_raw_challenge = x0;
+    let mut raw_transcript_chrono = Vec::new();
+    let mut inv_transcript_chrono = Vec::new();
+    let mut round_error = None;
+
+    let round_count = input.proof.gipa_proof.len();
+    for round_offset in 0..round_count {
+        let round_index = round_count - round_offset - 1;
+        let (left, right) = &input.proof.gipa_proof[round_index];
+        if round_error.is_none() {
+            match effect.derive_round(&prior_raw_challenge, left, right) {
+                Err(error) => round_error = Some(error),
+                Ok(raw_challenge) => match effect.invert_round(&raw_challenge) {
+                    Err(error) => round_error = Some(error),
+                    Ok(inv_challenge) => {
+                        fold_output(
+                            &left.ab.0,
+                            &mut com_a,
+                            &right.ab.0,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+                        fold_output(
+                            &left.ab.1,
+                            &mut com_b,
+                            &right.ab.1,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+                        fold_output(
+                            &left.ab.2,
+                            &mut com_t,
+                            &right.ab.2,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+                        fold_output(
+                            &left.c.0,
+                            &mut com_c,
+                            &right.c.0,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+                        fold_output(
+                            &left.c.1,
+                            &mut com_z,
+                            &right.c.1,
+                            &inv_challenge,
+                            &raw_challenge,
+                        );
+
+                        raw_transcript_chrono.push(raw_challenge.clone());
+                        inv_transcript_chrono.push(inv_challenge);
+                        prior_raw_challenge = raw_challenge.clone();
+                        last_raw_challenge = raw_challenge;
+                    }
+                },
+            }
+        }
+    }
+
+    if let Some(error) = round_error {
+        return Err(error);
+    }
+
+    raw_transcript_chrono.reverse();
+    inv_transcript_chrono.reverse();
+
+    let final_bridge = effect.derive_final_bridge(
+        &last_raw_challenge,
+        &input.proof.final_ck,
+        &input.proof.final_messages,
+    )?;
+    let kzg_challenge = effect.derive_kzg(&final_bridge, &input.proof.final_ck)?;
+    let r_inverse = effect.invert_randomizer(&input.r)?;
+
+    let ck_v_final = input.proof.final_ck.0.clone();
+    let ck_w_final = input.proof.final_ck.1.clone();
+    let ck_v_proof = input.proof.final_ck_proofs.0.clone();
+    let ck_w_proof = input.proof.final_ck_proofs.1.clone();
+
+    #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
+    let (ck_v_valid, ck_w_valid) = rayon::join(
+        || {
+            verify_commitment_key_g2_kzg_opening_core(
+                input.verifier_g.clone(),
+                input.verifier_g_beta.clone(),
+                input.verifier_h.clone(),
+                ck_v_final.clone(),
+                ck_v_proof.clone(),
+                &raw_transcript_chrono,
+                &input.kzg_g2_r_shift,
+                &kzg_challenge,
+                pairing,
+            )
+        },
+        || {
+            verify_commitment_key_g1_kzg_opening_core(
+                input.verifier_g.clone(),
+                input.verifier_h_alpha.clone(),
+                input.verifier_h.clone(),
+                ck_w_final.clone(),
+                ck_w_proof.clone(),
+                &inv_transcript_chrono,
+                &r_inverse,
+                &kzg_challenge,
+                pairing,
+            )
+        },
+    );
+
+    #[cfg(any(not(feature = "parallel"), feature = "bench-baseline"))]
+    let (ck_v_valid, ck_w_valid) = (
+        verify_commitment_key_g2_kzg_opening_core(
+            input.verifier_g.clone(),
+            input.verifier_g_beta.clone(),
+            input.verifier_h.clone(),
+            ck_v_final.clone(),
+            ck_v_proof.clone(),
+            &raw_transcript_chrono,
+            &input.kzg_g2_r_shift,
+            &kzg_challenge,
+            pairing,
+        ),
+        verify_commitment_key_g1_kzg_opening_core(
+            input.verifier_g.clone(),
+            input.verifier_h_alpha.clone(),
+            input.verifier_h.clone(),
+            ck_w_final.clone(),
+            ck_w_proof.clone(),
+            &inv_transcript_chrono,
+            &r_inverse,
+            &kzg_challenge,
+            pairing,
+        ),
+    );
+
+    let (a_final, b_final, c_final) = &input.proof.final_messages;
+    let a_base = vec![a_final.clone()];
+    let b_base = vec![b_final.clone()];
+    let c_base = vec![c_final.clone()];
+    let ck_v_base = vec![ck_v_final.clone()];
+    let ck_w_base = vec![ck_w_final.clone()];
+
+    let base_result = verify_base_commitment_core(
+        BaseCommitmentCoreInput {
+            ck_a: ck_v_base[0].clone(),
+            ck_b: ck_w_base[0].clone(),
+            ck_t: vec![()],
+            a: a_base[0].clone(),
+            b: b_base[0].clone(),
+            com_a,
+            com_b,
+            com_t,
+        },
+        effect,
+    );
+    let base_valid = match base_result {
+        BaseCommitmentResult::Ok(value) => value,
+        BaseCommitmentResult::Err(error) => return Err(error),
+    };
+    if !base_valid {
+        return Ok(false);
+    }
+
+    let c_valid = effect.verify_c(&c_base, &ck_v_base, &com_c)?;
+    if !c_valid {
+        return Ok(false);
+    }
+
+    let final_r =
+        structured_scalar_final_from_raw_transcript_inner(&raw_transcript_chrono, &input.r);
+    let z_valid = effect.verify_z(&c_base, &[final_r], &com_z)?;
+
+    Ok(ck_v_valid && ck_w_valid && base_valid && c_valid && z_valid)
 }
 
 #[derive(Clone, Debug, Default)]
@@ -567,19 +844,6 @@ fn fold_scalars_profiled<F: Field>(
     (folded, started.elapsed().as_secs_f64() * 1000.0)
 }
 
-fn fold_output<T, S>(left: &T, current: &mut T, right: &T, left_scalar: &S, right_scalar: &S)
-where
-    T: Clone + Default + Add<Output = T> + MulAssign<S>,
-    S: Clone,
-{
-    let mut folded_left = left.clone();
-    folded_left.mul_assign(left_scalar.clone());
-    let mut folded_right = right.clone();
-    folded_right.mul_assign(right_scalar.clone());
-    let current_value = std::mem::take(current);
-    *current = folded_left + current_value + folded_right;
-}
-
 fn derive_scalar_challenge<P, D, S>(
     context: &ChallengeContext,
     trace: &mut S,
@@ -690,6 +954,23 @@ where
     derive_scalar_challenge::<P, D, S>(context, trace, b"tipp-mipp.kzg", &hash_input)
 }
 
+fn serialize_tipp_mipp_core_commitment<GT, ABT, CT>(
+    commitment: &TippMippCoreCommitment<GT, ABT, CT>,
+    output: &mut Vec<u8>,
+) -> Result<(), Error>
+where
+    GT: CanonicalSerialize,
+    ABT: CanonicalSerialize,
+    CT: CanonicalSerialize,
+{
+    commitment.ab.0.serialize_uncompressed(&mut *output)?;
+    commitment.ab.1.serialize_uncompressed(&mut *output)?;
+    commitment.ab.2.serialize_uncompressed(&mut *output)?;
+    commitment.c.0.serialize_uncompressed(&mut *output)?;
+    commitment.c.1.serialize_uncompressed(&mut *output)?;
+    Ok(())
+}
+
 fn serialize_tipp_mipp_commitment<P: Pairing>(
     commitment: &TippMippCommitment<P>,
     output: &mut Vec<u8>,
@@ -700,6 +981,189 @@ fn serialize_tipp_mipp_commitment<P: Pairing>(
     commitment.c.0.serialize_uncompressed(&mut *output)?;
     commitment.c.1.serialize_uncompressed(&mut *output)?;
     Ok(())
+}
+
+struct ArkworksTippMippEffect<'a, P: Pairing, D: Digest, S: ChallengeTraceSink> {
+    context: &'a ChallengeContext,
+    trace: &'a mut S,
+    _pairing: PhantomData<fn() -> P>,
+    _digest: PhantomData<fn() -> D>,
+}
+
+impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
+    BaseCommitmentEffect<
+        P::G2,
+        P::G1,
+        (),
+        P::G1,
+        P::G2,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        IdentityOutput<PairingOutput<P>>,
+        Error,
+    > for ArkworksTippMippEffect<'a, P, D, S>
+{
+    fn inner_product(
+        &self,
+        left: &[P::G1],
+        right: &[P::G2],
+    ) -> BaseCommitmentResult<PairingOutput<P>, Error> {
+        match PairingInnerProduct::<P>::inner_product(left, right) {
+            Ok(value) => BaseCommitmentResult::Ok(value),
+            Err(error) => BaseCommitmentResult::Err(error),
+        }
+    }
+
+    fn verify_left(
+        &self,
+        keys: &[P::G2],
+        messages: &[P::G1],
+        commitment: &PairingOutput<P>,
+    ) -> BaseCommitmentResult<bool, Error> {
+        match PairingInnerProduct::<P>::inner_product(messages, keys) {
+            Ok(value) => BaseCommitmentResult::Ok(value == *commitment),
+            Err(error) => BaseCommitmentResult::Err(error),
+        }
+    }
+
+    fn verify_right(
+        &self,
+        keys: &[P::G1],
+        messages: &[P::G2],
+        commitment: &PairingOutput<P>,
+    ) -> BaseCommitmentResult<bool, Error> {
+        match PairingInnerProduct::<P>::inner_product(keys, messages) {
+            Ok(value) => BaseCommitmentResult::Ok(value == *commitment),
+            Err(error) => BaseCommitmentResult::Err(error),
+        }
+    }
+
+    fn verify_target(
+        &self,
+        _keys: &[()],
+        messages: &[PairingOutput<P>],
+        commitment: &IdentityOutput<PairingOutput<P>>,
+    ) -> BaseCommitmentResult<bool, Error> {
+        BaseCommitmentResult::Ok(IdentityOutput(messages.to_vec()) == *commitment)
+    }
+}
+
+impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
+    TippMippEffect<
+        P::ScalarField,
+        P::G1,
+        P::G2,
+        PairingOutput<P>,
+        IdentityOutput<PairingOutput<P>>,
+        IdentityOutput<P::G1>,
+        Error,
+    > for ArkworksTippMippEffect<'a, P, D, S>
+{
+    fn derive_x0(
+        &mut self,
+        r: &P::ScalarField,
+        com_a: &PairingOutput<P>,
+        com_b: &PairingOutput<P>,
+        com_c: &PairingOutput<P>,
+        ip_ab: &PairingOutput<P>,
+        agg_c: &P::G1,
+    ) -> Result<P::ScalarField, Error> {
+        derive_x0::<P, D, S>(
+            self.context,
+            self.trace,
+            r,
+            (com_a, com_b, com_c),
+            ip_ab,
+            agg_c,
+        )
+    }
+
+    fn derive_round(
+        &mut self,
+        prior_raw_challenge: &P::ScalarField,
+        left: &TippMippCoreCommitment<
+            PairingOutput<P>,
+            IdentityOutput<PairingOutput<P>>,
+            IdentityOutput<P::G1>,
+        >,
+        right: &TippMippCoreCommitment<
+            PairingOutput<P>,
+            IdentityOutput<PairingOutput<P>>,
+            IdentityOutput<P::G1>,
+        >,
+    ) -> Result<P::ScalarField, Error> {
+        let mut hash_input = Vec::new();
+        prior_raw_challenge.serialize_uncompressed(&mut hash_input)?;
+        serialize_tipp_mipp_core_commitment(left, &mut hash_input)?;
+        serialize_tipp_mipp_core_commitment(right, &mut hash_input)?;
+        derive_scalar_challenge::<P, D, S>(
+            self.context,
+            self.trace,
+            b"tipp-mipp.gipa.round",
+            &hash_input,
+        )
+    }
+
+    fn invert_round(&self, challenge: &P::ScalarField) -> Result<P::ScalarField, Error> {
+        challenge.inverse().ok_or_else(|| {
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "round challenge must be non-zero",
+            )) as Error
+        })
+    }
+
+    fn derive_final_bridge(
+        &mut self,
+        last_raw_challenge: &P::ScalarField,
+        final_ck: &(P::G2, P::G1),
+        final_messages: &(P::G1, P::G2, P::G1),
+    ) -> Result<P::ScalarField, Error> {
+        derive_final_bridge::<P, D, S>(
+            self.context,
+            self.trace,
+            last_raw_challenge,
+            final_ck,
+            final_messages,
+        )
+    }
+
+    fn derive_kzg(
+        &mut self,
+        final_bridge: &P::ScalarField,
+        final_ck: &(P::G2, P::G1),
+    ) -> Result<P::ScalarField, Error> {
+        derive_kzg_challenge::<P, D, S>(self.context, self.trace, final_bridge, final_ck)
+    }
+
+    fn invert_randomizer(&self, randomizer: &P::ScalarField) -> Result<P::ScalarField, Error> {
+        randomizer.inverse().ok_or_else(|| {
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "randomizer must be non-zero before inversion",
+            )) as Error
+        })
+    }
+
+    fn verify_c(
+        &self,
+        messages: &[P::G1],
+        keys: &[P::G2],
+        commitment: &PairingOutput<P>,
+    ) -> Result<bool, Error> {
+        Ok(PairingInnerProduct::<P>::inner_product(messages, keys)? == *commitment)
+    }
+
+    fn verify_z(
+        &self,
+        messages: &[P::G1],
+        scalars: &[P::ScalarField],
+        commitment: &IdentityOutput<P::G1>,
+    ) -> Result<bool, Error> {
+        let value = MultiexponentiationInnerProduct::<P::G1>::inner_product(messages, scalars)?;
+        Ok(IdentityOutput(vec![value]) == *commitment)
+    }
 }
 
 fn verify_tipp_mipp_buffered_profiled<P, D>(
@@ -1373,6 +1837,57 @@ where
     }
 }
 
+fn tipp_mipp_core_input<P, D>(
+    ip_verifier_srs: &VerifierSRS<P>,
+    proof: &AggregateProof<P, D>,
+    r: &P::ScalarField,
+) -> TippMippCoreInput<
+    P::ScalarField,
+    P::G1,
+    P::G2,
+    PairingOutput<P>,
+    IdentityOutput<PairingOutput<P>>,
+    IdentityOutput<P::G1>,
+>
+where
+    P: Pairing,
+    D: Digest,
+{
+    let core_commitment = |commitment: &TippMippCommitment<P>| TippMippCoreCommitment {
+        ab: commitment.ab.clone(),
+        c: commitment.c.clone(),
+    };
+    let gipa_proof = proof
+        .tipp_mipp_proof
+        .gipa_proof
+        .r_commitment_steps
+        .iter()
+        .map(|(left, right)| (core_commitment(left), core_commitment(right)))
+        .collect();
+    let tipp_mipp = &proof.tipp_mipp_proof;
+    TippMippCoreInput {
+        com_a: proof.com_a.clone(),
+        com_b: proof.com_b.clone(),
+        com_t: IdentityOutput(vec![proof.ip_ab.clone()]),
+        com_c: proof.com_c.clone(),
+        com_z: IdentityOutput(vec![proof.agg_c.clone()]),
+        ip_ab: proof.ip_ab.clone(),
+        agg_c: proof.agg_c.clone(),
+        proof: TippMippCoreProof {
+            gipa_proof,
+            final_ck: tipp_mipp.final_ck.clone(),
+            final_ck_proofs: tipp_mipp.final_ck_proofs.clone(),
+            final_messages: tipp_mipp.final_messages.clone(),
+        },
+        verifier_g: ip_verifier_srs.g.clone(),
+        verifier_g_beta: ip_verifier_srs.g_beta.clone(),
+        verifier_h: ip_verifier_srs.h.clone(),
+        verifier_h_alpha: ip_verifier_srs.h_alpha.clone(),
+        r: r.clone(),
+        kzg_g2_r_shift: P::ScalarField::one(),
+    }
+}
+
 fn verify_tipp_mipp<P, D, S>(
     context: &ChallengeContext,
     trace: &mut S,
@@ -1385,184 +1900,14 @@ where
     D: Digest,
     S: ChallengeTraceSink,
 {
-    let tipp_mipp = &proof.tipp_mipp_proof;
-    let mut com_a = proof.com_a.clone();
-    let mut com_b = proof.com_b.clone();
-    let mut com_t = IdentityOutput(vec![proof.ip_ab.clone()]);
-    let mut com_c = proof.com_c.clone();
-    let mut com_z = IdentityOutput(vec![proof.agg_c.clone()]);
-
-    let mut prior_raw_challenge = derive_x0::<P, D, S>(
+    let input = tipp_mipp_core_input(ip_verifier_srs, proof, r);
+    let mut effect = ArkworksTippMippEffect::<P, D, S> {
         context,
         trace,
-        r,
-        (&proof.com_a, &proof.com_b, &proof.com_c),
-        &proof.ip_ab,
-        &proof.agg_c,
-    )?;
-    let mut last_raw_challenge = prior_raw_challenge;
-    let mut raw_transcript_chrono = Vec::new();
-    let mut inv_transcript_chrono = Vec::new();
-    let mut round_error = None;
-
-    for (left, right) in tipp_mipp.gipa_proof.r_commitment_steps.iter().rev() {
-        if round_error.is_none() {
-            match derive_round_challenge::<P, D, S>(
-                context,
-                trace,
-                &prior_raw_challenge,
-                left,
-                right,
-            ) {
-                Err(error) => round_error = Some(error),
-                Ok(raw_challenge) => match raw_challenge.inverse() {
-                    None => {
-                        round_error = Some(Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "round challenge must be non-zero",
-                        )) as Error)
-                    }
-                    Some(inv_challenge) => {
-                        fold_output(
-                            &left.ab.0,
-                            &mut com_a,
-                            &right.ab.0,
-                            &inv_challenge,
-                            &raw_challenge,
-                        );
-                        fold_output(
-                            &left.ab.1,
-                            &mut com_b,
-                            &right.ab.1,
-                            &inv_challenge,
-                            &raw_challenge,
-                        );
-                        fold_output(
-                            &left.ab.2,
-                            &mut com_t,
-                            &right.ab.2,
-                            &inv_challenge,
-                            &raw_challenge,
-                        );
-                        fold_output(
-                            &left.c.0,
-                            &mut com_c,
-                            &right.c.0,
-                            &inv_challenge,
-                            &raw_challenge,
-                        );
-                        fold_output(
-                            &left.c.1,
-                            &mut com_z,
-                            &right.c.1,
-                            &inv_challenge,
-                            &raw_challenge,
-                        );
-
-                        raw_transcript_chrono.push(raw_challenge);
-                        inv_transcript_chrono.push(inv_challenge);
-                        prior_raw_challenge = raw_challenge;
-                        last_raw_challenge = raw_challenge;
-                    }
-                },
-            }
-        }
-    }
-
-    if let Some(error) = round_error {
-        return Err(error);
-    }
-
-    raw_transcript_chrono.reverse();
-    inv_transcript_chrono.reverse();
-
-    let final_bridge = derive_final_bridge::<P, D, S>(
-        context,
-        trace,
-        &last_raw_challenge,
-        &tipp_mipp.final_ck,
-        &tipp_mipp.final_messages,
-    )?;
-    let kzg_challenge =
-        derive_kzg_challenge::<P, D, S>(context, trace, &final_bridge, &tipp_mipp.final_ck)?;
-
-    let r_inverse = r.inverse().ok_or_else(|| {
-        Box::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "randomizer must be non-zero before inversion",
-        )) as Error
-    })?;
-    let (ck_v_final, ck_w_final) = &tipp_mipp.final_ck;
-    let (ck_v_proof, ck_w_proof) = &tipp_mipp.final_ck_proofs;
-
-    #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
-    let (ck_v_result, ck_w_result) = rayon::join(
-        || {
-            verify_commitment_key_g2_kzg_opening(
-                ip_verifier_srs,
-                ck_v_final,
-                ck_v_proof,
-                &raw_transcript_chrono,
-                &P::ScalarField::one(),
-                &kzg_challenge,
-            )
-            .map_err(|err| err.to_string())
-        },
-        || {
-            verify_commitment_key_g1_kzg_opening(
-                ip_verifier_srs,
-                ck_w_final,
-                ck_w_proof,
-                &inv_transcript_chrono,
-                &r_inverse,
-                &kzg_challenge,
-            )
-            .map_err(|err| err.to_string())
-        },
-    );
-
-    #[cfg(any(not(feature = "parallel"), feature = "bench-baseline"))]
-    let (ck_v_result, ck_w_result) = (
-        verify_commitment_key_g2_kzg_opening(
-            ip_verifier_srs,
-            ck_v_final,
-            ck_v_proof,
-            &raw_transcript_chrono,
-            &P::ScalarField::one(),
-            &kzg_challenge,
-        )
-        .map_err(|err| err.to_string()),
-        verify_commitment_key_g1_kzg_opening(
-            ip_verifier_srs,
-            ck_w_final,
-            ck_w_proof,
-            &inv_transcript_chrono,
-            &r_inverse,
-            &kzg_challenge,
-        )
-        .map_err(|err| err.to_string()),
-    );
-
-    let ck_v_valid = ck_v_result.map_err(|err: String| std::io::Error::other(err))?;
-    let ck_w_valid = ck_w_result.map_err(|err: String| std::io::Error::other(err))?;
-
-    let (a_final, b_final, c_final) = &tipp_mipp.final_messages;
-    let a_base = vec![*a_final];
-    let b_base = vec![*b_final];
-    let c_base = vec![*c_final];
-    let ck_v_base = vec![*ck_v_final];
-    let ck_w_base = vec![*ck_w_final];
-    let ab_base = PairingInnerProduct::<P>::inner_product(&a_base, &b_base)?;
-    let final_r = structured_scalar_final_from_raw_transcript::<P>(&raw_transcript_chrono, r);
-    let z_base = MultiexponentiationInnerProduct::<P::G1>::inner_product(&c_base, &vec![final_r])?;
-
-    let base_valid = PairingInnerProduct::<P>::inner_product(&a_base, &ck_v_base)? == com_a
-        && PairingInnerProduct::<P>::inner_product(&ck_w_base, &b_base)? == com_b
-        && IdentityOutput(vec![ab_base]) == com_t
-        && PairingInnerProduct::<P>::inner_product(&c_base, &ck_v_base)? == com_c
-        && IdentityOutput(vec![z_base]) == com_z;
-
-    Ok(ck_v_valid && ck_w_valid && base_valid)
+        _pairing: PhantomData,
+        _digest: PhantomData,
+    };
+    verify_tipp_mipp_core(input, &mut effect, &ArkworksPairingEffect::<P>::default())
 }
 
 fn structured_scalar_final_from_raw_transcript<P: Pairing>(
@@ -1783,6 +2128,105 @@ mod tests {
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use ark_std::One;
     use blake2::Blake2b;
+
+    fn zero_tipp_mipp_proof<P: Pairing>() -> AggregateProof<P, Blake2b> {
+        let g1 = P::G1::zero();
+        let g2 = P::G2::zero();
+        AggregateProof {
+            com_a: PairingOutput::<P>::zero(),
+            com_b: PairingOutput::<P>::zero(),
+            com_c: PairingOutput::<P>::zero(),
+            ip_ab: PairingOutput::<P>::zero(),
+            agg_c: g1,
+            tipp_mipp_proof: TippMippProof {
+                gipa_proof: TippMippGipaProof {
+                    r_commitment_steps: Vec::new(),
+                    _digest: PhantomData,
+                },
+                final_ck: (g2, g1),
+                final_ck_proofs: (g2, g1),
+                final_messages: (g1, g2, g1),
+                _digest: PhantomData,
+            },
+        }
+    }
+
+    fn assert_tipp_mipp_delegator_core_parity<P: Pairing>(
+        srs: &VerifierSRS<P>,
+        proof: &AggregateProof<P, Blake2b>,
+        r: P::ScalarField,
+    ) {
+        let context = ChallengeContext::from_statement_digest([0u8; 32]);
+        let mut delegated_trace = NoopChallengeTraceSink;
+        let delegated =
+            verify_tipp_mipp::<P, Blake2b, _>(&context, &mut delegated_trace, srs, proof, &r);
+
+        let input = tipp_mipp_core_input(srs, proof, &r);
+        let mut core_trace = NoopChallengeTraceSink;
+        let mut effect = ArkworksTippMippEffect::<P, Blake2b, _> {
+            context: &context,
+            trace: &mut core_trace,
+            _pairing: PhantomData,
+            _digest: PhantomData,
+        };
+        let core =
+            verify_tipp_mipp_core(input, &mut effect, &ArkworksPairingEffect::<P>::default());
+
+        match (delegated, core) {
+            (Ok(delegated), Ok(core)) => assert_eq!(delegated, core),
+            (Err(_), Err(_)) => {}
+            (delegated, core) => panic!("delegator/core mismatch: {:?} vs {:?}", delegated, core),
+        }
+    }
+
+    #[test]
+    fn verify_tipp_mipp_delegator_core_parity_success() {
+        let srs = VerifierSRS::<Bls12_381> {
+            g: <Bls12_381 as Pairing>::G1::zero(),
+            h: <Bls12_381 as Pairing>::G2::zero(),
+            g_beta: <Bls12_381 as Pairing>::G1::zero(),
+            h_alpha: <Bls12_381 as Pairing>::G2::zero(),
+        };
+        let proof = zero_tipp_mipp_proof::<Bls12_381>();
+        assert_tipp_mipp_delegator_core_parity(
+            &srs,
+            &proof,
+            <Bls12_381 as Pairing>::ScalarField::from(2u64),
+        );
+    }
+
+    #[test]
+    fn verify_tipp_mipp_delegator_core_parity_randomizer_failure() {
+        let srs = VerifierSRS::<Bls12_381> {
+            g: <Bls12_381 as Pairing>::G1::zero(),
+            h: <Bls12_381 as Pairing>::G2::zero(),
+            g_beta: <Bls12_381 as Pairing>::G1::zero(),
+            h_alpha: <Bls12_381 as Pairing>::G2::zero(),
+        };
+        let proof = zero_tipp_mipp_proof::<Bls12_381>();
+        assert_tipp_mipp_delegator_core_parity(
+            &srs,
+            &proof,
+            <Bls12_381 as Pairing>::ScalarField::zero(),
+        );
+    }
+
+    #[test]
+    fn verify_tipp_mipp_delegator_core_parity_base_commitment_failure() {
+        let srs = VerifierSRS::<Bls12_381> {
+            g: <Bls12_381 as Pairing>::G1::zero(),
+            h: <Bls12_381 as Pairing>::G2::zero(),
+            g_beta: <Bls12_381 as Pairing>::G1::zero(),
+            h_alpha: <Bls12_381 as Pairing>::G2::zero(),
+        };
+        let mut proof = zero_tipp_mipp_proof::<Bls12_381>();
+        proof.com_a = PairingOutput::<Bls12_381>(<Bls12_381 as Pairing>::TargetField::one());
+        assert_tipp_mipp_delegator_core_parity(
+            &srs,
+            &proof,
+            <Bls12_381 as Pairing>::ScalarField::from(2u64),
+        );
+    }
 
     fn assert_fold_public_inputs_parity<P: Pairing>(rows: usize, r: P::ScalarField) {
         let g1 = P::G1::generator();
