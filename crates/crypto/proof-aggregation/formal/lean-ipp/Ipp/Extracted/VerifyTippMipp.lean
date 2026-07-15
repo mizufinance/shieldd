@@ -1,4 +1,7 @@
 import Ipp.Extracted.VerifyTippMippGenerated
+import Ipp.Extracted.KzgVerifiers
+import Ipp.Extracted.BaseCommitment
+import Ipp.Extracted.StructuredScalar
 import Ipp.FsGame
 
 namespace Ipp.Extracted
@@ -406,6 +409,34 @@ private def modelSmulAssign (M : Type) [SMul F M] :
     ark_ip_proofs.core.ops.arith.MulAssign M F where
   mul_assign x c := .ok (c • x)
 
+private def modelOne (T : Type) [One T] [Mul T] :
+    ark_ip_proofs.num_traits.identities.One T where
+  coreopsarithMulInst := { mul := fun x y => .ok (x * y) }
+  one := .ok 1
+
+private def modelMul (T : Type) [Mul T] :
+    ark_ip_proofs.core.ops.arith.Mul T T T where
+  mul x y := .ok (x * y)
+
+private def modelSmul (M : Type) [SMul F M] :
+    ark_ip_proofs.core.ops.arith.Mul M F M where
+  mul x c := .ok (c • x)
+
+private def modelSub (T : Type) [Sub T] :
+    ark_ip_proofs.core.ops.arith.Sub T T T where
+  sub x y := .ok (x - y)
+
+private def modelNeg (T : Type) [Neg T] :
+    ark_ip_proofs.core.ops.arith.Neg T T where
+  neg x := .ok (-x)
+
+private abbrev modelZero (T : Type) [Zero T] [Add T] [DecidableEq T] :=
+  Ipp.Extracted.zeroModel T
+
+private abbrev modelPairing {G2 PE : Type} [AddCommGroup G2] [Module F G2]
+    (e : G1 →ₗ[F] G2 →ₗ[F] GT) (outcome : PE → Option Unit) :=
+  Ipp.Extracted.pairingModel e outcome
+
 /-- The landed fold-output equation, specialized to the verifier extraction's
     copy of `fold_output`. -/
 private theorem foldOutput_eq_foldCom {M : Type} [AddCommGroup M] [Module F M]
@@ -593,9 +624,253 @@ theorem success_terminal_folds {n : Nat} {G2 E FX : Type}
   rw [foldState_terminal]
   rfl
 
+/-- Model input for the complete extracted leaf verifier. -/
+def coreInput {G2 : Type} [AddCommGroup G2] [Module F G2] {n : Nat}
+    (stmt : Ipp.FsStatement n F G1 G2 GT)
+    (proof : Ipp.Proof n F G1 G2 GT) (transcript : Ipp.FsTranscript n F)
+    (g gBeta : G1) (h hAlpha : G2) :
+    ark_ip_proofs.applications.groth16_aggregation.TippMippCoreInput
+      F G1 G2 GT GT G1 :=
+  { com_a := stmt.ComA.1
+    com_b := stmt.ComB
+    com_t := proof.ipAb
+    com_c := stmt.ComA.2
+    com_z := proof.aggC
+    ip_ab := proof.ipAb
+    agg_c := proof.aggC
+    proof :=
+      { gipa_proof := finVec (extractedRounds proof.rounds)
+        final_ck := (proof.vFinal, proof.wFinal)
+        final_ck_proofs := (proof.vOpening, proof.wOpening)
+        final_messages := (proof.aFinal, proof.bFinal, proof.cFinal) }
+    verifier_g := g
+    verifier_g_beta := gBeta
+    verifier_h := h
+    verifier_h_alpha := hAlpha
+    r := transcript.randomizer
+    kzg_g2_r_shift := 1 }
+
+set_option maxHeartbeats 1000000 in
+/-- The full extracted TIPP/MIPP leaf verifier succeeds exactly on `LeafData`.
+    Its hypotheses are only the concrete interpretations of extracted effects;
+    in particular the decoded round challenges are nonzero and their stored
+    inverse transcript is exact. -/
+theorem verify_tipp_mipp_refinement_statement
+    {G2 E FX PE : Type} [AddCommGroup G2] [Module F G2] [DecidableEq GT]
+    {n : Nat}
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (outcome : PE → Option Unit)
+    (stmt : Ipp.FsStatement n F G1 G2 GT)
+    (proof : Ipp.Proof n F G1 G2 GT) (transcript : Ipp.FsTranscript n F)
+    (g gBeta : G1) (h hAlpha : G2) (pairing : PE)
+    (effect0 : FX) (effect : Nat → FX) (effect3 effect4 : FX)
+    (inverse : Fin n → F)
+    (leftAccepted rightAccepted targetAccepted cAccepted zAccepted : Bool)
+    (hx0 : effects.derive_x0 effect0 transcript.randomizer stmt.ComA.1 stmt.ComB
+      stmt.ComA.2 proof.ipAb proof.aggC =
+        .ok (.Ok transcript.x0, effect 0))
+    (hderive : ∀ k (hk : k < n),
+      effects.derive_round (effect k)
+          (priorAt transcript.roundAnswer transcript.x0 k)
+          (extractedRounds proof.rounds (Fin.rev ⟨k, hk⟩)).1
+          (extractedRounds proof.rounds (Fin.rev ⟨k, hk⟩)).2 =
+        .ok (.Ok (transcript.roundAnswer ⟨k, hk⟩), effect (k + 1)))
+    (hinvert : ∀ k (hk : k < n),
+      effects.invert_round (effect (k + 1))
+          (transcript.roundAnswer ⟨k, hk⟩) =
+        .ok (.Ok (inverse ⟨k, hk⟩)))
+    (hinverse : ∀ i, inverse i = (transcript.roundAnswer i)⁻¹)
+    (hnonzero : ∀ i, transcript.roundAnswer i ≠ 0)
+    (hbridge : effects.derive_final_bridge (effect n)
+      (priorAt transcript.roundAnswer transcript.x0 n)
+      (proof.vFinal, proof.wFinal)
+      (proof.aFinal, proof.bFinal, proof.cFinal) =
+        .ok (.Ok transcript.bridge, effect3))
+    (hkzg : effects.derive_kzg effect3 transcript.bridge
+      (proof.vFinal, proof.wFinal) = .ok (.Ok transcript.kzg, effect4))
+    (hrandomizer : effects.invert_randomizer effect4 transcript.randomizer =
+      .ok (.Ok transcript.randomizer⁻¹))
+    (hbaseInner :
+      effects.gipaBaseCommitmentEffectSelfG2G1TupleG1G2GTGTGTABTEInst.inner_product
+        effect4 ⟨[proof.aFinal]⟩ ⟨[proof.bFinal]⟩ =
+          .ok (.Ok (stmt.e proof.aFinal proof.bFinal)))
+    (hbaseLeft :
+      effects.gipaBaseCommitmentEffectSelfG2G1TupleG1G2GTGTGTABTEInst.verify_left
+        effect4 ⟨[proof.vFinal]⟩ ⟨[proof.aFinal]⟩
+          (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1 =
+            .ok (.Ok leftAccepted))
+    (hbaseRight :
+      effects.gipaBaseCommitmentEffectSelfG2G1TupleG1G2GTGTGTABTEInst.verify_right
+        effect4 ⟨[proof.wFinal]⟩ ⟨[proof.bFinal]⟩
+          (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB =
+            .ok (.Ok rightAccepted))
+    (hbaseTarget :
+      effects.gipaBaseCommitmentEffectSelfG2G1TupleG1G2GTGTGTABTEInst.verify_target
+        effect4 ⟨[()]⟩ ⟨[stmt.e proof.aFinal proof.bFinal]⟩
+          (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.1 =
+            .ok (.Ok targetAccepted))
+    (hleft : leftAccepted = true ↔
+      stmt.e proof.aFinal proof.vFinal =
+        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1)
+    (hright : rightAccepted = true ↔
+      stmt.e proof.wFinal proof.bFinal =
+        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB)
+    (htarget : targetAccepted = true ↔
+      stmt.e proof.aFinal proof.bFinal =
+        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.1)
+    (hc : effects.verify_c effect4 ⟨[proof.cFinal]⟩ ⟨[proof.vFinal]⟩
+      (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.2 =
+        .ok (.Ok cAccepted))
+    (hcAccepted : cAccepted = true ↔
+      stmt.e proof.cFinal proof.vFinal =
+        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.2)
+    (hz : effects.verify_z effect4 ⟨[proof.cFinal]⟩
+      ⟨[Ipp.terminalR transcript.randomizer
+        (Ipp.reversedView transcript.roundAnswer)]⟩
+      (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2 =
+        .ok (.Ok zAccepted))
+    (hzAccepted : zAccepted = true ↔
+      Ipp.terminalR transcript.randomizer
+          (Ipp.reversedView transcript.roundAnswer) • proof.cFinal =
+        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2)
+    (hacceptV : stmt.acceptV transcript.kzg
+        (Ipp.transcriptCoeffs (Ipp.reversedView transcript.roundAnswer) 1)
+        proof.vFinal proof.vOpening ↔
+      outcome pairing = some () ∧
+        stmt.e g (proof.vFinal -
+            (∑ i : Fin (2 ^ n),
+              Ipp.transcriptCoeffs (Ipp.reversedView transcript.roundAnswer) 1 i *
+                (transcript.kzg ^ 2) ^ (i : Nat)) • h) -
+          stmt.e (gBeta - transcript.kzg • g) proof.vOpening = 0)
+    (hacceptW : stmt.acceptW transcript.kzg
+        (Ipp.transcriptCoeffs
+          (fun i => Ipp.gipaChallenge (Ipp.reversedView transcript.roundAnswer i))
+          transcript.randomizer⁻¹) proof.wFinal proof.wOpening ↔
+      outcome pairing = some () ∧
+        stmt.e (proof.wFinal -
+            (∑ i : Fin (2 ^ n),
+              Ipp.transcriptCoeffs
+                (fun i => Ipp.gipaChallenge
+                  (Ipp.reversedView transcript.roundAnswer i))
+                transcript.randomizer⁻¹ i *
+                (transcript.kzg ^ 2) ^ (i : Nat)) • g) h -
+          stmt.e proof.wOpening (hAlpha - transcript.kzg • h) = 0) :
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
+        (modelClone F) (modelOne F) (modelAdd F) (modelMul F)
+        (modelClone G1) (modelSmul G1) (modelSub G1) (modelNeg G1)
+        (modelClone G2) (modelSmul G2) (modelSub G2)
+        (modelClone GT) (modelDefault GT) (modelAdd GT) (modelSmulAssign GT)
+        (modelZero GT) (modelClone GT) (modelDefault GT) (modelAdd GT)
+        (modelSmulAssign GT) (modelClone G1) (modelDefault G1) (modelAdd G1)
+        (modelSmulAssign G1) effects (modelPairing stmt.e outcome)
+        (coreInput stmt proof transcript g gBeta h hAlpha) effect0 pairing =
+          .ok (.Ok true, effect4) ↔
+      Ipp.LeafData stmt proof transcript := by
+  have hloop := success_terminal_folds effects proof stmt.ComA stmt.ComB effect
+    transcript.x0 transcript.x0 transcript.roundAnswer inverse hderive hinvert
+    hinverse hnonzero
+  simp only [modelClone, modelDefault, modelAdd, modelSmulAssign, finVec] at hloop
+  have hv := hax_translated_verify_g2_kzg_opening_eq stmt.e outcome pairing
+    (Ipp.reversedView transcript.roundAnswer) 1 transcript.kzg g gBeta h
+    proof.vFinal proof.vOpening
+  have hw := hax_translated_verify_g1_kzg_opening_eq stmt.e outcome pairing
+    (fun i => Ipp.gipaChallenge (Ipp.reversedView transcript.roundAnswer i))
+    transcript.randomizer⁻¹ transcript.kzg g hAlpha h proof.wFinal proof.wOpening
+  change ark_ip_proofs.tipa.verify_commitment_key_g2_kzg_opening_core
+      (modelClone F) (modelOne F) (modelAdd F) (modelMul F)
+      (modelClone G1) (modelSmul G1) (modelSub G1) (modelNeg G1)
+      (modelClone G2) (modelSmul G2) (modelSub G2) (modelZero GT)
+      (modelPairing stmt.e outcome) g gBeta h proof.vFinal proof.vOpening
+      (finVec (Ipp.reversedView transcript.roundAnswer)) 1 transcript.kzg pairing = _ at hv
+  change ark_ip_proofs.tipa.verify_commitment_key_g1_kzg_opening_core
+      (modelClone F) (modelOne F) (modelAdd F) (modelMul F)
+      (modelClone G1) (modelSmul G1) (modelSub G1) (modelNeg G1)
+      (modelClone G2) (modelSmul G2) (modelSub G2) (modelZero GT)
+      (modelPairing stmt.e outcome) g hAlpha h proof.wFinal proof.wOpening
+      (finVec (fun i => Ipp.gipaChallenge
+        (Ipp.reversedView transcript.roundAnswer i))) transcript.randomizer⁻¹
+      transcript.kzg pairing = _ at hw
+  simp only [modelClone, modelOne, modelAdd, modelMul, modelSmul, modelSub,
+    modelNeg, finVec] at hv hw
+  have hs := hax_translated_structured_scalar_final_eq transcript.roundAnswer
+    transcript.randomizer
+  change ark_ip_proofs.applications.groth16_aggregation.structured_scalar_final_from_raw_transcript_inner
+      (modelClone F) (modelOne F) (modelAdd F) (modelMul F)
+      ⟨List.ofFn (Ipp.reversedView transcript.roundAnswer)⟩ transcript.randomizer = _ at hs
+  simp only [modelClone, modelOne, modelAdd, modelMul] at hs
+  unfold ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
+  simp only [coreInput, modelClone, modelOne, modelAdd, modelMul, modelSmul,
+    modelSub, modelNeg, modelDefault, modelSmulAssign, Result.bind_ok]
+  rw [hx0]
+  simp only [ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
+    Result.bind_ok, ark_ip_proofs.alloc.vec.Vec.len,
+    ark_ip_proofs.alloc.vec.Vec.new, finVec, List.length_ofFn, Usize.ofNat]
+  rw [hloop]
+  simp only [Result.bind_ok, ark_ip_proofs.alloc.vec.Vec.deref_mut,
+    ark_ip_proofs.core.slice.Slice.reverse, lift]
+  rw [reverse_chronological_eq_reversedView transcript.roundAnswer]
+  rw [reverse_chronological_eq_reversedView inverse]
+  have hinverseReversed :
+      Ipp.reversedView inverse =
+        fun i => Ipp.gipaChallenge (Ipp.reversedView transcript.roundAnswer i) := by
+    funext i
+    simp [Ipp.reversedView, Ipp.gipaChallenge, hinverse]
+  rw [hinverseReversed]
+  rw [hbridge]
+  simp only [ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
+    Result.bind_ok]
+  rw [hkzg]
+  simp only [ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
+    Result.bind_ok]
+  rw [hrandomizer]
+  simp only [ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
+    Result.bind_ok, modelClone]
+  simp only [ark_ip_proofs.rayon_core.join.join, Result.bind_ok,
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleBool,
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core.closure_1.Insts.CoreOpsFunctionFnOnceTupleBool,
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleBool.call_once,
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core.closure_1.Insts.CoreOpsFunctionFnOnceTupleBool.call_once]
+  rw [hv, hw]
+  simp only [ark_ip_proofs.Array.make, ark_ip_proofs.Std.Array.to_slice,
+    ark_ip_proofs.alloc.slice.Slice.into_vec, ark_ip_proofs.alloc.vec.Vec.index,
+    List.getElem?_cons_zero, modelClone, Result.bind_ok]
+  unfold ark_ip_proofs.gipa.verify_base_commitment_core
+  simp only [ark_ip_proofs.Array.make, ark_ip_proofs.Array.to_slice,
+    ark_ip_proofs.Std.Array.to_slice, ark_ip_proofs.alloc.slice.Slice.into_vec,
+    ark_ip_proofs.alloc.vec.Vec.deref, alloc.vec.Vec.with_capacity,
+    alloc.vec.Vec.push, lift, Result.bind_ok]
+  rw [hbaseInner]
+  simp only [Result.bind_ok]
+  rw [hbaseLeft]
+  simp only [Result.bind_ok]
+  rw [hbaseRight]
+  simp only [Result.bind_ok]
+  simp only [List.nil_append]
+  rw [hbaseTarget]
+  simp only [hc, hz, ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
+    Result.bind_ok, ark_ip_proofs.alloc.vec.Vec.deref]
+  rw [hs]
+  simp only [Result.bind_ok]
+  rw [hz]
+  simp only [ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
+    Result.bind_ok]
+  unfold Ipp.LeafData
+  simp only
+  rw [← hleft, ← hright, ← htarget, ← hcAccepted, ← hzAccepted,
+    hacceptV, hacceptW]
+  cases leftAccepted <;> cases rightAccepted <;> cases targetAccepted <;>
+    cases cAccepted <;> cases zAccepted <;> cases outcome pairing <;> simp
+  split <;> simp_all
+
 end TerminalFolds
 
 end GeneratedLoop
 end VerifyTippMipp
+
+export VerifyTippMipp (verify_tipp_mipp_refinement_statement)
+
+#print axioms verify_tipp_mipp_refinement_statement
+
 end
 end Ipp.Extracted

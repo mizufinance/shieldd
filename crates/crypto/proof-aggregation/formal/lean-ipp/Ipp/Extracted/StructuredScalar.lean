@@ -1,4 +1,4 @@
-import Ipp.Extracted.StructuredScalarGenerated
+import Ipp.Extracted.VerifyTippMippGenerated
 import Ipp.FsGame
 
 namespace Ipp.Extracted

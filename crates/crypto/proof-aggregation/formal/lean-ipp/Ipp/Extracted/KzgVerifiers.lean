@@ -1,4 +1,4 @@
-import Ipp.Extracted.KzgVerifiersGenerated
+import Ipp.Extracted.VerifyTippMippGenerated
 import Ipp.Kzg
 
 namespace Ipp.Extracted
@@ -9,35 +9,35 @@ open scoped BigOperators
 
 noncomputable section
 
-private def cloneModel (T : Type) : core.clone.Clone T where
+def cloneModel (T : Type) : core.clone.Clone T where
   clone x := .ok x
 
-private def addModel (T : Type) [Add T] :
+def addModel (T : Type) [Add T] :
     ark_ip_proofs.core.ops.arith.Add T T T where
   add x y := .ok (x + y)
 
-private def mulModel (T : Type) [Mul T] :
+def mulModel (T : Type) [Mul T] :
     ark_ip_proofs.core.ops.arith.Mul T T T where
   mul x y := .ok (x * y)
 
-private def smulModel (F G : Type) [SMul F G] :
+def smulModel (F G : Type) [SMul F G] :
     ark_ip_proofs.core.ops.arith.Mul G F G where
   mul x s := .ok (s • x)
 
-private def subModel (G : Type) [Sub G] :
+def subModel (G : Type) [Sub G] :
     ark_ip_proofs.core.ops.arith.Sub G G G where
   sub x y := .ok (x - y)
 
-private def negModel (G : Type) [Neg G] :
+def negModel (G : Type) [Neg G] :
     ark_ip_proofs.core.ops.arith.Neg G G where
   neg x := .ok (-x)
 
-private def oneModel (T : Type) [One T] [Mul T] :
+def oneModel (T : Type) [One T] [Mul T] :
     ark_ip_proofs.num_traits.identities.One T where
   coreopsarithMulInst := mulModel T
   one := .ok 1
 
-private def zeroModel (T : Type) [Zero T] [Add T] [DecidableEq T] :
+def zeroModel (T : Type) [Zero T] [Add T] [DecidableEq T] :
     ark_ip_proofs.num_traits.identities.Zero T where
   coreopsarithAddInst := addModel T
   zero := .ok 0
@@ -45,7 +45,7 @@ private def zeroModel (T : Type) [Zero T] [Add T] [DecidableEq T] :
 
 /-- Interpret the extracted pairing effect by a bilinear map. `outcome state = none`
     models effect failure; success computes the ordered two-pairing sum. -/
-private def pairingModel {F G1 G2 GT E : Type}
+def pairingModel {F G1 G2 GT E : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
     (e : G1 →ₗ[F] G2 →ₗ[F] GT) (outcome : E → Option Unit) :
@@ -59,7 +59,7 @@ private def pairingModel {F G1 G2 GT E : Type}
             .ok (some (e left0 right0 + e left1 right1))
         | _, _ => .ok none
 
-private def finVec {T : Type} {n : ℕ} (v : Fin n → T) :
+def finVec {T : Type} {n : ℕ} (v : Fin n → T) :
     alloc.vec.Vec T :=
   ⟨List.ofFn v⟩
 

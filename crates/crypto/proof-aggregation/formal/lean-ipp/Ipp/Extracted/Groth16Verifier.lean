@@ -797,14 +797,6 @@ theorem verify_ppe_refinement_statement
     normalization_law prepared_negative_law pairing_effect_law]
   cases outcome pairing <;> simp
 
-def verify_tipp_mipp_refinement_statement
-    {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
-    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
-    {μ : ℕ} (stmt : FsStatement μ F G1 G2 GT)
-    (proof : Proof μ F G1 G2 GT) (transcript : FsTranscript μ F)
-    (run : Bool) : Prop :=
-  run = true ↔ Ipp.LeafData stmt proof transcript
-
 def verify_aggregate_refinement_statement
     {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]

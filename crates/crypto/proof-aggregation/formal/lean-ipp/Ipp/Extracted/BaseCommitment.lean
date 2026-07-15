@@ -1,4 +1,4 @@
-import Ipp.Extracted.BaseCommitmentGenerated
+import Ipp.Extracted.VerifyTippMippGenerated
 
 namespace Ipp.Extracted
 
@@ -57,8 +57,8 @@ theorem verify_base_commitment_refinement
   unfold ark_ip_proofs.gipa.verify_base_commitment_core
   cases innerError <;> cases leftError <;> cases rightError <;> cases targetError <;>
   cases leftAccepted <;> cases rightAccepted <;> cases targetAccepted <;>
-  simp [lift, Aeneas.Std.Array.make, Std.Array.to_slice,
-    alloc.slice.Slice.into_vec, ark_ip_proofs.alloc.vec.Vec.deref,
+  simp [lift, ark_ip_proofs.Std.Array.to_slice,
+    ark_ip_proofs.alloc.slice.Slice.into_vec, ark_ip_proofs.alloc.vec.Vec.deref,
     alloc.vec.Vec.with_capacity, alloc.vec.Vec.push,
     ark_ip_proofs.Array.make, ark_ip_proofs.Array.to_slice,
     inner_product_law, left_commitment_law, right_commitment_law,
