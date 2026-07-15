@@ -87,6 +87,28 @@ S2-20's closed extraction starts at the two `*_kzg_opening_core` functions;
 the public `Pairing` wrappers remain concrete one-call delegators and are not
 part of the extracted graph.
 
+## S3-07 disposable Fq multiplication spike
+
+The pinned BLS12-377 Fq implementation is six limbs, despite the work-order's
+four-limb wording. On the Windows x86_64 production configuration, `bmi2` and
+`adx` are absent from `rustc --print cfg`, so ark-ff 0.5.0 selects its safe-Rust
+no-carry CIOS multiplication rather than the guarded assembly branch. Because
+the external `MontConfig`/`Fp384` trait graph is not an associated-type-free
+hax boundary, the spike uses a faithful local monomorphic copy and requires
+Rust parity against the real operation.
+
+The successful scoped extraction command was
+`cargo hax into -v --output-dir /root/shieldd-s3-07-fq aeneas-lean
+--charon-args=--start-from=crate::s3_07_arkworks_fq_spike::mul --lakefile`.
+Its closed graph was `mul`, `round`, `mac`, `subtract_modulus`, `geq_modulus`,
+and `sbb`, plus executable bounded-integer and array runtime operations. The
+installed hax frontend also warned that it expected Aeneas `e0a1596` but could
+not identify the installed Aeneas revision. The generated graph was not
+vendored because the required carry-closure theorem did not close; retaining
+an unproved generated path would misstate the feasibility result. The Rust
+copy and parity test remain disposable S3-08 evidence, not a formal target in
+`hax-targets.txt`.
+
 S2-25 extracts from `crate::gipa::verify_base_commitment_core` with
 `--charon-args=--start-from=crate::gipa::verify_base_commitment_core`. The
 closed graph contains only explicit `KA`, `KB`, `KT`, `MA`, `MB`, `MT`, `OA`,

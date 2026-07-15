@@ -375,6 +375,26 @@ four-limb multiply/reduce wrapper and prove range preservation plus
 executed carry/reduction closure with no unsafe/assembly/result assumption; a
 mere wrapper theorem fails the session. This is evidence for F02 only.
 
+**2026-07-15 S3-07 result (negative feasibility evidence).** The task's
+"four-limb Fq" description does not match the pinned implementation:
+BLS12-377 `Fq` is `Fp384<MontBackend<FqConfig, 6>>`, with six 64-bit limbs
+(`Fr` is the four-limb field). The Windows x86_64 build has the ark-ff `asm`
+feature available but does not enable the BMI2/ADX target features, so Fq
+multiplication executes the safe-Rust no-carry CIOS branch. A disposable
+six-limb monomorphic copy spells out `mul -> round x6 -> mac`, followed by
+`subtract_modulus -> geq_modulus/sbb`; parity against real arkworks Fq passed
+36 edge pairs and 512 deterministic random pairs. Scoped WSL hax/Charon/Aeneas
+extraction from `crate::s3_07_arkworks_fq_spike::mul` produced a closed graph
+containing those definitions and only executable `U64`/`U128`, array, cast,
+shift, checked-add, and wrapping-operation runtime calls. However, the
+range/decode theorem over that generated carry closure did not close; the
+attempt stalled at the first symbolic `mac` bridge before the six CIOS round
+invariant, conditional subtraction, or decode composition was established.
+The incomplete Lean artifact was removed and no theorem is claimed. Verdict:
+F01B fails the S3-07 design gate and supplies no basis for selecting arkworks
+in S3-08; retain F01A unless later work is explicitly re-scoped to a larger
+machine-arithmetic proof session. This result retires no ledger row.
+
 **S3-08 — F02 single field-route decision** — `MECHANICAL (luna)` — `GATED`
 on S3-06/07. Select F01A unless only F01B meets the no-opaque-boundary and
 whole-stack compatibility criteria; use deterministic SnarkPack release
