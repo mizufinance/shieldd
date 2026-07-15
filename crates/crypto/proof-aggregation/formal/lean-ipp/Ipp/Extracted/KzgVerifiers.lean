@@ -391,9 +391,110 @@ theorem hax_translated_verify_g2_kzg_opening_true_iff
   rw [hax_translated_verify_g2_kzg_opening_eq]
   cases outcome pairing <;> simp
 
+/-- The regenerated G1 equation kernel, including pairing-effect failure. -/
+theorem hax_translated_verify_g1_kzg_eq
+    {F G1 G2 GT E : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq GT]
+    (e : G1 →ₗ[F] G2 →ₗ[F] GT) (outcome : E → Option Unit)
+    (pairing : E) (g : G1) (hAlpha h : G2) (key opening : G1) (eval z : F) :
+    ark_ip_proofs.tipa.verify_commitment_key_g1_kzg_equation_core
+        (cloneModel F) (cloneModel G1) (smulModel F G1) (subModel G1)
+        (negModel G1) (cloneModel G2) (smulModel F G2) (subModel G2)
+        (zeroModel GT) (pairingModel e outcome)
+        { g, h_alpha := hAlpha, h, ck_final := key, ck_opening := opening,
+          eval, z, _pairing_output := () } pairing =
+      .ok (match outcome pairing with
+        | none => false
+        | some () => decide
+            (e (key - eval • g) h - e opening (hAlpha - z • h) = 0)) := by
+  simp [ark_ip_proofs.tipa.verify_commitment_key_g1_kzg_equation_core,
+    cloneModel, smulModel, subModel, negModel, zeroModel, pairingModel,
+    ark_ip_proofs.Array.make, ark_ip_proofs.Array.to_slice]
+  split <;> rename_i hout
+  · rfl
+  · unfold lift
+    simp
+    constructor <;> intro hEq <;>
+      simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hEq
+
+/-- The regenerated G1 equation core returns true exactly when its effect
+    succeeds and the ordered `acceptW` equation holds. -/
+theorem hax_translated_verify_g1_kzg_true_iff
+    {F G1 G2 GT E : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq GT]
+    (e : G1 →ₗ[F] G2 →ₗ[F] GT) (outcome : E → Option Unit)
+    (pairing : E) (g : G1) (hAlpha h : G2) (key opening : G1) (eval z : F) :
+    ark_ip_proofs.tipa.verify_commitment_key_g1_kzg_equation_core
+        (cloneModel F) (cloneModel G1) (smulModel F G1) (subModel G1)
+        (negModel G1) (cloneModel G2) (smulModel F G2) (subModel G2)
+        (zeroModel GT) (pairingModel e outcome)
+        { g, h_alpha := hAlpha, h, ck_final := key, ck_opening := opening,
+          eval, z, _pairing_output := () } pairing = .ok true ↔
+      outcome pairing = some () ∧
+        e (key - eval • g) h - e opening (hAlpha - z • h) = 0 := by
+  rw [hax_translated_verify_g1_kzg_eq]
+  cases outcome pairing <;> simp
+
+/-- The public G1 opening core composes the inverse-transcript evaluation with
+    the exact failure-aware `acceptW` Boolean. -/
+theorem hax_translated_verify_g1_kzg_opening_eq
+    {F G1 G2 GT E : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq GT] {μ : Nat}
+    (e : G1 →ₗ[F] G2 →ₗ[F] GT) (outcome : E → Option Unit)
+    (pairing : E) (xInv : Fin μ → F) (rShift z : F)
+    (g : G1) (hAlpha h : G2) (key opening : G1) :
+    ark_ip_proofs.tipa.verify_commitment_key_g1_kzg_opening_core
+        (cloneModel F) (oneModel F) (addModel F) (mulModel F)
+        (cloneModel G1) (smulModel F G1) (subModel G1) (negModel G1)
+        (cloneModel G2) (smulModel F G2) (subModel G2)
+        (zeroModel GT) (pairingModel e outcome)
+        g hAlpha h key opening (finVec xInv) rShift z pairing =
+      .ok (match outcome pairing with
+        | none => false
+        | some () => decide
+            (e (key -
+                (∑ i : Fin (2 ^ μ), Ipp.transcriptCoeffs xInv rShift i *
+                  (z ^ 2) ^ (i : Nat)) • g) h -
+              e opening (hAlpha - z • h) = 0)) := by
+  unfold ark_ip_proofs.tipa.verify_commitment_key_g1_kzg_opening_core
+  rw [hax_translated_g2_kzg_product_evaluation_coefficients xInv z rShift]
+  simp only [Result.bind_ok]
+  simp only [cloneModel, Result.bind_ok]
+  exact hax_translated_verify_g1_kzg_eq e outcome pairing g hAlpha h key opening
+    (∑ i : Fin (2 ^ μ), Ipp.transcriptCoeffs xInv rShift i *
+      (z ^ 2) ^ (i : Nat)) z
+
+/-- The extracted public G1 opening returns true exactly on successful pairing
+    evaluation and the `acceptW` equation at the inverse-transcript polynomial. -/
+theorem hax_translated_verify_g1_kzg_opening_true_iff
+    {F G1 G2 GT E : Type} [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq GT] {μ : Nat}
+    (e : G1 →ₗ[F] G2 →ₗ[F] GT) (outcome : E → Option Unit)
+    (pairing : E) (xInv : Fin μ → F) (rShift z : F)
+    (g : G1) (hAlpha h : G2) (key opening : G1) :
+    ark_ip_proofs.tipa.verify_commitment_key_g1_kzg_opening_core
+        (cloneModel F) (oneModel F) (addModel F) (mulModel F)
+        (cloneModel G1) (smulModel F G1) (subModel G1) (negModel G1)
+        (cloneModel G2) (smulModel F G2) (subModel G2)
+        (zeroModel GT) (pairingModel e outcome)
+        g hAlpha h key opening (finVec xInv) rShift z pairing = .ok true ↔
+      outcome pairing = some () ∧
+        e (key -
+            (∑ i : Fin (2 ^ μ), Ipp.transcriptCoeffs xInv rShift i *
+              (z ^ 2) ^ (i : Nat)) • g) h -
+          e opening (hAlpha - z • h) = 0 := by
+  rw [hax_translated_verify_g1_kzg_opening_eq]
+  cases outcome pairing <;> simp
+
 #print axioms hax_translated_g2_kzg_product_evaluation_coefficients
 #print axioms hax_translated_verify_g2_kzg_eq
 #print axioms hax_translated_verify_g2_kzg_opening_true_iff
+#print axioms hax_translated_verify_g1_kzg_eq
+#print axioms hax_translated_verify_g1_kzg_opening_true_iff
 
 end
 end Ipp.Extracted
