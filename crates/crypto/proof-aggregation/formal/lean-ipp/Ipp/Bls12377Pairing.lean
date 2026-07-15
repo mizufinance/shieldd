@@ -150,11 +150,11 @@ noncomputable def affineRepOfPoint {F : Type} [Field F]
   | 0 => ⟨true, 0, 0⟩
   | .some x y _ => ⟨false, x, y⟩
 
-noncomputable def pairingOnMathlibPoints (facts : ArithmeticFacts) (p : G1) (q : G2) :
+noncomputable def pairingOnMathlibPoints (p : G1) (q : G2) :
     Fq12Model := by
-  letI : Fact baseModulus.Prime := ⟨facts.basePrime⟩
+  letI : Fact baseModulus.Prime := ⟨arithmeticFacts.basePrime⟩
   letI : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
-    ⟨by intro x; simpa using facts.fq2Nonresidue x⟩
+    ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
   exact publishedAtePairing
     (affineRepOfPoint p.toAffineLift) (affineRepOfPoint q.toAffineLift)
 
@@ -163,15 +163,15 @@ Cited mathematics row (ePrint 2012/232 and 2013/722): the pinned optimal-ate
 pseudocode on the reviewed BLS12-377 prime-order subgroups is bilinear and
 non-degenerate. Mathlib lacks the divisor/pairing theory needed to prove it.
 -/
-def PublishedPairingBilinearNondegenerate (facts : ArithmeticFacts) : Prop := by
-  letI : Fact baseModulus.Prime := ⟨facts.basePrime⟩
+def PublishedPairingBilinearNondegenerate : Prop := by
+  letI : Fact baseModulus.Prime := ⟨arithmeticFacts.basePrime⟩
   letI : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
-    ⟨by intro x; simpa using facts.fq2Nonresidue x⟩
+    ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
   exact
-    (∀ p₁ p₂ q, pairingOnMathlibPoints facts (p₁ + p₂) q =
-      fq12Mul (pairingOnMathlibPoints facts p₁ q) (pairingOnMathlibPoints facts p₂ q)) ∧
-    (∀ p q₁ q₂, pairingOnMathlibPoints facts p (q₁ + q₂) =
-      fq12Mul (pairingOnMathlibPoints facts p q₁) (pairingOnMathlibPoints facts p q₂)) ∧
-    ∃ p q, pairingOnMathlibPoints facts p q ≠ fq12One
+    (∀ p₁ p₂ q, pairingOnMathlibPoints (p₁ + p₂) q =
+      fq12Mul (pairingOnMathlibPoints p₁ q) (pairingOnMathlibPoints p₂ q)) ∧
+    (∀ p q₁ q₂, pairingOnMathlibPoints p (q₁ + q₂) =
+      fq12Mul (pairingOnMathlibPoints p q₁) (pairingOnMathlibPoints p q₂)) ∧
+    ∃ p q, pairingOnMathlibPoints p q ≠ fq12One
 
 end Ipp.Bls12377

@@ -1,4 +1,4 @@
-import Ipp.Bls12377
+import Ipp.Bls12377Core
 import Mathlib.NumberTheory.LucasPrimality
 import Mathlib.FieldTheory.Finite.Basic
 

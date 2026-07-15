@@ -1,6 +1,6 @@
 # S2/S3 completion work order
 
-Date: 2026-07-14. Status: S2-19..38 complete as of 2026-07-15; the code is
+Date: 2026-07-15. Status: S2-19..38 and S3-01..05 complete as of 2026-07-15; the code is
 the authority and the S2 task text below is retained as the execution record.
 S1, GAP-00/01/04, the
 finite Aeneas loop semantics, S2-01/03/07/10/11, the S2-08/09 generic equation
@@ -12,7 +12,16 @@ S2-19 through S2-38 are **DONE**. The S2-38 gate is green: hax target/source
 completeness, generated-artifact freshness, extracted-directory shim scan,
 named refinement-theorem presence, focused Lean builds, the named axiom audit,
 one full `lake build Ipp`, and the Rust test pass all completed. S3 and GAP
-tracks below remain planned work; their task text is unchanged.
+tracks below remain planned work except for S3-01..05.
+
+## S3-01..05 completion status
+
+S3-01 through S3-05 are **DONE**. The checked scalar-modulus prime,
+base-modulus prime, and Fq2 nonresidue theorems now assemble into the concrete
+`Ipp.Bls12377.arithmeticFacts` value. The BLS12-377 field, curve, and pairing
+foundations consume that value directly, with focused gates green under the
+pinned Lean v4.30.0 toolchain and no remaining `ArithmeticFacts` premise in
+the concrete path.
 
 `NOW` means every proof dependency is present and the installed Windows/WSL
 toolchain is sufficient. `GATED` means a listed predecessor must land first.
