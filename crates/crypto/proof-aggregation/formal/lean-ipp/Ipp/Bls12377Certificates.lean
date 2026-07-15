@@ -1,3 +1,4 @@
+import Ipp.Bls12377
 import Mathlib.NumberTheory.LucasPrimality
 import Mathlib.FieldTheory.Finite.Basic
 
@@ -364,3 +365,27 @@ example : check corruptSmallExample = false := by
 end Certificate
 
 end Ipp.Bls12377Certificates
+
+namespace Ipp.Bls12377Certificates.Certificate
+
+/-- Pocklington data for the BLS12-377 scalar modulus.
+
+The root uses the certified part
+`2^47 * 9586122913090633729^2`; the remaining cofactor is
+`652944383040798880568355`. -/
+def scalarModulusCertificate : Certificate :=
+  .step 8444461749428370424248824938781546531375899335154063827935233455917409239041
+    11 652944383040798880568355
+    [(47, .two),
+      (2, .step 9586122913090633729 11 136227 [(46, .two)])]
+
+set_option maxRecDepth 100000 in
+theorem scalarModulusCertificate_checked : check scalarModulusCertificate = true := by
+  decide
+
+theorem scalarModulus_prime :
+    Ipp.Bls12377.scalarModulus.Prime := by
+  have h := prime_of_check scalarModulusCertificate_checked
+  simpa [scalarModulusCertificate, Ipp.Bls12377.scalarModulus] using h
+
+end Ipp.Bls12377Certificates.Certificate
