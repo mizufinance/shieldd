@@ -12,43 +12,6 @@ noncomputable section
 
 namespace ark_ip_proofs
 
-namespace core.ops.control_flow
-
-inductive ControlFlow (ContinueT : Type) (BreakT : Type) where
-  | Continue : ContinueT → ControlFlow ContinueT BreakT
-  | Break : BreakT → ControlFlow ContinueT BreakT
-
-end core.ops.control_flow
-
-namespace core.result
-
-inductive Result (T : Type) (E : Type) where
-  | Ok : T → Result T E
-  | Err : E → Result T E
-
-namespace Result.Insts.CoreOpsTry
-
-def branch {T E : Type} (value : Result T E) : Aeneas.Result
-    (core.ops.control_flow.ControlFlow T E) :=
-  match value with
-  | .Ok value => .ok (.Continue value)
-  | .Err error => .ok (.Break error)
-
-end Result.Insts.CoreOpsTry
-
-namespace Result.Insts.CoreOpsTryTraitFromResidualResultInfallible
-
-def from_residual (T : Type) (_fromSame : Type) {E : Type} (error : E) :
-    Aeneas.Result (Result T E) :=
-  .ok (.Err error)
-
-end Result.Insts.CoreOpsTryTraitFromResidualResultInfallible
-end core.result
-
-/-- [core::marker::PhantomData]
-    Source: '/rustc/library/core/src/marker.rs', lines 811:0-811:39
-    Name pattern: [core::marker::PhantomData]
-    Visibility: public -/
 def core.marker.PhantomData (T : Type) := Unit
 
 /-- Trait declaration: [core::ops::arith::Add]
@@ -248,28 +211,6 @@ def applications.groth16_aggregation.verify_tipp_mipp_core.closure (F : Type)
   applications.groth16_aggregation.TippMippCoreInput F G1 G2 GT ABT CT × G2 ×
   G2 × alloc.vec.Vec F × F × PE
 
-namespace core.convert
-
-def FromSame (_E : Type) := Unit
-
-end core.convert
-
-namespace core.ops.function
-
-structure FnOnce (Self : Type) (Args : Type) (Output : Type) where
-  call_once : Self → Args → Aeneas.Result Output
-
-end core.ops.function
-
-namespace core.option.Option
-
-def is_none {T : Type} (value : Option T) : Bool :=
-  match value with
-  | none => true
-  | some _ => false
-
-end core.option.Option
-
 namespace core.slice.index
 
 structure SliceIndexUsizeSlice (T : Type) where
@@ -337,18 +278,6 @@ instance : HSub Std.Usize Std.Usize (Aeneas.Result Std.Usize) where
   hSub left right :=
     if right.val ≤ left.val then .ok ⟨left.val - right.val⟩ else .fail .integerOverflow
 
-/-- [rayon_core::join::join]:
-    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rayon-core-1.12.1/src/join/mod.rs', lines 93:0-98:13
-    Name pattern: [rayon_core::join::join]
-    Visibility: public -/
-def rayon_core.join.join
-  {A : Type} {B : Type} {RA : Type} {RB : Type}
-  (coreopsfunctionFnOnceATupleRAInst : core.ops.function.FnOnce A Unit RA)
-  (coreopsfunctionFnOnceBTupleRBInst : core.ops.function.FnOnce B Unit RB) :
-  A → B → Result (RA × RB) := fun a b => do
-  let ra ← coreopsfunctionFnOnceATupleRAInst.call_once a ()
-  let rb ← coreopsfunctionFnOnceBTupleRBInst.call_once b ()
-  .ok (ra, rb)
 /-- [ark_ip_proofs::gipa::verify_base_commitment_core]:
     Source: 'crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs', lines 203:0-231:1 -/
 def gipa.verify_base_commitment_core

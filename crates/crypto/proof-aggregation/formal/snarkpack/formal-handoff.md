@@ -288,8 +288,14 @@ Public-wrapper extraction and arkworks arithmetic conformance remain open.
 and its closed hax graph is vendored in
 `Ipp/Extracted/VerifyTippMippGenerated.lean`. Normal Rust tests preserve
 behavior, and scoped hax no longer reports the early-loop-return diagnostic.
-The S2-31..33 round, fold, and capstone refinement theorems remain open; no
-theorem promotion is claimed by this extraction session.
+S2-34 now routes the profiled combined-check wrapper through the explicit
+`verify_combined_checks_core`; its closed graph is vendored in
+`Ipp/Extracted/CombinedChecksGenerated.lean` with executable runtime support
+for the standard-library functions required by the graph. The graph exposes
+`CombinedChecksPpeInput`, `CombinedChecksCoreInput`, `CombinedChecksError`,
+`CombinedChecksCoreOutput`, `verify_combined_ppe_core`, and
+`verify_combined_checks_core`. The S2-31..33 and S2-35 refinement theorems
+remain open; no theorem promotion is claimed by this extraction session.
 
 ## Gates
 

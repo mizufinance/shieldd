@@ -17,10 +17,6 @@ structure core.marker.Copy (Self : Type) where
 structure core.ops.arith.MulAssign (Self : Type) (Rhs : Type) where
   mul_assign : Self → Rhs → Result Self
 
-noncomputable def core.num.Usize.is_power_of_two (value : Std.Usize) : Result Bool := by
-  classical
-  exact .ok (if ∃ exponent : Nat, value.val = 2 ^ exponent then true else false)
-
 def massert (condition : Prop) [Decidable condition] : Result Unit :=
   if condition then .ok () else .fail .panic
 

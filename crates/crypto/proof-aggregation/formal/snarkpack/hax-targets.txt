@@ -21,6 +21,10 @@
 # formal/lean-ipp/Ipp/Extracted/VerifyTippMippGenerated.lean. Its typed
 # challenge effect, five-lane fold state, and terminal checks are extracted;
 # the concrete Arkworks adapter remains outside the graph.
+# The S2-34 combined-check graph is vendored in
+# formal/lean-ipp/Ipp/Extracted/CombinedChecksGenerated.lean. Its explicit
+# combined records, count checks, PPE delegation, result propagation, and
+# trace-preserving TIPP effect are extracted; S2-35 proves its refinement.
 
 shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
 shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow
@@ -72,6 +76,11 @@ ark_ip_proofs::applications::groth16_aggregation::verify_ppe_core
 ark_ip_proofs::applications::groth16_aggregation::fold_public_inputs_core
 ark_ip_proofs::applications::groth16_aggregation::verify_ppe
 ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp_core
-ark_ip_proofs::applications::groth16_aggregation::verify_combined_checks_profiled
+ark_ip_proofs::applications::groth16_aggregation::CombinedChecksPpeInput
+ark_ip_proofs::applications::groth16_aggregation::CombinedChecksCoreInput
+ark_ip_proofs::applications::groth16_aggregation::CombinedChecksError
+ark_ip_proofs::applications::groth16_aggregation::CombinedChecksCoreOutput
+ark_ip_proofs::applications::groth16_aggregation::verify_combined_ppe_core
+ark_ip_proofs::applications::groth16_aggregation::verify_combined_checks_core
 ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_with_trace
 ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_profiled_with_trace

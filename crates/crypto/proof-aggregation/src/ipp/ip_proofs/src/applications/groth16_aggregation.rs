@@ -231,6 +231,200 @@ trait TippMippEffect<F, G1, G2, GT, ABT, CT, E>:
     fn verify_z(&self, messages: &[G1], scalars: &[F], commitment: &CT) -> Result<bool, E>;
 }
 
+#[cfg(not(feature = "bench-baseline"))]
+struct CombinedChecksPpeInput<G1, G2Prepared, GT> {
+    alpha_beta: GT,
+    agg_c: G1,
+    gamma_g2_neg_pc: G2Prepared,
+    delta_g2_neg_pc: G2Prepared,
+    ip_ab: GT,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+struct CombinedChecksCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT> {
+    tipp_mipp: TippMippCoreInput<F, G1, G2, GT, ABT, CT>,
+    gamma_abc_g1: Vec<G1>,
+    public_inputs: Vec<Vec<F>>,
+    r: F,
+    ppe: CombinedChecksPpeInput<G1, G2Prepared, GT>,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+struct CombinedChecksError<E> {
+    kind: usize,
+    actual_rounds: usize,
+    expected_rounds: usize,
+    tipp_mipp_error: Option<E>,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+struct CombinedChecksCoreOutput<FX> {
+    checks: (bool, bool),
+    tipp_mipp_effect: FX,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_combined_ppe_core<F, G1, G2Prepared, GT, E>(
+    ppe: CombinedChecksPpeInput<G1, G2Prepared, GT>,
+    gamma_abc_g1: &[G1],
+    public_inputs: &[Vec<F>],
+    r: &F,
+    pairing: &E,
+) -> bool
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + Add<Output = F>
+        + std::ops::Div<Output = F>
+        + Mul<Output = F>
+        + Sub<Output = F>,
+    G1: Clone + Add<Output = G1> + Mul<F, Output = G1> + Neg<Output = G1>,
+    G2Prepared: Clone + Send,
+    GT: Clone + Mul<F, Output = GT> + Add<Output = GT> + PartialEq,
+    E: PreparedPairingEffect<G1, G2Prepared, GT>,
+{
+    let (r_sum, g_ic) = fold_public_inputs_core(gamma_abc_g1, public_inputs, r);
+    verify_ppe_core(
+        PreparedPpeVerifierCoreInput {
+            alpha_beta: ppe.alpha_beta,
+            r_sum,
+            g_ic,
+            agg_c: ppe.agg_c,
+            gamma_g2_neg_pc: ppe.gamma_g2_neg_pc,
+            delta_g2_neg_pc: ppe.delta_g2_neg_pc,
+            ip_ab: ppe.ip_ab,
+        },
+        pairing,
+    )
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_combined_checks_core<F, G1, G2, G2Prepared, GT, ABT, CT, E, FX, PE, PPE>(
+    input: CombinedChecksCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+    effect: FX,
+    tipp_pairing: PE,
+    ppe_pairing: PPE,
+) -> Result<CombinedChecksCoreOutput<FX>, CombinedChecksError<E>>
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + Add<Output = F>
+        + std::ops::Div<Output = F>
+        + Mul<Output = F>
+        + Sub<Output = F>
+        + Sync
+        + Send,
+    G1: Clone
+        + Add<Output = G1>
+        + Mul<F, Output = G1>
+        + Sub<Output = G1>
+        + Neg<Output = G1>
+        + Sync
+        + Send,
+    G2: Clone + Mul<F, Output = G2> + Sub<Output = G2> + Sync + Send,
+    G2Prepared: Clone + Send,
+    GT: Clone
+        + Default
+        + Add<Output = GT>
+        + Mul<F, Output = GT>
+        + MulAssign<F>
+        + Zero
+        + PartialEq
+        + Sync
+        + Send,
+    ABT: Clone + Default + Add<Output = ABT> + MulAssign<F> + Sync + Send,
+    CT: Clone + Default + Add<Output = CT> + MulAssign<F> + Sync + Send,
+    E: Send,
+    FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E> + Send,
+    PE: PairingEffect<G1, G2, GT> + Sync + Send,
+    PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
+{
+    let num_proofs = input.public_inputs.len();
+    if num_proofs == 0 || !num_proofs.is_power_of_two() {
+        return Err(CombinedChecksError {
+            kind: 0,
+            actual_rounds: 0,
+            expected_rounds: 0,
+            tipp_mipp_error: None,
+        });
+    }
+
+    let expected_rounds = num_proofs.ilog2() as usize;
+    let actual_rounds = input.tipp_mipp.proof.gipa_proof.len();
+    if actual_rounds != expected_rounds {
+        return Err(CombinedChecksError {
+            kind: 1,
+            actual_rounds,
+            expected_rounds,
+            tipp_mipp_error: None,
+        });
+    }
+
+    let CombinedChecksCoreInput {
+        tipp_mipp,
+        gamma_abc_g1,
+        public_inputs,
+        r,
+        ppe,
+    } = input;
+
+    #[cfg(all(
+        feature = "parallel",
+        not(feature = "bench-baseline"),
+        not(hax_compilation)
+    ))]
+    let (tipp_result, ppe_valid) = rayon::join(
+        move || {
+            let mut effect = effect;
+            let result =
+                verify_tipp_mipp_core(tipp_mipp, &mut effect, &tipp_pairing).map_err(|error| {
+                    CombinedChecksError {
+                        kind: 2,
+                        actual_rounds: 0,
+                        expected_rounds: 0,
+                        tipp_mipp_error: Some(error),
+                    }
+                });
+            (result, effect)
+        },
+        move || {
+            let ppe_valid =
+                verify_combined_ppe_core(ppe, &gamma_abc_g1, &public_inputs, &r, &ppe_pairing);
+            ppe_valid
+        },
+    );
+
+    #[cfg(any(not(feature = "parallel"), feature = "bench-baseline", hax_compilation))]
+    let (tipp_result, ppe_valid) = {
+        let mut effect = effect;
+        let tipp_result =
+            verify_tipp_mipp_core(tipp_mipp, &mut effect, &tipp_pairing).map_err(|error| {
+                CombinedChecksError {
+                    kind: 2,
+                    actual_rounds: 0,
+                    expected_rounds: 0,
+                    tipp_mipp_error: Some(error),
+                }
+            });
+        let ppe_valid =
+            verify_combined_ppe_core(ppe, &gamma_abc_g1, &public_inputs, &r, &ppe_pairing);
+        ((tipp_result, effect), ppe_valid)
+    };
+
+    let (tipp_result, effect) = tipp_result;
+    let tipp_valid = tipp_result?;
+    Ok(CombinedChecksCoreOutput {
+        checks: (tipp_valid, ppe_valid),
+        tipp_mipp_effect: effect,
+    })
+}
+
 fn verify_tipp_mipp_core<F, G1, G2, GT, ABT, CT, E, FX, PE>(
     input: TippMippCoreInput<F, G1, G2, GT, ABT, CT>,
     effect: &mut FX,
@@ -1001,17 +1195,17 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         PairingOutput<P>,
         PairingOutput<P>,
         IdentityOutput<PairingOutput<P>>,
-        Error,
+        String,
     > for ArkworksTippMippEffect<'a, P, D, S>
 {
     fn inner_product(
         &self,
         left: &[P::G1],
         right: &[P::G2],
-    ) -> BaseCommitmentResult<PairingOutput<P>, Error> {
+    ) -> BaseCommitmentResult<PairingOutput<P>, String> {
         match PairingInnerProduct::<P>::inner_product(left, right) {
             Ok(value) => BaseCommitmentResult::Ok(value),
-            Err(error) => BaseCommitmentResult::Err(error),
+            Err(error) => BaseCommitmentResult::Err(error.to_string()),
         }
     }
 
@@ -1020,10 +1214,10 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         keys: &[P::G2],
         messages: &[P::G1],
         commitment: &PairingOutput<P>,
-    ) -> BaseCommitmentResult<bool, Error> {
+    ) -> BaseCommitmentResult<bool, String> {
         match PairingInnerProduct::<P>::inner_product(messages, keys) {
             Ok(value) => BaseCommitmentResult::Ok(value == *commitment),
-            Err(error) => BaseCommitmentResult::Err(error),
+            Err(error) => BaseCommitmentResult::Err(error.to_string()),
         }
     }
 
@@ -1032,10 +1226,10 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         keys: &[P::G1],
         messages: &[P::G2],
         commitment: &PairingOutput<P>,
-    ) -> BaseCommitmentResult<bool, Error> {
+    ) -> BaseCommitmentResult<bool, String> {
         match PairingInnerProduct::<P>::inner_product(keys, messages) {
             Ok(value) => BaseCommitmentResult::Ok(value == *commitment),
-            Err(error) => BaseCommitmentResult::Err(error),
+            Err(error) => BaseCommitmentResult::Err(error.to_string()),
         }
     }
 
@@ -1044,7 +1238,7 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         _keys: &[()],
         messages: &[PairingOutput<P>],
         commitment: &IdentityOutput<PairingOutput<P>>,
-    ) -> BaseCommitmentResult<bool, Error> {
+    ) -> BaseCommitmentResult<bool, String> {
         BaseCommitmentResult::Ok(IdentityOutput(messages.to_vec()) == *commitment)
     }
 }
@@ -1057,7 +1251,7 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         PairingOutput<P>,
         IdentityOutput<PairingOutput<P>>,
         IdentityOutput<P::G1>,
-        Error,
+        String,
     > for ArkworksTippMippEffect<'a, P, D, S>
 {
     fn derive_x0(
@@ -1068,7 +1262,7 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         com_c: &PairingOutput<P>,
         ip_ab: &PairingOutput<P>,
         agg_c: &P::G1,
-    ) -> Result<P::ScalarField, Error> {
+    ) -> Result<P::ScalarField, String> {
         derive_x0::<P, D, S>(
             self.context,
             self.trace,
@@ -1077,6 +1271,7 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
             ip_ab,
             agg_c,
         )
+        .map_err(|error| error.to_string())
     }
 
     fn derive_round(
@@ -1092,26 +1287,28 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
             IdentityOutput<PairingOutput<P>>,
             IdentityOutput<P::G1>,
         >,
-    ) -> Result<P::ScalarField, Error> {
+    ) -> Result<P::ScalarField, String> {
         let mut hash_input = Vec::new();
-        prior_raw_challenge.serialize_uncompressed(&mut hash_input)?;
-        serialize_tipp_mipp_core_commitment(left, &mut hash_input)?;
-        serialize_tipp_mipp_core_commitment(right, &mut hash_input)?;
+        prior_raw_challenge
+            .serialize_uncompressed(&mut hash_input)
+            .map_err(|error| error.to_string())?;
+        serialize_tipp_mipp_core_commitment(left, &mut hash_input)
+            .map_err(|error| error.to_string())?;
+        serialize_tipp_mipp_core_commitment(right, &mut hash_input)
+            .map_err(|error| error.to_string())?;
         derive_scalar_challenge::<P, D, S>(
             self.context,
             self.trace,
             b"tipp-mipp.gipa.round",
             &hash_input,
         )
+        .map_err(|error| error.to_string())
     }
 
-    fn invert_round(&self, challenge: &P::ScalarField) -> Result<P::ScalarField, Error> {
-        challenge.inverse().ok_or_else(|| {
-            Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "round challenge must be non-zero",
-            )) as Error
-        })
+    fn invert_round(&self, challenge: &P::ScalarField) -> Result<P::ScalarField, String> {
+        challenge
+            .inverse()
+            .ok_or_else(|| "round challenge must be non-zero".to_owned())
     }
 
     fn derive_final_bridge(
@@ -1119,7 +1316,7 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         last_raw_challenge: &P::ScalarField,
         final_ck: &(P::G2, P::G1),
         final_messages: &(P::G1, P::G2, P::G1),
-    ) -> Result<P::ScalarField, Error> {
+    ) -> Result<P::ScalarField, String> {
         derive_final_bridge::<P, D, S>(
             self.context,
             self.trace,
@@ -1127,23 +1324,22 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
             final_ck,
             final_messages,
         )
+        .map_err(|error| error.to_string())
     }
 
     fn derive_kzg(
         &mut self,
         final_bridge: &P::ScalarField,
         final_ck: &(P::G2, P::G1),
-    ) -> Result<P::ScalarField, Error> {
+    ) -> Result<P::ScalarField, String> {
         derive_kzg_challenge::<P, D, S>(self.context, self.trace, final_bridge, final_ck)
+            .map_err(|error| error.to_string())
     }
 
-    fn invert_randomizer(&self, randomizer: &P::ScalarField) -> Result<P::ScalarField, Error> {
-        randomizer.inverse().ok_or_else(|| {
-            Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "randomizer must be non-zero before inversion",
-            )) as Error
-        })
+    fn invert_randomizer(&self, randomizer: &P::ScalarField) -> Result<P::ScalarField, String> {
+        randomizer
+            .inverse()
+            .ok_or_else(|| "randomizer must be non-zero before inversion".to_owned())
     }
 
     fn verify_c(
@@ -1151,8 +1347,10 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         messages: &[P::G1],
         keys: &[P::G2],
         commitment: &PairingOutput<P>,
-    ) -> Result<bool, Error> {
-        Ok(PairingInnerProduct::<P>::inner_product(messages, keys)? == *commitment)
+    ) -> Result<bool, String> {
+        Ok(PairingInnerProduct::<P>::inner_product(messages, keys)
+            .map_err(|error| error.to_string())?
+            == *commitment)
     }
 
     fn verify_z(
@@ -1160,12 +1358,14 @@ impl<'a, P: Pairing, D: Digest, S: ChallengeTraceSink>
         messages: &[P::G1],
         scalars: &[P::ScalarField],
         commitment: &IdentityOutput<P::G1>,
-    ) -> Result<bool, Error> {
-        let value = MultiexponentiationInnerProduct::<P::G1>::inner_product(messages, scalars)?;
+    ) -> Result<bool, String> {
+        let value = MultiexponentiationInnerProduct::<P::G1>::inner_product(messages, scalars)
+            .map_err(|error| error.to_string())?;
         Ok(IdentityOutput(vec![value]) == *commitment)
     }
 }
 
+#[cfg(feature = "bench-baseline")]
 fn verify_tipp_mipp_buffered_profiled<P, D>(
     context: &ChallengeContext,
     ip_verifier_srs: &VerifierSRS<P>,
@@ -1189,6 +1389,7 @@ where
     Ok((valid, trace, started.elapsed().as_secs_f64() * 1000.0))
 }
 
+#[cfg(feature = "bench-baseline")]
 fn verify_public_inputs_ppe_profiled<P, D>(
     pvk: &PreparedVerifyingKey<P>,
     public_inputs: &[Vec<P::ScalarField>],
@@ -1227,52 +1428,87 @@ where
     D: Digest,
     S: ChallengeTraceSink,
 {
-    // Defense-in-depth: the combined GIPA must carry exactly log2(n) folding
-    // rounds for the padded proof count n. A wrong count already fails the base
-    // equation in verify_tipp_mipp, but reject it explicitly here for a clear
-    // failure mode and to bound attacker-controlled work before folding.
-    let num_proofs = public_inputs.len();
-    if num_proofs == 0 || !num_proofs.is_power_of_two() {
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "padded proof count must be a nonzero power of two",
-        )));
+    #[cfg(not(feature = "bench-baseline"))]
+    {
+        // Timings are observational; the extracted core below returns only the
+        // two verifier results and the buffered TIPP/MIPP effect state.
+        let started = Instant::now();
+        let input =
+            combined_checks_core_input::<P, D>(pvk, public_inputs, proof, r, ip_verifier_srs);
+        let mut tipp_trace = BufferedChallengeTraceSink::default();
+        let effect = ArkworksTippMippEffect::<P, D, _> {
+            context,
+            trace: &mut tipp_trace,
+            _pairing: PhantomData,
+            _digest: PhantomData,
+        };
+        let output = verify_combined_checks_core(
+            input,
+            effect,
+            ArkworksPairingEffect::<P>::default(),
+            ArkworksPreparedPairingEffect::<P>::default(),
+        )
+        .map_err(combined_checks_core_error)?;
+        let CombinedChecksCoreOutput {
+            checks,
+            tipp_mipp_effect,
+        } = output;
+        drop(tipp_mipp_effect);
+        tipp_trace.replay_into(trace);
+        let core_ms = started.elapsed().as_secs_f64() * 1000.0;
+        return Ok((checks, (core_ms, 0.0, 0.0)));
     }
-    let expected_rounds = num_proofs.trailing_zeros() as usize;
-    let actual_rounds = proof.tipp_mipp_proof.gipa_proof.r_commitment_steps.len();
-    if actual_rounds != expected_rounds {
-        return Err(Box::new(std::io::Error::new(
+
+    #[cfg(feature = "bench-baseline")]
+    {
+        // Defense-in-depth: the combined GIPA must carry exactly log2(n) folding
+        // rounds for the padded proof count n. A wrong count already fails the base
+        // equation in verify_tipp_mipp, but reject it explicitly here for a clear
+        // failure mode and to bound attacker-controlled work before folding.
+        let num_proofs = public_inputs.len();
+        if num_proofs == 0 || !num_proofs.is_power_of_two() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "padded proof count must be a nonzero power of two",
+            )));
+        }
+        let expected_rounds = num_proofs.trailing_zeros() as usize;
+        let actual_rounds = proof.tipp_mipp_proof.gipa_proof.r_commitment_steps.len();
+        if actual_rounds != expected_rounds {
+            return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             format!(
                 "combined GIPA round count {actual_rounds} does not match log2(proof count) {expected_rounds}"
             ),
         )));
+        }
+
+        #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
+        let (tipp_mipp_result, ppe_result) = rayon::join(
+            || verify_tipp_mipp_buffered_profiled::<P, D>(context, ip_verifier_srs, proof, r),
+            || verify_public_inputs_ppe_profiled::<P, D>(pvk, public_inputs, proof, r),
+        );
+
+        #[cfg(any(not(feature = "parallel"), feature = "bench-baseline"))]
+        let (tipp_mipp_result, ppe_result) = {
+            let tipp_mipp_result =
+                verify_tipp_mipp_buffered_profiled::<P, D>(context, ip_verifier_srs, proof, r);
+            let ppe_result =
+                verify_public_inputs_ppe_profiled::<P, D>(pvk, public_inputs, proof, r);
+            (tipp_mipp_result, ppe_result)
+        };
+
+        let (tipp_mipp_valid, tipp_mipp_trace, tipp_mipp_ms) =
+            tipp_mipp_result.map_err(|err: String| std::io::Error::other(err))?;
+        let (ppe_valid, public_input_fold_ms, ppe_ms) = ppe_result;
+
+        tipp_mipp_trace.replay_into(trace);
+
+        Ok((
+            (tipp_mipp_valid, ppe_valid),
+            (tipp_mipp_ms, public_input_fold_ms, ppe_ms),
+        ))
     }
-
-    #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
-    let (tipp_mipp_result, ppe_result) = rayon::join(
-        || verify_tipp_mipp_buffered_profiled::<P, D>(context, ip_verifier_srs, proof, r),
-        || verify_public_inputs_ppe_profiled::<P, D>(pvk, public_inputs, proof, r),
-    );
-
-    #[cfg(any(not(feature = "parallel"), feature = "bench-baseline"))]
-    let (tipp_mipp_result, ppe_result) = {
-        let tipp_mipp_result =
-            verify_tipp_mipp_buffered_profiled::<P, D>(context, ip_verifier_srs, proof, r);
-        let ppe_result = verify_public_inputs_ppe_profiled::<P, D>(pvk, public_inputs, proof, r);
-        (tipp_mipp_result, ppe_result)
-    };
-
-    let (tipp_mipp_valid, tipp_mipp_trace, tipp_mipp_ms) =
-        tipp_mipp_result.map_err(|err: String| std::io::Error::other(err))?;
-    let (ppe_valid, public_input_fold_ms, ppe_ms) = ppe_result;
-
-    tipp_mipp_trace.replay_into(trace);
-
-    Ok((
-        (tipp_mipp_valid, ppe_valid),
-        (tipp_mipp_ms, public_input_fold_ms, ppe_ms),
-    ))
 }
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
@@ -1888,6 +2124,69 @@ where
     }
 }
 
+#[cfg(not(feature = "bench-baseline"))]
+fn combined_checks_core_input<P, D>(
+    pvk: &PreparedVerifyingKey<P>,
+    public_inputs: &[Vec<P::ScalarField>],
+    proof: &AggregateProof<P, D>,
+    r: &P::ScalarField,
+    ip_verifier_srs: &VerifierSRS<P>,
+) -> CombinedChecksCoreInput<
+    P::ScalarField,
+    P::G1,
+    P::G2,
+    P::G2Prepared,
+    PairingOutput<P>,
+    IdentityOutput<PairingOutput<P>>,
+    IdentityOutput<P::G1>,
+>
+where
+    P: Pairing,
+    D: Digest,
+{
+    let gamma_abc_g1 = pvk
+        .vk
+        .gamma_abc_g1
+        .iter()
+        .map(|base| P::G1::from(*base))
+        .collect();
+    CombinedChecksCoreInput {
+        tipp_mipp: tipp_mipp_core_input(ip_verifier_srs, proof, r),
+        gamma_abc_g1,
+        public_inputs: public_inputs.to_vec(),
+        r: r.clone(),
+        ppe: CombinedChecksPpeInput {
+            alpha_beta: PairingOutput::<P>(pvk.alpha_g1_beta_g2),
+            agg_c: proof.agg_c.clone(),
+            gamma_g2_neg_pc: pvk.gamma_g2_neg_pc.clone(),
+            delta_g2_neg_pc: pvk.delta_g2_neg_pc.clone(),
+            ip_ab: proof.ip_ab.clone(),
+        },
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn combined_checks_core_error(error: CombinedChecksError<String>) -> Error {
+    match error.kind {
+        0 => Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "padded proof count must be a nonzero power of two",
+        )),
+        1 => Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            format!(
+                "combined GIPA round count {} does not match log2(proof count) {}",
+                error.actual_rounds, error.expected_rounds
+            ),
+        )),
+        _ => Box::new(std::io::Error::other(
+            error
+                .tipp_mipp_error
+                .expect("TIPP/MIPP error kind must carry an error"),
+        )),
+    }
+}
+
 fn verify_tipp_mipp<P, D, S>(
     context: &ChallengeContext,
     trace: &mut S,
@@ -1908,6 +2207,7 @@ where
         _digest: PhantomData,
     };
     verify_tipp_mipp_core(input, &mut effect, &ArkworksPairingEffect::<P>::default())
+        .map_err(|error: String| Box::new(std::io::Error::other(error)) as Error)
 }
 
 fn structured_scalar_final_from_raw_transcript<P: Pairing>(
@@ -2129,6 +2429,98 @@ mod tests {
     use ark_std::One;
     use blake2::Blake2b;
 
+    fn zero_combined_inputs<P: Pairing>() -> (
+        VerifierSRS<P>,
+        PreparedVerifyingKey<P>,
+        AggregateProof<P, Blake2b>,
+    ) {
+        let g1 = P::G1::zero();
+        let g2 = P::G2::zero();
+        let vk = VerifyingKey {
+            alpha_g1: g1.into(),
+            beta_g2: g2.into(),
+            gamma_g2: g2.into(),
+            delta_g2: g2.into(),
+            gamma_abc_g1: vec![g1.into()],
+        };
+        (
+            VerifierSRS {
+                g: g1,
+                h: g2,
+                g_beta: g1,
+                h_alpha: g2,
+            },
+            prepare_verifying_key(&vk),
+            zero_tipp_mipp_proof(),
+        )
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn combined_checks_schedule_branch_preserves_core_result_and_trace() {
+        let (srs, pvk, proof) = zero_combined_inputs::<Bls12_381>();
+        let context = ChallengeContext::from_statement_digest([0u8; 32]);
+        let r = <Bls12_381 as Pairing>::ScalarField::from(2u64);
+        let public_inputs = vec![vec![]];
+
+        let mut combined_trace = crate::challenge::VecChallengeTraceSink::default();
+        let combined = verify_combined_checks_profiled::<Bls12_381, Blake2b, _>(
+            &context,
+            &mut combined_trace,
+            &srs,
+            &pvk,
+            &public_inputs,
+            &proof,
+            &r,
+        )
+        .expect("zero combined fixture should reach both checks");
+
+        let mut tipp_trace = crate::challenge::VecChallengeTraceSink::default();
+        let tipp =
+            verify_tipp_mipp::<Bls12_381, Blake2b, _>(&context, &mut tipp_trace, &srs, &proof, &r)
+                .expect("zero TIPP/MIPP fixture should verify");
+
+        assert_eq!(combined.0 .0, tipp);
+        assert!(combined.1 .0 >= 0.0 && combined.1 .1 >= 0.0 && combined.1 .2 >= 0.0);
+        assert_eq!(combined_trace.entries(), tipp_trace.entries());
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn combined_checks_rejects_malformed_counts_before_downstream_calls() {
+        let (srs, pvk, proof) = zero_combined_inputs::<Bls12_381>();
+        let context = ChallengeContext::from_statement_digest([0u8; 32]);
+        let cases = [
+            (
+                Vec::new(),
+                "padded proof count must be a nonzero power of two",
+            ),
+            (
+                vec![vec![], vec![], vec![]],
+                "padded proof count must be a nonzero power of two",
+            ),
+            (
+                vec![vec![], vec![]],
+                "combined GIPA round count 0 does not match log2(proof count) 1",
+            ),
+        ];
+
+        for (public_inputs, expected) in cases {
+            let mut trace = NoopChallengeTraceSink;
+            let error = verify_combined_checks_profiled::<Bls12_381, Blake2b, _>(
+                &context,
+                &mut trace,
+                &srs,
+                &pvk,
+                &public_inputs,
+                &proof,
+                &<Bls12_381 as Pairing>::ScalarField::from(2u64),
+            )
+            .expect_err("malformed count must be rejected");
+            assert_eq!(error.to_string(), expected);
+        }
+    }
+
     fn zero_tipp_mipp_proof<P: Pairing>() -> AggregateProof<P, Blake2b> {
         let g1 = P::G1::zero();
         let g2 = P::G2::zero();
@@ -2300,11 +2692,7 @@ mod tests {
     impl<G1, G2Prepared, GT> PreparedPairingEffect<G1, G2Prepared, GT>
         for FailingPreparedPairingEffect
     {
-        fn multi_pairing_prepared(
-            &self,
-            _left: &[G1],
-            _right: &[G2Prepared],
-        ) -> Option<GT> {
+        fn multi_pairing_prepared(&self, _left: &[G1], _right: &[G2Prepared]) -> Option<GT> {
             None
         }
     }
@@ -2389,10 +2777,8 @@ mod tests {
         ) -> Option<PairingOutput<P>> {
             self.left.replace(Some(left.to_vec()));
             self.right.replace(Some(right.to_vec()));
-            let output = cfg_multi_pairing_g1_affine_g2_prepared::<P>(
-                &P::G1::normalize_batch(left),
-                right,
-            )?;
+            let output =
+                cfg_multi_pairing_g1_affine_g2_prepared::<P>(&P::G1::normalize_batch(left), right)?;
             self.output.replace(Some(output.clone()));
             Some(output)
         }
@@ -2414,11 +2800,7 @@ mod tests {
         let g_ic = g1;
         let agg_c = g1 * <P as Pairing>::ScalarField::from(5u64);
         let baseline_gt = cfg_multi_pairing::<P>(
-            &[
-                <P as Pairing>::G1::from(vk.alpha_g1) * r_sum,
-                g_ic,
-                agg_c,
-            ],
+            &[<P as Pairing>::G1::from(vk.alpha_g1) * r_sum, g_ic, agg_c],
             &[
                 <P as Pairing>::G2::from(vk.beta_g2),
                 <P as Pairing>::G2::from(vk.gamma_g2),
@@ -2438,10 +2820,7 @@ mod tests {
         let effect = RecordingPreparedPairingEffect::<P>::default();
         assert!(verify_ppe_core(input, &effect));
 
-        assert_eq!(
-            effect.left.borrow().as_ref().unwrap(),
-            &vec![-g_ic, -agg_c]
-        );
+        assert_eq!(effect.left.borrow().as_ref().unwrap(), &vec![-g_ic, -agg_c]);
         assert_eq!(effect.right.borrow().as_ref().unwrap().len(), 2);
         let expected_prepared_gt = cfg_multi_pairing_g1_affine_g2_prepared::<P>(
             &P::G1::normalize_batch(&[-g_ic, -agg_c]),

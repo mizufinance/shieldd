@@ -314,6 +314,14 @@ namespace ark_ip_proofs.core.num.Usize
 
 open Aeneas Aeneas.Std
 
+/-- Rust `usize::is_power_of_two`, evaluated on the executable Nat model. -/
+def is_power_of_two (value : Usize) : Result Bool :=
+  .ok (value.val != 0 && 2 ^ Nat.log2 value.val == value.val)
+
+/-- Rust `usize::ilog2`; callers establish that the input is nonzero. -/
+def ilog2 (value : Usize) : Result Usize :=
+  .ok ⟨Nat.log2 value.val⟩
+
 /-- Rust `usize::pow`: fail on machine-integer overflow. -/
 def pow (base exponent : Usize) : Result Usize :=
   if base.val ^ exponent.val ≤ Usize.max then
@@ -331,3 +339,87 @@ theorem pow_two_eq_ok (i : Nat) (h : 2 ^ i ≤ Usize.max) :
   pow_eq_ok (Usize.ofNat 2) ⟨i⟩ h
 
 end ark_ip_proofs.core.num.Usize
+
+namespace ark_ip_proofs
+
+open Aeneas Aeneas.Std Result ControlFlow Error
+
+namespace core.ops.function
+
+structure FnOnce (Self : Type) (Args : Type) (Output : Type) where
+  call_once : Self → Args → Aeneas.Result Output
+
+end core.ops.function
+
+namespace core.ops.control_flow
+
+inductive ControlFlow (ContinueT : Type) (BreakT : Type) where
+  | Continue : ContinueT → ControlFlow ContinueT BreakT
+  | Break : BreakT → ControlFlow ContinueT BreakT
+
+end core.ops.control_flow
+
+namespace core.result
+
+inductive Result (T : Type) (E : Type) where
+  | Ok : T → Result T E
+  | Err : E → Result T E
+
+namespace Result.Insts.CoreOpsTry
+
+def branch {T E : Type} (value : Result T E) : Aeneas.Result
+    (core.ops.control_flow.ControlFlow T E) :=
+  match value with
+  | .Ok result => .ok (.Continue result)
+  | .Err error => .ok (.Break error)
+
+end Result.Insts.CoreOpsTry
+
+namespace Result.Insts.CoreOpsTryTraitFromResidualResultInfallible
+
+def from_residual (T : Type) (_fromSame : Type) {E : Type} (error : E) :
+    Aeneas.Result (Result T E) :=
+  .ok (.Err error)
+
+end Result.Insts.CoreOpsTryTraitFromResidualResultInfallible
+
+namespace Result
+
+def map_err {T E F O : Type} (function : core.ops.function.FnOnce O E F)
+    (value : Result T E) (argument : O) : Aeneas.Result (Result T F) :=
+  match value with
+  | .Ok result => .ok (.Ok result)
+  | .Err error => do
+      let mapped ← function.call_once argument error
+      .ok (.Err mapped)
+
+end Result
+end core.result
+
+namespace core.convert
+
+def FromSame (_E : Type) := Unit
+
+end core.convert
+
+namespace core.option.Option
+
+def is_none {T : Type} (value : Option T) : Bool :=
+  match value with
+  | none => true
+  | some _ => false
+
+end core.option.Option
+
+namespace rayon_core.join
+
+def join {A B RA RB : Type}
+    (left : core.ops.function.FnOnce A Unit RA)
+    (right : core.ops.function.FnOnce B Unit RB) :
+    A → B → Result (RA × RB) := fun a b => do
+  let leftResult ← left.call_once a ()
+  let rightResult ← right.call_once b ()
+  .ok (leftResult, rightResult)
+
+end rayon_core.join
+end ark_ip_proofs
