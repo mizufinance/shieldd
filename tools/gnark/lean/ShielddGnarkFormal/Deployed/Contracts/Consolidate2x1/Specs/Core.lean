@@ -1,6 +1,6 @@
 import Mathlib.Algebra.Ring.Defs
 import Mathlib.Data.ZMod.Basic
-import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
+import ShielddGnarkFormal.Deployed.PrimeOrder
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Specs
 

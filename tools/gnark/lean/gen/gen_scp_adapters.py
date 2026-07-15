@@ -22,6 +22,7 @@ from the DTK hoist; seg29 is unaffected.
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 from pathlib import Path
@@ -52,6 +53,7 @@ RECOVER_STEP = "Shieldd.GnarkFormal.QuadPath.recoverStep"
 LEAF_STEM = "GadgetStateCommitmentPathLeaf230_c35850"
 LEAF_ROW_COUNT, LEAF_SEGMENTS = 230, 46
 NODE_ROW_COUNT, NODE_SEGMENTS = 350, 70
+NODE_HELPER_CHUNK_SIZE = 10
 
 LEAF_C = (
     "5629641166285580282832549959187697687583932890102709218623488970611606159361",
@@ -217,6 +219,15 @@ def footer() -> list[str]:
 
 
 def row_proof(inst: Instance, row: int, unfold_extra: str = "") -> str:
+    if not unfold_extra:
+        return f"r{row}"
+    extra = f"{unfold_extra}, " if unfold_extra else ""
+    return (
+        f"(by simpa only [{extra}Seg{inst.seg}.relationRow{row}] using r{row})"
+    )
+
+
+def algebraic_row_proof(inst: Instance, row: int, unfold_extra: str = "") -> str:
     extra = f"unfold {unfold_extra}; " if unfold_extra else ""
     return (
         f"(by {extra}unfold Seg{inst.seg}.relationRow{row} at r{row}; "
@@ -237,10 +248,74 @@ def emit_refine_chain(
         lines.append(f"      {proofs}, ?_⟩")
 
 
+def segment_wires(stem: str, segment: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    text = (EXTRACTED / f"{stem}.lean").read_text()
+    match = re.search(
+        rf"def seg{segment} (.*?) : Prop :=\n(.*?)(?=\n\ndef )",
+        text,
+        re.S,
+    )
+    if match is None:
+        raise ValueError(f"{stem}: missing seg{segment}")
+    signature, body = match.groups()
+    inputs = tuple(int(wire) for wire in re.findall(r"\(w(\d+) : F\)", signature))
+    continuation = re.search(r"\bk ((?:w\d+\s*)+)$", body.rstrip())
+    if continuation is None:
+        raise ValueError(f"{stem}.seg{segment}: continuation arguments not found")
+    outputs = tuple(int(wire) for wire in re.findall(r"w(\d+)", continuation.group(1)))
+    if not inputs or not outputs:
+        raise ValueError(f"{stem}.seg{segment}: empty input or continuation")
+    return inputs, outputs
+
+
+def emit_node_helpers(inst: Instance, k: int, chunk: int) -> str:
+    stem = node_stem(k)
+    mod = f"Shieldd.GnarkFormal.Extracted.Deployed.{stem}"
+    first = chunk * NODE_HELPER_CHUNK_SIZE
+    last = min(first + NODE_HELPER_CHUNK_SIZE, NODE_SEGMENTS)
+    lines = header([
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Base",
+        f"import ShielddGnarkFormal.Extracted.Deployed.{stem}",
+    ])
+    for segment in range(first, last):
+        inputs, continuation = segment_wires(stem, segment)
+        rows = [perm_base(k) + 5 * segment + j for j in range(5)]
+        outs = [row_out(inst.rows[row]) for row in rows]
+        ktype = " → ".join([inst.f] * len(continuation) + ["Prop"])
+        lines += [
+            f"theorem seg{inst.seg}_scp_node{k}_seg{segment} (rho : Nat -> {inst.f})",
+            f"    (next : {ktype})",
+        ]
+        for row in rows:
+            lines.append(f"    (r{row} : Seg{inst.seg}.relationRow{row} rho)")
+        next_args = " ".join(f"(rho {wire_map(inst.seg, wire)})" for wire in continuation)
+        result_args = " ".join(f"(rho {wire_map(inst.seg, wire)})" for wire in inputs)
+        lines += [
+            f"    (tail : next {next_args}) :",
+            f"    {mod}.seg{segment} {result_args} next := by",
+            "  exact ⟨" + ", ".join(
+                [*(f"rho {out}" for out in outs), *(f"r{row}" for row in rows), "tail"]
+            ) + "⟩",
+            "",
+        ]
+    return "\n".join(lines + footer())
+
+
+def node_relation_proof(inst: Instance, k: int) -> str:
+    proof = "⟨rfl, rfl, rfl, rfl, rfl⟩"
+    for segment in reversed(range(NODE_SEGMENTS)):
+        rows = [perm_base(k) + 5 * segment + j for j in range(5)]
+        args = " ".join(f"r{row}" for row in rows)
+        proof = (
+            f"seg{inst.seg}_scp_node{k}_seg{segment} rho _ {args} ({proof})"
+        )
+    return proof
+
+
 def emit_base(inst: Instance) -> str:
     lines = header([
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{inst.seg}",
-        "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
+        "import ShielddGnarkFormal.Deployed.PrimeOrder",
     ])
     lines += [
         f"instance seg{inst.seg}ScpFactPrime : Fact (Nat.Prime Seg{inst.seg}.Order) :=",
@@ -323,6 +398,10 @@ def emit_node(inst: Instance, k: int) -> str:
     )
     lines = header([
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Base",
+        *[
+            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Node{k}Rows{chunk}"
+            for chunk in range((NODE_SEGMENTS + NODE_HELPER_CHUNK_SIZE - 1) // NODE_HELPER_CHUNK_SIZE)
+        ],
         f"import ShielddGnarkFormal.Deployed.StateCommitmentPathNode{k}.SemanticBridge",
         "import ShielddGnarkFormal.Deployed.StateCommitmentPath.Projection",
     ])
@@ -340,10 +419,9 @@ def emit_node(inst: Instance, k: int) -> str:
         f"  have hrel : {mod}.relation {pub}",
         f"      ({kfun}) := by",
         f"    unfold {mod}.relation",
+        f"    exact {node_relation_proof(inst, k)}",
     ]
-    emit_refine_chain(lines, inst, stem, NODE_SEGMENTS, perm_base(k))
     lines += [
-        "    exact ⟨rfl, rfl, rfl, rfl, rfl⟩",
         f"  have hs := {ns}.relation_sound_permSpec {pub} _ hrel",
         f"  have hd : {ns}.tctNode{k + 1}DomainLit = ({DOM_NUM} : {ns}.F) + ({k + 1} : {ns}.F) := by",
         "    decide",
@@ -355,50 +433,54 @@ def emit_node(inst: Instance, k: int) -> str:
     return "\n".join(lines + footer())
 
 
-def emit_steps(inst: Instance) -> str:
-    imports = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Leaf"
-    ] + [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Node{k}"
-        for k in range(LEVELS)
+def emit_step(inst: Instance, k: int) -> str:
+    lv = inst.levels[k]
+    base = sel_base(k)
+    keep = [base + off for off in SEL_I_OFFS + SEL_T_OFFS]
+    cur = inst.cur_expr(k)
+    cur_unfold = inst.leaf_out_def() if k == 0 else inst.node_out_def(k - 1)
+    hi_rows = [base + off for off in SEL_I_OFFS]
+    ht_rows = [base + off for off in SEL_T_OFFS]
+    cur_needed = {ht_rows[0], ht_rows[2], ht_rows[4], ht_rows[5]}
+    lines = header([
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Node{k}",
+    ])
+    lines += [
+        f"theorem seg{inst.seg}_scp_step{k} (rho : Nat -> {inst.f}) (h : Seg{inst.seg}.relation rho) :",
+        f"    {inst.node_out_def(k)} rho =",
+        f"      {RECOVER_STEP} {P4} {inst.dom_expr(k)}",
+        f"        {cur} (rho {lv.s0}) (rho {lv.s1}) (rho {lv.s2})",
+        f"        (rho {lv.b0}) (rho {lv.b1}) := by",
+        f"  have hnode := seg{inst.seg}_scp_node{k}_eq rho h",
     ]
-    lines = header(imports)
-    for k, lv in enumerate(inst.levels):
-        base = sel_base(k)
-        keep = [base + off for off in SEL_I_OFFS + SEL_T_OFFS]
-        cur = inst.cur_expr(k)
-        cur_unfold = inst.leaf_out_def() if k == 0 else inst.node_out_def(k - 1)
-        hi_rows = [base + off for off in SEL_I_OFFS]
-        ht_rows = [base + off for off in SEL_T_OFFS]
-        # hypotheses mentioning `cur`: h0 (t0), h2 (t2), h4 (t4), h5 (t5)
-        cur_needed = {ht_rows[0], ht_rows[2], ht_rows[4], ht_rows[5]}
-        lines += [
-            f"theorem seg{inst.seg}_scp_step{k} (rho : Nat -> {inst.f}) (h : Seg{inst.seg}.relation rho) :",
-            f"    {inst.node_out_def(k)} rho =",
-            f"      {RECOVER_STEP} {P4} {inst.dom_expr(k)}",
-            f"        {cur} (rho {lv.s0}) (rho {lv.s1}) (rho {lv.s2})",
-            f"        (rho {lv.b0}) (rho {lv.b1}) := by",
-            f"  have hnode := seg{inst.seg}_scp_node{k}_eq rho h",
-        ]
-        dtk.emit_unpack(lines_sp(lines), inst.cfg, set(keep))
-        proofs = [row_proof(inst, r) for r in hi_rows]
-        proofs += [
-            row_proof(inst, r, unfold_extra=cur_unfold if r in cur_needed else "")
-            for r in ht_rows
-        ]
-        lines += [
-            "  exact hnode.trans",
-            f"    ({SCP}.recoverStep_eq {P4} {inst.dom_expr(k)}",
-            f"      {cur} (rho {lv.s0}) (rho {lv.s1}) (rho {lv.s2})",
-            f"      (rho {lv.b0}) (rho {lv.b1})",
-            f"      (rho {lv.i0}) (rho {lv.i1}) (rho {lv.i2}) (rho {lv.i3})",
-            "      " + " ".join(f"(rho {t})" for t in lv.t),
-        ]
-        for proof in proofs:
-            lines.append(f"      {proof}")
-        lines[-1] += ")"
-        lines.append("")
-    # booleanity + recompose
+    dtk.emit_unpack(lines_sp(lines), inst.cfg, set(keep))
+    proofs = [algebraic_row_proof(inst, row) for row in hi_rows]
+    proofs += [
+        algebraic_row_proof(
+            inst,
+            row,
+            unfold_extra=cur_unfold if row in cur_needed else "",
+        )
+        for row in ht_rows
+    ]
+    lines += [
+        "  exact hnode.trans",
+        f"    ({SCP}.recoverStep_eq {P4} {inst.dom_expr(k)}",
+        f"      {cur} (rho {lv.s0}) (rho {lv.s1}) (rho {lv.s2})",
+        f"      (rho {lv.b0}) (rho {lv.b1})",
+        f"      (rho {lv.i0}) (rho {lv.i1}) (rho {lv.i2}) (rho {lv.i3})",
+        "      " + " ".join(f"(rho {t})" for t in lv.t),
+    ]
+    for proof in proofs:
+        lines.append(f"      {proof}")
+    lines[-1] += ")"
+    return "\n".join(lines + footer())
+
+
+def emit_bits(inst: Instance) -> str:
+    lines = header([
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Base",
+    ])
     lines += [
         f"theorem seg{inst.seg}_scp_bits_bool (rho : Nat -> {inst.f}) (h : Seg{inst.seg}.relation rho) :",
         f"    ∀ i : Nat, i < {BOOL_COUNT} →",
@@ -418,10 +500,7 @@ def emit_steps(inst: Instance) -> str:
             f"linear_combination r{row})).imp",
             "      id (fun hx => by linear_combination -hx)",
         ]
-    lines += [
-        "  intro i hi",
-        "  interval_cases i",
-    ]
+    lines += ["  intro i hi", "  interval_cases i"]
     for j in range(BOOL_COUNT):
         lines.append(f"  · simpa using hb{j}")
     lines += [
@@ -435,6 +514,23 @@ def emit_steps(inst: Instance) -> str:
         f"  linear_combination -r{RECOMP_ROW}",
     ]
     return "\n".join(lines + footer())
+
+
+def emit_steps_facade(inst: Instance) -> str:
+    return "\n".join(header([
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Leaf",
+        *[
+            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Step{k}"
+            for k in range(LEVELS)
+        ],
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Bits",
+    ]) + footer())
+
+
+def write_generated(path: Path, contents: str) -> None:
+    if path.exists() and path.read_text() == contents:
+        return
+    path.write_text(contents)
 
 
 def recompose_sum(inst: Instance, ftype: str) -> str:
@@ -501,22 +597,54 @@ def deployedSpec{seg} (rho : Nat → DeployedF) : Prop :=
 """
 
 
-def main() -> None:
+def generate(*, output_contracts: Path = CONTRACTS, specs_out: Path | None = None) -> None:
+    output_contracts.mkdir(parents=True, exist_ok=True)
     specs = []
     for seg in INSTANCES:
         inst = Instance(seg)
-        (CONTRACTS / f"ScpAdapterSeg{seg}Base.lean").write_text(emit_base(inst) + "\n")
-        (CONTRACTS / f"ScpAdapterSeg{seg}Leaf.lean").write_text(emit_leaf(inst) + "\n")
+        write_generated(output_contracts / f"ScpAdapterSeg{seg}Base.lean", emit_base(inst) + "\n")
+        write_generated(output_contracts / f"ScpAdapterSeg{seg}Leaf.lean", emit_leaf(inst) + "\n")
         for k in range(LEVELS):
-            (CONTRACTS / f"ScpAdapterSeg{seg}Node{k}.lean").write_text(
-                emit_node(inst, k) + "\n"
+            for chunk in range((NODE_SEGMENTS + NODE_HELPER_CHUNK_SIZE - 1) // NODE_HELPER_CHUNK_SIZE):
+                write_generated(
+                    output_contracts / f"ScpAdapterSeg{seg}Node{k}Rows{chunk}.lean",
+                    emit_node_helpers(inst, k, chunk) + "\n",
+                )
+            write_generated(
+                output_contracts / f"ScpAdapterSeg{seg}Node{k}.lean",
+                emit_node(inst, k) + "\n",
             )
-        (CONTRACTS / f"ScpAdapterSeg{seg}Steps.lean").write_text(emit_steps(inst) + "\n")
-        (CONTRACTS / f"ScpAdapterSeg{seg}.lean").write_text(emit_head(inst) + "\n")
+        for k in range(LEVELS):
+            write_generated(
+                output_contracts / f"ScpAdapterSeg{seg}Step{k}.lean",
+                emit_step(inst, k) + "\n",
+            )
+        write_generated(
+            output_contracts / f"ScpAdapterSeg{seg}Bits.lean",
+            emit_bits(inst) + "\n",
+        )
+        write_generated(
+            output_contracts / f"ScpAdapterSeg{seg}Steps.lean",
+            emit_steps_facade(inst),
+        )
+        write_generated(
+            output_contracts / f"ScpAdapterSeg{seg}.lean",
+            emit_head(inst) + "\n",
+        )
         specs.append(spec_text(inst))
         print(f"seg{seg}: emitted Base + Leaf + {LEVELS} nodes + Steps + head")
-    (HERE / "scp_specs_snippet.txt").write_text("\n".join(specs))
-    print("spec snippet -> gen/scp_specs_snippet.txt")
+    out = specs_out or (HERE / "scp_specs_snippet.txt")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    write_generated(out, "\n".join(specs))
+    print(f"spec snippet -> {out}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--adapter-out", type=Path, default=CONTRACTS)
+    parser.add_argument("--spec-out", type=Path)
+    args = parser.parse_args()
+    generate(output_contracts=args.adapter_out, specs_out=args.spec_out)
 
 
 if __name__ == "__main__":

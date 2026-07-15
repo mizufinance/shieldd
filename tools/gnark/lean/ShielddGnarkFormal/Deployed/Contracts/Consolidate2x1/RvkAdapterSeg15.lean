@@ -1,6 +1,7 @@
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg15
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Rvk
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Acc
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Bits
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Ladder
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas0
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas1
@@ -13,6 +14,16 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemma
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas8
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas9
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas10
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas11
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas12
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas13
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas14
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas15
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas16
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas17
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas18
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas19
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Lemmas20
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps0
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps1
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps2
@@ -24,12 +35,23 @@ import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps8
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps9
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps10
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps11
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps12
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps13
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps14
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps15
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps16
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps17
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps18
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps19
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Steps20
 import ShielddGnarkFormal.RvkFixedGenInst0
 import ShielddGnarkFormal.RvkFixedSplitRung
 import ShielddGnarkFormal.RvkFixedBaseLiteral
 import ShielddGnarkFormal.RvkFixedBaseLadder
+import ShielddGnarkFormal.RvkFixedRun
 import ShielddGnarkFormal.RvkDeployedRung
-import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
+import ShielddGnarkFormal.Deployed.PrimeOrder
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -45,6 +67,7 @@ theorem seg15_sound (rho : Nat -> Seg15.F)
     (h : Seg15.relation rho) : Seg15.spec rho := by
   unfold Seg15.spec Specs.deployedSpec15
   intro hak
+  have hbin := seg15RvkBits_toBinary rho h
   unfold Seg15.relation at h
   rcases h with ⟨
     p0, p1, p2, p3, p4, p5, p6, p7, p8, p9,
@@ -97,8 +120,7 @@ theorem seg15_sound (rho : Nat -> Seg15.F)
   rcases p21 with ⟨r1680, r1681, r1682, r1683, r1684, r1685, r1686, r1687, r1688, r1689, r1690, r1691, r1692, r1693, r1694, r1695, r1696, r1697, r1698, r1699, r1700, r1701, r1702, r1703, r1704, r1705, r1706, r1707, r1708, r1709, r1710, r1711, r1712, r1713, r1714, r1715, r1716, r1717, r1718, r1719, r1720, r1721, r1722, r1723, r1724, r1725, r1726, r1727, r1728, r1729, r1730, r1731, r1732, r1733, r1734, r1735, r1736, r1737, r1738, r1739, r1740, r1741, r1742, r1743, r1744, r1745, r1746, r1747, r1748, r1749, r1750, r1751, r1752, r1753, r1754, r1755, r1756, r1757, r1758, r1759⟩
   unfold Seg15.relationPart22 at p22
   rcases p22 with ⟨r1760, r1761, r1762, r1763, r1764, r1765, r1766, r1767, r1768, r1769, r1770, r1771, r1772, r1773, r1774, r1775, r1776, r1777, r1778, r1779, r1780, r1781, r1782, r1783, r1784, r1785, r1786, r1787, r1788, r1789, r1790, r1791, r1792, r1793, r1794, r1795, r1796, r1797, r1798, r1799, r1800, r1801, r1802, r1803, r1804, r1805, r1806, r1807, r1808, r1809, r1810, r1811⟩
-  have hp149 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX149 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY149 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_ladder_onCurve rho
+  have hsPrefix := seg15_prefix_steps rho
       r0 r1 r2 r3 r4 r5 r6 r7 r8 r9
       r10 r11 r12 r13 r14 r15 r16 r17 r18 r19
       r20 r21 r22 r23 r24 r25 r26 r27 r28 r29
@@ -189,133 +211,208 @@ theorem seg15_sound (rho : Nat -> Seg15.F)
       r972 r973 r974 r975 r976 r977 r978 r979 r980 r981
       r982 r983 r984 r985 r986 r987 r988 r989 r990 r991
       r992 r993 r994 r995 r996
-  have hp159 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX159 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY159 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps0 rho hp149
+  have hsTail0 := seg15_steps0 rho
       r150 r997 r998 r999 r1000 r1001 r1002 r1003 r1004
       r151 r1005 r1006 r1007 r1008 r1009 r1010 r1011 r1012
       r152 r1013 r1014 r1015 r1016 r1017 r1018 r1019 r1020
       r153 r1021 r1022 r1023 r1024 r1025 r1026 r1027 r1028
       r154 r1029 r1030 r1031 r1032 r1033 r1034 r1035 r1036
+  have hsTail1 := seg15_steps1 rho
       r155 r1037 r1038 r1039 r1040 r1041 r1042 r1043 r1044
       r156 r1045 r1046 r1047 r1048 r1049 r1050 r1051 r1052
       r157 r1053 r1054 r1055 r1056 r1057 r1058 r1059 r1060
       r158 r1061 r1062 r1063 r1064 r1065 r1066 r1067 r1068
       r159 r1069 r1070 r1071 r1072 r1073 r1074 r1075 r1076
-  have hp169 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX169 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY169 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps1 rho hp159
+  have hsTail2 := seg15_steps2 rho
       r160 r1077 r1078 r1079 r1080 r1081 r1082 r1083 r1084
       r161 r1085 r1086 r1087 r1088 r1089 r1090 r1091 r1092
       r162 r1093 r1094 r1095 r1096 r1097 r1098 r1099 r1100
       r163 r1101 r1102 r1103 r1104 r1105 r1106 r1107 r1108
       r164 r1109 r1110 r1111 r1112 r1113 r1114 r1115 r1116
+  have hsTail3 := seg15_steps3 rho
       r165 r1117 r1118 r1119 r1120 r1121 r1122 r1123 r1124
       r166 r1125 r1126 r1127 r1128 r1129 r1130 r1131 r1132
       r167 r1133 r1134 r1135 r1136 r1137 r1138 r1139 r1140
       r168 r1141 r1142 r1143 r1144 r1145 r1146 r1147 r1148
       r169 r1149 r1150 r1151 r1152 r1153 r1154 r1155 r1156
-  have hp179 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX179 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY179 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps2 rho hp169
+  have hsTail4 := seg15_steps4 rho
       r170 r1157 r1158 r1159 r1160 r1161 r1162 r1163 r1164
       r171 r1165 r1166 r1167 r1168 r1169 r1170 r1171 r1172
       r172 r1173 r1174 r1175 r1176 r1177 r1178 r1179 r1180
       r173 r1181 r1182 r1183 r1184 r1185 r1186 r1187 r1188
       r174 r1189 r1190 r1191 r1192 r1193 r1194 r1195 r1196
+  have hsTail5 := seg15_steps5 rho
       r175 r1197 r1198 r1199 r1200 r1201 r1202 r1203 r1204
       r176 r1205 r1206 r1207 r1208 r1209 r1210 r1211 r1212
       r177 r1213 r1214 r1215 r1216 r1217 r1218 r1219 r1220
       r178 r1221 r1222 r1223 r1224 r1225 r1226 r1227 r1228
       r179 r1229 r1230 r1231 r1232 r1233 r1234 r1235 r1236
-  have hp189 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX189 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY189 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps3 rho hp179
+  have hsTail6 := seg15_steps6 rho
       r180 r1237 r1238 r1239 r1240 r1241 r1242 r1243 r1244
       r181 r1245 r1246 r1247 r1248 r1249 r1250 r1251 r1252
       r182 r1253 r1254 r1255 r1256 r1257 r1258 r1259 r1260
       r183 r1261 r1262 r1263 r1264 r1265 r1266 r1267 r1268
       r184 r1269 r1270 r1271 r1272 r1273 r1274 r1275 r1276
+  have hsTail7 := seg15_steps7 rho
       r185 r1277 r1278 r1279 r1280 r1281 r1282 r1283 r1284
       r186 r1285 r1286 r1287 r1288 r1289 r1290 r1291 r1292
       r187 r1293 r1294 r1295 r1296 r1297 r1298 r1299 r1300
       r188 r1301 r1302 r1303 r1304 r1305 r1306 r1307 r1308
       r189 r1309 r1310 r1311 r1312 r1313 r1314 r1315 r1316
-  have hp199 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX199 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY199 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps4 rho hp189
+  have hsTail8 := seg15_steps8 rho
       r190 r1317 r1318 r1319 r1320 r1321 r1322 r1323 r1324
       r191 r1325 r1326 r1327 r1328 r1329 r1330 r1331 r1332
       r192 r1333 r1334 r1335 r1336 r1337 r1338 r1339 r1340
       r193 r1341 r1342 r1343 r1344 r1345 r1346 r1347 r1348
       r194 r1349 r1350 r1351 r1352 r1353 r1354 r1355 r1356
+  have hsTail9 := seg15_steps9 rho
       r195 r1357 r1358 r1359 r1360 r1361 r1362 r1363 r1364
       r196 r1365 r1366 r1367 r1368 r1369 r1370 r1371 r1372
       r197 r1373 r1374 r1375 r1376 r1377 r1378 r1379 r1380
       r198 r1381 r1382 r1383 r1384 r1385 r1386 r1387 r1388
       r199 r1389 r1390 r1391 r1392 r1393 r1394 r1395 r1396
-  have hp209 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX209 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY209 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps5 rho hp199
+  have hsTail10 := seg15_steps10 rho
       r200 r1397 r1398 r1399 r1400 r1401 r1402 r1403 r1404
       r201 r1405 r1406 r1407 r1408 r1409 r1410 r1411 r1412
       r202 r1413 r1414 r1415 r1416 r1417 r1418 r1419 r1420
       r203 r1421 r1422 r1423 r1424 r1425 r1426 r1427 r1428
       r204 r1429 r1430 r1431 r1432 r1433 r1434 r1435 r1436
+  have hsTail11 := seg15_steps11 rho
       r205 r1437 r1438 r1439 r1440 r1441 r1442 r1443 r1444
       r206 r1445 r1446 r1447 r1448 r1449 r1450 r1451 r1452
       r207 r1453 r1454 r1455 r1456 r1457 r1458 r1459 r1460
       r208 r1461 r1462 r1463 r1464 r1465 r1466 r1467 r1468
       r209 r1469 r1470 r1471 r1472 r1473 r1474 r1475 r1476
-  have hp219 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX219 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY219 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps6 rho hp209
+  have hsTail12 := seg15_steps12 rho
       r210 r1477 r1478 r1479 r1480 r1481 r1482 r1483 r1484
       r211 r1485 r1486 r1487 r1488 r1489 r1490 r1491 r1492
       r212 r1493 r1494 r1495 r1496 r1497 r1498 r1499 r1500
       r213 r1501 r1502 r1503 r1504 r1505 r1506 r1507 r1508
       r214 r1509 r1510 r1511 r1512 r1513 r1514 r1515 r1516
+  have hsTail13 := seg15_steps13 rho
       r215 r1517 r1518 r1519 r1520 r1521 r1522 r1523 r1524
       r216 r1525 r1526 r1527 r1528 r1529 r1530 r1531 r1532
       r217 r1533 r1534 r1535 r1536 r1537 r1538 r1539 r1540
       r218 r1541 r1542 r1543 r1544 r1545 r1546 r1547 r1548
       r219 r1549 r1550 r1551 r1552 r1553 r1554 r1555 r1556
-  have hp229 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX229 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY229 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps7 rho hp219
+  have hsTail14 := seg15_steps14 rho
       r220 r1557 r1558 r1559 r1560 r1561 r1562 r1563 r1564
       r221 r1565 r1566 r1567 r1568 r1569 r1570 r1571 r1572
       r222 r1573 r1574 r1575 r1576 r1577 r1578 r1579 r1580
       r223 r1581 r1582 r1583 r1584 r1585 r1586 r1587 r1588
       r224 r1589 r1590 r1591 r1592 r1593 r1594 r1595 r1596
+  have hsTail15 := seg15_steps15 rho
       r225 r1597 r1598 r1599 r1600 r1601 r1602 r1603 r1604
       r226 r1605 r1606 r1607 r1608 r1609 r1610 r1611 r1612
       r227 r1613 r1614 r1615 r1616 r1617 r1618 r1619 r1620
       r228 r1621 r1622 r1623 r1624 r1625 r1626 r1627 r1628
       r229 r1629 r1630 r1631 r1632 r1633 r1634 r1635 r1636
-  have hp239 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX239 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY239 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps8 rho hp229
+  have hsTail16 := seg15_steps16 rho
       r230 r1637 r1638 r1639 r1640 r1641 r1642 r1643 r1644
       r231 r1645 r1646 r1647 r1648 r1649 r1650 r1651 r1652
       r232 r1653 r1654 r1655 r1656 r1657 r1658 r1659 r1660
       r233 r1661 r1662 r1663 r1664 r1665 r1666 r1667 r1668
       r234 r1669 r1670 r1671 r1672 r1673 r1674 r1675 r1676
+  have hsTail17 := seg15_steps17 rho
       r235 r1677 r1678 r1679 r1680 r1681 r1682 r1683 r1684
       r236 r1685 r1686 r1687 r1688 r1689 r1690 r1691 r1692
       r237 r1693 r1694 r1695 r1696 r1697 r1698 r1699 r1700
       r238 r1701 r1702 r1703 r1704 r1705 r1706 r1707 r1708
       r239 r1709 r1710 r1711 r1712 r1713 r1714 r1715 r1716
-  have hp249 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX249 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY249 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps9 rho hp239
+  have hsTail18 := seg15_steps18 rho
       r240 r1717 r1718 r1719 r1720 r1721 r1722 r1723 r1724
       r241 r1725 r1726 r1727 r1728 r1729 r1730 r1731 r1732
       r242 r1733 r1734 r1735 r1736 r1737 r1738 r1739 r1740
       r243 r1741 r1742 r1743 r1744 r1745 r1746 r1747 r1748
       r244 r1749 r1750 r1751 r1752 r1753 r1754 r1755 r1756
+  have hsTail19 := seg15_steps19 rho
       r245 r1757 r1758 r1759 r1760 r1761 r1762 r1763 r1764
       r246 r1765 r1766 r1767 r1768 r1769 r1770 r1771 r1772
       r247 r1773 r1774 r1775 r1776 r1777 r1778 r1779 r1780
       r248 r1781 r1782 r1783 r1784 r1785 r1786 r1787 r1788
       r249 r1789 r1790 r1791 r1792 r1793 r1794 r1795 r1796
-  have hp250 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX250 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY250 rho : Seg15.F)⟩ : EdwardsBridge.Point) :=
-    seg15_steps10 rho hp249
+  have hsTail20 := seg15_steps20 rho
       r250 r1797 r1798 r1799 r1800 r1801 r1802 r1803 r1804
+  rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
+    (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order)
+    Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order] at hbin
+  rcases hbin with ⟨hscalarLt, hbits⟩
+  let bitsBool := Fin.toBitsLE (⟨(rho 97).val, hscalarLt⟩ : Fin (2 ^ 251))
+  have hbitAt : ∀ i, i < 251 →
+      rho (16136 + i) = Bool.toZMod bitsBool[i]! := by
+    intro i hi
+    rw [← seg15RvkBits_get rho i hi, hbits]
+    change (bitsBool.map Bool.toZMod)[i]! = Bool.toZMod bitsBool[i]!
+    rw [getElem!_pos (bitsBool.map Bool.toZMod) i (by simpa using hi),
+      getElem!_pos bitsBool i (by simpa using hi), List.Vector.getElem_map]
+  have hstep : ∀ i, i < 251 → onCurve (seg15RvkAcc rho i) →
+      RvkFixedBaseLadder.FixedStepRel i (Bool.toZMod bitsBool[i]!)
+        (seg15RvkAcc rho i) (seg15RvkAcc rho (i + 1)) := by
+    intro i hi hacc
+    by_cases hzero : i = 0
+    · subst i
+      change RvkFixedBaseLadder.FixedStepRel 0 (Bool.toZMod bitsBool[0]!) ⟨0, 1⟩
+        (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627 : Seg15.F) * rho 16136,
+          (1 : Seg15.F) + (6060471950081851567114691557659790004756535011754163002297540472747064943287 : Seg15.F) * rho 16136⟩ : EdwardsBridge.Point)
+      rw [hbitAt 0 (by omega)]
+      simpa [
+        Shieldd.GnarkFormal.RvkFixedRun.seedAcc,
+        Shieldd.GnarkFormal.RvkFixedBaseConstants.C,
+        Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,
+        Shieldd.GnarkFormal.RvkBridge.genXNat,
+        Shieldd.GnarkFormal.RvkBridge.genYNat] using
+        (Shieldd.GnarkFormal.RvkFixedRun.seedStepRel bitsBool[0]!)
+    · rw [← hbitAt i hi]
+      by_cases hprefix : i ≤ 149
+      · exact hsPrefix i (by omega) hprefix hacc
+      by_cases htail0 : i ≤ 154
+      · exact hsTail0 i (by omega) htail0 hacc
+      by_cases htail1 : i ≤ 159
+      · exact hsTail1 i (by omega) htail1 hacc
+      by_cases htail2 : i ≤ 164
+      · exact hsTail2 i (by omega) htail2 hacc
+      by_cases htail3 : i ≤ 169
+      · exact hsTail3 i (by omega) htail3 hacc
+      by_cases htail4 : i ≤ 174
+      · exact hsTail4 i (by omega) htail4 hacc
+      by_cases htail5 : i ≤ 179
+      · exact hsTail5 i (by omega) htail5 hacc
+      by_cases htail6 : i ≤ 184
+      · exact hsTail6 i (by omega) htail6 hacc
+      by_cases htail7 : i ≤ 189
+      · exact hsTail7 i (by omega) htail7 hacc
+      by_cases htail8 : i ≤ 194
+      · exact hsTail8 i (by omega) htail8 hacc
+      by_cases htail9 : i ≤ 199
+      · exact hsTail9 i (by omega) htail9 hacc
+      by_cases htail10 : i ≤ 204
+      · exact hsTail10 i (by omega) htail10 hacc
+      by_cases htail11 : i ≤ 209
+      · exact hsTail11 i (by omega) htail11 hacc
+      by_cases htail12 : i ≤ 214
+      · exact hsTail12 i (by omega) htail12 hacc
+      by_cases htail13 : i ≤ 219
+      · exact hsTail13 i (by omega) htail13 hacc
+      by_cases htail14 : i ≤ 224
+      · exact hsTail14 i (by omega) htail14 hacc
+      by_cases htail15 : i ≤ 229
+      · exact hsTail15 i (by omega) htail15 hacc
+      by_cases htail16 : i ≤ 234
+      · exact hsTail16 i (by omega) htail16 hacc
+      by_cases htail17 : i ≤ 239
+      · exact hsTail17 i (by omega) htail17 hacc
+      by_cases htail18 : i ≤ 244
+      · exact hsTail18 i (by omega) htail18 hacc
+      by_cases htail19 : i ≤ 249
+      · exact hsTail19 i (by omega) htail19 hacc
+      exact hsTail20 i (by omega) (by omega) hacc
+  have htrace := Shieldd.GnarkFormal.RvkFixedRun.trace_final_semantic
+    bitsBool (seg15RvkAcc rho) hstep EdwardsBridge.identity_onCurve
   have hLcx : Seg15.relationLc1448 rho = 4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX250 rho := seg15_lcx rho
   have hLcy : Seg15.relationLc1447 rho = 1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY250 rho := seg15_lcy rho
   have hp' : onCurve (⟨Seg15.relationLc1448 rho, Seg15.relationLc1447 rho⟩ : EdwardsBridge.Point) := by
-    rw [hLcx, hLcy]; exact hp250
+    rw [hLcx, hLcy]
+    exact htrace.2
   have hLc46 : Seg15.relationLc1446 rho = (Seg15.relationLc1448 rho) + (Seg15.relationLc1447 rho) := seg15_lc46 rho
   unfold Seg15.relationRow1807 at r1807
   unfold Seg15.relationRow1808 at r1808
@@ -340,7 +437,47 @@ theorem seg15_sound (rho : Nat -> Seg15.F)
       rw [show (EdwardsBridge.a : EdwardsBridge.F) = -1 from by decide]
       rw [e9, e7, e8, e76, e75, hLc46] at r1811
       linear_combination r1811
-  exact RvkDeployedRung.addSpec_onCurve hakC hp' hadd
+  have hstate : seg15RvkAcc rho 251 =
+      (⟨Seg15.relationLc1448 rho, Seg15.relationLc1447 rho⟩ : EdwardsBridge.Point) := by
+    change (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX250 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY250 rho : Seg15.F)⟩ : EdwardsBridge.Point) = _
+    rw [hLcx, hLcy]
+  have htraceModel : (⟨Seg15.relationLc1448 rho, Seg15.relationLc1447 rho⟩ : EdwardsBridge.Point) =
+      Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩
+        (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) := by
+    rw [← hstate]
+    exact htrace.1
+  have heq := EdwardsBridge.addSpec_eq
+    ⟨rho 6, rho 7⟩ (⟨Seg15.relationLc1448 rho, Seg15.relationLc1447 rho⟩ : EdwardsBridge.Point)
+    ⟨rho 17945, rho 17946⟩ hakC hp' hadd
+  have hmodel := Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits_toA
+    bitsBool (rho 97) 251 0 ⟨0, 1⟩
+    (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) (by omega)
+    (by
+      intro i _ hi
+      exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit
+        (rho 97).val hscalarLt i hi)
+  have hfinal : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk (rho 17945) (rho 17946) =
+      Shieldd.GnarkFormal.ScalarMulBridge.toA (EdwardsBridge.addF ⟨rho 6, rho 7⟩
+        (Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩
+          (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0))) := by
+    rw [← htraceModel, ← heq]
+    rfl
+  have hspec : Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
+      ⟨rho 6, rho 7⟩ (rho 97) ⟨rho 17945, rho 17946⟩ := by
+    show Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk _ _ =
+      Shieldd.GnarkFormal.Decaf377Assumptions.rvk _ _
+    rw [hfinal, Shieldd.GnarkFormal.ScalarMulBridge.toA_addF, hmodel]
+    simp only [Shieldd.GnarkFormal.Decaf377Assumptions.rvk,
+      Shieldd.GnarkFormal.Decaf377Assumptions.scalarMulLE,
+      Shieldd.GnarkFormal.Decaf377Assumptions.generator,
+      Shieldd.GnarkFormal.Decaf377Assumptions.identity,
+      Shieldd.GnarkFormal.ScalarMulBridge.toA,
+      Shieldd.GnarkFormal.RvkFixedBaseConstants.C,
+      Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,
+      Shieldd.GnarkFormal.RvkBridge.genXNat,
+      Shieldd.GnarkFormal.RvkBridge.genYNat]
+    rfl
+  exact ⟨hspec, RvkDeployedRung.addSpec_onCurve hakC hp' hadd⟩
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 

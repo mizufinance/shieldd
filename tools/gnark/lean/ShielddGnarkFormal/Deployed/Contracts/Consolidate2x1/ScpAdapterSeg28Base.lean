@@ -1,5 +1,5 @@
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg28
-import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
+import ShielddGnarkFormal.Deployed.PrimeOrder
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000

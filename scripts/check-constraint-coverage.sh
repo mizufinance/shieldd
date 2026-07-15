@@ -218,7 +218,7 @@ check_generated_contracts() {
   fi
 
   missing="$(comm -13 "$committed_list" "$generated_list")"
-  if [[ -n "$missing" && "$require_full_deployed" -eq 1 ]]; then
+  if [[ -n "$missing" && ( "$require_full_deployed" -eq 1 || "$circuit" == "consolidate2x1" ) ]]; then
     printf '%s\n' "$missing" \
       | sed 's/^/Generated contract with no committed counterpart: /' >&2
     fail "generated deployed contract set incomplete for $circuit"
@@ -229,6 +229,45 @@ check_generated_contracts() {
     if ! cmp -s "$committed_dir/$contract_file" "$generated_dir/$contract_file"; then
       diff -u "$committed_dir/$contract_file" "$generated_dir/$contract_file" >&2 || true
       fail "generated deployed contract drifted for $circuit: $contract_file"
+    fi
+  done < "$committed_list"
+}
+
+check_generated_adapter_family() {
+  local committed_dir="$1" generated_dir="$2" prefix="$3" circuit="$4"
+  local committed_list="$tmp_dir/$circuit-$prefix-committed.txt"
+  local generated_list="$tmp_dir/$circuit-$prefix-generated.txt"
+  local adapter_file missing extra
+
+  [[ -d "$committed_dir" ]] || fail "missing committed adapter dir $committed_dir"
+  [[ -d "$generated_dir" ]] || fail "missing generated adapter dir $generated_dir"
+  (
+    cd "$committed_dir"
+    find . -maxdepth 1 -type f -name "${prefix}*.lean" | sed 's#^\./##' | sort
+  ) > "$committed_list"
+  (
+    cd "$generated_dir"
+    find . -maxdepth 1 -type f -name "${prefix}*.lean" | sed 's#^\./##' | sort
+  ) > "$generated_list"
+
+  [[ -s "$generated_list" ]] \
+    || fail "generator emitted no ${prefix}*.lean adapters for $circuit"
+  missing="$(comm -23 "$committed_list" "$generated_list")"
+  extra="$(comm -13 "$committed_list" "$generated_list")"
+  if [[ -n "$missing" ]]; then
+    printf '%s\n' "$missing" | sed 's/^/Committed adapter not emitted: /' >&2
+    fail "generated $prefix adapter set is missing committed files for $circuit"
+  fi
+  if [[ -n "$extra" ]]; then
+    printf '%s\n' "$extra" | sed 's/^/Generated adapter not committed: /' >&2
+    fail "generated $prefix adapter set has uncommitted files for $circuit"
+  fi
+
+  while IFS= read -r adapter_file; do
+    [[ -z "$adapter_file" ]] && continue
+    if ! cmp -s "$committed_dir/$adapter_file" "$generated_dir/$adapter_file"; then
+      diff -u "$committed_dir/$adapter_file" "$generated_dir/$adapter_file" >&2 || true
+      fail "generated adapter drifted for $circuit: $adapter_file"
     fi
   done < "$committed_list"
 }
@@ -283,6 +322,11 @@ fi
 tmp_dir="$(mktemp -d)"
 trap 'if [[ -z "${KEEP_TMP:-}" ]]; then rm -rf "$tmp_dir"; fi' EXIT
 
+# Lean's generated deployed modules are large enough to OOM this machine when
+# Lake fans out. Every optional Lake invocation in this gate inherits one
+# worker, including cache fetches and xargs-driven module builds.
+export LEAN_NUM_THREADS=1
+
 # Every `lake` invocation below (bridge-theorem checks, typed-contract builds)
 # resolves the Lean project from the current directory, so run from the Lean
 # source root. All file paths are absolute ($ROOT/...), and the cargo runs that
@@ -312,6 +356,8 @@ while IFS= read -r circuit; do
   coverage_manifest_stamp="$coverage_manifest.sha256"
   coverage_ir_stamp="$coverage_ir.sha256"
   tmp_report="$tmp_dir/$circuit-coverage-report.json"
+  tmp_ir="$tmp_dir/$circuit-deployed-slice-ir.json"
+  tmp_coverage_manifest="$tmp_dir/$circuit-coverage-manifest.json"
   contract_module_dir="$(contract_module_dir_for_circuit "$circuit")"
   committed_contract_dir="$ROOT/tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/$contract_module_dir"
   tmp_contract_root="$tmp_dir/$circuit-contracts"
@@ -336,8 +382,19 @@ while IFS= read -r circuit; do
       --sr1cs "$sr1cs" \
       --coverage-manifest "$coverage_manifest" \
       --coverage-ir "$coverage_ir" \
+      --ir-out "$tmp_ir" \
+      --coverage-manifest-normalize "$coverage_manifest" \
+      --coverage-manifest-out "$tmp_coverage_manifest" \
       --report-out "$tmp_report"
   )
+  if ! cmp -s "$tmp_ir" "$coverage_ir"; then
+    diff -u "$coverage_ir" "$tmp_ir" >&2 || true
+    fail "deployed slice IR drift for $circuit"
+  fi
+  if ! cmp -s "$tmp_coverage_manifest" "$coverage_manifest"; then
+    diff -u "$coverage_manifest" "$tmp_coverage_manifest" >&2 || true
+    fail "deployed coverage manifest is not the normalized fresh IR projection for $circuit"
+  fi
   if [[ -d "$committed_contract_dir" ]]; then
     (
       cd "$ROOT"
@@ -348,6 +405,56 @@ while IFS= read -r circuit; do
     )
     check_generated_contracts "$committed_contract_dir" "$tmp_contract_dir" "$circuit"
     contracts_checked=1
+  fi
+  if [[ "$circuit" == "consolidate2x1" ]]; then
+    python3 "$ROOT/tools/gnark/lean/gen/gen_wiring.py" \
+      --ir "$tmp_ir" \
+      --out "$committed_contract_dir/Wiring.lean" \
+      --check \
+      || fail "generated named wiring drift for $circuit"
+    python3 "$ROOT/tools/gnark/lean/gen/gen_capstone.py" \
+      --manifest "$tmp_coverage_manifest" \
+      --out "$committed_contract_dir/Capstone.lean" \
+      --check \
+      || fail "generated deployed capstone drift for $circuit"
+    tmp_adapter_dir="$tmp_dir/$circuit-generated-adapters"
+    mkdir -p "$tmp_adapter_dir"
+    python3 "$ROOT/tools/gnark/lean/gen/gen_dtk_slice.py" \
+      --adapter-out "$tmp_adapter_dir" \
+      || fail "failed to regenerate deployed DTK adapter family for $circuit"
+    python3 "$ROOT/tools/gnark/lean/gen/gen_rvk_deployed_adapters.py" \
+      --adapter-out "$tmp_adapter_dir" \
+      || fail "failed to regenerate deployed RVK adapter family for $circuit"
+    python3 "$ROOT/tools/gnark/lean/gen/gen_scp_adapters.py" \
+      --adapter-out "$tmp_adapter_dir" \
+      --spec-out "$tmp_dir/$circuit-scp-specs.txt" \
+      || fail "failed to regenerate deployed SCP adapter family for $circuit"
+    python3 "$ROOT/tools/gnark/lean/gen/gen_nb_slice.py" \
+      --adapter-out "$tmp_adapter_dir" \
+      || fail "failed to regenerate deployed net-balance adapter family for $circuit"
+    python3 "$ROOT/tools/gnark/lean/gen/gen_consolidate_compress_adapters.py" \
+      --adapter-out "$tmp_adapter_dir" \
+      || fail "failed to regenerate deployed compress adapter family for $circuit"
+    check_generated_adapter_family \
+      "$committed_contract_dir" "$tmp_adapter_dir" "DtkAdapterSeg" "$circuit"
+    check_generated_adapter_family \
+      "$committed_contract_dir" "$tmp_adapter_dir" "RvkAdapterSeg" "$circuit"
+    check_generated_adapter_family \
+      "$committed_contract_dir" "$tmp_adapter_dir" "ScpAdapterSeg" "$circuit"
+    check_generated_adapter_family \
+      "$committed_contract_dir" "$tmp_adapter_dir" "NbAdapter" "$circuit"
+    check_generated_adapter_family \
+      "$committed_contract_dir" "$tmp_adapter_dir" "CompressAdapter" "$circuit"
+    tmp_statement="$tmp_dir/$circuit-Statement.lean"
+    python3 "$ROOT/tools/gnark/lean/gen/gen_statement.py" \
+      --ir "$tmp_ir" \
+      --manifest "$tmp_coverage_manifest" \
+      --out "$tmp_statement" \
+      || fail "failed to regenerate protocol statement for $circuit"
+    if ! cmp -s "$committed_contract_dir/Statement.lean" "$tmp_statement"; then
+      diff -u "$committed_contract_dir/Statement.lean" "$tmp_statement" >&2 || true
+      fail "generated protocol statement drift for $circuit"
+    fi
   fi
   if ! cmp -s "$tmp_report" "$report"; then
     diff -u "$report" "$tmp_report" >&2 || true

@@ -1,11 +1,8 @@
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg30
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Acc
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Lemmas10
-import ShielddGnarkFormal.RvkFixedGenInst1
-import ShielddGnarkFormal.RvkFixedSplitRung
-import ShielddGnarkFormal.RvkFixedBaseLiteral
-import ShielddGnarkFormal.RvkFixedBaseLadder
-import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Step200
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Step201
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Step202
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Step203
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Step204
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -18,86 +15,61 @@ open Bool (toZMod)
 open Shieldd.GnarkFormal.RvkFixedBaseLiteral
 
 theorem seg30_steps10 (rho : Nat -> Seg30.F)
-    (hp249 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX249 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY249 rho : Seg30.F)⟩ : EdwardsBridge.Point))
-    (r250 : Seg30.relationRow250 rho)
-    (r1797 : Seg30.relationRow1797 rho)
-    (r1798 : Seg30.relationRow1798 rho)
-    (r1799 : Seg30.relationRow1799 rho)
-    (r1800 : Seg30.relationRow1800 rho)
-    (r1801 : Seg30.relationRow1801 rho)
-    (r1802 : Seg30.relationRow1802 rho)
-    (r1803 : Seg30.relationRow1803 rho)
-    (r1804 : Seg30.relationRow1804 rho)
-    : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX250 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY250 rho : Seg30.F)⟩ : EdwardsBridge.Point) := by
-  have hbrow250 : (1*(rho 28567))*(1 + (-1)*(rho 28567)) = 0 := by
-    simpa [Seg30.relationRow250] using r250
-  unfold Seg30.relationRow1797 at r1797
-  unfold Seg30.relationRow1798 at r1798
-  unfold Seg30.relationRow1799 at r1799
-  unfold Seg30.relationRow1800 at r1800
-  unfold Seg30.relationRow1801 at r1801
-  unfold Seg30.relationRow1802 at r1802
-  unfold Seg30.relationRow1803 at r1803
-  unfold Seg30.relationRow1804 at r1804
-  have h13_250 : rho 30113 = seg30AccX249 rho + seg30AccY249 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 28317 + 1 := by
-    have hLc := seg30_lc1439 rho
-    rw [hLc] at r1797
-    linear_combination -r1797
-  have h14_250 : (4064883095062247340147603835378916187508183055445169435732389489036001704408*seg30AccX249 rho + 2586703773231270539878676380651414243603465923206936704484651928336413050533*rho 28317) * (1984710607226089818020725577334409086216133409436227188525394559293030245463*seg30AccY249 rho + 1984710607226089818020725577334409086216133409436227188525394559293030245463 + 8190687850680179368374512318543963712238846217710026704016266914143778228996*rho 28317) = rho 30114 := by
-    have hL := seg30_lc1440 rho
-    have hR := seg30_lc1441 rho
-    rw [hL, hR] at r1798
-    linear_combination r1798
-  have h15_250 : 823150161346244009291394285282076662168825748954233675885035096169729996022*seg30AccX249 rho + 1984710607226089818020725577334409086216133409436227188525394559293030245463*seg30AccY249 rho + 1984710607226089818020725577334409086216133409436227188525394559293030245463 + 7713555690673883416038639962320530066882449223208822474333234716515992539878*rho 28317 = rho 30115 := by
-    have hLc := seg30_lc1442 rho
-    rw [hLc] at r1799
-    linear_combination r1799
-  have h16_250 : rho 30116 * (1 + rho 30114) = rho 30115 := by
-    linear_combination r1800
-  have h17_250 : 7621311588082126414957430653499469869207073586199830152050198359747679243019*seg30AccX249 rho + 6459751142202280606228099361447137445159765925717836639409838896624378993578*seg30AccY249 rho + 6459751142202280606228099361447137445159765925717836639409838896624378993578 + 730906058754487008210184976461016464493450111945241353601998739401416699163*rho 28317 = rho 30117 := by
-    have hLc := seg30_lc1443 rho
-    rw [hLc] at r1801
-    linear_combination r1801
-  have h18_250 : rho 30118 * (1 + (-1)*rho 30114) = rho 30117 + 2807860768572333827312119862616485748384959158390460864410429655462760241485*rho 30113 := by
-    linear_combination r1802
-  have hSelX_250 : (1*rho 28567) * (3485015960081549698896340450925717616123387027206439040100255077045280003414*rho 28317 + (-1)*seg30AccX249 rho + rho 30116) = rho 30119 := by
-    have hLc := seg30_lc1444 rho
-    rw [hLc] at r1803
-    linear_combination r1803
-  have hSelY_250 : (1*rho 28567) * ((-1) + 2383989799346518857134133381121756526619364323399900825637692983170344295754*rho 28317 + (-1)*seg30AccY249 rho + rho 30118) = rho 30120 := by
-    have hLc := seg30_lc1445 rho
-    rw [hLc] at r1804
-    linear_combination r1804
-  have hr250 : RvkFixedBaseLadder.FixedStepRel 250 (rho 28567) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX249 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY249 rho : Seg30.F)⟩ : EdwardsBridge.Point) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX250 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY250 rho : Seg30.F)⟩ : EdwardsBridge.Point) := by
-    simpa [RvkFixedSplitRung.GX, RvkFixedSplitRung.GYM1, seg30AccX250, seg30AccY250, add_assoc] using RvkFixedSplitRung.splitRung_fixedStepRel 250
-      (1984710607226089818020725577334409086216133409436227188525394559293030245463 : EdwardsBridge.F) (823150161346244009291394285282076662168825748954233675885035096169729996022 : EdwardsBridge.F) (2807860768572333827312119862616485748384959158390460864410429655462760241485 : EdwardsBridge.F)
-      (2575455990000301868218351106734072388633147984547723962197285395701784939873 : EdwardsBridge.F) (4064883095062247340147603835378916187508183055445169435732389489036001704408 : EdwardsBridge.F) (2586703773231270539878676380651414243603465923206936704484651928336413050533 : EdwardsBridge.F)
-      (8190687850680179368374512318543963712238846217710026704016266914143778228996 : EdwardsBridge.F) (7713555690673883416038639962320530066882449223208822474333234716515992539878 : EdwardsBridge.F) (7621311588082126414957430653499469869207073586199830152050198359747679243019 : EdwardsBridge.F)
-      (6459751142202280606228099361447137445159765925717836639409838896624378993578 : EdwardsBridge.F) (730906058754487008210184976461016464493450111945241353601998739401416699163 : EdwardsBridge.F)
-      (3485015960081549698896340450925717616123387027206439040100255077045280003414 : EdwardsBridge.F) (2383989799346518857134133381121756526619364323399900825637692983170344295754 : EdwardsBridge.F)
-      (rho 28317 : Seg30.F) (seg30AccX249 rho : Seg30.F)
-      (seg30AccY249 rho : Seg30.F) (rho 28567 : Seg30.F)
-      (rho 30113 : Seg30.F) (rho 30114 : Seg30.F) (rho 30115 : Seg30.F)
-      (rho 30117 : Seg30.F) (rho 30116 : Seg30.F) (rho 30118 : Seg30.F)
-      (rho 30119 : Seg30.F) (rho 30120 : Seg30.F) hp249
-      (by rw [C_eq_L250]; simp only [L250])
-      (by decide)
-      (by decide)
-      (by decide)
-      (by decide)
-      (by decide)
-      (by decide)
-      (by decide)
-      (by decide)
-      (by decide)
-      h13_250 h14_250 h15_250 h16_250 h17_250 h18_250 hSelX_250 hSelY_250 hbrow250
-  obtain ⟨b250, hb250⟩ := Shieldd.GnarkFormal.RvkFixedGenInst1.boolify (rho 28567) hbrow250
-  have hrb250 : RvkFixedBaseLadder.FixedStepRel 250 (toZMod b250) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX249 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY249 rho : Seg30.F)⟩ : EdwardsBridge.Point) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX250 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY250 rho : Seg30.F)⟩ : EdwardsBridge.Point) := by
-    rw [← hb250]
-    exact hr250
-  have hp250 : onCurve (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX250 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY250 rho : Seg30.F)⟩ : EdwardsBridge.Point) :=
-    (RvkFixedBaseLadder.fixedStep_semantic 250 b250 _ _ hp249 hrb250).2
-  exact hp250
+    (r200 : Seg30.relationRow200 rho)
+    (r1397 : Seg30.relationRow1397 rho)
+    (r1398 : Seg30.relationRow1398 rho)
+    (r1399 : Seg30.relationRow1399 rho)
+    (r1400 : Seg30.relationRow1400 rho)
+    (r1401 : Seg30.relationRow1401 rho)
+    (r1402 : Seg30.relationRow1402 rho)
+    (r1403 : Seg30.relationRow1403 rho)
+    (r1404 : Seg30.relationRow1404 rho)
+    (r201 : Seg30.relationRow201 rho)
+    (r1405 : Seg30.relationRow1405 rho)
+    (r1406 : Seg30.relationRow1406 rho)
+    (r1407 : Seg30.relationRow1407 rho)
+    (r1408 : Seg30.relationRow1408 rho)
+    (r1409 : Seg30.relationRow1409 rho)
+    (r1410 : Seg30.relationRow1410 rho)
+    (r1411 : Seg30.relationRow1411 rho)
+    (r1412 : Seg30.relationRow1412 rho)
+    (r202 : Seg30.relationRow202 rho)
+    (r1413 : Seg30.relationRow1413 rho)
+    (r1414 : Seg30.relationRow1414 rho)
+    (r1415 : Seg30.relationRow1415 rho)
+    (r1416 : Seg30.relationRow1416 rho)
+    (r1417 : Seg30.relationRow1417 rho)
+    (r1418 : Seg30.relationRow1418 rho)
+    (r1419 : Seg30.relationRow1419 rho)
+    (r1420 : Seg30.relationRow1420 rho)
+    (r203 : Seg30.relationRow203 rho)
+    (r1421 : Seg30.relationRow1421 rho)
+    (r1422 : Seg30.relationRow1422 rho)
+    (r1423 : Seg30.relationRow1423 rho)
+    (r1424 : Seg30.relationRow1424 rho)
+    (r1425 : Seg30.relationRow1425 rho)
+    (r1426 : Seg30.relationRow1426 rho)
+    (r1427 : Seg30.relationRow1427 rho)
+    (r1428 : Seg30.relationRow1428 rho)
+    (r204 : Seg30.relationRow204 rho)
+    (r1429 : Seg30.relationRow1429 rho)
+    (r1430 : Seg30.relationRow1430 rho)
+    (r1431 : Seg30.relationRow1431 rho)
+    (r1432 : Seg30.relationRow1432 rho)
+    (r1433 : Seg30.relationRow1433 rho)
+    (r1434 : Seg30.relationRow1434 rho)
+    (r1435 : Seg30.relationRow1435 rho)
+    (r1436 : Seg30.relationRow1436 rho)
+    : ∀ i, 200 ≤ i → i ≤ 204 → onCurve (seg30RvkAcc rho i) →
+        RvkFixedBaseLadder.FixedStepRel i
+          (rho (28317 + i)) (seg30RvkAcc rho i) (seg30RvkAcc rho (i + 1)) := by
+  intro i hlo hhi hacc
+  interval_cases i
+  · exact seg30_step200 rho r200 r1397 r1398 r1399 r1400 r1401 r1402 r1403 r1404 hacc
+  · exact seg30_step201 rho r201 r1405 r1406 r1407 r1408 r1409 r1410 r1411 r1412 hacc
+  · exact seg30_step202 rho r202 r1413 r1414 r1415 r1416 r1417 r1418 r1419 r1420 hacc
+  · exact seg30_step203 rho r203 r1421 r1422 r1423 r1424 r1425 r1426 r1427 r1428 hacc
+  · exact seg30_step204 rho r204 r1429 r1430 r1431 r1432 r1433 r1434 r1435 r1436 hacc
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 

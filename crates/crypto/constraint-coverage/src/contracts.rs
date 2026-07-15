@@ -126,6 +126,17 @@ const MIN_RUN: usize = 16;
 /// instead of elaborating without a bound.
 const MAX_CONTRACT_HEARTBEATS: u64 = 50_000_000;
 
+/// Split definition payloads before a monolithic contract approaches the
+/// bounded contract tier. Consolidate Seg6 demonstrated that a 1.9 MiB payload
+/// can exceed the 180-second limit even though byte size alone looks modest.
+const CONTRACT_SHARD_THRESHOLD_BYTES: usize = 1024 * 1024;
+
+/// Each shard is small enough to elaborate independently under the leaf tier.
+/// Seg6 demonstrated that even a 256 KiB shard can reach 61 seconds when its
+/// definitions are algebraically dense, so retain margin below the strict
+/// 60-second limit instead of tuning to the boundary.
+const CONTRACT_SHARD_BYTES: usize = 128 * 1024;
+
 /// One compressed arithmetic-progression run: `coeff · Σ_{i<count} rho(start + i·stride)`.
 struct StrideRun {
     coeff: String,
@@ -432,12 +443,43 @@ fn render_relation_defs_with_inline_limit(
     (defs, parts.join(" ∧\n    "))
 }
 
+fn definition_shards(defs: &str, max_bytes: usize) -> Vec<String> {
+    assert!(
+        max_bytes > 0,
+        "contract definition shard size must be positive"
+    );
+    let mut blocks = Vec::new();
+    let mut block = String::new();
+    for line in defs.split_inclusive('\n') {
+        if line.starts_with("def ") && !block.is_empty() {
+            blocks.push(std::mem::take(&mut block));
+        }
+        block.push_str(line);
+    }
+    if !block.is_empty() {
+        blocks.push(block);
+    }
+
+    let mut shards = Vec::new();
+    let mut shard = String::new();
+    for block in blocks {
+        if !shard.is_empty() && shard.len() + block.len() > max_bytes {
+            shards.push(std::mem::take(&mut shard));
+        }
+        shard.push_str(&block);
+    }
+    if !shard.is_empty() {
+        shards.push(shard);
+    }
+    shards
+}
+
 #[cfg(test)]
 fn render_relation_defs(rows: &[Constraint]) -> (String, String) {
     render_relation_defs_with_inline_limit(rows, 32, true)
 }
 
-fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> ContractFile {
+fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> Vec<ContractFile> {
     let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
     let module = contract_module(circuit, segment.index);
     let file_name = contract_file_name(circuit, segment.index);
@@ -488,12 +530,95 @@ fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> C
         relation_hash = segment.relation_sha256_hex,
         wire_role_hash = segment.wire_role_sha256_hex,
     );
-    ContractFile {
+    if relation_defs.len() <= CONTRACT_SHARD_THRESHOLD_BYTES {
+        return vec![ContractFile {
+            segment_index: segment.index,
+            module,
+            file_name,
+            contents,
+        }];
+    }
+
+    let module_root = format!(
+        "ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.Seg{}",
+        segment.index
+    );
+    let namespace = format!("Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}");
+    let mut files = Vec::new();
+    let base_module = format!("{module_root}Base");
+    files.push(ContractFile {
+        segment_index: segment.index,
+        module: base_module.clone(),
+        file_name: format!("{circuit_mod}/Seg{}Base.lean", segment.index),
+        contents: format!(
+            "import ShielddGnarkFormal.Deployed.Contract\n\
+             import ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.{spec_sub}\n\
+             import ShielddGnarkFormal.StructuredLC\n\
+             import Mathlib.Data.ZMod.Basic\n\n\
+             set_option maxRecDepth 1000000\n\
+             set_option maxHeartbeats {max_heartbeats}\n\n\
+             namespace {namespace}\n\n\
+             def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041\n\
+             abbrev F := ZMod Order\n\n\
+             end {namespace}\n",
+            spec_sub = spec_submodule(circuit, segment.index),
+            max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+        ),
+    });
+
+    let mut previous_module = base_module;
+    for (index, shard) in definition_shards(&relation_defs, CONTRACT_SHARD_BYTES)
+        .into_iter()
+        .enumerate()
+    {
+        let shard_module = format!("{module_root}Defs{index}");
+        files.push(ContractFile {
+            segment_index: segment.index,
+            module: shard_module.clone(),
+            file_name: format!("{circuit_mod}/Seg{}Defs{index}.lean", segment.index),
+            contents: format!(
+                "import {previous_module}\n\n\
+                 set_option maxRecDepth 1000000\n\
+                 set_option maxHeartbeats {max_heartbeats}\n\n\
+                 namespace {namespace}\n\n\
+                 {shard}\
+                 end {namespace}\n",
+                max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+            ),
+        });
+        previous_module = shard_module;
+    }
+
+    let facade = format!(
+        "import {previous_module}\n\n\
+         set_option maxRecDepth 1000000\n\
+         set_option maxHeartbeats {max_heartbeats}\n\n\
+         namespace {namespace}\n\n\
+         def relation (rho : Nat -> F) : Prop :=\n    {relation}\n\n\
+         /-- Semantic projection: the hand-authored Layer-2 endpoint for this\n\
+         deployed segment, seated on this slice's wire roles. -/\n\
+         def spec (rho : Nat -> F) : Prop := Specs.deployedSpec{segment_index} rho\n\n\
+         def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {{\n\
+           segmentIndex := {segment_index},\n\
+           relationSha256Hex := \"{relation_hash}\",\n\
+           wireRoleSha256Hex := \"{wire_role_hash}\",\n\
+           relation := relation,\n\
+           spec := spec\n\
+         }}\n\n\
+         end {namespace}\n",
+        max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+        relation = relation_body,
+        segment_index = segment.index,
+        relation_hash = segment.relation_sha256_hex,
+        wire_role_hash = segment.wire_role_sha256_hex,
+    );
+    files.push(ContractFile {
         segment_index: segment.index,
         module,
         file_name,
-        contents,
-    }
+        contents: facade,
+    });
+    files
 }
 
 pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, CoverageError> {
@@ -510,7 +635,7 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
                     end: segment.end,
                     nb_constraints: rows.len(),
                 })?;
-        files.push(render_contract(&ir.circuit, segment, segment_rows));
+        files.extend(render_contract(&ir.circuit, segment, segment_rows));
     }
     // Tier-3 inherent-topology gate: recover and parity-check the consolidate2x1
     // DTK canonicity ladders at extraction time (fail-closed), the analogue of
@@ -812,6 +937,18 @@ mod tests {
         assert!(defs.contains("def relationLc0Part1"));
         assert!(defs.contains("def relationLc0Part2"));
         assert!(defs.contains("def relationLc0"));
+    }
+
+    #[test]
+    fn shards_contract_definitions_only_at_top_level_boundaries() {
+        let defs =
+            "def a : Nat :=\n    1\n\ndef b : Nat :=\n    a + 1\n\ndef c : Nat :=\n    b + 1\n\n";
+        let shards = definition_shards(defs, 35);
+
+        assert_eq!(shards.concat(), defs);
+        assert_eq!(shards.len(), 3);
+        assert!(shards.iter().all(|shard| shard.starts_with("def ")));
+        assert!(shards.iter().all(|shard| !shard.contains("\n\ndef ")));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg6
 import ShielddGnarkFormal.Deployed.Dtk.Outputs
-import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
+import ShielddGnarkFormal.Deployed.PrimeOrder
 import ShielddGnarkFormal.Extracted.CanonicalFqBits
 
 set_option maxRecDepth 1000000

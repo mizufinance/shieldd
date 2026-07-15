@@ -2,7 +2,7 @@
  * consolidate2x1-statement-sufficiency.als — H2 statement-sufficiency model for
  * the consolidate2x1 circuit's 7-field public statement.
  *
- * The question (full-verification-plan.md hole H2): layers L2-L4 prove the
+ * The question: the circuit proof establishes the
  * circuit constrains what it constrains; this model asks the layer-above
  * question — is the 7-field statement
  *   [anchor, output_commitment, balance_fq, null1, rk1, null2, rk2]
@@ -17,8 +17,8 @@
  * derivations are injective relations, and every abstraction is bound to a named
  * assumption-ledger row (crates/core/component/compliance/formal/assumption-ledger.md).
  *
- * Sources of truth (statement + circuit bindings), per the inventory
- *   docs/soundness/reference/consolidate2x1-statement-binding-inventory.md :
+ * Sources of truth (statement + circuit bindings): the deployed consolidate2x1
+ *   Statement.lean and generated coverage manifest, plus:
  *   tools/gnark/internal/circuits/note_reshape_circuit.go
  *     nullifiers, rk_compressed, output note commitment, net-balance commitment.
  * Sources of truth (chain acceptance, Rust):
@@ -46,11 +46,11 @@
  *   SpendAuthBound — equal rk statement fields force the same spending key ak,
  *                    so the sig checker's key is pinned by the statement.
  *
- * MODEL FIDELITY (assurance-case A4): the facts below are a HAND-WRITTEN
+ * MODEL FIDELITY: the facts below are a HAND-WRITTEN
  * transcription of the circuit statement + Rust handler conjuncts — there is no
  * mechanical .als↔R1CS binding. Tracked as ledger row MODEL-ASSUME-ALLOY-FIDELITY
  * (assumption-ledger.md); mitigated by the file:symbol comments here, the
- * frontier-reviewed consolidate2x1-statement-binding-inventory.md, and the
+ * deployed Statement.lean/generated coverage manifest, and the
  * Rust↔Go seam test TestConsolidate2x1StatementSeamMatchesShielddVectors.
  */
 
@@ -59,7 +59,7 @@ open util/integer
 sig Fq {}
 
 sig Note {
-  cm:    one Fq,     // note commitment (Poseidon), inventory "output_commitment"
+  cm:    one Fq,     // note commitment (Poseidon), public output_commitment field
   value: one Int,    // amount; ZK-ASSUME-AMOUNT-RANGE keeps it non-wrapping
   ak:    one Fq      // spend-auth key material driving rvk
 }

@@ -1,90 +1,38 @@
-# Protocol Soundness
+# Soundness
 
-**This file is the summary. If you are not doing FV work, you do not need to read
-anything else.** It says what is mechanically proved, what stays an assumption,
-and what is still open. The `reference/` docs are depth — pull one only when a
-task actually needs it.
+This directory contains four maintained documents. Machine artifacts and
+ledgers beside the code are authoritative; these pages explain how to use them.
+Hashes, wire numbers, constraint ranges, and obligation counts belong in the
+generated artifacts, not in prose.
 
-## What is proved (machine-checked, axiom-clean)
+| Document | Purpose |
+| --- | --- |
+| [fv.md](fv.md) | What the circuit proof establishes, how it is bound to deployed bytes, and its trust boundary. |
+| [optimization.md](optimization.md) | Measured constraint baseline, accepted results, and the ≥1% candidate policy. |
+| [release.md](release.md) | Required gates and release evidence. |
 
-| Property | Tool / artifact | Status |
-| --- | --- | --- |
-| `transfer` whole circuit computes its spec | Lean `transfer_circuit_sound` — axioms `{propext, Classical.choice, Quot.sound}` | proved |
-| `consolidate2x1` whole circuit computes its spec | Lean `consolidate2x1_circuit_sound` — same axiom set | proved |
-| No under-constraint in the R1CS gadgets | Picus + finite-field cvc5 — all leaf gadgets `safe`, composites `safe-by-composition` | proved |
-| DLEQ Fiat-Shamir knowledge soundness | Lean/VCVio (`lean-dleq`), one declared axiom `q_prime` | proved |
-| Ledger state machine (double-spend, supply, anchors, nullifier lifecycle) | Alloy — 4 models pass | bounded-checked |
-| Compliance protocol (ProofSound, committee flow) | Tamarin — `compliance.spthy` + `compliance-active.spthy` verify | symbolic |
+## Authority
 
-## What stays assumed (the irreducible base)
+When sources disagree, use this order:
 
-- **Cryptographic hardness:** decaf377 is a prime-order group (`q_prime` /
-  `CC-ASSUME-DECAF377-PRIME-ORDER-GROUP`), Poseidon is a random oracle
-  (`CC-ASSUME-POSEIDON-RO`), DLEQ Fiat-Shamir is non-malleable.
-- **DLEQ challenge truncation** to 250 bits — soundness ≈ 2⁻²⁴⁹·⁹.
-- **gnark backend** (Groth16/Plonk, KZG, pairing, prover Fiat-Shamir) — a named
-  crypto trust assumption, not self-proved.
-- **gnark frontend** coverage differs per circuit. For `consolidate2x1` the
-  deployed segment-identity gap is **closed**: every compiled `.sr1cs` segment
-  (49/49) is proved directly from its raw deployed rows (`inst*_bound` →
-  capstone `consolidate2x1_deployed_sound` → `Statement.lean`), on top of the
-  wiring-transcript and Rust partition/hash/VK checks. For `transfer` (still on
-  standalone bridge composition: wiring transcript + partition check only),
-  segment identity — that a deployed segment's rows equal the standalone proved
-  gadget — remains a named trust gap.
+1. compiled circuit, deployed keys, and source-controlled machine artifacts;
+2. generated coverage IR, normalized coverage manifest, Lean contracts, and their gates;
+3. formal property and assumption ledgers under `crates/*/formal/`;
+4. these four explanatory documents.
 
-The authoritative per-row list with status + removal path is the **assumption
-ledger** at `crates/core/component/compliance/formal/assumption-ledger.md`.
+Git is the history. There is no separate handoff, status mirror, inventory, or
+gate-record documentation.
 
-## What is open
+## Current focus
 
-The governing plan is [full-verification-plan.md](full-verification-plan.md)
-(layer stack, hole inventory §3, FV + optimization queues §4, promotion
-rules, §8 backlog). The
-composition of all claims across tools is
-[assurance-case.md](assurance-case.md) — every protocol claim traces to a
-stamped artifact, a named ledger row, or an explicit TODO.
+`consolidate2x1` uses the deployed SR1CS proof path described in
+[fv.md](fv.md). The gate recompiles the Go circuit, rejects byte drift, derives
+the proof inputs from the exact deployed rows, checks their generated Lean
+surface, and binds the deployed proving/verifying keys. The protocol-readable
+theorem is the public review surface; the generated capstone is the exhaustive
+row-contract surface.
 
-## Top-level docs (all forward-looking)
-
-- **[full-verification-plan.md](full-verification-plan.md)** — the plan.
-- **[assurance-case.md](assurance-case.md)** — the claim tree.
-- **[optimization-playbook.md](optimization-playbook.md)** — where the
-  constraints are, ranked reduction candidates, the optimize-safely pilot.
-- **[release-checklist.md](release-checklist.md)** — binding proofs to shipped
-  artifacts at release time.
-
-## Reference (pull when relevant)
-
-- **[reference/fv-playbook.md](reference/fv-playbook.md)** — read before touching a
-  proof, circuit, or stamp: tool locations & PATH, Lean ≤60-gate slicing, the
-  OOM/memory rules, Picus decomposition, stamping workflow, trust boundary, the two
-  SHA derivations.
-- **[reference/soundness-handoff.md](reference/soundness-handoff.md)** — the detailed
-  living state ledger behind the summary table above.
-- **[reference/constraint-system-assurance.md](reference/constraint-system-assurance.md)** —
-  per-circuit assurance argument + CI tiers (referenced by the invariant gates).
-- **[reference/phase-c-alloy-statement-sufficiency-spec.md](reference/phase-c-alloy-statement-sufficiency-spec.md)** —
-  design of the implemented Alloy H2 models (maintain the `.als` against it).
-- Evidence bases: [reference/consolidate2x1-statement-binding-inventory.md](reference/consolidate2x1-statement-binding-inventory.md),
-  [reference/transfer-statement-binding-inventory.md](reference/transfer-statement-binding-inventory.md),
-  [reference/transfer-deployed-bridge-dossier.md](reference/transfer-deployed-bridge-dossier.md);
-  Picus determinism composition is §C2b of
-  [reference/constraint-system-assurance.md](reference/constraint-system-assurance.md).
-- **[reference/external-incidents-coverage.md](reference/external-incidents-coverage.md)** —
-  real-world ZK incident catalog mapped to our coverage, plus the Zcash
-  (Tachyon/Ironwood) FV-program comparison; open gaps G1–G4.
-- **[reference/history.md](reference/history.md)** — the single backward-looking
-  ledger: resolved incidents, closed scoping memos, point-in-time audits.
-
-## Machine-checked evidence (next to the code — do not relocate)
-
-Fixtures and proofs live beside their crates, referenced by
-`scripts/check-soundness-invariants.sh` / `check-snarkpack-invariants.sh` by exact
-path:
-
-- `crates/core/component/compliance/formal/` — threat model, soundness properties,
-  **assumption ledger**, symbolic-model design, findings, DLEQ Lean/VCVio proof.
-- `crates/core/component/shielded-pool/formal/` — circuit threat model, statement
-  maps, gadget proofs, Picus reports, whole-circuit Lean artifacts.
-- `crates/crypto/proof-aggregation/formal/snarkpack/` — SnarkPack/RIPP refinement.
+The compliance and shielded-pool property/assumption ledgers remain the source
+for protocol-wide claims beyond this circuit. A whole-circuit proof does not by
+itself prove the Groth16 backend, cryptographic hardness, handler state
+transitions, or a handwritten Alloy model faithful.

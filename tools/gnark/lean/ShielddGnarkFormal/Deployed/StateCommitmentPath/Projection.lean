@@ -1,5 +1,5 @@
 import ShielddGnarkFormal.QuadPathSpec
-import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
+import ShielddGnarkFormal.Deployed.PrimeOrder
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000

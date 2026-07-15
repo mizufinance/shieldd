@@ -64,7 +64,7 @@ fi
 #                               already-`safe` gadget-canonical-fq-bits leaf
 #   - rvk / dtk / net-balance   are chains of the leaves above + Poseidon + ivk-mod-r
 # Every leaf in this set reaches `safe`; the composition lift is argued in
-# docs/soundness/reference/constraint-system-assurance.md (Picus does not perform it).
+# scripts/check-constraint-coverage.sh (Picus does not perform composition coverage).
 gadgets=("$@")
 if [ "${#gadgets[@]}" -eq 0 ]; then
   gadgets=(
@@ -152,7 +152,7 @@ for gadget in "${gadgets[@]}"; do
   # Self-pin the leaf artifact to the exact constraint system Picus consumed.
   # Without this the .picus.txt fingerprints only the verdict text (which many
   # leaves share), so its sha256 cannot attest *which* R1CS was checked
-  # (constraint-system-assurance §C2b). The footer makes each artifact independently
+  # (the safe-by-composition boundary). The footer makes each artifact independently
   # load-bearing: its hash moves iff the input .sr1cs, precondition, or verdict
   # moves. Kept free of the token "underconstrained" so the post-loop safety
   # re-scan is unaffected.

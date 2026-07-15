@@ -1,22 +1,20 @@
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Core
+import ShielddGnarkFormal.Decaf377Assumptions
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Specs
 
-/-- Deployed RVK fixed-base multiplication endpoint.
-
-The segment computes `rvk = ak ⊕ (bits · Basepoint)` and proves the output is on the
-Edwards curve. On-curve-ness of `rvk` requires on-curve-ness of the `ak` input
-(`(rho 6, rho 7)`), which this segment does **not** assert internally — `ak` is
-constrained on-curve by a separate deployed segment. The faithful per-segment endpoint
-is therefore the implication: if the `ak` input is on-curve, the `rvk` output is.
-
-Post-T1-d: old seg13 -> new seg15 (output wires shifted from 12380/12381 to
-18196/18197 per the fresh ir.json; the following assert_equivalent segment's
-input confirms this). seg31 is unchanged. -/
+/-- Spend 0's deployed RVK equals the protocol key and remains on-curve. -/
 def deployedSpec15 (rho : Nat → DeployedF) : Prop :=
-  onCurveAt (rho 6) (rho 7) → onCurveAt (rho 17945) (rho 17946)
+  onCurveAt (rho 6) (rho 7) →
+    Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
+      ⟨rho 6, rho 7⟩ (rho 97) ⟨rho 17945, rho 17946⟩ ∧
+    onCurveAt (rho 17945) (rho 17946)
 
+/-- Spend 1's deployed RVK equals the protocol key and remains on-curve. -/
 def deployedSpec30 (rho : Nat → DeployedF) : Prop :=
-  onCurveAt (rho 6) (rho 7) → onCurveAt (rho 30126) (rho 30127)
+  onCurveAt (rho 6) (rho 7) →
+    Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
+      ⟨rho 6, rho 7⟩ (rho 187) ⟨rho 30126, rho 30127⟩ ∧
+    onCurveAt (rho 30126) (rho 30127)
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Specs

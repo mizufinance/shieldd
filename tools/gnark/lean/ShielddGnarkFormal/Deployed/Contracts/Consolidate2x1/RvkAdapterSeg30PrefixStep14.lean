@@ -1,0 +1,43 @@
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30PrefixLemmas1
+import ShielddGnarkFormal.RvkFixedGenInst1
+import ShielddGnarkFormal.RvkFixedBaseLadder
+import ShielddGnarkFormal.Deployed.PrimeOrder
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+
+open EdwardsBridge
+open Bool (toZMod)
+open Shieldd.GnarkFormal.RvkFixedBaseLiteral
+
+theorem seg30_prefix_step14 (rho : Nat -> Seg30.F)
+    (r14 : Seg30.relationRow14 rho)
+    (r317 : Seg30.relationRow317 rho)
+    (r318 : Seg30.relationRow318 rho)
+    (r319 : Seg30.relationRow319 rho)
+    (r320 : Seg30.relationRow320 rho)
+    (r321 : Seg30.relationRow321 rho)
+    (hacc : onCurve (seg30RvkAcc rho 14)) :
+    RvkFixedBaseLadder.FixedStepRel 14 (rho 28331)
+      (seg30RvkAcc rho 14) (seg30RvkAcc rho (14 + 1)) := by
+  have hbrow14 : (1*(rho 28331))*(1 + (-1)*(rho 28331)) = 0 := by
+    simpa [Seg30.relationRow14] using r14
+  have hinput : onCurve ((⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX13 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY13 rho : Seg30.F)⟩ : EdwardsBridge.Point)) := by
+    exact hacc
+  have hr14 : RvkFixedBaseLadder.FixedStepRel 14 (rho 28331)
+      ((⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX13 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY13 rho : Seg30.F)⟩ : EdwardsBridge.Point)) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX14 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY14 rho : Seg30.F)⟩ : EdwardsBridge.Point) := by
+    simpa [Shieldd.GnarkFormal.RvkFixedGenInst1.acc14, seg30AccX14, seg30AccY14, add_assoc] using
+      Shieldd.GnarkFormal.RvkFixedGenInst1.rung14_wide (rho 28317 : Seg30.F) (rho 28331 : Seg30.F) (seg30AccX13 rho : Seg30.F) (seg30AccY13 rho : Seg30.F) (rho 28633 : Seg30.F) (rho 28634 : Seg30.F) (rho 28635 : Seg30.F) (rho 28636 : Seg30.F) (rho 28637 : Seg30.F) hinput
+        (by simpa using seg30_prefix_14_v2 rho r317)
+        (by simpa using seg30_prefix_14_addX rho r318)
+        (by simpa using seg30_prefix_14_addY rho r319)
+        (by simpa using seg30_prefix_14_selX rho r320)
+        (by simpa using seg30_prefix_14_selY rho r321)
+        hbrow14
+  exact hr14
+
+end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+

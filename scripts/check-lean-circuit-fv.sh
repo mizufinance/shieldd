@@ -30,10 +30,12 @@ fail() {
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LEAN_DIR="$ROOT/tools/gnark/lean"
+# Lean resource limits are load-bearing. Export the serial setting here so the
+# gate remains safe even when a caller forgets to provide it.
+export LEAN_NUM_THREADS=1
 B1_ARTIFACT="$LEAN_DIR/imt-gap-lean-artifact.txt"
 C2X1_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-whole-circuit-lean-artifact.txt"
 TRANSFER_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/transfer-whole-circuit-lean-artifact.txt"
-C2X1_DECAF_FV_INVENTORY="$LEAN_DIR/consolidate2x1-decaf-fv-inventory.txt"
 TRANSFER_DECAF_FV_INVENTORY="$LEAN_DIR/transfer-decaf-fv-inventory.txt"
 
 sha256_file() {
@@ -93,32 +95,21 @@ artifact_for_circuit() {
 
 transcript_module_for_circuit() {
   case "$1" in
-    consolidate2x1) printf '%s\n' "ShielddGnarkFormal.Consolidate2x1WiringTranscript" ;;
     transfer) printf '%s\n' "ShielddGnarkFormal.TransferWiringTranscript" ;;
-    *) fail "unsupported circuit $1" ;;
+    *) fail "no assurance transcript for circuit $1" ;;
   esac
 }
 
 transcript_source_for_circuit() {
   case "$1" in
-    consolidate2x1) printf '%s\n' "$LEAN_DIR/ShielddGnarkFormal/Consolidate2x1WiringTranscript.lean" ;;
     transfer) printf '%s\n' "$LEAN_DIR/ShielddGnarkFormal/TransferWiringTranscript.lean" ;;
-    *) fail "unsupported circuit $1" ;;
+    *) fail "no assurance transcript for circuit $1" ;;
   esac
 }
 
 lean_wiring_transcript() {
   local circuit="$1" out="$2"
   case "$circuit" in
-    consolidate2x1)
-      (
-        cd "$LEAN_DIR"
-        lake env lean --stdin > "$out" <<'LEAN'
-import ShielddGnarkFormal.Consolidate2x1WiringTranscript
-#eval IO.print Shieldd.GnarkFormal.Consolidate2x1WiringTranscript.canonical
-LEAN
-      )
-      ;;
     transfer)
       (
         cd "$LEAN_DIR"
@@ -146,22 +137,20 @@ check_common_stamps() {
 
 check_consolidate2x1_stamps() {
   local artifact="$C2X1_ARTIFACT"
-  local go_wiring="$1"
-  local lean_wiring="$2"
   require_artifact_line "$artifact" "whole_circuit_sr1cs_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")"
   require_artifact_line "$artifact" "manifest_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/consolidate2x1/consolidate2x1-manifest.json")"
   require_artifact_line "$artifact" "coverage_report_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-constraint-coverage-report.json")"
   require_artifact_line "$artifact" "nb_constraints" "$(jq -r '.nb_constraints' "$ROOT/tools/gnark/artifacts/consolidate2x1/circuit_metadata.json")"
   require_artifact_line "$artifact" "verifying_key_sha256_hex" "$(jq -r '.verifying_key_sha256_hex' "$ROOT/tools/gnark/artifacts/consolidate2x1/circuit_metadata.json")"
-  require_artifact_line "$artifact" "whole_circuit_model_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Consolidate2x1.lean")"
+  require_artifact_line "$artifact" "deployed_statement_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1/Statement.lean")"
+  require_artifact_line "$artifact" "deployed_capstone_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1/Capstone.lean")"
+  require_artifact_line "$artifact" "deployed_wiring_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1/Wiring.lean")"
+  require_artifact_line "$artifact" "prime_order_certificate_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/PrimeOrderCertificate.lean")"
+  require_artifact_line "$artifact" "prime_order_registry_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/PrimeOrder.lean")"
   require_artifact_line "$artifact" "decaf_assumptions_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Decaf377Assumptions.lean")"
   require_artifact_line "$artifact" "compress_to_field_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/CompressToFieldBridge.lean")"
   require_artifact_line "$artifact" "edwards_completeness_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/EdwardsCompleteness.lean")"
   require_artifact_line "$artifact" "edwards_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/EdwardsBridge.lean")"
-  require_artifact_line "$artifact" "decaf_fv_inventory_sha256" "$(sha256_file "$C2X1_DECAF_FV_INVENTORY")"
-  require_artifact_line "$artifact" "wiring_transcript_source_sha256" "$(sha256_file "$(transcript_source_for_circuit consolidate2x1)")"
-  require_artifact_line "$artifact" "go_wiring_transcript_sha256" "$(sha256_file "$go_wiring")"
-  require_artifact_line "$artifact" "lean_wiring_transcript_sha256" "$(sha256_file "$lean_wiring")"
   require_artifact_line "$artifact" "poseidon_hash1_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Poseidon1Bridge.lean")"
   require_artifact_line "$artifact" "poseidon_hash6_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Poseidon6Bridge.lean")"
   require_artifact_line "$artifact" "poseidon_hash7_bridge_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Poseidon7Bridge.lean")"
@@ -176,7 +165,17 @@ check_consolidate2x1_stamps() {
   require_artifact_line "$artifact" "gnarkctl_source_sha256" "$(sha256_file "$ROOT/tools/gnark/cmd/gnarkctl/main.go")"
   require_artifact_line "$artifact" "constraint_coverage_lib_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/lib.rs")"
   require_artifact_line "$artifact" "constraint_coverage_main_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/main.rs")"
+  require_artifact_line "$artifact" "constraint_coverage_contracts_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/contracts.rs")"
   require_artifact_line "$artifact" "constraint_coverage_cargo_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/Cargo.toml")"
+  require_artifact_line "$artifact" "coverage_ir_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-deployed-slice-ir.json")"
+  require_artifact_line "$artifact" "coverage_manifest_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-coverage-manifest.json")"
+  require_artifact_line "$artifact" "dtk_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_dtk_slice.py")"
+  require_artifact_line "$artifact" "rvk_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_rvk_deployed_adapters.py")"
+  require_artifact_line "$artifact" "scp_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_scp_adapters.py")"
+  require_artifact_line "$artifact" "generated_contract_source_sha256" "$(sha256_file "$LEAN_DIR/gen/generated_contract_source.py")"
+  require_artifact_line "$artifact" "statement_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_statement.py")"
+  require_artifact_line "$artifact" "wiring_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_wiring.py")"
+  require_artifact_line "$artifact" "capstone_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_capstone.py")"
   require_artifact_line "$artifact" "root_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal.lean")"
   require_artifact_line "$artifact" "lakefile_sha256" "$(sha256_file "$LEAN_DIR/lakefile.lean")"
   require_artifact_line "$artifact" "lake_manifest_sha256" "$(sha256_file "$LEAN_DIR/lake-manifest.json")"
@@ -249,14 +248,18 @@ scratch_files="$(find "$LEAN_DIR/ShielddGnarkFormal" -maxdepth 1 -type f \( -nam
 rg -n '\bsorry\b|\badmit\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" \
   && fail "Lean sources contain sorry/admit"
 
-# Only one Lean `axiom` is permitted in-tree: the ledgered decaf377 scalar-field
-# primality assumption (CC-ASSUME-DECAF377-PRIME-ORDER-GROUP), declared once in
-# Deployed/PrimeOrderAssumption.lean and used to supply `Fact (Nat.Prime Order)`
-# instances to the deployed gadget binding wrappers. Any other `axiom` fails.
-axiom_lines="$(rg -n '^\s*axiom\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" \
-  | rg -v 'Deployed/PrimeOrderAssumption\.lean:.*\baxiom decaf377ScalarFieldPrime\b' || true)"
+# Project axioms are forbidden. The scalar-field modulus is certified by a
+# kernel-checked Lucas chain and the deployed theorems must expose only Lean's
+# reviewed standard axiom baseline.
+axiom_lines="$(rg -n '^\s*axiom\b' "$LEAN_DIR/ShielddGnarkFormal" "$LEAN_DIR/ShielddGnarkFormal.lean" || true)"
 if [[ -n "$axiom_lines" ]]; then
-  fail "unexpected Lean axiom: $axiom_lines"
+  fail "project Lean axiom: $axiom_lines"
+fi
+
+certificate_source="$LEAN_DIR/ShielddGnarkFormal/Deployed/PrimeOrderCertificate.lean"
+certificate_shortcuts="$(rg -n '\bnative_decide\b|\bLean\.ofReduceBool\b' "$certificate_source" || true)"
+if [[ -n "$certificate_shortcuts" ]]; then
+  fail "compiler-backed primality shortcut: $certificate_shortcuts"
 fi
 
 artifact_list="$B1_ARTIFACT"
@@ -274,20 +277,26 @@ while IFS= read -r artifact; do
   [[ "$want" == "$have" ]] || fail "artifact stamp mismatch: $artifact ($have != $want)"
 done < <(printf '%s\n' "$artifact_list" | awk '!seen[$0]++')
 
-# --- wiring-transcript fidelity (both tiers) --------------------------------
-echo "==> wiring transcript fidelity"
+# Transfer still uses its legacy transcript. Consolidate's assurance boundary
+# is the freshly re-derived deployed IR + exact row contracts + capstone, so a
+# consolidate-only stamps run reaches no Lake command in this section.
+echo "==> legacy transfer wiring transcript fidelity"
 transcript_modules=""
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
-  transcript_modules="${transcript_modules} $(transcript_module_for_circuit "$circuit")"
+  [[ "$circuit" == "transfer" ]] || continue
+  transcript_modules="${transcript_modules} $(transcript_module_for_circuit transfer)"
 done < <(printf '%s\n' "$selected_circuits")
-(cd "$LEAN_DIR" && lake build $transcript_modules)
+if [[ -n "$transcript_modules" ]]; then
+  (cd "$LEAN_DIR" && lake build $transcript_modules)
+fi
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
+  [[ "$circuit" == "transfer" ]] || continue
   go_wiring="$tmp_dir/go-$circuit.wiring"
   lean_wiring="$tmp_dir/lean-$circuit.wiring"
   (
@@ -300,6 +309,28 @@ while IFS= read -r circuit; do
   if ! cmp -s "$go_wiring" "$lean_wiring"; then
     diff -u "$lean_wiring" "$go_wiring" >&2 || true
     fail "Go Define wiring transcript does not match Lean transcript for $circuit"
+  fi
+done < <(printf '%s\n' "$selected_circuits")
+
+# --- source, semantic trace, and deployed key binding (both tiers) ---------
+# Recompile from Go before touching committed SR1CS-derived proof artifacts.
+# Exact manifest equality catches op/port/segment drift even when rows do not
+# change. The VK check binds JSON/bin key encodings and recompiles to a
+# byte-identical deployed SR1CS; full/release additionally prove+verify with the
+# deployed keys against that freshly compiled constraint system.
+echo "==> Go source / semantic manifest / deployed key binding"
+manifest_pin_args=()
+while IFS= read -r circuit; do
+  [[ -z "$circuit" ]] && continue
+  manifest_pin_args+=("$circuit")
+done < <(printf '%s\n' "$selected_circuits")
+"$ROOT/scripts/check-manifest-pin.sh" "${manifest_pin_args[@]}"
+while IFS= read -r circuit; do
+  [[ -z "$circuit" ]] && continue
+  if [[ "$MODE" == "full" ]]; then
+    "$ROOT/scripts/check-vk-derivation.sh" "$circuit" --prove
+  else
+    "$ROOT/scripts/check-vk-derivation.sh" "$circuit"
   fi
 done < <(printf '%s\n' "$selected_circuits")
 
@@ -319,6 +350,12 @@ echo "==> compiled constraint coverage"
 # carried rcases, >8-arm in-proof match) in CI instead of prompt context.
 echo "==> emitted-Lean anti-pattern lint"
 "$ROOT/scripts/check-structured-lc-lint.sh"
+"$ROOT/scripts/check-extracted-lean-heartbeats.sh"
+
+# Optimization evidence must parse the signed coefficients present in SR1CS;
+# otherwise duplicate/dead-wire counts are unsound inputs to prioritization.
+echo "==> FV optimization census parser regression"
+"$ROOT/scripts/check-fv-census.sh"
 
 # --- stamp integrity (both tiers) -------------------------------------------
 check_common_stamps
@@ -326,7 +363,7 @@ while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   case "$circuit" in
     consolidate2x1)
-      check_consolidate2x1_stamps "$tmp_dir/go-consolidate2x1.wiring" "$tmp_dir/lean-consolidate2x1.wiring"
+      check_consolidate2x1_stamps
       ;;
     transfer)
       check_transfer_stamps "$tmp_dir/go-transfer.wiring" "$tmp_dir/lean-transfer.wiring"
@@ -345,7 +382,7 @@ build_modules="ShielddGnarkFormal.ImtGapBridge"
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   case "$circuit" in
-    consolidate2x1) build_modules="$build_modules ShielddGnarkFormal.Consolidate2x1" ;;
+    consolidate2x1) build_modules="$build_modules ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Statement" ;;
     transfer) build_modules="$build_modules ShielddGnarkFormal.Transfer" ;;
   esac
 done < <(printf '%s\n' "$selected_circuits")
@@ -358,7 +395,7 @@ axioms_file="$tmp_dir/axioms.lean"
   while IFS= read -r circuit; do
     [[ -z "$circuit" ]] && continue
     case "$circuit" in
-      consolidate2x1) echo "import ShielddGnarkFormal.Consolidate2x1" ;;
+      consolidate2x1) echo "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Statement" ;;
       transfer) echo "import ShielddGnarkFormal.Transfer" ;;
     esac
   done < <(printf '%s\n' "$selected_circuits")
@@ -368,7 +405,11 @@ axioms_file="$tmp_dir/axioms.lean"
   while IFS= read -r circuit; do
     [[ -z "$circuit" ]] && continue
     case "$circuit" in
-      consolidate2x1) echo "#print axioms Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound" ;;
+      consolidate2x1)
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime"
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.consolidate2x1_deployed_sound"
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.consolidate2x1_statement"
+        ;;
       transfer) echo "#print axioms Shieldd.GnarkFormal.Transfer.transfer_circuit_sound" ;;
     esac
   done < <(printf '%s\n' "$selected_circuits")
@@ -388,7 +429,14 @@ while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   case "$circuit" in
     consolidate2x1)
-      expected="'Shieldd.GnarkFormal.Consolidate2x1.consolidate2x1_circuit_sound' depends on axioms: [propext, Classical.choice, Quot.sound]"
+      for theorem in \
+        "Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime" \
+        "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.consolidate2x1_deployed_sound" \
+        "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.consolidate2x1_statement"; do
+        [[ "$flat_axioms" == *"'$theorem' depends on axioms: [propext, Classical.choice, Quot.sound]"* ]] \
+          || fail "unexpected axiom baseline for $theorem"
+      done
+      continue
       ;;
     transfer)
       expected="'Shieldd.GnarkFormal.Transfer.transfer_circuit_sound' depends on axioms: [propext, Classical.choice, Quot.sound]"

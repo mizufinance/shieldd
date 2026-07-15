@@ -170,7 +170,7 @@ mod statement_parity_tests {
     /// `ClaimedStatementHash` — the statement-hash transcript binding (see
     /// `note_reshape_circuit.go:23` / `transfer_circuit.go:49`, and the
     /// per-field binding inventories under
-    /// `docs/soundness/reference/{consolidate2x1,transfer}-statement-binding-inventory.md`).
+    /// the generated coverage manifests and deployed `Statement.lean` modules).
     ///
     /// The SnarkPack aggregation layer derives its per-proof arity from the VK
     /// as `pvk.vk.gamma_abc_g1.len() - 1` (`proof-aggregation/src/statement.rs:212`).

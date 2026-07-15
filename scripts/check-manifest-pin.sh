@@ -2,10 +2,9 @@
 set -euo pipefail
 
 # Manifest-pin tripwire: recompile each circuit's R1CS from source and assert the
-# freshly compiled `sr1cs_sha256_hex` is byte-identical to the committed gnark
-# constraint manifest. A mismatch means the circuit changed without the pinned
-# manifest (and therefore the Lean/coverage proofs bound to it) being regenerated
-# — i.e. the deployed artifact would no longer be the proved artifact. Fails closed.
+# freshly compiled SR1CS and semantic segment manifest are byte-identical to the
+# committed artifacts. Comparing only `sr1cs_sha256_hex` is insufficient: an op,
+# port, or segment-boundary trace can drift without changing a constraint row.
 #
 # This is the `.sr1cs` companion to the coverage `relation_sha256_hex` tripwire in
 # scripts/check-constraint-coverage.sh (which recomputes the per-segment relation
@@ -71,6 +70,10 @@ while IFS= read -r circuit; do
   if [[ "$want" != "$have" ]]; then
     fail "$circuit: recompiled sr1cs_sha256_hex $have != committed $want (circuit changed without re-pinning the manifest)"
   fi
+  if ! cmp -s "$fresh" "$committed"; then
+    diff -u "$committed" "$fresh" >&2 || true
+    fail "$circuit: freshly compiled semantic constraint manifest differs from committed manifest"
+  fi
 
-  echo "manifest pin ok ($circuit): sr1cs_sha256_hex=$have"
+  echo "manifest pin ok ($circuit): exact manifest, sr1cs_sha256_hex=$have"
 done < <(printf '%s\n' "$circuits")

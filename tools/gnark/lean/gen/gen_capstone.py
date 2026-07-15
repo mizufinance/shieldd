@@ -11,6 +11,7 @@ here — that is the Rust `shieldd-constraint-coverage` partition gate. This
 module composes the per-segment soundness theorems over one global valuation.
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -27,8 +28,13 @@ OUT = (
 THEOREM_PREFIX = "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.inst"
 
 
-def main() -> None:
-    manifest = json.loads(MANIFEST.read_text())
+def render(manifest: dict) -> str:
+    assert manifest.get("schema") == "shieldd.gnark.deployed_coverage_manifest.v5", (
+        f"unexpected coverage-manifest schema: {manifest.get('schema')!r}"
+    )
+    assert manifest.get("circuit") == "consolidate2x1", (
+        f"unexpected coverage-manifest circuit: {manifest.get('circuit')!r}"
+    )
     segs = []
     for cls in manifest["classes"]:
         assert cls["status"] == "proven", f"class not proven: {cls['class_key']}"
@@ -44,7 +50,6 @@ def main() -> None:
 
     conj_rel = " ∧\n  ".join(f"Seg{n}.contract.relation rho" for n in segs)
     conj_spec = " ∧\n  ".join(f"Seg{n}.contract.spec rho" for n in segs)
-    hyps = " ".join(f"h{n}" for n in segs)
     uses = ",\n    ".join(f"inst{n}_bound.2.2 rho h{n}" for n in segs)
 
     # Per-segment projection lemmas out of the composed spec conjunction.
@@ -59,7 +64,7 @@ def main() -> None:
         for i, n in enumerate(segs)
     )
 
-    OUT.write_text(f"""import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Bounds
+    return f"""import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Bounds
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
@@ -91,9 +96,33 @@ theorem consolidate2x1_deployed_sound :
 {projections}
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
-""")
-    _ = hyps
-    print(f"wrote {OUT} ({len(segs)} conjuncts)")
+"""
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--manifest", type=Path, default=MANIFEST)
+    parser.add_argument("--out", type=Path, default=OUT)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="fail unless --out byte-matches freshly rendered --manifest",
+    )
+    args = parser.parse_args()
+    manifest = json.loads(args.manifest.read_text())
+    contents = render(manifest)
+    count = sum(len(cls["instances"]) for cls in manifest["classes"])
+    if args.check:
+        actual = args.out.read_text()
+        if actual != contents:
+            raise SystemExit(
+                f"stale generated capstone: {args.out} does not match {args.manifest}"
+            )
+        print(f"checked {args.out} ({count} conjuncts)")
+        return
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(contents)
+    print(f"wrote {args.out} ({count} conjuncts)")
 
 
 if __name__ == "__main__":

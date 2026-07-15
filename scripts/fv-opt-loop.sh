@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Optimize-safely loop orchestrator (full-verification-plan §5).
+# Optimize-safely loop orchestrator. Policy lives in
+# `docs/soundness/optimization.md`.
 #
 # One fail-closed entry point for a circuit-optimization attempt: recompiles the
 # circuit, computes exactly which coverage segments flipped, asserts the flip
 # set is contained in the caller's allowlist, maps each flip to its Lean
-# regeneration family (unknown family = T2-class, red), then runs the gate
-# battery and emits the per-commit measurement record playbook §5 requires.
+# regeneration family (unknown family = unsupported/red), then runs the gate
+# battery and emits the performance record described by
+# `docs/soundness/release.md`.
 #
 # This script only SEQUENCES existing gates; it never edits verdicts, stamps,
 # manifests, or generated Lean. Lean elaboration is opt-in (--lean) and is
@@ -81,8 +83,8 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 # Regeneration family map: obligation op -> generator under tools/gnark/lean/gen.
-# An op absent here has no landed proof substrate: the change is T2-class and
-# needs frontier design BEFORE any Go edit lands (playbook §2 tiers).
+# An op absent here has no landed proof substrate: the change is unsupported and
+# needs a proof design before any Go edit lands (optimization candidate policy).
 generator_for_op() {
   case "$1" in
     decaf.net_balance_commitment) echo "gen_nb_slice.py" ;;
@@ -165,7 +167,7 @@ check_flip_containment() {
       local gen
       gen="$(generator_for_op "$op")"
       if [[ -z "$gen" ]]; then
-        echo "fv-opt-loop: segment ${oidx}/${nidx} op $op has NO regeneration family — T2-class, needs frontier design" >&2
+        echo "fv-opt-loop: segment ${oidx}/${nidx} op $op has no regeneration family; proof design required" >&2
         red=1
       else
         note "  segment ${oidx}→${nidx} regenerates via tools/gnark/lean/gen/$gen"
@@ -198,8 +200,9 @@ gate_battery() {
       bash "$ROOT/scripts/check-constraint-coverage.sh" --circuit "$circuit"
   fi
   run_gate "soundness-invariants" bash "$ROOT/scripts/check-soundness-invariants.sh"
-  # SnarkPack boundary: config-only until S1 (playbook §3). If the aggregation
-  # crate differs from the merge base, its invariant gates must also pass.
+  # SnarkPack boundary: config-only until S1
+  # (`crates/crypto/proof-aggregation/optimization-playbook.md` §3). If the
+  # aggregation crate differs from the merge base, its invariant gates pass too.
   if ! git -C "$ROOT" diff --quiet HEAD -- crates/crypto/proof-aggregation 2>/dev/null \
      || [[ -n "$(git -C "$ROOT" log --oneline -1 -- crates/crypto/proof-aggregation 2>/dev/null)" && -n "$(git -C "$ROOT" diff --name-only "$(git -C "$ROOT" merge-base HEAD origin/dev 2>/dev/null || echo HEAD)" HEAD -- crates/crypto/proof-aggregation 2>/dev/null)" ]]; then
     run_gate "snarkpack-invariants" bash "$ROOT/scripts/check-snarkpack-invariants.sh"

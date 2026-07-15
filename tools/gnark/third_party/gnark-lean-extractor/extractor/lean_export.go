@@ -31,7 +31,7 @@ import ProvenZk.Ext.Vector
 
 set_option linter.unusedVariables false
 set_option maxRecDepth 100000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 50000000
 
 namespace %s
 

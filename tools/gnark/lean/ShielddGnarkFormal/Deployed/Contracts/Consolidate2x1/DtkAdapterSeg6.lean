@@ -217,10 +217,18 @@ theorem seg6_sound (rho : Nat -> Seg6.F) (h : Seg6.relation rho) : Specs.deploye
     (rho 8) (rho 6) (rho 7) (rho 17) (rho 18)
     (rho 920) (rho 921) (rho 9) (rho 10)
     (dtkOutX6 rho : Seg6.F) (dtkOutY6 rho : Seg6.F) hseg0
-  apply Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound
+  have hdiv' : EdwardsBridge.onCurve ⟨(rho 17 : Seg6.F), (rho 18 : Seg6.F)⟩ := by
+    simpa only [Specs.onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using hdiv
+  have hcircuit' : Shieldd.GnarkFormal.Decaf377Assumptions.DiversifiedTransmissionKeyCircuit
+      (rho 8) ⟨rho 6, rho 7⟩ ⟨rho 17, rho 18⟩ (rho 9) (rho 10)
+      ⟨dtkOutX6 rho, dtkOutY6 rho⟩ :=
+    ⟨rho 920, rho 921, hcircuit⟩
+  refine ⟨Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound
     (rho 8) ⟨rho 6, rho 7⟩ ⟨rho 17, rho 18⟩ (rho 9) (rho 10)
-    ⟨dtkOutX6 rho, dtkOutY6 rho⟩
-  · simpa only [Specs.onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using hdiv
-  · exact ⟨rho 920, rho 921, hcircuit⟩
+    ⟨dtkOutX6 rho, dtkOutY6 rho⟩ hdiv' hcircuit', ?_⟩
+  simpa only [Specs.onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using
+    Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_onCurve
+      (rho 8) ⟨rho 6, rho 7⟩ ⟨rho 17, rho 18⟩ (rho 9) (rho 10)
+      ⟨dtkOutX6 rho, dtkOutY6 rho⟩ hdiv' hcircuit'
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1

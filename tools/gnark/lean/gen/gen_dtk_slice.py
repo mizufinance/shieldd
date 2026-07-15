@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Generate the deployed DTK adapter for consolidate2x1 segment 5.
+"""Generate the deployed DTK adapter for consolidate2x1 segment 6.
 
 Post-T1-d: DTK computation is hoisted into `Define()` and computed once, so
 the three pre-T1-d instances (segments 16, 34, 45) collapse into a single
-segment-5 instance (its consumer-assert also collapses, segments 18/36/47
--> 6). Generated Lean is split by semantic block so no theorem elaborates
+segment-6 instance. Generated Lean is split by semantic block so no theorem elaborates
 the complete 6,329-row relation.
 
 StructuredLC contract (see `AGENTS.md`, "Lean Circuit Proofs"): the base `Seg{N}.lean`
@@ -22,6 +21,7 @@ the compact form equals the raw (coeff,wire) multiset.  Debug obligations with
 
 from __future__ import annotations
 
+import argparse
 import re
 import hashlib
 import json
@@ -30,6 +30,8 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+from generated_contract_source import read_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,7 +121,7 @@ _RELATION_PARTS_CACHE: dict[tuple[str, int, int], tuple[tuple[int, ...], ...]] =
 def source(seg: int) -> str:
     key = (str(SOURCE_CONTRACTS.resolve()), seg)
     if key not in _SOURCE_CACHE:
-        _SOURCE_CACHE[key] = (SOURCE_CONTRACTS / f"Seg{seg}.lean").read_text()
+        _SOURCE_CACHE[key] = read_source(SOURCE_CONTRACTS, seg)
     return _SOURCE_CACHE[key]
 
 
@@ -342,7 +344,7 @@ def emit_base(cfg: Instance) -> str:
     lines = [
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{cfg.seg}\n",
         "import ShielddGnarkFormal.Deployed.Dtk.Outputs\n",
-        "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption\n",
+        "import ShielddGnarkFormal.Deployed.PrimeOrder\n",
         "import ShielddGnarkFormal.Extracted.CanonicalFqBits\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n\n",
@@ -2903,12 +2905,23 @@ def emit_adapter(cfg: Instance) -> str:
         f"    (rho 8) (rho 6) (rho 7) (rho {cfg.div_x}) (rho {cfg.div_y})\n",
         f"    (rho {w(7)}) (rho {w(8)}) (rho 9) (rho 10)\n",
         f"    (dtkOutX{cfg.seg} rho : Seg{cfg.seg}.F) (dtkOutY{cfg.seg} rho : Seg{cfg.seg}.F) hseg0\n",
-        "  apply Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound\n",
+        "  have hdiv' : EdwardsBridge.onCurve "
+        f"⟨(rho {cfg.div_x} : Seg{cfg.seg}.F), (rho {cfg.div_y} : Seg{cfg.seg}.F)⟩ := by\n",
+        "    simpa only [Specs.onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using hdiv\n",
+        "  have hcircuit' : Shieldd.GnarkFormal.Decaf377Assumptions."
+        "DiversifiedTransmissionKeyCircuit\n",
+        f"      (rho 8) ⟨rho 6, rho 7⟩ ⟨rho {cfg.div_x}, rho {cfg.div_y}⟩ (rho 9) (rho 10)\n",
+        f"      ⟨dtkOutX{cfg.seg} rho, dtkOutY{cfg.seg} rho⟩ :=\n",
+        f"    ⟨rho {w(7)}, rho {w(8)}, hcircuit⟩\n",
+        "  refine ⟨Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound\n",
         "    (rho 8) ⟨rho 6, rho 7⟩ "
         f"⟨rho {cfg.div_x}, rho {cfg.div_y}⟩ (rho 9) (rho 10)\n",
-        f"    ⟨dtkOutX{cfg.seg} rho, dtkOutY{cfg.seg} rho⟩\n",
-        f"  · simpa only [Specs.onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using hdiv\n",
-        f"  · exact ⟨rho {w(7)}, rho {w(8)}, hcircuit⟩\n\n",
+        f"    ⟨dtkOutX{cfg.seg} rho, dtkOutY{cfg.seg} rho⟩ hdiv' hcircuit', ?_⟩\n",
+        "  simpa only [Specs.onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using\n",
+        "    Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_onCurve\n",
+        "      (rho 8) ⟨rho 6, rho 7⟩ "
+        f"⟨rho {cfg.div_x}, rho {cfg.div_y}⟩ (rho 9) (rho 10)\n",
+        f"      ⟨dtkOutX{cfg.seg} rho, dtkOutY{cfg.seg} rho⟩ hdiv' hcircuit'\n\n",
         "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n",
     ])
     return "".join(lines)
@@ -2979,7 +2992,7 @@ def emit_poseidon_segment(
     )
 
 
-def generate_poseidon_shape() -> tuple[str, list[list[int]]]:
+def generate_poseidon_shape(*, write_auxiliary: bool = True) -> tuple[str, list[list[int]]]:
     all_rows = [
         parse_constraint(line)
         for line in SR1CS.read_text().splitlines()
@@ -3063,8 +3076,9 @@ def generate_poseidon_shape() -> tuple[str, list[list[int]]]:
         indent += "  "
     lines.append(f"{indent}k " + " ".join(f"w{wire}" for wire in exits[-1]) + ")" * len(sboxes) + "\n\n")
     lines.append(f"end Shieldd.GnarkFormal.Extracted.Deployed.{module}\n")
-    EXTRACTED_DEPLOYED.mkdir(parents=True, exist_ok=True)
-    write_generated(EXTRACTED_DEPLOYED / f"{module}.lean", "".join(lines))
+    if write_auxiliary:
+        EXTRACTED_DEPLOYED.mkdir(parents=True, exist_ok=True)
+        write_generated(EXTRACTED_DEPLOYED / f"{module}.lean", "".join(lines))
 
     if args[0] != [8, 1275, 1615]:
         raise ValueError(f"unexpected DTK Poseidon live inputs {args[0]}")
@@ -3098,10 +3112,11 @@ def generate_poseidon_shape() -> tuple[str, list[list[int]]]:
             "7238110070938603220784707090384182741179342287274911852515914390786350776321",
         ],
     }
-    write_generated(
-        Path(__file__).resolve().parent / "dtk_ivk_gendata.json",
-        json.dumps(data, indent=2) + "\n",
-    )
+    if write_auxiliary:
+        write_generated(
+            Path(__file__).resolve().parent / "dtk_ivk_gendata.json",
+            json.dumps(data, indent=2) + "\n",
+        )
 
     bridge = f"""import ShielddGnarkFormal.Extracted.Deployed.{module}
 import ShielddGnarkFormal.Poseidon2Bridge
@@ -3125,7 +3140,8 @@ theorem p17_from_rows (x v0 v1 v2 v3 v4 : F)
 
 end Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon
 """
-    write_generated(FORMAL / "Deployed/DtkIvkPoseidonDeployedBridge.lean", bridge)
+    if write_auxiliary:
+        write_generated(FORMAL / "Deployed/DtkIvkPoseidonDeployedBridge.lean", bridge)
     return module, [[singleton_output(row) for row in chunk] for chunk in sboxes]
 
 
@@ -3212,80 +3228,88 @@ def emit_poseidon_adapter(
     return "".join(lines)
 
 
-def main() -> None:
+def generate(
+    *,
+    output_contracts: Path = OUTPUT_CONTRACTS,
+    output_dtk: Path = OUTPUT_DTK,
+    adapters_only: bool = False,
+) -> None:
     validate_normalized_shape()
     ltc_traces = dtk_ltc_traces()
     scalar_rungs = dtk_scalar_rungs()
-    poseidon_module, poseidon_sboxes = generate_poseidon_shape()
-    OUTPUT_DTK.mkdir(parents=True, exist_ok=True)
-    OUTPUT_CONTRACTS.mkdir(parents=True, exist_ok=True)
-    write_generated(OUTPUT_DTK / "Outputs.lean", emit_outputs())
+    poseidon_module, poseidon_sboxes = generate_poseidon_shape(
+        write_auxiliary=not adapters_only
+    )
+    output_contracts.mkdir(parents=True, exist_ok=True)
+    if not adapters_only:
+        output_dtk.mkdir(parents=True, exist_ok=True)
+        write_generated(output_dtk / "Outputs.lean", emit_outputs())
     for cfg in INSTANCES:
-        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Base.lean", emit_base(cfg))
+        write_generated(output_contracts / f"DtkAdapterSeg{cfg.seg}Base.lean", emit_base(cfg))
         previous: str | None = None
         for block in canonical_blocks(cfg):
             component = f"DtkAdapterSeg{cfg.seg}{block.label}"
             write_generated(
-                OUTPUT_CONTRACTS / f"{component}Rec.lean",
+                output_contracts / f"{component}Rec.lean",
                 emit_canon_recover(cfg, block, previous),
             )
             write_generated(
-                OUTPUT_CONTRACTS / f"{component}Binary.lean",
+                output_contracts / f"{component}Binary.lean",
                 emit_canon_binary(cfg, block, f"{component}Rec"),
             )
             rows = relation_rows(cfg.seg)
             true_defs = f"{component}TrueDefs"
             write_generated(
-                OUTPUT_CONTRACTS / f"{true_defs}.lean",
+                output_contracts / f"{true_defs}.lean",
                 emit_canon_true_defs(cfg, block, rows, f"{component}Binary"),
             )
             previous_true = true_defs
             for chunk_index, _ in enumerate(canon_chunks()):
                 true_chunk = f"{component}TrueChunk{chunk_index}"
                 write_generated(
-                    OUTPUT_CONTRACTS / f"{true_chunk}.lean",
+                    output_contracts / f"{true_chunk}.lean",
                     emit_canon_true_chunk(
                         cfg, block, rows, previous_true, chunk_index
                     ),
                 )
                 previous_true = true_chunk
             write_generated(
-                OUTPUT_CONTRACTS / f"{component}True.lean",
+                output_contracts / f"{component}True.lean",
                 emit_canon_true_thread(cfg, block, previous_true),
             )
             previous_compare = f"{component}True"
             for chunk_index, _ in enumerate(canon_chunks()):
                 compare_chunk = f"{component}CompareChunk{chunk_index}"
                 write_generated(
-                    OUTPUT_CONTRACTS / f"{compare_chunk}.lean",
+                    output_contracts / f"{compare_chunk}.lean",
                     emit_canon_compare_chunk(
                         cfg, block, rows, previous_compare, chunk_index
                     ),
                 )
                 previous_compare = compare_chunk
             write_generated(
-                OUTPUT_CONTRACTS / f"{component}Compare.lean",
+                output_contracts / f"{component}Compare.lean",
                 emit_canon_compare(cfg, block, previous_compare),
             )
             write_generated(
-                OUTPUT_CONTRACTS / f"{component}Chain.lean",
+                output_contracts / f"{component}Chain.lean",
                 emit_canon_chain(cfg, block, f"{component}Compare"),
             )
             write_generated(
-                OUTPUT_CONTRACTS / f"{component}.lean",
+                output_contracts / f"{component}.lean",
                 emit_canon_block(cfg, 0 if block.label == "Canon1" else 1),
             )
             previous = component
-        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Canon.lean", emit_canon(cfg))
-        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Bits.lean", emit_bits(cfg))
+        write_generated(output_contracts / f"DtkAdapterSeg{cfg.seg}Canon.lean", emit_canon(cfg))
+        write_generated(output_contracts / f"DtkAdapterSeg{cfg.seg}Bits.lean", emit_bits(cfg))
         write_generated(
-            OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Poseidon.lean",
+            output_contracts / f"DtkAdapterSeg{cfg.seg}Poseidon.lean",
             emit_poseidon_adapter(cfg, poseidon_module, poseidon_sboxes),
         )
         r_trace, q4_trace = ltc_traces
         q4_defs = f"DtkAdapterSeg{cfg.seg}LtQ4Defs"
         write_generated(
-            OUTPUT_CONTRACTS / f"{q4_defs}.lean",
+            output_contracts / f"{q4_defs}.lean",
             emit_ltc_defs(cfg, q4_trace, f"DtkAdapterSeg{cfg.seg}Base"),
         )
         previous_lt = q4_defs
@@ -3295,43 +3319,60 @@ def main() -> None:
                     f"DtkAdapterSeg{cfg.seg}Lt{trace.label}Chunk{chunk_index}"
                 )
                 write_generated(
-                    OUTPUT_CONTRACTS / f"{component}.lean",
+                    output_contracts / f"{component}.lean",
                     emit_ltc_chunk(cfg, trace, chunk_index, previous_lt),
                 )
                 previous_lt = component
         r_defs = f"DtkAdapterSeg{cfg.seg}LtRDefs"
         write_generated(
-            OUTPUT_CONTRACTS / f"{r_defs}.lean",
+            output_contracts / f"{r_defs}.lean",
             emit_ltc_defs(cfg, r_trace, previous_lt),
         )
         previous_lt = r_defs
         for chunk_index, _ in enumerate(ltc_chunks()):
             component = f"DtkAdapterSeg{cfg.seg}LtRChunk{chunk_index}"
             write_generated(
-                OUTPUT_CONTRACTS / f"{component}.lean",
+                output_contracts / f"{component}.lean",
                 emit_ltc_chunk(cfg, r_trace, chunk_index, previous_lt),
             )
             previous_lt = component
-        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Lt.lean", emit_ltc(cfg))
+        write_generated(output_contracts / f"DtkAdapterSeg{cfg.seg}Lt.lean", emit_ltc(cfg))
         scalar_rows = sr1cs_lc_rows()
         write_generated(
-            OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}ScalarDefs.lean",
+            output_contracts / f"DtkAdapterSeg{cfg.seg}ScalarDefs.lean",
             emit_scalar_defs_module(cfg, scalar_rungs),
         )
         for chunk_index, subset in enumerate(scalar_chunks(scalar_rungs)):
             write_generated(
-                OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}ScalarR{chunk_index}.lean",
+                output_contracts / f"DtkAdapterSeg{cfg.seg}ScalarR{chunk_index}.lean",
                 emit_scalar_chunk(cfg, chunk_index, subset, scalar_rows),
             )
         write_generated(
-            OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}Scalar.lean",
+            output_contracts / f"DtkAdapterSeg{cfg.seg}Scalar.lean",
             emit_scalar(cfg, scalar_rungs),
         )
-        write_generated(OUTPUT_CONTRACTS / f"DtkAdapterSeg{cfg.seg}.lean", emit_adapter(cfg))
+        write_generated(output_contracts / f"DtkAdapterSeg{cfg.seg}.lean", emit_adapter(cfg))
     print(
         "generated DTK outputs/base/canonical/bit/lt/scalar modules and "
         f"{poseidon_module}; normalized row shape verified"
     )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--adapter-out",
+        type=Path,
+        help=(
+            "emit only DtkAdapterSeg*.lean into this directory; source inputs "
+            "still come from DTK_CONTRACTS_SOURCE"
+        ),
+    )
+    args = parser.parse_args()
+    if args.adapter_out is None:
+        generate()
+    else:
+        generate(output_contracts=args.adapter_out, adapters_only=True)
 
 if __name__ == "__main__":
     main()

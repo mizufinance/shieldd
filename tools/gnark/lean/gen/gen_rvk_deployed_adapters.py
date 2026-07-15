@@ -16,9 +16,15 @@ Seg.F/EdwardsBridge.F boundary.
 
 from __future__ import annotations
 
+import argparse
 import re
 from dataclasses import dataclass
 from pathlib import Path
+
+from generated_contract_source import read_source
+from types import SimpleNamespace
+
+import gen_dtk_slice as dtk
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1"
@@ -28,6 +34,10 @@ GYM1 = "606047195008185156711469155765979000475653501175416300229754047274706494
 PREFIX_N = 149
 TOTAL_N = 250
 CONT_START = 150
+PREFIX_CHUNK_SIZE = 10
+SPLIT_CHUNK_SIZE = 5
+SPLIT_LEMMA_CHUNK_SIZE = 1
+ACC_CHUNK_SIZE = 10
 
 
 INSTANCES = {
@@ -42,6 +52,7 @@ INSTANCES = {
         split_row0=997,
         split_lc0=739,
         out=(17945, 17946),
+        randomizer=97,
         akX=6,
         akY=7,
         lcx=1448,
@@ -66,6 +77,7 @@ INSTANCES = {
         split_row0=997,
         split_lc0=739,
         out=(30126, 30127),
+        randomizer=187,
         akX=6,
         akY=7,
         lcx=1448,
@@ -88,7 +100,7 @@ FIXED_SRC: dict[str, str] = {}
 
 def seg_src(seg: int) -> str:
     if seg not in SEG_SRC:
-        SEG_SRC[seg] = (CONTRACTS / f"Seg{seg}.lean").read_text()
+        SEG_SRC[seg] = read_source(CONTRACTS, seg)
     return SEG_SRC[seg]
 
 
@@ -100,6 +112,25 @@ def fixed_src(inst: str) -> str:
 
 def chunks(items, n):
     return [items[i:i + n] for i in range(0, len(items), n)]
+
+
+def prefix_leaf_outputs(seg: int, prefix_chunks):
+    for lemma_idx, chunk in enumerate(prefix_chunks):
+        for cert in chunk:
+            yield (
+                f"RvkAdapterSeg{seg}PrefixStep{cert.k}.lean",
+                cert,
+                lemma_idx,
+            )
+
+
+def split_leaf_outputs(seg: int, certs):
+    for index, cert in enumerate(certs):
+        yield (
+            f"RvkAdapterSeg{seg}Step{cert.k}.lean",
+            cert,
+            index // SPLIT_LEMMA_CHUNK_SIZE,
+        )
 
 
 def xwire(cfg, k: int) -> int:
@@ -192,9 +223,9 @@ def acc_weighted_expr(cfg, k: int) -> str:
     return expr
 
 
-def emit_acc_defs(L: list[str], seg: int, xy: str, cfg) -> None:
+def emit_acc_defs(L: list[str], seg: int, xy: str, cfg, states: list[int]) -> None:
     wire = xwire if xy == "X" else ywire
-    for k in range(1, TOTAL_N + 1):
+    for k in states:
         name = acc_def_name(seg, xy, k)
         if k == 1:
             rhs = f"rho {wire(cfg, k)}"
@@ -202,7 +233,7 @@ def emit_acc_defs(L: list[str], seg: int, xy: str, cfg) -> None:
             rhs = f"{acc_def_name(seg, xy, k - 1)} rho + rho {wire(cfg, k)}"
         L.append(f"def {name} (rho : Nat -> Seg{seg}.F) : Seg{seg}.F := {rhs}")
     L.append("")
-    for k in range(1, TOTAL_N + 1):
+    for k in states:
         L.append(f"theorem {acc_sum_name(seg, xy, k)} (rho : Nat -> Seg{seg}.F) :")
         L.append(f"    {acc_atom(seg, xy, k)} = {acc_sum_expr(cfg, xy, k)} := by")
         if k == 1:
@@ -236,8 +267,8 @@ def emit_acc_xy_defs(L: list[str], seg: int, cfg) -> None:
         L.append("")
 
 
-def emit_acc_weighted_lemmas(L: list[str], seg: int, cfg) -> None:
-    for k in range(1, PREFIX_N + 1):
+def emit_acc_weighted_lemmas(L: list[str], seg: int, cfg, states: list[int]) -> None:
+    for k in states:
         L.append(f"theorem {acc_weighted_name(seg, k)} (rho : Nat -> Seg{seg}.F) (cx cy : Seg{seg}.F) :")
         L.append(f"    cx * {acc_atom(seg, 'X', k)} + cy * {acc_atom(seg, 'Y', k)} =")
         L.append(f"      {acc_weighted_expr(cfg, k)} := by")
@@ -727,19 +758,15 @@ def prefix_step_rows(certs: list[PrefixCert], include_seed: bool) -> list[int]:
     return rows
 
 
-def emit_prefix_step(L: list[str], seg: int, cfg, KNS: str, cert: PrefixCert) -> None:
+def emit_prefix_leaf_proof(L: list[str], seg: int, cfg, KNS: str, cert: PrefixCert) -> None:
     k = cert.k
     prev = k - 1
     prev_point = f"{KNS}.acc1 (rho {cfg['b0']} : Seg{seg}.F)" if k == 1 else point_expr(seg, cfg, prev)
-    prev_proof = "hpSeed" if k == 1 else f"hp{prev}"
     rung = f"{KNS}.rung1" if k == 1 else f"{KNS}.rung{k}_wide"
     L.append(f"  have hbrow{k} : (1*(rho {cert.bit}))*(1 + (-1)*(rho {cert.bit})) = 0 := by")
     L.append(f"    simpa [Seg{seg}.relationRow{k}] using r{k}")
-    if k > 1:
-        L.append(f"  have hacc{k} : onCurve ({KNS}.acc{k} (rho {cfg['b0']} : Seg{seg}.F)")
-        L.append(f"      ({acc_atom(seg, 'X', prev)} : Seg{seg}.F) ({acc_atom(seg, 'Y', prev)} : Seg{seg}.F)) := by")
-        L.append(f"    simpa [{KNS}.acc{k}] using hp{prev}")
-    hacc = "hpSeed" if k == 1 else f"hacc{k}"
+    L.append(f"  have hinput : onCurve ({prev_point}) := by")
+    L.append("    exact hacc")
     L.append(f"  have hr{k} : RvkFixedBaseLadder.FixedStepRel {k} (rho {cert.bit})")
     L.append(f"      ({prev_point}) {point_expr(seg, cfg, k)} := by")
     L.append(
@@ -761,20 +788,14 @@ def emit_prefix_step(L: list[str], seg: int, cfg, KNS: str, cert: PrefixCert) ->
         f"(rho {cert.sy} : Seg{seg}.F)",
         f"(rho {cert.sdx} : Seg{seg}.F)",
         f"(rho {cert.sdy} : Seg{seg}.F)",
-        hacc,
+        "hinput",
     ])
     L.append(f"      {rung} " + " ".join(args))
     for name in PREFIX_HYPOTHESES:
         row = cert.rows[name]
         L.append(f"        (by simpa using seg{seg}_prefix_{k}_{name} rho r{row})")
     L.append(f"        hbrow{k}")
-    L.append(f"  obtain ⟨b{k}, hb{k}⟩ := {KNS}.boolify (rho {cert.bit}) hbrow{k}")
-    L.append(f"  have hrb{k} : RvkFixedBaseLadder.FixedStepRel {k} (toZMod b{k})")
-    L.append(f"      ({prev_point}) {point_expr(seg, cfg, k)} := by")
-    L.append(f"    rw [← hb{k}]")
-    L.append(f"    exact hr{k}")
-    L.append(f"  have hp{k} : onCurve {point_expr(seg, cfg, k)} :=")
-    L.append(f"    (RvkFixedBaseLadder.fixedStep_semantic {k} b{k} _ _ {prev_proof} hrb{k}).2")
+    L.append(f"  exact hr{k}")
 
 
 def emit_split_step(L: list[str], seg: int, cfg, KNS: str, c: SplitCert) -> None:
@@ -831,17 +852,12 @@ def emit_split_step(L: list[str], seg: int, cfg, KNS: str, c: SplitCert) -> None
     L.append(f"      ({acc_atom(seg, 'Y', prev)} : Seg{seg}.F) (rho {c.bit} : Seg{seg}.F)")
     L.append(f"      (rho {c.i67} : Seg{seg}.F) (rho {c.i68} : Seg{seg}.F) (rho {c.i69} : Seg{seg}.F)")
     L.append(f"      (rho {c.i71} : Seg{seg}.F) (rho {c.outx} : Seg{seg}.F) (rho {c.outy} : Seg{seg}.F)")
-    L.append(f"      (rho {c.sdx} : Seg{seg}.F) (rho {c.sdy} : Seg{seg}.F) hp{prev}")
+    L.append(f"      (rho {c.sdx} : Seg{seg}.F) (rho {c.sdy} : Seg{seg}.F) hacc")
     L.append(f"      (by rw [C_eq_L{k}]; simp only [L{k}])")
     for _ in range(9):
         L.append("      (by decide)")
     L.append(f"      h13_{k} h14_{k} h15_{k} h16_{k} h17_{k} h18_{k} hSelX_{k} hSelY_{k} hbrow{k}")
-    L.append(f"  obtain ⟨b{k}, hb{k}⟩ := {KNS}.boolify (rho {c.bit}) hbrow{k}")
-    L.append(f"  have hrb{k} : RvkFixedBaseLadder.FixedStepRel {k} (toZMod b{k}) {point_prev} {point_cur} := by")
-    L.append(f"    rw [← hb{k}]")
-    L.append(f"    exact hr{k}")
-    L.append(f"  have hp{k} : onCurve {point_cur} :=")
-    L.append(f"    (RvkFixedBaseLadder.fixedStep_semantic {k} b{k} _ _ hp{prev} hrb{k}).2")
+    L.append(f"  exact hr{k}")
 
 
 def module_header(seg: int, with_opens: bool = True) -> list[str]:
@@ -867,17 +883,112 @@ def module_footer() -> list[str]:
     return ["", "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
 
 
-def emit_acc_module(seg: int, cfg) -> str:
+def acc_state_chunks() -> list[list[int]]:
+    return chunks(list(range(1, TOTAL_N + 1)), ACC_CHUNK_SIZE)
+
+
+def acc_weighted_chunks() -> list[list[int]]:
+    return chunks(list(range(1, PREFIX_N + 1)), ACC_CHUNK_SIZE)
+
+
+def emit_acc_defs_module(
+    seg: int, cfg, xy: str, states: list[int], previous_module: str
+) -> str:
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{seg}",
+        f"import {previous_module}",
         "",
         *module_header(seg, with_opens=False),
     ]
-    emit_acc_defs(L, seg, "X", cfg)
-    emit_acc_defs(L, seg, "Y", cfg)
-    emit_acc_weighted_lemmas(L, seg, cfg)
+    emit_acc_defs(L, seg, xy, cfg, states)
     L.extend(module_footer())
     return "\n".join(L)
+
+
+def emit_acc_weighted_module(
+    seg: int, cfg, states: list[int], previous_module: str
+) -> str:
+    L: list[str] = [
+        f"import {previous_module}",
+        "",
+        *module_header(seg, with_opens=False),
+    ]
+    emit_acc_weighted_lemmas(L, seg, cfg, states)
+    L.extend(module_footer())
+    return "\n".join(L)
+
+
+def emit_acc_module(seg: int, cfg, previous_module: str) -> str:
+    L: list[str] = [
+        f"import {previous_module}",
+        "",
+        *module_header(seg, with_opens=False),
+    ]
+    b0 = cfg["b0"]
+    L.extend([
+        f"def seg{seg}RvkBits (rho : Nat -> Seg{seg}.F) : List.Vector Seg{seg}.F 251 :=",
+        f"  List.Vector.ofFn (fun i : Fin 251 => rho ({b0} + i.val))",
+        "",
+        f"theorem seg{seg}RvkBits_get (rho : Nat -> Seg{seg}.F) (i : Nat) (hi : i < 251) :",
+        f"    (seg{seg}RvkBits rho)[i]! = rho ({b0} + i) := by",
+        "  rw [getElem!_pos _ i (by simpa using hi)]",
+        "  conv_lhs => rw [List.Vector.getElem_def]",
+        f"  simp only [seg{seg}RvkBits, List.Vector.toList_ofFn, List.getElem_ofFn]",
+        "",
+        f"def seg{seg}RvkAcc (rho : Nat -> Seg{seg}.F) : Nat -> EdwardsBridge.Point",
+        "  | 0 => ⟨0, 1⟩",
+        f"  | 1 => ⟨({GX} : Seg{seg}.F) * rho {b0},",
+        f"      (1 : Seg{seg}.F) + ({GYM1} : Seg{seg}.F) * rho {b0}⟩",
+    ])
+    for state in range(2, TOTAL_N + 2):
+        L.append(f"  | {state} => {point_expr(seg, cfg, state - 1)}")
+    L.extend(["  | _ => ⟨0, 1⟩", ""])
+    L.extend(module_footer())
+    return "\n".join(L)
+
+
+def emit_bits_module(seg: int, cfg) -> str:
+    bit_base = cfg["b0"]
+    randomizer = cfg["randomizer"]
+    rows = list(range(251))
+    block = dtk.CanonicalBlock("Rvk", randomizer, bit_base, 0, 251, 252)
+    helper_cfg = SimpleNamespace(seg=seg)
+    L: list[str] = [
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc\n",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon\n",
+        "import ShielddGnarkFormal.RvkToBinary\n\n",
+        "set_option maxRecDepth 1000000\n",
+        "set_option maxHeartbeats 20000000\n",
+        "set_option linter.unusedVariables false\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        f"theorem seg{seg}RvkBits_toBinary (rho : Nat -> Seg{seg}.F) "
+        f"(h : Seg{seg}.relation rho) :\n",
+        f"    GatesDef.to_binary (rho {randomizer}) 251 (seg{seg}RvkBits rho) := by\n",
+    ]
+    unpack: list[str] = []
+    emit_unpack(unpack, seg, parse_relation_parts(seg), set(rows + [251]))
+    L.extend(line + "\n" for line in unpack)
+    for row in rows:
+        L.append(f"  unfold Seg{seg}.relationRow{row} at r{row}\n")
+    dtk.emit_recomposition(L, helper_cfg, block, f"(seg{seg}RvkBits rho)", "r251", 251)
+    L.extend([
+        f"  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed "
+        f"(rho {randomizer}) (seg{seg}RvkBits rho)\n",
+        "  · intro i hi\n",
+        f"    have key := seg{seg}RvkBits_get rho i hi\n",
+        f"    have hgoal : rho ({bit_base} + i) * (1 - rho ({bit_base} + i)) = 0 := by\n",
+        "      interval_cases i\n",
+    ])
+    for row in rows:
+        L.append(f"      · linear_combination r{row}\n")
+    L.extend([
+        f"    have key' : (seg{seg}RvkBits rho)[i] = rho ({bit_base} + i) := by\n",
+        f"      rw [← getElem!_pos (seg{seg}RvkBits rho) i (by simpa using hi)]\n",
+        "      exact key\n",
+        "    exact key' ▸ hgoal\n",
+        "  · exact hrec\n\n",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n",
+    ])
+    return "".join(L)
 
 
 def emit_lemma_module(seg: int, cfg, certs: list[SplitCert], idx: int, include_tail: bool) -> str:
@@ -908,37 +1019,50 @@ def emit_prefix_lemma_module(seg: int, certs: list[PrefixCert], idx: int) -> str
     return "\n".join(L) + "\n"
 
 
-def emit_prefix_step_module(seg: int, cfg, certs: list[PrefixCert], idx: int) -> str:
+def emit_prefix_leaf_module(seg: int, cfg, cert: PrefixCert, lemma_idx: int) -> str:
     inst = cfg["inst"]
     KNS = f"Shieldd.GnarkFormal.RvkFixedGen{inst}"
-    first = certs[0].k
-    last = certs[-1].k
-    include_seed = first == 1
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}PrefixLemmas{idx}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}PrefixLemmas{lemma_idx}",
         f"import ShielddGnarkFormal.RvkFixedGen{inst}",
         "import ShielddGnarkFormal.RvkFixedBaseLadder",
-        "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
+        "import ShielddGnarkFormal.Deployed.PrimeOrder",
+        "",
+        *module_header(seg),
+    ]
+    L.append(f"theorem seg{seg}_prefix_step{cert.k} (rho : Nat -> Seg{seg}.F)")
+    for row in prefix_step_rows([cert], False):
+        L.append(f"    (r{row} : Seg{seg}.relationRow{row} rho)")
+    L.append(f"    (hacc : onCurve (seg{seg}RvkAcc rho {cert.k})) :")
+    L.append(f"    RvkFixedBaseLadder.FixedStepRel {cert.k} (rho {cert.bit})")
+    L.append(f"      (seg{seg}RvkAcc rho {cert.k}) (seg{seg}RvkAcc rho ({cert.k} + 1)) := by")
+    emit_prefix_leaf_proof(L, seg, cfg, KNS, cert)
+    L.extend(module_footer())
+    return "\n".join(L) + "\n"
+
+
+def emit_prefix_step_module(seg: int, cfg, certs: list[PrefixCert], idx: int) -> str:
+    first = certs[0].k
+    last = certs[-1].k
+    L: list[str] = [
+        *[
+            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}PrefixStep{cert.k}"
+            for cert in certs
+        ],
         "",
         *module_header(seg),
     ]
     L.append(f"theorem seg{seg}_prefix_steps{idx} (rho : Nat -> Seg{seg}.F)")
-    if not include_seed:
-        L.append(f"    (hp{first - 1} : onCurve {point_expr(seg, cfg, first - 1)})")
-    for row in prefix_step_rows(certs, include_seed):
+    for row in prefix_step_rows(certs, False):
         L.append(f"    (r{row} : Seg{seg}.relationRow{row} rho)")
-    L.append(f"    : onCurve {point_expr(seg, cfg, last)} := by")
-    if include_seed:
-        b0 = cfg["b0"]
-        L.append(f"  have hbrow0 : (1*(rho {b0}))*(1 + (-1)*(rho {b0})) = 0 := by")
-        L.append(f"    simpa [Seg{seg}.relationRow0] using r0")
-        L.append(f"  have hseed : (rho {b0}) * (rho {b0}) = rho {b0} := by")
-        L.append("    linear_combination -hbrow0")
-        L.append(f"  have hpSeed : onCurve ({KNS}.acc1 (rho {b0} : Seg{seg}.F)) :=")
-        L.append(f"    {KNS}.seed_onCurve (rho {b0} : Seg{seg}.F) (by simpa using hseed)")
+    L.append(f"    : ∀ i, {first} ≤ i → i ≤ {last} → onCurve (seg{seg}RvkAcc rho i) →")
+    L.append("        RvkFixedBaseLadder.FixedStepRel i")
+    L.append(f"          (rho ({cfg['b0']} + i)) (seg{seg}RvkAcc rho i) (seg{seg}RvkAcc rho (i + 1)) := by")
+    L.append("  intro i hlo hhi hacc")
+    L.append("  interval_cases i")
     for cert in certs:
-        emit_prefix_step(L, seg, cfg, KNS, cert)
-    L.append(f"  exact hp{last}")
+        args = " ".join(f"r{row}" for row in prefix_step_rows([cert], False))
+        L.append(f"  · exact seg{seg}_prefix_step{cert.k} rho {args} hacc")
     L.extend(module_footer())
     return "\n".join(L) + "\n"
 
@@ -951,31 +1075,54 @@ def step_rows_for(certs: list[SplitCert]) -> list[int]:
     return rows
 
 
-def emit_step_module(seg: int, cfg, certs: list[SplitCert], idx: int) -> str:
+def emit_split_leaf_module(seg: int, cfg, cert: SplitCert, lemma_idx: int) -> str:
     inst = cfg["inst"]
     KNS = f"Shieldd.GnarkFormal.RvkFixedGen{inst}"
-    prev = certs[0].k - 1
-    last = certs[-1].k
     L: list[str] = [
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{seg}",
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Lemmas{idx}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Lemmas{lemma_idx}",
         f"import ShielddGnarkFormal.RvkFixedGen{inst}",
         "import ShielddGnarkFormal.RvkFixedSplitRung",
         "import ShielddGnarkFormal.RvkFixedBaseLiteral",
         "import ShielddGnarkFormal.RvkFixedBaseLadder",
-        "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
+        "import ShielddGnarkFormal.Deployed.PrimeOrder",
+        "",
+        *module_header(seg),
+    ]
+    L.append(f"theorem seg{seg}_step{cert.k} (rho : Nat -> Seg{seg}.F)")
+    for row in step_rows_for([cert]):
+        L.append(f"    (r{row} : Seg{seg}.relationRow{row} rho)")
+    L.append(f"    (hacc : onCurve (seg{seg}RvkAcc rho {cert.k})) :")
+    L.append(f"    RvkFixedBaseLadder.FixedStepRel {cert.k} (rho {cert.bit})")
+    L.append(f"      (seg{seg}RvkAcc rho {cert.k}) (seg{seg}RvkAcc rho ({cert.k} + 1)) := by")
+    emit_split_step(L, seg, cfg, KNS, cert)
+    L.extend(module_footer())
+    return "\n".join(L) + "\n"
+
+
+def emit_step_module(seg: int, cfg, certs: list[SplitCert], idx: int) -> str:
+    prev = certs[0].k - 1
+    last = certs[-1].k
+    L: list[str] = [
+        *[
+            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Step{cert.k}"
+            for cert in certs
+        ],
         "",
         *module_header(seg),
     ]
     L.append(f"theorem seg{seg}_steps{idx} (rho : Nat -> Seg{seg}.F)")
-    L.append(f"    (hp{prev} : onCurve {point_expr(seg, cfg, prev)})")
     for row in step_rows_for(certs):
         L.append(f"    (r{row} : Seg{seg}.relationRow{row} rho)")
-    L.append(f"    : onCurve {point_expr(seg, cfg, last)} := by")
+    L.append(f"    : ∀ i, {prev + 1} ≤ i → i ≤ {last} → onCurve (seg{seg}RvkAcc rho i) →")
+    L.append("        RvkFixedBaseLadder.FixedStepRel i")
+    L.append(f"          (rho ({cfg['b0']} + i)) (seg{seg}RvkAcc rho i) (seg{seg}RvkAcc rho (i + 1)) := by")
+    L.append("  intro i hlo hhi hacc")
+    L.append("  interval_cases i")
     for cert in certs:
-        emit_split_step(L, seg, cfg, KNS, cert)
-    L.append(f"  exact hp{last}")
+        args = " ".join(f"r{row}" for row in step_rows_for([cert]))
+        L.append(f"  · exact seg{seg}_step{cert.k} rho {args} hacc")
     L.extend(module_footer())
     return "\n".join(L) + "\n"
 
@@ -992,26 +1139,76 @@ def emit_ladder_module(seg: int, cfg, prefix_chunks: list[list[PrefixCert]]) -> 
         *module_header(seg),
     ]
     rows = prefix_ladder_rows(cfg)
-    L.append(f"theorem seg{seg}_ladder_onCurve (rho : Nat -> Seg{seg}.F)")
+    L.append(f"theorem seg{seg}_prefix_steps (rho : Nat -> Seg{seg}.F)")
     for row in rows:
         L.append(f"    (r{row} : Seg{seg}.relationRow{row} rho)")
-    L.append(f"    : onCurve {point_expr(seg, cfg, PREFIX_N)} := by")
+    L.append(f"    : ∀ i, 1 ≤ i → i ≤ {PREFIX_N} → onCurve (seg{seg}RvkAcc rho i) →")
+    L.append("        RvkFixedBaseLadder.FixedStepRel i")
+    L.append(f"          (rho ({cfg['b0']} + i)) (seg{seg}RvkAcc rho i) (seg{seg}RvkAcc rho (i + 1)) := by")
     for idx, certs in enumerate(prefix_chunks):
         first = certs[0].k
         last = certs[-1].k
-        L.append(f"  have hp{last} : onCurve {point_expr(seg, cfg, last)} :=")
-        if first == 1:
-            L.append(f"    seg{seg}_prefix_steps{idx} rho")
-        else:
-            L.append(f"    seg{seg}_prefix_steps{idx} rho hp{first - 1}")
-        for row_chunk in chunks([f"r{row}" for row in prefix_step_rows(certs, first == 1)], 10):
+        L.append(f"  have hs{idx} := seg{seg}_prefix_steps{idx} rho")
+        for row_chunk in chunks([f"r{row}" for row in prefix_step_rows(certs, False)], 10):
             L.append("      " + " ".join(row_chunk))
-    L.append(f"  exact hp{PREFIX_N}")
+    L.append("  intro i hlo hhi hacc")
+    for idx, certs in enumerate(prefix_chunks):
+        last = certs[-1].k
+        if idx == len(prefix_chunks) - 1:
+            L.append(f"  exact hs{idx} i (by omega) (by omega) hacc")
+        else:
+            L.append(f"  by_cases hi{idx} : i ≤ {last}")
+            L.append(f"  · exact hs{idx} i (by omega) hi{idx} hacc")
     L.extend(module_footer())
     return "\n".join(L) + "\n"
 
 
-def emit_adapter(seg: int, cfg, certs: list[SplitCert], lemma_count: int) -> str:
+def emit_trace_setup(L: list[str], seg: int, cfg, certs: list[SplitCert]) -> None:
+    L.append("  rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt")
+    L.append("    (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order)")
+    L.append("    Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order] at hbin")
+    L.append("  rcases hbin with ⟨hscalarLt, hbits⟩")
+    L.append(f"  let bitsBool := Fin.toBitsLE (⟨(rho {cfg['randomizer']}).val, hscalarLt⟩ : Fin (2 ^ 251))")
+    L.append("  have hbitAt : ∀ i, i < 251 →")
+    L.append(f"      rho ({cfg['b0']} + i) = Bool.toZMod bitsBool[i]! := by")
+    L.append("    intro i hi")
+    L.append(f"    rw [← seg{seg}RvkBits_get rho i hi, hbits]")
+    L.append("    change (bitsBool.map Bool.toZMod)[i]! = Bool.toZMod bitsBool[i]!")
+    L.append("    rw [getElem!_pos (bitsBool.map Bool.toZMod) i (by simpa using hi),")
+    L.append("      getElem!_pos bitsBool i (by simpa using hi), List.Vector.getElem_map]")
+    L.append("  have hstep : ∀ i, i < 251 → onCurve (seg" + str(seg) + "RvkAcc rho i) →")
+    L.append("      RvkFixedBaseLadder.FixedStepRel i (Bool.toZMod bitsBool[i]!)")
+    L.append(f"        (seg{seg}RvkAcc rho i) (seg{seg}RvkAcc rho (i + 1)) := by")
+    L.append("    intro i hi hacc")
+    L.append("    by_cases hzero : i = 0")
+    L.append("    · subst i")
+    L.append("      change RvkFixedBaseLadder.FixedStepRel 0 (Bool.toZMod bitsBool[0]!) ⟨0, 1⟩")
+    L.append(f"        (⟨({GX} : Seg{seg}.F) * rho {cfg['b0']},")
+    L.append(f"          (1 : Seg{seg}.F) + ({GYM1} : Seg{seg}.F) * rho {cfg['b0']}⟩ : EdwardsBridge.Point)")
+    L.append(f"      rw [hbitAt 0 (by omega)]")
+    L.append("      simpa [")
+    L.append("        Shieldd.GnarkFormal.RvkFixedRun.seedAcc,")
+    L.append("        Shieldd.GnarkFormal.RvkFixedBaseConstants.C,")
+    L.append("        Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,")
+    L.append("        Shieldd.GnarkFormal.RvkBridge.genXNat,")
+    L.append("        Shieldd.GnarkFormal.RvkBridge.genYNat] using")
+    L.append("        (Shieldd.GnarkFormal.RvkFixedRun.seedStepRel bitsBool[0]!)")
+    L.append("    · rw [← hbitAt i hi]")
+    L.append(f"      by_cases hprefix : i ≤ {PREFIX_N}")
+    L.append("      · exact hsPrefix i (by omega) hprefix hacc")
+    split_chunks = chunks(certs, SPLIT_CHUNK_SIZE)
+    for idx, chunk in enumerate(split_chunks):
+        last = chunk[-1].k
+        if idx == len(split_chunks) - 1:
+            L.append(f"      exact hsTail{idx} i (by omega) (by omega) hacc")
+        else:
+            L.append(f"      by_cases htail{idx} : i ≤ {last}")
+            L.append(f"      · exact hsTail{idx} i (by omega) htail{idx} hacc")
+    L.append("  have htrace := Shieldd.GnarkFormal.RvkFixedRun.trace_final_semantic")
+    L.append(f"    bitsBool (seg{seg}RvkAcc rho) hstep EdwardsBridge.identity_onCurve")
+
+
+def emit_adapter(seg: int, cfg, certs: list[SplitCert], step_count: int) -> str:
     inst = cfg["inst"]
     KNS = f"Shieldd.GnarkFormal.RvkFixedGen{inst}"
     parts = parse_relation_parts(seg)
@@ -1021,21 +1218,23 @@ def emit_adapter(seg: int, cfg, certs: list[SplitCert], lemma_count: int) -> str
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{seg}",
         "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Rvk",
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc",
+        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Bits",
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Ladder",
         *[
             f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Lemmas{i}"
-            for i in range(lemma_count)
+            for i in range(step_count)
         ],
         *[
             f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Steps{i}"
-            for i in range(lemma_count)
+            for i in range(step_count)
         ],
         f"import ShielddGnarkFormal.RvkFixedGen{inst}",
         "import ShielddGnarkFormal.RvkFixedSplitRung",
         "import ShielddGnarkFormal.RvkFixedBaseLiteral",
         "import ShielddGnarkFormal.RvkFixedBaseLadder",
+        "import ShielddGnarkFormal.RvkFixedRun",
         "import ShielddGnarkFormal.RvkDeployedRung",
-        "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
+        "import ShielddGnarkFormal.Deployed.PrimeOrder",
         "",
         *module_header(seg),
     ]
@@ -1055,26 +1254,25 @@ def emit_adapter(seg: int, cfg, certs: list[SplitCert], lemma_count: int) -> str
         f"    (h : Seg{seg}.relation rho) : Seg{seg}.spec rho := by",
         f"  unfold Seg{seg}.spec Specs.deployedSpec{seg}",
         "  intro hak",
+        f"  have hbin := seg{seg}RvkBits_toBinary rho h",
     ])
     emit_unpack(L, seg, parts, keep_rows)
-    L.append(f"  have hp{PREFIX_N} : onCurve {point_expr(seg, cfg, PREFIX_N)} :=")
-    L.append(f"    seg{seg}_ladder_onCurve rho")
+    L.append(f"  have hsPrefix := seg{seg}_prefix_steps rho")
     for c in chunks([f"r{row}" for row in prefix_ladder_rows(cfg)], 10):
         L.append("      " + " ".join(c))
-    for idx, chunk in enumerate(chunks(certs, 10)):
-        prev = chunk[0].k - 1
-        last = chunk[-1].k
-        L.append(f"  have hp{last} : onCurve {point_expr(seg, cfg, last)} :=")
-        L.append(f"    seg{seg}_steps{idx} rho hp{prev}")
+    for idx, chunk in enumerate(chunks(certs, SPLIT_CHUNK_SIZE)):
+        L.append(f"  have hsTail{idx} := seg{seg}_steps{idx} rho")
         for c in chunks([f"r{row}" for row in step_rows_for(chunk)], 9):
             L.append("      " + " ".join(c))
+    emit_trace_setup(L, seg, cfg, certs)
 
     AK_X, AK_Y = f"rho {akX}", f"rho {akY}"
     OX, OY = f"rho {outX}", f"rho {outY}"
     L.append(f"  have hLcx : {LCX} = {point_x(seg, cfg, TOTAL_N)} := seg{seg}_lcx rho")
     L.append(f"  have hLcy : {LCY} = {point_y(seg, cfg, TOTAL_N)} := seg{seg}_lcy rho")
     L.append(f"  have hp' : onCurve (⟨{LCX}, {LCY}⟩ : EdwardsBridge.Point) := by")
-    L.append(f"    rw [hLcx, hLcy]; exact hp{TOTAL_N}")
+    L.append(f"    rw [hLcx, hLcy]")
+    L.append("    exact htrace.2")
     L.append(f"  have hLc46 : {LC46} = ({LCX}) + ({LCY}) := seg{seg}_lc46 rho")
     for key in ("x7", "y8", "d9", "outx", "outy", "pre"):
         L.append(f"  unfold Seg{seg}.relationRow{t[key]} at r{t[key]}")
@@ -1095,41 +1293,133 @@ def emit_adapter(seg: int, cfg, certs: list[SplitCert], lemma_count: int) -> str
     L.append("      rw [show (EdwardsBridge.a : EdwardsBridge.F) = -1 from by decide]")
     L.append(f"      rw [e9, e7, e8, e76, e75, hLc46] at r{t['outy']}")
     L.append(f"      linear_combination r{t['outy']}")
-    L.append(f"  exact RvkDeployedRung.addSpec_onCurve hakC hp' hadd")
+    L.append(f"  have hstate : seg{seg}RvkAcc rho 251 =")
+    L.append(f"      (⟨{LCX}, {LCY}⟩ : EdwardsBridge.Point) := by")
+    L.append(f"    change {point_expr(seg, cfg, TOTAL_N)} = _")
+    L.append("    rw [hLcx, hLcy]")
+    L.append("  have htraceModel : (⟨" + LCX + ", " + LCY + "⟩ : EdwardsBridge.Point) =")
+    L.append("      Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩")
+    L.append("        (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) := by")
+    L.append("    rw [← hstate]")
+    L.append("    exact htrace.1")
+    L.append("  have heq := EdwardsBridge.addSpec_eq")
+    L.append(f"    ⟨{AK_X}, {AK_Y}⟩ (⟨{LCX}, {LCY}⟩ : EdwardsBridge.Point)")
+    L.append(f"    ⟨{OX}, {OY}⟩ hakC hp' hadd")
+    L.append("  have hmodel := Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits_toA")
+    L.append(f"    bitsBool (rho {cfg['randomizer']}) 251 0 ⟨0, 1⟩")
+    L.append("    (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) (by omega)")
+    L.append("    (by")
+    L.append("      intro i _ hi")
+    L.append("      exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit")
+    L.append(f"        (rho {cfg['randomizer']}).val hscalarLt i hi)")
+    L.append(f"  have hfinal : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk ({OX}) ({OY}) =")
+    L.append(f"      Shieldd.GnarkFormal.ScalarMulBridge.toA (EdwardsBridge.addF ⟨{AK_X}, {AK_Y}⟩")
+    L.append("        (Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩")
+    L.append("          (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0))) := by")
+    L.append("    rw [← htraceModel, ← heq]")
+    L.append("    rfl")
+    L.append("  have hspec : Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec")
+    L.append(f"      ⟨{AK_X}, {AK_Y}⟩ (rho {cfg['randomizer']}) ⟨{OX}, {OY}⟩ := by")
+    L.append("    show Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk _ _ =")
+    L.append("      Shieldd.GnarkFormal.Decaf377Assumptions.rvk _ _")
+    L.append("    rw [hfinal, Shieldd.GnarkFormal.ScalarMulBridge.toA_addF, hmodel]")
+    L.append("    simp only [Shieldd.GnarkFormal.Decaf377Assumptions.rvk,")
+    L.append("      Shieldd.GnarkFormal.Decaf377Assumptions.scalarMulLE,")
+    L.append("      Shieldd.GnarkFormal.Decaf377Assumptions.generator,")
+    L.append("      Shieldd.GnarkFormal.Decaf377Assumptions.identity,")
+    L.append("      Shieldd.GnarkFormal.ScalarMulBridge.toA,")
+    L.append("      Shieldd.GnarkFormal.RvkFixedBaseConstants.C,")
+    L.append("      Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,")
+    L.append("      Shieldd.GnarkFormal.RvkBridge.genXNat,")
+    L.append("      Shieldd.GnarkFormal.RvkBridge.genYNat]")
+    L.append("    rfl")
+    L.append("  exact ⟨hspec, RvkDeployedRung.addSpec_onCurve hakC hp' hadd⟩")
     L.extend(module_footer())
     return "\n".join(L) + "\n"
 
 
-def main():
+def write_generated(path: Path, contents: str) -> None:
+    if path.exists() and path.read_text() == contents:
+        return
+    path.write_text(contents)
+
+
+def generate(*, output_contracts: Path = CONTRACTS) -> None:
+    output_contracts.mkdir(parents=True, exist_ok=True)
     for seg, cfg in INSTANCES.items():
         certs = [split_cert(seg, cfg, k) for k in range(CONT_START, TOTAL_N + 1)]
         prefix_certs = [prefix_cert(seg, cfg, k) for k in range(1, PREFIX_N + 1)]
-        prefix_chunks = chunks(prefix_certs, 10)
-        acc = CONTRACTS / f"RvkAdapterSeg{seg}Acc.lean"
-        acc.write_text(emit_acc_module(seg, cfg))
+        prefix_chunks = chunks(prefix_certs, PREFIX_CHUNK_SIZE)
+        module_root = "ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1"
+        previous_module = f"{module_root}.Seg{seg}"
+        for xy in ("X", "Y"):
+            for idx, states in enumerate(acc_state_chunks()):
+                name = f"RvkAdapterSeg{seg}Acc{xy}{idx}"
+                out = output_contracts / f"{name}.lean"
+                write_generated(
+                    out,
+                    emit_acc_defs_module(seg, cfg, xy, states, previous_module),
+                )
+                print(f"wrote {out}")
+                previous_module = f"{module_root}.{name}"
+        for idx, states in enumerate(acc_weighted_chunks()):
+            name = f"RvkAdapterSeg{seg}AccWeighted{idx}"
+            out = output_contracts / f"{name}.lean"
+            write_generated(
+                out,
+                emit_acc_weighted_module(seg, cfg, states, previous_module),
+            )
+            print(f"wrote {out}")
+            previous_module = f"{module_root}.{name}"
+        acc = output_contracts / f"RvkAdapterSeg{seg}Acc.lean"
+        write_generated(acc, emit_acc_module(seg, cfg, previous_module))
         print(f"wrote {acc}")
+        bits = output_contracts / f"RvkAdapterSeg{seg}Bits.lean"
+        write_generated(bits, emit_bits_module(seg, cfg))
+        print(f"wrote {bits}")
         for idx, chunk in enumerate(prefix_chunks):
-            out = CONTRACTS / f"RvkAdapterSeg{seg}PrefixLemmas{idx}.lean"
-            out.write_text(emit_prefix_lemma_module(seg, chunk, idx))
+            out = output_contracts / f"RvkAdapterSeg{seg}PrefixLemmas{idx}.lean"
+            write_generated(out, emit_prefix_lemma_module(seg, chunk, idx))
             print(f"wrote {out}")
-            out = CONTRACTS / f"RvkAdapterSeg{seg}PrefixSteps{idx}.lean"
-            out.write_text(emit_prefix_step_module(seg, cfg, chunk, idx))
+            out = output_contracts / f"RvkAdapterSeg{seg}PrefixSteps{idx}.lean"
+            write_generated(out, emit_prefix_step_module(seg, cfg, chunk, idx))
             print(f"wrote {out}")
-        ladder = CONTRACTS / f"RvkAdapterSeg{seg}Ladder.lean"
-        ladder.write_text(emit_ladder_module(seg, cfg, prefix_chunks))
+        for filename, cert, lemma_idx in prefix_leaf_outputs(seg, prefix_chunks):
+            out = output_contracts / filename
+            write_generated(out, emit_prefix_leaf_module(seg, cfg, cert, lemma_idx))
+            print(f"wrote {out}")
+        ladder = output_contracts / f"RvkAdapterSeg{seg}Ladder.lean"
+        write_generated(ladder, emit_ladder_module(seg, cfg, prefix_chunks))
         print(f"wrote {ladder}")
-        chunk_size = 10
-        chunks_ = chunks(certs, chunk_size)
+        lemma_chunks = chunks(certs, SPLIT_LEMMA_CHUNK_SIZE)
+        for idx, chunk in enumerate(lemma_chunks):
+            out = output_contracts / f"RvkAdapterSeg{seg}Lemmas{idx}.lean"
+            write_generated(out, emit_lemma_module(seg, cfg, chunk, idx, include_tail=(idx == len(lemma_chunks) - 1)))
+            print(f"wrote {out}")
+        chunks_ = chunks(certs, SPLIT_CHUNK_SIZE)
         for idx, chunk in enumerate(chunks_):
-            out = CONTRACTS / f"RvkAdapterSeg{seg}Lemmas{idx}.lean"
-            out.write_text(emit_lemma_module(seg, cfg, chunk, idx, include_tail=(idx == len(chunks_) - 1)))
+            out = output_contracts / f"RvkAdapterSeg{seg}Steps{idx}.lean"
+            write_generated(out, emit_step_module(seg, cfg, chunk, idx))
             print(f"wrote {out}")
-            out = CONTRACTS / f"RvkAdapterSeg{seg}Steps{idx}.lean"
-            out.write_text(emit_step_module(seg, cfg, chunk, idx))
+        for filename, cert, lemma_idx in split_leaf_outputs(seg, certs):
+            out = output_contracts / filename
+            write_generated(out, emit_split_leaf_module(seg, cfg, cert, lemma_idx))
             print(f"wrote {out}")
-        out = CONTRACTS / f"RvkAdapterSeg{seg}.lean"
-        out.write_text(emit_adapter(seg, cfg, certs, len(chunks_)))
+        out = output_contracts / f"RvkAdapterSeg{seg}.lean"
+        write_generated(out, emit_adapter(seg, cfg, certs, len(chunks_)))
         print(f"wrote {out}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--adapter-out",
+        type=Path,
+        default=CONTRACTS,
+        help="emit the complete RvkAdapterSeg*.lean family into this directory",
+    )
+    args = parser.parse_args()
+    generate(output_contracts=args.adapter_out)
 
 
 if __name__ == "__main__":
