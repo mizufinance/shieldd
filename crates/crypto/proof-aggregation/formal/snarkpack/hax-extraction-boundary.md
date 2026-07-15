@@ -87,12 +87,25 @@ S2-20's closed extraction starts at the two `*_kzg_opening_core` functions;
 the public `Pairing` wrappers remain concrete one-call delegators and are not
 part of the extracted graph.
 
+S2-25 extracts from `crate::gipa::verify_base_commitment_core` with
+`--charon-args=--start-from=crate::gipa::verify_base_commitment_core`. The
+closed graph contains only explicit `KA`, `KB`, `KT`, `MA`, `MB`, `MT`, `OA`,
+`OB`, `OT`, and `E` types. `BaseCommitmentResult<T, E>` is the extraction-safe
+two-constructor image of Rust `Result<T, E>`; the thin production adapter maps
+each `InnerProduct`/`DoublyHomomorphicCommitment::verify` result into it and the
+delegator maps the final value back without changing the error. The vendored
+output is `Ipp/Extracted/BaseCommitmentGenerated.lean`. For S2-30, the closed
+verifier graph must call this core with the same ordered effect state: singleton
+inner product, left commitment, right commitment, then target commitment, with
+`false` short-circuiting and the first reached error terminal.
+
 ## S2 Tier 1 serial additions
 
 | target | Rust features used | precondition | arithmetic mode | control flow | panic/expect | unsafe | hax shims | status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `ark_ip_proofs::gipa::rescale_fold_inner` | slices, `Vec`, indexed hax traversal; production Rayon threshold branch retained | equal slice lengths; bounded index range | abstract `MulAssign` and `Add` | production sequential/Rayon selection; `hax_compilation` indexed traversal preserves order | none in helper; caller owns length invariant | none | `hax_compilation` indexed traversal has the same elementwise result and ordering as the production iterator branches | proved-model |
 | `ark_ip_proofs::gipa::compute_final_commitment_keys_core` | paired scalar slices, `Vec` exponent construction, and two explicit group MSMs; the private public-path delegator supplies pointwise inverses and concrete MSM callbacks | nonempty equal-length power-of-two key vectors; raw/inverse transcript slices have equal length and are pointwise inverses of nonzero challenges; key length is `2^transcript.len()` | ordinary scalar `Copy`/`Mul` and group `Clone`/`Add`/`MulAssign`; production callbacks are `LMC::msm_keys`/`RMC::msm_keys`; `hax_compilation` uses the generated ordered fold | nested bounded coefficient loops followed by two ordered folds in the extracted view | core assertions enforce shape; inversion `unwrap` remains only in the thin delegator and is covered by the nonzero challenge precondition | none | production/extraction MSM selection is the named `OrderedMsmConformance` boundary; delegator/core parity pins inverse/raw orientation; scoped Aeneas output is vendored as `Ipp/Extracted/FinalCommitmentKeysGenerated.lean` | proved-model |
+| `ark_ip_proofs::gipa::verify_base_commitment_core` | explicit singleton left/right keys and messages, target-key vector, three outputs, and one typed effect record; call order is inner product, left verify, right verify, target verify | each effect `Err(E)` is returned unchanged; left/right `Ok(false)` short-circuit later calls; target `Ok(false)` is returned; no feature branch or panic | `BaseCommitmentEffect` has four associated-type-free methods; declared Lean laws interpret the singleton inner product and each commitment Boolean; the production adapter is the only `InnerProduct`/`DoublyHomomorphicCommitment` boundary | proved-model |
 | `ark_ip_proofs::tipa::polynomial_coefficients_from_transcript` | `Vec`, fixed-size array-to-slice initialization, field arithmetic, bounded nested loops; production interleave retained | transcript length `μ`; output shape `2^(μ+1)-1`; `usize::pow` receives the bounded `u32` exponent cast | abstract field operations | production iterator interleave; `hax_compilation` indexed coefficient/interleave loops | none | none | `hax_compilation` traversal is order/zero-position equivalent; S2-23a's vendored graph uses the shared executable `core.num.Usize.pow` support definition (integer-overflow failure, otherwise the exact natural power) plus compact Vec/array support | proved-model |
 | `ark_ip_proofs::tipa::polynomial_evaluation_product_form_from_transcript` | `Vec`, owned field arithmetic, bounded factor/product loops | transcript length is finite; field operations are total | abstract field operations | production iterator product; `hax_compilation` explicit indexed product fold | none | none | hax-owned arithmetic and product folds preserve factor order and multiplication result | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::structured_scalar_final_from_raw_transcript_inner` | slice, field arithmetic, bounded transcript fold | transcript slice is the reversed raw chronology | abstract field operations | indexed loop over the reversed slice | none | none | named generic arithmetic helper retains the production wrapper and result order | proved-model |

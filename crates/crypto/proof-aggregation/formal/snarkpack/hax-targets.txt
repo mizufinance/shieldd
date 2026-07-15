@@ -13,6 +13,10 @@
 # refinement theorem remains the S2-29 proof-session deliverable. The scoped
 # Charon target is verify_ppe_core; the concrete Pairing wrapper is not part of
 # the extracted graph.
+# The S2-25 base-commitment graph is vendored in
+# formal/lean-ipp/Ipp/Extracted/BaseCommitmentGenerated.lean. Its explicit
+# result/effect/input records preserve all four effect failures; the concrete
+# DoublyHomomorphicCommitment/InnerProduct adapter is not extracted.
 
 shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
 shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow
@@ -40,6 +44,10 @@ ark_ip_proofs::challenge::challenge_context_preimage
 ark_ip_proofs::challenge::challenge_preimage
 ark_ip_proofs::gipa::rescale_fold_inner
 ark_ip_proofs::gipa::compute_final_commitment_keys_core
+ark_ip_proofs::gipa::BaseCommitmentResult
+ark_ip_proofs::gipa::BaseCommitmentEffect
+ark_ip_proofs::gipa::BaseCommitmentCoreInput
+ark_ip_proofs::gipa::verify_base_commitment_core
 ark_ip_proofs::tipa::PairingEffect
 ark_ip_proofs::tipa::KzgG2VerifierCoreInput
 ark_ip_proofs::tipa::KzgG1VerifierCoreInput

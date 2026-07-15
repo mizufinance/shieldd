@@ -79,6 +79,157 @@ pub struct GIPA<IP, LMC, RMC, IPC, D> {
     _digest: PhantomData<D>,
 }
 
+pub(crate) enum BaseCommitmentResult<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+impl<T, E> BaseCommitmentResult<T, E> {
+    fn from_result(result: Result<T, E>) -> Self {
+        match result {
+            Ok(value) => Self::Ok(value),
+            Err(error) => Self::Err(error),
+        }
+    }
+
+    fn into_result(self) -> Result<T, E> {
+        match self {
+            Self::Ok(value) => Ok(value),
+            Self::Err(error) => Err(error),
+        }
+    }
+}
+
+pub(crate) trait BaseCommitmentEffect<KA, KB, KT, MA, MB, MT, OA, OB, OT, E> {
+    fn inner_product(&self, left: &[MA], right: &[MB]) -> BaseCommitmentResult<MT, E>;
+    fn verify_left(
+        &self,
+        keys: &[KA],
+        messages: &[MA],
+        commitment: &OA,
+    ) -> BaseCommitmentResult<bool, E>;
+    fn verify_right(
+        &self,
+        keys: &[KB],
+        messages: &[MB],
+        commitment: &OB,
+    ) -> BaseCommitmentResult<bool, E>;
+    fn verify_target(
+        &self,
+        keys: &[KT],
+        messages: &[MT],
+        commitment: &OT,
+    ) -> BaseCommitmentResult<bool, E>;
+}
+
+struct ArkworksBaseCommitmentEffect<IP, LMC, RMC, IPC>(PhantomData<fn() -> (IP, LMC, RMC, IPC)>);
+
+impl<IP, LMC, RMC, IPC> Default for ArkworksBaseCommitmentEffect<IP, LMC, RMC, IPC> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<IP, LMC, RMC, IPC>
+    BaseCommitmentEffect<
+        LMC::Key,
+        RMC::Key,
+        IPC::Key,
+        LMC::Message,
+        RMC::Message,
+        IPC::Message,
+        LMC::Output,
+        RMC::Output,
+        IPC::Output,
+        Error,
+    > for ArkworksBaseCommitmentEffect<IP, LMC, RMC, IPC>
+where
+    IP: InnerProduct<
+        LeftMessage = LMC::Message,
+        RightMessage = RMC::Message,
+        Output = IPC::Message,
+    >,
+    LMC: DoublyHomomorphicCommitment,
+    RMC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
+    IPC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
+{
+    fn inner_product(
+        &self,
+        left: &[LMC::Message],
+        right: &[RMC::Message],
+    ) -> BaseCommitmentResult<IPC::Message, Error> {
+        BaseCommitmentResult::from_result(IP::inner_product(left, right))
+    }
+
+    fn verify_left(
+        &self,
+        keys: &[LMC::Key],
+        messages: &[LMC::Message],
+        commitment: &LMC::Output,
+    ) -> BaseCommitmentResult<bool, Error> {
+        BaseCommitmentResult::from_result(LMC::verify(keys, messages, commitment))
+    }
+
+    fn verify_right(
+        &self,
+        keys: &[RMC::Key],
+        messages: &[RMC::Message],
+        commitment: &RMC::Output,
+    ) -> BaseCommitmentResult<bool, Error> {
+        BaseCommitmentResult::from_result(RMC::verify(keys, messages, commitment))
+    }
+
+    fn verify_target(
+        &self,
+        keys: &[IPC::Key],
+        messages: &[IPC::Message],
+        commitment: &IPC::Output,
+    ) -> BaseCommitmentResult<bool, Error> {
+        BaseCommitmentResult::from_result(IPC::verify(keys, messages, commitment))
+    }
+}
+
+pub(crate) struct BaseCommitmentCoreInput<KA, KB, KT, MA, MB, OA, OB, OT> {
+    ck_a: KA,
+    ck_b: KB,
+    ck_t: Vec<KT>,
+    a: MA,
+    b: MB,
+    com_a: OA,
+    com_b: OB,
+    com_t: OT,
+}
+
+pub(crate) fn verify_base_commitment_core<KA, KB, KT, MA, MB, MT, OA, OB, OT, E, FX>(
+    input: BaseCommitmentCoreInput<KA, KB, KT, MA, MB, OA, OB, OT>,
+    effect: &FX,
+) -> BaseCommitmentResult<bool, E>
+where
+    FX: BaseCommitmentEffect<KA, KB, KT, MA, MB, MT, OA, OB, OT, E>,
+{
+    let a_base = vec![input.a];
+    let b_base = vec![input.b];
+    let t = match effect.inner_product(&a_base, &b_base) {
+        BaseCommitmentResult::Ok(value) => value,
+        BaseCommitmentResult::Err(error) => return BaseCommitmentResult::Err(error),
+    };
+    let mut t_base = Vec::with_capacity(1);
+    t_base.push(t);
+    match effect.verify_left(&[input.ck_a], &a_base, &input.com_a) {
+        BaseCommitmentResult::Err(error) => BaseCommitmentResult::Err(error),
+        BaseCommitmentResult::Ok(false) => BaseCommitmentResult::Ok(false),
+        BaseCommitmentResult::Ok(true) => {
+            match effect.verify_right(&[input.ck_b], &b_base, &input.com_b) {
+                BaseCommitmentResult::Err(error) => BaseCommitmentResult::Err(error),
+                BaseCommitmentResult::Ok(false) => BaseCommitmentResult::Ok(false),
+                BaseCommitmentResult::Ok(true) => {
+                    effect.verify_target(&input.ck_t, &t_base, &input.com_t)
+                }
+            }
+        }
+    }
+}
+
 // Warmed strict `1k` builder sweeps showed `64` was the only non-regressive
 // rescale crossover among `{64, 128, 256, 512}` on the local machine.
 const GIPA_RESCALE_PARALLEL_THRESHOLD: usize = 64;
@@ -818,13 +969,21 @@ where
     ) -> Result<bool, Error> {
         let (com_a, com_b, com_t) = base_com;
         let (ck_a_base, ck_b_base, ck_t) = base_ck;
-        let a_base = vec![proof.r_base.0.clone()];
-        let b_base = vec![proof.r_base.1.clone()];
-        let t_base = vec![IP::inner_product(&a_base, &b_base)?];
-
-        Ok(LMC::verify(&vec![ck_a_base.clone()], &a_base, &com_a)?
-            && RMC::verify(&vec![ck_b_base.clone()], &b_base, &com_b)?
-            && IPC::verify(&ck_t, &t_base, &com_t)?)
+        let input = BaseCommitmentCoreInput {
+            ck_a: ck_a_base.clone(),
+            ck_b: ck_b_base.clone(),
+            ck_t: ck_t.clone(),
+            a: proof.r_base.0.clone(),
+            b: proof.r_base.1.clone(),
+            com_a,
+            com_b,
+            com_t,
+        };
+        verify_base_commitment_core(
+            input,
+            &ArkworksBaseCommitmentEffect::<IP, LMC, RMC, IPC>::default(),
+        )
+        .into_result()
     }
 }
 
@@ -863,6 +1022,7 @@ mod tests {
     use ark_ff::UniformRand;
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use blake2::Blake2b;
+    use std::cell::RefCell;
 
     use ark_dh_commitments::{
         afgho16::{AFGHOCommitmentG1, AFGHOCommitmentG2},
@@ -982,6 +1142,34 @@ mod tests {
         )
         .unwrap();
 
+        let (base_com, transcript) = ScalarGIPA::verify_recursive_challenge_transcript(
+            &challenge_context,
+            (&com_a, &com_b, &com_t),
+            &proof,
+        )
+        .unwrap();
+        let (ck_a_base, ck_b_base) =
+            ScalarGIPA::_compute_final_commitment_keys((&ck_a, &ck_b, &ck_t), &transcript).unwrap();
+        let delegated = ScalarGIPA::_verify_base_commitment(
+            (&ck_a_base, &ck_b_base, &vec![ck_t.clone()]),
+            base_com.clone(),
+            &proof,
+        );
+        let core = verify_base_commitment_core(
+            BaseCommitmentCoreInput {
+                ck_a: ck_a_base,
+                ck_b: ck_b_base,
+                ck_t: vec![ck_t.clone()],
+                a: proof.r_base.0.clone(),
+                b: proof.r_base.1.clone(),
+                com_a: base_com.0,
+                com_b: base_com.1,
+                com_t: base_com.2,
+            },
+            &ArkworksBaseCommitmentEffect::<IP, SC2, SC2, IPC>::default(),
+        );
+        assert_eq!(delegated.unwrap(), core.into_result().unwrap());
+
         assert!(ScalarGIPA::verify(
             &challenge_context,
             (&ck_a, &ck_b, &ck_t),
@@ -989,6 +1177,98 @@ mod tests {
             &proof,
         )
         .unwrap());
+    }
+
+    struct ScriptedBaseCommitmentEffect {
+        fail_at: Option<u8>,
+        false_at: Option<u8>,
+        calls: RefCell<Vec<u8>>,
+    }
+
+    impl ScriptedBaseCommitmentEffect {
+        fn step<T>(&self, stage: u8, value: T) -> Result<T, u8> {
+            self.calls.borrow_mut().push(stage);
+            if self.fail_at == Some(stage) {
+                Err(stage)
+            } else {
+                Ok(value)
+            }
+        }
+    }
+
+    impl BaseCommitmentEffect<u8, u8, u8, u8, u8, u8, u8, u8, u8, u8> for ScriptedBaseCommitmentEffect {
+        fn inner_product(&self, _left: &[u8], _right: &[u8]) -> BaseCommitmentResult<u8, u8> {
+            BaseCommitmentResult::from_result(self.step(0, 9))
+        }
+
+        fn verify_left(
+            &self,
+            _keys: &[u8],
+            _messages: &[u8],
+            _commitment: &u8,
+        ) -> BaseCommitmentResult<bool, u8> {
+            BaseCommitmentResult::from_result(self.step(1, self.false_at != Some(1)))
+        }
+
+        fn verify_right(
+            &self,
+            _keys: &[u8],
+            _messages: &[u8],
+            _commitment: &u8,
+        ) -> BaseCommitmentResult<bool, u8> {
+            BaseCommitmentResult::from_result(self.step(2, self.false_at != Some(2)))
+        }
+
+        fn verify_target(
+            &self,
+            _keys: &[u8],
+            _messages: &[u8],
+            _commitment: &u8,
+        ) -> BaseCommitmentResult<bool, u8> {
+            BaseCommitmentResult::from_result(self.step(3, self.false_at != Some(3)))
+        }
+    }
+
+    fn scripted_base_input() -> BaseCommitmentCoreInput<u8, u8, u8, u8, u8, u8, u8, u8> {
+        BaseCommitmentCoreInput {
+            ck_a: 1,
+            ck_b: 2,
+            ck_t: vec![3],
+            a: 4,
+            b: 5,
+            com_a: 6,
+            com_b: 7,
+            com_t: 8,
+        }
+    }
+
+    #[test]
+    fn base_commitment_core_preserves_failures_and_short_circuit_order() {
+        for stage in 0..4 {
+            let effect = ScriptedBaseCommitmentEffect {
+                fail_at: Some(stage),
+                false_at: None,
+                calls: RefCell::new(Vec::new()),
+            };
+            assert_eq!(
+                verify_base_commitment_core(scripted_base_input(), &effect).into_result(),
+                Err(stage)
+            );
+            assert_eq!(*effect.calls.borrow(), (0..=stage).collect::<Vec<_>>());
+        }
+
+        for stage in 1..4 {
+            let effect = ScriptedBaseCommitmentEffect {
+                fail_at: None,
+                false_at: Some(stage),
+                calls: RefCell::new(Vec::new()),
+            };
+            assert_eq!(
+                verify_base_commitment_core(scripted_base_input(), &effect).into_result(),
+                Ok(false)
+            );
+            assert_eq!(*effect.calls.borrow(), (0..=stage).collect::<Vec<_>>());
+        }
     }
 
     #[test]
