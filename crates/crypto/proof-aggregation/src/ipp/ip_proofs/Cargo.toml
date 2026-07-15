@@ -32,6 +32,7 @@ ark-dh-commitments = { path = "../dh_commitments" }
 shieldd-sdk-proof-aggregation-trace-schema = { path = "../../../../proof-aggregation-trace-schema" }
 
 [dev-dependencies]
+ark-bls12-377 = { workspace = true, features = [ "curve" ] }
 ark-bls12-381 = { version = "0.5", features = [ "curve" ] }
 ark-ed-on-bls12-381 = "0.5"
 

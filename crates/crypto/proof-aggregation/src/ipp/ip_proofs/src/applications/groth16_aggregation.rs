@@ -1619,6 +1619,71 @@ fn fold_public_inputs<P: Pairing>(
     (r_sum, g_ic)
 }
 
+#[cfg(not(feature = "bench-baseline"))]
+trait PreparedPairingEffect<G1, G2Prepared, GT> {
+    fn multi_pairing_prepared(&self, left: &[G1], right: &[G2Prepared]) -> Result<GT, Error>;
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+#[derive(Clone, Copy)]
+struct ArkworksPreparedPairingEffect<P: Pairing>(PhantomData<P>);
+
+#[cfg(not(feature = "bench-baseline"))]
+impl<P: Pairing> Default for ArkworksPreparedPairingEffect<P> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+impl<P: Pairing> PreparedPairingEffect<P::G1, P::G2Prepared, PairingOutput<P>>
+    for ArkworksPreparedPairingEffect<P>
+{
+    fn multi_pairing_prepared(
+        &self,
+        left: &[P::G1],
+        right: &[P::G2Prepared],
+    ) -> Result<PairingOutput<P>, Error> {
+        let left_affine = P::G1::normalize_batch(left);
+        cfg_multi_pairing_g1_affine_g2_prepared::<P>(&left_affine, right)
+            .ok_or_else(|| Box::new(std::io::Error::other("prepared pairing unavailable")) as Error)
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+#[derive(Clone)]
+struct PreparedPpeVerifierCoreInput<F, G1, G2Prepared, GT> {
+    alpha_beta: GT,
+    r_sum: F,
+    g_ic: G1,
+    agg_c: G1,
+    gamma_g2_neg_pc: G2Prepared,
+    delta_g2_neg_pc: G2Prepared,
+    ip_ab: GT,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_ppe_core<F, G1, G2Prepared, GT, E>(
+    input: PreparedPpeVerifierCoreInput<F, G1, G2Prepared, GT>,
+    pairing: &E,
+) -> bool
+where
+    F: Clone,
+    G1: Clone + std::ops::Neg<Output = G1>,
+    G2Prepared: Clone,
+    GT: Clone + std::ops::Mul<F, Output = GT> + std::ops::Add<Output = GT> + PartialEq,
+    E: PreparedPairingEffect<G1, G2Prepared, GT>,
+{
+    let alpha_beta_rsum = input.alpha_beta * input.r_sum;
+    let ip_ab = input.ip_ab;
+    let left = [-input.g_ic, -input.agg_c];
+    let right = [input.gamma_g2_neg_pc, input.delta_g2_neg_pc];
+    pairing
+        .multi_pairing_prepared(&left, &right)
+        .map(|folded| alpha_beta_rsum + folded == ip_ab)
+        .unwrap_or(false)
+}
+
 /// PPE check `e(α·r_sum, β)·e(g_ic, γ)·e(agg_c, δ) == ip_ab`, computed by reusing
 /// the precomputes already carried in `PreparedVerifyingKey` rather than pairing
 /// the raw `vk` G2 points afresh:
@@ -1636,14 +1701,16 @@ fn verify_ppe<P: Pairing>(
     r_sum: &P::ScalarField,
     g_ic: P::G1,
 ) -> bool {
-    let alpha_beta_rsum = PairingOutput::<P>(pvk.alpha_g1_beta_g2) * *r_sum;
-    let g1_affine = P::G1::normalize_batch(&[-g_ic, -proof.agg_c]);
-    cfg_multi_pairing_g1_affine_g2_prepared::<P>(
-        &g1_affine,
-        &[pvk.gamma_g2_neg_pc.clone(), pvk.delta_g2_neg_pc.clone()],
-    )
-    .map(|folded| alpha_beta_rsum + folded == proof.ip_ab)
-    .unwrap_or(false)
+    let input = PreparedPpeVerifierCoreInput {
+        alpha_beta: PairingOutput::<P>(pvk.alpha_g1_beta_g2),
+        r_sum: r_sum.clone(),
+        g_ic,
+        agg_c: proof.agg_c.clone(),
+        gamma_g2_neg_pc: pvk.gamma_g2_neg_pc.clone(),
+        delta_g2_neg_pc: pvk.delta_g2_neg_pc.clone(),
+        ip_ab: proof.ip_ab.clone(),
+    };
+    verify_ppe_core(input, &ArkworksPreparedPairingEffect::<P>::default())
 }
 
 /// Pre-optimization PPE form: three pairings over the raw `vk` G2 points. Retained
@@ -1671,12 +1738,96 @@ fn verify_ppe_baseline<P: Pairing>(
 
 #[cfg(test)]
 mod tests {
-    use super::{build_shifted_ck_2, inverse_powers};
+    use super::*;
+    use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::pairing::Pairing;
-    use ark_ff::{Field, UniformRand};
+    use ark_ec::{pairing::Pairing, PrimeGroup};
+    use ark_ff::{Field, UniformRand, Zero};
+    use ark_groth16::{prepare_verifying_key, VerifyingKey};
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use ark_std::One;
+    use blake2::Blake2b;
+
+    #[cfg(not(feature = "bench-baseline"))]
+    struct FailingPreparedPairingEffect;
+
+    #[cfg(not(feature = "bench-baseline"))]
+    impl<G1, G2Prepared, GT> PreparedPairingEffect<G1, G2Prepared, GT>
+        for FailingPreparedPairingEffect
+    {
+        fn multi_pairing_prepared(
+            &self,
+            _left: &[G1],
+            _right: &[G2Prepared],
+        ) -> Result<GT, crate::Error> {
+            Err(Box::new(std::io::Error::other(
+                "test prepared pairing failure",
+            )))
+        }
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    fn assert_prepared_ppe_adapter_parity<P: Pairing>() {
+        let g1 = P::G1::generator();
+        let g2 = P::G2::generator();
+        let vk = VerifyingKey {
+            alpha_g1: g1.into(),
+            beta_g2: g2.into(),
+            gamma_g2: g2.into(),
+            delta_g2: g2.into(),
+            gamma_abc_g1: vec![g1.into()],
+        };
+        let pvk = prepare_verifying_key(&vk);
+        let tipp_mipp_proof = TippMippProof::<P, Blake2b> {
+            gipa_proof: TippMippGipaProof::<P, Blake2b> {
+                r_commitment_steps: Vec::new(),
+                _digest: PhantomData,
+            },
+            final_ck: (g2, g1),
+            final_ck_proofs: (g2, g1),
+            final_messages: (g1, g2, g1),
+            _digest: PhantomData,
+        };
+        let proof = AggregateProof {
+            com_a: PairingOutput::<P>::zero(),
+            com_b: PairingOutput::<P>::zero(),
+            com_c: PairingOutput::<P>::zero(),
+            ip_ab: PairingOutput::<P>::zero(),
+            agg_c: g1,
+            tipp_mipp_proof,
+        };
+        let r_sum = P::ScalarField::from(3u64);
+        let g_ic = g1;
+        let delegated = verify_ppe(&pvk, &proof, &r_sum, g_ic);
+        let input = PreparedPpeVerifierCoreInput {
+            alpha_beta: PairingOutput::<P>(pvk.alpha_g1_beta_g2),
+            r_sum: r_sum.clone(),
+            g_ic,
+            agg_c: proof.agg_c,
+            gamma_g2_neg_pc: pvk.gamma_g2_neg_pc.clone(),
+            delta_g2_neg_pc: pvk.delta_g2_neg_pc.clone(),
+            ip_ab: proof.ip_ab,
+        };
+        let core = verify_ppe_core(
+            input.clone(),
+            &ArkworksPreparedPairingEffect::<P>::default(),
+        );
+        assert_eq!(delegated, core);
+        assert!(!delegated);
+        assert!(!verify_ppe_core(input, &FailingPreparedPairingEffect));
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn prepared_ppe_adapter_parity_bls12_381_including_pairing_failure() {
+        assert_prepared_ppe_adapter_parity::<Bls12_381>();
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn prepared_ppe_adapter_parity_bls12_377_including_pairing_failure() {
+        assert_prepared_ppe_adapter_parity::<Bls12_377>();
+    }
 
     #[test]
     fn inverse_powers_match_structured_inverses() {
