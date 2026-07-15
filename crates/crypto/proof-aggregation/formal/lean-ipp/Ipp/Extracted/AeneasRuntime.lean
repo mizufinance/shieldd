@@ -5,6 +5,7 @@ universe u v
 
 inductive Error where
   | panic
+  | integerOverflow
   | arrayOutOfBounds
   | maximumSizeExceeded
 
@@ -177,6 +178,9 @@ namespace Usize
 
 def ofNat (value : Nat) : Usize := ⟨value⟩
 
+/-- Largest value representable by Rust's target-sized unsigned integer. -/
+def max : Nat := 2 ^ System.Platform.numBits - 1
+
 end Usize
 
 instance : LT Usize where
@@ -285,3 +289,25 @@ end core.iter.range
 
 end Std
 end Aeneas
+
+namespace ark_ip_proofs.core.num.Usize
+
+open Aeneas Aeneas.Std
+
+/-- Rust `usize::pow`: fail on machine-integer overflow. -/
+def pow (base exponent : Usize) : Result Usize :=
+  if base.val ^ exponent.val ≤ Usize.max then
+    .ok ⟨base.val ^ exponent.val⟩
+  else
+    .fail .integerOverflow
+
+theorem pow_eq_ok (base exponent : Usize)
+    (h : base.val ^ exponent.val ≤ Usize.max) :
+    pow base exponent = .ok ⟨base.val ^ exponent.val⟩ := by
+  simp [pow, h]
+
+theorem pow_two_eq_ok (i : Nat) (h : 2 ^ i ≤ Usize.max) :
+    pow (Usize.ofNat 2) ⟨i⟩ = .ok ⟨2 ^ i⟩ :=
+  pow_eq_ok (Usize.ofNat 2) ⟨i⟩ h
+
+end ark_ip_proofs.core.num.Usize

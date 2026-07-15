@@ -97,8 +97,6 @@ def index {T : Type} (_inst : Type)
 end Vec
 end alloc.vec
 
-axiom core.num.Usize.pow : Std.Usize → Std.U32 → Result Std.Usize
-
 def tipa.polynomial_coefficients_from_transcript_loop0_loop0.body
   {F : Type} (corecloneCloneInst : core.clone.Clone F) (coreopsarithMulInst :
   core.ops.arith.Mul F F F) (factor : F)
