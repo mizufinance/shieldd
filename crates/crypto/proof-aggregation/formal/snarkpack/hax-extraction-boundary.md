@@ -38,21 +38,24 @@ must have a shim row with a semantic postcondition and removal path.
 
 ## S2-19 explicit verifier-core boundary
 
-S2-19 keeps product-form evaluation in the existing public KZG wrappers; S2-20
-will move that evaluation into the opening cores. The records below are the
-single proof-relevant cores used by the wrappers. Their effect interfaces have
-only ordinary type parameters: `GT` is explicit and no pairing associated type
-is visible in an extracted core.
+S2-19 established the typed equation cores and kept product-form evaluation in
+the public KZG wrappers as a deliberately bounded intermediate. S2-20 moves
+that evaluation into the opening cores. The records below are the single
+proof-relevant cores used by the wrappers. Their effect interfaces have only
+ordinary type parameters: `GT` is explicit and no pairing associated type is
+visible in an extracted core.
 
 | target | field projections and operation order | failure cases and feature branches | effect postcondition | status |
 | --- | --- | --- | --- | --- |
-| `ark_ip_proofs::tipa::PairingEffect` | `multi_pairing(left, right)` consumes equal-length projective G1/G2 slices and returns explicit `Result<GT, Error>` | an effect error is mapped to verifier `false`; no feature branch | a successful result is the multi-pairing output; the core alone assigns no cryptographic meaning to `GT` | proved-model |
-| `ark_ip_proofs::tipa::KzgG2VerifierCoreInput` | carries `g`, `g_beta`, `h`, `ck_final`, `ck_opening`, `eval`, `z`, and a `GT` marker; core projects `right_0 = ck_final - h * eval`, `left_1 = -(g_beta - g * z)`, then pairs `([g, left_1], [right_0, ck_opening])` | owned record; no branches or panics | record construction has no effect; all fields are consumed once by the core in the listed order | proved-model |
-| `ark_ip_proofs::tipa::KzgG1VerifierCoreInput` | carries `g`, `h_alpha`, `h`, `ck_final`, `ck_opening`, `eval`, `z`, and a `GT` marker; core projects `left_0 = ck_final - g * eval`, `right_1 = h_alpha - h * z`, then pairs `([left_0, -ck_opening], [h, right_1])` | owned record; no branches or panics | record construction has no effect; operand signs and pair order are fixed by the projections | proved-model |
+| `ark_ip_proofs::tipa::PairingEffect` | `multi_pairing(left, right)` consumes equal-length projective G1/G2 slices and returns `Option<GT>` | unavailable pairing is mapped to verifier `false`; no feature branch | `Some` is the multi-pairing output; `None` is failure; the core assigns no cryptographic meaning to `GT` | proved-model |
+| `ark_ip_proofs::tipa::KzgG2VerifierCoreInput` | carries `g`, `g_beta`, `h`, `ck_final`, `ck_opening`, `eval`, `z`, and a plain `GT` marker (`PhantomData<GT>` for Aeneas compatibility); core projects `right_0 = ck_final - h * eval`, `left_1 = -(g_beta - g * z)`, then pairs `([g, left_1], [right_0, ck_opening])` | owned record; no branches or panics | record construction has no effect; all fields are consumed once by the core in the listed order | proved-model |
+| `ark_ip_proofs::tipa::KzgG1VerifierCoreInput` | carries `g`, `h_alpha`, `h`, `ck_final`, `ck_opening`, `eval`, `z`, and a plain `GT` marker (`PhantomData<GT>` for Aeneas compatibility); core projects `left_0 = ck_final - g * eval`, `right_1 = h_alpha - h * z`, then pairs `([left_0, -ck_opening], [h, right_1])` | owned record; no branches or panics | record construction has no effect; operand signs and pair order are fixed by the projections | proved-model |
 | `ark_ip_proofs::tipa::verify_commitment_key_g2_kzg_equation_core` | consumes `KzgG2VerifierCoreInput`; maps successful `GT::is_zero()` to `true` and preserves the two-pairing operand order | `Result::Err` and unavailable pairing both return `false`; no feature branch | one pairing effect call; no serialization or trace effect | proved-model |
 | `ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_equation_core` | consumes `KzgG1VerifierCoreInput`; maps successful `GT::is_zero()` to `true` and preserves the two-pairing operand order | `Result::Err` and unavailable pairing both return `false`; no feature branch | one pairing effect call; no serialization or trace effect | proved-model |
-| `ark_ip_proofs::tipa::verify_commitment_key_g2_kzg_opening` | computes the unchanged product-form `eval`, projects `VerifierSRS.{g,g_beta,h}`, clones the supplied final/opening G2 points, and supplies `kzg_challenge` as `z`; delegates once to the G2 core with `ArkworksPairingEffect<P>` | existing caller `parallel`/sequential branches remain unchanged; pairing failure remains `Ok(false)` rather than an error | `cfg_multi_pairing::<P>` output is passed as `GT`; `None` becomes a core `false`; outer `Result<bool, Error>` shape is unchanged | proved-model |
-| `ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_opening` | computes the unchanged product-form `eval`, projects `VerifierSRS.{g,h_alpha,h}`, clones the supplied final/opening G1 points, and supplies `kzg_challenge` as `z`; delegates once to the G1 core with `ArkworksPairingEffect<P>` | existing caller `parallel`/sequential branches remain unchanged; pairing failure remains `Ok(false)` rather than an error | `cfg_multi_pairing::<P>` output is passed as `GT`; `None` becomes a core `false`; outer `Result<bool, Error>` shape is unchanged | proved-model |
+| `ark_ip_proofs::tipa::verify_commitment_key_g2_kzg_opening_core` | computes product-form `eval`, constructs `KzgG2VerifierCoreInput` from `g`, `g_beta`, `h`, final/opening G2 points, `eval`, and `z`, then calls the existing G2 equation core once | finite transcript and total field/group operations; unavailable pairing remains `false`; no feature branch | one product evaluation followed by one `PairingEffect::multi_pairing` call through the equation core; no serialization or trace effect | proved-model |
+| `ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_opening_core` | computes product-form `eval`, constructs `KzgG1VerifierCoreInput` from `g`, `h_alpha`, `h`, final/opening G1 points, `eval`, and `z`, then calls the existing G1 equation core once | finite transcript and total field/group operations; unavailable pairing remains `false`; no feature branch | one product evaluation followed by one `PairingEffect::multi_pairing` call through the equation core; no serialization or trace effect | proved-model |
+| `ark_ip_proofs::tipa::verify_commitment_key_g2_kzg_opening` | projects `VerifierSRS.{g,g_beta,h}` and clones the supplied final/opening G2 points; passes transcript, `r_shift`, and `kzg_challenge` to the opening core once | existing caller `parallel`/sequential branches remain unchanged; pairing failure remains `Ok(false)` rather than an error | installs `ArkworksPairingEffect<P>` at the concrete boundary; outer `Result<bool, Error>` shape is unchanged | proved-model |
+| `ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_opening` | projects `VerifierSRS.{g,h_alpha,h}` and clones the supplied final/opening G1 points; passes transcript, `r_shift`, and `kzg_challenge` to the opening core once | existing caller `parallel`/sequential branches remain unchanged; pairing failure remains `Ok(false)` rather than an error | installs `ArkworksPairingEffect<P>` at the concrete boundary; outer `Result<bool, Error>` shape is unchanged | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::PreparedPairingEffect` | `multi_pairing_prepared(left, right)` consumes explicit G1 and prepared-G2 slices and returns explicit `Result<GT, Error>` | effect error maps to PPE `false`; optimized interface exists only under `not(feature = "bench-baseline")` | adapter may normalize the supplied G1 slice before the prepared pairing; it does not reorder or alter the two operands | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::PreparedPpeVerifierCoreInput` | carries `alpha_beta`, `r_sum`, `g_ic`, `agg_c`, `gamma_g2_neg_pc`, `delta_g2_neg_pc`, and `ip_ab`; core computes `alpha_beta * r_sum`, forms exact `[-g_ic, -agg_c]`, and pairs against `[gamma_g2_neg_pc, delta_g2_neg_pc]` | owned record; optimized interface exists only under `not(feature = "bench-baseline")` | record construction has no effect; prepared-point order is gamma then delta | proved-model |
 | `ark_ip_proofs::applications::groth16_aggregation::verify_ppe_core` | consumes the PPE record, performs the explicit GT scalar multiplication and addition, and compares the sum with `ip_ab` | prepared-pairing `Err`/unavailable result returns `false`; no trace or serialization branch | exactly one prepared-pairing effect call with the two negated G1 operands; comparison result is the sole Boolean output | proved-model |
@@ -63,6 +66,10 @@ pairing) and BLS12-377. Each checks delegator/core equality for both KZG
 directions or the optimized PPE path, and injects an effect error to pin
 failure-as-`false`; no test changes public proof serialization or challenge
 trace output.
+
+S2-20's closed extraction starts at the two `*_kzg_opening_core` functions;
+the public `Pairing` wrappers remain concrete one-call delegators and are not
+part of the extracted graph.
 
 ## S2 Tier 1 serial additions
 

@@ -1134,7 +1134,7 @@ pub fn prove_commitment_key_kzg_opening_with_affine_profiled<G: CurveGroup>(
 }
 
 trait PairingEffect<G1, G2, GT> {
-    fn multi_pairing(&self, left: &[G1], right: &[G2]) -> Result<GT, Error>;
+    fn multi_pairing(&self, left: &[G1], right: &[G2]) -> Option<GT>;
 }
 
 #[derive(Clone, Copy)]
@@ -1153,9 +1153,8 @@ impl<P: Pairing> PairingEffect<P::G1, P::G2, ark_ec::pairing::PairingOutput<P>>
         &self,
         left: &[P::G1],
         right: &[P::G2],
-    ) -> Result<ark_ec::pairing::PairingOutput<P>, Error> {
+    ) -> Option<ark_ec::pairing::PairingOutput<P>> {
         cfg_multi_pairing::<P>(left, right)
-            .ok_or_else(|| Box::new(std::io::Error::other("pairing unavailable")) as Error)
     }
 }
 
@@ -1168,7 +1167,7 @@ struct KzgG2VerifierCoreInput<F, G1, G2, GT> {
     ck_opening: G2,
     eval: F,
     z: F,
-    _pairing_output: PhantomData<fn() -> GT>,
+    _pairing_output: PhantomData<GT>,
 }
 
 #[derive(Clone)]
@@ -1180,7 +1179,7 @@ struct KzgG1VerifierCoreInput<F, G1, G2, GT> {
     ck_opening: G1,
     eval: F,
     z: F,
-    _pairing_output: PhantomData<fn() -> GT>,
+    _pairing_output: PhantomData<GT>,
 }
 
 fn verify_commitment_key_g2_kzg_equation_core<F, G1, G2, GT, E>(
@@ -1199,10 +1198,10 @@ where
 {
     let right_0 = input.ck_final - input.h * input.eval.clone();
     let left_1 = -(input.g_beta - input.g.clone() * input.z.clone());
-    pairing
-        .multi_pairing(&[input.g, left_1], &[right_0, input.ck_opening])
-        .map(|output| output.is_zero())
-        .unwrap_or(false)
+    match pairing.multi_pairing(&[input.g, left_1], &[right_0, input.ck_opening]) {
+        Some(output) => output.is_zero(),
+        None => false,
+    }
 }
 
 fn verify_commitment_key_g1_kzg_equation_core<F, G1, G2, GT, E>(
@@ -1221,10 +1220,84 @@ where
 {
     let left_0 = input.ck_final - input.g * input.eval.clone();
     let right_1 = input.h_alpha - input.h.clone() * input.z.clone();
-    pairing
-        .multi_pairing(&[left_0, -input.ck_opening], &[input.h, right_1])
-        .map(|output| output.is_zero())
-        .unwrap_or(false)
+    match pairing.multi_pairing(&[left_0, -input.ck_opening], &[input.h, right_1]) {
+        Some(output) => output.is_zero(),
+        None => false,
+    }
+}
+
+fn verify_commitment_key_g2_kzg_opening_core<F, G1, G2, GT, E>(
+    g: G1,
+    g_beta: G1,
+    h: G2,
+    ck_final: G2,
+    ck_opening: G2,
+    transcript: &Vec<F>,
+    r_shift: &F,
+    z: &F,
+    pairing: &E,
+) -> bool
+where
+    F: Clone + One + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
+    G1: Clone
+        + std::ops::Mul<F, Output = G1>
+        + std::ops::Sub<Output = G1>
+        + std::ops::Neg<Output = G1>,
+    G2: Clone + std::ops::Mul<F, Output = G2> + std::ops::Sub<Output = G2>,
+    GT: Zero,
+    E: PairingEffect<G1, G2, GT>,
+{
+    let eval = polynomial_evaluation_product_form_from_transcript(transcript, z, r_shift);
+    verify_commitment_key_g2_kzg_equation_core(
+        KzgG2VerifierCoreInput {
+            g,
+            g_beta,
+            h,
+            ck_final,
+            ck_opening,
+            eval,
+            z: z.clone(),
+            _pairing_output: PhantomData,
+        },
+        pairing,
+    )
+}
+
+fn verify_commitment_key_g1_kzg_opening_core<F, G1, G2, GT, E>(
+    g: G1,
+    h_alpha: G2,
+    h: G2,
+    ck_final: G1,
+    ck_opening: G1,
+    transcript: &Vec<F>,
+    r_shift: &F,
+    z: &F,
+    pairing: &E,
+) -> bool
+where
+    F: Clone + One + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
+    G1: Clone
+        + std::ops::Mul<F, Output = G1>
+        + std::ops::Sub<Output = G1>
+        + std::ops::Neg<Output = G1>,
+    G2: Clone + std::ops::Mul<F, Output = G2> + std::ops::Sub<Output = G2>,
+    GT: Zero,
+    E: PairingEffect<G1, G2, GT>,
+{
+    let eval = polynomial_evaluation_product_form_from_transcript(transcript, z, r_shift);
+    verify_commitment_key_g1_kzg_equation_core(
+        KzgG1VerifierCoreInput {
+            g,
+            h_alpha,
+            h,
+            ck_final,
+            ck_opening,
+            eval,
+            z: z.clone(),
+            _pairing_output: PhantomData,
+        },
+        pairing,
+    )
 }
 
 pub fn verify_commitment_key_g2_kzg_opening<P: Pairing>(
@@ -1235,20 +1308,15 @@ pub fn verify_commitment_key_g2_kzg_opening<P: Pairing>(
     r_shift: &P::ScalarField,
     kzg_challenge: &P::ScalarField,
 ) -> Result<bool, Error> {
-    let ck_polynomial_c_eval =
-        polynomial_evaluation_product_form_from_transcript(transcript, kzg_challenge, r_shift);
-    let input = KzgG2VerifierCoreInput {
-        g: v_srs.g.clone(),
-        g_beta: v_srs.g_beta.clone(),
-        h: v_srs.h.clone(),
-        ck_final: ck_final.clone(),
-        ck_opening: ck_opening.clone(),
-        eval: ck_polynomial_c_eval,
-        z: kzg_challenge.clone(),
-        _pairing_output: PhantomData,
-    };
-    Ok(verify_commitment_key_g2_kzg_equation_core(
-        input,
+    Ok(verify_commitment_key_g2_kzg_opening_core(
+        v_srs.g.clone(),
+        v_srs.g_beta.clone(),
+        v_srs.h.clone(),
+        ck_final.clone(),
+        ck_opening.clone(),
+        transcript,
+        r_shift,
+        kzg_challenge,
         &ArkworksPairingEffect::<P>::default(),
     ))
 }
@@ -1261,20 +1329,15 @@ pub fn verify_commitment_key_g1_kzg_opening<P: Pairing>(
     r_shift: &P::ScalarField,
     kzg_challenge: &P::ScalarField,
 ) -> Result<bool, Error> {
-    let ck_polynomial_c_eval =
-        polynomial_evaluation_product_form_from_transcript(transcript, kzg_challenge, r_shift);
-    let input = KzgG1VerifierCoreInput {
-        g: v_srs.g.clone(),
-        h_alpha: v_srs.h_alpha.clone(),
-        h: v_srs.h.clone(),
-        ck_final: ck_final.clone(),
-        ck_opening: ck_opening.clone(),
-        eval: ck_polynomial_c_eval,
-        z: kzg_challenge.clone(),
-        _pairing_output: PhantomData,
-    };
-    Ok(verify_commitment_key_g1_kzg_equation_core(
-        input,
+    Ok(verify_commitment_key_g1_kzg_opening_core(
+        v_srs.g.clone(),
+        v_srs.h_alpha.clone(),
+        v_srs.h.clone(),
+        ck_final.clone(),
+        ck_opening.clone(),
+        transcript,
+        r_shift,
+        kzg_challenge,
         &ArkworksPairingEffect::<P>::default(),
     ))
 }
@@ -1300,18 +1363,26 @@ pub fn structured_generators_scalar_power<G: CurveGroup>(
 }
 
 #[cfg(not(hax_compilation))]
-fn polynomial_evaluation_product_form_from_transcript<F: Field>(
+fn polynomial_evaluation_product_form_from_transcript<F>(
     transcript: &Vec<F>,
     z: &F,
     r_shift: &F,
-) -> F {
-    let mut power_2_zr = (z.clone() * z) * r_shift;
+) -> F
+where
+    F: Clone + One + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
+{
+    let mut power_2_zr = (z.clone() * z.clone()) * r_shift.clone();
     let mut product_form = Vec::new();
     for x in transcript.iter() {
-        product_form.push(F::one() + (x.clone() * &power_2_zr));
-        power_2_zr *= power_2_zr;
+        product_form.push(F::one() + (x.clone() * power_2_zr.clone()));
+        power_2_zr = power_2_zr.clone() * power_2_zr;
     }
-    product_form.iter().product()
+
+    let mut product = F::one();
+    for factor in product_form {
+        product = product * factor;
+    }
+    product
 }
 
 #[cfg(hax_compilation)]
@@ -1321,7 +1392,7 @@ fn polynomial_evaluation_product_form_from_transcript<F>(
     r_shift: &F,
 ) -> F
 where
-    F: Clone + One + Zero + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
+    F: Clone + One + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
 {
     let mut power_2_zr = (z.clone() * z.clone()) * r_shift.clone();
     let mut product_form = Vec::new();
@@ -1414,8 +1485,8 @@ mod tests {
     struct FailingPairingEffect;
 
     impl<G1, G2, GT> PairingEffect<G1, G2, GT> for FailingPairingEffect {
-        fn multi_pairing(&self, _left: &[G1], _right: &[G2]) -> Result<GT, crate::Error> {
-            Err(Box::new(std::io::Error::other("test pairing failure")))
+        fn multi_pairing(&self, _left: &[G1], _right: &[G2]) -> Option<GT> {
+            None
         }
     }
 
@@ -1451,14 +1522,39 @@ mod tests {
             &P::ScalarField::from(11u64),
         )
         .unwrap();
-        let core_g2 = verify_commitment_key_g2_kzg_equation_core(
+        let core_g2 = verify_commitment_key_g2_kzg_opening_core(
+            g2_input.g.clone(),
+            g2_input.g_beta.clone(),
+            g2_input.h.clone(),
+            g2_input.ck_final.clone(),
+            g2_input.ck_opening.clone(),
+            &transcript,
+            &r_shift,
+            &challenge,
+            &ArkworksPairingEffect::<P>::default(),
+        );
+        let equation_g2 = verify_commitment_key_g2_kzg_equation_core(
             g2_input.clone(),
             &ArkworksPairingEffect::<P>::default(),
         );
         assert_eq!(delegated_g2, core_g2);
+        assert_eq!(delegated_g2, equation_g2);
         assert!(delegated_g2);
-        assert!(!verify_commitment_key_g2_kzg_equation_core(
-            g2_input,
+        assert!(!verify_commitment_key_g2_kzg_opening_core::<
+            _,
+            _,
+            _,
+            PairingOutput<P>,
+            _,
+        >(
+            g2_input.g,
+            g2_input.g_beta,
+            g2_input.h,
+            g2_input.ck_final,
+            g2_input.ck_opening,
+            &transcript,
+            &r_shift,
+            &challenge,
             &FailingPairingEffect,
         ));
 
@@ -1482,11 +1578,23 @@ mod tests {
             &challenge,
         )
         .unwrap();
-        let core_invalid_g2 = verify_commitment_key_g2_kzg_equation_core(
+        let core_invalid_g2 = verify_commitment_key_g2_kzg_opening_core(
+            invalid_g2_input.g.clone(),
+            invalid_g2_input.g_beta.clone(),
+            invalid_g2_input.h.clone(),
+            invalid_g2_input.ck_final.clone(),
+            invalid_g2_input.ck_opening.clone(),
+            &transcript,
+            &r_shift,
+            &challenge,
+            &ArkworksPairingEffect::<P>::default(),
+        );
+        let equation_invalid_g2 = verify_commitment_key_g2_kzg_equation_core(
             invalid_g2_input,
             &ArkworksPairingEffect::<P>::default(),
         );
         assert_eq!(delegated_invalid_g2, core_invalid_g2);
+        assert_eq!(delegated_invalid_g2, equation_invalid_g2);
         assert!(!delegated_invalid_g2);
 
         let g1_input = KzgG1VerifierCoreInput {
@@ -1508,14 +1616,39 @@ mod tests {
             &challenge,
         )
         .unwrap();
-        let core_g1 = verify_commitment_key_g1_kzg_equation_core(
+        let core_g1 = verify_commitment_key_g1_kzg_opening_core(
+            g1_input.g.clone(),
+            g1_input.h_alpha.clone(),
+            g1_input.h.clone(),
+            g1_input.ck_final.clone(),
+            g1_input.ck_opening.clone(),
+            &transcript,
+            &r_shift,
+            &challenge,
+            &ArkworksPairingEffect::<P>::default(),
+        );
+        let equation_g1 = verify_commitment_key_g1_kzg_equation_core(
             g1_input.clone(),
             &ArkworksPairingEffect::<P>::default(),
         );
         assert_eq!(delegated_g1, core_g1);
+        assert_eq!(delegated_g1, equation_g1);
         assert!(delegated_g1);
-        assert!(!verify_commitment_key_g1_kzg_equation_core(
-            g1_input,
+        assert!(!verify_commitment_key_g1_kzg_opening_core::<
+            _,
+            _,
+            _,
+            PairingOutput<P>,
+            _,
+        >(
+            g1_input.g,
+            g1_input.h_alpha,
+            g1_input.h,
+            g1_input.ck_final,
+            g1_input.ck_opening,
+            &transcript,
+            &r_shift,
+            &challenge,
             &FailingPairingEffect,
         ));
 
@@ -1543,11 +1676,23 @@ mod tests {
             &challenge,
         )
         .unwrap();
-        let core_invalid_g1 = verify_commitment_key_g1_kzg_equation_core(
+        let core_invalid_g1 = verify_commitment_key_g1_kzg_opening_core(
+            invalid_g1_input.g.clone(),
+            invalid_g1_input.h_alpha.clone(),
+            invalid_g1_input.h.clone(),
+            invalid_g1_input.ck_final.clone(),
+            invalid_g1_input.ck_opening.clone(),
+            &transcript,
+            &r_shift,
+            &challenge,
+            &ArkworksPairingEffect::<P>::default(),
+        );
+        let equation_invalid_g1 = verify_commitment_key_g1_kzg_equation_core(
             invalid_g1_input,
             &ArkworksPairingEffect::<P>::default(),
         );
         assert_eq!(delegated_invalid_g1, core_invalid_g1);
+        assert_eq!(delegated_invalid_g1, equation_invalid_g1);
         assert!(!delegated_invalid_g1);
     }
 
