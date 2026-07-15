@@ -405,6 +405,261 @@ theorem extracted_macChainInvariant_step (r a : LimbArray)
     { low := reduction.low.val, carry := reduction.carry.val }
     hproductNat hreductionNat hinvariant
 
+/-- The extracted modulus limbs reconstruct the canonical BLS12-377 base modulus. -/
+theorem modulus_limbsToNat :
+    limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS =
+      Ipp.Bls12377.baseModulus := by
+  decide
+
+/-- The pinned Montgomery inverse negates the modulus low limb modulo one word. -/
+theorem inv_mul_modulus_low_add_one_mod_wordBase :
+    (ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val *
+        limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩ + 1) %
+      wordBase = 0 := by
+  decide
+
+theorem inv_val :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val =
+      9586122913090633727 := by
+  decide
+
+/-- Array indexing at an in-range limb agrees with the proof-layer projection. -/
+theorem array_index_limbWord (value : LimbArray) (i : Fin limbCount) :
+    MacCampaign.Array.index_usize value (Usize.ofNat i.val) =
+      .ok (limbWord value i) := by
+  simp [MacCampaign.Array.index_usize, limbWord, Usize.ofNat,
+    limbCount, value.hlen]
+
+/-- The Montgomery factor chosen from a low word cancels that word modulo `2^64`. -/
+theorem reductionFactor_modEq_zero (accumulator : Nat) :
+    let k :=
+      accumulator * ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val % wordBase
+    Nat.ModEq wordBase
+      (accumulator + k *
+        limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩)
+      0 := by
+  dsimp only
+  have hk : Nat.ModEq wordBase
+      (accumulator * ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val % wordBase)
+      (accumulator * ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val) :=
+    Nat.mod_modEq _ _
+  have hinv : Nat.ModEq wordBase
+      (ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val *
+        limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩ + 1)
+      0 := by
+    exact inv_mul_modulus_low_add_one_mod_wordBase
+  calc
+    accumulator +
+          (accumulator * ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val % wordBase) *
+            limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩
+        ≡ accumulator +
+          (accumulator * ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val) *
+            limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩
+          [MOD wordBase] := (hk.mul_right _).add_left _
+    _ = accumulator *
+          (ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val *
+            limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩ + 1) := by
+          ring
+    _ ≡ accumulator * 0 [MOD wordBase] := hinv.mul_left accumulator
+    _ = 0 := by simp
+
+/-- Limb-zero form of the reduction-factor choice used by `round`. -/
+theorem reductionFactor_choice (r0 x a0 : Nat) :
+    let k := (r0 + x * a0) *
+      ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val % wordBase
+    Nat.ModEq wordBase
+      (r0 + x * a0 + k *
+        limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩)
+      0 := by
+  exact reductionFactor_modEq_zero (r0 + x * a0)
+
+theorem two_modulus_lt_radix :
+    2 * Ipp.Bls12377.baseModulus < wordBase ^ limbCount := by
+  decide
+
+/-- A legal CIOS numerator is strictly below `2q·2^64`. -/
+theorem roundNumerator_lt (rValue aValue b k : Nat)
+    (hr : rValue < 2 * Ipp.Bls12377.baseModulus)
+    (ha : aValue < Ipp.Bls12377.baseModulus)
+    (hb : b < wordBase) (hk : k < wordBase) :
+    rValue + b * aValue + k * Ipp.Bls12377.baseModulus <
+      2 * Ipp.Bls12377.baseModulus * wordBase := by
+  have hr' : rValue + 1 ≤ 2 * Ipp.Bls12377.baseModulus := by omega
+  have ha' : aValue + 1 ≤ Ipp.Bls12377.baseModulus := by omega
+  have hb' : b + 1 ≤ wordBase := by omega
+  have hk' : k + 1 ≤ wordBase := by omega
+  have hba := Nat.mul_le_mul hb' ha'
+  have hkq := Nat.mul_le_mul hk' (Nat.le_refl Ipp.Bls12377.baseModulus)
+  nlinarith
+
+/-- Multiplicative form of the round output bound; no division is used. -/
+theorem roundEquation_bound (rValue aValue b k output : Nat)
+    (hr : rValue < 2 * Ipp.Bls12377.baseModulus)
+    (ha : aValue < Ipp.Bls12377.baseModulus)
+    (hb : b < wordBase) (hk : k < wordBase)
+    (hequation : output * wordBase =
+      rValue + b * aValue + k * Ipp.Bls12377.baseModulus) :
+    output * wordBase <
+      2 * Ipp.Bls12377.baseModulus * wordBase := by
+  rw [hequation]
+  exact roundNumerator_lt rValue aValue b k hr ha hb hk
+
+theorem roundEquation_output_lt (rValue aValue b k output : Nat)
+    (hr : rValue < 2 * Ipp.Bls12377.baseModulus)
+    (ha : aValue < Ipp.Bls12377.baseModulus)
+    (hb : b < wordBase) (hk : k < wordBase)
+    (hequation : output * wordBase =
+      rValue + b * aValue + k * Ipp.Bls12377.baseModulus) :
+    output < 2 * Ipp.Bls12377.baseModulus := by
+  exact (Nat.mul_lt_mul_right wordBase_pos).mp
+    (roundEquation_bound rValue aValue b k output hr ha hb hk hequation)
+
+/-- The full chain equation forces the combined final carry to fit one word. -/
+theorem macChainInvariant_topCarry_lt (r a : LimbArray) (b k : Nat)
+    (state : MacChainState)
+    (hinvariant : macChainInvariant r a b k state)
+    (hcount : state.count = limbCount)
+    (hr : limbsToNat r < 2 * Ipp.Bls12377.baseModulus)
+    (ha : limbsToNat a < Ipp.Bls12377.baseModulus)
+    (hb : b < wordBase) (hk : k < wordBase) :
+    state.productCarry + state.reductionCarry < wordBase := by
+  rcases hinvariant with
+    ⟨_, _, _, _, _, hequation⟩
+  rw [hcount] at hequation
+  change limbsToNat r + b * limbsToNat a +
+      k * limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS = _
+    at hequation
+  rw [modulus_limbsToNat] at hequation
+  have hnumerator := roundNumerator_lt
+    (limbsToNat r) (limbsToNat a) b k hr ha hb hk
+  have hcarryLe :
+      (state.productCarry + state.reductionCarry) *
+          wordBase ^ limbCount ≤
+        limbsToNat r + b * limbsToNat a +
+          k * Ipp.Bls12377.baseModulus := by
+    omega
+  have hcarryMul :
+      (state.productCarry + state.reductionCarry) *
+          wordBase ^ limbCount <
+        wordBase * (wordBase ^ limbCount) := by
+    calc
+      (state.productCarry + state.reductionCarry) * wordBase ^ limbCount
+          ≤ limbsToNat r + b * limbsToNat a +
+              k * Ipp.Bls12377.baseModulus := hcarryLe
+      _ < 2 * Ipp.Bls12377.baseModulus * wordBase := hnumerator
+      _ < wordBase * (wordBase ^ limbCount) := by
+        have := two_modulus_lt_radix
+        nlinarith [wordBase_pos]
+  exact (Nat.mul_lt_mul_right (pow_pos wordBase_pos limbCount)).mp (by
+    simpa [Nat.mul_comm] using hcarryMul)
+
+@[simp] theorem u64_ofNat_val_eq_self (value : MacCampaign.U64) :
+    MacCampaign.U64.ofNat value.val = value := by
+  cases value with
+  | mk value hvalue =>
+      simp [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hvalue]
+
+/-- The first reduction MAC emits zero in its low word. -/
+theorem firstReductionLow_eq_zero (product reduction : NatMac)
+    (k : Nat)
+    (hk : k = product.low *
+      ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val % wordBase)
+    (hreduction : MacSpec product.low k
+      (limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩)
+      0 reduction) :
+    reduction.low = 0 := by
+  subst k
+  have hzero := reductionFactor_modEq_zero product.low
+  change (product.low +
+      (product.low * ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val % wordBase) *
+        limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩) %
+      wordBase = 0 at hzero
+  rw [show product.low +
+      (product.low * ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val % wordBase) *
+          limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩ =
+        reduction.carry * wordBase + reduction.low by
+      simpa using hreduction.equation] at hzero
+  simpa [Nat.add_mod, Nat.mul_mod, Nat.mod_eq_of_lt hreduction.low_lt]
+    using hzero
+
+/-- Shifting away the zero reduction low word gives the returned six limbs. -/
+theorem shiftedReductionLows_eq (low0 low1 low2 low3 low4 low5 top : MacCampaign.U64)
+    (hlow0 : low0.val = 0) :
+    lowListToNat [low0.val, low1.val, low2.val, low3.val, low4.val, low5.val] +
+        top.val * wordBase ^ limbCount =
+      limbsToNat (MacCampaign.Array.make (Usize.ofNat 6)
+        [low1, low2, low3, low4, low5, top]) * wordBase := by
+  simp [lowListToNat, limbsToNat, prefixToNat, limb, limbWord,
+    MacCampaign.Array.make, limbCount, hlow0]
+  ring
+
+/-- A completed six-step MAC chain and its shifted lows give the exact round equation. -/
+theorem macChainInvariant_roundEquation (r a output : LimbArray) (b k : Nat)
+    (state : MacChainState)
+    (hinvariant : macChainInvariant r a b k state)
+    (hcount : state.count = limbCount)
+    (houtput : lowListToNat state.reductionLows +
+        (state.productCarry + state.reductionCarry) * wordBase ^ limbCount =
+      limbsToNat output * wordBase) :
+    limbsToNat output * wordBase =
+      limbsToNat r + b * limbsToNat a + k * Ipp.Bls12377.baseModulus := by
+  have hequation := hinvariant.2.2.2.2.2
+  rw [hcount] at hequation
+  change limbsToNat r + b * limbsToNat a +
+      k * limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS =
+    lowListToNat state.reductionLows +
+      (state.productCarry + state.reductionCarry) * wordBase ^ limbCount
+    at hequation
+  rw [modulus_limbsToNat] at hequation
+  exact (hequation.trans houtput).symm
+
+theorem limb_lt_wordBase (value : LimbArray) (i : Fin limbCount) :
+    limb value i < wordBase := by
+  simpa [limb, MacCampaign.u64Base, wordBase] using (limbWord value i).isLt
+
+/-- One exact CIOS round equation advances the outer invariant. -/
+theorem roundInvariant_step_of_equation (a b r output : LimbArray)
+    (index : Nat) (hindex : index < limbCount) (k : Nat)
+    (hinvariant : roundInvariant a b (index, r))
+    (ha : limbsToNat a < Ipp.Bls12377.baseModulus)
+    (hk : k < wordBase)
+    (hequation : limbsToNat output * wordBase =
+      limbsToNat r + limb b ⟨index, hindex⟩ * limbsToNat a +
+        k * Ipp.Bls12377.baseModulus) :
+    roundInvariant a b (index + 1, output) := by
+  rcases hinvariant with ⟨hindexLe, hr, hmod⟩
+  refine ⟨by omega, ?_, ?_⟩
+  · exact roundEquation_output_lt
+      (limbsToNat r) (limbsToNat a) (limb b ⟨index, hindex⟩) k
+      (limbsToNat output) hr ha (limb_lt_wordBase b ⟨index, hindex⟩) hk
+      hequation
+  · rw [prefixToNat_succ b hindex]
+    calc
+      limbsToNat output * wordBase ^ (index + 1) =
+          (limbsToNat output * wordBase) * wordBase ^ index := by
+        rw [pow_succ]
+        ring
+      _ = (limbsToNat r + limb b ⟨index, hindex⟩ * limbsToNat a +
+          k * Ipp.Bls12377.baseModulus) * wordBase ^ index := by
+        rw [hequation]
+      _ = Ipp.Bls12377.baseModulus * (k * wordBase ^ index) +
+          (limbsToNat r + limb b ⟨index, hindex⟩ * limbsToNat a) *
+            wordBase ^ index := by
+        ring
+      _ ≡ (limbsToNat r + limb b ⟨index, hindex⟩ * limbsToNat a) *
+          wordBase ^ index [MOD Ipp.Bls12377.baseModulus] :=
+        Nat.ModEq.modulus_mul_add
+      _ = limbsToNat r * wordBase ^ index +
+          (limb b ⟨index, hindex⟩ * wordBase ^ index) * limbsToNat a := by
+        ring
+      _ ≡ prefixToNat b index * limbsToNat a +
+          (limb b ⟨index, hindex⟩ * wordBase ^ index) * limbsToNat a
+          [MOD Ipp.Bls12377.baseModulus] :=
+        hmod.add (Nat.ModEq.refl _)
+      _ = (prefixToNat b index +
+          limb b ⟨index, hindex⟩ * wordBase ^ index) * limbsToNat a := by
+        ring
+
 end Ipp.Extracted.ArkworksFqMul
 
 #print axioms Ipp.Extracted.ArkworksFqMul.macModel_spec
@@ -412,3 +667,7 @@ end Ipp.Extracted.ArkworksFqMul
 #print axioms Ipp.Extracted.ArkworksFqMul.extracted_mac_spec
 #print axioms Ipp.Extracted.ArkworksFqMul.macChainInvariant_step
 #print axioms Ipp.Extracted.ArkworksFqMul.extracted_macChainInvariant_step
+#print axioms Ipp.Extracted.ArkworksFqMul.reductionFactor_modEq_zero
+#print axioms Ipp.Extracted.ArkworksFqMul.macChainInvariant_topCarry_lt
+#print axioms Ipp.Extracted.ArkworksFqMul.macChainInvariant_roundEquation
+#print axioms Ipp.Extracted.ArkworksFqMul.roundInvariant_step_of_equation

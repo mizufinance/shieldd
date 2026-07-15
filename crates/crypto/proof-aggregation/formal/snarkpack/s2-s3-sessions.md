@@ -900,3 +900,93 @@ Dead ends and load-bearing details:
   took about 70 seconds. This was cache setup, not a hung Lean process.
 - Continue to run exactly one pinned `lake` process at a time with
   `LEAN_NUM_THREADS=1`.
+
+### Session 2 — constants, carry bound, and equation-driven transition (2026-07-15)
+
+Status: honest partial. The arithmetic that historically blocked the round is
+closed, but the final executable bridge from the unrolled extracted `round` to
+the six-MAC trace is not. No invariant was weakened or reformulated.
+
+Closed lemmas in `Ipp/Extracted/ArkworksFqMul.lean`:
+
+- `modulus_limbsToNat`, `inv_val`, and
+  `inv_mul_modulus_low_add_one_mod_wordBase` pin the concrete modulus and `INV`
+  facts with kernel `decide`.
+- `reductionFactor_modEq_zero` and its limb-zero specialization
+  `reductionFactor_choice` prove that
+  `r0 + x * a0 + k * q0 ≡ 0 (mod 2^64)` for the extracted choice of `k`.
+- `firstReductionLow_eq_zero` turns that congruence and the reduction-MAC
+  equation into the exact zero-low fact.
+- `macChainInvariant_roundEquation` is the exact six-step telescope: once the
+  completed chain state is identified with the shifted returned limbs, it
+  yields
+  `limbsToNat r' * wordBase = limbsToNat r + b * limbsToNat a + k * q`.
+- `macChainInvariant_topCarry_lt` proves the combined product/reduction carry
+  is below `wordBase` from the exact chain equation and input bounds. It does
+  not add the two individual carry bounds.
+- `roundNumerator_lt`, `roundEquation_bound`, and
+  `roundEquation_output_lt` prove the no-division bound
+  `limbsToNat r' * wordBase < 2 * q * wordBase`, hence `r' < 2q`.
+- `roundInvariant_step_of_equation` advances the existing outer invariant from
+  round `i` to `i + 1` by multiplying the exact equation by `wordBase ^ i` and
+  reducing the `k * q` term modulo `q`.
+
+The exact open lemma is the executable round specification:
+
+```lean
+theorem extracted_round_spec (r a : LimbArray) (b : MacCampaign.U64)
+    (output : LimbArray)
+    (hr : limbsToNat r < 2 * Ipp.Bls12377.baseModulus)
+    (ha : limbsToNat a < Ipp.Bls12377.baseModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.round r a b = .ok output) :
+    ∃ k, k < wordBase ∧
+      limbsToNat output * wordBase =
+        limbsToNat r + b.val * limbsToNat a +
+          k * Ipp.Bls12377.baseModulus ∧
+      limbsToNat output * wordBase <
+        2 * Ipp.Bls12377.baseModulus * wordBase
+```
+
+The mathematical sublemmas needed by this statement are closed. The stuck
+part is only identifying the 12 successful generated MAC results, the wrapped
+`k`, the zero first reduction low, and the checked final `add64` with the six
+limbs returned by the generated `round`. Three implementations were rejected:
+
+- local nested model `let`s expand the entire preceding trace in every later
+  type and make elaboration superlinear;
+- one direct `rw`/`simp only` walk over `round` creates a proof term exceeding
+  the kernel recursion guard, even with a raised local `maxRecDepth`;
+- executable tail equalities split at rounds 0/1/4 still force the kernel to
+  compare the reducible continuation bodies and hit the same recursion guard.
+
+Session 3 must proceed in this order:
+
+1. Close `extracted_round_spec` with opaque **Prop continuations**, not
+   executable tail equalities. Slice after reduction 0 and reduction 3; each
+   segment predicate should expose only its local product/reduction results and
+   end in an opaque continuation. Compose the three semantic segment lemmas,
+   then apply the already closed first-low, top-carry, shifted-lows, and round
+   equation lemmas. Keep the generated file immutable.
+2. Apply `roundInvariant_step_of_equation` six times to the generated `mul`
+   rounds. Prove the zero-array base case, unfold `prefixToNat` at six, and
+   conclude the pre-subtraction accumulator is `< 2q` and represents
+   `limbsToNat a * limbsToNat b * wordBase⁻⁶ (mod q)`.
+3. Specify `geq_modulus` as six-limb lexicographic comparison and `sbb` as an
+   exact low-word/borrow step. Compose six `sbb` calls to prove
+   `subtract_modulus value` returns `value` below `q` and `value - q` at or
+   above `q`. Use the precondition `value < 2q` to prove the result is
+   canonical and congruent to `value` modulo `q`.
+4. Finish the decode capstone: combine the six-round congruence, the canonical
+   subtraction result, and `baseMontgomeryRadix = wordBase ^ limbCount` to
+   prove that decoding the extracted result equals the product of the decoded
+   canonical inputs.
+
+Session-2 verification:
+
+- Focused Lean: `lake build Ipp.Extracted.ArkworksFqMul` passed, 2973 jobs.
+- Full Lean: `lake build Ipp` passed, 3406 jobs.
+- Both builds used the pinned Lean 4.30.0 `lake` and `LEAN_NUM_THREADS=1`.
+- `#print axioms` for the new k-choice, top-carry, round-equation, and invariant
+  transition lemmas is within `propext`, `Classical.choice`, and `Quot.sound`.
+  There are no `sorry`s or declared axioms in the campaign Lean files.
+- Prover, release, and release-gated tests were not run.
