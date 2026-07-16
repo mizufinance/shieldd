@@ -1,7 +1,7 @@
 {
   "actions": [
     {
-      "split": {
+      "noteReshape": {
         "body": {
           "familyId": 2,
           "anchor": {
@@ -2835,7 +2835,7 @@
       }
     },
     {
-      "consolidate": {
+      "noteReshape": {
         "body": {
           "familyId": 1,
           "anchor": {

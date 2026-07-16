@@ -37,7 +37,7 @@ type NoteReshapeCircuit struct {
 
 func NewNoteReshapeCircuit(label string, nIn, nOut int) *NoteReshapeCircuit {
 	outputDummyFlags := make([]frontend.Variable, 0)
-	if label != "consolidate2x1" {
+	if family, ok := generated.NoteReshapeFamilyByLabel(label); ok && family.UsesDummySlots {
 		outputDummyFlags = make([]frontend.Variable, nOut)
 	}
 	return &NoteReshapeCircuit{
@@ -52,14 +52,21 @@ func NewNoteReshapeCircuit(label string, nIn, nOut int) *NoteReshapeCircuit {
 
 func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	c.bindWiringTrace(api)
+	family, ok := generated.NoteReshapeFamilyByLabel(c.label)
+	if !ok {
+		return fmt.Errorf("unsupported note reshape family %q", c.label)
+	}
 	if c.nIn <= 0 || c.nOut <= 0 {
 		return fmt.Errorf("%s circuit shape must be positive, got %dx%d", c.label, c.nIn, c.nOut)
 	}
 	if len(c.Spends) != c.nIn || len(c.Outputs) != c.nOut {
 		return fmt.Errorf("%s circuit shape mismatch: expected %dx%d, got %dx%d", c.label, c.nIn, c.nOut, len(c.Spends), len(c.Outputs))
 	}
-	if !c.isLegacyTwoByOne() {
-		if err := c.validatePaddedFlags(api); err != nil {
+	if family.NIn != c.nIn || family.NOut != c.nOut {
+		return fmt.Errorf("%s circuit shape mismatch: registry requires %dx%d, got %dx%d", c.label, family.NIn, family.NOut, c.nIn, c.nOut)
+	}
+	if family.UsesDummySlots {
+		if err := c.validatePaddedFlags(api, family); err != nil {
 			return err
 		}
 	}
@@ -127,8 +134,8 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		spendName := fmt.Sprintf("spend%d", i)
 		c.traceWiring("spend.begin", spendName)
 		var amount, nullifier, rkCompressed frontend.Variable
-		if c.isLegacyTwoByOne() {
-			amount, nullifier, rkCompressed, err = c.verifyNoteReshapeSpendLegacy(
+		if !family.UsesDummySlots {
+			amount, nullifier, rkCompressed, err = c.verifyFixedNoteReshapeSpend(
 				api,
 				spendName,
 				sharedAK,
@@ -139,7 +146,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				&c.Spends[i],
 			)
 		} else {
-			amount, nullifier, rkCompressed, err = c.verifyNoteReshapeSpend(
+			amount, nullifier, rkCompressed, err = c.verifyPaddedNoteReshapeSpend(
 				api,
 				spendName,
 				sharedAK,
@@ -163,8 +170,8 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		outputName := fmt.Sprintf("output%d", i)
 		c.traceWiring("output.begin", outputName)
 		var amount, commitment frontend.Variable
-		if c.isLegacyTwoByOne() {
-			amount, commitment, err = c.verifyNoteReshapeOutputLegacy(
+		if !family.UsesDummySlots {
+			amount, commitment, err = c.verifyFixedNoteReshapeOutput(
 				api,
 				outputName,
 				sharedAK,
@@ -175,7 +182,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				&c.Outputs[i],
 			)
 		} else {
-			amount, commitment, err = c.verifyNoteReshapeOutput(
+			amount, commitment, err = c.verifyPaddedNoteReshapeOutput(
 				api,
 				outputName,
 				sharedAK,
@@ -225,7 +232,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	statementFields = append(statementFields, balanceCommitmentFq)
 	c.traceWiring("statement.append_all", "fields=nullifiers_and_rks")
 	statementFields = append(statementFields, nullifiersAndRKs...)
-	if !c.isLegacyTwoByOne() {
+	if family.UsesDummySlots {
 		activeInputs := frontend.Variable(0)
 		for _, spend := range c.Spends {
 			activeInputs = api.Add(activeInputs, api.Sub(1, spend.IsDummy))
@@ -248,15 +255,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func (c *NoteReshapeCircuit) isLegacyTwoByOne() bool {
-	return c.label == "consolidate2x1" && c.nIn == 2 && c.nOut == 1
-}
-
-func (c *NoteReshapeCircuit) validatePaddedFlags(api frontend.API) error {
-	family, ok := generated.NoteReshapeFamilyByLabel(c.label)
-	if !ok {
-		return fmt.Errorf("unsupported note reshape family %q", c.label)
-	}
+func (c *NoteReshapeCircuit) validatePaddedFlags(api frontend.API, family generated.NoteReshapeFamilySpec) error {
 	if len(c.OutputDummyFlags) != c.nOut {
 		return fmt.Errorf("%s output dummy flag count mismatch", c.label)
 	}
@@ -325,7 +324,7 @@ func noteReshapeStatementHash(
 	return NoteReshapeStatementHashForShape(api, label, nIn, nOut, fields)
 }
 
-func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
+func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	api frontend.API,
 	name string,
 	sharedAK gnarkte.Point,
@@ -448,7 +447,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpend(
 	return spend.Note.Amount, nullifier, rkCompressed, nil
 }
 
-func (c *NoteReshapeCircuit) verifyNoteReshapeSpendLegacy(
+func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	api frontend.API,
 	name string,
 	sharedAK gnarkte.Point,
@@ -532,7 +531,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeSpendLegacy(
 	return spend.Note.Amount, nullifier, rkCompressed, nil
 }
 
-func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
+func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeOutput(
 	api frontend.API,
 	name string,
 	sharedAK gnarkte.Point,
@@ -543,7 +542,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	output *NoteReshapeOutputCircuitFields,
 	isDummy frontend.Variable,
 ) (frontend.Variable, frontend.Variable, error) {
-	amount, commitment, err := c.verifyNoteReshapeOutputLegacy(
+	amount, commitment, err := c.verifyFixedNoteReshapeOutput(
 		api,
 		name,
 		sharedAK,
@@ -563,7 +562,7 @@ func (c *NoteReshapeCircuit) verifyNoteReshapeOutput(
 	return amount, commitment, nil
 }
 
-func (c *NoteReshapeCircuit) verifyNoteReshapeOutputLegacy(
+func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 	api frontend.API,
 	name string,
 	sharedAK gnarkte.Point,

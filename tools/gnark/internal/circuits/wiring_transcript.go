@@ -134,7 +134,7 @@ func ExportNoteReshapeWiringTranscript(label string, nIn, nOut int) (string, err
 
 // ExportNoteReshape2x1WiringTranscript retains the focused test entry point.
 func ExportNoteReshape2x1WiringTranscript() (string, error) {
-	return ExportNoteReshapeWiringTranscript("consolidate2x1", 2, 1)
+	return ExportNoteReshapeWiringTranscript("note_reshape2x1", 2, 1)
 }
 
 // ExportTransferWiringTranscript returns the canonical transcript for the
@@ -225,7 +225,7 @@ func ExportNoteReshapeConstraintManifest(label string, nIn, nOut int, sr1csPath 
 }
 
 func ExportNoteReshape2x1ConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
-	return ExportNoteReshapeConstraintManifest("consolidate2x1", 2, 1, sr1csPath)
+	return ExportNoteReshapeConstraintManifest("note_reshape2x1", 2, 1, sr1csPath)
 }
 
 func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {

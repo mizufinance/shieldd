@@ -102,13 +102,13 @@ struct DleqFixture {
     dleq_s: String,
 }
 
-/// Consolidate2x1 statement-hash seam fixture (H3 / Phase C).
+/// NoteReshape2x1 statement-hash seam fixture (H3 / Phase C).
 ///
-/// A seeded consolidate2x1 public statement: the 7 field elements in the exact
+/// A seeded note_reshape2x1 public statement: the 7 field elements in the exact
 /// production role order the circuit assembles them (anchor, output note
 /// commitment, balance commitment Fq, then per-input nullifier+rk), plus the
 /// reference statement hash computed with the real `poseidon377::hash_7` over
-/// the `consolidate2x1` public-input-hash domain. The Go seam test assembles
+/// the `note_reshape2x1` public-input-hash domain. The Go seam test assembles
 /// these fields in the same order, runs the production statement-hash gadget,
 /// and asserts the in-circuit wire equals `statement_hash`. Any wire-order,
 /// endianness, or domain drift fails.
@@ -128,7 +128,7 @@ struct Vectors {
     decaf377_compress_vectors: Vec<DecafCompressVector>,
     decaf377_encode_vectors: Vec<DecafEncodeVector>,
     dleq_fixture: DleqFixture,
-    consolidate2x1_statement: NoteReshapeStatementFixture,
+    note_reshape2x1_statement: NoteReshapeStatementFixture,
 }
 
 fn blake2b_fq(label: &[u8]) -> Fq {
@@ -276,14 +276,14 @@ fn main() {
             note_commit_inputs[5],
         ),
     );
-    // Consolidate2x1 statement-hash seam: 7 seeded, distinct field elements in
+    // NoteReshape2x1 statement-hash seam: 7 seeded, distinct field elements in
     // the production assembly order, hashed via the real poseidon377::hash_7
-    // over the consolidate2x1 public-input-hash domain (single hash_7, no
+    // over the note_reshape2x1 public-input-hash domain (single hash_7, no
     // continuation, for the 7-field statement — pads unused). See
     // NoteReshapeCircuit.Define / hashStatementFields on the Go side.
-    let consolidate_statement_domain =
-        blake2b_fq(b"shieldd.shielded_pool.consolidate2x1.public_input_hash.v1");
-    let consolidate_statement_roles = [
+    let note_reshape2x1_statement_domain =
+        blake2b_fq(b"shieldd.shielded_pool.note_reshape2x1.public_input_hash.v1");
+    let note_reshape2x1_statement_roles = [
         "anchor",
         "output_note_commitment_0",
         "balance_commitment_fq",
@@ -292,18 +292,18 @@ fn main() {
         "nullifier_1",
         "rk_1",
     ];
-    let consolidate_statement_fields =
+    let note_reshape2x1_statement_fields =
         [70_001u64, 70_002, 70_003, 70_004, 70_005, 70_006, 70_007].map(Fq::from);
-    let consolidate_statement_hash = poseidon377::hash_7(
-        &consolidate_statement_domain,
+    let note_reshape2x1_statement_hash = poseidon377::hash_7(
+        &note_reshape2x1_statement_domain,
         (
-            consolidate_statement_fields[0],
-            consolidate_statement_fields[1],
-            consolidate_statement_fields[2],
-            consolidate_statement_fields[3],
-            consolidate_statement_fields[4],
-            consolidate_statement_fields[5],
-            consolidate_statement_fields[6],
+            note_reshape2x1_statement_fields[0],
+            note_reshape2x1_statement_fields[1],
+            note_reshape2x1_statement_fields[2],
+            note_reshape2x1_statement_fields[3],
+            note_reshape2x1_statement_fields[4],
+            note_reshape2x1_statement_fields[5],
+            note_reshape2x1_statement_fields[6],
         ),
     );
     let generator_encoding = Encoding::from(Element::GENERATOR);
@@ -462,18 +462,18 @@ fn main() {
             dleq_c: dleq_c.to_string(),
             dleq_s: Fq::from_le_bytes_mod_order(&dleq_s.to_bytes()).to_string(),
         },
-        consolidate2x1_statement: NoteReshapeStatementFixture {
-            label: "consolidate2x1".to_string(),
-            domain: consolidate_statement_domain.to_string(),
-            field_roles: consolidate_statement_roles
+        note_reshape2x1_statement: NoteReshapeStatementFixture {
+            label: "note_reshape2x1".to_string(),
+            domain: note_reshape2x1_statement_domain.to_string(),
+            field_roles: note_reshape2x1_statement_roles
                 .iter()
                 .map(ToString::to_string)
                 .collect(),
-            fields: consolidate_statement_fields
+            fields: note_reshape2x1_statement_fields
                 .iter()
                 .map(ToString::to_string)
                 .collect(),
-            statement_hash: consolidate_statement_hash.to_string(),
+            statement_hash: note_reshape2x1_statement_hash.to_string(),
         },
     };
 

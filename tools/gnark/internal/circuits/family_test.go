@@ -110,13 +110,13 @@ func testCircuitFamilies() []circuitFamily {
 			},
 		},
 		{
-			name: "consolidate2x1",
+			name: "note_reshape2x1",
 			circuit: func() frontend.Circuit {
-				return circuits.NewNoteReshapeCircuit("consolidate2x1", 2, 1)
+				return circuits.NewNoteReshapeCircuit("note_reshape2x1", 2, 1)
 			},
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("consolidate2x1")
+				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape2x1")
 				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode note reshape witness fixture: %v", err)
@@ -133,11 +133,11 @@ func testCircuitFamilies() []circuitFamily {
 			},
 		},
 		{
-			name:    "split1x8",
-			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("split1x8", 1, 8) },
+			name:    "note_reshape1x8",
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("split1x8")
+				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
 				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode note reshape witness fixture: %v", err)
@@ -179,23 +179,23 @@ func compileCircuitFamilies() []struct {
 			stats:   circuitStats{constraints: 251469, public: 2, secret: 542, internal: 224461},
 		},
 		{
-			name:    "consolidate2x1",
-			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("consolidate2x1", 2, 1) },
+			name:    "note_reshape2x1",
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape2x1", 2, 1) },
 			stats:   circuitStats{constraints: 36553, public: 2, secret: 199, internal: 34439},
 		},
 		{
-			name:    "consolidate8x1",
-			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("consolidate8x1", 8, 1) },
+			name:    "note_reshape8x1",
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape8x1", 8, 1) },
 			stats:   circuitStats{constraints: 194681, public: 2, secret: 740, internal: 185686},
 		},
 		{
-			name:    "consolidate4x1",
-			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("consolidate4x1", 4, 1) },
+			name:    "note_reshape4x1",
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape4x1", 4, 1) },
 			stats:   circuitStats{constraints: 102635, public: 2, secret: 380, internal: 97528},
 		},
 		{
-			name:    "split1x8",
-			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("split1x8", 1, 8) },
+			name:    "note_reshape1x8",
+			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
 			stats:   circuitStats{constraints: 38774, public: 2, secret: 187, internal: 36520},
 		},
 		{
@@ -370,7 +370,7 @@ func TestPaddedSpendCircuitsRejectMutatedDummyNullifierSeed(t *testing.T) {
 }
 
 func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
-	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("split1x8")
+	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
 	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode note reshape witness fixture: %v", err)
@@ -385,12 +385,12 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 		}
 	}
 	if !mutated {
-		t.Fatal("split1x8 fixture must contain a dummy output")
+		t.Fatal("note_reshape1x8 fixture must contain a dummy output")
 	}
 
 	assert := test.NewAssert(t)
 	assert.CheckCircuit(
-		circuits.NewNoteReshapeCircuit("split1x8", 1, 8),
+		circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8),
 		test.WithCurves(ecc.BLS12_377),
 		test.WithBackends(backend.GROTH16),
 		test.WithInvalidAssignment(noteReshape),
@@ -398,7 +398,7 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 }
 
 func TestNoteReshapeRejectsWrongActiveOutputCount(t *testing.T) {
-	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("split1x8")
+	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
 	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode note reshape witness fixture: %v", err)
@@ -413,7 +413,7 @@ func TestNoteReshapeRejectsWrongActiveOutputCount(t *testing.T) {
 
 	assert := test.NewAssert(t)
 	assert.CheckCircuit(
-		circuits.NewNoteReshapeCircuit("split1x8", 1, 8),
+		circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8),
 		test.WithCurves(ecc.BLS12_377),
 		test.WithBackends(backend.GROTH16),
 		test.WithInvalidAssignment(noteReshape),

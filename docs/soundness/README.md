@@ -25,12 +25,13 @@ gate-record documentation.
 
 ## Current focus
 
-`consolidate2x1` uses the deployed SR1CS proof path described in
-[fv.md](fv.md). The gate recompiles the Go circuit, rejects byte drift, derives
-the proof inputs from the exact deployed rows, checks their generated Lean
-surface, and binds the deployed proving/verifying keys. The protocol-readable
-theorem is the public review surface; the generated capstone is the exhaustive
-row-contract surface.
+The four NoteReshape families (`note_reshape2x1`, `note_reshape4x1`,
+`note_reshape8x1`, and `note_reshape1x8`) use the deployed SR1CS proof path described in
+[fv.md](fv.md); transfer retains the same release gate. The gate recompiles each
+Go circuit, rejects byte drift, derives proof inputs from the exact deployed
+rows, checks the generated Lean surface, and binds the deployed proving and
+verifying keys. The protocol-readable Statement is the public review surface;
+the generated Capstone is the exhaustive row-contract surface.
 
 The compliance and shielded-pool property/assumption ledgers remain the source
 for protocol-wide claims beyond this circuit. A whole-circuit proof does not by

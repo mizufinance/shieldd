@@ -11,6 +11,43 @@ fail() {
 
 command -v rg >/dev/null 2>&1 || fail "rg is required"
 
+# NoteReshape is the sole production vocabulary for this circuit family. Keep
+# the pcli negative assertion, Lean contributor instructions, and pinned
+# statement-hash domain labels out of this source-name lint. The four protocol
+# labels are checked separately below so they cannot become general aliases.
+if rg -n 'Consolidate|consolidate(2x1|4x1|8x1)|Split1x8|split1x8' . \
+    --glob '!target/**' \
+    --glob '!tools/gnark/lean/.lake/**' \
+    --glob '!tools/gnark/lean/AGENTS.md' \
+    --glob '!crates/bin/pcli/tests/cli_surface.rs' \
+    --glob '!tools/gnark/lean/gen/gen_note_reshape_2x1_statement_semantics.py' \
+    --glob '!tools/gnark/lean/gen/gen_note_reshape_statement_hash_semantics.py' \
+    --glob '!scripts/check-soundness-invariants.sh' \
+    --glob '!docs/protocol/theme/js/mermaid.min.js'; then
+  fail "deleted Split/Consolidate production vocabulary remains"
+fi
+
+protocol_label_files=(
+  tools/gnark/lean/gen/gen_note_reshape_2x1_statement_semantics.py
+  tools/gnark/lean/gen/gen_note_reshape_statement_hash_semantics.py
+)
+protocol_label_hits="$({
+  rg -n 'Consolidate|consolidate(2x1|4x1|8x1)|Split1x8|split1x8' \
+    "${protocol_label_files[@]}" || true
+})"
+unexpected_protocol_label_hits="$(printf '%s\n' "$protocol_label_hits" | rg -v \
+  '^[^:]+:[0-9]+:[[:space:]]*"(consolidate2x1|consolidate4x1|consolidate8x1|split1x8)",[[:space:]]*(#.*)?$' || true)"
+[[ -z "$unexpected_protocol_label_hits" ]] || {
+  printf '%s\n' "$unexpected_protocol_label_hits"
+  fail "legacy operation spelling escaped the statement-hash protocol-label allowlist"
+}
+for label in consolidate2x1 consolidate4x1 consolidate8x1 split1x8; do
+  count="$(printf '%s\n' "$protocol_label_hits" | rg -c \
+    "[[:space:]]*\"$label\",[[:space:]]*(#.*)?$" || true)"
+  [[ "$count" == "1" ]] \
+    || fail "statement-hash protocol label $label must appear exactly once, found $count"
+done
+
 markdown_field() {
   local row="$1"
   local index="$2"
@@ -223,7 +260,10 @@ assumption_ids="$(row_ids "$assumption_file")"
 # Whole-circuit evidence is checked directly. Narrative mirrors are deliberately
 # not machine inputs: they used to duplicate ledger rows and routinely went stale.
 for artifact in \
-  "$CIRCUIT_FORMAL/consolidate2x1-whole-circuit-lean-artifact.txt" \
+  "$CIRCUIT_FORMAL/note_reshape2x1-whole-circuit-lean-artifact.txt" \
+  "$CIRCUIT_FORMAL/note_reshape4x1-whole-circuit-lean-artifact.txt" \
+  "$CIRCUIT_FORMAL/note_reshape8x1-whole-circuit-lean-artifact.txt" \
+  "$CIRCUIT_FORMAL/note_reshape1x8-whole-circuit-lean-artifact.txt" \
   "$CIRCUIT_FORMAL/transfer-whole-circuit-lean-artifact.txt"; do
   check_stamped_artifact "WHOLE-CIRCUIT-FV" "$artifact"
   rg -F "whole-circuit" "$artifact" >/dev/null \
@@ -276,7 +316,10 @@ done < <(table_rows "$assumption_file")
 # actually exists in the extracted Lean sources. This makes the exit criterion
 # ("no decaf row assumed for this circuit") mechanically checkable while rows
 # stay open for circuit families not yet composed in Lean.
-C2X1_ARTIFACT="$CIRCUIT_FORMAL/consolidate2x1-whole-circuit-lean-artifact.txt"
+C2X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape2x1-whole-circuit-lean-artifact.txt"
+C4X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape4x1-whole-circuit-lean-artifact.txt"
+C8X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape8x1-whole-circuit-lean-artifact.txt"
+S1X8_ARTIFACT="$CIRCUIT_FORMAL/note_reshape1x8-whole-circuit-lean-artifact.txt"
 TRANSFER_ARTIFACT="$CIRCUIT_FORMAL/transfer-whole-circuit-lean-artifact.txt"
 GNARK_LEAN_SRC="tools/gnark/lean/ShielddGnarkFormal"
 # bash 3.2 (macOS) has no associative arrays; map id->bridge theorem by case.
@@ -302,17 +345,20 @@ while IFS= read -r row; do
   # The bridge theorem must exist in the extracted Lean sources.
   rg -F "$theorem" "$GNARK_LEAN_SRC" >/dev/null \
     || fail "decaf row $id cites bridge theorem $theorem absent from $GNARK_LEAN_SRC"
-  for circuit in consolidate2x1 transfer; do
+  for circuit in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer; do
     if [[ "$status" != "discharged" ]]; then
       [[ "$evidence" == *"Discharged-Circuits:"*"$circuit"* ]] \
         || fail "decaf row $id is $status for $circuit without a Discharged-Circuits: $circuit marker"
     fi
     case "$circuit" in
-      consolidate2x1) check_stamped_artifact "$id" "$C2X1_ARTIFACT" ;;
+      note_reshape2x1) check_stamped_artifact "$id" "$C2X1_ARTIFACT" ;;
+      note_reshape4x1) check_stamped_artifact "$id" "$C4X1_ARTIFACT" ;;
+      note_reshape8x1) check_stamped_artifact "$id" "$C8X1_ARTIFACT" ;;
+      note_reshape1x8) check_stamped_artifact "$id" "$S1X8_ARTIFACT" ;;
       transfer) check_stamped_artifact "$id" "$TRANSFER_ARTIFACT" ;;
     esac
   done
-  # The two-torsion row is fully mechanized for consolidate2x1: it must be discharged.
+  # The two-torsion row is fully mechanized for note_reshape2x1: it must be discharged.
   if [[ "$id" == "ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE" ]]; then
     two_torsion_seen=1
     [[ "$status" == "discharged" ]] \

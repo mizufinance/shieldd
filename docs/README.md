@@ -10,7 +10,7 @@ the ledger wins and the narrative is stale.
 | `crates/*/formal/` | Typed evidence: assumption ledgers, property ledgers, proof specs, stamped artifacts. These outrank everything under `docs/`. | per-ledger invariant scripts + `*.sha256` stamps |
 | `docs/compliance/` | Compliance design: flow walkthrough, wire/reference, chain scope, constraint checklist, testing map. | referenced tests |
 | `docs/snarkpack/` | SnarkPack design + verification narrative. Assumption rows live in `crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md`, not here. | `scripts/check-snarkpack-invariants.sh` |
-| `docs/protocol/` | Protocol background book (crypto constructions, keys, addresses). **Background only** — last synced 2026-06; it does not track the implementation (e.g. no consolidate chapter). Do not cite it as evidence. | none (unpinned) |
+| `docs/protocol/` | Protocol background book (crypto constructions, keys, addresses). **Background only** — last synced 2026-06; it does not track every NoteReshape implementation detail. Do not cite it as evidence. | none (unpinned) |
 | `docs/transfer-circuit/` | Transfer-circuit constraint checklist (referenced by `docs/compliance/`). | referenced tests |
 | `docs/rustdoc/` | CI staging for rustdoc deploy (`notes.yml`), not documentation content. | CI |
 

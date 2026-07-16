@@ -66,7 +66,7 @@ U3. **KZG opening soundness** — `v_final`/`w_final` verified openings imply
 U4. **Base-equation bridge** — the five terminal checks (ripp-spec §TIPP/MIPP
     verifier step 3) + U2 + U3 compose to: accepted aggregate ⇒ each
     `e(A_i,B_i) = e(α,β)·e(ip_i,γ)·…` per-proof Groth16 equation. This is
-    the S1 theorem; its statement should be shaped like the consolidate2x1
+    the S1 theorem; its statement should be shaped like the note_reshape2x1
     capstone (one composition theorem consuming the unit lemmas).
 
 U5. **Fiat-Shamir** — either (a) keep the RO idealization as a named row

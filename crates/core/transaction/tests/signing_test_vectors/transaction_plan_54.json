@@ -389,7 +389,7 @@
       }
     },
     {
-      "split": {
+      "noteReshape": {
         "body": {
           "familyId": 2,
           "anchor": {
@@ -3223,7 +3223,7 @@
       }
     },
     {
-      "split": {
+      "noteReshape": {
         "body": {
           "familyId": 2,
           "anchor": {

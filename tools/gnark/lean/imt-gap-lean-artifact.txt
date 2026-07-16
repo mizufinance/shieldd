@@ -29,4 +29,4 @@ axiom_baseline: propext, Classical.choice, Quot.sound
 
 NOTE this artifact proves the extracted ImtGap gadget implies
 assetMembershipValidSpec for recovered canonical Nat representatives. It does
-not promote a consolidate2x1 whole-circuit property row by itself.
+not promote a note_reshape2x1 whole-circuit property row by itself.

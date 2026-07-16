@@ -35,7 +35,7 @@ func testWitnessFamilies() []witnessFamily {
 		{
 			name: "note_reshape2x1",
 			payload: func(t *testing.T) []byte {
-				return testfixtures.LoadNoteReshapeWitnessV1("consolidate2x1")
+				return testfixtures.LoadNoteReshapeWitnessV1("note_reshape2x1")
 			},
 			decode: func(payload []byte) error {
 				_, _, err := DecodeNoteReshapeWitnessV1(payload)
@@ -45,7 +45,7 @@ func testWitnessFamilies() []witnessFamily {
 		{
 			name: "note_reshape1x8",
 			payload: func(t *testing.T) []byte {
-				return testfixtures.LoadNoteReshapeWitnessV1("split1x8")
+				return testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
 			},
 			decode: func(payload []byte) error {
 				_, _, err := DecodeNoteReshapeWitnessV1(payload)

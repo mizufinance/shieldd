@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the deployed conservation net-balance adapter for consolidate2x1 seg46.
+"""Generate the deployed conservation net-balance adapter for note_reshape2x1 seg46.
 
 Sibling of `gen_dtk_slice.py` (see its module docstring for the StructuredLC
 contract; the same rules apply verbatim). Seg46 is one instance (NB-1 shape):
@@ -29,10 +29,10 @@ import gen_dtk_slice as dtk
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMAL = ROOT / "ShielddGnarkFormal"
-CONTRACTS = FORMAL / "Deployed/Contracts/Consolidate2x1"
+CONTRACTS = FORMAL / "Deployed/Contracts/NoteReshape2x1"
 CONTRACTS_SOURCE = Path(os.environ.get("NB_CONTRACTS_SOURCE", CONTRACTS))
 EXTRACTED_DEPLOYED = FORMAL / "Extracted/Deployed"
-SR1CS = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1.sr1cs"
+SR1CS = ROOT.parent / "artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
 
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 NB_GX = 4661681602708190761543544705274244814260880986867766715334030151044279151219
@@ -368,13 +368,13 @@ def emit_fixed_base_literal(rows: list[tuple[Lc, Lc, Lc]]) -> str:
 def emit_base() -> str:
     """Shared bit-vector seating and the deployed prime instance."""
     out = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg46",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg46",
         "import ShielddGnarkFormal.Deployed.PrimeOrder",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
         "instance seg46NbFactPrime : Fact (Nat.Prime Seg46.Order) :=",
         "  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩",
@@ -397,7 +397,7 @@ def emit_base() -> str:
             f"  simp only [{name}, List.Vector.toList_ofFn, List.getElem_ofFn]",
             "",
         ]
-    out += ["end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
+    out += ["end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1", ""]
     return "\n".join(out)
 
 
@@ -427,7 +427,7 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
     xs = [rung.acc_x for rung in rungs]
     ys = [rung.acc_y for rung in rungs]
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46Base",
         "import ShielddGnarkFormal.Deployed.NetBalance.Ladder",
         "import ShielddGnarkFormal.NbFixedGenSeg46",
         "import ShielddGnarkFormal.NbFixedBaseLiteral",
@@ -438,7 +438,7 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     for axis, wires in (("X", xs), ("Y", ys)):
@@ -465,7 +465,7 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
     lines += [
         "  | _ => ⟨0, 1⟩",
         "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     return "\n".join(lines)
@@ -659,13 +659,13 @@ def emit_blind_chunk(
     rungs: tuple[BlindRung, ...], rows: list[tuple[Lc, Lc, Lc]],
 ) -> str:
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindDefs",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46BlindDefs",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     for rung in subset:
@@ -693,7 +693,7 @@ def emit_blind_chunk(
             f"  · exact seg46Blind_rung{k} rho h bits[{k}]! "
             f"(hbitAt {k} (by omega)) hacc"
         )
-    lines += ["", "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
+    lines += ["", "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1", ""]
     return "\n".join(lines)
 
 
@@ -738,14 +738,14 @@ def emit_blind_selector(
     split = chunks[node.split][0].index + 1
     hi = chunks[node.hi - 1][-1].index + 2
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.{left_module}",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.{right_module}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{left_module}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{right_module}",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
         f"theorem {blind_selector_theorem(node.lo, node.hi)} (rho : Nat -> Seg46.F)",
         "    (h : Seg46.relation rho) (bits : List.Vector Bool 251)",
@@ -760,7 +760,7 @@ def emit_blind_selector(
         f"  · exact {left_theorem} rho h bits hbitAt i hlo hleft hacc",
         f"  · exact {right_theorem} rho h bits hbitAt i (by omega) hhi hacc",
         "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     return "\n".join(lines)
@@ -768,13 +768,13 @@ def emit_blind_selector(
 
 def emit_blind_seed() -> str:
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindDefs",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46BlindDefs",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
         "theorem seg46Blind_hstep_zero (rho : Nat -> Seg46.F)",
         "    (bits : List.Vector Bool 251)",
@@ -788,7 +788,7 @@ def emit_blind_seed() -> str:
         "  rw [hb0]",
         "  exact Shieldd.GnarkFormal.Deployed.NetBalance.seedStepRel bits[0]!",
         "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     return "\n".join(lines)
@@ -796,10 +796,10 @@ def emit_blind_seed() -> str:
 
 def emit_blind_endpoint() -> str:
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindDefs",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Nb",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46BlindDefs",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Nb",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
         "theorem seg46BlindAccState_final_x (rho : Nat -> Seg46.F) :",
         "    (seg46BlindAccState rho 251).x = Specs.nbX rho := by",
@@ -813,7 +813,7 @@ def emit_blind_endpoint() -> str:
         "  simp only [seg46BlindDeltaY250, Specs.nbY, zero_add, one_mul]",
         "  ring",
         "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     return "\n".join(lines)
@@ -824,14 +824,14 @@ def emit_blind_step(rungs: tuple[BlindRung, ...]) -> str:
     root_module = blind_selector_module(0, len(chunks))
     root_theorem = blind_selector_theorem(0, len(chunks))
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.{root_module}",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindSeed",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{root_module}",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46BlindSeed",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
         "theorem seg46Blind_hstep (rho : Nat -> Seg46.F) (h : Seg46.relation rho)",
         "    (bits : List.Vector Bool 251)",
@@ -850,7 +850,7 @@ def emit_blind_step(rungs: tuple[BlindRung, ...]) -> str:
         "  ·",
         f"    exact {root_theorem} rho h bits hbitAt i (by omega) hi hacc",
         "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     return "\n".join(lines)
@@ -858,13 +858,13 @@ def emit_blind_step(rungs: tuple[BlindRung, ...]) -> str:
 
 def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindStep",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46BlindStep",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
         "theorem seg46Blind_ladder (rho : Nat -> Seg46.F) (h : Seg46.relation rho)",
         "    (bits : List.Vector Bool 251)",
@@ -896,7 +896,7 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
         "  · exact Shieldd.GnarkFormal.Deployed.NetBalance.fixedTrace_final_onCurve",
         "      bits (seg46BlindAccState rho) hstep EdwardsBridge.identity_onCurve",
         "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     return "\n".join(lines)
@@ -931,15 +931,15 @@ def emit_to_binary_module(
         raise ValueError(f"{label}: {len(rows)} booleanity rows for width {width}")
     block = dtk.CanonicalBlock(label, input_wire, bit_base, bit_rows[0], rec_row, rec_row + 1)
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Base",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.CompressAdapterCommon",
         "import ShielddGnarkFormal.RvkToBinary",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
         f"theorem {bits_name}_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :",
         f"    GatesDef.to_binary (rho {input_wire}) {width} ({bits_name} rho) := by",
@@ -964,7 +964,7 @@ def emit_to_binary_module(
         "    exact key' ▸ hgoal",
         "  · exact hrec",
         "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     return "\n".join(lines)
@@ -988,14 +988,14 @@ def emit_conservation() -> str:
     """Single linear conservation row: in0 + in1 = out0."""
     cfg = configure_contract_helpers()
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Base",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.CompressAdapterCommon",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
         "theorem seg46_conservation (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :",
         f"    rho {IN0_WIRE} + rho {IN1_WIRE} = rho {OUT0_WIRE} := by",
@@ -1005,28 +1005,28 @@ def emit_conservation() -> str:
         f"  unfold Seg46.relationRow{CONSERVATION_ROW} at r{CONSERVATION_ROW}",
         f"  linear_combination r{CONSERVATION_ROW}",
         "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     return "\n".join(lines)
 
 
 def emit_top() -> str:
-    return f"""import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Nb
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46In0Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46In1Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Out0Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindBits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Blind
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindEndpoint
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Conserv
+    return f"""import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Nb
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46In0Bits
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46In1Bits
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46Out0Bits
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46BlindBits
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46Blind
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46BlindEndpoint
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46Conserv
 import ShielddGnarkFormal.ConservationNetBalanceCommitmentBridge
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
-namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
 open Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge
@@ -1078,7 +1078,7 @@ theorem seg46_sound (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
     (rho {IN0_WIRE}) (rho {IN1_WIRE}) (rho {OUT0_WIRE}) (rho {BLIND_WIRE})
     ⟨Specs.nbX rho, Specs.nbY rho⟩ hcircuit
 
-end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 """
 
 

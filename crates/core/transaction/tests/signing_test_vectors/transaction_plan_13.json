@@ -1073,7 +1073,7 @@
       }
     },
     {
-      "consolidate": {
+      "noteReshape": {
         "body": {
           "familyId": 1,
           "anchor": {

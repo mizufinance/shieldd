@@ -379,7 +379,7 @@ mod tests {
     #[test]
     fn real_rvk_slice_is_exhaustive_and_bit_exact() {
         let data =
-            std::fs::read("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs");
+            std::fs::read("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs");
         let Ok(data) = data else {
             return; // artifact not present in this checkout
         };

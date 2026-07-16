@@ -2,9 +2,9 @@
  * transfer-statement-sufficiency.als — H2 statement-sufficiency model for the
  * transfer circuit's 83-field public statement.
  *
- * This is the transfer twin of consolidate2x1-statement-sufficiency.als. The
+ * This is the transfer twin of note_reshape2x1-statement-sufficiency.als. The
  * value surface (groups A–D: anchor, output commitments, balance, nullifiers+rk)
- * mirrors consolidate exactly and rests on the SAME proven substrate; the model
+ * mirrors NoteReshape exactly and rests on the SAME proven substrate; the model
  * text for the ledger-safety assertions is shared. Transfer adds:
  *   - two outputs (nOut = 2) and two inputs that may be DUMMY,
  *   - a regulated/compliance surface (groups E–I) gated on a private witness
@@ -13,7 +13,7 @@
  * The question: is the 83-field statement
  * ENOUGH for the ledger to be safe against an adversary who can produce a valid
  * proof for ANY statement whose circuit relation is satisfiable? Same adversary
- * model as consolidate: Alloy's unconstrained instances mint arbitrary Accepted
+ * model as NoteReshape: Alloy's unconstrained instances mint arbitrary Accepted
  * actions and pick any field values.
  *
  * KEY HONEST SCOPING (see §"compliance-gadget assumptions" below): the
@@ -24,7 +24,7 @@
  * govern *regulator utility* — whether the emitted ciphertexts/DLEQ actually
  * decrypt/verify — which is a separate property tier. They are recorded here as
  * named per-class predicates tied to the coverage manifest and assumption
- * ledger, so instantiating H2 on transfer vs consolidate differs only in which
+ * ledger, so instantiating H2 on transfer vs NoteReshape differs only in which
  * predicates are live, but they
  * are deliberately NOT wired into the safety assertions, because the circuit's
  * value-conservation and membership bindings that carry those assertions route
@@ -39,7 +39,7 @@
  *   tools/gnark/internal/compliance/canonical_fq_bits.go::AssetRegistryGap (:171)
  * Sources of truth (chain acceptance, Rust): shielded-pool transfer action
  *   handler + sct/nullifier_tree.rs::insert_batch (fail-closed), same as
- *   consolidate2x1.als F2.
+ *   note_reshape2x1.als F2.
  *
  * Assumption-ledger rows this model rests on:
  *   ZK-ASSUME-IMT-LEAF-COMMIT       Poseidon leaf commit injective (nf/cm + asset registry)
@@ -52,8 +52,8 @@
  *                                     exact-match/gap select pins is_regulated to
  *                                     actual registry membership
  *   MODEL-ASSUME-BOUNDED-SCOPE      bounded model checking (scope 6 / 5-bit int)
- *   MODEL-ASSUME-CONSOLIDATE-COMPLIANCE-EXEMPT  discharged protocol-policy row:
- *                                     consolidate carries no compliance surface
+ *   MODEL-ASSUME-NOTE-RESHAPE-COMPLIANCE-EXEMPT  discharged protocol-policy row:
+ *                                     NoteReshape carries no compliance surface
  *                                     because it is a same-owner reshape and cannot
  *                                     create a cross-owner output (owner decision
  *                                     2026-07-08; not an Alloy-decidable property).
@@ -247,7 +247,7 @@ fact F1c_ComplianceEnforced {
 
 // ---------------------------------------------------------------------------
 // F2 — ChainAcceptance. Anchor validity + fail-closed nullifier set. Identical
-// to consolidate2x1.als F2, extended to the 4 real-nullifier slots. Dummy slots
+// to note_reshape2x1.als F2, extended to the 4 real-nullifier slots. Dummy slots
 // insert synthetic nullifiers too, but those are distinct by construction
 // (synthetic domain); the set is fail-closed over ALL inserted keys.
 // ---------------------------------------------------------------------------

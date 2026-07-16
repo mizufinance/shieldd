@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed tests for the consolidate deployed-model generators."""
+"""Fail-closed tests for deployed circuit-model generators."""
 
 import copy
 import json
@@ -14,7 +14,7 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gen_capstone
 import generated_contract_source
-import gen_consolidate_compress_adapters
+import gen_note_reshape2x1_compress_adapters
 import gen_nb_slice
 import gen_rvk_deployed_adapters
 import gen_scp_adapters
@@ -350,9 +350,9 @@ class RvkGeneratorTests(unittest.TestCase):
 class CompressAdapterGeneratorTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.hyps = gen_consolidate_compress_adapters.parse_bridge_hyps()
-        cls.hyp_chunks = gen_consolidate_compress_adapters.chunks(
-            cls.hyps, gen_consolidate_compress_adapters.BRIDGE_CHUNK_SIZE
+        cls.hyps = gen_note_reshape2x1_compress_adapters.parse_bridge_hyps()
+        cls.hyp_chunks = gen_note_reshape2x1_compress_adapters.chunks(
+            cls.hyps, gen_note_reshape2x1_compress_adapters.BRIDGE_CHUNK_SIZE
         )
 
     def test_chunks_partition_bridge_hypotheses_in_numeric_order(self) -> None:
@@ -373,19 +373,19 @@ class CompressAdapterGeneratorTests(unittest.TestCase):
         )
 
     def test_leaf_signatures_use_exact_minimal_relation_parts(self) -> None:
-        for seg, *_ in gen_consolidate_compress_adapters.SEGMENTS:
-            parts = gen_consolidate_compress_adapters.parse_relation_parts(seg)
+        for seg, *_ in gen_note_reshape2x1_compress_adapters.SEGMENTS:
+            parts = gen_note_reshape2x1_compress_adapters.parse_relation_parts(seg)
             for index, hyp_chunk in enumerate(self.hyp_chunks):
-                source = gen_consolidate_compress_adapters.emit_row_chunk(
+                source = gen_note_reshape2x1_compress_adapters.emit_row_chunk(
                     seg, index, hyp_chunk, parts
                 )
                 signature = source.split(" := by", 1)[0].rsplit("theorem ", 1)[1]
                 actual = [int(part) for part in re.findall(r"\(p(\d+) :", signature)]
                 rows = [
-                    gen_consolidate_compress_adapters.bridge_row_for_hyp(h)
+                    gen_note_reshape2x1_compress_adapters.bridge_row_for_hyp(h)
                     for h, _ in hyp_chunk
                 ]
-                expected = gen_consolidate_compress_adapters.part_indices_for_rows(
+                expected = gen_note_reshape2x1_compress_adapters.part_indices_for_rows(
                     parts, rows
                 )
                 self.assertEqual(actual, expected, (seg, index))
@@ -393,11 +393,11 @@ class CompressAdapterGeneratorTests(unittest.TestCase):
                 self.assertNotIn(f"Seg{seg}.relation rho", signature)
 
     def test_head_imports_and_calls_every_leaf_in_numeric_order(self) -> None:
-        for seg, *_ in gen_consolidate_compress_adapters.SEGMENTS:
-            source = gen_consolidate_compress_adapters.emit_segment_head(
+        for seg, *_ in gen_note_reshape2x1_compress_adapters.SEGMENTS:
+            source = gen_note_reshape2x1_compress_adapters.emit_segment_head(
                 seg,
                 self.hyps,
-                gen_consolidate_compress_adapters.parse_relation_parts(seg),
+                gen_note_reshape2x1_compress_adapters.parse_relation_parts(seg),
             )
             imports = [
                 int(index)
@@ -420,18 +420,18 @@ class CompressAdapterGeneratorTests(unittest.TestCase):
             subprocess.run(
                 [
                     sys.executable,
-                    str(Path(gen_consolidate_compress_adapters.__file__)),
+                    str(Path(gen_note_reshape2x1_compress_adapters.__file__)),
                     "--adapter-out",
                     str(out),
                 ],
                 check=True,
             )
-            expected = gen_consolidate_compress_adapters.render(out)
+            expected = gen_note_reshape2x1_compress_adapters.render(out)
             actual = {path: path.read_text() for path in out.glob("*.lean")}
             self.assertEqual(actual, expected)
             self.assertEqual(len(actual), 78)
             self.assertTrue(
-                all(source.startswith(gen_consolidate_compress_adapters.GENERATED) for source in actual.values())
+                all(source.startswith(gen_note_reshape2x1_compress_adapters.GENERATED) for source in actual.values())
             )
 
 
@@ -472,9 +472,9 @@ class NbAdapterGeneratorTests(unittest.TestCase):
         self.assertEqual(
             imports,
             [
-                "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1."
+                "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1."
                 "NbAdapterSeg46BlindSel0_25",
-                "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1."
+                "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1."
                 "NbAdapterSeg46BlindSeed",
             ],
         )
@@ -489,7 +489,7 @@ class NbAdapterGeneratorTests(unittest.TestCase):
         self.assertEqual(
             imports,
             [
-                "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1."
+                "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1."
                 "NbAdapterSeg46BlindStep"
             ],
         )
@@ -515,7 +515,7 @@ class ScpGeneratorTests(unittest.TestCase):
 
         self.assertEqual(
             node.count(
-                "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1."
+                "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1."
                 "ScpAdapterSeg13Node23Rows"
             ),
             helper_count,

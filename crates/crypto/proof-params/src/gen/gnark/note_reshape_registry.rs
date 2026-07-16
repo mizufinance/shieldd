@@ -8,15 +8,15 @@ struct GeneratedNoteReshapeProofFamily {
 
 static NOTE_RESHAPE2X1_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
     if let Some(dir) = std::env::var_os("SHIELDD_GNARK_NOTE_RESHAPE_ARTIFACT_DIR") {
-        return load_verifying_key_json_artifact(Path::new(&dir), "consolidate2x1")
-            .expect("can deserialize consolidate2x1 VerifyingKey")
+        return load_verifying_key_json_artifact(Path::new(&dir), "note_reshape2x1")
+            .expect("can deserialize note_reshape2x1 VerifyingKey")
             .into();
     }
     load_verifying_key_json_bytes(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../../tools/gnark/artifacts/consolidate2x1/verifying_key.json"
+        "/../../../tools/gnark/artifacts/note_reshape2x1/verifying_key.json"
     )))
-    .expect("bundled consolidate2x1 VerifyingKey is valid")
+    .expect("bundled note_reshape2x1 VerifyingKey is valid")
     .into()
 });
 
@@ -25,7 +25,7 @@ static NOTE_RESHAPE2X1_PROOF_PROVING_KEY_BYTES: &[u8] = {
     {
         include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../tools/gnark/artifacts/consolidate2x1/proving_key.bin"
+            "/../../../tools/gnark/artifacts/note_reshape2x1/proving_key.bin"
         ))
     }
     #[cfg(not(feature = "bundled-proving-keys"))]
@@ -36,20 +36,20 @@ static NOTE_RESHAPE2X1_PROOF_PROVING_KEY_BYTES: &[u8] = {
 
 static NOTE_RESHAPE2X1_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../../tools/gnark/artifacts/consolidate2x1/circuit_metadata.json"
+    "/../../../tools/gnark/artifacts/note_reshape2x1/circuit_metadata.json"
 ));
 
 static NOTE_RESHAPE8X1_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
     if let Some(dir) = std::env::var_os("SHIELDD_GNARK_NOTE_RESHAPE_ARTIFACT_DIR") {
-        return load_verifying_key_json_artifact(Path::new(&dir), "consolidate8x1")
-            .expect("can deserialize consolidate8x1 VerifyingKey")
+        return load_verifying_key_json_artifact(Path::new(&dir), "note_reshape8x1")
+            .expect("can deserialize note_reshape8x1 VerifyingKey")
             .into();
     }
     load_verifying_key_json_bytes(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../../tools/gnark/artifacts/consolidate8x1/verifying_key.json"
+        "/../../../tools/gnark/artifacts/note_reshape8x1/verifying_key.json"
     )))
-    .expect("bundled consolidate8x1 VerifyingKey is valid")
+    .expect("bundled note_reshape8x1 VerifyingKey is valid")
     .into()
 });
 
@@ -58,7 +58,7 @@ static NOTE_RESHAPE8X1_PROOF_PROVING_KEY_BYTES: &[u8] = {
     {
         include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../tools/gnark/artifacts/consolidate8x1/proving_key.bin"
+            "/../../../tools/gnark/artifacts/note_reshape8x1/proving_key.bin"
         ))
     }
     #[cfg(not(feature = "bundled-proving-keys"))]
@@ -69,20 +69,20 @@ static NOTE_RESHAPE8X1_PROOF_PROVING_KEY_BYTES: &[u8] = {
 
 static NOTE_RESHAPE8X1_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../../tools/gnark/artifacts/consolidate8x1/circuit_metadata.json"
+    "/../../../tools/gnark/artifacts/note_reshape8x1/circuit_metadata.json"
 ));
 
 static NOTE_RESHAPE1X8_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
     if let Some(dir) = std::env::var_os("SHIELDD_GNARK_NOTE_RESHAPE_ARTIFACT_DIR") {
-        return load_verifying_key_json_artifact(Path::new(&dir), "split1x8")
-            .expect("can deserialize split1x8 VerifyingKey")
+        return load_verifying_key_json_artifact(Path::new(&dir), "note_reshape1x8")
+            .expect("can deserialize note_reshape1x8 VerifyingKey")
             .into();
     }
     load_verifying_key_json_bytes(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../../tools/gnark/artifacts/split1x8/verifying_key.json"
+        "/../../../tools/gnark/artifacts/note_reshape1x8/verifying_key.json"
     )))
-    .expect("bundled split1x8 VerifyingKey is valid")
+    .expect("bundled note_reshape1x8 VerifyingKey is valid")
     .into()
 });
 
@@ -91,7 +91,7 @@ static NOTE_RESHAPE1X8_PROOF_PROVING_KEY_BYTES: &[u8] = {
     {
         include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../tools/gnark/artifacts/split1x8/proving_key.bin"
+            "/../../../tools/gnark/artifacts/note_reshape1x8/proving_key.bin"
         ))
     }
     #[cfg(not(feature = "bundled-proving-keys"))]
@@ -102,20 +102,20 @@ static NOTE_RESHAPE1X8_PROOF_PROVING_KEY_BYTES: &[u8] = {
 
 static NOTE_RESHAPE1X8_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../../tools/gnark/artifacts/split1x8/circuit_metadata.json"
+    "/../../../tools/gnark/artifacts/note_reshape1x8/circuit_metadata.json"
 ));
 
 static NOTE_RESHAPE4X1_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
     if let Some(dir) = std::env::var_os("SHIELDD_GNARK_NOTE_RESHAPE_ARTIFACT_DIR") {
-        return load_verifying_key_json_artifact(Path::new(&dir), "consolidate4x1")
-            .expect("can deserialize consolidate4x1 VerifyingKey")
+        return load_verifying_key_json_artifact(Path::new(&dir), "note_reshape4x1")
+            .expect("can deserialize note_reshape4x1 VerifyingKey")
             .into();
     }
     load_verifying_key_json_bytes(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../../tools/gnark/artifacts/consolidate4x1/verifying_key.json"
+        "/../../../tools/gnark/artifacts/note_reshape4x1/verifying_key.json"
     )))
-    .expect("bundled consolidate4x1 VerifyingKey is valid")
+    .expect("bundled note_reshape4x1 VerifyingKey is valid")
     .into()
 });
 
@@ -124,7 +124,7 @@ static NOTE_RESHAPE4X1_PROOF_PROVING_KEY_BYTES: &[u8] = {
     {
         include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../tools/gnark/artifacts/consolidate4x1/proving_key.bin"
+            "/../../../tools/gnark/artifacts/note_reshape4x1/proving_key.bin"
         ))
     }
     #[cfg(not(feature = "bundled-proving-keys"))]
@@ -135,7 +135,7 @@ static NOTE_RESHAPE4X1_PROOF_PROVING_KEY_BYTES: &[u8] = {
 
 static NOTE_RESHAPE4X1_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../../tools/gnark/artifacts/consolidate4x1/circuit_metadata.json"
+    "/../../../tools/gnark/artifacts/note_reshape4x1/circuit_metadata.json"
 ));
 
 static GENERATED_NOTE_RESHAPE_PROOF_FAMILIES: &[GeneratedNoteReshapeProofFamily] = &[

@@ -2,7 +2,7 @@
 
 ## Decision rule
 
-At the current `consolidate2x1` baseline, a standalone change must remove at
+At the current `note_reshape2x1` baseline, a standalone change must remove at
 least 1% of constraints to be worth landing. A smaller change is considered
 only when it is a necessary step toward a measured larger reduction. Count
 reduction is a filter, not proof of a speedup: release evidence also records

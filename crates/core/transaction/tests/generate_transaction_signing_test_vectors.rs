@@ -481,6 +481,12 @@ fn effect_hash_test_vectors() {
 
     let mut supported_vectors = 0;
     for i in 0..100 {
+        let json_file_path = format!("{}/transaction_plan_{}.json", test_vectors_dir, i);
+        let json_plan: TransactionPlan = serde_json::from_str(
+            &std::fs::read_to_string(&json_file_path)
+                .expect("should be able to read JSON transaction plan"),
+        )
+        .expect("JSON transaction plan should match the current action schema");
         let proto_file_path = format!("{}/transaction_plan_{}.proto", test_vectors_dir, i);
         let mut proto_file = File::open(&proto_file_path).expect("Failed to open Protobuf file");
         let mut transaction_plan_encoded = Vec::<u8>::new();
@@ -490,6 +496,11 @@ fn effect_hash_test_vectors() {
         let Ok(transaction_plan) = TransactionPlan::decode(&transaction_plan_encoded[..]) else {
             continue;
         };
+        assert_eq!(
+            json_plan.encode_to_vec(),
+            transaction_plan_encoded,
+            "JSON/protobuf vector {i} drifted"
+        );
 
         if check_transaction_plan_enabled(&transaction_plan).is_err() {
             continue;

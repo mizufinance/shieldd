@@ -1455,7 +1455,7 @@ mod tests {
 
     #[test]
     fn dump_tail_rows() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let pr = |label: &str, s: &[Term]| {
@@ -1475,7 +1475,7 @@ mod tests {
 
     #[test]
     fn dump_tail_struct() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         // group terms by coeff; report coeff -> (count, wire-range), singletons listed.
@@ -1588,7 +1588,7 @@ mod tests {
 
     #[test]
     fn dump_wide_rung() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let fused_base = 17148usize;
@@ -1627,7 +1627,7 @@ mod tests {
 
     #[test]
     fn emit_tail_inst0() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let out = emit_tail(&rows, 17893, "inst0");
@@ -1646,7 +1646,7 @@ mod tests {
 
     #[test]
     fn locate_inst1_tail() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         // i67-style row: L = single w0 coeff "1", R len > 250, O len 1.
@@ -1671,7 +1671,7 @@ mod tests {
     #[test]
     fn emit_tail_inst1() {
         // inst1 rvk tail located at row 30523 (same i67 signature as inst0's 17893).
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let out = emit_tail(&rows, 30523, "inst1");
@@ -1681,7 +1681,7 @@ mod tests {
 
     #[test]
     fn emit_inst0_prefix() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let n: usize = std::env::var("RVK_N")
@@ -1695,7 +1695,7 @@ mod tests {
 
     #[test]
     fn emit_nb_seg46() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let n: usize = std::env::var("NB_N")
@@ -1716,7 +1716,7 @@ mod tests {
 
     #[test]
     fn emit_inst1_prefix() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let n: usize = std::env::var("RVK_N")
@@ -1736,7 +1736,7 @@ mod fanout_probe {
     use crate::load_sr1cs;
     #[test]
     fn detect_b0() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         for (name, fb) in [("inst0", 17148usize), ("inst1", 29778usize)] {

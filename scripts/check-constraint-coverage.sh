@@ -28,7 +28,11 @@ sha256_file() {
 
 select_circuits() {
   if [[ "$#" -eq 0 ]]; then
-    printf '%s\n' consolidate2x1 transfer
+    if [[ "$require_full_deployed" -eq 1 ]]; then
+      printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8
+      return
+    fi
+    printf '%s\n' note_reshape2x1 transfer
     return
   fi
   while [[ "$#" -gt 0 ]]; do
@@ -37,8 +41,14 @@ select_circuits() {
         shift
         [[ "$#" -gt 0 ]] || fail "--circuit requires an argument"
         case "$1" in
-          all) printf '%s\n' consolidate2x1 transfer ;;
-          consolidate2x1|transfer) printf '%s\n' "$1" ;;
+          all)
+            if [[ "$require_full_deployed" -eq 1 ]]; then
+              printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8
+            else
+              printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
+            fi
+            ;;
+          note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer) printf '%s\n' "$1" ;;
           *) fail "unsupported circuit $1" ;;
         esac
         ;;
@@ -47,9 +57,13 @@ select_circuits() {
       --check-typed-bindings)
         ;;
       all)
-        printf '%s\n' consolidate2x1 transfer
+        if [[ "$require_full_deployed" -eq 1 ]]; then
+          printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8
+        else
+          printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
+        fi
         ;;
-      consolidate2x1|transfer)
+      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer)
         printf '%s\n' "$1"
         ;;
       *)
@@ -156,10 +170,11 @@ check_typed_contract_theorems() {
     sort -u "$imports_file" -o "$imports_file"
   fi
 
-  if [[ -s "$imports_file" ]]; then
-    xargs lake build < "$imports_file" >/dev/null \
-      || fail "one or more deployed contract modules do not build for $circuit"
-  fi
+  while IFS= read -r module_import; do
+    [[ -z "$module_import" ]] && continue
+    lake build "$module_import" >/dev/null \
+      || fail "deployed contract module does not build for $circuit: $module_import"
+  done < "$imports_file"
 
   {
     echo "import ShielddGnarkFormal"
@@ -207,7 +222,7 @@ check_generated_contracts() {
   # committed counterpart mean the deployed layer is incomplete; that is
   # allowed only when the tier permits pending obligations (stamps tier),
   # exactly as pending obligations are treated below, and fatal under
-  # --require-full-deployed. This keeps a complete set (consolidate2x1) at full
+  # --require-full-deployed. This keeps a complete set (note_reshape2x1) at full
   # equality while letting an in-progress set (transfer) stay gated and honest.
   local orphans missing
   orphans="$(comm -23 "$committed_list" "$generated_list")"
@@ -218,7 +233,7 @@ check_generated_contracts() {
   fi
 
   missing="$(comm -13 "$committed_list" "$generated_list")"
-  if [[ -n "$missing" && ( "$require_full_deployed" -eq 1 || "$circuit" == "consolidate2x1" ) ]]; then
+  if [[ -n "$missing" && ( "$require_full_deployed" -eq 1 || "$circuit" == "note_reshape2x1" ) ]]; then
     printf '%s\n' "$missing" \
       | sed 's/^/Generated contract with no committed counterpart: /' >&2
     fail "generated deployed contract set incomplete for $circuit"
@@ -231,6 +246,37 @@ check_generated_contracts() {
       fail "generated deployed contract drifted for $circuit: $contract_file"
     fi
   done < "$committed_list"
+}
+
+check_generated_templates() {
+  local committed_root="$1" generated_root="$2"
+  local layer committed_list generated_list template_file
+  for layer in Generated Relations; do
+    committed_list="$tmp_dir/template-$layer-committed.txt"
+    generated_list="$tmp_dir/template-$layer-generated.txt"
+    [[ -d "$committed_root/$layer" ]] \
+      || fail "missing committed normalized template $layer dir"
+    [[ -d "$generated_root/$layer" ]] \
+      || fail "missing generated normalized template $layer dir"
+    (
+      cd "$committed_root/$layer"
+      find . -type f -name '*.lean' | sed 's#^\./##' | sort
+    ) > "$committed_list"
+    (
+      cd "$generated_root/$layer"
+      find . -type f -name '*.lean' | sed 's#^\./##' | sort
+    ) > "$generated_list"
+    if ! cmp -s "$committed_list" "$generated_list"; then
+      diff -u "$committed_list" "$generated_list" >&2 || true
+      fail "generated normalized template $layer set differs"
+    fi
+    while IFS= read -r template_file; do
+      [[ -z "$template_file" ]] && continue
+      cmp -s "$committed_root/$layer/$template_file" \
+        "$generated_root/$layer/$template_file" \
+        || fail "generated normalized template $layer drifted: $template_file"
+    done < "$committed_list"
+  done
 }
 
 check_generated_adapter_family() {
@@ -274,7 +320,10 @@ check_generated_adapter_family() {
 
 coverage_manifest_for_circuit() {
   case "$1" in
-    consolidate2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-coverage-manifest.json" ;;
+    note_reshape2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-coverage-manifest.json" ;;
+    note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-coverage-manifest.json" ;;
+    note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-coverage-manifest.json" ;;
+    note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-coverage-manifest.json" ;;
     transfer) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/transfer-coverage-manifest.json" ;;
     *) fail "unsupported circuit $1" ;;
   esac
@@ -282,7 +331,10 @@ coverage_manifest_for_circuit() {
 
 coverage_ir_for_circuit() {
   case "$1" in
-    consolidate2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-deployed-slice-ir.json" ;;
+    note_reshape2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-deployed-slice-ir.json" ;;
+    note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-deployed-slice-ir.json" ;;
+    note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-deployed-slice-ir.json" ;;
+    note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-deployed-slice-ir.json" ;;
     transfer) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/transfer-deployed-slice-ir.json" ;;
     *) fail "unsupported circuit $1" ;;
   esac
@@ -290,7 +342,10 @@ coverage_ir_for_circuit() {
 
 contract_module_dir_for_circuit() {
   case "$1" in
-    consolidate2x1) printf '%s\n' Consolidate2x1 ;;
+    note_reshape2x1) printf '%s\n' NoteReshape2x1 ;;
+    note_reshape4x1) printf '%s\n' NoteReshape4x1 ;;
+    note_reshape8x1) printf '%s\n' NoteReshape8x1 ;;
+    note_reshape1x8) printf '%s\n' NoteReshape1x8 ;;
     transfer) printf '%s\n' Transfer ;;
     *) fail "unsupported circuit $1" ;;
   esac
@@ -298,7 +353,10 @@ contract_module_dir_for_circuit() {
 
 artifact_dir_for_circuit() {
   case "$1" in
-    consolidate2x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/consolidate2x1" ;;
+    note_reshape2x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape2x1" ;;
+    note_reshape4x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape4x1" ;;
+    note_reshape8x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape8x1" ;;
+    note_reshape1x8) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape1x8" ;;
     transfer) printf '%s\n' "$ROOT/tools/gnark/artifacts/transfer" ;;
     *) fail "unsupported circuit $1" ;;
   esac
@@ -306,7 +364,10 @@ artifact_dir_for_circuit() {
 
 formal_report_for_circuit() {
   case "$1" in
-    consolidate2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-constraint-coverage-report.json" ;;
+    note_reshape2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-constraint-coverage-report.json" ;;
+    note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-constraint-coverage-report.json" ;;
+    note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-constraint-coverage-report.json" ;;
+    note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-constraint-coverage-report.json" ;;
     transfer) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/transfer-constraint-coverage-report.json" ;;
     *) fail "unsupported circuit $1" ;;
   esac
@@ -319,8 +380,28 @@ else
 fi
 [[ -n "$selected_circuits" ]] || fail "no circuits selected"
 
+# The normalized-template inventory spans the four NoteReshape deployments,
+# even when this invocation selects only one deployed circuit. Keep it in the
+# full tier so a complete obligation check cannot silently use stale seating or
+# omit a family from the reusable-template review.
+if [[ "$require_full_deployed" -eq 1 ]]; then
+  "$ROOT/scripts/check-template-inventory.sh" \
+    || fail "normalized template inventory is stale or incomplete"
+  python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_template_semantics.py" --check \
+    || fail "generated normalized-template semantic providers drifted"
+  if rg -n 'spec := relation|fun _ h => h' \
+    "$lean_src_dir/ShielddGnarkFormal/Deployed/Templates/Generated" \
+    "$lean_src_dir/ShielddGnarkFormal/Deployed/Templates/Semantics" \
+    "$lean_src_dir/ShielddGnarkFormal/Deployed/Contracts/NoteReshape4x1/Bounds.lean" \
+    "$lean_src_dir/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/Bounds.lean" \
+    "$lean_src_dir/ShielddGnarkFormal/Deployed/Contracts/NoteReshape1x8/Bounds.lean"; then
+    fail "identity semantic proof found in the NoteReshape deployed proof chain"
+  fi
+fi
+
 tmp_dir="$(mktemp -d)"
 trap 'if [[ -z "${KEEP_TMP:-}" ]]; then rm -rf "$tmp_dir"; fi' EXIT
+tmp_template_root="$tmp_dir/templates"
 
 # Lean's generated deployed modules are large enough to OOM this machine when
 # Lake fans out. Every optional Lake invocation in this gate inherits one
@@ -340,6 +421,36 @@ cd "$lean_src_dir"
 # checks are requested; the Rust-only default touches no `lake` target.
 if [[ "$run_lean_theorem_checks" -eq 1 ]]; then
   lake exe cache get >/dev/null 2>&1 || true
+fi
+
+# Template reuse is a four-family invariant, not a property of whichever one
+# deployment happened to be selected on the command line. Regenerate the
+# complete union before checking exact Generated/Relations bytes.
+if [[ "$require_full_deployed" -eq 1 ]]; then
+  for template_circuit in \
+    note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
+    template_artifact_dir="$(artifact_dir_for_circuit "$template_circuit")"
+    template_extra_args=()
+    if [[ "$template_circuit" == "note_reshape2x1" ]]; then
+      template_extra_args=(
+        --lt-seating-out "$tmp_dir/note_reshape2x1-dtk-lt-seating.json"
+      )
+    fi
+    (
+      cd "$ROOT"
+      cargo run -q -p shieldd-constraint-coverage -- \
+        --manifest "$template_artifact_dir/$template_circuit-manifest.json" \
+        --sr1cs "$template_artifact_dir/$template_circuit.sr1cs" \
+        --lean-template-out "$tmp_template_root" \
+        "${template_extra_args[@]}"
+    )
+  done
+  canonical_lt_seating="$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-dtk-lt-seating.json"
+  canonical_lt_seating_sha="$canonical_lt_seating.sha256"
+  cmp -s "$tmp_dir/note_reshape2x1-dtk-lt-seating.json" "$canonical_lt_seating" \
+    || fail "canonical parity-gated DTK LT seating artifact drifted"
+  [[ "$(sha256_file "$canonical_lt_seating")" == "$(tr -d '[:space:]' < "$canonical_lt_seating_sha")" ]] \
+    || fail "canonical parity-gated DTK LT seating digest sidecar drifted"
 fi
 
 while IFS= read -r circuit; do
@@ -396,17 +507,18 @@ while IFS= read -r circuit; do
     fail "deployed coverage manifest is not the normalized fresh IR projection for $circuit"
   fi
   if [[ -d "$committed_contract_dir" ]]; then
+    contract_generation_args=(--lean-contract-out "$tmp_contract_root")
     (
       cd "$ROOT"
       cargo run -q -p shieldd-constraint-coverage -- \
         --manifest "$manifest" \
         --sr1cs "$sr1cs" \
-        --lean-contract-out "$tmp_contract_root"
+        "${contract_generation_args[@]}"
     )
     check_generated_contracts "$committed_contract_dir" "$tmp_contract_dir" "$circuit"
     contracts_checked=1
   fi
-  if [[ "$circuit" == "consolidate2x1" ]]; then
+  if [[ "$circuit" == "note_reshape2x1" ]]; then
     python3 "$ROOT/tools/gnark/lean/gen/gen_wiring.py" \
       --ir "$tmp_ir" \
       --out "$committed_contract_dir/Wiring.lean" \
@@ -432,7 +544,7 @@ while IFS= read -r circuit; do
     python3 "$ROOT/tools/gnark/lean/gen/gen_nb_slice.py" \
       --adapter-out "$tmp_adapter_dir" \
       || fail "failed to regenerate deployed net-balance adapter family for $circuit"
-    python3 "$ROOT/tools/gnark/lean/gen/gen_consolidate_compress_adapters.py" \
+    python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape2x1_compress_adapters.py" \
       --adapter-out "$tmp_adapter_dir" \
       || fail "failed to regenerate deployed compress adapter family for $circuit"
     check_generated_adapter_family \
@@ -455,6 +567,14 @@ while IFS= read -r circuit; do
       diff -u "$committed_contract_dir/Statement.lean" "$tmp_statement" >&2 || true
       fail "generated protocol statement drift for $circuit"
     fi
+  elif [[ "$circuit" == "note_reshape4x1" || "$circuit" == "note_reshape8x1" || "$circuit" == "note_reshape1x8" ]]; then
+    python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_family.py" \
+      --ir "$tmp_ir" \
+      --manifest "$tmp_coverage_manifest" \
+      --out-dir "$committed_contract_dir" \
+      --manifest-out "$coverage_manifest" \
+      --check \
+      || fail "generated family proof artifacts drift for $circuit"
   fi
   if ! cmp -s "$tmp_report" "$report"; then
     diff -u "$report" "$tmp_report" >&2 || true
@@ -535,5 +655,11 @@ while IFS= read -r circuit; do
     check_bridge_theorems "$report" "$circuit"
   fi
 done < <(printf '%s\n' "$selected_circuits")
+
+if [[ "$require_full_deployed" -eq 1 ]]; then
+  check_generated_templates \
+    "$lean_src_dir/ShielddGnarkFormal/Deployed/Templates" \
+    "$tmp_template_root"
+fi
 
 echo "constraint coverage ok: circuits=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"

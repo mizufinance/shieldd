@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-const noteReshapeManifestSHA256 = "51a6c52e7e2c2d3998e76ef1e78b2af7cdaaf5b522a14e029e7e35bd5bcad22e"
+const noteReshapeManifestSHA256 = "5371b82b2f2aa6ce64b830b2a6d778540c29ca246aec12cbdc79fde0d2d4b235"
 
 type noteReshapeManifest struct {
 	Schema   string                      `json:"schema"`
@@ -22,6 +22,7 @@ type noteReshapeManifestFamily struct {
 	ID             uint32 `json:"id"`
 	Label          string `json:"label"`
 	ArtifactName   string `json:"artifact_name"`
+	UsesDummySlots bool   `json:"uses_dummy_slots"`
 	NIn            int    `json:"n_in"`
 	NOut           int    `json:"n_out"`
 	MinRealInputs  int    `json:"min_real_inputs"`
@@ -58,6 +59,7 @@ func TestNoteReshapeGeneratedRegistryMatchesManifest(t *testing.T) {
 			ID:             family.ID,
 			Label:          family.Label,
 			ArtifactName:   family.ArtifactName,
+			UsesDummySlots: family.UsesDummySlots,
 			NIn:            family.NIn,
 			NOut:           family.NOut,
 			MinRealInputs:  family.MinRealInputs,

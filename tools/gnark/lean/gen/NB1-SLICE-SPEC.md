@@ -1,7 +1,7 @@
 # NB-1 conservation net-balance slice spec (frontier, Wave 2 Phase 3)
 
 Governs the `gen_nb_slice.py` redesign for segment
-`decaf.conservation_net_balance_commitment` (consolidate2x1 seg 46 post-batch,
+`decaf.conservation_net_balance_commitment` (note_reshape2x1 seg 46 post-batch,
 2,193 rows, manifest bridge `Shieldd.GnarkFormal.
 ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound`).
 Go ground truth: `computeConservationNetBalanceCommitment`
@@ -56,7 +56,7 @@ homomorphic cancellation).
 - The 3 booleanity runs and the ladder's own `ToBinary(blinding, 251)`
   booleanity run look alike — disambiguate by run length (128 vs 251) and by
   the recomposition row's target wire role, not by position alone.
-- consolidate8x1 has 9 amount blocks (8 in + 1 out) — parameterize block
+- note_reshape8x1 has 9 amount blocks (8 in + 1 out) — parameterize block
   count from the manifest INSTANCES/args, don't hard-code 3. (8x1 has no Lean
   stack today; the generator just must not crash on it if pointed there.)
 - The old `decaf.net_balance_commitment@72fe…` class is GONE from the

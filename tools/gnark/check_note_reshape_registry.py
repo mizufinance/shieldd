@@ -41,6 +41,15 @@ def main() -> None:
         ROOT / "crates/crypto/proof-aggregation/src/backend.rs"
     ).read_text()
 
+    require(
+        core,
+        '#[serde(try_from = "u32", into = "u32")]',
+        "domain registry",
+    )
+    require(core, "pub struct NoteReshapeFamilyId(u32);", "domain registry")
+    if "pub struct NoteReshapeFamilyId(pub u32);" in core:
+        raise SystemExit("domain registry exposes unchecked NoteReshape family ids")
+
     for family in families:
         for low, high, capacity, label in [
             (family["min_real_inputs"], family["max_real_inputs"], family["n_in"], "input"),
@@ -52,9 +61,11 @@ def main() -> None:
         require(
             go,
             "{ID: %(id)d, Label: \"%(label)s\", ArtifactName: \"%(artifact_name)s\", "
+            "UsesDummySlots: %(uses_dummy_slots)s, "
             "NIn: %(n_in)d, NOut: %(n_out)d, MinRealInputs: %(min_real_inputs)d, "
             "MaxRealInputs: %(max_real_inputs)d, MinRealOutputs: %(min_real_outputs)d, "
-            "MaxRealOutputs: %(max_real_outputs)d}" % family,
+            "MaxRealOutputs: %(max_real_outputs)d}"
+            % (family | {"uses_dummy_slots": str(family["uses_dummy_slots"]).lower()}),
             "Go registry",
         )
 
@@ -64,6 +75,7 @@ def main() -> None:
             [
                 f'        label: "{family["label"]}",',
                 f'        artifact_name: "{family["artifact_name"]}",',
+                f'        uses_dummy_slots: {str(family["uses_dummy_slots"]).lower()},',
                 f'        n_in: {family["n_in"]},',
                 f'        n_out: {family["n_out"]},',
                 f'        min_real_inputs: {family["min_real_inputs"]},',

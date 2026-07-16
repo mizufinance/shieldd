@@ -1,0 +1,13 @@
+{
+  "curve": "bls12-377",
+  "circuit": "note_reshape4x1",
+  "compile_ms": 858.295959,
+  "setup_ms": 3889.008875,
+  "proving_key_size_bytes": 26038181,
+  "verifying_key_size_bytes": 540,
+  "nb_constraints": 102635,
+  "nb_public_variables": 2,
+  "nb_secret_variables": 380,
+  "proving_key_sha256_hex": "058696244c3464301cf1bd5f66c24139f54b6edfe819f79dd44dd24c8529f713",
+  "verifying_key_sha256_hex": "c387909b1934e5d922020d8e50e2e8f51ecd8676fab6d4a2479fb0df0b457b09"
+}

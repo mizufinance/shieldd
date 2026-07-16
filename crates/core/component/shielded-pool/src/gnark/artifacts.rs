@@ -184,11 +184,11 @@ mod statement_parity_tests {
 
     /// All committed gnark families (one artifact dir each under tools/gnark/artifacts).
     const FAMILIES: &[&str] = &[
-        "consolidate2x1",
-        "consolidate4x1",
-        "consolidate8x1",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1",
         "shielded_ics20_withdrawal",
-        "split1x8",
+        "note_reshape1x8",
         "transfer",
     ];
 

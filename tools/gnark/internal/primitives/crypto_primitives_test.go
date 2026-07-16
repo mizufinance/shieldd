@@ -312,7 +312,7 @@ func TestNoteCommitmentDerivationMatchesShielddVectors(t *testing.T) {
 // anchor, output note commitment, balance commitment Fq, then per-input
 // nullifier+rk) and fed through the production NoteReshapeStatementHashForShape
 // gadget. The asserted hash is the Rust reference (real poseidon377::hash_7 over
-// the consolidate2x1 domain) baked into phase05_vectors.json. Any wire-order,
+// the note_reshape2x1 domain) baked into phase05_vectors.json. Any wire-order,
 // endianness, domain, or padding drift between the Rust statement serialization
 // and the gnark gadget fails this test.
 type noteReshapeStatementSeamCircuit struct {
@@ -338,7 +338,7 @@ func (c *noteReshapeStatementSeamCircuit) Define(api frontend.API) error {
 		c.Nullifier1,
 		c.RK1,
 	}
-	h, err := NoteReshapeStatementHashForShape(api, "consolidate2x1", 2, 1, fields)
+	h, err := NoteReshapeStatementHashForShape(api, "note_reshape2x1", 2, 1, fields)
 	if err != nil {
 		return err
 	}
@@ -352,7 +352,7 @@ func TestNoteReshape2x1StatementSeamMatchesShielddVectors(t *testing.T) {
 		t.Fatalf("load vectors: %v", err)
 	}
 	fx := vectors.NoteReshape2x1Stmt
-	if got, want := fx.Label, "consolidate2x1"; got != want {
+	if got, want := fx.Label, "note_reshape2x1"; got != want {
 		t.Fatalf("statement label mismatch: got %q want %q", got, want)
 	}
 	if got, want := len(fx.Fields), 7; got != want {

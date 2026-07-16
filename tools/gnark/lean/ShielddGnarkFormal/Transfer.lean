@@ -21,7 +21,7 @@ set_option linter.unusedSectionVars false
 
 /-! Compose-in-Lean model for the checked-in `transfer` Define flow.
 
-The theorem follows the same boundary as `Consolidate2x1`: Go emits a wiring
+The theorem follows the same boundary as `NoteReshape2x1`: Go emits a wiring
 transcript for the Define call graph, and this file composes the gadget-level
 bridges into a closed functional statement for that call graph. -/
 

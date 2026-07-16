@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deployed state-commitment-path adapters for consolidate2x1 segs 13/29.
+"""Generate deployed state-commitment-path adapters for note_reshape2x1 segs 13/29.
 
 Each seg is one 9015-row Merkle slice: leaf Poseidon1 (rows 0-229), 48-bit
 position decomposition (230-277) + recompose (278), then 24 levels of
@@ -32,7 +32,7 @@ import gen_dtk_slice as dtk
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMAL = ROOT / "ShielddGnarkFormal"
-CONTRACTS = FORMAL / "Deployed/Contracts/Consolidate2x1"
+CONTRACTS = FORMAL / "Deployed/Contracts/NoteReshape2x1"
 EXTRACTED = FORMAL / "Extracted/Deployed"
 HERE = Path(__file__).resolve().parent
 
@@ -42,7 +42,7 @@ BOOL_BASE_ROW, BOOL_COUNT, RECOMP_ROW = 230, 48, 278
 SEL_I_OFFS = (0, 1, 2, 3)
 SEL_T_OFFS = (5, 6, 8, 9, 11, 13)
 
-CTX = "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1"
+CTX = "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1"
 SCP = "Shieldd.GnarkFormal.Deployed.StateCommitmentPath"
 P4 = "Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4"
 P1 = "Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1"
@@ -274,7 +274,7 @@ def emit_node_helpers(inst: Instance, k: int, chunk: int) -> str:
     first = chunk * NODE_HELPER_CHUNK_SIZE
     last = min(first + NODE_HELPER_CHUNK_SIZE, NODE_SEGMENTS)
     lines = header([
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Base",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Base",
         f"import ShielddGnarkFormal.Extracted.Deployed.{stem}",
     ])
     for segment in range(first, last):
@@ -314,7 +314,7 @@ def node_relation_proof(inst: Instance, k: int) -> str:
 
 def emit_base(inst: Instance) -> str:
     lines = header([
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{inst.seg}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg{inst.seg}",
         "import ShielddGnarkFormal.Deployed.PrimeOrder",
     ])
     lines += [
@@ -341,7 +341,7 @@ def emit_leaf(inst: Instance) -> str:
     ns = "Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf"
     mod = f"Shieldd.GnarkFormal.Extracted.Deployed.{LEAF_STEM}"
     lines = header([
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Base",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Base",
         "import ShielddGnarkFormal.Deployed.StateCommitmentPathLeaf.SemanticBridge",
         "import ShielddGnarkFormal.Deployed.StateCommitmentPath.Projection",
     ])
@@ -397,9 +397,9 @@ def emit_node(inst: Instance, k: int) -> str:
         + " ∧ ".join(f"o{i} = rho {outs[i]}" for i in range(5))
     )
     lines = header([
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Base",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Base",
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Node{k}Rows{chunk}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Node{k}Rows{chunk}"
             for chunk in range((NODE_SEGMENTS + NODE_HELPER_CHUNK_SIZE - 1) // NODE_HELPER_CHUNK_SIZE)
         ],
         f"import ShielddGnarkFormal.Deployed.StateCommitmentPathNode{k}.SemanticBridge",
@@ -443,7 +443,7 @@ def emit_step(inst: Instance, k: int) -> str:
     ht_rows = [base + off for off in SEL_T_OFFS]
     cur_needed = {ht_rows[0], ht_rows[2], ht_rows[4], ht_rows[5]}
     lines = header([
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Node{k}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Node{k}",
     ])
     lines += [
         f"theorem seg{inst.seg}_scp_step{k} (rho : Nat -> {inst.f}) (h : Seg{inst.seg}.relation rho) :",
@@ -479,7 +479,7 @@ def emit_step(inst: Instance, k: int) -> str:
 
 def emit_bits(inst: Instance) -> str:
     lines = header([
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Base",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Base",
     ])
     lines += [
         f"theorem seg{inst.seg}_scp_bits_bool (rho : Nat -> {inst.f}) (h : Seg{inst.seg}.relation rho) :",
@@ -518,12 +518,12 @@ def emit_bits(inst: Instance) -> str:
 
 def emit_steps_facade(inst: Instance) -> str:
     return "\n".join(header([
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Leaf",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Leaf",
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Step{k}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Step{k}"
             for k in range(LEVELS)
         ],
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Bits",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Bits",
     ]) + footer())
 
 
@@ -551,7 +551,7 @@ def root_lc(inst: Instance, ftype: str) -> str:
 
 def emit_head(inst: Instance) -> str:
     lines = header([
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg{inst.seg}Steps",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg{inst.seg}Steps",
     ])
     lines += [
         f"theorem seg{inst.seg}_sound (rho : Nat -> {inst.f}) (h : Seg{inst.seg}.relation rho) :",

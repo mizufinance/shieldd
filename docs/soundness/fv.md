@@ -2,12 +2,15 @@
 
 ## Guarantee
 
-The `consolidate2x1` FV path proves specifications of the exact deployed R1CS
-segments over one global wire valuation, composes every discharged segment, and
-projects the result into a protocol-readable statement. It covers the shared
-note owner/key material, note commitments, nullifiers, two depth-24 state paths,
-spend authorization keys, the output note, exact value conservation, the net
-balance commitment, and the public statement hash.
+The maintained NoteReshape FV paths prove specifications of the exact deployed
+R1CS segments over one global wire valuation for `note_reshape2x1`,
+`note_reshape4x1`, `note_reshape8x1`, and `note_reshape1x8`. Each path composes every
+discharged segment and projects the result into a protocol-readable family
+Statement. Every shape covers its active notes' owner/key material, note
+commitments, nullifiers, depth-24 state paths, spend authorization keys,
+outputs, exact value conservation, net balance commitment, and public
+statement hash. Padded shapes additionally prove their active-range,
+dummy-suffix, and deterministic dummy-note obligations.
 
 The protocol theorem intentionally reflects the optimized circuit:
 
@@ -18,9 +21,9 @@ The protocol theorem intentionally reflects the optimized circuit:
   every note is bound to that result;
 - the 253-bit IVK decomposition proves the unused high bits are zero before the
   251-bit scalar ladder is used;
-- all three amounts are 128-bit, their two-input/one-output sum is conserved,
-  and the conservation net-balance commitment is the fixed blinding-generator
-  multiplication compressed into the statement;
+- every active input and output amount is 128-bit, the sum of active inputs
+  equals the sum of active outputs, and the conservation net-balance commitment
+  is the fixed blinding-generator multiplication compressed into the statement;
 - each randomized verification key is tied to the authorization key and
   randomizer, not merely asserted to be on curve.
 
@@ -38,18 +41,15 @@ Go Define source
   -> typed slice IR and normalized coverage manifest
   -> exact generated row contracts
   -> generated named Wiring and exhaustive Capstone
-  -> generated 43-fact protocol role map and Statement theorem
+  -> generated family role map and Statement theorem
   -> deployed PK/VK pins and a deployed-key prove/verify round trip
 ```
 
 No handwritten circuit replica participates in this chain. Changing Go source,
 rows, segment boundaries, operation labels, wire roles, proof-class status,
 theorem names, named wiring, capstone membership, Statement membership, key
-bytes, or generated output makes a gate fail. The gate regenerates and
-byte-compares the 617 DTK adapters, 942 RVK adapters, 442 SCP adapters, and the
-Statement's exact 43 semantic plus 11 structural segment partition. Generated
-Lean must be fixed through its generator and then regenerated; never edit it
-directly.
+bytes, or generated output makes a gate fail. Generated Lean must be fixed
+through its generator and then regenerated; never edit it directly.
 
 Lean's theorem starts from the conjunction of exact deployed segment relations.
 The Rust coverage gate is the checked bridge establishing that those relations
@@ -60,11 +60,14 @@ part of the proof claim, not optional bookkeeping.
 
 Authoritative evidence lives at:
 
-- `tools/gnark/artifacts/consolidate2x1/` — deployed SR1CS, metadata, PK, VK;
-- `crates/core/component/shielded-pool/formal/` — coverage reports and stamped
-  whole-circuit artifacts;
-- `tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1/` —
-  generated contracts, specs, adapters, capstone, wiring, and statement;
+- `tools/gnark/artifacts/{note_reshape2x1,note_reshape4x1,note_reshape8x1,note_reshape1x8}/`
+  — deployed SR1CS, metadata, PK, and VK;
+- `crates/core/component/shielded-pool/formal/` — coverage reports, normalized
+  manifests, and stamped whole-circuit artifacts;
+- `tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/` — generated family
+  bounds, capstones, wiring, and Statements;
+- `tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/` — exact normalized
+  template relations and their reusable semantic providers;
 - `crates/core/component/compliance/formal/assumption-ledger.md` — named
   assumptions and removal paths.
 
@@ -74,8 +77,9 @@ cryptographic assumptions recorded in the ledger, and the surrounding Decaf377
 representation bridges. The BLS12-377 scalar-field modulus itself is proved
 prime by a kernel-checked Lucas certificate. The gate forbids project axioms and
 compiler-backed certificate shortcuts, then requires the certificate, deployed
-capstone, and readable statement to expose exactly `propext`,
-`Classical.choice`, and `Quot.sound`. Protocol handlers and
+capstones, and readable Statements to expose their reviewed axiom baselines.
+Each deployed Statement's exact standard-axiom baseline is recorded in its
+stamped artifact and checked by the gate. Protocol handlers and
 accepted-language/state-machine claims remain separate evidence.
 
 ## Editing workflow
@@ -104,9 +108,9 @@ deliberate bulk regeneration is reviewed. The complete local rules are in
 Useful commands:
 
 ```sh
-scripts/check-manifest-pin.sh consolidate2x1
-scripts/check-constraint-coverage.sh --lean-theorem-checks consolidate2x1
-LEAN_NUM_THREADS=1 scripts/check-lean-circuit-fv.sh stamps --circuit consolidate2x1
-LEAN_NUM_THREADS=1 scripts/check-lean-circuit-fv.sh full --circuit consolidate2x1
-scripts/check-vk-derivation.sh consolidate2x1 --prove
+scripts/check-manifest-pin.sh all
+scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
+LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh stamps all
+LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh full all
+bash scripts/check-soundness-invariants.sh
 ```

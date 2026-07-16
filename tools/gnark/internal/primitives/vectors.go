@@ -113,7 +113,7 @@ type PrototypeVectors struct {
 	Decaf377Compress       []DecafCompressVector       `json:"decaf377_compress_vectors"`
 	Decaf377Encode         []DecafEncodeVector         `json:"decaf377_encode_vectors"`
 	DleqFixture            DLEQFixture                 `json:"dleq_fixture"`
-	NoteReshape2x1Stmt     NoteReshapeStatementFixture `json:"consolidate2x1_statement"`
+	NoteReshape2x1Stmt     NoteReshapeStatementFixture `json:"note_reshape2x1_statement"`
 }
 
 type SpendPublicFixture struct {

@@ -17,7 +17,7 @@ limits at the bottom are load-bearing, not polish. Process and trust boundary:
   `exact`/`rfl` kernel defeq, never `simp`/`unfold` — simp generates the
   match-splitter equations (this alone once cost 769 MB oleans / 22 GB RSS).
 - Never hand-edit a `.lean` file with a GENERATED header — fix the generator
-  in `tools/gnark/lean/gen/` and regenerate. In the consolidate deployed path,
+  in `tools/gnark/lean/gen/` and regenerate. In the NoteReshape deployed path,
   `Wiring.lean`, `Capstone.lean`, segment contracts, and generated adapters are
   generated; `Specs/`, `Statement.lean`, and small generic proof substrates are
   hand-authored unless their header says otherwise.

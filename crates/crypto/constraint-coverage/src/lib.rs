@@ -106,8 +106,30 @@ pub enum CoverageError {
         bound: usize,
         wires: Vec<usize>,
     },
-    #[error("consolidate2x1 lt-ladder recovery/parity gate failed: {0}")]
+    #[error("note_reshape2x1 lt-ladder recovery/parity gate failed: {0}")]
     LtLadderParity(String),
+    #[error("normalized seating is invalid: {message}")]
+    NormalizedSeating { message: String },
+    #[error(
+        "normalized relation reconstruction mismatch for segment {segment_index} ({op}), row {row}: expected {expected}, reconstructed {reconstructed}"
+    )]
+    NormalizedReconstructionMismatch {
+        segment_index: usize,
+        op: String,
+        row: usize,
+        expected: String,
+        reconstructed: String,
+    },
+    #[error(
+        "normalized metadata mismatch for segment {segment_index} ({op}), {field}: expected {expected}, actual {actual}"
+    )]
+    NormalizedMetadataMismatch {
+        segment_index: usize,
+        op: String,
+        field: &'static str,
+        expected: String,
+        actual: String,
+    },
 }
 
 #[derive(Debug, Deserialize)]

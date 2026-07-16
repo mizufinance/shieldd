@@ -31,13 +31,13 @@ func LoadTransferWitnessV1(label string) []byte {
 
 func LoadNoteReshapeWitnessV1(label string) []byte {
 	switch label {
-	case "consolidate2x1":
+	case "note_reshape2x1":
 		return append([]byte(nil), embeddedNoteReshape2x1WitnessV1...)
-	case "split1x8":
+	case "note_reshape1x8":
 		return append([]byte(nil), embeddedNoteReshape1x8WitnessV1...)
-	case "consolidate4x1":
+	case "note_reshape4x1":
 		return append([]byte(nil), embeddedNoteReshape4x1WitnessV1...)
-	case "consolidate8x1":
+	case "note_reshape8x1":
 		return append([]byte(nil), embeddedNoteReshape8x1WitnessV1...)
 	default:
 		panic("unknown note reshape witness label: " + label)

@@ -46,6 +46,10 @@ struct Args {
     /// `ShielddGnarkFormal/Deployed/Contracts`.
     #[clap(long)]
     lean_contract_out: Option<PathBuf>,
+    /// Generate one reusable normalized-relation Lean template per template
+    /// key. Instance contracts import these modules and carry only seating.
+    #[clap(long)]
+    lean_template_out: Option<PathBuf>,
     /// Restrict Lean generation to ops whose name contains this substring.
     #[clap(long)]
     lean_only: Option<String>,
@@ -73,7 +77,7 @@ struct Args {
     #[clap(long, default_value_t = 16)]
     ladder_width_limit: usize,
     /// Emit the recovered, parity-gated lt-compare ladder seating (R + Q4
-    /// canonicity chains) for consolidate2x1 as JSON here — the Pass-3 handoff
+    /// canonicity chains) for note_reshape2x1 as JSON here — the Pass-3 handoff
     /// the Lean generator consumes instead of re-deriving the recovery.
     #[clap(long)]
     lt_seating_out: Option<PathBuf>,
@@ -130,6 +134,7 @@ fn main() -> anyhow::Result<()> {
         || args.coverage_manifest_out.is_some()
         || args.lean_out.is_some()
         || args.lean_contract_out.is_some()
+        || args.lean_template_out.is_some()
         || args.lean_seg_out.is_some()
         || args.lean_slice_seg_out.is_some()
     {
@@ -171,6 +176,23 @@ fn main() -> anyhow::Result<()> {
             for f in &files {
                 write_out(&dir.join(&f.file_name), f.contents.clone().into_bytes())?;
                 eprintln!("generated contract {} ({})", f.file_name, f.module);
+            }
+        }
+        if let Some(dir) = &args.lean_template_out {
+            let mut write_error = None;
+            contracts::visit_templates(&ir, &sr1cs, |f| {
+                if write_error.is_some() {
+                    return;
+                }
+                if let Err(error) = write_out(&dir.join(&f.file_name), f.contents.into_bytes()) {
+                    write_error = Some(error);
+                } else {
+                    eprintln!("generated template {} ({})", f.file_name, f.module);
+                }
+            })
+            .context("generate normalized deployed Lean templates")?;
+            if let Some(error) = write_error {
+                return Err(error);
             }
         }
         if let Some(dir) = &args.lean_seg_out {
@@ -219,8 +241,8 @@ fn main() -> anyhow::Result<()> {
 
     if let Some(path) = &args.lt_seating_out {
         anyhow::ensure!(
-            manifest.circuit == "consolidate2x1",
-            "--lt-seating-out only applies to consolidate2x1 (got {:?})",
+            manifest.circuit == "note_reshape2x1",
+            "--lt-seating-out only applies to note_reshape2x1 (got {:?})",
             manifest.circuit
         );
         let rows = parse_rows(&sr1cs).context("parse rows for lt seating")?;
@@ -236,7 +258,7 @@ fn main() -> anyhow::Result<()> {
             .get(dtk_offset..dtk_offset + DTK_ROWS)
             .context("DTK segment slice out of range for lt seating")?;
         let seating =
-            shieldd_constraint_coverage::ltchain::consolidate2x1_lt_seating_json(dtk, dtk_offset)
+            shieldd_constraint_coverage::ltchain::note_reshape2x1_lt_seating_json(dtk, dtk_offset)
                 .map_err(anyhow::Error::msg)
                 .context("recover + gate lt-compare ladders")?;
         let mut data = serde_json::to_vec_pretty(&seating)?;

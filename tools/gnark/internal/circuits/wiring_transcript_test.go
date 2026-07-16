@@ -11,7 +11,7 @@ import (
 )
 
 const expectedNoteReshape2x1WiringTranscript = `schema shieldd.gnark.wiring.v1
-circuit consolidate2x1
+circuit note_reshape2x1
 shape n_in=2 n_out=1
 0001 shared.bind shared.ak=auth.ak claimed.balance_commitment=balance_commitment shared.div_gen=spend0.note.div_gen shared.transmission=spend0.note.transmission shared.asset_id=spend0.note.asset_id
 0002 decaf.assert_on_curve point=claimed.balance_commitment
@@ -65,7 +65,7 @@ shape n_in=2 n_out=1
 0050 statement.append_all fields=output_commitments
 0051 statement.append field=balance_commitment.fq
 0052 statement.append_all fields=nullifiers_and_rks
-0053 statement.hash family=consolidate2x1 fields=statement_fields out=statement_hash
+0053 statement.hash family=note_reshape2x1 fields=statement_fields out=statement_hash
 0054 assert.eq lhs=statement_hash rhs=claimed_statement_hash
 `
 
@@ -75,7 +75,7 @@ func TestNoteReshape2x1WiringTranscriptExact(t *testing.T) {
 		t.Fatalf("export transcript: %v", err)
 	}
 	if got != expectedNoteReshape2x1WiringTranscript {
-		t.Fatalf("unexpected consolidate2x1 wiring transcript:\n%s", got)
+		t.Fatalf("unexpected note_reshape2x1 wiring transcript:\n%s", got)
 	}
 }
 
@@ -154,13 +154,13 @@ func TestNoteReshape2x1WiringTranscriptDetectsSemanticDrift(t *testing.T) {
 }
 
 func TestNoteReshape2x1WiringTranscriptDoesNotChangeConstraintStats(t *testing.T) {
-	untraced, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, NewNoteReshapeCircuit("consolidate2x1", 2, 1))
+	untraced, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, NewNoteReshapeCircuit("note_reshape2x1", 2, 1))
 	if err != nil {
 		t.Fatalf("compile untraced circuit: %v", err)
 	}
 
-	transcript := newWiringTranscript("consolidate2x1", 2, 1)
-	traced, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, noteReshapeCircuitWithTranscript("consolidate2x1", 2, 1, transcript))
+	transcript := newWiringTranscript("note_reshape2x1", 2, 1)
+	traced, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, noteReshapeCircuitWithTranscript("note_reshape2x1", 2, 1, transcript))
 	if err != nil {
 		t.Fatalf("compile traced circuit: %v", err)
 	}

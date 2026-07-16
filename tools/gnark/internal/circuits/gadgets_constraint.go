@@ -119,7 +119,7 @@ func (c *PoseidonHash6Gadget) Define(api frontend.API) error {
 }
 
 // PoseidonHash7Gadget isolates the seven-input Poseidon377 permutation used by
-// consolidate/split statement hashes.
+// NoteReshape statement hashes.
 type PoseidonHash7Gadget struct {
 	Domain frontend.Variable `gnark:",public"`
 	In0    frontend.Variable `gnark:",public"`

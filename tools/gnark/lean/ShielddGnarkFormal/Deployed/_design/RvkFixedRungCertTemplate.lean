@@ -4,7 +4,7 @@ RVK fixed-base per-rung deployed-row certificate — GENERATOR TARGET TEMPLATE.
 This file is the verified emission contract for the `leangen.rs` rvk fixed-base
 rung-certificate generator (Workstream A, step 6). It is design-only (NOT imported
 into `ShielddGnarkFormal.lean`); it pins, against the ACTUAL deployed rows of
-consolidate2x1 inst0, the exact shape every generated `rung_i` theorem must take.
+note_reshape2x1 inst0, the exact shape every generated `rung_i` theorem must take.
 Both theorems below were verified green and axiom-clean
 (`[propext, Classical.choice, Quot.sound]`).
 
@@ -61,7 +61,7 @@ open Shieldd.GnarkFormal.RvkFixedBaseLiteral (L1 C_eq_L1 L2 C_eq_L2)
 
 set_option maxRecDepth 100000
 
-/-! ## Base case — rung 1 (consolidate2x1 inst0, seg100/seg101). -/
+/-! ## Base case — rung 1 (note_reshape2x1 inst0, seg100/seg101). -/
 
 -- Fact-free coefficient bindings: each folded deployed coeff = its symbolic product.
 theorem ea : (7666314259614842119075217875095661764022741596306956002104179288686713480750 : EdwardsBridge.F) = 3021 * 3389385942610507627059167016978655778640740163498436687682704594713126572823 * 4959445789346820725352484487855828915252512307947624787834978378872129235627 := by decide

@@ -5,12 +5,25 @@
 //! The gate exact-compares regenerated files and typechecks discharging theorems
 //! against these contract constants.
 
-use crate::ir::{parse_rows, CircuitIr, Constraint, SegmentIr, Term};
+use crate::ir::{
+    check_reconstruction, normalize_relation, parse_constraint, CircuitIr, Constraint, SegmentIr,
+    Term,
+};
 use crate::{CoverageError, Sr1cs};
 use std::collections::BTreeMap;
 
 pub struct ContractFile {
     pub segment_index: usize,
+    pub module: String,
+    pub file_name: String,
+    pub contents: String,
+}
+
+/// One reusable normalized-relation module.  Instance contracts contain only
+/// seating and exact per-instance pins; the row relation lives here once per
+/// normalized template key.
+pub struct TemplateFile {
+    pub template_key: String,
     pub module: String,
     pub file_name: String,
     pub contents: String,
@@ -34,16 +47,23 @@ fn circuit_module(circuit: &str) -> String {
     out
 }
 
+fn is_padded_note_reshape_family(circuit: &str) -> bool {
+    matches!(
+        circuit,
+        "note_reshape4x1" | "note_reshape8x1" | "note_reshape1x8"
+    )
+}
+
 /// The `Specs` submodule holding a segment's hand-authored endpoint.
 ///
-/// consolidate2x1's specs are split per crypto family (`Specs/Core.lean`,
+/// note_reshape2x1's specs are split per crypto family (`Specs/Core.lean`,
 /// `Specs/Compress.lean`, …) so that touching one family's endpoints does not
 /// re-elaborate contracts/adapters seated on another. Each contract imports the
 /// narrowest family submodule; the `Specs.deployedSpecN` reference still
 /// resolves because every submodule opens the shared `…Specs` namespace.
-/// Non-consolidate circuits keep the monolithic `Specs`.
+/// Other circuits keep the monolithic `Specs`.
 fn spec_submodule(circuit: &str, segment_index: usize) -> &'static str {
-    if circuit_module(circuit) != "Consolidate2x1" {
+    if circuit_module(circuit) != "NoteReshape2x1" {
         return "Specs";
     }
     match segment_index {
@@ -127,7 +147,7 @@ const MIN_RUN: usize = 16;
 const MAX_CONTRACT_HEARTBEATS: u64 = 50_000_000;
 
 /// Split definition payloads before a monolithic contract approaches the
-/// bounded contract tier. Consolidate Seg6 demonstrated that a 1.9 MiB payload
+/// bounded contract tier. NoteReshape2x1 Seg6 demonstrated that a 1.9 MiB payload
 /// can exceed the 180-second limit even though byte size alone looks modest.
 const CONTRACT_SHARD_THRESHOLD_BYTES: usize = 1024 * 1024;
 
@@ -159,7 +179,11 @@ struct StructuredLcRepr {
 /// rows contain `x₀,y₀,x₁,y₁,...`, where both the x and y subsequences have stride
 /// 13. Starting from the smallest remaining wire and choosing its longest run
 /// recovers both subsequences without assuming that run members are adjacent.
-fn extract_stride_runs(coeff: &str, wires: &[usize]) -> (Vec<StrideRun>, Vec<Term>) {
+fn extract_stride_runs(
+    coeff: &str,
+    wires: &[usize],
+    min_run: usize,
+) -> (Vec<StrideRun>, Vec<Term>) {
     let mut remaining = wires.to_vec();
     remaining.sort_unstable();
     let mut runs = Vec::new();
@@ -191,7 +215,7 @@ fn extract_stride_runs(coeff: &str, wires: &[usize]) -> (Vec<StrideRun>, Vec<Ter
                 .copied()
                 .filter(|preferred| *preferred <= count)
                 .unwrap_or(count);
-            if selected_count >= MIN_RUN
+            if selected_count >= min_run
                 && best.map_or(true, |(_, best_count)| selected_count > best_count)
             {
                 best = Some((stride, selected_count));
@@ -229,7 +253,7 @@ fn extract_stride_runs(coeff: &str, wires: &[usize]) -> (Vec<StrideRun>, Vec<Ter
 /// arithmetic-progression runs of length `≥ MIN_RUN`. Returns `None` when no run
 /// qualifies (the LC is then rendered flat, unchanged). Deterministic: coefficient
 /// groups are ordered by `BTreeMap`; runs and residuals are ordered by wire.
-fn structure_lc(terms: &[Term]) -> Option<StructuredLcRepr> {
+fn structure_lc(terms: &[Term], force: bool) -> Option<StructuredLcRepr> {
     let constant: Vec<Term> = terms.iter().filter(|t| t.wire == 0).cloned().collect();
     let mut by_coeff: BTreeMap<String, Vec<usize>> = BTreeMap::new();
     for t in terms.iter().filter(|t| t.wire != 0) {
@@ -239,7 +263,13 @@ fn structure_lc(terms: &[Term]) -> Option<StructuredLcRepr> {
     let mut runs: Vec<StrideRun> = Vec::new();
     let mut residual: Vec<Term> = Vec::new();
     for (coeff, wires) in &by_coeff {
-        let (mut coeff_runs, mut coeff_residual) = extract_stride_runs(coeff, wires);
+        // Normalized RVK rows become expensive before the generic 16-term
+        // source-size threshold. Their semantic provider consumes the same
+        // exact AP as an opaque `sumAux`, so expose runs from eight terms on
+        // that explicitly forced path while leaving every other relation's
+        // extraction policy unchanged.
+        let min_run = if force { 8 } else { MIN_RUN };
+        let (mut coeff_runs, mut coeff_residual) = extract_stride_runs(coeff, wires, min_run);
         runs.append(&mut coeff_runs);
         residual.append(&mut coeff_residual);
     }
@@ -257,7 +287,7 @@ fn structure_lc(terms: &[Term]) -> Option<StructuredLcRepr> {
     // This rejects accidental APs in irregular LT/canonical rows while retaining
     // the long scalar-ladder accumulators that motivated the representation.
     let compact_cost = repr.constant.len() + 4 * repr.runs.len() + repr.residual.len();
-    if compact_cost * 2 >= terms.len() {
+    if !force && compact_cost * 2 >= terms.len() {
         return None;
     }
     // Soundness gate: the compact form must expand back to exactly the original
@@ -332,18 +362,43 @@ fn render_structured_lc(repr: &StructuredLcRepr) -> String {
     )
 }
 
-fn render_lc_factored_with_inline_limit(
+fn render_lc_factored_cached(
     terms: &[Term],
     defs: &mut String,
     next_lc: &mut usize,
     inline_limit: usize,
     structured: bool,
+    force_structured: bool,
+    named_lcs: &mut BTreeMap<Vec<(String, usize)>, String>,
 ) -> String {
     const LC_CHUNK_SIZE: usize = 32;
 
+    let mut cache_key = terms
+        .iter()
+        .map(|term| (term.coeff.clone(), term.wire))
+        .collect::<Vec<_>>();
+    cache_key.sort();
+    if let Some(name) = named_lcs.get(&cache_key) {
+        return format!("{name} rho");
+    }
+
     if structured {
-        if let Some(repr) = structure_lc(terms) {
-            return render_structured_lc(&repr);
+        if let Some(repr) = structure_lc(terms, force_structured) {
+            // Keep wide structured LCs behind a named opaque definition. The
+            // row equation still contains the exact compact representation,
+            // parity-checked by `structure_lc`, while reusable ladder proofs
+            // can treat the accumulator expression as one atom. Inlining the
+            // literal here forces every consumer to restate the StructuredLC
+            // value and makes normalized-template proofs depend on seating.
+            let lc_idx = *next_lc;
+            *next_lc += 1;
+            let name = format!("relationLc{lc_idx}");
+            defs.push_str(&format!(
+                "def {name} (rho : Nat -> F) : F :=\n    {}\n\n",
+                render_structured_lc(&repr)
+            ));
+            named_lcs.insert(cache_key, name.clone());
+            return format!("{name} rho");
         }
     }
 
@@ -368,7 +423,27 @@ fn render_lc_factored_with_inline_limit(
         "def {name} (rho : Nat -> F) : F :=\n    {}\n\n",
         parts.join(" +\n    ")
     ));
+    named_lcs.insert(cache_key, name.clone());
     format!("{name} rho")
+}
+
+#[cfg(test)]
+fn render_lc_factored_with_inline_limit(
+    terms: &[Term],
+    defs: &mut String,
+    next_lc: &mut usize,
+    inline_limit: usize,
+    structured: bool,
+) -> String {
+    render_lc_factored_cached(
+        terms,
+        defs,
+        next_lc,
+        inline_limit,
+        structured,
+        false,
+        &mut BTreeMap::new(),
+    )
 }
 
 #[cfg(test)]
@@ -382,10 +457,36 @@ fn render_row_factored(
     next_lc: &mut usize,
     inline_limit: usize,
     structured: bool,
+    force_structured: bool,
+    named_lcs: &mut BTreeMap<Vec<(String, usize)>, String>,
 ) -> String {
-    let l = render_lc_factored_with_inline_limit(&row.l, defs, next_lc, inline_limit, structured);
-    let r = render_lc_factored_with_inline_limit(&row.r, defs, next_lc, inline_limit, structured);
-    let o = render_lc_factored_with_inline_limit(&row.o, defs, next_lc, inline_limit, structured);
+    let l = render_lc_factored_cached(
+        &row.l,
+        defs,
+        next_lc,
+        inline_limit,
+        structured,
+        force_structured,
+        named_lcs,
+    );
+    let r = render_lc_factored_cached(
+        &row.r,
+        defs,
+        next_lc,
+        inline_limit,
+        structured,
+        force_structured,
+        named_lcs,
+    );
+    let o = render_lc_factored_cached(
+        &row.o,
+        defs,
+        next_lc,
+        inline_limit,
+        structured,
+        force_structured,
+        named_lcs,
+    );
     format!("({l}) * ({r}) = ({o})")
 }
 
@@ -393,6 +494,8 @@ fn render_relation_defs_with_inline_limit(
     rows: &[Constraint],
     inline_limit: usize,
     structured: bool,
+    factor_all_lcs: bool,
+    force_structured: bool,
 ) -> (String, String) {
     const CHUNK_THRESHOLD: usize = 100;
     const SMALL_CHUNK_SIZE: usize = 5;
@@ -402,12 +505,21 @@ fn render_relation_defs_with_inline_limit(
         return (String::new(), render_rows(rows));
     }
 
-    let factor_lc = rows.len() > 1_200;
+    let factor_lc = factor_all_lcs || rows.len() > 1_200;
     let mut defs = String::new();
     let mut next_lc = 0usize;
+    let mut named_lcs = BTreeMap::new();
     for (idx, row) in rows.iter().enumerate() {
         let row_body = if factor_lc {
-            render_row_factored(row, &mut defs, &mut next_lc, inline_limit, structured)
+            render_row_factored(
+                row,
+                &mut defs,
+                &mut next_lc,
+                inline_limit,
+                structured,
+                force_structured,
+                &mut named_lcs,
+            )
         } else {
             render_row(row)
         };
@@ -476,18 +588,353 @@ fn definition_shards(defs: &str, max_bytes: usize) -> Vec<String> {
 
 #[cfg(test)]
 fn render_relation_defs(rows: &[Constraint]) -> (String, String) {
-    render_relation_defs_with_inline_limit(rows, 32, true)
+    render_relation_defs_with_inline_limit(rows, 32, true, false, false)
+}
+
+fn render_wire_seating(seating: &[usize]) -> String {
+    let values = seating
+        .iter()
+        .map(|global| global.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "def wireSeatingTable : List Nat := [{values}]\n\n\
+         def wireSeating : Nat -> Nat :=\n\
+             fun localWire => wireSeatingTable.getD localWire 0"
+    )
+}
+
+fn template_module_name(template_key: &str) -> String {
+    let (op, hash) = template_key
+        .split_once('@')
+        .expect("template keys are operation@sha256");
+    let mut name = String::from("T");
+    let mut upper = true;
+    for ch in op.chars() {
+        if ch == '.' || ch == '_' || ch == '-' {
+            upper = true;
+        } else if upper {
+            name.extend(ch.to_uppercase());
+            upper = false;
+        } else {
+            name.push(ch);
+        }
+    }
+    name.push('_');
+    name.push_str(hash);
+    name
+}
+
+/// Render the extractor-owned normalized relation separately from its semantic
+/// provider. Semantic modules may import this relation, but the public template
+/// facade below can only be built through a reviewed `Semantics.*` provider.
+fn render_generated_relation(template_key: &str, rows: &[Constraint]) -> Vec<TemplateFile> {
+    let module_name = template_module_name(template_key);
+    // Crypto templates retain the same five-row proof surface used by the
+    // deployed 2x1 adapters, so Poseidon/fixed-base generators can be reused
+    // without restating their mathematics. Small control templates stay in
+    // compact 16-row CPS blocks for inexpensive direct semantic proofs.
+    let (relation_defs, relation_body) = if rows.len() > 100 {
+        // Normalized relations are semantic proof inputs, not deployed
+        // instance contracts. Always factor their LCs so medium-sized crypto
+        // templates expose the same exact named atoms as larger templates.
+        render_relation_defs_with_inline_limit(
+            rows,
+            32,
+            true,
+            true,
+            template_key.starts_with("decaf.randomized_verification_key@"),
+        )
+    } else {
+        render_template_relation(rows)
+    };
+    let namespace = format!("Shieldd.GnarkFormal.Deployed.Templates.Relations.{module_name}");
+    let module_path = format!("ShielddGnarkFormal.Deployed.Templates.Relations.{module_name}");
+    let header = format!(
+        "import Mathlib.Algebra.Ring.Defs\n\
+         import ShielddGnarkFormal.StructuredLC\n\n\
+         set_option maxRecDepth 1000000\n\
+         set_option maxHeartbeats {max_heartbeats}\n\n\
+         namespace {namespace}\n\n\
+         variable {{F : Type}} [CommRing F]\n\n",
+        max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+    );
+    const SHARD_THRESHOLD_BYTES: usize = 32 * 1024;
+    const SHARD_BYTES: usize = 16 * 1024;
+    if relation_defs.len() <= SHARD_THRESHOLD_BYTES {
+        return vec![TemplateFile {
+            template_key: template_key.to_owned(),
+            module: module_path,
+            file_name: format!("Relations/{module_name}.lean"),
+            contents: format!(
+                "{header}{relation_defs}\
+                 def relation (rho : Nat -> F) : Prop :=\n    {relation_body}\n\n\
+                 end {namespace}\n"
+            ),
+        }];
+    }
+
+    let mut files = vec![TemplateFile {
+        template_key: template_key.to_owned(),
+        module: format!("{module_path}Base"),
+        file_name: format!("Relations/{module_name}Base.lean"),
+        contents: format!("{header}end {namespace}\n"),
+    }];
+    let mut previous = format!("{module_path}Base");
+    for (index, shard) in definition_shards(&relation_defs, SHARD_BYTES)
+        .into_iter()
+        .enumerate()
+    {
+        let module = format!("{module_path}Defs{index}");
+        files.push(TemplateFile {
+            template_key: template_key.to_owned(),
+            module: module.clone(),
+            file_name: format!("Relations/{module_name}Defs{index}.lean"),
+            contents: format!(
+                "import {previous}\n\n\
+                 set_option maxRecDepth 1000000\n\
+                 set_option maxHeartbeats {max_heartbeats}\n\n\
+                 namespace {namespace}\n\n\
+                 variable {{F : Type}} [CommRing F]\n\n\
+                 {shard}\
+                 end {namespace}\n",
+                max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+            ),
+        });
+        previous = module;
+    }
+    files.push(TemplateFile {
+        template_key: template_key.to_owned(),
+        module: module_path,
+        file_name: format!("Relations/{module_name}.lean"),
+        contents: format!(
+            "import {previous}\n\n\
+             set_option maxRecDepth 1000000\n\
+             set_option maxHeartbeats {max_heartbeats}\n\n\
+             namespace {namespace}\n\n\
+             variable {{F : Type}} [CommRing F]\n\n\
+             def relation (rho : Nat -> F) : Prop :=\n    {relation_body}\n\n\
+             end {namespace}\n",
+            max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+        ),
+    });
+    files
+}
+
+/// Render a normalized template as small continuation-passing row blocks.
+fn render_template_relation(rows: &[Constraint]) -> (String, String) {
+    const ROWS_PER_BLOCK: usize = 16;
+    let mut defs = String::new();
+    let mut next_lc = 0usize;
+    let mut named_lcs = BTreeMap::new();
+    let mut blocks = Vec::new();
+    for (block_index, chunk) in rows.chunks(ROWS_PER_BLOCK).enumerate() {
+        let body = chunk
+            .iter()
+            .map(|row| {
+                render_row_factored(
+                    row,
+                    &mut defs,
+                    &mut next_lc,
+                    32,
+                    true,
+                    false,
+                    &mut named_lcs,
+                )
+            })
+            .collect::<Vec<_>>();
+        let block = format!("relationSegment{block_index}");
+        defs.push_str(&format!(
+            "def {block} (rho : Nat -> F) (k : Prop) : Prop :=\n    {} ∧ k\n\n",
+            body.join(" ∧\n    ")
+        ));
+        blocks.push(block);
+    }
+    let relation = blocks.iter().rev().fold("True".to_owned(), |tail, block| {
+        format!("{block} rho ({tail})")
+    });
+    (defs, relation)
+}
+
+fn render_generated_template(template_key: &str, rows: &[Constraint]) -> Vec<TemplateFile> {
+    let module_name = template_module_name(template_key);
+    let namespace = format!("Shieldd.GnarkFormal.Deployed.Templates.Generated.{module_name}");
+    let module_path = format!("ShielddGnarkFormal.Deployed.Templates.Generated.{module_name}");
+    let semantics = format!("Shieldd.GnarkFormal.Deployed.Templates.Semantics.{module_name}");
+    let relations = format!("Shieldd.GnarkFormal.Deployed.Templates.Relations.{module_name}");
+    let mut files = render_generated_relation(template_key, rows);
+    files.push(TemplateFile {
+        template_key: template_key.to_owned(),
+        module: module_path,
+        file_name: format!("Generated/{module_name}.lean"),
+        contents: format!(
+            "import ShielddGnarkFormal.Deployed.Templates.Relations.{module_name}\n\
+             import ShielddGnarkFormal.Deployed.Templates.Semantics.{module_name}\n\n\
+             set_option maxRecDepth 1000000\n\
+             set_option maxHeartbeats {max_heartbeats}\n\n\
+             namespace {namespace}\n\n\
+             abbrev F := {semantics}.F\n\n\
+             def relation (rho : Nat -> F) : Prop := {relations}.relation rho\n\n\
+             def spec (rho : Nat -> F) : Prop := {semantics}.spec rho\n\n\
+             theorem sound (rho : Nat → F) (h : relation rho) : spec rho := by\n\
+               exact {semantics}.sound rho h\n\n\
+             end {namespace}\n",
+            max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+            namespace = namespace,
+            relations = relations,
+            semantics = semantics,
+        ),
+    });
+    files
+}
+
+fn render_generated_template_contract(circuit: &str, segment: &SegmentIr) -> ContractFile {
+    let template = template_module_name(&segment.template_key);
+    let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
+    let module = contract_module(circuit, segment.index);
+    let file_name = contract_file_name(circuit, segment.index);
+    let contents = format!(
+        "import ShielddGnarkFormal.Deployed.Contract\n\
+         import ShielddGnarkFormal.Deployed.Templates.Core\n\
+         import ShielddGnarkFormal.Deployed.Templates.Generated.{template}\n\
+         import Mathlib.Data.ZMod.Basic\n\n\
+         set_option maxRecDepth 1000000\n\
+         set_option maxHeartbeats {max_heartbeats}\n\n\
+         namespace Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n\n\
+         def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041\n\
+         abbrev F := ZMod Order\n\n\
+         {wire_seating}\n\n\
+         def localRho (rho : Nat -> F) : Nat -> F :=\n    Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating\n\n\
+         def relation (rho : Nat -> F) : Prop :=\n    Shieldd.GnarkFormal.Deployed.Templates.Generated.{template}.relation (localRho rho)\n\n\
+         def spec (rho : Nat -> F) : Prop :=\n    Shieldd.GnarkFormal.Deployed.Templates.Generated.{template}.spec (localRho rho)\n\n\
+         def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {{\n\
+           segmentIndex := {segment_index},\n\
+           relationSha256Hex := \"{relation_hash}\",\n\
+           wireRoleSha256Hex := \"{wire_role_hash}\",\n\
+           relation := relation,\n\
+           spec := spec\n\
+         }}\n\n\
+         end Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n",
+        max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+        template = template,
+        wire_seating = render_wire_seating(&segment.wire_seating),
+        segment_index = segment.index,
+        relation_hash = segment.relation_sha256_hex,
+        wire_role_hash = segment.wire_role_sha256_hex,
+    );
+    ContractFile {
+        segment_index: segment.index,
+        module,
+        file_name,
+        contents,
+    }
+}
+
+// These are the reviewed, coefficient-sensitive normalized relations used by
+// the small cross-circuit spike. Matching the full template key makes a drift
+// fail back to ordinary generation rather than silently assigning a changed
+// relation to the wrong Lean theorem.
+const ON_CURVE_TEMPLATE_KEY: &str =
+    "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e";
+const ASSERT_EQ_TEMPLATE_KEY: &str =
+    "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd";
+
+fn render_seated_template_contract(
+    circuit: &str,
+    segment: &SegmentIr,
+    relation_template: &str,
+    spec_template: &str,
+) -> ContractFile {
+    let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
+    let module = contract_module(circuit, segment.index);
+    let file_name = contract_file_name(circuit, segment.index);
+    let contents = format!(
+        "import ShielddGnarkFormal.Deployed.Contract\n\
+         import ShielddGnarkFormal.Deployed.Templates.Simple\n\
+         import Mathlib.Data.ZMod.Basic\n\n\
+         set_option maxRecDepth 1000000\n\
+         set_option maxHeartbeats {max_heartbeats}\n\n\
+         namespace Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n\n\
+         def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041\n\
+         abbrev F := ZMod Order\n\n\
+         {wire_seating}\n\n\
+         def localRho (rho : Nat -> F) : Nat -> F :=\n    Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating\n\n\
+         def relation (rho : Nat -> F) : Prop :=\n    Shieldd.GnarkFormal.Deployed.Templates.Simple.{relation_template} (localRho rho)\n\n\
+         def spec (rho : Nat -> F) : Prop :=\n    Shieldd.GnarkFormal.Deployed.Templates.Simple.{spec_template} (localRho rho)\n\n\
+         def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {{\n\
+           segmentIndex := {segment_index},\n\
+           relationSha256Hex := \"{relation_hash}\",\n\
+           wireRoleSha256Hex := \"{wire_role_hash}\",\n\
+           relation := relation,\n\
+           spec := spec\n\
+         }}\n\n\
+         end Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n",
+        max_heartbeats = MAX_CONTRACT_HEARTBEATS,
+        relation_template = relation_template,
+        spec_template = spec_template,
+        wire_seating = render_wire_seating(&segment.wire_seating),
+        segment_index = segment.index,
+        relation_hash = segment.relation_sha256_hex,
+        wire_role_hash = segment.wire_role_sha256_hex,
+    );
+    ContractFile {
+        segment_index: segment.index,
+        module,
+        file_name,
+        contents,
+    }
+}
+
+fn render_on_curve_template_contract(circuit: &str, segment: &SegmentIr) -> ContractFile {
+    render_seated_template_contract(circuit, segment, "onCurveRelation", "onCurveSpec")
+}
+
+fn render_assert_eq_template_contract(circuit: &str, segment: &SegmentIr) -> ContractFile {
+    render_seated_template_contract(circuit, segment, "assertEqRelation", "assertEqSpec")
+}
+
+fn parse_segment_rows(
+    sr1cs: &Sr1cs,
+    segment: &SegmentIr,
+) -> Result<Vec<Constraint>, CoverageError> {
+    let raw_rows =
+        sr1cs
+            .constraints
+            .get(segment.start..segment.end)
+            .ok_or(CoverageError::SegmentBounds {
+                start: segment.start,
+                end: segment.end,
+                nb_constraints: sr1cs.constraints.len(),
+            })?;
+    raw_rows
+        .iter()
+        .enumerate()
+        .map(|(offset, raw)| parse_constraint(raw, segment.start + offset + 1))
+        .collect()
 }
 
 fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> Vec<ContractFile> {
+    if segment.template_key == ON_CURVE_TEMPLATE_KEY {
+        return vec![render_on_curve_template_contract(circuit, segment)];
+    }
+    if segment.template_key == ASSERT_EQ_TEMPLATE_KEY {
+        return vec![render_assert_eq_template_contract(circuit, segment)];
+    }
+    // The new NoteReshape families share the normalized-template substrate.
+    // Their instance contracts must stay small even for dense Poseidon and
+    // scalar-multiplication slices; the normalized relation is emitted once by
+    // `generate_templates` and each instance only seats it.
+    if is_padded_note_reshape_family(circuit) {
+        return vec![render_generated_template_contract(circuit, segment)];
+    }
     let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
     let module = contract_module(circuit, segment.index);
     let file_name = contract_file_name(circuit, segment.index);
     let circuit_mod = circuit_module(circuit);
-    // Semantic adapters project recomposition rows directly. Keep their bounded
+    // Semantic adapters project recomposition rows directly. Keep bounded
     // irregular LCs in the row equation so proofs never open a relationLc*Part*
-    // implementation detail. Equal-coefficient ladder sums are still compacted
-    // first by StructuredLC.
+    // implementation detail. Equal-coefficient ladder sums are compacted first
+    // by StructuredLC and exposed through one opaque relationLc* definition.
     let inline_limit = match segment.op.as_str() {
         "decaf.net_balance_commitment" => 256,
         "gadget.state_commitment_path" => 64,
@@ -498,7 +945,7 @@ fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> V
     // would delete the defs those proven adapters are seated on.
     let structured = segment.op != "decaf.randomized_verification_key";
     let (relation_defs, relation_body) =
-        render_relation_defs_with_inline_limit(rows, inline_limit, structured);
+        render_relation_defs_with_inline_limit(rows, inline_limit, structured, false, false);
     let contents = format!(
          "import ShielddGnarkFormal.Deployed.Contract\n\
          import ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.{spec_sub}\n\
@@ -621,23 +1068,125 @@ fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> V
     files
 }
 
+/// Generate the reusable normalized relation modules required by a family.
+/// The result is intentionally independent of instance wire ids: one module
+/// is keyed by the operation plus normalized-relation hash and all family
+/// instances point at that module through their seating.
+pub fn generate_templates(
+    ir: &CircuitIr,
+    sr1cs: &Sr1cs,
+) -> Result<Vec<TemplateFile>, CoverageError> {
+    let mut files = Vec::new();
+    visit_templates(ir, sr1cs, |file| files.push(file))?;
+    Ok(files)
+}
+
+/// Visit normalized templates one at a time. This keeps full-circuit
+/// generation bounded by the largest template instead of retaining every
+/// normalized row and rendered Lean module simultaneously.
+pub fn visit_templates(
+    ir: &CircuitIr,
+    sr1cs: &Sr1cs,
+    mut visit: impl FnMut(TemplateFile),
+) -> Result<(), CoverageError> {
+    let mut instances = BTreeMap::<String, Vec<&SegmentIr>>::new();
+    for segment in &ir.segments {
+        if segment.constraint_count == 0 || segment.template_key.is_empty() {
+            continue;
+        }
+        instances
+            .entry(segment.template_key.clone())
+            .or_default()
+            .push(segment);
+    }
+    for (template_key, segments) in instances {
+        let representative = segments[0];
+        let rows = parse_segment_rows(sr1cs, representative)?;
+        let normalized = normalize_relation(&rows);
+        check_reconstruction(representative.index, &representative.op, &rows, &normalized)?;
+        let expected_key = format!("{}@{}", representative.op, normalized.sha256_hex);
+        if expected_key != template_key {
+            return Err(CoverageError::NormalizedMetadataMismatch {
+                segment_index: representative.index,
+                op: representative.op.clone(),
+                field: "template_key",
+                expected: template_key,
+                actual: expected_key,
+            });
+        }
+        for segment in segments.into_iter().skip(1) {
+            let sibling_rows = parse_segment_rows(sr1cs, segment)?;
+            let sibling = normalize_relation(&sibling_rows);
+            check_reconstruction(segment.index, &segment.op, &sibling_rows, &sibling)?;
+            if sibling.rows != normalized.rows {
+                return Err(CoverageError::NormalizedReconstructionMismatch {
+                    segment_index: segment.index,
+                    op: segment.op.clone(),
+                    row: 0,
+                    expected: format!("same normalized rows as segment {}", representative.index),
+                    reconstructed: format!(
+                        "different normalized rows for template {}",
+                        template_key
+                    ),
+                });
+            }
+        }
+        for file in render_generated_template(&template_key, &normalized.rows) {
+            visit(file);
+        }
+    }
+    Ok(())
+}
+
 pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, CoverageError> {
-    let rows = parse_rows(sr1cs)?;
     let mut files = Vec::new();
     for segment in &ir.segments {
         if segment.constraint_count == 0 || segment.class_key.is_empty() {
             continue;
         }
-        let segment_rows =
-            rows.get(segment.start..segment.end)
-                .ok_or(CoverageError::SegmentBounds {
-                    start: segment.start,
-                    end: segment.end,
-                    nb_constraints: rows.len(),
-                })?;
-        files.extend(render_contract(&ir.circuit, segment, segment_rows));
+        let segment_rows = parse_segment_rows(sr1cs, segment)?;
+        let normalized = normalize_relation(&segment_rows);
+        check_reconstruction(segment.index, &segment.op, &segment_rows, &normalized)?;
+        if normalized.sha256_hex != segment.normalized_relation_sha256_hex {
+            return Err(CoverageError::NormalizedMetadataMismatch {
+                segment_index: segment.index,
+                op: segment.op.clone(),
+                field: "normalized_relation_sha256_hex",
+                expected: segment.normalized_relation_sha256_hex.clone(),
+                actual: normalized.sha256_hex,
+            });
+        }
+        if normalized.wire_seating != segment.wire_seating {
+            return Err(CoverageError::NormalizedMetadataMismatch {
+                segment_index: segment.index,
+                op: segment.op.clone(),
+                field: "wire_seating",
+                expected: format!("{:?}", segment.wire_seating),
+                actual: format!("{:?}", normalized.wire_seating),
+            });
+        }
+        if normalized.wire_seating.len() != segment.local_wire_count {
+            return Err(CoverageError::NormalizedMetadataMismatch {
+                segment_index: segment.index,
+                op: segment.op.clone(),
+                field: "local_wire_count",
+                expected: segment.local_wire_count.to_string(),
+                actual: normalized.wire_seating.len().to_string(),
+            });
+        }
+        let template_key = format!("{}@{}", segment.op, normalized.sha256_hex);
+        if template_key != segment.template_key {
+            return Err(CoverageError::NormalizedMetadataMismatch {
+                segment_index: segment.index,
+                op: segment.op.clone(),
+                field: "template_key",
+                expected: segment.template_key.clone(),
+                actual: template_key,
+            });
+        }
+        files.extend(render_contract(&ir.circuit, segment, &segment_rows));
     }
-    // Tier-3 inherent-topology gate: recover and parity-check the consolidate2x1
+    // Tier-3 inherent-topology gate: recover and parity-check the note_reshape2x1
     // DTK canonicity ladders at extraction time (fail-closed), the analogue of
     // `structure_lc`'s in-line parity assert.
     // The DTK segment's row range moves whenever gnark's constraint-emission
@@ -646,14 +1195,15 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
     // bound still doubles as the guard that this is the real circuit, not a
     // synthetic fixture (a missing/short DTK segment falls through to `None`).
     const DTK_ROWS: usize = 6077;
-    if ir.circuit == "consolidate2x1" {
+    if ir.circuit == "note_reshape2x1" {
         if let Some(dtk_segment) = ir
             .segments
             .iter()
             .find(|s| s.op == "decaf.diversified_transmission_key")
         {
-            if let Some(dtk) = rows.get(dtk_segment.start..dtk_segment.start + DTK_ROWS) {
-                crate::ltchain::verify_consolidate2x1_lt_ladders(dtk)
+            let dtk_rows = parse_segment_rows(sr1cs, dtk_segment)?;
+            if let Some(dtk) = dtk_rows.get(..DTK_ROWS) {
+                crate::ltchain::verify_note_reshape2x1_lt_ladders(dtk)
                     .map_err(CoverageError::LtLadderParity)?;
             }
         }
@@ -664,7 +1214,7 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::{CircuitIr, SegmentIr, WireRoles};
+    use crate::ir::{parse_rows, CircuitIr, SegmentIr, WireRoles};
 
     fn t(coeff: &str, wire: usize) -> Term {
         Term {
@@ -682,7 +1232,7 @@ mod tests {
         }
         terms.push(t("7", 5));
         terms.push(t("7", 9));
-        let repr = structure_lc(&terms).expect("stride run should be detected");
+        let repr = structure_lc(&terms, false).expect("stride run should be detected");
         assert_eq!(repr.runs.len(), 1);
         let run = &repr.runs[0];
         assert_eq!((run.start, run.stride, run.count), (100, 13, 20));
@@ -694,13 +1244,29 @@ mod tests {
     }
 
     #[test]
+    fn forced_structure_exposes_short_rvk_accumulator_run() {
+        let terms = (0..8)
+            .map(|index| t("1", 256 + index * 5))
+            .collect::<Vec<_>>();
+
+        assert!(structure_lc(&terms, false).is_none());
+        let repr = structure_lc(&terms, true).expect("forced RVK run");
+        assert_eq!(repr.runs.len(), 1);
+        assert_eq!(
+            (repr.runs[0].start, repr.runs[0].stride, repr.runs[0].count),
+            (256, 5, 8)
+        );
+        assert!(terms_multiset_eq(&expand_repr(&repr), &terms));
+    }
+
+    #[test]
     fn structures_interleaved_stride_runs() {
         let mut terms = vec![t("1", 0)];
         for index in 0..20 {
             terms.push(t("1", 100 + index * 13));
             terms.push(t("1", 101 + index * 13));
         }
-        let repr = structure_lc(&terms).expect("interleaved runs should be detected");
+        let repr = structure_lc(&terms, false).expect("interleaved runs should be detected");
         assert_eq!(repr.runs.len(), 2);
         assert_eq!(
             repr.runs
@@ -726,7 +1292,7 @@ mod tests {
             terms.push(t("1", 361 + index * 14));
             terms.push(t("1", 362 + index * 14));
         }
-        let repr = structure_lc(&terms).expect("transition runs should be detected");
+        let repr = structure_lc(&terms, false).expect("transition runs should be detected");
         assert_eq!(
             repr.runs
                 .iter()
@@ -744,7 +1310,7 @@ mod tests {
         let terms = (0..MIN_RUN - 1)
             .map(|index| t("1", 10 + index * 13))
             .collect::<Vec<_>>();
-        assert!(structure_lc(&terms).is_none());
+        assert!(structure_lc(&terms, false).is_none());
     }
 
     #[test]
@@ -753,7 +1319,7 @@ mod tests {
             .map(|index| t("1", 100 + index * 13))
             .collect::<Vec<_>>();
         terms.extend((0..100).map(|index| t("7", 10_000 + index * index + index)));
-        assert!(structure_lc(&terms).is_none());
+        assert!(structure_lc(&terms, false).is_none());
     }
 
     #[test]
@@ -762,7 +1328,7 @@ mod tests {
         let terms: Vec<Term> = (0..8)
             .map(|i| t(&format!("{}", 1u64 << i), 200 + i))
             .collect();
-        assert!(structure_lc(&terms).is_none());
+        assert!(structure_lc(&terms, false).is_none());
     }
 
     #[test]
@@ -771,7 +1337,7 @@ mod tests {
         for i in 0..128 {
             terms.push(t("1", 15543 + i * 13));
         }
-        let repr = structure_lc(&terms).expect("run");
+        let repr = structure_lc(&terms, false).expect("run");
         let rendered = render_structured_lc(&repr);
         // The 128-term run renders as ONE StrideRun, not 128 summands.
         assert!(rendered.contains("⟨(1 : F), 15543, 13, 128⟩"));
@@ -786,7 +1352,7 @@ mod tests {
         for index in 0..MIN_RUN {
             terms.push(t("-2", 10 + index * 5));
         }
-        let repr = structure_lc(&terms).expect("stride run should be detected");
+        let repr = structure_lc(&terms, false).expect("stride run should be detected");
         assert_eq!(
             render_structured_lc(&repr),
             "Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (3 : F), \
@@ -794,13 +1360,63 @@ mod tests {
              ((7 : F), 9)] } : Shieldd.GnarkFormal.StructuredLC F))"
         );
     }
+
+    #[test]
+    fn factors_structured_lc_behind_named_opaque_definition() {
+        let terms = (0..MIN_RUN)
+            .map(|index| t("7", 100 + index * 13))
+            .collect::<Vec<_>>();
+        let mut defs = String::new();
+        let mut next_lc = 0;
+
+        let rendered = render_lc_factored(&terms, &mut defs, &mut next_lc);
+
+        assert_eq!(rendered, "relationLc0 rho");
+        assert_eq!(next_lc, 1);
+        assert!(defs.contains("def relationLc0 (rho : Nat -> F) : F :="));
+        assert!(defs.contains("StructuredLC.eval rho"));
+        assert!(defs.contains("⟨(7 : F), 100, 13, 16⟩"));
+        assert!(!defs.contains("relationLc0Part"));
+    }
+
+    #[test]
+    fn normalized_medium_relation_factors_structured_lcs() {
+        let wide = (0..251).map(|index| t("1", index + 1)).collect::<Vec<_>>();
+        let mut rows = vec![Constraint {
+            l: wide.clone(),
+            r: wide,
+            o: vec![t("1", 253)],
+        }];
+        rows.extend((0..100).map(|index| Constraint {
+            l: vec![t("1", index + 1)],
+            r: vec![t("1", index + 2)],
+            o: vec![t("1", index + 3)],
+        }));
+
+        let emitted = render_generated_relation("decaf.compress_to_field@deadbeef", &rows)
+            .into_iter()
+            .map(|file| file.contents)
+            .collect::<String>();
+
+        assert!(emitted.contains("def relationLc0 (rho : Nat -> F) : F :="));
+        assert!(emitted.contains("StructuredLC.eval rho"));
+        assert!(emitted.contains("⟨(1 : F), 1, 1, 251⟩"));
+        assert!(emitted.contains(
+            "def relationRow0 (rho : Nat -> F) : Prop :=\n    (relationLc0 rho) * (relationLc0 rho)"
+        ));
+        assert_eq!(
+            emitted.matches("def relationLc0 (rho : Nat -> F)").count(),
+            1
+        );
+        assert!(!emitted.contains("def relationLc1 (rho : Nat -> F)"));
+    }
     use crate::Sr1cs;
 
     #[test]
     fn renders_exact_contract_for_constraint_segment() {
-        let ir = CircuitIr {
+        let mut ir = CircuitIr {
             schema: "test".to_owned(),
-            circuit: "consolidate2x1".to_owned(),
+            circuit: "note_reshape2x1".to_owned(),
             sr1cs_sha256_hex: "sr1cs".to_owned(),
             nb_constraints: 1,
             classes: Vec::new(),
@@ -816,6 +1432,10 @@ mod tests {
                 constant_vector_sha256_hex: "constants".to_owned(),
                 relation_sha256_hex: "relation".to_owned(),
                 wire_role_sha256_hex: "roles".to_owned(),
+                normalized_relation_sha256_hex: "normalized".to_owned(),
+                local_wire_count: 4,
+                wire_seating: vec![0, 1, 2, 3],
+                template_key: "assert.eq@normalized".to_owned(),
             }],
         };
         let sr1cs = Sr1cs {
@@ -825,15 +1445,20 @@ mod tests {
             constraints: vec!["(constraint [(2 1)] [(3 2)] [(6 3)])".to_owned()],
             sha256_hex: "sr1cs".to_owned(),
         };
+        let normalized = normalize_relation(&parse_rows(&sr1cs).expect("parse test rows"));
+        ir.segments[0].normalized_relation_sha256_hex = normalized.sha256_hex.clone();
+        ir.segments[0].wire_seating = normalized.wire_seating.clone();
+        ir.segments[0].local_wire_count = normalized.wire_seating.len();
+        ir.segments[0].template_key = format!("assert.eq@{}", normalized.sha256_hex);
 
         let files = generate(&ir, &sr1cs).expect("generate contract");
         assert_eq!(files.len(), 1);
         let file = &files[0];
         assert_eq!(file.segment_index, 100);
-        assert_eq!(file.file_name, "Consolidate2x1/Seg100.lean");
+        assert_eq!(file.file_name, "NoteReshape2x1/Seg100.lean");
         assert_eq!(
             file.module,
-            "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.Seg100"
+            "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg100"
         );
         assert!(file.contents.contains("segmentIndex := 100"));
         assert!(file.contents.contains("relationSha256Hex := \"relation\""));
@@ -846,7 +1471,7 @@ mod tests {
         // `Specs.Glue` submodule, not the monolithic `Specs` aggregator.
         assert!(file
             .contents
-            .contains("import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Glue\n"));
+            .contains("import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Glue\n"));
         assert!(file
             .contents
             .contains("def spec (rho : Nat -> F) : Prop := Specs.deployedSpec100 rho"));
@@ -854,6 +1479,109 @@ mod tests {
         assert!(file.contents.contains("set_option maxHeartbeats 50000000"));
         assert!(!file.contents.contains("set_option maxHeartbeats 0"));
         assert!(!file.contents.contains(":= False"));
+    }
+
+    #[test]
+    fn renders_repeated_assert_eq_as_a_seated_template() {
+        let mut ir = CircuitIr {
+            schema: "test".to_owned(),
+            circuit: "note_reshape2x1".to_owned(),
+            sr1cs_sha256_hex: "sr1cs".to_owned(),
+            nb_constraints: 1,
+            classes: Vec::new(),
+            segments: vec![SegmentIr {
+                index: 36,
+                op: "assert.eq".to_owned(),
+                kind: "glue".to_owned(),
+                start: 0,
+                end: 1,
+                constraint_count: 1,
+                class_key: "assert.eq@test".to_owned(),
+                wire_roles: WireRoles::default(),
+                constant_vector_sha256_hex: "constants".to_owned(),
+                relation_sha256_hex: "relation".to_owned(),
+                wire_role_sha256_hex: "roles".to_owned(),
+                normalized_relation_sha256_hex: String::new(),
+                local_wire_count: 3,
+                wire_seating: vec![0, 106, 16],
+                template_key: String::new(),
+            }],
+        };
+        let sr1cs = Sr1cs {
+            prime: "17".to_owned(),
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            constraints: vec!["(constraint [(1 0)] [(1 106)] [(1 16)])".to_owned()],
+            sha256_hex: "sr1cs".to_owned(),
+        };
+        let normalized = normalize_relation(&parse_rows(&sr1cs).expect("parse test rows"));
+        ir.segments[0].normalized_relation_sha256_hex = normalized.sha256_hex.clone();
+        ir.segments[0].wire_seating = normalized.wire_seating.clone();
+        ir.segments[0].local_wire_count = normalized.wire_seating.len();
+        ir.segments[0].template_key = format!("assert.eq@{}", normalized.sha256_hex);
+
+        let files = generate(&ir, &sr1cs).expect("generate template contract");
+        let file = &files[0];
+        assert!(file
+            .contents
+            .contains("import ShielddGnarkFormal.Deployed.Templates.Simple"));
+        assert!(file
+            .contents
+            .contains("Simple.assertEqRelation (localRho rho)"));
+        assert!(file.contents.contains("Simple.assertEqSpec (localRho rho)"));
+        assert!(file
+            .contents
+            .contains("wireSeatingTable : List Nat := [0, 106, 16]"));
+        assert!(!file.contents.contains("Specs.deployedSpec36"));
+
+        let original_seating = ir.segments[0].wire_seating.clone();
+        ir.segments[0].wire_seating.swap(1, 2);
+        assert!(matches!(
+            generate(&ir, &sr1cs),
+            Err(CoverageError::NormalizedMetadataMismatch {
+                field: "wire_seating",
+                ..
+            })
+        ));
+        ir.segments[0].wire_seating = original_seating;
+    }
+
+    #[test]
+    fn generated_template_facade_requires_a_separate_semantic_provider() {
+        let rows = vec![Constraint {
+            l: vec![Term {
+                coeff: "1".to_owned(),
+                wire: 1,
+            }],
+            r: vec![Term {
+                coeff: "1".to_owned(),
+                wire: 2,
+            }],
+            o: vec![Term {
+                coeff: "1".to_owned(),
+                wire: 3,
+            }],
+        }];
+        let files = render_generated_template("assert.boolean@deadbeef", &rows);
+        let facade = files
+            .iter()
+            .find(|file| file.file_name.starts_with("Generated/"))
+            .expect("semantic facade");
+        assert!(facade.contents.contains(
+            "import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertBoolean_deadbeef"
+        ));
+        assert!(facade.contents.contains(
+            "def relation (rho : Nat -> F) : Prop := Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertBoolean_deadbeef.relation rho"
+        ));
+        assert!(!facade.contents.contains(
+            "def relation (rho : Nat -> F) : Prop := Shieldd.GnarkFormal.Deployed.Templates.Semantics"
+        ));
+        assert!(!facade.contents.contains("spec := relation"));
+        assert!(!facade.contents.contains("fun _ h => h"));
+        assert!(files
+            .iter()
+            .filter(|file| file.file_name.starts_with("Relations/"))
+            .all(|file| !file.contents.contains("def spec")));
     }
 
     #[test]
@@ -981,7 +1709,8 @@ mod tests {
             terms.push(t("1", 21115 + index * 13));
             terms.push(t("1", 21116 + index * 13));
         }
-        let repr = structure_lc(&terms).expect("ack parallel stride-13 runs should be detected");
+        let repr =
+            structure_lc(&terms, false).expect("ack parallel stride-13 runs should be detected");
         assert_eq!(
             repr.runs
                 .iter()
@@ -1014,7 +1743,7 @@ mod tests {
         for index in 0..16 {
             terms.push(t("1", 2200 + index * 14));
         }
-        let repr = structure_lc(&terms).expect("mixed-stride runs should be detected");
+        let repr = structure_lc(&terms, false).expect("mixed-stride runs should be detected");
         assert_eq!(
             repr.runs
                 .iter()

@@ -5,8 +5,7 @@ The current chain surface is intentionally reduced:
 
 - shielded actions:
   - `Transfer`
-  - `Split`
-  - `Consolidate`
+  - `NoteReshape`
   - `ShieldedIcs20Withdrawal`
 - infrastructure and control actions:
   - `IbcRelay`

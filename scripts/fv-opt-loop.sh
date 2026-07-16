@@ -16,9 +16,9 @@ set -euo pipefail
 # delegated to check-constraint-coverage.sh under its own resource rules.
 #
 # Usage:
-#   scripts/fv-opt-loop.sh diff  --circuit consolidate2x1 --allow-flips 52,53 \
+#   scripts/fv-opt-loop.sh diff  --circuit note_reshape2x1 --allow-flips 52,53 \
 #       [--allow-remove 34,36] [--allow-add 60]
-#   scripts/fv-opt-loop.sh gates --circuit consolidate2x1 [--lean] [--prove] \
+#   scripts/fv-opt-loop.sh gates --circuit note_reshape2x1 [--lean] [--prove] \
 #       [--record-out <file.md>]
 #   scripts/fv-opt-loop.sh census --circuit transfer
 #
@@ -68,8 +68,8 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 case "$circuit" in
-  consolidate2x1|transfer) ;;
-  *) fail "--circuit must be consolidate2x1 or transfer" ;;
+  note_reshape2x1|transfer) ;;
+  *) fail "--circuit must be note_reshape2x1 or transfer" ;;
 esac
 
 formal_dir="$ROOT/crates/core/component/shielded-pool/formal"
@@ -89,7 +89,7 @@ generator_for_op() {
   case "$1" in
     decaf.net_balance_commitment) echo "gen_nb_slice.py" ;;
     decaf.diversified_transmission_key) echo "gen_dtk_slice.py" ;;
-    decaf.compress_to_field) echo "gen_consolidate_compress_adapters.py" ;;
+    decaf.compress_to_field) echo "gen_note_reshape2x1_compress_adapters.py" ;;
     decaf.randomized_verification_key) echo "gen_rvk_deployed_adapters.py" ;;
     gadget.state_commitment_path) echo "gen_state_commitment_nodes.py" ;;
     gadget.note_commitment) echo "gen_note_commitment_semantic.py" ;;
@@ -210,7 +210,7 @@ gate_battery() {
   fi
   run_gate "wiring-transcript+parity-tests" \
     env -C "$GNARK_DIR" go test ./internal/circuits/ -run \
-    'TestConsolidate2x1WiringTranscript|TestAmountRangeBoundIs128Bits|Acl2ModelParity|AxeFidelity' -count=1
+    'TestNoteReshape2x1WiringTranscript|TestAmountRangeBoundIs128Bits|Acl2ModelParity|AxeFidelity' -count=1
   run_gate "statement-seam" \
     env -C "$GNARK_DIR" go test ./internal/primitives/ -run 'StatementSeam|StatementHash' -count=1
   if [[ "$run_prove" -eq 1 ]]; then

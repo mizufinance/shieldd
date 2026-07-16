@@ -3,8 +3,8 @@ use anyhow::Error;
 #[derive(
     Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize,
 )]
-#[serde(transparent)]
-pub struct NoteReshapeFamilyId(pub u32);
+#[serde(try_from = "u32", into = "u32")]
+pub struct NoteReshapeFamilyId(u32);
 
 #[allow(non_upper_case_globals)]
 impl NoteReshapeFamilyId {
@@ -122,6 +122,7 @@ pub struct NoteReshapeFamilySpec {
     pub id: NoteReshapeFamilyId,
     pub label: &'static str,
     pub artifact_name: &'static str,
+    pub uses_dummy_slots: bool,
     pub n_in: usize,
     pub n_out: usize,
     pub min_real_inputs: usize,
@@ -133,8 +134,9 @@ pub struct NoteReshapeFamilySpec {
 pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
     NoteReshapeFamilySpec {
         id: NoteReshapeFamilyId::TwoByOne,
-        label: "consolidate2x1",
-        artifact_name: "consolidate2x1",
+        label: "note_reshape2x1",
+        artifact_name: "note_reshape2x1",
+        uses_dummy_slots: false,
         n_in: 2,
         n_out: 1,
         min_real_inputs: 2,
@@ -144,8 +146,9 @@ pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
     },
     NoteReshapeFamilySpec {
         id: NoteReshapeFamilyId::OneByEight,
-        label: "split1x8",
-        artifact_name: "split1x8",
+        label: "note_reshape1x8",
+        artifact_name: "note_reshape1x8",
+        uses_dummy_slots: true,
         n_in: 1,
         n_out: 8,
         min_real_inputs: 1,
@@ -155,8 +158,9 @@ pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
     },
     NoteReshapeFamilySpec {
         id: NoteReshapeFamilyId::EightByOne,
-        label: "consolidate8x1",
-        artifact_name: "consolidate8x1",
+        label: "note_reshape8x1",
+        artifact_name: "note_reshape8x1",
+        uses_dummy_slots: true,
         n_in: 8,
         n_out: 1,
         min_real_inputs: 5,
@@ -166,8 +170,9 @@ pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
     },
     NoteReshapeFamilySpec {
         id: NoteReshapeFamilyId::FourByOne,
-        label: "consolidate4x1",
-        artifact_name: "consolidate4x1",
+        label: "note_reshape4x1",
+        artifact_name: "note_reshape4x1",
+        uses_dummy_slots: true,
         n_in: 4,
         n_out: 1,
         min_real_inputs: 3,
@@ -215,5 +220,14 @@ mod tests {
             .is_err());
         assert_eq!(NoteReshapeFamilyId::smallest_covering(1, 1), None);
         assert_eq!(NoteReshapeFamilyId::smallest_covering(9, 1), None);
+    }
+
+    #[test]
+    fn serde_rejects_unknown_family_id() {
+        let error = serde_json::from_str::<NoteReshapeFamilyId>("99")
+            .expect_err("unknown family ids must fail closed");
+        assert!(error
+            .to_string()
+            .contains("unknown note reshape family id 99"));
     }
 }

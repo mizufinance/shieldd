@@ -9,16 +9,16 @@ set -euo pipefail
 #
 # Optional circuit selection:
 #
-#   scripts/check-lean-circuit-fv.sh stamps --circuit transfer
-#   scripts/check-lean-circuit-fv.sh full consolidate2x1 transfer
+#   scripts/check-lean-circuit-fv.sh stamps --circuit note_reshape4x1
+#   scripts/check-lean-circuit-fv.sh full all
 #
-# With no circuit argument, both whole-circuit Lean artifacts are checked.
+# With no circuit argument, every NoteReshape deployment and transfer are checked.
 
 MODE="${1:-full}"
 case "$MODE" in
   stamps | full) shift || true ;;
   *)
-    echo "usage: $(basename "$0") [stamps|full] [--circuit consolidate2x1|transfer|all] [circuit...]" >&2
+    echo "usage: $(basename "$0") [stamps|full] [--circuit note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer|all] [circuit...]" >&2
     exit 2
     ;;
 esac
@@ -35,7 +35,10 @@ python3 "$ROOT/tools/gnark/check_note_reshape_registry.py"
 # gate remains safe even when a caller forgets to provide it.
 export LEAN_NUM_THREADS=1
 B1_ARTIFACT="$LEAN_DIR/imt-gap-lean-artifact.txt"
-C2X1_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-whole-circuit-lean-artifact.txt"
+C2X1_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-whole-circuit-lean-artifact.txt"
+C4X1_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-whole-circuit-lean-artifact.txt"
+C8X1_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-whole-circuit-lean-artifact.txt"
+S1X8_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-whole-circuit-lean-artifact.txt"
 TRANSFER_ARTIFACT="$ROOT/crates/core/component/shielded-pool/formal/transfer-whole-circuit-lean-artifact.txt"
 TRANSFER_DECAF_FV_INVENTORY="$LEAN_DIR/transfer-decaf-fv-inventory.txt"
 
@@ -55,7 +58,7 @@ require_artifact_line() {
 
 select_circuits() {
   if [[ "$#" -eq 0 ]]; then
-    printf '%s\n' consolidate2x1 transfer
+    printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
     return
   fi
   while [[ "$#" -gt 0 ]]; do
@@ -64,15 +67,15 @@ select_circuits() {
         shift
         [[ "$#" -gt 0 ]] || fail "--circuit requires an argument"
         case "$1" in
-          all) printf '%s\n' consolidate2x1 transfer ;;
-          consolidate2x1|transfer) printf '%s\n' "$1" ;;
+          all) printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer ;;
+          note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer) printf '%s\n' "$1" ;;
           *) fail "unsupported circuit $1" ;;
         esac
         ;;
       all)
-        printf '%s\n' consolidate2x1 transfer
+        printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
         ;;
-      consolidate2x1|transfer)
+      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer)
         printf '%s\n' "$1"
         ;;
       *)
@@ -88,7 +91,10 @@ selected_circuits="$(select_circuits "$@")"
 
 artifact_for_circuit() {
   case "$1" in
-    consolidate2x1) printf '%s\n' "$C2X1_ARTIFACT" ;;
+    note_reshape2x1) printf '%s\n' "$C2X1_ARTIFACT" ;;
+    note_reshape4x1) printf '%s\n' "$C4X1_ARTIFACT" ;;
+    note_reshape8x1) printf '%s\n' "$C8X1_ARTIFACT" ;;
+    note_reshape1x8) printf '%s\n' "$S1X8_ARTIFACT" ;;
     transfer) printf '%s\n' "$TRANSFER_ARTIFACT" ;;
     *) fail "unsupported circuit $1" ;;
   esac
@@ -136,16 +142,16 @@ check_common_stamps() {
   require_artifact_line "$B1_ARTIFACT" "lean_toolchain_sha256" "$(sha256_file "$LEAN_DIR/lean-toolchain")"
 }
 
-check_consolidate2x1_stamps() {
+check_note_reshape2x1_stamps() {
   local artifact="$C2X1_ARTIFACT"
-  require_artifact_line "$artifact" "whole_circuit_sr1cs_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")"
-  require_artifact_line "$artifact" "manifest_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/consolidate2x1/consolidate2x1-manifest.json")"
-  require_artifact_line "$artifact" "coverage_report_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-constraint-coverage-report.json")"
-  require_artifact_line "$artifact" "nb_constraints" "$(jq -r '.nb_constraints' "$ROOT/tools/gnark/artifacts/consolidate2x1/circuit_metadata.json")"
-  require_artifact_line "$artifact" "verifying_key_sha256_hex" "$(jq -r '.verifying_key_sha256_hex' "$ROOT/tools/gnark/artifacts/consolidate2x1/circuit_metadata.json")"
-  require_artifact_line "$artifact" "deployed_statement_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1/Statement.lean")"
-  require_artifact_line "$artifact" "deployed_capstone_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1/Capstone.lean")"
-  require_artifact_line "$artifact" "deployed_wiring_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1/Wiring.lean")"
+  require_artifact_line "$artifact" "whole_circuit_sr1cs_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")"
+  require_artifact_line "$artifact" "manifest_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/note_reshape2x1/note_reshape2x1-manifest.json")"
+  require_artifact_line "$artifact" "coverage_report_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-constraint-coverage-report.json")"
+  require_artifact_line "$artifact" "nb_constraints" "$(jq -r '.nb_constraints' "$ROOT/tools/gnark/artifacts/note_reshape2x1/circuit_metadata.json")"
+  require_artifact_line "$artifact" "verifying_key_sha256_hex" "$(jq -r '.verifying_key_sha256_hex' "$ROOT/tools/gnark/artifacts/note_reshape2x1/circuit_metadata.json")"
+  require_artifact_line "$artifact" "deployed_statement_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/NoteReshape2x1/Statement.lean")"
+  require_artifact_line "$artifact" "deployed_capstone_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/NoteReshape2x1/Capstone.lean")"
+  require_artifact_line "$artifact" "deployed_wiring_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/NoteReshape2x1/Wiring.lean")"
   require_artifact_line "$artifact" "prime_order_certificate_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/PrimeOrderCertificate.lean")"
   require_artifact_line "$artifact" "prime_order_registry_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Deployed/PrimeOrder.lean")"
   require_artifact_line "$artifact" "decaf_assumptions_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal/Decaf377Assumptions.lean")"
@@ -168,8 +174,9 @@ check_consolidate2x1_stamps() {
   require_artifact_line "$artifact" "constraint_coverage_main_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/main.rs")"
   require_artifact_line "$artifact" "constraint_coverage_contracts_source_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/src/contracts.rs")"
   require_artifact_line "$artifact" "constraint_coverage_cargo_sha256" "$(sha256_file "$ROOT/crates/crypto/constraint-coverage/Cargo.toml")"
-  require_artifact_line "$artifact" "coverage_ir_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-deployed-slice-ir.json")"
-  require_artifact_line "$artifact" "coverage_manifest_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/consolidate2x1-coverage-manifest.json")"
+  require_artifact_line "$artifact" "coverage_ir_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-deployed-slice-ir.json")"
+  require_artifact_line "$artifact" "coverage_manifest_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-coverage-manifest.json")"
+  require_artifact_line "$artifact" "dtk_lt_seating_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-dtk-lt-seating.json")"
   require_artifact_line "$artifact" "dtk_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_dtk_slice.py")"
   require_artifact_line "$artifact" "rvk_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_rvk_deployed_adapters.py")"
   require_artifact_line "$artifact" "scp_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_scp_adapters.py")"
@@ -242,6 +249,36 @@ check_transfer_stamps() {
     || fail "whole-circuit artifact must state whole-circuit scope"
 }
 
+check_note_reshape_family_stamps() {
+  local circuit="$1" artifact="$2" module="$3"
+  local artifact_dir="$ROOT/tools/gnark/artifacts/$circuit"
+  local report="$ROOT/crates/core/component/shielded-pool/formal/$circuit-constraint-coverage-report.json"
+  local coverage_manifest="$ROOT/crates/core/component/shielded-pool/formal/$circuit-coverage-manifest.json"
+  local coverage_ir="$ROOT/crates/core/component/shielded-pool/formal/$circuit-deployed-slice-ir.json"
+  local contract_dir="$LEAN_DIR/ShielddGnarkFormal/Deployed/Contracts/$module"
+  require_artifact_line "$artifact" "whole_circuit_sr1cs_sha256" "$(sha256_file "$artifact_dir/$circuit.sr1cs")"
+  require_artifact_line "$artifact" "manifest_sha256" "$(sha256_file "$artifact_dir/$circuit-manifest.json")"
+  require_artifact_line "$artifact" "coverage_report_sha256" "$(sha256_file "$report")"
+  require_artifact_line "$artifact" "coverage_manifest_sha256" "$(sha256_file "$coverage_manifest")"
+  require_artifact_line "$artifact" "coverage_ir_sha256" "$(sha256_file "$coverage_ir")"
+  require_artifact_line "$artifact" "nb_constraints" "$(jq -r '.nb_constraints' "$artifact_dir/circuit_metadata.json")"
+  require_artifact_line "$artifact" "verifying_key_sha256_hex" "$(jq -r '.verifying_key_sha256_hex' "$artifact_dir/circuit_metadata.json")"
+  require_artifact_line "$artifact" "deployed_statement_source_sha256" "$(sha256_file "$contract_dir/Statement.lean")"
+  require_artifact_line "$artifact" "deployed_capstone_source_sha256" "$(sha256_file "$contract_dir/Capstone.lean")"
+  require_artifact_line "$artifact" "family_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_note_reshape_family.py")"
+  require_artifact_line "$artifact" "template_semantics_generator_source_sha256" "$(sha256_file "$LEAN_DIR/gen/gen_note_reshape_template_semantics.py")"
+  require_artifact_line "$artifact" "template_semantics_tree_sha256" "$(python3 "$ROOT/scripts/gen-note-reshape-family-artifacts.py" --semantics-tree-sha256)"
+  require_artifact_line "$artifact" "template_inventory_sha256" "$(sha256_file "$ROOT/tools/gnark/artifacts/note-reshape-template-inventory.json")"
+  require_artifact_line "$artifact" "dtk_lt_seating_sha256" "$(sha256_file "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-dtk-lt-seating.json")"
+  require_artifact_line "$artifact" "constraint_coverage_script_sha256" "$(sha256_file "$ROOT/scripts/check-constraint-coverage.sh")"
+  require_artifact_line "$artifact" "root_source_sha256" "$(sha256_file "$LEAN_DIR/ShielddGnarkFormal.lean")"
+  require_artifact_line "$artifact" "lakefile_sha256" "$(sha256_file "$LEAN_DIR/lakefile.lean")"
+  require_artifact_line "$artifact" "lake_manifest_sha256" "$(sha256_file "$LEAN_DIR/lake-manifest.json")"
+  require_artifact_line "$artifact" "lean_toolchain_sha256" "$(sha256_file "$LEAN_DIR/lean-toolchain")"
+  rg -F "whole-circuit" "$artifact" >/dev/null \
+    || fail "whole-circuit artifact must state whole-circuit scope"
+}
+
 # --- hygiene (both tiers) ---------------------------------------------------
 scratch_files="$(find "$LEAN_DIR/ShielddGnarkFormal" -maxdepth 1 -type f \( -name 'SP*.lean' -o -name 'Probe*.lean' \) -print)"
 [[ -z "$scratch_files" ]] || fail "scratch Lean files present: $scratch_files"
@@ -278,9 +315,9 @@ while IFS= read -r artifact; do
   [[ "$want" == "$have" ]] || fail "artifact stamp mismatch: $artifact ($have != $want)"
 done < <(printf '%s\n' "$artifact_list" | awk '!seen[$0]++')
 
-# Transfer still uses its legacy transcript. Consolidate's assurance boundary
+# Transfer still uses its legacy transcript. NoteReshape's assurance boundary
 # is the freshly re-derived deployed IR + exact row contracts + capstone, so a
-# consolidate-only stamps run reaches no Lake command in this section.
+# NoteReshape-only stamps run reaches no Lake command in this section.
 echo "==> legacy transfer wiring transcript fidelity"
 transcript_modules=""
 while IFS= read -r circuit; do
@@ -341,10 +378,29 @@ done < <(printf '%s\n' "$selected_circuits")
 # resolution transitively builds the whole-circuit Lean models, so it is
 # deferred to the `full` (nightly) tier; the PR `stamps` tier certifies those
 # Lean sources by hash instead of re-elaborating them.
-coverage_lean_flag=""
-[[ "$MODE" == "full" ]] && coverage_lean_flag="--lean-theorem-checks"
 echo "==> compiled constraint coverage"
-"$ROOT/scripts/check-constraint-coverage.sh" $coverage_lean_flag $(printf '%s\n' "$selected_circuits")
+if [[ "$MODE" == "full" ]]; then
+  note_reshape_circuits=()
+  transfer_selected=0
+  while IFS= read -r circuit; do
+    [[ -z "$circuit" ]] && continue
+    if [[ "$circuit" == "transfer" ]]; then
+      transfer_selected=1
+    else
+      note_reshape_circuits+=("$circuit")
+    fi
+  done < <(printf '%s\n' "$selected_circuits")
+  if [[ "${#note_reshape_circuits[@]}" -gt 0 ]]; then
+    "$ROOT/scripts/check-constraint-coverage.sh" \
+      --require-full-deployed "${note_reshape_circuits[@]}"
+  fi
+  if [[ "$transfer_selected" -eq 1 ]]; then
+    "$ROOT/scripts/check-constraint-coverage.sh" --lean-theorem-checks transfer
+  fi
+else
+  "$ROOT/scripts/check-constraint-coverage.sh" \
+    $(printf '%s\n' "$selected_circuits")
+fi
 
 # --- emitted-Lean semantic anti-pattern lint (both tiers) -------------------
 # Enforces the term-size / machine-safety emission rules (fuel-def unroll, wide
@@ -360,12 +416,20 @@ echo "==> FV optimization census parser regression"
 
 # --- stamp integrity (both tiers) -------------------------------------------
 check_common_stamps
+if printf '%s\n' "$selected_circuits" \
+    | rg -x 'note_reshape(4x1|8x1|1x8)' >/dev/null; then
+  python3 "$ROOT/scripts/gen-note-reshape-family-artifacts.py" --check \
+    || fail "generated NoteReshape family evidence is stale"
+fi
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   case "$circuit" in
-    consolidate2x1)
-      check_consolidate2x1_stamps
+    note_reshape2x1)
+      check_note_reshape2x1_stamps
       ;;
+    note_reshape4x1) check_note_reshape_family_stamps "$circuit" "$C4X1_ARTIFACT" NoteReshape4x1 ;;
+    note_reshape8x1) check_note_reshape_family_stamps "$circuit" "$C8X1_ARTIFACT" NoteReshape8x1 ;;
+    note_reshape1x8) check_note_reshape_family_stamps "$circuit" "$S1X8_ARTIFACT" NoteReshape1x8 ;;
     transfer)
       check_transfer_stamps "$tmp_dir/go-transfer.wiring" "$tmp_dir/lean-transfer.wiring"
       ;;
@@ -383,11 +447,20 @@ build_modules="ShielddGnarkFormal.ImtGapBridge"
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   case "$circuit" in
-    consolidate2x1) build_modules="$build_modules ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Statement" ;;
+    note_reshape2x1) build_modules="$build_modules ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Statement" ;;
+    note_reshape4x1) build_modules="$build_modules ShielddGnarkFormal.Deployed.Contracts.NoteReshape4x1.Statement" ;;
+    note_reshape8x1) build_modules="$build_modules ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Statement" ;;
+    note_reshape1x8) build_modules="$build_modules ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Statement" ;;
     transfer) build_modules="$build_modules ShielddGnarkFormal.Transfer" ;;
   esac
 done < <(printf '%s\n' "$selected_circuits")
-(cd "$LEAN_DIR" && lake exe cache get && lake build $build_modules)
+(
+  cd "$LEAN_DIR"
+  lake exe cache get
+  for module in $build_modules; do
+    lake build "$module"
+  done
+)
 
 echo "==> #print axioms"
 axioms_file="$tmp_dir/axioms.lean"
@@ -396,7 +469,10 @@ axioms_file="$tmp_dir/axioms.lean"
   while IFS= read -r circuit; do
     [[ -z "$circuit" ]] && continue
     case "$circuit" in
-      consolidate2x1) echo "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Statement" ;;
+      note_reshape2x1) echo "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Statement" ;;
+      note_reshape4x1) echo "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape4x1.Statement" ;;
+      note_reshape8x1) echo "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Statement" ;;
+      note_reshape1x8) echo "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Statement" ;;
       transfer) echo "import ShielddGnarkFormal.Transfer" ;;
     esac
   done < <(printf '%s\n' "$selected_circuits")
@@ -406,10 +482,22 @@ axioms_file="$tmp_dir/axioms.lean"
   while IFS= read -r circuit; do
     [[ -z "$circuit" ]] && continue
     case "$circuit" in
-      consolidate2x1)
+      note_reshape2x1)
         echo "#print axioms Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime"
-        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.consolidate2x1_deployed_sound"
-        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.consolidate2x1_statement"
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.note_reshape2x1_deployed_sound"
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.note_reshape2x1_statement"
+        ;;
+      note_reshape4x1)
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.note_reshape4x1_deployed_sound"
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.note_reshape4x1_statement"
+        ;;
+      note_reshape8x1)
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1.note_reshape8x1_deployed_sound"
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1.note_reshape8x1_statement"
+        ;;
+      note_reshape1x8)
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8.note_reshape1x8_deployed_sound"
+        echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8.note_reshape1x8_statement"
         ;;
       transfer) echo "#print axioms Shieldd.GnarkFormal.Transfer.transfer_circuit_sound" ;;
     esac
@@ -429,11 +517,11 @@ done
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   case "$circuit" in
-    consolidate2x1)
+    note_reshape2x1)
       for theorem in \
         "Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime" \
-        "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.consolidate2x1_deployed_sound" \
-        "Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1.consolidate2x1_statement"; do
+        "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.note_reshape2x1_deployed_sound" \
+        "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.note_reshape2x1_statement"; do
         [[ "$flat_axioms" == *"'$theorem' depends on axioms: [propext, Classical.choice, Quot.sound]"* ]] \
           || fail "unexpected axiom baseline for $theorem"
       done
@@ -441,6 +529,15 @@ while IFS= read -r circuit; do
       ;;
     transfer)
       expected="'Shieldd.GnarkFormal.Transfer.transfer_circuit_sound' depends on axioms: [propext, Classical.choice, Quot.sound]"
+      ;;
+    note_reshape4x1)
+      expected="'Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.note_reshape4x1_statement' depends on axioms: [propext, Quot.sound]"
+      ;;
+    note_reshape8x1)
+      expected="'Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1.note_reshape8x1_statement' depends on axioms: [propext, Quot.sound]"
+      ;;
+    note_reshape1x8)
+      expected="'Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8.note_reshape1x8_statement' depends on axioms: [propext, Quot.sound]"
       ;;
   esac
   [[ "$flat_axioms" == *"$expected"* ]] || fail "unexpected axiom baseline for $circuit"

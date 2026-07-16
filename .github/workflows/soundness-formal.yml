@@ -97,7 +97,7 @@ jobs:
         working-directory: tools/gnark
         run: |
           go test ./internal/abi/ -run TestRustGoStatementFieldDifferential -count=1
-          go test ./internal/primitives/ -run TestConsolidate2x1StatementSeamMatchesShielddVectors -count=1
+          go test ./internal/primitives/ -run TestNoteReshape2x1StatementSeamMatchesShielddVectors -count=1
       - name: Manifest-pin tripwire (recompile R1CS, assert sr1cs_sha256_hex)
         run: bash scripts/check-manifest-pin.sh
 
@@ -111,7 +111,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        circuit: [consolidate2x1, transfer]
+        circuit: [note_reshape2x1, transfer]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -343,7 +343,7 @@ jobs:
       # of the 180 s watchdog. Advisory: an undischarged-timeout is expected and
       # does not fail the build; a genuine underconstrained finding turns the
       # step red without blocking the rest of the nightly. Schedule-only — never
-      # a PR gate. The Lean-proved consolidate2x1 and transfer circuits run
+      # a PR gate. The Lean-proved note_reshape2x1 and transfer circuits run
       # here; split families can be attempted by hand via
       # scripts/run-whole-circuit-picus.sh.
       - name: Attempt whole-circuit Picus (nightly, non-gating)
@@ -351,7 +351,7 @@ jobs:
         continue-on-error: true
         env:
           PICUS_WHOLE_BUDGET_SECONDS: '10800'
-        run: bash scripts/run-whole-circuit-picus.sh consolidate2x1 transfer
+        run: bash scripts/run-whole-circuit-picus.sh note_reshape2x1 transfer
 
       # C3 gadget theorems — the only route to `proved`. Certifies the ACL2
       # `R1CS => spec` proof, verifies the gnark parity tie, and checks the

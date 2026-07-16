@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate consolidate2x1 RVK deployed-slice adapters for segments 15 and 30
+"""Generate note_reshape2x1 RVK deployed-slice adapters for segments 15 and 30
 (Wave-2 layout: inst0 wires shifted -251, inst1 -954 vs the T1-d layout; pins
-re-derived from consolidate2x1-deployed-slice-ir.json).
+re-derived from note_reshape2x1-deployed-slice-ir.json).
 
 The deployed RVK slice has three pieces:
 
@@ -27,7 +27,7 @@ from types import SimpleNamespace
 import gen_dtk_slice as dtk
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACTS = ROOT / "ShielddGnarkFormal/Deployed/Contracts/Consolidate2x1"
+CONTRACTS = ROOT / "ShielddGnarkFormal/Deployed/Contracts/NoteReshape2x1"
 
 GX = "4959445789346820725352484487855828915252512307947624787834978378872129235627"
 GYM1 = "6060471950081851567114691557659790004756535011754163002297540472747064943287"
@@ -362,6 +362,14 @@ def row_body(seg: int, row: int) -> str:
     return m.group(1)
 
 
+def row_lcs(seg: int, row: int) -> tuple[int, ...]:
+    """Named LC atoms referenced by one exact relation row, in operand order."""
+    return tuple(
+        int(index)
+        for index in re.findall(r"relationLc(\d+) rho", row_body(seg, row))
+    )
+
+
 def row_coeff(seg: int, row: int, wire: int) -> str:
     body = row_body(seg, row)
     m = re.search(rf"\((-?\d+) : F\)\s*\*\s*rho\s+{wire}\b", body)
@@ -408,6 +416,7 @@ class SplitCert:
     k: int
     row: int
     lc: int
+    lcs: tuple[int, int, int, int, int, int, int]
     bit: int
     i67: int
     i68: int
@@ -441,7 +450,23 @@ class SplitCert:
 
 def split_cert(seg: int, cfg, k: int) -> SplitCert:
     row = split_row(cfg, k)
-    lc = split_lc(cfg, k)
+    row_atoms = tuple(row_lcs(seg, row + offset) for offset in range(8))
+    expected_widths = (1, 2, 1, 0, 1, 0, 1, 1)
+    if tuple(map(len, row_atoms)) != expected_widths:
+        raise ValueError(
+            f"k{k}: split row LC shape drifted: "
+            f"{tuple(map(len, row_atoms))} != {expected_widths}"
+        )
+    lcs = (
+        row_atoms[0][0],
+        row_atoms[1][0],
+        row_atoms[1][1],
+        row_atoms[2][0],
+        row_atoms[4][0],
+        row_atoms[6][0],
+        row_atoms[7][0],
+    )
+    lc = lcs[0]
     prev = k - 1
     xprev = acc_atom(seg, "X", prev)
     yprev = acc_atom(seg, "Y", prev)
@@ -456,13 +481,13 @@ def split_cert(seg: int, cfg, k: int) -> SplitCert:
     sdx = i67 + 6
     sdy = i67 + 7
 
-    t13, _ = lc_terms(seg, lc)
-    t14l, _ = lc_terms(seg, lc + 1)
-    t14r, c14r = lc_terms(seg, lc + 2)
-    t15, _ = lc_terms(seg, lc + 3)
-    t17, _ = lc_terms(seg, lc + 4)
-    tselx, _ = lc_terms(seg, lc + 5)
-    tsely, csel_y = lc_terms(seg, lc + 6)
+    t13, _ = lc_terms(seg, lcs[0])
+    t14l, _ = lc_terms(seg, lcs[1])
+    t14r, c14r = lc_terms(seg, lcs[2])
+    t15, _ = lc_terms(seg, lcs[3])
+    t17, _ = lc_terms(seg, lcs[4])
+    tselx, _ = lc_terms(seg, lcs[5])
+    tsely, csel_y = lc_terms(seg, lcs[6])
 
     xws = xwires_upto(cfg, prev)
     yws = ywires_upto(cfg, prev)
@@ -488,7 +513,7 @@ def split_cert(seg: int, cfg, k: int) -> SplitCert:
     ev = row_coeff(seg, row + 5, i67)
 
     return SplitCert(
-        k=k, row=row, lc=lc, bit=bit, i67=i67, i68=i68, i69=i69, outx=outx,
+        k=k, row=row, lc=lc, lcs=lcs, bit=bit, i67=i67, i68=i68, i69=i69, outx=outx,
         i71=i71, outy=outy, sdx=sdx, sdy=sdy, akX=akX, akY=akY, ev=ev, kv=kv,
         la=la, lb=lb, rb=rb, cc=cc, px=px, py=py, qb0=qb0, negGX=negGX,
         negGY=negGY,
@@ -632,13 +657,13 @@ def emit_lc_helper(L: list[str], seg: int, name: str, lc: int, formula: str, xk:
 def emit_split_lc_helpers(L: list[str], seg: int, cfg, certs: list[SplitCert]) -> None:
     for c in certs:
         prev = c.k - 1
-        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lc}", c.lc, c.f13, prev, prev)
-        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lc + 1}", c.lc + 1, c.f14l, prev, None)
-        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lc + 2}", c.lc + 2, c.f14r, None, prev)
-        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lc + 3}", c.lc + 3, c.f15, prev, prev)
-        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lc + 4}", c.lc + 4, c.f17, prev, prev)
-        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lc + 5}", c.lc + 5, c.fselx, prev, None)
-        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lc + 6}", c.lc + 6, c.fsely, None, prev)
+        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lcs[0]}", c.lcs[0], c.f13, prev, prev)
+        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lcs[1]}", c.lcs[1], c.f14l, prev, None)
+        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lcs[2]}", c.lcs[2], c.f14r, None, prev)
+        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lcs[3]}", c.lcs[3], c.f15, prev, prev)
+        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lcs[4]}", c.lcs[4], c.f17, prev, prev)
+        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lcs[5]}", c.lcs[5], c.fselx, prev, None)
+        emit_lc_helper(L, seg, f"seg{seg}_lc{c.lcs[6]}", c.lcs[6], c.fsely, None, prev)
 
 
 def point_x(seg: int, cfg, k: int) -> str:
@@ -809,32 +834,32 @@ def emit_split_step(L: list[str], seg: int, cfg, KNS: str, c: SplitCert) -> None
     for off in range(8):
         L.append(f"  unfold Seg{seg}.relationRow{row + off} at r{row + off}")
     L.append(f"  have h13_{k} : rho {c.i67} = {c.f13} := by")
-    L.append(f"    have hLc := seg{seg}_lc{c.lc} rho")
+    L.append(f"    have hLc := seg{seg}_lc{c.lcs[0]} rho")
     L.append(f"    rw [hLc] at r{row}")
     L.append(f"    linear_combination -r{row}")
     L.append(f"  have h14_{k} : ({c.f14l}) * ({c.f14r}) = rho {c.i68} := by")
-    L.append(f"    have hL := seg{seg}_lc{c.lc + 1} rho")
-    L.append(f"    have hR := seg{seg}_lc{c.lc + 2} rho")
+    L.append(f"    have hL := seg{seg}_lc{c.lcs[1]} rho")
+    L.append(f"    have hR := seg{seg}_lc{c.lcs[2]} rho")
     L.append(f"    rw [hL, hR] at r{row + 1}")
     L.append(f"    linear_combination r{row + 1}")
     L.append(f"  have h15_{k} : {c.f15} = rho {c.i69} := by")
-    L.append(f"    have hLc := seg{seg}_lc{c.lc + 3} rho")
+    L.append(f"    have hLc := seg{seg}_lc{c.lcs[3]} rho")
     L.append(f"    rw [hLc] at r{row + 2}")
     L.append(f"    linear_combination r{row + 2}")
     L.append(f"  have h16_{k} : rho {c.outx} * (1 + rho {c.i68}) = rho {c.i69} := by")
     L.append(f"    linear_combination r{row + 3}")
     L.append(f"  have h17_{k} : {c.f17} = rho {c.i71} := by")
-    L.append(f"    have hLc := seg{seg}_lc{c.lc + 4} rho")
+    L.append(f"    have hLc := seg{seg}_lc{c.lcs[4]} rho")
     L.append(f"    rw [hLc] at r{row + 4}")
     L.append(f"    linear_combination r{row + 4}")
     L.append(f"  have h18_{k} : rho {c.outy} * (1 + (-1)*rho {c.i68}) = rho {c.i71} + {c.ev}*rho {c.i67} := by")
     L.append(f"    linear_combination r{row + 5}")
     L.append(f"  have hSelX_{k} : (1*rho {c.bit}) * ({c.fselx}) = rho {c.sdx} := by")
-    L.append(f"    have hLc := seg{seg}_lc{c.lc + 5} rho")
+    L.append(f"    have hLc := seg{seg}_lc{c.lcs[5]} rho")
     L.append(f"    rw [hLc] at r{row + 6}")
     L.append(f"    linear_combination r{row + 6}")
     L.append(f"  have hSelY_{k} : (1*rho {c.bit}) * ({c.fsely}) = rho {c.sdy} := by")
-    L.append(f"    have hLc := seg{seg}_lc{c.lc + 6} rho")
+    L.append(f"    have hLc := seg{seg}_lc{c.lcs[6]} rho")
     L.append(f"    rw [hLc] at r{row + 7}")
     L.append(f"    linear_combination r{row + 7}")
     L.append(f"  have hr{k} : RvkFixedBaseLadder.FixedStepRel {k} (rho {c.bit}) {point_prev} {point_cur} := by")
@@ -866,7 +891,7 @@ def module_header(seg: int, with_opens: bool = True) -> list[str]:
         "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false",
         "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1",
         "",
     ]
     if with_opens:
@@ -880,7 +905,7 @@ def module_header(seg: int, with_opens: bool = True) -> list[str]:
 
 
 def module_footer() -> list[str]:
-    return ["", "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
+    return ["", "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1", ""]
 
 
 def acc_state_chunks() -> list[list[int]]:
@@ -953,13 +978,13 @@ def emit_bits_module(seg: int, cfg) -> str:
     block = dtk.CanonicalBlock("Rvk", randomizer, bit_base, 0, 251, 252)
     helper_cfg = SimpleNamespace(seg=seg)
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc\n",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Acc\n",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.CompressAdapterCommon\n",
         "import ShielddGnarkFormal.RvkToBinary\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         f"theorem seg{seg}RvkBits_toBinary (rho : Nat -> Seg{seg}.F) "
         f"(h : Seg{seg}.relation rho) :\n",
         f"    GatesDef.to_binary (rho {randomizer}) 251 (seg{seg}RvkBits rho) := by\n",
@@ -986,14 +1011,14 @@ def emit_bits_module(seg: int, cfg) -> str:
         "      exact key\n",
         "    exact key' ▸ hgoal\n",
         "  · exact hrec\n\n",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n",
     ])
     return "".join(L)
 
 
 def emit_lemma_module(seg: int, cfg, certs: list[SplitCert], idx: int, include_tail: bool) -> str:
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Acc",
         *([] if not include_tail else ["import Mathlib.Tactic"]),
         "",
         *module_header(seg, with_opens=False),
@@ -1007,7 +1032,7 @@ def emit_lemma_module(seg: int, cfg, certs: list[SplitCert], idx: int, include_t
 
 def emit_prefix_lemma_module(seg: int, certs: list[PrefixCert], idx: int) -> str:
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Acc",
         "import Mathlib.Tactic",
         "",
         *module_header(seg, with_opens=False),
@@ -1023,7 +1048,7 @@ def emit_prefix_leaf_module(seg: int, cfg, cert: PrefixCert, lemma_idx: int) -> 
     inst = cfg["inst"]
     KNS = f"Shieldd.GnarkFormal.RvkFixedGen{inst}"
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}PrefixLemmas{lemma_idx}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}PrefixLemmas{lemma_idx}",
         f"import ShielddGnarkFormal.RvkFixedGen{inst}",
         "import ShielddGnarkFormal.RvkFixedBaseLadder",
         "import ShielddGnarkFormal.Deployed.PrimeOrder",
@@ -1046,7 +1071,7 @@ def emit_prefix_step_module(seg: int, cfg, certs: list[PrefixCert], idx: int) ->
     last = certs[-1].k
     L: list[str] = [
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}PrefixStep{cert.k}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}PrefixStep{cert.k}"
             for cert in certs
         ],
         "",
@@ -1079,9 +1104,9 @@ def emit_split_leaf_module(seg: int, cfg, cert: SplitCert, lemma_idx: int) -> st
     inst = cfg["inst"]
     KNS = f"Shieldd.GnarkFormal.RvkFixedGen{inst}"
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{seg}",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Lemmas{lemma_idx}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg{seg}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Acc",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Lemmas{lemma_idx}",
         f"import ShielddGnarkFormal.RvkFixedGen{inst}",
         "import ShielddGnarkFormal.RvkFixedSplitRung",
         "import ShielddGnarkFormal.RvkFixedBaseLiteral",
@@ -1106,7 +1131,7 @@ def emit_step_module(seg: int, cfg, certs: list[SplitCert], idx: int) -> str:
     last = certs[-1].k
     L: list[str] = [
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Step{cert.k}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Step{cert.k}"
             for cert in certs
         ],
         "",
@@ -1129,10 +1154,10 @@ def emit_step_module(seg: int, cfg, certs: list[SplitCert], idx: int) -> str:
 
 def emit_ladder_module(seg: int, cfg, prefix_chunks: list[list[PrefixCert]]) -> str:
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{seg}",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg{seg}",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Acc",
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}PrefixSteps{i}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}PrefixSteps{i}"
             for i in range(len(prefix_chunks))
         ],
         "",
@@ -1215,17 +1240,17 @@ def emit_adapter(seg: int, cfg, certs: list[SplitCert], step_count: int) -> str:
     keep_rows = set(prefix_ladder_rows(cfg)) | set(split_rows(cfg)) | tail_rows(cfg)
 
     L: list[str] = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{seg}",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Rvk",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Acc",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Bits",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Ladder",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg{seg}",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Rvk",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Acc",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Bits",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Ladder",
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Lemmas{i}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Lemmas{i}"
             for i in range(step_count)
         ],
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg{seg}Steps{i}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg{seg}Steps{i}"
             for i in range(step_count)
         ],
         f"import ShielddGnarkFormal.RvkFixedGen{inst}",
@@ -1350,7 +1375,7 @@ def generate(*, output_contracts: Path = CONTRACTS) -> None:
         certs = [split_cert(seg, cfg, k) for k in range(CONT_START, TOTAL_N + 1)]
         prefix_certs = [prefix_cert(seg, cfg, k) for k in range(1, PREFIX_N + 1)]
         prefix_chunks = chunks(prefix_certs, PREFIX_CHUNK_SIZE)
-        module_root = "ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1"
+        module_root = "ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1"
         previous_module = f"{module_root}.Seg{seg}"
         for xy in ("X", "Y"):
             for idx, states in enumerate(acc_state_chunks()):

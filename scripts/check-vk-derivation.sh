@@ -76,10 +76,10 @@ note "recompiled .sr1cs byte-identical to deployed artifact"
 # 3. deployed keys prove+verify against the recompiled constraint system
 if [[ "$run_prove" -eq 1 ]]; then
   case "$circuit" in
-    consolidate2x1) witness_name="note_reshape2x1_witness_v1.bin" ;;
-    consolidate4x1) witness_name="note_reshape4x1_witness_v1.bin" ;;
-    consolidate8x1) witness_name="note_reshape8x1_witness_v1.bin" ;;
-    split1x8) witness_name="note_reshape1x8_witness_v1.bin" ;;
+    note_reshape2x1) witness_name="note_reshape2x1_witness_v1.bin" ;;
+    note_reshape4x1) witness_name="note_reshape4x1_witness_v1.bin" ;;
+    note_reshape8x1) witness_name="note_reshape8x1_witness_v1.bin" ;;
+    note_reshape1x8) witness_name="note_reshape1x8_witness_v1.bin" ;;
     *) witness_name="${circuit}_witness_v1.bin" ;;
   esac
   witness="$GNARK_DIR/internal/testfixtures/vectors/$witness_name"

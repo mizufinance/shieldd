@@ -82,7 +82,7 @@ For this reason, BLS12-377 seems like the best choice of proving curve.
 
 Shieldd's approach is to first create a useful set of fixed functionality, and
 generalize to custom, programmable functionality only later. The current proof
-surface is intentionally reduced to `Transfer`, `Split`, `Consolidate`, and
+surface is intentionally reduced to `Transfer`, `NoteReshape`, and
 `ShieldedIcs20Withdrawal`, plus supporting non-transaction proofs such as
 nullifier derivation. Using Groth16 means that each supported statement needs
 its own proving and verification key, generated through a decentralized setup.

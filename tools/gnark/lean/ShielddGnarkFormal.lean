@@ -72,4 +72,4 @@ import ShielddGnarkFormal.CompressBlock1Chain
 import ShielddGnarkFormal.Deployed.CompressToField.Bridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 import ShielddGnarkFormal.Deployed.PrimeOrder
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Statement
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Statement

@@ -6,19 +6,20 @@ set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
 
 /-! Route-B structural bridge for the extracted rate-7 (state-8) Poseidon
-permutation used by the consolidate/split statement hash. Mirrors
+permutation used by the NoteReshape statement hash. Mirrors
 `Poseidon6Bridge` at width 8: closed `permSpec7` with explicit full/partial
 round-constant staging, proven equal to the extracted CPS `poseidonPerm7`. -/
 
 namespace Shieldd.GnarkFormal.Poseidon7Bridge
 
 open Shieldd.GnarkFormal.Extracted.PoseidonHash7
+open scoped BigOperators
 
 def hash7Spec (Domain In0 In1 In2 In3 In4 In5 In6 : F) : F :=
   Poseidon377.hash7 Domain In0 In1 In2 In3 In4 In5 In6
 
-/-- The `consolidate2x1` statement-hash domain separator
-(`blake2b-512("shieldd.shielded_pool.consolidate2x1.public_input_hash.v1")`
+/-- The `note_reshape2x1` statement-hash domain separator
+(`blake2b-512("shieldd.shielded_pool.note_reshape2x1.public_input_hash.v1")`
 little-endian, reduced mod the field order), as baked into the deployed slice. -/
 abbrev statementDomainLit : F :=
   (2179369400817676273693737456030927895117269802702488411964090405346318312961 : F)
@@ -31,6 +32,108 @@ def p17 (a : F) : F :=
 /-- Left-folded rate-7 MDS row, matching the extracted gate association. -/
 def row8 (c0 c1 c2 c3 c4 c5 c6 c7 x0 x1 x2 x3 x4 x5 x6 x7 : F) : F :=
   c0 * x0 + c1 * x1 + c2 * x2 + c3 * x3 + c4 * x4 + c5 * x5 + c6 * x6 + c7 * x7
+
+/-- Vector form of an MDS row, used to keep generated congruence proofs small. -/
+def row8v (coefficients inputs : List.Vector F 8) : F :=
+  row8 coefficients[0] coefficients[1] coefficients[2] coefficients[3]
+    coefficients[4] coefficients[5] coefficients[6] coefficients[7]
+    inputs[0] inputs[1] inputs[2] inputs[3] inputs[4] inputs[5] inputs[6] inputs[7]
+
+theorem row8v_congr (coefficients : List.Vector F 8) {inputs inputs' : List.Vector F 8}
+    (h : inputs = inputs') : row8v coefficients inputs = row8v coefficients inputs' := by
+  subst inputs'
+  rfl
+
+/-- Pointwise congruence for generated MDS rows without constructing a large
+vector-equality proof in every leaf. -/
+theorem row8v_congr8 (coefficients : List.Vector F 8)
+    {x0 x1 x2 x3 x4 x5 x6 x7 y0 y1 y2 y3 y4 y5 y6 y7 : F}
+    (h0 : x0 = y0) (h1 : x1 = y1) (h2 : x2 = y2) (h3 : x3 = y3)
+    (h4 : x4 = y4) (h5 : x5 = y5) (h6 : x6 = y6) (h7 : x7 = y7) :
+    row8v coefficients vec![x0, x1, x2, x3, x4, x5, x6, x7] =
+      row8v coefficients vec![y0, y1, y2, y3, y4, y5, y6, y7] := by
+  subst y0
+  subst y1
+  subst y2
+  subst y3
+  subst y4
+  subst y5
+  subst y6
+  subst y7
+  rfl
+
+/-- Convert a closed eight-product natural modular certificate into the field
+equality used by generated affine MDS normalizations. -/
+theorem natCastSum8MulEq
+    (a0 b0 a1 b1 a2 b2 a3 b3 a4 b4 a5 b5 a6 b6 a7 b7 folded : Nat)
+    (h : (a0 * b0 + a1 * b1 + a2 * b2 + a3 * b3 +
+          a4 * b4 + a5 * b5 + a6 * b6 + a7 * b7) % Order = folded % Order) :
+    (a0 : F) * (b0 : F) + (a1 : F) * (b1 : F) +
+      (a2 : F) * (b2 : F) + (a3 : F) * (b3 : F) +
+      (a4 : F) * (b4 : F) + (a5 : F) * (b5 : F) +
+      (a6 : F) * (b6 : F) + (a7 : F) * (b7 : F) = (folded : F) := by
+  have hCast :
+      ((a0 * b0 + a1 * b1 + a2 * b2 + a3 * b3 +
+        a4 * b4 + a5 * b5 + a6 * b6 + a7 * b7 : Nat) : F) = (folded : F) :=
+    (ZMod.natCast_eq_natCast_iff' _ _ Order).mpr h
+  norm_num only [Nat.cast_add, Nat.cast_mul] at hCast
+  exact hCast
+
+/-- Evaluation of a normalized affine form on a fixed wire basis. -/
+def affineEval {n : Nat} (wires : Fin n → Nat) (constant : F)
+    (coefficients : Fin n → F) (rho : Nat → F) : F :=
+  constant + ∑ index, coefficients index * rho (wires index)
+
+theorem affineEval_congr {n : Nat} (wires : Fin n → Nat)
+    {constant constant' : F} {coefficients coefficients' : Fin n → F}
+    (hConstant : constant = constant') (hCoefficients : coefficients = coefficients')
+    (rho : Nat → F) :
+    affineEval wires constant coefficients rho = affineEval wires constant' coefficients' rho := by
+  subst constant'
+  subst coefficients'
+  rfl
+
+/-- MDS rows commute with evaluation of affine forms on a shared basis. -/
+theorem row8_affineEval {n : Nat} (wires : Fin n → Nat)
+    (m0 m1 m2 m3 m4 m5 m6 m7 : F)
+    (c0 c1 c2 c3 c4 c5 c6 c7 : F)
+    (a0 a1 a2 a3 a4 a5 a6 a7 : Fin n → F) (rho : Nat → F) :
+    row8 m0 m1 m2 m3 m4 m5 m6 m7
+        (affineEval wires c0 a0 rho) (affineEval wires c1 a1 rho)
+        (affineEval wires c2 a2 rho) (affineEval wires c3 a3 rho)
+        (affineEval wires c4 a4 rho) (affineEval wires c5 a5 rho)
+        (affineEval wires c6 a6 rho) (affineEval wires c7 a7 rho) =
+      affineEval wires (row8 m0 m1 m2 m3 m4 m5 m6 m7 c0 c1 c2 c3 c4 c5 c6 c7)
+        (fun index => row8 m0 m1 m2 m3 m4 m5 m6 m7
+          (a0 index) (a1 index) (a2 index) (a3 index)
+          (a4 index) (a5 index) (a6 index) (a7 index)) rho := by
+  have hsum :
+      (∑ index : Fin n,
+        (m0 * a0 index + m1 * a1 index + m2 * a2 index + m3 * a3 index +
+          m4 * a4 index + m5 * a5 index + m6 * a6 index + m7 * a7 index) *
+            rho (wires index)) =
+        m0 * (∑ index : Fin n, a0 index * rho (wires index)) +
+        m1 * (∑ index : Fin n, a1 index * rho (wires index)) +
+        m2 * (∑ index : Fin n, a2 index * rho (wires index)) +
+        m3 * (∑ index : Fin n, a3 index * rho (wires index)) +
+        m4 * (∑ index : Fin n, a4 index * rho (wires index)) +
+        m5 * (∑ index : Fin n, a5 index * rho (wires index)) +
+        m6 * (∑ index : Fin n, a6 index * rho (wires index)) +
+        m7 * (∑ index : Fin n, a7 index * rho (wires index)) := by
+    calc
+      _ = ∑ index : Fin n,
+          (m0 * (a0 index * rho (wires index)) + m1 * (a1 index * rho (wires index)) +
+            m2 * (a2 index * rho (wires index)) + m3 * (a3 index * rho (wires index)) +
+            m4 * (a4 index * rho (wires index)) + m5 * (a5 index * rho (wires index)) +
+            m6 * (a6 index * rho (wires index)) + m7 * (a7 index * rho (wires index))) := by
+              apply Finset.sum_congr rfl
+              intro index _
+              ring
+      _ = _ := by
+        simp only [Finset.sum_add_distrib, Finset.mul_sum]
+  simp only [affineEval, row8]
+  rw [hsum]
+  ring
 
 /-- Full-round spec for width 8: add constants, S-box all lanes, then MDS. -/
 def fr8 (st cs : List.Vector F 8) : List.Vector F 8 :=

@@ -678,7 +678,7 @@
       }
     },
     {
-      "split": {
+      "noteReshape": {
         "body": {
           "familyId": 2,
           "anchor": {

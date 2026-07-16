@@ -33,7 +33,7 @@ const NOTE_RESHAPE_FREE_SYMBOL: &[u8] = b"shieldd_gnark_note_reshape_free";
 const NOTE_RESHAPE_SHUTDOWN_SYMBOL: &[u8] = b"shieldd_gnark_note_reshape_shutdown";
 
 static NOTE_RESHAPE_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "consolidate2x1",
+    family: "note_reshape2x1",
     env_artifact_dir: NOTE_RESHAPE_ENV_ARTIFACT_DIR,
     env_lib: NOTE_RESHAPE_ENV_LIB,
     env_daemon: NOTE_RESHAPE_ENV_DAEMON,
@@ -45,22 +45,22 @@ static NOTE_RESHAPE_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
 };
 
 static NOTE_RESHAPE_FAMILY_CONFIG_2X1: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "consolidate2x1",
+    family: "note_reshape2x1",
     ..NOTE_RESHAPE_FAMILY_CONFIG
 };
 
 static NOTE_RESHAPE_FAMILY_CONFIG_8X1: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "consolidate8x1",
+    family: "note_reshape8x1",
     ..NOTE_RESHAPE_FAMILY_CONFIG
 };
 
 static NOTE_RESHAPE_FAMILY_CONFIG_4X1: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "consolidate4x1",
+    family: "note_reshape4x1",
     ..NOTE_RESHAPE_FAMILY_CONFIG
 };
 
 static NOTE_RESHAPE_FAMILY_CONFIG_1X8: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "split1x8",
+    family: "note_reshape1x8",
     ..NOTE_RESHAPE_FAMILY_CONFIG
 };
 

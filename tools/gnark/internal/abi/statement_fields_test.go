@@ -50,10 +50,10 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 		name  string
 		label string
 	}{
-		{name: "note_reshape2x1", label: "consolidate2x1"},
-		{name: "note_reshape1x8", label: "split1x8"},
-		{name: "note_reshape4x1", label: "consolidate4x1"},
-		{name: "note_reshape8x1", label: "consolidate8x1"},
+		{name: "note_reshape2x1", label: "note_reshape2x1"},
+		{name: "note_reshape1x8", label: "note_reshape1x8"},
+		{name: "note_reshape4x1", label: "note_reshape4x1"},
+		{name: "note_reshape8x1", label: "note_reshape8x1"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			witness, _, err := DecodeNoteReshapeWitnessV1(

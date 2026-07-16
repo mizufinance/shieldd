@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the deployed DTK adapter for consolidate2x1 segment 6.
+"""Generate the deployed DTK adapter for note_reshape2x1 segment 6.
 
 Post-T1-d: DTK computation is hoisted into `Define()` and computed once, so
 the three pre-T1-d instances (segments 16, 34, 45) collapse into a single
@@ -26,8 +26,7 @@ import re
 import hashlib
 import json
 import os
-import subprocess
-import tempfile
+from functools import lru_cache
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -37,13 +36,13 @@ from generated_contract_source import read_source
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parents[2]
 FORMAL = ROOT / "ShielddGnarkFormal"
-DEFAULT_CONTRACTS = FORMAL / "Deployed/Contracts/Consolidate2x1"
+DEFAULT_CONTRACTS = FORMAL / "Deployed/Contracts/NoteReshape2x1"
 SOURCE_CONTRACTS = Path(os.environ.get("DTK_CONTRACTS_SOURCE", DEFAULT_CONTRACTS))
 OUTPUT_CONTRACTS = Path(os.environ.get("DTK_CONTRACTS_OUTPUT", DEFAULT_CONTRACTS))
 DTK = FORMAL / "Deployed/Dtk"
 OUTPUT_DTK = Path(os.environ.get("DTK_SHARED_OUTPUT", DTK))
 EXTRACTED_DEPLOYED = FORMAL / "Extracted/Deployed"
-SR1CS = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1.sr1cs"
+SR1CS = ROOT.parent / "artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
 POSEIDON2 = FORMAL / "Poseidon2Bridge.lean"
 
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
@@ -79,6 +78,10 @@ class Instance:
     div_x: int
     div_y: int
     following_seg: int
+    # Optional exact local seating.  Entry i is the deployed/template wire
+    # represented by local wire i.  The reviewed deployed adapters leave this
+    # unset and therefore retain their byte-identical affine seating.
+    wire_seating: tuple[int, ...] | None = None
 
     def __post_init__(self) -> None:
         for name in ("seg", "internal_base", "div_x", "div_y", "following_seg"):
@@ -86,7 +89,7 @@ class Instance:
             if not isinstance(val, int) or val <= 0:
                 raise ValueError(f"Instance.{name} must be a positive int, got {val!r}")
         # div wires are the consecutive (x, y) pair of the net-balance divisor.
-        if self.div_y != self.div_x + 1:
+        if self.wire_seating is None and self.div_y != self.div_x + 1:
             raise ValueError(
                 f"Instance(seg={self.seg}): div_y ({self.div_y}) must be "
                 f"div_x + 1 ({self.div_x + 1})"
@@ -103,6 +106,15 @@ class Instance:
                 f"Instance(seg={self.seg}): internal_base ({self.internal_base}) "
                 f"must be >= base {BASE_INTERNAL}"
             )
+        if self.wire_seating is not None:
+            if not self.wire_seating or self.wire_seating[0] != 0:
+                raise ValueError(
+                    f"Instance(seg={self.seg}): local wire zero must seat deployed wire zero"
+                )
+            if len(set(self.wire_seating)) != len(self.wire_seating):
+                raise ValueError(
+                    f"Instance(seg={self.seg}): wire seating must be injective"
+                )
 
     @property
     def delta(self) -> int:
@@ -334,21 +346,21 @@ def bits_field(cfg: Instance, label: str) -> str:
 
 def emit_base(cfg: Instance) -> str:
     bit_bases = {
-        "Canon1": cfg.internal_base + 21,
-        "Canon2": cfg.internal_base + 363,
+        "Canon1": affine_internal_run(cfg, 21, 253, "Canon1 bits"),
+        "Canon2": affine_internal_run(cfg, 363, 253, "Canon2 bits"),
         # T1-h: the ladder reuses the first 251 bits of the Ivk decomposition;
         # ScalarBits is the width-251 truncation of the same wire run.
-        "Ivk": cfg.internal_base + 977,
-        "Scalar": cfg.internal_base + 977,
+        "Ivk": affine_internal_run(cfg, 977, 253, "Ivk bits"),
+        "Scalar": affine_internal_run(cfg, 977, 251, "scalar bits"),
     }
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{cfg.seg}\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg{cfg.seg}\n",
         "import ShielddGnarkFormal.Deployed.Dtk.Outputs\n",
         "import ShielddGnarkFormal.Deployed.PrimeOrder\n",
         "import ShielddGnarkFormal.Extracted.CanonicalFqBits\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         f"instance seg{cfg.seg}DtkFactPrime : Fact (Nat.Prime Seg{cfg.seg}.Order) :=\n",
         "  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩\n\n",
     ]
@@ -368,7 +380,7 @@ def emit_base(cfg: Instance) -> str:
             f"  simp only [{bits_name(cfg, label)}, List.Vector.toList_ofFn, "
             "List.getElem_ofFn]\n\n"
         )
-    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
@@ -384,8 +396,8 @@ class CanonicalBlock:
 
 def canonical_blocks(cfg: Instance) -> tuple[CanonicalBlock, CanonicalBlock]:
     return (
-        CanonicalBlock("Canon1", cfg.internal_base + 20, cfg.internal_base + 21, 28, 281, 282),
-        CanonicalBlock("Canon2", cfg.internal_base + 362, cfg.internal_base + 363, 538, 791, 792),
+        CanonicalBlock("Canon1", internal_wire(cfg, 20), internal_wire(cfg, 21), 28, 281, 282),
+        CanonicalBlock("Canon2", internal_wire(cfg, 362), internal_wire(cfg, 363), 538, 791, 792),
     )
 
 
@@ -488,22 +500,22 @@ def canon_component_header(
     if previous is None:
         base_component = base_component or f"DtkAdapterSeg{cfg.seg}Base"
         imports = [
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.{base_component}\n",
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{base_component}\n",
             "import ShielddGnarkFormal.CanonicalFqBitsDeployedKernel\n",
             "import ShielddGnarkFormal.CanonicalFqBitsChainAcc\n",
-            "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon\n",
+            "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.CompressAdapterCommon\n",
             "import ShielddGnarkFormal.RvkToBinary\n\n",
         ]
     else:
         imports = [
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.{previous}\n\n"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{previous}\n\n"
         ]
     return [
         *imports,
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         "open Shieldd.GnarkFormal.Extracted.CanonicalFqBits\n\n",
     ]
 
@@ -524,7 +536,7 @@ def emit_canon_recover(
     )
     emit_unpack(lines, cfg, {block.rec_row})
     emit_recomposition(lines, cfg, block, f"({bits} rho)", f"r{block.rec_row}")
-    lines.append("  exact hrec\n\nend Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("  exact hrec\n\nend Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
@@ -549,7 +561,7 @@ def emit_canon_binary(cfg: Instance, block: CanonicalBlock, previous: str) -> st
     ])
     for row in bit_rows:
         lines.append(f"    · linear_combination r{row}\n")
-    lines.append("  exact key ▸ hgoal\n\nend Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("  exact key ▸ hgoal\n\nend Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
@@ -569,7 +581,7 @@ def emit_canon_true_defs(
     flags, _ = flag_wire_map(block, rows)
     lines = canon_component_header(cfg, block, previous)
     emit_flag_defs(lines, cfg, block, flags)
-    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
@@ -634,7 +646,7 @@ def emit_canon_true_chunk(
                 "simp [trueFactor, hb]]\n"
                 "    ring\n"
             )
-    lines.append("\nend Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("\nend Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
@@ -661,7 +673,7 @@ def emit_canon_true_thread(
     last = len(chunks) - 1
     lines.append(
         f"  exact {prefix}_flag_step_chunk{last} rho h m (by omega) hm\n\n"
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n"
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n"
     )
     return "".join(lines)
 
@@ -708,7 +720,7 @@ def emit_canon_compare_chunk(
                 f"    rw [show {prefix}Flag rho {j + 1} = rho {nxt} from rfl]\n"
                 f"    linear_combination r{row}\n"
             )
-    lines.append("\nend Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("\nend Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
@@ -735,7 +747,7 @@ def emit_canon_compare(
     last = len(chunks) - 1
     lines.append(
         f"  exact {prefix}_compare_chunk{last} rho h j (by omega) hj hpm\n\n"
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n"
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n"
     )
     return "".join(lines)
 
@@ -761,7 +773,7 @@ def emit_canon_chain(cfg: Instance, block: CanonicalBlock, previous: str) -> str
         "getElem!_pos bools j (by simpa using hj), List.Vector.getElem_map]\n"
         "    rw [hget]\n"
         "    cases bools[j]! <;> simp [Bool.toZMod_zero, Bool.toZMod_one]\n\n"
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n"
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n"
     )
     return "".join(lines)
 
@@ -790,13 +802,13 @@ def emit_canon_block(
         f"  exact canonicalFqBitsGadget_of_components (rho {block.input_wire}) ({bits} rho) k\n"
         f"    ({prefix}_recover rho h) ({prefix}_binary rho h) ({prefix}_chain rho h k hk)\n\n"
     )
-    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
 def emit_canon(cfg: Instance) -> str:
     return (
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1."
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1."
         f"DtkAdapterSeg{cfg.seg}Canon2\n"
     )
 
@@ -813,7 +825,7 @@ class BinaryBlock:
 
 def binary_blocks(cfg: Instance) -> tuple[BinaryBlock, ...]:
     return (
-        BinaryBlock("Ivk", 9, cfg.internal_base + 977, 253, 1322, 1575),
+        BinaryBlock("Ivk", seat_wire(cfg, 9), internal_wire(cfg, 977), 253, 1322, 1575),
     )
 
 
@@ -872,17 +884,17 @@ def emit_binary_theorem(lines: list[str], cfg: Instance, block: BinaryBlock) -> 
 
 def emit_bits(cfg: Instance) -> str:
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Base\n",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Base\n",
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.CompressAdapterCommon\n",
         "import ShielddGnarkFormal.RvkToBinary\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
     ]
     for block in binary_blocks(cfg):
         emit_binary_theorem(lines, cfg, block)
-    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
@@ -969,16 +981,27 @@ def lc_add(*terms: tuple[Lc, int]) -> Lc:
 
 
 def sr1cs_lc_rows() -> list[tuple[Lc, Lc, Lc]]:
-    constraints = [
-        parse_constraint(line)
-        for line in SR1CS.read_text().splitlines()
-        if line.strip().startswith("(constraint ")
-    ]
-    rows = []
-    for row in constraints[DTK_GLOBAL_OFFSET : DTK_GLOBAL_OFFSET + ROW_COUNT]:
-        rows.append(tuple(
-            lc_clean({wire: int(coeff, 0) for coeff, wire in side}) for side in row
-        ))
+    # Only the scalar ladder (rows 2717 onward) consumes raw SR1CS LCs here.
+    # Earlier canonical/LT/Poseidon proofs consume the exact generated
+    # relation instead.  Preserve row-number indexing with empty placeholders
+    # without retaining the very wide LT accumulators in Python memory.
+    scalar_row_start = 2717
+    rows: list[tuple[Lc, Lc, Lc]] = [({}, {}, {}) for _ in range(scalar_row_start)]
+    constraint_index = 0
+    with SR1CS.open() as source_file:
+        for line in source_file:
+            if not line.strip().startswith("(constraint "):
+                continue
+            if constraint_index >= DTK_GLOBAL_OFFSET + ROW_COUNT:
+                break
+            local_row = constraint_index - DTK_GLOBAL_OFFSET
+            if local_row >= scalar_row_start:
+                row = parse_constraint(line)
+                rows.append(tuple(
+                    lc_clean({wire: int(coeff, 0) for coeff, wire in side})
+                    for side in row
+                ))
+            constraint_index += 1
     if len(rows) != ROW_COUNT:
         raise ValueError("missing DTK SR1CS rows")
     return rows
@@ -987,42 +1010,32 @@ def sr1cs_lc_rows() -> list[tuple[Lc, Lc, Lc]]:
 # The lt-compare carry-chain recovery no longer lives here. It is done — and,
 # crucially, *parity-gated* — in the trusted Rust extractor
 # (`shieldd-constraint-coverage`, `ltchain::recover_lt_chain` +
-# `verify_consolidate2x1_lt_ladders`). The generator consumes the extractor's
+# `verify_note_reshape2x1_lt_ladders`). The generator consumes the extractor's
 # recovered seating as JSON, so a mis-seat is caught at extraction time against
 # the raw rows rather than silently emitted into Lean.
 
-MANIFEST = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1-manifest.json"
+LT_SEATING = (
+    REPO_ROOT
+    / "crates/core/component/shielded-pool/formal/note_reshape2x1-dtk-lt-seating.json"
+)
+LT_SEATING_SHA256 = LT_SEATING.with_suffix(LT_SEATING.suffix + ".sha256")
 # label -> the extracted bit predicate the emitted Lean references.
 LTC_BIT_DEF = {"R": "rBit", "Q4": "q4Bit"}
 LTC_END_ROW = {"R": 2345, "Q4": 2715}
 
 
 def _lt_seating() -> dict:
-    """Recovered, parity-gated lt-ladder seating from the Rust extractor.
-
-    `DTK_LT_SEATING` may point at a pre-generated JSON (the extractor's
-    `--lt-seating-out` output); otherwise the extractor is invoked directly so
-    the seating always comes through its fail-closed parity gate.
-    """
-    override = os.environ.get("DTK_LT_SEATING")
-    if override:
-        return json.loads(Path(override).read_text())
-    with tempfile.NamedTemporaryFile("r", suffix=".json", delete=False) as handle:
-        out_path = Path(handle.name)
-    try:
-        subprocess.run(
-            [
-                "cargo", "run", "-q", "-p", "shieldd-constraint-coverage", "--",
-                "--manifest", str(MANIFEST),
-                "--sr1cs", str(SR1CS),
-                "--lt-seating-out", str(out_path),
-            ],
-            cwd=REPO_ROOT,
-            check=True,
+    """Read the canonical parity-gated LT seating with an exact byte pin."""
+    if not LT_SEATING.is_file() or not LT_SEATING_SHA256.is_file():
+        raise ValueError("missing canonical parity-gated DTK LT seating artifact")
+    raw = LT_SEATING.read_bytes()
+    expected = LT_SEATING_SHA256.read_text().strip()
+    actual = hashlib.sha256(raw).hexdigest()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected) or actual != expected:
+        raise ValueError(
+            f"DTK LT seating digest drifted: expected {expected!r}, got {actual}"
         )
-        return json.loads(out_path.read_text())
-    finally:
-        out_path.unlink(missing_ok=True)
+    return json.loads(raw)
 
 
 def _lc_from_json(pairs) -> Lc:
@@ -1082,9 +1095,13 @@ def singleton_wire(side: Lc) -> int:
     return wire
 
 
-def dtk_scalar_rungs() -> tuple[ScalarRung, ...]:
-    rows = sr1cs_lc_rows()
-    xs, ys = output_wires(INSTANCES[0])
+def dtk_scalar_rungs(
+    rows: list[tuple[Lc, Lc, Lc]] | None = None,
+    outputs: tuple[list[int], list[int]] | None = None,
+) -> tuple[ScalarRung, ...]:
+    """Recover scalar rungs, optionally reusing the caller's parsed SR1CS."""
+    rows = sr1cs_lc_rows() if rows is None else rows
+    xs, ys = output_wires(INSTANCES[0]) if outputs is None else outputs
     rungs: list[ScalarRung] = []
     cur_x, cur_y = 17, 18
     for index, (delta_x, delta_y) in enumerate(zip(xs, ys, strict=True)):
@@ -1281,6 +1298,26 @@ LTC_ATOM_LAYOUTS: dict[tuple[int, str], LtcAtomLayout] = {}
 
 def parse_relation_lc(cfg: Instance, name: str) -> Lc:
     body = def_body(source(cfg.seg), name)
+    if "Shieldd.GnarkFormal.StructuredLC.eval" in body:
+        const_match = re.search(r"const := \((-?\d+) : F\)", body)
+        if const_match is None:
+            raise ValueError(f"{name}: malformed StructuredLC constant")
+        value: Lc = {0: int(const_match.group(1)) % ORDER}
+        runs = re.findall(
+            r"⟨\((-?\d+) : F\), (\d+), (\d+), (\d+)⟩", body
+        )
+        residual = re.findall(r"\(\((-?\d+) : F\), (\d+)\)", body)
+        for raw_coeff, raw_start, raw_stride, raw_count in runs:
+            coeff = int(raw_coeff)
+            start = int(raw_start)
+            stride = int(raw_stride)
+            for index in range(int(raw_count)):
+                wire = start + stride * index
+                value[wire] = (value.get(wire, 0) + coeff) % ORDER
+        for raw_coeff, raw_wire in residual:
+            wire = int(raw_wire)
+            value[wire] = (value.get(wire, 0) + int(raw_coeff)) % ORDER
+        return lc_clean(value)
     value: Lc = {}
     for raw_coeff, raw_wire in re.findall(
         r"\((-?\d+) : F\)(?: \* rho (\d+))?", body
@@ -1584,7 +1621,13 @@ def row_is_structured(seg: int, row: int) -> bool:
     """A row rendered as `StructuredLC.eval` (compact accumulator) rather than a
     flat product.  Only such rows need the StructuredLC→sumAux simp; emitting it
     on a flat row fails with `simp made no progress`."""
-    return "StructuredLC.eval" in def_body(source(seg), f"relationRow{row}")
+    text = source(seg)
+    if "StructuredLC.eval" in def_body(text, f"relationRow{row}"):
+        return True
+    return any(
+        "StructuredLC.eval" in def_body(text, name)
+        for name in row_lc_defs(seg, row)
+    )
 
 
 def emit_row_unfold(lines: list[str], cfg: Instance, row: int) -> None:
@@ -1685,18 +1728,19 @@ def emit_ltc_step_function(lines: list[str], cfg: Instance, trace: LtcTrace) -> 
     pe_state = f"seg{cfg.seg}{trace.label}PeState"
     il_state = f"seg{cfg.seg}{trace.label}IlState"
     bit_def = f"Shieldd.GnarkFormal.Extracted.IvkModR.{trace.bit_def}"
+    bit_base = affine_internal_run(cfg, 977, 253, "Ivk bits")
     lines.extend([
         f"  have hsteps : ∀ n, n < 253 →\n",
         f"      if {bit_def} n then\n",
         f"        {pe_state} rho n = {pe_state} rho (n + 1) * rho "
-        f"({cfg.internal_base + 977} + n) ∧\n",
+        f"({bit_base} + n) ∧\n",
         f"        {il_state} rho n = {il_state} rho (n + 1) + "
-        f"{pe_state} rho (n + 1) * (1 - rho ({cfg.internal_base + 977} + n)) -\n",
+        f"{pe_state} rho (n + 1) * (1 - rho ({bit_base} + n)) -\n",
         f"          {il_state} rho (n + 1) * ({pe_state} rho (n + 1) * "
-        f"(1 - rho ({cfg.internal_base + 977} + n)))\n",
+        f"(1 - rho ({bit_base} + n)))\n",
         "      else\n",
         f"        {pe_state} rho n = {pe_state} rho (n + 1) * "
-        f"(1 - rho ({cfg.internal_base + 977} + n)) ∧\n",
+        f"(1 - rho ({bit_base} + n)) ∧\n",
         f"        {il_state} rho n = {il_state} rho (n + 1) := by\n",
         "    intro n hn\n",
         "    interval_cases n\n",
@@ -1723,27 +1767,27 @@ def ltc_chunks() -> list[tuple[int, int]]:
 
 def ltc_component_header(cfg: Instance, previous: str) -> list[str]:
     return [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.{previous}\n\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{previous}\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
     ]
 
 
 def emit_ltc_defs(cfg: Instance, trace: LtcTrace, previous: str) -> str:
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.{previous}\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{previous}\n",
         "import ShielddGnarkFormal.Deployed.Dtk.LtConst\n",
         "import ShielddGnarkFormal.DtkBridge\n",
         "import ShielddGnarkFormal.CompressDeployedGadgets\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
     ]
     emit_ltc_state_defs(lines, cfg, trace, ltc_atom_layout(cfg, trace))
-    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n")
+    lines.append("end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n")
     return "".join(lines)
 
 
@@ -1910,18 +1954,19 @@ def emit_ltc_step_function_range(
     pe_state = f"seg{cfg.seg}{trace.label}PeState"
     il_state = f"seg{cfg.seg}{trace.label}IlState"
     bit_def = f"Shieldd.GnarkFormal.Extracted.IvkModR.{trace.bit_def}"
+    bit_base = affine_internal_run(cfg, 977, 253, "Ivk bits")
     lines.extend([
         "  have hsteps : ∀ n, " + str(start) + " ≤ n → n < " + str(end) + " →\n",
         f"      if {bit_def} n then\n",
         f"        {pe_state} rho n = {pe_state} rho (n + 1) * rho "
-        f"({cfg.internal_base + 977} + n) ∧\n",
+        f"({bit_base} + n) ∧\n",
         f"        {il_state} rho n = {il_state} rho (n + 1) + "
-        f"{pe_state} rho (n + 1) * (1 - rho ({cfg.internal_base + 977} + n)) -\n",
+        f"{pe_state} rho (n + 1) * (1 - rho ({bit_base} + n)) -\n",
         f"          {il_state} rho (n + 1) * ({pe_state} rho (n + 1) * "
-        f"(1 - rho ({cfg.internal_base + 977} + n)))\n",
+        f"(1 - rho ({bit_base} + n)))\n",
         "      else\n",
         f"        {pe_state} rho n = {pe_state} rho (n + 1) * "
-        f"(1 - rho ({cfg.internal_base + 977} + n)) ∧\n",
+        f"(1 - rho ({bit_base} + n)) ∧\n",
         f"        {il_state} rho n = {il_state} rho (n + 1) := by\n",
         "    intro n hnlo hnhi\n",
         "    interval_cases n\n",
@@ -2070,7 +2115,7 @@ def emit_ltc_chunk(
         f"    (by intro n hnlo hnhi; have key := seg{cfg.seg}IvkBits_get rho n (by omega); "
         "erw [key]; exact hsteps n hnlo hnhi) htail (by omega)\n",
         "  simpa only [Nat.reduceAdd] using ht\n\n",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n",
     ])
     return "".join(lines)
 
@@ -2111,7 +2156,7 @@ def emit_ltc(cfg: Instance) -> str:
         f"  have ht := seg{cfg.seg}_r_chunk{last} rho h k hq4\n",
         f"  rw [seg{cfg.seg}RPeState_terminal, seg{cfg.seg}RIlState_terminal] at ht\n",
         "  exact ht\n\n",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n",
     ])
     return "".join(lines)
 
@@ -2524,18 +2569,18 @@ def emit_scalar_defs_module(
     and the assembly, so the rung proofs (which `rw [...Flat_eq]`) resolve
     them from a single cached olean."""
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Bits\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Bits\n",
         "import ShielddGnarkFormal.Deployed.Dtk.Ladder\n\n",
         "import ShielddGnarkFormal.StructuredLC\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         "open Shieldd.GnarkFormal.Deployed.Dtk.Outputs\n\n",
     ]
     emit_scalar_defs(lines, cfg, rungs)
     lines.append(
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n"
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n"
     )
     return "".join(lines)
 
@@ -2557,7 +2602,7 @@ def emit_scalar_hstep_chunk(
     """
     acc_state = f"seg{cfg.seg}LadderAccState"
     cur_state = f"seg{cfg.seg}LadderCurState"
-    base = cfg.internal_base + 977
+    base = affine_internal_run(cfg, 977, 251, "scalar bits")
     lo = subset[0].index
     hi = subset[-1].index + 1
     lines.extend([
@@ -2589,36 +2634,37 @@ def emit_scalar_chunk(
     rows: list[tuple[Lc, Lc, Lc]],
 ) -> str:
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}ScalarDefs\n\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}ScalarDefs\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         "open Shieldd.GnarkFormal.Deployed.Dtk.Outputs\n\n",
     ]
     for rung in subset:
         emit_scalar_rung(lines, cfg, rung, rows)
     emit_scalar_hstep_chunk(lines, cfg, chunk_index, subset)
     lines.append(
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n"
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n"
     )
     return "".join(lines)
 
 
 def emit_scalar(cfg: Instance, rungs: tuple[ScalarRung, ...]) -> str:
+    scalar_bit_base = affine_internal_run(cfg, 977, 251, "scalar bits")
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}ScalarDefs\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}ScalarDefs\n",
     ]
     for chunk_index in range(len(scalar_chunks(rungs))):
         lines.append(
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}ScalarR{chunk_index}\n"
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}ScalarR{chunk_index}\n"
         )
     lines.extend([
         "\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         "open Shieldd.GnarkFormal.Deployed.Dtk.Outputs\n\n",
     ])
     lines.append(
@@ -2638,7 +2684,7 @@ def emit_scalar(cfg: Instance, rungs: tuple[ScalarRung, ...]) -> str:
     cur_state = f"seg{cfg.seg}LadderCurState"
     lines.extend([
         "  have hbitAt : ∀ i, i < 251 → rho "
-        f"({cfg.internal_base + 977} + i) = Bool.toZMod bits[i]! := by\n",
+        f"({scalar_bit_base} + i) = Bool.toZMod bits[i]! := by\n",
         "    intro i hi\n",
         f"    rw [← seg{cfg.seg}ScalarBits_get rho i hi, hbits]\n",
         "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi), "
@@ -2697,25 +2743,25 @@ def emit_scalar(cfg: Instance, rungs: tuple[ScalarRung, ...]) -> str:
         "  · show EdwardsBridge.onCurve "
         f"⟨(rho {cfg.div_x} : Seg{cfg.seg}.F), (rho {cfg.div_y} : Seg{cfg.seg}.F)⟩\n",
         "    simpa only [Specs.onCurveAt] using hdiv\n\n",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n",
     ])
     return "".join(lines)
 
 
 def emit_adapter(cfg: Instance) -> str:
-    w = lambda offset: cfg.internal_base + offset
+    w = lambda offset: internal_wire(cfg, offset)
     keep = set(range(28)) | {534, 535, 536, 537, 1044, 1045} | set(range(1317, 1322))
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Canon\n",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Lt\n",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Poseidon\n",
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Scalar\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Canon\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Lt\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Poseidon\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Scalar\n",
         "import ShielddGnarkFormal.Deployed.Dtk.Compose\n",
         "import ShielddGnarkFormal.CompressDeployedGadgets\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         "open Shieldd.GnarkFormal.Deployed.Dtk.Outputs\n",
         "open Shieldd.GnarkFormal.DeployedGadgets\n\n",
         f"theorem seg{cfg.seg}_dtkSeg0 (rho : Nat -> Seg{cfg.seg}.F) "
@@ -2922,7 +2968,7 @@ def emit_adapter(cfg: Instance) -> str:
         "      (rho 8) ⟨rho 6, rho 7⟩ "
         f"⟨rho {cfg.div_x}, rho {cfg.div_y}⟩ (rho 9) (rho 10)\n",
         f"      ⟨dtkOutX{cfg.seg} rho, dtkOutY{cfg.seg} rho⟩ hdiv' hcircuit'\n\n",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n",
     ])
     return "".join(lines)
 
@@ -2993,13 +3039,18 @@ def emit_poseidon_segment(
 
 
 def generate_poseidon_shape(*, write_auxiliary: bool = True) -> tuple[str, list[list[int]]]:
-    all_rows = [
-        parse_constraint(line)
-        for line in SR1CS.read_text().splitlines()
-        if line.strip().startswith("(constraint ")
-    ]
     start = DTK_GLOBAL_OFFSET + 1046
-    rows = all_rows[start : start + 270]
+    rows = []
+    constraint_index = 0
+    with SR1CS.open() as source_file:
+        for line in source_file:
+            if not line.strip().startswith("(constraint "):
+                continue
+            if constraint_index >= start + 270:
+                break
+            if constraint_index >= start:
+                rows.append(parse_constraint(line))
+            constraint_index += 1
     if len(rows) != 270:
         raise ValueError("missing DTK Poseidon rows")
     sboxes = [rows[index : index + 5] for index in range(0, len(rows), 5)]
@@ -3145,7 +3196,22 @@ end Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon
     return module, [[singleton_output(row) for row in chunk] for chunk in sboxes]
 
 
+@lru_cache(maxsize=None)
+def wire_inverse(cfg: Instance) -> dict[int, int]:
+    if cfg.wire_seating is None:
+        return {}
+    return {wire: local for local, wire in enumerate(cfg.wire_seating)}
+
+
 def seat_wire(cfg: Instance, template_wire: int) -> int:
+    if cfg.wire_seating is not None:
+        try:
+            return wire_inverse(cfg)[template_wire]
+        except KeyError as exc:
+            raise ValueError(
+                f"Instance(seg={cfg.seg}): deployed wire {template_wire} "
+                "is absent from the exact local seating"
+            ) from exc
     if template_wire == 17:
         return cfg.div_x
     if template_wire == 18:
@@ -3153,6 +3219,27 @@ def seat_wire(cfg: Instance, template_wire: int) -> int:
     if template_wire >= BASE_INTERNAL:
         return template_wire + cfg.delta
     return template_wire
+
+
+def internal_wire(cfg: Instance, offset: int) -> int:
+    """Seat one wire from the reviewed DTK internal-witness layout."""
+    return seat_wire(cfg, BASE_INTERNAL + offset)
+
+
+def affine_internal_run(cfg: Instance, offset: int, count: int, label: str) -> int:
+    """Return a run base after proving its exact local seating is affine.
+
+    Symbolic Lean vector indices use `base + i`; a normalized first-occurrence
+    seating may reorder unrelated boundary wires, so generation must establish
+    consecutiveness for each run instead of assuming the whole witness is a
+    global delta shift.
+    """
+    wires = [internal_wire(cfg, offset + index) for index in range(count)]
+    if any(wire != wires[0] + index for index, wire in enumerate(wires)):
+        raise ValueError(
+            f"Instance(seg={cfg.seg}): {label} is not an affine local-wire run"
+        )
+    return wires[0]
 
 
 def emit_poseidon_adapter(
@@ -3165,12 +3252,12 @@ def emit_poseidon_adapter(
     compressed_pos = seat_wire(cfg, 1275)
     compressed_neg = seat_wire(cfg, 1615)
     lines = [
-        f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Base\n",
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Base\n",
         "import ShielddGnarkFormal.Deployed.DtkIvkPoseidon.SemanticBridge\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 20000000\n",
         "set_option linter.unusedVariables false\n\n",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n\n",
+        "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         f"theorem seg{cfg.seg}_poseidon_eq (rho : Nat -> Seg{cfg.seg}.F) "
         f"(h : Seg{cfg.seg}.relation rho) :\n",
         "    rho 9 + "
@@ -3222,7 +3309,7 @@ def emit_poseidon_adapter(
             "Shieldd.GnarkFormal.Deployed.Poseidon2Link.row3 "
             "Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon.ivkDomainLit at hs\n",
             f"  linear_combination -r{final_row} + hs\n\n",
-            "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1\n",
+            "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n",
         ]
     )
     return "".join(lines)

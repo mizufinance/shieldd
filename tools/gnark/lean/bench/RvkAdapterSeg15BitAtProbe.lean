@@ -1,6 +1,6 @@
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg15Bits
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg15Bits
 
-namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem rvkAdapterSeg15BitAtProbe (rho : Nat → Seg15.F)
     (hscalarLt : (rho 97).val < 2 ^ 251)
@@ -15,4 +15,4 @@ theorem rvkAdapterSeg15BitAtProbe (rho : Nat → Seg15.F)
   rw [getElem!_pos (bitsBool.map Bool.toZMod) i (by simpa using hi),
     getElem!_pos bitsBool i (by simpa using hi), List.Vector.getElem_map]
 
-end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1

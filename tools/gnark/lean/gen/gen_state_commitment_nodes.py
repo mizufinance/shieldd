@@ -21,7 +21,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[4]
 LEAN_ROOT = ROOT / "tools/gnark/lean/ShielddGnarkFormal"
 EXTRACTED = LEAN_ROOT / "Extracted/Deployed"
 DEPLOYED = LEAN_ROOT / "Deployed"
-SR1CS = ROOT / "tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs"
+SR1CS = ROOT / "tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
 POSEIDON4 = LEAN_ROOT / "Poseidon4Bridge.lean"
 VECTORS = ROOT / "tools/gnark/internal/primitives/vectors/phase05_vectors.json"
 
@@ -274,7 +274,7 @@ def gen_level(level, sr1cs_rows, cs, tct_domain):
         "set_option maxHeartbeats 50000000\n\n",
         f"/-! Auto-generated CPS-segmented deployed-slice relation for `{op}` ",
         "(size 350, 70 segments of 5 rows).\n",
-        f"Generated from consolidate2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
+        f"Generated from note_reshape2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
         f"namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n",
         "abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.PoseidonHash4.Order\n",
         "variable [Fact (Nat.Prime Order)]\n",
@@ -405,7 +405,7 @@ def gen_leaf(sr1cs_rows, tct_domain):
         "set_option maxHeartbeats 50000000\n\n",
         f"/-! Auto-generated CPS-segmented deployed-slice relation for `{op}` ",
         "(size 230, 46 segments of 5 rows).\n",
-        f"Generated from consolidate2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
+        f"Generated from note_reshape2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
         f"namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n",
         "abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.PoseidonHash1.Order\n",
         "variable [Fact (Nat.Prime Order)]\n",

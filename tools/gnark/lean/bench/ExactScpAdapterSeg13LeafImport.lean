@@ -1,3 +1,3 @@
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg13Base
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg13Base
 import ShielddGnarkFormal.Deployed.StateCommitmentPathLeaf.SemanticBridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Projection

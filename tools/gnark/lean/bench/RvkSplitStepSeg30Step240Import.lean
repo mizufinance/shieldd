@@ -1,6 +1,6 @@
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg30
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Acc
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.RvkAdapterSeg30Lemmas90
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg30
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg30Acc
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg30Lemmas90
 import ShielddGnarkFormal.RvkFixedGenInst1
 import ShielddGnarkFormal.RvkFixedSplitRung
 import ShielddGnarkFormal.RvkFixedBaseLiteral

@@ -12,7 +12,7 @@ set -euo pipefail
 #
 # Usage:
 #   scripts/check-manifest-pin.sh                 # all deployed circuits
-#   scripts/check-manifest-pin.sh consolidate2x1  # one circuit
+#   scripts/check-manifest-pin.sh note_reshape2x1  # one circuit
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GNARK_DIR="$ROOT/tools/gnark"
@@ -24,13 +24,13 @@ fail() {
 
 select_circuits() {
   if [[ "$#" -eq 0 ]]; then
-    printf '%s\n' consolidate2x1 consolidate4x1 consolidate8x1 split1x8 transfer
+    printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
     return
   fi
   for c in "$@"; do
     case "$c" in
-      all) printf '%s\n' consolidate2x1 consolidate4x1 consolidate8x1 split1x8 transfer ;;
-      consolidate2x1|consolidate4x1|consolidate8x1|split1x8|transfer) printf '%s\n' "$c" ;;
+      all) printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer ;;
+      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer) printf '%s\n' "$c" ;;
       *) fail "unsupported circuit $c" ;;
     esac
   done | awk '!seen[$0]++'

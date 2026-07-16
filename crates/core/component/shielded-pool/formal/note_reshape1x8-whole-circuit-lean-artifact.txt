@@ -1,0 +1,37 @@
+artifact: note_reshape1x8-whole-circuit-lean
+scope: whole-circuit
+target: note_reshape1x8 deployed SR1CS contract chain
+engine: Lean 4 / normalized-relation deployed-template proofs
+theorem: Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8.note_reshape1x8_statement
+model: exact deployed segment relations over one global wire valuation; normalized templates are restricted through per-instance seating, and Capstone composes every discharged segment
+axiom_baseline: propext, Quot.sound
+named_external_assumptions:
+- none
+decaf_fv_status: full
+covered_flow:
+- ControlSpec exposes Boolean flags, dummy-suffix ordering, active-count ranges, conditional equality, and dummy multiplexing.
+- SharedSpec covers shared curve, diversified-key, transmission-key, and equivalent-key obligations.
+- Each SpendSpec covers note commitment, nullifier, state path, synthetic dummy nullifier, randomized verification-key branches, key bindings, and asset bindings.
+- Each OutputSpec covers output note commitment, curve/equivalence, and asset bindings.
+- BalanceSpec covers net-balance conservation, compression, and equivalent-key binding.
+- TranscriptSpec covers statement-hash equality and exact transcript binding, including active-count inputs.
+known_limitations:
+- The family theorem composes exact deployed segment relations; the Rust source/SR1CS, normalized IR, reconstruction, and coverage gates provide the compiled-row partition and hash binding.
+- Cryptographic bridge assumptions remain those recorded in the formal assumption ledger; no project Lean axioms are admitted.
+
+whole_circuit_sr1cs_sha256: 3fd1377fb0641eb882f916b79aee13edcdb4d58754ea33a8975f4b08454c813e
+manifest_sha256: bf3cb9ec48cfe0b7cead619cf19a37c85ab869e965305844003d4dbccbf2c44c
+coverage_report_sha256: 304b2b6c5e13a54d4778d6bd34d7172ef038104d82613fc455059f15c58cd8bd
+coverage_manifest_sha256: e50f60910a06ac7bc8d77580a19f6f7e88bd2c4a497426298f7017f6ff3fb1b5
+coverage_ir_sha256: 3c1c6557a51c5801bea29957723e45f019ca75b4ca57e2c8f08eba0ceb58f52b
+nb_constraints: 38774
+verifying_key_sha256_hex: 570a9b89fbf7e6864d74344202ef5d978931aeab9ab8264e6beee3416d20f4e5
+deployed_statement_source_sha256: 4b34c4b28224e13bc949d4285828b9e2a4669a13763cee6056af9ec9bfa33851
+deployed_capstone_source_sha256: 3e1496095b8882e20e60cc962f78334e31c7c4f3c75696f85e3eafe5f667dc33
+family_generator_source_sha256: 18357e2c8f28c2d7ebc9a3d0c765f20238e0b525c784a16f51ea6fdb878025b5
+template_inventory_sha256: 017d559545ce139508f9f56f9c1e4834ea9ab0d978676f4cd7f7b903648a566e
+constraint_coverage_script_sha256: 24fa5a2448bef85cafe3ff320ac486b5188ca90ce7b93e3739579a672a39ded0
+root_source_sha256: 0c1439c81766cfd051f489b334b1866107aacc89903fac2d8c9bba422ed32546
+lakefile_sha256: 7605f13372ee6a5c11246abdc64fcec0f1f8db140b7830752cda63873e7fcbf6
+lake_manifest_sha256: 0f2d34a4a838f7532887a6f0bc0b134c5b55aa026158eff6721c81d51511cd7f
+lean_toolchain_sha256: aff3a276fcd1daa6f311e07baf168d5c0c89a3ddad4cd4e8de3e2ec779504e46
