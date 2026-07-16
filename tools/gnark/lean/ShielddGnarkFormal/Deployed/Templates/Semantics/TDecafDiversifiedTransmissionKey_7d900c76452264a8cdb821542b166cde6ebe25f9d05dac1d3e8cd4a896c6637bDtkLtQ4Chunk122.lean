@@ -1,0 +1,79 @@
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkLtQ4Chunk121
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
+
+theorem dtkQ4Step122L (rho : Nat -> F) (r2476 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2476 rho) :
+    rho 1969 = dtkQ4Pe123 rho * (1 - rho 1105) := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2476 at r2476
+  unfold dtkQ4Pe123
+  linear_combination -r2476
+
+theorem dtkQ4Step122IlMul (rho : Nat -> F) (r2477 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2477 rho) :
+    rho 1970 = dtkQ4Il123 rho * (rho 1969) := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2477 at r2477
+  rw [dtkQ4Il123Atoms rho]
+  unfold dtkQ4IlAtom0
+  linear_combination -r2477
+
+theorem dtkQ4Step122Acc (rho : Nat -> F) :
+    dtkQ4Il122 rho = dtkQ4Il123 rho + (rho 1969) - (rho 1970) := by
+  have hstate : dtkQ4Il122 rho = dtkQ4Il123 rho + dtkQ4IlAtom1 rho := by rfl
+  rw [hstate]
+  unfold dtkQ4IlAtom1
+  ring
+
+theorem dtkQ4Step122Pe (rho : Nat -> F) (r2478 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2478 rho) :
+    dtkQ4Pe122 rho = dtkQ4Pe123 rho * rho 1105 := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2478 at r2478
+  unfold dtkQ4Pe122 dtkQ4Pe123
+  linear_combination -r2478
+
+theorem dtkQ4Step122 (rho : Nat -> F) (r2476 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2476 rho) (r2477 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2477 rho) (r2478 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2478 rho) :
+    dtkQ4Pe122 rho = dtkQ4Pe123 rho * rho 1105 ∧
+    dtkQ4Il122 rho = dtkQ4Il123 rho + dtkQ4Pe123 rho * (1 - rho 1105) -
+      dtkQ4Il123 rho * (dtkQ4Pe123 rho * (1 - rho 1105)) := by
+  constructor
+  · exact dtkQ4Step122Pe rho r2478
+  · rw [dtkQ4Step122Acc rho, dtkQ4Step122L rho r2476, dtkQ4Step122IlMul rho r2477, dtkQ4Step122L rho r2476]
+
+theorem dtk_q4_chunk122 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) (k : Prop) (hk : k) :
+    Shieldd.GnarkFormal.Extracted.IvkModR.ltcRec (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit
+      (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 10) k) 123 (dtkQ4PeState rho 123) (dtkQ4IlState rho 123) := by
+  have htail := dtk_q4_chunk121 rho h k hk
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
+  rcases h with ⟨
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    p30, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _
+  ⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart30 at p30
+  rcases p30 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r2476, r2477, r2478, _⟩
+  have hsteps : ∀ n, 122 ≤ n → n < 123 →
+      if Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit n then
+        dtkQ4PeState rho n = dtkQ4PeState rho (n + 1) * rho (983 + n) ∧
+        dtkQ4IlState rho n = dtkQ4IlState rho (n + 1) + dtkQ4PeState rho (n + 1) * (1 - rho (983 + n)) -
+          dtkQ4IlState rho (n + 1) * (dtkQ4PeState rho (n + 1) * (1 - rho (983 + n)))
+      else
+        dtkQ4PeState rho n = dtkQ4PeState rho (n + 1) * (1 - rho (983 + n)) ∧
+        dtkQ4IlState rho n = dtkQ4IlState rho (n + 1) := by
+    intro n hnlo hnhi
+    interval_cases n
+    · have hb : Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit 122 = true := by decide +kernel
+      simp only [hb, ↓reduceIte, Nat.reduceAdd]
+      exact dtkQ4Step122 rho r2476 r2477 r2478
+  have ht := Shieldd.GnarkFormal.Deployed.Dtk.stateTrace_span_to_ltcRec
+    (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 10) k)
+    (dtkQ4PeState rho) (dtkQ4IlState rho) 122 1
+    (by intro n hnlo hnhi; have key := dtkIvkBits_get rho n (by omega); erw [key]; exact hsteps n hnlo hnhi) htail (by omega)
+  simpa only [Nat.reduceAdd] using ht
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

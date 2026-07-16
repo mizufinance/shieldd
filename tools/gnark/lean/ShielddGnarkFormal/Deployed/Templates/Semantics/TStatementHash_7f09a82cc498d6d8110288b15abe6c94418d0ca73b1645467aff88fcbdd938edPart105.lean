@@ -1,0 +1,28 @@
+import ShielddGnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed
+import ShielddGnarkFormal.Deployed.StatementHashDeployedBridge
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import Mathlib.Tactic.LinearCombination
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.Part105
+
+abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.Order
+abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+theorem sound (rho : Nat → F)
+    (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationPart105 rho) :
+    rho 560 = Shieldd.GnarkFormal.Poseidon7Bridge.p17 ((5175942196504530189809500752023422444337830277679048851760287925475237262504 : F) + (7794887768703111160845069174259889105885445540142212764247907805462223912961 : F) * rho 493 + (7841285910183486822516766014582864636277620811214487840225573923351880007681 : F) * rho 500 + (7881497632799812395965569942862776762617506046143792906072884558856248623105 : F) * rho 507 + (7916682890089097272733273380107699873164905626706934838689281364922571161601 : F) * rho 514 + (5464063484924239686278651430976294814419699569805570712193386353828911860556 : F) * rho 521 + (2345683819285658451180229149661540703159972037542795507759787071088169233067 : F) * rho 528 + (5777789618029937658696564431797900258309825860894885777008317627732964216186 : F) * rho 535) := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationPart105 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow525 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow526 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow527 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow528 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow529 at h
+  rcases h with ⟨h0, h1, h2, h3, h4⟩
+  exact Shieldd.GnarkFormal.Deployed.StatementHash.p17_from_rows
+    ((5175942196504530189809500752023422444337830277679048851760287925475237262504 : F) + (7794887768703111160845069174259889105885445540142212764247907805462223912961 : F) * rho 493 + (7841285910183486822516766014582864636277620811214487840225573923351880007681 : F) * rho 500 + (7881497632799812395965569942862776762617506046143792906072884558856248623105 : F) * rho 507 + (7916682890089097272733273380107699873164905626706934838689281364922571161601 : F) * rho 514 + (5464063484924239686278651430976294814419699569805570712193386353828911860556 : F) * rho 521 + (2345683819285658451180229149661540703159972037542795507759787071088169233067 : F) * rho 528 + (5777789618029937658696564431797900258309825860894885777008317627732964216186 : F) * rho 535) (rho 556) (rho 557) (rho 558) (rho 559) (rho 560)
+    (by linear_combination h0) (by linear_combination h1)
+    (by linear_combination h2) (by linear_combination h3)
+    (by linear_combination h4)
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.Part105

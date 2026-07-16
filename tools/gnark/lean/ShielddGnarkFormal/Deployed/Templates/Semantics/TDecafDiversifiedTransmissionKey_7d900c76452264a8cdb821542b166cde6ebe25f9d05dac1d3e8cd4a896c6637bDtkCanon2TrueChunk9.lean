@@ -1,0 +1,120 @@
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkCanon2TrueChunk8
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
+
+open Shieldd.GnarkFormal.Extracted.CanonicalFqBits
+
+theorem dtkCanon2_flag_step_chunk9 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    ∀ m, 144 ≤ m → m < 160 → dtkCanon2Flag rho m = trueFactor (dtkCanon2Bits rho) m * dtkCanon2Flag rho (m + 1) := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
+  rcases h with ⟨
+    _, _, _, _, _, _, _, _, _, _,
+    p10, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _
+  ⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart10 at p10
+  rcases p10 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r836, r837, r838, r839, r840, r841, r842, r843, r844, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow836 at r836
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow837 at r837
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow838 at r838
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow839 at r839
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow840 at r840
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow841 at r841
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow842 at r842
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow843 at r843
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow844 at r844
+  intro m hmlo hmhi
+  interval_cases m
+  · rw [show dtkCanon2Flag rho 144 = rho 1581 from rfl, show dtkCanon2Flag rho 145 = rho 1580 from rfl]
+    have hb : pmBit 144 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 144 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r844
+  · rw [show dtkCanon2Flag rho 145 = rho 1580 from rfl, show dtkCanon2Flag rho 146 = rho 1579 from rfl]
+    have hb : pmBit 145 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 145 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r843
+  · rw [show dtkCanon2Flag rho 146 = rho 1579 from rfl, show dtkCanon2Flag rho 147 = rho 1578 from rfl]
+    have hb : pmBit 146 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 146 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r842
+  · rw [show dtkCanon2Flag rho 147 = rho 1578 from rfl, show dtkCanon2Flag rho 148 = rho 1578 from rfl]
+    have hb : pmBit 147 = false := by decide +kernel
+    rw [show trueFactor (dtkCanon2Bits rho) 147 = 1 from by simp [trueFactor, hb]]
+    ring
+  · rw [show dtkCanon2Flag rho 148 = rho 1578 from rfl, show dtkCanon2Flag rho 149 = rho 1577 from rfl]
+    have hb : pmBit 148 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 148 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r841
+  · rw [show dtkCanon2Flag rho 149 = rho 1577 from rfl, show dtkCanon2Flag rho 150 = rho 1576 from rfl]
+    have hb : pmBit 149 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 149 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r840
+  · rw [show dtkCanon2Flag rho 150 = rho 1576 from rfl, show dtkCanon2Flag rho 151 = rho 1576 from rfl]
+    have hb : pmBit 150 = false := by decide +kernel
+    rw [show trueFactor (dtkCanon2Bits rho) 150 = 1 from by simp [trueFactor, hb]]
+    ring
+  · rw [show dtkCanon2Flag rho 151 = rho 1576 from rfl, show dtkCanon2Flag rho 152 = rho 1576 from rfl]
+    have hb : pmBit 151 = false := by decide +kernel
+    rw [show trueFactor (dtkCanon2Bits rho) 151 = 1 from by simp [trueFactor, hb]]
+    ring
+  · rw [show dtkCanon2Flag rho 152 = rho 1576 from rfl, show dtkCanon2Flag rho 153 = rho 1576 from rfl]
+    have hb : pmBit 152 = false := by decide +kernel
+    rw [show trueFactor (dtkCanon2Bits rho) 152 = 1 from by simp [trueFactor, hb]]
+    ring
+  · rw [show dtkCanon2Flag rho 153 = rho 1576 from rfl, show dtkCanon2Flag rho 154 = rho 1576 from rfl]
+    have hb : pmBit 153 = false := by decide +kernel
+    rw [show trueFactor (dtkCanon2Bits rho) 153 = 1 from by simp [trueFactor, hb]]
+    ring
+  · rw [show dtkCanon2Flag rho 154 = rho 1576 from rfl, show dtkCanon2Flag rho 155 = rho 1575 from rfl]
+    have hb : pmBit 154 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 154 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r839
+  · rw [show dtkCanon2Flag rho 155 = rho 1575 from rfl, show dtkCanon2Flag rho 156 = rho 1574 from rfl]
+    have hb : pmBit 155 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 155 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r838
+  · rw [show dtkCanon2Flag rho 156 = rho 1574 from rfl, show dtkCanon2Flag rho 157 = rho 1573 from rfl]
+    have hb : pmBit 156 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 156 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r837
+  · rw [show dtkCanon2Flag rho 157 = rho 1573 from rfl, show dtkCanon2Flag rho 158 = rho 1573 from rfl]
+    have hb : pmBit 157 = false := by decide +kernel
+    rw [show trueFactor (dtkCanon2Bits rho) 157 = 1 from by simp [trueFactor, hb]]
+    ring
+  · rw [show dtkCanon2Flag rho 158 = rho 1573 from rfl, show dtkCanon2Flag rho 159 = rho 1572 from rfl]
+    have hb : pmBit 158 = true := by decide +kernel
+    simp only [trueFactor, hb, ↓reduceIte]
+    erw [dtkCanon2Bits_get rho 158 (by omega)]
+    simp only [Nat.reduceAdd]
+    linear_combination -r836
+  · rw [show dtkCanon2Flag rho 159 = rho 1572 from rfl, show dtkCanon2Flag rho 160 = rho 1572 from rfl]
+    have hb : pmBit 159 = false := by decide +kernel
+    rw [show trueFactor (dtkCanon2Bits rho) 159 = 1 from by simp [trueFactor, hb]]
+    ring
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

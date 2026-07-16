@@ -110,10 +110,9 @@ pub(crate) struct NoteReshapeTranscriptDigest<const FAMILY_ID: u32>(Blake2b);
 impl<const FAMILY_ID: u32> Default for NoteReshapeTranscriptDigest<FAMILY_ID> {
     fn default() -> Self {
         let mut inner = Blake2b::default();
-        inner.update(
-            transcript_family_domain(ProofFamilyId::NoteReshape(NoteReshapeFamilyId(FAMILY_ID)))
-                .as_ref(),
-        );
+        let family_id = NoteReshapeFamilyId::try_from(FAMILY_ID)
+            .expect("NoteReshapeTranscriptDigest requires a registered family id");
+        inner.update(transcript_family_domain(ProofFamilyId::NoteReshape(family_id)).as_ref());
         Self(inner)
     }
 }

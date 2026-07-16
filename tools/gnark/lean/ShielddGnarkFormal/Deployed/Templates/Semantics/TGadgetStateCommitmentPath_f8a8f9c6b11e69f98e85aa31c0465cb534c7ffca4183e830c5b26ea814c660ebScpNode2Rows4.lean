@@ -1,0 +1,122 @@
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660ebScpBase
+import ShielddGnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
+
+theorem template_scp_node2_seg40 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1221 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1221 rho)
+    (r1222 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1222 rho)
+    (r1223 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1223 rho)
+    (r1224 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1224 rho)
+    (r1225 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1225 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg40 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) next := by
+  exact ⟨rho 1220, rho 1221, rho 1222, rho 1223, rho 1224, r1221, r1222, r1223, r1224, r1225, tail⟩
+
+theorem template_scp_node2_seg41 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1226 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1226 rho)
+    (r1227 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1227 rho)
+    (r1228 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1228 rho)
+    (r1229 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1229 rho)
+    (r1230 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1230 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg41 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) next := by
+  exact ⟨rho 1225, rho 1226, rho 1227, rho 1228, rho 1229, r1226, r1227, r1228, r1229, r1230, tail⟩
+
+theorem template_scp_node2_seg42 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1231 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1231 rho)
+    (r1232 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1232 rho)
+    (r1233 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1233 rho)
+    (r1234 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1234 rho)
+    (r1235 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1235 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg42 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) next := by
+  exact ⟨rho 1230, rho 1231, rho 1232, rho 1233, rho 1234, r1231, r1232, r1233, r1234, r1235, tail⟩
+
+theorem template_scp_node2_seg43 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1236 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1236 rho)
+    (r1237 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1237 rho)
+    (r1238 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1238 rho)
+    (r1239 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1239 rho)
+    (r1240 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1240 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg43 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) next := by
+  exact ⟨rho 1235, rho 1236, rho 1237, rho 1238, rho 1239, r1236, r1237, r1238, r1239, r1240, tail⟩
+
+theorem template_scp_node2_seg44 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1241 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1241 rho)
+    (r1242 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1242 rho)
+    (r1243 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1243 rho)
+    (r1244 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1244 rho)
+    (r1245 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1245 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg44 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) next := by
+  exact ⟨rho 1240, rho 1241, rho 1242, rho 1243, rho 1244, r1241, r1242, r1243, r1244, r1245, tail⟩
+
+theorem template_scp_node2_seg45 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1246 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1246 rho)
+    (r1247 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1247 rho)
+    (r1248 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1248 rho)
+    (r1249 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1249 rho)
+    (r1250 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1250 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg45 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) next := by
+  exact ⟨rho 1245, rho 1246, rho 1247, rho 1248, rho 1249, r1246, r1247, r1248, r1249, r1250, tail⟩
+
+theorem template_scp_node2_seg46 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1251 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1251 rho)
+    (r1252 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1252 rho)
+    (r1253 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1253 rho)
+    (r1254 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1254 rho)
+    (r1255 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1255 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249) (rho 1254)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg46 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249) next := by
+  exact ⟨rho 1250, rho 1251, rho 1252, rho 1253, rho 1254, r1251, r1252, r1253, r1254, r1255, tail⟩
+
+theorem template_scp_node2_seg47 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1256 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1256 rho)
+    (r1257 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1257 rho)
+    (r1258 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1258 rho)
+    (r1259 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1259 rho)
+    (r1260 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1260 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249) (rho 1254) (rho 1259)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg47 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249) (rho 1254) next := by
+  exact ⟨rho 1255, rho 1256, rho 1257, rho 1258, rho 1259, r1256, r1257, r1258, r1259, r1260, tail⟩
+
+theorem template_scp_node2_seg48 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1261 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1261 rho)
+    (r1262 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1262 rho)
+    (r1263 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1263 rho)
+    (r1264 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1264 rho)
+    (r1265 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1265 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249) (rho 1254) (rho 1259) (rho 1264)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg48 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249) (rho 1254) (rho 1259) next := by
+  exact ⟨rho 1260, rho 1261, rho 1262, rho 1263, rho 1264, r1261, r1262, r1263, r1264, r1265, tail⟩
+
+theorem template_scp_node2_seg49 (rho : Nat -> F)
+    (next : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (r1266 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1266 rho)
+    (r1267 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1267 rho)
+    (r1268 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1268 rho)
+    (r1269 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1269 rho)
+    (r1270 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1270 rho)
+    (tail : next (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249) (rho 1254) (rho 1259) (rho 1264) (rho 1269)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg49 (rho 1094) (rho 1099) (rho 1104) (rho 1109) (rho 1114) (rho 1119) (rho 1124) (rho 1129) (rho 1134) (rho 1139) (rho 1144) (rho 1149) (rho 1154) (rho 1159) (rho 1164) (rho 1169) (rho 1174) (rho 1179) (rho 1184) (rho 1189) (rho 1194) (rho 1199) (rho 1204) (rho 1209) (rho 1214) (rho 1219) (rho 1224) (rho 1229) (rho 1234) (rho 1239) (rho 1244) (rho 1249) (rho 1254) (rho 1259) (rho 1264) next := by
+  exact ⟨rho 1265, rho 1266, rho 1267, rho 1268, rho 1269, r1266, r1267, r1268, r1269, r1270, tail⟩
+
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
+
