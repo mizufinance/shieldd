@@ -471,13 +471,19 @@ safe-Rust paths and related to Lean by
 generated Aeneas graph, parity gate, and `ArkworksFqMul.lean` are proof tooling
 for that one production route, not a second backend.
 
-**S3-F03B — Fq additive operations and square** — `HARD (sol)` — `GATED` on
-the 2026-07-16 F02 re-decision. Extract the exact safe-Rust Fq add/sub/neg and
-square paths; prove every carry/borrow/conditional-subtraction branch, canonical
-range, and decode law, reusing `macModel`, U128, and `sbb` machinery and the
-route-neutral S3-09 lemmas. Acceptance: executed add/sub/neg/square theorems,
-source/artifact parity, focused Lean, axiom audit, and edge/random Rust vectors
-pass; multiplication is consumed from `decode_extracted_mul`, not re-proved.
+**S3-F03B — Fq additive operations and square** — `HARD (sol)` — `DONE`
+(2026-07-16). The monomorphic spike and Aeneas extraction cover arkworks'
+executed `add_assign`, `sub_assign`, `neg`, and dedicated doubled-cross-product
+`square_in_place` paths. Add/sub/neg close with `extracted_add_spec` /
+`decode_extracted_add`, `extracted_sub_spec` / `decode_extracted_sub`, and
+`extracted_neg_spec` / `decode_extracted_neg`. Square closes with
+`extracted_reduce_round_spec`, `extracted_reduction_spec`,
+`extracted_square_spec`, and `decode_extracted_square`. The square proof adds a
+12-limb wide-value model and invariants for cross products, bit-joining shifts,
+diagonal carries, and stale-low-prefix Montgomery reduction; multiplication is
+consumed from `decode_extracted_mul`, not re-proved. Edge cases plus 512 random
+cases per operation pass in normal and `hax_compilation` Rust configurations;
+focused and full pinned single-threaded Lean builds and the axiom audit pass.
 
 **S3-F04B — Fq inverse, square root, and canonical bytes** — `HARD (sol)` —
 `GATED` on S3-F03B. Extract the exact fixed exponent/addition-chain loops and
@@ -814,7 +820,7 @@ The historical S2 dispatch order was:
 
 After these five, S2 dispatched S2-24, S2-26, S2-27, S2-28, and S2-29 before
 the closed `verify_tipp_mipp` graph. The current field-route serial dispatch is
-S3-F03B, S3-F04B, S3-F05B, then the S3-15 integration/performance veto.
+S3-F04B, S3-F05B, then the S3-15 integration/performance veto.
 
 ## Session count and owner questions
 
@@ -1075,10 +1081,9 @@ F02 reopening facts:
 - S3-F01B's executed-code theorem gate is PASSED for Arkworks-compatible Fq
   multiplication: successful execution of the extracted `mul` on canonical
   Montgomery inputs decodes to the product of their decoded values.
-- This does not by itself complete the F01B route. Executed-code conformance for
-  Fq add, sub, inverse, square root, and byte encode/decode remains in
-  S3-F03B..F05B scope. The route re-decision should treat multiplication as
-  closed and evaluate only those residual operations and their orchestration.
+- S3-F03B subsequently closed executed-code conformance for Fq add, sub, neg,
+  and the dedicated square path. Fq inverse, square root, and canonical byte
+  encode/decode remain for S3-F04B; four-limb Fr refinement remains S3-F05B.
 
 Session-3 verification:
 

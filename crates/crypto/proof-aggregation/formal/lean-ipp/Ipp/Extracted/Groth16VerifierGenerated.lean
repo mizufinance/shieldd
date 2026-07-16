@@ -17,13 +17,13 @@ inductive UScalarTy where
 
 namespace Std
 
-abbrev U64 := Usize
+abbrev LegacyU64 := Usize
 
 end Std
 
 namespace UScalar
 
-def cast (_target : UScalarTy) (value : Std.Usize) : Std.U64 :=
+def cast (_target : UScalarTy) (value : Std.Usize) : Std.LegacyU64 :=
   ⟨value.val⟩
 
 end UScalar
@@ -578,7 +578,7 @@ def applications.groth16_aggregation.fold_public_inputs_core_loop7
 def applications.groth16_aggregation.fold_public_inputs_core
   {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
   (corecmpPartialEqInst : core.cmp.PartialEq F F) (coreconvertFromFU64Inst :
-  core.convert.From F Std.U64) (num_traitsidentitiesOneInst :
+  core.convert.From F Std.LegacyU64) (num_traitsidentitiesOneInst :
   num_traits.identities.One F) (num_traitsidentitiesZeroInst :
   num_traits.identities.Zero F) (coreopsarithAddInst : core.ops.arith.Add F F
   F) (coreopsarithDivInst : core.ops.arith.Div F F F) (coreopsarithMulInst :

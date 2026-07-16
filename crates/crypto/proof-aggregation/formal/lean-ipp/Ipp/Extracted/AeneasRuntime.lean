@@ -162,6 +162,19 @@ theorem loop_eq_of_result {α : Type u} {β : Type v}
   · rename_i h
     exact False.elim (h ⟨result, hresult⟩)
 
+/-- Recover the unique finite execution witnessed by a non-diverging loop result. -/
+theorem loopResult_of_eq {α : Type u} {β : Type v}
+    {body : α → Result (ControlFlow α β)} {state : α} {result : Result β}
+    (hresult : result ≠ .div) (h : loop body state = result) :
+    LoopResult body state result := by
+  classical
+  unfold loop at h
+  split at h
+  · rename_i hexists
+    have hwitness := Classical.choose_spec hexists
+    rwa [h] at hwitness
+  · exact (hresult h.symm).elim
+
 theorem loop_eq_of_fuel {α : Type u} {β : Type v}
     {body : α → Result (ControlFlow α β)} {fuel : Nat} {state : α}
     {result : Result β} (hresult : result ≠ .div)
@@ -337,9 +350,18 @@ structure Array (T : Type u) (size : Usize) where
 
 namespace Array
 
+@[ext] theorem ext {T : Type u} {size : Usize} {left right : Array T size}
+    (h : left.val = right.val) : left = right := by
+  cases left
+  cases right
+  simp_all
+
 def make {T : Type u} (size : Usize) (items : List T)
     (hlen : items.length = size.val := by simp) : Array T size :=
   ⟨items, hlen⟩
+
+def to_slice {T : Type u} {size : Usize} (items : Array T size) : Slice T :=
+  ⟨items.val⟩
 
 def replicate {T : Type u} (size : Usize) (value : T) : Array T size :=
   ⟨List.replicate size.val value, by simp⟩
@@ -350,8 +372,89 @@ def index_usize {T : Type u} {size : Usize} (items : Array T size)
   | some value => .ok value
   | none => .fail .arrayOutOfBounds
 
+def update {T : Type u} {size : Usize} (items : Array T size)
+    (index : Usize) (value : T) : Result (Array T size) :=
+  if h : index.val < items.val.length then
+    .ok ⟨items.val.set index.val value, by simpa [List.length_set, items.hlen]⟩
+  else
+    .fail .arrayOutOfBounds
+
 end Array
+
+def shl64 (value : U64) (shift : I32) : Result U64 :=
+  if shift.val < 64 then .ok (U64.ofNat (value.val * 2 ^ shift.val))
+  else .fail .integerOverflow
+
+def shr64 (value : U64) (shift : I32) : Result U64 :=
+  if shift.val < 64 then .ok (U64.ofNat (value.val / 2 ^ shift.val))
+  else .fail .integerOverflow
+
+instance instHAddU128 : HAdd U128 U128 (Result U128) where hAdd := add128
+instance instHMulU128 : HMul U128 U128 (Result U128) where hMul := mul128
+instance instHShiftRightU128 : HShiftRight U128 I32 (Result U128) where
+  hShiftRight := shr128
+instance instHShiftRightU64 : HShiftRight U64 I32 (Result U64) where
+  hShiftRight := shr64
+instance instHShiftLeftU64 : HShiftLeft U64 I32 (Result U64) where
+  hShiftLeft := shl64
+
+@[simp] theorem shl64_one (value : U64) :
+    (value <<< I32.ofNat 1 : Result U64) = .ok (U64.ofNat (value.val * 2)) := by
+  change shl64 value (I32.ofNat 1) = _
+  simp [shl64, I32.ofNat, i32Base]
+
+@[simp] theorem shr64_sixtyThree (value : U64) :
+    (value >>> I32.ofNat 63 : Result U64) =
+      .ok (U64.ofNat (value.val / 2 ^ 63)) := by
+  change shr64 value (I32.ofNat 63) = _
+  simp [shr64, I32.ofNat, i32Base]
+def or64 (left right : U64) : U64 :=
+  U64.ofNat (left.val ||| right.val)
+
+instance instHOrU64 : HOr U64 U64 U64 where hOr := or64
+
+instance instHSubUsize : HSub Usize Usize (Result Usize) where
+  hSub left right :=
+    if right.val ≤ left.val then .ok ⟨left.val - right.val⟩
+    else .fail .integerOverflow
+
+@[simp] theorem sub_eq (left right : Usize) (h : right.val ≤ left.val) :
+    (left - right : Result Usize) = .ok ⟨left.val - right.val⟩ := by
+  change (if right.val ≤ left.val then
+      (Result.ok (Usize.ofNat (left.val - right.val)) : Result Usize)
+    else Result.fail .integerOverflow) = _
+  rw [if_pos h]
+  rfl
+
+instance instHMulUsize : HMul Usize Usize (Result Usize) where
+  hMul left right := .ok ⟨left.val * right.val⟩
+
+@[simp] theorem mul_eq (left right : Usize) :
+    (left * right : Result Usize) = .ok ⟨left.val * right.val⟩ := rfl
+
+macro:max value:term:max noWs "#u64" : term =>
+  `(MacCampaign.U64.ofNat $value)
+
+macro:max value:term:max noWs "#i32" : term =>
+  `(MacCampaign.I32.ofNat $value)
+
 end MacCampaign
+
+abbrev U64 := MacCampaign.U64
+abbrev U128 := MacCampaign.U128
+abbrev I32 := MacCampaign.I32
+abbrev Array := MacCampaign.Array
+
+namespace Array
+
+def make {T : Type u} (size : Usize) (items : List T)
+    (hlen : items.length = size.val := by simp) : Array T size :=
+  MacCampaign.Array.make size items hlen
+
+def to_slice {T : Type u} {size : Usize} (items : Array T size) : Slice T :=
+  MacCampaign.Array.to_slice items
+
+end Array
 
 namespace core.clone
 
@@ -540,6 +643,35 @@ def PartialEq.ne {Self Rhs : Type} (inst : PartialEq Self Rhs)
   .ok (!equal)
 
 end core.cmp
+
+namespace core.cmp
+
+def PartialEqU64 : PartialEq MacCampaign.U64 MacCampaign.U64 where
+  eq left right := .ok (decide (left = right))
+
+end core.cmp
+
+namespace core.array.equality.PartialEqArray
+
+def eq {T : Type} [DecidableEq T] {size : Usize} (_elementEq : core.cmp.PartialEq T T)
+    (left right : MacCampaign.Array T size) : Result Bool :=
+  .ok (decide (left.val = right.val))
+
+end core.array.equality.PartialEqArray
+
+namespace core.num.U64
+
+def wrapping_mul (left right : MacCampaign.U64) : MacCampaign.U64 :=
+  MacCampaign.wrappingMul64 left right
+
+end core.num.U64
+
+namespace core.num.U128
+
+def wrapping_sub (left right : MacCampaign.U128) : MacCampaign.U128 :=
+  MacCampaign.wrappingSub128 left right
+
+end core.num.U128
 
 namespace rayon_core.join
 

@@ -18,7 +18,7 @@ inductive UScalarTy where
 
 namespace Std
 
-abbrev U64 := Usize
+abbrev LegacyU64 := Usize
 
 end Std
 
@@ -579,7 +579,7 @@ def applications.groth16_aggregation.fold_public_inputs_core_loop7
 def applications.groth16_aggregation.fold_public_inputs_core
   {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
   (corecmpPartialEqInst : core.cmp.PartialEq F F) (coreconvertFromFU64Inst :
-  core.convert.From F Std.U64) (num_traitsidentitiesOneInst :
+  core.convert.From F Std.LegacyU64) (num_traitsidentitiesOneInst :
   num_traits.identities.One F) (num_traitsidentitiesZeroInst :
   num_traits.identities.Zero F) (coreopsarithAddInst : core.ops.arith.Add F F
   F) (coreopsarithDivInst : core.ops.arith.Div F F F) (coreopsarithMulInst :
@@ -677,7 +677,7 @@ def applications.groth16_aggregation.verify_combined_ppe_core
   {F : Type} {G1 : Type} {G2Prepared : Type} {GT : Type} {E : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
   core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
-  Std.U64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  Std.LegacyU64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
   (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
   core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
@@ -722,7 +722,7 @@ def
   Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
   core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
-  Std.U64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  Std.LegacyU64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
   (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
   core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
@@ -769,7 +769,7 @@ def
   Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
   core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
-  Std.U64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  Std.LegacyU64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
   (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
   core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
@@ -823,7 +823,7 @@ def applications.groth16_aggregation.verify_combined_checks_core
   Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
   core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
-  Std.U64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  Std.LegacyU64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
   (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
   core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)

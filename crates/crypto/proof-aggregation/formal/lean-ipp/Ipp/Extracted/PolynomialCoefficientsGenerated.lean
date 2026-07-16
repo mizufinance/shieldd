@@ -19,18 +19,18 @@ namespace Std
 
 abbrev U32 := Usize
 
-structure Array (T : Type) (size : Usize) where
+structure LegacyArray (T : Type) (size : Usize) where
   val : List T
 
-namespace Array
+namespace LegacyArray
 
-def make {T : Type} (_size : Usize) (items : List T) : Array T _size :=
+def make {T : Type} (_size : Usize) (items : List T) : LegacyArray T _size :=
   ⟨items⟩
 
-def to_slice {T : Type} {size : Usize} (items : Array T size) : Slice T :=
+def to_slice {T : Type} {size : Usize} (items : LegacyArray T size) : Slice T :=
   ⟨items.val⟩
 
-end Array
+end LegacyArray
 end Std
 
 namespace UScalar
@@ -223,7 +223,8 @@ def tipa.polynomial_coefficients_from_transcript
   := do
   let t ← num_traitsidentitiesOneInst.one
   let y ←
-    lift (Std.Array.to_slice (Array.make 1#usize [ t ] : Array F 1#usize))
+    lift (Std.LegacyArray.to_slice
+      (Std.LegacyArray.make 1#usize [ t ] : Std.LegacyArray F 1#usize))
   let ret := alloc.slice.Slice.into_vec y
   let power_2_r ← corecloneCloneInst.clone r_shift
   let i := alloc.vec.Vec.len transcript

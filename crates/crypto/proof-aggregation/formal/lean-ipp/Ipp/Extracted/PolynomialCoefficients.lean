@@ -444,7 +444,8 @@ private theorem generated_eq {F : Type} [Field F] {μ : ℕ}
   have hlen : ark_ip_proofs.alloc.vec.Vec.len (finVec x) = ⟨μ⟩ := by
     simp [ark_ip_proofs.alloc.vec.Vec.len, finVec]
   unfold ark_ip_proofs.tipa.polynomial_coefficients_from_transcript
-  simp [oneModel, cloneModel, lift, Array.make, Std.Array.to_slice,
+  simp [oneModel, cloneModel, lift, Std.LegacyArray.make,
+    Std.LegacyArray.to_slice,
     alloc.slice.Slice.into_vec]
   rw [hlen]
   simp only [Usize.ofNat]

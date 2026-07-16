@@ -1,9 +1,10 @@
-//! Experimental MAC-campaign copy of the executed BLS12-377 Fq multiply.
+//! Experimental MAC-campaign copy of executed BLS12-377 Fq arithmetic.
 //!
 //! Arkworks 0.5.0 instantiates `MontBackend<FqConfig, 6>::mul_assign`. On the
 //! production x86_64 build BMI2/ADX are not target features, so execution uses
 //! the safe-Rust no-carry CIOS branch followed by one conditional subtraction.
-//! This module spells out that monomorphic closure for hax and parity testing.
+//! Addition, subtraction, negation, multiplication, and the dedicated square
+//! path are spelled out monomorphically for hax and parity testing.
 
 const MODULUS: [u64; 6] = [
     0x8508_c000_0000_0001,
@@ -31,6 +32,26 @@ fn mac(accumulator: u64, left: u64, right: u64, carry: u64) -> Mac {
         low: value as u64,
         carry: (value >> 64) as u64,
     }
+}
+
+#[inline(always)]
+fn adc(left: u64, right: u64, carry: u64) -> Mac {
+    let value = left as u128 + right as u128 + carry as u128;
+    Mac {
+        low: value as u64,
+        carry: (value >> 64) as u64,
+    }
+}
+
+#[inline(always)]
+fn add_raw(left: [u64; 6], right: [u64; 6]) -> [u64; 6] {
+    let limb0 = adc(left[0], right[0], 0);
+    let limb1 = adc(left[1], right[1], limb0.carry);
+    let limb2 = adc(left[2], right[2], limb1.carry);
+    let limb3 = adc(left[3], right[3], limb2.carry);
+    let limb4 = adc(left[4], right[4], limb3.carry);
+    let limb5 = adc(left[5], right[5], limb4.carry);
+    [limb0.low, limb1.low, limb2.low, limb3.low, limb4.low, limb5.low]
 }
 
 #[inline(always)]
@@ -82,6 +103,32 @@ fn sbb(left: u64, right: u64, borrow: u64) -> (u64, u64) {
 }
 
 #[inline(always)]
+fn sub_raw(left: [u64; 6], right: [u64; 6]) -> [u64; 6] {
+    let limb0 = sbb(left[0], right[0], 0);
+    let limb1 = sbb(left[1], right[1], limb0.1);
+    let limb2 = sbb(left[2], right[2], limb1.1);
+    let limb3 = sbb(left[3], right[3], limb2.1);
+    let limb4 = sbb(left[4], right[4], limb3.1);
+    let limb5 = sbb(left[5], right[5], limb4.1);
+    [limb0.0, limb1.0, limb2.0, limb3.0, limb4.0, limb5.0]
+}
+
+#[inline(always)]
+fn gt(left: [u64; 6], right: [u64; 6]) -> bool {
+    left[5] > right[5]
+        || (left[5] == right[5]
+            && (left[4] > right[4]
+                || (left[4] == right[4]
+                    && (left[3] > right[3]
+                        || (left[3] == right[3]
+                            && (left[2] > right[2]
+                                || (left[2] == right[2]
+                                    && (left[1] > right[1]
+                                        || (left[1] == right[1]
+                                            && left[0] > right[0])))))))))
+}
+
+#[inline(always)]
 fn subtract_modulus(value: [u64; 6]) -> [u64; 6] {
     if !geq_modulus(value) {
         return value;
@@ -104,4 +151,92 @@ pub fn mul(a: FqMont, b: FqMont) -> FqMont {
     let r4 = round(r3, a.0, b.0[4]);
     let r5 = round(r4, a.0, b.0[5]);
     FqMont(subtract_modulus(r5))
+}
+
+/// Arkworks `add_assign`: six-word ADC followed by conditional subtraction.
+pub fn add(a: FqMont, b: FqMont) -> FqMont {
+    FqMont(subtract_modulus(add_raw(a.0, b.0)))
+}
+
+/// Arkworks `sub_assign`: conditional modulus addition followed by subtraction.
+pub fn sub(a: FqMont, b: FqMont) -> FqMont {
+    let left = if gt(b.0, a.0) {
+        add_raw(a.0, MODULUS)
+    } else {
+        a.0
+    };
+    FqMont(sub_raw(left, b.0))
+}
+
+/// Arkworks `neg_in_place`: preserve zero, otherwise compute `q - a`.
+pub fn neg(a: FqMont) -> FqMont {
+    if a.0 == [0; 6] {
+        a
+    } else {
+        FqMont(sub_raw(MODULUS, a.0))
+    }
+}
+
+#[inline(always)]
+fn square_reduce_round(mut r: [u64; 12], i: usize, carry2: u64) -> ([u64; 12], u64) {
+    let k = r[i].wrapping_mul(INV);
+    let reduction0 = mac(r[i], k, MODULUS[0], 0);
+    let reduction1 = mac(r[i + 1], k, MODULUS[1], reduction0.carry);
+    r[i + 1] = reduction1.low;
+    let reduction2 = mac(r[i + 2], k, MODULUS[2], reduction1.carry);
+    r[i + 2] = reduction2.low;
+    let reduction3 = mac(r[i + 3], k, MODULUS[3], reduction2.carry);
+    r[i + 3] = reduction3.low;
+    let reduction4 = mac(r[i + 4], k, MODULUS[4], reduction3.carry);
+    r[i + 4] = reduction4.low;
+    let reduction5 = mac(r[i + 5], k, MODULUS[5], reduction4.carry);
+    r[i + 5] = reduction5.low;
+    let top = adc(r[i + 6], reduction5.carry, carry2);
+    r[i + 6] = top.low;
+    (r, top.carry)
+}
+
+/// Arkworks' safe-Rust doubled-cross-product `square_in_place` path.
+pub fn square(a: FqMont) -> FqMont {
+    let mut r = [0_u64; 12];
+    let mut carry = 0_u64;
+
+    for i in 0..5 {
+        for j in (i + 1)..6 {
+            let product = mac(r[i + j], a.0[i], a.0[j], carry);
+            r[i + j] = product.low;
+            carry = product.carry;
+        }
+        r[6 + i] = carry;
+        carry = 0;
+    }
+
+    r[11] = r[10] >> 63;
+    for i in 2..11 {
+        r[12 - i] = (r[12 - i] << 1) | (r[11 - i] >> 63);
+    }
+    r[1] <<= 1;
+
+    for i in 0..6 {
+        let diagonal = mac(r[2 * i], a.0[i], a.0[i], carry);
+        r[2 * i] = diagonal.low;
+        let next = adc(r[2 * i + 1], 0, diagonal.carry);
+        r[2 * i + 1] = next.low;
+        carry = next.carry;
+    }
+
+    let mut carry2 = 0_u64;
+    for i in 0..6 {
+        let reduced = square_reduce_round(r, i, carry2);
+        r = reduced.0;
+        carry2 = reduced.1;
+    }
+
+    FqMont(subtract_modulus([r[6], r[7], r[8], r[9], r[10], r[11]]))
+}
+
+/// Extraction root whose closure contains every S3-F03B operation.
+#[doc(hidden)]
+pub fn extract_f03b(a: FqMont, b: FqMont) -> (FqMont, FqMont, FqMont, FqMont) {
+    (add(a, b), sub(a, b), neg(a), square(a))
 }

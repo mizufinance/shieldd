@@ -1,7 +1,7 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
 use ark_bls12_377::Fq;
-use ark_ff::BigInt;
+use ark_ff::{BigInt, Field};
 use ark_std::{test_rng, UniformRand};
 
 #[path = "../src/s3_07_arkworks_fq_spike.rs"]
@@ -17,11 +17,15 @@ fn ark(value: FqMont) -> Fq {
 }
 
 fn check(a: Fq, b: Fq) {
+    assert_eq!(ark(spike::add(mont(a), mont(b))), a + b);
+    assert_eq!(ark(spike::sub(mont(a), mont(b))), a - b);
+    assert_eq!(ark(spike::neg(mont(a))), -a);
     assert_eq!(ark(spike::mul(mont(a), mont(b))), a * b);
+    assert_eq!(ark(spike::square(mont(a))), a.square());
 }
 
 #[test]
-fn edge_and_512_random_vectors_match_arkworks_fq_mul() {
+fn edge_and_512_random_vectors_match_arkworks_fq_arithmetic() {
     let edges = [
         Fq::from(0_u64),
         Fq::from(1_u64),
