@@ -87,15 +87,16 @@ S2-20's closed extraction starts at the two `*_kzg_opening_core` functions;
 the public `Pairing` wrappers remain concrete one-call delegators and are not
 part of the extracted graph.
 
-## S3-07 disposable Fq multiplication spike
+## S3 Fq multiplication proof harness
 
 The pinned BLS12-377 Fq implementation is six limbs, despite the work-order's
 four-limb wording. On the Windows x86_64 production configuration, `bmi2` and
 `adx` are absent from `rustc --print cfg`, so ark-ff 0.5.0 selects its safe-Rust
 no-carry CIOS multiplication rather than the guarded assembly branch. Because
 the external `MontConfig`/`Fp384` trait graph is not an associated-type-free
-hax boundary, the spike uses a faithful local monomorphic copy and requires
-Rust parity against the real operation.
+hax boundary, the proof harness uses a faithful local monomorphic copy and
+requires Rust parity against the real operation. Production builds do not
+expose the copy unless `hax_compilation` or the `mac-campaign` feature is set.
 
 The successful scoped extraction command was
 `cargo hax into -v --output-dir /root/shieldd-s3-07-fq aeneas-lean
@@ -103,11 +104,13 @@ The successful scoped extraction command was
 Its closed graph was `mul`, `round`, `mac`, `subtract_modulus`, `geq_modulus`,
 and `sbb`, plus executable bounded-integer and array runtime operations. The
 installed hax frontend also warned that it expected Aeneas `e0a1596` but could
-not identify the installed Aeneas revision. The generated graph was not
-vendored because the required carry-closure theorem did not close; retaining
-an unproved generated path would misstate the feasibility result. S3-08
-selected F01A and deleted the local Rust copy and parity test; neither was a
-formal target in `hax-targets.txt`.
+not identify the installed Aeneas revision. The graph is vendored in
+`Ipp/Extracted/ArkworksFqMulGenerated.lean`; the axiom-clean theorem
+`Ipp.Extracted.ArkworksFqMul.decode_extracted_mul` proves the successful
+extracted execution decodes to Fq multiplication on canonical inputs. The
+2026-07-16 F02 re-decision selects F01B and retains this copy, parity test,
+generated graph, and proof as tooling for the one arkworks production route.
+The scoped campaign extraction remains outside `hax-targets.txt`.
 
 S2-25 extracts from `crate::gipa::verify_base_commitment_core` with
 `--charon-args=--start-from=crate::gipa::verify_base_commitment_core`. The

@@ -21,8 +21,8 @@ base-modulus prime, and Fq2 nonresidue theorems now assemble into the concrete
 `Ipp.Bls12377.arithmeticFacts` value. The BLS12-377 field, curve, and pairing
 foundations consume that value directly, with focused gates green under the
 pinned Lean v4.30.0 toolchain and no remaining `ArithmeticFacts` premise in
-the concrete path. The F01A/F01B feasibility evidence is recorded below; F02
-selects F01A and the losing F01B spike is deleted.
+the concrete path. The F01A/F01B feasibility evidence is recorded below; the
+2026-07-16 F02 re-decision selects F01B and deletes the losing fiat spike.
 
 `NOW` means every proof dependency is present and the installed Windows/WSL
 toolchain is sufficient. `GATED` means a listed predecessor must land first.
@@ -357,6 +357,9 @@ composes the explicitly transcribed fiat multiplication postcondition with the
 S3-F00 decode relation; the postcondition remains fiat's proof boundary, not a
 theorem about Rust established here. Focused and full single-threaded `Ipp`
 builds passed; the axiom audit lists only `propext` and `Quot.sound`.
+The disposable Rust/generated files and fiat-only adapter were deleted by the
+2026-07-16 F02 re-decision; this paragraph and commit `ada36ceeb` retain the
+historical feasibility and benchmark evidence.
 
 Release medians on Windows MSVC, rustc 1.89.0, AMD Ryzen 7 3700X (nine samples,
 200,000 operations/sample) were: Fq add 9.10 ns fiat / 2.44 ns arkworks (3.73x),
@@ -404,8 +407,9 @@ hardware, delete the rejected spike, and name the one `Field377` facade and
 representation relation used below. Acceptance: one production path and one
 proof path remain. Narrows no ledger row by itself.
 
-**2026-07-15 S3-08 decision — select F01A, the generated verified Montgomery
-backend, as the single production field route.** S3-07 extracted the executed
+**2026-07-15 S3-08 decision (SUPERSEDED by the 2026-07-16 F02 re-decision below)
+— select F01A, the generated verified Montgomery backend, as the single
+production field route.** S3-07 extracted the executed
 six-limb arkworks Fq multiplication graph but did not close even the first
 symbolic `mac` bridge, so F01B does not meet its mandatory no-opaque-arithmetic
 gate. Fiat's 1.50--1.64x multiplication/squaring and 3.55--3.73x addition
@@ -413,10 +417,12 @@ microbenchmark deficits are an integration risk, but they are not the required
 deterministic end-to-end SnarkPack measurement and therefore do not constitute
 the F02 performance veto.
 
-Rejected option: **F01B arkworks post-hoc verification**, because no range,
-carry/reduction, or decode theorem was established over the executed path.
+At the time, the rejected option was **F01B arkworks post-hoc verification**,
+because no range, carry/reduction, or decode theorem was established over the
+executed path.
 
-`Field377` now means the one concrete safe-Rust Fq/Fr facade to be added under
+Under that superseded decision, `Field377` meant the one concrete safe-Rust
+Fq/Fr facade to be added under
 `src/ipp/ip_proofs/src/bls12_377/` directly over the pinned, vendored fiat-crypto
 outputs, with no arkworks field-arithmetic fallback. Its Lean representation
 relation is `Ipp.Bls12377.montgomeryRepresents`, specialized to
@@ -424,62 +430,92 @@ relation is `Ipp.Bls12377.montgomeryRepresents`, specialized to
 `scalarModulus`/`scalarMontgomeryRadix` for Fr. S3-08 does not wire the facade
 into production.
 
-Consequences for S3-09..15: S3-09/10 and S3-12/13 use the exact generated fiat
-Rust operations and generator-certificate proof style--pin the generator,
-Coq-proof/output provenance, and vendored-output digests, then compose the
-operation postconditions with `montgomeryRepresents`; they do not extract or
-re-prove arkworks CIOS. S3-11 and S3-14 hax/Aeneas-extract only the handwritten
-fixed chains and canonical-byte facade code over those proved fiat effects,
-then prove the composition in Lean. S3-15 wires only this `Field377` facade
-through the whole curve/pairing stack and runs the deterministic release corpus
-for `aggregate_family` and `verify_family_aggregate` at `n ∈ {1,2,4,8,64}`
-(plus 1024/2048 prover scaling when available), recording hardware, medians,
-variance, profiles, proof bytes, and challenge traces. An above-noise
-end-to-end regression is a hard integration veto that blocks and reopens F02;
-it is not permission to restore the unproved F01B spike.
+**2026-07-16 F02 re-decision — select F01B arkworks post-hoc verification as
+the single production field route.** This supersedes the route selection and
+S3-09..15 consequences of the 2026-07-15 S3-08 decision; it does not erase
+either feasibility result. The changed fact is decisive:
+`Ipp.Extracted.ArkworksFqMul.decode_extracted_mul` now proves the executed
+six-limb safe-Rust CIOS multiplication, all U128/MAC carries, six reduction
+rounds, conditional subtraction, canonical output, and Montgomery decode
+capstone with no `sorry` or declared axiom. F01B therefore passes the mandatory
+gate whose failure was the entire reason for choosing F01A.
 
-**S3-09 — Fq representation and basic operations** — `HARD (sol)` — `GATED`
-on S3-08. Prove the selected facade's Fq limb invariant, Montgomery encode/
-decode, constants, add, sub, and neg against `ZMod baseModulus`. Acceptance:
-all carry branches and output ranges are covered in the extracted/generated
-implementation theorem. Begins retiring the base-field portion of the
-arkworks arithmetic row.
+Remaining-route estimate, excluding the common S3-15 integration/performance
+gate: F01B is three Codex sessions (S3-F03B..F05B below). F01A is five scheduled
+sessions (former S3-10..14) plus one bounded regeneration/composition gap before
+they can start, because the S3-09 vendored fiat artifact lacks executed `sub`
+and `opp` top levels. The estimate assumes the landed MAC/U128/sbb machinery is
+reused for Fq's single carry chains and square, then instantiated at four limbs
+for Fr; if that generalization does not fit S3-F03B, split before proceeding
+rather than silently enlarging S3-F05B.
 
-**S3-10 — Fq multiplication and square** — `HARD (sol)` — `GATED` on S3-09.
-Prove executed Fq multiplication, reduction, and square refine `ZMod`
-multiplication, including word-overflow semantics and range preservation.
-Acceptance: cross-backend edge/random vectors and focused proof checks pass.
-Narrows the base-field operation row.
+The claim/performance/maintenance trade favors F01B. It proves the code family
+that remains in production, preserves arkworks' measured multiplication lead
+(fiat was about 1.6x slower in the spike), and can extend to hand-optimized or
+lazy-reduction limb code that fiat's generator cannot express. Its cost is
+bespoke proof maintenance whenever the pinned arkworks limb algorithm, target
+feature selection, or extraction changes; fiat would be easier to regenerate
+once its provenance and missing operations were repaired, but would add a new
+facade and retain the measured performance risk. There is no hybrid production
+path: arkworks is production and proven post hoc; the fiat Rust spike and its
+fiat-specific Lean contracts are deleted. The route-neutral Montgomery/ZMod
+representation and additive semantic lemmas from S3-09 are retained under
+`Ipp.Bls12377.MontgomeryFq` for the selected route's extracted-operation proofs.
 
-**S3-11 — Fq inversion, square root, and bytes** — `HARD (sol)` — `GATED` on
-S3-10. Prove the executed fixed chains and canonical Fq encode/decode, with
-zero, nonresidue, sign, spare-bit, and noncanonical failures explicit.
-Acceptance: theorem covers every Fq path reached by curve decode/pairing and
-composes with GAP-01. Retires the remaining Fq portion of the arkworks field
-row and narrows serialization.
+`Field377` now means the pinned arkworks BLS12-377 Fq/Fr implementation already
+used by the curve/pairing stack, with formal claims restricted to proved
+safe-Rust paths and related to Lean by
+`Ipp.Bls12377.montgomeryRepresents`, specialized to
+`baseModulus`/`baseMontgomeryRadix` and
+`scalarModulus`/`scalarMontgomeryRadix`. The retained monomorphic Rust closure,
+generated Aeneas graph, parity gate, and `ArkworksFqMul.lean` are proof tooling
+for that one production route, not a second backend.
 
-**S3-12 — Fr representation and basic operations** — `HARD (sol)` — `GATED`
-on S3-08. Prove the selected facade's Fr representation, constants, encode/
-decode, add, sub, and neg against `ZMod scalarModulus`. Acceptance mirrors
-S3-09. Narrows the scalar-field portion of the arkworks arithmetic row.
+**S3-F03B — Fq additive operations and square** — `HARD (sol)` — `GATED` on
+the 2026-07-16 F02 re-decision. Extract the exact safe-Rust Fq add/sub/neg and
+square paths; prove every carry/borrow/conditional-subtraction branch, canonical
+range, and decode law, reusing `macModel`, U128, and `sbb` machinery and the
+route-neutral S3-09 lemmas. Acceptance: executed add/sub/neg/square theorems,
+source/artifact parity, focused Lean, axiom audit, and edge/random Rust vectors
+pass; multiplication is consumed from `decode_extracted_mul`, not re-proved.
 
-**S3-13 — Fr multiplication and square** — `HARD (sol)` — `GATED` on S3-12.
-Prove executed Fr multiply/reduce/square with all ranges and machine-word
-semantics. Acceptance: deterministic vectors and focused proof checks pass.
-Narrows the scalar-field operation row.
+**S3-F04B — Fq inverse, square root, and canonical bytes** — `HARD (sol)` —
+`GATED` on S3-F03B. Extract the exact fixed exponent/addition-chain loops and
+canonical byte paths; prove loop induction over the proved mul/square effects
+and compose with GAP-01, including zero inverse, nonsquare, sign, spare-bit, and
+noncanonical failures. Acceptance: every Fq path reached by curve decoding and
+pairing has an executed theorem and the remaining Fq/serialization portion of
+the arkworks row is narrowed.
 
-**S3-14 — Fr inversion, powers, and bytes** — `HARD (sol)` — `GATED` on
-S3-13. Prove inversion, exponentiation paths used by the verifier, and
-canonical Fr bytes, including zero/failure behavior. Acceptance: the S2
-scalar adapter laws instantiate from these theorems. Retires the remaining Fr
-portion of the arkworks field row.
+**S3-F05B — four-limb Fr refinement** — `HARD (sol)` — `GATED` on S3-F03B and
+S3-F04B's reusable loop proof. Instantiate the machine-arithmetic framework for
+the four-limb scalar modulus and prove executed representation/constants,
+add/sub/neg, mul/square, inverse/powers used by the verifier, and canonical
+bytes. Acceptance: all ranges and failure branches are explicit, deterministic
+vectors and focused proof checks pass, and the concrete S2 scalar adapter laws
+instantiate without a field-operation premise.
 
-**S3-15 — `Field377` integration gate** — `MECHANICAL (luna)` — `GATED` on
-S3-09 through S3-14. Expose the one proved Fq/Fr facade to S2 and later S3
-modules, run complete arithmetic vectors, normal/hax tests, focused/full Lean
-checks, and axiom audits. Acceptance: no rejected route or bypass conversion
-remains. Retires the prime-field portion of
+**S3-15 — arkworks `Field377` integration and performance veto** — `MECHANICAL
+(luna)` — `GATED` on S3-F03B through S3-F05B. Connect the proved Fq/Fr operation
+theorems to the existing production curve/pairing call sites, run complete
+arithmetic vectors, normal/hax tests, focused/full Lean checks, and axiom audits,
+then run the deterministic release corpus for `aggregate_family` and
+`verify_family_aggregate` at `n ∈ {1,2,4,8,64}` (plus 1024/2048 prover scaling
+when available), recording hardware, medians, variance, profiles, proof bytes,
+and challenge traces. Acceptance: no fiat backend, rejected-route artifact, or
+bypass conversion remains; an above-noise end-to-end regression is a hard veto
+that blocks and reopens F02. Passing retires the prime-field portion of
 `arkworks field/group/pairing mathematical operation implementations`.
+
+F02 re-decision execution verification (2026-07-16): focused
+`lake build Ipp.Bls12377MontgomeryFq` (1964 jobs) and
+`lake build Ipp.Extracted.ArkworksFqMul` (2973 jobs) passed; full
+single-threaded `lake build Ipp` passed (3405 jobs). The new route-neutral
+theorems and retained multiplication capstone audit only to `propext`,
+`Classical.choice`, and `Quot.sound`. `cargo test -p ark-ip-proofs` passed 36
+unit tests plus the arkworks Fq parity integration test, with two unrelated
+tests ignored. Prover, release, deterministic corpus, and release-gated tests
+were not run; they remain mandatory in S3-15.
 
 **S3-16 — Fq2 implementation refinement** — `HARD (sol)` — `GATED` on S3-15.
 Prove the executed Fq2 representation and add/sub/neg/mul/square against
@@ -748,14 +784,15 @@ arithmetic effects.
 
 The concrete-discharge path is:
 
-`S3-01 -> S3-02/03 -> S3-04 -> S3-05 -> S3-06/07 -> S3-08 -> S3-09..15 -> S3-16..22`,
+`S3-01 -> S3-02/03 -> S3-04 -> S3-05 -> S3-06/07 -> S3-08/F02 re-decision -> S3-F03B..F05B -> S3-15 -> S3-16..22`,
 
 then curve work `S3-23 -> S3-24/25` and `S3-26..32`, pairing work
 `S3-33..40`, GAP-07/10, and finally S3-41. The decode path begins immediately
 with GAP-02A and GAP-03A, joins the subgroup/conformance work at GAP-08/09/10,
 then ends `GAP-11 -> GAP-14`.
 
-S3 is a multi-month campaign even when expressed as 41 sessions. The long
+S3 is a multi-month campaign even when expressed as 38 sessions after the F02
+re-decision. The long
 risks are the checked large-prime certificates, selecting a no-opaque field
 backend, Fq6/Fq12 irreducibility and implementation conformance, complete
 exceptional-branch curve formulas/MSM, and the optimized final-exponentiation
@@ -775,18 +812,20 @@ The historical S2 dispatch order was:
 5. **S2-23** — sol, medium, one session: finish the generated coefficient Vec
    bridge.
 
-After these five, dispatch S2-24, S2-26, S2-27, S2-28, and S2-29 before the
-closed `verify_tipp_mipp` graph. If S2 is externally paused, the first
-independent NOW work is S3-01, S3-23, GAP-02A, and GAP-03A in that serial order.
+After these five, S2 dispatched S2-24, S2-26, S2-27, S2-28, and S2-29 before
+the closed `verify_tipp_mipp` graph. The current field-route serial dispatch is
+S3-F03B, S3-F04B, S3-F05B, then the S3-15 integration/performance veto.
 
 ## Session count and owner questions
 
-Remaining mandatory work is **41 S3 sessions and 12 GAP sessions: 53 total
-estimated Codex sessions**. GAP-12 is deliberately excluded.
+The scoped campaign contains **38 S3 sessions and 12 GAP sessions: 50 total
+estimated Codex-session slots** after replacing former S3-09..14 with
+S3-F03B..F05B. Completed items remain in that scope count; GAP-12 is deliberately
+excluded.
 There is no currently blocking owner question. Antoine's review/signoff is
 needed when S3-23 pins the exact curve-order citations and when S3-41 retains
-the cited pairing-mathematics row. The owner-delegated S3-08 production field
-route decision is complete.
+the cited pairing-mathematics row. The owner-delegated production field route
+re-decision is complete: F01B is the sole selected route.
 
 ## MAC campaign
 
