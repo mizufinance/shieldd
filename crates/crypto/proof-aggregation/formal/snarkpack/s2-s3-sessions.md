@@ -990,3 +990,65 @@ Session-2 verification:
   transition lemmas is within `propext`, `Classical.choice`, and `Quot.sound`.
   There are no `sorry`s or declared axioms in the campaign Lean files.
 - Prover, release, and release-gated tests were not run.
+
+### Session 3 — executed round, outer loop, subtraction, and decode (2026-07-15)
+
+Status: COMPLETE. The generated Fq multiplication path is connected to the
+session-1/2 mathematics through its final decode theorem. The generated file
+remains immutable.
+
+Closed lemmas in `Ipp/Extracted/ArkworksFqMul.lean`:
+
+- `extracted_round_spec` identifies a successful generated `round` with the
+  proven six product/reduction MAC pairs, zero first reduction low, checked
+  top carry, shifted return limbs, exact round equation, and `< 2q` bound.
+- `extracted_sbb_spec`, `geqPrefix_spec`, and
+  `extracted_geq_modulus_spec` specify the generated subtraction primitives.
+  `extracted_subtract_modulus_spec` composes all six `sbb` calls and proves the
+  output is canonical, congruent to the input, satisfies `q + output = input`
+  in the subtracting branch, and is unchanged below `q`.
+- `extracted_mul_spec` follows the generated `mul` bind chain, starts
+  `roundInvariant` at the zero accumulator, applies
+  `roundInvariant_step_of_equation` at indices 0 through 5, and composes the
+  final conditional subtraction. It proves the canonical output and
+  `output * wordBase^6 ≡ a * b (mod q)`.
+- `wordRadix_eq_baseMontgomeryRadix` identifies `wordBase^6` with the S3-F00
+  radix. `decode` is defined directly by S3-F00's `montgomeryDecode` relation.
+- The capstone statement is:
+
+  ```lean
+  theorem decode_extracted_mul (a b output : LimbArray)
+      (ha : limbsToNat a < Ipp.Bls12377.baseModulus)
+      (hb : limbsToNat b < Ipp.Bls12377.baseModulus)
+      (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.mul a b = .ok output) :
+      decode output = decode a * decode b
+  ```
+
+Elaboration result: one generated bind at a time won. Each known `.ok` action
+is replaced by its continuation equation before the next action is exposed.
+Opaque Prop traces separate execution from arithmetic. The subtraction proof
+also uses named pure helpers for the six-word telescope and generic final-borrow
+consequences. Local finite heartbeat/depth settings are documented at the
+generated bridges; no global project setting was raised.
+
+F02 reopening facts:
+
+- S3-F01B's executed-code theorem gate is PASSED for Arkworks-compatible Fq
+  multiplication: successful execution of the extracted `mul` on canonical
+  Montgomery inputs decodes to the product of their decoded values.
+- This does not by itself complete the F01B route. Executed-code conformance for
+  Fq add, sub, inverse, square root, and byte encode/decode remains in
+  S3-F03B..F05B scope. The route re-decision should treat multiplication as
+  closed and evaluate only those residual operations and their orchestration.
+
+Session-3 verification:
+
+- Focused Lean: `lake build Ipp.Extracted.ArkworksFqMul` passed, 2973 jobs,
+  with the pinned Lean 4.30.0 `lake` and `LEAN_NUM_THREADS=1`.
+- Full Lean: `lake build Ipp` passed, 3406 jobs, with the same pinned,
+  single-threaded configuration.
+- `#print axioms` for the round, subtraction, outer multiplication, and decode
+  capstone theorems is exactly within `propext`, `Classical.choice`, and
+  `Quot.sound`. There are no `sorry`s or declared axioms in the campaign Lean
+  files.
+- Prover, release, and release-gated tests were not run.
