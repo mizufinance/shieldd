@@ -546,7 +546,7 @@ unit tests plus the arkworks Fq parity integration test, with two unrelated
 tests ignored. Prover, release, deterministic corpus, and release-gated tests
 were not run; they remain mandatory in S3-15.
 
-**S3-16 — Fq2 implementation refinement** — `HARD (sol)` — `GATED` on S3-15.
+**S3-16 — Fq2 implementation refinement** — `HARD (sol)` — `DONE 2026-07-17`.
 Prove the executed Fq2 representation and add/sub/neg/mul/square against
 `QuadraticAlgebra Fq (-5) 0`; include component order used by arkworks and
 canonical bytes. Acceptance: no operation used by G2 or the extension tower is
@@ -609,6 +609,26 @@ uses the landed eq_zeroLimbs_of_value_zero pattern); inv-None ↔ norm
 zero ↔ input zero (norm nonzero for nonzero input needs fq2Nonresidue:
 c0² = 5·(−c1²)... norm c0²+5c1² = 0 with c1 ≠ 0 ⇒ (c0/c1)² = −5,
 contradicting arithmeticFacts.fq2Nonresidue ✓ certified).
+COMPLETION (2026-07-17, orchestrator, commits 35ec80e9e..73c53ec70):
+all Fq2 ops mechanized in `ArkworksFq2.lean` on the extracted graph,
+full Ipp package green, zero sorry, axioms = propext/Classical.choice/
+Quot.sound only. Landed theorems: `decode_extracted_double`
+(= decode a + decode a), `extracted_sop2_spec`/`decode_extracted_sop2`
+(fused M=2 kernel = a0·b0 + a1·b1 after Montgomery reduction),
+`extracted_fq2_mul_spec`/`extracted_fq2_square_spec`
+(vs `QuadraticAlgebra Fq (-5) 0`), the three nonresidue-helper decode
+laws, and `extracted_fq2_inv_some_spec` (some-branch: decode·input = 1
++ canonicity). Componentwise add/sub/neg already landed (1510980f5).
+Fq2 canonical bytes = componentwise Fq bytes (no distinct extracted op;
+covered by the Fq bytes track); component order (c0, c1) captured by
+`decodeFq2`. The predicted `MacChainState`/`PolynomialCoefficients`
+reuse did NOT hold: SoP chains are sequential (local `mac_chain_telescope`
++ `sop_body_ok` round lemma) and the loop needed a spec-based
+`LoopResult` backward peel (`sop_loop_peel`), not closed-form simp;
+dual-carry discard-freedom fell straight out of the u64 `isLt` bounds
+via omega (no `result' < β⁶` contradiction needed). S3-17 now inherits
+`extracted_fq2_inv_some_spec`; its remaining work is the inverse
+none-direction/totality, sqrt, sign-selection, and Frobenius.
 MECHANIZATION REFINEMENTS (2026-07-17, orchestrator, pre-flight review):
 (a) dual-carry: prove sum1.carry = 0 and top.carry = 0 DIRECTLY from
 chain-carry bounds — each chain gives c·β⁶ ≤ β⁶ + β·q ⇒ c < 2⁵⁸, so
