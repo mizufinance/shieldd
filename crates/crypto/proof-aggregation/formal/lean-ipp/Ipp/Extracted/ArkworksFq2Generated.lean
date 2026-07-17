@@ -197,6 +197,13 @@ def s3_07_arkworks_fq_spike.fq2_neg
   let fm1 ← s3_07_arkworks_fq_spike.neg a.c1
   ok { c0 := fm, c1 := fm1 }
 
+/-- [ark_ip_proofs::s3_07_arkworks_fq_spike::fq2_frobenius] -/
+def s3_07_arkworks_fq_spike.fq2_frobenius
+  (a : s3_07_arkworks_fq_spike.Fq2Mont) :
+  Result s3_07_arkworks_fq_spike.Fq2Mont := do
+  let fm ← s3_07_arkworks_fq_spike.neg a.c1
+  ok { a with c1 := fm }
+
 /-- [ark_ip_proofs::s3_07_arkworks_fq_spike::fq2_mul] -/
 def s3_07_arkworks_fq_spike.fq2_mul
   (a : s3_07_arkworks_fq_spike.Fq2Mont) (b : s3_07_arkworks_fq_spike.Fq2Mont) :

@@ -95,6 +95,21 @@ theorem decode_fq2_neg (a output : Fq2LimbPair)
   have hc1 := decode_extracted_neg a.c1 fm1 ha.2 h1
   apply QuadraticAlgebra.ext <;> simp [decodeFq2, hc0, hc1]
 
+/-- The executed degree-2 Frobenius (`FROBENIUS_COEFF_FP2_C1 = [1, −1]`) is
+conjugation on `Fq2`: it negates the `c1` lane, which is exactly Mathlib's
+`star` on `QuadraticAlgebra Fq (-5) 0` (the `b = 0` case). -/
+theorem decode_fq2_frobenius (a output : Fq2LimbPair)
+    (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius a =
+      .ok output) :
+    decodeFq2 output = star (decodeFq2 a) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius at hexec
+  obtain ⟨fm, hneg, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  have hc1 := decode_extracted_neg a.c1 fm ha.2 hneg
+  apply QuadraticAlgebra.ext <;> simp [decodeFq2, hc1]
+
 /-! ### `double`: `BigInt::mul2` limb shift plus conditional subtraction -/
 
 private theorem limbsToNat_make_six
@@ -1164,3 +1179,4 @@ end Ipp.Extracted.ArkworksFq2
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_mul_spec
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_square_spec
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_inv_some_spec
+#print axioms Ipp.Extracted.ArkworksFq2.decode_fq2_frobenius

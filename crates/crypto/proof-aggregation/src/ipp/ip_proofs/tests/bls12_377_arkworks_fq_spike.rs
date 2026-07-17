@@ -36,6 +36,9 @@ fn check_fq2(a: Fq2, b: Fq2) {
     assert_eq!(ark2(spike::fq2_mul(mont2(a), mont2(b))), a * b);
     assert_eq!(ark2(spike::fq2_square(mont2(a))), a.square());
     assert_eq!(spike::fq2_inv(mont2(a)).map(ark2), a.inverse());
+    let mut a_frob = a;
+    a_frob.frobenius_map_in_place(1);
+    assert_eq!(ark2(spike::fq2_frobenius(mont2(a))), a_frob);
     assert_eq!(
         ark(spike::double(mont(a.c0))),
         a.c0.double()

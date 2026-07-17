@@ -678,6 +678,21 @@ pub fn fq2_inv(a: Fq2Mont) -> Option<Fq2Mont> {
     }
 }
 
+/// Pinned `Fq2Config` Frobenius (`FROBENIUS_COEFF_FP2_C1 = [1, -1]`): the
+/// degree-2 Frobenius map raises to the `q`-th power, i.e. conjugation
+/// `c0 + c1*u -> c0 - c1*u`. `frobenius_map(power)` multiplies `c1` by
+/// `FROBENIUS_COEFF_FP2_C1[power % 2]`; for the only nontrivial residue the
+/// coefficient is `-1`, so the executed effect is `neg` on the `c1` lane.
+pub fn fq2_frobenius(a: Fq2Mont) -> Fq2Mont {
+    Fq2Mont { c0: a.c0, c1: neg(a.c1) }
+}
+
+/// Extraction root whose closure contains the S3-17 Fq2 Frobenius operation.
+#[doc(hidden)]
+pub fn extract_s3_17(a: Fq2Mont) -> Fq2Mont {
+    fq2_frobenius(a)
+}
+
 /// Extraction root whose closure contains every S3-16 Fq2 operation.
 #[doc(hidden)]
 pub fn extract_s3_16(a: Fq2Mont, b: Fq2Mont) -> (Fq2Mont, Fq2Mont, Fq2Mont, Fq2Mont, Fq2Mont, Option<Fq2Mont>) {
