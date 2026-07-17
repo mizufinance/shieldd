@@ -609,6 +609,25 @@ uses the landed eq_zeroLimbs_of_value_zero pattern); inv-None ↔ norm
 zero ↔ input zero (norm nonzero for nonzero input needs fq2Nonresidue:
 c0² = 5·(−c1²)... norm c0²+5c1² = 0 with c1 ≠ 0 ⇒ (c0/c1)² = −5,
 contradicting arithmeticFacts.fq2Nonresidue ✓ certified).
+MECHANIZATION REFINEMENTS (2026-07-17, orchestrator, pre-flight review):
+(a) dual-carry: prove sum1.carry = 0 and top.carry = 0 DIRECTLY from
+chain-carry bounds — each chain gives c·β⁶ ≤ β⁶ + β·q ⇒ c < 2⁵⁸, so
+c₀+c₁+cᵣ < β; drops the result′<β⁶ contradiction route entirely.
+(b) the three SoP chains are SEQUENTIAL, not interleaved — landed
+MacChainState is CIOS-interleave-specific and does not fit; use a local
+six-MacSpec telescope (generalize x·bᵢ products to atoms, omega),
+mirroring FqOps adc_telescope.
+(c) loop: forward-total round lemma (∃ result′ k, body = ok cont ∧ exact
+equation) + loopFuel downward induction with local tailToNat, closed by
+loop_eq_of_fuel + determinism vs hexec — NOT PolynomialCoefficients
+closed-form simp (our body needs spec-based stepping). sum0/sum1/top
+take full-word third addends: use extracted_adc_general_spec (≤2 carry)
+plus a local unconditional adc = ok (adcModel …) (landed eq_model
+carries a carry≤1 hypothesis these calls do not satisfy).
+(d) fq2_inv split: some-branch law (decode·input = 1 + canonicity) in
+S3-16; the none-direction needs GKP-inv TOTALITY (nonzero → some) which
+ArkworksFqInv does not provide — moved to S3-17 with the rest of
+inverse.
 
 **S3-17 — Fq2 inverse, square root, and Frobenius** — `HARD (sol)` — `GATED`
 on S3-16. Prove the exact inverse/sqrt/sign-selection/Frobenius paths, including
