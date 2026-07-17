@@ -3,6 +3,7 @@ import Ipp.Extracted.ArkworksFqMul
 import Ipp.Extracted.ArkworksFqOps
 import Ipp.Extracted.ArkworksFqSquare
 import Ipp.Extracted.ArkworksFqInv
+import Ipp.Extracted.ArkworksFqSqrtBytes
 import Ipp.Bls12377Core
 import Ipp.Bls12377
 import Mathlib.Tactic
@@ -23,10 +24,12 @@ open Ipp.Extracted.ArkworksFqMul
 open Ipp.Extracted.ArkworksFqOps (extracted_add_spec decode_extracted_add
   decode_extracted_sub decode_extracted_neg extracted_sub_spec
   extracted_neg_spec limb_index adcModel extracted_adc_spec
-  extracted_adc_general_spec limbAt)
+  extracted_adc_general_spec limbAt extracted_gt_spec)
 open Ipp.Extracted.ArkworksFqSquare (decode_extracted_square
   extracted_square_spec)
 open Ipp.Extracted.ArkworksFqInv (decode_extracted_inv extracted_inv_zero)
+open Ipp.Extracted.ArkworksFqSqrtBytes (decode_extracted_sqrt
+  extracted_sqrt_canonical canonical_ONE)
 
 abbrev Fq2LimbPair := ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont
 
@@ -1325,6 +1328,441 @@ theorem extracted_fq2_inv_none_iff (a : Fq2LimbPair) (ha : Canonical2 a)
     | some norm_inv => exact some_absurd norm_inv hexec
     | none => exact norm_route_none v1 fmc0 v0 hv1 hfmc0 hv0 ho
 
+/-! ### `fq2_sqrt`: arkworks complex-method square root, spec-conformance
+The executed algorithm validates every candidate (base square root in the
+`c1 = 0` lanes, an Fq2 re-square in the general lane), so a `some` result is a
+genuine square root of the input. We prove only that conformance — never
+Tonelli–Shanks completeness. -/
+
+private theorem decode_val_eq (x y : LimbArray) (h : x.val = y.val) :
+    decode x = decode y := by
+  have hlt : limbsToNat x = limbsToNat y := by
+    obtain ⟨xv, xh⟩ := x
+    obtain ⟨yv, yh⟩ := y
+    simp only at h
+    subst h
+    rfl
+  rw [decode_eq_cast_mul_inv, decode_eq_cast_mul_inv, hlt]
+
+private theorem decode_ONE : decode ark_ip_proofs.s3_07_arkworks_fq_spike.ONE = 1 := by
+  rw [decode_eq_cast_mul_inv]
+  have hmod :
+      (limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.ONE : Ipp.Bls12377.Fq) =
+        (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) := by
+    apply (ZMod.natCast_eq_natCast_iff _ _ _).2
+    norm_num [Nat.ModEq, limbsToNat, prefixToNat, limbCount, limb, limbWord,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.ONE, MacCampaign.Array.make,
+      MacCampaign.U64.ofNat, MacCampaign.u64Base, wordBase,
+      Ipp.Bls12377.baseModulus, Ipp.Bls12377.baseMontgomeryRadix]
+  rw [hmod]
+  exact ZMod.coe_mul_inv_eq_one _ radix_coprime
+
+private theorem decode_replicate_zero :
+    decode (MacCampaign.Array.replicate 6#usize (MacCampaign.U64.ofNat 0)) = 0 := by
+  refine (decode_eq_zero_iff _ ?_).mpr (limbsToNat_val_zero _ rfl)
+  rw [limbsToNat_val_zero _ rfl]; norm_num [Ipp.Bls12377.baseModulus]
+
+private theorem neg_five_ne_zero : (-5 : Ipp.Bls12377.Fq) ≠ 0 := by
+  have h5 : ((5 : ℕ) : Ipp.Bls12377.Fq) ≠ 0 := by
+    rw [Ne, ZMod.natCast_eq_zero_iff]
+    intro h
+    have := Nat.le_of_dvd (by norm_num) h
+    norm_num [Ipp.Bls12377.baseModulus] at this
+  simpa using h5
+
+private theorem one_add_one_ne_zero : (1 + 1 : Ipp.Bls12377.Fq) ≠ 0 := by
+  have h2 : ((2 : ℕ) : Ipp.Bls12377.Fq) ≠ 0 := by
+    rw [Ne, ZMod.natCast_eq_zero_iff]
+    intro h
+    have := Nat.le_of_dvd (by norm_num) h
+    norm_num [Ipp.Bls12377.baseModulus] at this
+  simpa using h2
+
+private abbrev Zeros : LimbArray :=
+  MacCampaign.Array.replicate 6#usize (MacCampaign.U64.ofNat 0)
+
+set_option maxHeartbeats 2000000 in
+theorem decode_extracted_fq2_sqrt (a output : Fq2LimbPair) (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sqrt a = .ok (some output)) :
+    decodeFq2 output * decodeFq2 output = decodeFq2 a := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sqrt at hexec
+  obtain ⟨b, hb, hexec⟩ := bind_eq_ok hexec
+  simp only [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+    Result.ok.injEq] at hb
+  subst b
+  by_cases hc1z : a.c1.val = Zeros.val
+  · -- c1 = 0: `sqrt(c0)` (residue) or `sqrt(c0/-5)` (nonresidue) lanes
+    have hdc1 : decode a.c1 = 0 := by
+      rw [decode_val_eq a.c1 _ hc1z]; exact decode_replicate_zero
+    rw [if_pos (decide_eq_true_eq.mpr hc1z)] at hexec
+    obtain ⟨b1, _, hexec⟩ := bind_eq_ok hexec
+    cases b1 with
+    | true =>
+        simp only [if_true] at hexec
+        obtain ⟨o, hsqrt, hexec⟩ := bind_eq_ok hexec
+        cases o with
+        | none => simp at hexec
+        | some root =>
+            simp only [Result.ok.injEq, Option.some.injEq] at hexec
+            subst output
+            have hroot := decode_extracted_sqrt a.c0 root ha.1 hsqrt
+            apply QuadraticAlgebra.ext <;>
+              simp only [decodeFq2, QuadraticAlgebra.re_mul,
+                QuadraticAlgebra.im_mul, decode_replicate_zero, hdc1]
+            · rw [hroot]; ring
+            · ring
+    | false =>
+        simp only [Bool.false_eq_true, if_false] at hexec
+        obtain ⟨nr, hnr, hexec⟩ := bind_eq_ok hexec
+        obtain ⟨o, hinv, hexec⟩ := bind_eq_ok hexec
+        cases o with
+        | none => simp at hexec
+        | some nr_inv =>
+            obtain ⟨fm, hmul, hexec⟩ := bind_eq_ok hexec
+            obtain ⟨o1, hsqrt, hexec⟩ := bind_eq_ok hexec
+            cases o1 with
+            | none => simp at hexec
+            | some res =>
+                simp only [Result.ok.injEq, Option.some.injEq] at hexec
+                subst output
+                have hnrs := extracted_mul_by_nonresidue_spec _ nr canonical_ONE hnr
+                have hnrdecode : decode nr = -5 := by rw [hnrs.2, decode_ONE]; ring
+                have hnrne : nr ≠ Ipp.Extracted.ArkworksFqInv.zeroArray := by
+                  intro hzero
+                  have hz : decode nr = 0 :=
+                    (decode_eq_zero_iff nr hnrs.1).mpr
+                      (by rw [hzero]; exact limbsToNat_val_zero _ rfl)
+                  rw [hnrdecode] at hz
+                  exact neg_five_ne_zero hz
+                have hninv_lt : limbsToNat nr_inv < Ipp.Bls12377.baseModulus :=
+                  (Ipp.Extracted.ArkworksFqInv.extracted_inv_spec nr nr_inv
+                    hnrs.1 hnrne hinv).coefficient_lt
+                have hmuls := extracted_mul_spec a.c0 nr_inv fm ha.1 hninv_lt hmul
+                have hressq := decode_extracted_sqrt fm res hmuls.1 hsqrt
+                have hfmdecode := decode_extracted_mul a.c0 nr_inv fm ha.1 hninv_lt hmul
+                have hinvdecode : decode nr_inv * decode nr = 1 :=
+                  decode_extracted_inv nr nr_inv hnrs.1 hnrne hinv
+                rw [hnrdecode] at hinvdecode
+                apply QuadraticAlgebra.ext <;>
+                  simp only [decodeFq2, QuadraticAlgebra.re_mul,
+                    QuadraticAlgebra.im_mul, decode_replicate_zero, hdc1]
+                · linear_combination (-5 : Ipp.Bls12377.Fq) * hressq +
+                    (-5 : Ipp.Bls12377.Fq) * hfmdecode +
+                    decode a.c0 * hinvdecode
+                · ring
+  · -- c1 ≠ 0: general branch validated by an Fq2 re-square
+    rw [if_neg (by simp [hc1z])] at hexec
+    obtain ⟨fm, hsqc1, hexec⟩ := bind_eq_ok hexec
+    have hfmc := (extracted_square_spec a.c1 fm ha.2 hsqc1).1
+    obtain ⟨fm1, hsqc0, hexec⟩ := bind_eq_ok hexec
+    have hfm1c := (extracted_square_spec a.c0 fm1 ha.1 hsqc0).1
+    obtain ⟨alpha, halpha, hexec⟩ := bind_eq_ok hexec
+    have halphac :=
+      (extracted_sub_and_mul_by_nonresidue_spec fm fm1 alpha hfmc hfm1c halpha).1
+    obtain ⟨two, htwo, hexec⟩ := bind_eq_ok hexec
+    have htwoc :=
+      (extracted_add_spec _ _ two canonical_ONE canonical_ONE htwo).1
+    have htwone : two ≠ Ipp.Extracted.ArkworksFqInv.zeroArray := by
+      intro hzero
+      have hz : decode two = 0 :=
+        (decode_eq_zero_iff two htwoc).mpr
+          (by rw [hzero]; exact limbsToNat_val_zero _ rfl)
+      rw [decode_extracted_add _ _ two canonical_ONE canonical_ONE htwo,
+        decode_ONE] at hz
+      exact one_add_one_ne_zero hz
+    obtain ⟨o, hinvtwo, hexec⟩ := bind_eq_ok hexec
+    cases o with
+    | none => simp at hexec
+    | some two_inv =>
+        have htwoinvc :=
+          (Ipp.Extracted.ArkworksFqInv.extracted_inv_spec two two_inv
+            htwoc htwone hinvtwo).coefficient_lt
+        obtain ⟨o1, hsqrtalpha, hexec⟩ := bind_eq_ok hexec
+        cases o1 with
+        | none => simp at hexec
+        | some alpha_root =>
+            have harootc :=
+              extracted_sqrt_canonical alpha alpha_root halphac hsqrtalpha
+            obtain ⟨fm2, hadd, hexec⟩ := bind_eq_ok hexec
+            have hfm2c := (extracted_add_spec alpha_root a.c0 fm2 harootc ha.1 hadd).1
+            obtain ⟨first, hfirst, hexec⟩ := bind_eq_ok hexec
+            have hfirstc :=
+              (extracted_mul_spec fm2 two_inv first hfm2c htwoinvc hfirst).1
+            obtain ⟨b1, _, hexec⟩ := bind_eq_ok hexec
+            -- The `delta ← if b1 then … else …` join point blocks a direct
+            -- peel, so the shared tail is factored out and applied per case.
+            have tail : ∀ (delta : LimbArray),
+                limbsToNat delta < Ipp.Bls12377.baseModulus →
+                (do
+                  let o2 ← ark_ip_proofs.s3_07_arkworks_fq_spike.sqrt delta
+                  match o2 with
+                  | none => ok none
+                  | some c0_new =>
+                    let o3 ← ark_ip_proofs.s3_07_arkworks_fq_spike.inv c0_new
+                    match o3 with
+                    | none => ok none
+                    | some c0_inv =>
+                      let fm3 ←
+                        ark_ip_proofs.s3_07_arkworks_fq_spike.mul a.c1 two_inv
+                      let c1_new ←
+                        ark_ip_proofs.s3_07_arkworks_fq_spike.mul fm3 c0_inv
+                      let sq ←
+                        ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_square
+                          { c0 := c0_new, c1 := c1_new }
+                      let b2 ← ark_ip_proofs.core.array.equality.PartialEqArray.eq
+                        ark_ip_proofs.core.cmp.PartialEqU64 sq.c0 a.c0
+                      if b2 then
+                        let b3 ←
+                          ark_ip_proofs.core.array.equality.PartialEqArray.eq
+                            ark_ip_proofs.core.cmp.PartialEqU64 sq.c1 a.c1
+                        if b3 then ok (some ({ c0 := c0_new, c1 := c1_new } :
+                          ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont))
+                        else ok none
+                      else ok none) = .ok (some output) →
+                decodeFq2 output * decodeFq2 output = decodeFq2 a := by
+              intro delta hdeltac hexec
+              obtain ⟨o2, hsqrtdelta, hexec⟩ := bind_eq_ok hexec
+              cases o2 with
+              | none => simp at hexec
+              | some c0_new =>
+                  have hc0c :=
+                    extracted_sqrt_canonical delta c0_new hdeltac hsqrtdelta
+                  obtain ⟨o3, hinvc0, hexec⟩ := bind_eq_ok hexec
+                  cases o3 with
+                  | none => simp at hexec
+                  | some c0_inv =>
+                      have hc0newne :
+                          c0_new ≠ Ipp.Extracted.ArkworksFqInv.zeroArray := by
+                        intro hz
+                        rw [hz, Ipp.Extracted.ArkworksFqInv.extracted_inv_zero]
+                          at hinvc0
+                        simp at hinvc0
+                      have hc0invc :=
+                        (Ipp.Extracted.ArkworksFqInv.extracted_inv_spec c0_new
+                          c0_inv hc0c hc0newne hinvc0).coefficient_lt
+                      obtain ⟨fm3, hmul3, hexec⟩ := bind_eq_ok hexec
+                      have hfm3c :=
+                        (extracted_mul_spec a.c1 two_inv fm3 ha.2 htwoinvc hmul3).1
+                      obtain ⟨c1_new, hc1new, hexec⟩ := bind_eq_ok hexec
+                      have hc1newc :=
+                        (extracted_mul_spec fm3 c0_inv c1_new hfm3c hc0invc
+                          hc1new).1
+                      obtain ⟨sq, hsq, hexec⟩ := bind_eq_ok hexec
+                      obtain ⟨b2, hb2, hexec⟩ := bind_eq_ok hexec
+                      simp only
+                        [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+                         Result.ok.injEq] at hb2
+                      subst b2
+                      by_cases hsqc0eq : sq.c0.val = a.c0.val
+                      · rw [if_pos (decide_eq_true_eq.mpr hsqc0eq)] at hexec
+                        obtain ⟨b3, hb3, hexec⟩ := bind_eq_ok hexec
+                        simp only
+                          [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+                           Result.ok.injEq] at hb3
+                        subst b3
+                        by_cases hsqc1eq : sq.c1.val = a.c1.val
+                        · rw [if_pos (decide_eq_true_eq.mpr hsqc1eq)] at hexec
+                          simp only [Result.ok.injEq, Option.some.injEq] at hexec
+                          subst output
+                          have hsqspec := extracted_fq2_square_spec
+                            ⟨c0_new, c1_new⟩ sq ⟨hc0c, hc1newc⟩ hsq
+                          have hsqdecode : decodeFq2 sq = decodeFq2 a := by
+                            apply QuadraticAlgebra.ext <;>
+                              simp only [decodeFq2,
+                                decode_val_eq sq.c0 a.c0 hsqc0eq,
+                                decode_val_eq sq.c1 a.c1 hsqc1eq]
+                          rw [← hsqspec.2]; exact hsqdecode
+                        · rw [if_neg (by simp [hsqc1eq])] at hexec; simp at hexec
+                      · rw [if_neg (by simp [hsqc0eq])] at hexec; simp at hexec
+            cases b1 with
+            | true =>
+                rw [if_pos (rfl : true = true)] at hexec
+                obtain ⟨delta, hd, hexec⟩ := bind_eq_ok hexec
+                exact tail delta
+                  (extracted_sub_spec first alpha_root delta hfirstc harootc hd).1
+                  hexec
+            | false =>
+                rw [if_neg (by decide)] at hexec
+                obtain ⟨delta, hd, hexec⟩ := bind_eq_ok hexec
+                exact tail delta
+                  (by rw [← Result.ok.inj hd]; exact hfirstc) hexec
+
+/-! ### `fq2_less`: arkworks compression ordering, canonical `c1`-then-`c0`
+The executed comparison leaves Montgomery form (`into_bigint`) and compares the
+canonical integer representatives lexicographically, refining the decoder model
+`fq2Less` on `((decode ·).val)`. -/
+
+private abbrev oneIntArr : LimbArray :=
+  MacCampaign.Array.make 6#usize [
+    MacCampaign.U64.ofNat 1, MacCampaign.U64.ofNat 0,
+    MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0,
+    MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0]
+
+/-- `into_bigint x = mul x 1` yields the canonical integer of the field value. -/
+private theorem mul_oneInt_val (x out : LimbArray)
+    (hx : limbsToNat x < Ipp.Bls12377.baseModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.mul x oneIntArr = .ok out) :
+    limbsToNat out = (decode x).val ∧
+    limbsToNat out < Ipp.Bls12377.baseModulus := by
+  have hone : limbsToNat oneIntArr = 1 := by
+    rw [limbsToNat_make_six]; norm_num [MacCampaign.U64.ofNat, MacCampaign.u64Base]
+  have honeC : limbsToNat oneIntArr < Ipp.Bls12377.baseModulus := by
+    rw [hone]; norm_num [Ipp.Bls12377.baseModulus]
+  have hspec := extracted_mul_spec x oneIntArr out hx honeC hexec
+  refine ⟨?_, hspec.1⟩
+  have hmod := hspec.2
+  rw [hone, Nat.mul_one] at hmod
+  have hcast : ((limbsToNat out * wordBase ^ limbCount : ℕ) : Ipp.Bls12377.Fq) =
+      ((limbsToNat x : ℕ) : Ipp.Bls12377.Fq) :=
+    (ZMod.natCast_eq_natCast_iff _ _ _).2 hmod
+  rw [Nat.cast_mul] at hcast
+  have hpow : ((wordBase ^ limbCount : ℕ) : Ipp.Bls12377.Fq) =
+      (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) := by
+    rw [wordRadix_eq_baseMontgomeryRadix]
+  rw [hpow] at hcast
+  have hcancel : (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) *
+      (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹ = 1 :=
+    ZMod.coe_mul_inv_eq_one _ radix_coprime
+  have hval : (limbsToNat out : Ipp.Bls12377.Fq) = decode x := by
+    rw [decode_eq_cast_mul_inv]
+    calc (limbsToNat out : Ipp.Bls12377.Fq)
+        = (limbsToNat out : Ipp.Bls12377.Fq) *
+            ((Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) *
+              (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹) := by
+          rw [hcancel, mul_one]
+      _ = (limbsToNat out : Ipp.Bls12377.Fq) *
+            (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) *
+            (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹ := by ring
+      _ = (limbsToNat x : Ipp.Bls12377.Fq) *
+            (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹ := by rw [hcast]
+  rw [← hval, ZMod.val_natCast_of_lt hspec.1]
+
+/-- `limbsToNat` is injective on six-limb arrays (unique base-`β` digits). -/
+private theorem limbsToNat_inj {x y : LimbArray}
+    (h : limbsToNat x = limbsToNat y) : x = y := by
+  have ex := limbsToNat_six x
+  have ey := limbsToNat_six y
+  have bx0 := limb_lt_wordBase x ⟨0, by decide⟩
+  have bx1 := limb_lt_wordBase x ⟨1, by decide⟩
+  have bx2 := limb_lt_wordBase x ⟨2, by decide⟩
+  have bx3 := limb_lt_wordBase x ⟨3, by decide⟩
+  have bx4 := limb_lt_wordBase x ⟨4, by decide⟩
+  have bx5 := limb_lt_wordBase x ⟨5, by decide⟩
+  have by0 := limb_lt_wordBase y ⟨0, by decide⟩
+  have by1 := limb_lt_wordBase y ⟨1, by decide⟩
+  have by2 := limb_lt_wordBase y ⟨2, by decide⟩
+  have by3 := limb_lt_wordBase y ⟨3, by decide⟩
+  have by4 := limb_lt_wordBase y ⟨4, by decide⟩
+  have by5 := limb_lt_wordBase y ⟨5, by decide⟩
+  simp only [wordBase] at ex ey bx0 bx1 bx2 bx3 bx4 bx5 by0 by1 by2 by3 by4 by5
+  rw [ex, ey] at h
+  have e0 : limb x ⟨0, by decide⟩ = limb y ⟨0, by decide⟩ := by omega
+  have e1 : limb x ⟨1, by decide⟩ = limb y ⟨1, by decide⟩ := by omega
+  have e2 : limb x ⟨2, by decide⟩ = limb y ⟨2, by decide⟩ := by omega
+  have e3 : limb x ⟨3, by decide⟩ = limb y ⟨3, by decide⟩ := by omega
+  have e4 : limb x ⟨4, by decide⟩ = limb y ⟨4, by decide⟩ := by omega
+  have e5 : limb x ⟨5, by decide⟩ = limb y ⟨5, by decide⟩ := by omega
+  have u64ext : ∀ (p q : MacCampaign.U64), p.val = q.val → p = q := by
+    intro p q hpq
+    obtain ⟨pv, ph⟩ := p
+    obtain ⟨qv, qh⟩ := q
+    simp only at hpq
+    subst hpq
+    rfl
+  have key : ∀ (i : Fin limbCount), limbWord x i = limbWord y i := by
+    intro i
+    apply u64ext
+    fin_cases i
+    · exact e0
+    · exact e1
+    · exact e2
+    · exact e3
+    · exact e4
+    · exact e5
+  apply MacCampaign.Array.ext
+  apply List.ext_get
+  · rw [x.hlen, y.hlen]
+  · intro n h1 h2
+    have hn : n < limbCount := by rw [x.hlen] at h1; simpa [limbCount] using h1
+    exact key ⟨n, hn⟩
+
+set_option maxHeartbeats 800000 in
+/-- The executed compression comparison refines the decoder ordering
+`fq2Less` on the canonical `(c0, c1)` representatives (`c1` first, then `c0`). -/
+theorem extracted_fq2_less_spec (a b : Fq2LimbPair) (result : Bool)
+    (ha : Canonical2 a) (hb : Canonical2 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_less a b = .ok result) :
+    result = decide ((decode a.c1).val < (decode b.c1).val ∨
+      ((decode a.c1).val = (decode b.c1).val ∧
+        (decode a.c0).val < (decode b.c0).val)) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_less
+    ark_ip_proofs.s3_07_arkworks_fq_spike.into_bigint at hexec
+  obtain ⟨ac1, hac1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨bc1, hbc1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨b1, hb1, hexec⟩ := bind_eq_ok hexec
+  have hac1v := mul_oneInt_val a.c1 ac1 ha.2 hac1
+  have hbc1v := mul_oneInt_val b.c1 bc1 hb.2 hbc1
+  rw [extracted_gt_spec, hac1v.1, hbc1v.1] at hb1
+  have hb1val : b1 = decide ((decode a.c1).val < (decode b.c1).val) :=
+    (Result.ok.inj hb1).symm
+  have heqiff : (ac1.val = bc1.val) ↔
+      ((decode a.c1).val = (decode b.c1).val) := by
+    constructor
+    · intro hv
+      have : ac1 = bc1 := MacCampaign.Array.ext hv
+      rw [← hac1v.1, ← hbc1v.1, this]
+    · intro hv
+      have hln : limbsToNat ac1 = limbsToNat bc1 := by rw [hac1v.1, hbc1v.1, hv]
+      exact congrArg _ (limbsToNat_inj hln)
+  rw [hb1val] at hexec
+  split at hexec
+  · -- `p1` holds: result is `true`
+    rename_i hp1t
+    have hp1 : (decode a.c1).val < (decode b.c1).val := by simpa using hp1t
+    simp only [Result.ok.injEq] at hexec
+    rw [← hexec]
+    refine Eq.symm ?_
+    rw [decide_eq_true_eq]
+    exact Or.inl hp1
+  · -- `¬p1`: descend into the `c0` tie-break
+    rename_i hp1f
+    have hp1 : ¬((decode a.c1).val < (decode b.c1).val) := by simpa using hp1f
+    obtain ⟨b2, hb2, hexec⟩ := bind_eq_ok hexec
+    simp only [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+      Result.ok.injEq] at hb2
+    subst b2
+    split at hexec
+    · -- canonical `c1` values agree: compare `c0`
+      rename_i hb2t
+      have hp1eq : (decode a.c1).val = (decode b.c1).val :=
+        heqiff.mp (by simpa using hb2t)
+      obtain ⟨a1, ha1, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨a2, ha2, hexec⟩ := bind_eq_ok hexec
+      have ha1v := mul_oneInt_val b.c0 a1 hb.1 ha1
+      have ha2v := mul_oneInt_val a.c0 a2 ha.1 ha2
+      rw [extracted_gt_spec, ha1v.1, ha2v.1] at hexec
+      rw [← Result.ok.inj hexec]
+      apply decide_eq_decide.mpr
+      constructor
+      · intro h3; exact Or.inr ⟨hp1eq, h3⟩
+      · rintro (h | ⟨_, h3⟩)
+        · exact absurd h hp1
+        · exact h3
+    · -- canonical `c1` values differ: result is `false`
+      rename_i hb2f
+      have hp1ne : (decode a.c1).val ≠ (decode b.c1).val := by
+        intro heq
+        have hac : ac1.val = bc1.val := heqiff.mpr heq
+        rw [hac] at hb2f
+        simp at hb2f
+      simp only [Result.ok.injEq] at hexec
+      rw [← hexec]
+      refine Eq.symm ?_
+      simp only [decide_eq_false_iff_not]
+      rintro (h | ⟨heq, _⟩)
+      · exact hp1 h
+      · exact hp1ne heq
+
 end Ipp.Extracted.ArkworksFq2
 
 #print axioms Ipp.Extracted.ArkworksFq2.decode_extracted_double
@@ -1335,3 +1773,5 @@ end Ipp.Extracted.ArkworksFq2
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_inv_some_spec
 #print axioms Ipp.Extracted.ArkworksFq2.decode_fq2_frobenius
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_inv_none_iff
+#print axioms Ipp.Extracted.ArkworksFq2.decode_extracted_fq2_sqrt
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_less_spec

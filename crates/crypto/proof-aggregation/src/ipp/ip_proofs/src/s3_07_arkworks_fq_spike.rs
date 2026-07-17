@@ -678,6 +678,105 @@ pub fn fq2_inv(a: Fq2Mont) -> Option<Fq2Mont> {
     }
 }
 
+/// `(q - 1) / 2`, the base-field Legendre exponent.
+const LEGENDRE_EXP: [u64; 6] = [
+    0x4284_6000_0000_0000,
+    0x0b85_aea2_1800_0000,
+    0x8f79_b117_dd04_a400,
+    0x8d11_6cf9_807a_89c7,
+    0x631d_82e0_3650_a49d,
+    0x00d7_1d23_0be2_8875,
+];
+
+/// Base-field Legendre residue test: `a^((q-1)/2) == 1`.
+fn fq_is_qr(a: FqMont) -> bool {
+    pow(a, LEGENDRE_EXP).0 == ONE
+}
+
+/// Base-field Legendre nonresidue test: `a^((q-1)/2) == -1`.
+fn fq_is_qnr(a: FqMont) -> bool {
+    pow(a, LEGENDRE_EXP).0 == neg(FqMont(ONE)).0
+}
+
+/// Arkworks' `QuadExtField::sqrt` (complex method, eprint 2012/685 alg. 8),
+/// specialized to Fq2 with `NONRESIDUE = -5`. Every returned candidate is
+/// validated by an Fq2 square, so a `Some` result is a genuine square root.
+/// The `-5`, `-1`, and `1/2` constants are derived from the proven base ops
+/// (`mul_by_nonresidue(1)`, `neg(1)`, `inv(1+1)`) rather than re-pinned.
+pub fn fq2_sqrt(a: Fq2Mont) -> Option<Fq2Mont> {
+    if a.c1.0 == [0; 6] {
+        if fq_is_qr(a.c0) {
+            match sqrt(a.c0) {
+                None => None,
+                Some(root) => Some(Fq2Mont { c0: root, c1: FqMont([0; 6]) }),
+            }
+        } else {
+            let nr = mul_by_nonresidue(FqMont(ONE));
+            match inv(nr) {
+                None => None,
+                Some(nr_inv) => match sqrt(mul(a.c0, nr_inv)) {
+                    None => None,
+                    Some(res) => Some(Fq2Mont { c0: FqMont([0; 6]), c1: res }),
+                },
+            }
+        }
+    } else {
+        let alpha = sub_and_mul_by_nonresidue(square(a.c1), square(a.c0));
+        let two = add(FqMont(ONE), FqMont(ONE));
+        match inv(two) {
+            None => None,
+            Some(two_inv) => match sqrt(alpha) {
+                None => None,
+                Some(alpha_root) => {
+                    let first = mul(add(alpha_root, a.c0), two_inv);
+                    let delta = if fq_is_qnr(first) {
+                        sub(first, alpha_root)
+                    } else {
+                        first
+                    };
+                    match sqrt(delta) {
+                        None => None,
+                        Some(c0_new) => match inv(c0_new) {
+                            None => None,
+                            Some(c0_inv) => {
+                                let c1_new = mul(mul(a.c1, two_inv), c0_inv);
+                                let cand = Fq2Mont { c0: c0_new, c1: c1_new };
+                                let sq = fq2_square(cand);
+                                if sq.c0.0 == a.c0.0 && sq.c1.0 == a.c1.0 {
+                                    Some(cand)
+                                } else {
+                                    None
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+        }
+    }
+}
+
+/// `into_bigint`: leave Montgomery form, yielding the canonical integer limbs
+/// (`mul` by the integer `1` runs one Montgomery reduction).
+fn into_bigint(x: FqMont) -> [u64; 6] {
+    mul(x, FqMont([1, 0, 0, 0, 0, 0])).0
+}
+
+/// Arkworks Fq2 compression ordering: compare canonical `c1` first, then `c0`
+/// (`a < b` iff `a.c1 < b.c1`, or `a.c1 == b.c1` and `a.c0 < b.c0`), on the
+/// canonical integer representatives.
+pub fn fq2_less(a: Fq2Mont, b: Fq2Mont) -> bool {
+    let ac1 = into_bigint(a.c1);
+    let bc1 = into_bigint(b.c1);
+    if gt(bc1, ac1) {
+        true
+    } else if ac1 == bc1 {
+        gt(into_bigint(b.c0), into_bigint(a.c0))
+    } else {
+        false
+    }
+}
+
 /// Pinned `Fq2Config` Frobenius (`FROBENIUS_COEFF_FP2_C1 = [1, -1]`): the
 /// degree-2 Frobenius map raises to the `q`-th power, i.e. conjugation
 /// `c0 + c1*u -> c0 - c1*u`. `frobenius_map(power)` multiplies `c1` by
@@ -687,10 +786,11 @@ pub fn fq2_frobenius(a: Fq2Mont) -> Fq2Mont {
     Fq2Mont { c0: a.c0, c1: neg(a.c1) }
 }
 
-/// Extraction root whose closure contains the S3-17 Fq2 Frobenius operation.
+/// Extraction root whose closure contains the S3-17 Fq2 Frobenius, square
+/// root, and compression-ordering operations.
 #[doc(hidden)]
-pub fn extract_s3_17(a: Fq2Mont) -> Fq2Mont {
-    fq2_frobenius(a)
+pub fn extract_s3_17(a: Fq2Mont, b: Fq2Mont) -> (Fq2Mont, Option<Fq2Mont>, bool) {
+    (fq2_frobenius(a), fq2_sqrt(a), fq2_less(a, b))
 }
 
 /// Extraction root whose closure contains every S3-16 Fq2 operation.

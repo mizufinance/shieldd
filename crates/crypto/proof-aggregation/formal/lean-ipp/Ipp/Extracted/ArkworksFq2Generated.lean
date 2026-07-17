@@ -263,6 +263,133 @@ def s3_07_arkworks_fq_spike.fq2_inv
       let fm3 ← s3_07_arkworks_fq_spike.neg fm2
       ok (some { c0 := fm1, c1 := fm3 })
 
+/-- [ark_ip_proofs::s3_07_arkworks_fq_spike::LEGENDRE_EXP] -/
+@[irreducible]
+def s3_07_arkworks_fq_spike.LEGENDRE_EXP : LimbArray :=
+  MacCampaign.Array.make 6#usize [
+    MacCampaign.U64.ofNat 4793061456545316864,
+    MacCampaign.U64.ofNat 830261717530312704,
+    MacCampaign.U64.ofNat 10338489135656117248,
+    MacCampaign.U64.ofNat 10165025652810090951,
+    MacCampaign.U64.ofNat 7142008483575014557,
+    MacCampaign.U64.ofNat 60549156353247349
+  ]
+
+/-- [ark_ip_proofs::s3_07_arkworks_fq_spike::fq_is_qr] -/
+def s3_07_arkworks_fq_spike.fq_is_qr
+  (a : s3_07_arkworks_fq_spike.FqMont) : Result Bool := do
+  let fm ← s3_07_arkworks_fq_spike.pow a s3_07_arkworks_fq_spike.LEGENDRE_EXP
+  core.array.equality.PartialEqArray.eq core.cmp.PartialEqU64 fm
+    s3_07_arkworks_fq_spike.ONE
+
+/-- [ark_ip_proofs::s3_07_arkworks_fq_spike::fq_is_qnr] -/
+def s3_07_arkworks_fq_spike.fq_is_qnr
+  (a : s3_07_arkworks_fq_spike.FqMont) : Result Bool := do
+  let fm ← s3_07_arkworks_fq_spike.pow a s3_07_arkworks_fq_spike.LEGENDRE_EXP
+  let fm1 ← s3_07_arkworks_fq_spike.neg s3_07_arkworks_fq_spike.ONE
+  core.array.equality.PartialEqArray.eq core.cmp.PartialEqU64 fm fm1
+
+/-- [ark_ip_proofs::s3_07_arkworks_fq_spike::fq2_sqrt] -/
+def s3_07_arkworks_fq_spike.fq2_sqrt
+  (a : s3_07_arkworks_fq_spike.Fq2Mont) :
+  Result (Option s3_07_arkworks_fq_spike.Fq2Mont) := do
+  let a1 := MacCampaign.Array.replicate 6#usize (MacCampaign.U64.ofNat 0)
+  let a2 := a.c1
+  let b ← core.array.equality.PartialEqArray.eq core.cmp.PartialEqU64 a2 a1
+  if b then
+    let b1 ← s3_07_arkworks_fq_spike.fq_is_qr a.c0
+    if b1 then
+      let o ← s3_07_arkworks_fq_spike.sqrt a.c0
+      match o with
+      | none => ok none
+      | some root =>
+        let a3 := MacCampaign.Array.replicate 6#usize (MacCampaign.U64.ofNat 0)
+        ok (some { c0 := root, c1 := a3 })
+    else
+      let nr ←
+        s3_07_arkworks_fq_spike.mul_by_nonresidue s3_07_arkworks_fq_spike.ONE
+      let o ← s3_07_arkworks_fq_spike.inv nr
+      match o with
+      | none => ok none
+      | some nr_inv =>
+        let fm ← s3_07_arkworks_fq_spike.mul a.c0 nr_inv
+        let o1 ← s3_07_arkworks_fq_spike.sqrt fm
+        match o1 with
+        | none => ok none
+        | some res =>
+          let a3 :=
+            MacCampaign.Array.replicate 6#usize (MacCampaign.U64.ofNat 0)
+          ok (some { c0 := a3, c1 := res })
+  else
+    let fm ← s3_07_arkworks_fq_spike.square a.c1
+    let fm1 ← s3_07_arkworks_fq_spike.square a.c0
+    let alpha ← s3_07_arkworks_fq_spike.sub_and_mul_by_nonresidue fm fm1
+    let two ←
+      s3_07_arkworks_fq_spike.add s3_07_arkworks_fq_spike.ONE
+        s3_07_arkworks_fq_spike.ONE
+    let o ← s3_07_arkworks_fq_spike.inv two
+    match o with
+    | none => ok none
+    | some two_inv =>
+      let o1 ← s3_07_arkworks_fq_spike.sqrt alpha
+      match o1 with
+      | none => ok none
+      | some alpha_root =>
+        let fm2 ← s3_07_arkworks_fq_spike.add alpha_root a.c0
+        let first ← s3_07_arkworks_fq_spike.mul fm2 two_inv
+        let b1 ← s3_07_arkworks_fq_spike.fq_is_qnr first
+        let delta ←
+          if b1 then s3_07_arkworks_fq_spike.sub first alpha_root else ok first
+        let o2 ← s3_07_arkworks_fq_spike.sqrt delta
+        match o2 with
+        | none => ok none
+        | some c0_new =>
+          let o3 ← s3_07_arkworks_fq_spike.inv c0_new
+          match o3 with
+          | none => ok none
+          | some c0_inv =>
+            let fm3 ← s3_07_arkworks_fq_spike.mul a.c1 two_inv
+            let c1_new ← s3_07_arkworks_fq_spike.mul fm3 c0_inv
+            let sq ←
+              s3_07_arkworks_fq_spike.fq2_square { c0 := c0_new, c1 := c1_new }
+            let a3 := sq.c0
+            let a4 := a.c0
+            let b2 ←
+              core.array.equality.PartialEqArray.eq core.cmp.PartialEqU64 a3 a4
+            if b2 then
+              let a5 := sq.c1
+              let b3 ←
+                core.array.equality.PartialEqArray.eq core.cmp.PartialEqU64 a5 a2
+              if b3 then ok (some { c0 := c0_new, c1 := c1_new })
+              else ok none
+            else ok none
+
+/-- [ark_ip_proofs::s3_07_arkworks_fq_spike::into_bigint] -/
+def s3_07_arkworks_fq_spike.into_bigint
+  (x : s3_07_arkworks_fq_spike.FqMont) : Result LimbArray :=
+  s3_07_arkworks_fq_spike.mul x
+    (MacCampaign.Array.make 6#usize [
+      MacCampaign.U64.ofNat 1, MacCampaign.U64.ofNat 0,
+      MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0,
+      MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0])
+
+/-- [ark_ip_proofs::s3_07_arkworks_fq_spike::fq2_less] -/
+def s3_07_arkworks_fq_spike.fq2_less
+  (a : s3_07_arkworks_fq_spike.Fq2Mont) (b : s3_07_arkworks_fq_spike.Fq2Mont) :
+  Result Bool := do
+  let ac1 ← s3_07_arkworks_fq_spike.into_bigint a.c1
+  let bc1 ← s3_07_arkworks_fq_spike.into_bigint b.c1
+  let b1 ← s3_07_arkworks_fq_spike.gt bc1 ac1
+  if b1 then ok true
+  else
+    let b2 ←
+      core.array.equality.PartialEqArray.eq core.cmp.PartialEqU64 ac1 bc1
+    if b2 then
+      let a1 ← s3_07_arkworks_fq_spike.into_bigint b.c0
+      let a2 ← s3_07_arkworks_fq_spike.into_bigint a.c0
+      s3_07_arkworks_fq_spike.gt a1 a2
+    else ok false
+
 /-- [ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_16] -/
 def s3_07_arkworks_fq_spike.extract_s3_16
   (a : s3_07_arkworks_fq_spike.Fq2Mont) (b : s3_07_arkworks_fq_spike.Fq2Mont) :

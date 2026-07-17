@@ -412,6 +412,48 @@ theorem decode_extracted_sqrt (a output : LimbArray)
               rw [hcandidate] at hdecode
               exact hdecode.symm
 
+/-- The executed square root returns a canonical representative. -/
+theorem extracted_sqrt_canonical (a output : LimbArray)
+    (ha : Canonical a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.sqrt a = .ok (some output)) :
+    Canonical output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.sqrt at hexec
+  obtain ⟨isZero, hzero, hrest⟩ := bind_eq_ok hexec
+  cases isZero with
+  | true =>
+      rw [if_pos rfl] at hrest
+      simp only [Result.ok.injEq, Option.some.injEq] at hrest
+      subst output
+      exact ha
+  | false =>
+      rw [if_neg (by decide)] at hrest
+      obtain ⟨w, hw, hrest⟩ := bind_eq_ok hrest
+      have hwc := pow_spec a
+        ark_ip_proofs.s3_07_arkworks_fq_spike.TRACE_MINUS_ONE_DIV_TWO w ha hw
+      obtain ⟨x, hx, hrest⟩ := bind_eq_ok hrest
+      have hxc := mul_canonical w a x hwc ha hx
+      obtain ⟨b, hb, hrest⟩ := bind_eq_ok hrest
+      have hbc := mul_canonical x w b hxc hwc hb
+      obtain ⟨pair, hloop, hrest⟩ := bind_eq_ok hrest
+      rcases pair with ⟨state, failed⟩
+      have hstate := sqrt_loop_spec
+        { z := ark_ip_proofs.s3_07_arkworks_fq_spike.TWO_ADIC_ROOT_OF_UNITY,
+          x, b, v := ark_ip_proofs.s3_07_arkworks_fq_spike.TWO_ADICITY }
+        state false failed ⟨canonical_root_of_unity, hxc, hbc⟩ hloop
+      cases failed with
+      | true => simp only [if_true] at hrest; cases hrest
+      | false =>
+          simp only [Bool.false_eq, if_false] at hrest
+          obtain ⟨candidate, hsquare, hrest⟩ := bind_eq_ok hrest
+          obtain ⟨equal, hequal, hreturn⟩ := bind_eq_ok hrest
+          cases equal with
+          | false => rw [if_neg (by decide)] at hreturn; cases hreturn
+          | true =>
+              rw [if_pos rfl] at hreturn
+              simp only [Result.ok.injEq, Option.some.injEq] at hreturn
+              subst output
+              exact hstate.x
+
 theorem extracted_sqrt_zero :
     ark_ip_proofs.s3_07_arkworks_fq_spike.sqrt zeroArray =
       .ok (some zeroArray) := by

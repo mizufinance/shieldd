@@ -1,7 +1,7 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
 use ark_bls12_377::{Fq, Fq2};
-use ark_ff::{AdditiveGroup, BigInt, FftField, Field};
+use ark_ff::{AdditiveGroup, BigInt, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand};
 use std::convert::TryInto;
@@ -39,6 +39,15 @@ fn check_fq2(a: Fq2, b: Fq2) {
     let mut a_frob = a;
     a_frob.frobenius_map_in_place(1);
     assert_eq!(ark2(spike::fq2_frobenius(mont2(a))), a_frob);
+    assert_eq!(spike::fq2_sqrt(mont2(a)).map(ark2), a.sqrt());
+    let ac1 = a.c1.into_bigint();
+    let bc1 = b.c1.into_bigint();
+    let ac0 = a.c0.into_bigint();
+    let bc0 = b.c0.into_bigint();
+    let less_ref = ac1 < bc1 || (ac1 == bc1 && ac0 < bc0);
+    assert_eq!(spike::fq2_less(mont2(a), mont2(b)), less_ref);
+    // reflexive and antisymmetric spot checks
+    assert!(!spike::fq2_less(mont2(a), mont2(a)));
     assert_eq!(
         ark(spike::double(mont(a.c0))),
         a.c0.double()
