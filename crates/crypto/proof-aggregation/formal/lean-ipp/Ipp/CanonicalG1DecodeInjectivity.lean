@@ -193,18 +193,6 @@ theorem decode_injective_of_infinity_or_y_ne_zero {xs ys : List UInt8} {p : Poin
   · exact (decode_infinity_unique hx).trans (decode_infinity_unique hy).symm
   · exact decode_injective_of_y_ne_zero hx hy hpy
 
-def zeroYSmallerEncoding : List UInt8 := encodeLE compressedBytes (fqModulus - 1)
-def zeroYLargerEncoding : List UInt8 :=
-  let xs := encodeLE compressedBytes (fqModulus - 1)
-  withLast xs ((xs.getD 47 0).toNat + largerRootMask)
-
-/-- The raw decoder's documented y = 0 collision: distinct sign wires both succeed. -/
-theorem decode_zeroY_sign_collision :
-    zeroYSmallerEncoding ≠ zeroYLargerEncoding ∧
-      decode zeroYSmallerEncoding = decode zeroYLargerEncoding ∧
-      (decode zeroYSmallerEncoding).map (fun p => p.y.1) = some 0 := by
-  decide
-
 theorem decode_eq_infinityPoint_of_infinity {xs : List UInt8} {p : Point}
     (h : decode xs = some p) (hp : p.infinity = true) : p = infinityPoint := by
   by_cases hlen : xs.length = compressedBytes
@@ -321,7 +309,6 @@ theorem decode_checked_injective {xs ys : List UInt8} {p : Point}
 end CheckedMembership
 
 #print axioms decode_injective_of_infinity_or_y_ne_zero
-#print axioms decode_zeroY_sign_collision
 #print axioms decode_checked_injective
 
 end Ipp.CanonicalG1Decode

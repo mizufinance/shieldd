@@ -484,6 +484,106 @@ theorem bytes_to_word_spec
     omega)]
   ring
 
+private def byteChunkList (bytes : ByteArray) (offset : Fin 41) : List UInt8 :=
+  List.ofFn fun i : Fin 8 =>
+    byteFn bytes ⟨offset.val + i.val, by
+      have ho := offset.isLt
+      have hi := i.isLt
+      omega⟩
+
+private def byteChunk (bytes : ByteArray) (offset : Fin 41) :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 8 :=
+  ⟨byteChunkList bytes offset, by simp [byteChunkList]⟩
+
+private theorem bytes_to_limbs_eq (bytes : ByteArray) :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_limbs bytes = (do
+      let w0 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 0)
+      let w1 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 8)
+      let w2 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 16)
+      let w3 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 24)
+      let w4 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 32)
+      let w5 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 40)
+      ok (MacCampaign.Array.make 6#usize [w0, w1, w2, w3, w4, w5])) := by
+  rw [byteArray_eq_ofFn bytes]
+  rfl
+
+private theorem decodeLE_append (xs ys : List UInt8) :
+    Ipp.CanonicalWire.decodeLE (xs ++ ys) =
+      Ipp.CanonicalWire.decodeLE xs +
+        256 ^ xs.length * Ipp.CanonicalWire.decodeLE ys := by
+  induction xs with
+  | nil => simp [Ipp.CanonicalWire.decodeLE]
+  | cons x xs ih =>
+      simp only [List.cons_append, Ipp.CanonicalWire.decodeLE, List.length_cons,
+        Nat.pow_succ, ih]
+      ring
+
+private theorem byteChunks_eq (bytes : ByteArray) :
+    List.ofFn (byteFn bytes) =
+      (byteChunk bytes 0).val ++ (byteChunk bytes 8).val ++
+      (byteChunk bytes 16).val ++ (byteChunk bytes 24).val ++
+      (byteChunk bytes 32).val ++ (byteChunk bytes 40).val := by
+  apply List.ext_get
+  · simp [byteChunk, byteChunkList]
+  · intro n hnLeft hnRight
+    have hn : n < 48 := by simpa using hnLeft
+    interval_cases n <;> rfl
+
+private theorem six_word_values_spec (bytes : ByteArray)
+    (w0 w1 w2 w3 w4 w5 : MacCampaign.U64)
+    (h0 : w0.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 0).val)
+    (h1 : w1.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 8).val)
+    (h2 : w2.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 16).val)
+    (h3 : w3.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 24).val)
+    (h4 : w4.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 32).val)
+    (h5 : w5.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 40).val) :
+    limbsToNat (MacCampaign.Array.make 6#usize [w0, w1, w2, w3, w4, w5]) =
+      Ipp.CanonicalWire.decodeLE (List.ofFn (byteFn bytes)) := by
+  rw [byteChunks_eq, decodeLE_append, decodeLE_append, decodeLE_append,
+    decodeLE_append, decodeLE_append]
+  rw [limbsToNat_six]
+  simp only [limb, limbWord, limbCount, MacCampaign.Array.make,
+    List.get_eq_getElem, List.getElem_cons_zero, List.getElem_cons_succ]
+  rw [h0, h1, h2, h3, h4, h5]
+  simp [byteChunk, byteChunkList, wordBase]
+  ring
+
+/-- Reconstructing six little-endian words preserves the 48-byte value. -/
+theorem bytes_to_limbs_value_spec
+    (bytes : ByteArray) (value : LimbArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_limbs bytes =
+      .ok value) :
+    limbsToNat value = Ipp.CanonicalWire.decodeLE bytes.val := by
+  rw [bytes_to_limbs_eq] at hexec
+  obtain ⟨w0, hw0, hrest⟩ := bind_eq_ok hexec
+  obtain ⟨w1, hw1, hrest⟩ := bind_eq_ok hrest
+  obtain ⟨w2, hw2, hrest⟩ := bind_eq_ok hrest
+  obtain ⟨w3, hw3, hrest⟩ := bind_eq_ok hrest
+  obtain ⟨w4, hw4, hrest⟩ := bind_eq_ok hrest
+  obtain ⟨w5, hw5, hreturn⟩ := bind_eq_ok hrest
+  simp only [Result.ok.injEq] at hreturn
+  subst value
+  rw [byteArray_eq_ofFn bytes]
+  apply six_word_values_spec bytes w0 w1 w2 w3 w4 w5
+  · apply bytes_to_word_spec
+    exact hw0
+  · apply bytes_to_word_spec
+    exact hw1
+  · apply bytes_to_word_spec
+    exact hw2
+  · apply bytes_to_word_spec
+    exact hw3
+  · apply bytes_to_word_spec
+    exact hw4
+  · apply bytes_to_word_spec
+    exact hw5
+
 /-- The extracted reader rejects whenever its reconstructed integer is not below `q`. -/
 theorem extracted_from_bytes_rejects_noncanonical
     (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 48)
@@ -539,6 +639,148 @@ private theorem baseMontgomeryRadix_coprime :
   rw [Ipp.Bls12377.baseMontgomeryRadix,
     Nat.coprime_pow_left_iff (by decide : 0 < 384)]
   norm_num [Ipp.Bls12377.baseModulus]
+
+private theorem u64_ext {left right : MacCampaign.U64}
+    (h : left.val = right.val) : left = right := by
+  cases left
+  cases right
+  simp_all
+
+private theorem limbsToNat_injective {left right : LimbArray}
+    (h : limbsToNat left = limbsToNat right) : left = right := by
+  rw [limbsToNat_six, limbsToNat_six] at h
+  have hl0 := (limbWord left ⟨0, by simp [limbCount]⟩).isLt
+  have hl1 := (limbWord left ⟨1, by simp [limbCount]⟩).isLt
+  have hl2 := (limbWord left ⟨2, by simp [limbCount]⟩).isLt
+  have hl3 := (limbWord left ⟨3, by simp [limbCount]⟩).isLt
+  have hl4 := (limbWord left ⟨4, by simp [limbCount]⟩).isLt
+  have hl5 := (limbWord left ⟨5, by simp [limbCount]⟩).isLt
+  have hr0 := (limbWord right ⟨0, by simp [limbCount]⟩).isLt
+  have hr1 := (limbWord right ⟨1, by simp [limbCount]⟩).isLt
+  have hr2 := (limbWord right ⟨2, by simp [limbCount]⟩).isLt
+  have hr3 := (limbWord right ⟨3, by simp [limbCount]⟩).isLt
+  have hr4 := (limbWord right ⟨4, by simp [limbCount]⟩).isLt
+  have hr5 := (limbWord right ⟨5, by simp [limbCount]⟩).isLt
+  change limb left ⟨0, by simp [limbCount]⟩ < wordBase at hl0
+  change limb left ⟨1, by simp [limbCount]⟩ < wordBase at hl1
+  change limb left ⟨2, by simp [limbCount]⟩ < wordBase at hl2
+  change limb left ⟨3, by simp [limbCount]⟩ < wordBase at hl3
+  change limb left ⟨4, by simp [limbCount]⟩ < wordBase at hl4
+  change limb left ⟨5, by simp [limbCount]⟩ < wordBase at hl5
+  change limb right ⟨0, by simp [limbCount]⟩ < wordBase at hr0
+  change limb right ⟨1, by simp [limbCount]⟩ < wordBase at hr1
+  change limb right ⟨2, by simp [limbCount]⟩ < wordBase at hr2
+  change limb right ⟨3, by simp [limbCount]⟩ < wordBase at hr3
+  change limb right ⟨4, by simp [limbCount]⟩ < wordBase at hr4
+  change limb right ⟨5, by simp [limbCount]⟩ < wordBase at hr5
+  norm_num [wordBase] at h hl0 hl1 hl2 hl3 hl4 hl5 hr0 hr1 hr2 hr3 hr4 hr5
+  have h0 : limb left ⟨0, by simp [limbCount]⟩ =
+      limb right ⟨0, by simp [limbCount]⟩ := by omega
+  have h1 : limb left ⟨1, by simp [limbCount]⟩ =
+      limb right ⟨1, by simp [limbCount]⟩ := by omega
+  have h2 : limb left ⟨2, by simp [limbCount]⟩ =
+      limb right ⟨2, by simp [limbCount]⟩ := by omega
+  have h3 : limb left ⟨3, by simp [limbCount]⟩ =
+      limb right ⟨3, by simp [limbCount]⟩ := by omega
+  have h4 : limb left ⟨4, by simp [limbCount]⟩ =
+      limb right ⟨4, by simp [limbCount]⟩ := by omega
+  have h5 : limb left ⟨5, by simp [limbCount]⟩ =
+      limb right ⟨5, by simp [limbCount]⟩ := by omega
+  apply MacCampaign.Array.ext
+  apply List.ext_get
+  · simp [left.hlen, right.hlen]
+  · intro n hnLeft hnRight
+    have hn : n < 6 := by simpa [left.hlen] using hnLeft
+    interval_cases n
+    · apply u64_ext; simpa [limb, limbWord] using h0
+    · apply u64_ext; simpa [limb, limbWord] using h1
+    · apply u64_ext; simpa [limb, limbWord] using h2
+    · apply u64_ext; simpa [limb, limbWord] using h3
+    · apply u64_ext; simpa [limb, limbWord] using h4
+    · apply u64_ext; simpa [limb, limbWord] using h5
+
+private theorem decode_injective_of_canonical {left right : LimbArray}
+    (hl : Canonical left) (hr : Canonical right)
+    (hdecode : decode left = decode right) : left = right := by
+  rw [decode_eq_cast_mul_inv, decode_eq_cast_mul_inv] at hdecode
+  have hcancel :
+      (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) *
+        (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹ = 1 :=
+    ZMod.coe_mul_inv_eq_one Ipp.Bls12377.baseMontgomeryRadix
+      baseMontgomeryRadix_coprime
+  have hcast : (limbsToNat left : Ipp.Bls12377.Fq) =
+      (limbsToNat right : Ipp.Bls12377.Fq) := by
+    calc
+      (limbsToNat left : Ipp.Bls12377.Fq) =
+          (limbsToNat left : Ipp.Bls12377.Fq) *
+            ((Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) *
+              (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹) := by
+                rw [hcancel, mul_one]
+      _ = ((limbsToNat left : Ipp.Bls12377.Fq) *
+            (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹) *
+          (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) := by ring
+      _ = ((limbsToNat right : Ipp.Bls12377.Fq) *
+            (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹) *
+          (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) := by rw [hdecode]
+      _ = (limbsToNat right : Ipp.Bls12377.Fq) *
+          ((Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) *
+            (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹) := by ring
+      _ = (limbsToNat right : Ipp.Bls12377.Fq) := by rw [hcancel, mul_one]
+  have hmod : Nat.ModEq Ipp.Bls12377.baseModulus
+      (limbsToNat left) (limbsToNat right) :=
+    (ZMod.natCast_eq_natCast_iff _ _ _).mp hcast
+  change limbsToNat left % Ipp.Bls12377.baseModulus =
+    limbsToNat right % Ipp.Bls12377.baseModulus at hmod
+  rw [Nat.mod_eq_of_lt hl, Nat.mod_eq_of_lt hr] at hmod
+  exact limbsToNat_injective hmod
+
+private def defaultLimbArray : LimbArray :=
+  MacCampaign.Array.make 6#usize [MacCampaign.U64.ofNat 0,
+    MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0,
+    MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0,
+    MacCampaign.U64.ofNat 0]
+
+private def RepresentsDecoded (n : Nat) (value : LimbArray) : Prop :=
+  Canonical value ∧ (decode value).val = n
+
+noncomputable def sqrtRepresentative (n : Nat) : LimbArray := by
+  classical
+  exact if h : ∃ value, RepresentsDecoded n value then Classical.choose h
+    else defaultLimbArray
+
+private theorem sqrtRepresentative_decode (a : LimbArray) (ha : Canonical a) :
+    sqrtRepresentative (decode a).val = a := by
+  classical
+  letI : NeZero Ipp.Bls12377.baseModulus := ⟨by
+    norm_num [Ipp.Bls12377.baseModulus]⟩
+  have hexists : ∃ value, RepresentsDecoded (decode a).val value :=
+    ⟨a, ha, rfl⟩
+  rw [sqrtRepresentative, dif_pos hexists]
+  have hspec := Classical.choose_spec hexists
+  apply decode_injective_of_canonical hspec.1 ha
+  apply ZMod.val_injective
+  exact hspec.2
+
+/-- GAP-02A's square-root spec, definitionally backed by the extracted schedule. -/
+noncomputable def executedSqrtFq (a : Nat) : Option Nat :=
+  match ark_ip_proofs.s3_07_arkworks_fq_spike.sqrt (sqrtRepresentative a) with
+  | .ok result => result.map fun output => (decode output).val
+  | .fail _ | .div => none
+
+/-- Extracted `some` and `none` results agree exactly with the GAP-02A spec. -/
+theorem extracted_sqrt_sqrtFq (a : LimbArray) (result : Option LimbArray)
+    (ha : Canonical a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.sqrt a = .ok result) :
+    executedSqrtFq (decode a).val =
+      result.map fun output => (decode output).val := by
+  rw [executedSqrtFq, sqrtRepresentative_decode a ha, hexec]
+
+theorem executedSqrtFq_zero : executedSqrtFq 0 = some 0 := by
+  have hcanonical : Canonical zeroArray := by
+    simp [Canonical, limbsToNat_zeroArray, Ipp.Bls12377.baseModulus]
+  have hagree := extracted_sqrt_sqrtFq zeroArray (some zeroArray) hcanonical
+    extracted_sqrt_zero
+  simpa [decode_eq_cast_mul_inv, limbsToNat_zeroArray] using hagree
 
 /-- The conversion branch returns the ordinary field value of the input integer. -/
 theorem decode_from_bytes_conversion
@@ -628,9 +870,27 @@ theorem from_bytes_decodeFqCanonical_bridge_of_value
   rw [← hbytes]
   exact decode_from_bytes_conversion value output hvalue hmul
 
+/-- Successful extracted decoding agrees with GAP-01 canonical Fq decoding. -/
+theorem from_bytes_decodeFqCanonical_bridge
+    (bytes : ByteArray) (output : LimbArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.from_bytes bytes =
+      .ok (some output)) :
+    ∃ canonicalValue : Ipp.CanonicalWire.FqValue,
+      Ipp.CanonicalWire.decodeFqCanonical (asFqWire bytes) =
+        some canonicalValue ∧
+      decode output = (canonicalValue.1 : Ipp.Bls12377.Fq) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.from_bytes at hexec
+  obtain ⟨value, hparse, _⟩ := bind_eq_ok hexec
+  exact from_bytes_decodeFqCanonical_bridge_of_value bytes value output hparse
+    (bytes_to_limbs_value_spec bytes value hparse) hexec
+
 end Ipp.Extracted.ArkworksFqSqrtBytes
 
 #print axioms Ipp.Extracted.ArkworksFqSqrtBytes.decode_extracted_sqrt
 #print axioms Ipp.Extracted.ArkworksFqSqrtBytes.extracted_from_bytes_rejects_noncanonical
 #print axioms Ipp.Extracted.ArkworksFqSqrtBytes.decode_from_bytes_conversion
 #print axioms Ipp.Extracted.ArkworksFqSqrtBytes.from_bytes_decodeFqCanonical_bridge_of_value
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_limbs_value_spec
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.from_bytes_decodeFqCanonical_bridge
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.extracted_sqrt_sqrtFq
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.executedSqrtFq_zero

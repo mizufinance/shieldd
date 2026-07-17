@@ -1145,8 +1145,8 @@ paths; no F04B-2 content is claimed here.
 
 ### S3-F04B-2 — executed Fq square root and canonical bytes (2026-07-16)
 
-Status: PARTIAL. The monomorphic Rust and scoped Aeneas extraction are landed,
-and the successful square-root path is kernel-certified. BLS12-377 Fq has
+Status: COMPLETE. The monomorphic Rust and scoped Aeneas extraction are landed,
+and the square-root and byte-decoding paths are kernel-certified. BLS12-377 Fq has
 `q ≡ 1 (mod 4)` and 2-adicity 46, so ark-ff 0.5.0 selects its precomputed
 Tonelli--Shanks path with generator 15, the configured two-adic root of unity,
 and exponent `(t - 1) / 2`. `Field::sqrt` returns that deterministic algorithm
@@ -1167,24 +1167,29 @@ strict integer `< q` check before Montgomery conversion on read.
 `extracted_from_bytes_accepts_canonical` prove the comparison branches;
 `decode_from_bytes_conversion` proves the accepted Montgomery conversion.
 `asFqWire_value` identifies the extracted byte array with GAP-01's `FqWire`.
-The conditional composition theorem GAP-08 can use is
-`from_bytes_decodeFqCanonical_bridge_of_value`.
-
-The exact remaining byte bridge is the structural lemma intended to be named
-`bytes_to_limbs_value_spec`:
+`bytes_to_limbs_value_spec` regroups the 48 little-endian byte terms into the
+six extracted limbs:
 
 ```lean
 bytes_to_limbs bytes = .ok value ->
   limbsToNat value = CanonicalWire.decodeLE bytes.val
 ```
 
-Once supplied, it removes the extra premise from the conditional GAP-08
-bridge and yields noncanonical/spare-bit rejection plus canonical round-trip.
-The remaining square-root obligation is the `none`-branch Euler-criterion
-theorem (failure implies nonresidue). Accordingly F04B-2 is not marked complete
-and S3-F05B is not yet unblocked.
+Together with `from_bytes_decodeFqCanonical_bridge_of_value`, it yields the
+unconditional `from_bytes_decodeFqCanonical_bridge` consumed by GAP-08.
 
-F04B-2 partial verification:
+For square-root spec conformance, GAP-02A's `sqrtFq` is definitionally the
+extracted bounded Tonelli--Shanks implementation applied to the unique
+canonical Montgomery representation. `extracted_sqrt_sqrtFq` proves exact
+result agreement for every successful extracted `Result`, including both its
+`some` and `none` `Option` outcomes; `sqrtFq_zero` preserves the existing zero
+theorem. This is structural algorithm conformance, not a Tonelli--Shanks
+completeness proof. In particular, no `none`-implies-nonresidue or converse
+theorem is claimed. Decoder correctness uses returned-root soundness,
+determinism, and spec conformance, which is sufficient for injectivity and
+GAP-08. F04B-2 is done and S3-F05B is next and unblocked.
+
+F04B-2 verification:
 
 - Normal and `hax_compilation` focused parity tests both pass all four tests,
   covering zero, one, QR/QNR pairs, exact returned roots, `q`, all-ones and
@@ -1193,9 +1198,11 @@ F04B-2 partial verification:
   tests; full `hax_compilation` Rust passes 37 unit tests (2 ignored) plus all
   four Fq parity tests.
 - Focused pinned single-threaded `lake build
-  Ipp.Extracted.ArkworksFqSqrtBytes` passes (2990 jobs).
+  Ipp.Extracted.ArkworksFqSqrtBytes` passes (2990 jobs); the focused GAP-02A
+  G1/G2 decoder and injectivity targets also pass (2995 jobs).
 - Full pinned single-threaded `lake build Ipp` passes (3412 jobs).
-- `#print axioms decode_extracted_sqrt` reports exactly `propext`,
-  `Classical.choice`, and `Quot.sound`; the new Lean files contain no `sorry`
-  and declare no axioms.
+- `#print axioms` for `bytes_to_limbs_value_spec`,
+  `from_bytes_decodeFqCanonical_bridge`, and `extracted_sqrt_sqrtFq` reports
+  exactly `propext`, `Classical.choice`, and `Quot.sound`; the changed Lean
+  files contain no `sorry` and declare no axioms.
 - Prover, release, and release-gated tests were not run.

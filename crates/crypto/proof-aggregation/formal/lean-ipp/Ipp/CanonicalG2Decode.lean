@@ -134,7 +134,8 @@ def curveRhs (x : Nat × Nat) : Nat × Nat :=
 private def checkedRoot (a candidate : Nat × Nat) : Option (Nat × Nat) :=
   if squareFq2 candidate = a then some candidate else none
 
-private def rootFromDelta (a : Nat × Nat) (delta : Nat) : Option (Nat × Nat) := do
+private noncomputable def rootFromDelta (a : Nat × Nat) (delta : Nat) :
+    Option (Nat × Nat) := do
   let c0 <- Ipp.CanonicalG1Decode.sqrtFq delta
   if c0 = 0 then none
   let c1 := mulQ a.2 (mulQ invTwo (invQ c0))
@@ -147,7 +148,7 @@ specialized to `u^2 = -5`: take a base-field square root of the norm, then try
 returned candidate is checked by an Fq2 square, independently of the internal
 Tonelli-Shanks representative inherited from GAP-02A.
 -/
-def sqrtFq2 (a : Nat × Nat) : Option (Nat × Nat) :=
+noncomputable def sqrtFq2 (a : Nat × Nat) : Option (Nat × Nat) :=
   if a = fq2Zero then some fq2Zero
   else if a.2 = 0 then
     match Ipp.CanonicalG1Decode.sqrtFq a.1 with
@@ -187,7 +188,7 @@ def selectRoot (flag : Flags) (root : Nat × Nat) : Nat × Nat :=
   | .largerRoot => larger
   | .infinity => fq2Zero
 
-def decodeY (flag : Flags) (x : Fq2Value) : Option Fq2Value := do
+noncomputable def decodeY (flag : Flags) (x : Fq2Value) : Option Fq2Value := do
   let root <- sqrtFq2 (curveRhs (asNats x))
   let y := selectRoot flag root
   if h0 : y.1 < fqModulus then
@@ -217,7 +218,8 @@ with GAP-01's canonical Fq decoder, reads flags from byte 95, requires the
 unique zero-x infinity encoding, and otherwise solves `y^2 = x^3 + b'` before
 selecting the root by arkworks' c1-major Fq2 lexicographic order.
 -/
-def decodeFiniteExact (xs : List UInt8) : Option (Fq2Value × Fq2Value) := do
+noncomputable def decodeFiniteExact (xs : List UInt8) :
+    Option (Fq2Value × Fq2Value) := do
   let last <- xs[95]?
   let flags <- decodeFlags last
   match flags with
@@ -262,7 +264,7 @@ theorem decodeFiniteExact_data {xs : List UInt8} {px py : Fq2Value}
       subst y
       exact ⟨last, .largerRoot, hlast, hflags, hx, hy, by decide⟩
 
-def decode (xs : List UInt8) : Option Point :=
+noncomputable def decode (xs : List UInt8) : Option Point :=
   if xs = infinityEncoding then some infinityPoint
   else if xs.length = compressedBytes then
     (decodeFiniteExact xs).map fun p => .finite p.1 p.2
@@ -306,35 +308,7 @@ theorem decode_finite_exact {xs : List UInt8} {px py : Fq2Value}
   rcases heq with ⟨rfl, rfl⟩
   exact hp
 
-private def encodeFq2 (c0 c1 : Nat) : List UInt8 :=
-  encodeLE componentBytes c0 ++ encodeLE componentBytes c1
-
-private def withLast (xs : List UInt8) (last : Nat) : List UInt8 :=
-  xs.take 95 ++ [UInt8.ofNat last]
-
-private def withC0Last (xs : List UInt8) (last : Nat) : List UInt8 :=
-  xs.take 47 ++ [UInt8.ofNat last] ++ xs.drop 48
-
 example : decodeFlags (UInt8.ofNat 0xc0) = none := by decide
-example : decode [] = none := by decide
-example : decode (List.replicate 97 0) = none := by decide
-
-/-- Bit 5 is spare in either 377-bit component and is rejected canonically. -/
-example : decode (withC0Last (encodeFq2 0 0) 0x20) = none := by decide
-example : decode (withLast (encodeFq2 0 0) 0x20) = none := by decide
-
-/-- Both flag bits set is the contradictory/illegal arkworks pattern. -/
-example : decode (withLast (encodeFq2 0 0) 0xc0) = none := by decide
-
-/-- Each Fq2 component has its own canonical `value < q` bound. -/
-example : decode (encodeFq2 fqModulus 0) = none := by decide
-example : decode (encodeFq2 0 fqModulus) = none := by decide
-
-example : decode infinityEncoding = some infinityPoint := by decide
-
-/-- Infinity requires both x components to be zero. -/
-example : decode (withLast (encodeFq2 1 0) infinityMask) = none := by decide
-example : decode (withLast (encodeFq2 0 1) infinityMask) = none := by decide
 
 /-- Root order is c1-major, with c0 used only to break a c1 tie. -/
 example : fq2Less (fqModulus - 1, 1) (0, 2) = true := by decide

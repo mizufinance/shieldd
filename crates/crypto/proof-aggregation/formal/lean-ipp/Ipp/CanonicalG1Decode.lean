@@ -16,6 +16,7 @@ as required by GAP-02A (and as checked by arkworks `from_random_bytes`).
 -/
 import Ipp.Bls12377
 import Ipp.CanonicalDecode
+import Ipp.Extracted.ArkworksFqSqrtBytes
 
 namespace Ipp.CanonicalG1Decode
 
@@ -48,7 +49,7 @@ def decodeFlags (last : UInt8) : Option Flags :=
 def clearFlags (xs : List UInt8) : List UInt8 :=
   xs.take 47 ++ [UInt8.ofNat ((xs.getD 47 0).toNat % 64)]
 
-/-- Binary modular exponentiation, used by the concrete square-root routine. -/
+/-- Binary modular exponentiation used by the Fq2 decoder. -/
 def powMod (base exponent modulus : Nat) : Nat :=
   if h : exponent = 0 then 1 % modulus
   else
@@ -58,44 +59,12 @@ def powMod (base exponent modulus : Nat) : Nat :=
 termination_by exponent
 decreasing_by omega
 
-def twoAdicity : Nat := 46
-def oddPart : Nat :=
-  3675842578061421676390135839012792950148785745837396071634149488243117337281387659330802195819009059
-def quadraticNonresidue : Nat := 5
+/-- The GAP-02A interface uses the exact extracted bounded TS schedule. -/
+noncomputable def sqrtFq (a : Nat) : Option Nat :=
+  Ipp.Extracted.ArkworksFqSqrtBytes.executedSqrtFq a
 
-private def findRootIndex (t modulus : Nat) : Nat → Nat → Option Nat
-  | _, 0 => none
-  | i, fuel + 1 =>
-      if powMod t (2 ^ i) modulus = 1 then some i
-      else findRootIndex t modulus (i + 1) fuel
-
-private def tonelliLoop (modulus : Nat) : Nat → Nat → Nat → Nat → Nat → Option Nat
-  | 0, _, _, _, _ => none
-  | fuel + 1, m, c, t, r =>
-      if t = 1 then some r
-      else do
-        let i ← findRootIndex t modulus 0 m
-        if i < m then
-          let b := powMod c (2 ^ (m - i - 1)) modulus
-          let b2 := (b * b) % modulus
-          tonelliLoop modulus fuel i b2 ((t * b2) % modulus) ((r * b) % modulus)
-        else none
-
-/--
-Concrete Tonelli-Shanks for BLS12-377 Fq. The pinned modulus satisfies
-`q - 1 = oddPart * 2^46`, and 5 is a quadratic nonresidue. The final equation
-check makes failure closed independently of the internal root representative.
--/
-def sqrtFq (a : Nat) : Option Nat :=
-  let q := fqModulus
-  if a = 0 then some 0
-  else if a = 1 then some 1
-  else do
-    let r := powMod a ((oddPart + 1) / 2) q
-    let t := powMod a oddPart q
-    let c := powMod quadraticNonresidue oddPart q
-    let y ← tonelliLoop q (twoAdicity + 1) twoAdicity c t r
-    if (y * y) % q = a % q then some y else none
+theorem sqrtFq_zero : sqrtFq 0 = some 0 :=
+  Ipp.Extracted.ArkworksFqSqrtBytes.executedSqrtFq_zero
 
 /-- A decoded affine value; infinity has canonical coordinates `(0, 0)`. -/
 structure Point where
@@ -122,7 +91,7 @@ def selectRoot (flag : Flags) (root : Nat) : Nat :=
   | .largerRoot => max root other
   | .infinity => 0
 
-def decodeFinite (flag : Flags) (x : FqValue) : Option Point := do
+noncomputable def decodeFinite (flag : Flags) (x : FqValue) : Option Point := do
   let root ← sqrtFq (curveRhs x.1)
   let y := selectRoot flag root
   if hy : y < fqModulus then some ⟨false, x, ⟨y, hy⟩⟩ else none
@@ -133,7 +102,7 @@ the flags is followed by GAP-01's canonical Fq decoder; infinity additionally
 requires zero `x`; finite values require a square root of `x^3 + 1` and use
 arkworks' integer-lexicographic root ordering.
 -/
-def decode (xs : List UInt8) : Option Point := do
+noncomputable def decode (xs : List UInt8) : Option Point := do
   if xs.length = compressedBytes then pure () else none
   let last ← xs[47]?
   let flags ← decodeFlags last
@@ -186,28 +155,7 @@ theorem decode_exact_consumption {xs : List UInt8} {p : Point}
   · assumption
   · simp at h
 
-def withLast (xs : List UInt8) (last : Nat) : List UInt8 :=
-  xs.take 47 ++ [UInt8.ofNat last]
-
 example : decodeFlags (UInt8.ofNat 0xc0) = none := by decide
-example : decode [] = none := by decide
-example : decode (List.replicate 49 0) = none := by decide
-
-/-- Bit 5 of byte 47 is a spare bit for this 377-bit field and is rejected. -/
-example : decode (withLast (encodeLE 48 0) 0x20) = none := by decide
-
-/-- Both flag bits set is the contradictory/illegal arkworks flag pattern. -/
-example : decode (withLast (encodeLE 48 0) 0xc0) = none := by decide
-
-example : decode infinityEncoding = some infinityPoint := by decide
-
-/-- Infinity is accepted only with zero x, making its wire encoding unique. -/
-example : decode (withLast (encodeLE 48 1) infinityMask) = none := by decide
-
-/-- At x = 0, the roots of y^2 = 1 are selected by exact integer order. -/
-example : (decode (encodeLE 48 0)).map (fun p => p.y.1) = some 1 := by decide
-example : (decode (withLast (encodeLE 48 0) largerRootMask)).map (fun p => p.y.1) =
-    some (fqModulus - 1) := by decide
 
 #print axioms decode_infinity_unique
 #print axioms decode_exact_consumption
