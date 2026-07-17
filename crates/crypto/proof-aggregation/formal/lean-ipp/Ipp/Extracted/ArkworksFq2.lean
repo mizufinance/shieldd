@@ -920,8 +920,150 @@ theorem decode_extracted_sop2 (a0 b0 a1 b1 output : LimbArray)
   exact decode_sop_of_mul_radix _ _ _ _ _ _ hcast
     (ZMod.coe_mul_inv_eq_one Ipp.Bls12377.baseMontgomeryRadix radix_coprime)
 
+/-! ### Pinned nonresidue helpers (β = −5) and the Fq2 mul/square laws -/
+
+/-- `mul_fp_by_nonresidue_in_place`: `x → −5·x` via neg + two doubles + add. -/
+theorem extracted_mul_by_nonresidue_spec (a output : LimbArray)
+    (ha : limbsToNat a < Ipp.Bls12377.baseModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.mul_by_nonresidue a =
+      .ok output) :
+    limbsToNat output < Ipp.Bls12377.baseModulus ∧
+    decode output = -5 * decode a := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.mul_by_nonresidue at hexec
+  obtain ⟨negated, hneg, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm, hdbl1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, hdbl2, hexec⟩ := bind_eq_ok hexec
+  have hnegs := extracted_neg_spec a negated ha hneg
+  have hd1 := extracted_double_spec negated fm hnegs.1 hdbl1
+  have hd2 := extracted_double_spec fm fm1 hd1.1 hdbl2
+  have hadds := extracted_add_spec negated fm1 output hnegs.1 hd2.1 hexec
+  refine ⟨hadds.1, ?_⟩
+  have e1 := decode_extracted_neg a negated ha hneg
+  have e2 := decode_extracted_double negated fm hnegs.1 hdbl1
+  have e3 := decode_extracted_double fm fm1 hd1.1 hdbl2
+  have e4 := decode_extracted_add negated fm1 output hnegs.1 hd2.1 hexec
+  rw [e4, e3, e2, e1]
+  ring
+
+/-- `sub_and_mul_fp_by_nonresidue`: `(y, x) → x + 5·y`. -/
+theorem extracted_sub_and_mul_by_nonresidue_spec (y x output : LimbArray)
+    (hy : limbsToNat y < Ipp.Bls12377.baseModulus)
+    (hx : limbsToNat x < Ipp.Bls12377.baseModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.sub_and_mul_by_nonresidue
+        y x = .ok output) :
+    limbsToNat output < Ipp.Bls12377.baseModulus ∧
+    decode output = decode x + 5 * decode y := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.sub_and_mul_by_nonresidue
+    at hexec
+  obtain ⟨original, hadd0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm, hdbl1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, hdbl2, hexec⟩ := bind_eq_ok hexec
+  have horig := extracted_add_spec y x original hy hx hadd0
+  have hd1 := extracted_double_spec y fm hy hdbl1
+  have hd2 := extracted_double_spec fm fm1 hd1.1 hdbl2
+  have hadds := extracted_add_spec fm1 original output hd2.1 horig.1 hexec
+  refine ⟨hadds.1, ?_⟩
+  have e0 := decode_extracted_add y x original hy hx hadd0
+  have e1 := decode_extracted_double y fm hy hdbl1
+  have e2 := decode_extracted_double fm fm1 hd1.1 hdbl2
+  have e3 := decode_extracted_add fm1 original output hd2.1 horig.1 hexec
+  rw [e3, e2, e1, e0]
+  ring
+
+/-- `mul_fp_by_nonresidue_plus_one_and_add`: `(y, x) → x − 4·y`. -/
+theorem extracted_nonresidue_plus_one_and_add_spec (y x output : LimbArray)
+    (hy : limbsToNat y < Ipp.Bls12377.baseModulus)
+    (hx : limbsToNat x < Ipp.Bls12377.baseModulus)
+    (hexec :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.mul_by_nonresidue_plus_one_and_add
+        y x = .ok output) :
+    limbsToNat output < Ipp.Bls12377.baseModulus ∧
+    decode output = decode x - 4 * decode y := by
+  unfold
+    ark_ip_proofs.s3_07_arkworks_fq_spike.mul_by_nonresidue_plus_one_and_add
+    at hexec
+  obtain ⟨fm, hdbl1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, hdbl2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm2, hneg, hexec⟩ := bind_eq_ok hexec
+  have hd1 := extracted_double_spec y fm hy hdbl1
+  have hd2 := extracted_double_spec fm fm1 hd1.1 hdbl2
+  have hnegs := extracted_neg_spec fm1 fm2 hd2.1 hneg
+  have hadds := extracted_add_spec fm2 x output hnegs.1 hx hexec
+  refine ⟨hadds.1, ?_⟩
+  have e1 := decode_extracted_double y fm hy hdbl1
+  have e2 := decode_extracted_double fm fm1 hd1.1 hdbl2
+  have e3 := decode_extracted_neg fm1 fm2 hd2.1 hneg
+  have e4 := decode_extracted_add fm2 x output hnegs.1 hx hexec
+  rw [e4, e3, e2, e1]
+  ring
+
+/-- Executed degree-2 multiplication refines `QuadraticAlgebra Fq (-5) 0`. -/
+theorem extracted_fq2_mul_spec (a b output : Fq2LimbPair)
+    (ha : Canonical2 a) (hb : Canonical2 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul a b = .ok output) :
+    Canonical2 output ∧ decodeFq2 output = decodeFq2 a * decodeFq2 b := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul at hexec
+  obtain ⟨c1_nr, hnr, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm, hs1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, hs2, hexec⟩ := bind_eq_ok hexec
+  have hret : ({ c0 := fm, c1 := fm1 } :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont) = output :=
+    Result.ok.inj hexec
+  subst hret
+  have hnrs := extracted_mul_by_nonresidue_spec a.c1 c1_nr ha.2 hnr
+  have hs1spec := extracted_sop2_spec a.c0 b.c0 c1_nr b.c1 fm
+    ha.1 hb.1 hnrs.1 hb.2 hs1
+  have hs2spec := extracted_sop2_spec a.c0 b.c1 a.c1 b.c0 fm1
+    ha.1 hb.2 ha.2 hb.1 hs2
+  refine ⟨⟨hs1spec.1, hs2spec.1⟩, ?_⟩
+  have d1 := decode_extracted_sop2 a.c0 b.c0 c1_nr b.c1 fm
+    ha.1 hb.1 hnrs.1 hb.2 hs1
+  have d2 := decode_extracted_sop2 a.c0 b.c1 a.c1 b.c0 fm1
+    ha.1 hb.2 ha.2 hb.1 hs2
+  apply QuadraticAlgebra.ext <;>
+    simp only [decodeFq2, QuadraticAlgebra.re_mul, QuadraticAlgebra.im_mul,
+      d1, d2, hnrs.2] <;> ring
+
+/-- Executed general-branch square refines squaring in the model. -/
+theorem extracted_fq2_square_spec (a output : Fq2LimbPair)
+    (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_square a =
+      .ok output) :
+    Canonical2 output ∧ decodeFq2 output = decodeFq2 a * decodeFq2 a := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_square at hexec
+  obtain ⟨v0, hv0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨v3, hv3, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨v2, hv2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨v01, hv01, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm, hfm, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, hfm1, hexec⟩ := bind_eq_ok hexec
+  have hret : ({ c0 := fm, c1 := fm1 } :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont) = output :=
+    Result.ok.inj hexec
+  subst hret
+  have hv0s := extracted_sub_spec a.c0 a.c1 v0 ha.1 ha.2 hv0
+  have hv3s := extracted_sub_and_mul_by_nonresidue_spec a.c1 a.c0 v3
+    ha.2 ha.1 hv3
+  have hv2s := extracted_mul_spec a.c0 a.c1 v2 ha.1 ha.2 hv2
+  have hv01s := extracted_mul_spec v0 v3 v01 hv0s.1 hv3s.1 hv01
+  have hfms := extracted_nonresidue_plus_one_and_add_spec v2 v01 fm
+    hv2s.1 hv01s.1 hfm
+  have hfm1s := extracted_double_spec v2 fm1 hv2s.1 hfm1
+  refine ⟨⟨hfms.1, hfm1s.1⟩, ?_⟩
+  have d0 := decode_extracted_sub a.c0 a.c1 v0 ha.1 ha.2 hv0
+  have d3 := hv3s.2
+  have d2 := decode_extracted_mul a.c0 a.c1 v2 ha.1 ha.2 hv2
+  have d01 := decode_extracted_mul v0 v3 v01 hv0s.1 hv3s.1 hv01
+  have dfm := hfms.2
+  have dfm1 := decode_extracted_double v2 fm1 hv2s.1 hfm1
+  apply QuadraticAlgebra.ext <;>
+    simp only [decodeFq2, QuadraticAlgebra.re_mul, QuadraticAlgebra.im_mul,
+      dfm, dfm1, d01, d0, d3, d2] <;> ring
+
 end Ipp.Extracted.ArkworksFq2
 
 #print axioms Ipp.Extracted.ArkworksFq2.decode_extracted_double
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_sop2_spec
 #print axioms Ipp.Extracted.ArkworksFq2.decode_extracted_sop2
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_mul_spec
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_square_spec
