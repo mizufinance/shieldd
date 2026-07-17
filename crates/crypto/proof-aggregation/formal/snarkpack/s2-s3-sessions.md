@@ -649,11 +649,50 @@ S3-16; the none-direction needs GKP-inv TOTALITY (nonzero → some) which
 ArkworksFqInv does not provide — moved to S3-17 with the rest of
 inverse.
 
-**S3-17 — Fq2 inverse, square root, and Frobenius** — `HARD (sol)` — `GATED`
-on S3-16. Prove the exact inverse/sqrt/sign-selection/Frobenius paths, including
-zero and nonsquare failures. Acceptance: GAP-03 can instantiate its executed
-decoder operations and focused checks pass. Retires the Fq2 portion of the
-arkworks field row.
+**S3-17 — Fq2 inverse, square root, and Frobenius** — `HARD (sol)` —
+`IN PROGRESS` (S3-16 gate satisfied). Prove the exact inverse/sqrt/
+sign-selection/Frobenius paths, including zero and nonsquare failures.
+Acceptance: GAP-03 can instantiate its executed decoder operations and
+focused checks pass. Retires the Fq2 portion of the arkworks field row.
+PROGRESS (2026-07-17, orchestrator, commits ad786d7ba, 868145d5d):
+- Frobenius DONE: `fq2_frobenius` spike (`FROBENIUS_COEFF_FP2_C1 = [1,−1]`,
+  the executed effect is `neg` on the `c1` lane), parity vs arkworks
+  `frobenius_map_in_place(1)`, `extract_s3_17` root, vendored graph,
+  `decode_fq2_frobenius : decodeFq2 output = star (decodeFq2 a)` — proven
+  equal to Mathlib's `QuadraticAlgebra` `star` (the `b = 0` conjugation).
+- Inverse none-direction DONE: `extracted_fq2_inv_none_iff`
+  (`fq2_inv a = none → decodeFq2 a = 0`). KEY: the executed base `inv`
+  returns `ok none` ONLY from its zero guard (both post-loop branches return
+  `ok (some …)`), so `inv_none_imp_val_zero` needs NO loop-termination /
+  totality proof — a guard analysis suffices. Composed with `norm_zero_imp`
+  (the `fq2Nonresidue` certificate ⇒ `c0²+5c1² = 0` forces both lanes zero)
+  and `decode_eq_zero_iff` (`ZMod.natCast_eq_zero_iff` + canonicity).
+REMAINING (two heavy pieces, need extraction + hard proofs — candidates for
+sol medium→high post-Jul-23 per token-budget discipline):
+(B) SIGN-SELECTION / root ordering. Model is `CanonicalG2Decode.selectRoot`
+    over `fq2Less` (compare canonical c1 first, then c0). The EXECUTED
+    arkworks G2 compression compares `y.into_bigint()` vs `(−y).into_bigint()`
+    — CANONICAL (post-Montgomery-reduction) representatives, NOT the
+    Montgomery limbs, so a raw `gt` on stored limbs is the WRONG comparison.
+    Plan: extract an `fq2_sign`/`fq2_gt` spike that (i) converts each lane out
+    of Montgomery form (reuse the canonical-bytes / `into_bigint` path proven
+    in S3-F04B), then (ii) does the c1-then-c0 limb compare via the proven
+    `gt`. Prove it refines `fq2Less` on `(asNats ·)`. Bridge lemma: the
+    canonical representative of a lane = `(decode lane).val` (the `ZMod` rep).
+(C) SQRT (arkworks `QuadExtField::sqrt`, complex method, β = −5). Model is
+    `CanonicalG2Decode.sqrtFq2` (already a checked-candidate `Option`: takes a
+    base sqrt of the norm `c0²+5c1²`, forms `(c0±α)/2`, recovers `c1` from
+    `c0`, and re-squares to validate). Extraction: monomorphic copy of the
+    executed `sqrt` — zero case, `a.c1 = 0` split (base `sqrt(c0)` or
+    `sqrt(c0/(q−5))`), else the norm-α-δ branch. Reuse the base-field
+    `sqrt` already extracted+proven (S3-F04B Tonelli–Shanks, `ArkworksFqSqrtBytes`).
+    Proof strategy: DO NOT prove Tonelli–Shanks completeness (excluded, per the
+    F02 decision); prove SPEC-CONFORMANCE only — `fq2_sqrt a = some r →
+    decodeFq2 r ^ 2 = decodeFq2 a` (every returned candidate is re-squared in
+    the executed code, so the decode law composes `decode_extracted_square`
+    with the branch algebra), and `fq2_sqrt a = none →` no base representative
+    existed (nonsquare pass-through). This mirrors `sqrtFq2`'s
+    checked-candidate shape exactly. Estimated: one focused sol session each.
 
 **S3-18 — Fq6 irreducibility and canonical field model** — `HARD (sol)` —
 `GATED` on S3-17. In `Ipp/Bls12377Pairing.lean` or a focused tower module,
