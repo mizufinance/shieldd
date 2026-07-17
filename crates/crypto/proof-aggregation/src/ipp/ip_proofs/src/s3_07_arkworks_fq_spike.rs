@@ -3,8 +3,9 @@
 //! Arkworks 0.5.0 instantiates `MontBackend<FqConfig, 6>::mul_assign`. On the
 //! production x86_64 build BMI2/ADX are not target features, so execution uses
 //! the safe-Rust no-carry CIOS branch followed by one conditional subtraction.
-//! Addition, subtraction, negation, multiplication, and the dedicated square
-//! path are spelled out monomorphically for hax and parity testing.
+//! Addition, subtraction, negation, multiplication, the dedicated square,
+//! Tonelli--Shanks square root, and canonical byte paths are spelled out
+//! monomorphically for hax and parity testing.
 
 const MODULUS: [u64; 6] = [
     0x8508_c000_0000_0001,
@@ -23,9 +24,36 @@ const R2: [u64; 6] = [
     0x837e_92f0_4179_0bf9,
     0x006d_fccb_1e91_4b88,
 ];
+const ONE: [u64; 6] = [
+    0x02cd_ffff_ffff_ff68,
+    0x5140_9f83_7fff_ffb1,
+    0x9f7d_b3a9_8a7d_3ff2,
+    0x7b4e_97b7_6e7c_6305,
+    0x4cf4_95bf_803c_84e8,
+    0x008d_6661_e2fd_f49a,
+];
+const TWO_ADIC_ROOT_OF_UNITY: [u64; 6] = [
+    0xdfca_e622_791a_ab1e,
+    0x720b_c7a4_bf05_c59c,
+    0x259d_4186_0d78_82d6,
+    0xd82b_4258_b1e4_da96,
+    0xb7f9_a1cc_67b4_e064,
+    0x00fd_a47f_566e_4289,
+];
+const TRACE_MINUS_ONE_DIV_TWO: [u64; 6] = [
+    0xba88_6000_0001_0a11,
+    0xc45f_7412_9000_2e16,
+    0xb3e6_01ea_271e_3de6,
+    0x0b80_d942_9276_3445,
+    0x748c_2f8a_21d5_8c76,
+    0x0000_0000_0000_035c,
+];
+const TWO_ADICITY: usize = 46;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FqMont(pub [u64; 6]);
+
+pub type FqBytes = [u8; 48];
 
 #[derive(Clone, Copy)]
 struct Mac {
@@ -59,7 +87,9 @@ fn add_raw(left: [u64; 6], right: [u64; 6]) -> [u64; 6] {
     let limb3 = adc(left[3], right[3], limb2.carry);
     let limb4 = adc(left[4], right[4], limb3.carry);
     let limb5 = adc(left[5], right[5], limb4.carry);
-    [limb0.low, limb1.low, limb2.low, limb3.low, limb4.low, limb5.low]
+    [
+        limb0.low, limb1.low, limb2.low, limb3.low, limb4.low, limb5.low,
+    ]
 }
 
 #[inline(always)]
@@ -132,8 +162,7 @@ fn gt(left: [u64; 6], right: [u64; 6]) -> bool {
                             && (left[2] > right[2]
                                 || (left[2] == right[2]
                                     && (left[1] > right[1]
-                                        || (left[1] == right[1]
-                                            && left[0] > right[0])))))))))
+                                        || (left[1] == right[1] && left[0] > right[0])))))))))
 }
 
 #[inline(always)]
@@ -256,7 +285,11 @@ pub fn inv(a: FqMont) -> Option<FqMont> {
         }
     }
 
-    if u == one { Some(FqMont(b)) } else { Some(FqMont(c)) }
+    if u == one {
+        Some(FqMont(b))
+    } else {
+        Some(FqMont(c))
+    }
 }
 
 #[inline(always)]
@@ -315,6 +348,191 @@ pub fn square(a: FqMont) -> FqMont {
     }
 
     FqMont(subtract_modulus([r[6], r[7], r[8], r[9], r[10], r[11]]))
+}
+
+#[inline(always)]
+fn pow(a: FqMont, exponent: [u64; 6]) -> FqMont {
+    let mut result = FqMont(ONE);
+    let mut limb = 6_usize;
+    while limb > 0 {
+        limb -= 1;
+        let mut bit = 64_usize;
+        while bit > 0 {
+            bit -= 1;
+            result = square(result);
+            if ((exponent[limb] >> bit) & 1) == 1 {
+                result = mul(result, a);
+            }
+        }
+    }
+    result
+}
+
+#[derive(Clone, Copy)]
+struct SqrtState {
+    z: FqMont,
+    x: FqMont,
+    b: FqMont,
+    v: usize,
+}
+
+#[inline(always)]
+fn sqrt_find_k(mut value: FqMont) -> usize {
+    let mut k = 0_usize;
+    while value.0 != ONE {
+        value = square(value);
+        k += 1;
+    }
+    k
+}
+
+#[inline(always)]
+fn sqrt_square_for(mut value: FqMont, j: usize) -> FqMont {
+    let mut i = 1_usize;
+    while i < j {
+        value = square(value);
+        i += 1;
+    }
+    value
+}
+
+#[inline(always)]
+fn sqrt_step(state: SqrtState) -> Option<SqrtState> {
+    let k = sqrt_find_k(state.b);
+    if k == TWO_ADICITY {
+        return None;
+    }
+
+    let w = sqrt_square_for(state.z, state.v - k);
+    let z = square(w);
+    let b = mul(state.b, z);
+    let x = mul(state.x, w);
+    Some(SqrtState { z, x, b, v: k })
+}
+
+/// Arkworks' BLS12-377 `Fq` Tonelli--Shanks path.
+///
+/// Arkworks returns the deterministic algorithm output without even or
+/// lexicographically-small sign normalization.
+pub fn sqrt(a: FqMont) -> Option<FqMont> {
+    if a.0 == [0; 6] {
+        return Some(a);
+    }
+
+    let w = pow(a, TRACE_MINUS_ONE_DIV_TWO);
+    let x = mul(w, a);
+    let b = mul(x, w);
+    let mut state = SqrtState {
+        z: FqMont(TWO_ADIC_ROOT_OF_UNITY),
+        x,
+        b,
+        v: TWO_ADICITY,
+    };
+    let mut failed = false;
+
+    while !failed && state.b.0 != ONE {
+        match sqrt_step(state) {
+            Some(next) => state = next,
+            None => failed = true,
+        }
+    }
+
+    if failed {
+        None
+    } else if square(state.x) == a {
+        Some(state.x)
+    } else {
+        None
+    }
+}
+
+#[inline(always)]
+fn word_to_bytes(word: u64) -> [u8; 8] {
+    [
+        word as u8,
+        (word >> 8) as u8,
+        (word >> 16) as u8,
+        (word >> 24) as u8,
+        (word >> 32) as u8,
+        (word >> 40) as u8,
+        (word >> 48) as u8,
+        (word >> 56) as u8,
+    ]
+}
+
+#[inline(always)]
+fn bytes_to_word(bytes: [u8; 8]) -> u64 {
+    bytes[0] as u64
+        | ((bytes[1] as u64) << 8)
+        | ((bytes[2] as u64) << 16)
+        | ((bytes[3] as u64) << 24)
+        | ((bytes[4] as u64) << 32)
+        | ((bytes[5] as u64) << 40)
+        | ((bytes[6] as u64) << 48)
+        | ((bytes[7] as u64) << 56)
+}
+
+#[inline(always)]
+fn limbs_to_bytes(value: [u64; 6]) -> FqBytes {
+    let w0 = word_to_bytes(value[0]);
+    let w1 = word_to_bytes(value[1]);
+    let w2 = word_to_bytes(value[2]);
+    let w3 = word_to_bytes(value[3]);
+    let w4 = word_to_bytes(value[4]);
+    let w5 = word_to_bytes(value[5]);
+    [
+        w0[0], w0[1], w0[2], w0[3], w0[4], w0[5], w0[6], w0[7], w1[0], w1[1], w1[2], w1[3], w1[4],
+        w1[5], w1[6], w1[7], w2[0], w2[1], w2[2], w2[3], w2[4], w2[5], w2[6], w2[7], w3[0], w3[1],
+        w3[2], w3[3], w3[4], w3[5], w3[6], w3[7], w4[0], w4[1], w4[2], w4[3], w4[4], w4[5], w4[6],
+        w4[7], w5[0], w5[1], w5[2], w5[3], w5[4], w5[5], w5[6], w5[7],
+    ]
+}
+
+#[inline(always)]
+fn bytes_to_limbs(bytes: FqBytes) -> [u64; 6] {
+    [
+        bytes_to_word([
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ]),
+        bytes_to_word([
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+        ]),
+        bytes_to_word([
+            bytes[16], bytes[17], bytes[18], bytes[19], bytes[20], bytes[21], bytes[22], bytes[23],
+        ]),
+        bytes_to_word([
+            bytes[24], bytes[25], bytes[26], bytes[27], bytes[28], bytes[29], bytes[30], bytes[31],
+        ]),
+        bytes_to_word([
+            bytes[32], bytes[33], bytes[34], bytes[35], bytes[36], bytes[37], bytes[38], bytes[39],
+        ]),
+        bytes_to_word([
+            bytes[40], bytes[41], bytes[42], bytes[43], bytes[44], bytes[45], bytes[46], bytes[47],
+        ]),
+    ]
+}
+
+/// Arkworks serialization without flags: 48 canonical little-endian bytes.
+pub fn to_bytes(a: FqMont) -> FqBytes {
+    let value = mul(a, FqMont([1, 0, 0, 0, 0, 0])).0;
+    limbs_to_bytes(value)
+}
+
+/// Arkworks deserialization without flags: reject integers greater than or
+/// equal to `q`, then convert the accepted integer into Montgomery form.
+pub fn from_bytes(bytes: FqBytes) -> Option<FqMont> {
+    let value = bytes_to_limbs(bytes);
+    if geq_modulus(value) {
+        None
+    } else {
+        Some(mul(FqMont(value), FqMont(R2)))
+    }
+}
+
+/// Extraction root for the remaining F04B paths.
+#[doc(hidden)]
+pub fn extract_f04b2(a: FqMont, bytes: FqBytes) -> (Option<FqMont>, FqBytes, Option<FqMont>) {
+    (sqrt(a), to_bytes(a), from_bytes(bytes))
 }
 
 /// Extraction root whose closure contains every S3-F03B operation.
