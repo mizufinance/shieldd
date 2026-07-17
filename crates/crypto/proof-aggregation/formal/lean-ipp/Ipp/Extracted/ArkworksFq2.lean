@@ -1171,6 +1171,160 @@ theorem extracted_fq2_inv_some_spec (a output : Fq2LimbPair)
         exact fq2_inv_norm_route a v1 fmc0 v0 norm_inv fm1 fm2 fm3 ha
           hv1 hfmc0 hv0 ho hm1 hm2 hn
 
+/-! ### `fq2_inv` none-direction: `none` exactly on zero
+The executed base `inv` returns `.ok none` ONLY from its initial zero guard —
+both post-loop branches return `.ok (some …)` — so `inv x = .ok none` forces
+`x` to be the zero limbs, no loop-termination argument required. Composed with
+the `fq2Nonresidue` certificate (the norm `c0² + 5·c1²` vanishes only at zero),
+this gives the exact `none ↔ input-zero` characterization. -/
+
+/-- The zero limbs decode to the integer zero. -/
+private theorem limbsToNat_val_zero (v : LimbArray)
+    (hv : v.val = (MacCampaign.Array.replicate 6#usize
+      (MacCampaign.U64.ofNat 0)).val) : limbsToNat v = 0 := by
+  obtain ⟨vval, vhlen⟩ := v
+  simp only [MacCampaign.Array.replicate] at hv
+  subst hv
+  simp [limbsToNat, prefixToNat, limbCount, limb, limbWord,
+    MacCampaign.U64.ofNat]
+
+/-- For a canonical value, Montgomery decode vanishes iff the integer does. -/
+private theorem decode_eq_zero_iff (value : LimbArray)
+    (hcanon : limbsToNat value < Ipp.Bls12377.baseModulus) :
+    decode value = 0 ↔ limbsToNat value = 0 := by
+  haveI : Fact (Nat.Prime Ipp.Bls12377.baseModulus) :=
+    ⟨Ipp.Bls12377.arithmeticFacts.basePrime⟩
+  rw [decode_eq_cast_mul_inv]
+  have hRne : (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) ≠ 0 := by
+    intro h0
+    have hone := ZMod.coe_mul_inv_eq_one Ipp.Bls12377.baseMontgomeryRadix
+      radix_coprime
+    rw [h0, zero_mul] at hone
+    exact one_ne_zero hone.symm
+  rw [mul_eq_zero, inv_eq_zero, or_iff_left hRne, ZMod.natCast_eq_zero_iff]
+  constructor
+  · intro hdvd
+    rcases Nat.eq_zero_or_pos (limbsToNat value) with h | h
+    · exact h
+    · exact absurd (Nat.le_of_dvd h hdvd) (by omega)
+  · intro h
+    simp [h]
+
+/-- The Fq2 norm `c0² + 5·c1²` vanishes only at the zero pair (`fq2Nonresidue`). -/
+private theorem norm_zero_imp (c0v c1v : Ipp.Bls12377.Fq)
+    (h : c0v * c0v + 5 * (c1v * c1v) = 0) : c0v = 0 ∧ c1v = 0 := by
+  haveI : Fact (Nat.Prime Ipp.Bls12377.baseModulus) :=
+    ⟨Ipp.Bls12377.arithmeticFacts.basePrime⟩
+  by_cases hc1 : c1v = 0
+  · refine ⟨?_, hc1⟩
+    rw [hc1, mul_zero, mul_zero, add_zero] at h
+    exact mul_self_eq_zero.mp h
+  · exfalso
+    have hsq : (c0v * c1v⁻¹) ^ 2 = -5 := by
+      field_simp
+      linear_combination h
+    exact Ipp.Bls12377.arithmeticFacts.fq2Nonresidue (c0v * c1v⁻¹) hsq
+
+/-- The executed base inverse yields `none` only for the zero limbs. -/
+private theorem inv_none_imp_val_zero (x : LimbArray)
+    (h : ark_ip_proofs.s3_07_arkworks_fq_spike.inv x = .ok none) :
+    limbsToNat x = 0 := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.inv at h
+  simp only [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+    Result.bind_ok] at h
+  by_cases hz : x.val = (MacCampaign.Array.replicate 6#usize
+      (MacCampaign.U64.ofNat 0)).val
+  · exact limbsToNat_val_zero x hz
+  · exfalso
+    rw [if_neg (by simp [hz])] at h
+    cases hloop : ark_ip_proofs.s3_07_arkworks_fq_spike.inv_loop0
+        (MacCampaign.Array.make 6#usize
+          [MacCampaign.U64.ofNat 1, MacCampaign.U64.ofNat 0,
+           MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0,
+           MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0])
+        x ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS
+        ark_ip_proofs.s3_07_arkworks_fq_spike.R2
+        (MacCampaign.Array.replicate 6#usize (MacCampaign.U64.ofNat 0)) with
+    | ok val =>
+        rw [hloop] at h
+        obtain ⟨u, b, c⟩ := val
+        simp only [Result.bind_ok,
+          ark_ip_proofs.core.array.equality.PartialEqArray.eq] at h
+        split at h <;> simp at h
+    | fail e => rw [hloop] at h; simp at h
+    | div => rw [hloop] at h; simp at h
+
+/-- `fq2_inv` returns `none` exactly on the zero element. -/
+theorem extracted_fq2_inv_none_iff (a : Fq2LimbPair) (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_inv a = .ok none) :
+    decodeFq2 a = 0 := by
+  -- A finished norm route that returns `none` forces both lanes to decode to 0.
+  have norm_route_none : ∀ (v1 fmc0 v0 : LimbArray),
+      ark_ip_proofs.s3_07_arkworks_fq_spike.square a.c1 = .ok v1 →
+      ark_ip_proofs.s3_07_arkworks_fq_spike.square a.c0 = .ok fmc0 →
+      ark_ip_proofs.s3_07_arkworks_fq_spike.sub_and_mul_by_nonresidue v1 fmc0 =
+        .ok v0 →
+      ark_ip_proofs.s3_07_arkworks_fq_spike.inv v0 = .ok none →
+      decode a.c0 = 0 ∧ decode a.c1 = 0 := by
+    intro v1 fmc0 v0 hv1 hfmc0 hv0 ho
+    have hv1c := extracted_square_spec a.c1 v1 ha.2 hv1
+    have hfc := extracted_square_spec a.c0 fmc0 ha.1 hfmc0
+    have hv0s := extracted_sub_and_mul_by_nonresidue_spec v1 fmc0 v0
+      hv1c.1 hfc.1 hv0
+    have hdv0 : decode v0 = 0 :=
+      (decode_eq_zero_iff v0 hv0s.1).mpr (inv_none_imp_val_zero v0 ho)
+    rw [hv0s.2, decode_extracted_square a.c0 fmc0 ha.1 hfmc0,
+      decode_extracted_square a.c1 v1 ha.2 hv1] at hdv0
+    exact norm_zero_imp (decode a.c0) (decode a.c1) hdv0
+  -- Decode a lane known to hold the zero limbs.
+  have decode_lane : ∀ (v : LimbArray),
+      limbsToNat v < Ipp.Bls12377.baseModulus →
+      v.val = (MacCampaign.Array.replicate 6#usize
+        (MacCampaign.U64.ofNat 0)).val → decode v = 0 := by
+    intro v hcanon hval
+    exact (decode_eq_zero_iff v hcanon).mpr (limbsToNat_val_zero v hval)
+  -- Peel the some-branch of the inner match into a contradiction with `= none`.
+  have some_absurd : ∀ (norm_inv : LimbArray) {P : Prop},
+      (ark_ip_proofs.s3_07_arkworks_fq_spike.mul a.c0 norm_inv >>= fun fm1 =>
+        ark_ip_proofs.s3_07_arkworks_fq_spike.mul a.c1 norm_inv >>= fun fm2 =>
+          ark_ip_proofs.s3_07_arkworks_fq_spike.neg fm2 >>= fun fm3 =>
+            (Result.ok (some { c0 := fm1, c1 := fm3 }) :
+              Result (Option ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont)))
+        = .ok none → P := by
+    intro norm_inv P hmatch
+    obtain ⟨fm1, _, hmatch⟩ := bind_eq_ok hmatch
+    obtain ⟨fm2, _, hmatch⟩ := bind_eq_ok hmatch
+    obtain ⟨fm3, _, hmatch⟩ := bind_eq_ok hmatch
+    exact absurd (Result.ok.inj hmatch) (Option.some_ne_none _)
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_inv at hexec
+  simp only [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+    Result.bind_ok] at hexec
+  suffices h : decode a.c0 = 0 ∧ decode a.c1 = 0 by
+    apply QuadraticAlgebra.ext <;> simp [decodeFq2, h.1, h.2]
+  by_cases hc0z : a.c0.val = (MacCampaign.Array.replicate 6#usize
+      (MacCampaign.U64.ofNat 0)).val
+  · rw [if_pos (decide_eq_true_eq.mpr hc0z)] at hexec
+    have hdc0 := decode_lane a.c0 ha.1 hc0z
+    by_cases hc1z : a.c1.val = (MacCampaign.Array.replicate 6#usize
+        (MacCampaign.U64.ofNat 0)).val
+    · exact ⟨hdc0, decode_lane a.c1 ha.2 hc1z⟩
+    · rw [if_neg (by simp [hc1z])] at hexec
+      obtain ⟨v1, hv1, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨fmc0, hfmc0, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨v0, hv0, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨o, ho, hexec⟩ := bind_eq_ok hexec
+      cases o with
+      | some norm_inv => exact some_absurd norm_inv hexec
+      | none => exact norm_route_none v1 fmc0 v0 hv1 hfmc0 hv0 ho
+  · rw [if_neg (by simp [hc0z])] at hexec
+    obtain ⟨v1, hv1, hexec⟩ := bind_eq_ok hexec
+    obtain ⟨fmc0, hfmc0, hexec⟩ := bind_eq_ok hexec
+    obtain ⟨v0, hv0, hexec⟩ := bind_eq_ok hexec
+    obtain ⟨o, ho, hexec⟩ := bind_eq_ok hexec
+    cases o with
+    | some norm_inv => exact some_absurd norm_inv hexec
+    | none => exact norm_route_none v1 fmc0 v0 hv1 hfmc0 hv0 ho
+
 end Ipp.Extracted.ArkworksFq2
 
 #print axioms Ipp.Extracted.ArkworksFq2.decode_extracted_double
@@ -1180,3 +1334,4 @@ end Ipp.Extracted.ArkworksFq2
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_square_spec
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_inv_some_spec
 #print axioms Ipp.Extracted.ArkworksFq2.decode_fq2_frobenius
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_inv_none_iff
