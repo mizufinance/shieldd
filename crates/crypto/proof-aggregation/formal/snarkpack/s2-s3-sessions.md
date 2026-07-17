@@ -564,6 +564,51 @@ v2 = c0·c1 shape) and composes proven base ops, as do add (componentwise)
 and inverse (norm route: (c0²−β·c1²)⁻¹ via proven square/mul/inv).
 `mul_base_field_by_nonresidue(x)` for β = −5 must be pinned from the
 Fq2Config (likely −(x.double().double() + x) — verify at extraction).
+PROGRESS (2026-07-17, orchestrator): spike Fq2 layer + parity landed
+(36ab5ec60, 92f240cd6 — SoP straight-lined after aeneas rejected
+shifted-index loop writes); vendored graph landed (d8a221e0f);
+componentwise decode_fq2_add/sub/neg proven (1510980f5). All four
+nonresidue helpers pinned from ark-bls12-377 fq2.rs (in_place: x→−5x via
+neg+double²+add; sub_and_mul: (y,x)→x+5y; plus_one_and_add: (y,x)→x−4y;
+and_add: (y,x)→x−5y); Frobenius C1 = [1, −1].
+REMAINING PROOF DESIGN (fully derived, ready to mechanize):
+(1) `double` = mul2 shift + subtract_modulus. Lemmas: shl64-by-1 and
+shr64-by-63 simp specs; `even_lor_one` (even y → y|||1 = y+1, via
+Nat.bit/lor_bit like the landed lor_two_pow_eq_add); `u64_shl_join`
+(or64 of doubled-high and low-top-bit = sum, disjoint-support case
+split); shift telescope Σ(2xⱼ mod β + xⱼ₋₁/2⁶³)βʲ = 2⟦a⟧ given top limb
+x₅ < 2⁶³ (from ⟦a⟧ < q < 2³⁷⁷: x₅ ≤ ⟦a⟧/β⁵ < 2⁵⁷ — prove via the
+limbsToNat_six expansion + omega); then subtract_modulus spec (2⟦a⟧ < 2q)
+gives `< q ∧ ≡ 2⟦a⟧`, decode law = 2·decode a by cast algebra. NOTE:
+limbsToNat_make_six twins are PRIVATE in the Fq files — re-derive
+locally.
+(2) `sum_of_products2` kernel: per-round EXACT equation
+⟦result'⟧·β = ⟦result⟧ + a0[j]·⟦b0⟧ + a1[j]·⟦b1⟧ + kⱼ·q, obtained by
+telescoping three chains (p-chain over result, q-chain over p.lows,
+r-chain reduction over q.lows with r0.low = 0 by the INV k-choice — all
+landed machinery shapes) plus the dual-carry bookkeeping:
+sum0 = adc(0,0,c₀), sum1 = adc(sum0.low, sum0.carry, c₁) splits
+c₀+c₁ into low/high; top = adc(sum1.low, sum1.carry, cᵣ) with
+NO-DISCARD proved from result' < β⁶ (bound: result' ≤ (β⁶+3(β−1)q)/β <
+β⁵+3q < β⁶, contradiction if top.carry = 1). Loop induction over the
+Range iterator exactly as PolynomialCoefficients' fueled range loops.
+GLOBAL: maintain result_n·βⁿ = Σᵢ prefixₙ(aᵢ)·⟦bᵢ⟧ + Kₙ·q with
+Kₙ = Σ kⱼβʲ < βⁿ; at n=6: result₆ < T/R + q with
+T = ⟦a0⟧⟦b0⟧+⟦a1⟧⟦b1⟧ ≤ 2(q−1)² and q/R < 2⁻⁷ ⇒ result₆ < 2q, so ONE
+subtract_modulus canonicalizes (do NOT use the per-round fixpoint bound
+— it is ≈3q and insufficient); congruence result₆·R ≡ T (mod q) gives
+decode(SoP a0 b0 a1 b1) = decode a0·decode b0 + decode a1·decode b1.
+(3) Compositions: mul_by_nonresidue laws from double/neg/add decode laws
+(−5x = −x + 2·2·(−x) etc., canonicity threading via each spec's bound
+component); fq2_mul via SoP law ×2 + nonresidue law (model:
+(a0b0−5a1b1, a0b1+a1b0)); fq2_square via the v0/v3/v2 identity
+(c0²−5c1², 2c0c1) — pure ZMod ring algebra after decode laws; fq2_inv
+via norm route + decode_extracted_inv (norm = c0²+5c1²... exactly
+c0²−β·c1² with β=−5; zero case: both components zero ↔ decodeFq2 = 0,
+uses the landed eq_zeroLimbs_of_value_zero pattern); inv-None ↔ norm
+zero ↔ input zero (norm nonzero for nonzero input needs fq2Nonresidue:
+c0² = 5·(−c1²)... norm c0²+5c1² = 0 with c1 ≠ 0 ⇒ (c0/c1)² = −5,
+contradicting arithmeticFacts.fq2Nonresidue ✓ certified).
 
 **S3-17 — Fq2 inverse, square root, and Frobenius** — `HARD (sol)` — `GATED`
 on S3-16. Prove the exact inverse/sqrt/sign-selection/Frobenius paths, including
