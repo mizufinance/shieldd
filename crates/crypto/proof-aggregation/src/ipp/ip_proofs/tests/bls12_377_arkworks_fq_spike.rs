@@ -1,14 +1,14 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
-use ark_bls12_377::Fq;
-use ark_ff::{BigInt, FftField, Field};
+use ark_bls12_377::{Fq, Fq2};
+use ark_ff::{AdditiveGroup, BigInt, FftField, Field};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand};
 use std::convert::TryInto;
 
 #[path = "../src/s3_07_arkworks_fq_spike.rs"]
 mod spike;
-use spike::FqMont;
+use spike::{Fq2Mont, FqMont};
 
 fn mont(value: Fq) -> FqMont {
     FqMont(value.0 .0)
@@ -16,6 +16,58 @@ fn mont(value: Fq) -> FqMont {
 
 fn ark(value: FqMont) -> Fq {
     Fq::new_unchecked(BigInt(value.0))
+}
+
+fn mont2(value: Fq2) -> Fq2Mont {
+    Fq2Mont {
+        c0: mont(value.c0),
+        c1: mont(value.c1),
+    }
+}
+
+fn ark2(value: Fq2Mont) -> Fq2 {
+    Fq2::new(ark(value.c0), ark(value.c1))
+}
+
+fn check_fq2(a: Fq2, b: Fq2) {
+    assert_eq!(ark2(spike::fq2_add(mont2(a), mont2(b))), a + b);
+    assert_eq!(ark2(spike::fq2_sub(mont2(a), mont2(b))), a - b);
+    assert_eq!(ark2(spike::fq2_neg(mont2(a))), -a);
+    assert_eq!(ark2(spike::fq2_mul(mont2(a), mont2(b))), a * b);
+    assert_eq!(ark2(spike::fq2_square(mont2(a))), a.square());
+    assert_eq!(spike::fq2_inv(mont2(a)).map(ark2), a.inverse());
+    assert_eq!(
+        ark(spike::double(mont(a.c0))),
+        a.c0.double()
+    );
+    assert_eq!(
+        ark(spike::sum_of_products2(
+            mont(a.c0),
+            mont(b.c0),
+            mont(a.c1),
+            mont(b.c1)
+        )),
+        a.c0 * b.c0 + a.c1 * b.c1
+    );
+}
+
+#[test]
+fn fq2_edge_and_512_random_vectors_match_arkworks() {
+    let mut rng = test_rng();
+    let edges = [
+        Fq2::new(Fq::from(0u64), Fq::from(0u64)),
+        Fq2::new(Fq::from(1u64), Fq::from(0u64)),
+        Fq2::new(Fq::from(0u64), Fq::from(1u64)),
+        Fq2::new(-Fq::from(1u64), Fq::from(2u64)),
+    ];
+    for &a in &edges {
+        for &b in &edges {
+            check_fq2(a, b);
+        }
+    }
+    for _ in 0..512 {
+        check_fq2(Fq2::rand(&mut rng), Fq2::rand(&mut rng));
+    }
 }
 
 fn check(a: Fq, b: Fq) {

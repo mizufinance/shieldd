@@ -541,6 +541,153 @@ pub fn extract_f03b(a: FqMont, b: FqMont) -> (FqMont, FqMont, FqMont, FqMont) {
     (add(a, b), sub(a, b), neg(a), square(a))
 }
 
+// ===== S3-16: executed Fq2 layer (tower degree 2, nonresidue -5) =====
+//
+// Faithful monomorphic copies of the ark-ff 0.5.0 executed paths:
+// `Fp::double_in_place` (limb shift + conditional subtraction),
+// `Fp::sum_of_products` M = 2 fused branch (two interleaved product MAC
+// chains, inline Montgomery reduction), the four pinned `Fq2Config`
+// nonresidue helpers, and the `QuadExtField` add/sub/neg/mul (degree-2
+// sum-of-products branch), general-branch square, and norm-route inverse.
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Fq2Mont {
+    pub c0: FqMont,
+    pub c1: FqMont,
+}
+
+#[inline(always)]
+fn shl_join(high: u64, low: u64) -> u64 {
+    (high << 1) | (low >> 63)
+}
+
+/// `BigInt::mul2` followed by the Montgomery conditional subtraction.
+pub fn double(a: FqMont) -> FqMont {
+    let v = a.0;
+    let shifted = [
+        v[0] << 1,
+        shl_join(v[1], v[0]),
+        shl_join(v[2], v[1]),
+        shl_join(v[3], v[2]),
+        shl_join(v[4], v[3]),
+        shl_join(v[5], v[4]),
+    ];
+    FqMont(subtract_modulus(shifted))
+}
+
+/// `Fp::sum_of_products` M = 2 fused branch: per outer limb `j`, two
+/// interleaved product MAC chains accumulate into one register with dual
+/// carry words, then one Montgomery reduction step and shift.
+pub fn sum_of_products2(a0: FqMont, b0: FqMont, a1: FqMont, b1: FqMont) -> FqMont {
+    let mut result = [0u64; 6];
+    for j in 0..6 {
+        let mut carry_a: u64 = 0;
+        let mut carry_b: u64 = 0;
+        for (a, b) in [(a0.0, b0.0), (a1.0, b1.0)] {
+            let m0 = mac(result[0], a[j], b[0], 0);
+            result[0] = m0.low;
+            let mut carry2 = m0.carry;
+            for k in 1..6 {
+                let mk = mac(result[k], a[j], b[k], carry2);
+                result[k] = mk.low;
+                carry2 = mk.carry;
+            }
+            let sum = adc(carry_a, carry_b, carry2);
+            carry_a = sum.low;
+            carry_b = sum.carry;
+        }
+        let k = result[0].wrapping_mul(INV);
+        let r0 = mac(result[0], k, MODULUS[0], 0);
+        let mut carry2 = r0.carry;
+        for i in 1..6 {
+            let ri = mac(result[i], k, MODULUS[i], carry2);
+            result[i - 1] = ri.low;
+            carry2 = ri.carry;
+        }
+        let top = adc(carry_a, carry_b, carry2);
+        result[5] = top.low;
+    }
+    FqMont(subtract_modulus(result))
+}
+
+/// Pinned `Fq2Config::mul_fp_by_nonresidue_in_place`: `x -> -5 x`.
+pub fn mul_by_nonresidue(a: FqMont) -> FqMont {
+    let negated = neg(a);
+    add(negated, double(double(negated)))
+}
+
+/// Pinned `Fq2Config::sub_and_mul_fp_by_nonresidue`: `(y, x) -> x + 5 y`.
+pub fn sub_and_mul_by_nonresidue(y: FqMont, x: FqMont) -> FqMont {
+    let original = add(y, x);
+    add(double(double(y)), original)
+}
+
+/// Pinned `Fq2Config::mul_fp_by_nonresidue_plus_one_and_add`:
+/// `(y, x) -> x - 4 y`.
+pub fn mul_by_nonresidue_plus_one_and_add(y: FqMont, x: FqMont) -> FqMont {
+    add(neg(double(double(y))), x)
+}
+
+pub fn fq2_add(a: Fq2Mont, b: Fq2Mont) -> Fq2Mont {
+    Fq2Mont { c0: add(a.c0, b.c0), c1: add(a.c1, b.c1) }
+}
+
+pub fn fq2_sub(a: Fq2Mont, b: Fq2Mont) -> Fq2Mont {
+    Fq2Mont { c0: sub(a.c0, b.c0), c1: sub(a.c1, b.c1) }
+}
+
+pub fn fq2_neg(a: Fq2Mont) -> Fq2Mont {
+    Fq2Mont { c0: neg(a.c0), c1: neg(a.c1) }
+}
+
+/// Degree-2 `mul_assign`: nonresidue premultiplication plus two fused
+/// sum-of-products calls.
+pub fn fq2_mul(a: Fq2Mont, b: Fq2Mont) -> Fq2Mont {
+    let c1_nr = mul_by_nonresidue(a.c1);
+    Fq2Mont {
+        c0: sum_of_products2(a.c0, b.c0, c1_nr, b.c1),
+        c1: sum_of_products2(a.c0, b.c1, a.c1, b.c0),
+    }
+}
+
+/// General-branch (`beta != -1`) `square_in_place`.
+pub fn fq2_square(a: Fq2Mont) -> Fq2Mont {
+    let v0 = sub(a.c0, a.c1);
+    let v3 = sub_and_mul_by_nonresidue(a.c1, a.c0);
+    let v2 = mul(a.c0, a.c1);
+    let v0 = mul(v0, v3);
+    Fq2Mont {
+        c0: mul_by_nonresidue_plus_one_and_add(v2, v0),
+        c1: double(v2),
+    }
+}
+
+/// Norm-route `inverse`: `None` exactly on zero.
+pub fn fq2_inv(a: Fq2Mont) -> Option<Fq2Mont> {
+    if a.c0.0 == [0; 6] && a.c1.0 == [0; 6] {
+        return None;
+    }
+    let v1 = square(a.c1);
+    let v0 = sub_and_mul_by_nonresidue(v1, square(a.c0));
+    inv(v0).map(|norm_inv| Fq2Mont {
+        c0: mul(a.c0, norm_inv),
+        c1: neg(mul(a.c1, norm_inv)),
+    })
+}
+
+/// Extraction root whose closure contains every S3-16 Fq2 operation.
+#[doc(hidden)]
+pub fn extract_s3_16(a: Fq2Mont, b: Fq2Mont) -> (Fq2Mont, Fq2Mont, Fq2Mont, Fq2Mont, Fq2Mont, Option<Fq2Mont>) {
+    (
+        fq2_add(a, b),
+        fq2_sub(a, b),
+        fq2_neg(a),
+        fq2_mul(a, b),
+        fq2_square(a),
+        fq2_inv(a),
+    )
+}
+
 #[cfg(test)]
 mod inversion_tests {
     use super::{inv, FqMont};
