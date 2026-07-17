@@ -511,8 +511,21 @@ propext/Classical.choice/Quot.sound; Rust 43 tests green with
 `mac-campaign`. The S2 scalar-adapter instantiation moves to S3-15 with the
 rest of the wiring.
 
-**S3-15 — arkworks `Field377` integration and performance veto** — `MECHANICAL
-(luna)` — `GATED` on S3-F03B through S3-F05B. Connect the proved Fq/Fr operation
+**S3-15 — arkworks `Field377` integration and performance veto** —
+`DONE 2026-07-17` (orchestrator). Landed
+`Ipp/Bls12377FrAdapter.lean`: `executedScalarAdapter` packages the Fr
+decode laws (mul/add/sub/neg/inv/inv_zero/one/zero/wire) as the citable
+instantiation of S2's scalar model instances, with the executed↔production
+boundary remaining Rust-parity-pinned per design decision A; Montgomery
+`oneMont` literal verified against `R mod r`. Full `lake build Ipp` green;
+Rust suite green (43 tests, `mac-campaign`); no fiat backend or
+rejected-route code artifact remains (doc/history references only). The
+deterministic release-corpus A/B measurement is RECORDED AS NOT APPLICABLE:
+its purpose was the F02 route veto, and the selected F01B route leaves
+production arithmetic byte-identical — there is no candidate to measure
+against baseline. The `formal-handoff.md` arkworks arithmetic row is
+narrowed to tower/curve/pairing + delegator parity. Original scope for
+reference: connect the proved Fq/Fr operation
 theorems to the existing production curve/pairing call sites, run complete
 arithmetic vectors, normal/hax tests, focused/full Lean checks, and axiom audits,
 then run the deterministic release corpus for `aggregate_family` and
