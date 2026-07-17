@@ -551,6 +551,19 @@ Prove the executed Fq2 representation and add/sub/neg/mul/square against
 `QuadraticAlgebra Fq (-5) 0`; include component order used by arkworks and
 canonical bytes. Acceptance: no operation used by G2 or the extension tower is
 opaque. Narrows the extension-field and serialization rows.
+SCOPE PIN (2026-07-17, orchestrator, from ark-ff 0.5.0 source): the
+degree-2 `mul_assign` does NOT compose base ops — with 377 < 64·6−1 it
+executes `Fp::sum_of_products` M=2: per outer limb j, TWO interleaved
+product MAC chains accumulate into one register with dual carry words
+(`fa::adc`/`adc_no_carry`), then one Montgomery reduction step and shift,
+then `subtract_modulus`. This is a two-product generalization of the
+proven CIOS round; the `MacChainState` invariant machinery extends with a
+second product chain (new primitives: 3-input adc pair bookkeeping).
+Square takes the general β ≠ −1 branch (v0 = c0−c1, v3 = c0−β·c1,
+v2 = c0·c1 shape) and composes proven base ops, as do add (componentwise)
+and inverse (norm route: (c0²−β·c1²)⁻¹ via proven square/mul/inv).
+`mul_base_field_by_nonresidue(x)` for β = −5 must be pinned from the
+Fq2Config (likely −(x.double().double() + x) — verify at extraction).
 
 **S3-17 — Fq2 inverse, square root, and Frobenius** — `HARD (sol)` — `GATED`
 on S3-16. Prove the exact inverse/sqrt/sign-selection/Frobenius paths, including
