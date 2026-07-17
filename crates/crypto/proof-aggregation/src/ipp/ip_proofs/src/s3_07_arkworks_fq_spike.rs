@@ -581,31 +581,31 @@ pub fn double(a: FqMont) -> FqMont {
 pub fn sum_of_products2(a0: FqMont, b0: FqMont, a1: FqMont, b1: FqMont) -> FqMont {
     let mut result = [0u64; 6];
     for j in 0..6 {
-        let mut carry_a: u64 = 0;
-        let mut carry_b: u64 = 0;
-        for (a, b) in [(a0.0, b0.0), (a1.0, b1.0)] {
-            let m0 = mac(result[0], a[j], b[0], 0);
-            result[0] = m0.low;
-            let mut carry2 = m0.carry;
-            for k in 1..6 {
-                let mk = mac(result[k], a[j], b[k], carry2);
-                result[k] = mk.low;
-                carry2 = mk.carry;
-            }
-            let sum = adc(carry_a, carry_b, carry2);
-            carry_a = sum.low;
-            carry_b = sum.carry;
-        }
-        let k = result[0].wrapping_mul(INV);
-        let r0 = mac(result[0], k, MODULUS[0], 0);
-        let mut carry2 = r0.carry;
-        for i in 1..6 {
-            let ri = mac(result[i], k, MODULUS[i], carry2);
-            result[i - 1] = ri.low;
-            carry2 = ri.carry;
-        }
-        let top = adc(carry_a, carry_b, carry2);
-        result[5] = top.low;
+        let p0 = mac(result[0], a0.0[j], b0.0[0], 0);
+        let p1 = mac(result[1], a0.0[j], b0.0[1], p0.carry);
+        let p2 = mac(result[2], a0.0[j], b0.0[2], p1.carry);
+        let p3 = mac(result[3], a0.0[j], b0.0[3], p2.carry);
+        let p4 = mac(result[4], a0.0[j], b0.0[4], p3.carry);
+        let p5 = mac(result[5], a0.0[j], b0.0[5], p4.carry);
+        let sum0 = adc(0, 0, p5.carry);
+        let q0 = mac(p0.low, a1.0[j], b1.0[0], 0);
+        let q1 = mac(p1.low, a1.0[j], b1.0[1], q0.carry);
+        let q2 = mac(p2.low, a1.0[j], b1.0[2], q1.carry);
+        let q3 = mac(p3.low, a1.0[j], b1.0[3], q2.carry);
+        let q4 = mac(p4.low, a1.0[j], b1.0[4], q3.carry);
+        let q5 = mac(p5.low, a1.0[j], b1.0[5], q4.carry);
+        let sum1 = adc(sum0.low, sum0.carry, q5.carry);
+        let carry_a = sum1.low;
+        let carry_b = sum1.carry;
+        let k = q0.low.wrapping_mul(INV);
+        let r0 = mac(q0.low, k, MODULUS[0], 0);
+        let r1 = mac(q1.low, k, MODULUS[1], r0.carry);
+        let r2 = mac(q2.low, k, MODULUS[2], r1.carry);
+        let r3 = mac(q3.low, k, MODULUS[3], r2.carry);
+        let r4 = mac(q4.low, k, MODULUS[4], r3.carry);
+        let r5 = mac(q5.low, k, MODULUS[5], r4.carry);
+        let top = adc(carry_a, carry_b, r5.carry);
+        result = [r1.low, r2.low, r3.low, r4.low, r5.low, top.low];
     }
     FqMont(subtract_modulus(result))
 }
@@ -669,10 +669,13 @@ pub fn fq2_inv(a: Fq2Mont) -> Option<Fq2Mont> {
     }
     let v1 = square(a.c1);
     let v0 = sub_and_mul_by_nonresidue(v1, square(a.c0));
-    inv(v0).map(|norm_inv| Fq2Mont {
-        c0: mul(a.c0, norm_inv),
-        c1: neg(mul(a.c1, norm_inv)),
-    })
+    match inv(v0) {
+        None => None,
+        Some(norm_inv) => Some(Fq2Mont {
+            c0: mul(a.c0, norm_inv),
+            c1: neg(mul(a.c1, norm_inv)),
+        }),
+    }
 }
 
 /// Extraction root whose closure contains every S3-16 Fq2 operation.
