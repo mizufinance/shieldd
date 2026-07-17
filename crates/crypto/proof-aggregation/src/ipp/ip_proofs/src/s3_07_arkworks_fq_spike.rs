@@ -15,6 +15,14 @@ const MODULUS: [u64; 6] = [
     0x01ae_3a46_17c5_10ea,
 ];
 const INV: u64 = 0x8508_bfff_ffff_ffff;
+const R2: [u64; 6] = [
+    0xb786_686c_9400_cd22,
+    0x0329_fcaa_b004_31b1,
+    0x22a5_f111_62d6_b46d,
+    0xbfdf_7d03_827d_c3ac,
+    0x837e_92f0_4179_0bf9,
+    0x006d_fccb_1e91_4b88,
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FqMont(pub [u64; 6]);
@@ -129,6 +137,47 @@ fn gt(left: [u64; 6], right: [u64; 6]) -> bool {
 }
 
 #[inline(always)]
+fn shr_join(low: u64, high: u64) -> u64 {
+    (low >> 1) | (high << 63)
+}
+
+#[inline(always)]
+fn div2(value: [u64; 6]) -> [u64; 6] {
+    [
+        shr_join(value[0], value[1]),
+        shr_join(value[1], value[2]),
+        shr_join(value[2], value[3]),
+        shr_join(value[3], value[4]),
+        shr_join(value[4], value[5]),
+        value[5] >> 1,
+    ]
+}
+
+#[inline(always)]
+fn is_even(value: [u64; 6]) -> bool {
+    (value[0] >> 1) << 1 == value[0]
+}
+
+#[inline(always)]
+fn add_modulus_raw(value: [u64; 6]) -> [u64; 6] {
+    add_raw(value, MODULUS)
+}
+
+#[inline(always)]
+fn half_coefficient_odd(value: [u64; 6]) -> [u64; 6] {
+    div2(add_modulus_raw(value))
+}
+
+#[inline(always)]
+fn half_coefficient(value: [u64; 6]) -> [u64; 6] {
+    if is_even(value) {
+        div2(value)
+    } else {
+        half_coefficient_odd(value)
+    }
+}
+
+#[inline(always)]
 fn subtract_modulus(value: [u64; 6]) -> [u64; 6] {
     if !geq_modulus(value) {
         return value;
@@ -175,6 +224,39 @@ pub fn neg(a: FqMont) -> FqMont {
     } else {
         FqMont(sub_raw(MODULUS, a.0))
     }
+}
+
+/// Arkworks' GKP binary extended-Euclidean `MontBackend::inverse` path.
+pub fn inv(a: FqMont) -> Option<FqMont> {
+    if a.0 == [0; 6] {
+        return None;
+    }
+
+    let one = [1, 0, 0, 0, 0, 0];
+    let mut u = a.0;
+    let mut v = MODULUS;
+    let mut b = R2;
+    let mut c = [0; 6];
+
+    while u != one && v != one {
+        while is_even(u) {
+            u = div2(u);
+            b = half_coefficient(b);
+        }
+        while is_even(v) {
+            v = div2(v);
+            c = half_coefficient(c);
+        }
+        if gt(u, v) {
+            u = sub_raw(u, v);
+            b = sub(FqMont(b), FqMont(c)).0;
+        } else {
+            v = sub_raw(v, u);
+            c = sub(FqMont(c), FqMont(b)).0;
+        }
+    }
+
+    if u == one { Some(FqMont(b)) } else { Some(FqMont(c)) }
 }
 
 #[inline(always)]
@@ -239,4 +321,43 @@ pub fn square(a: FqMont) -> FqMont {
 #[doc(hidden)]
 pub fn extract_f03b(a: FqMont, b: FqMont) -> (FqMont, FqMont, FqMont, FqMont) {
     (add(a, b), sub(a, b), neg(a), square(a))
+}
+
+#[cfg(test)]
+mod inversion_tests {
+    use super::{inv, FqMont};
+    use ark_bls12_377::Fq;
+    use ark_ff::{BigInt, Field};
+    use ark_std::{test_rng, UniformRand};
+
+    fn mont(value: Fq) -> FqMont {
+        FqMont(value.0 .0)
+    }
+
+    fn ark(value: FqMont) -> Fq {
+        Fq::new_unchecked(BigInt(value.0))
+    }
+
+    fn check(value: Fq) {
+        assert_eq!(inv(mont(value)).map(ark), value.inverse());
+    }
+
+    #[test]
+    fn edge_and_512_random_vectors_match_arkworks_fq_inverse() {
+        for value in [
+            Fq::from(0_u64),
+            Fq::from(1_u64),
+            Fq::from(2_u64),
+            -Fq::from(1_u64),
+            -Fq::from(2_u64),
+            Fq::from(u64::MAX),
+        ] {
+            check(value);
+        }
+
+        let mut rng = test_rng();
+        for _ in 0..512 {
+            check(Fq::rand(&mut rng));
+        }
+    }
 }

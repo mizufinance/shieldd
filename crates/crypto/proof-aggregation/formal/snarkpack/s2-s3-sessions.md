@@ -1096,3 +1096,49 @@ Session-3 verification:
   `Quot.sound`. There are no `sorry`s or declared axioms in the campaign Lean
   files.
 - Prover, release, and release-gated tests were not run.
+
+### S3-F04B-1 — GKP inverse loop and decode capstone (2026-07-16)
+
+Status: COMPLETE. The generated Arkworks GKP binary extended-Euclidean loop is
+proved through its successful nonzero path, and the selected canonical
+coefficient decodes to the multiplicative inverse of the decoded input.
+
+The hand-fixed, kernel-certified `extracted_half_coefficient_spec` bridge was
+supplied by the orchestrator and retained unchanged. `CoefficientInvariant`
+and `InvInvariant` carry the two Nat congruences, coefficient bounds,
+positivity, and binary-GCD coprimality. `inv_loop0_loop0_body_spec` and
+`inv_loop0_loop1_body_spec` prove the factor-of-two steps; their fueled
+inductions return odd divisors and preserve initially odd states. The outer
+`inv_loop0_body_spec` composes both strips and both subtraction branches,
+preserves coprimality, and proves strict decrease of `u+v` on every
+continuation. `inv_loop0_fuel_spec` and `inv_loop0_spec` connect the body proof
+to the extracted loop runtime. `extracted_inv_spec` follows the generated
+initialization and final coefficient selection. The capstone is:
+
+```lean
+theorem decode_extracted_inv (a output : LimbArray)
+    (ha : limbsToNat a < modulus) (hne : a ≠ zeroArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.inv a =
+      .ok (some output)) :
+    decode output * decode a = 1
+```
+
+The existing `extracted_inv_zero` certifies the `none` branch.
+
+F04B-1 verification:
+
+- Focused Lean: `lake build Ipp.Extracted.ArkworksFqInv` passed with the pinned
+  Lean 4.30.0 `lake` and `LEAN_NUM_THREADS=1`, both before proof work and after
+  the capstone landed.
+- Full Lean: `lake build Ipp` passed, 3410 jobs, with the same pinned,
+  single-threaded configuration.
+- The normal `cargo test -p ark-ip-proofs` run passed 36 unit tests and both Fq
+  spike tests (2 ignored); the `hax_compilation` run passed 37 unit tests and
+  both Fq spike tests (2 ignored).
+- `#print axioms` for both inner body lemmas, the outer body/fueled-loop
+  theorems, and `decode_extracted_inv` reports exactly `propext`,
+  `Classical.choice`, and `Quot.sound`. The inverse proof file has no `sorry`
+  and declares no axioms.
+
+F04B-2 remains exactly the Fq square-root and canonical byte encode/decode
+paths; no F04B-2 content is claimed here.
