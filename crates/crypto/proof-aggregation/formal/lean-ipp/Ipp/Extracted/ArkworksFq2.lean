@@ -1060,6 +1060,102 @@ theorem extracted_fq2_square_spec (a output : Fq2LimbPair)
     simp only [decodeFq2, QuadraticAlgebra.re_mul, QuadraticAlgebra.im_mul,
       dfm, dfm1, d01, d0, d3, d2] <;> ring
 
+/-! ### `fq2_inv`: norm-route inverse, some-branch law
+The none-direction (totality: nonzero input → `some`) needs the GKP-inverse
+totality theorem, which `ArkworksFqInv` does not yet provide; it is owned by
+S3-17 together with the rest of the inverse. -/
+
+private theorem fq2_inv_norm_route (a : Fq2LimbPair)
+    (v1 fmc0 v0 norm_inv fm1 fm2 fm3 : LimbArray)
+    (ha : Canonical2 a)
+    (hv1 : ark_ip_proofs.s3_07_arkworks_fq_spike.square a.c1 = .ok v1)
+    (hfmc0 : ark_ip_proofs.s3_07_arkworks_fq_spike.square a.c0 = .ok fmc0)
+    (hv0 : ark_ip_proofs.s3_07_arkworks_fq_spike.sub_and_mul_by_nonresidue
+      v1 fmc0 = .ok v0)
+    (hinv : ark_ip_proofs.s3_07_arkworks_fq_spike.inv v0 =
+      .ok (some norm_inv))
+    (hm1 : ark_ip_proofs.s3_07_arkworks_fq_spike.mul a.c0 norm_inv = .ok fm1)
+    (hm2 : ark_ip_proofs.s3_07_arkworks_fq_spike.mul a.c1 norm_inv = .ok fm2)
+    (hn : ark_ip_proofs.s3_07_arkworks_fq_spike.neg fm2 = .ok fm3) :
+    Canonical2 ⟨fm1, fm3⟩ ∧
+    decodeFq2 ⟨fm1, fm3⟩ * decodeFq2 a = 1 := by
+  have hv1s := extracted_square_spec a.c1 v1 ha.2 hv1
+  have hc0s := extracted_square_spec a.c0 fmc0 ha.1 hfmc0
+  have hv0s := extracted_sub_and_mul_by_nonresidue_spec v1 fmc0 v0
+    hv1s.1 hc0s.1 hv0
+  have hne : v0 ≠ Ipp.Extracted.ArkworksFqInv.zeroArray := by
+    intro hcontra
+    rw [hcontra, Ipp.Extracted.ArkworksFqInv.extracted_inv_zero] at hinv
+    simp at hinv
+  have hninv_lt : limbsToNat norm_inv < Ipp.Bls12377.baseModulus :=
+    (Ipp.Extracted.ArkworksFqInv.extracted_inv_spec v0 norm_inv
+      hv0s.1 hne hinv).coefficient_lt
+  have hm1s := extracted_mul_spec a.c0 norm_inv fm1 ha.1 hninv_lt hm1
+  have hm2s := extracted_mul_spec a.c1 norm_inv fm2 ha.2 hninv_lt hm2
+  have hns := extracted_neg_spec fm2 fm3 hm2s.1 hn
+  refine ⟨⟨hm1s.1, hns.1⟩, ?_⟩
+  have dinv := Ipp.Extracted.ArkworksFqInv.decode_extracted_inv v0 norm_inv
+    hv0s.1 hne hinv
+  have dv1 := decode_extracted_square a.c1 v1 ha.2 hv1
+  have dc0 := decode_extracted_square a.c0 fmc0 ha.1 hfmc0
+  have dm1 := decode_extracted_mul a.c0 norm_inv fm1 ha.1 hninv_lt hm1
+  have dm2 := decode_extracted_mul a.c1 norm_inv fm2 ha.2 hninv_lt hm2
+  have dn := decode_extracted_neg fm2 fm3 hm2s.1 hn
+  rw [hv0s.2, dc0, dv1] at dinv
+  apply QuadraticAlgebra.ext
+  · simp only [decodeFq2, QuadraticAlgebra.re_mul, QuadraticAlgebra.re_one,
+      dm1, dn, dm2]
+    linear_combination dinv
+  · simp only [decodeFq2, QuadraticAlgebra.im_mul, QuadraticAlgebra.im_one,
+      dm1, dn, dm2]
+    ring
+
+theorem extracted_fq2_inv_some_spec (a output : Fq2LimbPair)
+    (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_inv a =
+      .ok (some output)) :
+    Canonical2 output ∧ decodeFq2 output * decodeFq2 a = 1 := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_inv at hexec
+  obtain ⟨c0IsZero, hc0z, hexec⟩ := bind_eq_ok hexec
+  split at hexec
+  · obtain ⟨c1IsZero, hc1z, hexec⟩ := bind_eq_ok hexec
+    split at hexec
+    · simp at hexec
+    · obtain ⟨v1, hv1, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨fmc0, hfmc0, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨v0, hv0, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨o, ho, hexec⟩ := bind_eq_ok hexec
+      cases o with
+      | none => simp at hexec
+      | some norm_inv =>
+          obtain ⟨fm1, hm1, hexec⟩ := bind_eq_ok hexec
+          obtain ⟨fm2, hm2, hexec⟩ := bind_eq_ok hexec
+          obtain ⟨fm3, hn, hexec⟩ := bind_eq_ok hexec
+          have hret : some ({ c0 := fm1, c1 := fm3 } :
+              ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont) = some output :=
+            Result.ok.inj hexec
+          have hout := Option.some.inj hret
+          subst hout
+          exact fq2_inv_norm_route a v1 fmc0 v0 norm_inv fm1 fm2 fm3 ha
+            hv1 hfmc0 hv0 ho hm1 hm2 hn
+  · obtain ⟨v1, hv1, hexec⟩ := bind_eq_ok hexec
+    obtain ⟨fmc0, hfmc0, hexec⟩ := bind_eq_ok hexec
+    obtain ⟨v0, hv0, hexec⟩ := bind_eq_ok hexec
+    obtain ⟨o, ho, hexec⟩ := bind_eq_ok hexec
+    cases o with
+    | none => simp at hexec
+    | some norm_inv =>
+        obtain ⟨fm1, hm1, hexec⟩ := bind_eq_ok hexec
+        obtain ⟨fm2, hm2, hexec⟩ := bind_eq_ok hexec
+        obtain ⟨fm3, hn, hexec⟩ := bind_eq_ok hexec
+        have hret : some ({ c0 := fm1, c1 := fm3 } :
+            ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont) = some output :=
+          Result.ok.inj hexec
+        have hout := Option.some.inj hret
+        subst hout
+        exact fq2_inv_norm_route a v1 fmc0 v0 norm_inv fm1 fm2 fm3 ha
+          hv1 hfmc0 hv0 ho hm1 hm2 hn
+
 end Ipp.Extracted.ArkworksFq2
 
 #print axioms Ipp.Extracted.ArkworksFq2.decode_extracted_double
@@ -1067,3 +1163,4 @@ end Ipp.Extracted.ArkworksFq2
 #print axioms Ipp.Extracted.ArkworksFq2.decode_extracted_sop2
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_mul_spec
 #print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_square_spec
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_inv_some_spec
