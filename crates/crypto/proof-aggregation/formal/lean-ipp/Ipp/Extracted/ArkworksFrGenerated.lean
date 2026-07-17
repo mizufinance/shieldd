@@ -168,7 +168,7 @@ def s3_07_arkworks_fr_spike.sbb
   let i1 ← lift (MacCampaign.castU128 right)
   let i2 ← lift (MacCampaign.castU128 borrow)
   let i3 ← MacCampaign.add128 i1 i2
-  let value ← lift (core.num.U128.wrapping_sub i i3)
+  let value ← lift (MacCampaign.wrappingSub128 i i3)
   let i4 ← lift (MacCampaign.castU64 value)
   let i5 ← MacCampaign.shr128 value (MacCampaign.I32.ofNat 127)
   let i6 ← lift (MacCampaign.castU64 i5)
@@ -312,7 +312,8 @@ def s3_07_arkworks_fr_spike.mul
   let r2 ← s3_07_arkworks_fr_spike.round r1 a i2
   let i3 ← MacCampaign.Array.index_usize b 3#usize
   let r3 ← s3_07_arkworks_fr_spike.round r2 a i3
-  s3_07_arkworks_fr_spike.subtract_modulus r3
+  let a2 ← s3_07_arkworks_fr_spike.subtract_modulus r3
+  ok a2
 
 /-- [ark_ip_proofs::s3_07_arkworks_fr_spike::add] -/
 def s3_07_arkworks_fr_spike.add
