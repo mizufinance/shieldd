@@ -10,6 +10,9 @@ pub mod gipa;
 #[cfg(any(hax_compilation, feature = "mac-campaign"))]
 #[doc(hidden)]
 pub mod s3_07_arkworks_fq_spike;
+#[cfg(any(hax_compilation, feature = "mac-campaign"))]
+#[doc(hidden)]
+pub mod s3_07_arkworks_fr_spike;
 pub mod tipa;
 
 pub type Error = Box<dyn ErrorTrait>;
