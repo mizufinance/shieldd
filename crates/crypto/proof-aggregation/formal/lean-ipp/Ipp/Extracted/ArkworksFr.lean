@@ -1,8 +1,10 @@
 import Ipp.Extracted.ArkworksFrGenerated
 import Ipp.Extracted.ArkworksFqMul
 import Ipp.Extracted.ArkworksFqOps
+import Ipp.Extracted.ArkworksFqSqrtBytes
 import Ipp.Bls12377Core
 import Ipp.Bls12377
+import Ipp.CanonicalDecode
 import Mathlib.Data.Nat.Bitwise
 import Mathlib.Tactic
 
@@ -3194,8 +3196,208 @@ theorem extracted_inv_zero :
     ark_ip_proofs.core.array.equality.PartialEqArray.eq,
     MacCampaign.Array.replicate]
 
+/-! ## Canonical 32-byte wire (`from_bytes`); the value theorems target the
+generic GAP-01 little-endian decoder directly — no Fr-specific wire records
+exist in GAP-01, and challenge-stage consumers (GAP-11) compose from
+`decodeLE`. `to_bytes` remains pinned by the Rust parity tests. -/
+
+abbrev FrByteArray := ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 32
+
+def bytesValue (bytes : FrByteArray) : Nat :=
+  Ipp.CanonicalWire.decodeLE bytes.val
+
+def byteFn (bytes : FrByteArray) : Fin 32 → UInt8 := fun i =>
+  bytes.val.get ⟨i.val, by simpa [bytes.hlen] using i.isLt⟩
+
+private theorem byteArray_eq_ofFn (bytes : FrByteArray) :
+    bytes = ⟨List.ofFn (byteFn bytes), by simp⟩ := by
+  apply MacCampaign.Array.ext
+  apply List.ext_get
+  · simp [bytes.hlen]
+  · intro n hnLeft hnRight
+    have hn : n < 32 := by simpa [bytes.hlen] using hnLeft
+    interval_cases n <;> rfl
+
+private def byteChunkList (bytes : FrByteArray) (offset : Fin 25) : List UInt8 :=
+  List.ofFn fun i : Fin 8 =>
+    byteFn bytes ⟨offset.val + i.val, by
+      have ho := offset.isLt
+      have hi := i.isLt
+      omega⟩
+
+private def byteChunk (bytes : FrByteArray) (offset : Fin 25) :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 8 :=
+  ⟨byteChunkList bytes offset, by simp [byteChunkList]⟩
+
+private theorem bytes_to_limbs_eq (bytes : FrByteArray) :
+    ark_ip_proofs.s3_07_arkworks_fr_spike.bytes_to_limbs bytes = (do
+      let w0 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 0)
+      let w1 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 8)
+      let w2 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 16)
+      let w3 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+        (byteChunk bytes 24)
+      ok (MacCampaign.Array.make 4#usize [w0, w1, w2, w3])) := by
+  rw [byteArray_eq_ofFn bytes]
+  rfl
+
+private theorem decodeLE_append (xs ys : List UInt8) :
+    Ipp.CanonicalWire.decodeLE (xs ++ ys) =
+      Ipp.CanonicalWire.decodeLE xs +
+        256 ^ xs.length * Ipp.CanonicalWire.decodeLE ys := by
+  induction xs with
+  | nil => simp [Ipp.CanonicalWire.decodeLE]
+  | cons x xs ih =>
+      simp only [List.cons_append, Ipp.CanonicalWire.decodeLE, List.length_cons,
+        Nat.pow_succ, ih]
+      ring
+
+private theorem byteChunks_eq (bytes : FrByteArray) :
+    List.ofFn (byteFn bytes) =
+      (byteChunk bytes 0).val ++ (byteChunk bytes 8).val ++
+      (byteChunk bytes 16).val ++ (byteChunk bytes 24).val := by
+  apply List.ext_get
+  · simp [byteChunk, byteChunkList]
+  · intro n hnLeft hnRight
+    have hn : n < 32 := by simpa using hnLeft
+    interval_cases n <;> rfl
+
+private theorem four_word_values_spec (bytes : FrByteArray)
+    (w0 w1 w2 w3 : MacCampaign.U64)
+    (h0 : w0.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 0).val)
+    (h1 : w1.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 8).val)
+    (h2 : w2.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 16).val)
+    (h3 : w3.val = Ipp.CanonicalWire.decodeLE (byteChunk bytes 24).val) :
+    limbsToNat (MacCampaign.Array.make 4#usize [w0, w1, w2, w3]) =
+      Ipp.CanonicalWire.decodeLE (List.ofFn (byteFn bytes)) := by
+  rw [byteChunks_eq, decodeLE_append, decodeLE_append, decodeLE_append]
+  rw [limbsToNat_four]
+  simp only [limb, limbWord, limbCount, MacCampaign.Array.make,
+    List.get_eq_getElem, List.getElem_cons_zero, List.getElem_cons_succ]
+  rw [h0, h1, h2, h3]
+  simp [byteChunk, byteChunkList, wordBase]
+  ring
+
+/-- Reconstructing four little-endian words preserves the 32-byte value. -/
+theorem bytes_to_limbs_value_spec
+    (bytes : FrByteArray) (value : FrLimbArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.bytes_to_limbs bytes =
+      .ok value) :
+    limbsToNat value = Ipp.CanonicalWire.decodeLE bytes.val := by
+  rw [bytes_to_limbs_eq] at hexec
+  obtain ⟨w0, hw0, hrest⟩ := bind_eq_ok hexec
+  obtain ⟨w1, hw1, hrest⟩ := bind_eq_ok hrest
+  obtain ⟨w2, hw2, hrest⟩ := bind_eq_ok hrest
+  obtain ⟨w3, hw3, hreturn⟩ := bind_eq_ok hrest
+  simp only [Result.ok.injEq] at hreturn
+  subst value
+  rw [byteArray_eq_ofFn bytes]
+  apply four_word_values_spec bytes w0 w1 w2 w3
+  · exact Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_word_spec _ w0 hw0
+  · exact Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_word_spec _ w1 hw1
+  · exact Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_word_spec _ w2 hw2
+  · exact Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_word_spec _ w3 hw3
+
+/-- The extracted reader rejects whenever its reconstructed integer is not below `r`. -/
+theorem extracted_from_bytes_rejects_noncanonical
+    (bytes : FrByteArray) (value : FrLimbArray)
+    (hparse : ark_ip_proofs.s3_07_arkworks_fr_spike.bytes_to_limbs bytes =
+      .ok value)
+    (hge : Ipp.Bls12377.scalarModulus ≤ limbsToNat value) :
+    ark_ip_proofs.s3_07_arkworks_fr_spike.from_bytes bytes = .ok none := by
+  unfold ark_ip_proofs.s3_07_arkworks_fr_spike.from_bytes
+  rw [hparse]
+  simp only [Result.bind_ok]
+  rw [extracted_geq_modulus_spec]
+  simp only [Result.bind_ok]
+  have hcompare : geqPrefix value
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS limbCount = true := by
+    apply (geqPrefix_spec value
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS limbCount (by omega)).2
+    simpa [limbsToNat, modulus_limbsToNat] using hge
+  rw [hcompare, if_pos rfl]
+
+theorem decode_from_bytes_conversion
+    (value output : FrLimbArray)
+    (hvalue : limbsToNat value < Ipp.Bls12377.scalarModulus)
+    (hmul : ark_ip_proofs.s3_07_arkworks_fr_spike.mul value
+      ark_ip_proofs.s3_07_arkworks_fr_spike.R2 = .ok output) :
+    decode output = (limbsToNat value : Ipp.Bls12377.Fr) := by
+  rw [decode_extracted_mul value
+    ark_ip_proofs.s3_07_arkworks_fr_spike.R2 output hvalue
+    limbsToNat_R2_lt hmul]
+  rw [decode_eq_cast_mul_inv, decode_eq_cast_mul_inv]
+  have hR2 :
+      (limbsToNat ark_ip_proofs.s3_07_arkworks_fr_spike.R2 :
+          Ipp.Bls12377.Fr) =
+        (Ipp.Bls12377.scalarMontgomeryRadix ^ 2 : Nat) :=
+    (ZMod.natCast_eq_natCast_iff _ _ _).2 R2_modEq
+  rw [hR2]
+  push_cast
+  have hcancel :
+      (Ipp.Bls12377.scalarMontgomeryRadix : Ipp.Bls12377.Fr) *
+        (Ipp.Bls12377.scalarMontgomeryRadix : Ipp.Bls12377.Fr)⁻¹ = 1 :=
+    ZMod.coe_mul_inv_eq_one Ipp.Bls12377.scalarMontgomeryRadix
+      scalarMontgomeryRadix_coprime
+  calc
+    (limbsToNat value : Ipp.Bls12377.Fr) *
+        (Ipp.Bls12377.scalarMontgomeryRadix : Ipp.Bls12377.Fr)⁻¹ *
+        ((Ipp.Bls12377.scalarMontgomeryRadix : Ipp.Bls12377.Fr) ^ 2 *
+          (Ipp.Bls12377.scalarMontgomeryRadix : Ipp.Bls12377.Fr)⁻¹) =
+      (limbsToNat value : Ipp.Bls12377.Fr) *
+        ((Ipp.Bls12377.scalarMontgomeryRadix : Ipp.Bls12377.Fr) *
+          (Ipp.Bls12377.scalarMontgomeryRadix : Ipp.Bls12377.Fr)⁻¹) ^ 2 := by
+            ring
+    _ = (limbsToNat value : Ipp.Bls12377.Fr) := by rw [hcancel]; ring
+
+/-- Successful extracted Fr wire decoding is exactly the canonical
+little-endian value, converted to the field. -/
+theorem from_bytes_value_spec
+    (bytes : FrByteArray) (output : FrLimbArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.from_bytes bytes =
+      .ok (some output)) :
+    bytesValue bytes < Ipp.Bls12377.scalarModulus ∧
+    decode output = (bytesValue bytes : Ipp.Bls12377.Fr) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fr_spike.from_bytes at hexec
+  obtain ⟨value, hparse, hrest⟩ := bind_eq_ok hexec
+  have hbytes := bytes_to_limbs_value_spec bytes value hparse
+  have hvalue : limbsToNat value < Ipp.Bls12377.scalarModulus := by
+    by_contra hnot
+    have hreject := extracted_from_bytes_rejects_noncanonical bytes value hparse
+      (Nat.le_of_not_gt hnot)
+    unfold ark_ip_proofs.s3_07_arkworks_fr_spike.from_bytes at hreject
+    rw [hparse] at hreject
+    simp only [Result.bind_ok] at hreject
+    rw [hreject] at hrest
+    cases hrest
+  have hcompare : geqPrefix value
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS limbCount = false := by
+    apply Bool.eq_false_iff.mpr
+    intro htrue
+    have hge := (geqPrefix_spec value
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS limbCount (by omega)).1 htrue
+    change limbsToNat ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS ≤
+      limbsToNat value at hge
+    rw [modulus_limbsToNat] at hge
+    omega
+  rw [extracted_geq_modulus_spec] at hrest
+  simp only [Result.bind_ok] at hrest
+  rw [hcompare, if_neg (by decide)] at hrest
+  obtain ⟨converted, hmul, hconverted⟩ := bind_eq_ok hrest
+  have heq : converted = output :=
+    Option.some.inj (Result.ok.inj hconverted)
+  subst converted
+  simp only [bytesValue]
+  refine ⟨by rw [← hbytes]; exact hvalue, ?_⟩
+  rw [← hbytes]
+  exact decode_from_bytes_conversion value output hvalue hmul
+
 end Ipp.Extracted.ArkworksFr
 
+#print axioms Ipp.Extracted.ArkworksFr.bytes_to_limbs_value_spec
+#print axioms Ipp.Extracted.ArkworksFr.from_bytes_value_spec
 #print axioms Ipp.Extracted.ArkworksFr.decode_extracted_inv
 #print axioms Ipp.Extracted.ArkworksFr.extracted_inv_zero
 

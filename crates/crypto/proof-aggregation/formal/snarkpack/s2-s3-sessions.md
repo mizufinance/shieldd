@@ -493,13 +493,23 @@ noncanonical failures. Acceptance: every Fq path reached by curve decoding and
 pairing has an executed theorem and the remaining Fq/serialization portion of
 the arkworks row is narrowed.
 
-**S3-F05B — four-limb Fr refinement** — `HARD (sol)` — `GATED` on S3-F03B and
-S3-F04B's reusable loop proof. Instantiate the machine-arithmetic framework for
-the four-limb scalar modulus and prove executed representation/constants,
-add/sub/neg, mul/square, inverse/powers used by the verifier, and canonical
-bytes. Acceptance: all ranges and failure branches are explicit, deterministic
-vectors and focused proof checks pass, and the concrete S2 scalar adapter laws
-instantiate without a field-operation premise.
+**S3-F05B — four-limb Fr refinement** — `DONE 2026-07-17` (executed by the
+orchestrator directly; Codex capped until 2026-07-23). Landed: monomorphic
+four-limb Fr spike (`s3_07_arkworks_fr_spike.rs`, parity green vs arkworks
+incl. inversion and noncanonical-byte rejection), scoped six-root hax
+extraction vendored as `Ipp/Extracted/ArkworksFrGenerated.lean`, and
+`Ipp/Extracted/ArkworksFr.lean` proving against `ZMod scalarModulus`:
+`decode_extracted_mul` (CIOS, 4-round induction), `decode_extracted_add/
+sub/neg`, `decode_extracted_inv` (GKP lanes, fueled `u+v` descent) +
+`extracted_inv_zero`, and `bytes_to_limbs_value_spec`/`from_bytes_value_spec`
+against the GAP-01 `decodeLE` (no Fr wire records exist in GAP-01; GAP-11
+composes from `decodeLE`). Exclusions, recorded: Fr sqrt (never executed on
+scalars) and dedicated square (Fr squarings run the generic `mul` path);
+`to_bytes` stays pinned by Rust parity. Full `lake build Ipp` green
+(3414 jobs), zero sorry/axiom/native_decide, audits =
+propext/Classical.choice/Quot.sound; Rust 43 tests green with
+`mac-campaign`. The S2 scalar-adapter instantiation moves to S3-15 with the
+rest of the wiring.
 
 **S3-15 — arkworks `Field377` integration and performance veto** — `MECHANICAL
 (luna)` — `GATED` on S3-F03B through S3-F05B. Connect the proved Fq/Fr operation
