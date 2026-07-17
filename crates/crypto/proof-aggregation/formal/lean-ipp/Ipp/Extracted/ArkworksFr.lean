@@ -1,5 +1,6 @@
 import Ipp.Extracted.ArkworksFrGenerated
 import Ipp.Extracted.ArkworksFqMul
+import Ipp.Extracted.ArkworksFqOps
 import Ipp.Bls12377Core
 import Mathlib.Tactic
 
@@ -1512,6 +1513,605 @@ theorem decode_extracted_mul (a b output : FrLimbArray)
     (Ipp.Bls12377.scalarMontgomeryRadix : Ipp.Bls12377.Fr) hcast
     (ZMod.coe_mul_inv_eq_one Ipp.Bls12377.scalarMontgomeryRadix
       scalarMontgomeryRadix_coprime)
+
+/-! ## Addition, subtraction, negation (decode theorems stated directly
+against `ZMod scalarModulus`; the Fq files' MontgomeryFq semantic layer is
+Fq-specific and unnecessary here because decode is linear). -/
+
+def adcModel (left right carry : MacCampaign.U64) : FrMac :=
+  let value := left.val + right.val + carry.val
+  { low := MacCampaign.U64.ofNat value
+    carry := MacCampaign.U64.ofNat (value / wordBase) }
+
+theorem extracted_adc_eq_model (left right carry : MacCampaign.U64)
+    (hcarry : carry.val ≤ 1) :
+    ark_ip_proofs.s3_07_arkworks_fr_spike.adc left right carry =
+      .ok (adcModel left right carry) := by
+  let value := left.val + right.val + carry.val
+  have hleft : left.val < wordBase := by
+    simpa [MacCampaign.u64Base, wordBase] using left.isLt
+  have hright : right.val < wordBase := by
+    simpa [MacCampaign.u64Base, wordBase] using right.isLt
+  have hsum : left.val + right.val < MacCampaign.u128Base := by
+    simp only [MacCampaign.u128Base, wordBase] at *
+    omega
+  have hvalue : value < MacCampaign.u128Base := by
+    dsimp [value]
+    simp only [MacCampaign.u128Base, wordBase] at *
+    omega
+  have hcarryOut : value / wordBase < wordBase := by
+    apply (Nat.div_lt_iff_lt_mul wordBase_pos).2
+    simpa [u128Base_eq] using hvalue
+  have hshift : (MacCampaign.I32.ofNat 64).val < 128 := by decide
+  have hshiftValue : (MacCampaign.I32.ofNat 64).val = 64 := by decide
+  simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.adc, lift,
+    Result.bind_ok, MacCampaign.castU128, MacCampaign.add128,
+    dif_pos hsum]
+  have hvalueRaw : left.val + right.val + carry.val <
+      MacCampaign.u128Base := by simpa [value] using hvalue
+  simp only [dif_pos hvalueRaw, MacCampaign.castU64,
+    MacCampaign.shr128, if_pos hshift]
+  simp [adcModel, MacCampaign.U64.ofNat, MacCampaign.U128.ofNat,
+    MacCampaign.u64Base, MacCampaign.u128Base, wordBase,
+    Nat.mod_eq_of_lt hcarryOut, hshiftValue]
+
+theorem extracted_adc_spec (left right carry : MacCampaign.U64)
+    (output : FrMac) (hcarry : carry.val ≤ 1)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.adc left right carry =
+      .ok output) :
+    Ipp.Extracted.ArkworksFqOps.AdcSpec left.val right.val carry.val
+      { low := output.low.val, carry := output.carry.val } := by
+  rw [extracted_adc_eq_model left right carry hcarry] at hexec
+  cases hexec
+  have hl : left.val < wordBase := by
+    simpa [MacCampaign.u64Base, wordBase] using left.isLt
+  have hr : right.val < wordBase := by
+    simpa [MacCampaign.u64Base, wordBase] using right.isLt
+  let value := left.val + right.val + carry.val
+  have htwo : value < 2 * wordBase := by
+    dsimp [value]
+    omega
+  have hc : value / wordBase ≤ 1 := by
+    exact (Nat.div_le_iff_le_mul wordBase_pos).2 (by omega)
+  have hcLt : value / wordBase < wordBase := by
+    exact lt_of_le_of_lt hc (by decide)
+  refine ⟨hl, hr, hcarry, ?_, ?_, ?_⟩
+  · simpa [adcModel, MacCampaign.U64.ofNat, MacCampaign.u64Base,
+      wordBase] using Nat.mod_lt value wordBase_pos
+  · change value / wordBase % wordBase ≤ 1
+    rw [Nat.mod_eq_of_lt hcLt]
+    exact hc
+  · change value = (value / wordBase % MacCampaign.u64Base) * wordBase +
+      value % MacCampaign.u64Base
+    rw [show MacCampaign.u64Base = wordBase by rfl,
+      Nat.mod_eq_of_lt hcLt]
+    exact (Nat.mod_add_div value wordBase).symm.trans (by ac_rfl)
+
+private theorem adc_telescope
+    (a0 a1 a2 a3 b0 b1 b2 b3 l0 l1 l2 l3 c1 c2 c3 c4 : Nat)
+    (h0 : a0 + b0 = c1 * wordBase + l0)
+    (h1 : a1 + b1 + c1 = c2 * wordBase + l1)
+    (h2 : a2 + b2 + c2 = c3 * wordBase + l2)
+    (h3 : a3 + b3 + c3 = c4 * wordBase + l3) :
+    (l0 + l1 * wordBase + l2 * wordBase ^ 2 + l3 * wordBase ^ 3) +
+        c4 * wordBase ^ 4 =
+    (a0 + a1 * wordBase + a2 * wordBase ^ 2 + a3 * wordBase ^ 3) +
+    (b0 + b1 * wordBase + b2 * wordBase ^ 2 + b3 * wordBase ^ 3) := by
+  norm_num [wordBase] at h0 h1 h2 h3 ⊢
+  omega
+
+set_option maxRecDepth 32768 in
+theorem extracted_add_raw_spec (a b output : FrLimbArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.add_raw a b = .ok output) :
+    ∃ carry, carry ≤ 1 ∧
+      limbsToNat output + carry * wordBase ^ limbCount =
+        limbsToNat a + limbsToNat b := by
+  let z := MacCampaign.U64.ofNat 0
+  let o0 := adcModel (limbWord a ⟨0, by decide⟩)
+    (limbWord b ⟨0, by decide⟩) z
+  have hz : z.val ≤ 1 := by simp [z, MacCampaign.U64.ofNat]
+  have h0 := extracted_adc_eq_model (limbWord a ⟨0, by decide⟩)
+    (limbWord b ⟨0, by decide⟩) z hz
+  have s0 := extracted_adc_spec _ _ z o0 hz (by simpa [o0] using h0)
+  let o1 := adcModel (limbWord a ⟨1, by decide⟩)
+    (limbWord b ⟨1, by decide⟩) o0.carry
+  have h1 := extracted_adc_eq_model (limbWord a ⟨1, by decide⟩)
+    (limbWord b ⟨1, by decide⟩) o0.carry s0.carry_out_le
+  have s1 := extracted_adc_spec _ _ o0.carry o1 s0.carry_out_le
+    (by simpa [o1] using h1)
+  let o2 := adcModel (limbWord a ⟨2, by decide⟩)
+    (limbWord b ⟨2, by decide⟩) o1.carry
+  have h2 := extracted_adc_eq_model (limbWord a ⟨2, by decide⟩)
+    (limbWord b ⟨2, by decide⟩) o1.carry s1.carry_out_le
+  have s2 := extracted_adc_spec _ _ o1.carry o2 s1.carry_out_le
+    (by simpa [o2] using h2)
+  let o3 := adcModel (limbWord a ⟨3, by decide⟩)
+    (limbWord b ⟨3, by decide⟩) o2.carry
+  have h3 := extracted_adc_eq_model (limbWord a ⟨3, by decide⟩)
+    (limbWord b ⟨3, by decide⟩) o2.carry s2.carry_out_le
+  have s3 := extracted_adc_spec _ _ o2.carry o3 s2.carry_out_le
+    (by simpa [o3] using h3)
+  have hrun := hexec
+  simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.add_raw] at hrun
+  change MacCampaign.Array.index_usize a (Usize.ofNat 0) >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (array_index_limbWord a ⟨0, by decide⟩) hrun
+  change MacCampaign.Array.index_usize b (Usize.ofNat 0) >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (array_index_limbWord b ⟨0, by decide⟩) hrun
+  change ark_ip_proofs.s3_07_arkworks_fr_spike.adc _ _ z >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (by simpa [z] using h0) hrun
+  change MacCampaign.Array.index_usize a (Usize.ofNat 1) >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (array_index_limbWord a ⟨1, by decide⟩) hrun
+  change MacCampaign.Array.index_usize b (Usize.ofNat 1) >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (array_index_limbWord b ⟨1, by decide⟩) hrun
+  change ark_ip_proofs.s3_07_arkworks_fr_spike.adc _ _ o0.carry >>= _ = .ok output at hrun
+  have hrun := continue_after_ok h1 hrun
+  change MacCampaign.Array.index_usize a (Usize.ofNat 2) >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (array_index_limbWord a ⟨2, by decide⟩) hrun
+  change MacCampaign.Array.index_usize b (Usize.ofNat 2) >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (array_index_limbWord b ⟨2, by decide⟩) hrun
+  change ark_ip_proofs.s3_07_arkworks_fr_spike.adc _ _ o1.carry >>= _ = .ok output at hrun
+  have hrun := continue_after_ok h2 hrun
+  change MacCampaign.Array.index_usize a (Usize.ofNat 3) >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (array_index_limbWord a ⟨3, by decide⟩) hrun
+  change MacCampaign.Array.index_usize b (Usize.ofNat 3) >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (array_index_limbWord b ⟨3, by decide⟩) hrun
+  change ark_ip_proofs.s3_07_arkworks_fr_spike.adc _ _ o2.carry >>= _ = .ok output at hrun
+  have hrun := continue_after_ok h3 hrun
+  simp only [Result.ok.injEq] at hrun
+  subst output
+  refine ⟨o3.carry.val, s3.carry_out_le, ?_⟩
+  rw [limbsToNat_make_four, limbsToNat_four a, limbsToNat_four b]
+  simpa [limb] using adc_telescope
+    (limb a ⟨0, by decide⟩) (limb a ⟨1, by decide⟩)
+    (limb a ⟨2, by decide⟩) (limb a ⟨3, by decide⟩)
+    (limb b ⟨0, by decide⟩) (limb b ⟨1, by decide⟩)
+    (limb b ⟨2, by decide⟩) (limb b ⟨3, by decide⟩)
+    o0.low.val o1.low.val o2.low.val o3.low.val
+    o0.carry.val o1.carry.val o2.carry.val o3.carry.val
+    (by simpa [z, MacCampaign.U64.ofNat, limb] using s0.equation)
+    (by simpa [limb] using s1.equation) (by simpa [limb] using s2.equation)
+    (by simpa [limb] using s3.equation)
+
+theorem extracted_add_spec (a b output : FrLimbArray)
+    (ha : limbsToNat a < Ipp.Bls12377.scalarModulus)
+    (hb : limbsToNat b < Ipp.Bls12377.scalarModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.add a b = .ok output) :
+    limbsToNat output < Ipp.Bls12377.scalarModulus ∧
+    Nat.ModEq Ipp.Bls12377.scalarModulus
+      (limbsToNat output) (limbsToNat a + limbsToNat b) := by
+  have hrun := hexec
+  simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.add] at hrun
+  obtain ⟨raw, hraw, hrun⟩ := bind_eq_ok hrun
+  obtain ⟨result, hsub, hreturn⟩ := bind_eq_ok hrun
+  simp only [Result.ok.injEq] at hreturn
+  subst result
+  obtain ⟨carry, hcarry, heq⟩ := extracted_add_raw_spec a b raw hraw
+  have hsum : limbsToNat a + limbsToNat b <
+      2 * Ipp.Bls12377.scalarModulus := by omega
+  have hsumRadix : limbsToNat a + limbsToNat b < wordBase ^ limbCount :=
+    lt_trans hsum two_modulus_lt_radix
+  have hcarryZero : carry = 0 := by
+    by_cases hzero : carry = 0
+    · exact hzero
+    have hone : carry = 1 := by omega
+    rw [hone, one_mul] at heq
+    have := limbsToNat_lt_radix raw
+    omega
+  have hrawValue : limbsToNat raw = limbsToNat a + limbsToNat b := by
+    simpa [hcarryZero] using heq
+  have hsubspec := extracted_subtract_modulus_spec raw output (by
+    rw [hrawValue]
+    exact hsum) hsub
+  exact ⟨hsubspec.1, by rw [← hrawValue]; exact hsubspec.2.1⟩
+
+theorem decode_extracted_add (a b output : FrLimbArray)
+    (ha : limbsToNat a < Ipp.Bls12377.scalarModulus)
+    (hb : limbsToNat b < Ipp.Bls12377.scalarModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.add a b = .ok output) :
+    decode output = decode a + decode b := by
+  have hs := (extracted_add_spec a b output ha hb hexec).2
+  have hcast : (limbsToNat output : Ipp.Bls12377.Fr) =
+      (limbsToNat a : Ipp.Bls12377.Fr) + (limbsToNat b : Ipp.Bls12377.Fr) := by
+    have := (ZMod.natCast_eq_natCast_iff _ _ _).2 hs
+    simpa [Nat.cast_add] using this
+  rw [decode_eq_cast_mul_inv, decode_eq_cast_mul_inv,
+    decode_eq_cast_mul_inv, hcast]
+  ring
+
+private theorem sbb_borrow_telescope
+    (x0 x1 x2 x3 y0 y1 y2 y3 l0 l1 l2 l3 b1 b2 b3 b4 : Nat)
+    (h0 : x0 + wordBase * b1 = y0 + l0)
+    (h1 : x1 + wordBase * b2 = y1 + b1 + l1)
+    (h2 : x2 + wordBase * b3 = y2 + b2 + l2)
+    (h3 : x3 + wordBase * b4 = y3 + b3 + l3) :
+    (x0 + x1 * wordBase + x2 * wordBase ^ 2 + x3 * wordBase ^ 3) +
+        b4 * wordBase ^ 4 =
+    (y0 + y1 * wordBase + y2 * wordBase ^ 2 + y3 * wordBase ^ 3) +
+    (l0 + l1 * wordBase + l2 * wordBase ^ 2 + l3 * wordBase ^ 3) := by
+  norm_num [wordBase] at h0 h1 h2 h3 ⊢
+  omega
+
+set_option maxRecDepth 32768 in
+theorem extracted_sub_raw_equation (left right output : FrLimbArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw left right =
+      .ok output) :
+    ∃ borrow, borrow ≤ 1 ∧
+      limbsToNat left + borrow * wordBase ^ limbCount =
+        limbsToNat right + limbsToNat output := by
+  let z := MacCampaign.U64.ofNat 0
+  let o0 := sbbModel (limbWord left ⟨0, by decide⟩)
+    (limbWord right ⟨0, by decide⟩) z
+  have hz : z.val ≤ 1 := by simp [z, MacCampaign.U64.ofNat]
+  have h0 := extracted_sbb_eq_model (limbWord left ⟨0, by decide⟩)
+    (limbWord right ⟨0, by decide⟩) z hz
+  have s0 := extracted_sbb_spec _ _ z o0 hz (by simpa [o0] using h0)
+  let o1 := sbbModel (limbWord left ⟨1, by decide⟩)
+    (limbWord right ⟨1, by decide⟩) o0.2
+  have h1 := extracted_sbb_eq_model (limbWord left ⟨1, by decide⟩)
+    (limbWord right ⟨1, by decide⟩) o0.2 s0.nextBorrow_le
+  have s1 := extracted_sbb_spec _ _ o0.2 o1 s0.nextBorrow_le (by simpa [o1] using h1)
+  let o2 := sbbModel (limbWord left ⟨2, by decide⟩)
+    (limbWord right ⟨2, by decide⟩) o1.2
+  have h2 := extracted_sbb_eq_model (limbWord left ⟨2, by decide⟩)
+    (limbWord right ⟨2, by decide⟩) o1.2 s1.nextBorrow_le
+  have s2 := extracted_sbb_spec _ _ o1.2 o2 s1.nextBorrow_le (by simpa [o2] using h2)
+  let o3 := sbbModel (limbWord left ⟨3, by decide⟩)
+    (limbWord right ⟨3, by decide⟩) o2.2
+  have h3 := extracted_sbb_eq_model (limbWord left ⟨3, by decide⟩)
+    (limbWord right ⟨3, by decide⟩) o2.2 s2.nextBorrow_le
+  have s3 := extracted_sbb_spec _ _ o2.2 o3 s2.nextBorrow_le (by simpa [o3] using h3)
+  have hrun := hexec
+  simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw,
+    array_index_limbWord left ⟨0, by decide⟩,
+    array_index_limbWord left ⟨1, by decide⟩,
+    array_index_limbWord left ⟨2, by decide⟩,
+    array_index_limbWord left ⟨3, by decide⟩,
+    array_index_limbWord right ⟨0, by decide⟩,
+    array_index_limbWord right ⟨1, by decide⟩,
+    array_index_limbWord right ⟨2, by decide⟩,
+    array_index_limbWord right ⟨3, by decide⟩,
+    Result.bind_ok] at hrun
+  rw [show ark_ip_proofs.s3_07_arkworks_fr_spike.sbb _ _
+      (MacCampaign.U64.ofNat 0) = .ok o0 by simpa [z] using h0] at hrun
+  simp only [Result.bind_ok] at hrun
+  rw [h1] at hrun
+  simp only [Result.bind_ok] at hrun
+  rw [h2] at hrun
+  simp only [Result.bind_ok] at hrun
+  rw [h3] at hrun
+  simp only [Result.bind_ok, Result.ok.injEq] at hrun
+  subst output
+  refine ⟨o3.2.val, s3.nextBorrow_le, ?_⟩
+  rw [limbsToNat_four left, limbsToNat_four right, limbsToNat_make_four]
+  simpa [limb, z, MacCampaign.U64.ofNat] using sbb_borrow_telescope
+    (limb left ⟨0, by decide⟩) (limb left ⟨1, by decide⟩)
+    (limb left ⟨2, by decide⟩) (limb left ⟨3, by decide⟩)
+    (limb right ⟨0, by decide⟩) (limb right ⟨1, by decide⟩)
+    (limb right ⟨2, by decide⟩) (limb right ⟨3, by decide⟩)
+    o0.1.val o1.1.val o2.1.val o3.1.val
+    o0.2.val o1.2.val o2.2.val o3.2.val
+    (by simpa [limb, z, MacCampaign.U64.ofNat] using s0.equation)
+    (by simpa [limb] using s1.equation) (by simpa [limb] using s2.equation)
+    (by simpa [limb] using s3.equation)
+
+theorem extracted_sub_raw_of_le (left right output : FrLimbArray)
+    (hle : limbsToNat right ≤ limbsToNat left)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw left right =
+      .ok output) :
+    limbsToNat output = limbsToNat left - limbsToNat right := by
+  obtain ⟨borrow, hborrow, heq⟩ := extracted_sub_raw_equation left right output hexec
+  have hout := limbsToNat_lt_radix output
+  have hright := limbsToNat_lt_radix right
+  have hborrowZero : borrow = 0 := by
+    by_cases hzero : borrow = 0
+    · exact hzero
+    have hone : borrow = 1 := by omega
+    rw [hone, one_mul] at heq
+    omega
+  rw [hborrowZero, zero_mul, Nat.add_zero] at heq
+  omega
+
+def gtPrefix (left right : FrLimbArray) : Nat → Bool
+  | 0 => false
+  | count + 1 =>
+      if hcount : count < limbCount then
+        let l := limbWord left ⟨count, hcount⟩
+        let r := limbWord right ⟨count, hcount⟩
+        if l > r then true else if l = r then gtPrefix left right count else false
+      else false
+
+theorem gtPrefix_spec (left right : FrLimbArray) (count : Nat)
+    (hcount : count ≤ limbCount) :
+    gtPrefix left right count = true ↔
+      prefixToNat right count < prefixToNat left count := by
+  induction count with
+  | zero => simp [gtPrefix]
+  | succ count ih =>
+      have hlt : count < limbCount := by omega
+      rw [prefixToNat_succ left hlt, prefixToNat_succ right hlt]
+      simp only [gtPrefix, dif_pos hlt]
+      let l := limbWord left ⟨count, hlt⟩
+      let r := limbWord right ⟨count, hlt⟩
+      change (if l > r then true else if l = r then gtPrefix left right count
+        else false) = true ↔ _
+      by_cases hgt : l > r
+      · rw [if_pos hgt]
+        simp only [true_iff]
+        have hlp := prefixToNat_lt_pow left count (by omega)
+        have hrp := prefixToNat_lt_pow right count (by omega)
+        have hp : 0 < wordBase ^ count := pow_pos wordBase_pos count
+        have hd : limb right ⟨count, hlt⟩ + 1 ≤ limb left ⟨count, hlt⟩ := by
+          change r.val + 1 ≤ l.val
+          exact hgt
+        have hm := Nat.mul_le_mul_right (wordBase ^ count) hd
+        nlinarith
+      · rw [if_neg hgt]
+        by_cases heq : l = r
+        · rw [if_pos heq]
+          have hd : limb left ⟨count, hlt⟩ = limb right ⟨count, hlt⟩ := by
+            change l.val = r.val
+            exact congrArg MacCampaign.U64.val heq
+          rw [hd]
+          simpa only [Nat.add_lt_add_iff_right] using ih (by omega)
+        · rw [if_neg heq]
+          simp only [Bool.false_eq_true, false_iff, not_lt]
+          have hlp := prefixToNat_lt_pow left count (by omega)
+          have hrp := prefixToNat_lt_pow right count (by omega)
+          have hp : 0 < wordBase ^ count := pow_pos wordBase_pos count
+          have hne : l.val ≠ r.val := by
+            intro hv
+            exact heq (sbb_u64_eq_of_val_eq l r hv)
+          have hd : limb left ⟨count, hlt⟩ + 1 ≤ limb right ⟨count, hlt⟩ := by
+            change l.val + 1 ≤ r.val
+            change ¬r.val < l.val at hgt
+            omega
+          have hm := Nat.mul_le_mul_right (wordBase ^ count) hd
+          nlinarith
+
+set_option maxHeartbeats 1000000 in
+theorem extracted_gt_prefix (left right : FrLimbArray) :
+    ark_ip_proofs.s3_07_arkworks_fr_spike.gt left right =
+      .ok (gtPrefix left right limbCount) := by
+  simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.gt,
+    array_index_limbWord left ⟨3, by decide⟩,
+    array_index_limbWord left ⟨2, by decide⟩,
+    array_index_limbWord left ⟨1, by decide⟩,
+    array_index_limbWord left ⟨0, by decide⟩,
+    array_index_limbWord right ⟨3, by decide⟩,
+    array_index_limbWord right ⟨2, by decide⟩,
+    array_index_limbWord right ⟨1, by decide⟩,
+    array_index_limbWord right ⟨0, by decide⟩,
+    Result.bind_ok]
+  simp [gtPrefix, limbCount]
+  split <;> simp_all
+  split <;> simp_all
+  split <;> simp_all
+  split <;> simp_all
+  split <;> simp_all
+  split <;> simp_all
+
+theorem extracted_gt_spec (left right : FrLimbArray) :
+    ark_ip_proofs.s3_07_arkworks_fr_spike.gt left right =
+      .ok (decide (limbsToNat right < limbsToNat left)) := by
+  rw [extracted_gt_prefix]
+  congr 2
+  have hs := gtPrefix_spec left right limbCount (by omega)
+  cases h : gtPrefix left right limbCount with
+  | false =>
+      have hn : ¬limbsToNat right < limbsToNat left := by
+        intro hlt
+        have hp : prefixToNat right limbCount < prefixToNat left limbCount := by
+          simpa [limbsToNat] using hlt
+        have := hs.mpr hp
+        simp [h] at this
+      simp [hn]
+  | true =>
+      have hlt : limbsToNat right < limbsToNat left := by
+        simpa [limbsToNat] using hs.mp h
+      simp [hlt]
+
+theorem extracted_sub_spec (a b output : FrLimbArray)
+    (ha : limbsToNat a < Ipp.Bls12377.scalarModulus)
+    (hb : limbsToNat b < Ipp.Bls12377.scalarModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.sub a b = .ok output) :
+    limbsToNat output < Ipp.Bls12377.scalarModulus ∧
+    limbsToNat output + limbsToNat b =
+      limbsToNat a +
+        (if limbsToNat a < limbsToNat b then Ipp.Bls12377.scalarModulus else 0) := by
+  have hrun := hexec
+  simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.sub] at hrun
+  change ark_ip_proofs.s3_07_arkworks_fr_spike.gt b a >>= _ = .ok output at hrun
+  have hrun := continue_after_ok (extracted_gt_spec b a) hrun
+  by_cases hlt : limbsToNat a < limbsToNat b
+  · simp only [decide_eq_true_eq.mpr hlt, if_true] at hrun
+    obtain ⟨raw, hraw, hrun⟩ := bind_eq_ok hrun
+    change ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw raw b >>= _ =
+      .ok output at hrun
+    obtain ⟨result, hsub, hreturn⟩ := bind_eq_ok hrun
+    simp only [Result.ok.injEq] at hreturn
+    subst result
+    obtain ⟨carry, hcarry, heq⟩ := extracted_add_raw_spec a
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS raw hraw
+    have hsum : limbsToNat a + Ipp.Bls12377.scalarModulus <
+        wordBase ^ limbCount := by
+      calc
+        _ < 2 * Ipp.Bls12377.scalarModulus := by omega
+        _ < _ := two_modulus_lt_radix
+    have hcarryZero : carry = 0 := by
+      by_cases hzero : carry = 0
+      · exact hzero
+      have hone : carry = 1 := by omega
+      rw [modulus_limbsToNat, hone, one_mul] at heq
+      have := limbsToNat_lt_radix raw
+      omega
+    rw [modulus_limbsToNat, hcarryZero, zero_mul, Nat.add_zero] at heq
+    have hle : limbsToNat b ≤ limbsToNat raw := by omega
+    have hout := extracted_sub_raw_of_le raw b output hle hsub
+    rw [if_pos hlt]
+    constructor
+    · rw [hout]; omega
+    · rw [hout]; omega
+  · have hle : limbsToNat b ≤ limbsToNat a := by omega
+    simp only [decide_eq_false_iff_not.mpr (by omega : ¬limbsToNat a < limbsToNat b),
+      if_false] at hrun
+    change ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw a b >>= _ =
+      .ok output at hrun
+    obtain ⟨result, hsub, hreturn⟩ := bind_eq_ok hrun
+    simp only [Result.ok.injEq] at hreturn
+    subst result
+    have hout := extracted_sub_raw_of_le a b output hle hsub
+    rw [if_neg hlt]
+    constructor
+    · rw [hout]; exact lt_of_le_of_lt (Nat.sub_le _ _) ha
+    · rw [hout]; omega
+
+theorem decode_extracted_sub (a b output : FrLimbArray)
+    (ha : limbsToNat a < Ipp.Bls12377.scalarModulus)
+    (hb : limbsToNat b < Ipp.Bls12377.scalarModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.sub a b = .ok output) :
+    decode output = decode a - decode b := by
+  have hs := (extracted_sub_spec a b output ha hb hexec).2
+  have hmod : Nat.ModEq Ipp.Bls12377.scalarModulus
+      (limbsToNat output + limbsToNat b) (limbsToNat a) := by
+    rw [hs]
+    split
+    · exact Nat.add_mod_right _ _
+    · simp [Nat.ModEq]
+  have hcast : (limbsToNat output : Ipp.Bls12377.Fr) +
+      (limbsToNat b : Ipp.Bls12377.Fr) = (limbsToNat a : Ipp.Bls12377.Fr) := by
+    have := (ZMod.natCast_eq_natCast_iff _ _ _).2 hmod
+    simpa [Nat.cast_add] using this
+  have hval : (limbsToNat output : Ipp.Bls12377.Fr) =
+      (limbsToNat a : Ipp.Bls12377.Fr) - (limbsToNat b : Ipp.Bls12377.Fr) := by
+    linear_combination hcast
+  rw [decode_eq_cast_mul_inv, decode_eq_cast_mul_inv,
+    decode_eq_cast_mul_inv, hval]
+  ring
+
+private theorem eq_zero_limbs_of_value_zero (a : FrLimbArray)
+    (hvalue : limbsToNat a = 0) :
+    ∀ i : Fin limbCount, (limbWord a i).val = 0 := by
+  have hfour := limbsToNat_four a
+  rw [hvalue] at hfour
+  have hsum := hfour.symm
+  obtain ⟨hsum3, hterm3⟩ := Nat.eq_zero_of_add_eq_zero hsum
+  obtain ⟨hsum2, hterm2⟩ := Nat.eq_zero_of_add_eq_zero hsum3
+  obtain ⟨hterm0, hterm1⟩ := Nat.eq_zero_of_add_eq_zero hsum2
+  intro i
+  have h0 : limb a ⟨0, by decide⟩ = 0 := hterm0
+  have h1 : limb a ⟨1, by decide⟩ = 0 :=
+    (Nat.mul_eq_zero.mp hterm1).resolve_right (ne_of_gt wordBase_pos)
+  have h2 : limb a ⟨2, by decide⟩ = 0 :=
+    (Nat.mul_eq_zero.mp hterm2).resolve_right
+      (pow_ne_zero _ (ne_of_gt wordBase_pos))
+  have h3 : limb a ⟨3, by decide⟩ = 0 :=
+    (Nat.mul_eq_zero.mp hterm3).resolve_right
+      (pow_ne_zero _ (ne_of_gt wordBase_pos))
+  fin_cases i <;> assumption
+
+private def zeroLimbs4 : FrLimbArray :=
+  MacCampaign.Array.replicate (Usize.ofNat 4) (MacCampaign.U64.ofNat 0)
+
+private theorem zeroLimbs4_value : limbsToNat zeroLimbs4 = 0 := by
+  simp [zeroLimbs4, limbsToNat, prefixToNat, limb, limbWord,
+    MacCampaign.Array.replicate, limbCount, MacCampaign.U64.ofNat]
+
+private theorem eq_zeroLimbs4_of_value_zero (a : FrLimbArray)
+    (hvalue : limbsToNat a = 0) : a = zeroLimbs4 := by
+  have hlimbs := eq_zero_limbs_of_value_zero a hvalue
+  apply MacCampaign.Array.ext
+  apply List.ext_get
+  · simp [zeroLimbs4, MacCampaign.Array.replicate, a.hlen]
+  · intro n hn hz
+    have hlt : n < 4 := by simpa [a.hlen] using hn
+    have hword := hlimbs ⟨n, by simpa [limbCount] using hlt⟩
+    simp only [limbWord] at hword
+    interval_cases n <;>
+      simp [zeroLimbs4, MacCampaign.Array.replicate] <;>
+      apply sbb_u64_eq_of_val_eq <;>
+      simpa [MacCampaign.U64.ofNat] using hword
+
+theorem extracted_neg_spec (a output : FrLimbArray)
+    (ha : limbsToNat a < Ipp.Bls12377.scalarModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.neg a = .ok output) :
+    limbsToNat output < Ipp.Bls12377.scalarModulus ∧
+    Nat.ModEq Ipp.Bls12377.scalarModulus
+      (limbsToNat output + limbsToNat a) 0 := by
+  have hrun := hexec
+  simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.neg] at hrun
+  by_cases hzero : limbsToNat a = 0
+  · have harr := eq_zeroLimbs4_of_value_zero a hzero
+    subst harr
+    have hguard : ark_ip_proofs.core.array.equality.PartialEqArray.eq
+        ark_ip_proofs.core.cmp.PartialEqU64 zeroLimbs4
+        (MacCampaign.Array.replicate 4#usize (MacCampaign.U64.ofNat 0)) =
+          .ok true := by
+      simp [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+        zeroLimbs4, MacCampaign.Array.replicate]
+    rw [hguard] at hrun
+    simp only [Result.bind_ok, if_true, Result.ok.injEq] at hrun
+    subst hrun
+    refine ⟨?_, ?_⟩
+    · rw [zeroLimbs4_value]
+      norm_num [Ipp.Bls12377.scalarModulus]
+    · simp only [zeroLimbs4_value, Nat.add_zero]
+      rfl
+  · have hne : a.val ≠ zeroLimbs4.val := by
+      intro hv
+      have harr : a = zeroLimbs4 := by
+        apply MacCampaign.Array.ext
+        exact hv
+      exact hzero (by rw [harr, zeroLimbs4_value])
+    have hguard : ark_ip_proofs.core.array.equality.PartialEqArray.eq
+        ark_ip_proofs.core.cmp.PartialEqU64 a
+        (MacCampaign.Array.replicate 4#usize (MacCampaign.U64.ofNat 0)) =
+          .ok false := by
+      simp [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+        MacCampaign.Array.replicate]
+      intro hv
+      exact absurd (by simpa [zeroLimbs4, MacCampaign.Array.replicate] using hv) hne
+    rw [hguard] at hrun
+    simp only [Result.bind_ok, Bool.false_eq_true, if_false] at hrun
+    change ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS a >>= _ = .ok output at hrun
+    obtain ⟨result, hsub, hreturn⟩ := bind_eq_ok hrun
+    simp only [Result.ok.injEq] at hreturn
+    subst result
+    have hout := extracted_sub_raw_of_le
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS a output
+      (by rw [modulus_limbsToNat]; exact ha.le) hsub
+    rw [modulus_limbsToNat] at hout
+    refine ⟨by rw [hout]; omega, ?_⟩
+    rw [hout]
+    have : Ipp.Bls12377.scalarModulus - limbsToNat a + limbsToNat a =
+        Ipp.Bls12377.scalarModulus := by omega
+    rw [this]
+    simpa using (Nat.modEq_zero_iff_dvd).2 dvd_rfl
+
+theorem decode_extracted_neg (a output : FrLimbArray)
+    (ha : limbsToNat a < Ipp.Bls12377.scalarModulus)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fr_spike.neg a = .ok output) :
+    decode output = -decode a := by
+  have hs := (extracted_neg_spec a output ha hexec).2
+  have hcast : (limbsToNat output : Ipp.Bls12377.Fr) +
+      (limbsToNat a : Ipp.Bls12377.Fr) = 0 := by
+    have := (ZMod.natCast_eq_natCast_iff _ _ _).2 hs
+    simpa [Nat.cast_add] using this
+  have hval : (limbsToNat output : Ipp.Bls12377.Fr) =
+      -(limbsToNat a : Ipp.Bls12377.Fr) := by
+    linear_combination hcast
+  rw [decode_eq_cast_mul_inv, decode_eq_cast_mul_inv, hval]
+  ring
+
+end Ipp.Extracted.ArkworksFr
+
+#print axioms Ipp.Extracted.ArkworksFr.decode_extracted_add
+#print axioms Ipp.Extracted.ArkworksFr.decode_extracted_sub
+#print axioms Ipp.Extracted.ArkworksFr.decode_extracted_neg
+
+namespace Ipp.Extracted.ArkworksFr
+
+open Aeneas Aeneas.Std Result
 
 end Ipp.Extracted.ArkworksFr
 

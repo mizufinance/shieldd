@@ -319,8 +319,9 @@ def s3_07_arkworks_fr_spike.mul
 def s3_07_arkworks_fr_spike.add
   (a : s3_07_arkworks_fr_spike.FrMont) (b : s3_07_arkworks_fr_spike.FrMont) :
   Result s3_07_arkworks_fr_spike.FrMont := do
-  let sum ← s3_07_arkworks_fr_spike.add_raw a b
-  s3_07_arkworks_fr_spike.subtract_modulus sum
+  let a1 ← s3_07_arkworks_fr_spike.add_raw a b
+  let a2 ← s3_07_arkworks_fr_spike.subtract_modulus a1
+  ok a2
 
 /-- [ark_ip_proofs::s3_07_arkworks_fr_spike::sub] -/
 def s3_07_arkworks_fr_spike.sub
@@ -331,7 +332,8 @@ def s3_07_arkworks_fr_spike.sub
     if bGt then
       s3_07_arkworks_fr_spike.add_raw a s3_07_arkworks_fr_spike.MODULUS
     else ok a
-  s3_07_arkworks_fr_spike.sub_raw left b
+  let a1 ← s3_07_arkworks_fr_spike.sub_raw left b
+  ok a1
 
 /-- [ark_ip_proofs::s3_07_arkworks_fr_spike::neg] -/
 def s3_07_arkworks_fr_spike.neg
@@ -342,7 +344,9 @@ def s3_07_arkworks_fr_spike.neg
   if isZero then
     ok a
   else
-    s3_07_arkworks_fr_spike.sub_raw s3_07_arkworks_fr_spike.MODULUS a
+    let a2 ←
+      s3_07_arkworks_fr_spike.sub_raw s3_07_arkworks_fr_spike.MODULUS a
+    ok a2
 
 /-- [ark_ip_proofs::s3_07_arkworks_fr_spike::inv]: loop body 1 -/
 def s3_07_arkworks_fr_spike.inv_loop0_loop0.body
