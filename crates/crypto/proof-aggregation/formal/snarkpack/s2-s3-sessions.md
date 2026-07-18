@@ -1011,11 +1011,23 @@ threads the represented-point invariant in parts 2-3 (mirrors
 CanonicalG1Decode's decode/validity separation). Proved: `decode_g1_neg` +
 the four identity/zero-branch laws (add left/right, mixed, double). Full
 Ipp green (3430 jobs), zero sorry, audited axioms.
-REMAINING PARTS: (2) generic add-2007-bl + madd-2007-bl refinement to
-Mathlib chord addition on decoded classes (distinct-x branch), equal →
-doubling and opposite → zero branch correctness; (3) doubling formula vs
-Mathlib tangent rule + on-curve lifting of `decodeG1` into
-`Affine.Point` (represented-class equality end-to-end) and the
+PART 2 LANDED (green PARTIAL, 2026-07-18, orchestrator; executed by sol):
+standalone `chordAdd` (slope (y₂−y₁)/(x₂−x₁)) and `tangentDouble`
+(a = 0 slope 3x²/2y) coordinate models — statement-shape decision: keep
+this layer free of on-curve/Mathlib constructors; part 3 identifies them
+with Mathlib slope/addX/addY once — plus `decode_g1_double_generic`
+(full a=0 chain peel; rational identity isolated in private
+`tangent_decode_identity` to bound elaboration). y = 0 note: executed
+Z₃ = 2ZY ⇒ doubling an order-2 point yields canonical zero-Z (infinity);
+the public `decode_g1_double_order2` needs the decoded-zero →
+canonical-zero representative bridge, still owed. Full Ipp green (3430
+jobs), zero sorry, audited axioms.
+REMAINING PARTS: (2b) Jacobian cross-product comparison bridges (U1 = U2,
+S1 = S2 ↔ decoded affine equality under nonzero-Z), then
+`decode_g1_add_generic` / `decode_g1_add_equal_delegates` /
+`decode_g1_add_opposite`, `decode_g1_double_order2`, and the three mixed
+counterparts; (3) Mathlib `Affine.Point` lifting with on-curve
+hypotheses (chordAdd/tangentDouble ↔ slope/addX/addY identification) +
 session-closing corollaries; then ledger narrowing.
 
 **S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` — `GATED` on
