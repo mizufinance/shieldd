@@ -1,14 +1,14 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
-use ark_bls12_377::{Fq, Fq2, Fq6};
-use ark_ff::{AdditiveGroup, BigInt, FftField, Field, PrimeField};
+use ark_bls12_377::{Fq, Fq12, Fq2, Fq6};
+use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand};
 use std::convert::TryInto;
 
 #[path = "../src/s3_07_arkworks_fq_spike.rs"]
 mod spike;
-use spike::{Fq2Mont, Fq6Mont, FqMont};
+use spike::{Fq12Bytes, Fq12Mont, Fq2Bytes, Fq2Mont, Fq6Bytes, Fq6Mont, FqMont};
 
 fn mont(value: Fq) -> FqMont {
     FqMont(value.0 .0)
@@ -39,6 +39,135 @@ fn mont6(value: Fq6) -> Fq6Mont {
 
 fn ark6(value: Fq6Mont) -> Fq6 {
     Fq6::new(ark2(value.c0), ark2(value.c1), ark2(value.c2))
+}
+
+fn mont12(value: Fq12) -> Fq12Mont {
+    Fq12Mont {
+        c0: mont6(value.c0),
+        c1: mont6(value.c1),
+    }
+}
+
+fn ark12(value: Fq12Mont) -> Fq12 {
+    Fq12::new(ark6(value.c0), ark6(value.c1))
+}
+
+fn bytes2(value: Fq2) -> Fq2Bytes {
+    Fq2Bytes {
+        c0: canonical_bytes(value.c0),
+        c1: canonical_bytes(value.c1),
+    }
+}
+
+fn bytes6(value: Fq6) -> Fq6Bytes {
+    Fq6Bytes {
+        c0: bytes2(value.c0),
+        c1: bytes2(value.c1),
+        c2: bytes2(value.c2),
+    }
+}
+
+fn bytes12(value: Fq12) -> Fq12Bytes {
+    Fq12Bytes {
+        c0: bytes6(value.c0),
+        c1: bytes6(value.c1),
+    }
+}
+
+fn check_fq12(a: Fq12, b: Fq12, c0: Fq2, c3: Fq2, c4: Fq2) {
+    assert_eq!(ark12(spike::fq12_mul(mont12(a), mont12(b))), a * b);
+    assert_eq!(ark12(spike::fq12_square(mont12(a))), a.square());
+
+    let mut expected_sparse = a;
+    expected_sparse.mul_by_034(&c0, &c3, &c4);
+    assert_eq!(
+        ark12(spike::fq12_mul_by_034(
+            mont12(a),
+            mont2(c0),
+            mont2(c3),
+            mont2(c4),
+        )),
+        expected_sparse
+    );
+
+    let mut expected_conjugate = a;
+    expected_conjugate.conjugate_in_place();
+    assert_eq!(ark12(spike::fq12_conjugate(mont12(a))), expected_conjugate);
+    assert_eq!(
+        spike::fq12_cyclotomic_inverse(mont12(a)).map(ark12),
+        a.cyclotomic_inverse()
+    );
+    assert_eq!(spike::fq12_inv(mont12(a)).map(ark12), a.inverse());
+
+    for power in [1, 2] {
+        let mut expected = a;
+        expected.frobenius_map_in_place(power);
+        assert_eq!(ark12(spike::fq12_frobenius(mont12(a), power)), expected);
+    }
+
+    assert_eq!(
+        ark12(spike::fq12_cyclotomic_square(mont12(a))),
+        a.cyclotomic_square()
+    );
+    assert_eq!(
+        ark12(spike::fq12_cyclotomic_exp(mont12(a))),
+        a.cyclotomic_exp([0x8508_c000_0000_0001])
+    );
+
+    let bytes = bytes12(a);
+    assert_eq!(spike::fq12_to_bytes(mont12(a)), bytes);
+    assert_eq!(spike::fq12_from_bytes(bytes).map(ark12), Some(a));
+
+    let mut serialized = Vec::new();
+    a.serialize_uncompressed(&mut serialized).unwrap();
+    assert_eq!(serialized.len(), 576);
+    assert_eq!(
+        Fq12::deserialize_uncompressed(serialized.as_slice()).ok(),
+        spike::fq12_from_bytes(bytes).map(ark12)
+    );
+}
+
+#[test]
+fn fq12_edges_and_512_random_vectors_match_arkworks() {
+    let zero6 = Fq6::ZERO;
+    let one6 = Fq6::ONE;
+    let v = Fq6::new(Fq2::ZERO, Fq2::ONE, Fq2::ZERO);
+    let edges = [
+        Fq12::ZERO,
+        Fq12::ONE,
+        Fq12::new(zero6, one6),
+        Fq12::new(v, -one6),
+        -Fq12::ONE,
+    ];
+    let sparse = [Fq2::ZERO, Fq2::ONE, Fq2::new(Fq::ZERO, Fq::ONE), -Fq2::ONE];
+    for (i, &a) in edges.iter().enumerate() {
+        for (j, &b) in edges.iter().enumerate() {
+            check_fq12(
+                a,
+                b,
+                sparse[i % sparse.len()],
+                sparse[j % sparse.len()],
+                sparse[(i + j) % sparse.len()],
+            );
+        }
+    }
+    assert_eq!(spike::fq12_inv(mont12(Fq12::ZERO)), None);
+    assert_eq!(spike::fq12_cyclotomic_inverse(mont12(Fq12::ZERO)), None);
+
+    let mut noncanonical = bytes12(Fq12::ZERO);
+    noncanonical.c1.c2.c1 = [0xff; 48];
+    assert_eq!(spike::fq12_from_bytes(noncanonical), None);
+
+    let mut rng = test_rng();
+    for _ in 0..512 {
+        check_fq12(
+            Fq12::rand(&mut rng),
+            Fq12::rand(&mut rng),
+            Fq2::rand(&mut rng),
+            Fq2::rand(&mut rng),
+            Fq2::rand(&mut rng),
+        );
+    }
 }
 
 fn check_fq6(a: Fq6, b: Fq6, c0: Fq2, c1: Fq2) {

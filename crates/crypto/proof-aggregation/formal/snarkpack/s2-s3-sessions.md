@@ -821,11 +821,49 @@ prerequisite, no axiom), and `fq12Coefficients` one/mul/POW
 zero sorry, audited axioms. S3-21 (executed Fq12) and the S3-22 GT
 cardinality hook are now unblocked.
 
-**S3-21 — executed Fq12 conformance** — `HARD (sol)` — `GATED` on S3-20.
-Prove reached Fq12 add/mul/square/sparse/conjugate/inverse/Frobenius/
-cyclotomic operations and canonical bytes against the field model. Acceptance:
-all primitives used by Miller, final exponentiation, GAP-04/07, and GT
-validation are covered. Retires the Fq12 portion of the arkworks field row.
+**S3-21 — executed Fq12 conformance** — `HARD (sol)` — `IN PROGRESS`
+(gate S3-20 satisfied). Prove reached Fq12 add/mul/square/sparse/conjugate/
+inverse/Frobenius/cyclotomic operations and canonical bytes against the field
+model. Acceptance: all primitives used by Miller, final exponentiation,
+GAP-04/07, and GT validation are covered. Retires the Fq12 portion of the
+arkworks field row.
+PART 1 DONE (2026-07-18, orchestrator; executed by sol): scope pin, spike,
+parity, extraction, conjugation law.
+SCOPE PIN (arkworks 0.5.0, citations in session report): reached set =
+full mul, square, sparse `mul_by_034` (D-twist; `mul_by_014` M-twist-only
+excluded), conjugation, cyclotomic inverse (nonzero check + conjugation),
+full inverse, Frobenius powers EXACTLY 1 and 2 (easy part: conj·inv +
+frobenius²; hard part: 1 and 2; full 12-row C1 table pinned, rows 1/2
+executed), Granger–Scott `cyclotomic_square` (q²≡1 mod 6 branch),
+`cyclotomic_exp` at positive X = 0x8508c00000000001 (NAF reversed,
+square/multiply/inverse loop — pinned as a 64-digit big-endian NAF literal
++ `while index < 64` loop, accepted by aeneas FIRST TRY, following the Fq
+pow/sqrt loop shape). NO Fq12-level add/sub/neg/double is reached
+(excluded). BYTES VERDICT: the GT bytes path IS reached — transcript
+serializes `ip_ab` uncompressed (groth16_aggregation.rs:1128) and
+PairingOutput commitment lanes; arkworks quad/cubic serialization is
+componentwise c0/c1(/c2), matching `Ipp/CanonicalGtDecode.lean`'s
+`Fq12Wire`; `fq12_to_bytes`/`fq12_from_bytes` are in the spike + graph,
+proofs in a later part (subgroup validity stays GAP-10).
+LANDED: `Fq12Mont` spike + `extract_s3_21` root (all routines above +
+bytes); parity `fq12_edges_and_512_random_vectors_match_arkworks` (edges +
+512 random per routine, Frobenius 1/2, cyclotomic exp, 576-byte round
+trips, noncanonical reject, zero → None both inverses) green; vendored
+`Ipp/Extracted/ArkworksFq12Generated.lean` (imports Fq6 graph, no
+duplication; current-aeneas output mechanically translated to the repo
+MacCampaign dialect — new Std.U8/loop-attribute forms normalized);
+`Ipp/Extracted/ArkworksFq12.lean` with `decodeFq12`/`Canonical12` +
+`decode_fq12_conjugate` (c0 preserved, three c1 Fq2 lanes negated). Full
+Ipp green (3426 jobs), zero sorry, audited axioms.
+REMAINING PARTS: (2) mul/square/mul_by_034 decode laws vs `fq12Mul`;
+(3) inverse both directions + cyclotomic inverse + Frobenius 1/2 (constants
+certified vs canonical `fq6V`-powers, S3-19 pattern); (4) cyclotomic square
+(Granger–Scott vs `fq12Mul x x` on the cyclotomic subgroup — check the
+identity's hypothesis carefully: GS-square equals plain square only for
+norm-1 elements; state conformance against the executed plain square with
+the cyclotomic hypothesis, or against the model formula unconditionally as
+arkworks computes it) + `cyclotomic_exp` NAF loop induction vs `fq12Pow`;
+(5) canonical bytes vs `CanonicalGtDecode`; then ledger retirement.
 
 **S3-22 — GT factorization and order-r characterization** — `HARD (sol)` —
 `GATED` on S3-20 and S3-02/03. Prove `r ∣ q^12-1`, record the exact cofactor

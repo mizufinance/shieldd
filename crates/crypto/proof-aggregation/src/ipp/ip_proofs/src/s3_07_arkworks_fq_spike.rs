@@ -1089,6 +1089,407 @@ pub fn extract_s3_19(
     )
 }
 
+// ===== S3-21: executed Fq12 layer (quadratic over Fq6, nonresidue v) =====
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Fq12Mont {
+    pub c0: Fq6Mont,
+    pub c1: Fq6Mont,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Fq2Bytes {
+    pub c0: FqBytes,
+    pub c1: FqBytes,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Fq6Bytes {
+    pub c0: Fq2Bytes,
+    pub c1: Fq2Bytes,
+    pub c2: Fq2Bytes,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Fq12Bytes {
+    pub c0: Fq6Bytes,
+    pub c1: Fq6Bytes,
+}
+
+const FQ6_ZERO: Fq6Mont = Fq6Mont {
+    c0: FQ2_ZERO,
+    c1: FQ2_ZERO,
+    c2: FQ2_ZERO,
+};
+const FQ6_ONE: Fq6Mont = Fq6Mont {
+    c0: Fq2Mont {
+        c0: FQ_ONE,
+        c1: FQ_ZERO,
+    },
+    c1: FQ2_ZERO,
+    c2: FQ2_ZERO,
+};
+const FQ12_ONE: Fq12Mont = Fq12Mont {
+    c0: FQ6_ONE,
+    c1: FQ6_ZERO,
+};
+
+/// Ark-bls12-377 0.5.0 `FROBENIUS_COEFF_FP12_C1`, in Montgomery form.
+const FROBENIUS_COEFF_FP12_C1: [FqMont; 12] = [
+    FQ_ONE,
+    FqMont([
+        0x6ec4_7a04_a3f7_ca9e,
+        0xa42e_0cb9_68c1_fa44,
+        0x578d_5187_fbd2_bd23,
+        0x930e_eb0a_c79d_d4bd,
+        0xa248_83de_1e09_a9ee,
+        0x00da_a705_8067_d46f,
+    ]),
+    FROBENIUS_COEFF_FP6_C1[1],
+    FqMont([
+        0x982c_13d9_d084_771f,
+        0xfd49_de0c_6da3_4a32,
+        0x61a5_30d1_83ab_0e53,
+        0xdf8f_e441_06dd_9879,
+        0x40f2_9b58_d884_72bc,
+        0x0158_7231_9904_6d5d,
+    ]),
+    FROBENIUS_COEFF_FP6_C1[2],
+    FqMont([
+        0x2967_99d5_2c8c_ac81,
+        0x591b_d153_04e1_4fee,
+        0x0a17_df49_87d8_5130,
+        0x4c80_f936_3f3f_c3bc,
+        0x9eaa_177a_ba7a_c8ce,
+        0x007d_cb2c_189c_98ed,
+    ]),
+    FQ_NEG_ONE,
+    FqMont([
+        0x1644_45fb_5c08_3563,
+        0x72dd_508a_c73e_05bc,
+        0xc766_10a7_be36_8adc,
+        0x8713_eee8_3957_3ed1,
+        0x23f2_81e2_4e97_9f4c,
+        0x00d3_9340_975d_3c7b,
+    ]),
+    FROBENIUS_COEFF_FP6_C1[4],
+    FqMont([
+        0xecdc_ac26_2f7b_88e2,
+        0x19c1_7f37_c25c_b5cd,
+        0xbd4e_315e_365e_39ac,
+        0x3a92_f5b1_fa17_7b15,
+        0x8548_6a67_941c_d67e,
+        0x0055_c814_7ec0_a38d,
+    ]),
+    FROBENIUS_COEFF_FP6_C1[5],
+    FqMont([
+        0x5ba1_262a_d373_5380,
+        0xbdef_8bf1_2b1e_b012,
+        0x14db_82e6_3230_f6cf,
+        0xcda1_e0bc_c1b5_4fd3,
+        0x2790_ee45_b226_806c,
+        0x0130_6f19_ff28_77fd,
+    ]),
+];
+
+/// Big-endian NAF digits returned by arkworks `find_naf([X]).rev()`.
+const X_NAF_BE: [i8; 64] = [
+    1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1,
+];
+
+/// `Fp12Config::mul_fp6_by_nonresidue_in_place`: multiplication by `v`.
+pub fn fq12_mul_base_field_by_nonresidue(a: Fq6Mont) -> Fq6Mont {
+    Fq6Mont {
+        c0: fq6_mul_base_field_by_nonresidue(a.c2),
+        c1: a.c0,
+        c2: a.c1,
+    }
+}
+
+fn fq6_mul_by_fp2(a: Fq6Mont, b: Fq2Mont) -> Fq6Mont {
+    Fq6Mont {
+        c0: fq2_mul(a.c0, b),
+        c1: fq2_mul(a.c1, b),
+        c2: fq2_mul(a.c2, b),
+    }
+}
+
+/// `QuadExtField::mul_assign`, Algorithm 5.16's Karatsuba branch.
+pub fn fq12_mul(a: Fq12Mont, b: Fq12Mont) -> Fq12Mont {
+    let v0 = fq6_mul(a.c0, b.c0);
+    let v1 = fq6_mul(a.c1, b.c1);
+    let c1 = fq6_sub(
+        fq6_sub(fq6_mul(fq6_add(a.c1, a.c0), fq6_add(b.c0, b.c1)), v0),
+        v1,
+    );
+    let c0 = fq6_add(fq12_mul_base_field_by_nonresidue(v1), v0);
+    Fq12Mont { c0, c1 }
+}
+
+/// `QuadExtField::square_in_place`, nonresidue-generic branch.
+pub fn fq12_square(a: Fq12Mont) -> Fq12Mont {
+    let v0 = fq6_sub(a.c0, a.c1);
+    let v3 = fq6_sub(a.c0, fq12_mul_base_field_by_nonresidue(a.c1));
+    let v2 = fq6_mul(a.c0, a.c1);
+    let v0 = fq6_mul(v0, v3);
+    Fq12Mont {
+        c0: fq6_add(fq6_add(fq12_mul_base_field_by_nonresidue(v2), v0), v2),
+        c1: fq6_double(v2),
+    }
+}
+
+/// `Fp12::mul_by_034`, the sparse D-twist Miller-line multiplication.
+pub fn fq12_mul_by_034(a: Fq12Mont, c0: Fq2Mont, c3: Fq2Mont, c4: Fq2Mont) -> Fq12Mont {
+    let aa = Fq6Mont {
+        c0: fq2_mul(a.c0.c0, c0),
+        c1: fq2_mul(a.c0.c1, c0),
+        c2: fq2_mul(a.c0.c2, c0),
+    };
+    let bb = fq6_mul_by_01(a.c1, c3, c4);
+    let e = fq6_mul_by_01(fq6_add(a.c0, a.c1), fq2_add(c0, c3), c4);
+    Fq12Mont {
+        c0: fq6_add(fq12_mul_base_field_by_nonresidue(bb), aa),
+        c1: fq6_sub(e, fq6_add(aa, bb)),
+    }
+}
+
+/// Quadratic-extension conjugation, also the nonzero unitary inverse.
+pub fn fq12_conjugate(a: Fq12Mont) -> Fq12Mont {
+    Fq12Mont {
+        c0: a.c0,
+        c1: fq6_neg(a.c1),
+    }
+}
+
+pub fn fq12_cyclotomic_inverse(a: Fq12Mont) -> Option<Fq12Mont> {
+    if a.c0 == FQ6_ZERO && a.c1 == FQ6_ZERO {
+        None
+    } else {
+        Some(fq12_conjugate(a))
+    }
+}
+
+/// `QuadExtField::inverse`, Algorithm 5.19's norm route.
+pub fn fq12_inv(a: Fq12Mont) -> Option<Fq12Mont> {
+    if a.c0 == FQ6_ZERO && a.c1 == FQ6_ZERO {
+        return None;
+    }
+    let v1 = fq6_square(a.c1);
+    let norm = fq6_sub(fq6_square(a.c0), fq12_mul_base_field_by_nonresidue(v1));
+    match fq6_inv(norm) {
+        None => None,
+        Some(norm_inv) => Some(Fq12Mont {
+            c0: fq6_mul(a.c0, norm_inv),
+            c1: fq6_neg(fq6_mul(a.c1, norm_inv)),
+        }),
+    }
+}
+
+pub fn fq12_frobenius(a: Fq12Mont, power: usize) -> Fq12Mont {
+    let coefficient = Fq2Mont {
+        c0: FROBENIUS_COEFF_FP12_C1[power % 12],
+        c1: FQ_ZERO,
+    };
+    Fq12Mont {
+        c0: fq6_frobenius(a.c0, power),
+        c1: fq6_mul_by_fp2(fq6_frobenius(a.c1, power), coefficient),
+    }
+}
+
+/// Granger--Scott cyclotomic squaring for the `q^2 = 1 (mod 6)` branch.
+pub fn fq12_cyclotomic_square(a: Fq12Mont) -> Fq12Mont {
+    let r0 = a.c0.c0;
+    let r4 = a.c0.c1;
+    let r3 = a.c0.c2;
+    let r2 = a.c1.c0;
+    let r1 = a.c1.c1;
+    let r5 = a.c1.c2;
+
+    let mut tmp = fq2_mul(r0, r1);
+    let t0 = fq2_sub(
+        fq2_sub(
+            fq2_mul(
+                fq2_add(r0, r1),
+                fq2_add(fq6_mul_base_field_by_nonresidue(r1), r0),
+            ),
+            tmp,
+        ),
+        fq6_mul_base_field_by_nonresidue(tmp),
+    );
+    let t1 = fq2_double(tmp);
+
+    tmp = fq2_mul(r2, r3);
+    let t2 = fq2_sub(
+        fq2_sub(
+            fq2_mul(
+                fq2_add(r2, r3),
+                fq2_add(fq6_mul_base_field_by_nonresidue(r3), r2),
+            ),
+            tmp,
+        ),
+        fq6_mul_base_field_by_nonresidue(tmp),
+    );
+    let t3 = fq2_double(tmp);
+
+    tmp = fq2_mul(r4, r5);
+    let t4 = fq2_sub(
+        fq2_sub(
+            fq2_mul(
+                fq2_add(r4, r5),
+                fq2_add(fq6_mul_base_field_by_nonresidue(r5), r4),
+            ),
+            tmp,
+        ),
+        fq6_mul_base_field_by_nonresidue(tmp),
+    );
+    let t5 = fq2_double(tmp);
+
+    let z0 = fq2_add(fq2_double(fq2_sub(t0, r0)), t0);
+    let z1 = fq2_add(fq2_double(fq2_add(t1, r1)), t1);
+    tmp = fq6_mul_base_field_by_nonresidue(t5);
+    let z2 = fq2_add(fq2_double(fq2_add(r2, tmp)), tmp);
+    let z3 = fq2_add(fq2_double(fq2_sub(t4, r3)), t4);
+    let z4 = fq2_add(fq2_double(fq2_sub(t2, r4)), t2);
+    let z5 = fq2_add(fq2_double(fq2_add(r5, t3)), t3);
+
+    Fq12Mont {
+        c0: Fq6Mont {
+            c0: z0,
+            c1: z4,
+            c2: z3,
+        },
+        c1: Fq6Mont {
+            c0: z2,
+            c1: z1,
+            c2: z5,
+        },
+    }
+}
+
+/// Arkworks' NAF `cyclotomic_exp` specialized to positive BLS12-377 `X`.
+pub fn fq12_cyclotomic_exp(a: Fq12Mont) -> Fq12Mont {
+    if a.c0 == FQ6_ZERO && a.c1 == FQ6_ZERO {
+        return a;
+    }
+    let inverse = fq12_conjugate(a);
+    let mut result = FQ12_ONE;
+    let mut found_nonzero = false;
+    let mut index = 0_usize;
+    while index < 64 {
+        let digit = X_NAF_BE[index];
+        if found_nonzero {
+            result = fq12_cyclotomic_square(result);
+        }
+        if digit != 0 {
+            found_nonzero = true;
+            if digit > 0 {
+                result = fq12_mul(result, a);
+            } else {
+                result = fq12_mul(result, inverse);
+            }
+        }
+        index += 1;
+    }
+    result
+}
+
+fn fq2_to_bytes(a: Fq2Mont) -> Fq2Bytes {
+    Fq2Bytes {
+        c0: to_bytes(a.c0),
+        c1: to_bytes(a.c1),
+    }
+}
+
+fn fq6_to_bytes(a: Fq6Mont) -> Fq6Bytes {
+    Fq6Bytes {
+        c0: fq2_to_bytes(a.c0),
+        c1: fq2_to_bytes(a.c1),
+        c2: fq2_to_bytes(a.c2),
+    }
+}
+
+/// Arkworks canonical uncompressed Fq12 encoding, component order c0 then c1.
+pub fn fq12_to_bytes(a: Fq12Mont) -> Fq12Bytes {
+    Fq12Bytes {
+        c0: fq6_to_bytes(a.c0),
+        c1: fq6_to_bytes(a.c1),
+    }
+}
+
+fn fq2_from_bytes(bytes: Fq2Bytes) -> Option<Fq2Mont> {
+    match from_bytes(bytes.c0) {
+        None => None,
+        Some(c0) => match from_bytes(bytes.c1) {
+            None => None,
+            Some(c1) => Some(Fq2Mont { c0, c1 }),
+        },
+    }
+}
+
+fn fq6_from_bytes(bytes: Fq6Bytes) -> Option<Fq6Mont> {
+    match fq2_from_bytes(bytes.c0) {
+        None => None,
+        Some(c0) => match fq2_from_bytes(bytes.c1) {
+            None => None,
+            Some(c1) => match fq2_from_bytes(bytes.c2) {
+                None => None,
+                Some(c2) => Some(Fq6Mont { c0, c1, c2 }),
+            },
+        },
+    }
+}
+
+/// Arkworks canonical Fq12 decoding before the separate PairingOutput validity check.
+pub fn fq12_from_bytes(bytes: Fq12Bytes) -> Option<Fq12Mont> {
+    match fq6_from_bytes(bytes.c0) {
+        None => None,
+        Some(c0) => match fq6_from_bytes(bytes.c1) {
+            None => None,
+            Some(c1) => Some(Fq12Mont { c0, c1 }),
+        },
+    }
+}
+
+/// Extraction root whose closure contains every reached S3-21 Fq12 routine.
+#[doc(hidden)]
+pub fn extract_s3_21(
+    a: Fq12Mont,
+    b: Fq12Mont,
+    c0: Fq2Mont,
+    c3: Fq2Mont,
+    c4: Fq2Mont,
+    power: usize,
+    bytes: Fq12Bytes,
+) -> (
+    Fq12Mont,
+    Fq12Mont,
+    Fq12Mont,
+    Fq12Mont,
+    Option<Fq12Mont>,
+    Option<Fq12Mont>,
+    Fq12Mont,
+    Fq12Mont,
+    Fq12Mont,
+    Fq12Bytes,
+    Option<Fq12Mont>,
+) {
+    (
+        fq12_mul(a, b),
+        fq12_square(a),
+        fq12_mul_by_034(a, c0, c3, c4),
+        fq12_conjugate(a),
+        fq12_cyclotomic_inverse(a),
+        fq12_inv(a),
+        fq12_frobenius(a, power),
+        fq12_cyclotomic_square(a),
+        fq12_cyclotomic_exp(a),
+        fq12_to_bytes(a),
+        fq12_from_bytes(bytes),
+    )
+}
+
 #[cfg(test)]
 mod inversion_tests {
     use super::{inv, FqMont};
