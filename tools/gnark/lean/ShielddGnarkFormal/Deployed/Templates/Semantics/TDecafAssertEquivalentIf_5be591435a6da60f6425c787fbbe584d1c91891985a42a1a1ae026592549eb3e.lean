@@ -17,12 +17,13 @@ def relation (rho : Nat -> F) : Prop :=
   Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.relation rho
 
 def spec (rho : Nat -> F) : Prop :=
-  1 - rho 507 = 0 ∨ rho 1 * Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(1 : F), 2, 1, 251⟩], residual := [] } : Shieldd.GnarkFormal.StructuredLC F)) = rho 254 * Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (1 : F), runs := [⟨(1 : F), 255, 1, 251⟩], residual := [] } : Shieldd.GnarkFormal.StructuredLC F))
+  1 - rho 507 = 0 ∨ rho 1 * Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.relationLc0 rho = rho 254 * Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.relationLc1 rho
 
 theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
   simp only [relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.relationSegment0] at h
+  simp only [spec]
   obtain ⟨h0, h1, h2, h3, h4, _⟩ := h
-  have hp : (1 - rho 507) * ((rho 1 * Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(1 : F), 2, 1, 251⟩], residual := [] } : Shieldd.GnarkFormal.StructuredLC F))) - (rho 254 * Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (1 : F), runs := [⟨(1 : F), 255, 1, 251⟩], residual := [] } : Shieldd.GnarkFormal.StructuredLC F)))) = 0 := by
+  have hp : (1 - rho 507) * ((rho 1 * Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.relationLc0 rho) - (rho 254 * Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.relationLc1 rho)) = 0 := by
     linear_combination
       (1 - rho 507) * h0 - (1 - rho 507) * h1 +
       h2 - h3 + h4

@@ -18,11 +18,11 @@ local instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNu
 
 theorem sound (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationPart44 rho) :
-    rho 227 = Shieldd.GnarkFormal.Poseidon3Bridge.p17 ((relationLc2 rho)) := by
+    rho 227 = Shieldd.GnarkFormal.Poseidon3Bridge.p17 ((Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationLc2 rho)) := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationPart44 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationRow220 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationRow221 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationRow222 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationRow223 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationRow224 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   exact Shieldd.GnarkFormal.Deployed.Nullifier.p17_from_rows
-    ((relationLc2 rho)) (rho 223) (rho 224) (rho 225) (rho 226) (rho 227)
+    ((Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.relationLc2 rho)) (rho 223) (rho 224) (rho 225) (rho 226) (rho 227)
     (by linear_combination h0) (by linear_combination h1)
     (by linear_combination h2) (by linear_combination h3)
     (by linear_combination h4)

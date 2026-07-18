@@ -28,6 +28,7 @@ def spec (rho : Nat -> F) : Prop :=
 
 theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
   simp only [relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertDummySuffix_a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9.relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertDummySuffix_a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9.relationSegment0] at h
+  simp only [spec]
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, _⟩ := h
   constructor
   · linear_combination h0

@@ -10,14 +10,14 @@ set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
 
-instance dtkDtkFactPrime : Fact (Nat.Prime Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.Order) :=
+def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
+abbrev F := ZMod Order
+
+instance dtkDtkFactPrime : Fact (Nat.Prime Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
-abbrev Order : Nat := Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.Order
-abbrev F := Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.F
-
 def onCurveAt (x y : F) : Prop :=
-  y * y - x * x = 1 + EdwardsBridge.d * x * x * y * y
+  y * y - x * x = 1 + 3021 * x * x * y * y
 
 def spec (rho : Nat → F) : Prop :=
   onCurveAt (rho 2211) (rho 2213) →

@@ -35,19 +35,19 @@ theorem seg6_rung231 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX232 rho : Seg6.F), (seg6AccY232 rho : Seg6.F)⟩
         ⟨(rho 6208 : Seg6.F), (rho 6209 : Seg6.F)⟩ := by
   obtain ⟨r5797, r5798, r5799, r5800, r5801, r5802, r5803, r5804, r5805, r5806, r5807, r5808, r5809, r5810⟩ := seg6_rows231 rho h
-  unfold Seg6.relationRow5797 at r5797
+  unfold Seg6.relationRow5797 Seg6.relationLc1243 at r5797
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5797
   unfold Seg6.relationRow5798 at r5798
-  unfold Seg6.relationRow5799 at r5799
+  unfold Seg6.relationRow5799 Seg6.relationLc1244 at r5799
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5799
-  unfold Seg6.relationRow5800 at r5800
+  unfold Seg6.relationRow5800 Seg6.relationLc1245 at r5800
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5800
   unfold Seg6.relationRow5801 at r5801
   unfold Seg6.relationRow5802 at r5802
   unfold Seg6.relationRow5803 at r5803
-  unfold Seg6.relationRow5804 at r5804
+  unfold Seg6.relationRow5804 Seg6.relationLc1246 at r5804
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5804
-  unfold Seg6.relationRow5805 at r5805
+  unfold Seg6.relationRow5805 Seg6.relationLc1247 at r5805
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5805
   unfold Seg6.relationRow5806 at r5806
   unfold Seg6.relationRow5807 at r5807
@@ -169,19 +169,19 @@ theorem seg6_rung232 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX233 rho : Seg6.F), (seg6AccY233 rho : Seg6.F)⟩
         ⟨(rho 6222 : Seg6.F), (rho 6223 : Seg6.F)⟩ := by
   obtain ⟨r5811, r5812, r5813, r5814, r5815, r5816, r5817, r5818, r5819, r5820, r5821, r5822, r5823, r5824⟩ := seg6_rows232 rho h
-  unfold Seg6.relationRow5811 at r5811
+  unfold Seg6.relationRow5811 Seg6.relationLc1248 at r5811
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5811
   unfold Seg6.relationRow5812 at r5812
-  unfold Seg6.relationRow5813 at r5813
+  unfold Seg6.relationRow5813 Seg6.relationLc1249 at r5813
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5813
-  unfold Seg6.relationRow5814 at r5814
+  unfold Seg6.relationRow5814 Seg6.relationLc1250 at r5814
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5814
   unfold Seg6.relationRow5815 at r5815
   unfold Seg6.relationRow5816 at r5816
   unfold Seg6.relationRow5817 at r5817
-  unfold Seg6.relationRow5818 at r5818
+  unfold Seg6.relationRow5818 Seg6.relationLc1251 at r5818
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5818
-  unfold Seg6.relationRow5819 at r5819
+  unfold Seg6.relationRow5819 Seg6.relationLc1252 at r5819
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5819
   unfold Seg6.relationRow5820 at r5820
   unfold Seg6.relationRow5821 at r5821
@@ -303,19 +303,19 @@ theorem seg6_rung233 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX234 rho : Seg6.F), (seg6AccY234 rho : Seg6.F)⟩
         ⟨(rho 6236 : Seg6.F), (rho 6237 : Seg6.F)⟩ := by
   obtain ⟨r5825, r5826, r5827, r5828, r5829, r5830, r5831, r5832, r5833, r5834, r5835, r5836, r5837, r5838⟩ := seg6_rows233 rho h
-  unfold Seg6.relationRow5825 at r5825
+  unfold Seg6.relationRow5825 Seg6.relationLc1253 at r5825
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5825
   unfold Seg6.relationRow5826 at r5826
-  unfold Seg6.relationRow5827 at r5827
+  unfold Seg6.relationRow5827 Seg6.relationLc1254 at r5827
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5827
-  unfold Seg6.relationRow5828 at r5828
+  unfold Seg6.relationRow5828 Seg6.relationLc1255 at r5828
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5828
   unfold Seg6.relationRow5829 at r5829
   unfold Seg6.relationRow5830 at r5830
   unfold Seg6.relationRow5831 at r5831
-  unfold Seg6.relationRow5832 at r5832
+  unfold Seg6.relationRow5832 Seg6.relationLc1256 at r5832
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5832
-  unfold Seg6.relationRow5833 at r5833
+  unfold Seg6.relationRow5833 Seg6.relationLc1257 at r5833
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5833
   unfold Seg6.relationRow5834 at r5834
   unfold Seg6.relationRow5835 at r5835
@@ -439,19 +439,19 @@ theorem seg6_rung234 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX235 rho : Seg6.F), (seg6AccY235 rho : Seg6.F)⟩
         ⟨(rho 6250 : Seg6.F), (rho 6251 : Seg6.F)⟩ := by
   obtain ⟨r5839, r5840, r5841, r5842, r5843, r5844, r5845, r5846, r5847, r5848, r5849, r5850, r5851, r5852⟩ := seg6_rows234 rho h
-  unfold Seg6.relationRow5839 at r5839
+  unfold Seg6.relationRow5839 Seg6.relationLc1258 at r5839
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5839
   unfold Seg6.relationRow5840 at r5840
-  unfold Seg6.relationRow5841 at r5841
+  unfold Seg6.relationRow5841 Seg6.relationLc1259 at r5841
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5841
-  unfold Seg6.relationRow5842 at r5842
+  unfold Seg6.relationRow5842 Seg6.relationLc1260 at r5842
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5842
   unfold Seg6.relationRow5843 at r5843
   unfold Seg6.relationRow5844 at r5844
   unfold Seg6.relationRow5845 at r5845
-  unfold Seg6.relationRow5846 at r5846
+  unfold Seg6.relationRow5846 Seg6.relationLc1261 at r5846
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5846
-  unfold Seg6.relationRow5847 at r5847
+  unfold Seg6.relationRow5847 Seg6.relationLc1262 at r5847
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5847
   unfold Seg6.relationRow5848 at r5848
   unfold Seg6.relationRow5849 at r5849
@@ -573,19 +573,19 @@ theorem seg6_rung235 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX236 rho : Seg6.F), (seg6AccY236 rho : Seg6.F)⟩
         ⟨(rho 6264 : Seg6.F), (rho 6265 : Seg6.F)⟩ := by
   obtain ⟨r5853, r5854, r5855, r5856, r5857, r5858, r5859, r5860, r5861, r5862, r5863, r5864, r5865, r5866⟩ := seg6_rows235 rho h
-  unfold Seg6.relationRow5853 at r5853
+  unfold Seg6.relationRow5853 Seg6.relationLc1263 at r5853
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5853
   unfold Seg6.relationRow5854 at r5854
-  unfold Seg6.relationRow5855 at r5855
+  unfold Seg6.relationRow5855 Seg6.relationLc1264 at r5855
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5855
-  unfold Seg6.relationRow5856 at r5856
+  unfold Seg6.relationRow5856 Seg6.relationLc1265 at r5856
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5856
   unfold Seg6.relationRow5857 at r5857
   unfold Seg6.relationRow5858 at r5858
   unfold Seg6.relationRow5859 at r5859
-  unfold Seg6.relationRow5860 at r5860
+  unfold Seg6.relationRow5860 Seg6.relationLc1266 at r5860
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5860
-  unfold Seg6.relationRow5861 at r5861
+  unfold Seg6.relationRow5861 Seg6.relationLc1267 at r5861
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5861
   unfold Seg6.relationRow5862 at r5862
   unfold Seg6.relationRow5863 at r5863
@@ -707,19 +707,19 @@ theorem seg6_rung236 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX237 rho : Seg6.F), (seg6AccY237 rho : Seg6.F)⟩
         ⟨(rho 6278 : Seg6.F), (rho 6279 : Seg6.F)⟩ := by
   obtain ⟨r5867, r5868, r5869, r5870, r5871, r5872, r5873, r5874, r5875, r5876, r5877, r5878, r5879, r5880⟩ := seg6_rows236 rho h
-  unfold Seg6.relationRow5867 at r5867
+  unfold Seg6.relationRow5867 Seg6.relationLc1268 at r5867
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5867
   unfold Seg6.relationRow5868 at r5868
-  unfold Seg6.relationRow5869 at r5869
+  unfold Seg6.relationRow5869 Seg6.relationLc1269 at r5869
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5869
-  unfold Seg6.relationRow5870 at r5870
+  unfold Seg6.relationRow5870 Seg6.relationLc1270 at r5870
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5870
   unfold Seg6.relationRow5871 at r5871
   unfold Seg6.relationRow5872 at r5872
   unfold Seg6.relationRow5873 at r5873
-  unfold Seg6.relationRow5874 at r5874
+  unfold Seg6.relationRow5874 Seg6.relationLc1271 at r5874
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5874
-  unfold Seg6.relationRow5875 at r5875
+  unfold Seg6.relationRow5875 Seg6.relationLc1272 at r5875
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5875
   unfold Seg6.relationRow5876 at r5876
   unfold Seg6.relationRow5877 at r5877
@@ -841,19 +841,19 @@ theorem seg6_rung237 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX238 rho : Seg6.F), (seg6AccY238 rho : Seg6.F)⟩
         ⟨(rho 6292 : Seg6.F), (rho 6293 : Seg6.F)⟩ := by
   obtain ⟨r5881, r5882, r5883, r5884, r5885, r5886, r5887, r5888, r5889, r5890, r5891, r5892, r5893, r5894⟩ := seg6_rows237 rho h
-  unfold Seg6.relationRow5881 at r5881
+  unfold Seg6.relationRow5881 Seg6.relationLc1273 at r5881
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5881
   unfold Seg6.relationRow5882 at r5882
-  unfold Seg6.relationRow5883 at r5883
+  unfold Seg6.relationRow5883 Seg6.relationLc1274 at r5883
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5883
-  unfold Seg6.relationRow5884 at r5884
+  unfold Seg6.relationRow5884 Seg6.relationLc1275 at r5884
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5884
   unfold Seg6.relationRow5885 at r5885
   unfold Seg6.relationRow5886 at r5886
   unfold Seg6.relationRow5887 at r5887
-  unfold Seg6.relationRow5888 at r5888
+  unfold Seg6.relationRow5888 Seg6.relationLc1276 at r5888
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5888
-  unfold Seg6.relationRow5889 at r5889
+  unfold Seg6.relationRow5889 Seg6.relationLc1277 at r5889
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5889
   unfold Seg6.relationRow5890 at r5890
   unfold Seg6.relationRow5891 at r5891
@@ -975,19 +975,19 @@ theorem seg6_rung238 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX239 rho : Seg6.F), (seg6AccY239 rho : Seg6.F)⟩
         ⟨(rho 6306 : Seg6.F), (rho 6307 : Seg6.F)⟩ := by
   obtain ⟨r5895, r5896, r5897, r5898, r5899, r5900, r5901, r5902, r5903, r5904, r5905, r5906, r5907, r5908⟩ := seg6_rows238 rho h
-  unfold Seg6.relationRow5895 at r5895
+  unfold Seg6.relationRow5895 Seg6.relationLc1278 at r5895
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5895
   unfold Seg6.relationRow5896 at r5896
-  unfold Seg6.relationRow5897 at r5897
+  unfold Seg6.relationRow5897 Seg6.relationLc1279 at r5897
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5897
-  unfold Seg6.relationRow5898 at r5898
+  unfold Seg6.relationRow5898 Seg6.relationLc1280 at r5898
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5898
   unfold Seg6.relationRow5899 at r5899
   unfold Seg6.relationRow5900 at r5900
   unfold Seg6.relationRow5901 at r5901
-  unfold Seg6.relationRow5902 at r5902
+  unfold Seg6.relationRow5902 Seg6.relationLc1281 at r5902
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5902
-  unfold Seg6.relationRow5903 at r5903
+  unfold Seg6.relationRow5903 Seg6.relationLc1282 at r5903
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5903
   unfold Seg6.relationRow5904 at r5904
   unfold Seg6.relationRow5905 at r5905
@@ -1111,19 +1111,19 @@ theorem seg6_rung239 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX240 rho : Seg6.F), (seg6AccY240 rho : Seg6.F)⟩
         ⟨(rho 6320 : Seg6.F), (rho 6321 : Seg6.F)⟩ := by
   obtain ⟨r5909, r5910, r5911, r5912, r5913, r5914, r5915, r5916, r5917, r5918, r5919, r5920, r5921, r5922⟩ := seg6_rows239 rho h
-  unfold Seg6.relationRow5909 at r5909
+  unfold Seg6.relationRow5909 Seg6.relationLc1283 at r5909
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5909
   unfold Seg6.relationRow5910 at r5910
-  unfold Seg6.relationRow5911 at r5911
+  unfold Seg6.relationRow5911 Seg6.relationLc1284 at r5911
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5911
-  unfold Seg6.relationRow5912 at r5912
+  unfold Seg6.relationRow5912 Seg6.relationLc1285 at r5912
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5912
   unfold Seg6.relationRow5913 at r5913
   unfold Seg6.relationRow5914 at r5914
   unfold Seg6.relationRow5915 at r5915
-  unfold Seg6.relationRow5916 at r5916
+  unfold Seg6.relationRow5916 Seg6.relationLc1286 at r5916
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5916
-  unfold Seg6.relationRow5917 at r5917
+  unfold Seg6.relationRow5917 Seg6.relationLc1287 at r5917
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5917
   unfold Seg6.relationRow5918 at r5918
   unfold Seg6.relationRow5919 at r5919
@@ -1245,19 +1245,19 @@ theorem seg6_rung240 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX241 rho : Seg6.F), (seg6AccY241 rho : Seg6.F)⟩
         ⟨(rho 6334 : Seg6.F), (rho 6335 : Seg6.F)⟩ := by
   obtain ⟨r5923, r5924, r5925, r5926, r5927, r5928, r5929, r5930, r5931, r5932, r5933, r5934, r5935, r5936⟩ := seg6_rows240 rho h
-  unfold Seg6.relationRow5923 at r5923
+  unfold Seg6.relationRow5923 Seg6.relationLc1288 at r5923
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5923
   unfold Seg6.relationRow5924 at r5924
-  unfold Seg6.relationRow5925 at r5925
+  unfold Seg6.relationRow5925 Seg6.relationLc1289 at r5925
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5925
-  unfold Seg6.relationRow5926 at r5926
+  unfold Seg6.relationRow5926 Seg6.relationLc1290 at r5926
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5926
   unfold Seg6.relationRow5927 at r5927
   unfold Seg6.relationRow5928 at r5928
   unfold Seg6.relationRow5929 at r5929
-  unfold Seg6.relationRow5930 at r5930
+  unfold Seg6.relationRow5930 Seg6.relationLc1291 at r5930
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5930
-  unfold Seg6.relationRow5931 at r5931
+  unfold Seg6.relationRow5931 Seg6.relationLc1292 at r5931
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5931
   unfold Seg6.relationRow5932 at r5932
   unfold Seg6.relationRow5933 at r5933
@@ -1379,19 +1379,19 @@ theorem seg6_rung241 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Dtk.Outputs.F) (
         ⟨(seg6AccX242 rho : Seg6.F), (seg6AccY242 rho : Seg6.F)⟩
         ⟨(rho 6348 : Seg6.F), (rho 6349 : Seg6.F)⟩ := by
   obtain ⟨r5937, r5938, r5939, r5940, r5941, r5942, r5943, r5944, r5945, r5946, r5947, r5948, r5949, r5950⟩ := seg6_rows241 rho h
-  unfold Seg6.relationRow5937 at r5937
+  unfold Seg6.relationRow5937 Seg6.relationLc1293 at r5937
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5937
   unfold Seg6.relationRow5938 at r5938
-  unfold Seg6.relationRow5939 at r5939
+  unfold Seg6.relationRow5939 Seg6.relationLc1294 at r5939
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5939
-  unfold Seg6.relationRow5940 at r5940
+  unfold Seg6.relationRow5940 Seg6.relationLc1295 at r5940
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5940
   unfold Seg6.relationRow5941 at r5941
   unfold Seg6.relationRow5942 at r5942
   unfold Seg6.relationRow5943 at r5943
-  unfold Seg6.relationRow5944 at r5944
+  unfold Seg6.relationRow5944 Seg6.relationLc1296 at r5944
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5944
-  unfold Seg6.relationRow5945 at r5945
+  unfold Seg6.relationRow5945 Seg6.relationLc1297 at r5945
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r5945
   unfold Seg6.relationRow5946 at r5946
   unfold Seg6.relationRow5947 at r5947

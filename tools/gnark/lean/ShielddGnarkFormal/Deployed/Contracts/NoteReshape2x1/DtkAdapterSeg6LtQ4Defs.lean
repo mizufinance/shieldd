@@ -2110,15 +2110,135 @@ theorem seg6Q4Il0Atoms (rho : Nat -> Seg6.F) : seg6Q4Il0 rho = seg6Q4IlAtom0 rho
   unfold seg6Q4Il0
   rw [seg6Q4Il1Atoms rho] <;> simp only [zero_add]
 
+theorem seg6Q4relationLc125Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc125Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc125Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc125Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc125Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho := by
+  unfold Seg6.relationLc125Part1 seg6Q4IlAtom17
+  ring
+
+theorem seg6Q4relationLc125Atom (rho : Nat -> Seg6.F) : Seg6.relationLc125 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho := by
+  unfold Seg6.relationLc125
+  rw [seg6Q4relationLc125Part0Atom rho, seg6Q4relationLc125Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc126Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc126Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc126Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc126Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc126Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho := by
+  unfold Seg6.relationLc126Part1 seg6Q4IlAtom17 seg6Q4IlAtom18
+  ring
+
+theorem seg6Q4relationLc126Atom (rho : Nat -> Seg6.F) : Seg6.relationLc126 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho := by
+  unfold Seg6.relationLc126
+  rw [seg6Q4relationLc126Part0Atom rho, seg6Q4relationLc126Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc127Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc127Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc127Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc127Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc127Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho := by
+  unfold Seg6.relationLc127Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19
+  ring
+
+theorem seg6Q4relationLc127Atom (rho : Nat -> Seg6.F) : Seg6.relationLc127 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho := by
+  unfold Seg6.relationLc127
+  rw [seg6Q4relationLc127Part0Atom rho, seg6Q4relationLc127Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc128Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc128Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc128Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc128Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc128Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho := by
+  unfold Seg6.relationLc128Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20
+  ring
+
+theorem seg6Q4relationLc128Atom (rho : Nat -> Seg6.F) : Seg6.relationLc128 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho := by
+  unfold Seg6.relationLc128
+  rw [seg6Q4relationLc128Part0Atom rho, seg6Q4relationLc128Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc129Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc129Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc129Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc129Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc129Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho := by
+  unfold Seg6.relationLc129Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21
+  ring
+
+theorem seg6Q4relationLc129Atom (rho : Nat -> Seg6.F) : Seg6.relationLc129 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho := by
+  unfold Seg6.relationLc129
+  rw [seg6Q4relationLc129Part0Atom rho, seg6Q4relationLc129Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc130Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc130Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc130Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc130Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc130Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho := by
+  unfold Seg6.relationLc130Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22
+  ring
+
+theorem seg6Q4relationLc130Atom (rho : Nat -> Seg6.F) : Seg6.relationLc130 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho := by
+  unfold Seg6.relationLc130
+  rw [seg6Q4relationLc130Part0Atom rho, seg6Q4relationLc130Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc131Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc131Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc131Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc131Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc131Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho := by
+  unfold Seg6.relationLc131Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23
+  ring
+
+theorem seg6Q4relationLc131Atom (rho : Nat -> Seg6.F) : Seg6.relationLc131 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho := by
+  unfold Seg6.relationLc131
+  rw [seg6Q4relationLc131Part0Atom rho, seg6Q4relationLc131Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc132Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc132Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc132Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc132Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc132Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho := by
+  unfold Seg6.relationLc132Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24
+  ring
+
+theorem seg6Q4relationLc132Atom (rho : Nat -> Seg6.F) : Seg6.relationLc132 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho := by
+  unfold Seg6.relationLc132
+  rw [seg6Q4relationLc132Part0Atom rho, seg6Q4relationLc132Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc133Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc133Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc133Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc133Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc133Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho := by
+  unfold Seg6.relationLc133Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25
+  ring
+
+theorem seg6Q4relationLc133Atom (rho : Nat -> Seg6.F) : Seg6.relationLc133 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho := by
+  unfold Seg6.relationLc133
+  rw [seg6Q4relationLc133Part0Atom rho, seg6Q4relationLc133Part1Atom rho] <;> ring
+
+theorem seg6Q4relationLc134Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc134Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
+  unfold Seg6.relationLc134Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+  ring
+
+theorem seg6Q4relationLc134Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc134Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho := by
+  unfold Seg6.relationLc134Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26
+  ring
+
+theorem seg6Q4relationLc134Atom (rho : Nat -> Seg6.F) : Seg6.relationLc134 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho := by
+  unfold Seg6.relationLc134
+  rw [seg6Q4relationLc134Part0Atom rho, seg6Q4relationLc134Part1Atom rho] <;> ring
+
 theorem seg6Q4relationLc135Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc135Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc135Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc135Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc135Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho := by
-  unfold Seg6.relationLc135Part1 seg6Q4IlAtom17
+theorem seg6Q4relationLc135Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc135Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho := by
+  unfold Seg6.relationLc135Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27
   ring
 
-theorem seg6Q4relationLc135Atom (rho : Nat -> Seg6.F) : Seg6.relationLc135 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho := by
+theorem seg6Q4relationLc135Atom (rho : Nat -> Seg6.F) : Seg6.relationLc135 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho := by
   unfold Seg6.relationLc135
   rw [seg6Q4relationLc135Part0Atom rho, seg6Q4relationLc135Part1Atom rho] <;> ring
 
@@ -2126,11 +2246,11 @@ theorem seg6Q4relationLc136Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc136P
   unfold Seg6.relationLc136Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc136Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc136Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho := by
-  unfold Seg6.relationLc136Part1 seg6Q4IlAtom17 seg6Q4IlAtom18
+theorem seg6Q4relationLc136Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc136Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho := by
+  unfold Seg6.relationLc136Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28
   ring
 
-theorem seg6Q4relationLc136Atom (rho : Nat -> Seg6.F) : Seg6.relationLc136 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho := by
+theorem seg6Q4relationLc136Atom (rho : Nat -> Seg6.F) : Seg6.relationLc136 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho := by
   unfold Seg6.relationLc136
   rw [seg6Q4relationLc136Part0Atom rho, seg6Q4relationLc136Part1Atom rho] <;> ring
 
@@ -2138,11 +2258,11 @@ theorem seg6Q4relationLc137Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc137P
   unfold Seg6.relationLc137Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc137Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc137Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho := by
-  unfold Seg6.relationLc137Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19
+theorem seg6Q4relationLc137Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc137Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho := by
+  unfold Seg6.relationLc137Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29
   ring
 
-theorem seg6Q4relationLc137Atom (rho : Nat -> Seg6.F) : Seg6.relationLc137 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho := by
+theorem seg6Q4relationLc137Atom (rho : Nat -> Seg6.F) : Seg6.relationLc137 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho := by
   unfold Seg6.relationLc137
   rw [seg6Q4relationLc137Part0Atom rho, seg6Q4relationLc137Part1Atom rho] <;> ring
 
@@ -2150,11 +2270,11 @@ theorem seg6Q4relationLc138Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc138P
   unfold Seg6.relationLc138Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc138Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc138Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho := by
-  unfold Seg6.relationLc138Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20
+theorem seg6Q4relationLc138Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc138Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho := by
+  unfold Seg6.relationLc138Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30
   ring
 
-theorem seg6Q4relationLc138Atom (rho : Nat -> Seg6.F) : Seg6.relationLc138 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho := by
+theorem seg6Q4relationLc138Atom (rho : Nat -> Seg6.F) : Seg6.relationLc138 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho := by
   unfold Seg6.relationLc138
   rw [seg6Q4relationLc138Part0Atom rho, seg6Q4relationLc138Part1Atom rho] <;> ring
 
@@ -2162,11 +2282,11 @@ theorem seg6Q4relationLc139Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc139P
   unfold Seg6.relationLc139Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc139Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc139Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho := by
-  unfold Seg6.relationLc139Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21
+theorem seg6Q4relationLc139Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc139Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho := by
+  unfold Seg6.relationLc139Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31
   ring
 
-theorem seg6Q4relationLc139Atom (rho : Nat -> Seg6.F) : Seg6.relationLc139 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho := by
+theorem seg6Q4relationLc139Atom (rho : Nat -> Seg6.F) : Seg6.relationLc139 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho := by
   unfold Seg6.relationLc139
   rw [seg6Q4relationLc139Part0Atom rho, seg6Q4relationLc139Part1Atom rho] <;> ring
 
@@ -2174,11 +2294,11 @@ theorem seg6Q4relationLc140Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc140P
   unfold Seg6.relationLc140Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc140Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc140Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho := by
-  unfold Seg6.relationLc140Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22
+theorem seg6Q4relationLc140Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc140Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho := by
+  unfold Seg6.relationLc140Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32
   ring
 
-theorem seg6Q4relationLc140Atom (rho : Nat -> Seg6.F) : Seg6.relationLc140 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho := by
+theorem seg6Q4relationLc140Atom (rho : Nat -> Seg6.F) : Seg6.relationLc140 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho := by
   unfold Seg6.relationLc140
   rw [seg6Q4relationLc140Part0Atom rho, seg6Q4relationLc140Part1Atom rho] <;> ring
 
@@ -2186,121 +2306,161 @@ theorem seg6Q4relationLc141Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc141P
   unfold Seg6.relationLc141Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc141Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc141Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho := by
-  unfold Seg6.relationLc141Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23
+theorem seg6Q4relationLc141Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc141Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc141Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc141Atom (rho : Nat -> Seg6.F) : Seg6.relationLc141 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho := by
+theorem seg6Q4relationLc141Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc141Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho := by
+  unfold Seg6.relationLc141Part2 seg6Q4IlAtom34
+  ring
+
+theorem seg6Q4relationLc141Atom (rho : Nat -> Seg6.F) : Seg6.relationLc141 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho := by
   unfold Seg6.relationLc141
-  rw [seg6Q4relationLc141Part0Atom rho, seg6Q4relationLc141Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc141Part0Atom rho, seg6Q4relationLc141Part1Atom rho, seg6Q4relationLc141Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc142Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc142Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc142Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc142Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc142Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho := by
-  unfold Seg6.relationLc142Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24
+theorem seg6Q4relationLc142Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc142Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc142Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc142Atom (rho : Nat -> Seg6.F) : Seg6.relationLc142 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho := by
+theorem seg6Q4relationLc142Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc142Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho := by
+  unfold Seg6.relationLc142Part2 seg6Q4IlAtom34 seg6Q4IlAtom35
+  ring
+
+theorem seg6Q4relationLc142Atom (rho : Nat -> Seg6.F) : Seg6.relationLc142 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho := by
   unfold Seg6.relationLc142
-  rw [seg6Q4relationLc142Part0Atom rho, seg6Q4relationLc142Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc142Part0Atom rho, seg6Q4relationLc142Part1Atom rho, seg6Q4relationLc142Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc143Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc143Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc143Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc143Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc143Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho := by
-  unfold Seg6.relationLc143Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25
+theorem seg6Q4relationLc143Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc143Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc143Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc143Atom (rho : Nat -> Seg6.F) : Seg6.relationLc143 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho := by
+theorem seg6Q4relationLc143Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc143Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho := by
+  unfold Seg6.relationLc143Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36
+  ring
+
+theorem seg6Q4relationLc143Atom (rho : Nat -> Seg6.F) : Seg6.relationLc143 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho := by
   unfold Seg6.relationLc143
-  rw [seg6Q4relationLc143Part0Atom rho, seg6Q4relationLc143Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc143Part0Atom rho, seg6Q4relationLc143Part1Atom rho, seg6Q4relationLc143Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc144Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc144Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc144Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc144Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc144Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho := by
-  unfold Seg6.relationLc144Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26
+theorem seg6Q4relationLc144Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc144Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc144Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc144Atom (rho : Nat -> Seg6.F) : Seg6.relationLc144 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho := by
+theorem seg6Q4relationLc144Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc144Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho := by
+  unfold Seg6.relationLc144Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37
+  ring
+
+theorem seg6Q4relationLc144Atom (rho : Nat -> Seg6.F) : Seg6.relationLc144 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho := by
   unfold Seg6.relationLc144
-  rw [seg6Q4relationLc144Part0Atom rho, seg6Q4relationLc144Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc144Part0Atom rho, seg6Q4relationLc144Part1Atom rho, seg6Q4relationLc144Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc145Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc145Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc145Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc145Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc145Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho := by
-  unfold Seg6.relationLc145Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27
+theorem seg6Q4relationLc145Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc145Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc145Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc145Atom (rho : Nat -> Seg6.F) : Seg6.relationLc145 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho := by
+theorem seg6Q4relationLc145Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc145Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho := by
+  unfold Seg6.relationLc145Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38
+  ring
+
+theorem seg6Q4relationLc145Atom (rho : Nat -> Seg6.F) : Seg6.relationLc145 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho := by
   unfold Seg6.relationLc145
-  rw [seg6Q4relationLc145Part0Atom rho, seg6Q4relationLc145Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc145Part0Atom rho, seg6Q4relationLc145Part1Atom rho, seg6Q4relationLc145Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc146Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc146Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc146Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc146Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc146Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho := by
-  unfold Seg6.relationLc146Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28
+theorem seg6Q4relationLc146Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc146Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc146Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc146Atom (rho : Nat -> Seg6.F) : Seg6.relationLc146 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho := by
+theorem seg6Q4relationLc146Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc146Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho := by
+  unfold Seg6.relationLc146Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39
+  ring
+
+theorem seg6Q4relationLc146Atom (rho : Nat -> Seg6.F) : Seg6.relationLc146 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho := by
   unfold Seg6.relationLc146
-  rw [seg6Q4relationLc146Part0Atom rho, seg6Q4relationLc146Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc146Part0Atom rho, seg6Q4relationLc146Part1Atom rho, seg6Q4relationLc146Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc147Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc147Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc147Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc147Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc147Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho := by
-  unfold Seg6.relationLc147Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29
+theorem seg6Q4relationLc147Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc147Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc147Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc147Atom (rho : Nat -> Seg6.F) : Seg6.relationLc147 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho := by
+theorem seg6Q4relationLc147Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc147Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho := by
+  unfold Seg6.relationLc147Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40
+  ring
+
+theorem seg6Q4relationLc147Atom (rho : Nat -> Seg6.F) : Seg6.relationLc147 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho := by
   unfold Seg6.relationLc147
-  rw [seg6Q4relationLc147Part0Atom rho, seg6Q4relationLc147Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc147Part0Atom rho, seg6Q4relationLc147Part1Atom rho, seg6Q4relationLc147Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc148Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc148Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc148Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc148Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc148Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho := by
-  unfold Seg6.relationLc148Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30
+theorem seg6Q4relationLc148Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc148Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc148Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc148Atom (rho : Nat -> Seg6.F) : Seg6.relationLc148 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho := by
+theorem seg6Q4relationLc148Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc148Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho := by
+  unfold Seg6.relationLc148Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41
+  ring
+
+theorem seg6Q4relationLc148Atom (rho : Nat -> Seg6.F) : Seg6.relationLc148 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho := by
   unfold Seg6.relationLc148
-  rw [seg6Q4relationLc148Part0Atom rho, seg6Q4relationLc148Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc148Part0Atom rho, seg6Q4relationLc148Part1Atom rho, seg6Q4relationLc148Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc149Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc149Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc149Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc149Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc149Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho := by
-  unfold Seg6.relationLc149Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31
+theorem seg6Q4relationLc149Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc149Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc149Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc149Atom (rho : Nat -> Seg6.F) : Seg6.relationLc149 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho := by
+theorem seg6Q4relationLc149Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc149Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho := by
+  unfold Seg6.relationLc149Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42
+  ring
+
+theorem seg6Q4relationLc149Atom (rho : Nat -> Seg6.F) : Seg6.relationLc149 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho := by
   unfold Seg6.relationLc149
-  rw [seg6Q4relationLc149Part0Atom rho, seg6Q4relationLc149Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc149Part0Atom rho, seg6Q4relationLc149Part1Atom rho, seg6Q4relationLc149Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc150Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc150Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc150Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc150Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc150Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho := by
-  unfold Seg6.relationLc150Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32
+theorem seg6Q4relationLc150Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc150Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
+  unfold Seg6.relationLc150Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc150Atom (rho : Nat -> Seg6.F) : Seg6.relationLc150 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho := by
+theorem seg6Q4relationLc150Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc150Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho := by
+  unfold Seg6.relationLc150Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43
+  ring
+
+theorem seg6Q4relationLc150Atom (rho : Nat -> Seg6.F) : Seg6.relationLc150 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho := by
   unfold Seg6.relationLc150
-  rw [seg6Q4relationLc150Part0Atom rho, seg6Q4relationLc150Part1Atom rho] <;> ring
+  rw [seg6Q4relationLc150Part0Atom rho, seg6Q4relationLc150Part1Atom rho, seg6Q4relationLc150Part2Atom rho] <;> ring
 
 theorem seg6Q4relationLc151Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc151Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc151Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2310,11 +2470,11 @@ theorem seg6Q4relationLc151Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc151P
   unfold Seg6.relationLc151Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc151Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc151Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho := by
-  unfold Seg6.relationLc151Part2 seg6Q4IlAtom34
+theorem seg6Q4relationLc151Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc151Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho := by
+  unfold Seg6.relationLc151Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44
   ring
 
-theorem seg6Q4relationLc151Atom (rho : Nat -> Seg6.F) : Seg6.relationLc151 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho := by
+theorem seg6Q4relationLc151Atom (rho : Nat -> Seg6.F) : Seg6.relationLc151 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho := by
   unfold Seg6.relationLc151
   rw [seg6Q4relationLc151Part0Atom rho, seg6Q4relationLc151Part1Atom rho, seg6Q4relationLc151Part2Atom rho] <;> ring
 
@@ -2326,11 +2486,11 @@ theorem seg6Q4relationLc152Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc152P
   unfold Seg6.relationLc152Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc152Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc152Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho := by
-  unfold Seg6.relationLc152Part2 seg6Q4IlAtom34 seg6Q4IlAtom35
+theorem seg6Q4relationLc152Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc152Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho := by
+  unfold Seg6.relationLc152Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45
   ring
 
-theorem seg6Q4relationLc152Atom (rho : Nat -> Seg6.F) : Seg6.relationLc152 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho := by
+theorem seg6Q4relationLc152Atom (rho : Nat -> Seg6.F) : Seg6.relationLc152 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho := by
   unfold Seg6.relationLc152
   rw [seg6Q4relationLc152Part0Atom rho, seg6Q4relationLc152Part1Atom rho, seg6Q4relationLc152Part2Atom rho] <;> ring
 
@@ -2342,11 +2502,11 @@ theorem seg6Q4relationLc153Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc153P
   unfold Seg6.relationLc153Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc153Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc153Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho := by
-  unfold Seg6.relationLc153Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36
+theorem seg6Q4relationLc153Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc153Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho := by
+  unfold Seg6.relationLc153Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46
   ring
 
-theorem seg6Q4relationLc153Atom (rho : Nat -> Seg6.F) : Seg6.relationLc153 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho := by
+theorem seg6Q4relationLc153Atom (rho : Nat -> Seg6.F) : Seg6.relationLc153 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho := by
   unfold Seg6.relationLc153
   rw [seg6Q4relationLc153Part0Atom rho, seg6Q4relationLc153Part1Atom rho, seg6Q4relationLc153Part2Atom rho] <;> ring
 
@@ -2358,11 +2518,11 @@ theorem seg6Q4relationLc154Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc154P
   unfold Seg6.relationLc154Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc154Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc154Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho := by
-  unfold Seg6.relationLc154Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37
+theorem seg6Q4relationLc154Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc154Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho := by
+  unfold Seg6.relationLc154Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47
   ring
 
-theorem seg6Q4relationLc154Atom (rho : Nat -> Seg6.F) : Seg6.relationLc154 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho := by
+theorem seg6Q4relationLc154Atom (rho : Nat -> Seg6.F) : Seg6.relationLc154 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho := by
   unfold Seg6.relationLc154
   rw [seg6Q4relationLc154Part0Atom rho, seg6Q4relationLc154Part1Atom rho, seg6Q4relationLc154Part2Atom rho] <;> ring
 
@@ -2374,11 +2534,11 @@ theorem seg6Q4relationLc155Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc155P
   unfold Seg6.relationLc155Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc155Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc155Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho := by
-  unfold Seg6.relationLc155Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38
+theorem seg6Q4relationLc155Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc155Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho := by
+  unfold Seg6.relationLc155Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48
   ring
 
-theorem seg6Q4relationLc155Atom (rho : Nat -> Seg6.F) : Seg6.relationLc155 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho := by
+theorem seg6Q4relationLc155Atom (rho : Nat -> Seg6.F) : Seg6.relationLc155 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho := by
   unfold Seg6.relationLc155
   rw [seg6Q4relationLc155Part0Atom rho, seg6Q4relationLc155Part1Atom rho, seg6Q4relationLc155Part2Atom rho] <;> ring
 
@@ -2390,11 +2550,11 @@ theorem seg6Q4relationLc156Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc156P
   unfold Seg6.relationLc156Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc156Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc156Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho := by
-  unfold Seg6.relationLc156Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39
+theorem seg6Q4relationLc156Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc156Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho := by
+  unfold Seg6.relationLc156Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49
   ring
 
-theorem seg6Q4relationLc156Atom (rho : Nat -> Seg6.F) : Seg6.relationLc156 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho := by
+theorem seg6Q4relationLc156Atom (rho : Nat -> Seg6.F) : Seg6.relationLc156 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho := by
   unfold Seg6.relationLc156
   rw [seg6Q4relationLc156Part0Atom rho, seg6Q4relationLc156Part1Atom rho, seg6Q4relationLc156Part2Atom rho] <;> ring
 
@@ -2406,13 +2566,17 @@ theorem seg6Q4relationLc157Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc157P
   unfold Seg6.relationLc157Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc157Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc157Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho := by
-  unfold Seg6.relationLc157Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40
+theorem seg6Q4relationLc157Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc157Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc157Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc157Atom (rho : Nat -> Seg6.F) : Seg6.relationLc157 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho := by
+theorem seg6Q4relationLc157Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc157Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho := by
+  unfold Seg6.relationLc157Part3 seg6Q4IlAtom51
+  ring
+
+theorem seg6Q4relationLc157Atom (rho : Nat -> Seg6.F) : Seg6.relationLc157 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho := by
   unfold Seg6.relationLc157
-  rw [seg6Q4relationLc157Part0Atom rho, seg6Q4relationLc157Part1Atom rho, seg6Q4relationLc157Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc157Part0Atom rho, seg6Q4relationLc157Part1Atom rho, seg6Q4relationLc157Part2Atom rho, seg6Q4relationLc157Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc158Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc158Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc158Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2422,13 +2586,17 @@ theorem seg6Q4relationLc158Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc158P
   unfold Seg6.relationLc158Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc158Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc158Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho := by
-  unfold Seg6.relationLc158Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41
+theorem seg6Q4relationLc158Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc158Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc158Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc158Atom (rho : Nat -> Seg6.F) : Seg6.relationLc158 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho := by
+theorem seg6Q4relationLc158Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc158Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho := by
+  unfold Seg6.relationLc158Part3 seg6Q4IlAtom51 seg6Q4IlAtom52
+  ring
+
+theorem seg6Q4relationLc158Atom (rho : Nat -> Seg6.F) : Seg6.relationLc158 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho := by
   unfold Seg6.relationLc158
-  rw [seg6Q4relationLc158Part0Atom rho, seg6Q4relationLc158Part1Atom rho, seg6Q4relationLc158Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc158Part0Atom rho, seg6Q4relationLc158Part1Atom rho, seg6Q4relationLc158Part2Atom rho, seg6Q4relationLc158Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc159Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc159Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc159Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2438,13 +2606,17 @@ theorem seg6Q4relationLc159Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc159P
   unfold Seg6.relationLc159Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc159Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc159Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho := by
-  unfold Seg6.relationLc159Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42
+theorem seg6Q4relationLc159Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc159Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc159Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc159Atom (rho : Nat -> Seg6.F) : Seg6.relationLc159 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho := by
+theorem seg6Q4relationLc159Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc159Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho := by
+  unfold Seg6.relationLc159Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53
+  ring
+
+theorem seg6Q4relationLc159Atom (rho : Nat -> Seg6.F) : Seg6.relationLc159 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho := by
   unfold Seg6.relationLc159
-  rw [seg6Q4relationLc159Part0Atom rho, seg6Q4relationLc159Part1Atom rho, seg6Q4relationLc159Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc159Part0Atom rho, seg6Q4relationLc159Part1Atom rho, seg6Q4relationLc159Part2Atom rho, seg6Q4relationLc159Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc160Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc160Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc160Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2454,13 +2626,17 @@ theorem seg6Q4relationLc160Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc160P
   unfold Seg6.relationLc160Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc160Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc160Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho := by
-  unfold Seg6.relationLc160Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43
+theorem seg6Q4relationLc160Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc160Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc160Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc160Atom (rho : Nat -> Seg6.F) : Seg6.relationLc160 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho := by
+theorem seg6Q4relationLc160Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc160Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho := by
+  unfold Seg6.relationLc160Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54
+  ring
+
+theorem seg6Q4relationLc160Atom (rho : Nat -> Seg6.F) : Seg6.relationLc160 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho := by
   unfold Seg6.relationLc160
-  rw [seg6Q4relationLc160Part0Atom rho, seg6Q4relationLc160Part1Atom rho, seg6Q4relationLc160Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc160Part0Atom rho, seg6Q4relationLc160Part1Atom rho, seg6Q4relationLc160Part2Atom rho, seg6Q4relationLc160Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc161Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc161Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc161Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2470,13 +2646,17 @@ theorem seg6Q4relationLc161Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc161P
   unfold Seg6.relationLc161Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc161Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc161Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho := by
-  unfold Seg6.relationLc161Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44
+theorem seg6Q4relationLc161Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc161Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc161Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc161Atom (rho : Nat -> Seg6.F) : Seg6.relationLc161 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho := by
+theorem seg6Q4relationLc161Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc161Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho := by
+  unfold Seg6.relationLc161Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55
+  ring
+
+theorem seg6Q4relationLc161Atom (rho : Nat -> Seg6.F) : Seg6.relationLc161 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho := by
   unfold Seg6.relationLc161
-  rw [seg6Q4relationLc161Part0Atom rho, seg6Q4relationLc161Part1Atom rho, seg6Q4relationLc161Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc161Part0Atom rho, seg6Q4relationLc161Part1Atom rho, seg6Q4relationLc161Part2Atom rho, seg6Q4relationLc161Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc162Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc162Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc162Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2486,13 +2666,17 @@ theorem seg6Q4relationLc162Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc162P
   unfold Seg6.relationLc162Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc162Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc162Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho := by
-  unfold Seg6.relationLc162Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45
+theorem seg6Q4relationLc162Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc162Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc162Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc162Atom (rho : Nat -> Seg6.F) : Seg6.relationLc162 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho := by
+theorem seg6Q4relationLc162Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc162Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho := by
+  unfold Seg6.relationLc162Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56
+  ring
+
+theorem seg6Q4relationLc162Atom (rho : Nat -> Seg6.F) : Seg6.relationLc162 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho := by
   unfold Seg6.relationLc162
-  rw [seg6Q4relationLc162Part0Atom rho, seg6Q4relationLc162Part1Atom rho, seg6Q4relationLc162Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc162Part0Atom rho, seg6Q4relationLc162Part1Atom rho, seg6Q4relationLc162Part2Atom rho, seg6Q4relationLc162Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc163Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc163Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc163Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2502,13 +2686,17 @@ theorem seg6Q4relationLc163Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc163P
   unfold Seg6.relationLc163Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc163Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc163Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho := by
-  unfold Seg6.relationLc163Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46
+theorem seg6Q4relationLc163Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc163Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc163Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc163Atom (rho : Nat -> Seg6.F) : Seg6.relationLc163 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho := by
+theorem seg6Q4relationLc163Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc163Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho := by
+  unfold Seg6.relationLc163Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57
+  ring
+
+theorem seg6Q4relationLc163Atom (rho : Nat -> Seg6.F) : Seg6.relationLc163 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho := by
   unfold Seg6.relationLc163
-  rw [seg6Q4relationLc163Part0Atom rho, seg6Q4relationLc163Part1Atom rho, seg6Q4relationLc163Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc163Part0Atom rho, seg6Q4relationLc163Part1Atom rho, seg6Q4relationLc163Part2Atom rho, seg6Q4relationLc163Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc164Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc164Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc164Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2518,13 +2706,17 @@ theorem seg6Q4relationLc164Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc164P
   unfold Seg6.relationLc164Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc164Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc164Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho := by
-  unfold Seg6.relationLc164Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47
+theorem seg6Q4relationLc164Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc164Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc164Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc164Atom (rho : Nat -> Seg6.F) : Seg6.relationLc164 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho := by
+theorem seg6Q4relationLc164Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc164Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho := by
+  unfold Seg6.relationLc164Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57 seg6Q4IlAtom58
+  ring
+
+theorem seg6Q4relationLc164Atom (rho : Nat -> Seg6.F) : Seg6.relationLc164 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho := by
   unfold Seg6.relationLc164
-  rw [seg6Q4relationLc164Part0Atom rho, seg6Q4relationLc164Part1Atom rho, seg6Q4relationLc164Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc164Part0Atom rho, seg6Q4relationLc164Part1Atom rho, seg6Q4relationLc164Part2Atom rho, seg6Q4relationLc164Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc165Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc165Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc165Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2534,13 +2726,17 @@ theorem seg6Q4relationLc165Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc165P
   unfold Seg6.relationLc165Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc165Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc165Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho := by
-  unfold Seg6.relationLc165Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48
+theorem seg6Q4relationLc165Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc165Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc165Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc165Atom (rho : Nat -> Seg6.F) : Seg6.relationLc165 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho := by
+theorem seg6Q4relationLc165Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc165Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho + seg6Q4IlAtom59 rho := by
+  unfold Seg6.relationLc165Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57 seg6Q4IlAtom58 seg6Q4IlAtom59
+  ring
+
+theorem seg6Q4relationLc165Atom (rho : Nat -> Seg6.F) : Seg6.relationLc165 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho + seg6Q4IlAtom59 rho := by
   unfold Seg6.relationLc165
-  rw [seg6Q4relationLc165Part0Atom rho, seg6Q4relationLc165Part1Atom rho, seg6Q4relationLc165Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc165Part0Atom rho, seg6Q4relationLc165Part1Atom rho, seg6Q4relationLc165Part2Atom rho, seg6Q4relationLc165Part3Atom rho] <;> ring
 
 theorem seg6Q4relationLc166Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc166Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
   unfold Seg6.relationLc166Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
@@ -2550,404 +2746,208 @@ theorem seg6Q4relationLc166Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc166P
   unfold Seg6.relationLc166Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
   ring
 
-theorem seg6Q4relationLc166Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc166Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho := by
-  unfold Seg6.relationLc166Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49
+theorem seg6Q4relationLc166Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc166Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
+  unfold Seg6.relationLc166Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
   ring
 
-theorem seg6Q4relationLc166Atom (rho : Nat -> Seg6.F) : Seg6.relationLc166 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho := by
+theorem seg6Q4relationLc166Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc166Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho + seg6Q4IlAtom59 rho + seg6Q4IlAtom60 rho := by
+  unfold Seg6.relationLc166Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57 seg6Q4IlAtom58 seg6Q4IlAtom59 seg6Q4IlAtom60
+  ring
+
+theorem seg6Q4relationLc166Atom (rho : Nat -> Seg6.F) : Seg6.relationLc166 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho + seg6Q4IlAtom59 rho + seg6Q4IlAtom60 rho := by
   unfold Seg6.relationLc166
-  rw [seg6Q4relationLc166Part0Atom rho, seg6Q4relationLc166Part1Atom rho, seg6Q4relationLc166Part2Atom rho] <;> ring
+  rw [seg6Q4relationLc166Part0Atom rho, seg6Q4relationLc166Part1Atom rho, seg6Q4relationLc166Part2Atom rho, seg6Q4relationLc166Part3Atom rho] <;> ring
 
-theorem seg6Q4relationLc167Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc167Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
+theorem seg6Q4relationLc167Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167Part0 rho = (1 : Seg6.F) + (-1 : Seg6.F) * seg6Q4IlAtom0 rho + (-1 : Seg6.F) * seg6Q4IlAtom1 rho + (-1 : Seg6.F) * seg6Q4IlAtom2 rho + (-1 : Seg6.F) * seg6Q4IlAtom3 rho + (-1 : Seg6.F) * seg6Q4IlAtom4 rho + (-1 : Seg6.F) * seg6Q4IlAtom5 rho + (-1 : Seg6.F) * seg6Q4IlAtom6 rho + (-1 : Seg6.F) * seg6Q4IlAtom7 rho + (-1 : Seg6.F) * seg6Q4IlAtom8 rho + (-1 : Seg6.F) * seg6Q4IlAtom9 rho + (-1 : Seg6.F) * seg6Q4IlAtom10 rho + (-1 : Seg6.F) * seg6Q4IlAtom11 rho + (-1 : Seg6.F) * seg6Q4IlAtom12 rho + (-1 : Seg6.F) * seg6Q4IlAtom13 rho + (-1 : Seg6.F) * seg6Q4IlAtom14 rho + (-1 : Seg6.F) * seg6Q4IlAtom15 rho := by
+  unfold Seg6.relationLc167Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   ring
 
-theorem seg6Q4relationLc167Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc167Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
+theorem seg6Q4relationLc167Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom16 rho + seg6Q4IlAtom17 rho + (-1 : Seg6.F) * seg6Q4IlAtom18 rho + (-1 : Seg6.F) * seg6Q4IlAtom19 rho + (-1 : Seg6.F) * seg6Q4IlAtom20 rho + (-1 : Seg6.F) * seg6Q4IlAtom21 rho + (-1 : Seg6.F) * seg6Q4IlAtom22 rho + (-1 : Seg6.F) * seg6Q4IlAtom23 rho + (-1 : Seg6.F) * seg6Q4IlAtom24 rho + (-1 : Seg6.F) * seg6Q4IlAtom25 rho + (-1 : Seg6.F) * seg6Q4IlAtom26 rho + (-1 : Seg6.F) * seg6Q4IlAtom27 rho + (-1 : Seg6.F) * seg6Q4IlAtom28 rho + (-1 : Seg6.F) * seg6Q4IlAtom29 rho + (-1 : Seg6.F) * seg6Q4IlAtom30 rho + (-1 : Seg6.F) * seg6Q4IlAtom31 rho + (-1 : Seg6.F) * seg6Q4IlAtom32 rho := by
+  unfold Seg6.relationLc167Part1 seg6Q4IlAtom16 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32
   ring
 
-theorem seg6Q4relationLc167Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc167Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
+theorem seg6Q4relationLc167Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom33 rho + seg6Q4IlAtom34 rho + (-1 : Seg6.F) * seg6Q4IlAtom35 rho + (-1 : Seg6.F) * seg6Q4IlAtom36 rho + (-1 : Seg6.F) * seg6Q4IlAtom37 rho + (-1 : Seg6.F) * seg6Q4IlAtom38 rho + (-1 : Seg6.F) * seg6Q4IlAtom39 rho + (-1 : Seg6.F) * seg6Q4IlAtom40 rho + (-1 : Seg6.F) * seg6Q4IlAtom41 rho + (-1 : Seg6.F) * seg6Q4IlAtom42 rho + (-1 : Seg6.F) * seg6Q4IlAtom43 rho + (-1 : Seg6.F) * seg6Q4IlAtom44 rho + (-1 : Seg6.F) * seg6Q4IlAtom45 rho + (-1 : Seg6.F) * seg6Q4IlAtom46 rho + (-1 : Seg6.F) * seg6Q4IlAtom47 rho + (-1 : Seg6.F) * seg6Q4IlAtom48 rho + (-1 : Seg6.F) * seg6Q4IlAtom49 rho := by
+  unfold Seg6.relationLc167Part2 seg6Q4IlAtom33 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49
   ring
 
-theorem seg6Q4relationLc167Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho := by
-  unfold Seg6.relationLc167Part3 seg6Q4IlAtom51
+theorem seg6Q4relationLc167Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom50 rho + seg6Q4IlAtom51 rho + (-1 : Seg6.F) * seg6Q4IlAtom52 rho + (-1 : Seg6.F) * seg6Q4IlAtom53 rho + (-1 : Seg6.F) * seg6Q4IlAtom54 rho + (-1 : Seg6.F) * seg6Q4IlAtom55 rho + (-1 : Seg6.F) * seg6Q4IlAtom56 rho + (-1 : Seg6.F) * seg6Q4IlAtom57 rho + (-1 : Seg6.F) * seg6Q4IlAtom58 rho + (-1 : Seg6.F) * seg6Q4IlAtom59 rho + (-1 : Seg6.F) * seg6Q4IlAtom60 rho + (-1 : Seg6.F) * seg6Q4IlAtom61 rho := by
+  unfold Seg6.relationLc167Part3 seg6Q4IlAtom50 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57 seg6Q4IlAtom58 seg6Q4IlAtom59 seg6Q4IlAtom60 seg6Q4IlAtom61
   ring
 
-theorem seg6Q4relationLc167Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho := by
+theorem seg6Q4relationLc167Atom (rho : Nat -> Seg6.F) : Seg6.relationLc167 rho = (1 : Seg6.F) + (-1 : Seg6.F) * seg6Q4IlAtom0 rho + (-1 : Seg6.F) * seg6Q4IlAtom1 rho + (-1 : Seg6.F) * seg6Q4IlAtom2 rho + (-1 : Seg6.F) * seg6Q4IlAtom3 rho + (-1 : Seg6.F) * seg6Q4IlAtom4 rho + (-1 : Seg6.F) * seg6Q4IlAtom5 rho + (-1 : Seg6.F) * seg6Q4IlAtom6 rho + (-1 : Seg6.F) * seg6Q4IlAtom7 rho + (-1 : Seg6.F) * seg6Q4IlAtom8 rho + (-1 : Seg6.F) * seg6Q4IlAtom9 rho + (-1 : Seg6.F) * seg6Q4IlAtom10 rho + (-1 : Seg6.F) * seg6Q4IlAtom11 rho + (-1 : Seg6.F) * seg6Q4IlAtom12 rho + (-1 : Seg6.F) * seg6Q4IlAtom13 rho + (-1 : Seg6.F) * seg6Q4IlAtom14 rho + (-1 : Seg6.F) * seg6Q4IlAtom15 rho + (-1 : Seg6.F) * seg6Q4IlAtom16 rho + seg6Q4IlAtom17 rho + (-1 : Seg6.F) * seg6Q4IlAtom18 rho + (-1 : Seg6.F) * seg6Q4IlAtom19 rho + (-1 : Seg6.F) * seg6Q4IlAtom20 rho + (-1 : Seg6.F) * seg6Q4IlAtom21 rho + (-1 : Seg6.F) * seg6Q4IlAtom22 rho + (-1 : Seg6.F) * seg6Q4IlAtom23 rho + (-1 : Seg6.F) * seg6Q4IlAtom24 rho + (-1 : Seg6.F) * seg6Q4IlAtom25 rho + (-1 : Seg6.F) * seg6Q4IlAtom26 rho + (-1 : Seg6.F) * seg6Q4IlAtom27 rho + (-1 : Seg6.F) * seg6Q4IlAtom28 rho + (-1 : Seg6.F) * seg6Q4IlAtom29 rho + (-1 : Seg6.F) * seg6Q4IlAtom30 rho + (-1 : Seg6.F) * seg6Q4IlAtom31 rho + (-1 : Seg6.F) * seg6Q4IlAtom32 rho + (-1 : Seg6.F) * seg6Q4IlAtom33 rho + seg6Q4IlAtom34 rho + (-1 : Seg6.F) * seg6Q4IlAtom35 rho + (-1 : Seg6.F) * seg6Q4IlAtom36 rho + (-1 : Seg6.F) * seg6Q4IlAtom37 rho + (-1 : Seg6.F) * seg6Q4IlAtom38 rho + (-1 : Seg6.F) * seg6Q4IlAtom39 rho + (-1 : Seg6.F) * seg6Q4IlAtom40 rho + (-1 : Seg6.F) * seg6Q4IlAtom41 rho + (-1 : Seg6.F) * seg6Q4IlAtom42 rho + (-1 : Seg6.F) * seg6Q4IlAtom43 rho + (-1 : Seg6.F) * seg6Q4IlAtom44 rho + (-1 : Seg6.F) * seg6Q4IlAtom45 rho + (-1 : Seg6.F) * seg6Q4IlAtom46 rho + (-1 : Seg6.F) * seg6Q4IlAtom47 rho + (-1 : Seg6.F) * seg6Q4IlAtom48 rho + (-1 : Seg6.F) * seg6Q4IlAtom49 rho + (-1 : Seg6.F) * seg6Q4IlAtom50 rho + seg6Q4IlAtom51 rho + (-1 : Seg6.F) * seg6Q4IlAtom52 rho + (-1 : Seg6.F) * seg6Q4IlAtom53 rho + (-1 : Seg6.F) * seg6Q4IlAtom54 rho + (-1 : Seg6.F) * seg6Q4IlAtom55 rho + (-1 : Seg6.F) * seg6Q4IlAtom56 rho + (-1 : Seg6.F) * seg6Q4IlAtom57 rho + (-1 : Seg6.F) * seg6Q4IlAtom58 rho + (-1 : Seg6.F) * seg6Q4IlAtom59 rho + (-1 : Seg6.F) * seg6Q4IlAtom60 rho + (-1 : Seg6.F) * seg6Q4IlAtom61 rho := by
   unfold Seg6.relationLc167
   rw [seg6Q4relationLc167Part0Atom rho, seg6Q4relationLc167Part1Atom rho, seg6Q4relationLc167Part2Atom rho, seg6Q4relationLc167Part3Atom rho] <;> ring
 
-theorem seg6Q4relationLc168Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc168Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc168Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc168Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc168Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc168Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc168Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc168Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc168Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc168Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc168Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho := by
-  unfold Seg6.relationLc168Part3 seg6Q4IlAtom51 seg6Q4IlAtom52
-  ring
-
-theorem seg6Q4relationLc168Atom (rho : Nat -> Seg6.F) : Seg6.relationLc168 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho := by
-  unfold Seg6.relationLc168
-  rw [seg6Q4relationLc168Part0Atom rho, seg6Q4relationLc168Part1Atom rho, seg6Q4relationLc168Part2Atom rho, seg6Q4relationLc168Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc169Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc169Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc169Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc169Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc169Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc169Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc169Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc169Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc169Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc169Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc169Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho := by
-  unfold Seg6.relationLc169Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53
-  ring
-
-theorem seg6Q4relationLc169Atom (rho : Nat -> Seg6.F) : Seg6.relationLc169 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho := by
-  unfold Seg6.relationLc169
-  rw [seg6Q4relationLc169Part0Atom rho, seg6Q4relationLc169Part1Atom rho, seg6Q4relationLc169Part2Atom rho, seg6Q4relationLc169Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc170Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc170Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc170Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc170Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc170Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc170Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc170Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc170Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc170Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc170Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc170Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho := by
-  unfold Seg6.relationLc170Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54
-  ring
-
-theorem seg6Q4relationLc170Atom (rho : Nat -> Seg6.F) : Seg6.relationLc170 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho := by
-  unfold Seg6.relationLc170
-  rw [seg6Q4relationLc170Part0Atom rho, seg6Q4relationLc170Part1Atom rho, seg6Q4relationLc170Part2Atom rho, seg6Q4relationLc170Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc171Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc171Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc171Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc171Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc171Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc171Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc171Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc171Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc171Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc171Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc171Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho := by
-  unfold Seg6.relationLc171Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55
-  ring
-
-theorem seg6Q4relationLc171Atom (rho : Nat -> Seg6.F) : Seg6.relationLc171 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho := by
-  unfold Seg6.relationLc171
-  rw [seg6Q4relationLc171Part0Atom rho, seg6Q4relationLc171Part1Atom rho, seg6Q4relationLc171Part2Atom rho, seg6Q4relationLc171Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc172Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc172Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc172Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc172Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc172Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc172Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc172Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc172Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc172Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc172Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc172Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho := by
-  unfold Seg6.relationLc172Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56
-  ring
-
-theorem seg6Q4relationLc172Atom (rho : Nat -> Seg6.F) : Seg6.relationLc172 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho := by
-  unfold Seg6.relationLc172
-  rw [seg6Q4relationLc172Part0Atom rho, seg6Q4relationLc172Part1Atom rho, seg6Q4relationLc172Part2Atom rho, seg6Q4relationLc172Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc173Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc173Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc173Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc173Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc173Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc173Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc173Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc173Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc173Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc173Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc173Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho := by
-  unfold Seg6.relationLc173Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57
-  ring
-
-theorem seg6Q4relationLc173Atom (rho : Nat -> Seg6.F) : Seg6.relationLc173 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho := by
-  unfold Seg6.relationLc173
-  rw [seg6Q4relationLc173Part0Atom rho, seg6Q4relationLc173Part1Atom rho, seg6Q4relationLc173Part2Atom rho, seg6Q4relationLc173Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc174Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc174Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc174Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc174Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc174Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc174Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc174Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc174Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc174Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc174Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc174Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho := by
-  unfold Seg6.relationLc174Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57 seg6Q4IlAtom58
-  ring
-
-theorem seg6Q4relationLc174Atom (rho : Nat -> Seg6.F) : Seg6.relationLc174 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho := by
-  unfold Seg6.relationLc174
-  rw [seg6Q4relationLc174Part0Atom rho, seg6Q4relationLc174Part1Atom rho, seg6Q4relationLc174Part2Atom rho, seg6Q4relationLc174Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc175Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc175Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc175Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc175Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc175Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc175Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc175Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc175Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc175Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc175Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc175Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho + seg6Q4IlAtom59 rho := by
-  unfold Seg6.relationLc175Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57 seg6Q4IlAtom58 seg6Q4IlAtom59
-  ring
-
-theorem seg6Q4relationLc175Atom (rho : Nat -> Seg6.F) : Seg6.relationLc175 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho + seg6Q4IlAtom59 rho := by
-  unfold Seg6.relationLc175
-  rw [seg6Q4relationLc175Part0Atom rho, seg6Q4relationLc175Part1Atom rho, seg6Q4relationLc175Part2Atom rho, seg6Q4relationLc175Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc176Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc176Part0 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho := by
-  unfold Seg6.relationLc176Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom16 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc176Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc176Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho := by
-  unfold Seg6.relationLc176Part1 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32 seg6Q4IlAtom33
-  ring
-
-theorem seg6Q4relationLc176Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc176Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho := by
-  unfold Seg6.relationLc176Part2 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49 seg6Q4IlAtom50
-  ring
-
-theorem seg6Q4relationLc176Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc176Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho + seg6Q4IlAtom59 rho + seg6Q4IlAtom60 rho := by
-  unfold Seg6.relationLc176Part3 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57 seg6Q4IlAtom58 seg6Q4IlAtom59 seg6Q4IlAtom60
-  ring
-
-theorem seg6Q4relationLc176Atom (rho : Nat -> Seg6.F) : Seg6.relationLc176 rho = seg6Q4IlAtom0 rho + seg6Q4IlAtom1 rho + seg6Q4IlAtom2 rho + seg6Q4IlAtom3 rho + seg6Q4IlAtom4 rho + seg6Q4IlAtom5 rho + seg6Q4IlAtom6 rho + seg6Q4IlAtom7 rho + seg6Q4IlAtom8 rho + seg6Q4IlAtom9 rho + seg6Q4IlAtom10 rho + seg6Q4IlAtom11 rho + seg6Q4IlAtom12 rho + seg6Q4IlAtom13 rho + seg6Q4IlAtom14 rho + seg6Q4IlAtom15 rho + seg6Q4IlAtom16 rho + (-1 : Seg6.F) * seg6Q4IlAtom17 rho + seg6Q4IlAtom18 rho + seg6Q4IlAtom19 rho + seg6Q4IlAtom20 rho + seg6Q4IlAtom21 rho + seg6Q4IlAtom22 rho + seg6Q4IlAtom23 rho + seg6Q4IlAtom24 rho + seg6Q4IlAtom25 rho + seg6Q4IlAtom26 rho + seg6Q4IlAtom27 rho + seg6Q4IlAtom28 rho + seg6Q4IlAtom29 rho + seg6Q4IlAtom30 rho + seg6Q4IlAtom31 rho + seg6Q4IlAtom32 rho + seg6Q4IlAtom33 rho + (-1 : Seg6.F) * seg6Q4IlAtom34 rho + seg6Q4IlAtom35 rho + seg6Q4IlAtom36 rho + seg6Q4IlAtom37 rho + seg6Q4IlAtom38 rho + seg6Q4IlAtom39 rho + seg6Q4IlAtom40 rho + seg6Q4IlAtom41 rho + seg6Q4IlAtom42 rho + seg6Q4IlAtom43 rho + seg6Q4IlAtom44 rho + seg6Q4IlAtom45 rho + seg6Q4IlAtom46 rho + seg6Q4IlAtom47 rho + seg6Q4IlAtom48 rho + seg6Q4IlAtom49 rho + seg6Q4IlAtom50 rho + (-1 : Seg6.F) * seg6Q4IlAtom51 rho + seg6Q4IlAtom52 rho + seg6Q4IlAtom53 rho + seg6Q4IlAtom54 rho + seg6Q4IlAtom55 rho + seg6Q4IlAtom56 rho + seg6Q4IlAtom57 rho + seg6Q4IlAtom58 rho + seg6Q4IlAtom59 rho + seg6Q4IlAtom60 rho := by
-  unfold Seg6.relationLc176
-  rw [seg6Q4relationLc176Part0Atom rho, seg6Q4relationLc176Part1Atom rho, seg6Q4relationLc176Part2Atom rho, seg6Q4relationLc176Part3Atom rho] <;> ring
-
-theorem seg6Q4relationLc177Part0Atom (rho : Nat -> Seg6.F) : Seg6.relationLc177Part0 rho = (1 : Seg6.F) + (-1 : Seg6.F) * seg6Q4IlAtom0 rho + (-1 : Seg6.F) * seg6Q4IlAtom1 rho + (-1 : Seg6.F) * seg6Q4IlAtom2 rho + (-1 : Seg6.F) * seg6Q4IlAtom3 rho + (-1 : Seg6.F) * seg6Q4IlAtom4 rho + (-1 : Seg6.F) * seg6Q4IlAtom5 rho + (-1 : Seg6.F) * seg6Q4IlAtom6 rho + (-1 : Seg6.F) * seg6Q4IlAtom7 rho + (-1 : Seg6.F) * seg6Q4IlAtom8 rho + (-1 : Seg6.F) * seg6Q4IlAtom9 rho + (-1 : Seg6.F) * seg6Q4IlAtom10 rho + (-1 : Seg6.F) * seg6Q4IlAtom11 rho + (-1 : Seg6.F) * seg6Q4IlAtom12 rho + (-1 : Seg6.F) * seg6Q4IlAtom13 rho + (-1 : Seg6.F) * seg6Q4IlAtom14 rho + (-1 : Seg6.F) * seg6Q4IlAtom15 rho := by
-  unfold Seg6.relationLc177Part0 seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom12 seg6Q4IlAtom13 seg6Q4IlAtom14 seg6Q4IlAtom15 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
-  ring
-
-theorem seg6Q4relationLc177Part1Atom (rho : Nat -> Seg6.F) : Seg6.relationLc177Part1 rho = (-1 : Seg6.F) * seg6Q4IlAtom16 rho + seg6Q4IlAtom17 rho + (-1 : Seg6.F) * seg6Q4IlAtom18 rho + (-1 : Seg6.F) * seg6Q4IlAtom19 rho + (-1 : Seg6.F) * seg6Q4IlAtom20 rho + (-1 : Seg6.F) * seg6Q4IlAtom21 rho + (-1 : Seg6.F) * seg6Q4IlAtom22 rho + (-1 : Seg6.F) * seg6Q4IlAtom23 rho + (-1 : Seg6.F) * seg6Q4IlAtom24 rho + (-1 : Seg6.F) * seg6Q4IlAtom25 rho + (-1 : Seg6.F) * seg6Q4IlAtom26 rho + (-1 : Seg6.F) * seg6Q4IlAtom27 rho + (-1 : Seg6.F) * seg6Q4IlAtom28 rho + (-1 : Seg6.F) * seg6Q4IlAtom29 rho + (-1 : Seg6.F) * seg6Q4IlAtom30 rho + (-1 : Seg6.F) * seg6Q4IlAtom31 rho + (-1 : Seg6.F) * seg6Q4IlAtom32 rho := by
-  unfold Seg6.relationLc177Part1 seg6Q4IlAtom16 seg6Q4IlAtom17 seg6Q4IlAtom18 seg6Q4IlAtom19 seg6Q4IlAtom20 seg6Q4IlAtom21 seg6Q4IlAtom22 seg6Q4IlAtom23 seg6Q4IlAtom24 seg6Q4IlAtom25 seg6Q4IlAtom26 seg6Q4IlAtom27 seg6Q4IlAtom28 seg6Q4IlAtom29 seg6Q4IlAtom30 seg6Q4IlAtom31 seg6Q4IlAtom32
-  ring
-
-theorem seg6Q4relationLc177Part2Atom (rho : Nat -> Seg6.F) : Seg6.relationLc177Part2 rho = (-1 : Seg6.F) * seg6Q4IlAtom33 rho + seg6Q4IlAtom34 rho + (-1 : Seg6.F) * seg6Q4IlAtom35 rho + (-1 : Seg6.F) * seg6Q4IlAtom36 rho + (-1 : Seg6.F) * seg6Q4IlAtom37 rho + (-1 : Seg6.F) * seg6Q4IlAtom38 rho + (-1 : Seg6.F) * seg6Q4IlAtom39 rho + (-1 : Seg6.F) * seg6Q4IlAtom40 rho + (-1 : Seg6.F) * seg6Q4IlAtom41 rho + (-1 : Seg6.F) * seg6Q4IlAtom42 rho + (-1 : Seg6.F) * seg6Q4IlAtom43 rho + (-1 : Seg6.F) * seg6Q4IlAtom44 rho + (-1 : Seg6.F) * seg6Q4IlAtom45 rho + (-1 : Seg6.F) * seg6Q4IlAtom46 rho + (-1 : Seg6.F) * seg6Q4IlAtom47 rho + (-1 : Seg6.F) * seg6Q4IlAtom48 rho + (-1 : Seg6.F) * seg6Q4IlAtom49 rho := by
-  unfold Seg6.relationLc177Part2 seg6Q4IlAtom33 seg6Q4IlAtom34 seg6Q4IlAtom35 seg6Q4IlAtom36 seg6Q4IlAtom37 seg6Q4IlAtom38 seg6Q4IlAtom39 seg6Q4IlAtom40 seg6Q4IlAtom41 seg6Q4IlAtom42 seg6Q4IlAtom43 seg6Q4IlAtom44 seg6Q4IlAtom45 seg6Q4IlAtom46 seg6Q4IlAtom47 seg6Q4IlAtom48 seg6Q4IlAtom49
-  ring
-
-theorem seg6Q4relationLc177Part3Atom (rho : Nat -> Seg6.F) : Seg6.relationLc177Part3 rho = (-1 : Seg6.F) * seg6Q4IlAtom50 rho + seg6Q4IlAtom51 rho + (-1 : Seg6.F) * seg6Q4IlAtom52 rho + (-1 : Seg6.F) * seg6Q4IlAtom53 rho + (-1 : Seg6.F) * seg6Q4IlAtom54 rho + (-1 : Seg6.F) * seg6Q4IlAtom55 rho + (-1 : Seg6.F) * seg6Q4IlAtom56 rho + (-1 : Seg6.F) * seg6Q4IlAtom57 rho + (-1 : Seg6.F) * seg6Q4IlAtom58 rho + (-1 : Seg6.F) * seg6Q4IlAtom59 rho + (-1 : Seg6.F) * seg6Q4IlAtom60 rho + (-1 : Seg6.F) * seg6Q4IlAtom61 rho := by
-  unfold Seg6.relationLc177Part3 seg6Q4IlAtom50 seg6Q4IlAtom51 seg6Q4IlAtom52 seg6Q4IlAtom53 seg6Q4IlAtom54 seg6Q4IlAtom55 seg6Q4IlAtom56 seg6Q4IlAtom57 seg6Q4IlAtom58 seg6Q4IlAtom59 seg6Q4IlAtom60 seg6Q4IlAtom61
-  ring
-
-theorem seg6Q4relationLc177Atom (rho : Nat -> Seg6.F) : Seg6.relationLc177 rho = (1 : Seg6.F) + (-1 : Seg6.F) * seg6Q4IlAtom0 rho + (-1 : Seg6.F) * seg6Q4IlAtom1 rho + (-1 : Seg6.F) * seg6Q4IlAtom2 rho + (-1 : Seg6.F) * seg6Q4IlAtom3 rho + (-1 : Seg6.F) * seg6Q4IlAtom4 rho + (-1 : Seg6.F) * seg6Q4IlAtom5 rho + (-1 : Seg6.F) * seg6Q4IlAtom6 rho + (-1 : Seg6.F) * seg6Q4IlAtom7 rho + (-1 : Seg6.F) * seg6Q4IlAtom8 rho + (-1 : Seg6.F) * seg6Q4IlAtom9 rho + (-1 : Seg6.F) * seg6Q4IlAtom10 rho + (-1 : Seg6.F) * seg6Q4IlAtom11 rho + (-1 : Seg6.F) * seg6Q4IlAtom12 rho + (-1 : Seg6.F) * seg6Q4IlAtom13 rho + (-1 : Seg6.F) * seg6Q4IlAtom14 rho + (-1 : Seg6.F) * seg6Q4IlAtom15 rho + (-1 : Seg6.F) * seg6Q4IlAtom16 rho + seg6Q4IlAtom17 rho + (-1 : Seg6.F) * seg6Q4IlAtom18 rho + (-1 : Seg6.F) * seg6Q4IlAtom19 rho + (-1 : Seg6.F) * seg6Q4IlAtom20 rho + (-1 : Seg6.F) * seg6Q4IlAtom21 rho + (-1 : Seg6.F) * seg6Q4IlAtom22 rho + (-1 : Seg6.F) * seg6Q4IlAtom23 rho + (-1 : Seg6.F) * seg6Q4IlAtom24 rho + (-1 : Seg6.F) * seg6Q4IlAtom25 rho + (-1 : Seg6.F) * seg6Q4IlAtom26 rho + (-1 : Seg6.F) * seg6Q4IlAtom27 rho + (-1 : Seg6.F) * seg6Q4IlAtom28 rho + (-1 : Seg6.F) * seg6Q4IlAtom29 rho + (-1 : Seg6.F) * seg6Q4IlAtom30 rho + (-1 : Seg6.F) * seg6Q4IlAtom31 rho + (-1 : Seg6.F) * seg6Q4IlAtom32 rho + (-1 : Seg6.F) * seg6Q4IlAtom33 rho + seg6Q4IlAtom34 rho + (-1 : Seg6.F) * seg6Q4IlAtom35 rho + (-1 : Seg6.F) * seg6Q4IlAtom36 rho + (-1 : Seg6.F) * seg6Q4IlAtom37 rho + (-1 : Seg6.F) * seg6Q4IlAtom38 rho + (-1 : Seg6.F) * seg6Q4IlAtom39 rho + (-1 : Seg6.F) * seg6Q4IlAtom40 rho + (-1 : Seg6.F) * seg6Q4IlAtom41 rho + (-1 : Seg6.F) * seg6Q4IlAtom42 rho + (-1 : Seg6.F) * seg6Q4IlAtom43 rho + (-1 : Seg6.F) * seg6Q4IlAtom44 rho + (-1 : Seg6.F) * seg6Q4IlAtom45 rho + (-1 : Seg6.F) * seg6Q4IlAtom46 rho + (-1 : Seg6.F) * seg6Q4IlAtom47 rho + (-1 : Seg6.F) * seg6Q4IlAtom48 rho + (-1 : Seg6.F) * seg6Q4IlAtom49 rho + (-1 : Seg6.F) * seg6Q4IlAtom50 rho + seg6Q4IlAtom51 rho + (-1 : Seg6.F) * seg6Q4IlAtom52 rho + (-1 : Seg6.F) * seg6Q4IlAtom53 rho + (-1 : Seg6.F) * seg6Q4IlAtom54 rho + (-1 : Seg6.F) * seg6Q4IlAtom55 rho + (-1 : Seg6.F) * seg6Q4IlAtom56 rho + (-1 : Seg6.F) * seg6Q4IlAtom57 rho + (-1 : Seg6.F) * seg6Q4IlAtom58 rho + (-1 : Seg6.F) * seg6Q4IlAtom59 rho + (-1 : Seg6.F) * seg6Q4IlAtom60 rho + (-1 : Seg6.F) * seg6Q4IlAtom61 rho := by
-  unfold Seg6.relationLc177
-  rw [seg6Q4relationLc177Part0Atom rho, seg6Q4relationLc177Part1Atom rho, seg6Q4relationLc177Part2Atom rho, seg6Q4relationLc177Part3Atom rho] <;> ring
-
-theorem seg6Q4Step97IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc135 rho = seg6Q4Il98 rho := by
-  rw [seg6Q4relationLc135Atom rho]
+theorem seg6Q4Step97IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc125 rho = seg6Q4Il98 rho := by
+  rw [seg6Q4relationLc125Atom rho]
   exact (seg6Q4Il98Atoms rho).symm
 
-theorem seg6Q4Step96IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc136 rho = seg6Q4Il97 rho := by
-  rw [seg6Q4relationLc136Atom rho]
+theorem seg6Q4Step96IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc126 rho = seg6Q4Il97 rho := by
+  rw [seg6Q4relationLc126Atom rho]
   exact (seg6Q4Il97Atoms rho).symm
 
-theorem seg6Q4Step95IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc137 rho = seg6Q4Il96 rho := by
-  rw [seg6Q4relationLc137Atom rho]
+theorem seg6Q4Step95IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc127 rho = seg6Q4Il96 rho := by
+  rw [seg6Q4relationLc127Atom rho]
   exact (seg6Q4Il96Atoms rho).symm
 
-theorem seg6Q4Step93IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc138 rho = seg6Q4Il94 rho := by
-  rw [seg6Q4relationLc138Atom rho]
+theorem seg6Q4Step93IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc128 rho = seg6Q4Il94 rho := by
+  rw [seg6Q4relationLc128Atom rho]
   exact (seg6Q4Il94Atoms rho).symm
 
-theorem seg6Q4Step92IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc139 rho = seg6Q4Il93 rho := by
-  rw [seg6Q4relationLc139Atom rho]
+theorem seg6Q4Step92IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc129 rho = seg6Q4Il93 rho := by
+  rw [seg6Q4relationLc129Atom rho]
   exact (seg6Q4Il93Atoms rho).symm
 
-theorem seg6Q4Step91IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc140 rho = seg6Q4Il92 rho := by
-  rw [seg6Q4relationLc140Atom rho]
+theorem seg6Q4Step91IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc130 rho = seg6Q4Il92 rho := by
+  rw [seg6Q4relationLc130Atom rho]
   exact (seg6Q4Il92Atoms rho).symm
 
-theorem seg6Q4Step90IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc141 rho = seg6Q4Il91 rho := by
-  rw [seg6Q4relationLc141Atom rho]
+theorem seg6Q4Step90IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc131 rho = seg6Q4Il91 rho := by
+  rw [seg6Q4relationLc131Atom rho]
   exact (seg6Q4Il91Atoms rho).symm
 
-theorem seg6Q4Step89IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc142 rho = seg6Q4Il90 rho := by
-  rw [seg6Q4relationLc142Atom rho]
+theorem seg6Q4Step89IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc132 rho = seg6Q4Il90 rho := by
+  rw [seg6Q4relationLc132Atom rho]
   exact (seg6Q4Il90Atoms rho).symm
 
-theorem seg6Q4Step88IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc143 rho = seg6Q4Il89 rho := by
-  rw [seg6Q4relationLc143Atom rho]
+theorem seg6Q4Step88IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc133 rho = seg6Q4Il89 rho := by
+  rw [seg6Q4relationLc133Atom rho]
   exact (seg6Q4Il89Atoms rho).symm
 
-theorem seg6Q4Step83IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc144 rho = seg6Q4Il84 rho := by
-  rw [seg6Q4relationLc144Atom rho]
+theorem seg6Q4Step83IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc134 rho = seg6Q4Il84 rho := by
+  rw [seg6Q4relationLc134Atom rho]
   exact (seg6Q4Il84Atoms rho).symm
 
-theorem seg6Q4Step82IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc145 rho = seg6Q4Il83 rho := by
-  rw [seg6Q4relationLc145Atom rho]
+theorem seg6Q4Step82IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc135 rho = seg6Q4Il83 rho := by
+  rw [seg6Q4relationLc135Atom rho]
   exact (seg6Q4Il83Atoms rho).symm
 
-theorem seg6Q4Step80IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc146 rho = seg6Q4Il81 rho := by
-  rw [seg6Q4relationLc146Atom rho]
+theorem seg6Q4Step80IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc136 rho = seg6Q4Il81 rho := by
+  rw [seg6Q4relationLc136Atom rho]
   exact (seg6Q4Il81Atoms rho).symm
 
-theorem seg6Q4Step79IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc147 rho = seg6Q4Il80 rho := by
-  rw [seg6Q4relationLc147Atom rho]
+theorem seg6Q4Step79IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc137 rho = seg6Q4Il80 rho := by
+  rw [seg6Q4relationLc137Atom rho]
   exact (seg6Q4Il80Atoms rho).symm
 
-theorem seg6Q4Step78IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc148 rho = seg6Q4Il79 rho := by
-  rw [seg6Q4relationLc148Atom rho]
+theorem seg6Q4Step78IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc138 rho = seg6Q4Il79 rho := by
+  rw [seg6Q4relationLc138Atom rho]
   exact (seg6Q4Il79Atoms rho).symm
 
-theorem seg6Q4Step76IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc149 rho = seg6Q4Il77 rho := by
-  rw [seg6Q4relationLc149Atom rho]
+theorem seg6Q4Step76IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc139 rho = seg6Q4Il77 rho := by
+  rw [seg6Q4relationLc139Atom rho]
   exact (seg6Q4Il77Atoms rho).symm
 
-theorem seg6Q4Step74IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc150 rho = seg6Q4Il75 rho := by
-  rw [seg6Q4relationLc150Atom rho]
+theorem seg6Q4Step74IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc140 rho = seg6Q4Il75 rho := by
+  rw [seg6Q4relationLc140Atom rho]
   exact (seg6Q4Il75Atoms rho).symm
 
-theorem seg6Q4Step66IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc151 rho = seg6Q4Il67 rho := by
-  rw [seg6Q4relationLc151Atom rho]
+theorem seg6Q4Step66IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc141 rho = seg6Q4Il67 rho := by
+  rw [seg6Q4relationLc141Atom rho]
   exact (seg6Q4Il67Atoms rho).symm
 
-theorem seg6Q4Step65IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc152 rho = seg6Q4Il66 rho := by
-  rw [seg6Q4relationLc152Atom rho]
+theorem seg6Q4Step65IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc142 rho = seg6Q4Il66 rho := by
+  rw [seg6Q4relationLc142Atom rho]
   exact (seg6Q4Il66Atoms rho).symm
 
-theorem seg6Q4Step61IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc153 rho = seg6Q4Il62 rho := by
-  rw [seg6Q4relationLc153Atom rho]
+theorem seg6Q4Step61IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc143 rho = seg6Q4Il62 rho := by
+  rw [seg6Q4relationLc143Atom rho]
   exact (seg6Q4Il62Atoms rho).symm
 
-theorem seg6Q4Step58IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc154 rho = seg6Q4Il59 rho := by
-  rw [seg6Q4relationLc154Atom rho]
+theorem seg6Q4Step58IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc144 rho = seg6Q4Il59 rho := by
+  rw [seg6Q4relationLc144Atom rho]
   exact (seg6Q4Il59Atoms rho).symm
 
-theorem seg6Q4Step55IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc155 rho = seg6Q4Il56 rho := by
-  rw [seg6Q4relationLc155Atom rho]
+theorem seg6Q4Step55IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc145 rho = seg6Q4Il56 rho := by
+  rw [seg6Q4relationLc145Atom rho]
   exact (seg6Q4Il56Atoms rho).symm
 
-theorem seg6Q4Step53IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc156 rho = seg6Q4Il54 rho := by
-  rw [seg6Q4relationLc156Atom rho]
+theorem seg6Q4Step53IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc146 rho = seg6Q4Il54 rho := by
+  rw [seg6Q4relationLc146Atom rho]
   exact (seg6Q4Il54Atoms rho).symm
 
-theorem seg6Q4Step50IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc157 rho = seg6Q4Il51 rho := by
-  rw [seg6Q4relationLc157Atom rho]
+theorem seg6Q4Step50IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc147 rho = seg6Q4Il51 rho := by
+  rw [seg6Q4relationLc147Atom rho]
   exact (seg6Q4Il51Atoms rho).symm
 
-theorem seg6Q4Step48IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc158 rho = seg6Q4Il49 rho := by
-  rw [seg6Q4relationLc158Atom rho]
+theorem seg6Q4Step48IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc148 rho = seg6Q4Il49 rho := by
+  rw [seg6Q4relationLc148Atom rho]
   exact (seg6Q4Il49Atoms rho).symm
 
-theorem seg6Q4Step47IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc159 rho = seg6Q4Il48 rho := by
-  rw [seg6Q4relationLc159Atom rho]
+theorem seg6Q4Step47IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc149 rho = seg6Q4Il48 rho := by
+  rw [seg6Q4relationLc149Atom rho]
   exact (seg6Q4Il48Atoms rho).symm
 
-theorem seg6Q4Step46IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc160 rho = seg6Q4Il47 rho := by
-  rw [seg6Q4relationLc160Atom rho]
+theorem seg6Q4Step46IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc150 rho = seg6Q4Il47 rho := by
+  rw [seg6Q4relationLc150Atom rho]
   exact (seg6Q4Il47Atoms rho).symm
 
-theorem seg6Q4Step42IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc161 rho = seg6Q4Il43 rho := by
-  rw [seg6Q4relationLc161Atom rho]
+theorem seg6Q4Step42IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc151 rho = seg6Q4Il43 rho := by
+  rw [seg6Q4relationLc151Atom rho]
   exact (seg6Q4Il43Atoms rho).symm
 
-theorem seg6Q4Step40IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc162 rho = seg6Q4Il41 rho := by
-  rw [seg6Q4relationLc162Atom rho]
+theorem seg6Q4Step40IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc152 rho = seg6Q4Il41 rho := by
+  rw [seg6Q4relationLc152Atom rho]
   exact (seg6Q4Il41Atoms rho).symm
 
-theorem seg6Q4Step39IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc163 rho = seg6Q4Il40 rho := by
-  rw [seg6Q4relationLc163Atom rho]
+theorem seg6Q4Step39IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc153 rho = seg6Q4Il40 rho := by
+  rw [seg6Q4relationLc153Atom rho]
   exact (seg6Q4Il40Atoms rho).symm
 
-theorem seg6Q4Step36IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc164 rho = seg6Q4Il37 rho := by
-  rw [seg6Q4relationLc164Atom rho]
+theorem seg6Q4Step36IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc154 rho = seg6Q4Il37 rho := by
+  rw [seg6Q4relationLc154Atom rho]
   exact (seg6Q4Il37Atoms rho).symm
 
-theorem seg6Q4Step34IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc165 rho = seg6Q4Il35 rho := by
-  rw [seg6Q4relationLc165Atom rho]
+theorem seg6Q4Step34IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc155 rho = seg6Q4Il35 rho := by
+  rw [seg6Q4relationLc155Atom rho]
   exact (seg6Q4Il35Atoms rho).symm
 
-theorem seg6Q4Step31IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc166 rho = seg6Q4Il32 rho := by
-  rw [seg6Q4relationLc166Atom rho]
+theorem seg6Q4Step31IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc156 rho = seg6Q4Il32 rho := by
+  rw [seg6Q4relationLc156Atom rho]
   exact (seg6Q4Il32Atoms rho).symm
 
-theorem seg6Q4Step30IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc167 rho = seg6Q4Il31 rho := by
-  rw [seg6Q4relationLc167Atom rho]
+theorem seg6Q4Step30IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc157 rho = seg6Q4Il31 rho := by
+  rw [seg6Q4relationLc157Atom rho]
   exact (seg6Q4Il31Atoms rho).symm
 
-theorem seg6Q4Step29IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc168 rho = seg6Q4Il30 rho := by
-  rw [seg6Q4relationLc168Atom rho]
+theorem seg6Q4Step29IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc158 rho = seg6Q4Il30 rho := by
+  rw [seg6Q4relationLc158Atom rho]
   exact (seg6Q4Il30Atoms rho).symm
 
-theorem seg6Q4Step28IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc169 rho = seg6Q4Il29 rho := by
-  rw [seg6Q4relationLc169Atom rho]
+theorem seg6Q4Step28IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc159 rho = seg6Q4Il29 rho := by
+  rw [seg6Q4relationLc159Atom rho]
   exact (seg6Q4Il29Atoms rho).symm
 
-theorem seg6Q4Step25IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc170 rho = seg6Q4Il26 rho := by
-  rw [seg6Q4relationLc170Atom rho]
+theorem seg6Q4Step25IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc160 rho = seg6Q4Il26 rho := by
+  rw [seg6Q4relationLc160Atom rho]
   exact (seg6Q4Il26Atoms rho).symm
 
-theorem seg6Q4Step24IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc171 rho = seg6Q4Il25 rho := by
-  rw [seg6Q4relationLc171Atom rho]
+theorem seg6Q4Step24IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc161 rho = seg6Q4Il25 rho := by
+  rw [seg6Q4relationLc161Atom rho]
   exact (seg6Q4Il25Atoms rho).symm
 
-theorem seg6Q4Step15IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc172 rho = seg6Q4Il16 rho := by
-  rw [seg6Q4relationLc172Atom rho]
+theorem seg6Q4Step15IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc162 rho = seg6Q4Il16 rho := by
+  rw [seg6Q4relationLc162Atom rho]
   exact (seg6Q4Il16Atoms rho).symm
 
-theorem seg6Q4Step12IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc173 rho = seg6Q4Il13 rho := by
-  rw [seg6Q4relationLc173Atom rho]
+theorem seg6Q4Step12IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc163 rho = seg6Q4Il13 rho := by
+  rw [seg6Q4relationLc163Atom rho]
   exact (seg6Q4Il13Atoms rho).symm
 
-theorem seg6Q4Step11IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc174 rho = seg6Q4Il12 rho := by
-  rw [seg6Q4relationLc174Atom rho]
+theorem seg6Q4Step11IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc164 rho = seg6Q4Il12 rho := by
+  rw [seg6Q4relationLc164Atom rho]
   exact (seg6Q4Il12Atoms rho).symm
 
-theorem seg6Q4Step2IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc175 rho = seg6Q4Il3 rho := by
-  rw [seg6Q4relationLc175Atom rho]
+theorem seg6Q4Step2IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc165 rho = seg6Q4Il3 rho := by
+  rw [seg6Q4relationLc165Atom rho]
   exact (seg6Q4Il3Atoms rho).symm
 
-theorem seg6Q4Step0IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc176 rho = seg6Q4Il1 rho := by
-  rw [seg6Q4relationLc176Atom rho]
+theorem seg6Q4Step0IlLc (rho : Nat -> Seg6.F) : Seg6.relationLc166 rho = seg6Q4Il1 rho := by
+  rw [seg6Q4relationLc166Atom rho]
   exact (seg6Q4Il1Atoms rho).symm
 
-theorem seg6Q4TerminalIlLc (rho : Nat -> Seg6.F) : Seg6.relationLc177 rho = 1 - seg6Q4Il0 rho := by
-  rw [seg6Q4relationLc177Atom rho]
+theorem seg6Q4TerminalIlLc (rho : Nat -> Seg6.F) : Seg6.relationLc167 rho = 1 - seg6Q4Il0 rho := by
+  rw [seg6Q4relationLc167Atom rho]
   rw [seg6Q4Il0Atoms rho]
   ring
 

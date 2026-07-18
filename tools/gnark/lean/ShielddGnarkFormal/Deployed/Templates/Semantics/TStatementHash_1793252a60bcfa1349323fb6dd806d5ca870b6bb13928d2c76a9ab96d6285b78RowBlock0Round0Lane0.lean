@@ -22,7 +22,6 @@ def endpoint (rho : Nat → F) : F :=
 theorem endpoint_eq_rawState (rho : Nat → F) :
     endpoint rho = (Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78.Trace.rawState0_0 rho)[0] := by
   unfold endpoint Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78.Trace.rawState0_0 Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78.Trace.flatState0_0Lane0 Shieldd.GnarkFormal.Poseidon7Bridge.row8v Shieldd.GnarkFormal.Poseidon7Bridge.row8 Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78.Fixed.b0l0
-  norm_num <;> ring
-  exact (ZMod.natCast_eq_natCast_iff' 34022019423833025578748255520456802767442725088264645023533349122883133752764591407627753781370427332676803859022134887829365908709870755966505315864439 1631117018174219946445646273628413393037577945375454019883598072330593321455 Order).mpr (by decide)
+  norm_num; linear_combination (ZMod.natCast_eq_natCast_iff' 34022019423833025578748255520456802767442725088264645023533349122883133752764591407627753781370427332676803859022134887829365908709870755966505315864439 1631117018174219946445646273628413393037577945375454019883598072330593321455 Order).mpr (by decide)
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78.RowBlock0Round0Lane0

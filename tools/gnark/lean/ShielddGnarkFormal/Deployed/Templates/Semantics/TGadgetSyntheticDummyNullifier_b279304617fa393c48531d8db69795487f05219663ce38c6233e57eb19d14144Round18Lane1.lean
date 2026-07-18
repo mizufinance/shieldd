@@ -22,7 +22,7 @@ theorem sound (rho : Nat → F) (p28 : Shieldd.GnarkFormal.Deployed.Templates.Re
     Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound18.state18Lane1 Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.syntheticDummyNullifierDomainLit (rho 1) (rho 7) (4 : F) = Shieldd.GnarkFormal.Deployed.Nullifier.s18_1 (rho 57) (rho 62) (rho 67) (rho 72) (rho 77) (rho 82) (rho 87) (rho 92) (rho 97) (rho 102) (rho 107) (rho 112) (rho 117) (rho 122) (rho 127) (rho 132) (rho 137) (rho 142) (rho 147) := by
   have hp28 := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_b279304617fa393c48531d8db69795487f05219663ce38c6233e57eb19d14144.Part28.sound rho p28
   have ha0 : (rho 147) = Shieldd.GnarkFormal.Poseidon3Bridge.p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound17.state17Lane0 Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.syntheticDummyNullifierDomainLit (rho 1) (rho 7) (4 : F) + (4597392548498607574017560525094380847055006449556755439725487970445213590020 : F)) := by
-    rw [hp28, Shieldd.GnarkFormal.Deployed.Nullifier.arg18_0_eq (rho 57) (rho 62) (rho 67) (rho 72) (rho 77) (rho 82) (rho 87) (rho 92) (rho 97) (rho 102) (rho 107) (rho 112) (rho 117) (rho 122) (rho 127) (rho 132) (rho 137) (rho 142), hPrev0]
+    rw [hp28, hPrev0, ← Shieldd.GnarkFormal.Deployed.Nullifier.arg18_0_eq (rho 57) (rho 62) (rho 67) (rho 72) (rho 77) (rho 82) (rho 87) (rho 92) (rho 97) (rho 102) (rho 107) (rho 112) (rho 117) (rho 122) (rho 127) (rho 132) (rho 137) (rho 142)]
   unfold Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound18.state18Lane1 Shieldd.GnarkFormal.Deployed.Nullifier.s18_1
   rw [← ha0, hPrev1, hPrev2, hPrev3]
 

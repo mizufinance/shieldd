@@ -61,7 +61,7 @@ def deployedSpec13 (rho : Nat → DeployedF) : Prop :=
     = Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recover24H
       Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4
       (fun k => (545001158149490383238005163525397553024965043366546261617421270984613353336 : DeployedF)
-        + ((k + 1 : Nat) : DeployedF))
+        + (k : DeployedF) + (1 : DeployedF))
       (Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1
         (545001158149490383238005163525397553024965043366546261617421270984613353336 : DeployedF)
         (rho 23))
@@ -132,7 +132,7 @@ def deployedSpec28 (rho : Nat → DeployedF) : Prop :=
     = Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recover24H
       Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4
       (fun k => (545001158149490383238005163525397553024965043366546261617421270984613353336 : DeployedF)
-        + ((k + 1 : Nat) : DeployedF))
+        + (k : DeployedF) + (1 : DeployedF))
       (Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1
         (545001158149490383238005163525397553024965043366546261617421270984613353336 : DeployedF)
         (rho 113))

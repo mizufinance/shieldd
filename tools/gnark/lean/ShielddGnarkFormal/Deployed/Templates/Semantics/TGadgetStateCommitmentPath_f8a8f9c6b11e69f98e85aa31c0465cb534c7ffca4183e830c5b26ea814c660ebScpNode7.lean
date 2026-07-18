@@ -16,7 +16,7 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
 
 theorem template_scp_node7_eq (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relation rho) :
-    templateScpNode7Out rho =
+    seg13ScpNode7Out rho =
       Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 ((545001158149490383238005163525397553024965043366546261617421270984613353336 : F) + (8 : F))
         (rho 2826 + rho 2827) (rho 2828 + rho 2829 + rho 2830)
         (rho 2828 + rho 2832 + rho 2833) (rho 2831 + rho 2834) := by
@@ -54,7 +54,7 @@ theorem template_scp_node7_eq (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed
     decide
   rcases hs with ⟨o0, o1, o2, o3, o4, ⟨rfl, rfl, rfl, rfl, rfl⟩, hs⟩
   rw [hd] at hs
-  simpa [templateScpNode7Out, Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode7.s38_1,
+  simpa [seg13ScpNode7Out, Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode7.s38_1,
     Shieldd.GnarkFormal.Deployed.Poseidon4Link.row5] using hs
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb

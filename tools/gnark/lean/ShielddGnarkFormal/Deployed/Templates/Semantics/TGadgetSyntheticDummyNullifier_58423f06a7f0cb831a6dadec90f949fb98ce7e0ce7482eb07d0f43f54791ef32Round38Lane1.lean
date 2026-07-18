@@ -28,13 +28,13 @@ theorem sound (rho : Nat → F) (p57 : Shieldd.GnarkFormal.Deployed.Templates.Re
   have hp59 := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32.Part59.sound rho p59
   have hp60 := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32.Part60.sound rho p60
   have ha0 : (rho 292) = Shieldd.GnarkFormal.Poseidon3Bridge.p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound37.state37Lane0 Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.syntheticDummyNullifierDomainLit (rho 1) (rho 7) (2 : F) + (1341193910735288834156152818207813295161416180387476007289323480480850290318 : F)) := by
-    rw [hp57, Shieldd.GnarkFormal.Deployed.Nullifier.arg38_0_eq (rho 272) (rho 277) (rho 282) (rho 287), hPrev0]
+    rw [hp57, hPrev0, ← Shieldd.GnarkFormal.Deployed.Nullifier.arg38_0_eq (rho 272) (rho 277) (rho 282) (rho 287)]
   have ha1 : (rho 297) = Shieldd.GnarkFormal.Poseidon3Bridge.p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound37.state37Lane1 Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.syntheticDummyNullifierDomainLit (rho 1) (rho 7) (2 : F) + (6430227820490268278323837184448206513428639661392170572655482468189896623489 : F)) := by
-    rw [hp58, Shieldd.GnarkFormal.Deployed.Nullifier.arg38_1_eq (rho 272) (rho 277) (rho 282) (rho 287), hPrev1]
+    rw [hp58, hPrev1, ← Shieldd.GnarkFormal.Deployed.Nullifier.arg38_1_eq (rho 272) (rho 277) (rho 282) (rho 287)]
   have ha2 : (rho 302) = Shieldd.GnarkFormal.Poseidon3Bridge.p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound37.state37Lane2 Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.syntheticDummyNullifierDomainLit (rho 1) (rho 7) (2 : F) + (5381106858655589782618523649345652522506825219090054633547753330769140464666 : F)) := by
-    rw [hp59, Shieldd.GnarkFormal.Deployed.Nullifier.arg38_2_eq (rho 272) (rho 277) (rho 282) (rho 287), hPrev2]
+    rw [hp59, hPrev2, ← Shieldd.GnarkFormal.Deployed.Nullifier.arg38_2_eq (rho 272) (rho 277) (rho 282) (rho 287)]
   have ha3 : (rho 307) = Shieldd.GnarkFormal.Poseidon3Bridge.p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound37.state37Lane3 Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.syntheticDummyNullifierDomainLit (rho 1) (rho 7) (2 : F) + (6815943890781966378087179499267196955390238260135387729266185493827955661877 : F)) := by
-    rw [hp60, Shieldd.GnarkFormal.Deployed.Nullifier.arg38_3_eq (rho 272) (rho 277) (rho 282) (rho 287), hPrev3]
+    rw [hp60, hPrev3, ← Shieldd.GnarkFormal.Deployed.Nullifier.arg38_3_eq (rho 272) (rho 277) (rho 282) (rho 287)]
   unfold Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound38.state38Lane1 Shieldd.GnarkFormal.Deployed.Nullifier.s38_1
   rw [← ha0, ← ha1, ← ha2, ← ha3]
 

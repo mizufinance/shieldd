@@ -19,10 +19,13 @@ theorem sound (rho : Nat → F)
     rho 982 = Shieldd.GnarkFormal.Poseidon7Bridge.p17 ((4610941420378965310285838612448425703694278187368438665958951036771382090951 : F) + rho 976 + rho 977) := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationPart189 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow945 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow946 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow947 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow948 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.relationRow949 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
+
   exact Shieldd.GnarkFormal.Deployed.StatementHash.p17_from_rows
     ((4610941420378965310285838612448425703694278187368438665958951036771382090951 : F) + rho 976 + rho 977) (rho 978) (rho 979) (rho 980) (rho 981) (rho 982)
-    (by linear_combination h0) (by linear_combination h1)
-    (by linear_combination h2) (by linear_combination h3)
-    (by linear_combination h4)
+    (by simpa only [one_mul] using h0)
+    (by simpa only [one_mul] using h1)
+    (by simpa only [one_mul] using h2)
+    (by simpa only [one_mul] using h3)
+    (by simpa only [one_mul] using h4)
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed.Part189

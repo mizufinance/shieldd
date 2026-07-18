@@ -32,7 +32,7 @@ OUT = (
 #   arity "group"  -> emit `def : List Nat`, take the role list verbatim.
 # `extra_inputs`: (seg_index, wire) membership assertions cross-checking that
 # the named wire is consumed where its protocol meaning says it is.
-# Wave-2 layout: segment indices below follow the consolidated numbering in
+# Wave-2 layout: segment indices below follow the current numbering in
 # note_reshape2x1-deployed-slice-ir.json (T1-f/T1-h/NB-1; 36,553 rows).
 NAMED = [
     ("statementHashPublic", "Public statement-hash wire the verifier reads.",

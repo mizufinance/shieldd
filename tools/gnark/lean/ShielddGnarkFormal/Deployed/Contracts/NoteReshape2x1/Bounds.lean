@@ -25,9 +25,9 @@ import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg35
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg42
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg43
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg47
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg53
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NullifierAdapters
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NoteCommitmentAdapters
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.StatementHashAdapters
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.CompressAdapters
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg15
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg30
@@ -220,7 +220,16 @@ theorem inst48_bound :
 theorem inst53_bound :
     Deployed.BoundDeployedSound Seg53.contract
       Seg53.contract.relationSha256Hex Seg53.contract.wireRoleSha256Hex :=
-  ⟨rfl, rfl, seg53_sound⟩
+by
+  apply boundOfSeatedTemplate
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4.relation
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4.spec
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4.sound
+    Seg53.contract Seg53.wireSeating
+  · intro rho
+    rfl
+  · intro rho
+    rfl
 
 /-- seg10 `assert.eq`. -/
 theorem inst10_bound :

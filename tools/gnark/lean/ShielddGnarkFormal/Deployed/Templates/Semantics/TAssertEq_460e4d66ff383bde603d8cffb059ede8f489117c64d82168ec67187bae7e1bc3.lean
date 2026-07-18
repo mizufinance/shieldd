@@ -21,6 +21,7 @@ def spec (rho : Nat -> F) : Prop :=
 
 theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
   simp only [relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.relationSegment0] at h
+  unfold spec
   obtain ⟨h0, _⟩ := h
   linear_combination h0
 

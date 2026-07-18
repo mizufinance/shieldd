@@ -70,21 +70,6 @@ CONFIGS = {
             7600015574485533381823942444903391878238309401638657445141710110325668315137,
         ],
     ),
-    "statement_hash": dict(
-        W=8,
-        leaf="StatementHash",
-        slice_stem="StatementHash470_5c3d95",
-        link="Poseidon7Link",                    # provides fr_eq8/pr_eq8/row8
-        bridge_ns="Poseidon7Bridge",             # provides p17, permSpec7
-        deployed_bridge="StatementHashDeployedBridge",
-        spec="permSpec7",
-        domain_sym="statementDomainLit",
-        # extracted module backing the bridge/link `F`; its `Order` is defeq to
-        # the deployed slice's, so the primality `Fact` is forwarded in-header.
-        extracted_ns="Shieldd.GnarkFormal.Extracted.PoseidonHash7",
-        # public_args (22 binder wires), spec_inputs (7 LC inputs) and seq come
-        # from statement_hash_gendata.json.
-    ),
 }
 
 _leaf_gd = HERE / "state_commitment_leaf_gendata.json"

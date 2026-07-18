@@ -13,8 +13,6 @@ round-constant staging, proven equal to the extracted CPS `poseidonPerm7`. -/
 namespace Shieldd.GnarkFormal.Poseidon7Bridge
 
 open Shieldd.GnarkFormal.Extracted.PoseidonHash7
-open scoped BigOperators
-
 def hash7Spec (Domain In0 In1 In2 In3 In4 In5 In6 : F) : F :=
   Poseidon377.hash7 Domain In0 In1 In2 In3 In4 In5 In6
 
@@ -22,7 +20,7 @@ def hash7Spec (Domain In0 In1 In2 In3 In4 In5 In6 : F) : F :=
 (`blake2b-512("shieldd.shielded_pool.note_reshape2x1.public_input_hash.v1")`
 little-endian, reduced mod the field order), as baked into the deployed slice. -/
 abbrev statementDomainLit : F :=
-  (2179369400817676273693737456030927895117269802702488411964090405346318312961 : F)
+  (5079577531472816977664249278115400294401892237874490721478834552286369830267 : F)
 
 /-- `pow17` as the extracted gate chain computes it (a²·a⁴·a⁸·a¹⁶·a). -/
 def p17 (a : F) : F :=
@@ -78,62 +76,6 @@ theorem natCastSum8MulEq
     (ZMod.natCast_eq_natCast_iff' _ _ Order).mpr h
   norm_num only [Nat.cast_add, Nat.cast_mul] at hCast
   exact hCast
-
-/-- Evaluation of a normalized affine form on a fixed wire basis. -/
-def affineEval {n : Nat} (wires : Fin n → Nat) (constant : F)
-    (coefficients : Fin n → F) (rho : Nat → F) : F :=
-  constant + ∑ index, coefficients index * rho (wires index)
-
-theorem affineEval_congr {n : Nat} (wires : Fin n → Nat)
-    {constant constant' : F} {coefficients coefficients' : Fin n → F}
-    (hConstant : constant = constant') (hCoefficients : coefficients = coefficients')
-    (rho : Nat → F) :
-    affineEval wires constant coefficients rho = affineEval wires constant' coefficients' rho := by
-  subst constant'
-  subst coefficients'
-  rfl
-
-/-- MDS rows commute with evaluation of affine forms on a shared basis. -/
-theorem row8_affineEval {n : Nat} (wires : Fin n → Nat)
-    (m0 m1 m2 m3 m4 m5 m6 m7 : F)
-    (c0 c1 c2 c3 c4 c5 c6 c7 : F)
-    (a0 a1 a2 a3 a4 a5 a6 a7 : Fin n → F) (rho : Nat → F) :
-    row8 m0 m1 m2 m3 m4 m5 m6 m7
-        (affineEval wires c0 a0 rho) (affineEval wires c1 a1 rho)
-        (affineEval wires c2 a2 rho) (affineEval wires c3 a3 rho)
-        (affineEval wires c4 a4 rho) (affineEval wires c5 a5 rho)
-        (affineEval wires c6 a6 rho) (affineEval wires c7 a7 rho) =
-      affineEval wires (row8 m0 m1 m2 m3 m4 m5 m6 m7 c0 c1 c2 c3 c4 c5 c6 c7)
-        (fun index => row8 m0 m1 m2 m3 m4 m5 m6 m7
-          (a0 index) (a1 index) (a2 index) (a3 index)
-          (a4 index) (a5 index) (a6 index) (a7 index)) rho := by
-  have hsum :
-      (∑ index : Fin n,
-        (m0 * a0 index + m1 * a1 index + m2 * a2 index + m3 * a3 index +
-          m4 * a4 index + m5 * a5 index + m6 * a6 index + m7 * a7 index) *
-            rho (wires index)) =
-        m0 * (∑ index : Fin n, a0 index * rho (wires index)) +
-        m1 * (∑ index : Fin n, a1 index * rho (wires index)) +
-        m2 * (∑ index : Fin n, a2 index * rho (wires index)) +
-        m3 * (∑ index : Fin n, a3 index * rho (wires index)) +
-        m4 * (∑ index : Fin n, a4 index * rho (wires index)) +
-        m5 * (∑ index : Fin n, a5 index * rho (wires index)) +
-        m6 * (∑ index : Fin n, a6 index * rho (wires index)) +
-        m7 * (∑ index : Fin n, a7 index * rho (wires index)) := by
-    calc
-      _ = ∑ index : Fin n,
-          (m0 * (a0 index * rho (wires index)) + m1 * (a1 index * rho (wires index)) +
-            m2 * (a2 index * rho (wires index)) + m3 * (a3 index * rho (wires index)) +
-            m4 * (a4 index * rho (wires index)) + m5 * (a5 index * rho (wires index)) +
-            m6 * (a6 index * rho (wires index)) + m7 * (a7 index * rho (wires index))) := by
-              apply Finset.sum_congr rfl
-              intro index _
-              ring
-      _ = _ := by
-        simp only [Finset.sum_add_distrib, Finset.mul_sum]
-  simp only [affineEval, row8]
-  rw [hsum]
-  ring
 
 /-- Full-round spec for width 8: add constants, S-box all lanes, then MDS. -/
 def fr8 (st cs : List.Vector F 8) : List.Vector F 8 :=

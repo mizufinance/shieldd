@@ -1,0 +1,22 @@
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805TraceBlock2Round0
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.ScalarBlock2Round0Lane0
+
+abbrev Order : Nat := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.Order
+abbrev F := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+def endpoint (rho : Nat → F) : F :=
+  Shieldd.GnarkFormal.Poseidon7Bridge.row8v vec![(7388904030749824121217721821433853214953911918259805849443329273927733084161 : F), (4691367638571316902360458299323081406319944075085591015519574142176338466134 : F), (7600015574485533381823942444903391878238309401638657445141710110325668315137 : F), (2303035022571373752067861346940421781284336182314744680345972760704747974284 : F), (7740756603642672888894756193883084320427907723891225175607297334590958469121 : F), (7794887768703111160845069174259889105885445540142212764247907805462223912961 : F), (7841285910183486822516766014582864636277620811214487840225573923351880007681 : F), (7881497632799812395965569942862776762617506046143792906072884558856248623105 : F)] vec![(Shieldd.GnarkFormal.Poseidon7Bridge.p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.domainLit + Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.roundConstants0[0])), (Shieldd.GnarkFormal.Poseidon7Bridge.p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.hash1 rho + Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.roundConstants0[1])), (Shieldd.GnarkFormal.Poseidon7Bridge.p17 (((8 : F) + (-1 : F) * rho 1010 + (-1 : F) * rho 1011 + (-1 : F) * rho 1012 + (-1 : F) * rho 1013 + (-1 : F) * rho 1014 + (-1 : F) * rho 1015 + (-1 : F) * rho 1016 + (-1 : F) * rho 1017) + Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.roundConstants0[2])), (Shieldd.GnarkFormal.Poseidon7Bridge.p17 (((7628228517115617761731724754875004303107790596370304736275780016796853259057 : F)) + Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.roundConstants0[3])), (Shieldd.GnarkFormal.Poseidon7Bridge.p17 (((3265217450668797951568683547963990927841845086752579767062168357780493777363 : F)) + Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.roundConstants0[4])), (Shieldd.GnarkFormal.Poseidon7Bridge.p17 (((7628228517115617761731724754875004303107790596370304736275780016796853259057 : F)) + Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.roundConstants0[5])), (Shieldd.GnarkFormal.Poseidon7Bridge.p17 (((3265217450668797951568683547963990927841845086752579767062168357780493777363 : F)) + Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.roundConstants0[6])), (Shieldd.GnarkFormal.Poseidon7Bridge.p17 (((7628228517115617761731724754875004303107790596370304736275780016796853259057 : F)) + Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.roundConstants0[7]))]
+
+theorem state_eq_endpoint (rho : Nat → F) :
+    (Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Trace.state2_0 rho)[0] = endpoint rho := by
+  rfl
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.ScalarBlock2Round0Lane0

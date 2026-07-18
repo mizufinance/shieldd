@@ -32,6 +32,24 @@ only protocol facts. Review both: the capstone answers “did every deployed
 segment get a proof?”; the readable statement answers “did we retain the facts
 the protocol relies on?”
 
+## Deployed Statement families
+
+The four final StatementHash providers use the exact deployed normalized
+relation for their family and keep the circuit's domain separator in the
+family-specific `TraceBase` artifact:
+
+| Direction | Family hash | Domain separator | Rows | Proof blocks |
+| --- | --- | ---: | ---: | --- |
+| 2 → 1 | `fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4` | `5079577531472816977664249278115400294401892237874490721478834552286369830267` | 470 | 0 |
+| 4 → 1 | `1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78` | `5915654282401331336747985974992743439571166637199277295399593266008193812311` | 940 | 0–1 |
+| 1 → 8 | `ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805` | `2598058543572663691928291801991083332834406653466399970650219017347474033401` | 1,385 | 0–2 |
+| 8 → 1 | `7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed` | `8151566796627494957780365425260097767647931594965532798107827918965818197203` | 1,860 | 0–3 |
+
+Each relation provider exposes five-row `relationPart` shards, including the
+large 1 → 8 and 8 → 1 relations. Block providers compose those parts, and the
+family Statement composes the deployed blocks; no compatibility or alternate
+relation path is retained.
+
 ## Drift-proof chain
 
 ```text

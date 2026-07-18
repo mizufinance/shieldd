@@ -1,41 +1,8 @@
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Core
-import ShielddGnarkFormal.Deployed.StatementHash.FullTail
-import ShielddGnarkFormal.Poseidon7Bridge
 
 namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs
 
 variable {F : Type} [CommRing F]
-
-/-- Deployed statement-hash Poseidon subchain endpoint (seg53; Wave-2
-renumbered from seg55). Argument wire numbers re-derived from the fresh
-`seg53_sound` adapter bridge (`StatementHashAdapters.lean`); every
-coefficient is unchanged, only the deployed wire ids shift with the DTK
-hoist. -/
-def deployedSpec53 (rho : Nat → DeployedF) : Prop :=
-  Shieldd.GnarkFormal.Deployed.StatementHash.s38_1
-      (rho 34604) (rho 34609) (rho 34614) (rho 34619)
-      (rho 34624) (rho 34629) (rho 34634) (rho 34639) =
-    Shieldd.GnarkFormal.Poseidon7Bridge.permSpec7
-      Shieldd.GnarkFormal.Poseidon7Bridge.statementDomainLit
-      ((1 : DeployedF) * rho 2)
-      ((7388904030749824121217721821433853214953911918259805849443329273927733084161 : DeployedF) * rho 31239
-        + (4691367638571316902360458299323081406319944075085591015519574142176338466134 : DeployedF) * rho 31244
-        + (7600015574485533381823942444903391878238309401638657445141710110325668315137 : DeployedF) * rho 31249
-        + (2303035022571373752067861346940421781284336182314744680345972760704747974284 : DeployedF) * rho 31254
-        + (7740756603642672888894756193883084320427907723891225175607297334590958469121 : DeployedF) * rho 31259
-        + (7794887768703111160845069174259889105885445540142212764247907805462223912961 : DeployedF) * rho 31264
-        + (7841285910183486822516766014582864636277620811214487840225573923351880007681 : DeployedF) * rho 31269)
-      ((-1 : DeployedF) * rho 33829 + (1 : DeployedF) * rho 34169)
-      ((6755569399542696339399059951025237225100719468123251062348186764733927391233 : DeployedF) * rho 7202
-        + (7037051457856975353540687448984622109479916112628386523279361213264507699201 : DeployedF) * rho 7207
-        + (7238110070938603220784707090384182741179342287274911852515914390786350776321 : DeployedF) * rho 7212
-        + (7388904030749824121217721821433853214953911918259805849443329273927733084161 : DeployedF) * rho 7217)
-      ((-1 : DeployedF) * rho 18311 + (1 : DeployedF) * rho 18651)
-      ((6755569399542696339399059951025237225100719468123251062348186764733927391233 : DeployedF) * rho 19383
-        + (7037051457856975353540687448984622109479916112628386523279361213264507699201 : DeployedF) * rho 19388
-        + (7238110070938603220784707090384182741179342287274911852515914390786350776321 : DeployedF) * rho 19393
-        + (7388904030749824121217721821433853214953911918259805849443329273927733084161 : DeployedF) * rho 19398)
-      ((-1 : DeployedF) * rho 30492 + (1 : DeployedF) * rho 30832)
 
 /-- seg2 `decaf.assert_on_curve`. -/
 def deployedSpec2 (rho : Nat → F) : Prop := onCurveAt (rho 3) (rho 4)

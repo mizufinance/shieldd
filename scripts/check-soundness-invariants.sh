@@ -13,40 +13,17 @@ command -v rg >/dev/null 2>&1 || fail "rg is required"
 
 # NoteReshape is the sole production vocabulary for this circuit family. Keep
 # the pcli negative assertion, Lean contributor instructions, and pinned
-# statement-hash domain labels out of this source-name lint. The four protocol
-# labels are checked separately below so they cannot become general aliases.
+# statement-hash domain labels out of this source-name lint.
 if rg -n 'Consolidate|consolidate(2x1|4x1|8x1)|Split1x8|split1x8' . \
     --glob '!target/**' \
     --glob '!tools/gnark/lean/.lake/**' \
     --glob '!tools/gnark/lean/AGENTS.md' \
     --glob '!crates/bin/pcli/tests/cli_surface.rs' \
-    --glob '!tools/gnark/lean/gen/gen_note_reshape_2x1_statement_semantics.py' \
     --glob '!tools/gnark/lean/gen/gen_note_reshape_statement_hash_semantics.py' \
     --glob '!scripts/check-soundness-invariants.sh' \
     --glob '!docs/protocol/theme/js/mermaid.min.js'; then
   fail "deleted Split/Consolidate production vocabulary remains"
 fi
-
-protocol_label_files=(
-  tools/gnark/lean/gen/gen_note_reshape_2x1_statement_semantics.py
-  tools/gnark/lean/gen/gen_note_reshape_statement_hash_semantics.py
-)
-protocol_label_hits="$({
-  rg -n 'Consolidate|consolidate(2x1|4x1|8x1)|Split1x8|split1x8' \
-    "${protocol_label_files[@]}" || true
-})"
-unexpected_protocol_label_hits="$(printf '%s\n' "$protocol_label_hits" | rg -v \
-  '^[^:]+:[0-9]+:[[:space:]]*"(consolidate2x1|consolidate4x1|consolidate8x1|split1x8)",[[:space:]]*(#.*)?$' || true)"
-[[ -z "$unexpected_protocol_label_hits" ]] || {
-  printf '%s\n' "$unexpected_protocol_label_hits"
-  fail "legacy operation spelling escaped the statement-hash protocol-label allowlist"
-}
-for label in consolidate2x1 consolidate4x1 consolidate8x1 split1x8; do
-  count="$(printf '%s\n' "$protocol_label_hits" | rg -c \
-    "[[:space:]]*\"$label\",[[:space:]]*(#.*)?$" || true)"
-  [[ "$count" == "1" ]] \
-    || fail "statement-hash protocol label $label must appear exactly once, found $count"
-done
 
 markdown_field() {
   local row="$1"

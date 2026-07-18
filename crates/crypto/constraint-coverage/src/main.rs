@@ -180,7 +180,7 @@ fn main() -> anyhow::Result<()> {
         }
         if let Some(dir) = &args.lean_template_out {
             let mut write_error = None;
-            contracts::visit_templates(&ir, &sr1cs, |f| {
+            contracts::visit_templates_filtered(&ir, &sr1cs, args.lean_only.as_deref(), |f| {
                 if write_error.is_some() {
                     return;
                 }

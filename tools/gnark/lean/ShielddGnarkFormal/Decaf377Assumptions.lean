@@ -10,7 +10,7 @@ import ShielddGnarkFormal.IvkModRBridge
 
 set_option linter.unusedSectionVars false
 
-/-! Decaf377 gadget boundary used by the `consolidate2x1` compose model.
+/-! Decaf377 gadget boundary used by the 2x1 compose model.
 
 This file is intentionally named after the boundary, not after a completed
 verification result. `AssertEquivalent` and `CompressToField` are tied to

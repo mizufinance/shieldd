@@ -106,6 +106,11 @@ def row_out(body: str) -> int:
     return int(match.group(1))
 
 
+def relation_lc_names(inst: Instance, row: int) -> list[str]:
+    refs = sorted(set(re.findall(r"\b(relationLc\d+)\b", inst.rows[row])))
+    return [name for ref in refs for name in (ref, f"{ref}Part0", f"{ref}Part1")]
+
+
 def leaf_cont_wires() -> tuple[int, int]:
     """The two lane wires the leaf slice's continuation binds (seg13 numbering)."""
     text = (EXTRACTED / f"{LEAF_STEM}.lean").read_text()
@@ -210,6 +215,33 @@ class Instance:
         )
 
 
+def prefix_args(inst: Instance) -> str:
+    """Arguments shared by all named recovery prefixes."""
+    return (
+        f"{P4} "
+        f"(fun k => ({DOM_NUM} : {inst.f}) + (k : {inst.f}) + (1 : {inst.f})) "
+        f"({P1} ({DOM_NUM} : {inst.f}) (rho {inst.commitment})) "
+        f"{sibling_expr(inst, 's0')} "
+        f"{sibling_expr(inst, 's1')} "
+        f"{sibling_expr(inst, 's2')} "
+        f"(fun k => rho ({inst.bits_base} + 2 * k)) "
+        f"(fun k => rho ({inst.bits_base + 1} + 2 * k))"
+    )
+
+
+def sibling_expr(inst: Instance, attr: str) -> str:
+    """The deployed or normalized arithmetic progression for one sibling lane."""
+    base = getattr(inst.levels[0], attr)
+    stride = getattr(inst.levels[1], attr) - base
+    if any(getattr(level, attr) != base + stride * k for k, level in enumerate(inst.levels)):
+        raise ValueError(f"SCP {attr} wires are not an arithmetic progression")
+    if stride < 0:
+        term = f"{base} - {-stride} * k"
+    else:
+        term = f"{base} + {stride} * k"
+    return f"(fun k => rho ({term}))"
+
+
 def header(imports: list[str]) -> list[str]:
     return imports + [""] + HEADER_OPTS + ["", f"namespace {CTX}", ""]
 
@@ -219,6 +251,14 @@ def footer() -> list[str]:
 
 
 def row_proof(inst: Instance, row: int, unfold_extra: str = "") -> str:
+    definitions = relation_lc_names(inst, row)
+    if definitions:
+        names = ", ".join(f"Seg{inst.seg}.{name}" for name in definitions)
+        return (
+            f"(by unfold Seg{inst.seg}.relationRow{row} at r{row}; "
+            f"try simp only [{names}] at r{row}; "
+            f"linear_combination r{row})"
+        )
     if not unfold_extra:
         return f"r{row}"
     extra = f"{unfold_extra}, " if unfold_extra else ""
@@ -228,9 +268,13 @@ def row_proof(inst: Instance, row: int, unfold_extra: str = "") -> str:
 
 
 def algebraic_row_proof(inst: Instance, row: int, unfold_extra: str = "") -> str:
+    definitions = relation_lc_names(inst, row)
+    names = ", ".join(f"Seg{inst.seg}.{name}" for name in definitions)
     extra = f"unfold {unfold_extra}; " if unfold_extra else ""
+    simplify = f"try simp only [{names}] at r{row}; " if definitions else ""
     return (
-        f"(by {extra}unfold Seg{inst.seg}.relationRow{row} at r{row}; "
+        f"(by {extra}unfold Seg{inst.seg}.relationRow{row} at r{row};"
+        f" {simplify}"
         f"linear_combination r{row})"
     )
 
@@ -294,7 +338,7 @@ def emit_node_helpers(inst: Instance, k: int, chunk: int) -> str:
             f"    (tail : next {next_args}) :",
             f"    {mod}.seg{segment} {result_args} next := by",
             "  exact ⟨" + ", ".join(
-                [*(f"rho {out}" for out in outs), *(f"r{row}" for row in rows), "tail"]
+                [*(f"rho {out}" for out in outs), *(row_proof(inst, row) for row in rows), "tail"]
             ) + "⟩",
             "",
         ]
@@ -493,11 +537,18 @@ def emit_bits(inst: Instance) -> str:
     for j in range(BOOL_COUNT):
         row = BOOL_BASE_ROW + j
         wire = inst.bits_base + j
+        definitions = relation_lc_names(inst, row)
+        simplify = (
+            f"try simp only [{', '.join(f'Seg{inst.seg}.{name}' for name in definitions)}] at r{row}; "
+            if definitions
+            else ""
+        )
         lines += [
             f"  have hb{j} : rho {wire} = 0 ∨ rho {wire} = 1 :=",
             f"    (mul_eq_zero.mp (show rho {wire} * (1 - rho {wire}) = 0 by",
-            f"      unfold Seg{inst.seg}.relationRow{row} at r{row}; "
-            f"linear_combination r{row})).imp",
+            f"      unfold Seg{inst.seg}.relationRow{row} at r{row};" +
+            (f" {simplify}" if simplify else ""),
+            f"      linear_combination r{row})).imp",
             "      id (fun hx => by linear_combination -hx)",
         ]
     lines += ["  intro i hi", "  interval_cases i"]
@@ -509,10 +560,12 @@ def emit_bits(inst: Instance) -> str:
         f"    rho {inst.position} = {recompose_sum(inst, inst.f)} := by",
     ]
     dtk.emit_unpack(lines_sp(lines), inst.cfg, {RECOMP_ROW})
-    lines += [
-        f"  unfold Seg{inst.seg}.relationRow{RECOMP_ROW} at r{RECOMP_ROW}",
-        f"  linear_combination -r{RECOMP_ROW}",
-    ]
+    lines += [f"  unfold Seg{inst.seg}.relationRow{RECOMP_ROW} at r{RECOMP_ROW}"]
+    definitions = relation_lc_names(inst, RECOMP_ROW)
+    if definitions:
+        names = ", ".join(f"Seg{inst.seg}.{name}" for name in definitions)
+        lines.append(f"  try simp only [{names}] at r{RECOMP_ROW}")
+    lines.append(f"  linear_combination -r{RECOMP_ROW}")
     return "\n".join(lines + footer())
 
 
@@ -557,18 +610,31 @@ def emit_head(inst: Instance) -> str:
         f"theorem seg{inst.seg}_sound (rho : Nat -> {inst.f}) (h : Seg{inst.seg}.relation rho) :",
         f"    Seg{inst.seg}.spec rho := by",
         f"  unfold Seg{inst.seg}.spec Specs.deployedSpec{inst.seg}",
+        f"  have hprefixZero := {SCP}.recoverPrefix_zero {prefix_args(inst)}",
+        "  norm_num at hprefixZero",
+        f"  have hprefixSucc (k : Nat) := {SCP}.recoverPrefix_succ {prefix_args(inst)} k",
+    ]
+    lines += [
         f"  have e := seg{inst.seg}_scp_leaf_eq rho h",
         f"  have a0 := seg{inst.seg}_scp_step0 rho h",
         "  rw [e] at a0",
+        "  norm_num at a0",
+        "  rw [← hprefixZero] at a0",
     ]
     for k in range(1, LEVELS):
         lines += [
             f"  have a{k} := seg{inst.seg}_scp_step{k} rho h",
             f"  rw [a{k - 1}] at a{k}",
+            f"  norm_num at a{k}",
+            f"  have hprefixSucc{k} := hprefixSucc {k - 1}",
+            f"  norm_num at hprefixSucc{k}",
+            f"  rw [← hprefixSucc{k}] at a{k}",
         ]
     lines += [
         f"  refine ⟨seg{inst.seg}_scp_bits_bool rho h, seg{inst.seg}_scp_recompose rho h, ?_⟩",
-        f"  simpa [{inst.node_out_def(LEVELS - 1)}, {SCP}.recover24H, {LEAF_LIT}] using a{LEVELS - 1}",
+        f"  rw [← {inst.node_out_def(LEVELS - 1)}]",
+        "  rw [Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recover24H_eq_prefix23]",
+        f"  exact a{LEVELS - 1}",
     ]
     return "\n".join(lines + footer())
 
@@ -587,12 +653,12 @@ def deployedSpec{seg} (rho : Nat → DeployedF) : Prop :=
     = Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recover24H
       Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4
       (fun k => (545001158149490383238005163525397553024965043366546261617421270984613353336 : DeployedF)
-        + ((k + 1 : Nat) : DeployedF))
+        + (k : DeployedF) + (1 : DeployedF))
       (Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1
         (545001158149490383238005163525397553024965043366546261617421270984613353336 : DeployedF)
         (rho {inst.commitment}))
-      (fun k => rho ({inst.levels[0].s0} - 3 * k)) (fun k => rho ({inst.levels[0].s1} - 3 * k))
-      (fun k => rho ({inst.levels[0].s2} - 3 * k))
+      {sibling_expr(inst, 's0')} {sibling_expr(inst, 's1')}
+      {sibling_expr(inst, 's2')}
       (fun k => rho ({inst.bits_base} + 2 * k)) (fun k => rho ({inst.bits_base + 1} + 2 * k))
 """
 

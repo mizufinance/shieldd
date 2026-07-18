@@ -1,0 +1,31 @@
+import ShielddGnarkFormal.Deployed.Templates.Relations.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805
+import ShielddGnarkFormal.Deployed.StatementHashDeployedBridge
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import Mathlib.Tactic.LinearCombination
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Part100
+
+abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.Order
+abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+theorem sound (rho : Nat → F)
+    (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.relationPart100 rho) :
+    rho 569 = Shieldd.GnarkFormal.Poseidon7Bridge.p17 ((8323215308029035830922479600341609342422153730357233252273677915504737315770 : F) + (-1 : F) * rho 564) := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.relationPart100 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.relationRow500 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.relationRow501 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.relationRow502 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.relationRow503 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.relationRow504 at h
+  rcases h with ⟨h0, h1, h2, h3, h4⟩
+
+  exact Shieldd.GnarkFormal.Deployed.StatementHash.p17_from_rows
+    ((8323215308029035830922479600341609342422153730357233252273677915504737315770 : F) + (-1 : F) * rho 564) (rho 565) (rho 566) (rho 567) (rho 568) (rho 569)
+    (by simpa only [one_mul] using h0)
+    (by simpa only [one_mul] using h1)
+    (by simpa only [one_mul] using h2)
+    (by simpa only [one_mul] using h3)
+    (by simpa only [one_mul] using h4)
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805.Part100

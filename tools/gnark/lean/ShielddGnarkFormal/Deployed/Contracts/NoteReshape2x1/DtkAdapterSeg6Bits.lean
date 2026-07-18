@@ -284,7 +284,7 @@ theorem seg6Ivk_toBinary (rho : Nat -> Seg6.F) (h : Seg6.relation rho) :
   unfold Seg6.relationRow1574 at r1574
   have hrecover := recover_ofFn_eq_recBits rho 1890 253
   have hacc : powSumAcc rho 0 1 1890 253 = rho 9 := by
-    unfold Seg6.relationRow1575 Seg6.relationLc17 Seg6.relationLc17Part0 Seg6.relationLc17Part1 Seg6.relationLc17Part2 Seg6.relationLc17Part3 Seg6.relationLc17Part4 Seg6.relationLc17Part5 Seg6.relationLc17Part6 Seg6.relationLc17Part7 at r1575
+    unfold Seg6.relationRow1575 Seg6.relationLc7 Seg6.relationLc7Part0 Seg6.relationLc7Part1 Seg6.relationLc7Part2 Seg6.relationLc7Part3 Seg6.relationLc7Part4 Seg6.relationLc7Part5 Seg6.relationLc7Part6 Seg6.relationLc7Part7 at r1575
     simp only [powSumAcc]
     linear_combination r1575
   have hrec : recover_binary_zmod' (seg6IvkBits rho) = rho 9 := by

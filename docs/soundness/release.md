@@ -30,7 +30,7 @@ restamping is never a fix for a failed semantic or source-drift gate.
 Run Lean serially and single-threaded:
 
 ```sh
-go test ./internal/circuits/... ./internal/primitives/...
+(cd tools/gnark && go test ./internal/circuits/... ./internal/primitives/...)
 cargo test -p shieldd-constraint-coverage
 scripts/check-fv-census.sh
 scripts/check-extracted-lean-heartbeats.sh
@@ -43,6 +43,13 @@ bash scripts/check-soundness-invariants.sh
 The full FV gate performs the deployed-key round trip for all five checked
 circuits, including the four NoteReshape families and transfer. Run any
 repository-wide release/prover suites required by CI after the focused gates.
+
+The focused StatementHash resource gate uses a 120 s / 4 GiB aggregator budget,
+a 2 GiB marginal-RSS leaf budget, and a 50 MiB generated-olean budget. Recent
+top-level aggregator checks passed for 4 → 1 (2 s, 424 MiB marginal RSS),
+1 → 8 (12 s, 706 MiB), and 8 → 1 (3 s, 820 MiB); the four family hashes,
+domains, row counts, and block partitions are recorded in [fv.md](fv.md) and
+the stamped artifacts.
 
 ## Performance record
 

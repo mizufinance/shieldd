@@ -13,6 +13,5 @@ def relation (rho : Nat -> F) : Prop := Shieldd.GnarkFormal.Deployed.Templates.R
 def spec (rho : Nat -> F) : Prop := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.spec rho
 
 theorem sound (rho : Nat → F) (h : relation rho) : spec rho := by
-exact Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.sound rho h
-
+             exact Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.sound rho h
 end Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3

@@ -54,6 +54,11 @@ fn is_padded_note_reshape_family(circuit: &str) -> bool {
     )
 }
 
+fn uses_normalized_template_contract(circuit: &str, segment: &SegmentIr) -> bool {
+    is_padded_note_reshape_family(circuit)
+        || (circuit == "note_reshape2x1" && segment.op == "statement.hash")
+}
+
 /// The `Specs` submodule holding a segment's hand-authored endpoint.
 ///
 /// note_reshape2x1's specs are split per crypto family (`Specs/Core.lean`,
@@ -496,10 +501,13 @@ fn render_relation_defs_with_inline_limit(
     structured: bool,
     factor_all_lcs: bool,
     force_structured: bool,
+    chunk_size: usize,
 ) -> (String, String) {
     const CHUNK_THRESHOLD: usize = 100;
-    const SMALL_CHUNK_SIZE: usize = 5;
-    const LARGE_CHUNK_SIZE: usize = 80;
+    assert!(
+        chunk_size > 0,
+        "normalized relation chunk size must be positive"
+    );
 
     if rows.len() <= CHUNK_THRESHOLD {
         return (String::new(), render_rows(rows));
@@ -530,11 +538,6 @@ fn render_relation_defs_with_inline_limit(
     }
 
     let mut parts = Vec::new();
-    let chunk_size = if rows.len() <= 1_200 {
-        SMALL_CHUNK_SIZE
-    } else {
-        LARGE_CHUNK_SIZE
-    };
     for (idx, chunk) in (0..rows.len())
         .collect::<Vec<_>>()
         .chunks(chunk_size)
@@ -588,7 +591,8 @@ fn definition_shards(defs: &str, max_bytes: usize) -> Vec<String> {
 
 #[cfg(test)]
 fn render_relation_defs(rows: &[Constraint]) -> (String, String) {
-    render_relation_defs_with_inline_limit(rows, 32, true, false, false)
+    let chunk_size = if rows.len() <= 1_200 { 5 } else { 80 };
+    render_relation_defs_with_inline_limit(rows, 32, true, false, false, chunk_size)
 }
 
 fn render_wire_seating(seating: &[usize]) -> String {
@@ -638,12 +642,22 @@ fn render_generated_relation(template_key: &str, rows: &[Constraint]) -> Vec<Tem
         // Normalized relations are semantic proof inputs, not deployed
         // instance contracts. Always factor their LCs so medium-sized crypto
         // templates expose the same exact named atoms as larger templates.
+        let chunk_size = if template_key.starts_with("statement.hash@") {
+            // Statement-hash proof blocks consume one relation part per p17
+            // block, including for the 1x8 and 8x1 relations.
+            5
+        } else if rows.len() <= 1_200 {
+            5
+        } else {
+            80
+        };
         render_relation_defs_with_inline_limit(
             rows,
             32,
             true,
             true,
             template_key.starts_with("decaf.randomized_verification_key@"),
+            chunk_size,
         )
     } else {
         render_template_relation(rows)
@@ -762,6 +776,18 @@ fn render_generated_template(template_key: &str, rows: &[Constraint]) -> Vec<Tem
     let module_path = format!("ShielddGnarkFormal.Deployed.Templates.Generated.{module_name}");
     let semantics = format!("Shieldd.GnarkFormal.Deployed.Templates.Semantics.{module_name}");
     let relations = format!("Shieldd.GnarkFormal.Deployed.Templates.Relations.{module_name}");
+    let sound_proof = if template_key.starts_with("statement.hash@") {
+        let block_count = (rows.len() + 469) / 470;
+        let blocks = (0..block_count)
+            .map(|index| format!("{semantics}.RelationBlocks.block{index}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(
+            "             apply {semantics}.sound rho\n             simpa only [relation, {semantics}.relation, {relations}.relation, {blocks}, and_assoc] using h\n"
+        )
+    } else {
+        format!("             exact {semantics}.sound rho h\n")
+    };
     let mut files = render_generated_relation(template_key, rows);
     files.push(TemplateFile {
         template_key: template_key.to_owned(),
@@ -777,12 +803,13 @@ fn render_generated_template(template_key: &str, rows: &[Constraint]) -> Vec<Tem
              def relation (rho : Nat -> F) : Prop := {relations}.relation rho\n\n\
              def spec (rho : Nat -> F) : Prop := {semantics}.spec rho\n\n\
              theorem sound (rho : Nat → F) (h : relation rho) : spec rho := by\n\
-               exact {semantics}.sound rho h\n\n\
+{sound_proof}\
              end {namespace}\n",
             max_heartbeats = MAX_CONTRACT_HEARTBEATS,
             namespace = namespace,
             relations = relations,
             semantics = semantics,
+            sound_proof = sound_proof,
         ),
     });
     files
@@ -924,7 +951,7 @@ fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> V
     // Their instance contracts must stay small even for dense Poseidon and
     // scalar-multiplication slices; the normalized relation is emitted once by
     // `generate_templates` and each instance only seats it.
-    if is_padded_note_reshape_family(circuit) {
+    if uses_normalized_template_contract(circuit, segment) {
         return vec![render_generated_template_contract(circuit, segment)];
     }
     let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
@@ -944,8 +971,15 @@ fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> V
     // defs directly; compacting their ladder accumulators into StructuredLC
     // would delete the defs those proven adapters are seated on.
     let structured = segment.op != "decaf.randomized_verification_key";
-    let (relation_defs, relation_body) =
-        render_relation_defs_with_inline_limit(rows, inline_limit, structured, false, false);
+    let chunk_size = if rows.len() <= 1_200 { 5 } else { 80 };
+    let (relation_defs, relation_body) = render_relation_defs_with_inline_limit(
+        rows,
+        inline_limit,
+        structured,
+        false,
+        false,
+        chunk_size,
+    );
     let contents = format!(
          "import ShielddGnarkFormal.Deployed.Contract\n\
          import ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.{spec_sub}\n\
@@ -1087,6 +1121,18 @@ pub fn generate_templates(
 pub fn visit_templates(
     ir: &CircuitIr,
     sr1cs: &Sr1cs,
+    visit: impl FnMut(TemplateFile),
+) -> Result<(), CoverageError> {
+    visit_templates_filtered(ir, sr1cs, None, visit)
+}
+
+/// Visit only normalized templates whose operation/hash key contains
+/// `filter`, when supplied. Filtering happens before relation reconstruction
+/// and rendering so focused regeneration does not retain unrelated circuits.
+pub fn visit_templates_filtered(
+    ir: &CircuitIr,
+    sr1cs: &Sr1cs,
+    filter: Option<&str>,
     mut visit: impl FnMut(TemplateFile),
 ) -> Result<(), CoverageError> {
     let mut instances = BTreeMap::<String, Vec<&SegmentIr>>::new();
@@ -1100,6 +1146,9 @@ pub fn visit_templates(
             .push(segment);
     }
     for (template_key, segments) in instances {
+        if filter.is_some_and(|needle| !template_key.contains(needle)) {
+            continue;
+        }
         let representative = segments[0];
         let rows = parse_segment_rows(sr1cs, representative)?;
         let normalized = normalize_relation(&rows);
@@ -1612,6 +1661,43 @@ mod tests {
         assert!(relation.contains("relationPart0 rho"));
         assert!(relation.contains("relationPart18 rho"));
         assert!(!relation.contains("* rho 1"));
+    }
+
+    #[test]
+    fn statement_hash_large_relations_keep_five_row_parts() {
+        let rows = (0..1385)
+            .map(|idx| Constraint {
+                l: vec![Term {
+                    coeff: "1".to_owned(),
+                    wire: idx + 1,
+                }],
+                r: vec![Term {
+                    coeff: "1".to_owned(),
+                    wire: idx + 2,
+                }],
+                o: vec![Term {
+                    coeff: "1".to_owned(),
+                    wire: idx + 3,
+                }],
+            })
+            .collect::<Vec<_>>();
+        let files = render_generated_relation("statement.hash@deadbeef", &rows);
+        let relation = files
+            .iter()
+            .find(|file| file.file_name == "Relations/TStatementHash_deadbeef.lean")
+            .expect("statement-hash relation facade");
+        let defs = files
+            .iter()
+            .filter(|file| {
+                file.file_name
+                    .starts_with("Relations/TStatementHash_deadbeefDefs")
+            })
+            .map(|file| file.contents.as_str())
+            .collect::<String>();
+        assert!(defs.contains("def relationPart0"));
+        assert!(defs.contains("relationRow0 rho ∧\n    relationRow1 rho ∧\n    relationRow2 rho ∧\n    relationRow3 rho ∧\n    relationRow4 rho"));
+        assert!(defs.contains("def relationPart276"));
+        assert!(relation.contents.contains("relationPart276 rho"));
     }
 
     #[test]

@@ -60,7 +60,6 @@ import ShielddGnarkFormal.Deployed.NoteCommitmentDeployedBridge
 import ShielddGnarkFormal.Deployed.NoteCommitmentSemanticBridge
 import ShielddGnarkFormal.Deployed.GlueBridges
 import ShielddGnarkFormal.Deployed.Nullifier.SemanticBridge
-import ShielddGnarkFormal.Deployed.StatementHash.SemanticBridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPathNode0.SemanticBridge
 import ShielddGnarkFormal.Deployed.DecafAssertOnCurveBridge
 import ShielddGnarkFormal.CanonicalFqBitsDeployedKernel

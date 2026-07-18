@@ -40,4 +40,8 @@ theorem state0_output_eq_hash (rho : Nat → F) :
   unfold hash0
   rfl
 
+theorem rawState0_output_eq_flatStateLane1 (rho : Nat → F) :
+    (rawState0_38 rho)[1] = flatState0_38Lane1 rho := by
+  rfl
+
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78.Trace

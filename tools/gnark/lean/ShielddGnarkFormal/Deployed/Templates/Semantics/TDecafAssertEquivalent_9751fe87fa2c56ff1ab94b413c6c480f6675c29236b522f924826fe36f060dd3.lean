@@ -11,7 +11,7 @@ def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233
 abbrev F := ZMod Order
 
 def spec (rho : Nat -> F) : Prop :=
-  ((1 : F) * rho 1) * (relationLc0 rho) = ((1 : F) * rho 254) * (relationLc1 rho)
+  ((1 : F) * rho 1) * (Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.relationLc0 rho) = ((1 : F) * rho 254) * (Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.relationLc1 rho)
 
 theorem sound (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.relation rho) : spec rho := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.relation Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.relationSegment0 at h

@@ -421,6 +421,8 @@ cd "$lean_src_dir"
 # checks are requested; the Rust-only default touches no `lake` target.
 if [[ "$run_lean_theorem_checks" -eq 1 ]]; then
   lake exe cache get >/dev/null 2>&1 || true
+  lake build ShielddGnarkFormal >/dev/null \
+    || fail "root Lean formalization module does not build"
 fi
 
 # Template reuse is a four-family invariant, not a property of whichever one
@@ -430,19 +432,20 @@ if [[ "$require_full_deployed" -eq 1 ]]; then
   for template_circuit in \
     note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
     template_artifact_dir="$(artifact_dir_for_circuit "$template_circuit")"
-    template_extra_args=()
-    if [[ "$template_circuit" == "note_reshape2x1" ]]; then
-      template_extra_args=(
-        --lt-seating-out "$tmp_dir/note_reshape2x1-dtk-lt-seating.json"
-      )
-    fi
     (
       cd "$ROOT"
-      cargo run -q -p shieldd-constraint-coverage -- \
-        --manifest "$template_artifact_dir/$template_circuit-manifest.json" \
-        --sr1cs "$template_artifact_dir/$template_circuit.sr1cs" \
-        --lean-template-out "$tmp_template_root" \
-        "${template_extra_args[@]}"
+      if [[ "$template_circuit" == "note_reshape2x1" ]]; then
+        cargo run -q -p shieldd-constraint-coverage -- \
+          --manifest "$template_artifact_dir/$template_circuit-manifest.json" \
+          --sr1cs "$template_artifact_dir/$template_circuit.sr1cs" \
+          --lean-template-out "$tmp_template_root" \
+          --lt-seating-out "$tmp_dir/note_reshape2x1-dtk-lt-seating.json"
+      else
+        cargo run -q -p shieldd-constraint-coverage -- \
+          --manifest "$template_artifact_dir/$template_circuit-manifest.json" \
+          --sr1cs "$template_artifact_dir/$template_circuit.sr1cs" \
+          --lean-template-out "$tmp_template_root"
+      fi
     )
   done
   canonical_lt_seating="$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-dtk-lt-seating.json"

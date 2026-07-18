@@ -27,7 +27,9 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
   obtain ⟨h0, h1, _⟩ := h
   have hp : (1 - rho 1) * residual rho = 0 := by
     calc
-      (1 - rho 1) * residual rho = _ := by linear_combination h0
+      (1 - rho 1) * residual rho = rho 10 := by
+        simp only [residual]
+        linear_combination h0
       _ = 0 := by linear_combination h1
   rcases mul_eq_zero.mp hp with henabled | heq
   · left

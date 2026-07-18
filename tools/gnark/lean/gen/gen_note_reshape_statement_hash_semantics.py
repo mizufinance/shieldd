@@ -1,0 +1,1287 @@
+#!/usr/bin/env python3
+"""Recover and pin the new NoteReshape statement-hash traces.
+
+This module is deliberately independent from
+``gen_note_reshape_template_semantics.py``.  It parses the normalized relation
+rows, reconstructs every Poseidon7 round symbolically, and fails closed unless
+the rows are exactly the expected sponge trace.  The returned Lean sources are
+small trace/spec support modules; the proof-shard renderer can consume the same
+``Provider`` objects without reparsing or hard-coding wire maps.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[4]
+LEAN = ROOT / "tools/gnark/lean"
+RELATIONS = LEAN / "ShielddGnarkFormal/Deployed/Templates/Relations"
+OUT = LEAN / "ShielddGnarkFormal/Deployed/Templates/Semantics"
+GENDATA = Path(__file__).with_name("statement_hash_gendata.json")
+INVENTORY = ROOT / "tools/gnark/artifacts/note-reshape-template-inventory.json"
+ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
+
+
+@dataclass(frozen=True)
+class Family:
+    circuit: str
+    statement_label: str
+    digest: str
+    rows: int
+    wires: int
+    field_count: int
+    block_rows: tuple[int, ...]
+    final_pins: tuple[int, ...]
+
+    @property
+    def name(self) -> str:
+        return f"TStatementHash_{self.digest}"
+
+    @property
+    def key(self) -> str:
+        return f"statement.hash@{self.digest}"
+
+
+FAMILIES = (
+    Family(
+        "note_reshape2x1",
+        "note_reshape2x1",
+        "fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4",
+        470,
+        493,
+        7,
+        (470,),
+        (457, 462, 467, 472, 477, 482, 487, 492),
+    ),
+    Family(
+        "note_reshape4x1",
+        "note_reshape4x1",
+        "1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78",
+        940,
+        972,
+        13,
+        (470, 470),
+        (936, 941, 946, 951, 956, 961, 966, 971),
+    ),
+    Family(
+        "note_reshape1x8",
+        "note_reshape1x8",
+        "ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805",
+        1385,
+        1458,
+        14,
+        (470, 470, 445),
+        (1422, 1427, 1432, 1437, 1442, 1447, 1452, 1457),
+    ),
+    Family(
+        "note_reshape8x1",
+        "note_reshape8x1",
+        "7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed",
+        1860,
+        1912,
+        21,
+        (470, 470, 470, 450),
+        (1876, 1881, 1886, 1891, 1896, 1901, 1906, 1911),
+    ),
+)
+
+
+@dataclass(frozen=True)
+class LC:
+    const: int = 0
+    terms: tuple[tuple[int, int], ...] = ()
+
+    @staticmethod
+    def make(const: int = 0, terms: dict[int, int] | None = None) -> "LC":
+        return LC(
+            const % ORDER,
+            tuple(sorted((wire, coefficient % ORDER) for wire, coefficient in (terms or {}).items() if coefficient % ORDER)),
+        )
+
+    @staticmethod
+    def wire(wire: int) -> "LC":
+        return LC.make(terms={wire: 1})
+
+    def __add__(self, other: "LC") -> "LC":
+        terms = dict(self.terms)
+        for wire, coefficient in other.terms:
+            terms[wire] = terms.get(wire, 0) + coefficient
+        return LC.make(self.const + other.const, terms)
+
+    def scale(self, coefficient: int) -> "LC":
+        return LC.make(self.const * coefficient, {wire: value * coefficient for wire, value in self.terms})
+
+    def render(self) -> str:
+        pieces = []
+        if self.const:
+            pieces.append("(-1 : F)" if self.const == ORDER - 1 else f"({self.const} : F)")
+        for wire, coefficient in self.terms:
+            if coefficient == 1:
+                pieces.append(f"rho {wire}")
+            elif coefficient == ORDER - 1:
+                pieces.append(f"(-1 : F) * rho {wire}")
+            else:
+                pieces.append(f"({coefficient} : F) * rho {wire}")
+        return " + ".join(pieces) or "(0 : F)"
+
+
+@dataclass(frozen=True)
+class Box:
+    part: int
+    input: LC
+    input_name: str | None
+    powers: tuple[int, int, int, int, int]
+
+    @property
+    def output(self) -> int:
+        return self.powers[-1]
+
+
+@dataclass(frozen=True)
+class Block:
+    index: int
+    row_start: int
+    row_count: int
+    part_start: int
+    rounds: tuple[tuple[Box, ...], ...]
+    inputs: tuple[LC, ...]
+    states: tuple[tuple[LC, ...], ...]
+    output: LC
+
+
+@dataclass(frozen=True)
+class Provider:
+    family: Family
+    domain: int
+    pad0: int
+    pad1: int
+    blocks: tuple[Block, ...]
+
+
+def _constant(label: str, suffix: str) -> int:
+    text = f"shieldd.shielded_pool.{label}.public_input_hash.{suffix}".encode()
+    return int.from_bytes(hashlib.blake2b(text, digest_size=64).digest(), "little") % ORDER
+
+
+def _parse_lc(expression: str, definitions: dict[str, str] | None = None) -> LC:
+    expression = expression.strip()
+    if expression.startswith("(") and expression.endswith(")"):
+        expression = expression[1:-1]
+    const = 0
+    terms: dict[int, int] = {}
+    for piece in re.split(r"\s+\+\s+", expression):
+        piece = piece.strip()
+        named = re.fullmatch(r"\(?relationLc([A-Za-z0-9]+) rho\)?", piece)
+        if named:
+            name = f"relationLc{named.group(1)}"
+            if definitions is None or name not in definitions:
+                raise ValueError(f"missing normalized LC helper {name}")
+            nested = _parse_lc(definitions[name], definitions)
+            const += nested.const
+            for wire, coefficient in nested.terms:
+                terms[wire] = terms.get(wire, 0) + coefficient
+            continue
+        match = re.fullmatch(r"\((-?\d+) : F\)", piece)
+        if match:
+            const += int(match.group(1))
+            continue
+        match = re.fullmatch(r"\((-?\d+) : F\) \* rho (\d+)", piece)
+        if match:
+            coefficient, wire = int(match.group(1)), int(match.group(2))
+            terms[wire] = terms.get(wire, 0) + coefficient
+            continue
+        match = re.fullmatch(r"rho (\d+)", piece)
+        if match:
+            wire = int(match.group(1))
+            terms[wire] = terms.get(wire, 0) + 1
+            continue
+        raise ValueError(f"unsupported normalized LC term: {piece!r}")
+    return LC.make(const, terms)
+
+
+def _source(family: Family) -> str:
+    return "\n".join(path.read_text() for path in sorted(RELATIONS.glob(f"{family.name}Defs*.lean")))
+
+
+def _rows(family: Family, text: str) -> dict[int, str]:
+    found = {
+        int(match.group(1)): match.group(2).strip()
+        for match in re.finditer(r"def relationRow(\d+) .*? :=\n    (.*?)\n\n", text, re.S)
+    }
+    expected = set(range(family.rows))
+    if set(found) != expected:
+        missing = sorted(expected - set(found))
+        extra = sorted(set(found) - expected)
+        raise ValueError(f"{family.key}: row set drifted; missing={missing[:3]} extra={extra[:3]}")
+    return found
+
+
+def _boxes(family: Family, rows: dict[int, str], text: str) -> list[Box]:
+    if family.rows % 5:
+        raise ValueError(f"{family.key}: row count is not a five-row p17 partition")
+    boxes = []
+    definitions = {
+        match.group(1): match.group(2).strip()
+        for match in re.finditer(r"def (relationLc[A-Za-z0-9]+) .*? : F :=\n    (.*?)\n\n", text, re.S)
+    }
+    def multiplication(row: str, output_pattern: str) -> tuple[str, str, int] | None:
+        suffix = re.search(output_pattern + r"$", row)
+        if suffix is None:
+            return None
+        lhs = row[: suffix.start()]
+        if not lhs.endswith(" = "):
+            return None
+        lhs = lhs[:-3]
+        separator = ") * ("
+        position = lhs.find(separator)
+        if position < 0:
+            return None
+        return lhs[: position + 1], lhs[position + 4 :], int(suffix.group(1))
+
+    for part, first in enumerate(range(0, family.rows, 5)):
+        square = multiplication(rows[first], r"\(\(1 : F\) \* rho (\d+)\)")
+        if square is None:
+            raise ValueError(f"{family.key}: row {first} is not the start of a p17 chain")
+        input_name_match = re.fullmatch(r"\((relationLc[A-Za-z0-9]+) rho\)", square[0])
+        input_name = input_name_match.group(1) if input_name_match is not None else None
+        input_lc = _parse_lc(square[0], definitions)
+        if _parse_lc(square[1], definitions) != input_lc:
+            raise ValueError(f"{family.key}: row {first} does not square one LC")
+        powers = [square[2]]
+        for offset in range(1, 4):
+            match = re.fullmatch(
+                rf"\(\(1 : F\) \* rho {powers[-1]}\) \* \(\(1 : F\) \* rho {powers[-1]}\) = \(\(1 : F\) \* rho (\d+)\)",
+                rows[first + offset],
+            )
+            if match is None:
+                raise ValueError(f"{family.key}: row {first + offset} breaks the p17 square chain")
+            powers.append(int(match.group(1)))
+        match = multiplication(rows[first + 4], r"\(\(1 : F\) \* rho (\d+)\)")
+        if match is None:
+            raise ValueError(f"{family.key}: row {first + 4} breaks the p17 multiply-back")
+        if _parse_lc(match[0], definitions) != LC.wire(powers[-1]) or _parse_lc(match[1], definitions) != input_lc:
+            raise ValueError(f"{family.key}: row {first + 4} multiplies back a different LC")
+        powers.append(match[2])
+        boxes.append(Box(part, input_lc, input_name, tuple(powers)))
+    return boxes
+
+
+def _poseidon_data() -> tuple[list[list[int]], list[str], list[list[int]]]:
+    data = json.loads(GENDATA.read_text())
+    constants = [[int(value) % ORDER for value in data["cs"][str(round_)]] for round_ in range(39)]
+    kinds = [data["kind"][str(round_)] for round_ in range(39)]
+    seq = [int(value) % ORDER for value in data["seq"]]
+    matrix = [[seq[i + j] for j in range(8)] for i in range(8)]
+    if kinds != ["full"] * 4 + ["partial"] * 31 + ["full"] * 4:
+        raise ValueError("Poseidon7 round schedule drifted")
+    return constants, kinds, matrix
+
+
+def _mds(state: list[LC], matrix: list[list[int]]) -> list[LC]:
+    return [sum((state[column].scale(matrix[row][column]) for column in range(8)), LC()) for row in range(8)]
+
+
+def _p17(value: int) -> int:
+    return pow(value % ORDER, 17, ORDER)
+
+
+def recover_provider(family: Family) -> Provider:
+    text = _source(family)
+    rows = _rows(family, text)
+    boxes = _boxes(family, rows, text)
+    constants, kinds, matrix = _poseidon_data()
+    domain = _constant(family.statement_label, "v1")
+    pad0 = _constant(family.statement_label, "pad0")
+    pad1 = _constant(family.statement_label, "pad1")
+
+    blocks: list[Block] = []
+    field_cursor = 0
+    box_cursor = 0
+    previous_output: LC | None = None
+    row_cursor = 0
+    recovered_fields: list[LC] = []
+    for block_index, block_rows in enumerate(family.block_rows):
+        variable_boxes = block_rows // 5 - 87
+        if variable_boxes not in (2, 3, 7):
+            raise ValueError(f"{family.key}: unsupported round-0 box count {variable_boxes}")
+        per_round = [variable_boxes, 8, 8, 8] + [1] * 31 + [8] * 4
+        round_boxes = []
+        for count in per_round:
+            round_boxes.append(tuple(boxes[box_cursor : box_cursor + count]))
+            box_cursor += count
+
+        remaining = family.field_count - field_cursor
+        if block_index == 0:
+            take = min(7, remaining)
+            actual_inputs = [box.input + LC.make(-constants[0][lane + 1]) for lane, box in enumerate(round_boxes[0])]
+            recovered_fields.extend(actual_inputs[:take])
+            field_cursor += take
+            expected_inputs: list[LC | int] = list(actual_inputs[:take])
+        else:
+            take = min(6, remaining)
+            actual_inputs = [box.input + LC.make(-constants[0][lane + 1]) for lane, box in enumerate(round_boxes[0])]
+            if previous_output is None or not actual_inputs or actual_inputs[0] != previous_output:
+                raise ValueError(f"{family.key}: block {block_index} does not absorb the previous hash")
+            recovered_fields.extend(actual_inputs[1 : 1 + take])
+            field_cursor += take
+            expected_inputs = [previous_output, *actual_inputs[1 : 1 + take]]
+        while len(expected_inputs) < 7:
+            pad_index = len(expected_inputs) if block_index == 0 else len(expected_inputs) - 1
+            expected_inputs.append(pad0 if pad_index % 2 == 0 else pad1)
+        if len(round_boxes[0]) != sum(not isinstance(value, int) for value in expected_inputs):
+            raise ValueError(f"{family.key}: block {block_index} constant-folded lane count drifted")
+
+        state_inputs: list[LC] = [LC.make(domain)]
+        actual_iter = iter(round_boxes[0])
+        for lane, value in enumerate(expected_inputs, 1):
+            if isinstance(value, int):
+                state_inputs.append(LC.make(_p17(value + constants[0][lane])))
+            else:
+                box = next(actual_iter)
+                expected = value + LC.make(constants[0][lane])
+                if box.input != expected:
+                    raise ValueError(f"{family.key}: block {block_index} round 0 lane {lane} input drifted")
+                state_inputs.append(LC.wire(box.output))
+        state_inputs[0] = LC.make(_p17(domain + constants[0][0]))
+        state = _mds(state_inputs, matrix)
+        states = [tuple(state)]
+
+        for round_index in range(1, 39):
+            current = round_boxes[round_index]
+            lanes = range(8) if kinds[round_index] == "full" else range(1)
+            for lane, box in zip(lanes, current, strict=True):
+                expected = state[lane] + LC.make(constants[round_index][lane])
+                if box.input != expected:
+                    raise ValueError(
+                        f"{family.key}: block {block_index} round {round_index} lane {lane} input drifted; "
+                        f"actual={box.input} expected={expected}"
+                    )
+            if kinds[round_index] == "full":
+                sboxes = [LC.wire(box.output) for box in current]
+            else:
+                sboxes = [LC.wire(current[0].output)] + [
+                    state[lane] + LC.make(constants[round_index][lane]) for lane in range(1, 8)
+                ]
+            state = _mds(sboxes, matrix)
+            states.append(tuple(state))
+
+        pins = tuple(box.output for box in round_boxes[-1])
+        if block_index == len(family.block_rows) - 1 and pins != family.final_pins:
+            raise ValueError(f"{family.key}: final lane pins drifted: {pins}")
+        previous_output = state[1]
+        blocks.append(
+            Block(
+                block_index,
+                row_cursor,
+                block_rows,
+                sum(len(block.rounds[round_]) for block in blocks for round_ in range(39)),
+                tuple(round_boxes),
+                tuple(value if isinstance(value, LC) else LC.make(value) for value in expected_inputs),
+                tuple(states),
+                state[1],
+            )
+        )
+        row_cursor += block_rows
+
+    if box_cursor != len(boxes) or row_cursor != family.rows or field_cursor != family.field_count:
+        raise ValueError(f"{family.key}: trace partition did not consume the exact relation")
+    if blocks[-1].output.terms != tuple((pin, matrix[1][lane]) for lane, pin in enumerate(family.final_pins)):
+        raise ValueError(f"{family.key}: final hash is not Poseidon MDS lane 1")
+    return Provider(family, domain, pad0, pad1, tuple(blocks))
+
+
+def providers() -> tuple[Provider, ...]:
+    """Return the four fully validated, deterministic provider descriptions."""
+    inventory = json.loads(INVENTORY.read_text())
+    actual = {
+        template["template_key"]
+        for template in inventory["templates"]
+        if template["template_key"].startswith("statement.hash@")
+    }
+    expected = {family.key for family in FAMILIES}
+    if actual != expected:
+        raise ValueError(f"statement-hash provider key drift: missing={sorted(expected - actual)} extra={sorted(actual - expected)}")
+    return tuple(recover_provider(family) for family in FAMILIES)
+
+
+def _render_trace_files(provider: Provider) -> dict[Path, str]:
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{provider.family.name}.Trace"
+    name = provider.family.name
+    constants, kinds, matrix = _poseidon_data()
+    definitions = []
+    for round_index, values in enumerate(constants):
+        vector = ", ".join(f"({value} : F)" for value in values)
+        definitions.append(f"def roundConstants{round_index} : List.Vector F 8 := vec![{vector}]")
+    outputs = {}
+    outputs[OUT / f"{name}TraceBase.lean"] = f"""import ShielddGnarkFormal.Poseidon7Bridge
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace {namespace}
+
+def Order : Nat := {ORDER}
+abbrev F := ZMod Order
+
+abbrev domainLit : F := ({provider.domain} : F)
+abbrev pad0Lit : F := ({provider.pad0} : F)
+abbrev pad1Lit : F := ({provider.pad1} : F)
+
+{chr(10).join(definitions)}
+
+end {namespace}
+"""
+    previous = None
+    for block in provider.blocks:
+        rendered_inputs = [f"({value.render()})" for value in block.inputs]
+        if block.index:
+            rendered_inputs[0] = f"(hash{block.index - 1} rho)"
+        args = " ".join(rendered_inputs)
+        initial = f"vec![domainLit, {', '.join(rendered_inputs)}]"
+        for round_index, state in enumerate(block.states):
+            if round_index:
+                dependency = f"{name}TraceBlock{block.index}Round{round_index - 1}"
+            elif block.index:
+                dependency = f"{name}TraceBlock{block.index - 1}Round38"
+            else:
+                dependency = f"{name}TraceBase"
+            previous_state = initial if round_index == 0 else f"state{block.index}_{round_index - 1} rho"
+            operation = "Shieldd.GnarkFormal.Poseidon7Bridge.fr8" if kinds[round_index] == "full" else "Shieldd.GnarkFormal.Poseidon7Bridge.pr8"
+            hash_def = ""
+            if round_index == 0:
+                hash_def = (
+                    f"@[irreducible] def hash{block.index} (rho : Nat → F) : F :=\n"
+                    f"  Shieldd.GnarkFormal.Poseidon7Bridge.permSpec7 domainLit {args}\n\n"
+                )
+            output_theorem = ""
+            if round_index == 38:
+                output_theorem = (
+                    f"\ntheorem state{block.index}_output_eq_hash (rho : Nat → F) :\n"
+                    f"    (state{block.index}_38 rho)[1] = hash{block.index} rho := by\n"
+                    f"  unfold hash{block.index}\n"
+                    f"  rfl\n"
+                    f"\ntheorem rawState{block.index}_output_eq_flatStateLane1 (rho : Nat → F) :\n"
+                    f"    (rawState{block.index}_38 rho)[1] = flatState{block.index}_38Lane1 rho := by\n"
+                    f"  rfl\n"
+                )
+            flat_state = "\n\n".join(
+                f"def flatState{block.index}_{round_index}Lane{lane} (rho : Nat → F) : F :=\n  {value.render()}"
+                for lane, value in enumerate(state)
+            )
+            raw_state = "vec![" + ", ".join(
+                f"flatState{block.index}_{round_index}Lane{lane} rho" for lane in range(8)
+            ) + "]"
+            outputs[OUT / f"{name}TraceBlock{block.index}Round{round_index}.lean"] = f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.{dependency}
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace {namespace}
+
+{hash_def}def state{block.index}_{round_index} (rho : Nat → F) : List.Vector F 8 :=
+  {operation} ({previous_state}) roundConstants{round_index}
+
+{flat_state}
+
+def rawState{block.index}_{round_index} (rho : Nat → F) : List.Vector F 8 :=
+  {raw_state}
+{output_theorem}
+end {namespace}
+"""
+        if previous is not None and block.inputs[0] != previous:
+            raise AssertionError("validated chain changed during rendering")
+        previous = block.output
+    outputs[OUT / f"{name}Trace.lean"] = (
+        f"import ShielddGnarkFormal.Deployed.Templates.Semantics."
+        f"{name}TraceBlock{len(provider.blocks) - 1}Round38\n"
+    )
+    return outputs
+
+
+def _round0_layout(block: Block, constants: list[list[int]]) -> tuple[Box | None, ...]:
+    result = []
+    boxes = iter(block.rounds[0])
+    current = next(boxes, None)
+    for lane, value in enumerate(block.inputs, 1):
+        if current is not None and current.input == value + LC.make(constants[0][lane]):
+            result.append(current)
+            current = next(boxes, None)
+        else:
+            result.append(None)
+    if current is not None:
+        raise AssertionError("round-0 layout did not consume every variable S-box")
+    return (None, *result)
+
+
+def _lean_header(namespace: str) -> str:
+    return f"""set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace {namespace}
+
+abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.Order
+abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+"""
+
+
+def _trace_lean_header(namespace: str, trace: str) -> str:
+    return f"""set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace {namespace}
+
+abbrev Order : Nat := {trace}.Order
+abbrev F := {trace}.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+"""
+
+
+def _render_part(provider: Provider, box: Box) -> str:
+    name = provider.family.name
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Part{box.part}"
+    relation = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}"
+    rows = " ".join(f"{relation}.relationRow{box.part * 5 + offset}" for offset in range(5))
+    q2, q4, q8, q16, q17 = box.powers
+    if box.input_name is None:
+        input_bridge = ""
+        h0_proof = "(by simpa only [one_mul] using h0)"
+        h4_proof = "(by simpa only [one_mul] using h4)"
+    else:
+        input_name = f"{relation}.{box.input_name}"
+        input_bridge = f"""  have hInput : ({box.input.render()}) = {input_name} rho := by
+    unfold {input_name} {input_name}Part0 {input_name}Part1
+    ring
+"""
+        h0_proof = f"""(by
+      calc
+        ({box.input.render()}) * ({box.input.render()}) = ({input_name} rho) * ({input_name} rho) := by rw [hInput]
+        _ = rho {q2} := by simpa only [one_mul] using h0)"""
+        h4_proof = f"""(by
+      calc
+        rho {q16} * ({box.input.render()}) = rho {q16} * ({input_name} rho) := by rw [hInput]
+        _ = rho {q17} := by simpa only [one_mul] using h4)"""
+    return f"""import ShielddGnarkFormal.Deployed.Templates.Relations.{name}
+import ShielddGnarkFormal.Deployed.StatementHashDeployedBridge
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import Mathlib.Tactic.LinearCombination
+
+{_lean_header(namespace)}theorem sound (rho : Nat → F)
+    (h : {relation}.relationPart{box.part} rho) :
+    rho {q17} = Shieldd.GnarkFormal.Poseidon7Bridge.p17 ({box.input.render()}) := by
+  unfold {relation}.relationPart{box.part} {rows} at h
+  rcases h with ⟨h0, h1, h2, h3, h4⟩
+{input_bridge}
+  exact Shieldd.GnarkFormal.Deployed.StatementHash.p17_from_rows
+    ({box.input.render()}) (rho {q2}) (rho {q4}) (rho {q8}) (rho {q16}) (rho {q17})
+    {h0_proof}
+    (by simpa only [one_mul] using h1)
+    (by simpa only [one_mul] using h2)
+    (by simpa only [one_mul] using h3)
+    {h4_proof}
+
+end {namespace}
+"""
+
+
+def _render_fixed(provider: Provider) -> str:
+    name = provider.family.name
+    trace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Trace"
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Fixed"
+    constants, _, _ = _poseidon_data()
+    lines = []
+    for block in provider.blocks:
+        layout = _round0_layout(block, constants)
+        values = [LC.make(provider.domain), *block.inputs]
+        for lane, box in enumerate(layout):
+            if box is not None:
+                continue
+            base = values[lane].const + constants[0][lane]
+            output = _p17(base)
+            lines.append(f"def b{block.index}l{lane} : F := ({output} : F)")
+            lines.append(
+                f"theorem b{block.index}l{lane}_sound : b{block.index}l{lane} = "
+                f"Shieldd.GnarkFormal.Poseidon7Bridge.p17 (({values[lane].render()}) + "
+                f"{trace}.roundConstants0[{lane}]) := by\n"
+                f"  norm_num [Order, F, {trace}.Order, b{block.index}l{lane}, Shieldd.GnarkFormal.Poseidon7Bridge.p17, "
+                f"{trace}.roundConstants0, {trace}.domainLit, {trace}.pad0Lit, {trace}.pad1Lit]\n"
+                f"  exact (ZMod.natCast_eq_natCast_iff' {output} {base ** 17} Order).mpr (by decide)"
+            )
+    return f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}TraceBase
+import ShielddGnarkFormal.Deployed.StatementHashDeployedBridge
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import Mathlib.Tactic.NormNum
+
+{_trace_lean_header(namespace, trace)}{chr(10).join(lines)}
+
+end {namespace}
+"""
+
+
+def _render_relation_blocks(provider: Provider) -> str:
+    name = provider.family.name
+    relation = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}"
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.RelationBlocks"
+    block_types = []
+    for block in provider.blocks:
+        parts = [box.part for round_ in block.rounds for box in round_]
+        block_types.append(
+            " ∧\n    ".join(f"{relation}.relationPart{part} rho" for part in parts)
+        )
+    definitions = "\n\n".join(
+        f"@[irreducible] def block{index} (rho : Nat → F) : Prop :=\n    {block_type}"
+        for index, block_type in enumerate(block_types)
+    )
+    eliminators = "\n\n".join(
+        f"theorem block{index}_to_parts (rho : Nat → F) (h : block{index} rho) :\n"
+        f"    {block_type} := by\n"
+        f"  unfold block{index} at h\n"
+        f"  exact h"
+        for index, block_type in enumerate(block_types)
+    )
+    if len(provider.blocks) == 1:
+        join_binders = "(hBlock0 : block0 rho)"
+        join_body = "  unfold {relation}.relation\n  unfold block0 at hBlock0\n  exact hBlock0".format(relation=relation)
+    else:
+        join_binders = " ".join(
+            f"(hBlock{index} : block{index} rho)" for index in range(len(block_types))
+        )
+        unfold_blocks = "\n".join(
+            f"  unfold block{index} at hBlock{index}"
+            for index in range(len(block_types))
+        )
+        all_parts = [
+            box.part
+            for block in provider.blocks
+            for round_ in block.rounds
+            for box in round_
+        ]
+        destruct = "\n".join(
+            f"  rcases hBlock{index} with ⟨{', '.join(f'p{part}' for part in [box.part for round_ in block.rounds for box in round_])}⟩"
+            for index, block in enumerate(provider.blocks)
+        )
+        join_body = (
+            f"  unfold {relation}.relation\n"
+            + unfold_blocks
+            + f"\n{destruct}\n  exact ⟨{', '.join(f'p{part}' for part in all_parts)}⟩"
+        )
+    return f"""import ShielddGnarkFormal.Extracted.Deployed.StatementHash470_5c3d95
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.Deployed.Templates.Relations.{name}
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace {namespace}
+
+abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.Order
+abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+{definitions}
+
+{eliminators}
+
+theorem join (rho : Nat → F) {join_binders} :
+    {relation}.relation rho := by
+{join_body}
+
+end {namespace}
+"""
+
+
+def _scalar_result(name: str, block: int, round_index: int, lane: int) -> str:
+    trace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Trace"
+    return f"({trace}.state{block}_{round_index} rho)[{lane}] = {trace}.flatState{block}_{round_index}Lane{lane} rho"
+
+
+def _previous_lane_expr(trace: str, block: Block, round_index: int, lane: int) -> str:
+    if round_index:
+        return f"({trace}.state{block.index}_{round_index - 1} rho)[{lane}]"
+    if block.index and lane == 1:
+        return f"{trace}.hash{block.index - 1} rho"
+    if lane == 0:
+        return f"{trace}.domainLit"
+    return f"({block.inputs[lane - 1].render()})"
+
+
+def _round_endpoint_data(provider: Provider, block: Block, round_index: int, lane: int):
+    name = provider.family.name
+    trace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Trace"
+    fixed = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Fixed"
+    constants, kinds, matrix = _poseidon_data()
+    current = block.rounds[round_index]
+    layout = _round0_layout(block, constants) if round_index == 0 else tuple(current if kinds[round_index] == "full" else [current[0]])
+    semantic_args = []
+    for box_lane in range(8):
+        previous = _previous_lane_expr(trace, block, round_index, box_lane)
+        if kinds[round_index] == "full" or box_lane == 0:
+            semantic_args.append(
+                f"(Shieldd.GnarkFormal.Poseidon7Bridge.p17 ({previous} + "
+                f"{trace}.roundConstants{round_index}[{box_lane}]))"
+            )
+        else:
+            semantic_args.append(f"({previous} + {trace}.roundConstants{round_index}[{box_lane}])")
+    witnesses = []
+    if round_index == 0:
+        for box_lane, box in enumerate(layout):
+            witnesses.append(
+                f"({fixed}.b{block.index}l{box_lane})"
+                if box is None
+                else f"(rho {box.output})"
+            )
+    elif kinds[round_index] == "full":
+        witnesses = [f"(rho {box.output})" for box in current]
+    else:
+        witnesses = [f"(rho {current[0].output})"] + [
+            f"(({block.states[round_index - 1][box_lane].render()}) + "
+            f"{trace}.roundConstants{round_index}[{box_lane}])"
+            for box_lane in range(1, 8)
+        ]
+    coefficients = "vec![" + ", ".join(f"({matrix[lane][index]} : F)" for index in range(8)) + "]"
+    return trace, fixed, kinds[round_index], current, layout, semantic_args, witnesses, coefficients
+
+
+def _render_scalar_endpoint(provider: Provider, block: Block, round_index: int, lane: int) -> str:
+    name = provider.family.name
+    trace, _, _, _, _, semantic_args, _, coefficients = _round_endpoint_data(provider, block, round_index, lane)
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.ScalarBlock{block.index}Round{round_index}Lane{lane}"
+    return f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}TraceBlock{block.index}Round{round_index}
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+
+{_trace_lean_header(namespace, trace)}def endpoint (rho : Nat → F) : F :=
+  Shieldd.GnarkFormal.Poseidon7Bridge.row8v {coefficients} vec![{', '.join(semantic_args)}]
+
+theorem state_eq_endpoint (rho : Nat → F) :
+    ({trace}.state{block.index}_{round_index} rho)[{lane}] = endpoint rho := by
+  rfl
+
+end {namespace}
+"""
+
+
+def _render_row_normalization(provider: Provider, block: Block, round_index: int, lane: int) -> str:
+    name = provider.family.name
+    trace, fixed, kind, current, layout, _, witnesses, coefficients = _round_endpoint_data(provider, block, round_index, lane)
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.RowBlock{block.index}Round{round_index}Lane{lane}"
+    unfolds = [
+        f"{trace}.rawState{block.index}_{round_index}",
+        f"{trace}.flatState{block.index}_{round_index}Lane{lane}",
+        "Shieldd.GnarkFormal.Poseidon7Bridge.row8v",
+        "Shieldd.GnarkFormal.Poseidon7Bridge.row8",
+    ]
+    if round_index == 0:
+        unfolds.extend(f"{fixed}.b{block.index}l{box_lane}" for box_lane, box in enumerate(layout) if box is None)
+    elif kind == "partial":
+        unfolds.append(f"{trace}.roundConstants{round_index}")
+    normalization = "  norm_num <;> ring"
+    unfolded = None
+    if round_index == 0 and any(box is None for box in layout):
+        constants, _, matrix = _poseidon_data()
+        inputs = [LC.make(provider.domain), *block.inputs]
+        unfolded = 0
+        for box_lane, box in enumerate(layout):
+            if box is not None:
+                continue
+            if inputs[box_lane].terms:
+                raise AssertionError("fixed round-0 lane retained variable terms")
+            fixed_output = _p17(inputs[box_lane].const + constants[0][box_lane])
+            unfolded += matrix[lane][box_lane] * fixed_output
+    elif kind == "partial":
+        constants, _, matrix = _poseidon_data()
+        previous_state = block.states[round_index - 1]
+        inputs = [LC.wire(current[0].output)] + [
+            previous_state[input_lane] + LC.make(constants[round_index][input_lane])
+            for input_lane in range(1, 8)
+        ]
+        folded_lc = block.states[round_index][lane]
+        wires = sorted({wire for value in inputs for wire, _ in value.terms})
+
+        def coefficient(value: LC, wire: int) -> int:
+            return dict(value.terms).get(wire, 0)
+
+        def field_sum(values: list[int]) -> str:
+            return " + ".join(
+                f"({matrix[lane][input_lane]} : F) * ({value} : F)"
+                for input_lane, value in enumerate(values)
+            )
+
+        def certificate(values: list[int], folded: int) -> str:
+            arguments = " ".join(
+                f"{matrix[lane][input_lane]} {value}" for input_lane, value in enumerate(values)
+            )
+            return (
+                "Shieldd.GnarkFormal.Poseidon7Bridge.natCastSum8MulEq "
+                f"{arguments} {folded} (by decide)"
+            )
+
+        certificates = []
+        combination = ["hCoefficientConstant"]
+        for input_lane in range(1, 8):
+            previous_constant = previous_state[input_lane].const
+            round_constant = constants[round_index][input_lane]
+            folded_input_constant = inputs[input_lane].const
+            zero_pairs = "0 0 " * 6
+            certificates.append(
+                f"  have hInputConstant{input_lane} : ({previous_constant} : F) + ({round_constant} : F) = "
+                f"({folded_input_constant} : F) := by\n"
+                f"    exact Shieldd.GnarkFormal.Poseidon7Bridge.natCastSum8MulEq "
+                f"1 {previous_constant} 1 {round_constant} {zero_pairs}{folded_input_constant} (by decide)"
+            )
+            combination.append(f"({matrix[lane][input_lane]} : F) * hInputConstant{input_lane}")
+        unfolded_constant = sum(matrix[lane][input_lane] * value.const for input_lane, value in enumerate(inputs))
+        if unfolded_constant % ORDER != folded_lc.const:
+            raise AssertionError("partial-round constant normalization drifted")
+        certificates.append(
+            f"  have hCoefficientConstant : {field_sum([value.const for value in inputs])} = "
+            f"({folded_lc.const} : F) := by\n"
+            f"    exact {certificate([value.const for value in inputs], folded_lc.const)}"
+        )
+        folded_terms = dict(folded_lc.terms)
+        for wire_index, wire in enumerate(wires):
+            values = [coefficient(value, wire) for value in inputs]
+            unfolded_coefficient = sum(matrix[lane][input_lane] * value for input_lane, value in enumerate(values))
+            folded_coefficient = folded_terms.get(wire, 0)
+            if unfolded_coefficient % ORDER != folded_coefficient:
+                raise AssertionError(f"partial-round wire {wire} normalization drifted")
+            certificates.append(
+                f"  have hCoefficient{wire_index} : {field_sum(values)} = ({folded_coefficient} : F) := by\n"
+                f"    exact {certificate(values, folded_coefficient)}"
+            )
+            combination.append(f"hCoefficient{wire_index} * rho {wire}")
+        input_expressions = [f"rho {current[0].output}"] + [
+            f"(({previous_state[input_lane].render()}) + ({constants[round_index][input_lane]} : F))"
+            for input_lane in range(1, 8)
+        ]
+        expanded_endpoint = " + ".join(
+            f"({matrix[lane][input_lane]} : F) * ({expression})"
+            for input_lane, expression in enumerate(input_expressions)
+        )
+        normalization = (
+            "\n".join(certificates)
+            + f"\n  change ({expanded_endpoint}) = ({folded_lc.render()})"
+            + "\n  linear_combination " + " + ".join(combination)
+        )
+    if unfolded is not None:
+        folded = block.states[round_index][lane].const
+        normalization = (
+            "  norm_num; linear_combination "
+            f"(ZMod.natCast_eq_natCast_iff' {unfolded} {folded} Order).mpr (by decide)"
+        )
+    return f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}TraceBlock{block.index}Round{round_index}
+import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}Fixed
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.LinearCombination
+
+{_trace_lean_header(namespace, trace)}def endpoint (rho : Nat → F) : F :=
+  Shieldd.GnarkFormal.Poseidon7Bridge.row8v {coefficients} vec![{', '.join(witnesses)}]
+
+theorem endpoint_eq_rawState (rho : Nat → F) :
+    endpoint rho = ({trace}.rawState{block.index}_{round_index} rho)[{lane}] := by
+  unfold endpoint {' '.join(unfolds)}
+{normalization}
+
+end {namespace}
+"""
+
+
+def _render_round_lane(provider: Provider, block: Block, round_index: int, lane: int) -> str:
+    name = provider.family.name
+    trace, fixed, kind, current, layout, semantic_args, witnesses, coefficients = _round_endpoint_data(
+        provider, block, round_index, lane
+    )
+    scalar = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.ScalarBlock{block.index}Round{round_index}Lane{lane}"
+    row = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.RowBlock{block.index}Round{round_index}Lane{lane}"
+    parts = [box.part for box in current]
+    binders = " ".join(f"(p{part} : Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}.relationPart{part} rho)" for part in parts)
+    imports = [f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}Part{part}" for part in parts]
+    imports += [f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}ScalarBlock{block.index}Round{round_index}Lane{lane}", f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}RowBlock{block.index}Round{round_index}Lane{lane}", f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}Fixed", "import ShielddGnarkFormal.Deployed.PrimeOrderCertificate", "import Mathlib.Tactic.LinearCombination"]
+    previous = ""
+    if round_index:
+        previous = "\n    " + " ".join(f"(hPrev{i} : {_scalar_result(name, block.index, round_index - 1, i)})" for i in range(8))
+    elif block.index:
+        previous = f"\n    (hChain : {trace}.hash{block.index - 1} rho = {trace}.flatState{block.index - 1}_38Lane1 rho)"
+    facts = list(
+        f"  have hp{box.part} := Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Part{box.part}.sound rho p{box.part}"
+        for box in current
+    )
+    if round_index:
+        constants, _, _ = _poseidon_data()
+        zero_pairs = "0 0 " * 6
+        for box_lane, box in enumerate(current):
+            actual_lane = box_lane if kind == "full" else 0
+            previous_lc = block.states[round_index - 1][actual_lane]
+            if (previous_lc.const + constants[round_index][actual_lane]) % ORDER != box.input.const:
+                raise AssertionError("S-box input constant normalization drifted")
+            facts.extend((
+                f"  have hBoxConstant{actual_lane} : ({previous_lc.const} : F) + "
+                f"({constants[round_index][actual_lane]} : F) = ({box.input.const} : F) := by\n"
+                f"    exact Shieldd.GnarkFormal.Poseidon7Bridge.natCastSum8MulEq "
+                f"1 {previous_lc.const} 1 {constants[round_index][actual_lane]} "
+                f"{zero_pairs}{box.input.const} (by decide)",
+                f"  have hBoxInput{actual_lane} : {trace}.flatState{block.index}_{round_index - 1}Lane{actual_lane} rho + "
+                f"{trace}.roundConstants{round_index}[{actual_lane}] = ({box.input.render()}) := by\n"
+                f"    unfold {trace}.flatState{block.index}_{round_index - 1}Lane{actual_lane} "
+                f"{trace}.roundConstants{round_index}\n"
+                f"    change (({previous_lc.render()}) + ({constants[round_index][actual_lane]} : F)) = "
+                f"({box.input.render()})\n"
+                f"    linear_combination hBoxConstant{actual_lane}",
+            ))
+    elif block.index:
+        constants, _, _ = _poseidon_data()
+        chain_box = layout[1]
+        if chain_box is None:
+            raise AssertionError("chained round-0 lane is not constrained by an S-box")
+        previous_lc = block.inputs[0]
+        if (previous_lc.const + constants[0][1]) % ORDER != chain_box.input.const:
+            raise AssertionError("chained round-0 input constant normalization drifted")
+        zero_pairs = "0 0 " * 6
+        facts.extend((
+            f"  have hChainConstant : ({previous_lc.const} : F) + ({constants[0][1]} : F) = "
+            f"({chain_box.input.const} : F) := by\n"
+            f"    exact Shieldd.GnarkFormal.Poseidon7Bridge.natCastSum8MulEq "
+            f"1 {previous_lc.const} 1 {constants[0][1]} {zero_pairs}{chain_box.input.const} (by decide)",
+            f"  have hChainInput : {trace}.flatState{block.index - 1}_38Lane1 rho + "
+            f"{trace}.roundConstants0[1] = ({chain_box.input.render()}) := by\n"
+            f"    unfold {trace}.flatState{block.index - 1}_38Lane1 {trace}.roundConstants0\n"
+            f"    change (({previous_lc.render()}) + ({constants[0][1]} : F)) = ({chain_box.input.render()})\n"
+            f"    linear_combination hChainConstant",
+        ))
+    proofs = []
+    if round_index == 0:
+        for box_lane, box in enumerate(layout):
+            if box is None:
+                proofs.append(f"{fixed}.b{block.index}l{box_lane}_sound.symm")
+            else:
+                if block.index and box_lane == 1:
+                    proofs.append(
+                        "(Eq.trans "
+                        f"(congrArg Shieldd.GnarkFormal.Poseidon7Bridge.p17 "
+                        f"(Eq.trans (congrArg (fun value => value + {trace}.roundConstants0[1]) hChain) hChainInput)) "
+                        f"hp{box.part}.symm)"
+                    )
+                else:
+                    proofs.append(f"hp{box.part}.symm")
+    else:
+        for box_lane, box in enumerate(current):
+            actual_lane = box_lane if kind == "full" else 0
+            previous_input = (
+                f"(Eq.trans (congrArg (fun value => value + {trace}.roundConstants{round_index}[{actual_lane}]) "
+                f"hPrev{actual_lane}) hBoxInput{actual_lane})"
+            )
+            proofs.append(
+                "(Eq.trans "
+                f"(congrArg Shieldd.GnarkFormal.Poseidon7Bridge.p17 {previous_input}) hp{box.part}.symm)"
+            )
+    if round_index and kind == "partial":
+        proofs.extend(
+            f"(congrArg (fun value => value + {trace}.roundConstants{round_index}[{box_lane}]) hPrev{box_lane})"
+            for box_lane in range(1, 8)
+        )
+    for input_index, proof in enumerate(proofs):
+        facts.append(f"  have hInput{input_index} := {proof}")
+    input_rewrites = ", ".join(f"hInput{i}" for i in range(8))
+    if round_index:
+        congruence = "      apply Shieldd.GnarkFormal.Poseidon7Bridge.row8v_congr8"
+        vector_proof = (
+            "\n".join(f"      exact hInput{i}" for i in range(8))
+        )
+    else:
+        congruence = "      apply Shieldd.GnarkFormal.Poseidon7Bridge.row8v_congr"
+        input_facts = " ".join(f"hInput{i}" for i in range(8))
+        vector_proof = (
+            f"      simp [{trace}.roundConstants{round_index}] at {input_facts} ⊢\n"
+            f"      ring_nf at {input_facts} ⊢\n"
+            f"      rw [{input_rewrites}]"
+        )
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Block{block.index}Round{round_index}Lane{lane}"
+    return f"""{chr(10).join(imports)}
+
+{_trace_lean_header(namespace, trace)}theorem sound (rho : Nat → F) {binders}{previous} :
+    {_scalar_result(name, block.index, round_index, lane)} := by
+{chr(10).join(facts)}
+  calc
+    ({trace}.state{block.index}_{round_index} rho)[{lane}] = {scalar}.endpoint rho :=
+      {scalar}.state_eq_endpoint rho
+    _ = {row}.endpoint rho := by
+      unfold {scalar}.endpoint {row}.endpoint
+{congruence}
+{vector_proof}
+    _ = ({trace}.rawState{block.index}_{round_index} rho)[{lane}] :=
+      {row}.endpoint_eq_rawState rho
+
+end {namespace}
+"""
+
+
+ROUND_RANGES = ((0, 3), (4, 14), (15, 24), (25, 34), (35, 38))
+PROJECTIONS = (".1", ".2.1", ".2.2.1", ".2.2.2.1", ".2.2.2.2.1", ".2.2.2.2.2.1", ".2.2.2.2.2.2.1", ".2.2.2.2.2.2.2")
+
+
+def _round_parts(block: Block, start: int, stop: int) -> list[int]:
+    return [box.part for round_index in range(start, stop + 1) for box in block.rounds[round_index]]
+
+
+def _result8(name: str, block: int, round_index: int) -> str:
+    return " ∧\n    ".join(_scalar_result(name, block, round_index, lane) for lane in range(8))
+
+
+def _render_range(provider: Provider, block: Block, range_index: int) -> str:
+    name = provider.family.name
+    start, stop = ROUND_RANGES[range_index]
+    imports = "\n".join(
+        f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}Block{block.index}Round{round_index}Lane{lane}"
+        for round_index in range(start, stop + 1) for lane in range(8)
+    )
+    parts = _round_parts(block, start, stop)
+    binders = " ".join(f"(p{part} : Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}.relationPart{part} rho)" for part in parts)
+    previous = ""
+    if start:
+        previous = "\n    " + " ".join(f"(hPrev{lane} : {_scalar_result(name, block.index, start - 1, lane)})" for lane in range(8))
+    elif block.index:
+        trace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Trace"
+        previous = f"\n    (hChain : {trace}.hash{block.index - 1} rho = ({trace}.rawState{block.index - 1}_38 rho)[1])"
+    lines = []
+    for round_index in range(start, stop + 1):
+        args = " ".join(f"p{box.part}" for box in block.rounds[round_index])
+        tail = ""
+        if round_index:
+            if round_index == start:
+                tail = " " + " ".join(f"hPrev{lane}" for lane in range(8))
+            else:
+                tail = " " + " ".join(f"h{round_index - 1}_{lane}" for lane in range(8))
+        elif block.index:
+            tail = " hChain"
+        for lane in range(8):
+            module = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Block{block.index}Round{round_index}Lane{lane}"
+            lines.append(f"  have h{round_index}_{lane} := {module}.sound rho {args}{tail}")
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Block{block.index}Range{range_index}"
+    return f"""{imports}
+
+{_lean_header(namespace)}theorem sound (rho : Nat → F) {binders}{previous} :
+    {_result8(name, block.index, stop)} := by
+{chr(10).join(lines)}
+  exact ⟨{', '.join(f'h{stop}_{lane}' for lane in range(8))}⟩
+
+end {namespace}
+"""
+
+
+def _render_block(provider: Provider, block: Block) -> str:
+    name = provider.family.name
+    imports = "\n".join(f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}Block{block.index}Range{index}" for index in range(len(ROUND_RANGES)))
+    parts = [box.part for round_ in block.rounds for box in round_]
+    binders = " ".join(f"(p{part} : Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}.relationPart{part} rho)" for part in parts)
+    relation = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}"
+    relation_blocks = f"ShielddGnarkFormal.Deployed.Templates.Semantics.{name}RelationBlocks"
+    relation_blocks_ns = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.RelationBlocks"
+    trace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Trace"
+    chain = f"\n    (hChain : {trace}.hash{block.index - 1} rho = ({trace}.rawState{block.index - 1}_38 rho)[1])" if block.index else ""
+    lines = []
+    for range_index, (start, stop) in enumerate(ROUND_RANGES):
+        args = " ".join(f"p{part}" for part in _round_parts(block, start, stop))
+        if range_index == 0:
+            previous = " hChain" if block.index else ""
+        else:
+            previous = " " + " ".join(f"h{range_index - 1}{projection}" for projection in PROJECTIONS)
+        lines.append(f"  have h{range_index} := Block{block.index}Range{range_index}.sound rho {args}{previous}")
+    namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Block{block.index}"
+    relation_type = f"{relation_blocks_ns}.block{block.index} rho"
+    imports += f"\nimport {relation_blocks}"
+    return f"""{imports}
+
+{_lean_header(namespace)}theorem sound_lane1_from_relation (rho : Nat → F) (h :
+    {relation_type}){chain} :
+    {_scalar_result(name, block.index, 38, 1)} := by
+  have hParts := {relation_blocks_ns}.block{block.index}_to_parts rho h
+  rcases hParts with ⟨{', '.join(f'p{part}' for part in parts)}⟩
+{chr(10).join(lines)}
+  exact h{len(ROUND_RANGES) - 1}.2.1
+
+end {namespace}
+"""
+
+
+def _render_provider(provider: Provider) -> str:
+    name = provider.family.name
+    relation = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}"
+    trace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.Trace"
+    final_index = len(provider.blocks) - 1
+    imports = "\n".join(f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}Block{block.index}" for block in provider.blocks)
+    relation_blocks = f"ShielddGnarkFormal.Deployed.Templates.Semantics.{name}RelationBlocks"
+    relation_blocks_ns = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}.RelationBlocks"
+    relation_type = " ∧\n  ".join(f"{relation_blocks_ns}.block{block.index} rho" for block in provider.blocks)
+    if len(provider.blocks) == 1:
+        scalar_result = _scalar_result(name, final_index, 38, 1)
+        proof = [
+            f"  have hLane{final_index} : {scalar_result} := by",
+            f"    exact Block{final_index}.sound_lane1_from_relation rho h",
+            f"  exact ({trace}.rawState{final_index}_output_eq_flatStateLane1 rho).trans "
+            f"(hLane{final_index}.symm.trans ({trace}.state{final_index}_output_eq_hash rho))",
+        ]
+    else:
+        proof = [f"  rcases h with ⟨{', '.join(f'hBlock{block.index}' for block in provider.blocks)}⟩"]
+        for block in provider.blocks:
+            if block.index:
+                proof.extend([
+                    f"  have hChain{block.index} : {trace}.hash{block.index - 1} rho = ({trace}.rawState{block.index - 1}_38 rho)[1] := by",
+                    f"    exact ({trace}.state{block.index - 1}_output_eq_hash rho).symm.trans",
+                    f"      (hLane{block.index - 1}.trans ({trace}.rawState{block.index - 1}_output_eq_flatStateLane1 rho).symm)",
+                ])
+            source = f"hBlock{block.index}"
+            chain = f" hChain{block.index}" if block.index else ""
+            proof.append(f"  have hLane{block.index} := Block{block.index}.sound_lane1_from_relation rho {source}{chain}")
+        proof.extend([
+            f"  exact ({trace}.rawState{final_index}_output_eq_flatStateLane1 rho).trans",
+            f"    (hLane{final_index}.symm.trans ({trace}.state{final_index}_output_eq_hash rho))",
+        ])
+    final = final_index
+    return f"""{imports}
+
+{_lean_header(f'Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}')}
+abbrev relation (rho : Nat → F) : Prop :=
+  {relation_type}
+
+def spec (rho : Nat → F) : Prop :=
+  ({trace}.rawState{final}_38 rho)[1] = {trace}.hash{final} rho
+
+theorem sound (rho : Nat → F) (h : relation rho) : spec rho := by
+  unfold spec
+  unfold relation at h
+{chr(10).join(proof)}
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}
+"""
+
+
+def _provider_files(provider: Provider) -> dict[Path, str]:
+    name = provider.family.name
+    outputs = _render_trace_files(provider)
+    outputs[OUT / f"{name}RelationBlocks.lean"] = _render_relation_blocks(provider)
+    outputs[OUT / f"{name}Fixed.lean"] = _render_fixed(provider)
+    for block in provider.blocks:
+        for round_ in block.rounds:
+            for box in round_:
+                outputs[OUT / f"{name}Part{box.part}.lean"] = _render_part(provider, box)
+        for round_index in range(39):
+            for lane in range(8):
+                outputs[OUT / f"{name}ScalarBlock{block.index}Round{round_index}Lane{lane}.lean"] = _render_scalar_endpoint(provider, block, round_index, lane)
+                outputs[OUT / f"{name}RowBlock{block.index}Round{round_index}Lane{lane}.lean"] = _render_row_normalization(provider, block, round_index, lane)
+                outputs[OUT / f"{name}Block{block.index}Round{round_index}Lane{lane}.lean"] = _render_round_lane(provider, block, round_index, lane)
+        for range_index in range(len(ROUND_RANGES)):
+            outputs[OUT / f"{name}Block{block.index}Range{range_index}.lean"] = _render_range(provider, block, range_index)
+        outputs[OUT / f"{name}Block{block.index}.lean"] = _render_block(provider, block)
+    outputs[OUT / f"{name}.lean"] = _render_provider(provider)
+    return outputs
+
+
+def generated_files() -> dict[Path, str]:
+    """All managed Lean trace, scalar proof-shard, aggregator, and provider files."""
+    outputs: dict[Path, str] = {}
+    for provider in providers():
+        overlap = set(outputs) & set(_provider_files(provider))
+        if overlap:
+            raise ValueError(f"duplicate statement-hash output paths: {sorted(overlap)}")
+        outputs.update(_provider_files(provider))
+    _validate_outputs(outputs)
+    return outputs
+
+
+def _validate_outputs(outputs: dict[Path, str]) -> None:
+    expected_counts = {
+        FAMILIES[0].name: 1080,
+        FAMILIES[1].name: 2155,
+        FAMILIES[2].name: 3225,
+        FAMILIES[3].name: 4301,
+    }
+    for name, expected_count in expected_counts.items():
+        actual_count = sum(path.name.startswith(name) for path in outputs)
+        if actual_count != expected_count:
+            raise ValueError(f"{name}: expected {expected_count} managed files, found {actual_count}")
+    expected_mains = {OUT / f"{family.name}.lean" for family in FAMILIES}
+    actual_mains = {path for path in outputs if re.fullmatch(r"TStatementHash_[0-9a-f]{64}\.lean", path.name)}
+    if actual_mains != expected_mains:
+        raise ValueError(
+            f"semantic provider mains drifted: missing={sorted(expected_mains - actual_mains)} "
+            f"extra={sorted(actual_mains - expected_mains)}"
+        )
+    banned = (
+        "native_decide",
+        "axiom ",
+        "def spec (rho : Nat → F) : Prop := relation rho",
+        "\n  fr8 (",
+        "\n  pr8 (",
+    )
+    for path, source in outputs.items():
+        for marker in banned:
+            if marker in source:
+                raise ValueError(f"{path}: forbidden semantic proof marker {marker!r}")
+    for path in expected_mains:
+        source = outputs[path]
+        if "Poseidon7" not in outputs[OUT / f"{path.stem}TraceBase.lean"] or "theorem sound" not in source:
+            raise ValueError(f"{path}: incomplete statement-hash semantic provider")
+
+
+def benchmark_candidates() -> tuple[str, ...]:
+    """Required first/middle/final leaves plus one final aggregator per family."""
+    result = []
+    for provider in providers():
+        name = provider.family.name
+        result.extend(
+            (
+                str(OUT / f"{name}Block0Round0Lane0.lean"),
+                str(OUT / f"{name}Block{len(provider.blocks) // 2}Round19Lane4.lean"),
+                str(OUT / f"{name}Block{len(provider.blocks) - 1}Round38Lane7.lean"),
+                str(OUT / f"{name}Block{len(provider.blocks) - 1}.lean"),
+                str(OUT / f"{name}.lean"),
+            )
+        )
+    return tuple(result)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    outputs = generated_files()
+    stale = [path for path, text in outputs.items() if not path.exists() or path.read_text() != text]
+    managed = set()
+    for family in FAMILIES:
+        managed.update(OUT.glob(f"{family.name}*.lean"))
+    unexpected = sorted(managed - set(outputs))
+    if args.check:
+        errors = []
+        if stale:
+            errors.append("stale NoteReshape statement-hash semantics:\n" + "\n".join(map(str, stale)))
+        if unexpected:
+            errors.append("unexpected NoteReshape statement-hash semantics:\n" + "\n".join(map(str, unexpected)))
+        if errors:
+            raise SystemExit("\n".join(errors))
+        return
+    OUT.mkdir(parents=True, exist_ok=True)
+    for path in unexpected:
+        path.unlink()
+        print(f"removed {path}")
+    for path, text in outputs.items():
+        path.write_text(text)
+        print(f"wrote {path}")
+
+
+if __name__ == "__main__":
+    main()
