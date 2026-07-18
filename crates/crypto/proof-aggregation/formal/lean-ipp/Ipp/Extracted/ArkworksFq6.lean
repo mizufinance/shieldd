@@ -43,6 +43,20 @@ theorem decode_fq6_add (a b output : Fq6LimbTriple)
   have e2 := decode_fq2_add a.c2 b.c2 c2 ha.2.2 hb.2.2 h2
   simp [decodeFq6, Ipp.Bls12377.fq6Add, e0, e1, e2]
 
+theorem canonical6_add (a b output : Fq6LimbTriple)
+    (ha : Canonical6 a) (hb : Canonical6 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_add a b = .ok output) :
+    Canonical6 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_add at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c2, h2, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  exact ⟨canonical_fq2_add a.c0 b.c0 c0 ha.1 hb.1 h0,
+    canonical_fq2_add a.c1 b.c1 c1 ha.2.1 hb.2.1 h1,
+    canonical_fq2_add a.c2 b.c2 c2 ha.2.2 hb.2.2 h2⟩
+
 theorem decode_fq6_sub (a b output : Fq6LimbTriple)
     (ha : Canonical6 a) (hb : Canonical6 b)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_sub a b = .ok output) :
@@ -60,6 +74,20 @@ theorem decode_fq6_sub (a b output : Fq6LimbTriple)
   have e1 := decode_fq2_sub a.c1 b.c1 c1 ha.2.1 hb.2.1 h1
   have e2 := decode_fq2_sub a.c2 b.c2 c2 ha.2.2 hb.2.2 h2
   simp [decodeFq6, e0, e1, e2]
+
+theorem canonical6_sub (a b output : Fq6LimbTriple)
+    (ha : Canonical6 a) (hb : Canonical6 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_sub a b = .ok output) :
+    Canonical6 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_sub at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c2, h2, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  exact ⟨canonical_fq2_sub a.c0 b.c0 c0 ha.1 hb.1 h0,
+    canonical_fq2_sub a.c1 b.c1 c1 ha.2.1 hb.2.1 h1,
+    canonical_fq2_sub a.c2 b.c2 c2 ha.2.2 hb.2.2 h2⟩
 
 theorem decode_fq6_neg (a output : Fq6LimbTriple)
     (ha : Canonical6 a)
@@ -149,6 +177,20 @@ theorem decode_fq6_double (a output : Fq6LimbTriple)
   have e2 := decode_fq2_double a.c2 c2 ha.2.2 h2
   simp [decodeFq6, Ipp.Bls12377.fq6Add, e0, e1, e2]
 
+theorem canonical6_double (a output : Fq6LimbTriple)
+    (ha : Canonical6 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_double a = .ok output) :
+    Canonical6 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_double at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c2, h2, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  exact ⟨(fq2_double_spec a.c0 c0 ha.1 h0).1,
+    (fq2_double_spec a.c1 c1 ha.2.1 h1).1,
+    (fq2_double_spec a.c2 c2 ha.2.2 h2).1⟩
+
 theorem decode_fq6_mul_base_field_by_nonresidue
     (a output : Fq2LimbPair) (ha : Canonical2 a)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_mul_base_field_by_nonresidue a =
@@ -161,6 +203,12 @@ theorem decode_fq6_mul_base_field_by_nonresidue
   have e0 := extracted_mul_by_nonresidue_spec a.c1 c0 ha.2 h0
   apply QuadraticAlgebra.ext <;>
     simp [decodeFq2, Ipp.Bls12377.fq2U, e0.2]
+
+theorem canonical6_mul_base_field_by_nonresidue
+    (a output : Fq2LimbPair) (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_mul_base_field_by_nonresidue a =
+      .ok output) :
+    Canonical2 output := (fq6_nonresidue_spec a output ha hexec).1
 
 private theorem fq6_mul_spec (a b output : Fq6LimbTriple)
     (ha : Canonical6 a) (hb : Canonical6 b)
@@ -965,10 +1013,14 @@ theorem canonical_field_fq6_inv (a output : Fq6LimbTriple)
     Ipp.Bls12377.fq6Coefficients_one]
 
 #print axioms decode_fq6_add
+#print axioms canonical6_add
 #print axioms decode_fq6_sub
+#print axioms canonical6_sub
 #print axioms decode_fq6_neg
 #print axioms decode_fq6_double
+#print axioms canonical6_double
 #print axioms decode_fq6_mul_base_field_by_nonresidue
+#print axioms canonical6_mul_base_field_by_nonresidue
 #print axioms canonical6_mul
 #print axioms decode_fq6_mul
 #print axioms canonical6_square

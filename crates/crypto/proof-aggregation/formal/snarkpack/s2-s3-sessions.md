@@ -855,15 +855,23 @@ MacCampaign dialect — new Std.U8/loop-attribute forms normalized);
 `Ipp/Extracted/ArkworksFq12.lean` with `decodeFq12`/`Canonical12` +
 `decode_fq12_conjugate` (c0 preserved, three c1 Fq2 lanes negated). Full
 Ipp green (3426 jobs), zero sorry, audited axioms.
-REMAINING PARTS: (2) mul/square/mul_by_034 decode laws vs `fq12Mul`;
-(3) inverse both directions + cyclotomic inverse + Frobenius 1/2 (constants
-certified vs canonical `fq6V`-powers, S3-19 pattern); (4) cyclotomic square
-(Granger–Scott vs `fq12Mul x x` on the cyclotomic subgroup — check the
-identity's hypothesis carefully: GS-square equals plain square only for
-norm-1 elements; state conformance against the executed plain square with
-the cyclotomic hypothesis, or against the model formula unconditionally as
-arkworks computes it) + `cyclotomic_exp` NAF loop induction vs `fq12Pow`;
-(5) canonical bytes vs `CanonicalGtDecode`; then ledger retirement.
+PART 2 DONE (2026-07-18, orchestrator; executed by sol):
+`decode_fq12_mul` (quadratic Karatsuba refines `fq12Mul`),
+`decode_fq12_square` (vs `fq12Square` = `fq12Mul a a` definitionally),
+`decode_fq12_mul_by_034` (sparse chain refines `fq12Mul` by `sparse034`),
+each with `canonical12_*` projections; private `fq12_nonresidue_spec`
+(extracted Fq6 rotation = `fq6MulByV`). Fq6 canonicity companions added:
+`canonical6_add/sub/double/mul_base_field_by_nonresidue`. Full Ipp green
+(3426 jobs), zero sorry, audited axioms.
+REMAINING PARTS: (3) inverse both directions + cyclotomic inverse +
+Frobenius 1/2 (constants certified vs canonical `fq6V`-powers, S3-19
+pattern); (4) cyclotomic square (Granger–Scott vs `fq12Mul x x` on the
+cyclotomic subgroup — check the identity's hypothesis carefully: GS-square
+equals plain square only for norm-1 elements; state conformance against
+the executed plain square with the cyclotomic hypothesis, or against the
+model formula unconditionally as arkworks computes it) + `cyclotomic_exp`
+NAF loop induction vs `fq12Pow`; (5) canonical bytes vs
+`CanonicalGtDecode`; then ledger retirement.
 
 **S3-22 — GT factorization and order-r characterization** — `HARD (sol)` —
 `GATED` on S3-20 and S3-02/03. Prove `r ∣ q^12-1`, record the exact cofactor
