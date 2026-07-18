@@ -821,8 +821,8 @@ prerequisite, no axiom), and `fq12Coefficients` one/mul/POW
 zero sorry, audited axioms. S3-21 (executed Fq12) and the S3-22 GT
 cardinality hook are now unblocked.
 
-**S3-21 — executed Fq12 conformance** — `HARD (sol)` — `IN PROGRESS`
-(gate S3-20 satisfied). Prove reached Fq12 add/mul/square/sparse/conjugate/
+**S3-21 — executed Fq12 conformance** — `HARD (sol)` — `DONE 2026-07-18`.
+Prove reached Fq12 add/mul/square/sparse/conjugate/
 inverse/Frobenius/cyclotomic operations and canonical bytes against the field
 model. Acceptance: all primitives used by Miller, final exponentiation,
 GAP-04/07, and GT validation are covered. Retires the Fq12 portion of the
@@ -911,9 +911,27 @@ Fq-level companions added in `ArkworksFqSqrtBytes.lean`
 (`to_bytes_value_spec`, `from_bytes_some_canonical`,
 `from_bytes_none_rejects_model`, one 8-byte word lemma composed over six
 limbs). Full Ipp green (3426 jobs), zero sorry, audited axioms.
-REMAINING: (6) tier-B unitarity closer (fq12ConjAut + transport + the two
-semantic laws, with the part-4 elaboration fix hint — also wanted by
-S3-22/GAP-07); then S3-21 DONE + ledger retirement.
+PART 6 DONE-WITH-CORRECTION (2026-07-18, orchestrator; executed by sol):
+`fq12ConjAut` (AdjoinRoot lift `w ↦ −w`; the part-4 fix hint worked —
+`fq12_neg_root_square` at the abbreviation, then `liftAlgHom` +
+`algHom_ext` involutivity + `AlgEquiv.ofAlgHom`) and
+`fq12Coefficients_conjugate` transport LANDED.
+FINDING — the deferred tier-B premise was FALSE: unitarity
+(`fq12Mul x (fq12Conjugate x) = fq12One`, the order-q^6+1 subgroup) does
+NOT imply `fq12CyclotomicSquare x = fq12Mul x x` nor the exp law. The
+cyclotomic subgroup is the STRICTLY SMALLER order q^4−q^2+1 group
+(arkworks `CyclotomicMultSubgroup` contract). Refuted by an exact-field
+diagnostic (`x = y/y^(q^6)`: unitary, but GS(x) ≠ x² and cyclotomic_exp ≠
+pow; removed after use) and by an exact coordinate obstruction (unitarity
+h0/h1/h2 do not entail the first GS lane identity — full equations in the
+part-6 session report). CONSEQUENCE: the semantic GS/exp-as-pow laws
+require an `x^(q^4−q^2+1) = 1` hypothesis and belong to the FINAL-EXP
+sessions (S3-38/39) where the easy-part output provably lands in that
+subgroup ((q^6−1)(q^2+1)·(q^4−q^2+1) = q^12−1), with S3-22's order-r GT
+(r | q^4−q^2+1) as the other consumer. S3-21 itself is complete: every
+executed Fq12 primitive refines its exact model formula unconditionally.
+S3-21 COMPLETE (parts 1–6). Fq12 slice of the arkworks field row retired
+in the ledger. Full Ipp green (3426 jobs), zero sorry, audited axioms.
 
 **S3-22 — GT factorization and order-r characterization** — `HARD (sol)` —
 `GATED` on S3-20 and S3-02/03. Prove `r ∣ q^12-1`, record the exact cofactor

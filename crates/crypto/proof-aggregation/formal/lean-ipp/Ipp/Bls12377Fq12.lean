@@ -120,6 +120,32 @@ private theorem fq12_root_square :
       algebraMap Fq6Canonical Fq12Canonical fq6V := by
   simpa [fq12Polynomial] using (root_X_pow_sub_C_pow 2 fq6V)
 
+private theorem fq12_neg_root_square :
+    (-AdjoinRoot.root fq12Polynomial) ^ 2 =
+      algebraMap Fq6Canonical Fq12Canonical fq6V := by
+  rw [neg_sq, fq12_root_square]
+
+private theorem fq12_neg_root_is_root :
+    fq12Polynomial.eval₂ (algebraMap Fq6Canonical Fq12Canonical)
+      (-AdjoinRoot.root fq12Polynomial) = 0 := by
+  simpa [fq12Polynomial] using sub_eq_zero.mpr fq12_neg_root_square
+
+private noncomputable def fq12ConjHom :
+    Fq12Canonical →ₐ[Fq6Canonical] Fq12Canonical :=
+  AdjoinRoot.liftAlgHom fq12Polynomial (Algebra.ofId _ _)
+    (-AdjoinRoot.root fq12Polynomial) fq12_neg_root_is_root
+
+private theorem fq12ConjHom_involutive :
+    fq12ConjHom.comp fq12ConjHom = AlgHom.id Fq6Canonical Fq12Canonical := by
+  apply AdjoinRoot.algHom_ext
+  simp [fq12ConjHom]
+
+/-- The Fq12 automorphism fixing Fq6 and sending the quadratic generator to its negation. -/
+noncomputable def fq12ConjAut :
+    Fq12Canonical ≃ₐ[Fq6Canonical] Fq12Canonical :=
+  AlgEquiv.ofAlgHom fq12ConjHom fq12ConjHom
+    fq12ConjHom_involutive fq12ConjHom_involutive
+
 private noncomputable def fq12Basis :
     Module.Basis (Fin 2) Fq6Canonical Fq12Canonical :=
   (AdjoinRoot.powerBasis fq12Polynomial_ne_zero).basis.reindex
@@ -139,6 +165,17 @@ theorem fq12_card : Fintype.card Fq12Canonical = baseModulus ^ 12 := by
 
 @[simp] theorem fq12Coefficients_zero : fq12Coefficients fq12Zero = 0 := by
   simp [fq12Coefficients, fq12Zero]
+
+private theorem fq6Coefficients_componentwise_neg (a : Fq6Model) :
+    fq6Coefficients ⟨-a.c0, -a.c1, -a.c2⟩ = -fq6Coefficients a := by
+  simp [fq6Coefficients]
+  ring
+
+/-- Executed conjugation is the canonical quadratic-extension automorphism. -/
+theorem fq12Coefficients_conjugate (a : Fq12Model) :
+    fq12Coefficients (fq12Conjugate a) = fq12ConjAut (fq12Coefficients a) := by
+  simp [fq12Coefficients, fq12Conjugate, fq12ConjAut, fq12ConjHom,
+    fq6Coefficients_componentwise_neg]
 
 theorem fq12QuadraticNorm_coefficients (a : Fq12Model) :
     fq6Coefficients (fq12QuadraticNorm a) =
@@ -254,5 +291,7 @@ theorem fq12Coefficients_pow (a : Fq12Model) (n : Nat) :
 #print axioms fq12Coefficients_zero
 #print axioms fq12QuadraticNorm_coefficients
 #print axioms fq12QuadraticNorm_eq_zero_iff
+#print axioms fq12ConjAut
+#print axioms fq12Coefficients_conjugate
 
 end Ipp.Bls12377
