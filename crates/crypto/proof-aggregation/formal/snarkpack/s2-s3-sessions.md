@@ -762,11 +762,21 @@ succeeded with NO restructure, vendored `Ipp/Extracted/ArkworksFq6Generated.lean
 `decodeFq6`/`Canonical6` and proves `decode_fq6_add/sub/neg/double` and
 `decode_fq6_mul_base_field_by_nonresidue` (= `fq2U * ·`). Full Ipp green
 (3423 jobs), zero sorry, audited axioms.
-PART 2 REMAINING: decode laws for full mul, square, sparse `mul_by_01`,
-inverse (both directions, none ↔ zero), Frobenius 1/2; output-canonicity
-threading lemmas as needed for composition; then compose through S3-18's
+PART 2 DONE (2026-07-17, orchestrator; executed by sol): `decode_fq6_mul`
+(Karatsuba chain refines `fq6Mul`), `decode_fq6_square` (CH-SQR2 refines
+`fq6Mul x x`), `decode_fq6_mul_by_01` (sparse chain refines `fq6Mul` by
+`⟨c0, c1, 0⟩`) — each via a private combined spec (bind-peel + Fq2 specs +
+Fq2 ring normalization) projected into decode + `canonical6_mul/square/
+mul_by_01` output-canonicity lemmas (ready for part 3 composition). Fq2
+companions added: `canonical_fq2_add`/`canonical_fq2_sub` (the add/sub
+decode laws did not expose output canonicity; derived from
+`extracted_add_spec`/`extracted_sub_spec`). Full Ipp green (3423 jobs),
+zero sorry, audited axioms.
+PART 3 REMAINING: inverse (both directions, none ↔ zero via the Fq2
+inverse laws + nonzero-norm argument), Frobenius powers 1/2 (pinned C1/C2
+Montgomery tables vs the model), then compose through S3-18's
 `fq6Coefficients` to the canonical field and retire the Fq6 slice of the
-arkworks field row.
+arkworks field row (ledger update).
 
 **S3-20 — Fq12 irreducibility and canonical field model** — `HARD (sol)` —
 `GATED` on S3-19. Prove `w^2-v` irreducible with a checked nonsquare

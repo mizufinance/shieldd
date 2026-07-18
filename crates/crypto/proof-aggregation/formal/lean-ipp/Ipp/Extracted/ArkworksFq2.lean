@@ -72,6 +72,18 @@ theorem decode_fq2_add (a b output : Fq2LimbPair)
   have hc1 := decode_extracted_add a.c1 b.c1 fm1 ha.2 hb.2 h1
   apply QuadraticAlgebra.ext <;> simp [decodeFq2, hc0, hc1]
 
+theorem canonical_fq2_add (a b output : Fq2LimbPair)
+    (ha : Canonical2 a) (hb : Canonical2 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_add a b = .ok output) :
+    Canonical2 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_add at hexec
+  obtain ⟨fm, h0, hrest⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, h1, hreturn⟩ := bind_eq_ok hrest
+  simp only [Result.ok.injEq] at hreturn
+  subst output
+  exact ⟨(extracted_add_spec a.c0 b.c0 fm ha.1 hb.1 h0).1,
+    (extracted_add_spec a.c1 b.c1 fm1 ha.2 hb.2 h1).1⟩
+
 theorem decode_fq2_sub (a b output : Fq2LimbPair)
     (ha : Canonical2 a) (hb : Canonical2 b)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sub a b = .ok output) :
@@ -84,6 +96,18 @@ theorem decode_fq2_sub (a b output : Fq2LimbPair)
   have hc0 := decode_extracted_sub a.c0 b.c0 fm ha.1 hb.1 h0
   have hc1 := decode_extracted_sub a.c1 b.c1 fm1 ha.2 hb.2 h1
   apply QuadraticAlgebra.ext <;> simp [decodeFq2, hc0, hc1]
+
+theorem canonical_fq2_sub (a b output : Fq2LimbPair)
+    (ha : Canonical2 a) (hb : Canonical2 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sub a b = .ok output) :
+    Canonical2 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sub at hexec
+  obtain ⟨fm, h0, hrest⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, h1, hreturn⟩ := bind_eq_ok hrest
+  simp only [Result.ok.injEq] at hreturn
+  subst output
+  exact ⟨(extracted_sub_spec a.c0 b.c0 fm ha.1 hb.1 h0).1,
+    (extracted_sub_spec a.c1 b.c1 fm1 ha.2 hb.2 h1).1⟩
 
 theorem decode_fq2_neg (a output : Fq2LimbPair)
     (ha : Canonical2 a)
