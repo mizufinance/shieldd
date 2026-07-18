@@ -736,8 +736,8 @@ mul-by-root, and BIJECTIVE via `AdjoinRoot.powerBasis` reindexed to `Fin 3`
 the canonical field. Full Ipp green (3421 jobs), zero sorry, audited axioms
 only. S3-19 (executed Fq6 conformance) is now unblocked.
 
-**S3-19 — executed Fq6 conformance** — `HARD (sol)` — `IN PROGRESS`
-(gate S3-18 satisfied). Prove all reached Fq6 add/mul/square/sparse/inverse/
+**S3-19 — executed Fq6 conformance** — `HARD (sol)` — `DONE 2026-07-17`.
+Prove all reached Fq6 add/mul/square/sparse/inverse/
 Frobenius routines refine the canonical field model. Acceptance: line
 evaluation and final exponentiation have no unproved Fq6 primitive. Narrows
 the pairing implementation row.
@@ -786,12 +786,17 @@ two new 377-bit rfl certificates `baseModulus_minus_five_sixthResidue`/
 `twoThirdsResidue`, k=2 exponents Fermat-reduced first, per the S3-18
 rule — no 753-bit kernel computation). Full Ipp green (3423 jobs), zero
 sorry, audited axioms, gate ok.
-PART 4 REMAINING (narrow): peel executed `fq6_frobenius` at powers 1/2,
-prove the pinned Montgomery C1/C2 table entries decode to the certified
-canonical constants (one row, `decode_frobeniusC1One`, already done as a
-private lemma), compose with `decode_fq2_frobenius` (= star), land
-`decode_fq6_frobenius_one/two` lane-formula theorems; then S3-19 DONE +
-ledger retirement of the Fq6 slice.
+PART 4 DONE (2026-07-17, orchestrator; executed by sol):
+`decode_fq6_frobenius_one/two` landed in combined-spec form (Canonical6
+output + decode lane formulas with the CANONICAL constants
+`fq2U ^ ((q^k−1)/3)` / `fq2U ^ (2(q^k−1)/3)` in the statements — no table
+limbs; power 1 lanes star'd via `decode_fq2_frobenius`, power 2 identity).
+S3-19 COMPLETE: every reached executed Fq6 routine (add/sub/neg/double,
+Karatsuba mul, CH-SQR2 square, sparse mul_by_01, nonresidue helper,
+Algorithm-17 inverse both directions, Frobenius 1/2) has a decode law
+against `Fq6Model`, with `canonical_field_fq6_mul/square/inv` transporting
+into `Fq6Canonical`. Fq6 slice of the arkworks field row retired in the
+ledger. Full Ipp green (3423 jobs), zero sorry, audited axioms.
 
 **S3-20 — Fq12 irreducibility and canonical field model** — `HARD (sol)` —
 `GATED` on S3-19. Prove `w^2-v` irreducible with a checked nonsquare
