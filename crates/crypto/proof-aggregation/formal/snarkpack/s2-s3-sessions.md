@@ -650,10 +650,25 @@ ArkworksFqInv does not provide — moved to S3-17 with the rest of
 inverse.
 
 **S3-17 — Fq2 inverse, square root, and Frobenius** — `HARD (sol)` —
-`IN PROGRESS` (S3-16 gate satisfied). Prove the exact inverse/sqrt/
+`DONE 2026-07-17`. Prove the exact inverse/sqrt/
 sign-selection/Frobenius paths, including zero and nonsquare failures.
 Acceptance: GAP-03 can instantiate its executed decoder operations and
 focused checks pass. Retires the Fq2 portion of the arkworks field row.
+COMPLETION (2026-07-17, orchestrator, commits ad786d7ba..20fa317f2): all four
+executed Fq2 paths proven on the extracted graph, full Ipp package green (3417
+jobs), zero sorry, audited axioms only. (A) Frobenius `decode_fq2_frobenius =
+star`. (B) inverse none-direction `extracted_fq2_inv_none_iff` (guard analysis,
+no loop-termination). (C) sqrt `decode_extracted_fq2_sqrt` (arkworks complex
+method faithfully copied incl. legendre/norm/two_inv/div-by-nonresidue;
+SPEC-CONFORMANCE `decode r^2 = decode a` proven from the candidate re-square +
+base `decode_extracted_sqrt` + `extracted_sqrt_canonical`, no TS-completeness
+per the F02 decision). (D) sign-selection `extracted_fq2_less_spec` (executed
+`into_bigint`/`gt` comparison refines the decoder `fq2Less` on canonical
+`(c0,c1)` reps; needed a `limbsToNat` injectivity lemma and the mul-by-integer-1
+canonical-value bridge). All parity-tested (sqrt vs `a.sqrt()` exact match;
+`fq2_less` vs `into_bigint` lexicographic — Fp2 exposes no public order so this
+validates the model convention). GAP-03's executed decoder operations
+(`sqrtFq2`, `selectRoot`/`fq2Less`) are now instantiable on proven executed ops.
 PROGRESS (2026-07-17, orchestrator, commits ad786d7ba, 868145d5d):
 - Frobenius DONE: `fq2_frobenius` spike (`FROBENIUS_COEFF_FP2_C1 = [1,−1]`,
   the executed effect is `neg` on the `c1` lane), parity vs arkworks
