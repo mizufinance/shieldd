@@ -1132,6 +1132,25 @@ S3-22. Prove the checked `PairingOutput` predicate is exactly nonzero
 with arkworks zero/identity conventions explicit. Acceptance: concrete
 factorization/cardinality theorems, focused build/audit. Retires the pure GT
 subgroup-mathematics portion and supplies S3-41.
+COMPLETION (2026-07-18, orchestrator; executed by sol; status DONE): new
+hand-authored `Ipp/Bls12377GtMembership.lean`. STRUCTURAL FINDING: GAP-04
+had NO concrete GT predicate — only the parameterized
+`CanonicalWire.decodePairingOutputChecked (member : PairingOutputValue →
+Bool)` with no in-repo concrete caller. GAP-07 supplies the single
+concrete boolean (`arkworksPairingOutputCheckedMembership` = `fq12Pow x r
+= fq12One`, modeling the pinned arkworks `pow(r) == 1` check; nonzeroness
+DERIVED from that equality, not separately checked) and specializes the
+existing decoder (`decodePairingOutputGtChecked`) — no parallel decoder.
+Equivalence chain proven: check ↔ `fq12Coefficients x ^ r = 1` ↔ nonzero ∧
+r-torsion ↔ ∃ unit in `GtGroup`; `checkedPairingOutputEquivGt` type
+equivalence with accepted-set cardinality = r via `gtGroup_card`;
+wire-level `decodePairingOutputGtChecked_eq_some_iff`; S3-21 bridge
+`pairingOutputModelOfValue_eq_of_matches`. Conventions explicit: Fq12 `1`
+accepted, field additive zero rejected, arkworks additive `PairingOutput`
+zero ↦ accepted multiplicative one. Symbolic power transport only (no
+q^12-scale kernel work). Full Ipp green (3428 jobs), zero sorry, audited
+axioms. Supplies S3-41; GAP-10 gains the checked surface for the executed
+`Valid::check` refinement.
 
 **GAP-08 — executed G1 decoder refinement** — `HARD (sol)` — `GATED` on
 GAP-02B/GAP-05, S3-11, and S3-32. Extract the pinned BLS12-377 checked G1

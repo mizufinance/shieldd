@@ -1,63 +1,115 @@
-# S3-22 report
+# GAP-07 report
 
 STATUS DONE
 
 ## Deliverable
 
-New hand-authored module: `Ipp/Bls12377Gt.lean`.
+New hand-authored module: `Ipp/Bls12377GtMembership.lean`.
 
-- `gtCofactor` pins the exact literal
-  `10623521018019860488254031663707568428798032905123811199571213965079129114663661236359849629341526275899063345613340067081670062620727617884137487754739150147491204559514205186492385590272208934467461444944652711005169371168250068790820776124772095630237102189827733019989835063334551453893534663070786533932633573962932272563471643288531959637300817070265537429506484880990981069041269405383502889677357082012807298529931118124428569059822346289745077401570134157444973271520981774047146918354408632568723153146248333028827919406785654402107153546667815607201488590832478225403444136409349877481268154817904541340614173261949772403060924324366861723245182619859389254985008236007465814273361497134138868945580557938161335670207544906643574043606819537336472235809927599628123275314288006170804044560238676463931639339711913111080974582593228138704154320599775683095604041309000197025419968125718018311805959315220036948621879242495199408833915486421612374480018459896018440926235261824654956932384859260479372776022979736734221629097297890154692194441528462770218811795624471108972377573690833913231260547835550851256817740247389770320334698430697237343583761719223414894063451411431859122738488311580005412765070251810159991897110936324943232526870280724876946523218213525646968094720`.
-- `gtCyclotomicCofactor` pins the exact literal
-  `530120800708274287517286541802349452660745684053757914303768306618941972249640599293219931039210515729594290095080864629839255786034925825766501871381405070298586299360456640686306783945821986704847802905075226768628585629948009388297573781114348798579024146628152873080566041108659848567284670260514857010142479602040029387286382704121649569349339557572505841407388976720904193`.
+The concrete checked predicate is
+`Ipp.Bls12377.arkworksPairingOutputCheckedMembership`:
 
-## Theorems
+```lean
+fq12Pow x scalarModulus = fq12One
+```
 
-- `fq12_order_factorization`: `q^12 - 1 = r * gtCofactor`.
-- `scalarModulus_dvd_fq12_order`: `r ∣ q^12 - 1`.
-- `cyclotomic_order_factorization`: `q^4 - q^2 + 1 = r * gtCyclotomicCofactor`.
-- `scalarModulus_dvd_cyclotomic_order`: `r ∣ q^4 - q^2 + 1`.
-- `cyclotomic_order_dvd_fq12_order`: `q^4 - q^2 + 1 ∣ q^12 - 1`, with quotient `q^8 + q^6 - q^2 - 1`.
-- `scalarModulus_coprime_gtCofactor`: `Nat.Coprime r gtCofactor`.
-- `scalarModulus_gcd_fq12_order`: `gcd r (q^12 - 1) = r`.
-- `GtGroup`: the kernel of the `r`-th-power endomorphism on `Fq12Canonicalˣ`.
-- `mem_gtGroup`: `x ∈ GtGroup ↔ x^r = 1`.
-- `gt_pow_cyclotomic_order_eq_one`: GT membership gives `x^(q^4-q^2+1) = 1` for the S3-38/39 cyclotomic hypothesis.
-- `fq12_units_card`: `|Fq12Canonicalˣ| = q^12 - 1`.
-- `gtGroup_card`: `Nat.card GtGroup = r`.
-- `one_mem_gtGroup`, `gtValue_one`, `gtValue_ne_zero`, `fq12_zero_ne_gt_identity`: the GT identity is multiplicative Fq12 `1`, and field `0` is not a GT value.
-- `ArkPairingOutput`, `arkPairingOutput_zero`, `arkPairingOutput_add`, `arkPairingOutput_nsmul`: the add-only adapter records arkworks notation `0 ↦ 1`, `+ ↦ *`, and `n • x ↦ x^n`.
+It is exposed to GAP-04's existing parameterized decoder by the concrete
+boolean `pairingOutputValueMember` and the specialization
+`decodePairingOutputGtChecked`.
 
-## Cofactor and gcd outcome
+## GAP-04 predicate finding and consumers
 
-The exact factorization is the first literal above. The checked gcd is
-`gcd(r, gtCofactor) = 1`, expressed by `scalarModulus_coprime_gtCofactor`.
-Thus `r` does not divide the cofactor: the order-`r` factor occurs only once
-in `q^12 - 1`. Also `gcd(r, q^12 - 1) = r`.
+GAP-04 did not contain a concrete GT predicate. Its only checked surface was
+`Ipp.CanonicalWire.decodePairingOutputChecked
+  (member : PairingOutputValue → Bool)`, and its theorem
+`decodePairingOutputChecked_eq_some_iff` was correspondingly parameterized.
+`canonicalDecoderFamily` uses `decodePairingOutputCanonical`, not the checked
+decoder. A repository-wide search found no pre-existing S1/S2 caller of
+`decodePairingOutputChecked` and no other concrete `PairingOutput` membership
+predicate.
 
-The cyclotomic factor has the second exact cofactor above, so
-`r ∣ q^4 - q^2 + 1`; this is the connector required by the later
-cyclotomic-square/final-exponentiation proofs.
+GAP-07 therefore supplies the missing concrete boolean once and specializes
+the existing GAP-04 decoder; it does not define a parallel wire decoder. The
+current concrete consumer is `decodePairingOutputGtChecked`. The S3-21 bridge
+consumer is `Fq12ValueMatchesModel`; theorem
+`pairingOutputModelOfValue_eq_of_matches` identifies its model with GAP-07's
+wire interpretation. GAP-10 can use this surface for the later executed
+`Valid::check` refinement, and S3-41 can consume the GT membership/cardinality
+theorems.
 
-## Cardinality proof route
+No stricter/looser predicate discrepancy was found: there was no prior
+concrete predicate to compare. The supplied predicate models the pinned
+arkworks check `pow(r) == 1`; nonzeroness is derived from that equality rather
+than added as an independent executable condition.
 
-Mathlib's finite-integral-domain units instance supplies
-`IsCyclic Fq12Canonicalˣ`. `IsCyclic.card_powMonoidHom_ker` computes the
-cardinality of the `r`-th-power kernel as `gcd(|Fq12Canonicalˣ|, r)`.
-`Fintype.card_units` plus `fq12_card` rewrites the unit-group order to
-`q^12 - 1`, and `Nat.gcd_eq_right_iff_dvd` closes the result from
-`scalarModulus_dvd_fq12_order`.
+## Main theorems
+
+- `pairingOutputModelOfValue_eq_of_matches`: an S3-21
+  `Fq12ValueMatchesModel x m` witness implies
+  `pairingOutputModelOfValue x = m`.
+- `arkworksPairingOutputCheckedMembership_iff_pow`: the executable-model
+  check holds iff `fq12Coefficients x ^ r = 1` in canonical Fq12.
+- `arkworksPairingOutputCheckedMembership_iff_nonzero_pow`: the check holds
+  iff the canonical value is nonzero and its `r`-th power is one.
+- `arkworksPairingOutputCheckedMembership_iff_exists_mem_gtGroup`: the check
+  holds iff there is a canonical Fq12 unit with that value which belongs to
+  `GtGroup`.
+- `pairingOutputValueMember_eq_true_iff`: the concrete GAP-04 boolean is
+  propositionally exact.
+- `decodePairingOutputGtChecked_eq_some_iff`: checked wire decoding succeeds
+  exactly when canonical decoding succeeds and the decoded canonical value is
+  nonzero `r`-torsion.
+- `checkedPairingOutputEquivGt`: accepted executable Fq12 models are
+  equivalent to `GtGroup`.
+- `arkworksPairingOutputCheckedMembership_card`: the accepted model subtype
+  has cardinality `scalarModulus` by `checkedPairingOutputEquivGt` and
+  `gtGroup_card`.
+- `pairingOutput_checked_factorization_and_cardinality`: packages the landed
+  concrete factorization `q^12 - 1 = r * gtCofactor` with accepted-set
+  cardinality `r`.
+- `arkworksPairingOutputCheckedMembership_identity`: multiplicative Fq12 one
+  is accepted.
+- `arkworksPairingOutputCheckedMembership_rejects_field_zero`: additive field
+  zero is rejected.
+- `arkPairingOutput_zero_value_accepted`: arkworks additive
+  `PairingOutput` zero maps to accepted multiplicative one.
+- `field_zero_rejected_and_ne_arkPairingOutput_zero`: field zero is rejected
+  and differs from the arkworks additive identity's underlying GT value,
+  citing `fq12_zero_ne_gt_identity`.
 
 ## Verification
 
-- Focused pinned build: `lake build Ipp.Bls12377Gt` passed, 2014 jobs.
-- Full pinned build: `lake build Ipp` passed, 3427 jobs.
-- Both used `LEAN_NUM_THREADS=1` and
+- Machine-wide Lean/lake process check was clear before every lake invocation.
+- Focused pinned build:
+  `lake build Ipp.Bls12377GtMembership` passed, 3005 jobs.
+- Full pinned build: `lake build Ipp` passed, 3428 jobs.
+- Every lake invocation used `LEAN_NUM_THREADS=1` and
   `C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe`.
-- `#print axioms` was run in the module for every deliverable theorem. Output
-  was limited to `propext`, `Classical.choice`, and `Quot.sound`; several
-  arithmetic facts used only `propext`.
-- Source audit found no `sorry`, `admit`, new `axiom`, or `opaque` declaration
-  in `Ipp/Bls12377Gt.lean`.
-- Prover, release, and release-gated tests were not run; this session changed
-  only the hand-authored Lean library.
+- `#print axioms` was included for every main theorem and equivalence. Output
+  was limited to `propext`, `Classical.choice`, and `Quot.sound`.
+
+Exact new-module axiom output (each line reported the same allowed set):
+
+```text
+pairingOutputModelOfValue_eq_of_matches: [propext, Classical.choice, Quot.sound]
+arkworksPairingOutputCheckedMembership_iff_pow: [propext, Classical.choice, Quot.sound]
+arkworksPairingOutputCheckedMembership_iff_nonzero_pow: [propext, Classical.choice, Quot.sound]
+arkworksPairingOutputCheckedMembership_iff_exists_mem_gtGroup: [propext, Classical.choice, Quot.sound]
+checkedPairingOutputEquivGt: [propext, Classical.choice, Quot.sound]
+arkworksPairingOutputCheckedMembership_card: [propext, Classical.choice, Quot.sound]
+pairingOutput_checked_factorization_and_cardinality: [propext, Classical.choice, Quot.sound]
+pairingOutputValueMember_eq_true_iff: [propext, Classical.choice, Quot.sound]
+decodePairingOutputGtChecked_eq_some_iff: [propext, Classical.choice, Quot.sound]
+arkworksPairingOutputCheckedMembership_identity: [propext, Classical.choice, Quot.sound]
+arkworksPairingOutputCheckedMembership_rejects_field_zero: [propext, Classical.choice, Quot.sound]
+arkPairingOutput_zero_value_accepted: [propext, Classical.choice, Quot.sound]
+field_zero_rejected_and_ne_arkPairingOutput_zero: [propext, Classical.choice, Quot.sound]
+```
+
+- Source audit found no `sorry`, `admit`, or new `axiom`; the new module also
+  has no trailing whitespace.
+- No q^12-scale kernel exponentiation or new residue certificate was used.
+  Power transport is symbolic through `fq12Coefficients_pow`, `mem_gtGroup`,
+  and the landed factorization/cardinality theorems.
+- Prover, release, and release-gated tests were not run; this change is confined
+  to the hand-authored Lean library and its report.
