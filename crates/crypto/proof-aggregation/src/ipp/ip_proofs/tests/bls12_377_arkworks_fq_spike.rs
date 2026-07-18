@@ -1,6 +1,6 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
-use ark_bls12_377::{Fq, Fq2};
+use ark_bls12_377::{Fq, Fq2, Fq6};
 use ark_ff::{AdditiveGroup, BigInt, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand};
@@ -8,7 +8,7 @@ use std::convert::TryInto;
 
 #[path = "../src/s3_07_arkworks_fq_spike.rs"]
 mod spike;
-use spike::{Fq2Mont, FqMont};
+use spike::{Fq2Mont, Fq6Mont, FqMont};
 
 fn mont(value: Fq) -> FqMont {
     FqMont(value.0 .0)
@@ -27,6 +27,79 @@ fn mont2(value: Fq2) -> Fq2Mont {
 
 fn ark2(value: Fq2Mont) -> Fq2 {
     Fq2::new(ark(value.c0), ark(value.c1))
+}
+
+fn mont6(value: Fq6) -> Fq6Mont {
+    Fq6Mont {
+        c0: mont2(value.c0),
+        c1: mont2(value.c1),
+        c2: mont2(value.c2),
+    }
+}
+
+fn ark6(value: Fq6Mont) -> Fq6 {
+    Fq6::new(ark2(value.c0), ark2(value.c1), ark2(value.c2))
+}
+
+fn check_fq6(a: Fq6, b: Fq6, c0: Fq2, c1: Fq2) {
+    assert_eq!(ark6(spike::fq6_add(mont6(a), mont6(b))), a + b);
+    assert_eq!(ark6(spike::fq6_sub(mont6(a), mont6(b))), a - b);
+    assert_eq!(ark6(spike::fq6_neg(mont6(a))), -a);
+    assert_eq!(ark6(spike::fq6_double(mont6(a))), a.double());
+    assert_eq!(ark6(spike::fq6_mul(mont6(a), mont6(b))), a * b);
+    assert_eq!(ark6(spike::fq6_square(mont6(a))), a.square());
+    assert_eq!(spike::fq6_inv(mont6(a)).map(ark6), a.inverse());
+
+    for power in [1, 2] {
+        let mut expected = a;
+        expected.frobenius_map_in_place(power);
+        assert_eq!(ark6(spike::fq6_frobenius(mont6(a), power)), expected);
+    }
+
+    let mut expected_by_01 = a;
+    expected_by_01.mul_by_01(&c0, &c1);
+    assert_eq!(
+        ark6(spike::fq6_mul_by_01(mont6(a), mont2(c0), mont2(c1))),
+        expected_by_01
+    );
+
+    let u = Fq2::new(Fq::ZERO, Fq::ONE);
+    assert_eq!(
+        ark2(spike::fq6_mul_base_field_by_nonresidue(mont2(c0))),
+        c0 * u
+    );
+}
+
+#[test]
+fn fq6_edges_and_512_random_vectors_match_arkworks() {
+    let zero2 = Fq2::ZERO;
+    let one2 = Fq2::ONE;
+    let u = Fq2::new(Fq::ZERO, Fq::ONE);
+    let edges = [
+        Fq6::ZERO,
+        Fq6::ONE,
+        Fq6::new(zero2, one2, zero2),
+        Fq6::new(zero2, zero2, one2),
+        Fq6::new(u, -u, one2),
+        -Fq6::ONE,
+    ];
+    let sparse = [zero2, one2, u, -u];
+    for (i, &a) in edges.iter().enumerate() {
+        for (j, &b) in edges.iter().enumerate() {
+            check_fq6(a, b, sparse[i % sparse.len()], sparse[j % sparse.len()]);
+        }
+    }
+    assert_eq!(spike::fq6_inv(mont6(Fq6::ZERO)), None);
+
+    let mut rng = test_rng();
+    for _ in 0..512 {
+        check_fq6(
+            Fq6::rand(&mut rng),
+            Fq6::rand(&mut rng),
+            Fq2::rand(&mut rng),
+            Fq2::rand(&mut rng),
+        );
+    }
 }
 
 fn check_fq2(a: Fq2, b: Fq2) {
@@ -48,10 +121,7 @@ fn check_fq2(a: Fq2, b: Fq2) {
     assert_eq!(spike::fq2_less(mont2(a), mont2(b)), less_ref);
     // reflexive and antisymmetric spot checks
     assert!(!spike::fq2_less(mont2(a), mont2(a)));
-    assert_eq!(
-        ark(spike::double(mont(a.c0))),
-        a.c0.double()
-    );
+    assert_eq!(ark(spike::double(mont(a.c0))), a.c0.double());
     assert_eq!(
         ark(spike::sum_of_products2(
             mont(a.c0),

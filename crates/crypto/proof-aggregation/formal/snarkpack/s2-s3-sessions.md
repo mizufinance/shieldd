@@ -736,10 +736,37 @@ mul-by-root, and BIJECTIVE via `AdjoinRoot.powerBasis` reindexed to `Fin 3`
 the canonical field. Full Ipp green (3421 jobs), zero sorry, audited axioms
 only. S3-19 (executed Fq6 conformance) is now unblocked.
 
-**S3-19 — executed Fq6 conformance** — `HARD (sol)` — `GATED` on S3-18.
-Prove all reached Fq6 add/mul/square/sparse/inverse/Frobenius routines refine
-the canonical field model. Acceptance: line evaluation and final exponentiation
-have no unproved Fq6 primitive. Narrows the pairing implementation row.
+**S3-19 — executed Fq6 conformance** — `HARD (sol)` — `IN PROGRESS`
+(gate S3-18 satisfied). Prove all reached Fq6 add/mul/square/sparse/inverse/
+Frobenius routines refine the canonical field model. Acceptance: line
+evaluation and final exponentiation have no unproved Fq6 primitive. Narrows
+the pairing implementation row.
+PART 1 DONE (2026-07-17, orchestrator; executed by sol): scope pin, spike,
+parity, extraction, componentwise laws.
+SCOPE PIN (from arkworks 0.5.0 source, citations in session report):
+BLS12-377 is TwistType::D — `ell` uses Fq12 `mul_by_034`, which reaches Fq6
+`mul_by_01` (twice) + add/sub + mul-by-v; Fq6 `mul_by_1` is M-twist-only
+(`mul_by_014`) and UNREACHED — excluded from spike and from part 2 proof
+obligations. Reached list: add, sub, neg, double, full `mul_assign`
+(three-product Karatsuba), `square_in_place` (CH-SQR2), inverse
+(norm/Algorithm-17 route), Frobenius powers 1 and 2 (pinned
+FROBENIUS_COEFF_FP6_C1/C2 tables), sparse `mul_by_01`, and
+`mul_base_field_by_nonresidue` ((c0,c1) → (−5c1, c0)).
+LANDED: monomorphic `fq6_*` spike + `extract_s3_19` root appended to
+`s3_07_arkworks_fq_spike.rs` composing the proven `fq2_*` closures; parity
+`fq6_edges_and_512_random_vectors_match_arkworks` (edges + 512 random, all
+reached ops incl. Frobenius 1/2 and zero-inverse None) green in
+`cargo test -p ark-ip-proofs --features mac-campaign`; WSL aeneas extraction
+succeeded with NO restructure, vendored `Ipp/Extracted/ArkworksFq6Generated.lean`
+(reuses Fq/Fq2 graphs); `Ipp/Extracted/ArkworksFq6.lean` defines
+`decodeFq6`/`Canonical6` and proves `decode_fq6_add/sub/neg/double` and
+`decode_fq6_mul_base_field_by_nonresidue` (= `fq2U * ·`). Full Ipp green
+(3423 jobs), zero sorry, audited axioms.
+PART 2 REMAINING: decode laws for full mul, square, sparse `mul_by_01`,
+inverse (both directions, none ↔ zero), Frobenius 1/2; output-canonicity
+threading lemmas as needed for composition; then compose through S3-18's
+`fq6Coefficients` to the canonical field and retire the Fq6 slice of the
+arkworks field row.
 
 **S3-20 — Fq12 irreducibility and canonical field model** — `HARD (sol)` —
 `GATED` on S3-19. Prove `w^2-v` irreducible with a checked nonsquare

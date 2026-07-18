@@ -629,15 +629,24 @@ pub fn mul_by_nonresidue_plus_one_and_add(y: FqMont, x: FqMont) -> FqMont {
 }
 
 pub fn fq2_add(a: Fq2Mont, b: Fq2Mont) -> Fq2Mont {
-    Fq2Mont { c0: add(a.c0, b.c0), c1: add(a.c1, b.c1) }
+    Fq2Mont {
+        c0: add(a.c0, b.c0),
+        c1: add(a.c1, b.c1),
+    }
 }
 
 pub fn fq2_sub(a: Fq2Mont, b: Fq2Mont) -> Fq2Mont {
-    Fq2Mont { c0: sub(a.c0, b.c0), c1: sub(a.c1, b.c1) }
+    Fq2Mont {
+        c0: sub(a.c0, b.c0),
+        c1: sub(a.c1, b.c1),
+    }
 }
 
 pub fn fq2_neg(a: Fq2Mont) -> Fq2Mont {
-    Fq2Mont { c0: neg(a.c0), c1: neg(a.c1) }
+    Fq2Mont {
+        c0: neg(a.c0),
+        c1: neg(a.c1),
+    }
 }
 
 /// Degree-2 `mul_assign`: nonresidue premultiplication plus two fused
@@ -708,7 +717,10 @@ pub fn fq2_sqrt(a: Fq2Mont) -> Option<Fq2Mont> {
         if fq_is_qr(a.c0) {
             match sqrt(a.c0) {
                 None => None,
-                Some(root) => Some(Fq2Mont { c0: root, c1: FqMont([0; 6]) }),
+                Some(root) => Some(Fq2Mont {
+                    c0: root,
+                    c1: FqMont([0; 6]),
+                }),
             }
         } else {
             let nr = mul_by_nonresidue(FqMont(ONE));
@@ -716,7 +728,10 @@ pub fn fq2_sqrt(a: Fq2Mont) -> Option<Fq2Mont> {
                 None => None,
                 Some(nr_inv) => match sqrt(mul(a.c0, nr_inv)) {
                     None => None,
-                    Some(res) => Some(Fq2Mont { c0: FqMont([0; 6]), c1: res }),
+                    Some(res) => Some(Fq2Mont {
+                        c0: FqMont([0; 6]),
+                        c1: res,
+                    }),
                 },
             }
         }
@@ -740,7 +755,10 @@ pub fn fq2_sqrt(a: Fq2Mont) -> Option<Fq2Mont> {
                             None => None,
                             Some(c0_inv) => {
                                 let c1_new = mul(mul(a.c1, two_inv), c0_inv);
-                                let cand = Fq2Mont { c0: c0_new, c1: c1_new };
+                                let cand = Fq2Mont {
+                                    c0: c0_new,
+                                    c1: c1_new,
+                                };
                                 let sq = fq2_square(cand);
                                 if sq.c0.0 == a.c0.0 && sq.c1.0 == a.c1.0 {
                                     Some(cand)
@@ -783,7 +801,10 @@ pub fn fq2_less(a: Fq2Mont, b: Fq2Mont) -> bool {
 /// `FROBENIUS_COEFF_FP2_C1[power % 2]`; for the only nontrivial residue the
 /// coefficient is `-1`, so the executed effect is `neg` on the `c1` lane.
 pub fn fq2_frobenius(a: Fq2Mont) -> Fq2Mont {
-    Fq2Mont { c0: a.c0, c1: neg(a.c1) }
+    Fq2Mont {
+        c0: a.c0,
+        c1: neg(a.c1),
+    }
 }
 
 /// Extraction root whose closure contains the S3-17 Fq2 Frobenius, square
@@ -795,7 +816,10 @@ pub fn extract_s3_17(a: Fq2Mont, b: Fq2Mont) -> (Fq2Mont, Option<Fq2Mont>, bool)
 
 /// Extraction root whose closure contains every S3-16 Fq2 operation.
 #[doc(hidden)]
-pub fn extract_s3_16(a: Fq2Mont, b: Fq2Mont) -> (Fq2Mont, Fq2Mont, Fq2Mont, Fq2Mont, Fq2Mont, Option<Fq2Mont>) {
+pub fn extract_s3_16(
+    a: Fq2Mont,
+    b: Fq2Mont,
+) -> (Fq2Mont, Fq2Mont, Fq2Mont, Fq2Mont, Fq2Mont, Option<Fq2Mont>) {
     (
         fq2_add(a, b),
         fq2_sub(a, b),
@@ -803,6 +827,265 @@ pub fn extract_s3_16(a: Fq2Mont, b: Fq2Mont) -> (Fq2Mont, Fq2Mont, Fq2Mont, Fq2M
         fq2_mul(a, b),
         fq2_square(a),
         fq2_inv(a),
+    )
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Fq6Mont {
+    pub c0: Fq2Mont,
+    pub c1: Fq2Mont,
+    pub c2: Fq2Mont,
+}
+
+const FQ_ZERO: FqMont = FqMont([0; 6]);
+const FQ_ONE: FqMont = FqMont(ONE);
+const FQ2_ZERO: Fq2Mont = Fq2Mont {
+    c0: FQ_ZERO,
+    c1: FQ_ZERO,
+};
+const FQ_NEG_ONE: FqMont = FqMont([
+    0x823a_c000_0000_0099,
+    0xc5ca_bdc0_b000_004f,
+    0x7f75_ae86_2f8c_080d,
+    0x9ed4_423b_9278_b089,
+    0x7946_7000_ec64_c452,
+    0x0120_d3e4_34c7_1c50,
+]);
+
+const FROBENIUS_COEFF_FP6_C1: [FqMont; 6] = [
+    FQ_ONE,
+    FqMont([
+        0x5892_506d_a584_78da,
+        0x1333_6694_0ac2_a74b,
+        0x9b64_a150_cdf7_26cf,
+        0x5cc4_2609_0a9c_587e,
+        0x5cf8_48ad_fdcd_640c,
+        0x0047_02bf_3ac0_2380,
+    ]),
+    FqMont([
+        0xdacd_106d_a584_7973,
+        0xd8fe_2454_bac2_a79a,
+        0x1ada_4fd6_fd83_2edc,
+        0xfb98_6844_9d15_0908,
+        0xd63e_b8ae_ea32_285e,
+        0x0167_d6a3_6f87_3fd0,
+    ]),
+    FQ_NEG_ONE,
+    FqMont([
+        0x2c76_6f92_5a7b_8727,
+        0x03d7_f6b0_253d_58b5,
+        0x838e_c0de_ec12_2131,
+        0xbd5e_b3e9_f658_bb10,
+        0x6942_bd12_6ed3_e52e,
+        0x0167_3786_dd04_ed6a,
+    ]),
+    FqMont([
+        0xaa3b_af92_5a7b_868e,
+        0x3e0d_38ef_753d_5865,
+        0x0419_1258_bc86_1923,
+        0x1e8a_71ae_63e0_0a87,
+        0xeffc_4d11_826f_20dc,
+        0x0046_63a2_a83d_d119,
+    ]),
+];
+
+const FROBENIUS_COEFF_FP6_C2: [FqMont; 6] = [
+    FQ_ONE,
+    FROBENIUS_COEFF_FP6_C1[2],
+    FROBENIUS_COEFF_FP6_C1[4],
+    FQ_ONE,
+    FROBENIUS_COEFF_FP6_C1[2],
+    FROBENIUS_COEFF_FP6_C1[4],
+];
+
+pub fn fq2_double(a: Fq2Mont) -> Fq2Mont {
+    Fq2Mont {
+        c0: double(a.c0),
+        c1: double(a.c1),
+    }
+}
+
+fn fq2_frobenius_power(a: Fq2Mont, power: usize) -> Fq2Mont {
+    if power % 2 == 0 {
+        a
+    } else {
+        fq2_frobenius(a)
+    }
+}
+
+/// `Fq6Config::mul_fp2_by_nonresidue_in_place`: multiplication by `u`.
+pub fn fq6_mul_base_field_by_nonresidue(a: Fq2Mont) -> Fq2Mont {
+    Fq2Mont {
+        c0: mul_by_nonresidue(a.c1),
+        c1: a.c0,
+    }
+}
+
+pub fn fq6_add(a: Fq6Mont, b: Fq6Mont) -> Fq6Mont {
+    Fq6Mont {
+        c0: fq2_add(a.c0, b.c0),
+        c1: fq2_add(a.c1, b.c1),
+        c2: fq2_add(a.c2, b.c2),
+    }
+}
+
+pub fn fq6_sub(a: Fq6Mont, b: Fq6Mont) -> Fq6Mont {
+    Fq6Mont {
+        c0: fq2_sub(a.c0, b.c0),
+        c1: fq2_sub(a.c1, b.c1),
+        c2: fq2_sub(a.c2, b.c2),
+    }
+}
+
+pub fn fq6_neg(a: Fq6Mont) -> Fq6Mont {
+    Fq6Mont {
+        c0: fq2_neg(a.c0),
+        c1: fq2_neg(a.c1),
+        c2: fq2_neg(a.c2),
+    }
+}
+
+pub fn fq6_double(a: Fq6Mont) -> Fq6Mont {
+    Fq6Mont {
+        c0: fq2_double(a.c0),
+        c1: fq2_double(a.c1),
+        c2: fq2_double(a.c2),
+    }
+}
+
+/// `CubicExtField::mul_assign`, using its three-product Karatsuba chain.
+pub fn fq6_mul(a: Fq6Mont, b: Fq6Mont) -> Fq6Mont {
+    let ad = fq2_mul(a.c0, b.c0);
+    let be = fq2_mul(a.c1, b.c1);
+    let cf = fq2_mul(a.c2, b.c2);
+    let x = fq2_sub(
+        fq2_sub(fq2_mul(fq2_add(a.c1, a.c2), fq2_add(b.c1, b.c2)), be),
+        cf,
+    );
+    let y = fq2_sub(
+        fq2_sub(fq2_mul(fq2_add(a.c0, a.c1), fq2_add(b.c0, b.c1)), ad),
+        be,
+    );
+    let z = fq2_sub(
+        fq2_add(
+            fq2_sub(fq2_mul(fq2_add(a.c0, a.c2), fq2_add(b.c0, b.c2)), ad),
+            be,
+        ),
+        cf,
+    );
+    Fq6Mont {
+        c0: fq2_add(ad, fq6_mul_base_field_by_nonresidue(x)),
+        c1: fq2_add(y, fq6_mul_base_field_by_nonresidue(cf)),
+        c2: z,
+    }
+}
+
+/// `CubicExtField::square_in_place`, CH-SQR2.
+pub fn fq6_square(a: Fq6Mont) -> Fq6Mont {
+    let s0 = fq2_square(a.c0);
+    let s1 = fq2_double(fq2_mul(a.c0, a.c1));
+    let s2 = fq2_square(fq2_add(fq2_sub(a.c0, a.c1), a.c2));
+    let s3 = fq2_double(fq2_mul(a.c1, a.c2));
+    let s4 = fq2_square(a.c2);
+    Fq6Mont {
+        c0: fq2_add(fq6_mul_base_field_by_nonresidue(s3), s0),
+        c1: fq2_add(fq6_mul_base_field_by_nonresidue(s4), s1),
+        c2: fq2_sub(fq2_sub(fq2_add(fq2_add(s1, s2), s3), s0), s4),
+    }
+}
+
+/// `CubicExtField::inverse`, Algorithm 17's norm route.
+pub fn fq6_inv(a: Fq6Mont) -> Option<Fq6Mont> {
+    if a.c0 == FQ2_ZERO && a.c1 == FQ2_ZERO && a.c2 == FQ2_ZERO {
+        return None;
+    }
+    let t0 = fq2_square(a.c0);
+    let t1 = fq2_square(a.c1);
+    let t2 = fq2_square(a.c2);
+    let t3 = fq2_mul(a.c0, a.c1);
+    let t4 = fq2_mul(a.c0, a.c2);
+    let t5 = fq2_mul(a.c1, a.c2);
+    let s0 = fq2_sub(t0, fq6_mul_base_field_by_nonresidue(t5));
+    let s1 = fq2_sub(fq6_mul_base_field_by_nonresidue(t2), t3);
+    let s2 = fq2_sub(t1, t4);
+    let a3 = fq6_mul_base_field_by_nonresidue(fq2_add(fq2_mul(a.c2, s1), fq2_mul(a.c1, s2)));
+    match fq2_inv(fq2_add(fq2_mul(a.c0, s0), a3)) {
+        None => None,
+        Some(t6) => Some(Fq6Mont {
+            c0: fq2_mul(t6, s0),
+            c1: fq2_mul(t6, s1),
+            c2: fq2_mul(t6, s2),
+        }),
+    }
+}
+
+pub fn fq6_frobenius(a: Fq6Mont, power: usize) -> Fq6Mont {
+    let index = power % 6;
+    let c1_coeff = Fq2Mont {
+        c0: FROBENIUS_COEFF_FP6_C1[index],
+        c1: FQ_ZERO,
+    };
+    let c2_coeff = Fq2Mont {
+        c0: FROBENIUS_COEFF_FP6_C2[index],
+        c1: FQ_ZERO,
+    };
+    Fq6Mont {
+        c0: fq2_frobenius_power(a.c0, power),
+        c1: fq2_mul(fq2_frobenius_power(a.c1, power), c1_coeff),
+        c2: fq2_mul(fq2_frobenius_power(a.c2, power), c2_coeff),
+    }
+}
+
+pub fn fq6_mul_by_01(a: Fq6Mont, c0: Fq2Mont, c1: Fq2Mont) -> Fq6Mont {
+    let aa = fq2_mul(a.c0, c0);
+    let bb = fq2_mul(a.c1, c1);
+    let t1 = fq2_add(
+        fq6_mul_base_field_by_nonresidue(fq2_sub(fq2_mul(c1, fq2_add(a.c1, a.c2)), bb)),
+        aa,
+    );
+    let t3 = fq2_add(fq2_sub(fq2_mul(c0, fq2_add(a.c0, a.c2)), aa), bb);
+    let t2 = fq2_sub(
+        fq2_sub(fq2_mul(fq2_add(c0, c1), fq2_add(a.c0, a.c1)), aa),
+        bb,
+    );
+    Fq6Mont {
+        c0: t1,
+        c1: t2,
+        c2: t3,
+    }
+}
+
+/// Extraction root whose closure contains every reached S3-19 Fq6 routine.
+#[doc(hidden)]
+pub fn extract_s3_19(
+    a: Fq6Mont,
+    b: Fq6Mont,
+    c0: Fq2Mont,
+    c1: Fq2Mont,
+    power: usize,
+) -> (
+    Fq6Mont,
+    Fq6Mont,
+    Fq6Mont,
+    Fq6Mont,
+    Fq6Mont,
+    Fq6Mont,
+    Option<Fq6Mont>,
+    Fq6Mont,
+    Fq6Mont,
+    Fq2Mont,
+) {
+    (
+        fq6_add(a, b),
+        fq6_sub(a, b),
+        fq6_neg(a),
+        fq6_double(a),
+        fq6_mul(a, b),
+        fq6_square(a),
+        fq6_inv(a),
+        fq6_frobenius(a, power),
+        fq6_mul_by_01(a, c0, c1),
+        fq6_mul_base_field_by_nonresidue(c0),
     )
 }
 
