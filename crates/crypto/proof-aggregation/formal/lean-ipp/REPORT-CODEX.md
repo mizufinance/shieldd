@@ -1,54 +1,40 @@
-# S3-26 part 2b report
+# S3-26 part 2c report
 
-STATUS PARTIAL
+STATUS DONE
 
-## Green boundary landed
+## Consumer fixes
 
-- `canonical_fq_val_eq_iff_decode_eq`: two reduced Montgomery limb arrays
-  have equal executed representatives iff their decoded `Fq` values are equal.
-- `decode_g1_x_cross_eq_iff`: under canonical inputs and nonzero decoded Z
-  coordinates, Jacobian `X1*Z2^2 = X2*Z1^2` iff decoded affine x coordinates
-  are equal.
-- `decode_g1_y_cross_eq_iff`: under the same hypotheses, Jacobian
-  `(Y1*Z2)*Z2^2 = (Y2*Z1)*Z1^2` iff decoded affine y coordinates are equal.
-- `decode_g1_double_order2`: a canonical input decoding to affine y zero has
-  a canonical successful executed-double output which decodes to `none`.
+- `decode_g1_add_generic` now applies `chord_decode_core` directly. It builds
+  the decoded scale and add-step equations over local affine values, clears
+  their definitions, and passes only opaque parameters to the core theorem.
+  The obsolete expanded `eh'`/`ex'`/`ey'` identity-route facts were deleted.
+- `decode_g1_add_mixed_generic` now applies `chord_decode_core` directly with
+  opaque aliases for every decoded intermediate and affine component. It
+  captures `hc : c ≠ 0` before `clear_value`, so the final application is
+  syntactic and never unfolds `c = decode a.z`. Its obsolete expanded
+  identity-route facts were also deleted.
+- The mixed same-x helper's concrete-field `field_simp`/`linear_combination`
+  scaling steps were replaced by abstract `div_eq_iff` lemmas. The full-file
+  check exposed this as an additional pre-consumer memory spike. The two
+  opposite-point proofs also received their necessary local proof repairs.
 
-The canonical representative theorem is the executed-comparison bridge used
-after each certified Fq square/multiply chain. The x/y theorems isolate the
-cross-product-to-affine division algebra, avoiding quadratic elaboration from
-placing the complete extracted chains in one declaration.
+## Verification
 
-## Remaining part-2b work
-
-- `decode_g1_add_generic`.
-- `decode_g1_add_equal_delegates`.
-- `decode_g1_add_opposite`.
-- The generic, equal-delegation, and opposite mixed-add counterparts.
-
-No Mathlib `Affine.Point` lifting or part-3 work was started.
-
-## Gates
-
-- Pinned narrow `lake build Ipp.Extracted.ArkworksG1`: PASS (2995 jobs).
-- Pinned full `lake build Ipp`: PASS (3430 jobs).
-- Both builds used `LEAN_NUM_THREADS=1`, after confirming no machine-wide
-  `lean` or `lake` process was active.
-- Zero `sorry`, `admit`, or new axioms in the edited module.
-- Prover/release/release-gated tests were not run; this change is confined to
-  the Lean coordinate proof layer.
+- Required command: PASS.
+  `LEAN_NUM_THREADS=1 C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe env lean Ipp/Extracted/ArkworksG1.lean`
+- Full-file peak Lean working set: **2,011.5 MiB (1.964 GiB)**, sampled every
+  200 ms.
+- Isolated `decode_g1_add_generic` checkpoint: PASS at **1,989.5 MiB**.
+- Zero `sorry`, `admit`, or new `axiom` declarations in `ArkworksG1.lean`.
+- No temporary truncated file or diagnostic wrapper remains.
+- Prover/release-gated tests were not run; verification was the requested
+  single-file Lean elaboration and axiom audit.
 
 ## Axiom audit
 
-`#print axioms` output for every new public theorem:
-
-- `canonical_fq_val_eq_iff_decode_eq`:
+- `decode_g1_add_generic`:
   `[propext, Classical.choice, Quot.sound]`.
-- `decode_g1_x_cross_eq_iff`:
-  `[propext, Classical.choice, Quot.sound]`.
-- `decode_g1_y_cross_eq_iff`:
-  `[propext, Classical.choice, Quot.sound]`.
-- `decode_g1_double_order2`:
+- `decode_g1_add_mixed_generic`:
   `[propext, Classical.choice, Quot.sound]`.
 
 No commit was created.

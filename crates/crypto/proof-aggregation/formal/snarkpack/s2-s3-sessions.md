@@ -1031,13 +1031,29 @@ nonzero-Z), and `decode_g1_double_order2` (y = 0 doubling decodes to
 infinity). Bridges deliberately isolate the division algebra from the
 extracted chains (anti-blowup). Full Ipp green (3430 jobs), zero sorry,
 audited axioms.
-REMAINING PARTS: (2c) the six add theorems — `decode_g1_add_generic` /
-`decode_g1_add_equal_delegates` / `decode_g1_add_opposite` + the three
-mixed counterparts (all infrastructure now in place: bridges, chordAdd,
-the decode_g1_double_generic chain-peel precedent with private
-rational-identity helpers); (3) Mathlib `Affine.Point` lifting with
-on-curve hypotheses (chordAdd/tangentDouble ↔ slope/addX/addY
-identification) + session-closing corollaries; then ledger narrowing.
+PART 2C LANDED (2026-07-18, orchestrator; sol + Fable memory surgery): the
+six add theorems — `decode_g1_add_generic` (add-2007-bl refines `chordAdd`),
+`decode_g1_add_equal_delegates`, `decode_g1_add_opposite`, and the three
+mixed counterparts — all proven, full Ipp green (3430 jobs), zero sorry,
+audited axioms.
+⚠ MEMORY-ENGINEERING LESSON (curve track will hit this again on G2/scalar
+mul — S3-27/28): the projective→affine Weierstrass rational identity blows
+Lean's `ring`/def-eq to >9 GB and OOM-FROZE the 16 GB dev machine. Two-part
+fix, both about preventing `let`-expansion of the deep add-2007-bl term:
+(1) `chord_decode_identity` proven via an ABSTRACT `chord_decode_core`
+(x,y,z,a_i as opaque params + defining-equation hypotheses + `chord_*_factor`
+scale lemmas), closed with `clear_value` on the deep `let`-locals before the
+final `exact` so unification is syntactic — dropped it from 9.4 GB to
+1.9 GB. (2) The CONSUMERS (`decode_g1_add_generic`,
+`decode_g1_add_mixed_generic`) must apply `chord_decode_core` DIRECTLY (opaque
+decoded aliases, `clear_value` before the application), NOT the `let`-wrapped
+`chord_decode_identity` (applying it re-expands the conclusion → 8.6 GB).
+Full-file peak after both fixes: ~2 GB. NEVER run an unguarded heavy Lean
+build on this machine — use the guarded wrapper (scratchpad guardian:
+suppresses rust-analyzer, kills any lean > ceiling). See [[two-claude-snarkpack-workflow]].
+REMAINING: (3) Mathlib `Affine.Point` lifting with on-curve hypotheses
+(chordAdd/tangentDouble ↔ slope/addX/addY identification) + session-closing
+corollaries; then ledger narrowing.
 
 **S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` — `GATED` on
 S3-17 and landed C02. Prove the exact twist formulas across the same exceptional
