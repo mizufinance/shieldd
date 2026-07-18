@@ -1,76 +1,79 @@
-# S3-21 part 2 report
+# S3-21 part 3 report
 
 STATUS: DONE
 
-## Landed laws
+## Public conformance theorems
 
-`Ipp/Extracted/ArkworksFq12.lean` now proves combined canonicity/decode specs
-for the three requested executed operations and exposes these public
-projections:
+- `decode_fq12_inv_some`: a successful inverse is canonical and its decoded
+  product with the input is `fq12One`.
+- `decode_fq12_inv_none`: inverse returning `none` implies the decoded input
+  is `fq12Zero`.
+- `decode_fq12_cyclotomic_inverse_some`: a successful cyclotomic inverse is
+  canonical and decodes to quadratic conjugation.
+- `decode_fq12_cyclotomic_inverse_none`: cyclotomic inverse returning `none`
+  implies the decoded input is `fq12Zero`.
+- `decode_fq12_frobenius_one`: power-1 execution is canonical and has the
+  proven Fq6 Frobenius lane formulas, with every c1 lane additionally scaled
+  by canonical `fq2U ^ ((q - 1) / 6)`.
+- `decode_fq12_frobenius_two`: power-2 execution is canonical and has the
+  proven Fq6 Frobenius lane formulas, with every c1 lane additionally scaled
+  by canonical `fq2U ^ ((q^2 - 1) / 6)`.
 
-- `canonical12_mul`
-- `decode_fq12_mul`
-- `canonical12_square`
-- `decode_fq12_square`
-- `canonical12_mul_by_034`
-- `decode_fq12_mul_by_034`
+The inverse none direction is supported by `fq12QuadraticNorm_eq_zero_iff`:
+the executed norm vanishes exactly at `fq12Zero`. Its nonzero direction is
+proved in `Fq6Canonical` using `fq6V_not_square`; no synthetic identifier,
+axiom, or migration path was introduced.
 
-`decode_fq12_mul` refines the executed quadratic Karatsuba chain to
-`Ipp.Bls12377.fq12Mul`. `decode_fq12_square` is stated against
-`Ipp.Bls12377.fq12Square`, which is definitionally `fq12Mul a a` and matches
-the pairing model consumer. `decode_fq12_mul_by_034` refines the executed
-sparse chain to multiplication by `Ipp.Bls12377.sparse034` in coefficient
-positions 0, 3, and 4. Its coefficient proof uses the explicit local
-`fq2Zero = 0` bridge.
+## Certificates and C1 identification
 
-The private `fq12_nonresidue_spec` proves the extracted Fq6 rotation has
-`Ipp.Bls12377.fq6MulByV` semantics. Final coefficient identities are closed
-componentwise in Fq2 after rewriting the combined specs.
+Added one new 377-bit kernel certificate:
 
-No generated Lean file or Rust spike was modified. Inverse, Frobenius,
-cyclotomic operations, and bytes remain untouched for later parts.
+- `baseModulus_minus_five_twelfthResidue` certifies
+  `(-5)^((q-1)/12) = 92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353`.
+- `minus_five_pow_twelfth` lifts the residue into `Fq`.
 
-## Fq6 companion lemmas
+`fq12FrobeniusC1_one` uses evenness of `(q-1)/6` and `fq2U_pow_twice` to
+reduce the canonical constant to that twelfth residue. For power 2,
+`(q^2-1)/12` is Fermat-reduced to `(q-1)/6` plus a multiple of `q-1`, so
+`fq12FrobeniusC1_two` reuses the existing sixth-residue certificate. No
+greater-than-400-bit kernel exponent was evaluated.
 
-The Fq6 layer already had decode laws but lacked canonicity projections needed
-to carry intermediate values through the Fq12 bind chains. The smallest
-companions added to `Ipp/Extracted/ArkworksFq6.lean` are:
-
-- `canonical6_add`
-- `canonical6_sub`
-- `canonical6_double`
-- `canonical6_mul_base_field_by_nonresidue`
-
-No Fq6 semantic statement was weakened or duplicated.
+Private row-selection and Montgomery decode lemmas prove that pinned
+`FROBENIUS_COEFF_FP12_C1` rows 1 and 2 equal these canonical constants. The
+resulting public Frobenius statements contain only canonical powers, never
+table limbs. The decoded values match ark-bls12-377 0.5.0's published rows:
+`929493...994353` and `809496...410946`.
 
 ## Gates
 
-- Pinned, single-threaded focused build:
-  `lake build Ipp.Extracted.ArkworksFq12` — PASS, 3,002 jobs.
-- Pinned, single-threaded full build:
-  `lake build Ipp` — PASS, 3,426 jobs.
-- Changed Lean-file scan for `sorry`, `admit`, and new `axiom` declarations —
+- `lake build Ipp.Bls12377Certificates` with the pinned lake and
+  `LEAN_NUM_THREADS=1` — PASS, 1,973 jobs.
+- `lake build Ipp.Bls12377Fq6` — PASS, 2,012 jobs.
+- `lake build Ipp.Extracted.ArkworksFq12` — PASS, 3,002 jobs.
+- Full `lake build Ipp` — PASS, 3,426 jobs.
+- `git diff --check` — PASS.
+- Changed-file scan for `sorry`, `admit`, and new `axiom` declarations —
   PASS, no matches.
-- Diff scope audit — PASS: only the hand-authored Fq6/Fq12 law files and this
-  report changed; no `*Generated.lean` or Rust spike changes.
-- Prover/release-gated tests — NOT RUN; this part is confined to Lean
-  refinement laws and the required Lean build gates passed.
+- No generated Lean file or Rust spike was modified.
+- Prover/release-gated tests — NOT RUN; this part changes Lean refinement and
+  certificate proofs only, and all requested Lean gates passed.
 
 ## Axiom audit
 
-All ten new public theorems report exactly the permitted axioms:
+All new public theorem families report only the permitted axioms
+`propext`, `Classical.choice`, and `Quot.sound`. In particular:
 
 ```text
-'Ipp.Extracted.ArkworksFq6.canonical6_add' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq6.canonical6_sub' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq6.canonical6_double' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq6.canonical6_mul_base_field_by_nonresidue' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq12.canonical12_mul' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq12.decode_fq12_mul' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq12.canonical12_square' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq12.decode_fq12_square' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq12.canonical12_mul_by_034' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksFq12.decode_fq12_mul_by_034' depends on axioms: [propext, Classical.choice, Quot.sound]
+decode_fq12_inv_some: [propext, Classical.choice, Quot.sound]
+decode_fq12_inv_none: [propext, Classical.choice, Quot.sound]
+decode_fq12_cyclotomic_inverse_some: [propext, Classical.choice, Quot.sound]
+decode_fq12_cyclotomic_inverse_none: [propext, Quot.sound]
+decode_fq12_frobenius_one: [propext, Classical.choice, Quot.sound]
+decode_fq12_frobenius_two: [propext, Classical.choice, Quot.sound]
+baseModulus_minus_five_twelfthResidue: [propext, Quot.sound]
+minus_five_pow_twelfth: [propext, Classical.choice, Quot.sound]
+fq12FrobeniusC1_one/two: [propext, Classical.choice, Quot.sound]
+fq12QuadraticNorm_eq_zero_iff: [propext, Classical.choice, Quot.sound]
 ```
 
 No commit was made. Pre-existing untracked `.claude/` and `hooks/` paths were

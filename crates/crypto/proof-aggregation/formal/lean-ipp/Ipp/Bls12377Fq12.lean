@@ -103,6 +103,12 @@ noncomputable def fq12Coefficients (a : Fq12Model) : Fq12Canonical :=
     algebraMap Fq6Canonical Fq12Canonical (fq6Coefficients a.c1) *
       AdjoinRoot.root fq12Polynomial
 
+def fq12Zero : Fq12Model := ⟨fq6Zero, fq6Zero⟩
+
+/-- The quadratic norm used by the executed Fq12 inverse. -/
+def fq12QuadraticNorm (a : Fq12Model) : Fq6Model :=
+  fq6Sub (fq6Mul a.c0 a.c0) (fq6MulByV (fq6Mul a.c1 a.c1))
+
 private theorem fq12Polynomial_ne_zero : fq12Polynomial ≠ 0 :=
   fq12Polynomial_irreducible.ne_zero
 
@@ -130,6 +136,42 @@ theorem fq12_card : Fintype.card Fq12Canonical = baseModulus ^ 12 := by
 
 @[simp] theorem fq12Coefficients_one : fq12Coefficients fq12One = 1 := by
   simp [fq12Coefficients, fq12One]
+
+@[simp] theorem fq12Coefficients_zero : fq12Coefficients fq12Zero = 0 := by
+  simp [fq12Coefficients, fq12Zero]
+
+theorem fq12QuadraticNorm_coefficients (a : Fq12Model) :
+    fq6Coefficients (fq12QuadraticNorm a) =
+      fq6Coefficients a.c0 ^ 2 - fq6V * fq6Coefficients a.c1 ^ 2 := by
+  rw [fq12QuadraticNorm, fq6Coefficients_sub, fq6Coefficients_mul,
+    fq6Coefficients_mulByV, fq6Coefficients_mul]
+  simp [fq6V, pow_two]
+
+/-- The executed quadratic norm vanishes exactly at the zero Fq12 value. -/
+theorem fq12QuadraticNorm_eq_zero_iff (a : Fq12Model) :
+    fq12QuadraticNorm a = fq6Zero ↔ a = fq12Zero := by
+  constructor
+  · intro hnorm
+    have hcoeff : fq6Coefficients a.c0 ^ 2 - fq6V * fq6Coefficients a.c1 ^ 2 = 0 := by
+      rw [← fq12QuadraticNorm_coefficients, hnorm, fq6Coefficients_zero]
+    have hc1 : fq6Coefficients a.c1 = 0 := by
+      by_contra hc1
+      have hsquare : (fq6Coefficients a.c0 / fq6Coefficients a.c1) ^ 2 = fq6V := by
+        field_simp
+        linear_combination hcoeff
+      exact fq6V_not_square (fq6Coefficients a.c0 / fq6Coefficients a.c1) hsquare
+    have hc0 : fq6Coefficients a.c0 = 0 := by
+      have hsquare : fq6Coefficients a.c0 ^ 2 = 0 := by simpa [hc1] using hcoeff
+      exact sq_eq_zero_iff.mp hsquare
+    have h0 : a.c0 = fq6Zero :=
+      fq6Coefficients_bijective.injective (by simpa using hc0)
+    have h1 : a.c1 = fq6Zero :=
+      fq6Coefficients_bijective.injective (by simpa using hc1)
+    cases a
+    simp_all [fq12Zero]
+  · rintro rfl
+    have hz : fq2Zero = 0 := by ext <;> rfl
+    simp [fq12QuadraticNorm, fq12Zero, fq6Sub, fq6Zero, fq6Mul, fq6MulByV, hz]
 
 theorem fq12Coefficients_mul (a b : Fq12Model) :
     fq12Coefficients (fq12Mul a b) =
@@ -209,5 +251,8 @@ theorem fq12Coefficients_pow (a : Fq12Model) (n : Nat) :
 #print axioms fq12Coefficients_mul
 #print axioms fq12Coefficients_pow
 #print axioms fq12Coefficients_bijective
+#print axioms fq12Coefficients_zero
+#print axioms fq12QuadraticNorm_coefficients
+#print axioms fq12QuadraticNorm_eq_zero_iff
 
 end Ipp.Bls12377

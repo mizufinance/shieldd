@@ -556,7 +556,7 @@ private theorem decode_fq2_zero_limbs :
     simp [decodeFq2, Ipp.Extracted.ArkworksFqMul.decode_eq_cast_mul_inv,
       Ipp.Extracted.ArkworksFqInv.limbsToNat_zeroArray]
 
-private theorem fq2_eq_zero_decode (a : Fq2LimbPair)
+theorem fq2_eq_zero_decode (a : Fq2LimbPair)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_eq a
       ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO = .ok true) :
     decodeFq2 a = 0 := by
@@ -1029,6 +1029,7 @@ theorem canonical_field_fq6_inv (a output : Fq6LimbTriple)
 #print axioms decode_fq6_mul_by_01
 #print axioms decode_fq6_inv_some
 #print axioms decode_fq6_inv_none
+#print axioms fq2_eq_zero_decode
 #print axioms canonical_field_fq6_mul
 #print axioms canonical_field_fq6_square
 #print axioms canonical_field_fq6_inv

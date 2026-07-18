@@ -639,6 +639,13 @@ theorem baseModulus_minus_five_sixthResidue :
   rfl
 
 set_option maxRecDepth 100000 in
+theorem baseModulus_minus_five_twelfthResidue :
+    powResidue (Ipp.Bls12377.baseModulus - 5)
+        ((Ipp.Bls12377.baseModulus - 1) / 12) Ipp.Bls12377.baseModulus =
+      92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353 := by
+  rfl
+
+set_option maxRecDepth 100000 in
 theorem baseModulus_minus_five_twoThirdsResidue :
     powResidue (Ipp.Bls12377.baseModulus - 5)
         (2 * ((Ipp.Bls12377.baseModulus - 1) / 3)) Ipp.Bls12377.baseModulus =
@@ -655,6 +662,19 @@ theorem minus_five_pow_sixth :
   rw [← powResidue_eq_val, baseModulus_minus_five_sixthResidue]
   change 80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 =
     80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 % Ipp.Bls12377.baseModulus
+  norm_num [Ipp.Bls12377.baseModulus]
+
+theorem minus_five_pow_twelfth :
+    (((Ipp.Bls12377.baseModulus - 5 : Nat) : Ipp.Bls12377.Fq) ^
+      ((Ipp.Bls12377.baseModulus - 1) / 12)) =
+      (92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353 :
+        Ipp.Bls12377.Fq) := by
+  letI : NeZero Ipp.Bls12377.baseModulus := ⟨by norm_num [Ipp.Bls12377.baseModulus]⟩
+  apply ZMod.val_injective
+  rw [← powResidue_eq_val, baseModulus_minus_five_twelfthResidue]
+  change 92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353 =
+    92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353 %
+      Ipp.Bls12377.baseModulus
   norm_num [Ipp.Bls12377.baseModulus]
 
 theorem minus_five_pow_third :
@@ -703,8 +723,10 @@ theorem fq2Nonresidue :
   simpa [Ipp.Bls12377.baseModulus] using h x
 
 #print axioms baseModulus_minus_five_sixthResidue
+#print axioms baseModulus_minus_five_twelfthResidue
 #print axioms baseModulus_minus_five_twoThirdsResidue
 #print axioms minus_five_pow_sixth
+#print axioms minus_five_pow_twelfth
 #print axioms minus_five_pow_third
 #print axioms minus_five_pow_twoThirds
 #print axioms minus_five_pow_half

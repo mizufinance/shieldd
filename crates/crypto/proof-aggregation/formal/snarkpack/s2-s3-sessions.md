@@ -863,14 +863,25 @@ each with `canonical12_*` projections; private `fq12_nonresidue_spec`
 (extracted Fq6 rotation = `fq6MulByV`). Fq6 canonicity companions added:
 `canonical6_add/sub/double/mul_base_field_by_nonresidue`. Full Ipp green
 (3426 jobs), zero sorry, audited axioms.
-REMAINING PARTS: (3) inverse both directions + cyclotomic inverse +
-Frobenius 1/2 (constants certified vs canonical `fq6V`-powers, S3-19
-pattern); (4) cyclotomic square (Granger–Scott vs `fq12Mul x x` on the
-cyclotomic subgroup — check the identity's hypothesis carefully: GS-square
-equals plain square only for norm-1 elements; state conformance against
-the executed plain square with the cyclotomic hypothesis, or against the
-model formula unconditionally as arkworks computes it) + `cyclotomic_exp`
-NAF loop induction vs `fq12Pow`; (5) canonical bytes vs
+PART 3 DONE (2026-07-18, orchestrator; executed by sol):
+`decode_fq12_inv_some/none` (norm route; none-direction via
+`fq12QuadraticNorm_eq_zero_iff` whose nonzero direction is proved in
+`Fq6Canonical` using `fq6V_not_square`),
+`decode_fq12_cyclotomic_inverse_some/none` (syntactic conjugation gated on
+nonzero; semantic norm-1 inversion deferred to S3-22),
+`decode_fq12_frobenius_one/two` (proven Fq6 Frobenius lanes; c1 lanes
+scaled by CANONICAL `fq2U^((q^k−1)/6)` — one new 377-bit certificate
+`baseModulus_minus_five_twelfthResidue` for k=1 via evenness +
+`fq2U_pow_twice`; k=2 Fermat-reduced to the existing sixth residue;
+pinned table rows 1/2 kernel-matched to the canonical values, no table
+limbs in statements). Full Ipp green (3426 jobs), zero sorry, audited
+axioms.
+REMAINING PARTS: (4) cyclotomic square (Granger–Scott vs `fq12Mul x x` on
+the cyclotomic subgroup — check the identity's hypothesis carefully:
+GS-square equals plain square only for norm-1 elements; state conformance
+against the executed plain square with the cyclotomic hypothesis, or
+against the model formula unconditionally as arkworks computes it) +
+`cyclotomic_exp` NAF loop induction vs `fq12Pow`; (5) canonical bytes vs
 `CanonicalGtDecode`; then ledger retirement.
 
 **S3-22 — GT factorization and order-r characterization** — `HARD (sol)` —

@@ -83,6 +83,34 @@ theorem fq6FrobeniusC2_two :
         (baseModulus - 1) * ((baseModulus - 1) / 3) by
     norm_num [baseModulus], pow_add, hp, pow_mul, hfermat, one_pow, mul_one]
 
+theorem fq12FrobeniusC1_one :
+    fq2U ^ ((baseModulus - 1) / 6) =
+      algebraMap Fq Fq2
+        (92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353 : Fq) := by
+  have hp : (-5 : Fq) ^ ((baseModulus - 1) / 12) =
+      (92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353 : Fq) := by
+    simpa [baseModulus] using Ipp.Bls12377Certificates.minus_five_pow_twelfth
+  rw [show (baseModulus - 1) / 6 = 2 * ((baseModulus - 1) / 12) by
+    norm_num [baseModulus], fq2U_pow_twice, hp]
+
+theorem fq12FrobeniusC1_two :
+    fq2U ^ ((baseModulus ^ 2 - 1) / 6) =
+      algebraMap Fq Fq2
+        (80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 : Fq) := by
+  rw [show (baseModulus ^ 2 - 1) / 6 =
+      2 * ((baseModulus ^ 2 - 1) / 12) by norm_num [baseModulus], fq2U_pow_twice]
+  have hminusFive : (-5 : Fq) ≠ 0 := by
+    intro h
+    exact arithmeticFacts.fq2Nonresidue 0 (by simpa using h.symm)
+  have hfermat : (-5 : Fq) ^ (baseModulus - 1) = 1 :=
+    ZMod.pow_card_sub_one_eq_one hminusFive
+  have hp : (-5 : Fq) ^ ((baseModulus - 1) / 6) =
+      (80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 : Fq) := by
+    simpa [baseModulus] using Ipp.Bls12377Certificates.minus_five_pow_sixth
+  rw [show (baseModulus ^ 2 - 1) / 12 =
+      (baseModulus - 1) / 6 + (baseModulus - 1) * ((baseModulus - 1) / 12) by
+    norm_num [baseModulus], pow_add, hp, pow_mul, hfermat, one_pow, mul_one]
+
 /-- The cubic tower constant `u` is not a cube in Fq2. -/
 theorem fq2U_not_cube : ∀ b : Fq2, b ^ 3 ≠ fq2U := by
   intro b hb
@@ -139,6 +167,9 @@ noncomputable def fq6Coefficients (a : Fq6Model) : Fq6Canonical :=
     algebraMap Fq2 Fq6Canonical a.c1 * AdjoinRoot.root fq6Polynomial +
     algebraMap Fq2 Fq6Canonical a.c2 * AdjoinRoot.root fq6Polynomial ^ 2
 
+def fq6Sub (a b : Fq6Model) : Fq6Model :=
+  ⟨a.c0 - b.c0, a.c1 - b.c1, a.c2 - b.c2⟩
+
 private theorem fq6Polynomial_ne_zero : fq6Polynomial ≠ 0 :=
   fq6Polynomial_irreducible.ne_zero
 
@@ -158,6 +189,11 @@ private theorem fq6_root_cube :
 theorem fq6Coefficients_add (a b : Fq6Model) :
     fq6Coefficients (fq6Add a b) = fq6Coefficients a + fq6Coefficients b := by
   simp [fq6Coefficients, fq6Add]
+  ring
+
+theorem fq6Coefficients_sub (a b : Fq6Model) :
+    fq6Coefficients (fq6Sub a b) = fq6Coefficients a - fq6Coefficients b := by
+  simp [fq6Coefficients, fq6Sub]
   ring
 
 theorem fq6Coefficients_mul (a b : Fq6Model) :
@@ -342,5 +378,8 @@ theorem fq6CubicNorm_eq_zero_iff (a : Fq6Model) :
 #print axioms fq6FrobeniusC2_one
 #print axioms fq6FrobeniusC1_two
 #print axioms fq6FrobeniusC2_two
+#print axioms fq12FrobeniusC1_one
+#print axioms fq12FrobeniusC1_two
+#print axioms fq6Coefficients_sub
 
 end Ipp.Bls12377

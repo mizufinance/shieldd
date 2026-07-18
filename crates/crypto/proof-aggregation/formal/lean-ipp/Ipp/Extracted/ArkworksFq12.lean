@@ -262,6 +262,560 @@ theorem decode_fq12_conjugate (a output : Fq12LimbPair)
   have e1 := decode_fq6_neg a.c1 c1 ha.2 hc1
   simp [decodeFq12, e1]
 
+private theorem fq2_neg_canonical (a output : Fq2LimbPair)
+    (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_neg a = .ok output) :
+    Canonical2 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_neg at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  exact ⟨(Ipp.Extracted.ArkworksFqOps.extracted_neg_spec a.c0 c0 ha.1 h0).1,
+    (Ipp.Extracted.ArkworksFqOps.extracted_neg_spec a.c1 c1 ha.2 h1).1⟩
+
+private theorem fq6_neg_spec (a output : Fq6LimbTriple)
+    (ha : Canonical6 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_neg a = .ok output) :
+    Canonical6 output ∧ decodeFq6 output =
+      ⟨-decodeFq2 a.c0, -decodeFq2 a.c1, -decodeFq2 a.c2⟩ := by
+  have hdecode := decode_fq6_neg a output ha hexec
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_neg at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c2, h2, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  exact ⟨⟨fq2_neg_canonical a.c0 c0 ha.1 h0,
+    fq2_neg_canonical a.c1 c1 ha.2.1 h1,
+    fq2_neg_canonical a.c2 c2 ha.2.2 h2⟩, hdecode⟩
+
+private theorem fq6_eq_zero_decode (a : Fq6LimbTriple)
+    (hexec :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq6Mont.Insts.CoreCmpPartialEqFq6Mont.eq
+        a ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO = .ok true) :
+    decodeFq6 a = Ipp.Bls12377.fq6Zero := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.Fq6Mont.Insts.CoreCmpPartialEqFq6Mont.eq at hexec
+  obtain ⟨b0, hb0, hexec⟩ := bind_eq_ok hexec
+  split at hexec
+  · have eb0 : b0 = true := by assumption
+    rw [eb0] at hb0
+    obtain ⟨b1, hb1, hexec⟩ := bind_eq_ok hexec
+    split at hexec
+    · have eb1 : b1 = true := by assumption
+      rw [eb1] at hb1
+      rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO] at hb0 hb1 hexec
+      have h0 := fq2_eq_zero_decode a.c0 hb0
+      have h1 := fq2_eq_zero_decode a.c1 hb1
+      have h2 := fq2_eq_zero_decode a.c2 hexec
+      have hz : Ipp.Bls12377.fq2Zero = 0 := by
+        apply QuadraticAlgebra.ext <;> rfl
+      simp [decodeFq6, Ipp.Bls12377.fq6Zero, h0, h1, h2, hz]
+    · simp at hexec
+  · simp at hexec
+
+private def fq12InvNormRoute (a : Fq12LimbPair) :
+    Result (Option Fq12LimbPair) := do
+  let v1 ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_square a.c1
+  let fm ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_square a.c0
+  let fm1 ←
+    ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_mul_base_field_by_nonresidue v1
+  let norm ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_sub fm fm1
+  let o ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_inv norm
+  match o with
+  | none => .ok none
+  | some normInv => do
+    let c0 ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_mul a.c0 normInv
+    let c1p ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_mul a.c1 normInv
+    let c1 ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_neg c1p
+    .ok (some ⟨c0, c1⟩)
+
+private theorem fq12_inv_norm_some_spec (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : fq12InvNormRoute a = .ok (some output)) :
+    Canonical12 output ∧
+      Ipp.Bls12377.fq12Mul (decodeFq12 output) (decodeFq12 a) =
+        Ipp.Bls12377.fq12One := by
+  unfold fq12InvNormRoute at hexec
+  obtain ⟨v1, hv1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm, hfm, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, hfm1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨norm, hnorm, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨o, ho, hexec⟩ := bind_eq_ok hexec
+  cases o with
+  | none => simp at hexec
+  | some normInv =>
+      obtain ⟨c0, hc0, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨c1p, hc1p, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨c1, hc1, hret⟩ := bind_eq_ok hexec
+      simp only [Result.ok.injEq, Option.some.injEq] at hret
+      subst output
+      have sfm : Canonical6 fm ∧ decodeFq6 fm =
+          Ipp.Bls12377.fq6Mul (decodeFq6 a.c0) (decodeFq6 a.c0) :=
+        ⟨canonical6_square a.c0 fm ha.1 hfm,
+          decode_fq6_square a.c0 fm ha.1 hfm⟩
+      have sv1' : Canonical6 v1 ∧ decodeFq6 v1 =
+          Ipp.Bls12377.fq6Mul (decodeFq6 a.c1) (decodeFq6 a.c1) :=
+        ⟨canonical6_square a.c1 v1 ha.2 hv1,
+          decode_fq6_square a.c1 v1 ha.2 hv1⟩
+      have sfm1 := fq12_nonresidue_spec v1 fm1 sv1'.1 hfm1
+      have snorm := fq6_sub_spec fm fm1 norm sfm.1 sfm1.1 hnorm
+      have sinv := decode_fq6_inv_some norm normInv snorm.1 ho
+      have sc0 := fq6_mul_spec a.c0 normInv c0 ha.1 sinv.1 hc0
+      have sc1p := fq6_mul_spec a.c1 normInv c1p ha.2 sinv.1 hc1p
+      have sc1 := fq6_neg_spec c1p c1 sc1p.1 hc1
+      refine ⟨⟨sc0.1, sc1.1⟩, ?_⟩
+      apply Ipp.Bls12377.fq12Coefficients_bijective.injective
+      rw [Ipp.Bls12377.fq12Coefficients_mul,
+        Ipp.Bls12377.fq12Coefficients_one]
+      have hinv := Ipp.Extracted.ArkworksFq6.canonical_field_fq6_inv
+        norm normInv snorm.1 ho
+      have dnorm : decodeFq6 norm = Ipp.Bls12377.fq6Sub
+          (Ipp.Bls12377.fq6Mul (decodeFq6 a.c0) (decodeFq6 a.c0))
+          (Ipp.Bls12377.fq6MulByV
+            (Ipp.Bls12377.fq6Mul (decodeFq6 a.c1) (decodeFq6 a.c1))) := by
+        simpa [Ipp.Bls12377.fq6Sub, sfm.2, sfm1.2, sv1'.2] using snorm.2
+      have hnormCoeff : Ipp.Bls12377.fq6Coefficients (decodeFq6 norm) =
+          Ipp.Bls12377.fq6Coefficients (decodeFq6 a.c0) ^ 2 -
+            Ipp.Bls12377.fq6V *
+          Ipp.Bls12377.fq6Coefficients (decodeFq6 a.c1) ^ 2 := by
+        rw [dnorm, Ipp.Bls12377.fq6Coefficients_sub,
+          Ipp.Bls12377.fq6Coefficients_mul,
+          Ipp.Bls12377.fq6Coefficients_mulByV,
+          Ipp.Bls12377.fq6Coefficients_mul]
+        simp [Ipp.Bls12377.fq6V, pow_two]
+      rw [hnormCoeff] at hinv
+      have hnegCoeff :
+          Ipp.Bls12377.fq6Coefficients (decodeFq6 c1) =
+            -Ipp.Bls12377.fq6Coefficients (decodeFq6 c1p) := by
+        rw [sc1.2]
+        simp [decodeFq6, Ipp.Bls12377.fq6Coefficients]
+        ring
+      simp only [decodeFq12, Ipp.Bls12377.fq12Coefficients, sc0.2,
+        Ipp.Bls12377.fq6Coefficients_mul]
+      rw [hnegCoeff, sc1p.2, Ipp.Bls12377.fq6Coefficients_mul]
+      push_cast
+      have hroot : AdjoinRoot.root Ipp.Bls12377.fq12Polynomial ^ 2 =
+          algebraMap Ipp.Bls12377.Fq6Canonical Ipp.Bls12377.Fq12Canonical
+            Ipp.Bls12377.fq6V := by
+        simpa [Ipp.Bls12377.fq12Polynomial] using
+          (root_X_pow_sub_C_pow 2 Ipp.Bls12377.fq6V)
+      have hinvMap := congrArg
+        (algebraMap Ipp.Bls12377.Fq6Canonical Ipp.Bls12377.Fq12Canonical) hinv
+      simp only [map_mul, map_sub, map_pow, map_one] at hinvMap
+      let X := algebraMap Ipp.Bls12377.Fq6Canonical Ipp.Bls12377.Fq12Canonical
+        (Ipp.Bls12377.fq6Coefficients (decodeFq6 a.c0))
+      let Y := algebraMap Ipp.Bls12377.Fq6Canonical Ipp.Bls12377.Fq12Canonical
+        (Ipp.Bls12377.fq6Coefficients (decodeFq6 a.c1))
+      let T := algebraMap Ipp.Bls12377.Fq6Canonical Ipp.Bls12377.Fq12Canonical
+        (Ipp.Bls12377.fq6Coefficients (decodeFq6 normInv))
+      let r := AdjoinRoot.root Ipp.Bls12377.fq12Polynomial
+      change (X * T + -(Y * T) * r) * (X + Y * r) = 1
+      calc
+        (X * T + -(Y * T) * r) * (X + Y * r) =
+            T * (X ^ 2 - Y ^ 2 * r ^ 2) := by ring
+        _ = T * (X ^ 2 - Y ^ 2 *
+            algebraMap Ipp.Bls12377.Fq6Canonical Ipp.Bls12377.Fq12Canonical
+              Ipp.Bls12377.fq6V) := by rw [hroot]
+        _ = 1 := by simpa [X, Y, T, mul_comm] using hinvMap
+
+/-- A successful executed Fq12 inverse is canonical and multiplies its input to one. -/
+theorem decode_fq12_inv_some (a output : Fq12LimbPair) (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_inv a =
+      .ok (some output)) :
+    Canonical12 output ∧
+      Ipp.Bls12377.fq12Mul (decodeFq12 output) (decodeFq12 a) =
+        Ipp.Bls12377.fq12One := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_inv at hexec
+  obtain ⟨b0, hb0, hexec⟩ := bind_eq_ok hexec
+  split at hexec
+  · obtain ⟨b1, hb1, hexec⟩ := bind_eq_ok hexec
+    split at hexec
+    · simp at hexec
+    · change fq12InvNormRoute a = .ok (some output) at hexec
+      exact fq12_inv_norm_some_spec a output ha hexec
+  · change fq12InvNormRoute a = .ok (some output) at hexec
+    exact fq12_inv_norm_some_spec a output ha hexec
+
+private theorem fq12_inv_norm_none (a : Fq12LimbPair) (ha : Canonical12 a)
+    (hexec : fq12InvNormRoute a = .ok none) :
+    decodeFq12 a = Ipp.Bls12377.fq12Zero := by
+  unfold fq12InvNormRoute at hexec
+  obtain ⟨v1, hv1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm, hfm, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, hfm1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨norm, hnorm, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨o, ho, hexec⟩ := bind_eq_ok hexec
+  cases o with
+  | some normInv =>
+      obtain ⟨c0, hc0, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨c1p, hc1p, hexec⟩ := bind_eq_ok hexec
+      obtain ⟨c1, hc1, hexec⟩ := bind_eq_ok hexec
+      exact absurd (Result.ok.inj hexec) (Option.some_ne_none _)
+  | none =>
+      have sfm : Canonical6 fm ∧ decodeFq6 fm =
+          Ipp.Bls12377.fq6Mul (decodeFq6 a.c0) (decodeFq6 a.c0) :=
+        ⟨canonical6_square a.c0 fm ha.1 hfm,
+          decode_fq6_square a.c0 fm ha.1 hfm⟩
+      have sv1 : Canonical6 v1 ∧ decodeFq6 v1 =
+          Ipp.Bls12377.fq6Mul (decodeFq6 a.c1) (decodeFq6 a.c1) :=
+        ⟨canonical6_square a.c1 v1 ha.2 hv1,
+          decode_fq6_square a.c1 v1 ha.2 hv1⟩
+      have sfm1 := fq12_nonresidue_spec v1 fm1 sv1.1 hfm1
+      have snorm := fq6_sub_spec fm fm1 norm sfm.1 sfm1.1 hnorm
+      have hzero := decode_fq6_inv_none norm snorm.1 ho
+      have dnorm : decodeFq6 norm =
+          Ipp.Bls12377.fq12QuadraticNorm (decodeFq12 a) := by
+        simpa [decodeFq12, Ipp.Bls12377.fq12QuadraticNorm,
+          Ipp.Bls12377.fq6Sub, sfm.2, sfm1.2, sv1.2] using snorm.2
+      exact (Ipp.Bls12377.fq12QuadraticNorm_eq_zero_iff (decodeFq12 a)).mp
+        (dnorm.symm.trans hzero)
+
+/-- The executed Fq12 inverse returns `none` only for the zero field element. -/
+theorem decode_fq12_inv_none (a : Fq12LimbPair) (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_inv a = .ok none) :
+    decodeFq12 a = Ipp.Bls12377.fq12Zero := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_inv at hexec
+  obtain ⟨b0, hb0, hexec⟩ := bind_eq_ok hexec
+  split at hexec
+  · obtain ⟨b1, hb1, hexec⟩ := bind_eq_ok hexec
+    have eb0 : b0 = true := by assumption
+    rw [eb0] at hb0
+    split at hexec
+    · have eb1 : b1 = true := by assumption
+      rw [eb1] at hb1
+      have h0 := fq6_eq_zero_decode a.c0 hb0
+      have h1 := fq6_eq_zero_decode a.c1 hb1
+      simp [decodeFq12, Ipp.Bls12377.fq12Zero, h0, h1]
+    · change fq12InvNormRoute a = .ok none at hexec
+      exact fq12_inv_norm_none a ha hexec
+  · change fq12InvNormRoute a = .ok none at hexec
+    exact fq12_inv_norm_none a ha hexec
+
+private theorem fq12_conjugate_spec (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_conjugate a = .ok output) :
+    Canonical12 output ∧ decodeFq12 output =
+      ⟨decodeFq6 a.c0,
+       ⟨-decodeFq2 a.c1.c0, -decodeFq2 a.c1.c1, -decodeFq2 a.c1.c2⟩⟩ := by
+  have hdecode := decode_fq12_conjugate a output ha hexec
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_conjugate at hexec
+  obtain ⟨c1, hc1, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  exact ⟨⟨ha.1, (fq6_neg_spec a.c1 c1 ha.2 hc1).1⟩, hdecode⟩
+
+/-- Cyclotomic inverse is syntactically conjugation on every nonzero input. -/
+theorem decode_fq12_cyclotomic_inverse_some (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_inverse a =
+      .ok (some output)) :
+    Canonical12 output ∧ decodeFq12 output =
+      ⟨decodeFq6 a.c0,
+       ⟨-decodeFq2 a.c1.c0, -decodeFq2 a.c1.c1, -decodeFq2 a.c1.c2⟩⟩ := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_inverse at hexec
+  obtain ⟨b0, hb0, hexec⟩ := bind_eq_ok hexec
+  split at hexec
+  · obtain ⟨b1, hb1, hexec⟩ := bind_eq_ok hexec
+    split at hexec
+    · simp at hexec
+    · obtain ⟨conj, hconj, hret⟩ := bind_eq_ok hexec
+      simp only [Result.ok.injEq, Option.some.injEq] at hret
+      subst output
+      exact fq12_conjugate_spec a conj ha hconj
+  · obtain ⟨conj, hconj, hret⟩ := bind_eq_ok hexec
+    simp only [Result.ok.injEq, Option.some.injEq] at hret
+    subst output
+    exact fq12_conjugate_spec a conj ha hconj
+
+theorem decode_fq12_cyclotomic_inverse_none (a : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_inverse a =
+      .ok none) :
+    decodeFq12 a = Ipp.Bls12377.fq12Zero := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_inverse at hexec
+  obtain ⟨b0, hb0, hexec⟩ := bind_eq_ok hexec
+  split at hexec
+  · obtain ⟨b1, hb1, hexec⟩ := bind_eq_ok hexec
+    have eb0 : b0 = true := by assumption
+    rw [eb0] at hb0
+    split at hexec
+    · have eb1 : b1 = true := by assumption
+      rw [eb1] at hb1
+      have h0 := fq6_eq_zero_decode a.c0 hb0
+      have h1 := fq6_eq_zero_decode a.c1 hb1
+      simp [decodeFq12, Ipp.Bls12377.fq12Zero, h0, h1]
+    · obtain ⟨conj, hconj, hexec⟩ := bind_eq_ok hexec
+      exact absurd (Result.ok.inj hexec) (Option.some_ne_none _)
+  · obtain ⟨conj, hconj, hexec⟩ := bind_eq_ok hexec
+    exact absurd (Result.ok.inj hexec) (Option.some_ne_none _)
+
+private def frobenius12One : Ipp.Extracted.ArkworksFqMul.LimbArray :=
+  MacCampaign.Array.make 6#usize [
+    7981638599956744862#u64, 11830407261614897732#u64,
+    6308788297503259939#u64, 10596665404780565693#u64,
+    11693741422477421038#u64, 61545186993886319#u64]
+
+private def frobenius12Two : Ipp.Extracted.ArkworksFqMul.LimbArray :=
+  MacCampaign.Array.make 6#usize [
+    6382252053795993818#u64, 1383562296554596171#u64,
+    11197251941974877903#u64, 6684509567199238270#u64,
+    6699184357838251020#u64, 19987743694136192#u64]
+
+private theorem fq12_frobenius_radix_coprime :
+    Nat.Coprime Ipp.Bls12377.baseMontgomeryRadix Ipp.Bls12377.baseModulus := by
+  rw [Ipp.Bls12377.baseMontgomeryRadix,
+    Nat.coprime_pow_left_iff (by decide : 0 < 384)]
+  norm_num [Ipp.Bls12377.baseModulus]
+
+private theorem fq12_decode_of_montgomery_eq
+    (v : Ipp.Extracted.ArkworksFqMul.LimbArray) (c : Ipp.Bls12377.Fq)
+    (h : (Ipp.Extracted.ArkworksFqMul.limbsToNat v : Ipp.Bls12377.Fq) =
+      c * (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)) :
+    Ipp.Extracted.ArkworksFqMul.decode v = c := by
+  rw [Ipp.Extracted.ArkworksFqMul.decode_eq_cast_mul_inv, h]
+  rw [mul_assoc,
+    ZMod.coe_mul_inv_eq_one _ fq12_frobenius_radix_coprime, mul_one]
+
+set_option maxRecDepth 4096 in
+private theorem decode_frobenius12One :
+    Ipp.Extracted.ArkworksFqMul.decode frobenius12One =
+      (92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353 :
+        Ipp.Bls12377.Fq) := by
+  apply fq12_decode_of_montgomery_eq
+  rfl
+
+set_option maxRecDepth 4096 in
+private theorem decode_frobenius12Two :
+    Ipp.Extracted.ArkworksFqMul.decode frobenius12Two =
+      (80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 :
+        Ipp.Bls12377.Fq) := by
+  apply fq12_decode_of_montgomery_eq
+  rfl
+
+private theorem fq12_limbsToNat_make_six
+    (x0 x1 x2 x3 x4 x5 : MacCampaign.U64) :
+    Ipp.Extracted.ArkworksFqMul.limbsToNat
+      (MacCampaign.Array.make 6#usize [x0, x1, x2, x3, x4, x5]) =
+      x0.val + x1.val * Ipp.Extracted.ArkworksFqMul.wordBase +
+      x2.val * Ipp.Extracted.ArkworksFqMul.wordBase ^ 2 +
+      x3.val * Ipp.Extracted.ArkworksFqMul.wordBase ^ 3 +
+      x4.val * Ipp.Extracted.ArkworksFqMul.wordBase ^ 4 +
+      x5.val * Ipp.Extracted.ArkworksFqMul.wordBase ^ 5 := by
+  simp [Ipp.Extracted.ArkworksFqMul.limbsToNat,
+    Ipp.Extracted.ArkworksFqMul.prefixToNat,
+    Ipp.Extracted.ArkworksFqMul.limb,
+    Ipp.Extracted.ArkworksFqMul.limbWord, MacCampaign.Array.make,
+    Ipp.Extracted.ArkworksFqMul.limbCount]
+
+set_option maxRecDepth 4096 in
+private theorem canonical_frobenius12One :
+    Ipp.Extracted.ArkworksFqMul.limbsToNat frobenius12One <
+      Ipp.Bls12377.baseModulus := by
+  rw [frobenius12One, fq12_limbsToNat_make_six]
+  norm_num [MacCampaign.U64.ofNat, MacCampaign.u64Base,
+    Ipp.Extracted.ArkworksFqMul.wordBase, Ipp.Bls12377.baseModulus]
+
+set_option maxRecDepth 4096 in
+private theorem canonical_frobenius12Two :
+    Ipp.Extracted.ArkworksFqMul.limbsToNat frobenius12Two <
+      Ipp.Bls12377.baseModulus := by
+  rw [frobenius12Two, fq12_limbsToNat_make_six]
+  norm_num [MacCampaign.U64.ofNat, MacCampaign.u64Base,
+    Ipp.Extracted.ArkworksFqMul.wordBase, Ipp.Bls12377.baseModulus]
+
+private theorem decode_fq12_zero_limbs :
+    Ipp.Extracted.ArkworksFqMul.decode
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO = 0 := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO]
+  change Ipp.Extracted.ArkworksFqMul.decode
+    Ipp.Extracted.ArkworksFqInv.zeroArray = 0
+  simp [Ipp.Extracted.ArkworksFqMul.decode_eq_cast_mul_inv,
+    Ipp.Extracted.ArkworksFqInv.limbsToNat_zeroArray]
+
+private theorem canonical_fq12_zero_limbs :
+    Ipp.Extracted.ArkworksFqMul.limbsToNat
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO <
+        Ipp.Bls12377.baseModulus := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO]
+  change Ipp.Extracted.ArkworksFqMul.limbsToNat
+    Ipp.Extracted.ArkworksFqInv.zeroArray < Ipp.Bls12377.baseModulus
+  simp [Ipp.Extracted.ArkworksFqInv.limbsToNat_zeroArray,
+    Ipp.Bls12377.baseModulus]
+
+private theorem frobenius12One_selected :
+    (do
+      let table ← ark_ip_proofs.s3_07_arkworks_fq_spike.FROBENIUS_COEFF_FP12_C1
+      MacCampaign.Array.index_usize table 1#usize) = .ok frobenius12One := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FROBENIUS_COEFF_FP12_C1,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FROBENIUS_COEFF_FP6_C1]
+  rfl
+
+private theorem frobenius12Two_selected :
+    (do
+      let table ← ark_ip_proofs.s3_07_arkworks_fq_spike.FROBENIUS_COEFF_FP12_C1
+      MacCampaign.Array.index_usize table 2#usize) = .ok frobenius12Two := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FROBENIUS_COEFF_FP12_C1,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FROBENIUS_COEFF_FP6_C1]
+  rfl
+
+private theorem decode_frobenius12One_pair :
+    decodeFq2 ⟨frobenius12One,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ =
+      Ipp.Bls12377.fq2U ^ ((Ipp.Bls12377.baseModulus - 1) / 6) := by
+  rw [Ipp.Bls12377.fq12FrobeniusC1_one]
+  apply QuadraticAlgebra.ext <;>
+    simp [decodeFq2, decode_frobenius12One, decode_fq12_zero_limbs]
+
+private theorem decode_frobenius12Two_pair :
+    decodeFq2 ⟨frobenius12Two,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ =
+      Ipp.Bls12377.fq2U ^
+        ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 6) := by
+  rw [Ipp.Bls12377.fq12FrobeniusC1_two]
+  apply QuadraticAlgebra.ext <;>
+    simp [decodeFq2, decode_frobenius12Two, decode_fq12_zero_limbs]
+
+private theorem canonical_frobenius12One_pair :
+    Canonical2 ⟨frobenius12One,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ :=
+  ⟨canonical_frobenius12One, canonical_fq12_zero_limbs⟩
+
+private theorem canonical_frobenius12Two_pair :
+    Canonical2 ⟨frobenius12Two,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ :=
+  ⟨canonical_frobenius12Two, canonical_fq12_zero_limbs⟩
+
+private theorem fq6_mul_by_fp2_spec (a : Fq6LimbTriple) (b : Fq2LimbPair)
+    (output : Fq6LimbTriple) (ha : Canonical6 a) (hb : Canonical2 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_mul_by_fp2 a b =
+      .ok output) :
+    Canonical6 output ∧ decodeFq6 output =
+      ⟨decodeFq2 a.c0 * decodeFq2 b,
+       decodeFq2 a.c1 * decodeFq2 b,
+       decodeFq2 a.c2 * decodeFq2 b⟩ := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_mul_by_fp2 at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c2, h2, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  have s0 := extracted_fq2_mul_spec a.c0 b c0 ha.1 hb h0
+  have s1 := extracted_fq2_mul_spec a.c1 b c1 ha.2.1 hb h1
+  have s2 := extracted_fq2_mul_spec a.c2 b c2 ha.2.2 hb h2
+  exact ⟨⟨s0.1, s1.1, s2.1⟩, by simp [decodeFq6, s0.2, s1.2, s2.2]⟩
+
+theorem decode_fq12_frobenius_one (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_frobenius a 1#usize =
+      .ok output) :
+    Canonical12 output ∧ decodeFq12 output =
+      ⟨⟨star (decodeFq2 a.c0.c0),
+         Ipp.Bls12377.fq2U ^ ((Ipp.Bls12377.baseModulus - 1) / 3) *
+           star (decodeFq2 a.c0.c1),
+         Ipp.Bls12377.fq2U ^
+             (2 * ((Ipp.Bls12377.baseModulus - 1) / 3)) *
+           star (decodeFq2 a.c0.c2)⟩,
+       ⟨star (decodeFq2 a.c1.c0) *
+           Ipp.Bls12377.fq2U ^ ((Ipp.Bls12377.baseModulus - 1) / 6),
+         (Ipp.Bls12377.fq2U ^ ((Ipp.Bls12377.baseModulus - 1) / 3) *
+           star (decodeFq2 a.c1.c1)) *
+             Ipp.Bls12377.fq2U ^ ((Ipp.Bls12377.baseModulus - 1) / 6),
+         (Ipp.Bls12377.fq2U ^
+             (2 * ((Ipp.Bls12377.baseModulus - 1) / 3)) *
+           star (decodeFq2 a.c1.c2)) *
+             Ipp.Bls12377.fq2U ^ ((Ipp.Bls12377.baseModulus - 1) / 6)⟩⟩ := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_frobenius at hexec
+  obtain ⟨table, htable, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨coeff, hcoeff, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c0, hc0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1p, hc1p, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, hc1, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  have hcoeff' : (do
+      let table ← ark_ip_proofs.s3_07_arkworks_fq_spike.FROBENIUS_COEFF_FP12_C1
+      MacCampaign.Array.index_usize table 1#usize) = .ok coeff := by
+    rw [htable]
+    simpa using hcoeff
+  have ecoeff : frobenius12One = coeff :=
+    Result.ok.inj (frobenius12One_selected.symm.trans hcoeff')
+  subst coeff
+  have sc0 := decode_fq6_frobenius_one a.c0 c0 ha.1 hc0
+  have sc1p := decode_fq6_frobenius_one a.c1 c1p ha.2 hc1p
+  have sc1 := fq6_mul_by_fp2_spec c1p
+    ⟨frobenius12One, ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ c1
+    sc1p.1 canonical_frobenius12One_pair hc1
+  have p0 : decodeFq2 c1p.c0 = star (decodeFq2 a.c1.c0) := by
+    simpa [decodeFq6] using congrArg Ipp.Bls12377.Fq6Model.c0 sc1p.2
+  have p1 : decodeFq2 c1p.c1 =
+      Ipp.Bls12377.fq2U ^ ((Ipp.Bls12377.baseModulus - 1) / 3) *
+        star (decodeFq2 a.c1.c1) := by
+    simpa [decodeFq6] using congrArg Ipp.Bls12377.Fq6Model.c1 sc1p.2
+  have p2 : decodeFq2 c1p.c2 =
+      Ipp.Bls12377.fq2U ^ (2 * ((Ipp.Bls12377.baseModulus - 1) / 3)) *
+        star (decodeFq2 a.c1.c2) := by
+    simpa [decodeFq6] using congrArg Ipp.Bls12377.Fq6Model.c2 sc1p.2
+  refine ⟨⟨sc0.1, sc1.1⟩, ?_⟩
+  change (⟨decodeFq6 c0, decodeFq6 c1⟩ : Ipp.Bls12377.Fq12Model) = _
+  rw [sc0.2, sc1.2, p0, p1, p2, decode_frobenius12One_pair]
+
+theorem decode_fq12_frobenius_two (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_frobenius a 2#usize =
+      .ok output) :
+    Canonical12 output ∧ decodeFq12 output =
+      ⟨⟨decodeFq2 a.c0.c0,
+         Ipp.Bls12377.fq2U ^
+             ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 3) *
+           decodeFq2 a.c0.c1,
+         Ipp.Bls12377.fq2U ^
+             (2 * ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 3)) *
+           decodeFq2 a.c0.c2⟩,
+       ⟨decodeFq2 a.c1.c0 * Ipp.Bls12377.fq2U ^
+           ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 6),
+         (Ipp.Bls12377.fq2U ^
+             ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 3) *
+           decodeFq2 a.c1.c1) * Ipp.Bls12377.fq2U ^
+             ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 6),
+         (Ipp.Bls12377.fq2U ^
+             (2 * ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 3)) *
+           decodeFq2 a.c1.c2) * Ipp.Bls12377.fq2U ^
+             ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 6)⟩⟩ := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_frobenius at hexec
+  obtain ⟨table, htable, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨coeff, hcoeff, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c0, hc0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1p, hc1p, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, hc1, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  have hcoeff' : (do
+      let table ← ark_ip_proofs.s3_07_arkworks_fq_spike.FROBENIUS_COEFF_FP12_C1
+      MacCampaign.Array.index_usize table 2#usize) = .ok coeff := by
+    rw [htable]
+    simpa using hcoeff
+  have ecoeff : frobenius12Two = coeff :=
+    Result.ok.inj (frobenius12Two_selected.symm.trans hcoeff')
+  subst coeff
+  have sc0 := decode_fq6_frobenius_two a.c0 c0 ha.1 hc0
+  have sc1p := decode_fq6_frobenius_two a.c1 c1p ha.2 hc1p
+  have sc1 := fq6_mul_by_fp2_spec c1p
+    ⟨frobenius12Two, ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ c1
+    sc1p.1 canonical_frobenius12Two_pair hc1
+  have p0 : decodeFq2 c1p.c0 = decodeFq2 a.c1.c0 := by
+    simpa [decodeFq6] using congrArg Ipp.Bls12377.Fq6Model.c0 sc1p.2
+  have p1 : decodeFq2 c1p.c1 = Ipp.Bls12377.fq2U ^
+      ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 3) * decodeFq2 a.c1.c1 := by
+    simpa [decodeFq6] using congrArg Ipp.Bls12377.Fq6Model.c1 sc1p.2
+  have p2 : decodeFq2 c1p.c2 = Ipp.Bls12377.fq2U ^
+      (2 * ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 3)) *
+        decodeFq2 a.c1.c2 := by
+    simpa [decodeFq6] using congrArg Ipp.Bls12377.Fq6Model.c2 sc1p.2
+  refine ⟨⟨sc0.1, sc1.1⟩, ?_⟩
+  change (⟨decodeFq6 c0, decodeFq6 c1⟩ : Ipp.Bls12377.Fq12Model) = _
+  rw [sc0.2, sc1.2, p0, p1, p2, decode_frobenius12Two_pair]
+
 #print axioms decode_fq12_conjugate
 #print axioms canonical12_mul
 #print axioms decode_fq12_mul
@@ -269,5 +823,11 @@ theorem decode_fq12_conjugate (a output : Fq12LimbPair)
 #print axioms decode_fq12_square
 #print axioms canonical12_mul_by_034
 #print axioms decode_fq12_mul_by_034
+#print axioms decode_fq12_inv_some
+#print axioms decode_fq12_inv_none
+#print axioms decode_fq12_cyclotomic_inverse_some
+#print axioms decode_fq12_cyclotomic_inverse_none
+#print axioms decode_fq12_frobenius_one
+#print axioms decode_fq12_frobenius_two
 
 end Ipp.Extracted.ArkworksFq12
