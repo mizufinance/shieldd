@@ -1022,13 +1022,22 @@ Z₃ = 2ZY ⇒ doubling an order-2 point yields canonical zero-Z (infinity);
 the public `decode_g1_double_order2` needs the decoded-zero →
 canonical-zero representative bridge, still owed. Full Ipp green (3430
 jobs), zero sorry, audited axioms.
-REMAINING PARTS: (2b) Jacobian cross-product comparison bridges (U1 = U2,
-S1 = S2 ↔ decoded affine equality under nonzero-Z), then
-`decode_g1_add_generic` / `decode_g1_add_equal_delegates` /
-`decode_g1_add_opposite`, `decode_g1_double_order2`, and the three mixed
-counterparts; (3) Mathlib `Affine.Point` lifting with on-curve
-hypotheses (chordAdd/tangentDouble ↔ slope/addX/addY identification) +
-session-closing corollaries; then ledger narrowing.
+PART 2B LANDED (green PARTIAL, 2026-07-18, orchestrator; executed by
+sol): the comparison-bridge layer —
+`canonical_fq_val_eq_iff_decode_eq` (executed representative equality ↔
+decoded Fq equality), `decode_g1_x_cross_eq_iff` / `decode_g1_y_cross_eq_iff`
+(Jacobian cross-products ↔ decoded affine coordinate equality under
+nonzero-Z), and `decode_g1_double_order2` (y = 0 doubling decodes to
+infinity). Bridges deliberately isolate the division algebra from the
+extracted chains (anti-blowup). Full Ipp green (3430 jobs), zero sorry,
+audited axioms.
+REMAINING PARTS: (2c) the six add theorems — `decode_g1_add_generic` /
+`decode_g1_add_equal_delegates` / `decode_g1_add_opposite` + the three
+mixed counterparts (all infrastructure now in place: bridges, chordAdd,
+the decode_g1_double_generic chain-peel precedent with private
+rational-identity helpers); (3) Mathlib `Affine.Point` lifting with
+on-curve hypotheses (chordAdd/tangentDouble ↔ slope/addX/addY
+identification) + session-closing corollaries; then ledger narrowing.
 
 **S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` — `GATED` on
 S3-17 and landed C02. Prove the exact twist formulas across the same exceptional
