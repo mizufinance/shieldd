@@ -1094,11 +1094,22 @@ vendored `ArkworksG2Generated.lean` (imports Fq2/Fq6 graph); `ArkworksG2.lean`
 `CanonicalG2` + `isZeroFq2Mont` + `decodeG2 : … → Option (Fq2 × Fq2)` +
 `decode_g2_neg` and the four identity/zero-branch laws. Full Ipp green, zero
 sorry, audited axioms.
-REMAINING PARTS: (2) generic add/double refinement to chordAdd/tangentDouble
-over Fq2 (the HEAVY part — apply the S3-26 `chord_decode_core` abstraction +
-`clear_value` memory pattern from the START; guarded builds mandatory); the
-comparison bridges + branch theorems + mixed counterparts; (3) Mathlib
-`Affine.Point` lift over the G2 twist curve. Acceptance mirrors S3-26.
+PART 2 LANDED (green PARTIAL, 2026-07-18, orchestrator; executed by sol):
+the memory pattern worked PROACTIVELY — peak env-lean 1.99 GB, 0 guardian
+kills (no crisis, contrast the G1 discovery-under-fire). Design: Fq2-parallel
+GENERIC-FIELD (`{F} [Field F]`) chord/tangent models + factor/scale lemmas +
+`chord_decode_core` inside `ArkworksG2.lean`, instantiated at F = Fq2 only
+after reducing the executed Fq2 chain to opaque decoded aliases (so `ring`
+never expands the QuadraticAlgebra pair structure); consumer applies core via
+`clear_value`. ArkworksG1.lean untouched. LANDED: `chordAddG2`/`tangentDoubleG2`
+(generic), the comparison bridges `canonical_fq2_val_eq_iff_decode_eq` /
+`decode_g2_x_cross_eq_iff` / `decode_g2_y_cross_eq_iff`, `decode_g2_add_generic`
+(add-2007-bl over Fq2 refines chord), `decode_g2_double_generic`,
+`decode_g2_double_order2`. Full Ipp green, zero sorry, audited axioms.
+REMAINING PARTS: (2b) the five branch theorems — `decode_g2_add_equal_delegates`,
+`decode_g2_add_opposite`, and the three mixed counterparts (all infrastructure
+in place; mirror S3-26 part 2c); (3) Mathlib `Affine.Point` lift over the G2
+twist curve (mirror `ArkworksG1Mathlib.lean`). Acceptance mirrors S3-26.
 
 **S3-28 — scalar-multiplication loops** — `HARD (sol)` — `GATED` on S3-26/27.
 Prove the executed G1 and G2 scalar-bit loop invariant and instantiate it to
