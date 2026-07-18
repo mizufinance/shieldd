@@ -710,11 +710,31 @@ sol medium→high post-Jul-23 per token-budget discipline):
     checked-candidate shape exactly. Estimated: one focused sol session each.
 
 **S3-18 — Fq6 irreducibility and canonical field model** — `HARD (sol)` —
-`GATED` on S3-17. In `Ipp/Bls12377Pairing.lean` or a focused tower module,
+`DONE 2026-07-17`. In `Ipp/Bls12377Pairing.lean` or a focused tower module,
 prove `v^3-u` irreducible using a checked noncube/factorization certificate,
 construct the canonical Fq6 field, and prove `Fq6Model` coefficient/multiply
 equivalence. Acceptance: a `Field` instance is derived, not postulated.
 Retires the Fq6 mathematical-foundation gap needed by GAP-07.
+COMPLETION (2026-07-17, orchestrator; executed by sol): new hand-authored
+`Ipp/Bls12377Fq6.lean` plus one certificate in `Bls12377Certificates.lean`.
+Noncube route as pinned: `baseModulus_minus_five_cubeResidue` kernel-computes
+`(q-5)^((q-1)/3) mod q` by `rfl` (377-bit exponent, maxRecDepth 100000) with
+`≠ 1` by norm_num on the literal; `fq2U_not_cube` reduces `b^3 = u` to that
+certificate via `Fintype.card Fq2 = q^2` (`QuadraticAlgebra.equivProd`),
+`FiniteField.pow_card_sub_one_eq_one`, `u^2 = -5` parity collapse
+`(q^2-1)/6 = (q-1)/3 + (q-1)·((q-1)/6)`, and Fermat in Fq. (The direct
+753-bit-exponent fallback certificate did NOT finish in a bounded 180 s run
+— the exponent-reduction route is load-bearing, note for S3-20's `w^2-v`.)
+`fq6Polynomial_irreducible` via Mathlib `X_pow_sub_C_irreducible_of_prime_pow`
+(p=3, n=1); `Fq6Canonical := AdjoinRoot (X^3 - C fq2U)` with global
+`Fact (Irreducible _)` instance — `Field Fq6Canonical` is Mathlib's
+`AdjoinRoot.instField`, derived not postulated (`fq6Canonical_field_available`
+witnesses it). Coefficient map `fq6Coefficients` proven: zero/one/add/mul
+(via `linear_combination` against `root^3 = algebraMap fq2U`), `fq6MulByV` =
+mul-by-root, and BIJECTIVE via `AdjoinRoot.powerBasis` reindexed to `Fin 3`
+(`Basis.equivFun` route) — so `Fq6Model` is a faithful coordinate model of
+the canonical field. Full Ipp green (3421 jobs), zero sorry, audited axioms
+only. S3-19 (executed Fq6 conformance) is now unblocked.
 
 **S3-19 — executed Fq6 conformance** — `HARD (sol)` — `GATED` on S3-18.
 Prove all reached Fq6 add/mul/square/sparse/inverse/Frobenius routines refine

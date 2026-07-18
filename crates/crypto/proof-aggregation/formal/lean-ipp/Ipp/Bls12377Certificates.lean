@@ -614,6 +614,23 @@ theorem baseModulus_minus_five_powResidue :
       Ipp.Bls12377.baseModulus - 1 := by
   rfl
 
+set_option maxRecDepth 100000 in
+theorem baseModulus_minus_five_cubeResidue :
+    powResidue (Ipp.Bls12377.baseModulus - 5)
+        ((Ipp.Bls12377.baseModulus - 1) / 3) Ipp.Bls12377.baseModulus =
+      80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945 := by
+  rfl
+
+/-- The cubic residue of `-5` in the base field is nontrivial. -/
+theorem baseModulus_minus_five_cubeResidue_ne_one :
+    ((Ipp.Bls12377.baseModulus - 5 : Nat) : ZMod Ipp.Bls12377.baseModulus) ^
+        ((Ipp.Bls12377.baseModulus - 1) / 3) ≠ 1 := by
+  intro h
+  have hval := congrArg ZMod.val h
+  rw [← powResidue_eq_val, baseModulus_minus_five_cubeResidue] at hval
+  rw [ZMod.val_one_eq_one_mod] at hval
+  norm_num [Ipp.Bls12377.baseModulus] at hval
+
 /-- The Fq2 defining constant `-5` is not a square in the BLS12-377 base field. -/
 theorem fq2Nonresidue :
     ∀ x : ZMod Ipp.Bls12377.baseModulus, x ^ 2 ≠ -5 := by
