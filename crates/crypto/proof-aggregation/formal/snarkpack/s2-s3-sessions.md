@@ -934,11 +934,27 @@ S3-21 COMPLETE (parts 1–6). Fq12 slice of the arkworks field row retired
 in the ledger. Full Ipp green (3426 jobs), zero sorry, audited axioms.
 
 **S3-22 — GT factorization and order-r characterization** — `HARD (sol)` —
-`GATED` on S3-20 and S3-02/03. Prove `r ∣ q^12-1`, record the exact cofactor
+`DONE 2026-07-18`. Prove `r ∣ q^12-1`, record the exact cofactor
 and gcd facts, define the intended GT as `{x : Fq12ˣ | x^r=1}`, and prove it
 has order `r` using finite-field cyclicity. Acceptance: zero versus
 multiplicative identity and arkworks `PairingOutput` additive notation are
 explicit. Supplies GAP-07 and narrows the subgroup portion of the arkworks row.
+COMPLETION (2026-07-18, orchestrator; executed by sol): new hand-authored
+`Ipp/Bls12377Gt.lean`. Exact literals pinned: `q^12−1 = r·gtCofactor` and
+`q^4−q^2+1 = r·gtCyclotomicCofactor` (`fq12_order_factorization`,
+`cyclotomic_order_factorization`), `(q^4−q^2+1) ∣ q^12−1` with quotient
+`q^8+q^6−q^2−1`, `Nat.Coprime r gtCofactor` (r divides q^12−1 EXACTLY
+once), `gcd r (q^12−1) = r`. `GtGroup` = kernel of the r-th-power
+endomorphism on `Fq12Canonicalˣ` (`mem_gtGroup : x ∈ GtGroup ↔ x^r = 1`);
+`gtGroup_card : Nat.card GtGroup = r` via `IsCyclic` units +
+`IsCyclic.card_powMonoidHom_ker` (= gcd) + `Fintype.card_units` +
+`fq12_card`. `gt_pow_cyclotomic_order_eq_one` gives GT members
+`x^(q^4−q^2+1) = 1` — the EXACT hypothesis the S3-38/39 cyclotomic
+semantic laws need (closes the S3-21 part-6 finding's consumer chain).
+Identity/notation bridge explicit: `one_mem_gtGroup`, `gtValue_ne_zero`,
+`fq12_zero_ne_gt_identity`, and the `ArkPairingOutput` add-only adapter
+(`0 ↦ 1`, `+ ↦ *`, `n • ↦ ^n`). Full Ipp green (3427 jobs), zero sorry,
+audited axioms. EXTENSION TOWER S3-16..22 COMPLETE. GAP-07 unblocked.
 
 **S3-23 — exact curve-order boundary and arithmetic factors** — `HARD (sol)`
 — `NOW`. Dependencies: the landed C01 curve/cofactor constants. Add a succinct
