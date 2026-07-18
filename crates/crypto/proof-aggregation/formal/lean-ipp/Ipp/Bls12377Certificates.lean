@@ -615,6 +615,16 @@ theorem baseModulus_minus_five_powResidue :
   rfl
 
 set_option maxRecDepth 100000 in
+theorem minus_five_pow_half :
+    (((Ipp.Bls12377.baseModulus - 5 : Nat) : Ipp.Bls12377.Fq) ^
+      ((Ipp.Bls12377.baseModulus - 1) / 2)) = -1 := by
+  letI : NeZero Ipp.Bls12377.baseModulus :=
+    ⟨by norm_num [Ipp.Bls12377.baseModulus]⟩
+  apply ZMod.val_injective
+  rw [← powResidue_eq_val, baseModulus_minus_five_powResidue]
+  exact (ZMod.val_neg_one (Ipp.Bls12377.baseModulus - 1)).symm
+
+set_option maxRecDepth 100000 in
 theorem baseModulus_minus_five_cubeResidue :
     powResidue (Ipp.Bls12377.baseModulus - 5)
         ((Ipp.Bls12377.baseModulus - 1) / 3) Ipp.Bls12377.baseModulus =
@@ -697,5 +707,6 @@ theorem fq2Nonresidue :
 #print axioms minus_five_pow_sixth
 #print axioms minus_five_pow_third
 #print axioms minus_five_pow_twoThirds
+#print axioms minus_five_pow_half
 
 end Ipp.Bls12377Certificates

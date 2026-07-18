@@ -799,11 +799,27 @@ into `Fq6Canonical`. Fq6 slice of the arkworks field row retired in the
 ledger. Full Ipp green (3423 jobs), zero sorry, audited axioms.
 
 **S3-20 — Fq12 irreducibility and canonical field model** — `HARD (sol)` —
-`GATED` on S3-19. Prove `w^2-v` irreducible with a checked nonsquare
+`DONE 2026-07-18`. Prove `w^2-v` irreducible with a checked nonsquare
 certificate, construct the canonical Fq12 field, and prove `Fq12Model`
 coefficient/multiply/power equivalence. Acceptance: multiplicative group and
 field cardinality are available without an axiom. Retires the mathematical
 foundation gap for GT.
+COMPLETION (2026-07-18, orchestrator; executed by sol): new hand-authored
+`Ipp/Bls12377Fq12.lean` (+ `minus_five_pow_half` corollary in
+`Bls12377Certificates.lean`, `fq2_card` widened + `Fintype`/`fq6_card`
+added in `Bls12377Fq6.lean`). NO new kernel certificate — the pinned
+collapse route held: `fq6V^((q^6−1)/2)` reduces via `v^3 = u`, `u^2 = −5`,
+evenness, and Fermat mod q−1 to `(−5)^((q−1)/2) = −1` (the EXISTING Euler
+certificate `baseModulus_minus_five_powResidue`); the q^6-scale
+divisibility identities went through `norm_num [baseModulus]` directly.
+`fq6V_not_square`, `fq12Polynomial_irreducible` (degree-2 no-root route),
+`Fq12Canonical := AdjoinRoot (X^2 − C fq6V)` with the Field instance
+derived from the global `Fact` (S3-18 pattern), `fq6_card = q^6` /
+`fq12_card = q^12` (power-basis `Fintype` instances — the GT acceptance
+prerequisite, no axiom), and `fq12Coefficients` one/mul/POW
+(`fq12Pow`/npowBinRec induction)/BIJECTIVE. Full Ipp green (3424 jobs),
+zero sorry, audited axioms. S3-21 (executed Fq12) and the S3-22 GT
+cardinality hook are now unblocked.
 
 **S3-21 — executed Fq12 conformance** — `HARD (sol)` — `GATED` on S3-20.
 Prove reached Fq12 add/mul/square/sparse/conjugate/inverse/Frobenius/

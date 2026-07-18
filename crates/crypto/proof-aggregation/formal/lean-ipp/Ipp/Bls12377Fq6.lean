@@ -16,7 +16,7 @@ local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
 local instance : Fintype Fq2 :=
   Fintype.ofEquiv (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
 
-private theorem fq2_card : Fintype.card Fq2 = baseModulus ^ 2 := by
+theorem fq2_card : Fintype.card Fq2 = baseModulus ^ 2 := by
   rw [Fintype.card_congr (QuadraticAlgebra.equivProd (-5 : Fq) 0),
     Fintype.card_prod, ZMod.card]
   ring
@@ -195,6 +195,15 @@ private theorem fq6Polynomial_natDegree : fq6Polynomial.natDegree = 3 := by
 private noncomputable def fq6Basis : Module.Basis (Fin 3) Fq2 Fq6Canonical :=
   (AdjoinRoot.powerBasis fq6Polynomial_ne_zero).basis.reindex
     (finCongr fq6Polynomial_natDegree)
+
+noncomputable instance : Fintype Fq6Canonical :=
+  Fintype.ofEquiv (Fin 3 → Fq2) fq6Basis.equivFun.symm
+
+/-- The canonical cubic extension has `q⁶` elements. -/
+theorem fq6_card : Fintype.card Fq6Canonical = baseModulus ^ 6 := by
+  rw [Fintype.card_congr fq6Basis.equivFun.toEquiv, Fintype.card_fun, Fintype.card_fin,
+    fq2_card]
+  ring
 
 private theorem fq6Coefficients_eq_basis (a : Fq6Model) :
     fq6Coefficients a =
