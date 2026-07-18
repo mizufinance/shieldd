@@ -843,6 +843,10 @@ const FQ2_ZERO: Fq2Mont = Fq2Mont {
     c0: FQ_ZERO,
     c1: FQ_ZERO,
 };
+const FQ2_ONE: Fq2Mont = Fq2Mont {
+    c0: FQ_ONE,
+    c1: FQ_ZERO,
+};
 const FQ_NEG_ONE: FqMont = FqMont([
     0x823a_c000_0000_0099,
     0xc5ca_bdc0_b000_004f,
@@ -1638,6 +1642,157 @@ pub fn extract_s3_26(
         g1_double(a),
         g1_neg(a),
         g1_affine_neg(affine),
+    )
+}
+
+/// Monomorphic Jacobian representation used by BLS12-377 G2.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct G2ProjMont {
+    pub x: Fq2Mont,
+    pub y: Fq2Mont,
+    pub z: Fq2Mont,
+}
+
+/// Monomorphic affine representation used by mixed G2 addition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct G2AffineMont {
+    pub x: Fq2Mont,
+    pub y: Fq2Mont,
+    pub infinity: bool,
+}
+
+fn g2_zero() -> G2ProjMont {
+    G2ProjMont {
+        x: FQ2_ONE,
+        y: FQ2_ONE,
+        z: FQ2_ZERO,
+    }
+}
+
+/// BLS12-377's `Projective::double_in_place`, specialized to `COEFF_A = 0`
+/// and base-field extension degree two.
+pub fn g2_double(a: G2ProjMont) -> G2ProjMont {
+    if a.z == FQ2_ZERO {
+        return a;
+    }
+
+    let aa = fq2_square(a.x);
+    let b = fq2_square(a.y);
+    let mut c = fq2_square(b);
+    let mut d = fq2_mul(a.x, b);
+    d = fq2_double(fq2_double(d));
+    let e = fq2_add(aa, fq2_double(aa));
+    let z = fq2_double(fq2_mul(a.z, a.y));
+    let x = fq2_sub(fq2_square(e), fq2_double(d));
+    c = fq2_double(fq2_double(fq2_double(c)));
+    let y = fq2_sub(fq2_mul(fq2_sub(d, x), e), c);
+    G2ProjMont { x, y, z }
+}
+
+/// Arkworks' complete control-flow wrapper around `add-2007-bl` Jacobian
+/// addition, including identity, equal-point, and opposite-point branches.
+pub fn g2_add(a: G2ProjMont, b: G2ProjMont) -> G2ProjMont {
+    if a.z == FQ2_ZERO {
+        return b;
+    }
+    if b.z == FQ2_ZERO {
+        return a;
+    }
+
+    let z1z1 = fq2_square(a.z);
+    let z2z2 = fq2_square(b.z);
+    let u1 = fq2_mul(a.x, z2z2);
+    let u2 = fq2_mul(b.x, z1z1);
+    let s1 = fq2_mul(fq2_mul(a.y, b.z), z2z2);
+    let s2 = fq2_mul(fq2_mul(b.y, a.z), z1z1);
+
+    if u1 == u2 {
+        if s1 == s2 {
+            return g2_double(a);
+        }
+        return g2_zero();
+    }
+
+    let h = fq2_sub(u2, u1);
+    let i = fq2_square(fq2_double(h));
+    let j = fq2_mul(fq2_neg(h), i);
+    let r = fq2_double(fq2_sub(s2, s1));
+    let mut v = fq2_mul(u1, i);
+    let x = fq2_sub(fq2_add(fq2_square(r), j), fq2_double(v));
+    v = fq2_sub(v, x);
+    let y = fq2_add(fq2_mul(r, v), fq2_mul(fq2_double(s1), j));
+    let z = fq2_mul(fq2_double(fq2_mul(a.z, b.z)), h);
+    G2ProjMont { x, y, z }
+}
+
+/// Arkworks' `madd-2007-bl` mixed addition, including affine infinity and all
+/// exceptional branches.
+pub fn g2_add_mixed(a: G2ProjMont, b: G2AffineMont) -> G2ProjMont {
+    if b.infinity {
+        return a;
+    }
+    if a.z == FQ2_ZERO {
+        return G2ProjMont {
+            x: b.x,
+            y: b.y,
+            z: FQ2_ONE,
+        };
+    }
+
+    let z1z1 = fq2_square(a.z);
+    let u2 = fq2_mul(b.x, z1z1);
+    let s2 = fq2_mul(fq2_mul(a.z, b.y), z1z1);
+    if a.x == u2 {
+        if a.y == s2 {
+            return g2_double(a);
+        }
+        return g2_zero();
+    }
+
+    let h = fq2_sub(u2, a.x);
+    let hh = fq2_square(h);
+    let i = fq2_double(fq2_double(hh));
+    let j = fq2_mul(fq2_neg(h), i);
+    let r = fq2_double(fq2_sub(s2, a.y));
+    let mut v = fq2_mul(a.x, i);
+    let x = fq2_sub(fq2_add(fq2_square(r), j), fq2_double(v));
+    v = fq2_sub(v, x);
+    let y = fq2_add(fq2_mul(r, v), fq2_mul(fq2_double(a.y), j));
+    let z = fq2_double(fq2_mul(a.z, h));
+    G2ProjMont { x, y, z }
+}
+
+/// Arkworks projective negation changes only the Jacobian Y coordinate.
+pub fn g2_neg(a: G2ProjMont) -> G2ProjMont {
+    G2ProjMont {
+        x: a.x,
+        y: fq2_neg(a.y),
+        z: a.z,
+    }
+}
+
+/// Arkworks affine negation changes only Y and preserves the infinity flag.
+pub fn g2_affine_neg(a: G2AffineMont) -> G2AffineMont {
+    G2AffineMont {
+        x: a.x,
+        y: fq2_neg(a.y),
+        infinity: a.infinity,
+    }
+}
+
+/// Extraction root whose closure contains every reached S3-27 G2 formula.
+#[doc(hidden)]
+pub fn extract_s3_27(
+    a: G2ProjMont,
+    b: G2ProjMont,
+    affine: G2AffineMont,
+) -> (G2ProjMont, G2ProjMont, G2ProjMont, G2ProjMont, G2AffineMont) {
+    (
+        g2_add(a, b),
+        g2_add_mixed(a, affine),
+        g2_double(a),
+        g2_neg(a),
+        g2_affine_neg(affine),
     )
 }
 

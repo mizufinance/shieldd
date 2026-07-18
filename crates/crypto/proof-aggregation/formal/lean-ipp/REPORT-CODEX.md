@@ -1,86 +1,144 @@
-# S3-26 part 3 report
+# S3-27 part 1 report
 
 STATUS DONE
 
-## Deliverable
+## Scope pin
 
-Added `Ipp/Extracted/ArkworksG1Mathlib.lean`. The existing
-`ArkworksG1.lean` parts 1–2c proofs were not edited.
+Pinned against arkworks 0.5.0 in
+`C:\Users\acyrn\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\`.
 
-### Coordinate identification
+### Curve and representation
 
-- `chordAdd_eq_mathlib`: for `x₁ ≠ x₂`, `chordAdd (x₁,y₁) (x₂,y₂)`
-  equals the pair of `g1Curve.toAffine.addX` and `addY` coordinates at
-  `g1Curve.toAffine.slope x₁ x₂ y₁ y₂`.
-- `tangentDouble_eq_mathlib`: for `y ≠ 0`, `tangentDouble (x,y)` equals
-  the pair of Mathlib `addX` and `addY` coordinates at
-  `g1Curve.toAffine.slope x x y y`.
+- `ark-bls12-377-0.5.0/src/curves/g2.rs:48-59` pins the D-type twist to
+  `COEFF_A = (0,0)` and
+  `COEFF_B = (0,
+  155198655607781456406391640216936120121836107652948796323930557600032281009004493664981332883744016074664192874906)`.
+  The source explains this as `b' = b/u` for the `x^6-u` extension.
+- The exact affine generator is selected at `g2.rs:62-63`; its four Fq
+  coordinates are pinned at `g2.rs:131-148`.
+- Projective identity is `(1,1,0)` and `is_zero` is exactly `Z == 0`
+  (`ark-ec-0.5.0/src/models/short_weierstrass/group.rs:141-157`). Thus any
+  zero-Z triple represents infinity; the opposite-point branches construct
+  the chosen `(1,1,0)` literal.
+- `COEFF_A = 0` selects the `double_in_place` a=0 branch
+  (`group.rs:171-236`). Because `Fq2::extension_degree() = 2`, it also selects
+  the fast `D = 4*X*Y^2` sub-branch at `group.rs:190-201`. The generic A != 0
+  doubling branch is unreached.
 
-For `g1Curve = ⟨0,0,0,0,1⟩`, Mathlib's `negY x y` is `-y`.
-`negAddY` is the third-intersection coordinate and `addY = negY negAddY`;
-therefore the executed chord/tangent Y coordinate is exactly Mathlib `addY`.
+### Reached group routines
 
-### Lift model and algebraic lifts
+- Projective `AddAssign<&Projective>`: zero-Z checks, add-2007-bl, equal-point
+  delegation to doubling, and opposite-point zero (`group.rs:450-530`).
+- Mixed `AddAssign<Affine>`: affine-infinity no-op, zero projective to
+  `(x,y,1)`, madd-2007-bl, equal delegation, and opposite zero
+  (`group.rs:336-412`).
+- `double_in_place`, only the a=0/extension-degree-2 branch above.
+- Projective negation (`group.rs:326-334`) and affine negation
+  (`affine.rs:256-266`). Projective subtraction delegates through negation and
+  addition (`group.rs:424-438`, `532-543`).
+- G2 MSM dispatches through `SWCurveConfig::msm` to variable-base MSM
+  (`short_weierstrass/mod.rs:101-109`, `group.rs:638-653`).
+  `NEGATION_IS_CHEAP = true` selects WNAF (`variable_base/mod.rs:52-67`);
+  negative buckets use affine subtraction/negation and bucket accumulation
+  uses mixed/projective addition and doubling (`variable_base/mod.rs:110-166`).
+- Aggregate folding reaches projective scalar multiplication followed by
+  projective addition at
+  `ip_proofs/src/applications/groth16_aggregation.rs:974-984,1051-1064`.
+  G2 does not override `SWCurveConfig::mul_projective` or `mul_affine`, so
+  ordinary G2 scalar multiplication uses the generic projective and affine
+  double-and-add loops (`short_weierstrass/mod.rs:89-99` and
+  `scalar_mul/mod.rs:25-54`).
+- Affine validity/subgroup checking calls
+  `is_in_correct_subgroup_assuming_on_curve` (`affine.rs:167-169,373-379`),
+  whose default multiplies by the scalar-field characteristic using the same
+  generic affine loop (`short_weierstrass/mod.rs:74-79`).
+- Pairing preparation from projective G2 first calls `into_affine`
+  (`models/bls12/g2.rs:76-90`); projective-to-affine is the Z inverse,
+  `X/Z^2`, `Y/Z^3` boundary (`short_weierstrass/affine.rs:331-354`).
 
-- `DecodedG1OnCurve d`: explicit boundary; `True` for `none`, and the
-  concrete G1 affine equation for `some (x,y)`.
-- `liftDecodedG1 d h`: maps `none` to affine infinity and `some (x,y)` to
-  `WeierstrassCurve.Affine.Point.mk h`.
-- `RepresentsDecodedG1 d P`: equality of the represented point class:
-  `P = 0` for `none`, or `P = Point.mk h` for finite coordinates.
-- `lift_chordAdd`, `lift_tangentDouble`, `lift_neg`, `lift_opposite`, and
-  `lift_order2`: literal `g1Curve.toAffine.Point` equalities for generic
-  addition, doubling, negation, inverse addition, and order-two doubling.
+### Exclusions and later boundaries
 
-### Executed-formula corollaries
+- Single/batch normalization, inversion, and affine conversion are reached
+  boundaries but are excluded to S3-29. MSM batch conversion calls
+  `normalize_batch` (`group.rs:638-646`); pairing preparation can call
+  `into_affine` as cited above.
+- Scalar loop invariants, including MSM windows and subgroup-check
+  characteristic multiplication, are excluded to S3-28.
+- G2 implements `GLVConfig` (`ark-bls12-377 g2.rs:101-129`) but does not wire
+  `glv_mul_projective` or `glv_mul_affine` into its `SWCurveConfig` methods.
+  Verdict for S3-28: no GLV/endomorphism scalar-mul path is selected for G2;
+  cover the two generic double-and-add loop shapes. The endomorphisms used by
+  the separately unreached optimized `clear_cofactor` routine are not part of
+  this slice.
+- Unreached generic A != 0 doubling, hash-to-curve/isogeny, cofactor clearing,
+  serialization, random-point generation, and test-only variants are excluded.
 
-Each theorem concludes `RepresentsDecodedG1 (decodeG1 output) ...`, whose
-finite/infinity cases contain literal equality to the corresponding Mathlib
-`Affine.Point` class.
+## Spike and parity
 
-- `executed_g1_add_generic_refines_mathlib`: generic projective addition.
-- `executed_g1_add_mixed_generic_refines_mathlib`: generic mixed addition.
-- `executed_g1_add_equal_refines_mathlib`: equal projective inputs delegate
-  to Mathlib doubling, split over `Y = 0` / `Y ≠ 0`.
-- `executed_g1_add_mixed_equal_refines_mathlib`: equal mixed-input analogue.
-- `executed_g1_add_opposite_refines_mathlib`: opposite projective inputs add
-  to Mathlib infinity.
-- `executed_g1_add_mixed_opposite_refines_mathlib`: opposite mixed analogue.
-- `executed_g1_add_left_identity_refines_mathlib` and
-  `executed_g1_add_right_identity_refines_mathlib`: projective zero-Z laws.
-- `executed_g1_add_mixed_identity_refines_mathlib`: affine-infinity mixed law.
-- `executed_g1_double_generic_refines_mathlib`: generic doubling.
-- `executed_g1_double_order2_refines_mathlib`: `Y = 0` doubles to infinity.
-- `executed_g1_double_identity_refines_mathlib`: zero-Z doubles as identity.
-- `executed_g1_neg_finite_refines_mathlib`: finite negation.
-- `executed_g1_neg_identity_refines_mathlib`: infinity negation.
+- Added `G2ProjMont = {x,y,z : Fq2Mont}`, `G2AffineMont`, `g2_zero`,
+  `g2_add`, `g2_add_mixed`, `g2_double`, `g2_neg`, `g2_affine_neg`, and the
+  `extract_s3_27` root. Every field operation composes the existing `fq2_*`
+  closures. Control flow mirrors the cited arkworks routines, including all
+  identity/equal/opposite branches.
+- Added projective-class parity edges: canonical identity, noncanonical
+  zero-Z, generator, equal, opposite, doubled, and non-normalized scaled
+  representatives. Added 512 deterministic random vectors for every routine.
+  Comparisons normalize both results to affine classes.
+- PASS: focused
+  `g2_edges_and_512_random_vectors_match_arkworks_projective_classes`.
+- PASS: `cargo test -p ark-ip-proofs --features mac-campaign`.
+- PASS: direct `rustfmt --edition 2021 --check` on both edited Rust files.
+  Repository-wide `cargo fmt --all -- --check` still reports pre-existing
+  unrelated drift in the Fr spike files.
 
-## Assumed boundary
+## Extraction
 
-The decoded finite representatives' `g1Curve.toAffine.Equation` hypotheses
-are assumed explicitly through `DecodedG1OnCurve`; they are not re-proved.
-For generic/equal non-order-two results, the resulting chord/tangent equation
-is also passed explicitly. S3-32/GAP-08 is responsible for discharging input
-validity and prime-subgroup validity. No subgroup premise is used to identify
-the affine group operation itself.
+- WSL extraction succeeded from root
+  `crate::s3_07_arkworks_fq_spike::extract_s3_27` into
+  `/root/shieldd-s3-27-g2-v2` using `cargo hax into ... aeneas-lean`.
+- Hax warned that it expected Aeneas revision `e0a1596` but reported the
+  installed revision as `unknown`; generation nevertheless completed with
+  exit 0 in 14.6 seconds and produced Types/Funs/lake files.
+- Vendored `Ipp/Extracted/ArkworksG2Generated.lean`. It imports the existing
+  Fq2/Fq6 graph instead of duplicating the arithmetic closure, retains finite
+  `maxHeartbeats = 1000000`, and contains the extracted G2 structures,
+  component equality, constants, routines, and root.
+- No Rust restructuring was needed after extraction; the already-green parity
+  test remained green.
+- PASS: guarded `LEAN_NUM_THREADS=1 lake env lean
+  Ipp/Extracted/ArkworksG2Generated.lean`.
+- PASS: guarded narrow `LEAN_NUM_THREADS=1 lake build
+  Ipp.Extracted.ArkworksG2Generated` (9 jobs; peak 427.7 MiB).
 
-## Verification
+## Easy laws
 
-- PASS: `LEAN_NUM_THREADS=1 lake env lean Ipp/Extracted/ArkworksG1Mathlib.lean`.
-- Final monitored full-file check: 40.1 s, peak Lean working set **1,877.2
-  MiB** (sampled every 100 ms); guardian ceiling was 6,000 MiB.
-- PASS: `LEAN_NUM_THREADS=1 lake build Ipp.Extracted.ArkworksG1Mathlib`
-  (2,996 jobs, narrow module target).
-- Zero `sorry`, `admit`, or new `axiom` declarations in the new file.
-- No generated Lean file, Rust spike, or parts 1–2c theorem was edited.
-- Prover/release-gated tests were not run; verification was the requested
-  single-file elaboration, narrow module build, and axiom audit.
+Added `Ipp/Extracted/ArkworksG2.lean` with:
 
-## Axiom audit
+- `CanonicalG2`: componentwise reduced Montgomery canonicity for all three
+  Fq2 coordinates.
+- `isZeroFq2Mont`: the exact componentwise executed zero test.
+- `decodeG2 : G2ProjLimbTriple -> Option (Fq2 x Fq2)`: `none` exactly when
+  the executed Z-zero test succeeds; otherwise
+  `some (X/Z^2, Y/Z^3)` in the proved concrete Fq2 model.
+- `decode_g2_neg`.
+- `decode_g2_add_left_identity`.
+- `decode_g2_add_right_identity`.
+- `decode_g2_add_mixed_identity`.
+- `decode_g2_double_identity`.
 
-`#print axioms` was included for every public coordinate/lift theorem and all
-executed-formula corollaries listed above. Every result was exactly:
+The generic add/double refinements and Mathlib lift were not started.
 
-`[propext, Classical.choice, Quot.sound]`
+## Lean verification and axioms
+
+- PASS: guarded, single-threaded full-file
+  `LEAN_NUM_THREADS=1 lake env lean Ipp/Extracted/ArkworksG2.lean`.
+- Final monitored full-file check: 39.8 seconds, peak Lean working set
+  **426.1 MiB**, guardian ceiling approximately 6 GiB.
+- Zero `sorry`, `admit`, or new `axiom` declarations in either new Lean file.
+- `#print axioms` is present for every new public theorem. Output for all five
+  is exactly `[propext, Classical.choice, Quot.sound]`.
+- Prover/release-gated tests were not run. The requested Rust MAC campaign,
+  WSL extraction, generated-file check, narrow generated-module build, and
+  full easy-law file check were run.
 
 No commit was created.

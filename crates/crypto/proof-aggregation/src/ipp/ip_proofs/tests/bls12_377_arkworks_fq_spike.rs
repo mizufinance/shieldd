@@ -1,6 +1,6 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
-use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, G1Affine, G1Projective};
+use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::{CurveGroup, PrimeGroup};
 use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -50,6 +50,95 @@ fn check_g1(a: G1Projective, b: G1Projective, affine: G1Affine) {
         G1Affine::new_unchecked(ark(affine_neg.x), ark(affine_neg.y))
     };
     assert_eq!(affine_neg, -affine);
+}
+
+fn mont_g2(value: G2Projective) -> spike::G2ProjMont {
+    spike::G2ProjMont {
+        x: mont2(value.x),
+        y: mont2(value.y),
+        z: mont2(value.z),
+    }
+}
+
+fn ark_g2(value: spike::G2ProjMont) -> G2Projective {
+    G2Projective::new_unchecked(ark2(value.x), ark2(value.y), ark2(value.z))
+}
+
+fn mont_g2_affine(value: G2Affine) -> spike::G2AffineMont {
+    spike::G2AffineMont {
+        x: mont2(value.x),
+        y: mont2(value.y),
+        infinity: value.infinity,
+    }
+}
+
+fn assert_same_g2_class(actual: spike::G2ProjMont, expected: G2Projective) {
+    assert_eq!(ark_g2(actual).into_affine(), expected.into_affine());
+}
+
+fn check_g2(a: G2Projective, b: G2Projective, affine: G2Affine) {
+    assert_same_g2_class(spike::g2_add(mont_g2(a), mont_g2(b)), a + b);
+    assert_same_g2_class(
+        spike::g2_add_mixed(mont_g2(a), mont_g2_affine(affine)),
+        a + affine,
+    );
+    assert_same_g2_class(spike::g2_double(mont_g2(a)), a.double());
+    assert_same_g2_class(spike::g2_neg(mont_g2(a)), -a);
+    let affine_neg = spike::g2_affine_neg(mont_g2_affine(affine));
+    let affine_neg = if affine_neg.infinity {
+        G2Affine::identity()
+    } else {
+        G2Affine::new_unchecked(ark2(affine_neg.x), ark2(affine_neg.y))
+    };
+    assert_eq!(affine_neg, -affine);
+}
+
+#[test]
+fn g2_edges_and_512_random_vectors_match_arkworks_projective_classes() {
+    let zero = G2Projective::ZERO;
+    let generator = G2Projective::generator();
+    let neg_generator = -generator;
+    let doubled = generator.double();
+    let scaled_generator = {
+        let lambda = Fq2::new(Fq::from(7_u64), Fq::from(3_u64));
+        let lambda2 = lambda.square();
+        G2Projective::new_unchecked(
+            generator.x * lambda2,
+            generator.y * lambda2 * lambda,
+            lambda,
+        )
+    };
+    let noncanonical_zero = G2Projective::new_unchecked(
+        Fq2::new(Fq::from(9_u64), Fq::from(2_u64)),
+        Fq2::new(Fq::from(11_u64), Fq::from(5_u64)),
+        Fq2::ZERO,
+    );
+    let affine_zero = G2Affine::identity();
+    let affine_generator = generator.into_affine();
+
+    for (a, b, affine) in [
+        (zero, zero, affine_zero),
+        (zero, generator, affine_generator),
+        (generator, zero, affine_zero),
+        (generator, generator, affine_generator),
+        (generator, neg_generator, (-generator).into_affine()),
+        (neg_generator, generator, affine_generator),
+        (doubled, scaled_generator, affine_generator),
+        (scaled_generator, scaled_generator, affine_zero),
+        (noncanonical_zero, generator, affine_generator),
+        (generator, noncanonical_zero, affine_zero),
+    ] {
+        check_g2(a, b, affine);
+    }
+
+    let mut rng = test_rng();
+    for _ in 0..512 {
+        check_g2(
+            G2Projective::rand(&mut rng),
+            G2Projective::rand(&mut rng),
+            G2Affine::rand(&mut rng),
+        );
+    }
 }
 
 #[test]

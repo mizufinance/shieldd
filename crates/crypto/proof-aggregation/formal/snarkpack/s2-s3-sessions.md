@@ -1068,9 +1068,37 @@ S3-26 COMPLETE (parts 1, 2, 2b, 2c, 3). The executed G1 group-formula slice
 of the arkworks arithmetic row is proved. Next curve session: S3-27 (G2 —
 same twist formulas over Fq2; the S3-26 memory lesson applies directly).
 
-**S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` — `GATED` on
-S3-17 and landed C02. Prove the exact twist formulas across the same exceptional
-branches. Acceptance mirrors S3-26. Narrows the G2 group-operation row.
+**S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` — `IN
+PROGRESS` (gates satisfied). Prove the exact twist formulas across the same
+exceptional branches. Acceptance mirrors S3-26. Narrows the G2
+group-operation row.
+PART 1 DONE (2026-07-18, orchestrator; executed by sol): scope pin, spike,
+parity, extraction, decoder + easy laws — the G2 analog of S3-26 part 1,
+peak env-lean 426 MiB (light; 0 guardian kills).
+SCOPE PIN (arkworks 0.5.0, citations in session report): D-type sextic twist,
+COEFF_A = (0,0), COEFF_B = b/u (pinned Fq2 literal); reached = projective
+`AddAssign` (add-2007-bl; zero-Z, equal→doubling, opposite→(1,1,0)), mixed
+madd-2007-bl, `double_in_place` a=0 D=4XY² extension-degree-2 shortcut ONLY
+(generic A≠0 unreached), projective + affine neg (WNAF buckets). Identity =
+any Z=0, literal (1,1,0). ⚠ S3-28 FINDING: G2 implements `GLVConfig` but does
+NOT wire glv_mul into `SWCurveConfig` — so G2 scalar-mul uses the GENERIC
+double-and-add loops (projective mul_projective + affine subgroup-check
+characteristic loop), NOT GLV (contrast G1 which IS GLV). S3-28 covers the
+two generic G2 loop shapes + G1's GLV path. Normalization/into_affine
+excluded to S3-29.
+LANDED: `G2ProjMont`/`G2AffineMont` + g2_add/add_mixed/double/neg/affine_neg
+spike + `extract_s3_27` composing proven fq2_* closures; parity edges+512
+random after into_affine (projective classes; cargo mac-campaign green,
+re-run by orchestrator); WSL aeneas extraction clean (14.6s, no restructure),
+vendored `ArkworksG2Generated.lean` (imports Fq2/Fq6 graph); `ArkworksG2.lean`
+`CanonicalG2` + `isZeroFq2Mont` + `decodeG2 : … → Option (Fq2 × Fq2)` +
+`decode_g2_neg` and the four identity/zero-branch laws. Full Ipp green, zero
+sorry, audited axioms.
+REMAINING PARTS: (2) generic add/double refinement to chordAdd/tangentDouble
+over Fq2 (the HEAVY part — apply the S3-26 `chord_decode_core` abstraction +
+`clear_value` memory pattern from the START; guarded builds mandatory); the
+comparison bridges + branch theorems + mixed counterparts; (3) Mathlib
+`Affine.Point` lift over the G2 twist curve. Acceptance mirrors S3-26.
 
 **S3-28 — scalar-multiplication loops** — `HARD (sol)` — `GATED` on S3-26/27.
 Prove the executed G1 and G2 scalar-bit loop invariant and instantiate it to
