@@ -486,6 +486,21 @@ theorem asFqWire_value (bytes : ByteArray) :
     congrArg MacCampaign.Array.val (byteArray_eq_ofFn bytes)
   exact congrArg Ipp.CanonicalWire.decodeLE hval.symm
 
+private theorem limbArray_eq_six (value : LimbArray) :
+    value = MacCampaign.Array.make 6#usize [
+      limbWord value ⟨0, by simp [limbCount]⟩,
+      limbWord value ⟨1, by simp [limbCount]⟩,
+      limbWord value ⟨2, by simp [limbCount]⟩,
+      limbWord value ⟨3, by simp [limbCount]⟩,
+      limbWord value ⟨4, by simp [limbCount]⟩,
+      limbWord value ⟨5, by simp [limbCount]⟩] := by
+  apply MacCampaign.Array.ext
+  apply List.ext_get
+  · simp [value.hlen, MacCampaign.Array.make]
+  · intro n hnValue hnMake
+    have hn : n < 6 := by simpa [value.hlen] using hnValue
+    interval_cases n <;> rfl
+
 def byteFn8 (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 8) :
     Fin 8 → UInt8 := fun i =>
   bytes.val.get ⟨i.val, by simpa [bytes.hlen] using i.isLt⟩
@@ -565,6 +580,63 @@ private theorem decodeLE_append (xs ys : List UInt8) :
       simp only [List.cons_append, Ipp.CanonicalWire.decodeLE, List.length_cons,
         Nat.pow_succ, ih]
       ring
+
+private def wordBytes (word : MacCampaign.U64) :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 8 :=
+  MacCampaign.Array.make 8#usize [
+    UInt8.ofNat word.val,
+    UInt8.ofNat (word.val / 2 ^ 8),
+    UInt8.ofNat (word.val / 2 ^ 16),
+    UInt8.ofNat (word.val / 2 ^ 24),
+    UInt8.ofNat (word.val / 2 ^ 32),
+    UInt8.ofNat (word.val / 2 ^ 40),
+    UInt8.ofNat (word.val / 2 ^ 48),
+    UInt8.ofNat (word.val / 2 ^ 56)]
+
+private theorem decodeLE_wordBytes (word : MacCampaign.U64) :
+    Ipp.CanonicalWire.decodeLE (wordBytes word).val = word.val := by
+  have hword := word.isLt
+  change word.val < 2 ^ 64 at hword
+  simp [wordBytes, MacCampaign.Array.make, Ipp.CanonicalWire.decodeLE]
+  norm_num [MacCampaign.U64.ofNat, MacCampaign.u64Base] at hword ⊢
+  omega
+
+private def limbBytes (x0 x1 x2 x3 x4 x5 : MacCampaign.U64) : ByteArray :=
+  ⟨(wordBytes x0).val ++ (wordBytes x1).val ++ (wordBytes x2).val ++
+    (wordBytes x3).val ++ (wordBytes x4).val ++ (wordBytes x5).val,
+    by simp [wordBytes, MacCampaign.Array.make]⟩
+
+private theorem limbs_to_bytes_make_eq
+    (x0 x1 x2 x3 x4 x5 : MacCampaign.U64) :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.limbs_to_bytes
+      (MacCampaign.Array.make 6#usize [x0, x1, x2, x3, x4, x5]) =
+        .ok (limbBytes x0 x1 x2 x3 x4 x5) := by
+  rfl
+
+/-- Serializing six words preserves their ordinary little-endian integer. -/
+theorem limbs_to_bytes_value_spec
+    (value : LimbArray) (bytes : ByteArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.limbs_to_bytes value =
+      .ok bytes) :
+    bytesValue bytes = limbsToNat value := by
+  rw [limbArray_eq_six value, limbs_to_bytes_make_eq] at hexec
+  have hbytes : bytes = limbBytes
+      (limbWord value ⟨0, by simp [limbCount]⟩)
+      (limbWord value ⟨1, by simp [limbCount]⟩)
+      (limbWord value ⟨2, by simp [limbCount]⟩)
+      (limbWord value ⟨3, by simp [limbCount]⟩)
+      (limbWord value ⟨4, by simp [limbCount]⟩)
+      (limbWord value ⟨5, by simp [limbCount]⟩) :=
+    (Result.ok.inj hexec).symm
+  subst bytes
+  rw [limbsToNat_six]
+  simp only [bytesValue, limbBytes]
+  rw [decodeLE_append, decodeLE_append, decodeLE_append, decodeLE_append,
+    decodeLE_append]
+  rw [decodeLE_wordBytes, decodeLE_wordBytes, decodeLE_wordBytes,
+    decodeLE_wordBytes, decodeLE_wordBytes, decodeLE_wordBytes]
+  simp [wordBytes, MacCampaign.Array.make, limb, wordBase]
+  ring
 
 private theorem byteChunks_eq (bytes : ByteArray) :
     List.ofFn (byteFn bytes) =
@@ -681,6 +753,62 @@ private theorem baseMontgomeryRadix_coprime :
   rw [Ipp.Bls12377.baseMontgomeryRadix,
     Nat.coprime_pow_left_iff (by decide : 0 < 384)]
   norm_num [Ipp.Bls12377.baseModulus]
+
+private abbrev oneInteger : LimbArray :=
+  MacCampaign.Array.make 6#usize [
+    MacCampaign.U64.ofNat 1, MacCampaign.U64.ofNat 0,
+    MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0,
+    MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0]
+
+private theorem into_bigint_value (a output : LimbArray)
+    (ha : Canonical a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.mul a oneInteger =
+      .ok output) :
+    limbsToNat output = (decode a).val ∧ Canonical output := by
+  have hone : limbsToNat oneInteger = 1 := by
+    rw [limbsToNat_six]
+    norm_num [oneInteger, MacCampaign.Array.make, limb, limbWord,
+      MacCampaign.U64.ofNat, MacCampaign.u64Base, wordBase]
+  have honeCanonical : Canonical oneInteger := by
+    rw [Canonical, hone]
+    norm_num [Ipp.Bls12377.baseModulus]
+  have hspec := extracted_mul_spec a oneInteger output ha honeCanonical hexec
+  refine ⟨?_, hspec.1⟩
+  have hmod := hspec.2
+  rw [hone, Nat.mul_one] at hmod
+  have hcast : ((limbsToNat output * wordBase ^ limbCount : Nat) :
+      Ipp.Bls12377.Fq) = (limbsToNat a : Ipp.Bls12377.Fq) :=
+    (ZMod.natCast_eq_natCast_iff _ _ _).2 hmod
+  rw [Nat.cast_mul, wordRadix_eq_baseMontgomeryRadix] at hcast
+  have hcancel :
+      (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) *
+        (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹ = 1 :=
+    ZMod.coe_mul_inv_eq_one Ipp.Bls12377.baseMontgomeryRadix
+      baseMontgomeryRadix_coprime
+  have hvalue : (limbsToNat output : Ipp.Bls12377.Fq) = decode a := by
+    rw [decode_eq_cast_mul_inv]
+    calc
+      (limbsToNat output : Ipp.Bls12377.Fq) =
+          (limbsToNat output : Ipp.Bls12377.Fq) *
+            ((Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) *
+              (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹) := by
+                rw [hcancel, mul_one]
+      _ = ((limbsToNat output : Ipp.Bls12377.Fq) *
+            (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)) *
+          (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹ := by ring
+      _ = (limbsToNat a : Ipp.Bls12377.Fq) *
+          (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq)⁻¹ := by rw [hcast]
+  rw [← hvalue, ZMod.val_natCast_of_lt hspec.1]
+
+/-- Canonical serialization emits the ordinary representative of the field value. -/
+theorem to_bytes_value_spec (a : LimbArray) (bytes : ByteArray)
+    (ha : Canonical a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.to_bytes a = .ok bytes) :
+    bytesValue bytes = (decode a).val := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.to_bytes at hexec
+  obtain ⟨value, hmul, hbytes⟩ := bind_eq_ok hexec
+  rw [limbs_to_bytes_value_spec value bytes hbytes]
+  exact (into_bigint_value a value ha hmul).1
 
 private theorem u64_ext {left right : MacCampaign.U64}
     (h : left.val = right.val) : left = right := by
@@ -926,6 +1054,75 @@ theorem from_bytes_decodeFqCanonical_bridge
   exact from_bytes_decodeFqCanonical_bridge_of_value bytes value output hparse
     (bytes_to_limbs_value_spec bytes value hparse) hexec
 
+/-- Every successful base-field decode returns a canonical Montgomery value. -/
+theorem from_bytes_some_canonical
+    (bytes : ByteArray) (output : LimbArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.from_bytes bytes =
+      .ok (some output)) : Canonical output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.from_bytes at hexec
+  obtain ⟨value, hparse, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨noncanonical, hcompare, hexec⟩ := bind_eq_ok hexec
+  cases noncanonical with
+  | true => simp at hexec
+  | false =>
+      simp only [Bool.false_eq_true, if_false] at hexec
+      obtain ⟨converted, hmul, hreturn⟩ := bind_eq_ok hexec
+      have hvalue : Canonical value := by
+        rw [Canonical]
+        by_contra hnot
+        have hprefix : geqPrefix value
+            ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS limbCount = false := by
+          rw [extracted_geq_modulus_spec] at hcompare
+          exact Result.ok.inj hcompare
+        have htrue : geqPrefix value
+            ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS limbCount = true := by
+          apply (geqPrefix_spec value
+            ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS limbCount (by omega)).2
+          change limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ≤
+            limbsToNat value
+          rw [modulus_limbsToNat]
+          exact Nat.le_of_not_gt hnot
+        rw [hprefix] at htrue
+        contradiction
+      have hcanonical :=
+        (extracted_mul_spec value
+          ark_ip_proofs.s3_07_arkworks_fq_spike.R2 converted hvalue
+          limbsToNat_R2_lt hmul).1
+      have : converted = output := Option.some.inj (Result.ok.inj hreturn)
+      simpa [this] using hcanonical
+
+/-- An extracted `none` is exactly a noncanonical GAP-01 base-field lane. -/
+theorem from_bytes_none_rejects_model
+    (bytes : ByteArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.from_bytes bytes =
+      .ok none) :
+    Ipp.CanonicalWire.decodeFqCanonical (asFqWire bytes) = none := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.from_bytes at hexec
+  obtain ⟨value, hparse, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨noncanonical, hcompare, hexec⟩ := bind_eq_ok hexec
+  cases noncanonical with
+  | false =>
+      simp only [Bool.false_eq_true, if_false] at hexec
+      obtain ⟨converted, hmul, hreturn⟩ := bind_eq_ok hexec
+      simp at hreturn
+  | true =>
+      have hprefix : geqPrefix value
+          ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS limbCount = true := by
+        rw [extracted_geq_modulus_spec] at hcompare
+        exact Result.ok.inj hcompare
+      have hge := (geqPrefix_spec value
+        ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS limbCount (by omega)).1
+          hprefix
+      apply Ipp.CanonicalWire.decodeFqCanonical_rejects_noncanonical
+      rw [asFqWire_value]
+      change Ipp.CanonicalWire.fqModulus ≤
+        Ipp.CanonicalWire.decodeLE bytes.val
+      rw [← bytes_to_limbs_value_spec bytes value hparse]
+      change limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ≤
+        limbsToNat value at hge
+      simpa [Ipp.CanonicalWire.fqModulus, modulus_limbsToNat,
+        Ipp.Bls12377.baseModulus] using hge
+
 end Ipp.Extracted.ArkworksFqSqrtBytes
 
 #print axioms Ipp.Extracted.ArkworksFqSqrtBytes.decode_extracted_sqrt
@@ -936,3 +1133,7 @@ end Ipp.Extracted.ArkworksFqSqrtBytes
 #print axioms Ipp.Extracted.ArkworksFqSqrtBytes.from_bytes_decodeFqCanonical_bridge
 #print axioms Ipp.Extracted.ArkworksFqSqrtBytes.extracted_sqrt_sqrtFq
 #print axioms Ipp.Extracted.ArkworksFqSqrtBytes.executedSqrtFq_zero
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.limbs_to_bytes_value_spec
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.to_bytes_value_spec
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.from_bytes_some_canonical
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.from_bytes_none_rejects_model

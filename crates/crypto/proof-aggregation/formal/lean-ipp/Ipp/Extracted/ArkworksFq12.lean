@@ -1,6 +1,7 @@
 import Ipp.Extracted.ArkworksFq12Generated
 import Ipp.Extracted.ArkworksFq6
 import Ipp.Bls12377Fq12
+import Ipp.CanonicalGtDecode
 import Mathlib.Tactic
 
 /-! S3-21 part 1: the reached componentwise Fq12 operation refines `Fq12Model`. -/
@@ -10,8 +11,57 @@ namespace Ipp.Extracted.ArkworksFq12
 open Aeneas Aeneas.Std Result
 open Ipp.Extracted.ArkworksFq2
 open Ipp.Extracted.ArkworksFq6
+open Ipp.Extracted.ArkworksFqSqrtBytes
 
 abbrev Fq12LimbPair := ark_ip_proofs.s3_07_arkworks_fq_spike.Fq12Mont
+abbrev Fq12ByteTower := ark_ip_proofs.s3_07_arkworks_fq_spike.Fq12Bytes
+
+private instance : NeZero Ipp.Bls12377.baseModulus := ⟨by
+  norm_num [Ipp.Bls12377.baseModulus]⟩
+
+def asFq2Wire (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Bytes) :
+    Ipp.CanonicalWire.Fq2Wire :=
+  ⟨asFqWire bytes.c0, asFqWire bytes.c1⟩
+
+def asFq6Wire (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.Fq6Bytes) :
+    Ipp.CanonicalWire.Fq6Wire :=
+  ⟨asFq2Wire bytes.c0, asFq2Wire bytes.c1, asFq2Wire bytes.c2⟩
+
+/-- The extracted structured 576-byte value viewed as GAP-04's Fq12 wire. -/
+def asFq12Wire (bytes : Fq12ByteTower) : Ipp.CanonicalWire.Fq12Wire :=
+  ⟨asFq6Wire bytes.c0, asFq6Wire bytes.c1⟩
+
+@[irreducible] def decodedFqValue (a : LimbArray) : Nat :=
+  (Ipp.Extracted.ArkworksFqMul.decode a).val
+
+private theorem decodedFqValue_eq (a : LimbArray) :
+    decodedFqValue a = (Ipp.Extracted.ArkworksFqMul.decode a).val := by
+  unfold decodedFqValue
+  rfl
+
+def canonicalFqValue (a : LimbArray) : Ipp.CanonicalWire.FqValue :=
+  ⟨decodedFqValue a, by
+    rw [decodedFqValue_eq]
+    simpa [Ipp.CanonicalWire.fqModulus, Ipp.Bls12377.baseModulus] using
+      (Ipp.Extracted.ArkworksFqMul.decode a).val_lt⟩
+
+private theorem canonicalFqValue_value (a : LimbArray) :
+    (canonicalFqValue a).1 = decodedFqValue a := rfl
+
+private theorem canonicalFqValue_decode_value (a : LimbArray) :
+    (canonicalFqValue a).1 =
+      (Ipp.Extracted.ArkworksFqMul.decode a).val :=
+  (canonicalFqValue_value a).trans (decodedFqValue_eq a)
+
+def canonicalFq2Value (a : Fq2LimbPair) : Ipp.CanonicalWire.Fq2Value :=
+  (canonicalFqValue a.c0, canonicalFqValue a.c1)
+
+def canonicalFq6Value (a : Fq6LimbTriple) : Ipp.CanonicalWire.Fq6Value :=
+  (canonicalFq2Value a.c0,
+    (canonicalFq2Value a.c1, canonicalFq2Value a.c2))
+
+def canonicalFq12Value (a : Fq12LimbPair) : Ipp.CanonicalWire.Fq12Value :=
+  (canonicalFq6Value a.c0, canonicalFq6Value a.c1)
 
 /-- Componentwise Montgomery decode into the concrete Fq12 model. -/
 def decodeFq12 (a : Fq12LimbPair) : Ipp.Bls12377.Fq12Model :=
@@ -19,6 +69,30 @@ def decodeFq12 (a : Fq12LimbPair) : Ipp.Bls12377.Fq12Model :=
 
 def Canonical12 (a : Fq12LimbPair) : Prop :=
   Canonical6 a.c0 ∧ Canonical6 a.c1
+
+def Fq12ValueMatchesModel (x : Ipp.CanonicalWire.Fq12Value)
+    (m : Ipp.Bls12377.Fq12Model) : Prop :=
+  x.1.1.1.1 = m.c0.c0.re.val ∧ x.1.1.2.1 = m.c0.c0.im.val ∧
+  x.1.2.1.1.1 = m.c0.c1.re.val ∧ x.1.2.1.2.1 = m.c0.c1.im.val ∧
+  x.1.2.2.1.1 = m.c0.c2.re.val ∧ x.1.2.2.2.1 = m.c0.c2.im.val ∧
+  x.2.1.1.1 = m.c1.c0.re.val ∧ x.2.1.2.1 = m.c1.c0.im.val ∧
+  x.2.2.1.1.1 = m.c1.c1.re.val ∧ x.2.2.1.2.1 = m.c1.c1.im.val ∧
+  x.2.2.2.1.1 = m.c1.c2.re.val ∧ x.2.2.2.2.1 = m.c1.c2.im.val
+
+theorem canonicalFq12Value_model (a : Fq12LimbPair) :
+    Fq12ValueMatchesModel (canonicalFq12Value a) (decodeFq12 a) := by
+  exact ⟨canonicalFqValue_decode_value a.c0.c0.c0,
+    canonicalFqValue_decode_value a.c0.c0.c1,
+    canonicalFqValue_decode_value a.c0.c1.c0,
+    canonicalFqValue_decode_value a.c0.c1.c1,
+    canonicalFqValue_decode_value a.c0.c2.c0,
+    canonicalFqValue_decode_value a.c0.c2.c1,
+    canonicalFqValue_decode_value a.c1.c0.c0,
+    canonicalFqValue_decode_value a.c1.c0.c1,
+    canonicalFqValue_decode_value a.c1.c1.c0,
+    canonicalFqValue_decode_value a.c1.c1.c1,
+    canonicalFqValue_decode_value a.c1.c2.c0,
+    canonicalFqValue_decode_value a.c1.c2.c1⟩
 
 private theorem bind_eq_ok {α β : Type} {action : Result α}
     {next : α → Result β} {output : β}
@@ -1324,6 +1398,260 @@ theorem decode_fq12_cyclotomic_exp (a output : Fq12LimbPair)
     decodeFq12 output = Ipp.Bls12377.fq12CyclotomicExp (decodeFq12 a) :=
   (fq12_cyclotomic_exp_spec a output ha hexec).2
 
+/-! ### Canonical 576-byte GT wire -/
+
+private theorem fq_to_bytes_wire (a : LimbArray)
+    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 48)
+    (ha : Canonical a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.to_bytes a = .ok bytes) :
+    asFqWire bytes = Ipp.CanonicalWire.encodeFqCanonical (canonicalFqValue a) := by
+  apply Ipp.CanonicalWire.FqWire.ext_value
+  calc
+    (asFqWire bytes).value =
+        (Ipp.Extracted.ArkworksFqMul.decode a).val := by
+          rw [asFqWire_value, to_bytes_value_spec a bytes ha hexec]
+    _ = (canonicalFqValue a).1 := (canonicalFqValue_decode_value a).symm
+    _ = (Ipp.CanonicalWire.encodeFqCanonical (canonicalFqValue a)).value :=
+      (Ipp.CanonicalWire.encodeFqCanonical_value _).symm
+
+private theorem fq2_to_bytes_wire (a : Fq2LimbPair)
+    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Bytes)
+    (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_to_bytes a = .ok bytes) :
+    asFq2Wire bytes =
+      Ipp.CanonicalWire.encodeFq2Canonical (canonicalFq2Value a) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_to_bytes at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hreturn⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hreturn
+  subst bytes
+  change Ipp.CanonicalWire.Fq2Wire.mk (asFqWire c0) (asFqWire c1) =
+    Ipp.CanonicalWire.Fq2Wire.mk
+      (Ipp.CanonicalWire.encodeFqCanonical (canonicalFqValue a.c0))
+      (Ipp.CanonicalWire.encodeFqCanonical (canonicalFqValue a.c1))
+  rw [fq_to_bytes_wire a.c0 c0 ha.1 h0, fq_to_bytes_wire a.c1 c1 ha.2 h1]
+
+private theorem fq6_to_bytes_wire (a : Fq6LimbTriple)
+    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.Fq6Bytes)
+    (ha : Canonical6 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_to_bytes a = .ok bytes) :
+    asFq6Wire bytes =
+      Ipp.CanonicalWire.encodeFq6Canonical (canonicalFq6Value a) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_to_bytes at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c2, h2, hreturn⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hreturn
+  subst bytes
+  change Ipp.CanonicalWire.Fq6Wire.mk (asFq2Wire c0) (asFq2Wire c1)
+      (asFq2Wire c2) = Ipp.CanonicalWire.Fq6Wire.mk
+    (Ipp.CanonicalWire.encodeFq2Canonical (canonicalFq2Value a.c0))
+    (Ipp.CanonicalWire.encodeFq2Canonical (canonicalFq2Value a.c1))
+    (Ipp.CanonicalWire.encodeFq2Canonical (canonicalFq2Value a.c2))
+  rw [fq2_to_bytes_wire a.c0 c0 ha.1 h0,
+    fq2_to_bytes_wire a.c1 c1 ha.2.1 h1,
+    fq2_to_bytes_wire a.c2 c2 ha.2.2 h2]
+
+/-- Executed Fq12 serialization is GAP-04's canonical componentwise encoding. -/
+theorem decode_fq12_to_bytes (a : Fq12LimbPair) (bytes : Fq12ByteTower)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_to_bytes a =
+      .ok bytes) :
+    asFq12Wire bytes =
+      Ipp.CanonicalWire.encodeFq12Canonical (canonicalFq12Value a) ∧
+    Fq12ValueMatchesModel (canonicalFq12Value a) (decodeFq12 a) := by
+  refine ⟨?_, canonicalFq12Value_model a⟩
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_to_bytes at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hreturn⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hreturn
+  subst bytes
+  change Ipp.CanonicalWire.Fq12Wire.mk (asFq6Wire c0) (asFq6Wire c1) =
+    Ipp.CanonicalWire.Fq12Wire.mk
+      (Ipp.CanonicalWire.encodeFq6Canonical (canonicalFq6Value a.c0))
+      (Ipp.CanonicalWire.encodeFq6Canonical (canonicalFq6Value a.c1))
+  rw [fq6_to_bytes_wire a.c0 c0 ha.1 h0, fq6_to_bytes_wire a.c1 c1 ha.2 h1]
+
+private theorem fq_from_bytes_some
+    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 48)
+    (a : LimbArray)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.from_bytes bytes =
+      .ok (some a)) :
+    Canonical a ∧ Ipp.CanonicalWire.decodeFqCanonical (asFqWire bytes) =
+      some (canonicalFqValue a) := by
+  refine ⟨from_bytes_some_canonical bytes a hexec, ?_⟩
+  obtain ⟨value, hdecode, hfield⟩ :=
+    from_bytes_decodeFqCanonical_bridge bytes a hexec
+  apply (Ipp.CanonicalWire.decodeFqCanonical_eq_some_iff
+    (asFqWire bytes) (canonicalFqValue a)).2
+  have hwire := (Ipp.CanonicalWire.decodeFqCanonical_eq_some_iff
+    (asFqWire bytes) value).1 hdecode
+  have hval := congrArg ZMod.val hfield
+  have hvalue : value.1 < Ipp.Bls12377.baseModulus := by
+    simpa [Ipp.CanonicalWire.fqModulus, Ipp.Bls12377.baseModulus] using value.2
+  rw [ZMod.val_natCast_of_lt hvalue] at hval
+  rw [canonicalFqValue_decode_value]
+  exact hwire.trans hval.symm
+
+private theorem fq2_from_bytes_some
+    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Bytes)
+    (a : Fq2LimbPair)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_from_bytes bytes =
+      .ok (some a)) :
+    Canonical2 a ∧
+      Ipp.CanonicalWire.decodeFq2Canonical (asFq2Wire bytes) =
+        some (canonicalFq2Value a) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_from_bytes at hexec
+  obtain ⟨o0, h0, hexec⟩ := bind_eq_ok hexec
+  cases o0 with
+  | none => simp at hexec
+  | some c0 =>
+      obtain ⟨o1, h1, hexec⟩ := bind_eq_ok hexec
+      cases o1 with
+      | none => simp at hexec
+      | some c1 =>
+          simp only [Result.ok.injEq, Option.some.injEq] at hexec
+          subst a
+          have s0 := fq_from_bytes_some bytes.c0 c0 h0
+          have s1 := fq_from_bytes_some bytes.c1 c1 h1
+          refine ⟨⟨s0.1, s1.1⟩, ?_⟩
+          exact Ipp.CanonicalWire.decodeFq2Canonical_of_components s0.2 s1.2
+
+private theorem fq6_from_bytes_some
+    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.Fq6Bytes)
+    (a : Fq6LimbTriple)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_from_bytes bytes =
+      .ok (some a)) :
+    Canonical6 a ∧
+      Ipp.CanonicalWire.decodeFq6Canonical (asFq6Wire bytes) =
+        some (canonicalFq6Value a) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_from_bytes at hexec
+  obtain ⟨o0, h0, hexec⟩ := bind_eq_ok hexec
+  cases o0 with
+  | none => simp at hexec
+  | some c0 =>
+      obtain ⟨o1, h1, hexec⟩ := bind_eq_ok hexec
+      cases o1 with
+      | none => simp at hexec
+      | some c1 =>
+          obtain ⟨o2, h2, hexec⟩ := bind_eq_ok hexec
+          cases o2 with
+          | none => simp at hexec
+          | some c2 =>
+              simp only [Result.ok.injEq, Option.some.injEq] at hexec
+              subst a
+              have s0 := fq2_from_bytes_some bytes.c0 c0 h0
+              have s1 := fq2_from_bytes_some bytes.c1 c1 h1
+              have s2 := fq2_from_bytes_some bytes.c2 c2 h2
+              refine ⟨⟨s0.1, s1.1, s2.1⟩, ?_⟩
+              exact Ipp.CanonicalWire.decodeFq6Canonical_of_components
+                s0.2 s1.2 s2.2
+
+/-- Executed acceptance is sound for GAP-04 and returns the same Fq12 value. -/
+theorem decode_fq12_from_bytes_some (bytes : Fq12ByteTower)
+    (a : Fq12LimbPair)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_from_bytes bytes =
+      .ok (some a)) :
+    Canonical12 a ∧
+      Ipp.CanonicalWire.decodeFq12Canonical (asFq12Wire bytes) =
+        some (canonicalFq12Value a) ∧
+      Fq12ValueMatchesModel (canonicalFq12Value a) (decodeFq12 a) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_from_bytes at hexec
+  obtain ⟨o0, h0, hexec⟩ := bind_eq_ok hexec
+  cases o0 with
+  | none => simp at hexec
+  | some c0 =>
+      obtain ⟨o1, h1, hexec⟩ := bind_eq_ok hexec
+      cases o1 with
+      | none => simp at hexec
+      | some c1 =>
+          simp only [Result.ok.injEq, Option.some.injEq] at hexec
+          subst a
+          have s0 := fq6_from_bytes_some bytes.c0 c0 h0
+          have s1 := fq6_from_bytes_some bytes.c1 c1 h1
+          refine ⟨⟨s0.1, s1.1⟩, ?_, canonicalFq12Value_model _⟩
+          exact Ipp.CanonicalWire.decodeFq12Canonical_of_components s0.2 s1.2
+
+private theorem fq2_from_bytes_none
+    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Bytes)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_from_bytes bytes =
+      .ok none) :
+    Ipp.CanonicalWire.decodeFq2Canonical (asFq2Wire bytes) = none := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_from_bytes at hexec
+  obtain ⟨o0, h0, hexec⟩ := bind_eq_ok hexec
+  cases o0 with
+  | none =>
+      have r0 := from_bytes_none_rejects_model bytes.c0 h0
+      exact Ipp.CanonicalWire.decodeFq2Canonical_none_c0 r0
+  | some c0 =>
+      obtain ⟨o1, h1, hexec⟩ := bind_eq_ok hexec
+      cases o1 with
+      | none =>
+          have s0 := fq_from_bytes_some bytes.c0 c0 h0
+          have r1 := from_bytes_none_rejects_model bytes.c1 h1
+          exact Ipp.CanonicalWire.decodeFq2Canonical_none_c1 s0.2 r1
+      | some c1 => simp at hexec
+
+private theorem fq6_from_bytes_none
+    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.Fq6Bytes)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_from_bytes bytes =
+      .ok none) :
+    Ipp.CanonicalWire.decodeFq6Canonical (asFq6Wire bytes) = none := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_from_bytes at hexec
+  obtain ⟨o0, h0, hexec⟩ := bind_eq_ok hexec
+  cases o0 with
+  | none =>
+      have r0 := fq2_from_bytes_none bytes.c0 h0
+      exact Ipp.CanonicalWire.decodeFq6Canonical_none_c0 r0
+  | some c0 =>
+      obtain ⟨o1, h1, hexec⟩ := bind_eq_ok hexec
+      cases o1 with
+      | none =>
+          have s0 := fq2_from_bytes_some bytes.c0 c0 h0
+          have r1 := fq2_from_bytes_none bytes.c1 h1
+          exact Ipp.CanonicalWire.decodeFq6Canonical_none_c1 s0.2 r1
+      | some c1 =>
+          obtain ⟨o2, h2, hexec⟩ := bind_eq_ok hexec
+          cases o2 with
+          | none =>
+              have s0 := fq2_from_bytes_some bytes.c0 c0 h0
+              have s1 := fq2_from_bytes_some bytes.c1 c1 h1
+              have r2 := fq2_from_bytes_none bytes.c2 h2
+              exact Ipp.CanonicalWire.decodeFq6Canonical_none_c2
+                s0.2 s1.2 r2
+          | some c2 => simp at hexec
+
+/-- Executed rejection is exactly rejection by GAP-04's component decoder. -/
+theorem decode_fq12_from_bytes_none (bytes : Fq12ByteTower)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_from_bytes bytes =
+      .ok none) :
+    Ipp.CanonicalWire.decodeFq12Canonical (asFq12Wire bytes) = none := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_from_bytes at hexec
+  obtain ⟨o0, h0, hexec⟩ := bind_eq_ok hexec
+  cases o0 with
+  | none =>
+      have r0 := fq6_from_bytes_none bytes.c0 h0
+      exact Ipp.CanonicalWire.decodeFq12Canonical_none_c0 r0
+  | some c0 =>
+      obtain ⟨o1, h1, hexec⟩ := bind_eq_ok hexec
+      cases o1 with
+      | none =>
+          have s0 := fq6_from_bytes_some bytes.c0 c0 h0
+          have r1 := fq6_from_bytes_none bytes.c1 h1
+          exact Ipp.CanonicalWire.decodeFq12Canonical_none_c1 s0.2 r1
+      | some c1 => simp at hexec
+
+/-- The executed result classifies exactly the byte strings accepted by GAP-04. -/
+theorem decode_fq12_from_bytes_exact (bytes : Fq12ByteTower)
+    (result : Option Fq12LimbPair)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_from_bytes bytes =
+      .ok result) :
+    Ipp.CanonicalWire.decodeFq12Canonical (asFq12Wire bytes) =
+      result.map canonicalFq12Value := by
+  cases result with
+  | none => exact decode_fq12_from_bytes_none bytes hexec
+  | some a => exact (decode_fq12_from_bytes_some bytes a hexec).2.1
+
 #print axioms decode_fq12_conjugate
 #print axioms canonical12_mul
 #print axioms decode_fq12_mul
@@ -1342,5 +1670,10 @@ theorem decode_fq12_cyclotomic_exp (a output : Fq12LimbPair)
 #print axioms x_naf_be_matches_model
 #print axioms canonical12_cyclotomic_exp
 #print axioms decode_fq12_cyclotomic_exp
+#print axioms canonicalFq12Value_model
+#print axioms decode_fq12_to_bytes
+#print axioms decode_fq12_from_bytes_some
+#print axioms decode_fq12_from_bytes_none
+#print axioms decode_fq12_from_bytes_exact
 
 end Ipp.Extracted.ArkworksFq12

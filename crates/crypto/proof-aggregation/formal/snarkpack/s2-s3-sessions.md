@@ -899,9 +899,21 @@ the `fq12Polynomial`/`Fq12Canonical` abbreviations to rewrite with
 abbreviation (`rw [neg_sq, fq12_root_square]`... or `neg_pow` two-case),
 then bridge to the expanded form with `simpa [fq12Polynomial]` /
 `show` — i.e. prove BEFORE unfolding, convert after.
-REMAINING PARTS: (5) canonical bytes vs `CanonicalGtDecode`; (6) tier-B
-unitarity closer (fq12ConjAut + transport + the two semantic laws — also
-wanted by S3-22/GAP-07); then ledger retirement.
+PART 5 DONE (2026-07-18, orchestrator; executed by sol): executed Fq12
+bytes conform to `CanonicalGtDecode` — `decode_fq12_to_bytes` (=
+`encodeFq12Canonical` in exact tower order; new add-only canonical
+encoders + `Fq12ValueMatchesModel` bridge in `CanonicalGtDecode.lean`),
+`decode_fq12_from_bytes_some` (canonicity + model decode succeeds with the
+matching value), `decode_fq12_from_bytes_none` (model decode rejects), and
+`decode_fq12_from_bytes_exact` (model decode = `result.map
+canonicalFq12Value` — the exact acceptance/rejection classification).
+Fq-level companions added in `ArkworksFqSqrtBytes.lean`
+(`to_bytes_value_spec`, `from_bytes_some_canonical`,
+`from_bytes_none_rejects_model`, one 8-byte word lemma composed over six
+limbs). Full Ipp green (3426 jobs), zero sorry, audited axioms.
+REMAINING: (6) tier-B unitarity closer (fq12ConjAut + transport + the two
+semantic laws, with the part-4 elaboration fix hint — also wanted by
+S3-22/GAP-07); then S3-21 DONE + ledger retirement.
 
 **S3-22 — GT factorization and order-r characterization** — `HARD (sol)` —
 `GATED` on S3-20 and S3-02/03. Prove `r ∣ q^12-1`, record the exact cofactor

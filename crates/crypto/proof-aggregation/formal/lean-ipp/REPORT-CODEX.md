@@ -1,96 +1,89 @@
-# S3-21 part 4 report
+# S3-21 part 5 report
 
-STATUS: PARTIAL
+STATUS: DONE
 
-Tier A is complete and green. Tier B was attempted only after Tier A passed,
-then stopped at the requested tier boundary. No Tier B declarations were
-landed.
+## Public Fq12 byte theorems
 
-## Tier A landed
+- `decode_fq12_to_bytes`: for `Canonical12 a`, successful executed
+  `fq12_to_bytes` equals `CanonicalWire.encodeFq12Canonical` in the exact
+  c0/c1, c0/c1/c2, c0/c1 tower order; `Fq12ValueMatchesModel` attaches the
+  encoded canonical naturals lane-by-lane to `decodeFq12 a`.
+- `decode_fq12_from_bytes_some`: executed `.ok (some a)` implies
+  `Canonical12 a`, `decodeFq12Canonical (asFq12Wire bytes) =
+  some (canonicalFq12Value a)`, and the decoded canonical value matches
+  `decodeFq12 a` in all 12 lanes.
+- `decode_fq12_from_bytes_none`: executed `.ok none` implies
+  `decodeFq12Canonical (asFq12Wire bytes) = none`.
+- `decode_fq12_from_bytes_exact`: for any successful executed result,
+  model decoding equals `result.map canonicalFq12Value`; this is the exact
+  acceptance/rejection classification corollary.
+- `canonicalFq12Value_model`: the 12 canonical natural representatives used
+  by the wire model equal the `.val` lanes of `decodeFq12`.
 
-Added exact executable models in `Ipp.Bls12377Pairing`:
+## CanonicalGtDecode attachment
 
-- `fq12Conjugate`: Fq12 quadratic conjugation by c1 negation.
-- `fq12CyclotomicSquare`: the arkworks Granger–Scott q ≡ 1 (mod 6)
-  six-lane Fq2 formula, preserving the source g0…g5 dataflow.
-- `blsXnafBE`: the pinned 64 signed digits for
-  `X = 0x8508c00000000001` in big-endian order.
-- `fq12CyclotomicExpStep` and `fq12CyclotomicExp`: the exact square, then
-  multiply-by-a / multiply-by-conjugate NAF fold.
-- `fq12CyclotomicExp_zero`: exponentiation maps the zero model to zero.
+Added only model-facing encoding/peeling API to `Ipp/CanonicalGtDecode.lean`:
 
-Public executed-refinement theorems:
+- `encodeFqCanonical`, `encodeFq2Canonical`, `encodeFq6Canonical`, and
+  `encodeFq12Canonical` encode fixed-width little-endian canonical values in
+  the existing `Fq12Wire` shape.
+- `encodeFqCanonical_value` proves the base encoder's decoded integer.
+- Small `decodeFq{2,6,12}Canonical_*` component lemmas expose the existing
+  model decoder's success and short-circuit rejection branches.
 
-- `canonical12_cyclotomic_square`: successful extracted cyclotomic square
-  preserves `Canonical12`.
-- `decode_fq12_cyclotomic_square`: successful extracted cyclotomic square
-  decodes to `fq12CyclotomicSquare`.
-- `x_naf_be_matches_model`: the generated extracted `X_NAF_BE` value is
-  kernel-equal to `blsXnafBE`.
-- `canonical12_cyclotomic_exp`: successful extracted cyclotomic exponentiation
-  preserves `Canonical12`.
-- `decode_fq12_cyclotomic_exp`: successful extracted cyclotomic exponentiation
-  decodes to `fq12CyclotomicExp`.
+`asFq12Wire` is the extracted structured-byte view of the same model shape;
+there is no re-derived flat 576-byte ordering. `Fq12ValueMatchesModel` is the
+bridge from the model's canonical-natural value type to the concrete
+`Bls12377.Fq12Model` returned by `decodeFq12`.
 
-The square proof uses scoped per-operation Fq2 helpers and bind-peels each GS
-lane without changing the generated graph. The exponentiation proof does not
-unroll 64 iterations: `cyclotomic_exp_loop0_fuel_spec` inducts on the Aeneas
-loop fuel with an invariant equating the decoded accumulator to the model fold
-over `blsXnafBE.drop index`; the second generated loop wrapper reuses the same
-body specification. The public graph proof handles the extracted zero return
-and both generated loop branches.
+## Fq-level companions
 
-## Tier B attempt
+Added the smallest missing base-field serialization facts in
+`ArkworksFqSqrtBytes.lean`:
 
-A scratch-only `AdjoinRoot.liftAlgHom` probe mapped the quadratic root to its
-negative and reduced well-definedness to the expected root-square fact. The
-probe was removed to keep the landed tree green at the Tier A boundary.
+- `limbs_to_bytes_value_spec`: six serialized words preserve `limbsToNat`.
+- `to_bytes_value_spec`: canonical `to_bytes` emits `(decode a).val`.
+- `from_bytes_some_canonical`: successful decoding returns a canonical
+  Montgomery representative.
+- `from_bytes_none_rejects_model`: executed `none` rejects under
+  `decodeFqCanonical`.
 
-The exact residual goal after `Polynomial.eval₂` expansion was:
-
-```text
-⊢ (-AdjoinRoot.root (Polynomial.X ^ 2 - Polynomial.C fq6V)) ^ 2 -
-    (algebraMap Fq6Canonical Fq12Canonical) fq6V = 0
-```
-
-The existing `fq12_root_square` theorem is stated through the private
-`fq12Polynomial` / `Fq12Canonical` abbreviations; unfolding `eval₂` exposed
-the polynomial and prevented the root term from elaborating back at the
-canonical abbreviation in the attempted rewrite/calc. Consequently
-`fq12ConjAut`, conjugation transport, and the two unitarity semantic laws were
-not landed. They can move together to the dedicated unitarity session without
-blocking part 5.
+The serializer proof uses one 8-byte word lemma composed over six limbs. The
+Fq12 proofs then bind-peel through Fq2, Fq6, and Fq12 helpers, applying the Fq
+lane contract exactly 12 times. Generated Lean and the Rust spike were not
+modified.
 
 ## Gates
 
-- `lake build Ipp.Bls12377Pairing` with pinned lake and
-  `LEAN_NUM_THREADS=1` — PASS.
-- `lake build Ipp.Extracted.ArkworksFq12` — PASS, 3,002 jobs.
-- Full `lake build Ipp` — PASS, 3,426 jobs.
+- Pinned lake, `LEAN_NUM_THREADS=1`; a process check preceded every lake call.
+- `lake build Ipp.Extracted.ArkworksFqSqrtBytes` — PASS, 2,990 jobs.
+- Final `lake build Ipp.Extracted.ArkworksFq12` — PASS, 3,003 jobs.
+- One final full `lake build Ipp` — PASS, 3,426 jobs.
+- Changed-file scan for `sorry`, `admit`, or `axiom` — PASS, no matches.
 - `git diff --check` — PASS.
-- Added-line scan for `sorry`, `admit`, or `axiom` — PASS, no matches.
-- No generated Lean file or Rust spike was modified.
-- Prover/release-gated tests — NOT RUN; this part changes Lean model and
-  refinement proofs, and all requested Lean gates passed.
+- Prover/release-gated tests — NOT RUN; this part changes Lean model/refinement
+  proofs, and all requested Lean gates passed.
 
 ## Axiom audit
 
-All new public theorems use only the permitted axioms:
+`#print axioms` results for the new public Fq12 theorems:
 
 ```text
-fq12CyclotomicExp_zero:
+canonicalFq12Value_model:
+  [propext, Quot.sound]
+decode_fq12_to_bytes:
   [propext, Classical.choice, Quot.sound]
-canonical12_cyclotomic_square:
+decode_fq12_from_bytes_some:
   [propext, Classical.choice, Quot.sound]
-decode_fq12_cyclotomic_square:
+decode_fq12_from_bytes_none:
   [propext, Classical.choice, Quot.sound]
-x_naf_be_matches_model:
-  [propext]
-canonical12_cyclotomic_exp:
-  [propext, Classical.choice, Quot.sound]
-decode_fq12_cyclotomic_exp:
+decode_fq12_from_bytes_exact:
   [propext, Classical.choice, Quot.sound]
 ```
+
+The four new public Fq companions and `encodeFqCanonical_value` also audit to
+`[propext, Classical.choice, Quot.sound]`. The model component-peeling lemmas
+do not depend on any axioms. No new axiom was added.
 
 No commit was made. Pre-existing untracked `.claude/` and `hooks/` paths were
 not touched.
