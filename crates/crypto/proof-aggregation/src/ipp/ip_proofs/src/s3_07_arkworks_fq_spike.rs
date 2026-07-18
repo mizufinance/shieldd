@@ -1490,6 +1490,157 @@ pub fn extract_s3_21(
     )
 }
 
+/// Monomorphic Jacobian representation used by BLS12-377 G1.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct G1ProjMont {
+    pub x: FqMont,
+    pub y: FqMont,
+    pub z: FqMont,
+}
+
+/// Monomorphic affine representation used by mixed G1 addition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct G1AffineMont {
+    pub x: FqMont,
+    pub y: FqMont,
+    pub infinity: bool,
+}
+
+fn g1_zero() -> G1ProjMont {
+    G1ProjMont {
+        x: FQ_ONE,
+        y: FQ_ONE,
+        z: FQ_ZERO,
+    }
+}
+
+/// BLS12-377's `Projective::double_in_place`, specialized to `COEFF_A = 0`
+/// and base-field extension degree one.
+pub fn g1_double(a: G1ProjMont) -> G1ProjMont {
+    if a.z == FQ_ZERO {
+        return a;
+    }
+
+    let aa = square(a.x);
+    let b = square(a.y);
+    let mut c = square(b);
+    let mut d = mul(a.x, b);
+    d = double(double(d));
+    let e = add(aa, double(aa));
+    let z = double(mul(a.z, a.y));
+    let x = sub(square(e), double(d));
+    c = double(double(double(c)));
+    let y = sub(mul(sub(d, x), e), c);
+    G1ProjMont { x, y, z }
+}
+
+/// Arkworks' complete control-flow wrapper around `add-2007-bl` Jacobian
+/// addition, including identity, equal-point, and opposite-point branches.
+pub fn g1_add(a: G1ProjMont, b: G1ProjMont) -> G1ProjMont {
+    if a.z == FQ_ZERO {
+        return b;
+    }
+    if b.z == FQ_ZERO {
+        return a;
+    }
+
+    let z1z1 = square(a.z);
+    let z2z2 = square(b.z);
+    let u1 = mul(a.x, z2z2);
+    let u2 = mul(b.x, z1z1);
+    let s1 = mul(mul(a.y, b.z), z2z2);
+    let s2 = mul(mul(b.y, a.z), z1z1);
+
+    if u1 == u2 {
+        if s1 == s2 {
+            return g1_double(a);
+        }
+        return g1_zero();
+    }
+
+    let h = sub(u2, u1);
+    let i = square(double(h));
+    let j = mul(neg(h), i);
+    let r = double(sub(s2, s1));
+    let mut v = mul(u1, i);
+    let x = sub(add(square(r), j), double(v));
+    v = sub(v, x);
+    let y = sum_of_products2(r, v, double(s1), j);
+    let z = mul(double(mul(a.z, b.z)), h);
+    G1ProjMont { x, y, z }
+}
+
+/// Arkworks' `madd-2007-bl` mixed addition, including affine infinity and all
+/// exceptional branches.
+pub fn g1_add_mixed(a: G1ProjMont, b: G1AffineMont) -> G1ProjMont {
+    if b.infinity {
+        return a;
+    }
+    if a.z == FQ_ZERO {
+        return G1ProjMont {
+            x: b.x,
+            y: b.y,
+            z: FQ_ONE,
+        };
+    }
+
+    let z1z1 = square(a.z);
+    let u2 = mul(b.x, z1z1);
+    let s2 = mul(mul(a.z, b.y), z1z1);
+    if a.x == u2 {
+        if a.y == s2 {
+            return g1_double(a);
+        }
+        return g1_zero();
+    }
+
+    let h = sub(u2, a.x);
+    let hh = square(h);
+    let i = double(double(hh));
+    let j = mul(neg(h), i);
+    let r = double(sub(s2, a.y));
+    let mut v = mul(a.x, i);
+    let x = sub(add(square(r), j), double(v));
+    v = sub(v, x);
+    let y = sum_of_products2(r, v, double(a.y), j);
+    let z = double(mul(a.z, h));
+    G1ProjMont { x, y, z }
+}
+
+/// Arkworks projective negation changes only the Jacobian Y coordinate.
+pub fn g1_neg(a: G1ProjMont) -> G1ProjMont {
+    G1ProjMont {
+        x: a.x,
+        y: neg(a.y),
+        z: a.z,
+    }
+}
+
+/// Arkworks affine negation changes only Y and preserves the infinity flag.
+pub fn g1_affine_neg(a: G1AffineMont) -> G1AffineMont {
+    G1AffineMont {
+        x: a.x,
+        y: neg(a.y),
+        infinity: a.infinity,
+    }
+}
+
+/// Extraction root whose closure contains every reached S3-26 G1 formula.
+#[doc(hidden)]
+pub fn extract_s3_26(
+    a: G1ProjMont,
+    b: G1ProjMont,
+    affine: G1AffineMont,
+) -> (G1ProjMont, G1ProjMont, G1ProjMont, G1ProjMont, G1AffineMont) {
+    (
+        g1_add(a, b),
+        g1_add_mixed(a, affine),
+        g1_double(a),
+        g1_neg(a),
+        g1_affine_neg(affine),
+    )
+}
+
 #[cfg(test)]
 mod inversion_tests {
     use super::{inv, FqMont};

@@ -1,115 +1,111 @@
-# GAP-07 report
+# S3-26 part 1 report
 
 STATUS DONE
 
-## Deliverable
+## Scope pin
 
-New hand-authored module: `Ipp/Bls12377GtMembership.lean`.
+Pinned version: arkworks 0.5.0 from
+`C:\Users\acyrn\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f`.
 
-The concrete checked predicate is
-`Ipp.Bls12377.arkworksPairingOutputCheckedMembership`:
+Reached monomorphic BLS12-377 G1 routines:
 
-```lean
-fq12Pow x scalarModulus = fq12One
+- Projective `AddAssign<&Projective>`: `ark-ec-0.5.0/src/models/short_weierstrass/group.rs:450-537`. It checks left and right zero-Z identities, cross-multiplies Jacobian coordinates, delegates equal points to doubling, returns zero for opposite points, and otherwise executes `add-2007-bl`.
+- Mixed `AddAssign<Affine>`: `group.rs:336-412`. Affine infinity is a no-op; projective zero becomes `(x,y,1)`; equal/opposite branches match projective addition; the generic branch is `madd-2007-bl`.
+- Projective `double_in_place`: `group.rs:166-270`, including the zero-Z early return. BLS12-377 fixes `COEFF_A = 0`, `COEFF_B = 1`, and `mul_by_a(_) = 0` in `ark-bls12-377-0.5.0/src/curves/g1.rs:38-51`. Therefore only `group.rs:176-225` executes. Because Fq has extension degree one, the reached inner shortcut is `D = 4*X*Y²` at `group.rs:192-196`; the generic `A != 0` branch at `226-269` is excluded.
+- Projective negation: `group.rs:326-333`, changing only Y.
+- Affine negation: `affine.rs:254-263`, changing only Y and preserving the infinity flag. This is reached by WNAF negative buckets: short-Weierstrass projective declares `NEGATION_IS_CHEAP = true` at `group.rs:640-646`; `VariableBaseMSM::msm_bigint` selects WNAF at `scalar_mul/variable_base/mod.rs:58-67`; negative buckets use projective `-= affine` (WNAF body at `variable_base/mod.rs:107-170`), whose wrapper negates the affine operand before mixed addition at `group.rs:424-427`.
+
+Reachability from aggregate verification is pinned by the in-repo MSM calls at `applications/poly_commit/mod.rs:86,106,240` and the generic KZG opening MSM at `tipa/mod.rs:1125-1129`; ordered group accumulation is also explicit at `gipa.rs:344-356`. Folded public inputs execute scalar multiplication and projective addition at `applications/groth16_aggregation.rs:2487-2492`. KZG/PPE paths execute G1 scalar multiplication, subtraction, and negation at `tipa/mod.rs:1188-1224` and normalize the resulting pairing operands at `applications/groth16_aggregation.rs:2517-2524`.
+
+Scalar multiplication reaches these formulas but its loop proof is S3-28: BLS12-377 overrides projective multiplication with GLV at `g1.rs:53-57`; the GLV body negates bases, forms projective sums, doubles, and projective-adds at `ark-ec-0.5.0/src/scalar_mul/glv.rs:90-123`. The default affine subgroup check calls `mul_affine(..., ScalarField::characteristic())` at `short_weierstrass/mod.rs:74-78`; its double-and-mixed-add loop is `scalar_mul/mod.rs:29-44`.
+
+Identity verdict: arkworks treats every `Z = 0` projective triple as zero (`group.rs:142-157`). Its chosen `ZERO` value is `(1,1,0)` (`group.rs:160-164`). The spike preserves both facts: branch tests compare only Z with zero, while the opposite-point branch returns `(FQ_ONE,FQ_ONE,FQ_ZERO)`.
+
+Pairing preparation converts projective G1 to affine at `ark-ec-0.5.0/src/models/bls12/g1.rs:23-37`. Single/batch normalization and `into_affine` are deliberately excluded: the Jacobian relation and batch inversion live at `short_weierstrass/group.rs:293-323` and `affine.rs:329-351`, and the campaign assigns them to S3-29 (`formal/snarkpack/s2-s3-sessions.md:998-1002`). The non-WNAF MSM implementation, the generic `A != 0` doubling branch, twisted-Edwards/Montgomery formulas, G2 formulas, scalar loops, normalization, and MSM window proofs are not S3-26 part 1 obligations.
+
+## Spike and parity
+
+`src/s3_07_arkworks_fq_spike.rs` now contains:
+
+- `G1ProjMont`, `G1AffineMont`, and canonical `g1_zero`;
+- `g1_add`, `g1_add_mixed`, `g1_double`, `g1_neg`, and reached `g1_affine_neg`;
+- `extract_s3_26`, whose closed result contains all five routines;
+- composition only through the existing extracted/parity-gated Fq closures.
+
+The control flow mirrors arkworks' zero, affine-infinity, equal, opposite, and generic branches. No compatibility route or alternate formula was added.
+
+Parity test `g1_edges_and_512_random_vectors_match_arkworks_projective_classes` covers canonical and noncanonical zero-Z identities, generator, scaled/non-normalized generator, equal points, opposite points, doubling, projective negation, affine negation, and mixed affine infinity, followed by 512 deterministic `test_rng()` samples. Projective results compare after `into_affine`, so acceptance is equality of represented point classes rather than raw Jacobian coordinates. Every routine is exercised in every random iteration.
+
+Results:
+
+```text
+cargo test -p ark-ip-proofs --features mac-campaign --test bls12_377_arkworks_fq_spike \
+  g1_edges_and_512_random_vectors_match_arkworks_projective_classes -- --exact
+1 passed; 0 failed
+
+cargo test -p ark-ip-proofs --features mac-campaign
+PASS (all executed tests green; existing two ignored tests remained ignored)
 ```
 
-It is exposed to GAP-04's existing parameterized decoder by the concrete
-boolean `pairingOutputValueMember` and the specialization
-`decodePairingOutputGtChecked`.
+## Extraction
 
-## GAP-04 predicate finding and consumers
+Final scoped WSL command:
 
-GAP-04 did not contain a concrete GT predicate. Its only checked surface was
-`Ipp.CanonicalWire.decodePairingOutputChecked
-  (member : PairingOutputValue → Bool)`, and its theorem
-`decodePairingOutputChecked_eq_some_iff` was correspondingly parameterized.
-`canonicalDecoderFamily` uses `decodePairingOutputCanonical`, not the checked
-decoder. A repository-wide search found no pre-existing S1/S2 caller of
-`decodePairingOutputChecked` and no other concrete `PairingOutput` membership
-predicate.
+```text
+cargo hax into -v --output-dir /root/shieldd-s3-26-g1-v2 aeneas-lean \
+  --charon-args=--start-from=crate::s3_07_arkworks_fq_spike::extract_s3_26 \
+  --lakefile
+```
 
-GAP-07 therefore supplies the missing concrete boolean once and specializes
-the existing GAP-04 decoder; it does not define a parallel wire decoder. The
-current concrete consumer is `decodePairingOutputGtChecked`. The S3-21 bridge
-consumer is `Fq12ValueMatchesModel`; theorem
-`pairingOutputModelOfValue_eq_of_matches` identifies its model with GAP-07's
-wire interpretation. GAP-10 can use this surface for the later executed
-`Valid::check` refinement, and S3-41 can consume the GT membership/cardinality
-theorems.
+Charon and Aeneas succeeded without a spike restructure. The final raw graph contains `g1_add`, `g1_add_mixed`, `g1_double`, `g1_neg`, `g1_affine_neg`, and the five-result `extract_s3_26`. The only tool warning is the established frontend warning that hax expected Aeneas revision `e0a1596` but could not identify the installed revision (`found unknown`). No missing builtin, panic, unsafe code, or shim was introduced.
 
-No stricter/looser predicate discrepancy was found: there was no prior
-concrete predicate to compare. The supplied predicate models the pinned
-arkworks check `pow(r) == 1`; nonzeroness is derived from that equality rather
-than added as an independent executable condition.
+The graph is vendored as `Ipp/Extracted/ArkworksG1Generated.lean`. Following the Fq6/Fq12 precedent, it imports the existing Fq graph instead of duplicating roughly 800 lines of the closed field closure. It has finite `maxHeartbeats 1000000` and `maxRecDepth 2048`.
 
-## Main theorems
+## Decoder and easy laws
 
-- `pairingOutputModelOfValue_eq_of_matches`: an S3-21
-  `Fq12ValueMatchesModel x m` witness implies
-  `pairingOutputModelOfValue x = m`.
-- `arkworksPairingOutputCheckedMembership_iff_pow`: the executable-model
-  check holds iff `fq12Coefficients x ^ r = 1` in canonical Fq12.
-- `arkworksPairingOutputCheckedMembership_iff_nonzero_pow`: the check holds
-  iff the canonical value is nonzero and its `r`-th power is one.
-- `arkworksPairingOutputCheckedMembership_iff_exists_mem_gtGroup`: the check
-  holds iff there is a canonical Fq12 unit with that value which belongs to
-  `GtGroup`.
-- `pairingOutputValueMember_eq_true_iff`: the concrete GAP-04 boolean is
-  propositionally exact.
-- `decodePairingOutputGtChecked_eq_some_iff`: checked wire decoding succeeds
-  exactly when canonical decoding succeeds and the decoded canonical value is
-  nonzero `r`-torsion.
-- `checkedPairingOutputEquivGt`: accepted executable Fq12 models are
-  equivalent to `GtGroup`.
-- `arkworksPairingOutputCheckedMembership_card`: the accepted model subtype
-  has cardinality `scalarModulus` by `checkedPairingOutputEquivGt` and
-  `gtGroup_card`.
-- `pairingOutput_checked_factorization_and_cardinality`: packages the landed
-  concrete factorization `q^12 - 1 = r * gtCofactor` with accepted-set
-  cardinality `r`.
-- `arkworksPairingOutputCheckedMembership_identity`: multiplicative Fq12 one
-  is accepted.
-- `arkworksPairingOutputCheckedMembership_rejects_field_zero`: additive field
-  zero is rejected.
-- `arkPairingOutput_zero_value_accepted`: arkworks additive
-  `PairingOutput` zero maps to accepted multiplicative one.
-- `field_zero_rejected_and_ne_arkPairingOutput_zero`: field zero is rejected
-  and differs from the arkworks additive identity's underlying GT value,
-  citing `fq12_zero_ne_gt_identity`.
+`Ipp/Extracted/ArkworksG1.lean` defines:
+
+- `CanonicalG1`: all three Montgomery limb arrays decode from reduced representatives;
+- `decodeG1 : G1ProjLimbTriple -> Option (Fq × Fq)`: `none` exactly when the extracted six-limb Z equality sees zero, otherwise `some (X/Z², Y/Z³)` after Montgomery decode.
+
+This shape directly represents arkworks' Jacobian point class and makes every zero-Z encoding the same infinity value. It intentionally returns an affine coordinate pair rather than a Mathlib `G1` term: constructing the latter needs the curve-equation proof. Parts 2-3 can thread the represented-point invariant to lift the pair into Mathlib's `Affine.Point` group without changing the decoder or prematurely assuming on-curve inputs. This follows `CanonicalG1Decode.lean`'s separation between pure coordinate decoding and later validity/group obligations.
+
+Proved public theorems:
+
+- `decode_g1_neg`
+- `decode_g1_add_left_identity`
+- `decode_g1_add_right_identity`
+- `decode_g1_add_mixed_identity`
+- `decode_g1_double_identity`
+
+The first transports executed Fq negation to affine Y-negation and fixes infinity at the represented-class level. The other four prove the reached identity/zero early branches. General addition, equal/opposite refinement, generic doubling, and Mathlib group-law equality were not started.
 
 ## Verification
 
-- Machine-wide Lean/lake process check was clear before every lake invocation.
-- Focused pinned build:
-  `lake build Ipp.Bls12377GtMembership` passed, 3005 jobs.
-- Full pinned build: `lake build Ipp` passed, 3428 jobs.
-- Every lake invocation used `LEAN_NUM_THREADS=1` and
-  `C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe`.
-- `#print axioms` was included for every main theorem and equivalence. Output
-  was limited to `propext`, `Classical.choice`, and `Quot.sound`.
-
-Exact new-module axiom output (each line reported the same allowed set):
+Every lake invocation was preceded by a machine-wide `lean|lake` process check, used `LEAN_NUM_THREADS=1`, ran from `formal/lean-ipp`, and used:
 
 ```text
-pairingOutputModelOfValue_eq_of_matches: [propext, Classical.choice, Quot.sound]
-arkworksPairingOutputCheckedMembership_iff_pow: [propext, Classical.choice, Quot.sound]
-arkworksPairingOutputCheckedMembership_iff_nonzero_pow: [propext, Classical.choice, Quot.sound]
-arkworksPairingOutputCheckedMembership_iff_exists_mem_gtGroup: [propext, Classical.choice, Quot.sound]
-checkedPairingOutputEquivGt: [propext, Classical.choice, Quot.sound]
-arkworksPairingOutputCheckedMembership_card: [propext, Classical.choice, Quot.sound]
-pairingOutput_checked_factorization_and_cardinality: [propext, Classical.choice, Quot.sound]
-pairingOutputValueMember_eq_true_iff: [propext, Classical.choice, Quot.sound]
-decodePairingOutputGtChecked_eq_some_iff: [propext, Classical.choice, Quot.sound]
-arkworksPairingOutputCheckedMembership_identity: [propext, Classical.choice, Quot.sound]
-arkworksPairingOutputCheckedMembership_rejects_field_zero: [propext, Classical.choice, Quot.sound]
-arkPairingOutput_zero_value_accepted: [propext, Classical.choice, Quot.sound]
-field_zero_rejected_and_ne_arkPairingOutput_zero: [propext, Classical.choice, Quot.sound]
+C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe
 ```
 
-- Source audit found no `sorry`, `admit`, or new `axiom`; the new module also
-  has no trailing whitespace.
-- No q^12-scale kernel exponentiation or new residue certificate was used.
-  Power transport is symbolic through `fq12Coefficients_pow`, `mem_gtGroup`,
-  and the landed factorization/cardinality theorems.
-- Prover, release, and release-gated tests were not run; this change is confined
-  to the hand-authored Lean library and its report.
+Final gates:
+
+```text
+lake build Ipp.Extracted.ArkworksG1Generated Ipp.Extracted.ArkworksG1
+PASS (2985 jobs; generated leaf built separately inside the invocation)
+
+lake build Ipp
+PASS (3430 jobs)
+```
+
+Exact new-theorem axiom output:
+
+```text
+decode_g1_neg: [propext, Classical.choice, Quot.sound]
+decode_g1_add_left_identity: [propext, Classical.choice, Quot.sound]
+decode_g1_add_right_identity: [propext, Classical.choice, Quot.sound]
+decode_g1_add_mixed_identity: [propext, Classical.choice, Quot.sound]
+decode_g1_double_identity: [propext, Classical.choice, Quot.sound]
+```
+
+The new files contain zero `sorry`, `admit`, or new axioms; `git diff --check` is clean. Prover/release-gated tests were not run because this part adds the Rust parity gate and Lean library proofs only. No commit was created. The pre-existing untracked `hooks/` directory was not touched.

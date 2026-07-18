@@ -978,12 +978,45 @@ S3-23. Prove the corresponding theorem for the concrete twist group, including
 the exact G2 cofactor and identity semantics. Acceptance mirrors S3-24.
 Supplies GAP-06.
 
-**S3-26 — executed G1 add/double/neg formulas** — `HARD (sol)` — `GATED` on
-S3-15 and the landed C02 relations. Extract the selected monomorphic G1
+**S3-26 — executed G1 add/double/neg formulas** — `HARD (sol)` — `IN
+PROGRESS` (gates satisfied). Extract the selected monomorphic G1
 affine/projective/mixed formulas and prove refinement to Mathlib addition,
 doubling, and negation across infinity, equal, opposite, and zero-Z branches.
 Acceptance: equality is of represented point classes. Narrows the group
 portion of the arkworks arithmetic row.
+PART 1 DONE (2026-07-18, orchestrator; executed by sol): scope pin, spike,
+parity, extraction, decoder + easy laws.
+SCOPE PIN (arkworks 0.5.0, full citations in session report): reached =
+projective `AddAssign` (add-2007-bl; zero-Z checks both sides, equal →
+doubling delegation, opposite → zero), mixed `AddAssign<Affine>`
+(madd-2007-bl; affine-∞ no-op, projective-zero → (x,y,1)),
+`double_in_place` a=0 shortcut ONLY (`D = 4XY²` branch; generic A≠0 branch
+UNREACHED — COEFF_A = 0), projective neg, affine neg (reached via WNAF
+MSM negative buckets — NEGATION_IS_CHEAP). IDENTITY VERDICT: any Z = 0 is
+zero; arkworks' chosen ZERO literal is (1,1,0); opposite-branch returns
+(1,1,0). ⚠ SCALAR-MUL DISCOVERY for S3-28: BLS12-377 G1 overrides mul with
+GLV (glv.rs:90-123 — endomorphism decomposition, base negation, joint
+double/add), and the affine subgroup check runs the generic
+double-and-mixed-add loop (scalar_mul/mod.rs:29-44) at the CHARACTERISTIC
+scalar — S3-28 must cover BOTH loop shapes. Normalization/batch-inversion
+excluded to S3-29 (boundary pinned).
+LANDED: `G1ProjMont`/`G1AffineMont`/`g1_zero` + g1_add/add_mixed/double/
+neg/affine_neg spike + `extract_s3_26`; parity edges + 512 random compared
+AFTER into_affine (represented point classes, incl. noncanonical zero-Z
+and non-normalized inputs) green; vendored `ArkworksG1Generated.lean`
+(imports Fq graph); `ArkworksG1.lean` with `CanonicalG1` + `decodeG1 :
+… → Option (Fq × Fq)` (none ↔ executed Z=0 test; some (X/Z², Y/Z³)) —
+DESIGN: returns a coordinate pair, NOT a Mathlib point; on-curve lifting
+threads the represented-point invariant in parts 2-3 (mirrors
+CanonicalG1Decode's decode/validity separation). Proved: `decode_g1_neg` +
+the four identity/zero-branch laws (add left/right, mixed, double). Full
+Ipp green (3430 jobs), zero sorry, audited axioms.
+REMAINING PARTS: (2) generic add-2007-bl + madd-2007-bl refinement to
+Mathlib chord addition on decoded classes (distinct-x branch), equal →
+doubling and opposite → zero branch correctness; (3) doubling formula vs
+Mathlib tangent rule + on-curve lifting of `decodeG1` into
+`Affine.Point` (represented-class equality end-to-end) and the
+session-closing corollaries; then ledger narrowing.
 
 **S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` — `GATED` on
 S3-17 and landed C02. Prove the exact twist formulas across the same exceptional
