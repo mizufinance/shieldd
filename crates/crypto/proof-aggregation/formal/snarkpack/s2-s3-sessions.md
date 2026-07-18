@@ -978,8 +978,8 @@ S3-23. Prove the corresponding theorem for the concrete twist group, including
 the exact G2 cofactor and identity semantics. Acceptance mirrors S3-24.
 Supplies GAP-06.
 
-**S3-26 — executed G1 add/double/neg formulas** — `HARD (sol)` — `IN
-PROGRESS` (gates satisfied). Extract the selected monomorphic G1
+**S3-26 — executed G1 add/double/neg formulas** — `HARD (sol)` —
+`DONE 2026-07-18`. Extract the selected monomorphic G1
 affine/projective/mixed formulas and prove refinement to Mathlib addition,
 doubling, and negation across infinity, equal, opposite, and zero-Z branches.
 Acceptance: equality is of represented point classes. Narrows the group
@@ -1051,9 +1051,22 @@ decoded aliases, `clear_value` before the application), NOT the `let`-wrapped
 Full-file peak after both fixes: ~2 GB. NEVER run an unguarded heavy Lean
 build on this machine — use the guarded wrapper (scratchpad guardian:
 suppresses rust-analyzer, kills any lean > ceiling). See [[two-claude-snarkpack-workflow]].
-REMAINING: (3) Mathlib `Affine.Point` lifting with on-curve hypotheses
-(chordAdd/tangentDouble ↔ slope/addX/addY identification) + session-closing
-corollaries; then ledger narrowing.
+PART 3 DONE (2026-07-18, orchestrator; executed by sol): new
+`Ipp/Extracted/ArkworksG1Mathlib.lean` (separate file — keeps per-compile
+memory low; peak ~1.9 GB). `chordAdd_eq_mathlib` / `tangentDouble_eq_mathlib`
+identify the coordinate formulas with Mathlib `WeierstrassCurve.Affine`
+`slope`/`addX`/`addY` for `g1Curve = ⟨0,0,0,0,1⟩` (negY = −y). Lift model
+`DecodedG1OnCurve` (explicit on-curve boundary), `liftDecodedG1`,
+`RepresentsDecodedG1`, and the `executed_g1_{add,add_mixed,double,neg}_*_
+refines_mathlib` corollaries (generic/mixed/equal/opposite/identity/order2
+branches) prove the executed formulas refine Mathlib `Affine.Point`
+add/double/neg on the lifted decoded classes. On-curve + prime-subgroup
+validity assumed explicitly (boundary discharged by S3-32/GAP-08); the group
+operation identification itself uses NO subgroup premise. Full Ipp green,
+zero sorry, audited axioms.
+S3-26 COMPLETE (parts 1, 2, 2b, 2c, 3). The executed G1 group-formula slice
+of the arkworks arithmetic row is proved. Next curve session: S3-27 (G2 —
+same twist formulas over Fq2; the S3-26 memory lesson applies directly).
 
 **S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` — `GATED` on
 S3-17 and landed C02. Prove the exact twist formulas across the same exceptional
