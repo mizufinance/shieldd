@@ -772,11 +772,26 @@ companions added: `canonical_fq2_add`/`canonical_fq2_sub` (the add/sub
 decode laws did not expose output canonicity; derived from
 `extracted_add_spec`/`extracted_sub_spec`). Full Ipp green (3423 jobs),
 zero sorry, audited axioms.
-PART 3 REMAINING: inverse (both directions, none ↔ zero via the Fq2
-inverse laws + nonzero-norm argument), Frobenius powers 1/2 (pinned C1/C2
-Montgomery tables vs the model), then compose through S3-18's
-`fq6Coefficients` to the canonical field and retire the Fq6 slice of the
-arkworks field row (ledger update).
+PART 3 DONE-PARTIAL (2026-07-17, orchestrator; executed by sol):
+inverse both directions — `decode_fq6_inv_some` (Algorithm-17 adjugate:
+`fq6Mul (decode out) (decode a) = fq6One` + Canonical6) and
+`decode_fq6_inv_none` (none → decode = fq6Zero), on model lemmas
+`fq6CubicNorm_eq_zero_iff` (cubic norm vanishes only at 0; via the S3-18
+field structure) and `fq6Mul_scaledAdjugate`. Canonical-field composition
+corollaries landed: `canonical_field_fq6_mul/square/inv` (executed ops
+transported through `fq6Coefficients` = field ops in `Fq6Canonical`).
+Frobenius CONSTANTS certified: `fq6FrobeniusC1_one/C2_one/C1_two/C2_two`
+(canonical `u^((q^k−1)/3)`, `u^(2(q^k−1)/3)` values = base-field residues;
+two new 377-bit rfl certificates `baseModulus_minus_five_sixthResidue`/
+`twoThirdsResidue`, k=2 exponents Fermat-reduced first, per the S3-18
+rule — no 753-bit kernel computation). Full Ipp green (3423 jobs), zero
+sorry, audited axioms, gate ok.
+PART 4 REMAINING (narrow): peel executed `fq6_frobenius` at powers 1/2,
+prove the pinned Montgomery C1/C2 table entries decode to the certified
+canonical constants (one row, `decode_frobeniusC1One`, already done as a
+private lemma), compose with `decode_fq2_frobenius` (= star), land
+`decode_fq6_frobenius_one/two` lane-formula theorems; then S3-19 DONE +
+ledger retirement of the Fq6 slice.
 
 **S3-20 — Fq12 irreducibility and canonical field model** — `HARD (sol)` —
 `GATED` on S3-19. Prove `w^2-v` irreducible with a checked nonsquare

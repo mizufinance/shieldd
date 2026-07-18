@@ -621,6 +621,56 @@ theorem baseModulus_minus_five_cubeResidue :
       80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945 := by
   rfl
 
+set_option maxRecDepth 100000 in
+theorem baseModulus_minus_five_sixthResidue :
+    powResidue (Ipp.Bls12377.baseModulus - 5)
+        ((Ipp.Bls12377.baseModulus - 1) / 6) Ipp.Bls12377.baseModulus =
+      80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 := by
+  rfl
+
+set_option maxRecDepth 100000 in
+theorem baseModulus_minus_five_twoThirdsResidue :
+    powResidue (Ipp.Bls12377.baseModulus - 5)
+        (2 * ((Ipp.Bls12377.baseModulus - 1) / 3)) Ipp.Bls12377.baseModulus =
+      258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231 := by
+  rfl
+
+theorem minus_five_pow_sixth :
+    (((Ipp.Bls12377.baseModulus - 5 : Nat) : Ipp.Bls12377.Fq) ^
+      ((Ipp.Bls12377.baseModulus - 1) / 6)) =
+      (80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 :
+        Ipp.Bls12377.Fq) := by
+  letI : NeZero Ipp.Bls12377.baseModulus := ⟨by norm_num [Ipp.Bls12377.baseModulus]⟩
+  apply ZMod.val_injective
+  rw [← powResidue_eq_val, baseModulus_minus_five_sixthResidue]
+  change 80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 =
+    80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946 % Ipp.Bls12377.baseModulus
+  norm_num [Ipp.Bls12377.baseModulus]
+
+theorem minus_five_pow_third :
+    (((Ipp.Bls12377.baseModulus - 5 : Nat) : Ipp.Bls12377.Fq) ^
+      ((Ipp.Bls12377.baseModulus - 1) / 3)) =
+      (80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945 :
+        Ipp.Bls12377.Fq) := by
+  letI : NeZero Ipp.Bls12377.baseModulus := ⟨by norm_num [Ipp.Bls12377.baseModulus]⟩
+  apply ZMod.val_injective
+  rw [← powResidue_eq_val, baseModulus_minus_five_cubeResidue]
+  change 80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945 =
+    80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945 % Ipp.Bls12377.baseModulus
+  norm_num [Ipp.Bls12377.baseModulus]
+
+theorem minus_five_pow_twoThirds :
+    (((Ipp.Bls12377.baseModulus - 5 : Nat) : Ipp.Bls12377.Fq) ^
+      (2 * ((Ipp.Bls12377.baseModulus - 1) / 3))) =
+      (258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231 :
+        Ipp.Bls12377.Fq) := by
+  letI : NeZero Ipp.Bls12377.baseModulus := ⟨by norm_num [Ipp.Bls12377.baseModulus]⟩
+  apply ZMod.val_injective
+  rw [← powResidue_eq_val, baseModulus_minus_five_twoThirdsResidue]
+  change 258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231 =
+    258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231 % Ipp.Bls12377.baseModulus
+  norm_num [Ipp.Bls12377.baseModulus]
+
 /-- The cubic residue of `-5` in the base field is nontrivial. -/
 theorem baseModulus_minus_five_cubeResidue_ne_one :
     ((Ipp.Bls12377.baseModulus - 5 : Nat) : ZMod Ipp.Bls12377.baseModulus) ^
@@ -641,5 +691,11 @@ theorem fq2Nonresidue :
     baseModulus_minus_five_powResidue
   intro x
   simpa [Ipp.Bls12377.baseModulus] using h x
+
+#print axioms baseModulus_minus_five_sixthResidue
+#print axioms baseModulus_minus_five_twoThirdsResidue
+#print axioms minus_five_pow_sixth
+#print axioms minus_five_pow_third
+#print axioms minus_five_pow_twoThirds
 
 end Ipp.Bls12377Certificates
