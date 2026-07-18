@@ -1,79 +1,95 @@
-# S3-21 part 3 report
+# S3-21 part 4 report
 
-STATUS: DONE
+STATUS: PARTIAL
 
-## Public conformance theorems
+Tier A is complete and green. Tier B was attempted only after Tier A passed,
+then stopped at the requested tier boundary. No Tier B declarations were
+landed.
 
-- `decode_fq12_inv_some`: a successful inverse is canonical and its decoded
-  product with the input is `fq12One`.
-- `decode_fq12_inv_none`: inverse returning `none` implies the decoded input
-  is `fq12Zero`.
-- `decode_fq12_cyclotomic_inverse_some`: a successful cyclotomic inverse is
-  canonical and decodes to quadratic conjugation.
-- `decode_fq12_cyclotomic_inverse_none`: cyclotomic inverse returning `none`
-  implies the decoded input is `fq12Zero`.
-- `decode_fq12_frobenius_one`: power-1 execution is canonical and has the
-  proven Fq6 Frobenius lane formulas, with every c1 lane additionally scaled
-  by canonical `fq2U ^ ((q - 1) / 6)`.
-- `decode_fq12_frobenius_two`: power-2 execution is canonical and has the
-  proven Fq6 Frobenius lane formulas, with every c1 lane additionally scaled
-  by canonical `fq2U ^ ((q^2 - 1) / 6)`.
+## Tier A landed
 
-The inverse none direction is supported by `fq12QuadraticNorm_eq_zero_iff`:
-the executed norm vanishes exactly at `fq12Zero`. Its nonzero direction is
-proved in `Fq6Canonical` using `fq6V_not_square`; no synthetic identifier,
-axiom, or migration path was introduced.
+Added exact executable models in `Ipp.Bls12377Pairing`:
 
-## Certificates and C1 identification
+- `fq12Conjugate`: Fq12 quadratic conjugation by c1 negation.
+- `fq12CyclotomicSquare`: the arkworks Granger–Scott q ≡ 1 (mod 6)
+  six-lane Fq2 formula, preserving the source g0…g5 dataflow.
+- `blsXnafBE`: the pinned 64 signed digits for
+  `X = 0x8508c00000000001` in big-endian order.
+- `fq12CyclotomicExpStep` and `fq12CyclotomicExp`: the exact square, then
+  multiply-by-a / multiply-by-conjugate NAF fold.
+- `fq12CyclotomicExp_zero`: exponentiation maps the zero model to zero.
 
-Added one new 377-bit kernel certificate:
+Public executed-refinement theorems:
 
-- `baseModulus_minus_five_twelfthResidue` certifies
-  `(-5)^((q-1)/12) = 92949345220277864758624960506473182677953048909283248980960104381795901929519566951595905490535835115111760994353`.
-- `minus_five_pow_twelfth` lifts the residue into `Fq`.
+- `canonical12_cyclotomic_square`: successful extracted cyclotomic square
+  preserves `Canonical12`.
+- `decode_fq12_cyclotomic_square`: successful extracted cyclotomic square
+  decodes to `fq12CyclotomicSquare`.
+- `x_naf_be_matches_model`: the generated extracted `X_NAF_BE` value is
+  kernel-equal to `blsXnafBE`.
+- `canonical12_cyclotomic_exp`: successful extracted cyclotomic exponentiation
+  preserves `Canonical12`.
+- `decode_fq12_cyclotomic_exp`: successful extracted cyclotomic exponentiation
+  decodes to `fq12CyclotomicExp`.
 
-`fq12FrobeniusC1_one` uses evenness of `(q-1)/6` and `fq2U_pow_twice` to
-reduce the canonical constant to that twelfth residue. For power 2,
-`(q^2-1)/12` is Fermat-reduced to `(q-1)/6` plus a multiple of `q-1`, so
-`fq12FrobeniusC1_two` reuses the existing sixth-residue certificate. No
-greater-than-400-bit kernel exponent was evaluated.
+The square proof uses scoped per-operation Fq2 helpers and bind-peels each GS
+lane without changing the generated graph. The exponentiation proof does not
+unroll 64 iterations: `cyclotomic_exp_loop0_fuel_spec` inducts on the Aeneas
+loop fuel with an invariant equating the decoded accumulator to the model fold
+over `blsXnafBE.drop index`; the second generated loop wrapper reuses the same
+body specification. The public graph proof handles the extracted zero return
+and both generated loop branches.
 
-Private row-selection and Montgomery decode lemmas prove that pinned
-`FROBENIUS_COEFF_FP12_C1` rows 1 and 2 equal these canonical constants. The
-resulting public Frobenius statements contain only canonical powers, never
-table limbs. The decoded values match ark-bls12-377 0.5.0's published rows:
-`929493...994353` and `809496...410946`.
+## Tier B attempt
+
+A scratch-only `AdjoinRoot.liftAlgHom` probe mapped the quadratic root to its
+negative and reduced well-definedness to the expected root-square fact. The
+probe was removed to keep the landed tree green at the Tier A boundary.
+
+The exact residual goal after `Polynomial.eval₂` expansion was:
+
+```text
+⊢ (-AdjoinRoot.root (Polynomial.X ^ 2 - Polynomial.C fq6V)) ^ 2 -
+    (algebraMap Fq6Canonical Fq12Canonical) fq6V = 0
+```
+
+The existing `fq12_root_square` theorem is stated through the private
+`fq12Polynomial` / `Fq12Canonical` abbreviations; unfolding `eval₂` exposed
+the polynomial and prevented the root term from elaborating back at the
+canonical abbreviation in the attempted rewrite/calc. Consequently
+`fq12ConjAut`, conjugation transport, and the two unitarity semantic laws were
+not landed. They can move together to the dedicated unitarity session without
+blocking part 5.
 
 ## Gates
 
-- `lake build Ipp.Bls12377Certificates` with the pinned lake and
-  `LEAN_NUM_THREADS=1` — PASS, 1,973 jobs.
-- `lake build Ipp.Bls12377Fq6` — PASS, 2,012 jobs.
+- `lake build Ipp.Bls12377Pairing` with pinned lake and
+  `LEAN_NUM_THREADS=1` — PASS.
 - `lake build Ipp.Extracted.ArkworksFq12` — PASS, 3,002 jobs.
 - Full `lake build Ipp` — PASS, 3,426 jobs.
 - `git diff --check` — PASS.
-- Changed-file scan for `sorry`, `admit`, and new `axiom` declarations —
-  PASS, no matches.
+- Added-line scan for `sorry`, `admit`, or `axiom` — PASS, no matches.
 - No generated Lean file or Rust spike was modified.
-- Prover/release-gated tests — NOT RUN; this part changes Lean refinement and
-  certificate proofs only, and all requested Lean gates passed.
+- Prover/release-gated tests — NOT RUN; this part changes Lean model and
+  refinement proofs, and all requested Lean gates passed.
 
 ## Axiom audit
 
-All new public theorem families report only the permitted axioms
-`propext`, `Classical.choice`, and `Quot.sound`. In particular:
+All new public theorems use only the permitted axioms:
 
 ```text
-decode_fq12_inv_some: [propext, Classical.choice, Quot.sound]
-decode_fq12_inv_none: [propext, Classical.choice, Quot.sound]
-decode_fq12_cyclotomic_inverse_some: [propext, Classical.choice, Quot.sound]
-decode_fq12_cyclotomic_inverse_none: [propext, Quot.sound]
-decode_fq12_frobenius_one: [propext, Classical.choice, Quot.sound]
-decode_fq12_frobenius_two: [propext, Classical.choice, Quot.sound]
-baseModulus_minus_five_twelfthResidue: [propext, Quot.sound]
-minus_five_pow_twelfth: [propext, Classical.choice, Quot.sound]
-fq12FrobeniusC1_one/two: [propext, Classical.choice, Quot.sound]
-fq12QuadraticNorm_eq_zero_iff: [propext, Classical.choice, Quot.sound]
+fq12CyclotomicExp_zero:
+  [propext, Classical.choice, Quot.sound]
+canonical12_cyclotomic_square:
+  [propext, Classical.choice, Quot.sound]
+decode_fq12_cyclotomic_square:
+  [propext, Classical.choice, Quot.sound]
+x_naf_be_matches_model:
+  [propext]
+canonical12_cyclotomic_exp:
+  [propext, Classical.choice, Quot.sound]
+decode_fq12_cyclotomic_exp:
+  [propext, Classical.choice, Quot.sound]
 ```
 
 No commit was made. Pre-existing untracked `.claude/` and `hooks/` paths were

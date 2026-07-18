@@ -876,13 +876,32 @@ scaled by CANONICAL `fq2U^((q^k−1)/6)` — one new 377-bit certificate
 pinned table rows 1/2 kernel-matched to the canonical values, no table
 limbs in statements). Full Ipp green (3426 jobs), zero sorry, audited
 axioms.
-REMAINING PARTS: (4) cyclotomic square (Granger–Scott vs `fq12Mul x x` on
-the cyclotomic subgroup — check the identity's hypothesis carefully:
-GS-square equals plain square only for norm-1 elements; state conformance
-against the executed plain square with the cyclotomic hypothesis, or
-against the model formula unconditionally as arkworks computes it) +
-`cyclotomic_exp` NAF loop induction vs `fq12Pow`; (5) canonical bytes vs
-`CanonicalGtDecode`; then ledger retirement.
+PART 4 TIER A DONE (2026-07-18, orchestrator; executed by sol): exact
+executable models added to `Bls12377Pairing.lean` (`fq12Conjugate`,
+`fq12CyclotomicSquare` GS six-lane formula, `blsXnafBE` 64-digit pinned
+NAF, `fq12CyclotomicExpStep`/`fq12CyclotomicExp` fold) and the executed
+graphs proven to refine them UNCONDITIONALLY:
+`decode_fq12_cyclotomic_square` + `canonical12_cyclotomic_square`,
+`decode_fq12_cyclotomic_exp` + `canonical12_cyclotomic_exp`, with
+`x_naf_be_matches_model` (kernel equality of the extracted NAF literal).
+Exp loop proved by Aeneas loop-fuel induction (`cyclotomic_exp_loop0_fuel_
+spec`, invariant: decoded accumulator = model fold over `drop index`) — no
+64-step unroll. Full Ipp green (3426 jobs), zero sorry, audited axioms.
+TIER B DEFERRED (unitarity semantics): `fq12ConjAut` (AdjoinRoot lift
+`w ↦ −w`), conjugation transport, and the two unitarity laws
+(GS-square = `fq12Mul x x`, `fq12CyclotomicExp x = fq12Pow x X` for
+unitary x) stalled on ELABORATION friction, not math: after
+`Polynomial.eval₂` expansion the residual well-definedness goal
+`(-root (X^2 - C fq6V))^2 - algebraMap fq6V = 0` would not re-elaborate at
+the `fq12Polynomial`/`Fq12Canonical` abbreviations to rewrite with
+`fq12_root_square`. FIX HINT for the closer: state a standalone lemma
+`(-AdjoinRoot.root fq12Polynomial)^2 = algebraMap _ _ fq6V` AT the
+abbreviation (`rw [neg_sq, fq12_root_square]`... or `neg_pow` two-case),
+then bridge to the expanded form with `simpa [fq12Polynomial]` /
+`show` — i.e. prove BEFORE unfolding, convert after.
+REMAINING PARTS: (5) canonical bytes vs `CanonicalGtDecode`; (6) tier-B
+unitarity closer (fq12ConjAut + transport + the two semantic laws — also
+wanted by S3-22/GAP-07); then ledger retirement.
 
 **S3-22 — GT factorization and order-r characterization** — `HARD (sol)` —
 `GATED` on S3-20 and S3-02/03. Prove `r ∣ q^12-1`, record the exact cofactor

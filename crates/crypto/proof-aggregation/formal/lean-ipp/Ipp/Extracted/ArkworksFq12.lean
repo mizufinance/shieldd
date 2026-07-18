@@ -59,6 +59,42 @@ private theorem fq2_add_spec (a b output : Fq2LimbPair)
     Canonical2 output ∧ decodeFq2 output = decodeFq2 a + decodeFq2 b :=
   ⟨canonical_fq2_add a b output ha hb hexec, decode_fq2_add a b output ha hb hexec⟩
 
+private theorem fq2_sub_spec (a b output : Fq2LimbPair)
+    (ha : Canonical2 a) (hb : Canonical2 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sub a b = .ok output) :
+    Canonical2 output ∧ decodeFq2 output = decodeFq2 a - decodeFq2 b :=
+  ⟨canonical_fq2_sub a b output ha hb hexec, decode_fq2_sub a b output ha hb hexec⟩
+
+private theorem fq2_mul_spec (a b output : Fq2LimbPair)
+    (ha : Canonical2 a) (hb : Canonical2 b)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul a b = .ok output) :
+    Canonical2 output ∧ decodeFq2 output = decodeFq2 a * decodeFq2 b :=
+  extracted_fq2_mul_spec a b output ha hb hexec
+
+private theorem fq2_double_spec (a output : Fq2LimbPair)
+    (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double a = .ok output) :
+    Canonical2 output ∧ decodeFq2 output = decodeFq2 a + decodeFq2 a := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double at hexec
+  obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨c1, h1, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  refine ⟨⟨(extracted_double_spec a.c0 c0 ha.1 h0).1,
+      (extracted_double_spec a.c1 c1 ha.2 h1).1⟩, ?_⟩
+  have e0 := decode_extracted_double a.c0 c0 ha.1 h0
+  have e1 := decode_extracted_double a.c1 c1 ha.2 h1
+  apply QuadraticAlgebra.ext <;> simp [decodeFq2, e0, e1]
+
+private theorem fq2_nonresidue_spec (a output : Fq2LimbPair)
+    (ha : Canonical2 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_mul_base_field_by_nonresidue
+      a = .ok output) :
+    Canonical2 output ∧
+      decodeFq2 output = Ipp.Bls12377.fq2U * decodeFq2 a :=
+  ⟨canonical6_mul_base_field_by_nonresidue a output ha hexec,
+    decode_fq6_mul_base_field_by_nonresidue a output ha hexec⟩
+
 private theorem fq6_sub_spec (a b output : Fq6LimbTriple)
     (ha : Canonical6 a) (hb : Canonical6 b)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_sub a b = .ok output) :
@@ -816,6 +852,478 @@ theorem decode_fq12_frobenius_two (a output : Fq12LimbPair)
   change (⟨decodeFq6 c0, decodeFq6 c1⟩ : Ipp.Bls12377.Fq12Model) = _
   rw [sc0.2, sc1.2, p0, p1, p2, decode_frobenius12Two_pair]
 
+private theorem fq12_cyclotomic_square_spec (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_square a =
+      .ok output) :
+    Canonical12 output ∧
+      decodeFq12 output = Ipp.Bls12377.fq12CyclotomicSquare (decodeFq12 a) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_square at hexec
+  obtain ⟨tmp, htmp, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm, hfm, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm1, hfm1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm2, hfm2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm3, hfm3, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm4, hfm4, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm5, hfm5, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨t0, ht0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨t1, ht1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨tmp1, htmp1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm6, hfm6, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm7, hfm7, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm8, hfm8, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm9, hfm9, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm10, hfm10, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm11, hfm11, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨t2, ht2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨t3, ht3, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨tmp2, htmp2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm12, hfm12, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm13, hfm13, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm14, hfm14, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm15, hfm15, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm16, hfm16, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm17, hfm17, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨t4, ht4, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨t5, ht5, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm18, hfm18, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm19, hfm19, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨z0, hz0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm20, hfm20, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm21, hfm21, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨z1, hz1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨tmp3, htmp3, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm22, hfm22, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm23, hfm23, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨z2, hz2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm24, hfm24, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm25, hfm25, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨z3, hz3, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm26, hfm26, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm27, hfm27, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨z4, hz4, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm28, hfm28, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨fm29, hfm29, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨z5, hz5, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  have stmp := fq2_mul_spec a.c0.c0 a.c1.c1 tmp ha.1.1 ha.2.2.1 htmp
+  have sfm := fq2_add_spec a.c0.c0 a.c1.c1 fm ha.1.1 ha.2.2.1 hfm
+  have sfm1 := fq2_nonresidue_spec a.c1.c1 fm1 ha.2.2.1 hfm1
+  have sfm2 := fq2_add_spec fm1 a.c0.c0 fm2 sfm1.1 ha.1.1 hfm2
+  have sfm3 := fq2_mul_spec fm fm2 fm3 sfm.1 sfm2.1 hfm3
+  have sfm4 := fq2_sub_spec fm3 tmp fm4 sfm3.1 stmp.1 hfm4
+  have sfm5 := fq2_nonresidue_spec tmp fm5 stmp.1 hfm5
+  have st0 := fq2_sub_spec fm4 fm5 t0 sfm4.1 sfm5.1 ht0
+  have st1 := fq2_double_spec tmp t1 stmp.1 ht1
+  have stmp1 := fq2_mul_spec a.c1.c0 a.c0.c2 tmp1 ha.2.1 ha.1.2.2 htmp1
+  have sfm6 := fq2_add_spec a.c1.c0 a.c0.c2 fm6 ha.2.1 ha.1.2.2 hfm6
+  have sfm7 := fq2_nonresidue_spec a.c0.c2 fm7 ha.1.2.2 hfm7
+  have sfm8 := fq2_add_spec fm7 a.c1.c0 fm8 sfm7.1 ha.2.1 hfm8
+  have sfm9 := fq2_mul_spec fm6 fm8 fm9 sfm6.1 sfm8.1 hfm9
+  have sfm10 := fq2_sub_spec fm9 tmp1 fm10 sfm9.1 stmp1.1 hfm10
+  have sfm11 := fq2_nonresidue_spec tmp1 fm11 stmp1.1 hfm11
+  have st2 := fq2_sub_spec fm10 fm11 t2 sfm10.1 sfm11.1 ht2
+  have st3 := fq2_double_spec tmp1 t3 stmp1.1 ht3
+  have stmp2 := fq2_mul_spec a.c0.c1 a.c1.c2 tmp2 ha.1.2.1 ha.2.2.2 htmp2
+  have sfm12 := fq2_add_spec a.c0.c1 a.c1.c2 fm12 ha.1.2.1 ha.2.2.2 hfm12
+  have sfm13 := fq2_nonresidue_spec a.c1.c2 fm13 ha.2.2.2 hfm13
+  have sfm14 := fq2_add_spec fm13 a.c0.c1 fm14 sfm13.1 ha.1.2.1 hfm14
+  have sfm15 := fq2_mul_spec fm12 fm14 fm15 sfm12.1 sfm14.1 hfm15
+  have sfm16 := fq2_sub_spec fm15 tmp2 fm16 sfm15.1 stmp2.1 hfm16
+  have sfm17 := fq2_nonresidue_spec tmp2 fm17 stmp2.1 hfm17
+  have st4 := fq2_sub_spec fm16 fm17 t4 sfm16.1 sfm17.1 ht4
+  have st5 := fq2_double_spec tmp2 t5 stmp2.1 ht5
+  have sfm18 := fq2_sub_spec t0 a.c0.c0 fm18 st0.1 ha.1.1 hfm18
+  have sfm19 := fq2_double_spec fm18 fm19 sfm18.1 hfm19
+  have sz0 := fq2_add_spec fm19 t0 z0 sfm19.1 st0.1 hz0
+  have sfm20 := fq2_add_spec t1 a.c1.c1 fm20 st1.1 ha.2.2.1 hfm20
+  have sfm21 := fq2_double_spec fm20 fm21 sfm20.1 hfm21
+  have sz1 := fq2_add_spec fm21 t1 z1 sfm21.1 st1.1 hz1
+  have stmp3 := fq2_nonresidue_spec t5 tmp3 st5.1 htmp3
+  have sfm22 := fq2_add_spec a.c1.c0 tmp3 fm22 ha.2.1 stmp3.1 hfm22
+  have sfm23 := fq2_double_spec fm22 fm23 sfm22.1 hfm23
+  have sz2 := fq2_add_spec fm23 tmp3 z2 sfm23.1 stmp3.1 hz2
+  have sfm24 := fq2_sub_spec t4 a.c0.c2 fm24 st4.1 ha.1.2.2 hfm24
+  have sfm25 := fq2_double_spec fm24 fm25 sfm24.1 hfm25
+  have sz3 := fq2_add_spec fm25 t4 z3 sfm25.1 st4.1 hz3
+  have sfm26 := fq2_sub_spec t2 a.c0.c1 fm26 st2.1 ha.1.2.1 hfm26
+  have sfm27 := fq2_double_spec fm26 fm27 sfm26.1 hfm27
+  have sz4 := fq2_add_spec fm27 t2 z4 sfm27.1 st2.1 hz4
+  have sfm28 := fq2_add_spec a.c1.c2 t3 fm28 ha.2.2.2 st3.1 hfm28
+  have sfm29 := fq2_double_spec fm28 fm29 sfm28.1 hfm29
+  have sz5 := fq2_add_spec fm29 t3 z5 sfm29.1 st3.1 hz5
+  refine ⟨⟨⟨sz0.1, sz4.1, sz3.1⟩, ⟨sz2.1, sz1.1, sz5.1⟩⟩, ?_⟩
+  simp [decodeFq12, decodeFq6, Ipp.Bls12377.fq12CyclotomicSquare,
+    stmp.2, sfm.2, sfm1.2, sfm2.2, sfm3.2, sfm4.2, sfm5.2, st0.2, st1.2,
+    stmp1.2, sfm6.2, sfm7.2, sfm8.2, sfm9.2, sfm10.2, sfm11.2, st2.2, st3.2,
+    stmp2.2, sfm12.2, sfm13.2, sfm14.2, sfm15.2, sfm16.2, sfm17.2, st4.2,
+    st5.2, sfm18.2, sfm19.2, sz0.2, sfm20.2, sfm21.2, sz1.2, stmp3.2,
+    sfm22.2, sfm23.2, sz2.2, sfm24.2, sfm25.2, sz3.2, sfm26.2, sfm27.2,
+    sz4.2, sfm28.2, sfm29.2, sz5.2]
+
+theorem canonical12_cyclotomic_square (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_square a =
+      .ok output) : Canonical12 output :=
+  (fq12_cyclotomic_square_spec a output ha hexec).1
+
+theorem decode_fq12_cyclotomic_square (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_square a =
+      .ok output) :
+    decodeFq12 output = Ipp.Bls12377.fq12CyclotomicSquare (decodeFq12 a) :=
+  (fq12_cyclotomic_square_spec a output ha hexec).2
+
+/-- The extracted array is kernel-equal to the model's pinned NAF literal. -/
+theorem x_naf_be_matches_model :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE.val =
+      Ipp.Bls12377.blsXnafBE := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE]
+  rfl
+
+private theorem loopFuel_exists_of_result {A B : Type}
+    {body : A → Result (ControlFlow A B)} {state : A} {result : Result B}
+    (hresult : LoopResult body state result) :
+    ∃ fuel, loopFuel body fuel state = result := by
+  induction hresult with
+  | done hbody => exact ⟨1, by rw [loopFuel, hbody]⟩
+  | next hbody _ ih =>
+      obtain ⟨fuel, hfuel⟩ := ih
+      exact ⟨fuel + 1, by rw [loopFuel, hbody]; exact hfuel⟩
+  | fail hbody => exact ⟨1, by rw [loopFuel, hbody]⟩
+  | div hbody => exact ⟨1, by rw [loopFuel, hbody]⟩
+
+private theorem loopFuel_exists_of_loop_eq {A B : Type}
+    {body : A → Result (ControlFlow A B)} {state : A} {output : B}
+    (hexec : loop body state = .ok output) :
+    ∃ fuel, loopFuel body fuel state = .ok output :=
+  loopFuel_exists_of_result (loopResult_of_eq (by simp) hexec)
+
+private theorem cyclotomic_exp_body0_cont_spec
+    (base inverse result : Fq12LimbPair) (found : Bool) (index : Usize)
+    (hbase : Canonical12 base) (hinverse : Canonical12 inverse)
+    (hresult : Canonical12 result) (hindex : index.val < 64)
+    {flow : ControlFlow (Fq12LimbPair × Bool × Usize) Fq12LimbPair}
+    (hexec :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0.body
+        base.c0 base.c1 inverse result found index = .ok flow) :
+    ∃ digit nextResult nextFound nextIndex,
+      MacCampaign.Array.index_usize
+          ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE index = .ok digit ∧
+      flow = .cont (nextResult, nextFound, nextIndex) ∧
+      Canonical12 nextResult ∧
+      (decodeFq12 nextResult, nextFound) =
+        Ipp.Bls12377.fq12CyclotomicExpStep
+          (decodeFq12 base) (decodeFq12 inverse) (decodeFq12 result, found) digit ∧
+      nextIndex.val = index.val + 1 := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0.body at hexec
+  rw [if_pos (by simpa using hindex)] at hexec
+  obtain ⟨digit, hdigit, hexec⟩ := bind_eq_ok hexec
+  cases found with
+  | false =>
+      simp only [Bool.false_eq_true, if_false] at hexec
+      by_cases hz : digit = 0
+      · simp [hz] at hexec
+        subst flow
+        exact ⟨digit, result, false, ⟨index.val + 1⟩, hdigit, rfl, hresult, by
+          simp [Ipp.Bls12377.fq12CyclotomicExpStep, hz], rfl⟩
+      · simp [hz] at hexec
+        by_cases hp : digit > 0
+        · simp [hp] at hexec
+          obtain ⟨product, hmul, hexec⟩ := bind_eq_ok hexec
+          have hflow := Result.ok.inj hexec
+          subst flow
+          have sp := fq12_mul_spec result base product hresult hbase hmul
+          exact ⟨digit, product, true, ⟨index.val + 1⟩, hdigit, rfl, sp.1, by
+            simp [Ipp.Bls12377.fq12CyclotomicExpStep, hz, hp, sp.2], rfl⟩
+        · simp [hp] at hexec
+          obtain ⟨product, hmul, hexec⟩ := bind_eq_ok hexec
+          have hflow := Result.ok.inj hexec
+          subst flow
+          have sp := fq12_mul_spec result inverse product hresult hinverse hmul
+          exact ⟨digit, product, true, ⟨index.val + 1⟩, hdigit, rfl, sp.1, by
+            simp [Ipp.Bls12377.fq12CyclotomicExpStep, hz, hp, sp.2], rfl⟩
+  | true =>
+      simp only [if_true] at hexec
+      obtain ⟨squared, hsquare, hexec⟩ := bind_eq_ok hexec
+      have ss := fq12_cyclotomic_square_spec result squared hresult hsquare
+      by_cases hz : digit = 0
+      · simp [hz] at hexec
+        subst flow
+        exact ⟨digit, squared, true, ⟨index.val + 1⟩, hdigit, rfl, ss.1, by
+          simp [Ipp.Bls12377.fq12CyclotomicExpStep, hz, ss.2], rfl⟩
+      · simp [hz] at hexec
+        by_cases hp : digit > 0
+        · simp [hp] at hexec
+          obtain ⟨product, hmul, hexec⟩ := bind_eq_ok hexec
+          have hflow := Result.ok.inj hexec
+          subst flow
+          have sp := fq12_mul_spec squared base product ss.1 hbase hmul
+          exact ⟨digit, product, true, ⟨index.val + 1⟩, hdigit, rfl, sp.1, by
+            simp [Ipp.Bls12377.fq12CyclotomicExpStep, hz, hp, ss.2, sp.2], rfl⟩
+        · have hp' : ¬ 0 < digit := by omega
+          simp [hp'] at hexec
+          obtain ⟨product, hmul, hexec⟩ := bind_eq_ok hexec
+          have hflow := Result.ok.inj hexec
+          subst flow
+          have sp := fq12_mul_spec squared inverse product ss.1 hinverse hmul
+          exact ⟨digit, product, true, ⟨index.val + 1⟩, hdigit, rfl, sp.1, by
+            simp [Ipp.Bls12377.fq12CyclotomicExpStep, hz, hp, ss.2, sp.2], rfl⟩
+
+private theorem drop_eq_cons_of_getElem?_eq_some {T : Type} (values : List T)
+    (index : Nat) (value : T) (hget : values[index]? = some value) :
+    values.drop index = value :: values.drop (index + 1) := by
+  induction values generalizing index with
+  | nil => simp at hget
+  | cons head tail ih =>
+      cases index with
+      | zero => simp_all
+      | succ index =>
+          simp only [List.getElem?_cons_succ] at hget
+          simpa [Nat.succ_eq_add_one, Nat.add_assoc] using ih index hget
+
+private theorem cyclotomic_exp_loop0_fuel_spec
+    (fuel : Nat) (base inverse result output : Fq12LimbPair)
+    (found : Bool) (index : Usize)
+    (hbase : Canonical12 base) (hinverse : Canonical12 inverse)
+    (hresult : Canonical12 result) (hindex : index.val ≤ 64)
+    (hexec : loopFuel
+      (fun state : Fq12LimbPair × Bool × Usize =>
+        ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0.body
+          base.c0 base.c1 inverse state.1 state.2.1 state.2.2)
+      fuel (result, found, index) = .ok output) :
+    Canonical12 output ∧
+      decodeFq12 output =
+        ((ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE.val.drop index.val).foldl
+          (Ipp.Bls12377.fq12CyclotomicExpStep
+            (decodeFq12 base) (decodeFq12 inverse))
+          (decodeFq12 result, found)).1 := by
+  induction fuel generalizing result found index with
+  | zero => rw [loopFuel] at hexec; cases hexec
+  | succ fuel ih =>
+      cases hbody :
+          ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0.body
+            base.c0 base.c1 inverse result found index with
+      | fail error => rw [loopFuel, hbody] at hexec; cases hexec
+      | div => rw [loopFuel, hbody] at hexec; cases hexec
+      | ok flow =>
+          cases flow with
+          | done value =>
+              rw [loopFuel, hbody] at hexec
+              have hnot : ¬ index.val < 64 := by
+                intro hlt
+                obtain ⟨digit, nextResult, nextFound, nextIndex, _, hflow, _⟩ :=
+                  cyclotomic_exp_body0_cont_spec base inverse result found index
+                    hbase hinverse hresult hlt hbody
+                cases hflow
+              have hi : index.val = 64 := by omega
+              unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0.body at hbody
+              rw [if_neg (by change ¬ index.val < 64; exact hnot)] at hbody
+              have hvalue : value = result :=
+                (ControlFlow.done.inj (Result.ok.inj hbody)).symm
+              have hout : output = value := (Result.ok.inj (by simpa using hexec)).symm
+              subst value
+              subst output
+              refine ⟨hresult, ?_⟩
+              rw [hi]
+              rw [x_naf_be_matches_model]
+              rfl
+          | cont next =>
+              rw [loopFuel, hbody] at hexec
+              have hlt : index.val < 64 := by
+                by_contra hnot
+                unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0.body at hbody
+                rw [if_neg (by change ¬ index.val < 64; omega)] at hbody
+                simp at hbody
+              obtain ⟨digit, nextResult, nextFound, nextIndex, hdigit, hflow,
+                  hnextCan, hnextDecode, hnextIndex⟩ :=
+                cyclotomic_exp_body0_cont_spec base inverse result found index
+                  hbase hinverse hresult hlt hbody
+              have hnext : next = (nextResult, nextFound, nextIndex) := by
+                exact ControlFlow.cont.inj hflow
+              subst next
+              have hnextBound : nextIndex.val ≤ 64 := by omega
+              have hfinal := ih nextResult nextFound nextIndex hnextCan hnextBound hexec
+              refine ⟨hfinal.1, ?_⟩
+              have hget :
+                  ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE.val[index.val]? =
+                    some digit := by
+                unfold MacCampaign.Array.index_usize at hdigit
+                split at hdigit
+                · rename_i value hvalue
+                  exact hvalue.trans (congrArg some (Result.ok.inj hdigit))
+                · simp at hdigit
+              have hdrop := drop_eq_cons_of_getElem?_eq_some
+                ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE.val
+                index.val digit hget
+              rw [hdrop, List.foldl_cons]
+              rw [hnextIndex] at hfinal
+              simpa [hnextDecode] using hfinal.2
+
+private theorem cyclotomic_exp_loop1_fuel_spec
+    (fuel : Nat) (base inverse result output : Fq12LimbPair)
+    (found : Bool) (index : Usize)
+    (hbase : Canonical12 base) (hinverse : Canonical12 inverse)
+    (hresult : Canonical12 result) (hindex : index.val ≤ 64)
+    (hexec : loopFuel
+      (fun state : Fq12LimbPair × Bool × Usize =>
+        ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop1.body
+          base.c0 base.c1 inverse state.1 state.2.1 state.2.2)
+      fuel (result, found, index) = .ok output) :
+    Canonical12 output ∧
+      decodeFq12 output =
+        ((ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE.val.drop index.val).foldl
+          (Ipp.Bls12377.fq12CyclotomicExpStep
+            (decodeFq12 base) (decodeFq12 inverse))
+          (decodeFq12 result, found)).1 := by
+  apply cyclotomic_exp_loop0_fuel_spec fuel base inverse result output found index
+    hbase hinverse hresult hindex
+  simpa only [
+    ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0.body,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop1.body] using hexec
+
+private theorem cyclotomic_exp_loop0_spec
+    (base inverse result output : Fq12LimbPair) (found : Bool) (index : Usize)
+    (hbase : Canonical12 base) (hinverse : Canonical12 inverse)
+    (hresult : Canonical12 result) (hindex : index.val ≤ 64)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0
+      base.c0 base.c1 inverse result found index = .ok output) :
+    Canonical12 output ∧
+      decodeFq12 output =
+        ((ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE.val.drop index.val).foldl
+          (Ipp.Bls12377.fq12CyclotomicExpStep
+            (decodeFq12 base) (decodeFq12 inverse))
+          (decodeFq12 result, found)).1 := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop0 at hexec
+  obtain ⟨fuel, hfuel⟩ := loopFuel_exists_of_loop_eq hexec
+  exact cyclotomic_exp_loop0_fuel_spec fuel base inverse result output found index
+    hbase hinverse hresult hindex hfuel
+
+private theorem cyclotomic_exp_loop1_spec
+    (base inverse result output : Fq12LimbPair) (found : Bool) (index : Usize)
+    (hbase : Canonical12 base) (hinverse : Canonical12 inverse)
+    (hresult : Canonical12 result) (hindex : index.val ≤ 64)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop1
+      base.c0 base.c1 inverse result found index = .ok output) :
+    Canonical12 output ∧
+      decodeFq12 output =
+        ((ark_ip_proofs.s3_07_arkworks_fq_spike.X_NAF_BE.val.drop index.val).foldl
+          (Ipp.Bls12377.fq12CyclotomicExpStep
+            (decodeFq12 base) (decodeFq12 inverse))
+          (decodeFq12 result, found)).1 := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp_loop1 at hexec
+  obtain ⟨fuel, hfuel⟩ := loopFuel_exists_of_loop_eq hexec
+  exact cyclotomic_exp_loop1_fuel_spec fuel base inverse result output found index
+    hbase hinverse hresult hindex hfuel
+
+set_option exponentiation.threshold 1000 in
+private theorem decode_fq_one_limbs :
+    Ipp.Extracted.ArkworksFqMul.decode
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE = 1 := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE,
+    Ipp.Extracted.ArkworksFqMul.decode_eq_cast_mul_inv]
+  have hmod :
+      (Ipp.Extracted.ArkworksFqMul.limbsToNat
+          ark_ip_proofs.s3_07_arkworks_fq_spike.ONE : Ipp.Bls12377.Fq) =
+        (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) := by
+    apply (ZMod.natCast_eq_natCast_iff _ _ _).2
+    norm_num [Nat.ModEq, Ipp.Extracted.ArkworksFqMul.limbsToNat,
+      Ipp.Extracted.ArkworksFqMul.prefixToNat, Ipp.Extracted.ArkworksFqMul.limbCount,
+      Ipp.Extracted.ArkworksFqMul.limb, Ipp.Extracted.ArkworksFqMul.limbWord,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.ONE, MacCampaign.Array.make,
+      MacCampaign.U64.ofNat, MacCampaign.u64Base,
+      Ipp.Extracted.ArkworksFqMul.wordBase, Ipp.Bls12377.baseModulus,
+      Ipp.Bls12377.baseMontgomeryRadix]
+  rw [hmod]
+  exact ZMod.coe_mul_inv_eq_one _ fq12_frobenius_radix_coprime
+
+private theorem canonical_fq_one_limbs :
+    Ipp.Extracted.ArkworksFqMul.limbsToNat
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE < Ipp.Bls12377.baseModulus := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE]
+  exact Ipp.Extracted.ArkworksFqSqrtBytes.canonical_ONE
+
+private theorem fq12_one_spec :
+    Canonical12 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE ∧
+      decodeFq12 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE =
+        Ipp.Bls12377.fq12One := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ONE,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO]
+  refine ⟨⟨⟨⟨canonical_fq_one_limbs, canonical_fq12_zero_limbs⟩,
+      ⟨canonical_fq12_zero_limbs, canonical_fq12_zero_limbs⟩,
+      ⟨canonical_fq12_zero_limbs, canonical_fq12_zero_limbs⟩⟩,
+    ⟨⟨canonical_fq12_zero_limbs, canonical_fq12_zero_limbs⟩,
+      ⟨canonical_fq12_zero_limbs, canonical_fq12_zero_limbs⟩,
+      ⟨canonical_fq12_zero_limbs, canonical_fq12_zero_limbs⟩⟩⟩, ?_⟩
+  have hz : Ipp.Bls12377.fq2Zero = 0 := by apply QuadraticAlgebra.ext <;> rfl
+  simp [decodeFq12, decodeFq6, decodeFq2, decode_fq_one_limbs,
+    decode_fq12_zero_limbs, Ipp.Bls12377.fq12One, Ipp.Bls12377.fq6One,
+    Ipp.Bls12377.fq6Zero, Ipp.Bls12377.fq2One, Ipp.Bls12377.fq2Zero, hz]
+
+private theorem fq12_cyclotomic_exp_spec (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp a =
+      .ok output) :
+    Canonical12 output ∧
+      decodeFq12 output = Ipp.Bls12377.fq12CyclotomicExp (decodeFq12 a) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp at hexec
+  obtain ⟨b0, hb0, hexec⟩ := bind_eq_ok hexec
+  split at hexec
+  · obtain ⟨b1, hb1, hexec⟩ := bind_eq_ok hexec
+    have eb0 : b0 = true := by assumption
+    rw [eb0] at hb0
+    split at hexec
+    · have eb1 : b1 = true := by assumption
+      rw [eb1] at hb1
+      simp only [Result.ok.injEq] at hexec
+      subst output
+      have h0 := fq6_eq_zero_decode a.c0 hb0
+      have h1 := fq6_eq_zero_decode a.c1 hb1
+      have ha0 : decodeFq12 a =
+          (⟨Ipp.Bls12377.fq6Zero, Ipp.Bls12377.fq6Zero⟩ :
+            Ipp.Bls12377.Fq12Model) := by
+        simp [decodeFq12, h0, h1]
+      refine ⟨ha, ?_⟩
+      rw [ha0, Ipp.Bls12377.fq12CyclotomicExp_zero]
+    · obtain ⟨inverse, hinverse, hloop⟩ := bind_eq_ok hexec
+      have sinverse := fq12_conjugate_spec a inverse ha hinverse
+      have dinverse : decodeFq12 inverse =
+          Ipp.Bls12377.fq12Conjugate (decodeFq12 a) := by
+        simpa [Ipp.Bls12377.fq12Conjugate, decodeFq12, decodeFq6] using sinverse.2
+      have sloop := cyclotomic_exp_loop0_spec a inverse
+        ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE output false 0#usize
+        ha sinverse.1 fq12_one_spec.1 (by decide) hloop
+      refine ⟨sloop.1, ?_⟩
+      simpa [x_naf_be_matches_model, fq12_one_spec.2, dinverse,
+        Ipp.Bls12377.fq12CyclotomicExp] using sloop.2
+  · obtain ⟨inverse, hinverse, hloop⟩ := bind_eq_ok hexec
+    have sinverse := fq12_conjugate_spec a inverse ha hinverse
+    have dinverse : decodeFq12 inverse =
+        Ipp.Bls12377.fq12Conjugate (decodeFq12 a) := by
+      simpa [Ipp.Bls12377.fq12Conjugate, decodeFq12, decodeFq6] using sinverse.2
+    have sloop := cyclotomic_exp_loop1_spec a inverse
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE output false 0#usize
+      ha sinverse.1 fq12_one_spec.1 (by decide) hloop
+    refine ⟨sloop.1, ?_⟩
+    simpa [x_naf_be_matches_model, fq12_one_spec.2, dinverse,
+      Ipp.Bls12377.fq12CyclotomicExp] using sloop.2
+
+theorem canonical12_cyclotomic_exp (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp a =
+      .ok output) : Canonical12 output :=
+  (fq12_cyclotomic_exp_spec a output ha hexec).1
+
+theorem decode_fq12_cyclotomic_exp (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_cyclotomic_exp a =
+      .ok output) :
+    decodeFq12 output = Ipp.Bls12377.fq12CyclotomicExp (decodeFq12 a) :=
+  (fq12_cyclotomic_exp_spec a output ha hexec).2
+
 #print axioms decode_fq12_conjugate
 #print axioms canonical12_mul
 #print axioms decode_fq12_mul
@@ -829,5 +1337,10 @@ theorem decode_fq12_frobenius_two (a output : Fq12LimbPair)
 #print axioms decode_fq12_cyclotomic_inverse_none
 #print axioms decode_fq12_frobenius_one
 #print axioms decode_fq12_frobenius_two
+#print axioms canonical12_cyclotomic_square
+#print axioms decode_fq12_cyclotomic_square
+#print axioms x_naf_be_matches_model
+#print axioms canonical12_cyclotomic_exp
+#print axioms decode_fq12_cyclotomic_exp
 
 end Ipp.Extracted.ArkworksFq12

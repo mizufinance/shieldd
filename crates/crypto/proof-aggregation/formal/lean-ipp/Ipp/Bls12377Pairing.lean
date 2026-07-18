@@ -45,6 +45,111 @@ def fq12Mul (a b : Fq12Model) : Fq12Model :=
 
 def fq12Square (a : Fq12Model) : Fq12Model := fq12Mul a a
 
+/-- Negation of the quadratic-extension coefficient. -/
+def fq12Conjugate (a : Fq12Model) : Fq12Model :=
+  ⟨a.c0, ⟨-a.c1.c0, -a.c1.c1, -a.c1.c2⟩⟩
+
+/-- The Granger--Scott formula used by arkworks when `q² = 1 (mod 6)`. -/
+def fq12CyclotomicSquare (a : Fq12Model) : Fq12Model :=
+  let r0 := a.c0.c0
+  let r4 := a.c0.c1
+  let r3 := a.c0.c2
+  let r2 := a.c1.c0
+  let r1 := a.c1.c1
+  let r5 := a.c1.c2
+  let tmp0 := r0 * r1
+  let t0 := (r0 + r1) * (fq2U * r1 + r0) - tmp0 - fq2U * tmp0
+  let t1 := tmp0 + tmp0
+  let tmp1 := r2 * r3
+  let t2 := (r2 + r3) * (fq2U * r3 + r2) - tmp1 - fq2U * tmp1
+  let t3 := tmp1 + tmp1
+  let tmp2 := r4 * r5
+  let t4 := (r4 + r5) * (fq2U * r5 + r4) - tmp2 - fq2U * tmp2
+  let t5 := tmp2 + tmp2
+  let tmp3 := fq2U * t5
+  let z0 := (t0 - r0) + (t0 - r0) + t0
+  let z1 := (t1 + r1) + (t1 + r1) + t1
+  let z2 := (r2 + tmp3) + (r2 + tmp3) + tmp3
+  let z3 := (t4 - r3) + (t4 - r3) + t4
+  let z4 := (t2 - r4) + (t2 - r4) + t2
+  let z5 := (r5 + t3) + (r5 + t3) + t3
+  ⟨⟨z0, z4, z3⟩, ⟨z2, z1, z5⟩⟩
+
+/-- Pinned big-endian NAF of positive BLS12-377 `X`. -/
+def blsXnafBE : List Int :=
+  [1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1,
+    0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+
+def fq12CyclotomicExpStep (a inverse : Fq12Model)
+    (state : Fq12Model × Bool) (digit : Int) : Fq12Model × Bool :=
+  let result := if state.2 then fq12CyclotomicSquare state.1 else state.1
+  if digit = 0 then (result, state.2)
+  else if digit > 0 then (fq12Mul result a, true)
+  else (fq12Mul result inverse, true)
+
+/-- The exact 64-digit NAF schedule used by arkworks' cyclotomic exponentiation. -/
+def fq12CyclotomicExp (a : Fq12Model) : Fq12Model :=
+  (blsXnafBE.foldl (fq12CyclotomicExpStep a (fq12Conjugate a))
+    (fq12One, false)).1
+
+private theorem fq12Mul_one_zero :
+    fq12Mul fq12One ⟨fq6Zero, fq6Zero⟩ = ⟨fq6Zero, fq6Zero⟩ := by
+  have hz : fq2Zero = 0 := by apply QuadraticAlgebra.ext <;> rfl
+  simp [fq12Mul, fq12One, fq6One, fq6Zero, fq6Mul, fq6Add,
+    fq6MulByV, hz]
+
+private theorem fq12Mul_zero_zero :
+    fq12Mul ⟨fq6Zero, fq6Zero⟩ ⟨fq6Zero, fq6Zero⟩ =
+      ⟨fq6Zero, fq6Zero⟩ := by
+  have hz : fq2Zero = 0 := by apply QuadraticAlgebra.ext <;> rfl
+  simp [fq12Mul, fq6Zero, fq6Mul, fq6Add, fq6MulByV, hz]
+
+private theorem fq12CyclotomicSquare_zero :
+    fq12CyclotomicSquare ⟨fq6Zero, fq6Zero⟩ = ⟨fq6Zero, fq6Zero⟩ := by
+  have hz : fq2Zero = 0 := by apply QuadraticAlgebra.ext <;> rfl
+  simp [fq12CyclotomicSquare, fq6Zero, hz]
+
+@[simp] private theorem fq12Conjugate_zero :
+    fq12Conjugate ⟨fq6Zero, fq6Zero⟩ = ⟨fq6Zero, fq6Zero⟩ := by
+  have hz : fq2Zero = 0 := by apply QuadraticAlgebra.ext <;> rfl
+  simp [fq12Conjugate, fq6Zero, hz]
+
+@[simp] private theorem fq12CyclotomicExpStep_zero (digit : Int) :
+    fq12CyclotomicExpStep ⟨fq6Zero, fq6Zero⟩ ⟨fq6Zero, fq6Zero⟩
+      (⟨fq6Zero, fq6Zero⟩, true) digit = (⟨fq6Zero, fq6Zero⟩, true) := by
+  by_cases hz : digit = 0
+  · simp [fq12CyclotomicExpStep, hz, fq12CyclotomicSquare_zero]
+  · by_cases hp : digit > 0 <;>
+      simp [fq12CyclotomicExpStep, hz, hp, fq12CyclotomicSquare_zero,
+        fq12Mul_zero_zero]
+
+private theorem fq12CyclotomicExpFold_zero (digits : List Int) :
+    digits.foldl
+      (fq12CyclotomicExpStep ⟨fq6Zero, fq6Zero⟩ ⟨fq6Zero, fq6Zero⟩)
+      (⟨fq6Zero, fq6Zero⟩, true) = (⟨fq6Zero, fq6Zero⟩, true) := by
+  induction digits with
+  | nil => rfl
+  | cons digit digits ih =>
+      rw [List.foldl_cons, fq12CyclotomicExpStep_zero]
+      exact ih
+
+@[simp] theorem fq12CyclotomicExp_zero :
+    fq12CyclotomicExp ⟨fq6Zero, fq6Zero⟩ = ⟨fq6Zero, fq6Zero⟩ := by
+  unfold fq12CyclotomicExp
+  have hnaf : blsXnafBE = 1 :: blsXnafBE.tail := rfl
+  rw [hnaf, List.foldl_cons]
+  have hfirst :
+      fq12CyclotomicExpStep ⟨fq6Zero, fq6Zero⟩
+        (fq12Conjugate ⟨fq6Zero, fq6Zero⟩) (fq12One, false) 1 =
+          (⟨fq6Zero, fq6Zero⟩, true) := by
+    rw [fq12Conjugate_zero]
+    simp [fq12CyclotomicExpStep, fq12Mul_one_zero]
+  rw [hfirst]
+  rw [fq12Conjugate_zero]
+  exact congrArg Prod.fst (fq12CyclotomicExpFold_zero blsXnafBE.tail)
+
 instance : One Fq12Model := ⟨fq12One⟩
 instance : Mul Fq12Model := ⟨fq12Mul⟩
 
@@ -173,5 +278,7 @@ def PublishedPairingBilinearNondegenerate : Prop := by
     (∀ p q₁ q₂, pairingOnMathlibPoints p (q₁ + q₂) =
       fq12Mul (pairingOnMathlibPoints p q₁) (pairingOnMathlibPoints p q₂)) ∧
     ∃ p q, pairingOnMathlibPoints p q ≠ fq12One
+
+#print axioms fq12CyclotomicExp_zero
 
 end Ipp.Bls12377
