@@ -1796,7 +1796,8 @@ pub fn extract_s3_27(
     )
 }
 
-/// One generic projective-base scalar bit step for BLS12-377 G1.
+/// Non-executed generic G1 reference step retained by the landed proof graph.
+/// Ordinary BLS12-377 G1 multiplication executes the GLV joint loop below.
 pub fn g1_mul_projective_step(accumulator: G1ProjMont, base: G1ProjMont, bit: bool) -> G1ProjMont {
     let doubled = g1_double(accumulator);
     if bit {
@@ -1814,26 +1815,6 @@ pub fn g1_mul_affine_step(accumulator: G1ProjMont, base: G1AffineMont, bit: bool
     } else {
         doubled
     }
-}
-
-/// Arkworks' generic big-endian, leading-zero-skipping projective loop for G1.
-pub fn g1_mul_projective(base: G1ProjMont, scalar: [u64; 4]) -> G1ProjMont {
-    let mut accumulator = g1_zero();
-    let mut started = false;
-    let mut limb = 4_usize;
-    while limb > 0 {
-        limb -= 1;
-        let mut bit_index = 64_usize;
-        while bit_index > 0 {
-            bit_index -= 1;
-            let bit = ((scalar[limb] >> bit_index) & 1) == 1;
-            if started || bit {
-                started = true;
-                accumulator = g1_mul_projective_step(accumulator, base, bit);
-            }
-        }
-    }
-    accumulator
 }
 
 /// Arkworks' generic big-endian, leading-zero-skipping affine loop for G1.
@@ -1854,6 +1835,280 @@ pub fn g1_mul_affine(base: G1AffineMont, scalar: [u64; 4]) -> G1ProjMont {
         }
     }
     accumulator
+}
+
+const FR_MODULUS: [u64; 4] = [
+    0x0a11_8000_0000_0001,
+    0x59aa_76fe_d000_0001,
+    0x60b4_4d1e_5c37_b001,
+    0x12ab_655e_9a2c_a556,
+];
+
+// The pinned LLL basis is [[a + 1, 1], [-1, a]].
+const GLV_A: [u64; 2] = [0x0a11_8000_0000_0000, 0x4522_17cc_9000_0001];
+const GLV_A_PLUS_ONE: [u64; 2] = [0x0a11_8000_0000_0001, 0x4522_17cc_9000_0001];
+
+// Montgomery encoding of ark-bls12-377 G1's configured endomorphism coefficient.
+const G1_ENDOMORPHISM_COEFF: FqMont = FqMont([
+    0x2c76_6f92_5a7b_8727,
+    0x03d7_f6b0_253d_58b5,
+    0x838e_c0de_ec12_2131,
+    0xbd5e_b3e9_f658_bb10,
+    0x6942_bd12_6ed3_e52e,
+    0x0167_3786_dd04_ed6a,
+]);
+
+/// Signed magnitudes returned by BLS12-377 G1's pinned GLV decomposition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct GlvDecomposition {
+    pub k1_positive: bool,
+    pub k1: [u64; 4],
+    pub k2_positive: bool,
+    pub k2: [u64; 4],
+}
+
+#[derive(Clone, Copy)]
+struct WideDivRem {
+    quotient: [u64; 6],
+    remainder: [u64; 4],
+}
+
+#[inline(always)]
+fn geq_4(left: [u64; 4], right: [u64; 4]) -> bool {
+    left[3] > right[3]
+        || (left[3] == right[3]
+            && (left[2] > right[2]
+                || (left[2] == right[2]
+                    && (left[1] > right[1] || (left[1] == right[1] && left[0] >= right[0])))))
+}
+
+#[inline(always)]
+fn gt_4(left: [u64; 4], right: [u64; 4]) -> bool {
+    left[3] > right[3]
+        || (left[3] == right[3]
+            && (left[2] > right[2]
+                || (left[2] == right[2]
+                    && (left[1] > right[1] || (left[1] == right[1] && left[0] > right[0])))))
+}
+
+#[inline(always)]
+fn sub_4(left: [u64; 4], right: [u64; 4]) -> [u64; 4] {
+    let limb0 = sbb(left[0], right[0], 0);
+    let limb1 = sbb(left[1], right[1], limb0.1);
+    let limb2 = sbb(left[2], right[2], limb1.1);
+    let limb3 = sbb(left[3], right[3], limb2.1);
+    [limb0.0, limb1.0, limb2.0, limb3.0]
+}
+
+#[inline(always)]
+fn gt_6(left: [u64; 6], right: [u64; 6]) -> bool {
+    left[5] > right[5]
+        || (left[5] == right[5]
+            && (left[4] > right[4]
+                || (left[4] == right[4]
+                    && (left[3] > right[3]
+                        || (left[3] == right[3]
+                            && (left[2] > right[2]
+                                || (left[2] == right[2]
+                                    && (left[1] > right[1]
+                                        || (left[1] == right[1] && left[0] > right[0])))))))))
+}
+
+#[inline(always)]
+fn sub_6(left: [u64; 6], right: [u64; 6]) -> [u64; 6] {
+    let limb0 = sbb(left[0], right[0], 0);
+    let limb1 = sbb(left[1], right[1], limb0.1);
+    let limb2 = sbb(left[2], right[2], limb1.1);
+    let limb3 = sbb(left[3], right[3], limb2.1);
+    let limb4 = sbb(left[4], right[4], limb3.1);
+    let limb5 = sbb(left[5], right[5], limb4.1);
+    [limb0.0, limb1.0, limb2.0, limb3.0, limb4.0, limb5.0]
+}
+
+#[inline(always)]
+fn mul_4_by_2(left: [u64; 4], right: [u64; 2]) -> [u64; 6] {
+    let p0 = mac(0, left[0], right[0], 0);
+    let p1 = mac(0, left[1], right[0], p0.carry);
+    let p2 = mac(0, left[2], right[0], p1.carry);
+    let p3 = mac(0, left[3], right[0], p2.carry);
+
+    let q1 = mac(p1.low, left[0], right[1], 0);
+    let q2 = mac(p2.low, left[1], right[1], q1.carry);
+    let q3 = mac(p3.low, left[2], right[1], q2.carry);
+    let q4 = mac(p3.carry, left[3], right[1], q3.carry);
+    [p0.low, q1.low, q2.low, q3.low, q4.low, q4.carry]
+}
+
+#[inline(always)]
+fn shl_4_add_bit(value: [u64; 4], bit: bool) -> [u64; 4] {
+    let carry0 = if bit { 1 } else { 0 };
+    let limb0 = adc(value[0], value[0], carry0);
+    let limb1 = adc(value[1], value[1], limb0.carry);
+    let limb2 = adc(value[2], value[2], limb1.carry);
+    let limb3 = adc(value[3], value[3], limb2.carry);
+    [limb0.low, limb1.low, limb2.low, limb3.low]
+}
+
+#[inline(always)]
+fn increment_6(value: [u64; 6]) -> [u64; 6] {
+    let limb0 = adc(value[0], 1, 0);
+    let limb1 = adc(value[1], 0, limb0.carry);
+    let limb2 = adc(value[2], 0, limb1.carry);
+    let limb3 = adc(value[3], 0, limb2.carry);
+    let limb4 = adc(value[4], 0, limb3.carry);
+    let limb5 = adc(value[5], 0, limb4.carry);
+    [
+        limb0.low, limb1.low, limb2.low, limb3.low, limb4.low, limb5.low,
+    ]
+}
+
+/// Fixed-width long division used for arkworks' nearest-integer `k*a/r`.
+fn rounded_div_6_by_fr(numerator: [u64; 6]) -> [u64; 6] {
+    let mut quotient = [0_u64; 6];
+    let mut remainder = [0_u64; 4];
+    let mut bit_index = 384_usize;
+    while bit_index > 0 {
+        bit_index -= 1;
+        let limb = bit_index / 64;
+        let bit = ((numerator[limb] >> (bit_index % 64)) & 1) == 1;
+        remainder = shl_4_add_bit(remainder, bit);
+        if geq_4(remainder, FR_MODULUS) {
+            remainder = sub_4(remainder, FR_MODULUS);
+            quotient[limb] |= 1_u64 << (bit_index % 64);
+        }
+    }
+
+    let division = WideDivRem {
+        quotient,
+        remainder,
+    };
+    let twice_remainder = shl_4_add_bit(division.remainder, false);
+    if gt_4(twice_remainder, FR_MODULUS) {
+        increment_6(division.quotient)
+    } else {
+        division.quotient
+    }
+}
+
+#[inline(always)]
+fn reduce_fr(mut scalar: [u64; 4]) -> [u64; 4] {
+    while geq_4(scalar, FR_MODULUS) {
+        scalar = sub_4(scalar, FR_MODULUS);
+    }
+    scalar
+}
+
+/// Arkworks' BLS12-377 GLV scalar decomposition specialized to its pinned basis.
+pub fn g1_glv_scalar_decomposition(scalar: [u64; 4]) -> GlvDecomposition {
+    let scalar = reduce_fr(scalar);
+
+    // For the pinned n12 = 1 and canonical 0 <= k < r, truncating -k/r is
+    // zero, including k = 0. Thus beta2 is zero exactly as in arkworks.
+    let beta1_wide = rounded_div_6_by_fr(mul_4_by_2(scalar, GLV_A));
+    let beta1 = [beta1_wide[0], beta1_wide[1], beta1_wide[2], beta1_wide[3]];
+    let b1 = mul_4_by_2(beta1, GLV_A_PLUS_ONE);
+    let scalar_wide = [scalar[0], scalar[1], scalar[2], scalar[3], 0, 0];
+
+    let (k1_positive, k1_wide) = if gt_6(scalar_wide, b1) {
+        (true, sub_6(scalar_wide, b1))
+    } else {
+        (false, sub_6(b1, scalar_wide))
+    };
+    let k1 = [k1_wide[0], k1_wide[1], k1_wide[2], k1_wide[3]];
+
+    GlvDecomposition {
+        k1_positive,
+        k1,
+        // k2 = -(beta1*n12) and n12 = 1. BigInt zero has `NoSign`, so the
+        // sign flag is false both for zero and for a negative magnitude.
+        k2_positive: false,
+        k2: beta1,
+    }
+}
+
+/// Configured BLS12-377 G1 endomorphism: multiply projective X only.
+pub fn g1_glv_endomorphism(point: G1ProjMont) -> G1ProjMont {
+    G1ProjMont {
+        x: mul(point.x, G1_ENDOMORPHISM_COEFF),
+        y: point.y,
+        z: point.z,
+    }
+}
+
+/// One executed GLV joint step: double, then the arkworks choice-add.
+pub fn g1_glv_joint_step(
+    accumulator: G1ProjMont,
+    b1: G1ProjMont,
+    b2: G1ProjMont,
+    b1b2: G1ProjMont,
+    bit1: bool,
+    bit2: bool,
+) -> G1ProjMont {
+    let doubled = g1_double(accumulator);
+    if bit1 {
+        if bit2 {
+            g1_add(doubled, b1b2)
+        } else {
+            g1_add(doubled, b1)
+        }
+    } else if bit2 {
+        g1_add(doubled, b2)
+    } else {
+        doubled
+    }
+}
+
+/// Select one little-endian scalar limb bit by its global index.
+pub fn g1_glv_scalar_bit(scalar: [u64; 4], bit_index: usize) -> bool {
+    let limb = bit_index / 64;
+    ((scalar[limb] >> (bit_index % 64)) & 1) == 1
+}
+
+/// Arkworks' paired 256-bit GLV schedule, including its single leading `00` skip.
+pub fn g1_glv_joint_loop(
+    b1: G1ProjMont,
+    b2: G1ProjMont,
+    b1b2: G1ProjMont,
+    k1: [u64; 4],
+    k2: [u64; 4],
+) -> G1ProjMont {
+    let mut accumulator = g1_zero();
+    let mut skip_zeros = true;
+    let mut bit_index = 256_usize;
+    while bit_index > 0 {
+        bit_index -= 1;
+        let bit1 = g1_glv_scalar_bit(k1, bit_index);
+        let bit2 = g1_glv_scalar_bit(k2, bit_index);
+        if skip_zeros && !bit1 && !bit2 {
+            skip_zeros = false;
+        } else {
+            accumulator = g1_glv_joint_step(accumulator, b1, b2, b1b2, bit1, bit2);
+        }
+    }
+    accumulator
+}
+
+/// Faithful monomorphic copy of BLS12-377 G1's `glv_mul_projective` override.
+pub fn g1_glv_mul_projective(base: G1ProjMont, scalar: [u64; 4]) -> G1ProjMont {
+    let decomposition = g1_glv_scalar_decomposition(scalar);
+    let mut b1 = base;
+    let mut b2 = g1_glv_endomorphism(base);
+
+    if !decomposition.k1_positive {
+        b1 = g1_neg(b1);
+    }
+    if !decomposition.k2_positive {
+        b2 = g1_neg(b2);
+    }
+
+    let b1b2 = g1_add(b1, b2);
+    g1_glv_joint_loop(b1, b2, b1b2, decomposition.k1, decomposition.k2)
+}
+
+/// Extraction root for the executed BLS12-377 G1 GLV override.
+#[doc(hidden)]
+pub fn extract_s3_28_glv(base: G1ProjMont, scalar: [u64; 4]) -> G1ProjMont {
+    g1_glv_mul_projective(base, scalar)
 }
 
 /// One generic projective-base scalar bit step for BLS12-377 G2.
@@ -1916,17 +2171,15 @@ pub fn g2_mul_affine(base: G2AffineMont, scalar: [u64; 4]) -> G2ProjMont {
     accumulator
 }
 
-/// Extraction root for the generic scalar-multiplication loops reached in S3-28.
+/// Extraction root for the generic scalar loops actually reached in S3-28.
 #[doc(hidden)]
 pub fn extract_s3_28(
-    g1_projective: G1ProjMont,
     g1_affine: G1AffineMont,
     g2_projective: G2ProjMont,
     g2_affine: G2AffineMont,
     scalar: [u64; 4],
-) -> (G1ProjMont, G1ProjMont, G2ProjMont, G2ProjMont) {
+) -> (G1ProjMont, G2ProjMont, G2ProjMont) {
     (
-        g1_mul_projective(g1_projective, scalar),
         g1_mul_affine(g1_affine, scalar),
         g2_mul_projective(g2_projective, scalar),
         g2_mul_affine(g2_affine, scalar),

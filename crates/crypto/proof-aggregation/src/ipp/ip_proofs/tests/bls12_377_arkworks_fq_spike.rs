@@ -1,7 +1,7 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
 use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{AffineRepr, CurveGroup, PrimeGroup};
+use ark_ec::{scalar_mul::glv::GLVConfig, AffineRepr, CurveGroup, PrimeGroup};
 use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand};
@@ -96,7 +96,7 @@ fn check_g2(a: G2Projective, b: G2Projective, affine: G2Affine) {
 fn check_scalar_mul(scalar: [u64; 4], g1: G1Projective, g2: G2Projective) {
     let g1_affine = g1.into_affine();
     assert_same_g1_class(
-        spike::g1_mul_projective(mont_g1(g1), scalar),
+        spike::g1_glv_mul_projective(mont_g1(g1), scalar),
         g1.mul_bigint(scalar),
     );
     assert_same_g1_class(
@@ -115,6 +115,16 @@ fn check_scalar_mul(scalar: [u64; 4], g1: G1Projective, g2: G2Projective) {
     );
 }
 
+fn check_glv_decomposition(scalar: [u64; 4]) {
+    let scalar_field = Fr::from_bigint(BigInt(scalar)).unwrap();
+    let expected = <ark_bls12_377::g1::Config as GLVConfig>::scalar_decomposition(scalar_field);
+    let actual = spike::g1_glv_scalar_decomposition(scalar);
+    assert_eq!(actual.k1_positive, expected.0 .0);
+    assert_eq!(actual.k1, expected.0 .1.into_bigint().0);
+    assert_eq!(actual.k2_positive, expected.1 .0);
+    assert_eq!(actual.k2, expected.1 .1.into_bigint().0);
+}
+
 #[test]
 fn scalar_mul_edges_and_512_deterministic_random_vectors_match_arkworks() {
     let full_fr_width = (-Fr::ONE).into_bigint().0;
@@ -126,14 +136,17 @@ fn scalar_mul_edges_and_512_deterministic_random_vectors_match_arkworks() {
         leading_zeros,
         full_fr_width,
     ] {
+        check_glv_decomposition(scalar);
         check_scalar_mul(scalar, G1Projective::generator(), G2Projective::generator());
         check_scalar_mul(scalar, G1Projective::ZERO, G2Projective::ZERO);
     }
 
     let mut rng = test_rng();
     for _ in 0..512 {
+        let scalar = Fr::rand(&mut rng).into_bigint().0;
+        check_glv_decomposition(scalar);
         check_scalar_mul(
-            Fr::rand(&mut rng).into_bigint().0,
+            scalar,
             G1Projective::rand(&mut rng),
             G2Projective::rand(&mut rng),
         );

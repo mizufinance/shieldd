@@ -1,148 +1,172 @@
-# S3-28 part 2d report
+# S3-28 part 2e report
 
 ## STATUS
 
-COMPLETE for requested items (3) and (4). Items (5) and (6), including GLV,
-LLL/rounded division, and the final executed G1 projective wrapper, were not
-touched.
+GREEN PARTIAL at the explicitly permitted boundary: faithful Rust GLV spike,
+parity, scoped extraction, and executed joint-loop refinement are complete.
+The scalar-decomposition proof and final `k • P` corollary remain; no theorem
+claims either result yet.
 
-New modules:
+No existing generated file, `ArkworksScalarMulInvariant.lean`, or part-2c/2d
+proof was edited. There are no `sorry`, `admit`, or new axioms in the new
+modules. No commit was made.
 
-- `Ipp/Extracted/ArkworksScalarMulScalar.lean`
-- `Ipp/Extracted/ArkworksScalarMulSchedule.lean`
-- `Ipp/Extracted/ArkworksScalarMulLoop.lean`
-- `Ipp/Extracted/ArkworksScalarMulG1Loop.lean`
-- `Ipp/Extracted/ArkworksScalarMulG2Loop.lean`
+## Non-executed generic G1 stand-in
 
-No generated file, invariant file, part-2c step wrapper, or Rust source was
-edited. There are no `sorry`, `admit`, or new axioms in the new modules.
+The incorrect `g1_mul_projective` generic double-and-add loop was deleted from
+the Rust spike, its parity call was replaced by the actual GLV path, and
+`extract_s3_28` no longer includes it. No `valid_g1_mul_projective` corollary
+was added.
 
-## Executed-loop induction and measures
+`g1_mul_projective_step` remains only because the already-landed generated
+graph and part-2c step proofs reference that elementary operation. Its Rust
+documentation now labels it explicitly as a non-executed generic reference
+step and points to the GLV loop as the ordinary BLS12-377 G1 path.
 
-These generated files use the repository's custom `Aeneas.loop`, not the
-separate vendored WP loop consumed by `Aeneas.Std.loop.spec_decr_nat`.
-Accordingly, the equivalent finite-execution API used here is:
+The reached generic operations retained by `extract_s3_28` are G1 affine
+multiplication (subgroup checking) and G2 projective/affine multiplication.
 
-- `Aeneas.loopResult_of_eq` to recover the finite execution witness;
-- structural induction on `Aeneas.LoopResult`;
-- `scalarInnerBody_decreases`, with symbolic measure `state.2.2.val`
-  (`bitIndex.val`);
-- `scalarOuterBody_decreases`, with symbolic measure `state.2.2.val`
-  (`limb.val`);
-- `scalarInnerLoopResult_to_model` / `scalarInnerLoopResult_valid` and
-  `scalarOuterLoopResult_to_model` / `scalarOuterLoopResult_valid` to compose
-  the extracted witness with the symbolic schedule invariant.
+## Faithful GLV spike and parity
 
-No 64-bit loop or 4-by-64 nested loop was unrolled. `partialValue_pred` proves
-one arbitrary inner countdown step, and `highPrefix_pred` proves one arbitrary
-outer countdown step. The concrete four-word bridge only discharges the four
-bounded word-layout cases; loop execution remains symbolic.
+New Rust code rooted at `extract_s3_28_glv` contains:
 
-Each successful bit step is discharged by the landed branch-complete wrappers
-`valid_g1_mul_affine_step`, `valid_g2_mul_projective_step`, or
-`valid_g2_mul_affine_step`, followed by `nsmul_bit_step`.
+- the pinned Fr modulus, LLL basis `[[a + 1, 1], [-1, a]]`, and configured G1
+  endomorphism coefficient;
+- fixed-width multiplication, long division, strict half-up rounding, and
+  sign/magnitude decomposition matching arkworks' `scalar_decomposition`;
+- `b1 = P`, `b2 = phi(P)`, sign-conditional projective negations, and
+  `b1b2 = b1 + b2`;
+- a 256-pair MSB-first loop using a separately extracted scalar-bit helper;
+- the arkworks skip behavior exactly: the first pair is the magnitude-forced
+  `(false, false)`, it is skipped, and the remaining 255 pairs execute double
+  plus `10 -> b1`, `01 -> b2`, `11 -> b1b2`, `00 -> no add`.
 
-## Scalar-array bridge
+The parity test compares both decomposition signs/magnitudes directly with
+`GLVConfig::scalar_decomposition` and multiplication after `into_affine` with
+`G1Projective::mul_bigint`, which dispatches to the BLS12-377 GLV override.
+Coverage includes scalar zero, one, two, a leading-zero case, `Fr - 1`, the G1
+generator, the identity base, and 512 deterministic random `(scalar, G1)`
+pairs. The existing G1 affine and G2 loop parity remains in the same test.
 
-The scalar type is the concrete four-word array:
+`cargo test -p ark-ip-proofs --features mac-campaign` is green:
 
-```lean
-abbrev ScalarArray := MacCampaign.Array MacCampaign.U64 4#usize
+```text
+library:     37 passed; 2 ignored
+spike suite: 10 passed
+Fr suite:     2 passed
+doc tests:    0 failed
 ```
 
-Its little-endian natural value is `scalarToNat`; `scalarBits` presents its low
-`width` bits in the executed MSB-first order. The requested bridge is:
+## Extraction
 
-```lean
-theorem msbValue_scalarBits (width : Nat) (scalar : ScalarArray) :
-    msbValue width (scalarBits width scalar) =
-      scalarToNat scalar % 2 ^ width
+The final graph was extracted under WSL from a temporary dependency-free copy
+of the spike because a full-workspace retry stopped in the unrelated
+`metrics-0.24.1` crate on Rust error E0521. The successful scoped command was:
+
+```text
+cargo hax into -v --output-dir /root/shieldd-s3-28-glv aeneas-lean \
+  --charon-args=--start-from=crate::extract_s3_28_glv --lakefile
 ```
 
-The executed four-word schedule and leading-zero suppression are connected by:
+Charon and Aeneas completed; Aeneas generated `Types.lean` and `Funs.lean` in
+3.08 seconds. Hax printed the existing warning that it expected Aeneas
+revision `e0a1596` but found an unknown revision. Both temporary copies were
+deleted after vending.
 
-```lean
-theorem highPrefix_eq_msbValue_256 (scalar : ScalarArray) :
-    highPrefix scalar 0 = msbValue 256 (scalarBits 256 scalar)
+The adapted output is
+`Ipp/Extracted/ArkworksScalarMulGlvGenerated.lean`. It imports the existing G1
+graph, contains the complete closed decomposition/endomorphism/joint-loop/root
+graph, supplies only the bounded runtime operations needed by that output, and
+sets finite `maxHeartbeats 2000000` and `maxRecDepth 2048`.
 
-theorem runBits_256_eq_253 {G : Type} [AddCommMonoid G]
-    (scalar : ScalarArray) (base : G)
-    (hscalar : scalarToNat scalar < 2 ^ 253) :
-    runBits 256 (scalarBits 256 scalar) base 0 =
-      runBits 253 (scalarBits 253 scalar) base 0
+## Executed joint-loop refinement
+
+New proof modules:
+
+- `ArkworksScalarMulGlvStep.lean`: branch-complete refinement of the executed
+  joint step through the landed G1 wrappers.
+- `ArkworksScalarMulGlvSchedule.lean`: the exact paired 256-bit schedule,
+  magnitude-forced leading `00`, and connection to `runJoint_256_skip`.
+- `ArkworksScalarMulGlvLoopModel.lean`: extracted scalar-bit refinement,
+  extracted-body/model equality, symbolic decreasing measure, and structural
+  `LoopResult` conversion.
+- `ArkworksScalarMulGlvLoop.lean`: no-skip tail induction and concrete
+  256-pair G1 execution corollaries.
+
+The loop proof uses `Aeneas.loopResult_of_eq`, structural induction on the
+finite `Aeneas.LoopResult`, and `bitIndex.val` as the symbolic decreasing
+measure. It does not unroll 256 iterations.
+
+Public theorem surface:
+
+```text
+valid_g1_glv_joint_step
+glvPairs_length
+glvPairs_succ
+glvPairs_256_head_false
+runJoint_glvPairs_256_skip
+extracted_glv_bit
+extracted_g1_glv_scalar_bit
+glvJointBody_decreases
+glvJointExtractedBody_eq_model
+glvJointLoopResult_to_model
+glvJointLoopResult_valid_false
+valid_g1_glv_joint_loop_256
+valid_g1_glv_joint_loop_value
 ```
 
-The 253-bit specialization is:
+`valid_g1_glv_joint_loop_256` concludes that the extracted loop represents
+`runJoint 256 (glvPairs k1 k2 256) b1Point b2Point 0` under valid base states
+and the two `< 2^255` magnitude bounds. `valid_g1_glv_joint_loop_value` then
+uses `runJoint_256_skip` to conclude the two decoded magnitude actions.
 
-```lean
-theorem msbValue_scalarBits_253 (scalar : ScalarArray)
-    (hscalar : scalarToNat scalar < 2 ^ 253) :
-    msbValue 253 (scalarBits 253 scalar) = scalarToNat scalar
-```
+## Guarded Lean verification and peak memory
 
-These statements include scalar zero, all leading-zero patterns, and the full
-253-bit Fr range.
-
-## Generic executed corollaries
-
-The final public corollaries are stronger than a canonical-Fr-only statement:
-they hold for every four-word scalar array, and hence include zero, leading
-zeros, and all canonical 253-bit Fr values.
-
-```lean
-theorem valid_g1_mul_affine
-    (base : G1AffineLimbPair) (basePoint : G1AffinePoint)
-    (scalar : ScalarArray) (output : G1ProjLimbTriple)
-    (hbase : ValidG1AffineLoopBase base basePoint)
-    (hexec : s3_07_arkworks_fq_spike.g1_mul_affine base scalar = .ok output) :
-    ValidG1LoopState output (scalarToNat scalar • basePoint)
-
-theorem valid_g2_mul_projective
-    (base : G2ProjLimbTriple) (basePoint : G2AffinePoint)
-    (scalar : ScalarArray) (output : G2ProjLimbTriple)
-    (hbase : ValidG2LoopState base basePoint)
-    (hexec : s3_07_arkworks_fq_spike.g2_mul_projective base scalar = .ok output) :
-    ValidG2LoopState output (scalarToNat scalar • basePoint)
-
-theorem valid_g2_mul_affine
-    (base : G2AffineLimbPair) (basePoint : G2AffinePoint)
-    (scalar : ScalarArray) (output : G2ProjLimbTriple)
-    (hbase : ValidG2AffineLoopBase base basePoint)
-    (hexec : s3_07_arkworks_fq_spike.g2_mul_affine base scalar = .ok output) :
-    ValidG2LoopState output (scalarToNat scalar • basePoint)
-```
-
-Identity bases require no special premise: `n • 0 = 0` is covered by the same
-corollaries.
-
-## Verification and peak memory
-
-All commands were run from `crates/crypto/proof-aggregation/formal/lean-ipp`
-with `LEAN_NUM_THREADS=1`, using the pinned Lean 4.30 toolchain's
-`lake env lean <FILE>`. Exact-source peak working set:
+Every command was run from
+`crates/crypto/proof-aggregation/formal/lean-ipp`, one at a time with
+`LEAN_NUM_THREADS=1`, as an exact-file `lake env lean <FILE>` compilation
+(some dependency-installing repetitions additionally supplied `-o`). No run
+approached the guardian threshold and no process was killed.
 
 | File | Result | Peak RSS |
 | --- | --- | ---: |
-| `ArkworksScalarMulScalar.lean` | green | 1820.1 MiB |
-| `ArkworksScalarMulSchedule.lean` | green | 1856.0 MiB |
-| `ArkworksScalarMulLoop.lean` | green | 1884.9 MiB |
-| `ArkworksScalarMulG1Loop.lean` | green | 1841.0 MiB |
-| `ArkworksScalarMulG2Loop.lean` | green | 1835.9 MiB |
+| `ArkworksScalarMulGlvGenerated.lean` | green | 1854.0 MiB |
+| `ArkworksScalarMulGlvStep.lean` | green | 1850.2 MiB |
+| `ArkworksScalarMulGlvSchedule.lean` | green | 1850.1 MiB |
+| `ArkworksScalarMulGlvLoopModel.lean` | green | 1854.8 MiB |
+| `ArkworksScalarMulGlvLoop.lean` | green | 1856.8 MiB |
 
-No prover/release-gated tests were run; this task's verification was the five
-guarded per-file Lean checks above.
+No prover/release-gated tests were run. Verification comprised the guarded
+per-file Lean checks and the full requested Rust test command above.
 
 ## Axiom audit
 
-Every new public theorem has an in-file `#print axioms`. The final corollary
-output was:
+Every new public theorem has an in-file `#print axioms`. The final loop output
+was:
 
 ```text
-'Ipp.Extracted.ArkworksScalarMul.valid_g1_mul_affine' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.valid_g2_mul_projective' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.valid_g2_mul_affine' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.glvJointLoopResult_valid_false' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.valid_g1_glv_joint_loop_256' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.valid_g1_glv_joint_loop_value' depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
 
-The bridge and induction theorems likewise reported only subsets of
-`[propext, Classical.choice, Quot.sound]`; no `sorryAx`, native-decision axiom,
-or new named axiom remains.
+The step, schedule, bit-helper, body-equality, and `LoopResult` conversion
+theorems reported only subsets of `[propext, Classical.choice, Quot.sound]`.
+No `sorryAx`, native-decision axiom, or new named axiom remains.
+
+## Exactly what remains
+
+1. Prove the extracted fixed-width decomposition, including reduction,
+   384-bit rounded division, products, subtraction, and sign interpretation,
+   satisfies `signed(k1) + signed(k2) * lambda = k (mod r)`. The proof must
+   also derive the two `< 2^255` magnitude bounds consumed by the loop theorem.
+2. Refine the extracted endomorphism and sign-conditional base negations to
+   decoded Mathlib points, construct the validity proof for `b1b2`, and compose
+   them with `valid_g1_glv_joint_loop_value`.
+3. Under an explicit prime-subgroup premise and the existing
+   `GlvEigenPrecondition` cited boundary, combine the signed decomposition with
+   `runJoint_eigenvalue` to prove the final executed
+   `g1_glv_mul_projective`/`extract_s3_28_glv` output represents `k • P`.
+
+There is deliberately no partial final corollary and no unconditional use of
+the eigenspace fact.

@@ -1238,7 +1238,55 @@ SCALAR BRIDGE: `msbValue_scalarBits : msbValue width (scalarBits width scalar)
 (scalarToNat scalar • basePoint)` — STRONGER than canonical-Fr-only (hold for
 every four-word scalar array; identity bases need no premise). Full Ipp green,
 zero sorry, audited axioms.
-REMAINING PART-2 WORK (items 5–6 of the 6 — the GLV finale): (5) model the
+⚠ CLAIM-SURFACE CAVEAT (orchestrator check, 2026-07-19): the part-1 spike's
+`g1_mul_projective` is the GENERIC double-and-add loop — the spike contains NO
+GLV/λ/endomorphism code at all. Arkworks G1 ordinary projective mul OVERRIDES
+`mul_projective` with `glv_mul_projective`, so the spiked `g1_mul_projective`
+models a path G1 NEVER EXECUTES (the generic projective loop is reached only by
+G2). Part 2d correctly did NOT claim `valid_g1_mul_projective`. DO NOT prove a
+`valid_g1_mul_projective` corollary from that closure — it would certify a
+non-executed algorithm. The GLV session must either delete that stand-in or
+mark it explicitly non-executed, and spike the REAL GLV path. What IS proven
+for G1 today: the affine/subgroup-check loop (`valid_g1_mul_affine`), which is
+genuinely reached.
+PART 2E DONE (green PARTIAL, 2026-07-19, orchestrator; sol-HIGH): the GLV path
+is now FAITHFULLY SPIKED, PARITY-PINNED, EXTRACTED, and its JOINT LOOP PROVEN.
+TRAP FIXED: the non-executed generic `g1_mul_projective` loop was DELETED from
+the spike, its parity call repointed at the real GLV path, and it was dropped
+from `extract_s3_28`; only the elementary `g1_mul_projective_step` remains
+(referenced by the already-landed graph + part-2c proofs) and is now documented
+in-source as a NON-EXECUTED generic reference. No `valid_g1_mul_projective`
+exists. SPIKE (rooted at `extract_s3_28_glv`): pinned Fr modulus, LLL basis
+`[[a+1,1],[-1,a]]`, configured endomorphism coefficient, fixed-width
+multiply/long-division/half-up rounding/sign-magnitude decomposition mirroring
+arkworks `scalar_decomposition`; `b1=P`, `b2=φ(P)`, sign-conditional negations,
+`b1b2`; 256-pair MSB-first loop with the exact magnitude-forced leading
+`(false,false)` skip then 255 double+choice-add steps. PARITY compares the
+decomposition SIGNS/MAGNITUDES DIRECTLY against `GLVConfig::scalar_decomposition`
+AND the product against `G1Projective::mul_bigint` (the real GLV override):
+zero/1/2/leading-zero/Fr−1/generator/identity + 512 random, cargo mac-campaign
+green (10 spike tests). EXTRACTION: WSL scoped from a dependency-free copy (a
+full-workspace retry died in the unrelated `metrics-0.24.1` crate, E0521);
+vendored `ArkworksScalarMulGlvGenerated.lean`. PROOFS (4 new modules
+`ArkworksScalarMulGlv{Step,Schedule,LoopModel,Loop}.lean`, each ~1.85 GB):
+`valid_g1_glv_joint_step`, `glvPairs_*`, `runJoint_glvPairs_256_skip`,
+`extracted_glv_bit`, `glvJointBody_decreases`, `glvJointLoopResult_to_model`,
+and the corollaries `valid_g1_glv_joint_loop_256` (extracted loop represents
+`runJoint 256 (glvPairs k1 k2 256) b1 b2 0` under valid bases + the two
+`< 2^255` magnitude bounds) and `valid_g1_glv_joint_loop_value` (via
+`runJoint_256_skip` → the two decoded magnitude actions). Symbolic
+`bitIndex.val` measure; 256 iterations NOT unrolled. Zero sorry, audited axioms.
+DISCIPLINE: sol emitted NO partial final corollary and made NO unconditional use
+of the eigenspace fact.
+REMAINING (3 items to close S3-28): (i) prove the extracted fixed-width
+decomposition (reduction, 384-bit rounded division, products, subtraction, sign
+interpretation) satisfies `signed(k1) + signed(k2)·λ ≡ k (mod r)` AND derive the
+two `< 2^255` magnitude bounds the loop theorem consumes; (ii) refine the
+extracted endomorphism + sign-conditional negations to decoded Mathlib points
+and build `b1b2` validity, composing with `valid_g1_glv_joint_loop_value`;
+(iii) under an explicit prime-subgroup premise + the cited
+`GlvEigenPrecondition`, combine with `runJoint_eigenvalue` for the final
+executed G1 `k • P`. Superseded scope text follows: (5) model the
 executed G1 GLV wrapper (`g1_mul_projective`), connect its exact 256-pair skip
 schedule to `runJoint`, and prove the LLL/rounded-division decomposition after
 sign interpretation `k1 + k2·λ ≡ k (mod r)`; (6) combine with
