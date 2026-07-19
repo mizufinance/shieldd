@@ -1,79 +1,127 @@
-# S3-27 part 2b — G2 branch theorems
+# S3-27 part 3 — G2 Mathlib affine lift
 
-## Result
+## STATUS
 
-Implemented in `Ipp/Extracted/ArkworksG2.lean`:
+COMPLETE.
 
-- `decode_g2_add_equal_delegates`
-- `decode_g2_add_opposite`
-- `decode_g2_add_mixed_generic`
-- `decode_g2_add_mixed_equal_delegates`
-- `decode_g2_add_mixed_opposite`
+Added `Ipp/Extracted/ArkworksG2Mathlib.lean`. The file identifies the executed
+G2 chord, tangent, negation, exceptional, and identity branches with
+`g2Curve.toAffine.Point` group operations. No generated file, Rust spike,
+`ArkworksG1*.lean`, or `ArkworksG2.lean` was edited. No commit was created.
 
-The public theorems share `g2_add_branch_of_same_x` and
-`g2_add_mixed_branch_of_same_x`. Both routers peel the arithmetic binds once,
-derive canonical decoded value equalities, and keep Fq2 limb comparisons opaque.
-`fq2_eq_components` is the single bounded bridge from the executed comparison
-to component equality.
+## Public definitions and theorems
 
-The executed U/X comparison bind is peeled before the y-branch split. Its tiny
-result equation selects the true branch, after which `change` kernel-reduces the
-discarded generic chain. The S/Y comparison bind is also peeled once and its
-result equation selects doubling or zero inside each branch.
+Boundaries and representation:
 
-## Memory diagnosis
+- `G2AffinePoint`
+- `DecodedG2OnCurve`
+- `liftDecodedG2`
+- `liftDecodedG2_none`
+- `liftDecodedG2_some`
+- `RepresentsDecodedG2`
+- `DecodedG2InPrimeSubgroup`
+- `representsDecodedG2_lift`
 
-The literal final router step
+Coordinate/group-law bridges:
 
-```lean
-simpa only [huExec, hsExec] using hexec
-```
+- `chordAddG2_eq_mathlib`
+- `tangentDoubleG2_eq_mathlib`
+- `lift_chordAddG2`
+- `lift_tangentDoubleG2`
+- `lift_negG2`
+- `lift_oppositeG2`
+- `lift_order2G2`
 
-still traversed the discarded generic else-chain. The equal-y isolation was
-killed at a sampled peak of 6,223.5 MiB. Replacing that simplifier traversal
-with structural comparison-bind peeling reduced the complete projective router
-isolation to 1,934.8 MiB.
+Executed refinement corollaries:
 
-Other successful isolation peaks:
+- `executed_g2_add_generic_refines_mathlib`
+- `executed_g2_add_mixed_generic_refines_mathlib`
+- `executed_g2_double_generic_refines_mathlib`
+- `executed_g2_double_order2_refines_mathlib`
+- `executed_g2_neg_finite_refines_mathlib`
+- `executed_g2_neg_identity_refines_mathlib`
+- `executed_g2_add_left_identity_refines_mathlib`
+- `executed_g2_add_right_identity_refines_mathlib`
+- `executed_g2_add_mixed_identity_refines_mathlib`
+- `executed_g2_double_identity_refines_mathlib`
+- `executed_g2_add_opposite_refines_mathlib`
+- `executed_g2_add_mixed_opposite_refines_mathlib`
+- `executed_g2_add_equal_refines_mathlib`
+- `executed_g2_add_mixed_equal_refines_mathlib`
 
-- mixed same-x router: 1,939.8 MiB
-- mixed generic theorem: 1,969.7 MiB
+The two coordinate identities are proved first over a generic field for the
+short Weierstrass curve `⟨0, 0, 0, 0, b⟩`, then instantiated with
+`b = g2TwistB`. Thus `ring` does not expand the concrete Fq2 quadratic-algebra
+representation. The arbitrary `b` also makes explicit that the affine
+addition-coordinate specialization depends on `a₁ = a₂ = a₃ = a₄ = 0`,
+not on `g2TwistB = 1`.
 
-All temporary isolation files were deleted.
+## Assumed validation boundary
 
-## Verification
+`DecodedG2OnCurve` requires `g2Curve.toAffine.Equation x y` for every finite
+decoded class used to construct a Mathlib affine point. Generic chord/tangent
+corollaries take the output on-curve fact explicitly; exceptional branches take
+the finite input/opposite facts needed by that branch.
 
-Command (single-threaded, installed v4.30 toolchain placed before offline Elan
-shims in `PATH`):
+`DecodedG2InPrimeSubgroup d h := inPrimeSubgroup (liftDecodedG2 d h)` records
+the separate prime-subgroup validation boundary. It is intentionally not a
+premise of the group-operation identification: addition, doubling, and
+negation agree with Mathlib for all on-curve points. S3-32/GAP-08/09 must
+discharge on-curve and prime-subgroup validation for externally accepted
+inputs.
+
+## Verification and peak memory
+
+Final guarded command:
 
 ```text
-LEAN_NUM_THREADS=1 lake env lean Ipp/Extracted/ArkworksG2.lean
+LEAN_NUM_THREADS=1 "C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe" env lean Ipp/Extracted/ArkworksG2Mathlib.lean
 ```
 
-Result:
-
-```text
-exit: 0
-elapsed: 42.771 s
-peak Lean RSS: 2,008.9 MiB
-```
-
-The five requested `#print axioms` results were:
-
-```text
-'Ipp.Extracted.ArkworksG2.decode_g2_add_equal_delegates' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksG2.decode_g2_add_opposite' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksG2.decode_g2_add_mixed_generic' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksG2.decode_g2_add_mixed_equal_delegates' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksG2.decode_g2_add_mixed_opposite' depends on axioms: [propext, Classical.choice, Quot.sound]
-```
+Result: exit 0. A process-sampled execution of the same command on the final
+file took 40.371 seconds and had peak Lean RSS **1,891.0 MiB**.
 
 Additional checks:
 
-- `git diff --check`: passed
-- no `sorry`, `admit`, or new axioms in `ArkworksG2.lean`
-- no edits to generated files, the Rust spike, or `ArkworksG1.lean`
-- no commit created
+- `git diff --check -- Ipp/Extracted/ArkworksG2Mathlib.lean`: passed.
+- Source scan found no `sorry`, `admit`, or axiom declaration.
+- No temporary isolation `.lean` files were created.
+- Prover/release-gated tests were not run; the requested guarded full-file Lean
+  check was run and passed.
 
-No prover/release-gated test suite was run; the requested guarded full-file Lean
-check was run and passed.
+## Axiom audit output
+
+Every public proof declaration printed the same permitted dependency set:
+
+```text
+depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+This output was emitted for:
+
+```text
+chordAddG2_eq_mathlib
+tangentDoubleG2_eq_mathlib
+liftDecodedG2_none
+liftDecodedG2_some
+lift_chordAddG2
+lift_tangentDoubleG2
+lift_negG2
+lift_oppositeG2
+lift_order2G2
+representsDecodedG2_lift
+executed_g2_add_generic_refines_mathlib
+executed_g2_add_mixed_generic_refines_mathlib
+executed_g2_double_generic_refines_mathlib
+executed_g2_double_order2_refines_mathlib
+executed_g2_neg_finite_refines_mathlib
+executed_g2_neg_identity_refines_mathlib
+executed_g2_add_left_identity_refines_mathlib
+executed_g2_add_right_identity_refines_mathlib
+executed_g2_add_mixed_identity_refines_mathlib
+executed_g2_double_identity_refines_mathlib
+executed_g2_add_opposite_refines_mathlib
+executed_g2_add_mixed_opposite_refines_mathlib
+executed_g2_add_equal_refines_mathlib
+executed_g2_add_mixed_equal_refines_mathlib
+```

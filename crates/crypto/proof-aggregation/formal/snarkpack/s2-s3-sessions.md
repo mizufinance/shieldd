@@ -1068,8 +1068,8 @@ S3-26 COMPLETE (parts 1, 2, 2b, 2c, 3). The executed G1 group-formula slice
 of the arkworks arithmetic row is proved. Next curve session: S3-27 (G2 —
 same twist formulas over Fq2; the S3-26 memory lesson applies directly).
 
-**S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` — `IN
-PROGRESS` (gates satisfied). Prove the exact twist formulas across the same
+**S3-27 — executed G2 add/double/neg formulas** — `HARD (sol)` —
+`DONE 2026-07-18`. Prove the exact twist formulas across the same
 exceptional branches. Acceptance mirrors S3-26. Narrows the G2
 group-operation row.
 PART 1 DONE (2026-07-18, orchestrator; executed by sol): scope pin, spike,
@@ -1122,9 +1122,24 @@ chain — plus ONE bounded `fq2_eq_components` bridge (executed Fq2 comparison
 full G2 file peak 2.0 GB. (First 2b attempt BLOCKED at medium; the fix
 needed the structural-peel insight, landed at high after Fable read the G1
 router and pinpointed the else-chain traversal.)
-S3-27 add/double/neg over Fq2 COMPLETE. REMAINING: (3) Mathlib
-`Affine.Point` lift over the G2 twist curve (mirror `ArkworksG1Mathlib.lean`)
-+ session-closing corollaries. Acceptance mirrors S3-26.
+S3-27 add/double/neg over Fq2 COMPLETE.
+PART 3 DONE (2026-07-18, orchestrator; executed by sol): new
+`Ipp/Extracted/ArkworksG2Mathlib.lean` (separate file, peak ~1.9 GB).
+`chordAddG2_eq_mathlib`/`tangentDoubleG2_eq_mathlib` proven over a GENERIC
+short-Weierstrass `⟨0,0,0,0,b⟩` then instantiated at `b = g2TwistB` (so
+`ring` never expands the Fq2 quadratic-algebra rep; makes explicit the affine
+addX/addY specialization depends on a₁=a₂=a₃=a₄=0, NOT on b=1). Lift model
+`DecodedG2OnCurve`/`liftDecodedG2`/`RepresentsDecodedG2` +
+`DecodedG2InPrimeSubgroup`, and the 14 `executed_g2_{add,add_mixed,double,
+neg}_*_refines_mathlib` corollaries prove the executed G2 formulas refine
+`g2Curve.toAffine.Point` add/double/neg on decoded classes across all
+branches, under the explicit on-curve/prime-subgroup boundary
+(S3-32/GAP-08/09); the group-operation identification uses no subgroup
+premise. Full Ipp green, zero sorry, audited axioms.
+S3-27 COMPLETE (parts 1/2/2b/3). Both G1 (S3-26) and G2 (S3-27) executed
+group formulas are proved and lifted to the Mathlib affine group law. Next
+curve session: S3-28 (scalar-mul loops — G1 GLV path + the two G2 generic
+double-and-add loop shapes).
 
 **S3-28 — scalar-multiplication loops** — `HARD (sol)` — `GATED` on S3-26/27.
 Prove the executed G1 and G2 scalar-bit loop invariant and instantiate it to
