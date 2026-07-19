@@ -1174,13 +1174,40 @@ technique); vendored `ArkworksScalarMulGenerated.lean`;
 `decode_g{1,2}_mul_{projective,affine}_step_generic` (one iteration = decoded
 tangent double + optional decoded chord add, composing S3-26/27 laws;
 generic-branch premises exposed). Full Ipp green, zero sorry, audited axioms.
-REMAINING PARTS: (2) the fueled loop invariant (generic MSB-first, instantiated
-projective + affine mixed; zero/identity/leading-zeros/full-Fr) + the GLV
-joint-loop invariant + scalar-decomposition correctness + a branch-complete
-wrapper discharging identity/order2/equal/opposite from the S3-26/27 laws;
-then the `k•p` corollaries and S2 scalar-action adapters. HEAVY loop induction
-— apply the fueled-induction precedents (Miller loop, SoP loop, cyclotomic_exp
-NAF) + the guarded/memory protocol.
+PART 2 LANDED (green PARTIAL — algebraic invariant boundary; 2026-07-19,
+orchestrator; sol-HIGH with design authority, peak 1.86 GB, 12 kills caught).
+DESIGN CALL (sol): the loop invariant belongs ABOVE the coordinate fields —
+new `Ipp/Extracted/ArkworksScalarMulInvariant.lean` over an arbitrary
+`AddCommMonoid`, so it is field-independent and never expands Fq2. Proven:
+`runBits`/`msbValue` fueled MSB-first double-and-add invariant
+(`runBits = 2^processed • acc + prefix • base`) + `runBits_253`, zero,
+empty, no_fuel, `runBits_suppress_leading_false`; `runJoint`/`jointValue`
+GLV paired-bit invariant + `runJoint_256_skip` (the exact 256-pair schedule,
+one leading (false,false) skip, choice-add 10→b1/01→b2/11→b1+b2/00→0),
+`runJoint_eigenvalue` (CONDITIONAL eigenvalue substitution),
+`GlvEigenPrecondition`; S2-facing ALGEBRAIC adapters `g2_scalar_action_
+adapter`/`g1_glv_joint_action_adapter` (honestly labeled algebraic, NOT
+executed-closure adapters — no over-claim). Induction is on SYMBOLIC fuel
+only (no 253/255 unroll). GLV eigenspace fact `φ(P)=λ•P` recorded as the new
+cited assumption `assume.bls12377-g1-glv-eigenspace` (λ pinned, prime-subgroup
+precondition-gated, NOT axiom/NOT arbitrary points; consumer must supply
+`GlvEigenPrecondition`). Full Ipp green, zero sorry, audited axioms.
+⚠ SOL FINDING (sound stop): the S3-26/27 exceptional-branch refinement lemmas
+(identity/order2/equal/opposite) preserve decoded represented classes but do
+NOT all export output CANONICITY, which the next generic-formula step
+requires — carrying it implicitly would be UNSOUND. Sol stopped at the
+algebraic boundary rather than paper over it.
+REMAINING PART-2 WORK (6 items, sol-scoped): (1) export canonical-preservation
+laws for the exceptional identity paths in the G1/G2 hand-authored layers;
+(2) one typed valid executed-loop state + branch-complete projective-add and
+affine-mixed-add step wrappers using ALL S3-26/27 laws; (3)
+`Aeneas.Std.loop.spec_decr_nat` on the extracted nested limb/bit loops +
+connect the four-limb schedule to `msbValue = scalar mod 2^width`; (4) the
+executed G2 projective/affine + ordinary-G1 affine corollaries; (5) model the
+executed G1 GLV wrapper, connect its 256-pair skip to `runJoint`, prove the
+LLL/rounded-division decomposition `k1 + k2·λ ≡ k (mod r)`; (6) combine with
+the eigencondition for the final executed G1 `k • P`. Item (1) is the
+prerequisite unblocker — do it first.
 
 **S3-29 — normalization and affine conversion conformance** — `HARD (sol)` —
 `GATED` on S3-26/27. Prove executed single/batch normalization and affine/

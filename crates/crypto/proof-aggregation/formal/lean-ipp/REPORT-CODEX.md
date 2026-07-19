@@ -1,122 +1,185 @@
-# S3-28 part 1 — scalar-multiplication opener
+# S3-28 part 2 — scalar-loop algebraic invariant boundary
 
 ## STATUS
 
-COMPLETE at the requested Part 1 boundary.
+**PARTIAL — coherent GREEN algebraic boundary.**
 
-Pinned every scalar-multiplication loop shape reached by aggregate verification, added and parity-tested the monomorphic generic loops, extracted them through WSL Aeneas, and proved the four generic single-bit decode laws. No loop-invariant induction, generic loop theorem, concrete scalar-multiplication corollary, or GLV implementation was attempted. No commit was created.
+Landed the field-independent fueled MSB-first double-and-add invariant, its
+253-bit specialization, the paired-bit GLV invariant, the exact 256-pair
+schedule with the one leading `(false,false)` skip, conditional eigenvalue
+substitution, and G1/G2 Mathlib-point adapter statements. Also recorded the
+G1 GLV eigenspace fact as a cited prime-subgroup-only assumption in
+`formal/snarkpack/formal-handoff.md`.
 
-## Scope pin: exact executed loops
+Did not claim the extracted closures refine these algebraic loops. The
+branch-complete executed-step wrappers, scalar-array/bit-value bridge,
+executable scalar decomposition, and final executed G1/G2 scalar-action
+corollaries remain.
 
-Arkworks routing common to both curves:
+No generated Lean or Rust file was edited. No commit was created.
 
-- Projective `mul_bigint` delegates to `P::mul_projective` (`ark-ec-0.5.0/src/models/short_weierstrass/group.rs:282-284`). Affine `mul_bigint` delegates to `P::mul_affine` (`affine.rs:235-236`).
-- The default short-Weierstrass projective and affine routes are respectively `sw_double_and_add_projective` and `sw_double_and_add_affine` (`models/short_weierstrass/mod.rs:89-99`).
-- The default subgroup check computes `mul_affine(item, ScalarField::characteristic()).is_zero()` (`models/short_weierstrass/mod.rs:74-79`), so it always reaches the affine/mixed-add loop unless a curve overrides that check. BLS12-377 G1 and G2 do not.
+## Design call
 
-### G1 ordinary projective multiplication: GLV joint loop
+The reusable invariant belongs above the coordinate fields. New file
+`Ipp/Extracted/ArkworksScalarMulInvariant.lean` defines two fuel-recursive
+models over an arbitrary `AddCommMonoid`:
 
-BLS12-377 G1 overrides only `mul_projective`, converts the input limbs to Fr, and calls `GLVConfig::glv_mul_projective` (`ark-bls12-377-0.5.0/src/curves/g1.rs:54-57`). The exact GLV control flow is `ark-ec-0.5.0/src/scalar_mul/glv.rs:27-82,90-123`:
+- `runBits fuel bits base accumulator` processes the MSB-first list until fuel
+  or input is exhausted. Its value model is `msbValue fuel bits`.
+- `runJoint fuel pairs b1 b2 accumulator` performs one double and the exact
+  GLV choice-add per pair. Its value model is `jointValue fuel pairs`.
 
-1. Decompose `k` into signed magnitudes `(sgn_k1,k1)`, `(sgn_k2,k2)` intended to satisfy `k = k1 + λ·k2 (mod r)`. The LLL/rounded-division implementation is lines 27-82.
-2. Set `b1 = P`, `b2 = φ(P)`; negate each base iff its sign Boolean is false; precompute `b1b2 = b1 + b2` (lines 93-103).
-3. Construct two `BitIteratorBE::new` iterators over the full four-limb Fr `BigInt` values and zip them (lines 105-110). The magnitudes are half-width by construction, but the executed iterator schedule is still fixed **256 paired bits, MSB first**.
-4. Initialize `res = 0` and `skip_zeros = true` (lines 108-109). The code skips exactly the first pair when it is `(false,false)`, sets `skip_zeros = false`, and then processes every remaining pair; it does **not** keep skipping all leading zero pairs (lines 110-114). For BLS12-377 half-width magnitudes, bit 255 is zero, so the executed body schedule is 255 double/choice steps for bits 254 down to 0.
-5. Each processed pair first doubles `res`, then adds `b1` for `10`, `b2` for `01`, `b1b2` for `11`, and nothing for `00` (lines 115-121).
-
-The G1 endomorphism changes only projective X by the configured coefficient (`ark-bls12-377-0.5.0/src/curves/g1.rs:69-89`).
-
-### Generic affine loop: G1 and G2 subgroup checks
-
-The subgroup check for each curve passes the four-limb Fr characteristic to `mul_affine`. Neither curve overrides `mul_affine`, so both use `sw_double_and_add_affine` (`ark-ec-0.5.0/src/scalar_mul/mod.rs:31-44`):
-
-- `BitIteratorBE::without_leading_zeros` scans the little-endian limb slice from its most-significant bit and suppresses every zero before the first one (`ark-ff-0.5.0/src/bits.rs:8-18,21-31`).
-- Accumulator starts at projective zero.
-- For every remaining bit, double first; add the affine base with mixed addition iff the bit is true.
-- The characteristic has 253 significant bits, so the reached subgroup-check schedule is 253 iterations, bit 252 through bit 0. Zero is not the subgroup-check scalar.
-
-### G2 ordinary projective multiplication: generic projective loop
-
-BLS12-377 G2 defines `GLVConfig` but its `SWCurveConfig` block (`ark-bls12-377-0.5.0/src/curves/g2.rs:47-99`) does not override `mul_projective`. It therefore uses the default `sw_double_and_add_projective` (`ark-ec-0.5.0/src/scalar_mul/mod.rs:48-61`):
-
-- Four Fr limbs, big-endian bit order, with all leading zero bits suppressed.
-- Accumulator starts at projective zero.
-- Every retained bit doubles first; a true bit then adds the projective base.
-- Zero scalar executes no iterations. A nonzero Fr scalar executes exactly from its highest set bit through bit 0, up to the full 253-bit Fr width.
-
-G2 subgroup checking is the affine loop described above. Thus G2 has two concrete input/addition shapes but one common bit schedule/invariant form.
-
-## Part 2 scope and GLV boundary
-
-Part 2 must prove:
-
-- One fueled invariant for the generic MSB-first loop, instantiated for projective add and affine mixed add, including zero scalar, identity base/accumulator, leading zeros, and all 253 Fr bits.
-- The G1 GLV joint-loop invariant for paired bits and the exact one-leading-pair skip behavior.
-- Executable scalar-decomposition correctness: after sign interpretation, `k1 + k2·λ ≡ k (mod r)`. This is **in scope for S3-28 Part 2**.
-- The mathematical eigenspace fact `φ(P) = λ • P` for prime-subgroup G1 points. This is pinned as a **cited curve-parameter boundary**, not an executable-loop fact: Part 2 should state it explicitly as the GLV precondition/citation boundary and prove the extracted loop conditional on it. It must not silently assume the relation for arbitrary on-curve points.
-- A branch-complete wrapper around the generic single-step lemmas before induction, discharging identity, order-two, equal, and opposite branches from the existing S3-26/S3-27 laws. The Part 1 theorems deliberately expose the generic finite/chord premises and do not begin that invariant work.
-
-## Spike and parity
-
-Added to `s3_07_arkworks_fq_spike.rs:1800-1934`:
-
-- `g1_mul_projective_step`, `g1_mul_affine_step`
-- `g1_mul_projective`, `g1_mul_affine`
-- `g2_mul_projective_step`, `g2_mul_affine_step`
-- `g2_mul_projective`, `g2_mul_affine`
-- `extract_s3_28`
-
-The loop closures use four little-endian u64 limbs, scan limb 3 to 0 and bit 63 to 0, suppress work until the first set bit, then call the explicit double/conditional-add step on every bit. The projective and affine variants compose the already-proven `g1_*`/`g2_*` closures.
-
-Parity test `scalar_mul_edges_and_512_deterministic_random_vectors_match_arkworks` is at `tests/bls12_377_arkworks_fq_spike.rs:119`. It covers scalar zero, 1, 2, a leading-zero/high-position case, `Fr - 1` at full Fr width, identity bases, and 512 deterministic random `(scalar,G1 point,G2 point)` inputs. All four closures are compared after `into_affine` against arkworks `mul_bigint` represented classes.
-
-Required gate:
+Both invariants account for a nonidentity initial accumulator:
 
 ```text
-cargo test -p ark-ip-proofs --features mac-campaign
-37 library tests passed, 2 unrelated ignored
-10 Fq/curve spike tests passed (including scalar parity)
-2 Fr spike tests passed
-0 failed
+runBits = 2^processed • accumulator + prefix • base
+
+runJoint = 2^processed • accumulator
+           + prefix1 • b1 + prefix2 • b2
+
+processed = min fuel schedule.length
 ```
 
-## Extraction
+The proofs induct only on symbolic fuel and peel one symbolic head. They do
+not unroll 253 or 255 steps and do not expand Fq2 coordinates. Identity start
+then removes the scaled-accumulator term. Leading-zero suppression and the
+GLV skip are stated specifically at identity start: processing such a bit with
+a nonidentity accumulator would double it, whereas the executed control flow
+skips the step entirely.
 
-- The installed hax/Aeneas combination warns that Aeneas revision `unknown` differs from expected `e0a1596`.
-- This hax version also reports that `-i` is unsupported by the Aeneas backend and ignores it; attempting the full crate therefore reached unrelated application-code translation failures.
-- Per the machine-safety instruction, extraction was rerun from a truncated isolation crate containing only the monomorphic spike source. WSL hax/Aeneas succeeded in 12.1 seconds from root `extract_s3_28`; Aeneas accepted the nested outer-limb/inner-bit `while` loops without Rust restructuring.
-- Vendored `Ipp/Extracted/ArkworksScalarMulGenerated.lean`, importing the existing G1/G2/Fq/Fq2 graphs and retaining finite `maxHeartbeats = 1000000`. Mechanical repository-runtime normalization removed informational `rust_loop*` attributes, selected bounded-array indexing, mapped scalar limbs to `MacCampaign.U64`, converted shift counts to bounded I32, and rendered low-bit extraction as `% 2`.
-- Both the workspace isolation copy and `/tmp/shieldd-s3-28-extract` were removed after vending. The workspace copy was sent to the Windows Recycle Bin and is recoverable.
+I stopped before the executed-loop induction because the S3-26/27 exceptional
+identity refinement lemmas preserve decoded represented classes but do not all
+export output canonicity. Canonicity is required by the next generic formula
+step. The correct next unit is therefore to add public canonical-preservation
+laws for zero-Z double and identity additions, then build one typed valid-state
+step wrapper covering identity/order-2/equal/opposite/generic branches. It
+would be unsound to carry canonicity implicitly or to use only the existing
+generic unequal-X laws.
 
-## Single-step laws
+## Landed theorem interface
 
-New `Ipp/Extracted/ArkworksScalarMul.lean` defines:
+Generic bit loop:
 
-- `DecodedLoopState`
-- `decodeG1ProjectiveLoopState`, `decodeG1AffineLoopState`
-- `decodeG2ProjectiveLoopState`, `decodeG2AffineLoopState`
+- `runBits_invariant`
+- `runBits_zero`
+- `runBits_no_fuel`
+- `runBits_empty`
+- `runBits_suppress_leading_false`
+- `runBits_253`
 
-Public theorems:
+GLV joint loop:
 
-- `decode_g1_mul_projective_step_generic`
-- `decode_g1_mul_affine_step_generic`
-- `decode_g2_mul_projective_step_generic`
-- `decode_g2_mul_affine_step_generic`
+- `runJoint_invariant`
+- `runJoint_skip_leading_false_false`
+- `runJoint_256_skip`
+- `GlvEigenPrecondition`
+- `runJoint_eigenvalue`
 
-Each theorem peels exactly one extracted step, composes `decode_g*_double_generic`, and on a true bit composes the corresponding projective or mixed generic-add theorem. The conclusion is decoded tangent doubling followed by the optional decoded chord addition. Their explicit nonzero-Y and unequal-X premises identify the generic branch; exceptional routing remains Part 2 as recorded above.
+S2-facing algebraic adapters:
 
-## Lean verification, axioms, and memory
+- `g2_scalar_action_adapter`
+- `g1_glv_joint_action_adapter`
 
-All commands used `LEAN_NUM_THREADS=1` and the narrow requested `lake env lean <FILE>` shape. No unguarded `lake build` was run.
+These adapters are intentionally algebraic, not executed-closure adapters.
+They supply the target theorem shape for the remaining S2 connection without
+mislabeling the missing branch/canonicity and extracted-loop work as proved.
 
-- `lake env lean Ipp/Extracted/ArkworksScalarMulGenerated.lean`: PASS; final sampled peak **1,837.2 MiB**.
-- Generated olean installation used the same command with explicit `-o`, solely so the hand-authored importer could resolve it.
-- `lake env lean Ipp/Extracted/ArkworksScalarMul.lean`: PASS; final sampled peak **1,842.7 MiB**.
-- Zero source `sorry`, `admit`, or new axiom declarations.
-- Prover/release-gated tests were not run. The requested Rust mac-campaign parity gate, WSL extraction, and guarded focused Lean checks were run.
+## Coverage within this partial
 
-Axiom audit output for every new public theorem:
+- Scalar zero: empty/suppressed schedule and identity start are explicit.
+- Identity base and accumulator: covered by the arbitrary-additive-monoid
+  invariant and its identity-start corollary.
+- Leading zeros: explicit single-head suppression lemma, reusable repeatedly.
+- Full Fr width: `runBits_253` specializes the generic theorem to 253 bits.
+- Exact G1 GLV control shape: `runJoint_256_skip` proves that the leading
+  `(false,false)` pair is skipped and the remaining 255 pairs implement
+  double/choice-add with `10 -> b1`, `01 -> b2`, `11 -> b1+b2`, `00 -> 0`.
+
+The identity `msbValue 253 bits = scalar mod 2^253` for the concrete four-limb
+array is not yet proved; neither is the analogous pair of concrete GLV
+magnitudes. Those belong in the extracted schedule bridge.
+
+## GLV cited boundary
+
+`GlvEigenPrecondition inPrimeSubgroup phi lambda` requires
+`phi(P) = lambda • P` only when `P` satisfies the supplied prime-subgroup
+predicate. It does not assert this for arbitrary on-curve points.
+
+For BLS12-377 G1, the recorded arkworks 0.5.0 value is:
 
 ```text
-depends on axioms: [propext, Classical.choice, Quot.sound]
+lambda = 8444461749428370424248824938781546531284005582649182570233710176290576793600
 ```
+
+The cited parameter/implementation locations are
+`ark-bls12-377-0.5.0/src/curves/g1.rs:69-94` and the GLV relation contract in
+`ark-ec-0.5.0/src/scalar_mul/glv.rs:10-22`. The handoff ledger now has the
+named assumption row `assume.bls12377-g1-glv-eigenspace`.
+
+`runJoint_eigenvalue` proves only the conditional substitution into the joint
+loop. It introduces no axiom and cannot be applied without an explicit
+eigenvalue equality.
+
+## Verification and peak memory
+
+Only guarded, single-threaded, single-file checks were used. No `lake build`
+was run.
+
+Final full-file command:
+
+```text
+LEAN_NUM_THREADS=1 C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe env lean Ipp/Extracted/ArkworksScalarMulInvariant.lean
+```
+
+Result: **PASS**. The captured audit run took 41.6 seconds; an immediately
+preceding full-file run with 200 ms RSS sampling took 42.6 seconds and reached
+an individual `lean`/`lake` working-set peak of **1,860.1 MiB**. The guardian
+did not kill any worker.
+
+No isolation `.lean` copies were created, so none remain under
+`Ipp/Extracted/`.
+
+## Axiom audit
+
+The new Lean source contains zero `sorry`, `admit`, or axiom declarations.
+The complete public audit output was:
+
+```text
+'Ipp.Extracted.ArkworksScalarMul.runBits_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.runBits_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.runBits_no_fuel' does not depend on any axioms
+'Ipp.Extracted.ArkworksScalarMul.runBits_empty' does not depend on any axioms
+'Ipp.Extracted.ArkworksScalarMul.runBits_suppress_leading_false' depends on axioms: [propext]
+'Ipp.Extracted.ArkworksScalarMul.runBits_253' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.runJoint_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.runJoint_skip_leading_false_false' depends on axioms: [propext]
+'Ipp.Extracted.ArkworksScalarMul.runJoint_256_skip' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.GlvEigenPrecondition' does not depend on any axioms
+'Ipp.Extracted.ArkworksScalarMul.runJoint_eigenvalue' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.g2_scalar_action_adapter' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.g1_glv_joint_action_adapter' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+
+Every new public theorem and both adapter corollaries are audited above. Only
+`propext`, `Classical.choice`, and `Quot.sound` occur.
+
+## Remaining S3-28 part 2 work
+
+1. Export canonical-preservation laws for the exceptional identity paths in
+   the hand-authored G1/G2 layers.
+2. Define one typed valid executed-loop state and prove branch-complete
+   projective-add and affine-mixed-add step wrappers using all S3-26/27 laws.
+3. Use `Aeneas.Std.loop.spec_decr_nat` for the extracted nested limb/bit loops,
+   with symbolic limb/bit measures, and connect the four-limb bit schedule to
+   `msbValue = scalar mod 2^width` (including zero and full 253-bit cases).
+4. Land the executed G2 projective and affine corollaries and the ordinary G1
+   affine/subgroup-check corollary.
+5. Extract/model the executed G1 GLV wrapper if needed, connect its exact
+   256-pair skip schedule to `runJoint`, and prove the LLL/rounded-division
+   decomposition after sign interpretation:
+   `k1 + k2*lambda ≡ k (mod r)`.
+6. Combine decomposition with the explicit prime-subgroup eigencondition to
+   obtain the final executed G1 `k • P` corollary.
+
+Prover/release-gated tests were not run. No Rust changed, so the Part 1 Rust
+parity gate was not rerun in this partial.
