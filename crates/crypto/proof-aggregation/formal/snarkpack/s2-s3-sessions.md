@@ -1297,7 +1297,49 @@ r odd ⇒ no exact tie); LLL product decodes as `β·(a+1)`; sign branches
 `numerator = s·a`. Zero sorry, audited axioms. Sol recorded the EXACT
 final-corollary premise shape (explicit `hsubgroup` + `heigen`, neither
 discharged in S3-28) so the remaining work cannot hide a boundary.
-REMAINING (2 items to close S3-28): (ii) refine the extracted endomorphism +
+⚠ CODEX CAPPED 2026-07-19 ~18:30 (resets Jul 24 23:24) mid-way through the
+finale dispatch — no work was done that turn. Per directive Fable continues,
+but the finale is the delicate soundness boundary; rather than risk a fatigued
+hand-written error at hour 33+, the orchestrator reverse-engineered the full
+LEMMA-LEVEL ROADMAP below (executed `g1_glv_mul_projective` fully read) so the
+finale can be finished cleanly by whoever picks it up (sol post-reset or Fable
+when fresh):
+
+FINALE ROADMAP (2 items, lemma-level; executed structure:
+`g1_glv_mul_projective base scalar` = decompose → `b1=base`, `b2=g1_glv_
+endomorphism base` (= `mul(x,COEFF)`, y/z unchanged) → sign-negate b1/b2 iff
+`!k{1,2}_positive` via `g1_neg` → `b1b2 = g1_add b1 b2` → `g1_glv_joint_loop`):
+✅ (ii-a) + (ii-b) DONE (2026-07-19, FABLE HAND-WROTE during the codex cap —
+new file `Ipp/Extracted/ArkworksScalarMulGlvEndomorphism.lean`, env-lean green,
+axiom-clean): `g1_endomorphism_coeff_canonical` (limbsToNat COEFF < baseModulus
+via `limbsToNat_six` + `norm_num [wordBase, …]`), `glvBeta := decode COEFF`, and
+`decode_g1_glv_endomorphism` (mirrors `decode_g1_neg`; peels `mul` via
+`extracted_mul_spec`/`decode_extracted_mul`; concludes `CanonicalG1 output ∧
+decodeG1 output = (decodeG1 a).map (p ↦ (glvBeta * p.1, p.2))` — the affine map
+`(x,y) ↦ (β·x, y)`; div massage by `ring`). Original spec kept for reference:
+(ii-a) `G1_ENDOMORPHISM_COEFF` canonicity; (ii-b) endomorphism DECODE law
+`decode_g1_glv_endomorphism` mirroring `decode_g1_neg`, output.z=a.z (same ∞
+branch), affine map `φ_aff (x,y) = (β·x, y)`. (ii-c)
+endomorphism ON-CURVE: `φ_aff` preserves `y²=x³+1` iff `β³=1` — prove `β³=1` as
+an Fq certificate (β = decode COEFF, a primitive cube root; `decide`/cert like
+the Frobenius constants), then `(β·x)³+1 = β³x³+1 = x³+1`; gives the Mathlib
+`g1Curve.toAffine.Point` for `φ(P)` from P on-curve. (ii-d) refine b1/b2/b1b2 to
+valid states: `b1Point = if k1_positive then P else -P` (via `decode_g1_neg` +
+`canonical_g1_zero`/neg canonicity), `b2Point = if k2_positive then φP else -φP`
+(via ii-b/ii-c), `b1b2` valid via `valid_g1_add` for `b1Point + b2Point`.
+(iii) FINAL corollary (premises pinned in part-2f report: explicit
+`hsubgroup : inPrimeSubgroup P`, `heigen : GlvEigenPrecondition inPrimeSubgroup
+phi lambda`): chain ii-d → `valid_g1_glv_joint_loop_value` giving
+`k1mag • b1Point + k2mag • b2Point` = `signed(k1)•P + signed(k2)•φP`; apply
+`heigen P hsubgroup` (ONLY eigenspace use) → `φP = λ•P`, so
+`= (signed(k1)+signed(k2)·λ)•P`; `extracted_decomposition_spec` →
+`signed(k1)+signed(k2)·λ ≡ scalarToNat scalar (mod r)`; then r-torsion of P
+(SOURCE IT: `Ipp.Bls12377Subgroups` Sylow-r / prime-subgroup membership should
+give `r • P = 0`; if not directly available, add it to the boundary EXPLICITLY —
+do NOT fabricate `r•P=0`) reduces the ℤ-coefficient mod r to conclude
+`ValidG1LoopState output (scalarToNat scalar • P)`. `hsubgroup`/`heigen` are NOT
+discharged in S3-28 (S3-32/GAP-08 owns subgroup validity; eigenspace is the
+cited ledger boundary). Superseded remaining text: (ii) refine the extracted endomorphism +
 sign-conditional negations to decoded Mathlib points and build `b1b2` validity,
 composing with `valid_g1_glv_joint_loop_value`; (iii) under an explicit
 prime-subgroup premise + the cited `GlvEigenPrecondition`, combine
