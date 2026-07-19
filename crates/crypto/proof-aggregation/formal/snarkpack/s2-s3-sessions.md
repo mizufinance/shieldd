@@ -1218,7 +1218,32 @@ development of these wrappers hit 6.2–7.5 GiB and was guardian-killed; the fix
 FILE SPLITTING — `ArkworksScalarMul{G1Base,G1Step,G2Base,G2Add,G2Step,Step,
 StepAxioms}.lean`, each green at ~1.4–1.8 GiB (Lean's per-compile cumulative
 footprint drops when heavy declarations are spread across compilation units).
-REMAINING PART-2 WORK (items 3–6 of the 6): (3)
+PART 2D DONE (2026-07-19, orchestrator; sol-HIGH; items 3+4 of the 6): the
+EXECUTED GENERIC SCALAR-MUL LOOPS ARE PROVEN TO COMPUTE `k • P`. Five new
+modules (`ArkworksScalarMul{Scalar,Schedule,Loop,G1Loop,G2Loop}.lean`, each
+green ~1.82–1.88 GB — file-splitting pattern). LOOP INDUCTION: the generated
+code uses the repo's custom `Aeneas.loop`, NOT the vendored WP loop consumed by
+`spec_decr_nat` — sol used the equivalent finite-execution API
+(`Aeneas.loopResult_of_eq`, structural induction on `Aeneas.LoopResult`,
+`scalarInnerBody_decreases`/`scalarOuterBody_decreases` with SYMBOLIC measures
+`bitIndex.val`/`limb.val`, `scalar{Inner,Outer}LoopResult_to_model/_valid`).
+Nothing unrolled: `partialValue_pred`/`highPrefix_pred` peel ONE arbitrary
+countdown step; only the four bounded word-layout cases are concrete. Each bit
+step is discharged by the part-2c branch-complete wrappers + `nsmul_bit_step`.
+SCALAR BRIDGE: `msbValue_scalarBits : msbValue width (scalarBits width scalar)
+= scalarToNat scalar % 2^width`, plus `highPrefix_eq_msbValue_256`,
+`runBits_256_eq_253`, `msbValue_scalarBits_253` (zero, leading zeros, full
+253-bit Fr). COROLLARIES: `valid_g1_mul_affine`, `valid_g2_mul_projective`,
+`valid_g2_mul_affine`, each concluding `ValidG{1,2}LoopState output
+(scalarToNat scalar • basePoint)` — STRONGER than canonical-Fr-only (hold for
+every four-word scalar array; identity bases need no premise). Full Ipp green,
+zero sorry, audited axioms.
+REMAINING PART-2 WORK (items 5–6 of the 6 — the GLV finale): (5) model the
+executed G1 GLV wrapper (`g1_mul_projective`), connect its exact 256-pair skip
+schedule to `runJoint`, and prove the LLL/rounded-division decomposition after
+sign interpretation `k1 + k2·λ ≡ k (mod r)`; (6) combine with
+`GlvEigenPrecondition` (the cited `assume.bls12377-g1-glv-eigenspace`) for the
+final executed G1 `k • P`. Superseded item list follows: (3)
 `Aeneas.Std.loop.spec_decr_nat` on the extracted nested limb/bit loops +
 connect the four-limb schedule to `msbValue = scalar mod 2^width`; (4) the
 executed G2 projective/affine + ordinary-G1 affine corollaries; (5) model the

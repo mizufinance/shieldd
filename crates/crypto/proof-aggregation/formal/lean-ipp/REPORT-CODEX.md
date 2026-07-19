@@ -1,115 +1,148 @@
-# S3-28 part 2c — canonicity and branch-complete executed steps
+# S3-28 part 2d report
 
 ## STATUS
 
-**PASS — items (1) and (2) complete at a green boundary.**
+COMPLETE for requested items (3) and (4). Items (5) and (6), including GLV,
+LLL/rounded division, and the final executed G1 projective wrapper, were not
+touched.
 
-No fueled-loop induction, scalar-array/bit bridge, scalar corollary, or GLV/LLL
-work was started. No generated Lean, Rust spike, or
-`ArkworksScalarMulInvariant.lean` file was edited. No commit was created.
+New modules:
 
-## Canonicity laws
+- `Ipp/Extracted/ArkworksScalarMulScalar.lean`
+- `Ipp/Extracted/ArkworksScalarMulSchedule.lean`
+- `Ipp/Extracted/ArkworksScalarMulLoop.lean`
+- `Ipp/Extracted/ArkworksScalarMulG1Loop.lean`
+- `Ipp/Extracted/ArkworksScalarMulG2Loop.lean`
 
-The four interrupted G1 additions were verified unchanged by a guarded
-full-file check:
+No generated file, invariant file, part-2c step wrapper, or Rust source was
+edited. There are no `sorry`, `admit`, or new axioms in the new modules.
 
-- `canonical_g1_add_left_identity`
-- `canonical_g1_add_right_identity`
-- `canonical_g1_add_mixed_identity`
-- `canonical_g1_double_identity`
+## Executed-loop induction and measures
 
-The completed G1/G2 surface also includes:
+These generated files use the repository's custom `Aeneas.loop`, not the
+separate vendored WP loop consumed by `Aeneas.Std.loop.spec_decr_nat`.
+Accordingly, the equivalent finite-execution API used here is:
 
-- canonical fixed zero results: `canonical_g1_zero`, `canonical_g2_zero`;
-- the zero-accumulator mixed branch, which had no prior public decode law:
-  `decode_g{1,2}_add_mixed_left_identity` and
-  `canonical_g{1,2}_add_mixed_left_identity`;
-- all four G2 identity companions;
-- projective and mixed opposite-result companions on both curves:
-  `canonical_g{1,2}_add_opposite` and
-  `canonical_g{1,2}_add_mixed_opposite`.
+- `Aeneas.loopResult_of_eq` to recover the finite execution witness;
+- structural induction on `Aeneas.LoopResult`;
+- `scalarInnerBody_decreases`, with symbolic measure `state.2.2.val`
+  (`bitIndex.val`);
+- `scalarOuterBody_decreases`, with symbolic measure `state.2.2.val`
+  (`limb.val`);
+- `scalarInnerLoopResult_to_model` / `scalarInnerLoopResult_valid` and
+  `scalarOuterLoopResult_to_model` / `scalarOuterLoopResult_valid` to compose
+  the extracted witness with the symbolic schedule invariant.
 
-The existing generic add/double, order-2 double, and equal-delegate theorems
-already returned output canonicity, so they were reused rather than duplicated
-or weakened.
+No 64-bit loop or 4-by-64 nested loop was unrolled. `partialValue_pred` proves
+one arbitrary inner countdown step, and `highPrefix_pred` proves one arbitrary
+outer countdown step. The concrete four-word bridge only discharges the four
+bounded word-layout cases; loop execution remains symbolic.
 
-## Valid state and wrapper statements
+Each successful bit step is discharged by the landed branch-complete wrappers
+`valid_g1_mul_affine_step`, `valid_g2_mul_projective_step`, or
+`valid_g2_mul_affine_step`, followed by `nsmul_bit_step`.
 
-The new `ArkworksScalarMulStep` module family exports:
+## Scalar-array bridge
 
-- `ValidG1LoopState limbs point` and `ValidG2LoopState limbs point`: the limb
-  triple is canonical and `RepresentsDecodedG{1,2}` the indexed Mathlib point;
-- `ValidG1AffineLoopBase` and `ValidG2AffineLoopBase`: canonical affine
-  coordinates plus the represented finite/infinity class;
-- `valid_g{1,2}_double`, `valid_g{1,2}_add`, and
-  `valid_g{1,2}_add_mixed`;
-- `valid_g1_mul_projective_step`, `valid_g1_mul_affine_step`,
-  `valid_g2_mul_projective_step`, and `valid_g2_mul_affine_step`.
+The scalar type is the concrete four-word array:
 
-Each requested wrapper concludes:
-
-```text
-ValidG{1,2}LoopState output
-  (accumulatorPoint + accumulatorPoint + if bit then basePoint else 0)
+```lean
+abbrev ScalarArray := MacCampaign.Array MacCampaign.U64 4#usize
 ```
 
-Callers carry no unequal-X or nonzero-Y premise. Dispatch covers decoded
-identity, order-2 double, equal -> delegated double, opposite -> identity, and
-generic branches. Mixed addition additionally covers affine infinity and a
-zero accumulator. Same-X finite classification is derived from both curve
-equations (`Y1^2 = Y2^2`), not assumed.
+Its little-endian natural value is `scalarToNat`; `scalarBits` presents its low
+`width` bits in the executed MSB-first order. The requested bridge is:
 
-The step wrapper peels only the executed double bind and keeps the doubled
-value opaque. The heavy opposite mixed branch constructs an explicit affine
-point equality rather than simplifying through discarded Fq/Fq2 chains.
+```lean
+theorem msbValue_scalarBits (width : Nat) (scalar : ScalarArray) :
+    msbValue width (scalarBits width scalar) =
+      scalarToNat scalar % 2 ^ width
+```
 
-The implementation is split into small G1/G2 base/add/step modules and
-re-exported by `ArkworksScalarMulStep.lean`. This is load-bearing: monolithic
-development attempts reached 6.2–7.5 GiB and were killed; every final exact
-file is green below the guardian.
+The executed four-word schedule and leading-zero suppression are connected by:
+
+```lean
+theorem highPrefix_eq_msbValue_256 (scalar : ScalarArray) :
+    highPrefix scalar 0 = msbValue 256 (scalarBits 256 scalar)
+
+theorem runBits_256_eq_253 {G : Type} [AddCommMonoid G]
+    (scalar : ScalarArray) (base : G)
+    (hscalar : scalarToNat scalar < 2 ^ 253) :
+    runBits 256 (scalarBits 256 scalar) base 0 =
+      runBits 253 (scalarBits 253 scalar) base 0
+```
+
+The 253-bit specialization is:
+
+```lean
+theorem msbValue_scalarBits_253 (scalar : ScalarArray)
+    (hscalar : scalarToNat scalar < 2 ^ 253) :
+    msbValue 253 (scalarBits 253 scalar) = scalarToNat scalar
+```
+
+These statements include scalar zero, all leading-zero patterns, and the full
+253-bit Fr range.
+
+## Generic executed corollaries
+
+The final public corollaries are stronger than a canonical-Fr-only statement:
+they hold for every four-word scalar array, and hence include zero, leading
+zeros, and all canonical 253-bit Fr values.
+
+```lean
+theorem valid_g1_mul_affine
+    (base : G1AffineLimbPair) (basePoint : G1AffinePoint)
+    (scalar : ScalarArray) (output : G1ProjLimbTriple)
+    (hbase : ValidG1AffineLoopBase base basePoint)
+    (hexec : s3_07_arkworks_fq_spike.g1_mul_affine base scalar = .ok output) :
+    ValidG1LoopState output (scalarToNat scalar • basePoint)
+
+theorem valid_g2_mul_projective
+    (base : G2ProjLimbTriple) (basePoint : G2AffinePoint)
+    (scalar : ScalarArray) (output : G2ProjLimbTriple)
+    (hbase : ValidG2LoopState base basePoint)
+    (hexec : s3_07_arkworks_fq_spike.g2_mul_projective base scalar = .ok output) :
+    ValidG2LoopState output (scalarToNat scalar • basePoint)
+
+theorem valid_g2_mul_affine
+    (base : G2AffineLimbPair) (basePoint : G2AffinePoint)
+    (scalar : ScalarArray) (output : G2ProjLimbTriple)
+    (hbase : ValidG2AffineLoopBase base basePoint)
+    (hexec : s3_07_arkworks_fq_spike.g2_mul_affine base scalar = .ok output) :
+    ValidG2LoopState output (scalarToNat scalar • basePoint)
+```
+
+Identity bases require no special premise: `n • 0 = 0` is covered by the same
+corollaries.
 
 ## Verification and peak memory
 
-Only guarded, sequential, single-threaded exact-file checks were used. The
-installed v4.30.0 toolchain binary was invoked directly because the normal
-elan shim attempted a blocked network update.
+All commands were run from `crates/crypto/proof-aggregation/formal/lean-ipp`
+with `LEAN_NUM_THREADS=1`, using the pinned Lean 4.30 toolchain's
+`lake env lean <FILE>`. Exact-source peak working set:
 
-Final successful `LEAN_NUM_THREADS=1 lake env lean <FILE>` checks covered:
+| File | Result | Peak RSS |
+| --- | --- | ---: |
+| `ArkworksScalarMulScalar.lean` | green | 1820.1 MiB |
+| `ArkworksScalarMulSchedule.lean` | green | 1856.0 MiB |
+| `ArkworksScalarMulLoop.lean` | green | 1884.9 MiB |
+| `ArkworksScalarMulG1Loop.lean` | green | 1841.0 MiB |
+| `ArkworksScalarMulG2Loop.lean` | green | 1835.9 MiB |
 
-```text
-Ipp/Extracted/ArkworksG1.lean
-Ipp/Extracted/ArkworksG2.lean
-Ipp/Extracted/ArkworksScalarMul.lean
-Ipp/Extracted/ArkworksScalarMulG1Base.lean
-Ipp/Extracted/ArkworksScalarMulG2Base.lean
-Ipp/Extracted/ArkworksScalarMulG2Add.lean
-Ipp/Extracted/ArkworksScalarMulG1Step.lean
-Ipp/Extracted/ArkworksScalarMulG2Step.lean
-Ipp/Extracted/ArkworksScalarMulStep.lean
-Ipp/Extracted/ArkworksScalarMulStepAxioms.lean
-```
-
-`-o` was used only to refresh an exact dependency olean. `git diff --check`
-passes. Maximum observed peak working set among successful full-file runs was
-**1,817.2 MiB**; the final G2 step file was observed at **1,447.9 MiB**. All
-final runs stayed below the 6,000 MiB ceiling. No isolation copies or temporary
-`.lean` files remain.
-
-Prover/release-gated tests and `lake build Ipp` were not run; the requested
-single-file safety gate was used instead.
+No prover/release-gated tests were run; this task's verification was the five
+guarded per-file Lean checks above.
 
 ## Axiom audit
 
-There are zero `sorry`, `admit`, new `axiom`, or new `opaque` declarations in
-the changed/new Lean files.
-
-`#print axioms` ran for every new public canonicity, decode-helper,
-arithmetic-boundary, and step-wrapper theorem. The full output is emitted by
-the G1/G2 files and `ArkworksScalarMulStepAxioms.lean`; every new theorem
-reports exactly:
+Every new public theorem has an in-file `#print axioms`. The final corollary
+output was:
 
 ```text
-[propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.valid_g1_mul_affine' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.valid_g2_mul_projective' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Ipp.Extracted.ArkworksScalarMul.valid_g2_mul_affine' depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
 
-No `sorryAx` or other axiom appears.
+The bridge and induction theorems likewise reported only subsets of
+`[propext, Classical.choice, Quot.sound]`; no `sorryAx`, native-decision axiom,
+or new named axiom remains.
