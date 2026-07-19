@@ -1141,11 +1141,46 @@ group formulas are proved and lifted to the Mathlib affine group law. Next
 curve session: S3-28 (scalar-mul loops — G1 GLV path + the two G2 generic
 double-and-add loop shapes).
 
-**S3-28 — scalar-multiplication loops** — `HARD (sol)` — `GATED` on S3-26/27.
-Prove the executed G1 and G2 scalar-bit loop invariant and instantiate it to
-`k • p`, including zero scalar, identity, leading zeros, and full Fr width.
-Acceptance: one generic loop theorem plus two concrete corollaries. Narrows
-group arithmetic and supplies S2 scalar-action adapters.
+**S3-28 — scalar-multiplication loops** — `HARD (sol)` — `IN PROGRESS`
+(gates S3-26/27 satisfied). Prove the executed G1 and G2 scalar-bit loop
+invariant and instantiate it to `k • p`, including zero scalar, identity,
+leading zeros, and full Fr width. Acceptance: one generic loop theorem plus
+two concrete corollaries. Narrows group arithmetic and supplies S2
+scalar-action adapters.
+PART 1 DONE (2026-07-18, orchestrator; executed by sol): scope pin + spike +
+parity + extraction + single-step laws (peak ~1.84 GB, 0 kills).
+SCOPE PIN (arkworks 0.5.0, citations in report): THREE reached loop shapes —
+(a) G1 ordinary mul = GLV joint loop (`glv.rs`): decompose `k = k1 + λ·k2`,
+`b1=P b2=φ(P)` sign-negated, precompute `b1+b2`, 256 paired bits MSB-first
+(255 effective, one leading-pair skip), per pair double then choice-add
+(10→b1, 01→b2, 11→b1b2, 00→none); (b) generic AFFINE double-and-add loop
+(`sw_double_and_add_affine`) reached by BOTH curves' subgroup checks at the
+253-bit characteristic (double + mixed-add-if-bit); (c) G2 ordinary mul =
+generic PROJECTIVE double-and-add loop (`sw_double_and_add_projective`,
+big-endian, leading-zeros suppressed, up to full 253-bit Fr). GLV BOUNDARY
+DECISION (sol, sound): part 2 PROVES scalar-decomposition `k1 + k2·λ ≡ k
+(mod r)` but treats the eigenspace fact `φ(P) = λ•P` as a CITED
+curve-parameter boundary (GLV precondition, NOT an executable-loop fact;
+never silently assumed for arbitrary on-curve points).
+LANDED: g1/g2 mul_projective/affine loop + step closures + `extract_s3_28`
+composing the proven `g1_*`/`g2_*` group ops; parity `scalar_mul_edges_and_
+512_deterministic_random_vectors_match_arkworks` (zero/1/2/leading-zero/
+Fr−1/identity + 512 random, after into_affine; 10 spike tests, cargo
+mac-campaign green, re-run by orchestrator); WSL aeneas clean (12.1s, nested
+outer-limb/inner-bit while loops accepted; full-crate hax hit unrelated
+app-code failures so extraction ran from a truncated isolation crate — noted
+technique); vendored `ArkworksScalarMulGenerated.lean`;
+`ArkworksScalarMul.lean` `DecodedLoopState` + the four single-step laws
+`decode_g{1,2}_mul_{projective,affine}_step_generic` (one iteration = decoded
+tangent double + optional decoded chord add, composing S3-26/27 laws;
+generic-branch premises exposed). Full Ipp green, zero sorry, audited axioms.
+REMAINING PARTS: (2) the fueled loop invariant (generic MSB-first, instantiated
+projective + affine mixed; zero/identity/leading-zeros/full-Fr) + the GLV
+joint-loop invariant + scalar-decomposition correctness + a branch-complete
+wrapper discharging identity/order2/equal/opposite from the S3-26/27 laws;
+then the `k•p` corollaries and S2 scalar-action adapters. HEAVY loop induction
+— apply the fueled-induction precedents (Miller loop, SoP loop, cyclotomic_exp
+NAF) + the guarded/memory protocol.
 
 **S3-29 — normalization and affine conversion conformance** — `HARD (sol)` —
 `GATED` on S3-26/27. Prove executed single/batch normalization and affine/

@@ -1,7 +1,7 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
-use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{CurveGroup, PrimeGroup};
+use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+use ark_ec::{AffineRepr, CurveGroup, PrimeGroup};
 use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand};
@@ -91,6 +91,53 @@ fn check_g2(a: G2Projective, b: G2Projective, affine: G2Affine) {
         G2Affine::new_unchecked(ark2(affine_neg.x), ark2(affine_neg.y))
     };
     assert_eq!(affine_neg, -affine);
+}
+
+fn check_scalar_mul(scalar: [u64; 4], g1: G1Projective, g2: G2Projective) {
+    let g1_affine = g1.into_affine();
+    assert_same_g1_class(
+        spike::g1_mul_projective(mont_g1(g1), scalar),
+        g1.mul_bigint(scalar),
+    );
+    assert_same_g1_class(
+        spike::g1_mul_affine(mont_g1_affine(g1_affine), scalar),
+        g1_affine.mul_bigint(scalar),
+    );
+
+    let g2_affine = g2.into_affine();
+    assert_same_g2_class(
+        spike::g2_mul_projective(mont_g2(g2), scalar),
+        g2.mul_bigint(scalar),
+    );
+    assert_same_g2_class(
+        spike::g2_mul_affine(mont_g2_affine(g2_affine), scalar),
+        g2_affine.mul_bigint(scalar),
+    );
+}
+
+#[test]
+fn scalar_mul_edges_and_512_deterministic_random_vectors_match_arkworks() {
+    let full_fr_width = (-Fr::ONE).into_bigint().0;
+    let leading_zeros = [2_u64, 0, 0, 0];
+    for scalar in [
+        [0; 4],
+        [1, 0, 0, 0],
+        [2, 0, 0, 0],
+        leading_zeros,
+        full_fr_width,
+    ] {
+        check_scalar_mul(scalar, G1Projective::generator(), G2Projective::generator());
+        check_scalar_mul(scalar, G1Projective::ZERO, G2Projective::ZERO);
+    }
+
+    let mut rng = test_rng();
+    for _ in 0..512 {
+        check_scalar_mul(
+            Fr::rand(&mut rng).into_bigint().0,
+            G1Projective::rand(&mut rng),
+            G2Projective::rand(&mut rng),
+        );
+    }
 }
 
 #[test]

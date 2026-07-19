@@ -1796,6 +1796,143 @@ pub fn extract_s3_27(
     )
 }
 
+/// One generic projective-base scalar bit step for BLS12-377 G1.
+pub fn g1_mul_projective_step(accumulator: G1ProjMont, base: G1ProjMont, bit: bool) -> G1ProjMont {
+    let doubled = g1_double(accumulator);
+    if bit {
+        g1_add(doubled, base)
+    } else {
+        doubled
+    }
+}
+
+/// One generic affine-base scalar bit step for BLS12-377 G1.
+pub fn g1_mul_affine_step(accumulator: G1ProjMont, base: G1AffineMont, bit: bool) -> G1ProjMont {
+    let doubled = g1_double(accumulator);
+    if bit {
+        g1_add_mixed(doubled, base)
+    } else {
+        doubled
+    }
+}
+
+/// Arkworks' generic big-endian, leading-zero-skipping projective loop for G1.
+pub fn g1_mul_projective(base: G1ProjMont, scalar: [u64; 4]) -> G1ProjMont {
+    let mut accumulator = g1_zero();
+    let mut started = false;
+    let mut limb = 4_usize;
+    while limb > 0 {
+        limb -= 1;
+        let mut bit_index = 64_usize;
+        while bit_index > 0 {
+            bit_index -= 1;
+            let bit = ((scalar[limb] >> bit_index) & 1) == 1;
+            if started || bit {
+                started = true;
+                accumulator = g1_mul_projective_step(accumulator, base, bit);
+            }
+        }
+    }
+    accumulator
+}
+
+/// Arkworks' generic big-endian, leading-zero-skipping affine loop for G1.
+pub fn g1_mul_affine(base: G1AffineMont, scalar: [u64; 4]) -> G1ProjMont {
+    let mut accumulator = g1_zero();
+    let mut started = false;
+    let mut limb = 4_usize;
+    while limb > 0 {
+        limb -= 1;
+        let mut bit_index = 64_usize;
+        while bit_index > 0 {
+            bit_index -= 1;
+            let bit = ((scalar[limb] >> bit_index) & 1) == 1;
+            if started || bit {
+                started = true;
+                accumulator = g1_mul_affine_step(accumulator, base, bit);
+            }
+        }
+    }
+    accumulator
+}
+
+/// One generic projective-base scalar bit step for BLS12-377 G2.
+pub fn g2_mul_projective_step(accumulator: G2ProjMont, base: G2ProjMont, bit: bool) -> G2ProjMont {
+    let doubled = g2_double(accumulator);
+    if bit {
+        g2_add(doubled, base)
+    } else {
+        doubled
+    }
+}
+
+/// One generic affine-base scalar bit step for BLS12-377 G2.
+pub fn g2_mul_affine_step(accumulator: G2ProjMont, base: G2AffineMont, bit: bool) -> G2ProjMont {
+    let doubled = g2_double(accumulator);
+    if bit {
+        g2_add_mixed(doubled, base)
+    } else {
+        doubled
+    }
+}
+
+/// Arkworks' generic big-endian, leading-zero-skipping projective loop for G2.
+pub fn g2_mul_projective(base: G2ProjMont, scalar: [u64; 4]) -> G2ProjMont {
+    let mut accumulator = g2_zero();
+    let mut started = false;
+    let mut limb = 4_usize;
+    while limb > 0 {
+        limb -= 1;
+        let mut bit_index = 64_usize;
+        while bit_index > 0 {
+            bit_index -= 1;
+            let bit = ((scalar[limb] >> bit_index) & 1) == 1;
+            if started || bit {
+                started = true;
+                accumulator = g2_mul_projective_step(accumulator, base, bit);
+            }
+        }
+    }
+    accumulator
+}
+
+/// Arkworks' generic big-endian, leading-zero-skipping affine loop for G2.
+pub fn g2_mul_affine(base: G2AffineMont, scalar: [u64; 4]) -> G2ProjMont {
+    let mut accumulator = g2_zero();
+    let mut started = false;
+    let mut limb = 4_usize;
+    while limb > 0 {
+        limb -= 1;
+        let mut bit_index = 64_usize;
+        while bit_index > 0 {
+            bit_index -= 1;
+            let bit = ((scalar[limb] >> bit_index) & 1) == 1;
+            if started || bit {
+                started = true;
+                accumulator = g2_mul_affine_step(accumulator, base, bit);
+            }
+        }
+    }
+    accumulator
+}
+
+/// Extraction root for the generic scalar-multiplication loops reached in S3-28.
+#[doc(hidden)]
+pub fn extract_s3_28(
+    g1_projective: G1ProjMont,
+    g1_affine: G1AffineMont,
+    g2_projective: G2ProjMont,
+    g2_affine: G2AffineMont,
+    scalar: [u64; 4],
+) -> (G1ProjMont, G1ProjMont, G2ProjMont, G2ProjMont) {
+    (
+        g1_mul_projective(g1_projective, scalar),
+        g1_mul_affine(g1_affine, scalar),
+        g2_mul_projective(g2_projective, scalar),
+        g2_mul_affine(g2_affine, scalar),
+    )
+}
+
 #[cfg(test)]
 mod inversion_tests {
     use super::{inv, FqMont};
