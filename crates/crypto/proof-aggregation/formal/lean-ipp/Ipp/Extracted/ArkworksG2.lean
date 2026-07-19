@@ -249,6 +249,51 @@ private theorem fq2_zero_canonical :
   simp [Canonical2, ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO,
     fq_zero_canonical]
 
+private theorem fq_one_canonical :
+    limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE <
+      Ipp.Bls12377.baseModulus := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE]
+  exact Ipp.Extracted.ArkworksFqSqrtBytes.canonical_ONE
+
+set_option exponentiation.threshold 1000 in
+private theorem decode_fq_one :
+    decode ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE = 1 := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE, decode_eq_cast_mul_inv]
+  have hmod :
+      (limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.ONE : Ipp.Bls12377.Fq) =
+        (Ipp.Bls12377.baseMontgomeryRadix : Ipp.Bls12377.Fq) := by
+    apply (ZMod.natCast_eq_natCast_iff _ _ _).2
+    norm_num [Nat.ModEq, limbsToNat, prefixToNat, limbCount, limb, limbWord,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.ONE, MacCampaign.Array.make,
+      MacCampaign.U64.ofNat, MacCampaign.u64Base, wordBase,
+      Ipp.Bls12377.baseModulus, Ipp.Bls12377.baseMontgomeryRadix]
+  rw [hmod]
+  exact ZMod.coe_mul_inv_eq_one _ baseMontgomeryRadix_coprime
+
+private theorem decode_fq2_one :
+    decodeFq2 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ONE = 1 := by
+  apply QuadraticAlgebra.ext
+  · change decode ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE =
+      (1 : Ipp.Bls12377.Fq)
+    exact decode_fq_one
+  · change decode ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO =
+      (0 : Ipp.Bls12377.Fq)
+    exact decode_fq_zero
+
+private theorem fq2_one_canonical :
+    Canonical2 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ONE := by
+  simp [Canonical2, ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ONE,
+    fq_one_canonical, fq_zero_canonical]
+
+/-- The fixed Fq2 projective identity returned by the extracted code is canonical. -/
+theorem canonical_g2_zero (output : G2ProjLimbTriple)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_zero = .ok output) :
+    CanonicalG2 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_zero at hexec
+  simp only [Result.ok.injEq] at hexec
+  subst output
+  exact ⟨fq2_one_canonical, fq2_one_canonical, fq2_zero_canonical⟩
+
 private theorem isZeroFq2Mont_eq_true_iff (a : Fq2LimbPair) (ha : Canonical2 a) :
     isZeroFq2Mont a = true ↔ decodeFq2 a = 0 := by
   rw [show (0 : Ipp.Bls12377.Fq2) =
@@ -555,6 +600,84 @@ theorem decode_g2_double_identity (a output : G2ProjLimbTriple)
   simp [fq2_eq_zero, hz] at hexec
   subst output
   simp [decodeG2, hz]
+
+/-- The executed left-identity Fq2 add preserves canonicity from its returned operand. -/
+theorem canonical_g2_add_left_identity (a b output : G2ProjLimbTriple)
+    (hb : CanonicalG2 b) (hz : isZeroFq2Mont a.z = true)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add a b = .ok output) :
+    CanonicalG2 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add at hexec
+  simp [fq2_eq_zero, hz] at hexec
+  subst output
+  exact hb
+
+/-- The executed right-identity Fq2 add preserves canonicity from its returned operand. -/
+theorem canonical_g2_add_right_identity (a b output : G2ProjLimbTriple)
+    (ha : CanonicalG2 a) (hb : CanonicalG2 b) (hz : isZeroFq2Mont b.z = true)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add a b = .ok output) :
+    CanonicalG2 output := by
+  by_cases haz : isZeroFq2Mont a.z = true
+  · exact canonical_g2_add_left_identity a b output hb haz hexec
+  · unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add at hexec
+    simp [fq2_eq_zero, haz, hz] at hexec
+    subst output
+    exact ha
+
+/-- The executed affine-identity Fq2 mixed add preserves accumulator canonicity. -/
+theorem canonical_g2_add_mixed_identity (a output : G2ProjLimbTriple)
+    (b : G2AffineLimbPair) (ha : CanonicalG2 a) (hinfinity : b.infinity = true)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed a b = .ok output) :
+    CanonicalG2 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed at hexec
+  simp [hinfinity] at hexec
+  subst output
+  exact ha
+
+/-- A zero-Z Fq2 mixed accumulator returns the finite affine base class. -/
+theorem decode_g2_add_mixed_left_identity (a output : G2ProjLimbTriple)
+    (b : G2AffineLimbPair) (hinfinity : b.infinity = false)
+    (hz : isZeroFq2Mont a.z = true)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed a b = .ok output) :
+    decodeG2 output = some (decodeFq2 b.x, decodeFq2 b.y) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed at hexec
+  simp [hinfinity, fq2_eq_zero, hz] at hexec
+  subst output
+  have honezero : ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE.val ≠
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val := by
+    intro hval
+    have hdecode := (canonical_fq_val_eq_iff_decode_eq
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO
+      fq_one_canonical fq_zero_canonical).1 hval
+    rw [decode_fq_one, decode_fq_zero] at hdecode
+    exact one_ne_zero hdecode
+  have hone : isZeroFq2Mont
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ONE = false := by
+    simp [isZeroFq2Mont,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ONE,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO, honezero]
+  simp [decodeG2, hone, decode_fq2_one]
+
+/-- A zero-Z Fq2 mixed accumulator returns a canonical projective affine base. -/
+theorem canonical_g2_add_mixed_left_identity (a output : G2ProjLimbTriple)
+    (b : G2AffineLimbPair) (hbx : Canonical2 b.x) (hby : Canonical2 b.y)
+    (hinfinity : b.infinity = false) (hz : isZeroFq2Mont a.z = true)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed a b = .ok output) :
+    CanonicalG2 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed at hexec
+  simp [hinfinity, fq2_eq_zero, hz] at hexec
+  subst output
+  exact ⟨hbx, hby, fq2_one_canonical⟩
+
+/-- The executed zero-Z Fq2 double preserves accumulator canonicity. -/
+theorem canonical_g2_double_identity (a output : G2ProjLimbTriple)
+    (ha : CanonicalG2 a) (hz : isZeroFq2Mont a.z = true)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_double a = .ok output) :
+    CanonicalG2 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_double at hexec
+  simp [fq2_eq_zero, hz] at hexec
+  subst output
+  exact ha
 
 set_option maxRecDepth 4096
 set_option maxHeartbeats 2000000
@@ -1084,6 +1207,27 @@ theorem decode_g2_add_opposite (a b output : G2ProjLimbTriple)
     simp [decodeG2, isZeroFq2Mont,
       ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO]
 
+/-- The executed opposite-input Fq2 branch returns a canonical identity. -/
+theorem canonical_g2_add_opposite (a b output : G2ProjLimbTriple)
+    (ha : CanonicalG2 a) (hb : CanonicalG2 b)
+    (x y : Ipp.Bls12377.Fq2) (hy : y ≠ 0)
+    (hpa : decodeG2 a = some (x, y)) (hpb : decodeG2 b = some (x, -y))
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add a b = .ok output) :
+    CanonicalG2 output := by
+  have hyneg : y ≠ -y := by
+    intro h
+    have htwoY : 2 * y = 0 := by
+      calc
+        2 * y = y + y := two_mul y
+        _ = -y + y := congrArg (fun z => z + y) h
+        _ = 0 := neg_add_cancel y
+    exact hy ((mul_eq_zero.mp htwoY).resolve_left fq2_two_ne_zero)
+  have hbranch := g2_add_branch_of_same_x a b output ha hb
+    (x, y) (x, -y) hpa hpb rfl hexec
+  rcases hbranch with hbranch | hbranch
+  · exact (hyneg hbranch.1).elim
+  · exact canonical_g2_zero output hbranch.2
+
 private theorem g2_add_mixed_branch_of_same_x (a output : G2ProjLimbTriple)
     (b : G2AffineLimbPair) (ha : CanonicalG2 a)
     (hbx : Canonical2 b.x) (hby : Canonical2 b.y)
@@ -1245,6 +1389,29 @@ theorem decode_g2_add_mixed_opposite (a output : G2ProjLimbTriple)
     subst output
     simp [decodeG2, isZeroFq2Mont,
       ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO]
+
+/-- The executed mixed opposite-input Fq2 branch returns a canonical identity. -/
+theorem canonical_g2_add_mixed_opposite (a output : G2ProjLimbTriple)
+    (b : G2AffineLimbPair) (ha : CanonicalG2 a)
+    (hbx : Canonical2 b.x) (hby : Canonical2 b.y)
+    (x y : Ipp.Bls12377.Fq2) (hy : y ≠ 0)
+    (hinfinity : b.infinity = false) (hpa : decodeG2 a = some (x, y))
+    (hbxdecode : decodeFq2 b.x = x) (hbydecode : decodeFq2 b.y = -y)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed a b = .ok output) :
+    CanonicalG2 output := by
+  have hyneg : y ≠ -y := by
+    intro h
+    have htwoY : 2 * y = 0 := by
+      calc
+        2 * y = y + y := two_mul y
+        _ = -y + y := congrArg (fun z => z + y) h
+        _ = 0 := neg_add_cancel y
+    exact hy ((mul_eq_zero.mp htwoY).resolve_left fq2_two_ne_zero)
+  have hbranch := g2_add_mixed_branch_of_same_x a output b ha hbx hby
+    (x, y) hinfinity hpa hbxdecode.symm hexec
+  rcases hbranch with hbranch | hbranch
+  · exact (hyneg (hbranch.1.trans hbydecode)).elim
+  · exact canonical_g2_zero output hbranch.2
 
 /-- Executed generic mixed Fq2 addition decodes to the affine chord formula. -/
 theorem decode_g2_add_mixed_generic (a output : G2ProjLimbTriple)
@@ -1482,5 +1649,14 @@ theorem decode_g2_add_mixed_generic (a output : G2ProjLimbTriple)
 #print axioms decode_g2_add_mixed_equal_delegates
 #print axioms decode_g2_add_mixed_opposite
 #print axioms decode_g2_add_mixed_generic
+#print axioms canonical_g2_zero
+#print axioms canonical_g2_add_left_identity
+#print axioms canonical_g2_add_right_identity
+#print axioms canonical_g2_add_mixed_identity
+#print axioms decode_g2_add_mixed_left_identity
+#print axioms canonical_g2_add_mixed_left_identity
+#print axioms canonical_g2_double_identity
+#print axioms canonical_g2_add_opposite
+#print axioms canonical_g2_add_mixed_opposite
 
 end Ipp.Extracted.ArkworksG2

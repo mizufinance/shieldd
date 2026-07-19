@@ -1197,10 +1197,28 @@ precondition-gated, NOT axiom/NOT arbitrary points; consumer must supply
 NOT all export output CANONICITY, which the next generic-formula step
 requires — carrying it implicitly would be UNSOUND. Sol stopped at the
 algebraic boundary rather than paper over it.
-REMAINING PART-2 WORK (6 items, sol-scoped): (1) export canonical-preservation
-laws for the exceptional identity paths in the G1/G2 hand-authored layers;
-(2) one typed valid executed-loop state + branch-complete projective-add and
-affine-mixed-add step wrappers using ALL S3-26/27 laws; (3)
+PART 2C DONE (2026-07-19, orchestrator; sol-executed; items 1+2 of the 6):
+CANONICITY SURFACE completed on both curves — the four G1 identity companions
+(verified from an interrupted prior run) plus `canonical_g{1,2}_zero`, all four
+G2 identity companions, the previously-missing zero-accumulator mixed branch
+(`decode_/canonical_g{1,2}_add_mixed_left_identity`), and projective+mixed
+`canonical_g{1,2}_add_opposite`; the generic add/double, order-2 double, and
+equal-delegate laws already exported canonicity and were REUSED (not
+duplicated/weakened). BRANCH-COMPLETE STEP WRAPPERS: `ValidG{1,2}LoopState`
+(canonical limbs ∧ `RepresentsDecodedG{1,2}` the Mathlib point) +
+`ValidG{1,2}AffineLoopBase`, `valid_g{1,2}_{double,add,add_mixed}`, and the four
+`valid_g{1,2}_mul_{projective,affine}_step` concluding `ValidG…LoopState output
+(acc + acc + if bit then base else 0)` — callers carry NO unequal-X/nonzero-Y
+premise (the point of the wrapper). Dispatch covers identity / order-2 /
+equal→delegated-double / opposite→identity / generic, plus affine-infinity and
+zero-accumulator for mixed; same-X finite classification DERIVED from both curve
+equations (Y1²=Y2²), not assumed.
+⚠ FOURTH MEMORY TECHNIQUE (now proven, use for the rest of the track): monolithic
+development of these wrappers hit 6.2–7.5 GiB and was guardian-killed; the fix is
+FILE SPLITTING — `ArkworksScalarMul{G1Base,G1Step,G2Base,G2Add,G2Step,Step,
+StepAxioms}.lean`, each green at ~1.4–1.8 GiB (Lean's per-compile cumulative
+footprint drops when heavy declarations are spread across compilation units).
+REMAINING PART-2 WORK (items 3–6 of the 6): (3)
 `Aeneas.Std.loop.spec_decr_nat` on the extracted nested limb/bit loops +
 connect the four-limb schedule to `msbValue = scalar mod 2^width`; (4) the
 executed G2 projective/affine + ordinary-G1 affine corollaries; (5) model the

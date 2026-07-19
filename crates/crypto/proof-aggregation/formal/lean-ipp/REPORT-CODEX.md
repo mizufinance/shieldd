@@ -1,185 +1,115 @@
-# S3-28 part 2 — scalar-loop algebraic invariant boundary
+# S3-28 part 2c — canonicity and branch-complete executed steps
 
 ## STATUS
 
-**PARTIAL — coherent GREEN algebraic boundary.**
+**PASS — items (1) and (2) complete at a green boundary.**
 
-Landed the field-independent fueled MSB-first double-and-add invariant, its
-253-bit specialization, the paired-bit GLV invariant, the exact 256-pair
-schedule with the one leading `(false,false)` skip, conditional eigenvalue
-substitution, and G1/G2 Mathlib-point adapter statements. Also recorded the
-G1 GLV eigenspace fact as a cited prime-subgroup-only assumption in
-`formal/snarkpack/formal-handoff.md`.
+No fueled-loop induction, scalar-array/bit bridge, scalar corollary, or GLV/LLL
+work was started. No generated Lean, Rust spike, or
+`ArkworksScalarMulInvariant.lean` file was edited. No commit was created.
 
-Did not claim the extracted closures refine these algebraic loops. The
-branch-complete executed-step wrappers, scalar-array/bit-value bridge,
-executable scalar decomposition, and final executed G1/G2 scalar-action
-corollaries remain.
+## Canonicity laws
 
-No generated Lean or Rust file was edited. No commit was created.
+The four interrupted G1 additions were verified unchanged by a guarded
+full-file check:
 
-## Design call
+- `canonical_g1_add_left_identity`
+- `canonical_g1_add_right_identity`
+- `canonical_g1_add_mixed_identity`
+- `canonical_g1_double_identity`
 
-The reusable invariant belongs above the coordinate fields. New file
-`Ipp/Extracted/ArkworksScalarMulInvariant.lean` defines two fuel-recursive
-models over an arbitrary `AddCommMonoid`:
+The completed G1/G2 surface also includes:
 
-- `runBits fuel bits base accumulator` processes the MSB-first list until fuel
-  or input is exhausted. Its value model is `msbValue fuel bits`.
-- `runJoint fuel pairs b1 b2 accumulator` performs one double and the exact
-  GLV choice-add per pair. Its value model is `jointValue fuel pairs`.
+- canonical fixed zero results: `canonical_g1_zero`, `canonical_g2_zero`;
+- the zero-accumulator mixed branch, which had no prior public decode law:
+  `decode_g{1,2}_add_mixed_left_identity` and
+  `canonical_g{1,2}_add_mixed_left_identity`;
+- all four G2 identity companions;
+- projective and mixed opposite-result companions on both curves:
+  `canonical_g{1,2}_add_opposite` and
+  `canonical_g{1,2}_add_mixed_opposite`.
 
-Both invariants account for a nonidentity initial accumulator:
+The existing generic add/double, order-2 double, and equal-delegate theorems
+already returned output canonicity, so they were reused rather than duplicated
+or weakened.
 
-```text
-runBits = 2^processed • accumulator + prefix • base
+## Valid state and wrapper statements
 
-runJoint = 2^processed • accumulator
-           + prefix1 • b1 + prefix2 • b2
+The new `ArkworksScalarMulStep` module family exports:
 
-processed = min fuel schedule.length
-```
+- `ValidG1LoopState limbs point` and `ValidG2LoopState limbs point`: the limb
+  triple is canonical and `RepresentsDecodedG{1,2}` the indexed Mathlib point;
+- `ValidG1AffineLoopBase` and `ValidG2AffineLoopBase`: canonical affine
+  coordinates plus the represented finite/infinity class;
+- `valid_g{1,2}_double`, `valid_g{1,2}_add`, and
+  `valid_g{1,2}_add_mixed`;
+- `valid_g1_mul_projective_step`, `valid_g1_mul_affine_step`,
+  `valid_g2_mul_projective_step`, and `valid_g2_mul_affine_step`.
 
-The proofs induct only on symbolic fuel and peel one symbolic head. They do
-not unroll 253 or 255 steps and do not expand Fq2 coordinates. Identity start
-then removes the scaled-accumulator term. Leading-zero suppression and the
-GLV skip are stated specifically at identity start: processing such a bit with
-a nonidentity accumulator would double it, whereas the executed control flow
-skips the step entirely.
-
-I stopped before the executed-loop induction because the S3-26/27 exceptional
-identity refinement lemmas preserve decoded represented classes but do not all
-export output canonicity. Canonicity is required by the next generic formula
-step. The correct next unit is therefore to add public canonical-preservation
-laws for zero-Z double and identity additions, then build one typed valid-state
-step wrapper covering identity/order-2/equal/opposite/generic branches. It
-would be unsound to carry canonicity implicitly or to use only the existing
-generic unequal-X laws.
-
-## Landed theorem interface
-
-Generic bit loop:
-
-- `runBits_invariant`
-- `runBits_zero`
-- `runBits_no_fuel`
-- `runBits_empty`
-- `runBits_suppress_leading_false`
-- `runBits_253`
-
-GLV joint loop:
-
-- `runJoint_invariant`
-- `runJoint_skip_leading_false_false`
-- `runJoint_256_skip`
-- `GlvEigenPrecondition`
-- `runJoint_eigenvalue`
-
-S2-facing algebraic adapters:
-
-- `g2_scalar_action_adapter`
-- `g1_glv_joint_action_adapter`
-
-These adapters are intentionally algebraic, not executed-closure adapters.
-They supply the target theorem shape for the remaining S2 connection without
-mislabeling the missing branch/canonicity and extracted-loop work as proved.
-
-## Coverage within this partial
-
-- Scalar zero: empty/suppressed schedule and identity start are explicit.
-- Identity base and accumulator: covered by the arbitrary-additive-monoid
-  invariant and its identity-start corollary.
-- Leading zeros: explicit single-head suppression lemma, reusable repeatedly.
-- Full Fr width: `runBits_253` specializes the generic theorem to 253 bits.
-- Exact G1 GLV control shape: `runJoint_256_skip` proves that the leading
-  `(false,false)` pair is skipped and the remaining 255 pairs implement
-  double/choice-add with `10 -> b1`, `01 -> b2`, `11 -> b1+b2`, `00 -> 0`.
-
-The identity `msbValue 253 bits = scalar mod 2^253` for the concrete four-limb
-array is not yet proved; neither is the analogous pair of concrete GLV
-magnitudes. Those belong in the extracted schedule bridge.
-
-## GLV cited boundary
-
-`GlvEigenPrecondition inPrimeSubgroup phi lambda` requires
-`phi(P) = lambda • P` only when `P` satisfies the supplied prime-subgroup
-predicate. It does not assert this for arbitrary on-curve points.
-
-For BLS12-377 G1, the recorded arkworks 0.5.0 value is:
+Each requested wrapper concludes:
 
 ```text
-lambda = 8444461749428370424248824938781546531284005582649182570233710176290576793600
+ValidG{1,2}LoopState output
+  (accumulatorPoint + accumulatorPoint + if bit then basePoint else 0)
 ```
 
-The cited parameter/implementation locations are
-`ark-bls12-377-0.5.0/src/curves/g1.rs:69-94` and the GLV relation contract in
-`ark-ec-0.5.0/src/scalar_mul/glv.rs:10-22`. The handoff ledger now has the
-named assumption row `assume.bls12377-g1-glv-eigenspace`.
+Callers carry no unequal-X or nonzero-Y premise. Dispatch covers decoded
+identity, order-2 double, equal -> delegated double, opposite -> identity, and
+generic branches. Mixed addition additionally covers affine infinity and a
+zero accumulator. Same-X finite classification is derived from both curve
+equations (`Y1^2 = Y2^2`), not assumed.
 
-`runJoint_eigenvalue` proves only the conditional substitution into the joint
-loop. It introduces no axiom and cannot be applied without an explicit
-eigenvalue equality.
+The step wrapper peels only the executed double bind and keeps the doubled
+value opaque. The heavy opposite mixed branch constructs an explicit affine
+point equality rather than simplifying through discarded Fq/Fq2 chains.
+
+The implementation is split into small G1/G2 base/add/step modules and
+re-exported by `ArkworksScalarMulStep.lean`. This is load-bearing: monolithic
+development attempts reached 6.2–7.5 GiB and were killed; every final exact
+file is green below the guardian.
 
 ## Verification and peak memory
 
-Only guarded, single-threaded, single-file checks were used. No `lake build`
-was run.
+Only guarded, sequential, single-threaded exact-file checks were used. The
+installed v4.30.0 toolchain binary was invoked directly because the normal
+elan shim attempted a blocked network update.
 
-Final full-file command:
+Final successful `LEAN_NUM_THREADS=1 lake env lean <FILE>` checks covered:
 
 ```text
-LEAN_NUM_THREADS=1 C:\Users\acyrn\.elan\toolchains\leanprover--lean4---v4.30.0\bin\lake.exe env lean Ipp/Extracted/ArkworksScalarMulInvariant.lean
+Ipp/Extracted/ArkworksG1.lean
+Ipp/Extracted/ArkworksG2.lean
+Ipp/Extracted/ArkworksScalarMul.lean
+Ipp/Extracted/ArkworksScalarMulG1Base.lean
+Ipp/Extracted/ArkworksScalarMulG2Base.lean
+Ipp/Extracted/ArkworksScalarMulG2Add.lean
+Ipp/Extracted/ArkworksScalarMulG1Step.lean
+Ipp/Extracted/ArkworksScalarMulG2Step.lean
+Ipp/Extracted/ArkworksScalarMulStep.lean
+Ipp/Extracted/ArkworksScalarMulStepAxioms.lean
 ```
 
-Result: **PASS**. The captured audit run took 41.6 seconds; an immediately
-preceding full-file run with 200 ms RSS sampling took 42.6 seconds and reached
-an individual `lean`/`lake` working-set peak of **1,860.1 MiB**. The guardian
-did not kill any worker.
+`-o` was used only to refresh an exact dependency olean. `git diff --check`
+passes. Maximum observed peak working set among successful full-file runs was
+**1,817.2 MiB**; the final G2 step file was observed at **1,447.9 MiB**. All
+final runs stayed below the 6,000 MiB ceiling. No isolation copies or temporary
+`.lean` files remain.
 
-No isolation `.lean` copies were created, so none remain under
-`Ipp/Extracted/`.
+Prover/release-gated tests and `lake build Ipp` were not run; the requested
+single-file safety gate was used instead.
 
 ## Axiom audit
 
-The new Lean source contains zero `sorry`, `admit`, or axiom declarations.
-The complete public audit output was:
+There are zero `sorry`, `admit`, new `axiom`, or new `opaque` declarations in
+the changed/new Lean files.
+
+`#print axioms` ran for every new public canonicity, decode-helper,
+arithmetic-boundary, and step-wrapper theorem. The full output is emitted by
+the G1/G2 files and `ArkworksScalarMulStepAxioms.lean`; every new theorem
+reports exactly:
 
 ```text
-'Ipp.Extracted.ArkworksScalarMul.runBits_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.runBits_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.runBits_no_fuel' does not depend on any axioms
-'Ipp.Extracted.ArkworksScalarMul.runBits_empty' does not depend on any axioms
-'Ipp.Extracted.ArkworksScalarMul.runBits_suppress_leading_false' depends on axioms: [propext]
-'Ipp.Extracted.ArkworksScalarMul.runBits_253' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.runJoint_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.runJoint_skip_leading_false_false' depends on axioms: [propext]
-'Ipp.Extracted.ArkworksScalarMul.runJoint_256_skip' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.GlvEigenPrecondition' does not depend on any axioms
-'Ipp.Extracted.ArkworksScalarMul.runJoint_eigenvalue' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.g2_scalar_action_adapter' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Ipp.Extracted.ArkworksScalarMul.g1_glv_joint_action_adapter' depends on axioms: [propext, Classical.choice, Quot.sound]
+[propext, Classical.choice, Quot.sound]
 ```
 
-Every new public theorem and both adapter corollaries are audited above. Only
-`propext`, `Classical.choice`, and `Quot.sound` occur.
-
-## Remaining S3-28 part 2 work
-
-1. Export canonical-preservation laws for the exceptional identity paths in
-   the hand-authored G1/G2 layers.
-2. Define one typed valid executed-loop state and prove branch-complete
-   projective-add and affine-mixed-add step wrappers using all S3-26/27 laws.
-3. Use `Aeneas.Std.loop.spec_decr_nat` for the extracted nested limb/bit loops,
-   with symbolic limb/bit measures, and connect the four-limb bit schedule to
-   `msbValue = scalar mod 2^width` (including zero and full 253-bit cases).
-4. Land the executed G2 projective and affine corollaries and the ordinary G1
-   affine/subgroup-check corollary.
-5. Extract/model the executed G1 GLV wrapper if needed, connect its exact
-   256-pair skip schedule to `runJoint`, and prove the LLL/rounded-division
-   decomposition after sign interpretation:
-   `k1 + k2*lambda ≡ k (mod r)`.
-6. Combine decomposition with the explicit prime-subgroup eigencondition to
-   obtain the final executed G1 `k • P` corollary.
-
-Prover/release-gated tests were not run. No Rust changed, so the Part 1 Rust
-parity gate was not rerun in this partial.
+No `sorryAx` or other axiom appears.

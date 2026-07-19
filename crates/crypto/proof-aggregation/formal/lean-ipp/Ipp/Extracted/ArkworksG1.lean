@@ -539,6 +539,98 @@ private theorem fq_one_canonical :
   rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE]
   exact Ipp.Extracted.ArkworksFqSqrtBytes.canonical_ONE
 
+/-- The fixed projective identity returned by the extracted code is canonical. -/
+theorem canonical_g1_zero (output : G1ProjLimbTriple)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_zero = .ok output) :
+    CanonicalG1 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_zero at hexec
+  simp only [Result.ok.injEq] at hexec
+  subst output
+  exact ⟨fq_one_canonical, fq_one_canonical, fq_zero_canonical⟩
+
+/-- The executed left-identity add preserves canonicity from its returned operand. -/
+theorem canonical_g1_add_left_identity (a b output : G1ProjLimbTriple)
+    (hb : CanonicalG1 b)
+    (hz : a.z.val = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add a b = .ok output) :
+    CanonicalG1 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add at hexec
+  simp [ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq,
+    hz, ark_ip_proofs.core.array.equality.PartialEqArray.eq] at hexec
+  subst output
+  exact hb
+
+/-- The executed right-identity add preserves canonicity from its returned operand. -/
+theorem canonical_g1_add_right_identity (a b output : G1ProjLimbTriple)
+    (ha : CanonicalG1 a) (hb : CanonicalG1 b)
+    (hz : b.z.val = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add a b = .ok output) :
+    CanonicalG1 output := by
+  by_cases haz : a.z.val = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val
+  · exact canonical_g1_add_left_identity a b output hb haz hexec
+  · unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add at hexec
+    simp [ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq,
+      haz, hz, ark_ip_proofs.core.array.equality.PartialEqArray.eq] at hexec
+    subst output
+    exact ha
+
+/-- The executed affine-identity mixed add preserves accumulator canonicity. -/
+theorem canonical_g1_add_mixed_identity (a output : G1ProjLimbTriple)
+    (b : G1AffineLimbPair) (ha : CanonicalG1 a) (hinfinity : b.infinity = true)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add_mixed a b = .ok output) :
+    CanonicalG1 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add_mixed at hexec
+  simp [hinfinity] at hexec
+  subst output
+  exact ha
+
+/-- A zero-Z mixed accumulator returns the finite affine base class. -/
+theorem decode_g1_add_mixed_left_identity (a output : G1ProjLimbTriple)
+    (b : G1AffineLimbPair) (hinfinity : b.infinity = false)
+    (hz : a.z.val = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add_mixed a b = .ok output) :
+    decodeG1 output = some (decode b.x, decode b.y) := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add_mixed at hexec
+  simp [hinfinity,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq,
+    hz, ark_ip_proofs.core.array.equality.PartialEqArray.eq] at hexec
+  subst output
+  have honezero : ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE.val ≠
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val := by
+    apply canonical_val_ne_zero_of_decode_ne_zero
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE fq_one_canonical
+    rw [decode_fq_one]
+    exact one_ne_zero
+  simp [decodeG1, honezero, decode_fq_one]
+
+/-- A zero-Z mixed accumulator returns a canonical projective affine base. -/
+theorem canonical_g1_add_mixed_left_identity (a output : G1ProjLimbTriple)
+    (b : G1AffineLimbPair)
+    (hbx : limbsToNat b.x < Ipp.Bls12377.baseModulus)
+    (hby : limbsToNat b.y < Ipp.Bls12377.baseModulus)
+    (hinfinity : b.infinity = false)
+    (hz : a.z.val = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add_mixed a b = .ok output) :
+    CanonicalG1 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add_mixed at hexec
+  simp [hinfinity,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq,
+    hz, ark_ip_proofs.core.array.equality.PartialEqArray.eq] at hexec
+  subst output
+  exact ⟨hbx, hby, fq_one_canonical⟩
+
+/-- The executed zero-Z double preserves accumulator canonicity. -/
+theorem canonical_g1_double_identity (a output : G1ProjLimbTriple)
+    (ha : CanonicalG1 a)
+    (hz : a.z.val = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_double a = .ok output) :
+    CanonicalG1 output := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_double at hexec
+  simp [ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq,
+    hz, ark_ip_proofs.core.array.equality.PartialEqArray.eq] at hexec
+  subst output
+  exact ha
+
 set_option maxRecDepth 4096
 set_option maxHeartbeats 1000000
 
@@ -1144,6 +1236,27 @@ theorem decode_g1_add_opposite (a b output : G1ProjLimbTriple)
     subst output
     simp [decodeG1]
 
+/-- The executed opposite-input branch returns a canonical identity. -/
+theorem canonical_g1_add_opposite (a b output : G1ProjLimbTriple)
+    (ha : CanonicalG1 a) (hb : CanonicalG1 b)
+    (x y : Ipp.Bls12377.Fq) (hy : y ≠ 0)
+    (hpa : decodeG1 a = some (x, y)) (hpb : decodeG1 b = some (x, -y))
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add a b = .ok output) :
+    CanonicalG1 output := by
+  have hyneg : y ≠ -y := by
+    intro h
+    have htwoY : 2 * y = 0 := by
+      calc
+        2 * y = y + y := two_mul y
+        _ = -y + y := congrArg (fun z => z + y) h
+        _ = 0 := neg_add_cancel y
+    exact hy ((mul_eq_zero.mp htwoY).resolve_left fq_two_ne_zero)
+  have hbranch := g1_add_branch_of_same_x a b output ha hb
+    (x, y) (x, -y) hpa hpb rfl hexec
+  rcases hbranch with hbranch | hbranch
+  · exact (hyneg hbranch.1).elim
+  · exact canonical_g1_zero output hbranch.2
+
 private theorem g1_add_mixed_branch_of_same_x (a output : G1ProjLimbTriple)
     (b : G1AffineLimbPair) (ha : CanonicalG1 a)
     (hbx : limbsToNat b.x < Ipp.Bls12377.baseModulus)
@@ -1282,6 +1395,30 @@ theorem decode_g1_add_mixed_opposite (a output : G1ProjLimbTriple)
     simp only [Result.ok.injEq] at hzero
     subst output
     simp [decodeG1]
+
+/-- The executed mixed opposite-input branch returns a canonical identity. -/
+theorem canonical_g1_add_mixed_opposite (a output : G1ProjLimbTriple)
+    (b : G1AffineLimbPair) (ha : CanonicalG1 a)
+    (hbx : limbsToNat b.x < Ipp.Bls12377.baseModulus)
+    (hby : limbsToNat b.y < Ipp.Bls12377.baseModulus)
+    (x y : Ipp.Bls12377.Fq) (hy : y ≠ 0)
+    (hinfinity : b.infinity = false) (hpa : decodeG1 a = some (x, y))
+    (hbxdecode : decode b.x = x) (hbydecode : decode b.y = -y)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add_mixed a b = .ok output) :
+    CanonicalG1 output := by
+  have hyneg : y ≠ -y := by
+    intro h
+    have htwoY : 2 * y = 0 := by
+      calc
+        2 * y = y + y := two_mul y
+        _ = -y + y := congrArg (fun z => z + y) h
+        _ = 0 := neg_add_cancel y
+    exact hy ((mul_eq_zero.mp htwoY).resolve_left fq_two_ne_zero)
+  have hbranch := g1_add_mixed_branch_of_same_x a output b ha hbx hby
+    (x, y) hinfinity hpa hbxdecode.symm hexec
+  rcases hbranch with hbranch | hbranch
+  · exact (hyneg (hbranch.1.trans hbydecode)).elim
+  · exact canonical_g1_zero output hbranch.2
 
 /-- Executed generic mixed addition decodes to the affine chord formula. -/
 theorem decode_g1_add_mixed_generic (a output : G1ProjLimbTriple)
@@ -1515,5 +1652,14 @@ theorem decode_g1_add_mixed_generic (a output : G1ProjLimbTriple)
 #print axioms decode_g1_double_order2
 #print axioms decode_g1_add_generic
 #print axioms decode_g1_add_mixed_generic
+#print axioms canonical_g1_zero
+#print axioms canonical_g1_add_left_identity
+#print axioms canonical_g1_add_right_identity
+#print axioms canonical_g1_add_mixed_identity
+#print axioms decode_g1_add_mixed_left_identity
+#print axioms canonical_g1_add_mixed_left_identity
+#print axioms canonical_g1_double_identity
+#print axioms canonical_g1_add_opposite
+#print axioms canonical_g1_add_mixed_opposite
 
 end Ipp.Extracted.ArkworksG1
