@@ -1106,10 +1106,25 @@ never expands the QuadraticAlgebra pair structure); consumer applies core via
 `decode_g2_x_cross_eq_iff` / `decode_g2_y_cross_eq_iff`, `decode_g2_add_generic`
 (add-2007-bl over Fq2 refines chord), `decode_g2_double_generic`,
 `decode_g2_double_order2`. Full Ipp green, zero sorry, audited axioms.
-REMAINING PARTS: (2b) the five branch theorems — `decode_g2_add_equal_delegates`,
-`decode_g2_add_opposite`, and the three mixed counterparts (all infrastructure
-in place; mirror S3-26 part 2c); (3) Mathlib `Affine.Point` lift over the G2
-twist curve (mirror `ArkworksG1Mathlib.lean`). Acceptance mirrors S3-26.
+PART 2B DONE (2026-07-18, orchestrator; sol high-effort + Fable diagnosis):
+the five branch theorems — `decode_g2_add_equal_delegates`,
+`decode_g2_add_opposite`, `decode_g2_add_mixed_generic`,
+`decode_g2_add_mixed_equal_delegates`, `decode_g2_add_mixed_opposite` — via
+shared `g2_add_branch_of_same_x`/`g2_add_mixed_branch_of_same_x` routers.
+⚠ MEMORY LESSON (a NEW one beyond G1, for the rest of the curve/pairing
+track): the G1-mirror `simpa only [huExec, hsExec] using hexec` branch
+resolution STILL traversed the discarded generic else-chain and hit 6.2 GB
+over Fq2. FIX: peel the executed U/X and S/Y comparison BINDS structurally
+(before the y-branch split), select the true branch from the tiny
+comparison-result equation, then `change` to kernel-reduce the discarded
+chain — plus ONE bounded `fq2_eq_components` bridge (executed Fq2 comparison
+→ component equality, proven once). Dropped the router 6.2 GB → 1.9 GB;
+full G2 file peak 2.0 GB. (First 2b attempt BLOCKED at medium; the fix
+needed the structural-peel insight, landed at high after Fable read the G1
+router and pinpointed the else-chain traversal.)
+S3-27 add/double/neg over Fq2 COMPLETE. REMAINING: (3) Mathlib
+`Affine.Point` lift over the G2 twist curve (mirror `ArkworksG1Mathlib.lean`)
++ session-closing corollaries. Acceptance mirrors S3-26.
 
 **S3-28 — scalar-multiplication loops** — `HARD (sol)` — `GATED` on S3-26/27.
 Prove the executed G1 and G2 scalar-bit loop invariant and instantiate it to

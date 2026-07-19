@@ -81,6 +81,13 @@ private theorem fq2_eq (a b : Fq2LimbPair) :
   by_cases h : a.c0.val = b.c0.val <;>
     simp [ark_ip_proofs.core.array.equality.PartialEqArray.eq, h]
 
+private theorem fq2_eq_components (a b : Fq2LimbPair) :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+      a b = .ok (decide (a.c0.val = b.c0.val ∧ a.c1.val = b.c1.val)) := by
+  rw [fq2_eq]
+  by_cases h0 : a.c0.val = b.c0.val <;>
+    by_cases h1 : a.c1.val = b.c1.val <;> simp [h0, h1]
+
 private theorem fq2_double_spec (a output : Fq2LimbPair)
     (ha : Canonical2 a)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double a = .ok output) :
@@ -905,6 +912,560 @@ theorem decode_g2_add_generic (a b output : G2ProjLimbTriple)
     hu₁' hu₂' hs₁' hs₂' eh di dj dr dv dx dy dz
     hH hI hJ hR hV hX hY fq2_two_ne_zero hcscale hne
 
+private theorem g2_add_branch_of_same_x (a b output : G2ProjLimbTriple)
+    (ha : CanonicalG2 a) (hb : CanonicalG2 b)
+    (p q : Ipp.Bls12377.Fq2 × Ipp.Bls12377.Fq2)
+    (hpa : decodeG2 a = some p) (hqb : decodeG2 b = some q)
+    (hx : p.1 = q.1)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add a b = .ok output) :
+    (p.2 = q.2 ∧ ark_ip_proofs.s3_07_arkworks_fq_spike.g2_double a = .ok output) ∨
+      (p.2 ≠ q.2 ∧ ark_ip_proofs.s3_07_arkworks_fq_spike.g2_zero = .ok output) := by
+  have haz : isZeroFq2Mont a.z ≠ true := by
+    intro hz
+    simp [decodeG2, hz] at hpa
+  have hbz : isZeroFq2Mont b.z ≠ true := by
+    intro hz
+    simp [decodeG2, hz] at hqb
+  have hZa : decodeFq2 a.z ≠ 0 := by
+    intro hz
+    exact haz ((isZeroFq2Mont_eq_true_iff a.z ha.2.2).2 hz)
+  have hZb : decodeFq2 b.z ≠ 0 := by
+    intro hz
+    exact hbz ((isZeroFq2Mont_eq_true_iff b.z hb.2.2).2 hz)
+  have hpcoords : p = (decodeFq2 a.x / decodeFq2 a.z ^ 2,
+      decodeFq2 a.y / decodeFq2 a.z ^ 3) := by
+    simpa [decodeG2, haz] using hpa.symm
+  have hqcoords : q = (decodeFq2 b.x / decodeFq2 b.z ^ 2,
+      decodeFq2 b.y / decodeFq2 b.z ^ 3) := by
+    simpa [decodeG2, hbz] using hqb.symm
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add at hexec
+  simp [fq2_eq_zero, haz, hbz] at hexec
+  obtain ⟨z1z1, hz1z1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨z2z2, hz2z2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨u1, hu1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨u2, hu2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨ayz, hayz, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨s1, hs1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨bya, hbya, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨s2, hs2, hexec⟩ := bind_eq_ok hexec
+  have cz1z1 := extracted_fq2_square_spec a.z z1z1 ha.2.2 hz1z1
+  have cz2z2 := extracted_fq2_square_spec b.z z2z2 hb.2.2 hz2z2
+  have cu1 := extracted_fq2_mul_spec a.x z2z2 u1 ha.1 cz2z2.1 hu1
+  have cu2 := extracted_fq2_mul_spec b.x z1z1 u2 hb.1 cz1z1.1 hu2
+  have cayz := extracted_fq2_mul_spec a.y b.z ayz ha.2.1 hb.2.2 hayz
+  have cs1 := extracted_fq2_mul_spec ayz z2z2 s1 cayz.1 cz2z2.1 hs1
+  have cbya := extracted_fq2_mul_spec b.y a.z bya hb.2.1 ha.2.2 hbya
+  have cs2 := extracted_fq2_mul_spec bya z1z1 s2 cbya.1 cz1z1.1 hs2
+  have eu1' : decodeFq2 u1 = decodeFq2 a.x * decodeFq2 b.z ^ 2 := by
+    simp only [cu1.2, cz2z2.2]
+    ring
+  have eu2' : decodeFq2 u2 = decodeFq2 b.x * decodeFq2 a.z ^ 2 := by
+    simp only [cu2.2, cz1z1.2]
+    ring
+  have es1' : decodeFq2 s1 =
+      (decodeFq2 a.y * decodeFq2 b.z) * decodeFq2 b.z ^ 2 := by
+    simp only [cs1.2, cayz.2, cz2z2.2]
+    ring
+  have es2' : decodeFq2 s2 =
+      (decodeFq2 b.y * decodeFq2 a.z) * decodeFq2 a.z ^ 2 := by
+    simp only [cs2.2, cbya.2, cz1z1.2]
+    ring
+  have hxraw : decodeFq2 a.x / decodeFq2 a.z ^ 2 =
+      decodeFq2 b.x / decodeFq2 b.z ^ 2 := by
+    simpa [hpcoords, hqcoords] using hx
+  have hucross := (decode_g2_x_cross_eq_iff a b ha hb hZa hZb).2 hxraw
+  have huDecode : decodeFq2 u1 = decodeFq2 u2 := by
+    rw [eu1', eu2']
+    exact hucross
+  have huVal :=
+    (canonical_fq2_val_eq_iff_decode_eq u1 u2 cu1.1 cu2.1).2 huDecode
+  have huExec :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+        u1 u2 = .ok true := by
+    rw [fq2_eq_components]
+    simpa [huVal]
+  obtain ⟨uEq, huEq, hexec⟩ := bind_eq_ok hexec
+  rw [huExec] at huEq
+  simp only [Result.ok.injEq] at huEq
+  subst uEq
+  change (do
+    let sEq ←
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+        s1 s2
+    if sEq = true then ark_ip_proofs.s3_07_arkworks_fq_spike.g2_double a
+    else ark_ip_proofs.s3_07_arkworks_fq_spike.g2_zero) = .ok output at hexec
+  obtain ⟨sEq, hsEq, hexec⟩ := bind_eq_ok hexec
+  by_cases hy : p.2 = q.2
+  · have hyraw : decodeFq2 a.y / decodeFq2 a.z ^ 3 =
+        decodeFq2 b.y / decodeFq2 b.z ^ 3 := by
+      simpa [hpcoords, hqcoords] using hy
+    have hscross := (decode_g2_y_cross_eq_iff a b ha hb hZa hZb).2 hyraw
+    have hsDecode : decodeFq2 s1 = decodeFq2 s2 := by
+      rw [es1', es2']
+      exact hscross
+    have hsVal :=
+      (canonical_fq2_val_eq_iff_decode_eq s1 s2 cs1.1 cs2.1).2 hsDecode
+    have hsExec :
+        ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+          s1 s2 = .ok true := by
+      rw [fq2_eq_components]
+      simpa [hsVal]
+    left
+    refine ⟨hy, ?_⟩
+    rw [hsExec] at hsEq
+    simp only [Result.ok.injEq] at hsEq
+    subst sEq
+    exact hexec
+  · have hyraw : decodeFq2 a.y / decodeFq2 a.z ^ 3 ≠
+        decodeFq2 b.y / decodeFq2 b.z ^ 3 := by
+      simpa [hpcoords, hqcoords] using hy
+    have hsDecode : decodeFq2 s1 ≠ decodeFq2 s2 := by
+      rw [es1', es2']
+      intro hcross
+      exact hyraw ((decode_g2_y_cross_eq_iff a b ha hb hZa hZb).1 hcross)
+    have hsVal : ¬(s1.c0.val = s2.c0.val ∧ s1.c1.val = s2.c1.val) := by
+      intro hval
+      exact hsDecode
+        ((canonical_fq2_val_eq_iff_decode_eq s1 s2 cs1.1 cs2.1).1 hval)
+    have hsExec :
+        ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+          s1 s2 = .ok false := by
+      rw [fq2_eq_components]
+      simpa [hsVal]
+    right
+    refine ⟨hy, ?_⟩
+    rw [hsExec] at hsEq
+    simp only [Result.ok.injEq] at hsEq
+    subst sEq
+    exact hexec
+
+/-- Equal decoded inputs take the executed Fq2 doubling branch. -/
+theorem decode_g2_add_equal_delegates (a b output : G2ProjLimbTriple)
+    (ha : CanonicalG2 a) (hb : CanonicalG2 b)
+    (p : Ipp.Bls12377.Fq2 × Ipp.Bls12377.Fq2)
+    (hpa : decodeG2 a = some p) (hpb : decodeG2 b = some p)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add a b = .ok output) :
+    CanonicalG2 output ∧
+      ∃ doubled, ark_ip_proofs.s3_07_arkworks_fq_spike.g2_double a = .ok doubled ∧
+        decodeG2 output = decodeG2 doubled := by
+  have hbranch := g2_add_branch_of_same_x a b output ha hb p p hpa hpb rfl hexec
+  rcases hbranch with hbranch | hbranch
+  · have hdouble := hbranch.2
+    by_cases hy : p.2 = 0
+    · have hd := decode_g2_double_order2 a output ha p hpa hy hdouble
+      exact ⟨hd.1, output, hdouble, rfl⟩
+    · have hd := decode_g2_double_generic a output ha p hpa hy hdouble
+      exact ⟨hd.1, output, hdouble, rfl⟩
+  · exact (hbranch.1 rfl).elim
+
+/-- Opposite decoded inputs take the executed Fq2 zero branch. -/
+theorem decode_g2_add_opposite (a b output : G2ProjLimbTriple)
+    (ha : CanonicalG2 a) (hb : CanonicalG2 b)
+    (x y : Ipp.Bls12377.Fq2) (hy : y ≠ 0)
+    (hpa : decodeG2 a = some (x, y)) (hpb : decodeG2 b = some (x, -y))
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add a b = .ok output) :
+    decodeG2 output = none := by
+  have hyneg : y ≠ -y := by
+    intro h
+    have htwoY : 2 * y = 0 := by
+      calc
+        2 * y = y + y := two_mul y
+        _ = -y + y := congrArg (fun z => z + y) h
+        _ = 0 := neg_add_cancel y
+    exact hy ((mul_eq_zero.mp htwoY).resolve_left fq2_two_ne_zero)
+  have hbranch := g2_add_branch_of_same_x a b output ha hb
+    (x, y) (x, -y) hpa hpb rfl hexec
+  rcases hbranch with hbranch | hbranch
+  · exact (hyneg hbranch.1).elim
+  · have hzero := hbranch.2
+    unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_zero at hzero
+    simp only [Result.ok.injEq] at hzero
+    subst output
+    simp [decodeG2, isZeroFq2Mont,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO]
+
+private theorem g2_add_mixed_branch_of_same_x (a output : G2ProjLimbTriple)
+    (b : G2AffineLimbPair) (ha : CanonicalG2 a)
+    (hbx : Canonical2 b.x) (hby : Canonical2 b.y)
+    (p : Ipp.Bls12377.Fq2 × Ipp.Bls12377.Fq2)
+    (hinfinity : b.infinity = false) (hpa : decodeG2 a = some p)
+    (hx : p.1 = decodeFq2 b.x)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed a b = .ok output) :
+    (p.2 = decodeFq2 b.y ∧
+        ark_ip_proofs.s3_07_arkworks_fq_spike.g2_double a = .ok output) ∨
+      (p.2 ≠ decodeFq2 b.y ∧
+        ark_ip_proofs.s3_07_arkworks_fq_spike.g2_zero = .ok output) := by
+  have haz : isZeroFq2Mont a.z ≠ true := by
+    intro hz
+    simp [decodeG2, hz] at hpa
+  have hZa : decodeFq2 a.z ≠ 0 := by
+    intro hz
+    exact haz ((isZeroFq2Mont_eq_true_iff a.z ha.2.2).2 hz)
+  have hpcoords : p = (decodeFq2 a.x / decodeFq2 a.z ^ 2,
+      decodeFq2 a.y / decodeFq2 a.z ^ 3) := by
+    simpa [decodeG2, haz] using hpa.symm
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed at hexec
+  simp [hinfinity, fq2_eq_zero, haz] at hexec
+  obtain ⟨z1z1, hz1z1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨u2, hu2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨zby, hzby, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨s2, hs2, hexec⟩ := bind_eq_ok hexec
+  have cz1z1 := extracted_fq2_square_spec a.z z1z1 ha.2.2 hz1z1
+  have cu2 := extracted_fq2_mul_spec b.x z1z1 u2 hbx cz1z1.1 hu2
+  have czby := extracted_fq2_mul_spec a.z b.y zby ha.2.2 hby hzby
+  have cs2 := extracted_fq2_mul_spec zby z1z1 s2 czby.1 cz1z1.1 hs2
+  have eu2' : decodeFq2 u2 = decodeFq2 b.x * decodeFq2 a.z ^ 2 := by
+    simp only [cu2.2, cz1z1.2]
+    ring
+  have es2' : decodeFq2 s2 =
+      (decodeFq2 b.y * decodeFq2 a.z) * decodeFq2 a.z ^ 2 := by
+    simp only [cs2.2, czby.2, cz1z1.2]
+    ring
+  have hxraw : decodeFq2 a.x / decodeFq2 a.z ^ 2 = decodeFq2 b.x := by
+    simpa [hpcoords] using hx
+  have hxscaled : decodeFq2 a.x = decodeFq2 b.x * decodeFq2 a.z ^ 2 :=
+    (div_eq_iff (pow_ne_zero 2 hZa)).mp hxraw
+  have hxDecode : decodeFq2 a.x = decodeFq2 u2 := by rw [eu2', hxscaled]
+  have hxVal :=
+    (canonical_fq2_val_eq_iff_decode_eq a.x u2 ha.1 cu2.1).2 hxDecode
+  have hxExec :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+        a.x u2 = .ok true := by
+    rw [fq2_eq_components]
+    simpa [hxVal]
+  obtain ⟨xEq, hxEq, hexec⟩ := bind_eq_ok hexec
+  rw [hxExec] at hxEq
+  simp only [Result.ok.injEq] at hxEq
+  subst xEq
+  change (do
+    let yEq ←
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+        a.y s2
+    if yEq = true then ark_ip_proofs.s3_07_arkworks_fq_spike.g2_double a
+    else ark_ip_proofs.s3_07_arkworks_fq_spike.g2_zero) = .ok output at hexec
+  obtain ⟨yEq, hyEq, hexec⟩ := bind_eq_ok hexec
+  by_cases hy : p.2 = decodeFq2 b.y
+  · have hyraw : decodeFq2 a.y / decodeFq2 a.z ^ 3 = decodeFq2 b.y := by
+      simpa [hpcoords] using hy
+    have hyscaled : decodeFq2 a.y =
+        (decodeFq2 b.y * decodeFq2 a.z) * decodeFq2 a.z ^ 2 := by
+      calc
+        decodeFq2 a.y = decodeFq2 b.y * decodeFq2 a.z ^ 3 :=
+          (div_eq_iff (pow_ne_zero 3 hZa)).mp hyraw
+        _ = (decodeFq2 b.y * decodeFq2 a.z) * decodeFq2 a.z ^ 2 := by ring
+    have hyDecode : decodeFq2 a.y = decodeFq2 s2 := by rw [es2', hyscaled]
+    have hyVal :=
+      (canonical_fq2_val_eq_iff_decode_eq a.y s2 ha.2.1 cs2.1).2 hyDecode
+    have hyExec :
+        ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+          a.y s2 = .ok true := by
+      rw [fq2_eq_components]
+      simpa [hyVal]
+    left
+    refine ⟨hy, ?_⟩
+    rw [hyExec] at hyEq
+    simp only [Result.ok.injEq] at hyEq
+    subst yEq
+    exact hexec
+  · have hyraw : decodeFq2 a.y / decodeFq2 a.z ^ 3 ≠ decodeFq2 b.y := by
+      simpa [hpcoords] using hy
+    have hyDecode : decodeFq2 a.y ≠ decodeFq2 s2 := by
+      rw [es2']
+      intro hscaled
+      apply hyraw
+      apply (div_eq_iff (pow_ne_zero 3 hZa)).mpr
+      calc
+        decodeFq2 a.y =
+            (decodeFq2 b.y * decodeFq2 a.z) * decodeFq2 a.z ^ 2 := hscaled
+        _ = decodeFq2 b.y * decodeFq2 a.z ^ 3 := by ring
+    have hyVal :
+        ¬(a.y.c0.val = s2.c0.val ∧ a.y.c1.val = s2.c1.val) := by
+      intro hval
+      exact hyDecode
+        ((canonical_fq2_val_eq_iff_decode_eq a.y s2 ha.2.1 cs2.1).1 hval)
+    have hyExec :
+        ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+          a.y s2 = .ok false := by
+      rw [fq2_eq_components]
+      simpa [hyVal]
+    right
+    refine ⟨hy, ?_⟩
+    rw [hyExec] at hyEq
+    simp only [Result.ok.injEq] at hyEq
+    subst yEq
+    exact hexec
+
+/-- Equal projective/affine Fq2 inputs take the mixed doubling branch. -/
+theorem decode_g2_add_mixed_equal_delegates (a output : G2ProjLimbTriple)
+    (b : G2AffineLimbPair) (ha : CanonicalG2 a)
+    (hbx : Canonical2 b.x) (hby : Canonical2 b.y)
+    (hinfinity : b.infinity = false)
+    (hpa : decodeG2 a = some (decodeFq2 b.x, decodeFq2 b.y))
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed a b = .ok output) :
+    CanonicalG2 output ∧
+      ∃ doubled, ark_ip_proofs.s3_07_arkworks_fq_spike.g2_double a = .ok doubled ∧
+        decodeG2 output = decodeG2 doubled := by
+  have hbranch := g2_add_mixed_branch_of_same_x a output b ha hbx hby
+    (decodeFq2 b.x, decodeFq2 b.y) hinfinity hpa rfl hexec
+  rcases hbranch with hbranch | hbranch
+  · have hdouble := hbranch.2
+    by_cases hy : decodeFq2 b.y = 0
+    · have hd := decode_g2_double_order2 a output ha
+        (decodeFq2 b.x, decodeFq2 b.y) hpa hy hdouble
+      exact ⟨hd.1, output, hdouble, rfl⟩
+    · have hd := decode_g2_double_generic a output ha
+        (decodeFq2 b.x, decodeFq2 b.y) hpa hy hdouble
+      exact ⟨hd.1, output, hdouble, rfl⟩
+  · exact (hbranch.1 rfl).elim
+
+/-- Opposite projective/affine Fq2 inputs take the mixed zero branch. -/
+theorem decode_g2_add_mixed_opposite (a output : G2ProjLimbTriple)
+    (b : G2AffineLimbPair) (ha : CanonicalG2 a)
+    (hbx : Canonical2 b.x) (hby : Canonical2 b.y)
+    (x y : Ipp.Bls12377.Fq2) (hy : y ≠ 0)
+    (hinfinity : b.infinity = false) (hpa : decodeG2 a = some (x, y))
+    (hbxdecode : decodeFq2 b.x = x) (hbydecode : decodeFq2 b.y = -y)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed a b = .ok output) :
+    decodeG2 output = none := by
+  have hyneg : y ≠ -y := by
+    intro h
+    have htwoY : 2 * y = 0 := by
+      calc
+        2 * y = y + y := two_mul y
+        _ = -y + y := congrArg (fun z => z + y) h
+        _ = 0 := neg_add_cancel y
+    exact hy ((mul_eq_zero.mp htwoY).resolve_left fq2_two_ne_zero)
+  have hbranch := g2_add_mixed_branch_of_same_x a output b ha hbx hby
+    (x, y) hinfinity hpa hbxdecode.symm hexec
+  rcases hbranch with hbranch | hbranch
+  · exact (hyneg (hbranch.1.trans hbydecode)).elim
+  · have hzero := hbranch.2
+    unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_zero at hzero
+    simp only [Result.ok.injEq] at hzero
+    subst output
+    simp [decodeG2, isZeroFq2Mont,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO]
+
+/-- Executed generic mixed Fq2 addition decodes to the affine chord formula. -/
+theorem decode_g2_add_mixed_generic (a output : G2ProjLimbTriple)
+    (b : G2AffineLimbPair) (ha : CanonicalG2 a)
+    (hbx : Canonical2 b.x) (hby : Canonical2 b.y)
+    (p : Ipp.Bls12377.Fq2 × Ipp.Bls12377.Fq2)
+    (hinfinity : b.infinity = false) (hpa : decodeG2 a = some p)
+    (hx : p.1 ≠ decodeFq2 b.x)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed a b = .ok output) :
+    CanonicalG2 output ∧
+      decodeG2 output = some (chordAddG2 p (decodeFq2 b.x, decodeFq2 b.y)) := by
+  have haz : isZeroFq2Mont a.z ≠ true := by
+    intro hz
+    simp [decodeG2, hz] at hpa
+  have hZa : decodeFq2 a.z ≠ 0 := by
+    intro hz
+    exact haz ((isZeroFq2Mont_eq_true_iff a.z ha.2.2).2 hz)
+  have hpcoords : p = (decodeFq2 a.x / decodeFq2 a.z ^ 2,
+      decodeFq2 a.y / decodeFq2 a.z ^ 3) := by
+    simpa [decodeG2, haz] using hpa.symm
+  have hxraw : decodeFq2 a.x / decodeFq2 a.z ^ 2 ≠ decodeFq2 b.x := by
+    simpa [hpcoords] using hx
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_add_mixed at hexec
+  simp [hinfinity, fq2_eq_zero, haz] at hexec
+  obtain ⟨z1z1, hz1z1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨u2, hu2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨zby, hzby, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨s2, hs2, hexec⟩ := bind_eq_ok hexec
+  have cz1z1 := extracted_fq2_square_spec a.z z1z1 ha.2.2 hz1z1
+  have cu2 := extracted_fq2_mul_spec b.x z1z1 u2 hbx cz1z1.1 hu2
+  have czby := extracted_fq2_mul_spec a.z b.y zby ha.2.2 hby hzby
+  have cs2 := extracted_fq2_mul_spec zby z1z1 s2 czby.1 cz1z1.1 hs2
+  have eu2' : decodeFq2 u2 = decodeFq2 b.x * decodeFq2 a.z ^ 2 := by
+    simp only [cu2.2, cz1z1.2]
+    ring
+  have es2' : decodeFq2 s2 = decodeFq2 b.y * decodeFq2 a.z ^ 3 := by
+    simp only [cs2.2, czby.2, cz1z1.2]
+    ring
+  have hxDecode : decodeFq2 a.x ≠ decodeFq2 u2 := by
+    rw [eu2']
+    intro hscaled
+    exact hxraw ((div_eq_iff (pow_ne_zero 2 hZa)).mpr hscaled)
+  have hxVal :
+      ¬(a.x.c0.val = u2.c0.val ∧ a.x.c1.val = u2.c1.val) := by
+    intro hval
+    exact hxDecode
+      ((canonical_fq2_val_eq_iff_decode_eq a.x u2 ha.1 cu2.1).1 hval)
+  have hxExec :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
+        a.x u2 = .ok false := by
+    rw [fq2_eq_components]
+    simpa [hxVal]
+  obtain ⟨xEq, hxEq, hexec⟩ := bind_eq_ok hexec
+  rw [hxExec] at hxEq
+  simp only [Result.ok.injEq] at hxEq
+  subst xEq
+  change (do
+    let h ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sub u2 a.x
+    let hh ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_square h
+    let twoHh ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double hh
+    let i ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double twoHh
+    let nh ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_neg h
+    let j ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul nh i
+    let ds ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sub s2 a.y
+    let r ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double ds
+    let v ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul a.x i
+    let r2 ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_square r
+    let r2j ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_add r2 j
+    let twoV ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double v
+    let x ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sub r2j twoV
+    let vx ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_sub v x
+    let y0 ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul r vx
+    let twoY ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double a.y
+    let y1 ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul twoY j
+    let y ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_add y0 y1
+    let zh ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul a.z h
+    let z ← ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_double zh
+    ok ({ x := x, y := y, z := z } : G2ProjLimbTriple)) = .ok output at hexec
+  obtain ⟨h, hh, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨hh0, hhh0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨twoHh, htwoHh, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨i, hi, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨nh, hnh, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨j, hj, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨ds, hds, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨r, hr, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨v, hv, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨r2, hr2, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨r2j, hr2j, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨twoV, htwoV, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨x, hxexec, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨vx, hvx, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨y0, hy0, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨twoY, htwoY, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨y1, hy1, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨y, hyexec, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨zh, hzh, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨z, hzexec, hret⟩ := bind_eq_ok hexec
+  simp only [Result.ok.injEq] at hret
+  subst output
+  have ch := fq2_sub_spec u2 a.x h cu2.1 ha.1 hh
+  have chh := extracted_fq2_square_spec h hh0 ch.1 hhh0
+  have ctwoHh := fq2_double_spec hh0 twoHh chh.1 htwoHh
+  have ci := fq2_double_spec twoHh i ctwoHh.1 hi
+  have cnh := fq2_neg_spec h nh ch.1 hnh
+  have cj := extracted_fq2_mul_spec nh i j cnh.1 ci.1 hj
+  have cds := fq2_sub_spec s2 a.y ds cs2.1 ha.2.1 hds
+  have cr := fq2_double_spec ds r cds.1 hr
+  have cv := extracted_fq2_mul_spec a.x i v ha.1 ci.1 hv
+  have cr2 := extracted_fq2_square_spec r r2 cr.1 hr2
+  have cr2j := fq2_add_spec r2 j r2j cr2.1 cj.1 hr2j
+  have ctwoV := fq2_double_spec v twoV cv.1 htwoV
+  have cx := fq2_sub_spec r2j twoV x cr2j.1 ctwoV.1 hxexec
+  have cvx := fq2_sub_spec v x vx cv.1 cx.1 hvx
+  have cy0 := extracted_fq2_mul_spec r vx y0 cr.1 cvx.1 hy0
+  have ctwoY := fq2_double_spec a.y twoY ha.2.1 htwoY
+  have cy1 := extracted_fq2_mul_spec twoY j y1 ctwoY.1 cj.1 hy1
+  have cy := fq2_add_spec y0 y1 y cy0.1 cy1.1 hyexec
+  have czh := extracted_fq2_mul_spec a.z h zh ha.2.2 ch.1 hzh
+  have cz := fq2_double_spec zh z czh.1 hzexec
+  refine ⟨⟨cx.1, cy.1, cz.1⟩, ?_⟩
+  have hhdecode : decodeFq2 h ≠ 0 := by
+    rw [ch.2]
+    exact sub_ne_zero.mpr (Ne.symm hxDecode)
+  have ez' : decodeFq2 z = 2 * decodeFq2 a.z * decodeFq2 h := by
+    simp only [cz.2, czh.2]
+    ring
+  have hzdecode : decodeFq2 z ≠ 0 := by
+    rw [ez']
+    exact mul_ne_zero (mul_ne_zero fq2_two_ne_zero hZa) hhdecode
+  have hzout := isZeroFq2Mont_eq_false_of_decode_ne_zero z cz.1 hzdecode
+  simp [decodeG2, hzout]
+  rw [hpcoords]
+  let u₁d := decodeFq2 a.x
+  let u₂d := decodeFq2 u2
+  let s₁d := decodeFq2 a.y
+  let s₂d := decodeFq2 s2
+  let hd := decodeFq2 h
+  let id := decodeFq2 i
+  let jd := decodeFq2 j
+  let rd := decodeFq2 r
+  let vd := decodeFq2 v
+  let xd := decodeFq2 x
+  let yd := decodeFq2 y
+  let zd := decodeFq2 z
+  let c := decodeFq2 a.z
+  let a₁ := u₁d / c ^ 2
+  let b₁ := s₁d / c ^ 3
+  let a₂ := decodeFq2 b.x
+  let b₂ := decodeFq2 b.y
+  let H := a₂ - a₁
+  let I := (2 * H) ^ 2
+  let J := -H * I
+  let R := 2 * (b₂ - b₁)
+  let V := a₁ * I
+  let X := R ^ 2 + J - 2 * V
+  let Y := R * (V - X) + (2 * b₁) * J
+  change (xd / zd ^ 2, yd / zd ^ 3) =
+    chordAddG2 (a₁, b₁) (a₂, b₂)
+  have hu₁' : u₁d = c ^ 2 * a₁ := by
+    change decodeFq2 a.x = decodeFq2 a.z ^ 2 *
+      (decodeFq2 a.x / decodeFq2 a.z ^ 2)
+    simpa using decode_scale_square (decodeFq2 a.x) (decodeFq2 a.z) 1 hZa
+  have hu₂' : u₂d = c ^ 2 * a₂ := by
+    change decodeFq2 u2 = decodeFq2 a.z ^ 2 * decodeFq2 b.x
+    rw [eu2']
+    ring
+  have hs₁' : s₁d = c ^ 3 * b₁ := by
+    change decodeFq2 a.y = decodeFq2 a.z ^ 3 *
+      (decodeFq2 a.y / decodeFq2 a.z ^ 3)
+    simpa using decode_scale_cube (decodeFq2 a.y) (decodeFq2 a.z) 1 hZa
+  have hs₂' : s₂d = c ^ 3 * b₂ := by
+    change decodeFq2 s2 = decodeFq2 a.z ^ 3 * decodeFq2 b.y
+    rw [es2']
+    ring
+  have dh : hd = u₂d - u₁d := by
+    change decodeFq2 h = decodeFq2 u2 - decodeFq2 a.x
+    exact ch.2
+  have di : id = (2 * hd) ^ 2 := by
+    change decodeFq2 i = (2 * decodeFq2 h) ^ 2
+    simp only [ci.2, ctwoHh.2, chh.2]
+    ring
+  have dj : jd = -hd * id := by
+    change decodeFq2 j = -decodeFq2 h * decodeFq2 i
+    rw [cj.2, cnh.2]
+  have dr : rd = 2 * (s₂d - s₁d) := by
+    change decodeFq2 r = 2 * (decodeFq2 s2 - decodeFq2 a.y)
+    simp only [cr.2, cds.2]
+    ring
+  have dv : vd = u₁d * id := by
+    change decodeFq2 v = decodeFq2 a.x * decodeFq2 i
+    exact cv.2
+  have dx : xd = rd ^ 2 + jd - 2 * vd := by
+    change decodeFq2 x = decodeFq2 r ^ 2 + decodeFq2 j - 2 * decodeFq2 v
+    simp only [cx.2, cr2j.2, cr2.2, ctwoV.2]
+    ring
+  have dy : yd = rd * (vd - xd) + (2 * s₁d) * jd := by
+    change decodeFq2 y = decodeFq2 r * (decodeFq2 v - decodeFq2 x) +
+      (2 * decodeFq2 a.y) * decodeFq2 j
+    simp only [cy.2, cy0.2, cvx.2, cy1.2, ctwoY.2]
+    ring
+  have dz : zd = 2 * c * hd := by
+    change decodeFq2 z = 2 * decodeFq2 a.z * decodeFq2 h
+    simp only [cz.2, czh.2]
+    ring
+  have hH : H = a₂ - a₁ := rfl
+  have hI : I = (2 * H) ^ 2 := rfl
+  have hJ : J = -H * I := rfl
+  have hR : R = 2 * (b₂ - b₁) := rfl
+  have hV : V = a₁ * I := rfl
+  have hX : X = R ^ 2 + J - 2 * V := rfl
+  have hY : Y = R * (V - X) + (2 * b₁) * J := rfl
+  have hc : c ≠ 0 := hZa
+  have hne : a₁ ≠ a₂ := hxraw
+  clear_value Y X V R J I H b₂ a₂ b₁ a₁ c zd yd xd vd rd jd id hd
+    s₂d s₁d u₂d u₁d
+  exact chord_decode_core a₁ b₁ a₂ b₂ c
+    u₁d u₂d s₁d s₂d hd id jd rd vd xd yd zd
+    H I J R V X Y hu₁' hu₂' hs₁' hs₂'
+    dh di dj dr dv dx dy dz hH hI hJ hR hV hX hY fq2_two_ne_zero hc hne
+
 #print axioms decode_g2_neg
 #print axioms decode_g2_add_left_identity
 #print axioms decode_g2_add_right_identity
@@ -916,5 +1477,10 @@ theorem decode_g2_add_generic (a b output : G2ProjLimbTriple)
 #print axioms decode_g2_double_generic
 #print axioms decode_g2_double_order2
 #print axioms decode_g2_add_generic
+#print axioms decode_g2_add_equal_delegates
+#print axioms decode_g2_add_opposite
+#print axioms decode_g2_add_mixed_equal_delegates
+#print axioms decode_g2_add_mixed_opposite
+#print axioms decode_g2_add_mixed_generic
 
 end Ipp.Extracted.ArkworksG2
