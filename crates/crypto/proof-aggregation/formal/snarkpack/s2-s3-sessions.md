@@ -1278,15 +1278,31 @@ and the corollaries `valid_g1_glv_joint_loop_256` (extracted loop represents
 `bitIndex.val` measure; 256 iterations NOT unrolled. Zero sorry, audited axioms.
 DISCIPLINE: sol emitted NO partial final corollary and made NO unconditional use
 of the eigenspace fact.
-REMAINING (3 items to close S3-28): (i) prove the extracted fixed-width
-decomposition (reduction, 384-bit rounded division, products, subtraction, sign
-interpretation) satisfies `signed(k1) + signed(k2)·λ ≡ k (mod r)` AND derive the
-two `< 2^255` magnitude bounds the loop theorem consumes; (ii) refine the
-extracted endomorphism + sign-conditional negations to decoded Mathlib points
-and build `b1b2` validity, composing with `valid_g1_glv_joint_loop_value`;
-(iii) under an explicit prime-subgroup premise + the cited
-`GlvEigenPrecondition`, combine with `runJoint_eigenvalue` for the final
-executed G1 `k • P`. Superseded scope text follows: (5) model the
+PART 2F DONE (green PARTIAL, item (i) — the DECOMPOSITION CONGRUENCE; 2026-07-19,
+orchestrator; sol-HIGH). `ArkworksScalarMulGlvDecomposition.lean` (+ 35 supporting
+modules `ArkworksScalarMulGlv{Arithmetic,Reduce*,Mul*,Shift/SetBit/ClearBelow/
+Wide*Core,Div*,Rounded*,Numeric*,Array*,Decomp*}.lean`, each green 1.82–1.89 GB
+— the file-splitting technique at scale for the 384-bit long-division) proves
+`extracted_decomposition_spec`:
+`signed(k1) + signed(k2)·λ ≡ scalarToNat input (mod r)` for a successful
+`g1_glv_scalar_decomposition`, PLUS `extracted_k1_lt_two_pow_255` /
+`extracted_k2_lt_two_pow_255`. Proof route (all over Int/Nat, OFF the curve):
+reduced rep `s < r`, `s ≡ input`; exact identity `signed(k1)+signed(k2)·λ =
+s − β·r` (extracted 2nd sign is `false`, so `signed(k2) = −β`); `RoundedSpec`
+half-up division (`numerator = q·r+rem`, `rem<r`, `quotient = q + [r < 2·rem]`;
+r odd ⇒ no exact tie); LLL product decodes as `β·(a+1)`; sign branches
+`k1 = |s − β·(a+1)|` reduce via `r = a·(a+1)+1`, `λ = r−a−1`. Bounds: `β ≤ a`,
+`a+1 < 2^255`; low-four-limb projections justified only after six-limb `< 2^256`
+(no truncation assumption); `numerator < 2^384` derived from `s<r`,
+`numerator = s·a`. Zero sorry, audited axioms. Sol recorded the EXACT
+final-corollary premise shape (explicit `hsubgroup` + `heigen`, neither
+discharged in S3-28) so the remaining work cannot hide a boundary.
+REMAINING (2 items to close S3-28): (ii) refine the extracted endomorphism +
+sign-conditional negations to decoded Mathlib points and build `b1b2` validity,
+composing with `valid_g1_glv_joint_loop_value`; (iii) under an explicit
+prime-subgroup premise + the cited `GlvEigenPrecondition`, combine
+`extracted_decomposition_spec` + `valid_g1_glv_joint_loop_value` +
+`runJoint_eigenvalue` for the final executed G1 `k • P`. Superseded scope text follows: (5) model the
 executed G1 GLV wrapper (`g1_mul_projective`), connect its exact 256-pair skip
 schedule to `runJoint`, and prove the LLL/rounded-division decomposition after
 sign interpretation `k1 + k2·λ ≡ k (mod r)`; (6) combine with
