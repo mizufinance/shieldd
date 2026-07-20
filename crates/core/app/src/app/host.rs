@@ -71,6 +71,9 @@ pub struct HostCommit {
 }
 
 /// Drives Shieldd execution from a host chain without owning validator state.
+///
+/// This adapter uses host-only lifecycle hooks, not the standalone ABCI lifecycle
+/// that runs staking, governance, IBC, validator updates, and upgrade halts.
 pub struct HostExecution {
     storage: Storage,
     app: App,
@@ -105,6 +108,9 @@ impl HostExecution {
         self.phase
     }
 
+    /// Initializes execution state from content genesis or verifies a checkpoint root.
+    ///
+    /// Content genesis initializes only host-supported execution components.
     pub async fn init_genesis(&mut self, genesis: AppState) -> Result<()> {
         ensure!(
             self.phase == HostExecutionPhase::Idle,
@@ -194,6 +200,7 @@ impl HostExecution {
         })
     }
 
+    /// Starts a host block using an ABCI-shaped request with empty validator data.
     pub async fn begin_block(&mut self, block: HostBlock) -> Result<HostExecutionResponse> {
         ensure!(
             matches!(
@@ -275,6 +282,7 @@ impl HostExecution {
         )
     }
 
+    /// Finishes the current host block without producing validator set updates.
     pub async fn end_block(&mut self, height: i64) -> Result<HostExecutionResponse> {
         ensure!(
             self.phase == HostExecutionPhase::InBlock,
@@ -287,6 +295,7 @@ impl HostExecution {
         Ok(HostExecutionResponse { events })
     }
 
+    /// Commits execution state without standalone chain halt or upgrade handling.
     pub async fn commit(&mut self) -> Result<HostCommit> {
         ensure!(
             matches!(
@@ -313,6 +322,9 @@ impl HostExecution {
 }
 
 impl App {
+    /// Initializes the Shieldd execution state for a host-owned chain.
+    ///
+    /// Unlike `App::init_chain`, this skips staking, governance, and IBC state.
     async fn init_host_chain(&mut self, app_state: &AppState) {
         let mut state_tx = self
             .state
@@ -341,6 +353,9 @@ impl App {
         state_tx.apply();
     }
 
+    /// Runs per-block hooks for execution components only.
+    ///
+    /// Unlike `App::begin_block`, this skips param changes and validator-chain hooks.
     async fn begin_host_block(&mut self, begin_block: &request::BeginBlock) -> Vec<abci::Event> {
         self.pending_sct_append_log.clear();
         let mut state_tx = StateDelta::new(self.state.clone());
@@ -358,6 +373,9 @@ impl App {
         self.apply(state_tx)
     }
 
+    /// Flushes host transactions and closes execution-component block and epoch state.
+    ///
+    /// Unlike `App::end_block`, this skips IBC, governance, staking, and validator updates.
     async fn end_host_block(&mut self, end_block: &request::EndBlock) -> Vec<abci::Event> {
         self.flush_deferred_block_transactions()
             .await
@@ -443,6 +461,9 @@ impl App {
         }
     }
 
+    /// Persists host execution state and resets snapshots for the next host call.
+    ///
+    /// Unlike `App::commit`, this does not enforce chain halt or pre-upgrade exits.
     async fn commit_host(&mut self, storage: Storage) -> RootHash {
         let commit_start = Instant::now();
         let flush_start = Instant::now();
