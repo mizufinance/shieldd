@@ -9,6 +9,7 @@ use shieldd_sdk_proto::execution_client::v1::{
 };
 use shieldd_sdk_shielded_pool::component::AssetRegistry as _;
 use std::str::FromStr as _;
+use std::time::Instant;
 
 const HOST_DEPOSIT_SOURCE_PREFIX: &str = "application/host_deposit/source";
 const HOST_DEPOSIT_DOMAIN: &[u8] = b"shieldd.host_deposit.v1";
@@ -117,7 +118,7 @@ impl HostExecution {
                     self.storage.latest_version() == u64::MAX,
                     "database already initialized"
                 );
-                self.app.init_chain(&genesis).await;
+                self.app.init_host_chain(&genesis).await;
                 self.phase = HostExecutionPhase::InitializedGenesis;
             }
             AppState::Checkpoint(expected_root_hash) => {
@@ -134,7 +135,7 @@ impl HostExecution {
                     actual_root_hash.0 == expected_root_hash,
                     "checkpoint genesis root hash does not match storage root"
                 );
-                self.app.init_chain(&genesis).await;
+                self.app.init_host_chain(&genesis).await;
                 self.phase = HostExecutionPhase::InitializedCheckpointGenesis;
             }
         }
@@ -204,7 +205,7 @@ impl HostExecution {
         );
 
         let begin_block = self.begin_block_request(block).await?;
-        let events = self.app.begin_block(&begin_block).await;
+        let events = self.app.begin_host_block(&begin_block).await;
         self.phase = HostExecutionPhase::InBlock;
         Ok(HostExecutionResponse { events })
     }
@@ -281,7 +282,7 @@ impl HostExecution {
             self.phase
         );
 
-        let events = self.app.end_block(&request::EndBlock { height }).await;
+        let events = self.app.end_host_block(&request::EndBlock { height }).await;
         self.phase = HostExecutionPhase::EndedBlock;
         Ok(HostExecutionResponse { events })
     }
@@ -296,7 +297,7 @@ impl HostExecution {
             self.phase
         );
 
-        let root_hash = self.app.commit(self.storage.clone()).await;
+        let root_hash = self.app.commit_host(self.storage.clone()).await;
         self.phase = HostExecutionPhase::Idle;
         Ok(HostCommit {
             root_hash: root_hash.0.to_vec(),
@@ -312,6 +313,177 @@ impl HostExecution {
 }
 
 impl App {
+    async fn init_host_chain(&mut self, app_state: &AppState) {
+        let mut state_tx = self
+            .state
+            .try_begin_transaction()
+            .expect("state Arc should not be referenced elsewhere");
+        match app_state {
+            AppState::Content(genesis) => {
+                state_tx.put_chain_id(genesis.chain_id.clone());
+                Sct::init_chain(&mut state_tx, Some(&genesis.sct_content)).await;
+                ShieldedPool::init_chain(&mut state_tx, Some(&genesis.shielded_pool_content)).await;
+                FeeComponent::init_chain(&mut state_tx, Some(&genesis.fee_content)).await;
+                Compliance::init_chain(&mut state_tx, Some(&genesis.compliance_content)).await;
+
+                state_tx
+                    .finish_block()
+                    .await
+                    .expect("must be able to finish compact block");
+            }
+            AppState::Checkpoint(_) => {
+                ShieldedPool::init_chain(&mut state_tx, None).await;
+                FeeComponent::init_chain(&mut state_tx, None).await;
+                Compliance::init_chain(&mut state_tx, None).await;
+            }
+        };
+
+        state_tx.apply();
+    }
+
+    async fn begin_host_block(&mut self, begin_block: &request::BeginBlock) -> Vec<abci::Event> {
+        self.pending_sct_append_log.clear();
+        let mut state_tx = StateDelta::new(self.state.clone());
+
+        clear_block_fee_price_cache(&mut state_tx);
+
+        let mut arc_state_tx = Arc::new(state_tx);
+        Sct::begin_block(&mut arc_state_tx, begin_block).await;
+        ShieldedPool::begin_block(&mut arc_state_tx, begin_block).await;
+        FeeComponent::begin_block(&mut arc_state_tx, begin_block).await;
+
+        let state_tx = Arc::try_unwrap(arc_state_tx)
+            .expect("components did not retain copies of shared state");
+
+        self.apply(state_tx)
+    }
+
+    async fn end_host_block(&mut self, end_block: &request::EndBlock) -> Vec<abci::Event> {
+        self.flush_deferred_block_transactions()
+            .await
+            .expect("must be able to flush deferred block transactions in end_block");
+        let mut state_tx = StateDelta::new(self.state.clone());
+        self.materialize_pending_sct_append_log(&mut state_tx)
+            .await
+            .expect("must be able to materialize deferred SCT payloads in end_block");
+
+        tracing::debug!("running host app components' `end_block` hooks");
+        let mut arc_state_tx = Arc::new(state_tx);
+        Sct::end_block(&mut arc_state_tx, end_block).await;
+        ShieldedPool::end_block(&mut arc_state_tx, end_block).await;
+        FeeComponent::end_block(&mut arc_state_tx, end_block).await;
+        Compliance::end_block(&mut arc_state_tx, end_block).await;
+        let mut state_tx = Arc::try_unwrap(arc_state_tx)
+            .expect("components did not retain copies of shared state");
+        tracing::debug!("finished host app components' `end_block` hooks");
+
+        let current_height = state_tx
+            .get_block_height()
+            .await
+            .expect("able to get block height in end_block");
+        let current_epoch = state_tx
+            .get_current_epoch()
+            .await
+            .expect("able to get current epoch in end_block");
+
+        let is_end_epoch = current_epoch.is_scheduled_epoch_end(
+            current_height,
+            state_tx
+                .get_epoch_duration_parameter()
+                .await
+                .expect("able to get epoch duration in end_block"),
+        ) || state_tx.is_epoch_ending_early().await;
+
+        if is_end_epoch {
+            tracing::info!(?current_height, "ending host epoch");
+
+            let mut arc_state_tx = Arc::new(state_tx);
+
+            Sct::end_epoch(&mut arc_state_tx)
+                .await
+                .expect("able to call end_epoch on Sct component");
+            ShieldedPool::end_epoch(&mut arc_state_tx)
+                .await
+                .expect("able to call end_epoch on shielded pool component");
+            FeeComponent::end_epoch(&mut arc_state_tx)
+                .await
+                .expect("able to call end_epoch on Fee component");
+
+            let mut state_tx = Arc::try_unwrap(arc_state_tx)
+                .expect("components did not retain copies of shared state");
+
+            state_tx
+                .finish_epoch()
+                .await
+                .expect("must be able to finish compact block");
+
+            shieldd_sdk_sct::component::clock::EpochManager::put_epoch_by_height(
+                &mut state_tx,
+                current_height + 1,
+                Epoch {
+                    index: current_epoch.index + 1,
+                    start_height: current_height + 1,
+                },
+            );
+
+            self.apply(state_tx)
+        } else {
+            shieldd_sdk_sct::component::clock::EpochManager::put_epoch_by_height(
+                &mut state_tx,
+                current_height + 1,
+                current_epoch,
+            );
+
+            state_tx
+                .finish_block()
+                .await
+                .expect("must be able to finish compact block");
+
+            self.apply(state_tx)
+        }
+    }
+
+    async fn commit_host(&mut self, storage: Storage) -> RootHash {
+        let commit_start = Instant::now();
+        let flush_start = Instant::now();
+        self.flush_deferred_block_transactions()
+            .await
+            .expect("must be able to flush deferred block transactions before commit");
+        let flush_ms = flush_start.elapsed().as_secs_f64() * 1000.0;
+        let dummy_state = StateDelta::new(storage.latest_snapshot());
+        let state = Arc::try_unwrap(std::mem::replace(&mut self.state, Arc::new(dummy_state)))
+            .expect("we have exclusive ownership of the State at commit()");
+
+        let halt_check_ms = 0.0;
+
+        let storage_commit_start = Instant::now();
+        let jmt_root = storage
+            .commit(state)
+            .await
+            .expect("must be able to successfully commit to storage");
+        let storage_commit_ms = storage_commit_start.elapsed().as_secs_f64() * 1000.0;
+
+        tracing::debug!(?jmt_root, "finished committing host state");
+
+        let snapshot_reset_start = Instant::now();
+        let latest_snapshot = storage.latest_snapshot();
+        self.snapshot_version = latest_snapshot.version();
+        self.committed_snapshot = latest_snapshot.clone();
+        self.state = Arc::new(StateDelta::new(latest_snapshot));
+        self.pending_sct_append_log.clear();
+        let snapshot_reset_ms = snapshot_reset_start.elapsed().as_secs_f64() * 1000.0;
+        let total_ms = commit_start.elapsed().as_secs_f64() * 1000.0;
+        tracing::info!(
+            commit_total_ms = total_ms,
+            commit_flush_deferred_ms = flush_ms,
+            commit_halt_check_ms = halt_check_ms,
+            commit_storage_commit_ms = storage_commit_ms,
+            commit_snapshot_reset_ms = snapshot_reset_ms,
+            "host_commit_phase_profile"
+        );
+        jmt_root
+    }
+
     pub async fn deposit(&mut self, deposit: DepositRequest) -> Result<HostDepositResult> {
         let mut state_tx = StateDelta::new(self.state.clone());
         let chain_id = state_tx.get_chain_id().await?;
@@ -522,6 +694,33 @@ mod tests {
         assert_eq!(response.root_hash.len(), 32);
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert!(App::is_ready(storage.latest_snapshot()).await);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn host_execution_init_genesis_does_not_initialize_validator_chain_components(
+    ) -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host = HostExecution::new(storage.deref().clone());
+
+        host.init_genesis(host_genesis()).await?;
+
+        assert!(
+            shieldd_sdk_validator::StateReadExt::get_stake_params(host.app.state.as_ref())
+                .await
+                .is_err()
+        );
+        assert!(shieldd_sdk_governance::StateReadExt::get_governance_params(
+            host.app.state.as_ref()
+        )
+        .await
+        .is_err());
+        assert!(
+            shieldd_sdk_ibc::StateReadExt::get_ibc_params(host.app.state.as_ref())
+                .await
+                .is_err()
+        );
 
         Ok(())
     }
