@@ -16,7 +16,6 @@ const TransferStatementFieldsPerOutput = 1
 const NoteReshapeStatementBaseFields = 2
 const NoteReshapeStatementFieldsPerInput = 2
 const NoteReshapeStatementFieldsPerOutput = 1
-const NoteReshapeStatementActiveCountFields = 2
 const ShieldedIcs20WithdrawalStatementBaseFields = 10
 const ShieldedIcs20WithdrawalStatementFieldsPerInput = 2
 
@@ -126,13 +125,9 @@ func transferStatementFieldCount(nIn, nOut int) int {
 }
 
 func NoteReshapeStatementFieldCount(nIn, nOut int) int {
-	count := NoteReshapeStatementBaseFields +
+	return NoteReshapeStatementBaseFields +
 		NoteReshapeStatementFieldsPerInput*nIn +
 		NoteReshapeStatementFieldsPerOutput*nOut
-	if nIn != 2 || nOut != 1 {
-		count += NoteReshapeStatementActiveCountFields
-	}
-	return count
 }
 
 func transferStatementLabel() string { return "transfer" }

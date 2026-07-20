@@ -7,9 +7,9 @@
   },
   "nb_constraints": 36553,
   "nb_public_variables": 2,
-  "nb_secret_variables": 199,
+  "nb_secret_variables": 193,
   "nb_internal_variables": 34439,
-  "sr1cs_sha256_hex": "8ce49eee4a2e383197534ffb52b17af8961e74b1fa403822fb25f4490fb7830b",
+  "sr1cs_sha256_hex": "90fe6bdd01f52c889a6ccd5d642e6b98befcd5c87ab301ec21682d7d53d25ad1",
   "segments": [
     {
       "index": 1,

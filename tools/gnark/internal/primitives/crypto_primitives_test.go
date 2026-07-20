@@ -1,6 +1,7 @@
 package primitives
 
 import (
+	"fmt"
 	decafgnark "github.com/mizufinance/decaf377-go/gnark"
 	"math/big"
 	"testing"
@@ -307,38 +308,35 @@ func TestNoteCommitmentDerivationMatchesShielddVectors(t *testing.T) {
 	)
 }
 
-// NoteReshape 2→1 statement-hash seam (H3 / Phase C). The 7 public statement
-// fields are assembled in the exact production order (NoteReshapeCircuit.Define:
-// anchor, output note commitment, balance commitment Fq, then per-input
-// nullifier+rk) and fed through the production NoteReshapeStatementHashForShape
-// gadget. The asserted hash is the Rust reference (real poseidon377::hash_7 over
-// the note_reshape2x1 domain) baked into phase05_vectors.json. Any wire-order,
-// endianness, domain, or padding drift between the Rust statement serialization
-// and the gnark gadget fails this test.
 type noteReshapeStatementSeamCircuit struct {
-	Anchor                frontend.Variable
-	OutputNoteCommitment0 frontend.Variable
-	BalanceCommitmentFq   frontend.Variable
-	Nullifier0            frontend.Variable
-	RK0                   frontend.Variable
-	Nullifier1            frontend.Variable
-	RK1                   frontend.Variable
-
+	Fields   []frontend.Variable
 	Expected frontend.Variable `gnark:",public"`
 }
 
-func (c *noteReshapeStatementSeamCircuit) Define(api frontend.API) error {
-	// Production assembly order (mirrors NoteReshapeCircuit.Define for nIn=2).
-	fields := []frontend.Variable{
-		c.Anchor,
-		c.OutputNoteCommitment0,
-		c.BalanceCommitmentFq,
-		c.Nullifier0,
-		c.RK0,
-		c.Nullifier1,
-		c.RK1,
+func statementVariables(values []string) []frontend.Variable {
+	fields := make([]frontend.Variable, len(values))
+	for index, value := range values {
+		fields[index] = value
 	}
-	h, err := NoteReshapeStatementHashForShape(api, "note_reshape2x1", 2, 1, fields)
+	return fields
+}
+
+func (c *noteReshapeStatementSeamCircuit) Define(api frontend.API) error {
+	var label string
+	var nIn, nOut int
+	switch len(c.Fields) {
+	case 7:
+		label, nIn, nOut = "note_reshape2x1", 2, 1
+	case 11:
+		label, nIn, nOut = "note_reshape4x1", 4, 1
+	case 19:
+		label, nIn, nOut = "note_reshape8x1", 8, 1
+	case 12:
+		label, nIn, nOut = "note_reshape1x8", 1, 8
+	default:
+		return fmt.Errorf("unsupported note reshape statement field count %d", len(c.Fields))
+	}
+	h, err := NoteReshapeStatementHashForShape(api, label, nIn, nOut, c.Fields)
 	if err != nil {
 		return err
 	}
@@ -346,60 +344,28 @@ func (c *noteReshapeStatementSeamCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func TestNoteReshape2x1StatementSeamMatchesShielddVectors(t *testing.T) {
+func TestNoteReshapeStatementSeamsMatchShielddVectors(t *testing.T) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		t.Fatalf("load vectors: %v", err)
 	}
-	fx := vectors.NoteReshape2x1Stmt
-	if got, want := fx.Label, "note_reshape2x1"; got != want {
-		t.Fatalf("statement label mismatch: got %q want %q", got, want)
+	if got, want := len(vectors.NoteReshapeStatements), 4; got != want {
+		t.Fatalf("statement vector count mismatch: got %d want %d", got, want)
 	}
-	if got, want := len(fx.Fields), 7; got != want {
-		t.Fatalf("statement field count mismatch: got %d want %d", got, want)
-	}
-	if got, want := len(fx.FieldRoles), 7; got != want {
-		t.Fatalf("statement role count mismatch: got %d want %d", got, want)
-	}
-	// Pin the documented role order so a Rust-side reordering is caught here.
-	wantRoles := []string{
-		"anchor", "output_note_commitment_0", "balance_commitment_fq",
-		"nullifier_0", "rk_0", "nullifier_1", "rk_1",
-	}
-	for i, want := range wantRoles {
-		if fx.FieldRoles[i] != want {
-			t.Fatalf("field role %d mismatch: got %q want %q", i, fx.FieldRoles[i], want)
+	for _, fx := range vectors.NoteReshapeStatements {
+		if got, want := len(fx.Fields), len(fx.FieldRoles); got != want {
+			t.Fatalf("%s role count mismatch: got %d want %d", fx.Label, got, want)
 		}
+		validFields := append([]string(nil), fx.Fields...)
+		swappedFields := append([]string(nil), fx.Fields...)
+		swappedFields[0], swappedFields[1] = swappedFields[1], swappedFields[0]
+		assert := test.NewAssert(t)
+		assert.CheckCircuit(
+			&noteReshapeStatementSeamCircuit{Fields: make([]frontend.Variable, len(fx.Fields))},
+			test.WithCurves(ecc.BLS12_377),
+			test.WithBackends(backend.GROTH16),
+			test.WithValidAssignment(&noteReshapeStatementSeamCircuit{Fields: statementVariables(validFields), Expected: fx.StatementHash}),
+			test.WithInvalidAssignment(&noteReshapeStatementSeamCircuit{Fields: statementVariables(swappedFields), Expected: fx.StatementHash}),
+		)
 	}
-
-	valid := &noteReshapeStatementSeamCircuit{
-		Anchor:                fx.Fields[0],
-		OutputNoteCommitment0: fx.Fields[1],
-		BalanceCommitmentFq:   fx.Fields[2],
-		Nullifier0:            fx.Fields[3],
-		RK0:                   fx.Fields[4],
-		Nullifier1:            fx.Fields[5],
-		RK1:                   fx.Fields[6],
-		Expected:              fx.StatementHash,
-	}
-	// Drift sentinel: swapping two fields must not reproduce the hash.
-	swapped := &noteReshapeStatementSeamCircuit{
-		Anchor:                fx.Fields[3], // nullifier_0 in the anchor slot
-		OutputNoteCommitment0: fx.Fields[1],
-		BalanceCommitmentFq:   fx.Fields[2],
-		Nullifier0:            fx.Fields[0], // anchor in the nullifier slot
-		RK0:                   fx.Fields[4],
-		Nullifier1:            fx.Fields[5],
-		RK1:                   fx.Fields[6],
-		Expected:              fx.StatementHash,
-	}
-
-	assert := test.NewAssert(t)
-	assert.CheckCircuit(
-		&noteReshapeStatementSeamCircuit{},
-		test.WithCurves(ecc.BLS12_377),
-		test.WithBackends(backend.GROTH16),
-		test.WithValidAssignment(valid),
-		test.WithInvalidAssignment(swapped),
-	)
 }

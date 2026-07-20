@@ -108,12 +108,12 @@ type NoteReshapeStatementFixture struct {
 }
 
 type PrototypeVectors struct {
-	Decaf377CompanionCurve CurveVectors                `json:"decaf377_companion_curve"`
-	Poseidon377            PoseidonVectors             `json:"poseidon377"`
-	Decaf377Compress       []DecafCompressVector       `json:"decaf377_compress_vectors"`
-	Decaf377Encode         []DecafEncodeVector         `json:"decaf377_encode_vectors"`
-	DleqFixture            DLEQFixture                 `json:"dleq_fixture"`
-	NoteReshape2x1Stmt     NoteReshapeStatementFixture `json:"note_reshape2x1_statement"`
+	Decaf377CompanionCurve CurveVectors                  `json:"decaf377_companion_curve"`
+	Poseidon377            PoseidonVectors               `json:"poseidon377"`
+	Decaf377Compress       []DecafCompressVector         `json:"decaf377_compress_vectors"`
+	Decaf377Encode         []DecafEncodeVector           `json:"decaf377_encode_vectors"`
+	DleqFixture            DLEQFixture                   `json:"dleq_fixture"`
+	NoteReshapeStatements  []NoteReshapeStatementFixture `json:"note_reshape_statements"`
 }
 
 type SpendPublicFixture struct {

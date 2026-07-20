@@ -17,6 +17,21 @@ type NoteReshapeOutputCircuitFields struct {
 	Note           NoteFields
 }
 
+type NoteReshapeSpendCircuitFields struct {
+	Nullifier      frontend.Variable
+	RK             Point2D
+	Note           NoteFields
+	StateProof     StateCommitmentFields
+	AuthRandomizer frontend.Variable
+}
+
+type NoteReshapeSyntheticSpendCircuitFields struct {
+	NoteReshapeSpendCircuitFields
+	IsDummy            frontend.Variable
+	DummyNullifierSeed frontend.Variable
+	DummySpendAuthKey  frontend.Variable
+}
+
 type NoteReshapeCircuit struct {
 	label       string
 	nIn         int
@@ -29,25 +44,26 @@ type NoteReshapeCircuit struct {
 	BalanceCommitment     Point2D
 	ActionBalanceBlinding frontend.Variable
 
-	Auth             TransferAuthSharedFields
-	Spends           []TransferSpendCircuitFields
-	Outputs          []NoteReshapeOutputCircuitFields
-	OutputDummyFlags []frontend.Variable
+	Auth            TransferAuthSharedFields
+	Spends          []NoteReshapeSpendCircuitFields
+	SyntheticSpends []NoteReshapeSyntheticSpendCircuitFields
+	Outputs         []NoteReshapeOutputCircuitFields
 }
 
 func NewNoteReshapeCircuit(label string, nIn, nOut int) *NoteReshapeCircuit {
-	outputDummyFlags := make([]frontend.Variable, 0)
-	if family, ok := generated.NoteReshapeFamilyByLabel(label); ok && family.UsesDummySlots {
-		outputDummyFlags = make([]frontend.Variable, nOut)
+	circuit := &NoteReshapeCircuit{
+		label:   label,
+		nIn:     nIn,
+		nOut:    nOut,
+		Outputs: make([]NoteReshapeOutputCircuitFields, nOut),
 	}
-	return &NoteReshapeCircuit{
-		label:            label,
-		nIn:              nIn,
-		nOut:             nOut,
-		Spends:           make([]TransferSpendCircuitFields, nIn),
-		Outputs:          make([]NoteReshapeOutputCircuitFields, nOut),
-		OutputDummyFlags: outputDummyFlags,
+	if family, ok := generated.NoteReshapeFamilyByLabel(label); ok &&
+		family.InputPadding == generated.InputPaddingSyntheticPrivate {
+		circuit.SyntheticSpends = make([]NoteReshapeSyntheticSpendCircuitFields, nIn)
+	} else {
+		circuit.Spends = make([]NoteReshapeSpendCircuitFields, nIn)
 	}
+	return circuit
 }
 
 func (c *NoteReshapeCircuit) Define(api frontend.API) error {
@@ -59,23 +75,36 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	if c.nIn <= 0 || c.nOut <= 0 {
 		return fmt.Errorf("%s circuit shape must be positive, got %dx%d", c.label, c.nIn, c.nOut)
 	}
-	if len(c.Spends) != c.nIn || len(c.Outputs) != c.nOut {
-		return fmt.Errorf("%s circuit shape mismatch: expected %dx%d, got %dx%d", c.label, c.nIn, c.nOut, len(c.Spends), len(c.Outputs))
+	if len(c.Outputs) != c.nOut {
+		return fmt.Errorf("%s circuit output shape mismatch: expected %d, got %d", c.label, c.nOut, len(c.Outputs))
+	}
+	if family.InputPadding == generated.InputPaddingSyntheticPrivate {
+		if len(c.Spends) != 0 || len(c.SyntheticSpends) != c.nIn {
+			return fmt.Errorf("%s synthetic input shape mismatch: expected %d synthetic spends and no fixed spends, got %d and %d", c.label, c.nIn, len(c.SyntheticSpends), len(c.Spends))
+		}
+	} else if len(c.Spends) != c.nIn || len(c.SyntheticSpends) != 0 {
+		return fmt.Errorf("%s fixed input shape mismatch: expected %d fixed spends and no synthetic spends, got %d and %d", c.label, c.nIn, len(c.Spends), len(c.SyntheticSpends))
 	}
 	if family.NIn != c.nIn || family.NOut != c.nOut {
 		return fmt.Errorf("%s circuit shape mismatch: registry requires %dx%d, got %dx%d", c.label, family.NIn, family.NOut, c.nIn, c.nOut)
 	}
-	if family.UsesDummySlots {
-		if err := c.validatePaddedFlags(api, family); err != nil {
+	if family.InputPadding == generated.InputPaddingSyntheticPrivate {
+		if err := c.validateSyntheticInputSelectors(api, family); err != nil {
 			return err
 		}
 	}
 
 	sharedAK := gnarkte.Point{X: c.Auth.AK.X, Y: c.Auth.AK.Y}
 	claimedBalanceCommitment := gnarkte.Point{X: c.BalanceCommitment.X, Y: c.BalanceCommitment.Y}
-	sharedDivGen := gnarkte.Point{X: c.Spends[0].Note.DivGen.X, Y: c.Spends[0].Note.DivGen.Y}
-	sharedTransmission := gnarkte.Point{X: c.Spends[0].Note.Transmission.X, Y: c.Spends[0].Note.Transmission.Y}
-	sharedAssetID := c.Spends[0].Note.AssetID
+	var firstSpend NoteReshapeSpendCircuitFields
+	if family.InputPadding == generated.InputPaddingSyntheticPrivate {
+		firstSpend = c.SyntheticSpends[0].NoteReshapeSpendCircuitFields
+	} else {
+		firstSpend = c.Spends[0]
+	}
+	sharedDivGen := gnarkte.Point{X: firstSpend.Note.DivGen.X, Y: firstSpend.Note.DivGen.Y}
+	sharedTransmission := gnarkte.Point{X: firstSpend.Note.Transmission.X, Y: firstSpend.Note.Transmission.Y}
+	sharedAssetID := firstSpend.Note.AssetID
 	c.traceWiring(
 		"shared.bind",
 		"shared.ak=auth.ak",
@@ -130,11 +159,23 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	outputCommitments := make([]frontend.Variable, 0, c.nOut)
 	nullifiersAndRKs := make([]frontend.Variable, 0, 2*c.nIn)
 
-	for i := range c.Spends {
+	for i := 0; i < c.nIn; i++ {
 		spendName := fmt.Sprintf("spend%d", i)
 		c.traceWiring("spend.begin", spendName)
 		var amount, nullifier, rkCompressed frontend.Variable
-		if !family.UsesDummySlots {
+		if family.InputPadding == generated.InputPaddingSyntheticPrivate {
+			amount, nullifier, rkCompressed, err = c.verifyPaddedNoteReshapeSpend(
+				api,
+				spendName,
+				sharedAK,
+				sharedDivGen,
+				sharedDivGenFq,
+				sharedTransmission,
+				sharedAssetID,
+				&c.SyntheticSpends[i],
+				i,
+			)
+		} else {
 			amount, nullifier, rkCompressed, err = c.verifyFixedNoteReshapeSpend(
 				api,
 				spendName,
@@ -144,18 +185,6 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				sharedTransmission,
 				sharedAssetID,
 				&c.Spends[i],
-			)
-		} else {
-			amount, nullifier, rkCompressed, err = c.verifyPaddedNoteReshapeSpend(
-				api,
-				spendName,
-				sharedAK,
-				sharedDivGen,
-				sharedDivGenFq,
-				sharedTransmission,
-				sharedAssetID,
-				&c.Spends[i],
-				i,
 			)
 		}
 		if err != nil {
@@ -169,31 +198,16 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	for i := range c.Outputs {
 		outputName := fmt.Sprintf("output%d", i)
 		c.traceWiring("output.begin", outputName)
-		var amount, commitment frontend.Variable
-		if !family.UsesDummySlots {
-			amount, commitment, err = c.verifyFixedNoteReshapeOutput(
-				api,
-				outputName,
-				sharedAK,
-				sharedDivGen,
-				sharedDivGenFq,
-				sharedTransmission,
-				sharedAssetID,
-				&c.Outputs[i],
-			)
-		} else {
-			amount, commitment, err = c.verifyPaddedNoteReshapeOutput(
-				api,
-				outputName,
-				sharedAK,
-				sharedDivGen,
-				sharedDivGenFq,
-				sharedTransmission,
-				sharedAssetID,
-				&c.Outputs[i],
-				c.OutputDummyFlags[i],
-			)
-		}
+		amount, commitment, err := c.verifyFixedNoteReshapeOutput(
+			api,
+			outputName,
+			sharedAK,
+			sharedDivGen,
+			sharedDivGenFq,
+			sharedTransmission,
+			sharedAssetID,
+			&c.Outputs[i],
+		)
 		if err != nil {
 			return err
 		}
@@ -232,19 +246,6 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	statementFields = append(statementFields, balanceCommitmentFq)
 	c.traceWiring("statement.append_all", "fields=nullifiers_and_rks")
 	statementFields = append(statementFields, nullifiersAndRKs...)
-	if family.UsesDummySlots {
-		activeInputs := frontend.Variable(0)
-		for _, spend := range c.Spends {
-			activeInputs = api.Add(activeInputs, api.Sub(1, spend.IsDummy))
-		}
-		activeOutputs := frontend.Variable(0)
-		for _, isDummy := range c.OutputDummyFlags {
-			activeOutputs = api.Add(activeOutputs, api.Sub(1, isDummy))
-		}
-		c.traceWiring("statement.append", "field=active_input_count")
-		statementFields = append(statementFields, activeInputs, activeOutputs)
-	}
-
 	c.traceWiring("statement.hash", "family="+c.label, "fields=statement_fields", "out=statement_hash")
 	statementHash, err := noteReshapeStatementHash(api, c.label, c.nIn, c.nOut, statementFields)
 	if err != nil {
@@ -255,34 +256,19 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func (c *NoteReshapeCircuit) validatePaddedFlags(api frontend.API, family generated.NoteReshapeFamilySpec) error {
-	if len(c.OutputDummyFlags) != c.nOut {
-		return fmt.Errorf("%s output dummy flag count mismatch", c.label)
-	}
-	for index, spend := range c.Spends {
+func (c *NoteReshapeCircuit) validateSyntheticInputSelectors(api frontend.API, family generated.NoteReshapeFamilySpec) error {
+	for index, spend := range c.SyntheticSpends {
 		c.traceWiring("assert.boolean", fmt.Sprintf("value=spend%d.is_dummy", index))
 		api.AssertIsBoolean(spend.IsDummy)
 	}
-	for index, isDummy := range c.OutputDummyFlags {
-		c.traceWiring("assert.boolean", fmt.Sprintf("value=output%d.is_dummy", index))
-		api.AssertIsBoolean(isDummy)
-	}
 	c.traceWiring("assert.dummy_suffix", "flags=spends.is_dummy")
-	assertDummySuffix(api, func(index int) frontend.Variable { return c.Spends[index].IsDummy }, c.nIn)
-	c.traceWiring("assert.dummy_suffix", "flags=outputs.is_dummy")
-	assertDummySuffix(api, func(index int) frontend.Variable { return c.OutputDummyFlags[index] }, c.nOut)
+	assertDummySuffix(api, func(index int) frontend.Variable { return c.SyntheticSpends[index].IsDummy }, c.nIn)
 	activeInputs := frontend.Variable(0)
-	for _, spend := range c.Spends {
+	for _, spend := range c.SyntheticSpends {
 		activeInputs = api.Add(activeInputs, api.Sub(1, spend.IsDummy))
-	}
-	activeOutputs := frontend.Variable(0)
-	for _, isDummy := range c.OutputDummyFlags {
-		activeOutputs = api.Add(activeOutputs, api.Sub(1, isDummy))
 	}
 	c.traceWiring("assert.active_range", "value=active_input_count", fmt.Sprintf("min=%d", family.MinRealInputs), fmt.Sprintf("max=%d", family.MaxRealInputs))
 	assertIntegerRange(api, activeInputs, family.MinRealInputs, family.MaxRealInputs)
-	c.traceWiring("assert.active_range", "value=active_output_count", fmt.Sprintf("min=%d", family.MinRealOutputs), fmt.Sprintf("max=%d", family.MaxRealOutputs))
-	assertIntegerRange(api, activeOutputs, family.MinRealOutputs, family.MaxRealOutputs)
 	return nil
 }
 
@@ -332,7 +318,7 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	sharedDivGenFq frontend.Variable,
 	sharedTransmission gnarkte.Point,
 	sharedAssetID frontend.Variable,
-	spend *TransferSpendCircuitFields,
+	spend *NoteReshapeSyntheticSpendCircuitFields,
 	index int,
 ) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
 	spentDivGen := gnarkte.Point{X: spend.Note.DivGen.X, Y: spend.Note.DivGen.Y}
@@ -455,7 +441,7 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	sharedDivGenFq frontend.Variable,
 	sharedTransmission gnarkte.Point,
 	sharedAssetID frontend.Variable,
-	spend *TransferSpendCircuitFields,
+	spend *NoteReshapeSpendCircuitFields,
 ) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
 	spentDivGen := gnarkte.Point{X: spend.Note.DivGen.X, Y: spend.Note.DivGen.Y}
 	spentTransmission := gnarkte.Point{X: spend.Note.Transmission.X, Y: spend.Note.Transmission.Y}
@@ -529,37 +515,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	api.AssertIsEqual(spend.Note.AssetID, sharedAssetID)
 
 	return spend.Note.Amount, nullifier, rkCompressed, nil
-}
-
-func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeOutput(
-	api frontend.API,
-	name string,
-	sharedAK gnarkte.Point,
-	sharedDivGen gnarkte.Point,
-	sharedDivGenFq frontend.Variable,
-	sharedTransmission gnarkte.Point,
-	sharedAssetID frontend.Variable,
-	output *NoteReshapeOutputCircuitFields,
-	isDummy frontend.Variable,
-) (frontend.Variable, frontend.Variable, error) {
-	amount, commitment, err := c.verifyFixedNoteReshapeOutput(
-		api,
-		name,
-		sharedAK,
-		sharedDivGen,
-		sharedDivGenFq,
-		sharedTransmission,
-		sharedAssetID,
-		output,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	c.traceWiring("assert.boolean", "value="+name+".is_dummy")
-	api.AssertIsBoolean(isDummy)
-	c.traceWiring("assert.eq_if", "lhs="+name+".note.amount", "rhs=0", "enabled="+name+".is_dummy")
-	AssertEqualIf(api, amount, 0, isDummy)
-	return amount, commitment, nil
 }
 
 func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(

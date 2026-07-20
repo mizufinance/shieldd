@@ -3,6 +3,8 @@ package abi
 import (
 	"testing"
 
+	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
@@ -86,5 +88,41 @@ func TestWitnessFamiliesRejectTruncatedPayload(t *testing.T) {
 				t.Fatalf("expected %s witness to reject truncated payload", family.name)
 			}
 		})
+	}
+}
+
+func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
+	fixedPayload := testfixtures.LoadNoteReshapeWitnessV1("note_reshape2x1")
+	fixed, fixedFamily, err := DecodeNoteReshapeWitnessV1(fixedPayload)
+	if err != nil {
+		t.Fatalf("decode fixed-family witness: %v", err)
+	}
+	if fixedFamily.InputPadding != generated.InputPaddingFixed {
+		t.Fatalf("2x1 input policy: got %v", fixedFamily.InputPadding)
+	}
+	for index, spend := range fixed.Spends {
+		if spend.IsDummy || spend.DummyNullifierSeed != [32]byte{} || spend.DummySpendAuthKey != [32]byte{} {
+			t.Fatalf("fixed input %d carries synthetic-padding ABI data", index)
+		}
+	}
+
+	syntheticPayload := testfixtures.LoadNoteReshapeWitnessV1("note_reshape4x1")
+	synthetic, syntheticFamily, err := DecodeNoteReshapeWitnessV1(syntheticPayload)
+	if err != nil {
+		t.Fatalf("decode synthetic-family witness: %v", err)
+	}
+	if syntheticFamily.InputPadding != generated.InputPaddingSyntheticPrivate {
+		t.Fatalf("4x1 input policy: got %v", syntheticFamily.InputPadding)
+	}
+	if !synthetic.Spends[len(synthetic.Spends)-1].IsDummy {
+		t.Fatal("4x1 fixture must carry a private dummy selector")
+	}
+
+	flagOffset := 24 + 3*32 + 4 +
+		primitives.NoteReshapeStatementFieldCount(syntheticFamily.NIn, syntheticFamily.NOut)*32 + 3*32
+	malformed := append([]byte(nil), syntheticPayload...)
+	malformed[flagOffset] = 2
+	if _, _, err := DecodeNoteReshapeWitnessV1(malformed); err == nil {
+		t.Fatal("synthetic-family witness must reject a non-boolean private padding flag")
 	}
 }

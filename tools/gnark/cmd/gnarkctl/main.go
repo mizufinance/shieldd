@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -51,6 +52,8 @@ func main() {
 		err = runExportWiringTranscript(os.Args[2:])
 	case "export-manifest":
 		err = runExportManifest(os.Args[2:])
+	case "export-fv":
+		err = runExportFV(os.Args[2:])
 	case "prove":
 		err = runProve(os.Args[2:])
 	case "replay":
@@ -70,7 +73,95 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|export-manifest|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|export-wiring-transcript|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|export-manifest|export-fv|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|export-wiring-transcript|prove|replay|verify-bench> [flags]")
+}
+
+// runExportFV emits the two deterministic source artifacts needed by the FV
+// gate from one frontend compile. Keeping this operation in one process is
+// important: export-r1cs followed by export-manifest would compile the same
+// expensive family twice.
+func runExportFV(args []string) error {
+	fs := flag.NewFlagSet("export-fv", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "registered NoteReshape family label")
+	sr1csPath := fs.String("sr1cs-out", "", "output .sr1cs path")
+	manifestPath := fs.String("manifest-out", "", "output semantic manifest path")
+	prove := fs.Bool("prove", false, "prove and verify with deployed keys in the same compiled process")
+	witnessPath := fs.String("witness", "", "witness binary path for --prove")
+	artifactDir := fs.String("artifact-dir", "", "deployed key artifact directory for --prove")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *sr1csPath == "" || *manifestPath == "" {
+		return fmt.Errorf("--circuit, --sr1cs-out, and --manifest-out are required")
+	}
+	family, ok := generated.NoteReshapeFamilyByLabel(*circuit)
+	if !ok {
+		return fmt.Errorf("export-fv only supports registered NoteReshape families: %q", *circuit)
+	}
+	ccs, manifest, err := circuits.CompileNoteReshapeForFV(family.Label, family.NIn, family.NOut)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(*sr1csPath), 0o755); err != nil {
+		return fmt.Errorf("create SR1CS output dir: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(*manifestPath), 0o755); err != nil {
+		return fmt.Errorf("create manifest output dir: %w", err)
+	}
+	if err := artifacts.WriteConstraintSystem(*sr1csPath, ccs); err != nil {
+		return err
+	}
+	data, err := os.ReadFile(*sr1csPath)
+	if err != nil {
+		return fmt.Errorf("read emitted SR1CS: %w", err)
+	}
+	sum := sha256.Sum256(data)
+	manifest.SR1CSSHA256Hex = fmt.Sprintf("%x", sum[:])
+	if err := circuits.WriteConstraintManifest(*manifestPath, manifest); err != nil {
+		return err
+	}
+	if *prove {
+		if *witnessPath == "" || *artifactDir == "" {
+			return fmt.Errorf("--witness and --artifact-dir are required with --prove")
+		}
+		payload, err := os.ReadFile(*witnessPath)
+		if err != nil {
+			return fmt.Errorf("read witness: %w", err)
+		}
+		assignment, _, err := witnessAssignment(*circuit, payload)
+		if err != nil {
+			return err
+		}
+		fullWitness, err := frontend.NewWitness(assignment, primitives.ScalarField())
+		if err != nil {
+			return fmt.Errorf("full witness: %w", err)
+		}
+		if err := ccs.IsSolved(fullWitness); err != nil {
+			return fmt.Errorf("solve failed: %w", err)
+		}
+		pk, _, err := loadPK(filepath.Join(*artifactDir, "proving_key.bin"))
+		if err != nil {
+			return err
+		}
+		vk, _, err := loadVK(filepath.Join(*artifactDir, "verifying_key.bin"))
+		if err != nil {
+			return err
+		}
+		publicWitness, err := fullWitness.Public()
+		if err != nil {
+			return fmt.Errorf("public witness: %w", err)
+		}
+		proof, err := groth16.Prove(ccs, pk, fullWitness)
+		if err != nil {
+			return fmt.Errorf("prove: %w", err)
+		}
+		if err := groth16.Verify(proof, vk, publicWitness); err != nil {
+			return fmt.Errorf("verify: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "deployed keys prove-verify ok for %s\n", *circuit)
+	}
+	fmt.Fprintf(os.Stderr, "wrote FV artifacts for %s (constraints %d)\n", *circuit, manifest.NbConstraints)
+	return nil
 }
 
 func runExportWiringTranscript(args []string) error {

@@ -33,7 +33,6 @@ type NoteReshapeSpendWitnessV1Binary struct {
 }
 
 type NoteReshapeOutputWitnessV1Binary struct {
-	IsDummy                   bool
 	NoteCommitment            [32]byte
 	CreatedNoteBlinding       [32]byte
 	CreatedNoteAmount         [32]byte
@@ -49,8 +48,6 @@ type NoteReshapeWitnessV1Binary struct {
 	FamilyID                uint32
 	NIn                     uint32
 	NOut                    uint32
-	ActiveInputs            uint32
-	ActiveOutputs           uint32
 	Anchor                  [32]byte
 	BalanceCommitment       [32]byte
 	ClaimedStatementHash    [32]byte
@@ -75,10 +72,6 @@ func DecodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, ge
 	}
 	if int(witness.NIn) != family.NIn || int(witness.NOut) != family.NOut {
 		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("note reshape witness shape mismatch: got %dx%d, expected %dx%d", witness.NIn, witness.NOut, family.NIn, family.NOut)
-	}
-	if int(witness.ActiveInputs) < family.MinRealInputs || int(witness.ActiveInputs) > family.MaxRealInputs ||
-		int(witness.ActiveOutputs) < family.MinRealOutputs || int(witness.ActiveOutputs) > family.MaxRealOutputs {
-		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("note reshape active counts %dx%d are not canonical for %s", witness.ActiveInputs, witness.ActiveOutputs, family.Label)
 	}
 	return witness, family, nil
 }
@@ -116,11 +109,9 @@ func decodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, er
 	if witness.NOut, err = readU32(reader); err != nil {
 		return nil, err
 	}
-	if witness.ActiveInputs, err = readU32(reader); err != nil {
-		return nil, err
-	}
-	if witness.ActiveOutputs, err = readU32(reader); err != nil {
-		return nil, err
+	family, ok := generated.NoteReshapeFamilyByID(witness.FamilyID)
+	if !ok {
+		return nil, fmt.Errorf("unknown note reshape family id %d", witness.FamilyID)
 	}
 	if witness.Anchor, err = read32(reader); err != nil {
 		return nil, err
@@ -148,7 +139,7 @@ func decodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, er
 	}
 	witness.Spends = make([]NoteReshapeSpendWitnessV1Binary, witness.NIn)
 	for i := range witness.Spends {
-		if witness.Spends[i], err = readNoteReshapeSpend(reader); err != nil {
+		if witness.Spends[i], err = readNoteReshapeSpend(reader, family.InputPadding == generated.InputPaddingSyntheticPrivate); err != nil {
 			return nil, err
 		}
 	}
@@ -167,40 +158,29 @@ func decodeNoteReshapeWitnessV1(payload []byte) (*NoteReshapeWitnessV1Binary, er
 	if reader.Len() != 0 {
 		return nil, fmt.Errorf("trailing bytes in note reshape witness: %d", reader.Len())
 	}
-	activeInputs, activeOutputs := 0, 0
-	for _, spend := range witness.Spends {
-		if !spend.IsDummy {
-			activeInputs++
-		}
-	}
-	for _, output := range witness.Outputs {
-		if !output.IsDummy {
-			activeOutputs++
-		}
-	}
-	if witness.ActiveInputs != uint32(activeInputs) || witness.ActiveOutputs != uint32(activeOutputs) {
-		return nil, fmt.Errorf("note reshape active count does not match explicit flags")
-	}
 	return witness, nil
 }
 
-func readNoteReshapeSpend(reader *bytes.Reader) (NoteReshapeSpendWitnessV1Binary, error) {
+func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (NoteReshapeSpendWitnessV1Binary, error) {
 	var out NoteReshapeSpendWitnessV1Binary
-	flag, err := readU32(reader)
-	if err != nil {
-		return out, err
+	var err error
+	if syntheticPrivatePadding {
+		flag, readErr := readU32(reader)
+		if readErr != nil {
+			return out, readErr
+		}
+		if flag > 1 {
+			return out, fmt.Errorf("invalid note reshape input dummy flag %d", flag)
+		}
+		out.IsDummy = flag == 1
+		if out.DummyNullifierSeed, err = read32(reader); err != nil {
+			return out, err
+		}
+		if out.DummySpendAuthKey, err = read32(reader); err != nil {
+			return out, err
+		}
 	}
-	if flag > 1 {
-		return out, fmt.Errorf("invalid note reshape input dummy flag %d", flag)
-	}
-	out.IsDummy = flag == 1
 	if out.Nullifier, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.DummyNullifierSeed, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.DummySpendAuthKey, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.SpentNoteBlinding, err = read32(reader); err != nil {
@@ -244,14 +224,7 @@ func readNoteReshapeSpend(reader *bytes.Reader) (NoteReshapeSpendWitnessV1Binary
 
 func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessV1Binary, error) {
 	var out NoteReshapeOutputWitnessV1Binary
-	flag, err := readU32(reader)
-	if err != nil {
-		return out, err
-	}
-	if flag > 1 {
-		return out, fmt.Errorf("invalid note reshape output dummy flag %d", flag)
-	}
-	out.IsDummy = flag == 1
+	var err error
 	if out.NoteCommitment, err = read32(reader); err != nil {
 		return out, err
 	}

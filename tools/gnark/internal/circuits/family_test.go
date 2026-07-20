@@ -65,6 +65,25 @@ func variableIsOne(value frontend.Variable) bool {
 	}
 }
 
+func variableIsZero(value frontend.Variable) bool {
+	switch v := value.(type) {
+	case string:
+		return v == "0"
+	case *big.Int:
+		return v.Sign() == 0
+	case big.Int:
+		return v.Sign() == 0
+	case int:
+		return v == 0
+	case int64:
+		return v == 0
+	case uint64:
+		return v == 0
+	default:
+		return false
+	}
+}
+
 func testCircuitFamilies() []circuitFamily {
 	return []circuitFamily{
 		{
@@ -181,22 +200,22 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "note_reshape2x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape2x1", 2, 1) },
-			stats:   circuitStats{constraints: 36553, public: 2, secret: 199, internal: 34439},
+			stats:   circuitStats{constraints: 36553, public: 2, secret: 193, internal: 34439},
 		},
 		{
 			name:    "note_reshape8x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape8x1", 8, 1) },
-			stats:   circuitStats{constraints: 194681, public: 2, secret: 740, internal: 185686},
+			stats:   circuitStats{constraints: 194226, public: 2, secret: 739, internal: 185235},
 		},
 		{
 			name:    "note_reshape4x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape4x1", 4, 1) },
-			stats:   circuitStats{constraints: 102635, public: 2, secret: 380, internal: 97528},
+			stats:   circuitStats{constraints: 102620, public: 2, secret: 379, internal: 97517},
 		},
 		{
 			name:    "note_reshape1x8",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
-			stats:   circuitStats{constraints: 38774, public: 2, secret: 187, internal: 36520},
+			stats:   circuitStats{constraints: 28256, public: 2, secret: 176, internal: 26550},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
@@ -377,8 +396,8 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 	}
 	noteReshape := assignment
 	mutated := false
-	for index, isDummy := range noteReshape.OutputDummyFlags {
-		if variableIsOne(isDummy) {
+	for index, output := range noteReshape.Outputs {
+		if variableIsZero(output.Note.Amount) {
 			noteReshape.Outputs[index].NoteCommitment = mutateFieldByOne(noteReshape.Outputs[index].NoteCommitment)
 			mutated = true
 			break
@@ -397,18 +416,23 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 	)
 }
 
-func TestNoteReshapeRejectsWrongActiveOutputCount(t *testing.T) {
+func TestNoteReshapeRejectsPaddedOutputPayloadMutation(t *testing.T) {
 	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
 	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode note reshape witness fixture: %v", err)
 	}
 	noteReshape := assignment
-	for index, isDummy := range noteReshape.OutputDummyFlags {
-		if variableIsOne(isDummy) {
-			noteReshape.OutputDummyFlags[index] = 0
+	mutated := false
+	for index, output := range noteReshape.Outputs {
+		if variableIsZero(output.Note.Amount) {
+			noteReshape.Outputs[index].Note.Amount = mutateFieldByOne(output.Note.Amount)
+			mutated = true
 			break
 		}
+	}
+	if !mutated {
+		t.Fatal("note_reshape1x8 fixture must contain a zero-note padded output")
 	}
 
 	assert := test.NewAssert(t)

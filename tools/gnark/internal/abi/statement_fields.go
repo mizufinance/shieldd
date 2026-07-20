@@ -210,10 +210,6 @@ func ReconstructedNoteReshapeStatementFieldsFromWitnessV1(
 	witness *NoteReshapeWitnessV1Binary,
 ) ([][32]byte, error) {
 	expected := primitives.NoteReshapeStatementFieldCount(int(witness.NIn), int(witness.NOut))
-	coreExpected := expected
-	if !(witness.NIn == 2 && witness.NOut == 1) {
-		coreExpected -= 2
-	}
 	fields, err := appendNoteReshapeStatementFields(
 		"note reshape",
 		make([][32]byte, 0, expected),
@@ -221,16 +217,10 @@ func ReconstructedNoteReshapeStatementFieldsFromWitnessV1(
 		witness.BalanceCommitmentAffine,
 		witness.Spends,
 		witness.Outputs,
-		coreExpected,
+		expected,
 	)
 	if err != nil {
 		return nil, err
-	}
-	if len(fields) != expected {
-		fields = append(fields,
-			uint64ToLE32(uint64(witness.ActiveInputs)),
-			uint64ToLE32(uint64(witness.ActiveOutputs)),
-		)
 	}
 	if err := ensureFieldCount("note reshape", fields, expected); err != nil {
 		return nil, err

@@ -211,6 +211,25 @@ func WriteConstraintManifest(path string, manifest *ConstraintManifest) error {
 }
 
 func ExportNoteReshapeConstraintManifest(label string, nIn, nOut int, sr1csPath string) (*ConstraintManifest, error) {
+	_, manifest, err := CompileNoteReshapeForFV(label, nIn, nOut)
+	if err != nil {
+		return nil, err
+	}
+	if sr1csPath != "" {
+		hash, err := sha256HexFile(sr1csPath)
+		if err != nil {
+			return nil, err
+		}
+		manifest.SR1CSSHA256Hex = hash
+	}
+	return manifest, nil
+}
+
+// CompileNoteReshapeForFV compiles one NoteReshape circuit once and returns
+// both the compiled constraint system and its semantic manifest. The FV
+// command uses this pair to emit SR1CS and manifest bytes without a second
+// frontend compile.
+func CompileNoteReshapeForFV(label string, nIn, nOut int) (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript(label, nIn, nOut)
 	transcript.recordCounts = true
 	ccs, err := frontend.Compile(
@@ -219,9 +238,13 @@ func ExportNoteReshapeConstraintManifest(label string, nIn, nOut int, sr1csPath 
 		noteReshapeCircuitWithTranscript(label, nIn, nOut, transcript),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("compile %s for constraint manifest: %w", label, err)
+		return nil, nil, fmt.Errorf("compile %s for FV artifacts: %w", label, err)
 	}
-	return transcript.constraintManifest(ccs, sr1csPath)
+	manifest, err := transcript.constraintManifest(ccs, "")
+	if err != nil {
+		return nil, nil, fmt.Errorf("manifest %s for FV artifacts: %w", label, err)
+	}
+	return ccs, manifest, nil
 }
 
 func ExportNoteReshape2x1ConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {

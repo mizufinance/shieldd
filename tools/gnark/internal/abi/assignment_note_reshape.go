@@ -34,13 +34,19 @@ func NewNoteReshapeCircuitAssignmentFromWitnessV1(payload []byte) (*circuits.Not
 		if err != nil {
 			return nil, generated.NoteReshapeFamilySpec{}, err
 		}
-		assignment.Spends[i] = spend
+		if family.InputPadding == generated.InputPaddingSyntheticPrivate {
+			assignment.SyntheticSpends[i] = circuits.NoteReshapeSyntheticSpendCircuitFields{
+				NoteReshapeSpendCircuitFields: spend,
+				IsDummy:                       boolVariable(witness.Spends[i].IsDummy),
+				DummyNullifierSeed:            fqString(witness.Spends[i].DummyNullifierSeed),
+				DummySpendAuthKey:             fqString(witness.Spends[i].DummySpendAuthKey),
+			}
+		} else {
+			assignment.Spends[i] = spend
+		}
 	}
 	for i := range witness.Outputs {
 		assignment.Outputs[i] = newNoteReshapeOutputCircuitFields(&witness.Outputs[i])
-		if len(assignment.OutputDummyFlags) > 0 {
-			assignment.OutputDummyFlags[i] = boolVariable(witness.Outputs[i].IsDummy)
-		}
 	}
 	return assignment, family, nil
 }
@@ -62,12 +68,12 @@ func newNoteReshapeAuthSharedFields(nk [32]byte, akCompressed [32]byte, akAffine
 	}, nil
 }
 
-func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV1Binary) (circuits.TransferSpendCircuitFields, error) {
+func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV1Binary) (circuits.NoteReshapeSpendCircuitFields, error) {
 	statePath, err := statePathFromBinary(witness.StateCommitmentAuthPath)
 	if err != nil {
-		return circuits.TransferSpendCircuitFields{}, fmt.Errorf("decode note reshape spend state commitment auth path: %w", err)
+		return circuits.NoteReshapeSpendCircuitFields{}, fmt.Errorf("decode note reshape spend state commitment auth path: %w", err)
 	}
-	return circuits.TransferSpendCircuitFields{
+	return circuits.NoteReshapeSpendCircuitFields{
 		Nullifier: fqString(witness.Nullifier),
 		RK:        point2DString(witness.RKAffine),
 		Note: noteFields(
@@ -75,11 +81,8 @@ func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV1Binary) 
 			fqString(witness.SpentDivGenAffine.X), fqString(witness.SpentDivGenAffine.Y), fqString(witness.SpentTransmissionKey),
 			fqString(witness.SpentTransmissionAffine.X), fqString(witness.SpentTransmissionAffine.Y), fqString(witness.SpentClueKey),
 		),
-		StateProof:         circuits.StateCommitmentFields{Commitment: fqString(witness.StateCommitmentCommitment), Position: witness.StateCommitmentPosition, Path: statePath},
-		AuthRandomizer:     fqString(witness.SpendAuthRandomizer),
-		IsDummy:            boolVariable(witness.IsDummy),
-		DummyNullifierSeed: fqString(witness.DummyNullifierSeed),
-		DummySpendAuthKey:  fqString(witness.DummySpendAuthKey),
+		StateProof:     circuits.StateCommitmentFields{Commitment: fqString(witness.StateCommitmentCommitment), Position: witness.StateCommitmentPosition, Path: statePath},
+		AuthRandomizer: fqString(witness.SpendAuthRandomizer),
 	}, nil
 }
 
