@@ -23,6 +23,7 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -48,7 +49,9 @@ use shieldd_sdk_fee::component::{
     clear_block_fee_price_cache, FeeComponent, FeePay as _, StateReadExt as _, StateWriteExt as _,
 };
 use shieldd_sdk_fee::{Fee, Gas, GasPrices};
-use shieldd_sdk_ibc::component::StateWriteExt as _;
+use shieldd_sdk_governance::component::{Governance, StateReadExt as _, StateWriteExt as _};
+use shieldd_sdk_ibc::component::{Ibc, StateWriteExt as _};
+use shieldd_sdk_ibc::StateReadExt as _;
 use shieldd_sdk_proof_aggregation::{
     aggregate_family_profiled, pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
     verify_family_aggregate_profiled_status, AggregateBuildBackendProfile, AggregateBundle,
@@ -74,11 +77,14 @@ use shieldd_sdk_shielded_pool::component::{
 use shieldd_sdk_transaction::gas::GasCost as _;
 use shieldd_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters};
 use shieldd_sdk_txhash::AuthorizingData as _;
-use shieldd_sdk_validator::component::StateWriteExt as _;
+use shieldd_sdk_validator::component::{
+    stake::ConsensusUpdateRead, Staking, StateReadExt as _, StateWriteExt as _,
+};
 use tendermint::abci::{self, Event};
 use tendermint::v0_37::abci::{request, response};
 use tendermint::validator::Update;
 use tendermint::{account, block, chain, AppHash, Hash, Time};
+use tokio::time::sleep;
 use tracing::{instrument, Instrument};
 
 use crate::action_handler::transaction::{
@@ -88,7 +94,9 @@ use crate::action_handler::transaction::{
 };
 use crate::action_handler::AppActionHandler;
 use crate::block_tx_indexing::BlockTxIndexingMode;
+use crate::event::EventAppParametersChange;
 use crate::genesis::AppState;
+use crate::params::change::ParameterChangeExt as _;
 
 use crate::params::AppParameters;
 use crate::stateless_cache::{CacheEntry, HistoricalValidationStamp, StatelessCache, TxArtifact};
@@ -1511,9 +1519,8 @@ impl App {
                             .push(item);
                     }
                     Action::ValidatorDefinition(action) => action.check_stateless(()).await?,
-                    Action::ValidatorVote(_) | Action::ProposalSubmit(_) => {
-                        anyhow::bail!("governance actions are disabled in host-driven Shieldd")
-                    }
+                    Action::ValidatorVote(action) => action.check_stateless(()).await?,
+                    Action::ProposalSubmit(action) => action.check_stateless(()).await?,
                     Action::IbcRelay(action) => {
                         action
                             .clone()
@@ -3728,6 +3735,12 @@ impl App {
     /// Returns whether the application is ready to start.
     #[instrument(skip_all, ret)]
     pub async fn is_ready(state: Snapshot) -> bool {
+        // If the chain is halted, we are not ready to start the application.
+        // This is a safety mechanism to prevent the chain from starting if it
+        // is in a halted state.
+        if state.is_chain_halted().await {
+            return false;
+        }
         if let Err(error) = shieldd_sdk_sct::nullifier_tree::verify_committed_root(&state).await {
             tracing::error!(?error, "nullifier tree root check failed");
             return false;
@@ -3774,6 +3787,16 @@ impl App {
                 state_tx.put_chain_id(genesis.chain_id.clone());
                 Sct::init_chain(&mut state_tx, Some(&genesis.sct_content)).await;
                 ShieldedPool::init_chain(&mut state_tx, Some(&genesis.shielded_pool_content)).await;
+                Staking::init_chain(
+                    &mut state_tx,
+                    Some(&(
+                        genesis.validator_content.clone(),
+                        genesis.shielded_pool_content.clone(),
+                    )),
+                )
+                .await;
+                Ibc::init_chain(&mut state_tx, Some(&genesis.ibc_content)).await;
+                Governance::init_chain(&mut state_tx, Some(&genesis.governance_content)).await;
                 FeeComponent::init_chain(&mut state_tx, Some(&genesis.fee_content)).await;
                 // Initialize compliance component with empty trees for anchor tracking.
                 // Unregulated assets don't need registration (proven via non-membership).
@@ -3786,6 +3809,9 @@ impl App {
             }
             AppState::Checkpoint(_) => {
                 ShieldedPool::init_chain(&mut state_tx, None).await;
+                Staking::init_chain(&mut state_tx, None).await;
+                Ibc::init_chain(&mut state_tx, None).await;
+                Governance::init_chain(&mut state_tx, None).await;
                 FeeComponent::init_chain(&mut state_tx, None).await;
                 Compliance::init_chain(&mut state_tx, None).await;
             }
@@ -3813,6 +3839,13 @@ impl App {
         PrepareProposalProfile,
         Option<ProposalArtifactSidecar>,
     ) {
+        if self.state.is_chain_halted().await {
+            // If we find ourselves preparing a proposal for a halted chain
+            // we stop abruptly to prevent any progress.
+            // The persistent halt mechanism will prevent restarts until we are ready.
+            process::exit(0);
+        }
+
         let num_candidate_txs = proposal.txs.len();
         tracing::debug!(
             "processing PrepareProposal, found {} candidate transactions",
@@ -4459,12 +4492,56 @@ impl App {
         self.pending_sct_append_log.clear();
         let mut state_tx = StateDelta::new(self.state.clone());
 
+        // If a app parameter change is scheduled for this block, apply it here,
+        // before any other component has executed. This ensures that app
+        // parameter changes are consistently applied precisely at the boundary
+        // between blocks.
+        //
+        // Note that because _nothing_ has executed yet, we need to get the
+        // current height from the begin_block request, rather than from the
+        // state (it will be set by the SCT component, which executes first).
+        if let Some(change) = state_tx
+            .param_changes_for_height(begin_block.header.height.into())
+            .await
+            .expect("param changes should always be readable, even if unset")
+        {
+            let old_params = state_tx
+                .get_app_params()
+                .await
+                .expect("must be able to read app params");
+            match change.apply_changes(old_params) {
+                Ok(new_params) => {
+                    tracing::info!(?change, "applied app parameter change");
+                    state_tx.put_app_params(new_params.clone());
+                    state_tx.record_proto(
+                        EventAppParametersChange {
+                            new_parameters: new_params,
+                        }
+                        .to_proto(),
+                    )
+                }
+                Err(e) => {
+                    // N.B. this is an "info" rather than "warn" because it does not report
+                    // a problem with _this instance of the application_, but rather is an expected
+                    // behavior.
+                    tracing::info!(?change, ?e, "failed to apply approved app parameter change");
+                }
+            }
+        }
+
         clear_block_fee_price_cache(&mut state_tx);
 
         // Run each of the begin block handlers for each component, in sequence:
         let mut arc_state_tx = Arc::new(state_tx);
         Sct::begin_block(&mut arc_state_tx, begin_block).await;
         ShieldedPool::begin_block(&mut arc_state_tx, begin_block).await;
+        Ibc::begin_block::<ShielddHost, StateDelta<Arc<StateDelta<cnidarium::Snapshot>>>>(
+            &mut arc_state_tx,
+            begin_block,
+        )
+        .await;
+        Governance::begin_block(&mut arc_state_tx, begin_block).await;
+        Staking::begin_block(&mut arc_state_tx, begin_block).await;
         FeeComponent::begin_block(&mut arc_state_tx, begin_block).await;
 
         let state_tx = Arc::try_unwrap(arc_state_tx)
@@ -5965,6 +6042,9 @@ impl App {
         let mut arc_state_tx = Arc::new(state_tx);
         Sct::end_block(&mut arc_state_tx, end_block).await;
         ShieldedPool::end_block(&mut arc_state_tx, end_block).await;
+        Ibc::end_block(&mut arc_state_tx, end_block).await;
+        Governance::end_block(&mut arc_state_tx, end_block).await;
+        Staking::end_block(&mut arc_state_tx, end_block).await;
         FeeComponent::end_block(&mut arc_state_tx, end_block).await;
         Compliance::end_block(&mut arc_state_tx, end_block).await;
         let mut state_tx = Arc::try_unwrap(arc_state_tx)
@@ -5988,9 +6068,12 @@ impl App {
                 .expect("able to get epoch duration in end_block"),
         ) || state_tx.is_epoch_ending_early().await;
 
-        // Shieldd governance is detached in host-driven mode, so Shieldd no
-        // longer schedules internal chain upgrades.
-        let is_chain_upgrade = false;
+        // If a chain upgrade is scheduled for the next block, we trigger an early epoch change
+        // so that the upgraded chain starts at a clean epoch boundary.
+        let is_chain_upgrade = state_tx
+            .is_pre_upgrade_height()
+            .await
+            .expect("able to detect upgrade heights");
 
         if is_end_epoch || is_chain_upgrade {
             tracing::info!(%is_end_epoch, %is_chain_upgrade, ?current_height, "ending epoch");
@@ -6000,9 +6083,18 @@ impl App {
             Sct::end_epoch(&mut arc_state_tx)
                 .await
                 .expect("able to call end_epoch on Sct component");
+            Ibc::end_epoch(&mut arc_state_tx)
+                .await
+                .expect("able to call end_epoch on IBC component");
+            Governance::end_epoch(&mut arc_state_tx)
+                .await
+                .expect("able to call end_epoch on Governance component");
             ShieldedPool::end_epoch(&mut arc_state_tx)
                 .await
                 .expect("able to call end_epoch on shielded pool component");
+            Staking::end_epoch(&mut arc_state_tx)
+                .await
+                .expect("able to call end_epoch on Staking component");
             FeeComponent::end_epoch(&mut arc_state_tx)
                 .await
                 .expect("able to call end_epoch on Fee component");
@@ -6057,10 +6149,26 @@ impl App {
         let flush_ms = flush_start.elapsed().as_secs_f64() * 1000.0;
         // We need to extract the State we've built up to commit it.  Fill in a dummy state.
         let dummy_state = StateDelta::new(storage.latest_snapshot());
-        let state = Arc::try_unwrap(std::mem::replace(&mut self.state, Arc::new(dummy_state)))
+        let mut state = Arc::try_unwrap(std::mem::replace(&mut self.state, Arc::new(dummy_state)))
             .expect("we have exclusive ownership of the State at commit()");
 
-        let halt_check_ms = 0.0;
+        // Check if an emergency halt has been signaled.
+        let halt_check_start = Instant::now();
+        let should_halt = state.is_chain_halted().await;
+
+        let is_pre_upgrade_height = state
+            .is_pre_upgrade_height()
+            .await
+            .expect("must be able to read upgrade height");
+        let halt_check_ms = halt_check_start.elapsed().as_secs_f64() * 1000.0;
+
+        // If the next height is an upgrade height, we signal a halt and turn
+        // a `halt_bit` on which will prevent the chain from restarting without
+        // running a migration.
+        if is_pre_upgrade_height {
+            tracing::info!("pre-upgrade height reached, signaling halt");
+            state.signal_halt();
+        }
 
         // Commit the pending writes, clearing the state.
         let storage_commit_start = Instant::now();
@@ -6069,6 +6177,18 @@ impl App {
             .await
             .expect("must be able to successfully commit to storage");
         let storage_commit_ms = storage_commit_start.elapsed().as_secs_f64() * 1000.0;
+
+        // We want to halt the node, but not before we submit an ABCI `Commit`
+        // response to `CometBFT`. To do this, we schedule a process exit in `2s`,
+        // assuming a `5s` timeout.
+        // See #4443 for more context.
+        if should_halt || is_pre_upgrade_height {
+            tokio::spawn(async move {
+                sleep(Duration::from_secs(2)).await;
+                tracing::info!("halt signal recorded, exiting process");
+                std::process::exit(0);
+            });
+        }
 
         tracing::debug!(?jmt_root, "finished committing state");
 
@@ -6096,7 +6216,11 @@ impl App {
     }
 
     pub fn cometbft_validator_updates(&self) -> Vec<Update> {
-        Vec::new()
+        self.state
+            .cometbft_validator_updates()
+            // If the cometbft validator updates are not set, we return an empty
+            // update set, signaling no change to Tendermint.
+            .unwrap_or_default()
     }
 }
 
@@ -6142,18 +6266,12 @@ pub trait StateReadExt: StateRead {
     async fn get_app_params(&self) -> Result<AppParameters> {
         let chain_id = self.get_chain_id().await?;
         let compliance_params = self.get_compliance_params().await?;
-        // IBC is being removed from the app lifecycle. Keep the public app-params
-        // shape populated until the component is deleted.
-        let ibc_params = Default::default();
+        let ibc_params = self.get_ibc_params().await?;
         let fee_params = self.get_fee_params().await?;
-        // Governance is detached from the host-driven Shieldd lifecycle. Keep
-        // the public app-params shape populated until the component is deleted.
-        let governance_params = Default::default();
+        let governance_params = self.get_governance_params().await?;
         let sct_params = self.get_sct_params().await?;
         let shielded_pool_params = self.get_shielded_pool_params().await?;
-        // Staking is being removed from the app lifecycle. Keep the public app-params
-        // shape populated until the component is deleted.
-        let validator_params = Default::default();
+        let validator_params = self.get_stake_params().await?;
 
         Ok(AppParameters {
             chain_id,
@@ -6192,6 +6310,7 @@ pub trait StateReadExt: StateRead {
 impl<
         T: StateRead
             + shieldd_sdk_validator::StateReadExt
+            + shieldd_sdk_governance::component::StateReadExt
             + shieldd_sdk_fee::component::StateReadExt
             + shieldd_sdk_sct::component::clock::EpochRead
             + shieldd_sdk_ibc::component::StateReadExt
@@ -6241,7 +6360,7 @@ pub trait StateWriteExt: StateWrite {
             chain_id,
             compliance_params,
             fee_params,
-            governance_params: _,
+            governance_params,
             ibc_params,
             sct_params,
             shielded_pool_params,
@@ -6256,6 +6375,7 @@ pub trait StateWriteExt: StateWrite {
 
         self.put_fee_params(fee_params);
         self.put_compliance_params(compliance_params);
+        self.put_governance_params(governance_params);
         self.put_ibc_params(ibc_params);
         self.put_sct_params(sct_params);
         self.put_shielded_pool_params(shielded_pool_params);
