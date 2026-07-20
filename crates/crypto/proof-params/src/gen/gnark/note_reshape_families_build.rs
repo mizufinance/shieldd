@@ -1,8 +1,21 @@
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InputPaddingPolicy {
+    Fixed,
+    SyntheticPrivate,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OutputPaddingPolicy {
+    Fixed,
+    ZeroNote,
+}
+
 pub struct GeneratedNoteReshapeFamily {
     pub id: u32,
     pub label: &'static str,
     pub artifact_name: &'static str,
-    pub uses_dummy_slots: bool,
+    pub input_padding: InputPaddingPolicy,
+    pub output_padding: OutputPaddingPolicy,
     pub n_in: usize,
     pub n_out: usize,
     pub min_real_inputs: usize,
@@ -16,7 +29,8 @@ pub const GENERATED_NOTE_RESHAPE_FAMILIES: &[GeneratedNoteReshapeFamily] = &[
         id: 1,
         label: "note_reshape2x1",
         artifact_name: "note_reshape2x1",
-        uses_dummy_slots: false,
+        input_padding: InputPaddingPolicy::Fixed,
+        output_padding: OutputPaddingPolicy::Fixed,
         n_in: 2,
         n_out: 1,
         min_real_inputs: 2,
@@ -28,7 +42,8 @@ pub const GENERATED_NOTE_RESHAPE_FAMILIES: &[GeneratedNoteReshapeFamily] = &[
         id: 2,
         label: "note_reshape1x8",
         artifact_name: "note_reshape1x8",
-        uses_dummy_slots: true,
+        input_padding: InputPaddingPolicy::Fixed,
+        output_padding: OutputPaddingPolicy::ZeroNote,
         n_in: 1,
         n_out: 8,
         min_real_inputs: 1,
@@ -40,7 +55,8 @@ pub const GENERATED_NOTE_RESHAPE_FAMILIES: &[GeneratedNoteReshapeFamily] = &[
         id: 3,
         label: "note_reshape8x1",
         artifact_name: "note_reshape8x1",
-        uses_dummy_slots: true,
+        input_padding: InputPaddingPolicy::SyntheticPrivate,
+        output_padding: OutputPaddingPolicy::Fixed,
         n_in: 8,
         n_out: 1,
         min_real_inputs: 5,
@@ -52,7 +68,8 @@ pub const GENERATED_NOTE_RESHAPE_FAMILIES: &[GeneratedNoteReshapeFamily] = &[
         id: 4,
         label: "note_reshape4x1",
         artifact_name: "note_reshape4x1",
-        uses_dummy_slots: true,
+        input_padding: InputPaddingPolicy::SyntheticPrivate,
+        output_padding: OutputPaddingPolicy::Fixed,
         n_in: 4,
         n_out: 1,
         min_real_inputs: 3,

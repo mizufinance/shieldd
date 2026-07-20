@@ -82,7 +82,7 @@ theorem seg30_prefix_steps8 (rho : Nat -> Seg30.F)
     (r701 : Seg30.relationRow701 rho)
     : ∀ i, 81 ≤ i → i ≤ 90 → onCurve (seg30RvkAcc rho i) →
         RvkFixedBaseLadder.FixedStepRel i
-          (rho (28317 + i)) (seg30RvkAcc rho i) (seg30RvkAcc rho (i + 1)) := by
+          (rho (28311 + i)) (seg30RvkAcc rho i) (seg30RvkAcc rho (i + 1)) := by
   intro i hlo hhi hacc
   interval_cases i
   · exact seg30_prefix_step81 rho r81 r652 r653 r654 r655 r656 hacc

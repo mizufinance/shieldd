@@ -284,7 +284,7 @@ theorem seg6Canon1_binary (rho : Nat -> Seg6.F) (h : Seg6.relation rho) : is_vec
   apply Shieldd.GnarkFormal.Extracted.CanonicalFqBits.isVectorBinary_of_booleanity
   intro i hi
   have key := seg6Canon1Bits_get rho i hi
-  have hgoal : rho (934 + i) * (1 - rho (934 + i)) = 0 := by
+  have hgoal : rho (928 + i) * (1 - rho (928 + i)) = 0 := by
     interval_cases i
     · linear_combination r28
     · linear_combination r29

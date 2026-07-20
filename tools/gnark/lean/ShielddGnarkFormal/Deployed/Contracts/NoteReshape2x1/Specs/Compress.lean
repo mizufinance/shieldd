@@ -12,18 +12,18 @@ conservation commitment, whose coordinates are the unmaterialized accumulator
 LCs `nbX`/`nbY` (see Specs/Nb.lean). -/
 def deployedSpec5 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Extracted.DecafCompressToField.Relation
-    (rho 17) (rho 18) (rho 912 - rho 572)
+    (rho 17) (rho 18) (rho 906 - rho 566)
 
 def deployedSpec17 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Extracted.DecafCompressToField.Relation
-    (rho 12) (rho 13) (rho 18651 - rho 18311)
+    (rho 12) (rho 13) (rho 18645 - rho 18305)
 
 def deployedSpec32 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Extracted.DecafCompressToField.Relation
-    (rho 102) (rho 103) (rho 30832 - rho 30492)
+    (rho 99) (rho 100) (rho 30826 - rho 30486)
 
 def deployedSpec48 (rho : Nat → DeployedF) : Prop :=
   Shieldd.GnarkFormal.Extracted.DecafCompressToField.Relation
-    (nbX rho) (nbY rho) (rho 34169 - rho 33829)
+    (nbX rho) (nbY rho) (rho 34163 - rho 33823)
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs

@@ -61,11 +61,21 @@ def main() -> None:
         require(
             go,
             "{ID: %(id)d, Label: \"%(label)s\", ArtifactName: \"%(artifact_name)s\", "
-            "UsesDummySlots: %(uses_dummy_slots)s, "
+            "InputPadding: InputPadding%(input_padding)s, "
+            "OutputPadding: OutputPadding%(output_padding)s, "
             "NIn: %(n_in)d, NOut: %(n_out)d, MinRealInputs: %(min_real_inputs)d, "
             "MaxRealInputs: %(max_real_inputs)d, MinRealOutputs: %(min_real_outputs)d, "
             "MaxRealOutputs: %(max_real_outputs)d}"
-            % (family | {"uses_dummy_slots": str(family["uses_dummy_slots"]).lower()}),
+            % (family | {
+                "input_padding": {
+                    "fixed": "Fixed",
+                    "synthetic_private": "SyntheticPrivate",
+                }[family["input_padding"]],
+                "output_padding": {
+                    "fixed": "Fixed",
+                    "zero_note": "ZeroNote",
+                }[family["output_padding"]],
+            }),
             "Go registry",
         )
 
@@ -75,7 +85,8 @@ def main() -> None:
             [
                 f'        label: "{family["label"]}",',
                 f'        artifact_name: "{family["artifact_name"]}",',
-                f'        uses_dummy_slots: {str(family["uses_dummy_slots"]).lower()},',
+                f'        input_padding: InputPaddingPolicy::{"Fixed" if family["input_padding"] == "fixed" else "SyntheticPrivate"},',
+                f'        output_padding: OutputPaddingPolicy::{"Fixed" if family["output_padding"] == "fixed" else "ZeroNote"},',
                 f'        n_in: {family["n_in"]},',
                 f'        n_out: {family["n_out"]},',
                 f'        min_real_inputs: {family["min_real_inputs"]},',

@@ -14,6 +14,8 @@ import json
 import re
 from pathlib import Path
 
+from write_if_changed import write_if_changed
+
 SEMANTICS = (
     Path(__file__).resolve().parents[1]
     / "ShielddGnarkFormal/Deployed/Templates/Semantics"
@@ -347,8 +349,7 @@ def main() -> None:
             if path.read_text() != contents:
                 raise SystemExit(f"stale generated family artifact: {path}")
         else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(contents)
+            write_if_changed(path, contents)
     if not args.check:
         print(f"wrote {module} family proof artifacts ({len(files)})")
 

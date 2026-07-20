@@ -17,7 +17,7 @@ class NoteReshapeDummyRvkSemanticsTest(unittest.TestCase):
 
     def test_exact_registry_and_normalized_shape_pins(self) -> None:
         self.assertEqual(gen.TEMPLATE_KEY, "decaf.randomized_verification_key.dummy@e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5")
-        self.assertEqual((gen.CIRCUIT, gen.SEGMENT), ("note_reshape4x1", 27))
+        self.assertEqual((gen.CIRCUIT, gen.SEGMENT), ("note_reshape4x1", 24))
         self.assertEqual((gen.CONSTRAINT_COUNT, gen.LOCAL_WIRE_COUNT), (3618, 3619))
 
     def test_two_exact_fixed_base_ladders_and_native_tail(self) -> None:

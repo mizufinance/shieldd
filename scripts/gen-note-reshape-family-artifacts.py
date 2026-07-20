@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 
@@ -13,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FORMAL = ROOT / "crates/core/component/shielded-pool/formal"
 GNARK = ROOT / "tools/gnark"
 LEAN = GNARK / "lean"
+sys.path.insert(0, str(LEAN / "gen"))
+from write_if_changed import write_if_changed
 
 FAMILIES = {
     "note_reshape4x1": "NoteReshape4x1",
@@ -105,8 +108,8 @@ def main() -> None:
             if path.read_text() != contents:
                 raise SystemExit(f"stale family artifact: {path}")
         else:
-            path.write_text(contents)
-            print(f"wrote {path}")
+            if write_if_changed(path, contents):
+                print(f"wrote {path}")
 
 
 if __name__ == "__main__":

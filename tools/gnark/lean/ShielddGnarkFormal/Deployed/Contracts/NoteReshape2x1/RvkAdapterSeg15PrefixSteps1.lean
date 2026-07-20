@@ -82,7 +82,7 @@ theorem seg15_prefix_steps1 (rho : Nat -> Seg15.F)
     (r351 : Seg15.relationRow351 rho)
     : ∀ i, 11 ≤ i → i ≤ 20 → onCurve (seg15RvkAcc rho i) →
         RvkFixedBaseLadder.FixedStepRel i
-          (rho (16136 + i)) (seg15RvkAcc rho i) (seg15RvkAcc rho (i + 1)) := by
+          (rho (16130 + i)) (seg15RvkAcc rho i) (seg15RvkAcc rho (i + 1)) := by
   intro i hlo hhi hacc
   interval_cases i
   · exact seg15_prefix_step11 rho r11 r302 r303 r304 r305 r306 hacc

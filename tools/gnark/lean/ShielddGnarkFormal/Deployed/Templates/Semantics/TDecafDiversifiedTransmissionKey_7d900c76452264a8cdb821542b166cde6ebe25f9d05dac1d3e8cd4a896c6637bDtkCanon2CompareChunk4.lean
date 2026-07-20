@@ -44,63 +44,63 @@ theorem dtkCanon2_compare_chunk4 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 65 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 66 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 66 = rho 1602 from rfl]
     linear_combination r984
   · erw [dtkCanon2Bits_get rho 66 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 67 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 67 = rho 1602 from rfl]
     linear_combination r983
   · erw [dtkCanon2Bits_get rho 67 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 68 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 68 = rho 1602 from rfl]
     linear_combination r982
   · erw [dtkCanon2Bits_get rho 68 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 69 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 69 = rho 1602 from rfl]
     linear_combination r981
   · erw [dtkCanon2Bits_get rho 69 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 70 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 70 = rho 1602 from rfl]
     linear_combination r980
   · erw [dtkCanon2Bits_get rho 70 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 71 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 71 = rho 1602 from rfl]
     linear_combination r979
   · erw [dtkCanon2Bits_get rho 71 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 72 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 72 = rho 1602 from rfl]
     linear_combination r978
   · erw [dtkCanon2Bits_get rho 72 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 73 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 73 = rho 1602 from rfl]
     linear_combination r977
   · erw [dtkCanon2Bits_get rho 73 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 74 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 74 = rho 1602 from rfl]
     linear_combination r976
   · erw [dtkCanon2Bits_get rho 74 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 75 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 75 = rho 1602 from rfl]
     linear_combination r975
   · erw [dtkCanon2Bits_get rho 75 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 76 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 76 = rho 1602 from rfl]
     linear_combination r974
   · erw [dtkCanon2Bits_get rho 76 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 77 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 77 = rho 1602 from rfl]
     linear_combination r973
   · erw [dtkCanon2Bits_get rho 77 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 78 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 78 = rho 1602 from rfl]
     linear_combination r972
   · erw [dtkCanon2Bits_get rho 78 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 79 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 79 = rho 1602 from rfl]
     linear_combination r971
   · erw [dtkCanon2Bits_get rho 79 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 80 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 80 = rho 1602 from rfl]
     linear_combination r970
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

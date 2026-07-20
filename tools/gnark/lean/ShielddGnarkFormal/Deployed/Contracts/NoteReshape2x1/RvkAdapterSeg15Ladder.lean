@@ -924,7 +924,7 @@ theorem seg15_prefix_steps (rho : Nat -> Seg15.F)
     (r996 : Seg15.relationRow996 rho)
     : ∀ i, 1 ≤ i → i ≤ 149 → onCurve (seg15RvkAcc rho i) →
         RvkFixedBaseLadder.FixedStepRel i
-          (rho (16136 + i)) (seg15RvkAcc rho i) (seg15RvkAcc rho (i + 1)) := by
+          (rho (16130 + i)) (seg15RvkAcc rho i) (seg15RvkAcc rho (i + 1)) := by
   have hs0 := seg15_prefix_steps0 rho
       r1 r252 r253 r254 r255 r256 r2 r257 r258 r259
       r260 r261 r3 r262 r263 r264 r265 r266 r4 r267

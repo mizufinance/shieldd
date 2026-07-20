@@ -60,8 +60,10 @@ while IFS= read -r circuit; do
 
   (
     cd "$GNARK_DIR"
-    go run ./cmd/gnarkctl export-r1cs --circuit "$circuit" --out "$sr1cs" >/dev/null
-    go run ./cmd/gnarkctl export-manifest --circuit "$circuit" --sr1cs "$sr1cs" --out "$fresh" >/dev/null
+    go run ./cmd/gnarkctl export-fv \
+      --circuit "$circuit" \
+      --sr1cs-out "$sr1cs" \
+      --manifest-out "$fresh" >/dev/null
   )
 
   want="$(json_field "$committed" sr1cs_sha256_hex)"

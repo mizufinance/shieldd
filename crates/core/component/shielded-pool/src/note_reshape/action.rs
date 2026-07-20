@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 
 use anyhow::{Context, Error};
+use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
@@ -21,7 +22,12 @@ pub struct NoteReshapeInputBody {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
     pub encrypted_backref: EncryptedBackref,
-    pub is_dummy: bool,
+}
+
+impl NoteReshapeInputBody {
+    pub fn is_dummy(&self) -> bool {
+        self.encrypted_backref.is_empty() || self.nullifier.0 == Fq::from(0u64)
+    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -33,7 +39,12 @@ pub struct NoteReshapeOutputBody {
     pub note_payload: NotePayload,
     pub wrapped_memo_key: WrappedMemoKey,
     pub ovk_wrapped_key: OvkWrappedKey,
-    pub is_dummy: bool,
+}
+
+impl NoteReshapeOutputBody {
+    pub fn is_dummy(&self) -> bool {
+        self.wrapped_memo_key.0 == [0u8; 48] && self.ovk_wrapped_key.0 == [0u8; 48]
+    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -69,60 +80,8 @@ impl NoteReshapeBody {
             self.family_id.output_count(),
             self.outputs.len()
         );
-        validate_dummy_suffix(
-            "input",
-            &self
-                .inputs
-                .iter()
-                .map(|input| input.is_dummy)
-                .collect::<Vec<_>>(),
-        )?;
-        validate_dummy_suffix(
-            "output",
-            &self
-                .outputs
-                .iter()
-                .map(|output| output.is_dummy)
-                .collect::<Vec<_>>(),
-        )?;
-        let real_inputs = self.inputs.iter().filter(|input| !input.is_dummy).count();
-        let real_outputs = self
-            .outputs
-            .iter()
-            .filter(|output| !output.is_dummy)
-            .count();
-        self.family_id
-            .validate_real_counts(real_inputs, real_outputs)?;
-        anyhow::ensure!(
-            !self
-                .inputs
-                .first()
-                .map(|input| input.is_dummy)
-                .unwrap_or(true),
-            "note reshape input slot 0 must be real"
-        );
-        anyhow::ensure!(
-            !self
-                .outputs
-                .first()
-                .map(|output| output.is_dummy)
-                .unwrap_or(true),
-            "note reshape output slot 0 must be real"
-        );
         Ok(())
     }
-}
-
-fn validate_dummy_suffix(label: &str, flags: &[bool]) -> anyhow::Result<()> {
-    let mut saw_dummy = false;
-    for (index, is_dummy) in flags.iter().copied().enumerate() {
-        if is_dummy {
-            saw_dummy = true;
-        } else if saw_dummy {
-            anyhow::bail!("note reshape {label} dummy flag at slot {index} is not a suffix")
-        }
-    }
-    Ok(())
 }
 
 impl EffectingData for NoteReshapeBody {
@@ -199,7 +158,6 @@ impl From<NoteReshapeInputBody> for pb::NoteReshapeInputBody {
             nullifier: Some(msg.nullifier.into()),
             rk: Some(msg.rk.into()),
             encrypted_backref: msg.encrypted_backref.into(),
-            is_dummy: msg.is_dummy,
         }
     }
 }
@@ -233,7 +191,6 @@ impl TryFrom<pb::NoteReshapeInputBody> for NoteReshapeInputBody {
                 .try_into()
                 .context("malformed rk")?,
             encrypted_backref,
-            is_dummy: proto.is_dummy,
         })
     }
 }
@@ -248,7 +205,6 @@ impl From<NoteReshapeOutputBody> for pb::NoteReshapeOutputBody {
             note_payload: Some(msg.note_payload.into()),
             wrapped_memo_key: msg.wrapped_memo_key.0.to_vec(),
             ovk_wrapped_key: msg.ovk_wrapped_key.0.to_vec(),
-            is_dummy: msg.is_dummy,
         }
     }
 }
@@ -273,7 +229,6 @@ impl TryFrom<pb::NoteReshapeOutputBody> for NoteReshapeOutputBody {
                 .context("malformed note payload")?,
             wrapped_memo_key: WrappedMemoKey(wrapped_memo_key),
             ovk_wrapped_key: OvkWrappedKey(ovk_wrapped_key),
-            is_dummy: proto.is_dummy,
         })
     }
 }
@@ -330,6 +285,14 @@ impl TryFrom<pb::NoteReshapeBody> for NoteReshapeBody {
 mod tests {
     use super::{pb, NoteReshapeBody};
 
+    fn struct_body<'a>(source: &'a str, name: &str) -> &'a str {
+        let start = source
+            .find(&format!("pub struct {name}"))
+            .expect("source struct should exist");
+        let body = &source[start..];
+        &body[..body.find('}').expect("source struct should close")]
+    }
+
     // TXN-M3: an attacker-controlled family_id that is not in the registry must be
     // rejected at the wire boundary, before it can reach the panicking spec() /
     // proof_verification_key() lookups in consensus verification.
@@ -345,5 +308,39 @@ mod tests {
             err.to_string().contains("family"),
             "expected a family-id error, got: {err}"
         );
+    }
+
+    #[test]
+    fn note_reshape_public_encodings_have_no_dummy_flags_after_redesign() {
+        for (source, names) in [
+            (
+                include_str!("action.rs"),
+                vec![
+                    "NoteReshapeInputBody",
+                    "NoteReshapeOutputBody",
+                    "NoteReshapeBody",
+                ],
+            ),
+            (
+                include_str!("proof.rs"),
+                vec![
+                    "NoteReshapeInputPublic",
+                    "NoteReshapeOutputPublic",
+                    "NoteReshapeProofPublic",
+                ],
+            ),
+            (
+                include_str!("../gnark/note_reshape_witness.rs"),
+                vec!["NoteReshapeOutputWitnessV1"],
+            ),
+        ] {
+            for name in names {
+                let body = struct_body(source, name);
+                assert!(
+                    !body.contains("is_dummy"),
+                    "{name} still exposes an explicit dummy flag"
+                );
+            }
+        }
     }
 }

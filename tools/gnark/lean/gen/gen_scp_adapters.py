@@ -50,7 +50,7 @@ LEAF_LIT = f"{SCP}.tctLeafDomainLit"
 DOM_NUM = "545001158149490383238005163525397553024965043366546261617421270984613353336"
 RECOVER_STEP = "Shieldd.GnarkFormal.QuadPath.recoverStep"
 
-LEAF_STEM = "GadgetStateCommitmentPathLeaf230_c35850"
+LEAF_STEM = "GadgetStateCommitmentPathLeaf230_c300c3"
 LEAF_ROW_COUNT, LEAF_SEGMENTS = 230, 46
 NODE_ROW_COUNT, NODE_SEGMENTS = 350, 70
 NODE_HELPER_CHUNK_SIZE = 10
@@ -131,10 +131,11 @@ def node_cont_wires(k: int) -> tuple[int, ...]:
 
 def wire_map(seg: int, wire: int) -> int:
     if seg == 13:
-        # Wave-2 layout: seg13 internal wires shift +5565 (T1-d hoist +5816,
-        # then -251 from the wave-2 upstream shrink); public wires untouched.
-        return wire if wire < 210 else wire + 5565
-    return wire + 90 if wire < 1653 else wire + 17746
+        return wire
+    # The regenerated extracted slices use whole-circuit wires directly. The
+    # second state-path instance has a +87 boundary-wire shift and a +12181
+    # internal-wire shift relative to the first instance.
+    return wire + 87 if wire < 7212 else wire + 12181
 
 
 class Level:
@@ -154,7 +155,7 @@ class Level:
         assert self.s0 == wire_map(seg, 94 - 3 * k), (seg, k, self.s0)
         assert self.s1 == wire_map(seg, 95 - 3 * k), (seg, k, self.s1)
         assert self.s2 == wire_map(seg, 96 - 3 * k), (seg, k, self.s2)
-        assert self.b0 == wire_map(seg, 1883 + 2 * k), (seg, k, self.b0)
+        assert self.b0 == wire_map(seg, 7442 + 2 * k), (seg, k, self.b0)
         assert self.b1 == self.b0 + 1
         if k == 0:
             for lit in LEAF_C:
@@ -180,7 +181,7 @@ class Instance:
         self.position = row_wires(rows[RECOMP_ROW])[-1]
         assert self.position == wire_map(seg, 24)
         self.bits_base = row_wires(rows[BOOL_BASE_ROW])[0]
-        assert self.bits_base == wire_map(seg, 1883)
+        assert self.bits_base == wire_map(seg, 7442)
         for j in range(BOOL_COUNT):
             wires = row_wires(rows[BOOL_BASE_ROW + j])
             assert wires[0] == wires[1] == self.bits_base + j, (seg, j)

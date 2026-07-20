@@ -489,7 +489,6 @@ impl Transaction {
                     .body
                     .inputs
                     .iter()
-                    .filter(|input| !input.is_dummy)
                     .map(|input| input.nullifier)
                     .collect(),
                 Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal
@@ -532,7 +531,6 @@ impl Transaction {
                     .body
                     .outputs
                     .iter()
-                    .filter(|output| !output.is_dummy)
                     .map(|output| Some(output.note_payload.note_commitment))
                     .collect::<Vec<_>>(),
                 Action::ShieldedIcs20Withdrawal(withdrawal) => vec![Some(
@@ -777,6 +775,51 @@ mod tests {
     }
 
     #[test]
+    fn note_reshape_body_sentinel_does_not_filter_spent_nullifiers() {
+        let inputs = (0..4)
+            .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
+                nullifier: Nullifier(decaf377::Fq::from(100u64 + index)),
+                rk: VerificationKey::from(SigningKey::<SpendAuth>::from(decaf377::Fr::from(
+                    200u64 + index,
+                ))),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+            })
+            .collect::<Vec<_>>();
+        assert!(inputs.iter().all(|input| input.is_dummy()));
+
+        let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
+            body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::FourByOne,
+                anchor: shieldd_sdk_tct::Tree::default().root(),
+                balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
+                inputs,
+                outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
+                    note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                        note_commitment: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(
+                            300u64,
+                        )),
+                        ephemeral_key: decaf377_ka::Public([3u8; 32]),
+                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([4u8; 176]),
+                    },
+                    wrapped_memo_key: WrappedMemoKey([5u8; 48]),
+                    ovk_wrapped_key: OvkWrappedKey([6u8; 48]),
+                }],
+            },
+            auth_sigs: vec![[0u8; 64].into(); 4],
+            proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
+        };
+        let tx = Transaction {
+            transaction_body: TransactionBody {
+                actions: vec![Action::NoteReshape(note_reshape)],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 4);
+    }
+
+    #[test]
     fn compliance_scanner_transaction_id_matches_canonical_transaction_id() {
         let tx = Transaction::default();
         let proto: shieldd_sdk_proto::core::transaction::v1::Transaction = (&tx).into();
@@ -804,7 +847,6 @@ mod tests {
                                     )),
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
-                                    is_dummy: false,
                                 },
                                 shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                     nullifier: Nullifier(decaf377::Fq::from(4u64)),
@@ -813,7 +855,6 @@ mod tests {
                                     )),
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
-                                    is_dummy: false,
                                 },
                             ],
                             outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
@@ -827,7 +868,6 @@ mod tests {
                                 },
                                 wrapped_memo_key: WrappedMemoKey([9u8; 48]),
                                 ovk_wrapped_key: OvkWrappedKey([10u8; 48]),
-                                is_dummy: false,
                             }],
                         },
                         auth_sigs: vec![[11u8; 64].into(), [12u8; 64].into()],
@@ -845,7 +885,6 @@ mod tests {
                                 )),
                                 encrypted_backref:
                                     shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
-                                is_dummy: false,
                             }],
                             outputs: vec![
                                 shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
@@ -860,7 +899,6 @@ mod tests {
                                     },
                                     wrapped_memo_key: WrappedMemoKey([19u8; 48]),
                                     ovk_wrapped_key: OvkWrappedKey([20u8; 48]),
-                                    is_dummy: false,
                                 };
                                 4
                             ],

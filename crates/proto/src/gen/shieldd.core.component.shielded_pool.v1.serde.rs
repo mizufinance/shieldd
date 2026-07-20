@@ -2914,9 +2914,6 @@ impl serde::Serialize for NoteReshapeInputBody {
         if !self.encrypted_backref.is_empty() {
             len += 1;
         }
-        if self.is_dummy {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapeInputBody", len)?;
         if let Some(v) = self.nullifier.as_ref() {
             struct_ser.serialize_field("nullifier", v)?;
@@ -2928,9 +2925,6 @@ impl serde::Serialize for NoteReshapeInputBody {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("encryptedBackref", pbjson::private::base64::encode(&self.encrypted_backref).as_str())?;
-        }
-        if self.is_dummy {
-            struct_ser.serialize_field("isDummy", &self.is_dummy)?;
         }
         struct_ser.end()
     }
@@ -2946,8 +2940,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
             "rk",
             "encrypted_backref",
             "encryptedBackref",
-            "is_dummy",
-            "isDummy",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2955,7 +2947,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
             Nullifier,
             Rk,
             EncryptedBackref,
-            IsDummy,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2981,7 +2972,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                             "nullifier" => Ok(GeneratedField::Nullifier),
                             "rk" => Ok(GeneratedField::Rk),
                             "encryptedBackref" | "encrypted_backref" => Ok(GeneratedField::EncryptedBackref),
-                            "isDummy" | "is_dummy" => Ok(GeneratedField::IsDummy),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -3004,7 +2994,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                 let mut nullifier__ = None;
                 let mut rk__ = None;
                 let mut encrypted_backref__ = None;
-                let mut is_dummy__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Nullifier => {
@@ -3027,12 +3016,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::IsDummy => {
-                            if is_dummy__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("isDummy"));
-                            }
-                            is_dummy__ = Some(map_.next_value()?);
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -3042,7 +3025,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                     nullifier: nullifier__,
                     rk: rk__,
                     encrypted_backref: encrypted_backref__.unwrap_or_default(),
-                    is_dummy: is_dummy__.unwrap_or_default(),
                 })
             }
         }
@@ -3066,9 +3048,6 @@ impl serde::Serialize for NoteReshapeOutputBody {
         if !self.ovk_wrapped_key.is_empty() {
             len += 1;
         }
-        if self.is_dummy {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapeOutputBody", len)?;
         if let Some(v) = self.note_payload.as_ref() {
             struct_ser.serialize_field("notePayload", v)?;
@@ -3082,9 +3061,6 @@ impl serde::Serialize for NoteReshapeOutputBody {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("ovkWrappedKey", pbjson::private::base64::encode(&self.ovk_wrapped_key).as_str())?;
-        }
-        if self.is_dummy {
-            struct_ser.serialize_field("isDummy", &self.is_dummy)?;
         }
         struct_ser.end()
     }
@@ -3102,8 +3078,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
             "wrappedMemoKey",
             "ovk_wrapped_key",
             "ovkWrappedKey",
-            "is_dummy",
-            "isDummy",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3111,7 +3085,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
             NotePayload,
             WrappedMemoKey,
             OvkWrappedKey,
-            IsDummy,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -3137,7 +3110,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
                             "notePayload" | "note_payload" => Ok(GeneratedField::NotePayload),
                             "wrappedMemoKey" | "wrapped_memo_key" => Ok(GeneratedField::WrappedMemoKey),
                             "ovkWrappedKey" | "ovk_wrapped_key" => Ok(GeneratedField::OvkWrappedKey),
-                            "isDummy" | "is_dummy" => Ok(GeneratedField::IsDummy),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -3160,7 +3132,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
                 let mut note_payload__ = None;
                 let mut wrapped_memo_key__ = None;
                 let mut ovk_wrapped_key__ = None;
-                let mut is_dummy__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::NotePayload => {
@@ -3185,12 +3156,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::IsDummy => {
-                            if is_dummy__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("isDummy"));
-                            }
-                            is_dummy__ = Some(map_.next_value()?);
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -3200,7 +3165,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
                     note_payload: note_payload__,
                     wrapped_memo_key: wrapped_memo_key__.unwrap_or_default(),
                     ovk_wrapped_key: ovk_wrapped_key__.unwrap_or_default(),
-                    is_dummy: is_dummy__.unwrap_or_default(),
                 })
             }
         }

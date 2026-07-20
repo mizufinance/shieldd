@@ -30,8 +30,8 @@ pub fn note_reshape_extract_public(
     let (inputs, outputs) = note_reshape::extract_public_parts(
         &note_reshape.body.inputs,
         &note_reshape.body.outputs,
-        |input| (input.nullifier, &input.rk, input.is_dummy),
-        |output| (&output.note_payload, output.is_dummy),
+        |input| (input.nullifier, &input.rk),
+        |output| &output.note_payload,
     );
 
     let public = NoteReshapeProofPublic {
@@ -43,14 +43,12 @@ pub fn note_reshape_extract_public(
             .map(|input| NoteReshapeInputPublic {
                 nullifier: input.nullifier,
                 rk: input.rk,
-                is_dummy: input.is_dummy,
             })
             .collect(),
         outputs: outputs
             .into_iter()
             .map(|output| NoteReshapeOutputPublic {
                 note_commitment: output.note_commitment,
-                is_dummy: output.is_dummy,
             })
             .collect(),
     };
@@ -91,14 +89,12 @@ impl ActionHandler for NoteReshape {
     }
 
     async fn check_and_execute<S: StateWrite>(&self, mut state: S) -> Result<()> {
-        note_reshape::execute(
+        note_reshape::execute_note_reshape(
             &mut state,
             &self.body.inputs,
             &self.body.outputs,
             |input| input.nullifier,
-            |input| input.is_dummy,
             |output| &output.note_payload,
-            |output| output.is_dummy,
         )
         .await
     }

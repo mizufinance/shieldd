@@ -7,35 +7,35 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg6Q4Step107L (rho : Nat -> Seg6.F) (r2513 : Seg6.relationRow2513 rho) :
-    rho 2913 = seg6Q4Pe108 rho * (1 - rho 1997) := by
+    rho 2907 = seg6Q4Pe108 rho * (1 - rho 1991) := by
   unfold Seg6.relationRow2513 at r2513
   unfold seg6Q4Pe108
   linear_combination -r2513
 
 theorem seg6Q4Step107IlMul (rho : Nat -> Seg6.F) (r2514 : Seg6.relationRow2514 rho) :
-    rho 2914 = seg6Q4Il108 rho * (rho 2913) := by
+    rho 2908 = seg6Q4Il108 rho * (rho 2907) := by
   unfold Seg6.relationRow2514 at r2514
   rw [seg6Q4Il108Atoms rho]
   unfold seg6Q4IlAtom0 seg6Q4IlAtom1 seg6Q4IlAtom10 seg6Q4IlAtom11 seg6Q4IlAtom2 seg6Q4IlAtom3 seg6Q4IlAtom4 seg6Q4IlAtom5 seg6Q4IlAtom6 seg6Q4IlAtom7 seg6Q4IlAtom8 seg6Q4IlAtom9
   linear_combination -r2514
 
 theorem seg6Q4Step107Acc (rho : Nat -> Seg6.F) :
-    seg6Q4Il107 rho = seg6Q4Il108 rho + (rho 2913) - (rho 2914) := by
+    seg6Q4Il107 rho = seg6Q4Il108 rho + (rho 2907) - (rho 2908) := by
   have hstate : seg6Q4Il107 rho = seg6Q4Il108 rho + seg6Q4IlAtom12 rho := by rfl
   rw [hstate]
   unfold seg6Q4IlAtom12
   ring
 
 theorem seg6Q4Step107Pe (rho : Nat -> Seg6.F) (r2515 : Seg6.relationRow2515 rho) :
-    seg6Q4Pe107 rho = seg6Q4Pe108 rho * rho 1997 := by
+    seg6Q4Pe107 rho = seg6Q4Pe108 rho * rho 1991 := by
   unfold Seg6.relationRow2515 at r2515
   unfold seg6Q4Pe107 seg6Q4Pe108
   linear_combination -r2515
 
 theorem seg6Q4Step107 (rho : Nat -> Seg6.F) (r2513 : Seg6.relationRow2513 rho) (r2514 : Seg6.relationRow2514 rho) (r2515 : Seg6.relationRow2515 rho) :
-    seg6Q4Pe107 rho = seg6Q4Pe108 rho * rho 1997 ∧
-    seg6Q4Il107 rho = seg6Q4Il108 rho + seg6Q4Pe108 rho * (1 - rho 1997) -
-      seg6Q4Il108 rho * (seg6Q4Pe108 rho * (1 - rho 1997)) := by
+    seg6Q4Pe107 rho = seg6Q4Pe108 rho * rho 1991 ∧
+    seg6Q4Il107 rho = seg6Q4Il108 rho + seg6Q4Pe108 rho * (1 - rho 1991) -
+      seg6Q4Il108 rho * (seg6Q4Pe108 rho * (1 - rho 1991)) := by
   constructor
   · exact seg6Q4Step107Pe rho r2515
   · rw [seg6Q4Step107Acc rho, seg6Q4Step107L rho r2513, seg6Q4Step107IlMul rho r2514, seg6Q4Step107L rho r2513]
@@ -59,11 +59,11 @@ theorem seg6_q4_chunk107 (rho : Nat -> Seg6.F) (h : Seg6.relation rho) (k : Prop
   rcases p31 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r2513, r2514, r2515, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
   have hsteps : ∀ n, 107 ≤ n → n < 108 →
       if Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit n then
-        seg6Q4PeState rho n = seg6Q4PeState rho (n + 1) * rho (1890 + n) ∧
-        seg6Q4IlState rho n = seg6Q4IlState rho (n + 1) + seg6Q4PeState rho (n + 1) * (1 - rho (1890 + n)) -
-          seg6Q4IlState rho (n + 1) * (seg6Q4PeState rho (n + 1) * (1 - rho (1890 + n)))
+        seg6Q4PeState rho n = seg6Q4PeState rho (n + 1) * rho (1884 + n) ∧
+        seg6Q4IlState rho n = seg6Q4IlState rho (n + 1) + seg6Q4PeState rho (n + 1) * (1 - rho (1884 + n)) -
+          seg6Q4IlState rho (n + 1) * (seg6Q4PeState rho (n + 1) * (1 - rho (1884 + n)))
       else
-        seg6Q4PeState rho n = seg6Q4PeState rho (n + 1) * (1 - rho (1890 + n)) ∧
+        seg6Q4PeState rho n = seg6Q4PeState rho (n + 1) * (1 - rho (1884 + n)) ∧
         seg6Q4IlState rho n = seg6Q4IlState rho (n + 1) := by
     intro n hnlo hnhi
     interval_cases n

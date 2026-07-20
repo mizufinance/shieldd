@@ -282,8 +282,8 @@ theorem seg6Ivk_toBinary (rho : Nat -> Seg6.F) (h : Seg6.relation rho) :
   unfold Seg6.relationRow1572 at r1572
   unfold Seg6.relationRow1573 at r1573
   unfold Seg6.relationRow1574 at r1574
-  have hrecover := recover_ofFn_eq_recBits rho 1890 253
-  have hacc : powSumAcc rho 0 1 1890 253 = rho 9 := by
+  have hrecover := recover_ofFn_eq_recBits rho 1884 253
+  have hacc : powSumAcc rho 0 1 1884 253 = rho 9 := by
     unfold Seg6.relationRow1575 Seg6.relationLc7 Seg6.relationLc7Part0 Seg6.relationLc7Part1 Seg6.relationLc7Part2 Seg6.relationLc7Part3 Seg6.relationLc7Part4 Seg6.relationLc7Part5 Seg6.relationLc7Part6 Seg6.relationLc7Part7 at r1575
     simp only [powSumAcc]
     linear_combination r1575
@@ -294,10 +294,10 @@ theorem seg6Ivk_toBinary (rho : Nat -> Seg6.F) (h : Seg6.relation rho) :
     simpa using hacc
   apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 9) (seg6IvkBits rho)
   · intro i hi
-    have key : (seg6IvkBits rho)[i] = rho (1890 + i) := by
+    have key : (seg6IvkBits rho)[i] = rho (1884 + i) := by
       conv_lhs => rw [List.Vector.getElem_def]
       simp only [seg6IvkBits, List.Vector.toList_ofFn, List.getElem_ofFn]
-    have hgoal : rho (1890 + i) * (1 - rho (1890 + i)) = 0 := by
+    have hgoal : rho (1884 + i) * (1 - rho (1884 + i)) = 0 := by
       interval_cases i
       · linear_combination r1322
       · linear_combination r1323

@@ -40,7 +40,7 @@ TEMPLATE_KEY = (
 )
 DIGEST = TEMPLATE_KEY.split("@", 1)[1]
 CIRCUIT = "note_reshape4x1"
-SEGMENT = 27
+SEGMENT = 24
 CONSTRAINT_COUNT = 3618
 LOCAL_WIRE_COUNT = 3619
 RELATION_STEM = "TDecafRandomizedVerificationKeyDummy_" + DIGEST

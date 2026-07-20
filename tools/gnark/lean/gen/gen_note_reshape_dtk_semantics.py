@@ -20,6 +20,7 @@ BENCH = LEAN / "bench"
 KEY = "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b"
 NAME = "TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
+ROW_COUNT = 6077
 RELATION = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{NAME}"
 RELATION_MODULE = RELATION.replace("Shieldd.GnarkFormal", "ShielddGnarkFormal")
 NAMESPACE = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{NAME}.DtkSupport"
@@ -45,7 +46,7 @@ def _segment() -> dict:
     expected = {
         "index": 6,
         "op": "decaf.diversified_transmission_key",
-        "constraint_count": dtk.ROW_COUNT,
+        "constraint_count": ROW_COUNT,
         "local_wire_count": 5571,
     }
     for field, value in expected.items():
@@ -70,7 +71,7 @@ def _relation_source() -> str:
         raise ValueError("DTK relation shards are not contiguous")
     source = "\n".join(path.read_text() for path in (*shards, facade))
     rows = {int(value) for value in re.findall(r"def relationRow(\d+) ", source)}
-    if rows != set(range(dtk.ROW_COUNT)):
+    if rows != set(range(ROW_COUNT)):
         raise ValueError("DTK normalized rows are not exact")
     return source
 
@@ -293,7 +294,7 @@ def _render_reviewed(
     return outputs
 
 
-def generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
+def _generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
     cfg = _cfg()
     exact_source = _relation_source()
     shadow = _deployed_shadow(exact_source, cfg.wire_seating or ())
@@ -348,3 +349,23 @@ def generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
     if len(outputs) != 627:
         raise ValueError(f"expected 619 DTK semantic modules and eight benchmark imports, got {len(outputs)}")
     return outputs
+
+
+def generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
+    saved_source = dtk.SOURCE_CONTRACTS
+    saved_rows = dtk.ROW_COUNT
+    saved_source_cache = dict(dtk._SOURCE_CACHE)
+    saved_parts_cache = dict(dtk._RELATION_PARTS_CACHE)
+    try:
+        dtk.SOURCE_CONTRACTS = dtk.DEFAULT_CONTRACTS
+        dtk.ROW_COUNT = ROW_COUNT
+        dtk._SOURCE_CACHE.clear()
+        dtk._RELATION_PARTS_CACHE.clear()
+        return _generated_files(out, bench)
+    finally:
+        dtk.SOURCE_CONTRACTS = saved_source
+        dtk.ROW_COUNT = saved_rows
+        dtk._SOURCE_CACHE.clear()
+        dtk._SOURCE_CACHE.update(saved_source_cache)
+        dtk._RELATION_PARTS_CACHE.clear()
+        dtk._RELATION_PARTS_CACHE.update(saved_parts_cache)

@@ -11,7 +11,7 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg46_conservation (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
-    rho 15 + rho 105 = rho 193 := by
+    rho 15 + rho 102 = rho 187 := by
   unfold Seg46.relation at h
 
   rcases h with ⟨

@@ -39,7 +39,7 @@ theorem seg6_scalar_ladder (rho : Nat -> Seg6.F) (h : Seg6.relation rho)
       (Shieldd.GnarkFormal.ScalarMulBridge.finalKWithOutputCurve
         (dtkOutX6 rho : Seg6.F) (dtkOutY6 rho : Seg6.F))
       251 0 ⟨0, 1⟩ ⟨(rho 17 : Seg6.F), (rho 18 : Seg6.F)⟩ := by
-  have hbitAt : ∀ i, i < 251 → rho (1890 + i) = Bool.toZMod bits[i]! := by
+  have hbitAt : ∀ i, i < 251 → rho (1884 + i) = Bool.toZMod bits[i]! := by
     intro i hi
     rw [← seg6ScalarBits_get rho i hi, hbits]
     rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi), getElem!_pos bits i (by simpa using hi), List.Vector.getElem_map]

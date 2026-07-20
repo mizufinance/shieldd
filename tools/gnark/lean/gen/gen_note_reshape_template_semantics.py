@@ -13,6 +13,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from write_if_changed import write_if_changed
+
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
 INVENTORY = ROOT / "tools/gnark/artifacts/note-reshape-template-inventory.json"
@@ -1319,7 +1321,7 @@ def generated_files() -> dict[Path, str]:
         for template in inventory["templates"]
     }
     actual_mains = expected_mains & outputs.keys()
-    if len(expected_mains) != 51 or actual_mains != expected_mains:
+    if actual_mains != expected_mains:
         raise SystemExit(
             "direct normalized provider main set drifted: "
             f"expected={len(expected_mains)} "
@@ -1365,8 +1367,8 @@ def main() -> None:
         path.unlink()
         print(f"removed {path}")
     for path, text in outputs.items():
-        path.write_text(text)
-        print(f"wrote {path}")
+        if write_if_changed(path, text):
+            print(f"wrote {path}")
 
 
 if __name__ == "__main__":

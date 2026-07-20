@@ -11,275 +11,275 @@ namespace Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon
 open Shieldd.GnarkFormal.Poseidon2Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon2Link
 
-variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.Order)]
+variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.Order)]
 
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Poseidon2.Order) :=
-  inferInstanceAs (Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.Order))
+  inferInstanceAs (Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.Order))
 
-theorem range0_sound (w8 : F) (w1275 : F) (w1615 : F) (k : F → F → F → Prop)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg0 w8 w1275 w1615 (fun w1275 w1615 w1620 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg1 w1275 w1615 w1620 (fun w1620 w1625 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg2 w1620 w1625 (fun w1620 w1625 w1630 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg3 w1620 w1625 w1630 (fun w1620 w1625 w1630 w1635 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg4 w1620 w1625 w1630 w1635 (fun w1630 w1635 w1640 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg5 w1630 w1635 w1640 (fun w1630 w1635 w1640 w1645 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg6 w1630 w1635 w1640 w1645 (fun w1630 w1635 w1640 w1645 w1650 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg7 w1630 w1635 w1640 w1645 w1650 (fun w1645 w1650 w1655 =>
-      k w1645 w1650 w1655))))))))) :
-    ∃ w1645 w1650 w1655 : F, spec2 (w8) (w1615 - w1275) = st2 w1645 w1650 w1655 ∧ k w1645 w1650 w1655 := by
-  have h0 := seg0_sound w8 w1275 w1615 _ h
-  rcases h0 with ⟨w1620, hw1620, h⟩
-  have h1 := seg1_sound w1275 w1615 w1620 _ h
-  rcases h1 with ⟨w1625, hw1625, h⟩
-  have hSpec0 := spec0_eq (w8) (w1615 - w1275) w1620 w1625 hw1620 hw1625
-  have h2 := seg2_sound w1620 w1625 _ h
-  rcases h2 with ⟨w1630, hw1630, h⟩
-  have h3 := seg3_sound w1620 w1625 w1630 _ h
-  rcases h3 with ⟨w1635, hw1635, h⟩
-  have h4 := seg4_sound w1620 w1625 w1630 w1635 _ h
-  rcases h4 with ⟨w1640, hw1640, h⟩
-  have hSpec1 := spec1_step (w8) (w1615 - w1275) w1620 w1625 w1630 w1635 w1640 hSpec0 hw1630 hw1635 hw1640
-  have h5 := seg5_sound w1630 w1635 w1640 _ h
-  rcases h5 with ⟨w1645, hw1645, h⟩
-  have h6 := seg6_sound w1630 w1635 w1640 w1645 _ h
-  rcases h6 with ⟨w1650, hw1650, h⟩
-  have h7 := seg7_sound w1630 w1635 w1640 w1645 w1650 _ h
-  rcases h7 with ⟨w1655, hw1655, h⟩
-  have hSpec2 := spec2_step (w8) (w1615 - w1275) w1630 w1635 w1640 w1645 w1650 w1655 hSpec1 hw1645 hw1650 hw1655
-  exact ⟨w1645, w1650, w1655, hSpec2, h⟩
+theorem range0_sound (w8 : F) (w1269 : F) (w1609 : F) (k : F → F → F → Prop)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg0 w8 w1269 w1609 (fun w1269 w1609 w1614 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg1 w1269 w1609 w1614 (fun w1614 w1619 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg2 w1614 w1619 (fun w1614 w1619 w1624 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg3 w1614 w1619 w1624 (fun w1614 w1619 w1624 w1629 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg4 w1614 w1619 w1624 w1629 (fun w1624 w1629 w1634 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg5 w1624 w1629 w1634 (fun w1624 w1629 w1634 w1639 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg6 w1624 w1629 w1634 w1639 (fun w1624 w1629 w1634 w1639 w1644 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg7 w1624 w1629 w1634 w1639 w1644 (fun w1639 w1644 w1649 =>
+      k w1639 w1644 w1649))))))))) :
+    ∃ w1639 w1644 w1649 : F, spec2 (w8) (w1609 - w1269) = st2 w1639 w1644 w1649 ∧ k w1639 w1644 w1649 := by
+  have h0 := seg0_sound w8 w1269 w1609 _ h
+  rcases h0 with ⟨w1614, hw1614, h⟩
+  have h1 := seg1_sound w1269 w1609 w1614 _ h
+  rcases h1 with ⟨w1619, hw1619, h⟩
+  have hSpec0 := spec0_eq (w8) (w1609 - w1269) w1614 w1619 hw1614 hw1619
+  have h2 := seg2_sound w1614 w1619 _ h
+  rcases h2 with ⟨w1624, hw1624, h⟩
+  have h3 := seg3_sound w1614 w1619 w1624 _ h
+  rcases h3 with ⟨w1629, hw1629, h⟩
+  have h4 := seg4_sound w1614 w1619 w1624 w1629 _ h
+  rcases h4 with ⟨w1634, hw1634, h⟩
+  have hSpec1 := spec1_step (w8) (w1609 - w1269) w1614 w1619 w1624 w1629 w1634 hSpec0 hw1624 hw1629 hw1634
+  have h5 := seg5_sound w1624 w1629 w1634 _ h
+  rcases h5 with ⟨w1639, hw1639, h⟩
+  have h6 := seg6_sound w1624 w1629 w1634 w1639 _ h
+  rcases h6 with ⟨w1644, hw1644, h⟩
+  have h7 := seg7_sound w1624 w1629 w1634 w1639 w1644 _ h
+  rcases h7 with ⟨w1649, hw1649, h⟩
+  have hSpec2 := spec2_step (w8) (w1609 - w1269) w1624 w1629 w1634 w1639 w1644 w1649 hSpec1 hw1639 hw1644 hw1649
+  exact ⟨w1639, w1644, w1649, hSpec2, h⟩
 
-theorem range1_sound (w8 : F) (w1275 : F) (w1615 : F) (w1645 : F) (w1650 : F) (w1655 : F) (k : F → F → F → F → F → F → F → F → Prop)
-    (hSpec2 : spec2 (w8) (w1615 - w1275) = st2 w1645 w1650 w1655)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg8 w1645 w1650 w1655 (fun w1645 w1650 w1655 w1660 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg9 w1645 w1650 w1655 w1660 (fun w1645 w1650 w1655 w1660 w1665 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg10 w1645 w1650 w1655 w1660 w1665 (fun w1660 w1665 w1670 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg11 w1660 w1665 w1670 (fun w1660 w1665 w1670 w1675 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg12 w1660 w1665 w1670 w1675 (fun w1660 w1665 w1670 w1675 w1680 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg13 w1660 w1665 w1670 w1675 w1680 (fun w1660 w1665 w1670 w1675 w1680 w1685 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg14 w1660 w1665 w1670 w1675 w1680 w1685 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg15 w1660 w1665 w1670 w1675 w1680 w1685 w1690 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 =>
-      k w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695))))))))) :
-    ∃ w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 : F, spec8 (w8) (w1615 - w1275) = st8 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 ∧ k w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 := by
-  have h8 := seg8_sound w1645 w1650 w1655 _ h
-  rcases h8 with ⟨w1660, hw1660, h⟩
-  have h9 := seg9_sound w1645 w1650 w1655 w1660 _ h
-  rcases h9 with ⟨w1665, hw1665, h⟩
-  have h10 := seg10_sound w1645 w1650 w1655 w1660 w1665 _ h
-  rcases h10 with ⟨w1670, hw1670, h⟩
-  have hSpec3 := spec3_step (w8) (w1615 - w1275) w1645 w1650 w1655 w1660 w1665 w1670 hSpec2 hw1660 hw1665 hw1670
-  have h11 := seg11_sound w1660 w1665 w1670 _ h
-  rcases h11 with ⟨w1675, hw1675, h⟩
-  have hSpec4 := spec4_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 hSpec3 hw1675
-  have h12 := seg12_sound w1660 w1665 w1670 w1675 _ h
-  rcases h12 with ⟨w1680, hw1680, h⟩
-  have hSpec5 := spec5_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 hSpec4 hw1680
-  have h13 := seg13_sound w1660 w1665 w1670 w1675 w1680 _ h
-  rcases h13 with ⟨w1685, hw1685, h⟩
-  have hSpec6 := spec6_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 hSpec5 hw1685
-  have h14 := seg14_sound w1660 w1665 w1670 w1675 w1680 w1685 _ h
-  rcases h14 with ⟨w1690, hw1690, h⟩
-  have hSpec7 := spec7_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 hSpec6 hw1690
-  have h15 := seg15_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 _ h
-  rcases h15 with ⟨w1695, hw1695, h⟩
-  have hSpec8 := spec8_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 hSpec7 hw1695
-  exact ⟨w1660, w1665, w1670, w1675, w1680, w1685, w1690, w1695, hSpec8, h⟩
+theorem range1_sound (w8 : F) (w1269 : F) (w1609 : F) (w1639 : F) (w1644 : F) (w1649 : F) (k : F → F → F → F → F → F → F → F → Prop)
+    (hSpec2 : spec2 (w8) (w1609 - w1269) = st2 w1639 w1644 w1649)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg8 w1639 w1644 w1649 (fun w1639 w1644 w1649 w1654 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg9 w1639 w1644 w1649 w1654 (fun w1639 w1644 w1649 w1654 w1659 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg10 w1639 w1644 w1649 w1654 w1659 (fun w1654 w1659 w1664 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg11 w1654 w1659 w1664 (fun w1654 w1659 w1664 w1669 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg12 w1654 w1659 w1664 w1669 (fun w1654 w1659 w1664 w1669 w1674 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg13 w1654 w1659 w1664 w1669 w1674 (fun w1654 w1659 w1664 w1669 w1674 w1679 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg14 w1654 w1659 w1664 w1669 w1674 w1679 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg15 w1654 w1659 w1664 w1669 w1674 w1679 w1684 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 =>
+      k w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689))))))))) :
+    ∃ w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 : F, spec8 (w8) (w1609 - w1269) = st8 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 ∧ k w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 := by
+  have h8 := seg8_sound w1639 w1644 w1649 _ h
+  rcases h8 with ⟨w1654, hw1654, h⟩
+  have h9 := seg9_sound w1639 w1644 w1649 w1654 _ h
+  rcases h9 with ⟨w1659, hw1659, h⟩
+  have h10 := seg10_sound w1639 w1644 w1649 w1654 w1659 _ h
+  rcases h10 with ⟨w1664, hw1664, h⟩
+  have hSpec3 := spec3_step (w8) (w1609 - w1269) w1639 w1644 w1649 w1654 w1659 w1664 hSpec2 hw1654 hw1659 hw1664
+  have h11 := seg11_sound w1654 w1659 w1664 _ h
+  rcases h11 with ⟨w1669, hw1669, h⟩
+  have hSpec4 := spec4_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 hSpec3 hw1669
+  have h12 := seg12_sound w1654 w1659 w1664 w1669 _ h
+  rcases h12 with ⟨w1674, hw1674, h⟩
+  have hSpec5 := spec5_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 hSpec4 hw1674
+  have h13 := seg13_sound w1654 w1659 w1664 w1669 w1674 _ h
+  rcases h13 with ⟨w1679, hw1679, h⟩
+  have hSpec6 := spec6_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 hSpec5 hw1679
+  have h14 := seg14_sound w1654 w1659 w1664 w1669 w1674 w1679 _ h
+  rcases h14 with ⟨w1684, hw1684, h⟩
+  have hSpec7 := spec7_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 hSpec6 hw1684
+  have h15 := seg15_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 _ h
+  rcases h15 with ⟨w1689, hw1689, h⟩
+  have hSpec8 := spec8_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 hSpec7 hw1689
+  exact ⟨w1654, w1659, w1664, w1669, w1674, w1679, w1684, w1689, hSpec8, h⟩
 
-theorem range2_sound (w8 : F) (w1275 : F) (w1615 : F) (w1660 : F) (w1665 : F) (w1670 : F) (w1675 : F) (w1680 : F) (w1685 : F) (w1690 : F) (w1695 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
-    (hSpec8 : spec8 (w8) (w1615 - w1275) = st8 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg16 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg17 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg18 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg19 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg20 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg21 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg22 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg23 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 =>
-      k w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735))))))))) :
-    ∃ w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 : F, spec16 (w8) (w1615 - w1275) = st16 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 ∧ k w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 := by
-  have h16 := seg16_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 _ h
-  rcases h16 with ⟨w1700, hw1700, h⟩
-  have hSpec9 := spec9_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 hSpec8 hw1700
-  have h17 := seg17_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 _ h
-  rcases h17 with ⟨w1705, hw1705, h⟩
-  have hSpec10 := spec10_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 hSpec9 hw1705
-  have h18 := seg18_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 _ h
-  rcases h18 with ⟨w1710, hw1710, h⟩
-  have hSpec11 := spec11_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 hSpec10 hw1710
-  have h19 := seg19_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 _ h
-  rcases h19 with ⟨w1715, hw1715, h⟩
-  have hSpec12 := spec12_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 hSpec11 hw1715
-  have h20 := seg20_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 _ h
-  rcases h20 with ⟨w1720, hw1720, h⟩
-  have hSpec13 := spec13_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 hSpec12 hw1720
-  have h21 := seg21_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 _ h
-  rcases h21 with ⟨w1725, hw1725, h⟩
-  have hSpec14 := spec14_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 hSpec13 hw1725
-  have h22 := seg22_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 _ h
-  rcases h22 with ⟨w1730, hw1730, h⟩
-  have hSpec15 := spec15_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 hSpec14 hw1730
-  have h23 := seg23_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 _ h
-  rcases h23 with ⟨w1735, hw1735, h⟩
-  have hSpec16 := spec16_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 hSpec15 hw1735
-  exact ⟨w1660, w1665, w1670, w1675, w1680, w1685, w1690, w1695, w1700, w1705, w1710, w1715, w1720, w1725, w1730, w1735, hSpec16, h⟩
+theorem range2_sound (w8 : F) (w1269 : F) (w1609 : F) (w1654 : F) (w1659 : F) (w1664 : F) (w1669 : F) (w1674 : F) (w1679 : F) (w1684 : F) (w1689 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (hSpec8 : spec8 (w8) (w1609 - w1269) = st8 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg16 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg17 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg18 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg19 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg20 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg21 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg22 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg23 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 =>
+      k w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729))))))))) :
+    ∃ w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 : F, spec16 (w8) (w1609 - w1269) = st16 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 ∧ k w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 := by
+  have h16 := seg16_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 _ h
+  rcases h16 with ⟨w1694, hw1694, h⟩
+  have hSpec9 := spec9_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 hSpec8 hw1694
+  have h17 := seg17_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 _ h
+  rcases h17 with ⟨w1699, hw1699, h⟩
+  have hSpec10 := spec10_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 hSpec9 hw1699
+  have h18 := seg18_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 _ h
+  rcases h18 with ⟨w1704, hw1704, h⟩
+  have hSpec11 := spec11_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 hSpec10 hw1704
+  have h19 := seg19_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 _ h
+  rcases h19 with ⟨w1709, hw1709, h⟩
+  have hSpec12 := spec12_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 hSpec11 hw1709
+  have h20 := seg20_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 _ h
+  rcases h20 with ⟨w1714, hw1714, h⟩
+  have hSpec13 := spec13_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 hSpec12 hw1714
+  have h21 := seg21_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 _ h
+  rcases h21 with ⟨w1719, hw1719, h⟩
+  have hSpec14 := spec14_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 hSpec13 hw1719
+  have h22 := seg22_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 _ h
+  rcases h22 with ⟨w1724, hw1724, h⟩
+  have hSpec15 := spec15_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 hSpec14 hw1724
+  have h23 := seg23_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 _ h
+  rcases h23 with ⟨w1729, hw1729, h⟩
+  have hSpec16 := spec16_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 hSpec15 hw1729
+  exact ⟨w1654, w1659, w1664, w1669, w1674, w1679, w1684, w1689, w1694, w1699, w1704, w1709, w1714, w1719, w1724, w1729, hSpec16, h⟩
 
-theorem range3_sound (w8 : F) (w1275 : F) (w1615 : F) (w1660 : F) (w1665 : F) (w1670 : F) (w1675 : F) (w1680 : F) (w1685 : F) (w1690 : F) (w1695 : F) (w1700 : F) (w1705 : F) (w1710 : F) (w1715 : F) (w1720 : F) (w1725 : F) (w1730 : F) (w1735 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
-    (hSpec16 : spec16 (w8) (w1615 - w1275) = st16 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg24 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg25 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg26 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg27 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg28 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg29 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg30 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg31 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 =>
-      k w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775))))))))) :
-    ∃ w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 : F, spec24 (w8) (w1615 - w1275) = st24 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 ∧ k w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 := by
-  have h24 := seg24_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 _ h
-  rcases h24 with ⟨w1740, hw1740, h⟩
-  have hSpec17 := spec17_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 hSpec16 hw1740
-  have h25 := seg25_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 _ h
-  rcases h25 with ⟨w1745, hw1745, h⟩
-  have hSpec18 := spec18_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 hSpec17 hw1745
-  have h26 := seg26_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 _ h
-  rcases h26 with ⟨w1750, hw1750, h⟩
-  have hSpec19 := spec19_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 hSpec18 hw1750
-  have h27 := seg27_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 _ h
-  rcases h27 with ⟨w1755, hw1755, h⟩
-  have hSpec20 := spec20_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 hSpec19 hw1755
-  have h28 := seg28_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 _ h
-  rcases h28 with ⟨w1760, hw1760, h⟩
-  have hSpec21 := spec21_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 hSpec20 hw1760
-  have h29 := seg29_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 _ h
-  rcases h29 with ⟨w1765, hw1765, h⟩
-  have hSpec22 := spec22_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 hSpec21 hw1765
-  have h30 := seg30_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 _ h
-  rcases h30 with ⟨w1770, hw1770, h⟩
-  have hSpec23 := spec23_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 hSpec22 hw1770
-  have h31 := seg31_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 _ h
-  rcases h31 with ⟨w1775, hw1775, h⟩
-  have hSpec24 := spec24_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 hSpec23 hw1775
-  exact ⟨w1660, w1665, w1670, w1675, w1680, w1685, w1690, w1695, w1700, w1705, w1710, w1715, w1720, w1725, w1730, w1735, w1740, w1745, w1750, w1755, w1760, w1765, w1770, w1775, hSpec24, h⟩
+theorem range3_sound (w8 : F) (w1269 : F) (w1609 : F) (w1654 : F) (w1659 : F) (w1664 : F) (w1669 : F) (w1674 : F) (w1679 : F) (w1684 : F) (w1689 : F) (w1694 : F) (w1699 : F) (w1704 : F) (w1709 : F) (w1714 : F) (w1719 : F) (w1724 : F) (w1729 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (hSpec16 : spec16 (w8) (w1609 - w1269) = st16 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg24 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg25 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg26 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg27 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg28 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg29 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg30 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg31 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 =>
+      k w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769))))))))) :
+    ∃ w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 : F, spec24 (w8) (w1609 - w1269) = st24 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 ∧ k w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 := by
+  have h24 := seg24_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 _ h
+  rcases h24 with ⟨w1734, hw1734, h⟩
+  have hSpec17 := spec17_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 hSpec16 hw1734
+  have h25 := seg25_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 _ h
+  rcases h25 with ⟨w1739, hw1739, h⟩
+  have hSpec18 := spec18_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 hSpec17 hw1739
+  have h26 := seg26_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 _ h
+  rcases h26 with ⟨w1744, hw1744, h⟩
+  have hSpec19 := spec19_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 hSpec18 hw1744
+  have h27 := seg27_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 _ h
+  rcases h27 with ⟨w1749, hw1749, h⟩
+  have hSpec20 := spec20_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 hSpec19 hw1749
+  have h28 := seg28_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 _ h
+  rcases h28 with ⟨w1754, hw1754, h⟩
+  have hSpec21 := spec21_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 hSpec20 hw1754
+  have h29 := seg29_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 _ h
+  rcases h29 with ⟨w1759, hw1759, h⟩
+  have hSpec22 := spec22_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 hSpec21 hw1759
+  have h30 := seg30_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 _ h
+  rcases h30 with ⟨w1764, hw1764, h⟩
+  have hSpec23 := spec23_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 hSpec22 hw1764
+  have h31 := seg31_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 _ h
+  rcases h31 with ⟨w1769, hw1769, h⟩
+  have hSpec24 := spec24_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 hSpec23 hw1769
+  exact ⟨w1654, w1659, w1664, w1669, w1674, w1679, w1684, w1689, w1694, w1699, w1704, w1709, w1714, w1719, w1724, w1729, w1734, w1739, w1744, w1749, w1754, w1759, w1764, w1769, hSpec24, h⟩
 
-theorem range4_sound (w8 : F) (w1275 : F) (w1615 : F) (w1660 : F) (w1665 : F) (w1670 : F) (w1675 : F) (w1680 : F) (w1685 : F) (w1690 : F) (w1695 : F) (w1700 : F) (w1705 : F) (w1710 : F) (w1715 : F) (w1720 : F) (w1725 : F) (w1730 : F) (w1735 : F) (w1740 : F) (w1745 : F) (w1750 : F) (w1755 : F) (w1760 : F) (w1765 : F) (w1770 : F) (w1775 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
-    (hSpec24 : spec24 (w8) (w1615 - w1275) = st24 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg32 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg33 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg34 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg35 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg36 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg37 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg38 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg39 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 =>
-      k w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815))))))))) :
-    ∃ w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 : F, spec32 (w8) (w1615 - w1275) = st32 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 ∧ k w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 := by
-  have h32 := seg32_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 _ h
-  rcases h32 with ⟨w1780, hw1780, h⟩
-  have hSpec25 := spec25_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 hSpec24 hw1780
-  have h33 := seg33_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 _ h
-  rcases h33 with ⟨w1785, hw1785, h⟩
-  have hSpec26 := spec26_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 hSpec25 hw1785
-  have h34 := seg34_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 _ h
-  rcases h34 with ⟨w1790, hw1790, h⟩
-  have hSpec27 := spec27_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 hSpec26 hw1790
-  have h35 := seg35_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 _ h
-  rcases h35 with ⟨w1795, hw1795, h⟩
-  have hSpec28 := spec28_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 hSpec27 hw1795
-  have h36 := seg36_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 _ h
-  rcases h36 with ⟨w1800, hw1800, h⟩
-  have hSpec29 := spec29_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 hSpec28 hw1800
-  have h37 := seg37_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 _ h
-  rcases h37 with ⟨w1805, hw1805, h⟩
-  have hSpec30 := spec30_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 hSpec29 hw1805
-  have h38 := seg38_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 _ h
-  rcases h38 with ⟨w1810, hw1810, h⟩
-  have hSpec31 := spec31_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 hSpec30 hw1810
-  have h39 := seg39_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 _ h
-  rcases h39 with ⟨w1815, hw1815, h⟩
-  have hSpec32 := spec32_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 hSpec31 hw1815
-  exact ⟨w1660, w1665, w1670, w1675, w1680, w1685, w1690, w1695, w1700, w1705, w1710, w1715, w1720, w1725, w1730, w1735, w1740, w1745, w1750, w1755, w1760, w1765, w1770, w1775, w1780, w1785, w1790, w1795, w1800, w1805, w1810, w1815, hSpec32, h⟩
+theorem range4_sound (w8 : F) (w1269 : F) (w1609 : F) (w1654 : F) (w1659 : F) (w1664 : F) (w1669 : F) (w1674 : F) (w1679 : F) (w1684 : F) (w1689 : F) (w1694 : F) (w1699 : F) (w1704 : F) (w1709 : F) (w1714 : F) (w1719 : F) (w1724 : F) (w1729 : F) (w1734 : F) (w1739 : F) (w1744 : F) (w1749 : F) (w1754 : F) (w1759 : F) (w1764 : F) (w1769 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (hSpec24 : spec24 (w8) (w1609 - w1269) = st24 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg32 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg33 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg34 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg35 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg36 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg37 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg38 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg39 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 =>
+      k w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809))))))))) :
+    ∃ w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 : F, spec32 (w8) (w1609 - w1269) = st32 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 ∧ k w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 := by
+  have h32 := seg32_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 _ h
+  rcases h32 with ⟨w1774, hw1774, h⟩
+  have hSpec25 := spec25_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 hSpec24 hw1774
+  have h33 := seg33_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 _ h
+  rcases h33 with ⟨w1779, hw1779, h⟩
+  have hSpec26 := spec26_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 hSpec25 hw1779
+  have h34 := seg34_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 _ h
+  rcases h34 with ⟨w1784, hw1784, h⟩
+  have hSpec27 := spec27_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 hSpec26 hw1784
+  have h35 := seg35_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 _ h
+  rcases h35 with ⟨w1789, hw1789, h⟩
+  have hSpec28 := spec28_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 hSpec27 hw1789
+  have h36 := seg36_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 _ h
+  rcases h36 with ⟨w1794, hw1794, h⟩
+  have hSpec29 := spec29_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 hSpec28 hw1794
+  have h37 := seg37_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 _ h
+  rcases h37 with ⟨w1799, hw1799, h⟩
+  have hSpec30 := spec30_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 hSpec29 hw1799
+  have h38 := seg38_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 _ h
+  rcases h38 with ⟨w1804, hw1804, h⟩
+  have hSpec31 := spec31_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 hSpec30 hw1804
+  have h39 := seg39_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 _ h
+  rcases h39 with ⟨w1809, hw1809, h⟩
+  have hSpec32 := spec32_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 hSpec31 hw1809
+  exact ⟨w1654, w1659, w1664, w1669, w1674, w1679, w1684, w1689, w1694, w1699, w1704, w1709, w1714, w1719, w1724, w1729, w1734, w1739, w1744, w1749, w1754, w1759, w1764, w1769, w1774, w1779, w1784, w1789, w1794, w1799, w1804, w1809, hSpec32, h⟩
 
-theorem range5_sound (w8 : F) (w1275 : F) (w1615 : F) (w1660 : F) (w1665 : F) (w1670 : F) (w1675 : F) (w1680 : F) (w1685 : F) (w1690 : F) (w1695 : F) (w1700 : F) (w1705 : F) (w1710 : F) (w1715 : F) (w1720 : F) (w1725 : F) (w1730 : F) (w1735 : F) (w1740 : F) (w1745 : F) (w1750 : F) (w1755 : F) (w1760 : F) (w1765 : F) (w1770 : F) (w1775 : F) (w1780 : F) (w1785 : F) (w1790 : F) (w1795 : F) (w1800 : F) (w1805 : F) (w1810 : F) (w1815 : F) (k : F → F → F → Prop)
-    (hSpec32 : spec32 (w8) (w1615 - w1275) = st32 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg40 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg41 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg42 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 w1830 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg43 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 w1830 (fun w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 w1830 w1835 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg44 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 w1830 w1835 (fun w1830 w1835 w1840 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg45 w1830 w1835 w1840 (fun w1830 w1835 w1840 w1845 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg46 w1830 w1835 w1840 w1845 (fun w1830 w1835 w1840 w1845 w1850 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg47 w1830 w1835 w1840 w1845 w1850 (fun w1845 w1850 w1855 =>
-      k w1845 w1850 w1855))))))))) :
-    ∃ w1845 w1850 w1855 : F, spec36 (w8) (w1615 - w1275) = st36 w1845 w1850 w1855 ∧ k w1845 w1850 w1855 := by
-  have h40 := seg40_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 _ h
-  rcases h40 with ⟨w1820, hw1820, h⟩
-  have hSpec33 := spec33_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 hSpec32 hw1820
-  have h41 := seg41_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 _ h
-  rcases h41 with ⟨w1825, hw1825, h⟩
-  have hSpec34 := spec34_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 hSpec33 hw1825
-  have h42 := seg42_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 _ h
-  rcases h42 with ⟨w1830, hw1830, h⟩
-  have h43 := seg43_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 w1830 _ h
-  rcases h43 with ⟨w1835, hw1835, h⟩
-  have h44 := seg44_sound w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 w1830 w1835 _ h
-  rcases h44 with ⟨w1840, hw1840, h⟩
-  have hSpec35 := spec35_step (w8) (w1615 - w1275) w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 w1820 w1825 w1830 w1835 w1840 hSpec34 hw1830 hw1835 hw1840
-  have h45 := seg45_sound w1830 w1835 w1840 _ h
-  rcases h45 with ⟨w1845, hw1845, h⟩
-  have h46 := seg46_sound w1830 w1835 w1840 w1845 _ h
-  rcases h46 with ⟨w1850, hw1850, h⟩
-  have h47 := seg47_sound w1830 w1835 w1840 w1845 w1850 _ h
-  rcases h47 with ⟨w1855, hw1855, h⟩
-  have hSpec36 := spec36_step (w8) (w1615 - w1275) w1830 w1835 w1840 w1845 w1850 w1855 hSpec35 hw1845 hw1850 hw1855
-  exact ⟨w1845, w1850, w1855, hSpec36, h⟩
+theorem range5_sound (w8 : F) (w1269 : F) (w1609 : F) (w1654 : F) (w1659 : F) (w1664 : F) (w1669 : F) (w1674 : F) (w1679 : F) (w1684 : F) (w1689 : F) (w1694 : F) (w1699 : F) (w1704 : F) (w1709 : F) (w1714 : F) (w1719 : F) (w1724 : F) (w1729 : F) (w1734 : F) (w1739 : F) (w1744 : F) (w1749 : F) (w1754 : F) (w1759 : F) (w1764 : F) (w1769 : F) (w1774 : F) (w1779 : F) (w1784 : F) (w1789 : F) (w1794 : F) (w1799 : F) (w1804 : F) (w1809 : F) (k : F → F → F → Prop)
+    (hSpec32 : spec32 (w8) (w1609 - w1269) = st32 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg40 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg41 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg42 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 w1824 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg43 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 w1824 (fun w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 w1824 w1829 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg44 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 w1824 w1829 (fun w1824 w1829 w1834 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg45 w1824 w1829 w1834 (fun w1824 w1829 w1834 w1839 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg46 w1824 w1829 w1834 w1839 (fun w1824 w1829 w1834 w1839 w1844 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg47 w1824 w1829 w1834 w1839 w1844 (fun w1839 w1844 w1849 =>
+      k w1839 w1844 w1849))))))))) :
+    ∃ w1839 w1844 w1849 : F, spec36 (w8) (w1609 - w1269) = st36 w1839 w1844 w1849 ∧ k w1839 w1844 w1849 := by
+  have h40 := seg40_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 _ h
+  rcases h40 with ⟨w1814, hw1814, h⟩
+  have hSpec33 := spec33_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 hSpec32 hw1814
+  have h41 := seg41_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 _ h
+  rcases h41 with ⟨w1819, hw1819, h⟩
+  have hSpec34 := spec34_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 hSpec33 hw1819
+  have h42 := seg42_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 _ h
+  rcases h42 with ⟨w1824, hw1824, h⟩
+  have h43 := seg43_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 w1824 _ h
+  rcases h43 with ⟨w1829, hw1829, h⟩
+  have h44 := seg44_sound w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 w1824 w1829 _ h
+  rcases h44 with ⟨w1834, hw1834, h⟩
+  have hSpec35 := spec35_step (w8) (w1609 - w1269) w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 w1814 w1819 w1824 w1829 w1834 hSpec34 hw1824 hw1829 hw1834
+  have h45 := seg45_sound w1824 w1829 w1834 _ h
+  rcases h45 with ⟨w1839, hw1839, h⟩
+  have h46 := seg46_sound w1824 w1829 w1834 w1839 _ h
+  rcases h46 with ⟨w1844, hw1844, h⟩
+  have h47 := seg47_sound w1824 w1829 w1834 w1839 w1844 _ h
+  rcases h47 with ⟨w1849, hw1849, h⟩
+  have hSpec36 := spec36_step (w8) (w1609 - w1269) w1824 w1829 w1834 w1839 w1844 w1849 hSpec35 hw1839 hw1844 hw1849
+  exact ⟨w1839, w1844, w1849, hSpec36, h⟩
 
-theorem range6_sound (w8 : F) (w1275 : F) (w1615 : F) (w1845 : F) (w1850 : F) (w1855 : F) (k : F → F → F → Prop)
-    (hSpec36 : spec36 (w8) (w1615 - w1275) = st36 w1845 w1850 w1855)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg48 w1845 w1850 w1855 (fun w1845 w1850 w1855 w1860 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg49 w1845 w1850 w1855 w1860 (fun w1845 w1850 w1855 w1860 w1865 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg50 w1845 w1850 w1855 w1860 w1865 (fun w1860 w1865 w1870 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg51 w1860 w1865 w1870 (fun w1860 w1865 w1870 w1875 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg52 w1860 w1865 w1870 w1875 (fun w1860 w1865 w1870 w1875 w1880 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.seg53 w1860 w1865 w1870 w1875 w1880 (fun w1875 w1880 w1885 =>
-      k w1875 w1880 w1885))))))) :
-    ∃ w1875 w1880 w1885 : F, spec38 (w8) (w1615 - w1275) = st38 w1875 w1880 w1885 ∧ k w1875 w1880 w1885 := by
-  have h48 := seg48_sound w1845 w1850 w1855 _ h
-  rcases h48 with ⟨w1860, hw1860, h⟩
-  have h49 := seg49_sound w1845 w1850 w1855 w1860 _ h
-  rcases h49 with ⟨w1865, hw1865, h⟩
-  have h50 := seg50_sound w1845 w1850 w1855 w1860 w1865 _ h
-  rcases h50 with ⟨w1870, hw1870, h⟩
-  have hSpec37 := spec37_step (w8) (w1615 - w1275) w1845 w1850 w1855 w1860 w1865 w1870 hSpec36 hw1860 hw1865 hw1870
-  have h51 := seg51_sound w1860 w1865 w1870 _ h
-  rcases h51 with ⟨w1875, hw1875, h⟩
-  have h52 := seg52_sound w1860 w1865 w1870 w1875 _ h
-  rcases h52 with ⟨w1880, hw1880, h⟩
-  have h53 := seg53_sound w1860 w1865 w1870 w1875 w1880 _ h
-  rcases h53 with ⟨w1885, hw1885, h⟩
-  have hSpec38 := spec38_step (w8) (w1615 - w1275) w1860 w1865 w1870 w1875 w1880 w1885 hSpec37 hw1875 hw1880 hw1885
-  exact ⟨w1875, w1880, w1885, hSpec38, h⟩
+theorem range6_sound (w8 : F) (w1269 : F) (w1609 : F) (w1839 : F) (w1844 : F) (w1849 : F) (k : F → F → F → Prop)
+    (hSpec36 : spec36 (w8) (w1609 - w1269) = st36 w1839 w1844 w1849)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg48 w1839 w1844 w1849 (fun w1839 w1844 w1849 w1854 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg49 w1839 w1844 w1849 w1854 (fun w1839 w1844 w1849 w1854 w1859 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg50 w1839 w1844 w1849 w1854 w1859 (fun w1854 w1859 w1864 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg51 w1854 w1859 w1864 (fun w1854 w1859 w1864 w1869 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg52 w1854 w1859 w1864 w1869 (fun w1854 w1859 w1864 w1869 w1874 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.seg53 w1854 w1859 w1864 w1869 w1874 (fun w1869 w1874 w1879 =>
+      k w1869 w1874 w1879))))))) :
+    ∃ w1869 w1874 w1879 : F, spec38 (w8) (w1609 - w1269) = st38 w1869 w1874 w1879 ∧ k w1869 w1874 w1879 := by
+  have h48 := seg48_sound w1839 w1844 w1849 _ h
+  rcases h48 with ⟨w1854, hw1854, h⟩
+  have h49 := seg49_sound w1839 w1844 w1849 w1854 _ h
+  rcases h49 with ⟨w1859, hw1859, h⟩
+  have h50 := seg50_sound w1839 w1844 w1849 w1854 w1859 _ h
+  rcases h50 with ⟨w1864, hw1864, h⟩
+  have hSpec37 := spec37_step (w8) (w1609 - w1269) w1839 w1844 w1849 w1854 w1859 w1864 hSpec36 hw1854 hw1859 hw1864
+  have h51 := seg51_sound w1854 w1859 w1864 _ h
+  rcases h51 with ⟨w1869, hw1869, h⟩
+  have h52 := seg52_sound w1854 w1859 w1864 w1869 _ h
+  rcases h52 with ⟨w1874, hw1874, h⟩
+  have h53 := seg53_sound w1854 w1859 w1864 w1869 w1874 _ h
+  rcases h53 with ⟨w1879, hw1879, h⟩
+  have hSpec38 := spec38_step (w8) (w1609 - w1269) w1854 w1859 w1864 w1869 w1874 w1879 hSpec37 hw1869 hw1874 hw1879
+  exact ⟨w1869, w1874, w1879, hSpec38, h⟩
 
-theorem relation_sound_permSpec (w8 : F) (w1275 : F) (w1615 : F) (k : F → F → F → Prop) :
-    Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.relation w8 w1275 w1615 k →
-      ∃ w1875 w1880 w1885 : F, k w1875 w1880 w1885 ∧
-        s38_1 w1875 w1880 w1885 = permSpec2 ivkDomainLit (w8) (w1615 - w1275) := by
-  unfold Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_bd78d2.relation
+theorem relation_sound_permSpec (w8 : F) (w1269 : F) (w1609 : F) (k : F → F → F → Prop) :
+    Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.relation w8 w1269 w1609 k →
+      ∃ w1869 w1874 w1879 : F, k w1869 w1874 w1879 ∧
+        s38_1 w1869 w1874 w1879 = permSpec2 ivkDomainLit (w8) (w1609 - w1269) := by
+  unfold Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7.relation
   intro h
-  have r0 := range0_sound w8 w1275 w1615 _ h
-  rcases r0 with ⟨w1645, w1650, w1655, hSpec2, h⟩
-  have r1 := range1_sound w8 w1275 w1615 w1645 w1650 w1655 _ hSpec2 h
-  rcases r1 with ⟨w1660, w1665, w1670, w1675, w1680, w1685, w1690, w1695, hSpec8, h⟩
-  have r2 := range2_sound w8 w1275 w1615 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 _ hSpec8 h
-  rcases r2 with ⟨w1660, w1665, w1670, w1675, w1680, w1685, w1690, w1695, w1700, w1705, w1710, w1715, w1720, w1725, w1730, w1735, hSpec16, h⟩
-  have r3 := range3_sound w8 w1275 w1615 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 _ hSpec16 h
-  rcases r3 with ⟨w1660, w1665, w1670, w1675, w1680, w1685, w1690, w1695, w1700, w1705, w1710, w1715, w1720, w1725, w1730, w1735, w1740, w1745, w1750, w1755, w1760, w1765, w1770, w1775, hSpec24, h⟩
-  have r4 := range4_sound w8 w1275 w1615 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 _ hSpec24 h
-  rcases r4 with ⟨w1660, w1665, w1670, w1675, w1680, w1685, w1690, w1695, w1700, w1705, w1710, w1715, w1720, w1725, w1730, w1735, w1740, w1745, w1750, w1755, w1760, w1765, w1770, w1775, w1780, w1785, w1790, w1795, w1800, w1805, w1810, w1815, hSpec32, h⟩
-  have r5 := range5_sound w8 w1275 w1615 w1660 w1665 w1670 w1675 w1680 w1685 w1690 w1695 w1700 w1705 w1710 w1715 w1720 w1725 w1730 w1735 w1740 w1745 w1750 w1755 w1760 w1765 w1770 w1775 w1780 w1785 w1790 w1795 w1800 w1805 w1810 w1815 _ hSpec32 h
-  rcases r5 with ⟨w1845, w1850, w1855, hSpec36, h⟩
-  have r6 := range6_sound w8 w1275 w1615 w1845 w1850 w1855 _ hSpec36 h
-  rcases r6 with ⟨w1875, w1880, w1885, hSpec38, h⟩
-  refine ⟨w1875, w1880, w1885, h, ?_⟩
-  rw [← spec38_eq_permSpec (w8) (w1615 - w1275)]
+  have r0 := range0_sound w8 w1269 w1609 _ h
+  rcases r0 with ⟨w1639, w1644, w1649, hSpec2, h⟩
+  have r1 := range1_sound w8 w1269 w1609 w1639 w1644 w1649 _ hSpec2 h
+  rcases r1 with ⟨w1654, w1659, w1664, w1669, w1674, w1679, w1684, w1689, hSpec8, h⟩
+  have r2 := range2_sound w8 w1269 w1609 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 _ hSpec8 h
+  rcases r2 with ⟨w1654, w1659, w1664, w1669, w1674, w1679, w1684, w1689, w1694, w1699, w1704, w1709, w1714, w1719, w1724, w1729, hSpec16, h⟩
+  have r3 := range3_sound w8 w1269 w1609 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 _ hSpec16 h
+  rcases r3 with ⟨w1654, w1659, w1664, w1669, w1674, w1679, w1684, w1689, w1694, w1699, w1704, w1709, w1714, w1719, w1724, w1729, w1734, w1739, w1744, w1749, w1754, w1759, w1764, w1769, hSpec24, h⟩
+  have r4 := range4_sound w8 w1269 w1609 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 _ hSpec24 h
+  rcases r4 with ⟨w1654, w1659, w1664, w1669, w1674, w1679, w1684, w1689, w1694, w1699, w1704, w1709, w1714, w1719, w1724, w1729, w1734, w1739, w1744, w1749, w1754, w1759, w1764, w1769, w1774, w1779, w1784, w1789, w1794, w1799, w1804, w1809, hSpec32, h⟩
+  have r5 := range5_sound w8 w1269 w1609 w1654 w1659 w1664 w1669 w1674 w1679 w1684 w1689 w1694 w1699 w1704 w1709 w1714 w1719 w1724 w1729 w1734 w1739 w1744 w1749 w1754 w1759 w1764 w1769 w1774 w1779 w1784 w1789 w1794 w1799 w1804 w1809 _ hSpec32 h
+  rcases r5 with ⟨w1839, w1844, w1849, hSpec36, h⟩
+  have r6 := range6_sound w8 w1269 w1609 w1839 w1844 w1849 _ hSpec36 h
+  rcases r6 with ⟨w1869, w1874, w1879, hSpec38, h⟩
+  refine ⟨w1869, w1874, w1879, h, ?_⟩
+  rw [← spec38_eq_permSpec (w8) (w1609 - w1269)]
   rw [hSpec38]
   simp [st38]
 

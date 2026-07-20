@@ -21,7 +21,7 @@ open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
 open Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge
 
 theorem seg46_conservBody (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
-    conservBody (rho 15) (rho 105) (rho 193) (rho 5)
+    conservBody (rho 15) (rho 102) (rho 187) (rho 5)
       (Specs.nbX rho) (Specs.nbY rho) := by
   have hIn0Bin := seg46In0Bits_toBinary rho h
   have hIn1Bin := seg46In1Bits_toBinary rho h
@@ -45,11 +45,11 @@ theorem seg46_conservBody (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
     simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
       GatesGnark8, GatesDef.add], ?_⟩
   refine ⟨seg46In1Bits rho, hIn1Bin, ?_⟩
-  refine ⟨(0 : Seg46.F) + rho 15 + rho 105, by
+  refine ⟨(0 : Seg46.F) + rho 15 + rho 102, by
     simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
       GatesGnark8, GatesDef.add], ?_⟩
   refine ⟨seg46Out0Bits rho, hOut0Bin, ?_⟩
-  refine ⟨(0 : Seg46.F) + rho 193, by
+  refine ⟨(0 : Seg46.F) + rho 187, by
     simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
       GatesGnark8, GatesDef.add], ?_⟩
   refine ⟨by
@@ -61,10 +61,10 @@ theorem seg46_conservBody (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
 theorem seg46_sound (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
     Specs.deployedSpec46 rho := by
   have hbody := seg46_conservBody rho h
-  have hcircuit := (conserv_circuit_eq (rho 15) (rho 105)
-    (rho 193) (rho 5) (Specs.nbX rho) (Specs.nbY rho)).mpr hbody
+  have hcircuit := (conserv_circuit_eq (rho 15) (rho 102)
+    (rho 187) (rho 5) (Specs.nbX rho) (Specs.nbY rho)).mpr hbody
   exact Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound
-    (rho 15) (rho 105) (rho 193) (rho 5)
+    (rho 15) (rho 102) (rho 187) (rho 5)
     ⟨Specs.nbX rho, Specs.nbY rho⟩ hcircuit
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1

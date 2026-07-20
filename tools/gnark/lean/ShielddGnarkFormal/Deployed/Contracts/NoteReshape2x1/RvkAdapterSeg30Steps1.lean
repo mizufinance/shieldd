@@ -62,7 +62,7 @@ theorem seg30_steps1 (rho : Nat -> Seg30.F)
     (r1076 : Seg30.relationRow1076 rho)
     : ∀ i, 155 ≤ i → i ≤ 159 → onCurve (seg30RvkAcc rho i) →
         RvkFixedBaseLadder.FixedStepRel i
-          (rho (28317 + i)) (seg30RvkAcc rho i) (seg30RvkAcc rho (i + 1)) := by
+          (rho (28311 + i)) (seg30RvkAcc rho i) (seg30RvkAcc rho (i + 1)) := by
   intro i hlo hhi hacc
   interval_cases i
   · exact seg30_step155 rho r155 r1037 r1038 r1039 r1040 r1041 r1042 r1043 r1044 hacc

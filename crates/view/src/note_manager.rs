@@ -1417,6 +1417,9 @@ fn select_auto_note_reshape_family(
     selected_note_count: usize,
     available_note_count: usize,
 ) -> Option<NoteReshapeFamilyId> {
+    // Preserve wallet intent: select the smallest useful many-to-one family
+    // when the selected set is close to its capacity; otherwise choose the
+    // largest available family to avoid revealing the selected input count.
     let direct_match = [
         NoteReshapeFamilyId::TwoByOne,
         NoteReshapeFamilyId::FourByOne,
@@ -2453,7 +2456,7 @@ mod tests {
                 .body
                 .inputs
                 .iter()
-                .map(|input| input.is_dummy)
+                .map(|input| input.is_dummy())
                 .collect::<Vec<_>>(),
             vec![false, false, false, true]
         );
@@ -2494,7 +2497,7 @@ mod tests {
                 .body
                 .outputs
                 .iter()
-                .map(|output| output.is_dummy)
+                .map(|output| output.is_dummy())
                 .collect::<Vec<_>>(),
             vec![false, false, false, true, true, true, true, true]
         );

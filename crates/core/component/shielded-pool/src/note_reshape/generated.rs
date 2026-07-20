@@ -118,11 +118,24 @@ impl From<NoteReshapeFamilyId> for u32 {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InputPaddingPolicy {
+    Fixed,
+    SyntheticPrivate,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OutputPaddingPolicy {
+    Fixed,
+    ZeroNote,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NoteReshapeFamilySpec {
     pub id: NoteReshapeFamilyId,
     pub label: &'static str,
     pub artifact_name: &'static str,
-    pub uses_dummy_slots: bool,
+    pub input_padding: InputPaddingPolicy,
+    pub output_padding: OutputPaddingPolicy,
     pub n_in: usize,
     pub n_out: usize,
     pub min_real_inputs: usize,
@@ -136,7 +149,8 @@ pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
         id: NoteReshapeFamilyId::TwoByOne,
         label: "note_reshape2x1",
         artifact_name: "note_reshape2x1",
-        uses_dummy_slots: false,
+        input_padding: InputPaddingPolicy::Fixed,
+        output_padding: OutputPaddingPolicy::Fixed,
         n_in: 2,
         n_out: 1,
         min_real_inputs: 2,
@@ -148,7 +162,8 @@ pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
         id: NoteReshapeFamilyId::OneByEight,
         label: "note_reshape1x8",
         artifact_name: "note_reshape1x8",
-        uses_dummy_slots: true,
+        input_padding: InputPaddingPolicy::Fixed,
+        output_padding: OutputPaddingPolicy::ZeroNote,
         n_in: 1,
         n_out: 8,
         min_real_inputs: 1,
@@ -160,7 +175,8 @@ pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
         id: NoteReshapeFamilyId::EightByOne,
         label: "note_reshape8x1",
         artifact_name: "note_reshape8x1",
-        uses_dummy_slots: true,
+        input_padding: InputPaddingPolicy::SyntheticPrivate,
+        output_padding: OutputPaddingPolicy::Fixed,
         n_in: 8,
         n_out: 1,
         min_real_inputs: 5,
@@ -172,7 +188,8 @@ pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
         id: NoteReshapeFamilyId::FourByOne,
         label: "note_reshape4x1",
         artifact_name: "note_reshape4x1",
-        uses_dummy_slots: true,
+        input_padding: InputPaddingPolicy::SyntheticPrivate,
+        output_padding: OutputPaddingPolicy::Fixed,
         n_in: 4,
         n_out: 1,
         min_real_inputs: 3,
@@ -184,7 +201,43 @@ pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; 4] = [
 
 #[cfg(test)]
 mod tests {
-    use super::NoteReshapeFamilyId;
+    use super::{InputPaddingPolicy, NoteReshapeFamilyId, OutputPaddingPolicy};
+
+    #[test]
+    fn registry_declares_padding_policy_per_family() {
+        assert_eq!(
+            NoteReshapeFamilyId::TwoByOne.spec().input_padding,
+            InputPaddingPolicy::Fixed
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::TwoByOne.spec().output_padding,
+            OutputPaddingPolicy::Fixed
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::FourByOne.spec().input_padding,
+            InputPaddingPolicy::SyntheticPrivate
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::FourByOne.spec().output_padding,
+            OutputPaddingPolicy::Fixed
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::EightByOne.spec().input_padding,
+            InputPaddingPolicy::SyntheticPrivate
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::EightByOne.spec().output_padding,
+            OutputPaddingPolicy::Fixed
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::OneByEight.spec().input_padding,
+            InputPaddingPolicy::Fixed
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::OneByEight.spec().output_padding,
+            OutputPaddingPolicy::ZeroNote
+        );
+    }
 
     #[test]
     fn canonical_selection_is_directional_and_unique() {

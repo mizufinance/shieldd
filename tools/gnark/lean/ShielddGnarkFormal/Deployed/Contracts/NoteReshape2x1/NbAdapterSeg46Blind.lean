@@ -22,7 +22,7 @@ theorem seg46Blind_ladder (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
       Shieldd.GnarkFormal.Deployed.NetBalance.blindGen ∧
     EdwardsBridge.onCurve (seg46BlindAccState rho 251) := by
   have hbitAt : ∀ i, i < 251 →
-      rho (31661 + i) = Bool.toZMod bits[i]! := by
+      rho (31655 + i) = Bool.toZMod bits[i]! := by
     intro i hi
     rw [← seg46BlindBits_get rho i hi, hbits]
     rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),

@@ -10,7 +10,7 @@ theorem seg13_scp_step8 (rho : Nat -> Seg13.F) (h : Seg13.relation rho) :
     seg13ScpNode8Out rho =
       Shieldd.GnarkFormal.QuadPath.recoverStep Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 ((545001158149490383238005163525397553024965043366546261617421270984613353336 : Seg13.F) + (9 : Seg13.F))
         (seg13ScpNode7Out rho) (rho 70) (rho 71) (rho 72)
-        (rho 7464) (rho 7465) := by
+        (rho 7458) (rho 7459) := by
   have hnode := seg13_scp_node8_eq rho h
   unfold Seg13.relation at h
   rcases h with ⟨
@@ -34,9 +34,9 @@ theorem seg13_scp_step8 (rho : Nat -> Seg13.F) (h : Seg13.relation rho) :
   exact hnode.trans
     (Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recoverStep_eq Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 ((545001158149490383238005163525397553024965043366546261617421270984613353336 : Seg13.F) + (9 : Seg13.F))
       (seg13ScpNode7Out rho) (rho 70) (rho 71) (rho 72)
-      (rho 7464) (rho 7465)
-      (rho 10376) (rho 10377) (rho 10378) (rho 10379)
-      (rho 10380) (rho 10381) (rho 10382) (rho 10383) (rho 10384) (rho 10385)
+      (rho 7458) (rho 7459)
+      (rho 10370) (rho 10371) (rho 10372) (rho 10373)
+      (rho 10374) (rho 10375) (rho 10376) (rho 10377) (rho 10378) (rho 10379)
       (by unfold Seg13.relationRow3191 at r3191; linear_combination r3191)
       (by unfold Seg13.relationRow3192 at r3192; linear_combination r3192)
       (by unfold Seg13.relationRow3193 at r3193; linear_combination r3193)

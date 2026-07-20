@@ -7,13 +7,13 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg6Q4Step20Pe (rho : Nat -> Seg6.F) (r2684 : Seg6.relationRow2684 rho) :
-    seg6Q4Pe20 rho = seg6Q4Pe21 rho * (1 - rho 1910) := by
+    seg6Q4Pe20 rho = seg6Q4Pe21 rho * (1 - rho 1904) := by
   unfold Seg6.relationRow2684 at r2684
   unfold seg6Q4Pe20 seg6Q4Pe21
   linear_combination -r2684
 
 theorem seg6Q4Step20 (rho : Nat -> Seg6.F) (r2684 : Seg6.relationRow2684 rho) :
-    seg6Q4Pe20 rho = seg6Q4Pe21 rho * (1 - rho 1910) ∧
+    seg6Q4Pe20 rho = seg6Q4Pe21 rho * (1 - rho 1904) ∧
     seg6Q4Il20 rho = seg6Q4Il21 rho := by
   exact ⟨seg6Q4Step20Pe rho r2684, rfl⟩
 
@@ -36,11 +36,11 @@ theorem seg6_q4_chunk20 (rho : Nat -> Seg6.F) (h : Seg6.relation rho) (k : Prop)
   rcases p33 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r2684, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
   have hsteps : ∀ n, 20 ≤ n → n < 21 →
       if Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit n then
-        seg6Q4PeState rho n = seg6Q4PeState rho (n + 1) * rho (1890 + n) ∧
-        seg6Q4IlState rho n = seg6Q4IlState rho (n + 1) + seg6Q4PeState rho (n + 1) * (1 - rho (1890 + n)) -
-          seg6Q4IlState rho (n + 1) * (seg6Q4PeState rho (n + 1) * (1 - rho (1890 + n)))
+        seg6Q4PeState rho n = seg6Q4PeState rho (n + 1) * rho (1884 + n) ∧
+        seg6Q4IlState rho n = seg6Q4IlState rho (n + 1) + seg6Q4PeState rho (n + 1) * (1 - rho (1884 + n)) -
+          seg6Q4IlState rho (n + 1) * (seg6Q4PeState rho (n + 1) * (1 - rho (1884 + n)))
       else
-        seg6Q4PeState rho n = seg6Q4PeState rho (n + 1) * (1 - rho (1890 + n)) ∧
+        seg6Q4PeState rho n = seg6Q4PeState rho (n + 1) * (1 - rho (1884 + n)) ∧
         seg6Q4IlState rho n = seg6Q4IlState rho (n + 1) := by
     intro n hnlo hnhi
     interval_cases n

@@ -17,6 +17,8 @@ NOT touched here, keeping the regression bite meaningful.
 """
 import json, pathlib, re, sys
 
+from write_if_changed import write_if_changed
+
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 EXTRACTED = ROOT / "tools/gnark/lean/ShielddGnarkFormal/Extracted/Deployed"
@@ -40,7 +42,7 @@ CONFIGS = {
     "dtk_ivk": dict(
         W=3,
         leaf="DtkIvkPoseidon",
-        slice_stem="DtkIvkPoseidon270_bd78d2",
+        slice_stem=json.load(open(HERE / "dtk_ivk_gendata.json"))["slice_stem"],
         link="Poseidon2Link",
         bridge_ns="Poseidon2Bridge",
         deployed_bridge="DtkIvkPoseidonDeployedBridge",
@@ -461,7 +463,7 @@ def build(cfgname):
     emit_spec_def(base, 0)
     emit_spec_eq(base, 0)
     base.append(footer)
-    (OUT / "Base.lean").write_text("".join(base))
+    write_if_changed(OUT / "Base.lean", "".join(base))
 
     # ===== leading full rounds 1..first_partial-1 =====
     for g in range(1, first_partial):
@@ -473,7 +475,7 @@ def build(cfgname):
         emit_spec_def(lines, g)
         emit_spec_eq(lines, g)
         lines.append(footer)
-        (OUT / f"Round{g:02d}.lean").write_text("".join(lines))
+        write_if_changed(OUT / f"Round{g:02d}.lean", "".join(lines))
 
     # ===== partial rounds =====
     for g in range(first_partial, last_partial + 1):
@@ -482,7 +484,7 @@ def build(cfgname):
         emit_spec_def(lines, g)
         emit_spec_eq(lines, g)
         lines.append(footer)
-        (OUT / f"Round{g:02d}.lean").write_text("".join(lines))
+        write_if_changed(OUT / f"Round{g:02d}.lean", "".join(lines))
 
     # ===== full tail =====
     lines = [f"import ShielddGnarkFormal.Deployed.{leaf}.Round{tail_start - 1:02d}\n\n", header]
@@ -498,7 +500,7 @@ def build(cfgname):
         emit_spec_def(lines, g)
         emit_spec_eq(lines, g)
     lines.append(footer)
-    (OUT / "FullTail.lean").write_text("".join(lines))
+    write_if_changed(OUT / "FullTail.lean", "".join(lines))
 
     # ===== SpecLink: (spec{LAST} ..)[1] = permSpecW domain inputs =====
     speclink = [f"import ShielddGnarkFormal.Deployed.{leaf}.FullTail\n\n", header]
@@ -507,7 +509,7 @@ def build(cfgname):
         f"    ({spec_call(LAST)})[1] = {cfg['spec']} {cfg['domain_sym']} {pub_use} := by\n"
         f"  unfold {cfg['spec']} {cfg['domain_sym']}\n  rfl\n\n")
     speclink.append(footer)
-    (OUT / "SpecLink.lean").write_text("".join(speclink))
+    write_if_changed(OUT / "SpecLink.lean", "".join(speclink))
 
     # ===== seg_sound (parse extracted relation) + range composition =====
     ext = (EXTRACTED / f"{stem}.lean").read_text().splitlines()
@@ -568,7 +570,7 @@ def build(cfgname):
             f"  have h4' : v3 * ({seg_hw_expr(s)}) = {w} := by linear_combination h4\n"
             f"  exact p17_from_rows _ _ _ _ _ _ h0' h1' h2' h3' h4'\n\n")
     SEG.append(footer)
-    (OUT / "SegSound.lean").write_text("".join(SEG))
+    write_if_changed(OUT / "SegSound.lean", "".join(SEG))
 
     # ===== range composition + relation_sound_permSpec =====
     round_last_seg = {}
@@ -637,7 +639,7 @@ def build(cfgname):
     RB.append(f"  simp [st{LAST}]\n\n")
     RB.append("#print axioms relation_sound_permSpec\n\n")
     RB.append(footer)
-    (OUT / "SemanticBridge.lean").write_text("".join(RB))
+    write_if_changed(OUT / "SemanticBridge.lean", "".join(RB))
 
     print(f"[{cfgname}] emitted Base + {first_partial - 1} leading + "
           f"{last_partial - first_partial + 1} partial + FullTail + SpecLink + SegSound "

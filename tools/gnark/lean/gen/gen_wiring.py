@@ -17,6 +17,8 @@ import argparse
 import json
 from pathlib import Path
 
+from write_if_changed import write_if_changed
+
 REPO = Path(__file__).resolve().parents[3].parent
 IR = (
     REPO
@@ -157,8 +159,8 @@ def main() -> None:
         print(f"checked {args.out} ({len(NAMED) + 1} named wires)")
         return
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(contents)
-    print(f"wrote {args.out} ({len(NAMED) + 1} named wires)")
+    if write_if_changed(args.out, contents):
+        print(f"wrote {args.out} ({len(NAMED) + 1} named wires)")
 
 
 if __name__ == "__main__":

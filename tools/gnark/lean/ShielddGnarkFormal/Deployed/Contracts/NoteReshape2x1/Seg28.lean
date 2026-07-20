@@ -126,8 +126,8 @@ def spec (rho : Nat -> F) : Prop := Specs.deployedSpec28 rho
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 28,
-relationSha256Hex := "a7fb9e4901c9eb182ce406d4e2175d926222a2e6be2418b53b5acc24d17ff789",
-wireRoleSha256Hex := "61e1b8aac54ea15c1f68f3a2cf68a459c03138cfc16e8eb883611e7c6a8fbda2",
+relationSha256Hex := "c77d08d24526fc1c36705d5a6b90eea44d17c69cffce2f243cf6f4b8255f8405",
+wireRoleSha256Hex := "d1e33e3176602f43a091dd95aba37bf603e5dca6b16de1d18ccc7a727b00b83c",
 relation := relation,
 spec := spec
 }

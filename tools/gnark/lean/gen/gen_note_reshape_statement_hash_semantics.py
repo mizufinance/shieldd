@@ -18,6 +18,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from write_if_changed import write_if_changed
+
 
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
@@ -62,32 +64,32 @@ FAMILIES = (
     Family(
         "note_reshape4x1",
         "note_reshape4x1",
-        "1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78",
-        940,
-        972,
-        13,
-        (470, 470),
-        (936, 941, 946, 951, 956, 961, 966, 971),
+        "4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7",
+        930,
+        957,
+        11,
+        (470, 460),
+        (921, 926, 931, 936, 941, 946, 951, 956),
     ),
     Family(
         "note_reshape1x8",
         "note_reshape1x8",
-        "ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805",
-        1385,
-        1458,
-        14,
-        (470, 470, 445),
-        (1422, 1427, 1432, 1437, 1442, 1447, 1452, 1457),
+        "253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e",
+        935,
+        1001,
+        12,
+        (470, 465),
+        (965, 970, 975, 980, 985, 990, 995, 1000),
     ),
     Family(
         "note_reshape8x1",
         "note_reshape8x1",
-        "7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed",
-        1860,
-        1912,
-        21,
-        (470, 470, 470, 450),
-        (1876, 1881, 1886, 1891, 1896, 1901, 1906, 1911),
+        "ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1",
+        1410,
+        1453,
+        19,
+        (470, 470, 470),
+        (1417, 1422, 1427, 1432, 1437, 1442, 1447, 1452),
     ),
 )
 
@@ -308,7 +310,7 @@ def recover_provider(family: Family) -> Provider:
     recovered_fields: list[LC] = []
     for block_index, block_rows in enumerate(family.block_rows):
         variable_boxes = block_rows // 5 - 87
-        if variable_boxes not in (2, 3, 7):
+        if variable_boxes not in (2, 3, 5, 6, 7):
             raise ValueError(f"{family.key}: unsupported round-0 box count {variable_boxes}")
         per_round = [variable_boxes, 8, 8, 8] + [1] * 31 + [8] * 4
         round_boxes = []
@@ -1206,9 +1208,9 @@ def generated_files() -> dict[Path, str]:
 def _validate_outputs(outputs: dict[Path, str]) -> None:
     expected_counts = {
         FAMILIES[0].name: 1080,
-        FAMILIES[1].name: 2155,
-        FAMILIES[2].name: 3225,
-        FAMILIES[3].name: 4301,
+        FAMILIES[1].name: 2153,
+        FAMILIES[2].name: 2154,
+        FAMILIES[3].name: 3230,
     }
     for name, expected_count in expected_counts.items():
         actual_count = sum(path.name.startswith(name) for path in outputs)
@@ -1239,26 +1241,35 @@ def _validate_outputs(outputs: dict[Path, str]) -> None:
 
 
 def benchmark_candidates() -> tuple[str, ...]:
-    """Required first/middle/final leaves plus one final aggregator per family."""
+    """Required leaf and aggregator probes for every statement-hash family."""
     result = []
     for provider in providers():
         name = provider.family.name
-        result.extend(
+        candidates = [
+            OUT / f"{name}Block0Round0Lane0.lean",
+            OUT / f"{name}Block{len(provider.blocks) // 2}Round19Lane4.lean",
+            OUT / f"{name}Block{len(provider.blocks) - 1}Round38Lane7.lean",
+        ]
+        if len(provider.blocks) > 1:
+            candidates.append(OUT / f"{name}Block1Round0Lane0.lean")
+        candidates.extend(
             (
-                str(OUT / f"{name}Block0Round0Lane0.lean"),
-                str(OUT / f"{name}Block{len(provider.blocks) // 2}Round19Lane4.lean"),
-                str(OUT / f"{name}Block{len(provider.blocks) - 1}Round38Lane7.lean"),
-                str(OUT / f"{name}Block{len(provider.blocks) - 1}.lean"),
-                str(OUT / f"{name}.lean"),
+                OUT / f"{name}Block{len(provider.blocks) - 1}.lean",
+                OUT / f"{name}.lean",
             )
         )
+        result.extend(str(path) for path in candidates)
     return tuple(result)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--print-benchmark-candidates", action="store_true")
     args = parser.parse_args()
+    if args.print_benchmark_candidates:
+        print("\n".join(benchmark_candidates()))
+        return
     outputs = generated_files()
     stale = [path for path, text in outputs.items() if not path.exists() or path.read_text() != text]
     managed = set()
@@ -1279,8 +1290,8 @@ def main() -> None:
         path.unlink()
         print(f"removed {path}")
     for path, text in outputs.items():
-        path.write_text(text)
-        print(f"wrote {path}")
+        if write_if_changed(path, text):
+            print(f"wrote {path}")
 
 
 if __name__ == "__main__":

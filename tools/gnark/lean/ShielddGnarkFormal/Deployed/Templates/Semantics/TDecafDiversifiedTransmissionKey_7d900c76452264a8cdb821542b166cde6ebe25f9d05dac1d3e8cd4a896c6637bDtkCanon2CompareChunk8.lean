@@ -41,47 +41,47 @@ theorem dtkCanon2_compare_chunk8 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 129 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 130 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 130 = rho 1578 from rfl]
     linear_combination r944
   · erw [dtkCanon2Bits_get rho 130 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 131 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 131 = rho 1578 from rfl]
     linear_combination r943
   · erw [dtkCanon2Bits_get rho 131 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 132 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 132 = rho 1578 from rfl]
     linear_combination r942
   · erw [dtkCanon2Bits_get rho 132 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 133 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 133 = rho 1578 from rfl]
     linear_combination r941
   · erw [dtkCanon2Bits_get rho 133 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 134 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 134 = rho 1578 from rfl]
     linear_combination r940
   · erw [dtkCanon2Bits_get rho 134 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 135 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 135 = rho 1578 from rfl]
     linear_combination r939
   · erw [dtkCanon2Bits_get rho 135 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 136 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 136 = rho 1578 from rfl]
     linear_combination r938
   · erw [dtkCanon2Bits_get rho 136 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 137 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 137 = rho 1578 from rfl]
     linear_combination r937
   · erw [dtkCanon2Bits_get rho 137 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 138 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 138 = rho 1578 from rfl]
     linear_combination r936
   · erw [dtkCanon2Bits_get rho 138 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 139 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 139 = rho 1578 from rfl]
     linear_combination r935
   · erw [dtkCanon2Bits_get rho 139 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 140 = rho 1584 from rfl]
+    rw [show dtkCanon2Flag rho 140 = rho 1578 from rfl]
     linear_combination r934
   · have hb : pmBit 140 = true := by decide +kernel
     simp [hb] at hpm
@@ -89,7 +89,7 @@ theorem dtkCanon2_compare_chunk8 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 142 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 143 = rho 1582 from rfl]
+    rw [show dtkCanon2Flag rho 143 = rho 1576 from rfl]
     linear_combination r933
   · have hb : pmBit 143 = true := by decide +kernel
     simp [hb] at hpm

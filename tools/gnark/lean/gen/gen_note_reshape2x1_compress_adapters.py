@@ -7,6 +7,8 @@ import argparse
 import re
 from pathlib import Path
 
+from write_if_changed import write_if_changed
+
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "ShielddGnarkFormal/Deployed/Contracts/NoteReshape2x1"
 BRIDGE = ROOT / "ShielddGnarkFormal/Deployed/CompressToField/Bridge.lean"
@@ -21,18 +23,18 @@ SEGMENTS = [
     # the unmaterialized ladder-accumulator LCs Specs.nbX/nbY, not wires: its
     # x/y entries are Lean expressions and its rows are discharged through the
     # flat-vs-stride-run bridge below.
-    (5, 17, 18, 0),
-    (17, 12, 13, 17739),
-    (32, 102, 103, 29920),
-    (48, "Specs.nbX rho", "Specs.nbY rho", 33257),
+    (5, 17, 18, -6),
+    (17, 12, 13, 17733),
+    (32, 99, 100, 29914),
+    (48, "Specs.nbX rho", "Specs.nbY rho", 33251),
 ]
 
 # seg -> (lean name, sumAux runs [(start, stride, count)]) for LC-coordinate
 # segments; runs must match Specs.nbX/nbY definitionally.
 LC_COORDS = {
     48: {
-        "x": ("Specs.nbX", [(31915, 5, 149), (32663, 8, 101)]),
-        "y": ("Specs.nbY", [(31916, 5, 149), (32664, 8, 101)]),
+        "x": ("Specs.nbX", [(31909, 5, 149), (32657, 8, 101)]),
+        "y": ("Specs.nbY", [(31910, 5, 149), (32658, 8, 101)]),
     },
 }
 
@@ -165,7 +167,8 @@ def emit_rho_def(lines: list[str], seg: int, x, y, offset: int) -> None:
     lines.append("| 0 => 1")
     lines.append(f"| 17 => {xs}")
     lines.append(f"| 18 => {ys}")
-    lines.append(f"| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + {offset}) else rho i")
+    shifted = f"i + {offset}" if offset >= 0 else f"i - {-offset}"
+    lines.append(f"| i => if 210 ≤ i ∧ i ≤ 912 then rho ({shifted}) else rho i")
     lines.append("")
 
 
@@ -184,7 +187,46 @@ def emit_lc_flat_lemma(lines: list[str], seg: int, coord: str, flat: str) -> Non
     lines.append("")
 
 
-def emit_recomp_helpers(lines: list[str]) -> None:
+def emit_recomp_helpers(lines: list[str], *, extended: bool = False) -> None:
+    if not extended:
+        lines.extend(
+            [
+                "def recBits {n : Nat} (rho : Nat → ZMod n) (base width : Nat) : ZMod n :=",
+                "  match width with",
+                "  | 0 => 0",
+                "  | width + 1 => rho base + 2 * recBits rho (base + 1) width",
+                "",
+                "def powSumAcc {n : Nat} (rho : Nat → ZMod n) (acc pow : ZMod n) (base width : Nat) : ZMod n :=",
+                "  match width with",
+                "  | 0 => acc",
+                "  | width + 1 => powSumAcc rho (acc + pow * rho base) (2 * pow) (base + 1) width",
+                "",
+                "theorem powSumAcc_eq {n : Nat} (rho : Nat → ZMod n) (acc pow : ZMod n) (base width : Nat) :",
+                "    powSumAcc rho acc pow base width = acc + pow * recBits rho base width := by",
+                "  induction width generalizing acc pow base with",
+                "  | zero => simp [powSumAcc, recBits]",
+                "  | succ width ih =>",
+                "      simp [powSumAcc, recBits, ih]",
+                "      ring",
+                "",
+                "theorem recover_ofFn_eq_recBits {n : Nat} (rho : Nat → ZMod n) (base width : Nat) :",
+                "    recover_binary_zmod' (List.Vector.ofFn (fun i : Fin width => rho (base + i.val))) =",
+                "      recBits rho base width := by",
+                "  induction width generalizing base with",
+                "  | zero => simp [recover_binary_zmod', recBits]",
+                "  | succ width ih =>",
+                "      simp only [recover_binary_zmod', recBits, List.Vector.head_ofFn, List.Vector.tail_ofFn]",
+                "      have htail : (List.Vector.ofFn fun i : Fin width => rho (base + ↑i.succ)) =",
+                "          (List.Vector.ofFn fun i : Fin width => rho (base + 1 + ↑i)) := by",
+                "        apply List.Vector.ext",
+                "        intro i",
+                "        simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]",
+                "      rw [htail, ih (base + 1)]",
+                "      simp",
+                "",
+            ]
+        )
+        return
     lines.extend(
         [
             "def recBits {n : Nat} (rho : Nat → ZMod n) (base width : Nat) : ZMod n :=",
@@ -498,7 +540,7 @@ def main() -> None:
                     stale.unlink()
 
     for path, source in expected.items():
-        path.write_text(source)
+        write_if_changed(path, source)
 
 
 if __name__ == "__main__":

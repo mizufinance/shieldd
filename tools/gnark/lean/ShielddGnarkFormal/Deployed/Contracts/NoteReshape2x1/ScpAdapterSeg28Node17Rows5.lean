@@ -1,5 +1,5 @@
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg28Base
-import ShielddGnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5
+import ShielddGnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -14,9 +14,9 @@ theorem seg28_scp_node17_seg50 (rho : Nat -> Seg28.F)
     (r6733 : Seg28.relationRow6733 rho)
     (r6734 : Seg28.relationRow6734 rho)
     (r6735 : Seg28.relationRow6735 rho)
-    (tail : next (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) (rho 26061)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg50 (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) next := by
-  exact ⟨rho 26057, rho 26058, rho 26059, rho 26060, rho 26061, r6731, r6732, r6733, r6734, r6735, tail⟩
+    (tail : next (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) (rho 26055)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg50 (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) next := by
+  exact ⟨rho 26051, rho 26052, rho 26053, rho 26054, rho 26055, r6731, r6732, r6733, r6734, r6735, tail⟩
 
 theorem seg28_scp_node17_seg51 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -25,9 +25,9 @@ theorem seg28_scp_node17_seg51 (rho : Nat -> Seg28.F)
     (r6738 : Seg28.relationRow6738 rho)
     (r6739 : Seg28.relationRow6739 rho)
     (r6740 : Seg28.relationRow6740 rho)
-    (tail : next (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) (rho 26061) (rho 26066)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg51 (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) (rho 26061) next := by
-  exact ⟨rho 26062, rho 26063, rho 26064, rho 26065, rho 26066, r6736, r6737, r6738, r6739, r6740, tail⟩
+    (tail : next (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) (rho 26055) (rho 26060)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg51 (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) (rho 26055) next := by
+  exact ⟨rho 26056, rho 26057, rho 26058, rho 26059, rho 26060, r6736, r6737, r6738, r6739, r6740, tail⟩
 
 theorem seg28_scp_node17_seg52 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -36,9 +36,9 @@ theorem seg28_scp_node17_seg52 (rho : Nat -> Seg28.F)
     (r6743 : Seg28.relationRow6743 rho)
     (r6744 : Seg28.relationRow6744 rho)
     (r6745 : Seg28.relationRow6745 rho)
-    (tail : next (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) (rho 26061) (rho 26066) (rho 26071)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg52 (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) (rho 26061) (rho 26066) next := by
-  exact ⟨rho 26067, rho 26068, rho 26069, rho 26070, rho 26071, r6741, r6742, r6743, r6744, r6745, tail⟩
+    (tail : next (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) (rho 26055) (rho 26060) (rho 26065)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg52 (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) (rho 26055) (rho 26060) next := by
+  exact ⟨rho 26061, rho 26062, rho 26063, rho 26064, rho 26065, r6741, r6742, r6743, r6744, r6745, tail⟩
 
 theorem seg28_scp_node17_seg53 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -47,9 +47,9 @@ theorem seg28_scp_node17_seg53 (rho : Nat -> Seg28.F)
     (r6748 : Seg28.relationRow6748 rho)
     (r6749 : Seg28.relationRow6749 rho)
     (r6750 : Seg28.relationRow6750 rho)
-    (tail : next (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) (rho 26061) (rho 26066) (rho 26071) (rho 26076)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg53 (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) (rho 26061) (rho 26066) (rho 26071) next := by
-  exact ⟨rho 26072, rho 26073, rho 26074, rho 26075, rho 26076, r6746, r6747, r6748, r6749, r6750, tail⟩
+    (tail : next (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) (rho 26055) (rho 26060) (rho 26065) (rho 26070)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg53 (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) (rho 26055) (rho 26060) (rho 26065) next := by
+  exact ⟨rho 26066, rho 26067, rho 26068, rho 26069, rho 26070, r6746, r6747, r6748, r6749, r6750, tail⟩
 
 theorem seg28_scp_node17_seg54 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -58,9 +58,9 @@ theorem seg28_scp_node17_seg54 (rho : Nat -> Seg28.F)
     (r6753 : Seg28.relationRow6753 rho)
     (r6754 : Seg28.relationRow6754 rho)
     (r6755 : Seg28.relationRow6755 rho)
-    (tail : next (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg54 (rho 25881) (rho 25886) (rho 25891) (rho 25896) (rho 25901) (rho 25906) (rho 25911) (rho 25916) (rho 25921) (rho 25926) (rho 25931) (rho 25936) (rho 25941) (rho 25946) (rho 25951) (rho 25956) (rho 25961) (rho 25966) (rho 25971) (rho 25976) (rho 25981) (rho 25986) (rho 25991) (rho 25996) (rho 26001) (rho 26006) (rho 26011) (rho 26016) (rho 26021) (rho 26026) (rho 26031) (rho 26036) (rho 26041) (rho 26046) (rho 26051) (rho 26056) (rho 26061) (rho 26066) (rho 26071) (rho 26076) next := by
-  exact ⟨rho 26077, rho 26078, rho 26079, rho 26080, rho 26081, r6751, r6752, r6753, r6754, r6755, tail⟩
+    (tail : next (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg54 (rho 25875) (rho 25880) (rho 25885) (rho 25890) (rho 25895) (rho 25900) (rho 25905) (rho 25910) (rho 25915) (rho 25920) (rho 25925) (rho 25930) (rho 25935) (rho 25940) (rho 25945) (rho 25950) (rho 25955) (rho 25960) (rho 25965) (rho 25970) (rho 25975) (rho 25980) (rho 25985) (rho 25990) (rho 25995) (rho 26000) (rho 26005) (rho 26010) (rho 26015) (rho 26020) (rho 26025) (rho 26030) (rho 26035) (rho 26040) (rho 26045) (rho 26050) (rho 26055) (rho 26060) (rho 26065) (rho 26070) next := by
+  exact ⟨rho 26071, rho 26072, rho 26073, rho 26074, rho 26075, r6751, r6752, r6753, r6754, r6755, tail⟩
 
 theorem seg28_scp_node17_seg55 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -69,9 +69,9 @@ theorem seg28_scp_node17_seg55 (rho : Nat -> Seg28.F)
     (r6758 : Seg28.relationRow6758 rho)
     (r6759 : Seg28.relationRow6759 rho)
     (r6760 : Seg28.relationRow6760 rho)
-    (tail : next (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) (rho 26086)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg55 (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) next := by
-  exact ⟨rho 26082, rho 26083, rho 26084, rho 26085, rho 26086, r6756, r6757, r6758, r6759, r6760, tail⟩
+    (tail : next (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) (rho 26080)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg55 (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) next := by
+  exact ⟨rho 26076, rho 26077, rho 26078, rho 26079, rho 26080, r6756, r6757, r6758, r6759, r6760, tail⟩
 
 theorem seg28_scp_node17_seg56 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -80,9 +80,9 @@ theorem seg28_scp_node17_seg56 (rho : Nat -> Seg28.F)
     (r6763 : Seg28.relationRow6763 rho)
     (r6764 : Seg28.relationRow6764 rho)
     (r6765 : Seg28.relationRow6765 rho)
-    (tail : next (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) (rho 26086) (rho 26091)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg56 (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) (rho 26086) next := by
-  exact ⟨rho 26087, rho 26088, rho 26089, rho 26090, rho 26091, r6761, r6762, r6763, r6764, r6765, tail⟩
+    (tail : next (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) (rho 26080) (rho 26085)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg56 (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) (rho 26080) next := by
+  exact ⟨rho 26081, rho 26082, rho 26083, rho 26084, rho 26085, r6761, r6762, r6763, r6764, r6765, tail⟩
 
 theorem seg28_scp_node17_seg57 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -91,9 +91,9 @@ theorem seg28_scp_node17_seg57 (rho : Nat -> Seg28.F)
     (r6768 : Seg28.relationRow6768 rho)
     (r6769 : Seg28.relationRow6769 rho)
     (r6770 : Seg28.relationRow6770 rho)
-    (tail : next (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) (rho 26086) (rho 26091) (rho 26096)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg57 (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) (rho 26086) (rho 26091) next := by
-  exact ⟨rho 26092, rho 26093, rho 26094, rho 26095, rho 26096, r6766, r6767, r6768, r6769, r6770, tail⟩
+    (tail : next (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) (rho 26080) (rho 26085) (rho 26090)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg57 (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) (rho 26080) (rho 26085) next := by
+  exact ⟨rho 26086, rho 26087, rho 26088, rho 26089, rho 26090, r6766, r6767, r6768, r6769, r6770, tail⟩
 
 theorem seg28_scp_node17_seg58 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -102,9 +102,9 @@ theorem seg28_scp_node17_seg58 (rho : Nat -> Seg28.F)
     (r6773 : Seg28.relationRow6773 rho)
     (r6774 : Seg28.relationRow6774 rho)
     (r6775 : Seg28.relationRow6775 rho)
-    (tail : next (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) (rho 26086) (rho 26091) (rho 26096) (rho 26101)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg58 (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) (rho 26086) (rho 26091) (rho 26096) next := by
-  exact ⟨rho 26097, rho 26098, rho 26099, rho 26100, rho 26101, r6771, r6772, r6773, r6774, r6775, tail⟩
+    (tail : next (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) (rho 26080) (rho 26085) (rho 26090) (rho 26095)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg58 (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) (rho 26080) (rho 26085) (rho 26090) next := by
+  exact ⟨rho 26091, rho 26092, rho 26093, rho 26094, rho 26095, r6771, r6772, r6773, r6774, r6775, tail⟩
 
 theorem seg28_scp_node17_seg59 (rho : Nat -> Seg28.F)
     (next : Seg28.F → Seg28.F → Seg28.F → Seg28.F → Seg28.F → Prop)
@@ -113,9 +113,9 @@ theorem seg28_scp_node17_seg59 (rho : Nat -> Seg28.F)
     (r6778 : Seg28.relationRow6778 rho)
     (r6779 : Seg28.relationRow6779 rho)
     (r6780 : Seg28.relationRow6780 rho)
-    (tail : next (rho 26086) (rho 26091) (rho 26096) (rho 26101) (rho 26106)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_f407d5.seg59 (rho 26061) (rho 26066) (rho 26071) (rho 26076) (rho 26081) (rho 26086) (rho 26091) (rho 26096) (rho 26101) next := by
-  exact ⟨rho 26102, rho 26103, rho 26104, rho 26105, rho 26106, r6776, r6777, r6778, r6779, r6780, tail⟩
+    (tail : next (rho 26080) (rho 26085) (rho 26090) (rho 26095) (rho 26100)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode17350_727593.seg59 (rho 26055) (rho 26060) (rho 26065) (rho 26070) (rho 26075) (rho 26080) (rho 26085) (rho 26090) (rho 26095) next := by
+  exact ⟨rho 26096, rho 26097, rho 26098, rho 26099, rho 26100, r6776, r6777, r6778, r6779, r6780, tail⟩
 
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1

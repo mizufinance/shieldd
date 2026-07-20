@@ -1531,6 +1531,10 @@ impl App {
                         spend_nullifiers
                             .extend(withdrawal.body.inputs.iter().map(|input| input.nullifier));
                     }
+                    Action::NoteReshape(note_reshape) => {
+                        spend_nullifiers
+                            .extend(note_reshape.body.inputs.iter().map(|input| input.nullifier));
+                    }
                     _ => {}
                 }
             }
@@ -2898,13 +2902,15 @@ impl App {
                     )?;
                 }
                 Some(ProtoAction::NoteReshape(note_reshape)) => {
+                    let body = note_reshape
+                        .body
+                        .as_ref()
+                        .ok_or_else(|| anyhow::anyhow!("missing proto note reshape body"))?;
                     push_nullifiers(
                         &mut spend_nullifiers,
-                        note_reshape.body.iter().flat_map(|b| {
-                            b.inputs
-                                .iter()
-                                .filter_map(|i| i.nullifier.as_ref().filter(|_| !i.is_dummy))
-                        }),
+                        body.inputs
+                            .iter()
+                            .filter_map(|input| input.nullifier.as_ref()),
                         "converting proto note reshape nullifier",
                     )?;
                 }
@@ -6397,6 +6403,58 @@ mod tests {
             source: CommitmentSource::transaction(),
             commitment: tct::StateCommitment(Fq::from(value)),
         }
+    }
+
+    #[test]
+    fn artifact_extraction_keeps_note_reshape_sentinel_nullifiers() {
+        let inputs = (0..4)
+            .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
+                nullifier: Nullifier(Fq::from(400u64 + index)),
+                rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
+                    Fr::from(500u64 + index),
+                )),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+            })
+            .collect::<Vec<_>>();
+        assert!(inputs.iter().all(|input| input.is_dummy()));
+
+        let tx = Transaction {
+            transaction_body: shieldd_sdk_transaction::TransactionBody {
+                actions: vec![Action::NoteReshape(
+                    shieldd_sdk_shielded_pool::NoteReshape {
+                        body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::FourByOne,
+                            anchor: tct::Tree::default().root(),
+                            balance_commitment: shieldd_sdk_asset::Balance::default()
+                                .commit(Fr::from(1u64)),
+                            inputs,
+                            outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
+                                note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                                    note_commitment: tct::StateCommitment(Fq::from(600u64)),
+                                    ..shieldd_sdk_shielded_pool::NotePayload::dummy()
+                                },
+                                wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey(
+                                    [8u8; 48],
+                                ),
+                                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey(
+                                    [9u8; 48],
+                                ),
+                            }],
+                        },
+                        auth_sigs: vec![[0u8; 64].into(); 4],
+                        proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
+                    },
+                )],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let proto: shieldd_sdk_proto::core::transaction::v1::Transaction = (&tx).into();
+
+        let extracted = App::extract_spend_nullifiers_from_proto(&proto)
+            .expect("extract NoteReshape nullifiers");
+        assert_eq!(extracted, tx.spent_nullifiers().collect::<Vec<_>>());
+        assert_eq!(extracted.len(), 4);
     }
 
     async fn delete_nv_prefix<S>(state: &mut S, prefix: &[u8]) -> Result<()>

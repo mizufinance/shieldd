@@ -1,0 +1,27 @@
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7TraceBlock0Round0
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7Fixed
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.LinearCombination
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.RowBlock0Round0Lane1
+
+abbrev Order : Nat := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.Trace.Order
+abbrev F := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.Trace.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+def endpoint (rho : Nat → F) : F :=
+  Shieldd.GnarkFormal.Poseidon7Bridge.row8v vec![(4691367638571316902360458299323081406319944075085591015519574142176338466134 : F), (7600015574485533381823942444903391878238309401638657445141710110325668315137 : F), (2303035022571373752067861346940421781284336182314744680345972760704747974284 : F), (7740756603642672888894756193883084320427907723891225175607297334590958469121 : F), (7794887768703111160845069174259889105885445540142212764247907805462223912961 : F), (7841285910183486822516766014582864636277620811214487840225573923351880007681 : F), (7881497632799812395965569942862776762617506046143792906072884558856248623105 : F), (7916682890089097272733273380107699873164905626706934838689281364922571161601 : F)] vec![(Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.Fixed.b0l0), (rho 6), (rho 18), (rho 25), (rho 32), (rho 39), (rho 46), (rho 53)]
+
+theorem endpoint_eq_rawState (rho : Nat → F) :
+    endpoint rho = (Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.Trace.rawState0_0 rho)[1] := by
+  unfold endpoint Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.Trace.rawState0_0 Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.Trace.flatState0_0Lane1 Shieldd.GnarkFormal.Poseidon7Bridge.row8v Shieldd.GnarkFormal.Poseidon7Bridge.row8 Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.Fixed.b0l0
+  norm_num; linear_combination (ZMod.natCast_eq_natCast_iff' 21601282173862238462697305092353525566630301643342631760973554998655957938263378813554001302112884539644010252097003888279846595000906306998502655702266 7079522960218220235228679980190731814728446619325335014075576146016578000654 Order).mpr (by decide)
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.RowBlock0Round0Lane1

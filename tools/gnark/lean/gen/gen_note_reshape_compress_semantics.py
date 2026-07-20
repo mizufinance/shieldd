@@ -16,6 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import gen_note_reshape2x1_compress_adapters as reviewed
+from write_if_changed import write_if_changed
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -64,14 +65,14 @@ FAMILIES = (
         "TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
         5,
         706,
-        0,
+        -6,
     ),
     Family(
         "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
         "TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
         48,
         1205,
-        33257,
+        33251,
     ),
 )
 
@@ -282,7 +283,7 @@ def _binary_recomposition() -> str:
         "open Shieldd.GnarkFormal.Extracted.DecafCompressToField",
         "",
     ]
-    reviewed.emit_recomp_helpers(lines)
+    reviewed.emit_recomp_helpers(lines, extended=True)
     lines.append(f"end {BINARY_NAMESPACE}")
     lines.extend(
         [
@@ -646,5 +647,4 @@ def generated_files() -> dict[Path, str]:
 
 if __name__ == "__main__":
     for path, source in generated_files().items():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(source)
+        write_if_changed(path, source)

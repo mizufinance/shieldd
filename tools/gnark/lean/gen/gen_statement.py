@@ -11,6 +11,8 @@ import argparse
 import json
 from pathlib import Path
 
+from write_if_changed import write_if_changed
+
 REPO = Path(__file__).resolve().parents[3].parent
 IR = (
     REPO
@@ -317,8 +319,8 @@ def main() -> None:
         print(f"checked {args.out} (43 semantic, 11 excluded segments)")
         return
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(contents)
-    print(f"wrote {args.out} (43 semantic, 11 excluded segments)")
+    if write_if_changed(args.out, contents):
+        print(f"wrote {args.out} (43 semantic, 11 excluded segments)")
 
 
 if __name__ == "__main__":

@@ -63,7 +63,7 @@ def write_generated(path: Path, contents: str) -> None:
 # instance's internal-witness offset relative to this base, so the
 # ladder-accumulator seat arithmetic reuses seg5's layout shifted by `delta`.
 # (Was 210 pre-T1-f; the shared divGen compress inserted 703 wires ahead.)
-BASE_INTERNAL = 913
+BASE_INTERNAL = 907
 
 
 @dataclass(frozen=True)
@@ -1988,7 +1988,7 @@ def emit_ltc_step_function_range(
 def emit_q4_guard_theorem(
     lines: list[str], cfg: Instance, trace: LtcTrace,
 ) -> None:
-    q_guard_wires = [seat_wire(cfg, wire) for wire in (3115, 3116, 3117)]
+    q_guard_wires = [seat_wire(cfg, wire) for wire in (3109, 3110, 3111)]
     q_il0 = ltc_state_name(cfg, trace, "Il", 0)
     lines.extend([
         f"theorem seg{cfg.seg}Q4Guard (rho : Nat -> Seg{cfg.seg}.F) (k : Prop) "
@@ -3131,7 +3131,7 @@ def generate_poseidon_shape(*, write_auxiliary: bool = True) -> tuple[str, list[
         EXTRACTED_DEPLOYED.mkdir(parents=True, exist_ok=True)
         write_generated(EXTRACTED_DEPLOYED / f"{module}.lean", "".join(lines))
 
-    if args[0] != [8, 1275, 1615]:
+    if args[0] != [8, 1269, 1609]:
         raise ValueError(f"unexpected DTK Poseidon live inputs {args[0]}")
     ranges: list[list[int]] = []
     current_range: list[int] = []
@@ -3147,14 +3147,15 @@ def generate_poseidon_shape(*, write_auxiliary: bool = True) -> tuple[str, list[
         ranges.append(current_range)
 
     data = {
+        "slice_stem": module,
         "cs": poseidon_constants(),
         "groups": groups,
         "kind": {str(index): ("full" if index < 4 or index >= 35 else "partial") for index in range(39)},
         "seg2round": seg2round,
         "ranges": ranges,
         "domain": "9361307723838134966014044876631201920149619",
-        "public_args": ["w8", "w1275", "w1615"],
-        "spec_inputs": ["w8", "w1615 - w1275"],
+        "public_args": ["w8", "w1269", "w1609"],
+        "spec_inputs": ["w8", "w1609 - w1269"],
         "seq": [
             "5629641166285580282832549959187697687583932890102709218623488970611606159361",
             "6333346312071277818186618704086159898531924501365547870951425091938056929281",
@@ -3249,8 +3250,8 @@ def emit_poseidon_adapter(
     final_row = 1316
     keep = set(range(first_row, final_row + 1))
     final_outputs = [outputs[-1] for outputs in sbox_outputs[-3:]]
-    compressed_pos = seat_wire(cfg, 1275)
-    compressed_neg = seat_wire(cfg, 1615)
+    compressed_pos = seat_wire(cfg, 1269)
+    compressed_neg = seat_wire(cfg, 1609)
     lines = [
         f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Base\n",
         "import ShielddGnarkFormal.Deployed.DtkIvkPoseidon.SemanticBridge\n\n",

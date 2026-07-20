@@ -17,7 +17,6 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const NOTE_RESHAPE_STATEMENT_ACTIVE_COUNT_FIELDS: usize = 2;
 pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 77;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
@@ -28,11 +27,6 @@ pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> us
     NOTE_RESHAPE_STATEMENT_BASE_FIELDS
         + NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT * n_in
         + NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT * n_out
-        + if n_in == 2 && n_out == 1 {
-            0
-        } else {
-            NOTE_RESHAPE_STATEMENT_ACTIVE_COUNT_FIELDS
-        }
 }
 
 pub const fn transfer_statement_field_count(n_in: usize, n_out: usize) -> usize {
@@ -221,29 +215,14 @@ pub fn note_reshape_statement_fields(
         public.family_id.input_count(),
         public.family_id.output_count(),
     );
-    let core_expected = NOTE_RESHAPE_STATEMENT_BASE_FIELDS
-        + NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT * public.inputs.len()
-        + NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT * public.outputs.len();
-    let mut fields = note_reshape_statement_fields_inner(
+    let fields = note_reshape_statement_fields_inner(
         public.anchor,
         public.balance_commitment,
         &public.inputs,
         &public.outputs,
-        core_expected,
+        expected,
         note_reshape_field_encoding_error,
     )?;
-    if fields.len() != expected {
-        fields.extend([
-            Fq::from(public.inputs.iter().filter(|input| !input.is_dummy).count() as u64),
-            Fq::from(
-                public
-                    .outputs
-                    .iter()
-                    .filter(|output| !output.is_dummy)
-                    .count() as u64,
-            ),
-        ]);
-    }
     if fields.len() != expected {
         return Err(StatementHashError::InvalidFieldLength {
             expected,
@@ -644,10 +623,26 @@ pub fn transfer_statement_hash_var(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{transfer_input_count, transfer_output_count};
+    use crate::{
+        test_proof_helpers::proof_test_helpers, transfer_input_count, transfer_output_count,
+    };
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget};
     use ark_relations::r1cs::ConstraintSystem;
     use decaf377::Fq;
+
+    fn go_fixture_statement_hash(path: &str) -> (NoteReshapeFamilyId, Fq) {
+        let bytes = std::fs::read(path).expect("read Go note reshape fixture");
+        let witness = crate::gnark::decode_note_reshape_witness_v1(&bytes)
+            .expect("decode Go note reshape fixture");
+        let fields = witness
+            .statement_fields
+            .iter()
+            .map(|field| Fq::from_le_bytes_mod_order(field))
+            .collect::<Vec<_>>();
+        let hash = note_reshape_statement_hash(witness.family_id, &fields)
+            .expect("hash Go note reshape statement fields");
+        (witness.family_id, hash)
+    }
 
     #[test]
     fn note_reshape_statement_hash_native_matches_r1cs() {
@@ -674,6 +669,116 @@ mod tests {
                 .enforce_equal(&constrained_native)
                 .expect("hashes must be equal");
             assert!(cs.is_satisfied().expect("cs should evaluate"));
+        }
+    }
+
+    #[test]
+    fn note_reshape_statement_hash_matches_go_fixtures_for_all_families() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../..")
+            .join("tools/gnark/internal/testfixtures/vectors");
+        for (label, filename) in [
+            ("note_reshape2x1", "note_reshape2x1_witness_v1.bin"),
+            ("note_reshape1x8", "note_reshape1x8_witness_v1.bin"),
+            ("note_reshape4x1", "note_reshape4x1_witness_v1.bin"),
+            ("note_reshape8x1", "note_reshape8x1_witness_v1.bin"),
+        ] {
+            let (family_id, hash) = go_fixture_statement_hash(
+                root.join(filename).to_str().expect("fixture path is UTF-8"),
+            );
+            assert_eq!(family_id.label(), label);
+            let bytes = std::fs::read(root.join(filename)).expect("read Go note reshape fixture");
+            let witness = crate::gnark::decode_note_reshape_witness_v1(&bytes)
+                .expect("decode Go note reshape fixture");
+            assert_eq!(
+                hash,
+                Fq::from_le_bytes_mod_order(&witness.claimed_statement_hash),
+                "Rust/Go statement hash mismatch for {label}"
+            );
+        }
+    }
+
+    #[test]
+    fn note_reshape_wrong_family_domain_changes_the_statement_hash() {
+        let family_id = NoteReshapeFamilyId::TwoByOne;
+        let fields = (0..note_reshape_statement_field_count(
+            family_id.input_count(),
+            family_id.output_count(),
+        ))
+            .map(|index| Fq::from((index + 1) as u64))
+            .collect::<Vec<_>>();
+        let correct =
+            note_reshape_statement_hash(family_id, &fields).expect("correct family statement hash");
+        let wrong = hash_statement_fields(
+            &note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "v1"),
+            note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad0"),
+            note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad1"),
+            &fields,
+            fields.len(),
+            |expected, got| StatementHashError::InvalidFieldLength { expected, got },
+        )
+        .expect("wrong family domain hash should still be well-formed");
+        assert_ne!(correct, wrong, "family domain must bind the statement");
+    }
+
+    #[test]
+    fn note_reshape_wrong_shape_is_rejected_for_all_families() {
+        for family_id in NoteReshapeFamilyId::ALL {
+            let (mut public, _) =
+                proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            public.inputs.pop();
+            assert!(
+                public.validate_shape().is_err(),
+                "{} must reject an input-shape mutation",
+                family_id.label()
+            );
+        }
+    }
+
+    #[test]
+    fn note_reshape_wrong_statement_preimage_changes_the_hash_for_all_families() {
+        for family_id in NoteReshapeFamilyId::ALL {
+            let (public, _) = proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            let fields = note_reshape_statement_fields(&public).expect("statement fields");
+            let correct =
+                note_reshape_statement_hash(family_id, &fields).expect("correct statement hash");
+            let mut mutated = fields;
+            mutated[0] += Fq::from(1u64);
+            let wrong =
+                note_reshape_statement_hash(family_id, &mutated).expect("mutated statement hash");
+            assert_ne!(
+                correct,
+                wrong,
+                "{} preimage mutation was ignored",
+                family_id.label()
+            );
+        }
+    }
+
+    #[test]
+    fn note_reshape_statement_has_no_active_counts_after_redesign() {
+        for family_id in NoteReshapeFamilyId::ALL {
+            let core = NOTE_RESHAPE_STATEMENT_BASE_FIELDS
+                + NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT * family_id.input_count()
+                + NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT * family_id.output_count();
+            assert_eq!(
+                note_reshape_statement_field_count(
+                    family_id.input_count(),
+                    family_id.output_count()
+                ),
+                core,
+                "{} statement field count still includes active counts",
+                family_id.label()
+            );
+            let (public, _) = proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            assert_eq!(
+                note_reshape_statement_fields(&public)
+                    .expect("statement fields")
+                    .len(),
+                core,
+                "{} statement preimage still includes active counts",
+                family_id.label()
+            );
         }
     }
 

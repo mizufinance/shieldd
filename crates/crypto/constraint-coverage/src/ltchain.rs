@@ -333,14 +333,14 @@ fn note_reshape2x1_ladders() -> Vec<LadderSeat> {
     vec![
         LadderSeat {
             label: "R",
-            bit_base: 1890,
+            bit_base: 1884,
             start: 1828,
             end: 2345,
             bound: r,
         },
         LadderSeat {
             label: "Q4",
-            bit_base: 1890,
+            bit_base: 1884,
             start: 2346,
             end: 2715,
             bound: q4,
@@ -487,7 +487,7 @@ mod tests {
     // the redundant 251-bit ToBinary is gone, ladder rows unchanged).
     const DTK_OFFSET: usize = 1058;
     const DTK_ROWS: usize = 6077;
-    const BIT_BASE: usize = 1890;
+    const BIT_BASE: usize = 1884;
 
     fn dtk_rows() -> Vec<Constraint> {
         let path = concat!(

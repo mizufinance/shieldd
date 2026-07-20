@@ -20,7 +20,7 @@ def seg17Rho (rho : Nat → Seg17.F) : Nat → Seg17.F
 | 0 => 1
 | 17 => rho 12
 | 18 => rho 13
-| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + 17739) else rho i
+| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + 17733) else rho i
 
 theorem seg17_hrec1 (rho : Nat → Seg17.F)
     (p56 : Seg17.relationPart56 rho) :

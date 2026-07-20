@@ -11,371 +11,371 @@ namespace Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode20
 open Shieldd.GnarkFormal.Poseidon4Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon4Link
 
-variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.Order)]
+variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.Order)]
 
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.PoseidonHash4.Order) :=
-  inferInstanceAs (Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.Order))
+  inferInstanceAs (Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.Order))
 
-theorem range0_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (k : F → F → F → F → Prop)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg0 w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 (fun w35 w36 w9136 w9137 w9138 w9139 w9140 w9145 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg1 w35 w36 w9136 w9137 w9138 w9139 w9140 w9145 (fun w35 w36 w9138 w9139 w9140 w9145 w9150 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg2 w35 w36 w9138 w9139 w9140 w9145 w9150 (fun w36 w9140 w9145 w9150 w9155 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg3 w36 w9140 w9145 w9150 w9155 (fun w9145 w9150 w9155 w9160 =>
-      k w9145 w9150 w9155 w9160))))) :
-    ∃ w9145 w9150 w9155 w9160 : F, spec0 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st0 w9145 w9150 w9155 w9160 ∧ k w9145 w9150 w9155 w9160 := by
-  have h0 := seg0_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 _ h
-  rcases h0 with ⟨w9145, hw9145, h⟩
-  have h1 := seg1_sound w35 w36 w9136 w9137 w9138 w9139 w9140 w9145 _ h
-  rcases h1 with ⟨w9150, hw9150, h⟩
-  have h2 := seg2_sound w35 w36 w9138 w9139 w9140 w9145 w9150 _ h
-  rcases h2 with ⟨w9155, hw9155, h⟩
-  have h3 := seg3_sound w36 w9140 w9145 w9150 w9155 _ h
-  rcases h3 with ⟨w9160, hw9160, h⟩
-  have hSpec0 := spec0_eq (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9145 w9150 w9155 w9160 hw9145 hw9150 hw9155 hw9160
-  exact ⟨w9145, w9150, w9155, w9160, hSpec0, h⟩
+theorem range0_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (k : F → F → F → F → Prop)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg0 w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 (fun w35 w36 w14695 w14696 w14697 w14698 w14699 w14704 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg1 w35 w36 w14695 w14696 w14697 w14698 w14699 w14704 (fun w35 w36 w14697 w14698 w14699 w14704 w14709 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg2 w35 w36 w14697 w14698 w14699 w14704 w14709 (fun w36 w14699 w14704 w14709 w14714 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg3 w36 w14699 w14704 w14709 w14714 (fun w14704 w14709 w14714 w14719 =>
+      k w14704 w14709 w14714 w14719))))) :
+    ∃ w14704 w14709 w14714 w14719 : F, spec0 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st0 w14704 w14709 w14714 w14719 ∧ k w14704 w14709 w14714 w14719 := by
+  have h0 := seg0_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 _ h
+  rcases h0 with ⟨w14704, hw14704, h⟩
+  have h1 := seg1_sound w35 w36 w14695 w14696 w14697 w14698 w14699 w14704 _ h
+  rcases h1 with ⟨w14709, hw14709, h⟩
+  have h2 := seg2_sound w35 w36 w14697 w14698 w14699 w14704 w14709 _ h
+  rcases h2 with ⟨w14714, hw14714, h⟩
+  have h3 := seg3_sound w36 w14699 w14704 w14709 w14714 _ h
+  rcases h3 with ⟨w14719, hw14719, h⟩
+  have hSpec0 := spec0_eq (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14704 w14709 w14714 w14719 hw14704 hw14709 hw14714 hw14719
+  exact ⟨w14704, w14709, w14714, w14719, hSpec0, h⟩
 
-theorem range1_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9145 : F) (w9150 : F) (w9155 : F) (w9160 : F) (k : F → F → F → F → F → Prop)
-    (hSpec0 : spec0 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st0 w9145 w9150 w9155 w9160)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg4 w9145 w9150 w9155 w9160 (fun w9145 w9150 w9155 w9160 w9165 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg5 w9145 w9150 w9155 w9160 w9165 (fun w9145 w9150 w9155 w9160 w9165 w9170 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg6 w9145 w9150 w9155 w9160 w9165 w9170 (fun w9145 w9150 w9155 w9160 w9165 w9170 w9175 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg7 w9145 w9150 w9155 w9160 w9165 w9170 w9175 (fun w9145 w9150 w9155 w9160 w9165 w9170 w9175 w9180 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg8 w9145 w9150 w9155 w9160 w9165 w9170 w9175 w9180 (fun w9165 w9170 w9175 w9180 w9185 =>
-      k w9165 w9170 w9175 w9180 w9185)))))) :
-    ∃ w9165 w9170 w9175 w9180 w9185 : F, spec1 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st1 w9165 w9170 w9175 w9180 w9185 ∧ k w9165 w9170 w9175 w9180 w9185 := by
-  have h4 := seg4_sound w9145 w9150 w9155 w9160 _ h
-  rcases h4 with ⟨w9165, hw9165, h⟩
-  have h5 := seg5_sound w9145 w9150 w9155 w9160 w9165 _ h
-  rcases h5 with ⟨w9170, hw9170, h⟩
-  have h6 := seg6_sound w9145 w9150 w9155 w9160 w9165 w9170 _ h
-  rcases h6 with ⟨w9175, hw9175, h⟩
-  have h7 := seg7_sound w9145 w9150 w9155 w9160 w9165 w9170 w9175 _ h
-  rcases h7 with ⟨w9180, hw9180, h⟩
-  have h8 := seg8_sound w9145 w9150 w9155 w9160 w9165 w9170 w9175 w9180 _ h
-  rcases h8 with ⟨w9185, hw9185, h⟩
-  have hSpec1 := spec1_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9145 w9150 w9155 w9160 w9165 w9170 w9175 w9180 w9185 hSpec0 hw9165 hw9170 hw9175 hw9180 hw9185
-  exact ⟨w9165, w9170, w9175, w9180, w9185, hSpec1, h⟩
+theorem range1_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14704 : F) (w14709 : F) (w14714 : F) (w14719 : F) (k : F → F → F → F → F → Prop)
+    (hSpec0 : spec0 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st0 w14704 w14709 w14714 w14719)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg4 w14704 w14709 w14714 w14719 (fun w14704 w14709 w14714 w14719 w14724 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg5 w14704 w14709 w14714 w14719 w14724 (fun w14704 w14709 w14714 w14719 w14724 w14729 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg6 w14704 w14709 w14714 w14719 w14724 w14729 (fun w14704 w14709 w14714 w14719 w14724 w14729 w14734 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg7 w14704 w14709 w14714 w14719 w14724 w14729 w14734 (fun w14704 w14709 w14714 w14719 w14724 w14729 w14734 w14739 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg8 w14704 w14709 w14714 w14719 w14724 w14729 w14734 w14739 (fun w14724 w14729 w14734 w14739 w14744 =>
+      k w14724 w14729 w14734 w14739 w14744)))))) :
+    ∃ w14724 w14729 w14734 w14739 w14744 : F, spec1 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st1 w14724 w14729 w14734 w14739 w14744 ∧ k w14724 w14729 w14734 w14739 w14744 := by
+  have h4 := seg4_sound w14704 w14709 w14714 w14719 _ h
+  rcases h4 with ⟨w14724, hw14724, h⟩
+  have h5 := seg5_sound w14704 w14709 w14714 w14719 w14724 _ h
+  rcases h5 with ⟨w14729, hw14729, h⟩
+  have h6 := seg6_sound w14704 w14709 w14714 w14719 w14724 w14729 _ h
+  rcases h6 with ⟨w14734, hw14734, h⟩
+  have h7 := seg7_sound w14704 w14709 w14714 w14719 w14724 w14729 w14734 _ h
+  rcases h7 with ⟨w14739, hw14739, h⟩
+  have h8 := seg8_sound w14704 w14709 w14714 w14719 w14724 w14729 w14734 w14739 _ h
+  rcases h8 with ⟨w14744, hw14744, h⟩
+  have hSpec1 := spec1_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14704 w14709 w14714 w14719 w14724 w14729 w14734 w14739 w14744 hSpec0 hw14724 hw14729 hw14734 hw14739 hw14744
+  exact ⟨w14724, w14729, w14734, w14739, w14744, hSpec1, h⟩
 
-theorem range2_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9165 : F) (w9170 : F) (w9175 : F) (w9180 : F) (w9185 : F) (k : F → F → F → F → F → Prop)
-    (hSpec1 : spec1 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st1 w9165 w9170 w9175 w9180 w9185)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg9 w9165 w9170 w9175 w9180 w9185 (fun w9165 w9170 w9175 w9180 w9185 w9190 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg10 w9165 w9170 w9175 w9180 w9185 w9190 (fun w9165 w9170 w9175 w9180 w9185 w9190 w9195 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg11 w9165 w9170 w9175 w9180 w9185 w9190 w9195 (fun w9165 w9170 w9175 w9180 w9185 w9190 w9195 w9200 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg12 w9165 w9170 w9175 w9180 w9185 w9190 w9195 w9200 (fun w9165 w9170 w9175 w9180 w9185 w9190 w9195 w9200 w9205 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg13 w9165 w9170 w9175 w9180 w9185 w9190 w9195 w9200 w9205 (fun w9190 w9195 w9200 w9205 w9210 =>
-      k w9190 w9195 w9200 w9205 w9210)))))) :
-    ∃ w9190 w9195 w9200 w9205 w9210 : F, spec2 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st2 w9190 w9195 w9200 w9205 w9210 ∧ k w9190 w9195 w9200 w9205 w9210 := by
-  have h9 := seg9_sound w9165 w9170 w9175 w9180 w9185 _ h
-  rcases h9 with ⟨w9190, hw9190, h⟩
-  have h10 := seg10_sound w9165 w9170 w9175 w9180 w9185 w9190 _ h
-  rcases h10 with ⟨w9195, hw9195, h⟩
-  have h11 := seg11_sound w9165 w9170 w9175 w9180 w9185 w9190 w9195 _ h
-  rcases h11 with ⟨w9200, hw9200, h⟩
-  have h12 := seg12_sound w9165 w9170 w9175 w9180 w9185 w9190 w9195 w9200 _ h
-  rcases h12 with ⟨w9205, hw9205, h⟩
-  have h13 := seg13_sound w9165 w9170 w9175 w9180 w9185 w9190 w9195 w9200 w9205 _ h
-  rcases h13 with ⟨w9210, hw9210, h⟩
-  have hSpec2 := spec2_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9165 w9170 w9175 w9180 w9185 w9190 w9195 w9200 w9205 w9210 hSpec1 hw9190 hw9195 hw9200 hw9205 hw9210
-  exact ⟨w9190, w9195, w9200, w9205, w9210, hSpec2, h⟩
+theorem range2_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14724 : F) (w14729 : F) (w14734 : F) (w14739 : F) (w14744 : F) (k : F → F → F → F → F → Prop)
+    (hSpec1 : spec1 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st1 w14724 w14729 w14734 w14739 w14744)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg9 w14724 w14729 w14734 w14739 w14744 (fun w14724 w14729 w14734 w14739 w14744 w14749 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg10 w14724 w14729 w14734 w14739 w14744 w14749 (fun w14724 w14729 w14734 w14739 w14744 w14749 w14754 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg11 w14724 w14729 w14734 w14739 w14744 w14749 w14754 (fun w14724 w14729 w14734 w14739 w14744 w14749 w14754 w14759 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg12 w14724 w14729 w14734 w14739 w14744 w14749 w14754 w14759 (fun w14724 w14729 w14734 w14739 w14744 w14749 w14754 w14759 w14764 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg13 w14724 w14729 w14734 w14739 w14744 w14749 w14754 w14759 w14764 (fun w14749 w14754 w14759 w14764 w14769 =>
+      k w14749 w14754 w14759 w14764 w14769)))))) :
+    ∃ w14749 w14754 w14759 w14764 w14769 : F, spec2 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st2 w14749 w14754 w14759 w14764 w14769 ∧ k w14749 w14754 w14759 w14764 w14769 := by
+  have h9 := seg9_sound w14724 w14729 w14734 w14739 w14744 _ h
+  rcases h9 with ⟨w14749, hw14749, h⟩
+  have h10 := seg10_sound w14724 w14729 w14734 w14739 w14744 w14749 _ h
+  rcases h10 with ⟨w14754, hw14754, h⟩
+  have h11 := seg11_sound w14724 w14729 w14734 w14739 w14744 w14749 w14754 _ h
+  rcases h11 with ⟨w14759, hw14759, h⟩
+  have h12 := seg12_sound w14724 w14729 w14734 w14739 w14744 w14749 w14754 w14759 _ h
+  rcases h12 with ⟨w14764, hw14764, h⟩
+  have h13 := seg13_sound w14724 w14729 w14734 w14739 w14744 w14749 w14754 w14759 w14764 _ h
+  rcases h13 with ⟨w14769, hw14769, h⟩
+  have hSpec2 := spec2_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14724 w14729 w14734 w14739 w14744 w14749 w14754 w14759 w14764 w14769 hSpec1 hw14749 hw14754 hw14759 hw14764 hw14769
+  exact ⟨w14749, w14754, w14759, w14764, w14769, hSpec2, h⟩
 
-theorem range3_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9190 : F) (w9195 : F) (w9200 : F) (w9205 : F) (w9210 : F) (k : F → F → F → F → F → Prop)
-    (hSpec2 : spec2 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st2 w9190 w9195 w9200 w9205 w9210)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg14 w9190 w9195 w9200 w9205 w9210 (fun w9190 w9195 w9200 w9205 w9210 w9215 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg15 w9190 w9195 w9200 w9205 w9210 w9215 (fun w9190 w9195 w9200 w9205 w9210 w9215 w9220 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg16 w9190 w9195 w9200 w9205 w9210 w9215 w9220 (fun w9190 w9195 w9200 w9205 w9210 w9215 w9220 w9225 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg17 w9190 w9195 w9200 w9205 w9210 w9215 w9220 w9225 (fun w9190 w9195 w9200 w9205 w9210 w9215 w9220 w9225 w9230 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg18 w9190 w9195 w9200 w9205 w9210 w9215 w9220 w9225 w9230 (fun w9215 w9220 w9225 w9230 w9235 =>
-      k w9215 w9220 w9225 w9230 w9235)))))) :
-    ∃ w9215 w9220 w9225 w9230 w9235 : F, spec3 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st3 w9215 w9220 w9225 w9230 w9235 ∧ k w9215 w9220 w9225 w9230 w9235 := by
-  have h14 := seg14_sound w9190 w9195 w9200 w9205 w9210 _ h
-  rcases h14 with ⟨w9215, hw9215, h⟩
-  have h15 := seg15_sound w9190 w9195 w9200 w9205 w9210 w9215 _ h
-  rcases h15 with ⟨w9220, hw9220, h⟩
-  have h16 := seg16_sound w9190 w9195 w9200 w9205 w9210 w9215 w9220 _ h
-  rcases h16 with ⟨w9225, hw9225, h⟩
-  have h17 := seg17_sound w9190 w9195 w9200 w9205 w9210 w9215 w9220 w9225 _ h
-  rcases h17 with ⟨w9230, hw9230, h⟩
-  have h18 := seg18_sound w9190 w9195 w9200 w9205 w9210 w9215 w9220 w9225 w9230 _ h
-  rcases h18 with ⟨w9235, hw9235, h⟩
-  have hSpec3 := spec3_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9190 w9195 w9200 w9205 w9210 w9215 w9220 w9225 w9230 w9235 hSpec2 hw9215 hw9220 hw9225 hw9230 hw9235
-  exact ⟨w9215, w9220, w9225, w9230, w9235, hSpec3, h⟩
+theorem range3_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14749 : F) (w14754 : F) (w14759 : F) (w14764 : F) (w14769 : F) (k : F → F → F → F → F → Prop)
+    (hSpec2 : spec2 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st2 w14749 w14754 w14759 w14764 w14769)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg14 w14749 w14754 w14759 w14764 w14769 (fun w14749 w14754 w14759 w14764 w14769 w14774 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg15 w14749 w14754 w14759 w14764 w14769 w14774 (fun w14749 w14754 w14759 w14764 w14769 w14774 w14779 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg16 w14749 w14754 w14759 w14764 w14769 w14774 w14779 (fun w14749 w14754 w14759 w14764 w14769 w14774 w14779 w14784 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg17 w14749 w14754 w14759 w14764 w14769 w14774 w14779 w14784 (fun w14749 w14754 w14759 w14764 w14769 w14774 w14779 w14784 w14789 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg18 w14749 w14754 w14759 w14764 w14769 w14774 w14779 w14784 w14789 (fun w14774 w14779 w14784 w14789 w14794 =>
+      k w14774 w14779 w14784 w14789 w14794)))))) :
+    ∃ w14774 w14779 w14784 w14789 w14794 : F, spec3 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st3 w14774 w14779 w14784 w14789 w14794 ∧ k w14774 w14779 w14784 w14789 w14794 := by
+  have h14 := seg14_sound w14749 w14754 w14759 w14764 w14769 _ h
+  rcases h14 with ⟨w14774, hw14774, h⟩
+  have h15 := seg15_sound w14749 w14754 w14759 w14764 w14769 w14774 _ h
+  rcases h15 with ⟨w14779, hw14779, h⟩
+  have h16 := seg16_sound w14749 w14754 w14759 w14764 w14769 w14774 w14779 _ h
+  rcases h16 with ⟨w14784, hw14784, h⟩
+  have h17 := seg17_sound w14749 w14754 w14759 w14764 w14769 w14774 w14779 w14784 _ h
+  rcases h17 with ⟨w14789, hw14789, h⟩
+  have h18 := seg18_sound w14749 w14754 w14759 w14764 w14769 w14774 w14779 w14784 w14789 _ h
+  rcases h18 with ⟨w14794, hw14794, h⟩
+  have hSpec3 := spec3_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14749 w14754 w14759 w14764 w14769 w14774 w14779 w14784 w14789 w14794 hSpec2 hw14774 hw14779 hw14784 hw14789 hw14794
+  exact ⟨w14774, w14779, w14784, w14789, w14794, hSpec3, h⟩
 
-theorem range4_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9215 : F) (w9220 : F) (w9225 : F) (w9230 : F) (w9235 : F) (k : F → F → F → F → F → F → F → F → F → F → F → Prop)
-    (hSpec3 : spec3 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st3 w9215 w9220 w9225 w9230 w9235)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg19 w9215 w9220 w9225 w9230 w9235 (fun w9215 w9220 w9225 w9230 w9235 w9240 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg20 w9215 w9220 w9225 w9230 w9235 w9240 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg21 w9215 w9220 w9225 w9230 w9235 w9240 w9245 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg22 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg23 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg24 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 =>
-      k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265))))))) :
-    ∃ w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 : F, spec9 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st9 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 ∧ k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 := by
-  have h19 := seg19_sound w9215 w9220 w9225 w9230 w9235 _ h
-  rcases h19 with ⟨w9240, hw9240, h⟩
-  have hSpec4 := spec4_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 hSpec3 hw9240
-  have h20 := seg20_sound w9215 w9220 w9225 w9230 w9235 w9240 _ h
-  rcases h20 with ⟨w9245, hw9245, h⟩
-  have hSpec5 := spec5_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 hSpec4 hw9245
-  have h21 := seg21_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 _ h
-  rcases h21 with ⟨w9250, hw9250, h⟩
-  have hSpec6 := spec6_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 hSpec5 hw9250
-  have h22 := seg22_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 _ h
-  rcases h22 with ⟨w9255, hw9255, h⟩
-  have hSpec7 := spec7_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 hSpec6 hw9255
-  have h23 := seg23_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 _ h
-  rcases h23 with ⟨w9260, hw9260, h⟩
-  have hSpec8 := spec8_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 hSpec7 hw9260
-  have h24 := seg24_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 _ h
-  rcases h24 with ⟨w9265, hw9265, h⟩
-  have hSpec9 := spec9_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 hSpec8 hw9265
-  exact ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, hSpec9, h⟩
+theorem range4_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14774 : F) (w14779 : F) (w14784 : F) (w14789 : F) (w14794 : F) (k : F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (hSpec3 : spec3 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st3 w14774 w14779 w14784 w14789 w14794)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg19 w14774 w14779 w14784 w14789 w14794 (fun w14774 w14779 w14784 w14789 w14794 w14799 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg20 w14774 w14779 w14784 w14789 w14794 w14799 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg21 w14774 w14779 w14784 w14789 w14794 w14799 w14804 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg22 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg23 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg24 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 =>
+      k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824))))))) :
+    ∃ w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 : F, spec9 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st9 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 ∧ k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 := by
+  have h19 := seg19_sound w14774 w14779 w14784 w14789 w14794 _ h
+  rcases h19 with ⟨w14799, hw14799, h⟩
+  have hSpec4 := spec4_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 hSpec3 hw14799
+  have h20 := seg20_sound w14774 w14779 w14784 w14789 w14794 w14799 _ h
+  rcases h20 with ⟨w14804, hw14804, h⟩
+  have hSpec5 := spec5_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 hSpec4 hw14804
+  have h21 := seg21_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 _ h
+  rcases h21 with ⟨w14809, hw14809, h⟩
+  have hSpec6 := spec6_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 hSpec5 hw14809
+  have h22 := seg22_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 _ h
+  rcases h22 with ⟨w14814, hw14814, h⟩
+  have hSpec7 := spec7_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 hSpec6 hw14814
+  have h23 := seg23_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 _ h
+  rcases h23 with ⟨w14819, hw14819, h⟩
+  have hSpec8 := spec8_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 hSpec7 hw14819
+  have h24 := seg24_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 _ h
+  rcases h24 with ⟨w14824, hw14824, h⟩
+  have hSpec9 := spec9_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 hSpec8 hw14824
+  exact ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, hSpec9, h⟩
 
-theorem range5_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9215 : F) (w9220 : F) (w9225 : F) (w9230 : F) (w9235 : F) (w9240 : F) (w9245 : F) (w9250 : F) (w9255 : F) (w9260 : F) (w9265 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
-    (hSpec9 : spec9 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st9 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg25 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg26 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg27 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg28 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg29 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg30 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 =>
-      k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295))))))) :
-    ∃ w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 : F, spec15 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st15 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 ∧ k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 := by
-  have h25 := seg25_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 _ h
-  rcases h25 with ⟨w9270, hw9270, h⟩
-  have hSpec10 := spec10_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 hSpec9 hw9270
-  have h26 := seg26_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 _ h
-  rcases h26 with ⟨w9275, hw9275, h⟩
-  have hSpec11 := spec11_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 hSpec10 hw9275
-  have h27 := seg27_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 _ h
-  rcases h27 with ⟨w9280, hw9280, h⟩
-  have hSpec12 := spec12_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 hSpec11 hw9280
-  have h28 := seg28_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 _ h
-  rcases h28 with ⟨w9285, hw9285, h⟩
-  have hSpec13 := spec13_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 hSpec12 hw9285
-  have h29 := seg29_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 _ h
-  rcases h29 with ⟨w9290, hw9290, h⟩
-  have hSpec14 := spec14_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 hSpec13 hw9290
-  have h30 := seg30_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 _ h
-  rcases h30 with ⟨w9295, hw9295, h⟩
-  have hSpec15 := spec15_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 hSpec14 hw9295
-  exact ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, w9270, w9275, w9280, w9285, w9290, w9295, hSpec15, h⟩
+theorem range5_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14774 : F) (w14779 : F) (w14784 : F) (w14789 : F) (w14794 : F) (w14799 : F) (w14804 : F) (w14809 : F) (w14814 : F) (w14819 : F) (w14824 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (hSpec9 : spec9 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st9 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg25 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg26 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg27 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg28 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg29 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg30 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 =>
+      k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854))))))) :
+    ∃ w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 : F, spec15 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st15 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 ∧ k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 := by
+  have h25 := seg25_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 _ h
+  rcases h25 with ⟨w14829, hw14829, h⟩
+  have hSpec10 := spec10_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 hSpec9 hw14829
+  have h26 := seg26_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 _ h
+  rcases h26 with ⟨w14834, hw14834, h⟩
+  have hSpec11 := spec11_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 hSpec10 hw14834
+  have h27 := seg27_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 _ h
+  rcases h27 with ⟨w14839, hw14839, h⟩
+  have hSpec12 := spec12_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 hSpec11 hw14839
+  have h28 := seg28_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 _ h
+  rcases h28 with ⟨w14844, hw14844, h⟩
+  have hSpec13 := spec13_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 hSpec12 hw14844
+  have h29 := seg29_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 _ h
+  rcases h29 with ⟨w14849, hw14849, h⟩
+  have hSpec14 := spec14_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 hSpec13 hw14849
+  have h30 := seg30_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 _ h
+  rcases h30 with ⟨w14854, hw14854, h⟩
+  have hSpec15 := spec15_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 hSpec14 hw14854
+  exact ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, w14829, w14834, w14839, w14844, w14849, w14854, hSpec15, h⟩
 
-theorem range6_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9215 : F) (w9220 : F) (w9225 : F) (w9230 : F) (w9235 : F) (w9240 : F) (w9245 : F) (w9250 : F) (w9255 : F) (w9260 : F) (w9265 : F) (w9270 : F) (w9275 : F) (w9280 : F) (w9285 : F) (w9290 : F) (w9295 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
-    (hSpec15 : spec15 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st15 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg31 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg32 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg33 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg34 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg35 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg36 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 =>
-      k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325))))))) :
-    ∃ w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 : F, spec21 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st21 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 ∧ k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 := by
-  have h31 := seg31_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 _ h
-  rcases h31 with ⟨w9300, hw9300, h⟩
-  have hSpec16 := spec16_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 hSpec15 hw9300
-  have h32 := seg32_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 _ h
-  rcases h32 with ⟨w9305, hw9305, h⟩
-  have hSpec17 := spec17_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 hSpec16 hw9305
-  have h33 := seg33_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 _ h
-  rcases h33 with ⟨w9310, hw9310, h⟩
-  have hSpec18 := spec18_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 hSpec17 hw9310
-  have h34 := seg34_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 _ h
-  rcases h34 with ⟨w9315, hw9315, h⟩
-  have hSpec19 := spec19_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 hSpec18 hw9315
-  have h35 := seg35_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 _ h
-  rcases h35 with ⟨w9320, hw9320, h⟩
-  have hSpec20 := spec20_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 hSpec19 hw9320
-  have h36 := seg36_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 _ h
-  rcases h36 with ⟨w9325, hw9325, h⟩
-  have hSpec21 := spec21_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 hSpec20 hw9325
-  exact ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, w9270, w9275, w9280, w9285, w9290, w9295, w9300, w9305, w9310, w9315, w9320, w9325, hSpec21, h⟩
+theorem range6_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14774 : F) (w14779 : F) (w14784 : F) (w14789 : F) (w14794 : F) (w14799 : F) (w14804 : F) (w14809 : F) (w14814 : F) (w14819 : F) (w14824 : F) (w14829 : F) (w14834 : F) (w14839 : F) (w14844 : F) (w14849 : F) (w14854 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (hSpec15 : spec15 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st15 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg31 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg32 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg33 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg34 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg35 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg36 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 =>
+      k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884))))))) :
+    ∃ w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 : F, spec21 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st21 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 ∧ k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 := by
+  have h31 := seg31_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 _ h
+  rcases h31 with ⟨w14859, hw14859, h⟩
+  have hSpec16 := spec16_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 hSpec15 hw14859
+  have h32 := seg32_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 _ h
+  rcases h32 with ⟨w14864, hw14864, h⟩
+  have hSpec17 := spec17_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 hSpec16 hw14864
+  have h33 := seg33_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 _ h
+  rcases h33 with ⟨w14869, hw14869, h⟩
+  have hSpec18 := spec18_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 hSpec17 hw14869
+  have h34 := seg34_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 _ h
+  rcases h34 with ⟨w14874, hw14874, h⟩
+  have hSpec19 := spec19_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 hSpec18 hw14874
+  have h35 := seg35_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 _ h
+  rcases h35 with ⟨w14879, hw14879, h⟩
+  have hSpec20 := spec20_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 hSpec19 hw14879
+  have h36 := seg36_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 _ h
+  rcases h36 with ⟨w14884, hw14884, h⟩
+  have hSpec21 := spec21_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 hSpec20 hw14884
+  exact ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, w14829, w14834, w14839, w14844, w14849, w14854, w14859, w14864, w14869, w14874, w14879, w14884, hSpec21, h⟩
 
-theorem range7_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9215 : F) (w9220 : F) (w9225 : F) (w9230 : F) (w9235 : F) (w9240 : F) (w9245 : F) (w9250 : F) (w9255 : F) (w9260 : F) (w9265 : F) (w9270 : F) (w9275 : F) (w9280 : F) (w9285 : F) (w9290 : F) (w9295 : F) (w9300 : F) (w9305 : F) (w9310 : F) (w9315 : F) (w9320 : F) (w9325 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
-    (hSpec21 : spec21 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st21 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg37 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg38 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg39 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg40 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg41 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg42 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 =>
-      k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355))))))) :
-    ∃ w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 : F, spec27 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st27 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 ∧ k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 := by
-  have h37 := seg37_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 _ h
-  rcases h37 with ⟨w9330, hw9330, h⟩
-  have hSpec22 := spec22_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 hSpec21 hw9330
-  have h38 := seg38_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 _ h
-  rcases h38 with ⟨w9335, hw9335, h⟩
-  have hSpec23 := spec23_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 hSpec22 hw9335
-  have h39 := seg39_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 _ h
-  rcases h39 with ⟨w9340, hw9340, h⟩
-  have hSpec24 := spec24_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 hSpec23 hw9340
-  have h40 := seg40_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 _ h
-  rcases h40 with ⟨w9345, hw9345, h⟩
-  have hSpec25 := spec25_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 hSpec24 hw9345
-  have h41 := seg41_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 _ h
-  rcases h41 with ⟨w9350, hw9350, h⟩
-  have hSpec26 := spec26_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 hSpec25 hw9350
-  have h42 := seg42_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 _ h
-  rcases h42 with ⟨w9355, hw9355, h⟩
-  have hSpec27 := spec27_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 hSpec26 hw9355
-  exact ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, w9270, w9275, w9280, w9285, w9290, w9295, w9300, w9305, w9310, w9315, w9320, w9325, w9330, w9335, w9340, w9345, w9350, w9355, hSpec27, h⟩
+theorem range7_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14774 : F) (w14779 : F) (w14784 : F) (w14789 : F) (w14794 : F) (w14799 : F) (w14804 : F) (w14809 : F) (w14814 : F) (w14819 : F) (w14824 : F) (w14829 : F) (w14834 : F) (w14839 : F) (w14844 : F) (w14849 : F) (w14854 : F) (w14859 : F) (w14864 : F) (w14869 : F) (w14874 : F) (w14879 : F) (w14884 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (hSpec21 : spec21 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st21 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg37 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg38 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg39 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg40 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg41 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg42 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 =>
+      k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914))))))) :
+    ∃ w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 : F, spec27 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st27 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 ∧ k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 := by
+  have h37 := seg37_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 _ h
+  rcases h37 with ⟨w14889, hw14889, h⟩
+  have hSpec22 := spec22_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 hSpec21 hw14889
+  have h38 := seg38_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 _ h
+  rcases h38 with ⟨w14894, hw14894, h⟩
+  have hSpec23 := spec23_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 hSpec22 hw14894
+  have h39 := seg39_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 _ h
+  rcases h39 with ⟨w14899, hw14899, h⟩
+  have hSpec24 := spec24_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 hSpec23 hw14899
+  have h40 := seg40_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 _ h
+  rcases h40 with ⟨w14904, hw14904, h⟩
+  have hSpec25 := spec25_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 hSpec24 hw14904
+  have h41 := seg41_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 _ h
+  rcases h41 with ⟨w14909, hw14909, h⟩
+  have hSpec26 := spec26_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 hSpec25 hw14909
+  have h42 := seg42_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 _ h
+  rcases h42 with ⟨w14914, hw14914, h⟩
+  have hSpec27 := spec27_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 hSpec26 hw14914
+  exact ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, w14829, w14834, w14839, w14844, w14849, w14854, w14859, w14864, w14869, w14874, w14879, w14884, w14889, w14894, w14899, w14904, w14909, w14914, hSpec27, h⟩
 
-theorem range8_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9215 : F) (w9220 : F) (w9225 : F) (w9230 : F) (w9235 : F) (w9240 : F) (w9245 : F) (w9250 : F) (w9255 : F) (w9260 : F) (w9265 : F) (w9270 : F) (w9275 : F) (w9280 : F) (w9285 : F) (w9290 : F) (w9295 : F) (w9300 : F) (w9305 : F) (w9310 : F) (w9315 : F) (w9320 : F) (w9325 : F) (w9330 : F) (w9335 : F) (w9340 : F) (w9345 : F) (w9350 : F) (w9355 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
-    (hSpec27 : spec27 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st27 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg43 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg44 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg45 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg46 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg47 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg48 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg49 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 =>
-      k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390)))))))) :
-    ∃ w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 : F, spec34 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st34 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 ∧ k w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 := by
-  have h43 := seg43_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 _ h
-  rcases h43 with ⟨w9360, hw9360, h⟩
-  have hSpec28 := spec28_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 hSpec27 hw9360
-  have h44 := seg44_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 _ h
-  rcases h44 with ⟨w9365, hw9365, h⟩
-  have hSpec29 := spec29_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 hSpec28 hw9365
-  have h45 := seg45_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 _ h
-  rcases h45 with ⟨w9370, hw9370, h⟩
-  have hSpec30 := spec30_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 hSpec29 hw9370
-  have h46 := seg46_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 _ h
-  rcases h46 with ⟨w9375, hw9375, h⟩
-  have hSpec31 := spec31_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 hSpec30 hw9375
-  have h47 := seg47_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 _ h
-  rcases h47 with ⟨w9380, hw9380, h⟩
-  have hSpec32 := spec32_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 hSpec31 hw9380
-  have h48 := seg48_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 _ h
-  rcases h48 with ⟨w9385, hw9385, h⟩
-  have hSpec33 := spec33_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 hSpec32 hw9385
-  have h49 := seg49_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 _ h
-  rcases h49 with ⟨w9390, hw9390, h⟩
-  have hSpec34 := spec34_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 hSpec33 hw9390
-  exact ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, w9270, w9275, w9280, w9285, w9290, w9295, w9300, w9305, w9310, w9315, w9320, w9325, w9330, w9335, w9340, w9345, w9350, w9355, w9360, w9365, w9370, w9375, w9380, w9385, w9390, hSpec34, h⟩
+theorem range8_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14774 : F) (w14779 : F) (w14784 : F) (w14789 : F) (w14794 : F) (w14799 : F) (w14804 : F) (w14809 : F) (w14814 : F) (w14819 : F) (w14824 : F) (w14829 : F) (w14834 : F) (w14839 : F) (w14844 : F) (w14849 : F) (w14854 : F) (w14859 : F) (w14864 : F) (w14869 : F) (w14874 : F) (w14879 : F) (w14884 : F) (w14889 : F) (w14894 : F) (w14899 : F) (w14904 : F) (w14909 : F) (w14914 : F) (k : F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → F → Prop)
+    (hSpec27 : spec27 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st27 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg43 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg44 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg45 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg46 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg47 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg48 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg49 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 =>
+      k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949)))))))) :
+    ∃ w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 : F, spec34 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st34 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 ∧ k w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 := by
+  have h43 := seg43_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 _ h
+  rcases h43 with ⟨w14919, hw14919, h⟩
+  have hSpec28 := spec28_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 hSpec27 hw14919
+  have h44 := seg44_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 _ h
+  rcases h44 with ⟨w14924, hw14924, h⟩
+  have hSpec29 := spec29_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 hSpec28 hw14924
+  have h45 := seg45_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 _ h
+  rcases h45 with ⟨w14929, hw14929, h⟩
+  have hSpec30 := spec30_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 hSpec29 hw14929
+  have h46 := seg46_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 _ h
+  rcases h46 with ⟨w14934, hw14934, h⟩
+  have hSpec31 := spec31_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 hSpec30 hw14934
+  have h47 := seg47_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 _ h
+  rcases h47 with ⟨w14939, hw14939, h⟩
+  have hSpec32 := spec32_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 hSpec31 hw14939
+  have h48 := seg48_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 _ h
+  rcases h48 with ⟨w14944, hw14944, h⟩
+  have hSpec33 := spec33_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 hSpec32 hw14944
+  have h49 := seg49_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 _ h
+  rcases h49 with ⟨w14949, hw14949, h⟩
+  have hSpec34 := spec34_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 hSpec33 hw14949
+  exact ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, w14829, w14834, w14839, w14844, w14849, w14854, w14859, w14864, w14869, w14874, w14879, w14884, w14889, w14894, w14899, w14904, w14909, w14914, w14919, w14924, w14929, w14934, w14939, w14944, w14949, hSpec34, h⟩
 
-theorem range9_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9215 : F) (w9220 : F) (w9225 : F) (w9230 : F) (w9235 : F) (w9240 : F) (w9245 : F) (w9250 : F) (w9255 : F) (w9260 : F) (w9265 : F) (w9270 : F) (w9275 : F) (w9280 : F) (w9285 : F) (w9290 : F) (w9295 : F) (w9300 : F) (w9305 : F) (w9310 : F) (w9315 : F) (w9320 : F) (w9325 : F) (w9330 : F) (w9335 : F) (w9340 : F) (w9345 : F) (w9350 : F) (w9355 : F) (w9360 : F) (w9365 : F) (w9370 : F) (w9375 : F) (w9380 : F) (w9385 : F) (w9390 : F) (k : F → F → F → F → F → Prop)
-    (hSpec34 : spec34 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st34 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg50 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg51 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg52 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 w9405 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg53 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 w9405 (fun w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 w9405 w9410 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg54 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 w9405 w9410 (fun w9395 w9400 w9405 w9410 w9415 =>
-      k w9395 w9400 w9405 w9410 w9415)))))) :
-    ∃ w9395 w9400 w9405 w9410 w9415 : F, spec35 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st35 w9395 w9400 w9405 w9410 w9415 ∧ k w9395 w9400 w9405 w9410 w9415 := by
-  have h50 := seg50_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 _ h
-  rcases h50 with ⟨w9395, hw9395, h⟩
-  have h51 := seg51_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 _ h
-  rcases h51 with ⟨w9400, hw9400, h⟩
-  have h52 := seg52_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 _ h
-  rcases h52 with ⟨w9405, hw9405, h⟩
-  have h53 := seg53_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 w9405 _ h
-  rcases h53 with ⟨w9410, hw9410, h⟩
-  have h54 := seg54_sound w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 w9405 w9410 _ h
-  rcases h54 with ⟨w9415, hw9415, h⟩
-  have hSpec35 := spec35_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 w9395 w9400 w9405 w9410 w9415 hSpec34 hw9395 hw9400 hw9405 hw9410 hw9415
-  exact ⟨w9395, w9400, w9405, w9410, w9415, hSpec35, h⟩
+theorem range9_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14774 : F) (w14779 : F) (w14784 : F) (w14789 : F) (w14794 : F) (w14799 : F) (w14804 : F) (w14809 : F) (w14814 : F) (w14819 : F) (w14824 : F) (w14829 : F) (w14834 : F) (w14839 : F) (w14844 : F) (w14849 : F) (w14854 : F) (w14859 : F) (w14864 : F) (w14869 : F) (w14874 : F) (w14879 : F) (w14884 : F) (w14889 : F) (w14894 : F) (w14899 : F) (w14904 : F) (w14909 : F) (w14914 : F) (w14919 : F) (w14924 : F) (w14929 : F) (w14934 : F) (w14939 : F) (w14944 : F) (w14949 : F) (k : F → F → F → F → F → Prop)
+    (hSpec34 : spec34 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st34 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg50 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg51 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg52 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 w14964 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg53 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 w14964 (fun w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 w14964 w14969 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg54 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 w14964 w14969 (fun w14954 w14959 w14964 w14969 w14974 =>
+      k w14954 w14959 w14964 w14969 w14974)))))) :
+    ∃ w14954 w14959 w14964 w14969 w14974 : F, spec35 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st35 w14954 w14959 w14964 w14969 w14974 ∧ k w14954 w14959 w14964 w14969 w14974 := by
+  have h50 := seg50_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 _ h
+  rcases h50 with ⟨w14954, hw14954, h⟩
+  have h51 := seg51_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 _ h
+  rcases h51 with ⟨w14959, hw14959, h⟩
+  have h52 := seg52_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 _ h
+  rcases h52 with ⟨w14964, hw14964, h⟩
+  have h53 := seg53_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 w14964 _ h
+  rcases h53 with ⟨w14969, hw14969, h⟩
+  have h54 := seg54_sound w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 w14964 w14969 _ h
+  rcases h54 with ⟨w14974, hw14974, h⟩
+  have hSpec35 := spec35_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 w14954 w14959 w14964 w14969 w14974 hSpec34 hw14954 hw14959 hw14964 hw14969 hw14974
+  exact ⟨w14954, w14959, w14964, w14969, w14974, hSpec35, h⟩
 
-theorem range10_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9395 : F) (w9400 : F) (w9405 : F) (w9410 : F) (w9415 : F) (k : F → F → F → F → F → Prop)
-    (hSpec35 : spec35 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st35 w9395 w9400 w9405 w9410 w9415)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg55 w9395 w9400 w9405 w9410 w9415 (fun w9395 w9400 w9405 w9410 w9415 w9420 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg56 w9395 w9400 w9405 w9410 w9415 w9420 (fun w9395 w9400 w9405 w9410 w9415 w9420 w9425 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg57 w9395 w9400 w9405 w9410 w9415 w9420 w9425 (fun w9395 w9400 w9405 w9410 w9415 w9420 w9425 w9430 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg58 w9395 w9400 w9405 w9410 w9415 w9420 w9425 w9430 (fun w9395 w9400 w9405 w9410 w9415 w9420 w9425 w9430 w9435 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg59 w9395 w9400 w9405 w9410 w9415 w9420 w9425 w9430 w9435 (fun w9420 w9425 w9430 w9435 w9440 =>
-      k w9420 w9425 w9430 w9435 w9440)))))) :
-    ∃ w9420 w9425 w9430 w9435 w9440 : F, spec36 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st36 w9420 w9425 w9430 w9435 w9440 ∧ k w9420 w9425 w9430 w9435 w9440 := by
-  have h55 := seg55_sound w9395 w9400 w9405 w9410 w9415 _ h
-  rcases h55 with ⟨w9420, hw9420, h⟩
-  have h56 := seg56_sound w9395 w9400 w9405 w9410 w9415 w9420 _ h
-  rcases h56 with ⟨w9425, hw9425, h⟩
-  have h57 := seg57_sound w9395 w9400 w9405 w9410 w9415 w9420 w9425 _ h
-  rcases h57 with ⟨w9430, hw9430, h⟩
-  have h58 := seg58_sound w9395 w9400 w9405 w9410 w9415 w9420 w9425 w9430 _ h
-  rcases h58 with ⟨w9435, hw9435, h⟩
-  have h59 := seg59_sound w9395 w9400 w9405 w9410 w9415 w9420 w9425 w9430 w9435 _ h
-  rcases h59 with ⟨w9440, hw9440, h⟩
-  have hSpec36 := spec36_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9395 w9400 w9405 w9410 w9415 w9420 w9425 w9430 w9435 w9440 hSpec35 hw9420 hw9425 hw9430 hw9435 hw9440
-  exact ⟨w9420, w9425, w9430, w9435, w9440, hSpec36, h⟩
+theorem range10_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14954 : F) (w14959 : F) (w14964 : F) (w14969 : F) (w14974 : F) (k : F → F → F → F → F → Prop)
+    (hSpec35 : spec35 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st35 w14954 w14959 w14964 w14969 w14974)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg55 w14954 w14959 w14964 w14969 w14974 (fun w14954 w14959 w14964 w14969 w14974 w14979 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg56 w14954 w14959 w14964 w14969 w14974 w14979 (fun w14954 w14959 w14964 w14969 w14974 w14979 w14984 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg57 w14954 w14959 w14964 w14969 w14974 w14979 w14984 (fun w14954 w14959 w14964 w14969 w14974 w14979 w14984 w14989 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg58 w14954 w14959 w14964 w14969 w14974 w14979 w14984 w14989 (fun w14954 w14959 w14964 w14969 w14974 w14979 w14984 w14989 w14994 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg59 w14954 w14959 w14964 w14969 w14974 w14979 w14984 w14989 w14994 (fun w14979 w14984 w14989 w14994 w14999 =>
+      k w14979 w14984 w14989 w14994 w14999)))))) :
+    ∃ w14979 w14984 w14989 w14994 w14999 : F, spec36 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st36 w14979 w14984 w14989 w14994 w14999 ∧ k w14979 w14984 w14989 w14994 w14999 := by
+  have h55 := seg55_sound w14954 w14959 w14964 w14969 w14974 _ h
+  rcases h55 with ⟨w14979, hw14979, h⟩
+  have h56 := seg56_sound w14954 w14959 w14964 w14969 w14974 w14979 _ h
+  rcases h56 with ⟨w14984, hw14984, h⟩
+  have h57 := seg57_sound w14954 w14959 w14964 w14969 w14974 w14979 w14984 _ h
+  rcases h57 with ⟨w14989, hw14989, h⟩
+  have h58 := seg58_sound w14954 w14959 w14964 w14969 w14974 w14979 w14984 w14989 _ h
+  rcases h58 with ⟨w14994, hw14994, h⟩
+  have h59 := seg59_sound w14954 w14959 w14964 w14969 w14974 w14979 w14984 w14989 w14994 _ h
+  rcases h59 with ⟨w14999, hw14999, h⟩
+  have hSpec36 := spec36_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14954 w14959 w14964 w14969 w14974 w14979 w14984 w14989 w14994 w14999 hSpec35 hw14979 hw14984 hw14989 hw14994 hw14999
+  exact ⟨w14979, w14984, w14989, w14994, w14999, hSpec36, h⟩
 
-theorem range11_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9420 : F) (w9425 : F) (w9430 : F) (w9435 : F) (w9440 : F) (k : F → F → F → F → F → Prop)
-    (hSpec36 : spec36 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st36 w9420 w9425 w9430 w9435 w9440)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg60 w9420 w9425 w9430 w9435 w9440 (fun w9420 w9425 w9430 w9435 w9440 w9445 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg61 w9420 w9425 w9430 w9435 w9440 w9445 (fun w9420 w9425 w9430 w9435 w9440 w9445 w9450 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg62 w9420 w9425 w9430 w9435 w9440 w9445 w9450 (fun w9420 w9425 w9430 w9435 w9440 w9445 w9450 w9455 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg63 w9420 w9425 w9430 w9435 w9440 w9445 w9450 w9455 (fun w9420 w9425 w9430 w9435 w9440 w9445 w9450 w9455 w9460 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg64 w9420 w9425 w9430 w9435 w9440 w9445 w9450 w9455 w9460 (fun w9445 w9450 w9455 w9460 w9465 =>
-      k w9445 w9450 w9455 w9460 w9465)))))) :
-    ∃ w9445 w9450 w9455 w9460 w9465 : F, spec37 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st37 w9445 w9450 w9455 w9460 w9465 ∧ k w9445 w9450 w9455 w9460 w9465 := by
-  have h60 := seg60_sound w9420 w9425 w9430 w9435 w9440 _ h
-  rcases h60 with ⟨w9445, hw9445, h⟩
-  have h61 := seg61_sound w9420 w9425 w9430 w9435 w9440 w9445 _ h
-  rcases h61 with ⟨w9450, hw9450, h⟩
-  have h62 := seg62_sound w9420 w9425 w9430 w9435 w9440 w9445 w9450 _ h
-  rcases h62 with ⟨w9455, hw9455, h⟩
-  have h63 := seg63_sound w9420 w9425 w9430 w9435 w9440 w9445 w9450 w9455 _ h
-  rcases h63 with ⟨w9460, hw9460, h⟩
-  have h64 := seg64_sound w9420 w9425 w9430 w9435 w9440 w9445 w9450 w9455 w9460 _ h
-  rcases h64 with ⟨w9465, hw9465, h⟩
-  have hSpec37 := spec37_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9420 w9425 w9430 w9435 w9440 w9445 w9450 w9455 w9460 w9465 hSpec36 hw9445 hw9450 hw9455 hw9460 hw9465
-  exact ⟨w9445, w9450, w9455, w9460, w9465, hSpec37, h⟩
+theorem range11_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w14979 : F) (w14984 : F) (w14989 : F) (w14994 : F) (w14999 : F) (k : F → F → F → F → F → Prop)
+    (hSpec36 : spec36 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st36 w14979 w14984 w14989 w14994 w14999)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg60 w14979 w14984 w14989 w14994 w14999 (fun w14979 w14984 w14989 w14994 w14999 w15004 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg61 w14979 w14984 w14989 w14994 w14999 w15004 (fun w14979 w14984 w14989 w14994 w14999 w15004 w15009 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg62 w14979 w14984 w14989 w14994 w14999 w15004 w15009 (fun w14979 w14984 w14989 w14994 w14999 w15004 w15009 w15014 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg63 w14979 w14984 w14989 w14994 w14999 w15004 w15009 w15014 (fun w14979 w14984 w14989 w14994 w14999 w15004 w15009 w15014 w15019 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg64 w14979 w14984 w14989 w14994 w14999 w15004 w15009 w15014 w15019 (fun w15004 w15009 w15014 w15019 w15024 =>
+      k w15004 w15009 w15014 w15019 w15024)))))) :
+    ∃ w15004 w15009 w15014 w15019 w15024 : F, spec37 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st37 w15004 w15009 w15014 w15019 w15024 ∧ k w15004 w15009 w15014 w15019 w15024 := by
+  have h60 := seg60_sound w14979 w14984 w14989 w14994 w14999 _ h
+  rcases h60 with ⟨w15004, hw15004, h⟩
+  have h61 := seg61_sound w14979 w14984 w14989 w14994 w14999 w15004 _ h
+  rcases h61 with ⟨w15009, hw15009, h⟩
+  have h62 := seg62_sound w14979 w14984 w14989 w14994 w14999 w15004 w15009 _ h
+  rcases h62 with ⟨w15014, hw15014, h⟩
+  have h63 := seg63_sound w14979 w14984 w14989 w14994 w14999 w15004 w15009 w15014 _ h
+  rcases h63 with ⟨w15019, hw15019, h⟩
+  have h64 := seg64_sound w14979 w14984 w14989 w14994 w14999 w15004 w15009 w15014 w15019 _ h
+  rcases h64 with ⟨w15024, hw15024, h⟩
+  have hSpec37 := spec37_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w14979 w14984 w14989 w14994 w14999 w15004 w15009 w15014 w15019 w15024 hSpec36 hw15004 hw15009 hw15014 hw15019 hw15024
+  exact ⟨w15004, w15009, w15014, w15019, w15024, hSpec37, h⟩
 
-theorem range12_sound (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (w9445 : F) (w9450 : F) (w9455 : F) (w9460 : F) (w9465 : F) (k : F → F → F → F → F → Prop)
-    (hSpec37 : spec37 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st37 w9445 w9450 w9455 w9460 w9465)
-    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg65 w9445 w9450 w9455 w9460 w9465 (fun w9445 w9450 w9455 w9460 w9465 w9470 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg66 w9445 w9450 w9455 w9460 w9465 w9470 (fun w9445 w9450 w9455 w9460 w9465 w9470 w9475 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg67 w9445 w9450 w9455 w9460 w9465 w9470 w9475 (fun w9445 w9450 w9455 w9460 w9465 w9470 w9475 w9480 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg68 w9445 w9450 w9455 w9460 w9465 w9470 w9475 w9480 (fun w9445 w9450 w9455 w9460 w9465 w9470 w9475 w9480 w9485 =>
-      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.seg69 w9445 w9450 w9455 w9460 w9465 w9470 w9475 w9480 w9485 (fun w9470 w9475 w9480 w9485 w9490 =>
-      k w9470 w9475 w9480 w9485 w9490)))))) :
-    ∃ w9470 w9475 w9480 w9485 w9490 : F, spec38 (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) = st38 w9470 w9475 w9480 w9485 w9490 ∧ k w9470 w9475 w9480 w9485 w9490 := by
-  have h65 := seg65_sound w9445 w9450 w9455 w9460 w9465 _ h
-  rcases h65 with ⟨w9470, hw9470, h⟩
-  have h66 := seg66_sound w9445 w9450 w9455 w9460 w9465 w9470 _ h
-  rcases h66 with ⟨w9475, hw9475, h⟩
-  have h67 := seg67_sound w9445 w9450 w9455 w9460 w9465 w9470 w9475 _ h
-  rcases h67 with ⟨w9480, hw9480, h⟩
-  have h68 := seg68_sound w9445 w9450 w9455 w9460 w9465 w9470 w9475 w9480 _ h
-  rcases h68 with ⟨w9485, hw9485, h⟩
-  have h69 := seg69_sound w9445 w9450 w9455 w9460 w9465 w9470 w9475 w9480 w9485 _ h
-  rcases h69 with ⟨w9490, hw9490, h⟩
-  have hSpec38 := spec38_step (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) w9445 w9450 w9455 w9460 w9465 w9470 w9475 w9480 w9485 w9490 hSpec37 hw9470 hw9475 hw9480 hw9485 hw9490
-  exact ⟨w9470, w9475, w9480, w9485, w9490, hSpec38, h⟩
+theorem range12_sound (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (w15004 : F) (w15009 : F) (w15014 : F) (w15019 : F) (w15024 : F) (k : F → F → F → F → F → Prop)
+    (hSpec37 : spec37 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st37 w15004 w15009 w15014 w15019 w15024)
+    (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg65 w15004 w15009 w15014 w15019 w15024 (fun w15004 w15009 w15014 w15019 w15024 w15029 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg66 w15004 w15009 w15014 w15019 w15024 w15029 (fun w15004 w15009 w15014 w15019 w15024 w15029 w15034 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg67 w15004 w15009 w15014 w15019 w15024 w15029 w15034 (fun w15004 w15009 w15014 w15019 w15024 w15029 w15034 w15039 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg68 w15004 w15009 w15014 w15019 w15024 w15029 w15034 w15039 (fun w15004 w15009 w15014 w15019 w15024 w15029 w15034 w15039 w15044 =>
+      Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.seg69 w15004 w15009 w15014 w15019 w15024 w15029 w15034 w15039 w15044 (fun w15029 w15034 w15039 w15044 w15049 =>
+      k w15029 w15034 w15039 w15044 w15049)))))) :
+    ∃ w15029 w15034 w15039 w15044 w15049 : F, spec38 (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) = st38 w15029 w15034 w15039 w15044 w15049 ∧ k w15029 w15034 w15039 w15044 w15049 := by
+  have h65 := seg65_sound w15004 w15009 w15014 w15019 w15024 _ h
+  rcases h65 with ⟨w15029, hw15029, h⟩
+  have h66 := seg66_sound w15004 w15009 w15014 w15019 w15024 w15029 _ h
+  rcases h66 with ⟨w15034, hw15034, h⟩
+  have h67 := seg67_sound w15004 w15009 w15014 w15019 w15024 w15029 w15034 _ h
+  rcases h67 with ⟨w15039, hw15039, h⟩
+  have h68 := seg68_sound w15004 w15009 w15014 w15019 w15024 w15029 w15034 w15039 _ h
+  rcases h68 with ⟨w15044, hw15044, h⟩
+  have h69 := seg69_sound w15004 w15009 w15014 w15019 w15024 w15029 w15034 w15039 w15044 _ h
+  rcases h69 with ⟨w15049, hw15049, h⟩
+  have hSpec38 := spec38_step (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) w15004 w15009 w15014 w15019 w15024 w15029 w15034 w15039 w15044 w15049 hSpec37 hw15029 hw15034 hw15039 hw15044 hw15049
+  exact ⟨w15029, w15034, w15039, w15044, w15049, hSpec38, h⟩
 
-theorem relation_sound_permSpec (w34 : F) (w35 : F) (w36 : F) (w9135 : F) (w9136 : F) (w9137 : F) (w9138 : F) (w9139 : F) (w9140 : F) (k : F → F → F → F → F → Prop) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.relation w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 k →
-      ∃ w9470 w9475 w9480 w9485 w9490 : F, k w9470 w9475 w9480 w9485 w9490 ∧
-        s38_1 w9470 w9475 w9480 w9485 w9490 = permSpec4 tctNode21DomainLit (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140) := by
-  unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_c2cc94.relation
+theorem relation_sound_permSpec (w34 : F) (w35 : F) (w36 : F) (w14694 : F) (w14695 : F) (w14696 : F) (w14697 : F) (w14698 : F) (w14699 : F) (k : F → F → F → F → F → Prop) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.relation w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 k →
+      ∃ w15029 w15034 w15039 w15044 w15049 : F, k w15029 w15034 w15039 w15044 w15049 ∧
+        s38_1 w15029 w15034 w15039 w15044 w15049 = permSpec4 tctNode21DomainLit (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699) := by
+  unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode20350_24c6fc.relation
   intro h
-  have r0 := range0_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 _ h
-  rcases r0 with ⟨w9145, w9150, w9155, w9160, hSpec0, h⟩
-  have r1 := range1_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9145 w9150 w9155 w9160 _ hSpec0 h
-  rcases r1 with ⟨w9165, w9170, w9175, w9180, w9185, hSpec1, h⟩
-  have r2 := range2_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9165 w9170 w9175 w9180 w9185 _ hSpec1 h
-  rcases r2 with ⟨w9190, w9195, w9200, w9205, w9210, hSpec2, h⟩
-  have r3 := range3_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9190 w9195 w9200 w9205 w9210 _ hSpec2 h
-  rcases r3 with ⟨w9215, w9220, w9225, w9230, w9235, hSpec3, h⟩
-  have r4 := range4_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9215 w9220 w9225 w9230 w9235 _ hSpec3 h
-  rcases r4 with ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, hSpec9, h⟩
-  have r5 := range5_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 _ hSpec9 h
-  rcases r5 with ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, w9270, w9275, w9280, w9285, w9290, w9295, hSpec15, h⟩
-  have r6 := range6_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 _ hSpec15 h
-  rcases r6 with ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, w9270, w9275, w9280, w9285, w9290, w9295, w9300, w9305, w9310, w9315, w9320, w9325, hSpec21, h⟩
-  have r7 := range7_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 _ hSpec21 h
-  rcases r7 with ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, w9270, w9275, w9280, w9285, w9290, w9295, w9300, w9305, w9310, w9315, w9320, w9325, w9330, w9335, w9340, w9345, w9350, w9355, hSpec27, h⟩
-  have r8 := range8_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 _ hSpec27 h
-  rcases r8 with ⟨w9215, w9220, w9225, w9230, w9235, w9240, w9245, w9250, w9255, w9260, w9265, w9270, w9275, w9280, w9285, w9290, w9295, w9300, w9305, w9310, w9315, w9320, w9325, w9330, w9335, w9340, w9345, w9350, w9355, w9360, w9365, w9370, w9375, w9380, w9385, w9390, hSpec34, h⟩
-  have r9 := range9_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9215 w9220 w9225 w9230 w9235 w9240 w9245 w9250 w9255 w9260 w9265 w9270 w9275 w9280 w9285 w9290 w9295 w9300 w9305 w9310 w9315 w9320 w9325 w9330 w9335 w9340 w9345 w9350 w9355 w9360 w9365 w9370 w9375 w9380 w9385 w9390 _ hSpec34 h
-  rcases r9 with ⟨w9395, w9400, w9405, w9410, w9415, hSpec35, h⟩
-  have r10 := range10_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9395 w9400 w9405 w9410 w9415 _ hSpec35 h
-  rcases r10 with ⟨w9420, w9425, w9430, w9435, w9440, hSpec36, h⟩
-  have r11 := range11_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9420 w9425 w9430 w9435 w9440 _ hSpec36 h
-  rcases r11 with ⟨w9445, w9450, w9455, w9460, w9465, hSpec37, h⟩
-  have r12 := range12_sound w34 w35 w36 w9135 w9136 w9137 w9138 w9139 w9140 w9445 w9450 w9455 w9460 w9465 _ hSpec37 h
-  rcases r12 with ⟨w9470, w9475, w9480, w9485, w9490, hSpec38, h⟩
-  refine ⟨w9470, w9475, w9480, w9485, w9490, h, ?_⟩
-  rw [← spec38_eq_permSpec (w34 + w9135) (w35 + w9136 + w9137) (w35 + w9138 + w9139) (w36 + w9140)]
+  have r0 := range0_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 _ h
+  rcases r0 with ⟨w14704, w14709, w14714, w14719, hSpec0, h⟩
+  have r1 := range1_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14704 w14709 w14714 w14719 _ hSpec0 h
+  rcases r1 with ⟨w14724, w14729, w14734, w14739, w14744, hSpec1, h⟩
+  have r2 := range2_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14724 w14729 w14734 w14739 w14744 _ hSpec1 h
+  rcases r2 with ⟨w14749, w14754, w14759, w14764, w14769, hSpec2, h⟩
+  have r3 := range3_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14749 w14754 w14759 w14764 w14769 _ hSpec2 h
+  rcases r3 with ⟨w14774, w14779, w14784, w14789, w14794, hSpec3, h⟩
+  have r4 := range4_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14774 w14779 w14784 w14789 w14794 _ hSpec3 h
+  rcases r4 with ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, hSpec9, h⟩
+  have r5 := range5_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 _ hSpec9 h
+  rcases r5 with ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, w14829, w14834, w14839, w14844, w14849, w14854, hSpec15, h⟩
+  have r6 := range6_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 _ hSpec15 h
+  rcases r6 with ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, w14829, w14834, w14839, w14844, w14849, w14854, w14859, w14864, w14869, w14874, w14879, w14884, hSpec21, h⟩
+  have r7 := range7_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 _ hSpec21 h
+  rcases r7 with ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, w14829, w14834, w14839, w14844, w14849, w14854, w14859, w14864, w14869, w14874, w14879, w14884, w14889, w14894, w14899, w14904, w14909, w14914, hSpec27, h⟩
+  have r8 := range8_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 _ hSpec27 h
+  rcases r8 with ⟨w14774, w14779, w14784, w14789, w14794, w14799, w14804, w14809, w14814, w14819, w14824, w14829, w14834, w14839, w14844, w14849, w14854, w14859, w14864, w14869, w14874, w14879, w14884, w14889, w14894, w14899, w14904, w14909, w14914, w14919, w14924, w14929, w14934, w14939, w14944, w14949, hSpec34, h⟩
+  have r9 := range9_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14774 w14779 w14784 w14789 w14794 w14799 w14804 w14809 w14814 w14819 w14824 w14829 w14834 w14839 w14844 w14849 w14854 w14859 w14864 w14869 w14874 w14879 w14884 w14889 w14894 w14899 w14904 w14909 w14914 w14919 w14924 w14929 w14934 w14939 w14944 w14949 _ hSpec34 h
+  rcases r9 with ⟨w14954, w14959, w14964, w14969, w14974, hSpec35, h⟩
+  have r10 := range10_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14954 w14959 w14964 w14969 w14974 _ hSpec35 h
+  rcases r10 with ⟨w14979, w14984, w14989, w14994, w14999, hSpec36, h⟩
+  have r11 := range11_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w14979 w14984 w14989 w14994 w14999 _ hSpec36 h
+  rcases r11 with ⟨w15004, w15009, w15014, w15019, w15024, hSpec37, h⟩
+  have r12 := range12_sound w34 w35 w36 w14694 w14695 w14696 w14697 w14698 w14699 w15004 w15009 w15014 w15019 w15024 _ hSpec37 h
+  rcases r12 with ⟨w15029, w15034, w15039, w15044, w15049, hSpec38, h⟩
+  refine ⟨w15029, w15034, w15039, w15044, w15049, h, ?_⟩
+  rw [← spec38_eq_permSpec (w34 + w14694) (w35 + w14695 + w14696) (w35 + w14697 + w14698) (w36 + w14699)]
   rw [hSpec38]
   simp [st38]
 

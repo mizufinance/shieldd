@@ -13,6 +13,8 @@ import argparse
 import json
 from pathlib import Path
 
+from write_if_changed import write_if_changed
+
 IR_SCHEMA = "shieldd.gnark.deployed_slice_ir.v2"
 INVENTORY_SCHEMA = "shieldd.gnark.normalized_template_inventory.v1"
 NOTE_RESHAPE = {"note_reshape2x1", "note_reshape4x1", "note_reshape8x1", "note_reshape1x8"}
@@ -155,8 +157,8 @@ def main() -> None:
         print(f"checked {args.out} ({json.loads(contents)['template_count']} templates)")
         return
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(contents)
-    print(f"wrote {args.out} ({json.loads(contents)['template_count']} templates)")
+    if write_if_changed(args.out, contents):
+        print(f"wrote {args.out} ({json.loads(contents)['template_count']} templates)")
 
 
 if __name__ == "__main__":

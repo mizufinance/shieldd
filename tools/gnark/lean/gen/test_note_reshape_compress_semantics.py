@@ -18,8 +18,8 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
         cls.outputs = gen.generated_files()
 
     def test_exact_provider_and_benchmark_set(self) -> None:
-        self.assertEqual(len(self.outputs), 48)
-        self.assertEqual(sum(path.parent == gen.OUT for path in self.outputs), 40)
+        self.assertEqual(len(self.outputs), 50)
+        self.assertEqual(sum(path.parent == gen.OUT for path in self.outputs), 42)
         self.assertEqual(sum(path.parent == gen.BENCH for path in self.outputs), 8)
         self.assertTrue(set(gen.benchmark_candidates()).issubset(self.outputs))
         for family in gen.FAMILIES:
@@ -47,7 +47,7 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
         for family in gen.FAMILIES:
             source = gen._relation_source(family)
             rows = gen._rows(source)
-            base = self.outputs[gen.OUT / f"{family.name}Base.lean"]
+            base = self.outputs[gen.OUT / f"{family.name}Chunks.lean"]
             self.assertIn(f"def inputX (rho : Nat → F) : F :=\n  {gen._coordinate_operand(family, rows[0])}", base)
             self.assertIn(f"def inputY (rho : Nat → F) : F :=\n  {gen._coordinate_operand(family, rows[1])}", base)
             self.assertNotRegex(base, r"theorem .*flat|theorem .*structured")
@@ -82,7 +82,8 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
             self.assertIn(declaration, source)
         self.assertIn(
             "export BinaryRecomposition\n"
-            "  (recBits powSumAcc powSumAcc_eq recover_ofFn_eq_recBits)",
+            "  (recBits powSumAcc weightedSum powSumAcc_eq powSumAcc_eq_weightedSum "
+            "powSumAcc_add_acc powSumAcc_append powSumAcc_split32 recover_ofFn_eq_recBits)",
             source,
         )
         self.assertNotIn("CompressRows", source)
@@ -90,8 +91,8 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
     def test_non_affine_or_unseated_internal_mapping_fails_closed(self) -> None:
         family = gen.FAMILIES[0]
         segment = deepcopy(gen._segment(family))
-        segment["wire_seating"].remove(500)
-        with self.assertRaisesRegex(ValueError, "extracted wire 500 is not locally seated"):
+        segment["wire_seating"].remove(512)
+        with self.assertRaisesRegex(ValueError, "extracted wire 518 is not locally seated"):
             gen._wire_mapping(family, segment)
 
     def test_generated_bytes_are_deterministic_and_pinned(self) -> None:
@@ -104,7 +105,7 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
             digest.update(b"\0")
         self.assertEqual(
             digest.hexdigest(),
-            "dafe37e5df61d97a0b3fa5373954134e0859015d3aa2041fd013ab6d6dab5449",
+            "881668840906770b99660a0e11454139d4f1d6c9ae1824b4059a963e1a263d26",
         )
 
 

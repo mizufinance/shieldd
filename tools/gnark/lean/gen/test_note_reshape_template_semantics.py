@@ -14,7 +14,7 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
         cls.outputs = gen.generated_files()
 
     def test_generated_file_set_and_bytes_are_pinned(self) -> None:
-        self.assertEqual(len(self.outputs), 14846)
+        self.assertEqual(len(self.outputs), 12699)
         digest = hashlib.sha256()
         for path in sorted(self.outputs, key=lambda item: str(item)):
             digest.update(str(path.relative_to(gen.LEAN)).encode())
@@ -23,7 +23,7 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             digest.update(b"\0")
         self.assertEqual(
             digest.hexdigest(),
-            "a5cc3a4e954c1dcd3cef9606a9f6637f65ce9660704031f9917fbda06345e9da",
+            "3b6a54152eb1259627a658f119232328ffba7dbace95a8badb65cf9f6c66b74c",
         )
 
     def test_every_inventory_template_has_one_direct_provider_main(self) -> None:
@@ -33,7 +33,7 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             for template in inventory["templates"]
         }
         actual = expected & self.outputs.keys()
-        self.assertEqual(len(expected), 51)
+        self.assertEqual(len(expected), 48)
         self.assertEqual(actual, expected)
 
     def test_generated_family_filenames_use_note_reshape_vocabulary(self) -> None:

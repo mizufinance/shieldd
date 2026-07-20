@@ -798,11 +798,13 @@ impl ViewService for ViewServer {
                     }
                 }
                 Action::NoteReshape(note_reshape) => {
+                    let synthetic_input_padding = note_reshape.body.family_id.spec().input_padding
+                        == shieldd_sdk_shielded_pool::note_reshape::InputPaddingPolicy::SyntheticPrivate;
                     for input in note_reshape
                         .body
                         .inputs
                         .iter()
-                        .filter(|input| !input.is_dummy)
+                        .filter(|input| !synthetic_input_padding || !input.is_dummy())
                     {
                         let nullifier = input.nullifier;
                         if let Ok(spendable_note_record) =

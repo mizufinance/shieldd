@@ -8,6 +8,12 @@ import gen_note_reshape_dtk_semantics as gen
 
 
 class NoteReshapeDtkSemanticsTest(unittest.TestCase):
+    def setUp(self) -> None:
+        reviewed.SOURCE_CONTRACTS = reviewed.DEFAULT_CONTRACTS
+        reviewed.ROW_COUNT = gen.ROW_COUNT
+        reviewed._SOURCE_CACHE.clear()
+        reviewed._RELATION_PARTS_CACHE.clear()
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.outputs = gen.generated_files()
@@ -17,7 +23,7 @@ class NoteReshapeDtkSemanticsTest(unittest.TestCase):
         expected = reviewed.LT_SEATING_SHA256.read_text().strip()
         self.assertEqual(
             hashlib.sha256(raw).hexdigest(),
-            "59f938bb9fe2b11ab899b2b1e5dbabc2038e41387753de9f4cdcde5d0a6e3f68",
+            "c5361ded79b22ceab04709545e115f21e23be09543a972d3fb9a6ab4b9fe00bc",
         )
         self.assertEqual(expected, hashlib.sha256(raw).hexdigest())
         seating = reviewed._lt_seating()
@@ -43,7 +49,7 @@ class NoteReshapeDtkSemanticsTest(unittest.TestCase):
             digest.update(b"\0")
         self.assertEqual(
             digest.hexdigest(),
-            "301bd8327cc5c27b9d932fc16700800c11871fa98ab48c9f1fb9eb9d3a2ad956",
+            "e5f5ab1456fd9dac3ade2bb454a305c739350bc9be127973b17a56178147db46",
         )
 
     def test_first_middle_final_and_aggregator_benchmarks_are_managed(self) -> None:

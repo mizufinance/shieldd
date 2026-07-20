@@ -141,10 +141,8 @@ jobs:
         run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
 
   lean-circuit-fv:
-    # PRs run the cheap `stamps` tier on a standard runner; the nightly `full`
-    # tier that elaborates the whole-circuit proofs stays on the 16-vcpu tier for
-    # RAM/cores. If the PR stamps tier ever exceeds ~10 min on ubuntu-latest,
-    # move it to a smaller blacksmith tier rather than back to 16-vcpu.
+    # PRs run the Go/Rust drift tier; the nightly release tier elaborates only
+    # selected deployed Statements serially on the larger runner.
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'blacksmith-16vcpu-ubuntu-2404' }}
     timeout-minutes: 45
     # Toolchain (Go, Rust, elan/Lean, ripgrep) is baked into the FV image, pinned
@@ -158,9 +156,9 @@ jobs:
     permissions:
       contents: read
       packages: read # pull the FV toolchain image from GHCR
-    # Single-threaded Lean elaboration caps per-process memory: the nightly full
-    # tier rebuilds the whole-circuit models, and unbounded threads let one
-    # elaboration balloon past the runner's RAM and OOM the job.
+    # Single-threaded Lean elaboration caps per-process memory: the nightly
+    # release tier builds selected Statement closures serially, and unbounded
+    # threads could still balloon one elaboration past the runner's RAM.
     env:
       LEAN_NUM_THREADS: "1"
     strategy:
@@ -174,13 +172,9 @@ jobs:
         with:
           ref: ${{ matrix.ref }}
           lfs: true # gate reads the committed LFS-tracked .sr1cs artifacts
-      # Cache the Mathlib download cache and dependency builds (proven-zk/Mathlib
-      # oleans). Keyed on the toolchain + lake-manifest pins, which are themselves
-      # SHA-stamped into the whole-circuit artifacts, so the cache invalidates
-      # exactly when the proved inputs change. Deliberately does NOT cache
-      # tools/gnark/lean/.lake/build: the project's own circuit-proof oleans must
-      # re-elaborate from source so the nightly `full` tier's axiom check stays a
-      # real clean-room build. (elan/Lean itself is baked in the image, not cached.)
+      # Cache Mathlib/dependency and project oleans so selected Statement
+      # closures retain Lake's incremental behavior. (elan/Lean itself is baked
+      # in the image, not cached.)
       - name: Cache Lean Mathlib and deps
         uses: actions/cache@v4
         with:
@@ -190,7 +184,7 @@ jobs:
           key: lean-fv-${{ hashFiles('tools/gnark/lean/lean-toolchain', 'tools/gnark/lean/lake-manifest.json') }}
           restore-keys: |
             lean-fv-
-      # Rust + Go build caches: the stamps tier compiles the constraint-coverage
+      # Rust + Go build caches: the drift tier compiles the constraint-coverage
       # crate and runs `go run ./cmd/gnarkctl`. These make the ubuntu-latest PR
       # runner viable (the toolchains themselves are baked; only build artifacts
       # are cached here).
@@ -207,16 +201,15 @@ jobs:
           key: go-fv-${{ hashFiles('tools/gnark/go.sum') }}
           restore-keys: |
             go-fv-
-      # PRs run the cheap `stamps` tier (hygiene + stamp integrity + wiring
-      # transcript); the nightly schedule/dispatch runs the expensive `full`
-      # tier that elaborates the whole-circuit proofs and checks axioms.
-      - name: Run Lean whole-circuit FV gate
+      # PR drift is content-based and lake-free. Nightly/dispatch performs the
+      # selected-Statement build, axiom, deployed-key, and release checks.
+      - name: Run incremental Lean circuit FV gate
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            bash scripts/check-lean-circuit-fv.sh stamps
+            bash scripts/check-lean-circuit-fv.sh drift all
           else
-            bash scripts/check-lean-circuit-fv.sh full
+            LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh release all
           fi
 
   # Heavy provers (Tamarin symbolic + hax/F* injectivity). Schedule/dispatch

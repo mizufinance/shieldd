@@ -8,13 +8,13 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg46BlindAccState_final_x (rho : Nat -> Seg46.F) :
     (seg46BlindAccState rho 251).x = Specs.nbX rho := by
-  change _ * rho 31661 + seg46BlindDeltaX250 rho = Specs.nbX rho
+  change _ * rho 31655 + seg46BlindDeltaX250 rho = Specs.nbX rho
   simp only [seg46BlindDeltaX250, Specs.nbX, zero_add, one_mul]
   ring
 
 theorem seg46BlindAccState_final_y (rho : Nat -> Seg46.F) :
     (seg46BlindAccState rho 251).y = Specs.nbY rho := by
-  change 1 + _ * rho 31661 + seg46BlindDeltaY250 rho = Specs.nbY rho
+  change 1 + _ * rho 31655 + seg46BlindDeltaY250 rho = Specs.nbY rho
   simp only [seg46BlindDeltaY250, Specs.nbY, zero_add, one_mul]
   ring
 

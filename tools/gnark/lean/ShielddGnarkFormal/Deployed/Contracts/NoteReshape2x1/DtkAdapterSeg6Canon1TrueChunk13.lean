@@ -32,79 +32,79 @@ theorem seg6Canon1_flag_step_chunk13 (rho : Nat -> Seg6.F) (h : Seg6.relation rh
   unfold Seg6.relationRow303 at r303
   intro m hmlo hmhi
   interval_cases m
-  · rw [show seg6Canon1Flag rho 208 = rho 1208 from rfl, show seg6Canon1Flag rho 209 = rho 1208 from rfl]
+  · rw [show seg6Canon1Flag rho 208 = rho 1202 from rfl, show seg6Canon1Flag rho 209 = rho 1202 from rfl]
     have hb : pmBit 208 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 208 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 209 = rho 1208 from rfl, show seg6Canon1Flag rho 210 = rho 1208 from rfl]
+  · rw [show seg6Canon1Flag rho 209 = rho 1202 from rfl, show seg6Canon1Flag rho 210 = rho 1202 from rfl]
     have hb : pmBit 209 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 209 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 210 = rho 1208 from rfl, show seg6Canon1Flag rho 211 = rho 1207 from rfl]
+  · rw [show seg6Canon1Flag rho 210 = rho 1202 from rfl, show seg6Canon1Flag rho 211 = rho 1201 from rfl]
     have hb : pmBit 210 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [seg6Canon1Bits_get rho 210 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r303
-  · rw [show seg6Canon1Flag rho 211 = rho 1207 from rfl, show seg6Canon1Flag rho 212 = rho 1206 from rfl]
+  · rw [show seg6Canon1Flag rho 211 = rho 1201 from rfl, show seg6Canon1Flag rho 212 = rho 1200 from rfl]
     have hb : pmBit 211 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [seg6Canon1Bits_get rho 211 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r302
-  · rw [show seg6Canon1Flag rho 212 = rho 1206 from rfl, show seg6Canon1Flag rho 213 = rho 1206 from rfl]
+  · rw [show seg6Canon1Flag rho 212 = rho 1200 from rfl, show seg6Canon1Flag rho 213 = rho 1200 from rfl]
     have hb : pmBit 212 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 212 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 213 = rho 1206 from rfl, show seg6Canon1Flag rho 214 = rho 1205 from rfl]
+  · rw [show seg6Canon1Flag rho 213 = rho 1200 from rfl, show seg6Canon1Flag rho 214 = rho 1199 from rfl]
     have hb : pmBit 213 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [seg6Canon1Bits_get rho 213 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r301
-  · rw [show seg6Canon1Flag rho 214 = rho 1205 from rfl, show seg6Canon1Flag rho 215 = rho 1205 from rfl]
+  · rw [show seg6Canon1Flag rho 214 = rho 1199 from rfl, show seg6Canon1Flag rho 215 = rho 1199 from rfl]
     have hb : pmBit 214 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 214 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 215 = rho 1205 from rfl, show seg6Canon1Flag rho 216 = rho 1205 from rfl]
+  · rw [show seg6Canon1Flag rho 215 = rho 1199 from rfl, show seg6Canon1Flag rho 216 = rho 1199 from rfl]
     have hb : pmBit 215 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 215 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 216 = rho 1205 from rfl, show seg6Canon1Flag rho 217 = rho 1205 from rfl]
+  · rw [show seg6Canon1Flag rho 216 = rho 1199 from rfl, show seg6Canon1Flag rho 217 = rho 1199 from rfl]
     have hb : pmBit 216 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 216 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 217 = rho 1205 from rfl, show seg6Canon1Flag rho 218 = rho 1204 from rfl]
+  · rw [show seg6Canon1Flag rho 217 = rho 1199 from rfl, show seg6Canon1Flag rho 218 = rho 1198 from rfl]
     have hb : pmBit 217 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [seg6Canon1Bits_get rho 217 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r300
-  · rw [show seg6Canon1Flag rho 218 = rho 1204 from rfl, show seg6Canon1Flag rho 219 = rho 1204 from rfl]
+  · rw [show seg6Canon1Flag rho 218 = rho 1198 from rfl, show seg6Canon1Flag rho 219 = rho 1198 from rfl]
     have hb : pmBit 218 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 218 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 219 = rho 1204 from rfl, show seg6Canon1Flag rho 220 = rho 1203 from rfl]
+  · rw [show seg6Canon1Flag rho 219 = rho 1198 from rfl, show seg6Canon1Flag rho 220 = rho 1197 from rfl]
     have hb : pmBit 219 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [seg6Canon1Bits_get rho 219 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r299
-  · rw [show seg6Canon1Flag rho 220 = rho 1203 from rfl, show seg6Canon1Flag rho 221 = rho 1202 from rfl]
+  · rw [show seg6Canon1Flag rho 220 = rho 1197 from rfl, show seg6Canon1Flag rho 221 = rho 1196 from rfl]
     have hb : pmBit 220 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [seg6Canon1Bits_get rho 220 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r298
-  · rw [show seg6Canon1Flag rho 221 = rho 1202 from rfl, show seg6Canon1Flag rho 222 = rho 1202 from rfl]
+  · rw [show seg6Canon1Flag rho 221 = rho 1196 from rfl, show seg6Canon1Flag rho 222 = rho 1196 from rfl]
     have hb : pmBit 221 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 221 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 222 = rho 1202 from rfl, show seg6Canon1Flag rho 223 = rho 1202 from rfl]
+  · rw [show seg6Canon1Flag rho 222 = rho 1196 from rfl, show seg6Canon1Flag rho 223 = rho 1196 from rfl]
     have hb : pmBit 222 = false := by decide +kernel
     rw [show trueFactor (seg6Canon1Bits rho) 222 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show seg6Canon1Flag rho 223 = rho 1202 from rfl, show seg6Canon1Flag rho 224 = rho 1201 from rfl]
+  · rw [show seg6Canon1Flag rho 223 = rho 1196 from rfl, show seg6Canon1Flag rho 224 = rho 1195 from rfl]
     have hb : pmBit 223 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [seg6Canon1Bits_get rho 223 (by omega)]

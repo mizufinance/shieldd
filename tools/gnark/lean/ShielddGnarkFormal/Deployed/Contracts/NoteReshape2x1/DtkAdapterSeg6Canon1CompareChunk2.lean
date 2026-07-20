@@ -42,63 +42,63 @@ theorem seg6Canon1_compare_chunk2 (rho : Nat -> Seg6.F) (h : Seg6.relation rho) 
   interval_cases j
   · erw [seg6Canon1Bits_get rho 32 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 33 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 33 = rho 1266 from rfl]
     linear_combination r501
   · erw [seg6Canon1Bits_get rho 33 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 34 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 34 = rho 1266 from rfl]
     linear_combination r500
   · erw [seg6Canon1Bits_get rho 34 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 35 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 35 = rho 1266 from rfl]
     linear_combination r499
   · erw [seg6Canon1Bits_get rho 35 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 36 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 36 = rho 1266 from rfl]
     linear_combination r498
   · erw [seg6Canon1Bits_get rho 36 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 37 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 37 = rho 1266 from rfl]
     linear_combination r497
   · erw [seg6Canon1Bits_get rho 37 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 38 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 38 = rho 1266 from rfl]
     linear_combination r496
   · erw [seg6Canon1Bits_get rho 38 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 39 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 39 = rho 1266 from rfl]
     linear_combination r495
   · erw [seg6Canon1Bits_get rho 39 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 40 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 40 = rho 1266 from rfl]
     linear_combination r494
   · erw [seg6Canon1Bits_get rho 40 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 41 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 41 = rho 1266 from rfl]
     linear_combination r493
   · erw [seg6Canon1Bits_get rho 41 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 42 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 42 = rho 1266 from rfl]
     linear_combination r492
   · erw [seg6Canon1Bits_get rho 42 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 43 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 43 = rho 1266 from rfl]
     linear_combination r491
   · erw [seg6Canon1Bits_get rho 43 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 44 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 44 = rho 1266 from rfl]
     linear_combination r490
   · erw [seg6Canon1Bits_get rho 44 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 45 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 45 = rho 1266 from rfl]
     linear_combination r489
   · erw [seg6Canon1Bits_get rho 45 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 46 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 46 = rho 1266 from rfl]
     linear_combination r488
   · erw [seg6Canon1Bits_get rho 46 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show seg6Canon1Flag rho 47 = rho 1272 from rfl]
+    rw [show seg6Canon1Flag rho 47 = rho 1266 from rfl]
     linear_combination r487
   · have hb : pmBit 47 = true := by decide +kernel
     simp [hb] at hpm

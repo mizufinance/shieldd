@@ -283,8 +283,6 @@ message NoteReshapeInputBody {
   crypto.decaf377_rdsa.v1.SpendVerificationKey rk = 2;
   // An encryption of the commitment of the input note to the sender's OVK.
   bytes encrypted_backref = 3;
-  // Explicit proof-bound padding marker.
-  bool is_dummy = 4;
 }
 
 message NoteReshapeOutputBody {
@@ -294,8 +292,6 @@ message NoteReshapeOutputBody {
   bytes wrapped_memo_key = 2;
   // The key material used for note encryption, wrapped to the sender's OVK.
   bytes ovk_wrapped_key = 3;
-  // Explicit proof-bound padding marker.
-  bool is_dummy = 4;
 }
 
 // Reshapes notes owned by one address without changing their total value.

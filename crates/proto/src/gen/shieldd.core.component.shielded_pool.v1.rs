@@ -751,9 +751,6 @@ pub struct NoteReshapeInputBody {
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
     pub encrypted_backref: ::prost::alloc::vec::Vec<u8>,
-    /// Explicit proof-bound padding marker.
-    #[prost(bool, tag = "4")]
-    pub is_dummy: bool,
 }
 impl ::prost::Name for NoteReshapeInputBody {
     const NAME: &'static str = "NoteReshapeInputBody";
@@ -776,9 +773,6 @@ pub struct NoteReshapeOutputBody {
     /// The key material used for note encryption, wrapped to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
     pub ovk_wrapped_key: ::prost::alloc::vec::Vec<u8>,
-    /// Explicit proof-bound padding marker.
-    #[prost(bool, tag = "4")]
-    pub is_dummy: bool,
 }
 impl ::prost::Name for NoteReshapeOutputBody {
     const NAME: &'static str = "NoteReshapeOutputBody";

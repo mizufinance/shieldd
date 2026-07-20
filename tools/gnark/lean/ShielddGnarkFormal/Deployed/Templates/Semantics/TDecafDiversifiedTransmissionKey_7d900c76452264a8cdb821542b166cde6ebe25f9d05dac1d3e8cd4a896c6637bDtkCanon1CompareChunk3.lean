@@ -43,57 +43,57 @@ theorem dtkCanon1_compare_chunk3 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 49 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 50 = rho 1270 from rfl]
+    rw [show dtkCanon1Flag rho 50 = rho 1264 from rfl]
     linear_combination r486
   · erw [dtkCanon1Bits_get rho 50 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 51 = rho 1270 from rfl]
+    rw [show dtkCanon1Flag rho 51 = rho 1264 from rfl]
     linear_combination r485
   · erw [dtkCanon1Bits_get rho 51 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 52 = rho 1270 from rfl]
+    rw [show dtkCanon1Flag rho 52 = rho 1264 from rfl]
     linear_combination r484
   · have hb : pmBit 52 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 53 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 54 = rho 1269 from rfl]
+    rw [show dtkCanon1Flag rho 54 = rho 1263 from rfl]
     linear_combination r483
   · erw [dtkCanon1Bits_get rho 54 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 55 = rho 1269 from rfl]
+    rw [show dtkCanon1Flag rho 55 = rho 1263 from rfl]
     linear_combination r482
   · erw [dtkCanon1Bits_get rho 55 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 56 = rho 1269 from rfl]
+    rw [show dtkCanon1Flag rho 56 = rho 1263 from rfl]
     linear_combination r481
   · erw [dtkCanon1Bits_get rho 56 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 57 = rho 1269 from rfl]
+    rw [show dtkCanon1Flag rho 57 = rho 1263 from rfl]
     linear_combination r480
   · have hb : pmBit 57 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 58 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 59 = rho 1268 from rfl]
+    rw [show dtkCanon1Flag rho 59 = rho 1262 from rfl]
     linear_combination r479
   · have hb : pmBit 59 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 60 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 61 = rho 1267 from rfl]
+    rw [show dtkCanon1Flag rho 61 = rho 1261 from rfl]
     linear_combination r478
   · erw [dtkCanon1Bits_get rho 61 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 62 = rho 1267 from rfl]
+    rw [show dtkCanon1Flag rho 62 = rho 1261 from rfl]
     linear_combination r477
   · erw [dtkCanon1Bits_get rho 62 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 63 = rho 1267 from rfl]
+    rw [show dtkCanon1Flag rho 63 = rho 1261 from rfl]
     linear_combination r476
   · erw [dtkCanon1Bits_get rho 63 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 64 = rho 1267 from rfl]
+    rw [show dtkCanon1Flag rho 64 = rho 1261 from rfl]
     linear_combination r475
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

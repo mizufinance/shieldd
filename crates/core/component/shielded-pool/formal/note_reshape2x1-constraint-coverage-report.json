@@ -1,8 +1,8 @@
 {
   "schema": "shieldd.gnark.constraint_coverage_report.v1",
   "circuit": "note_reshape2x1",
-  "sr1cs_sha256_hex": "8ce49eee4a2e383197534ffb52b17af8961e74b1fa403822fb25f4490fb7830b",
-  "manifest_sha256_hex": "fc1999401de654600b2bc76bdb47fdd97eefad8f74bff2e9dd2b395ebadb2858",
+  "sr1cs_sha256_hex": "90fe6bdd01f52c889a6ccd5d642e6b98befcd5c87ab301ec21682d7d53d25ad1",
+  "manifest_sha256_hex": "434ef786c8b681db045bbaebe5c9c4d8ca55ad0293ef44e5413ed13ee3d6825a",
   "nb_constraints": 36553,
   "prime": "8444461749428370424248824938781546531375899335154063827935233455917409239041",
   "inputs": [
@@ -198,13 +198,7 @@
     191,
     192,
     193,
-    194,
-    195,
-    196,
-    197,
-    198,
-    199,
-    200
+    194
   ],
   "outputs": [
     1
@@ -233,7 +227,7 @@
       "start": 0,
       "end": 4,
       "constraint_count": 4,
-      "constraint_sha256_hex": "1acc0735d6746bfc73ba99ecb2e8b9bd91690cadce17cfb9257b98592bd321eb",
+      "constraint_sha256_hex": "c1cfe4006d4ba2b3993e3c2b9e28c115ee4ec246e5dce1225040c2b6a0c98ee6",
       "verdict": "covered"
     },
     {
@@ -243,7 +237,7 @@
       "start": 4,
       "end": 8,
       "constraint_count": 4,
-      "constraint_sha256_hex": "a84a52a1e134ab4f8fc46a403760768d3f17cdc949b92c5ebc3958c7efdcc5fa",
+      "constraint_sha256_hex": "39240f6cd02f85f967b801efe4a60809b37c307dcb0599e2ed57bb64da38d4b6",
       "verdict": "covered"
     },
     {
@@ -253,7 +247,7 @@
       "start": 8,
       "end": 12,
       "constraint_count": 4,
-      "constraint_sha256_hex": "a6ee688394564151d3da94c3ac7ea9854d60f8f0479893a7c4be7fcf6286dd85",
+      "constraint_sha256_hex": "663a9a1f3aa37ebfa7dfe336de68abf2e70ed04b5d3740e9d563527dc5c9dbeb",
       "verdict": "covered"
     },
     {
@@ -265,7 +259,7 @@
       "start": 12,
       "end": 1058,
       "constraint_count": 1046,
-      "constraint_sha256_hex": "10a694a3bf67709c8e7d65e9a7de6efff7206bf5db6d3253c9331be9611f27f4",
+      "constraint_sha256_hex": "30ca3ec7dcae7382eb1da27472ff6093fee52e703d2f44c4fbc21ddb0a4d9462",
       "verdict": "covered"
     },
     {
@@ -277,7 +271,7 @@
       "start": 1058,
       "end": 7135,
       "constraint_count": 6077,
-      "constraint_sha256_hex": "abc09e99e7a2805cbbfbde2ec36dc82e41a459341ec5abafc2110c25e38f16df",
+      "constraint_sha256_hex": "61f3cd0d6a4f634844e1492defd8e8b4c4212353a619255a2927fbefea83a4eb",
       "verdict": "covered"
     },
     {
@@ -289,7 +283,7 @@
       "start": 7135,
       "end": 7138,
       "constraint_count": 3,
-      "constraint_sha256_hex": "950ffd62c77cecc80d1464d5621488c38ade0f3fbf5a3b291a9f56dfa381035b",
+      "constraint_sha256_hex": "a91aa44b1415a1b048baeeb385d3274fa8bf72dff38a5028fc3ed96765c13b65",
       "verdict": "covered"
     },
     {
@@ -311,7 +305,7 @@
       "start": 7138,
       "end": 7568,
       "constraint_count": 430,
-      "constraint_sha256_hex": "0fade213496714bcd7dadf96ac6a6a258e5599d2df0bd4605e3cc5e9dc46c0d1",
+      "constraint_sha256_hex": "83978b949d894affd1f9b4e12c9ba9acf7ba96ff0e971a6d34208b3f1bed3723",
       "verdict": "covered"
     },
     {
@@ -321,7 +315,7 @@
       "start": 7568,
       "end": 7569,
       "constraint_count": 1,
-      "constraint_sha256_hex": "2f38fc55b0ac06277a48e03fe742e729fd68b82c50d7f27f2c298135ca505726",
+      "constraint_sha256_hex": "1d4953282d49e1f4f5d3b58375efe1ccac9a7c251dcb1afb3363612aa4c460f7",
       "verdict": "covered"
     },
     {
@@ -333,7 +327,7 @@
       "start": 7569,
       "end": 7879,
       "constraint_count": 310,
-      "constraint_sha256_hex": "cfb868b4954b368d0ca80fab9ff7b0d1e37a95cfc7e61c48acc5fa489739ec83",
+      "constraint_sha256_hex": "f06a5a838f3d518a3f701aeee563e2f0a99bd03768cd7241be07e715e23e996a",
       "verdict": "covered"
     },
     {
@@ -343,7 +337,7 @@
       "start": 7879,
       "end": 7880,
       "constraint_count": 1,
-      "constraint_sha256_hex": "8006fc184d26819e1876bcac2dce7ebc667d35b10288e6391bdf60709baed6d9",
+      "constraint_sha256_hex": "a196cd1e7349f2c8ad6c5a91bb49c132c9fe1d161446c2320bddf1b474223725",
       "verdict": "covered"
     },
     {
@@ -355,7 +349,7 @@
       "start": 7880,
       "end": 16895,
       "constraint_count": 9015,
-      "constraint_sha256_hex": "012a3292332fc7b353d875b9aeb56b65dddf4ec578744aebb4b633eb54df0178",
+      "constraint_sha256_hex": "7bac46b500799d956d5a36c97b571cb6f5b7ad0150c20a42bf84cc150f0390d0",
       "verdict": "covered"
     },
     {
@@ -365,7 +359,7 @@
       "start": 16895,
       "end": 16896,
       "constraint_count": 1,
-      "constraint_sha256_hex": "04674716958ff1a3f2f9a09f1b3b321a2c4c3656563a681be31c7e943980f941",
+      "constraint_sha256_hex": "bc2b47091c805576b797856615e9f0abc1ab6f7107adbedf55dc0c0997a6f06e",
       "verdict": "covered"
     },
     {
@@ -377,7 +371,7 @@
       "start": 16896,
       "end": 18708,
       "constraint_count": 1812,
-      "constraint_sha256_hex": "e053f07e404ed415cfa2681ea0cfc900982965e33f3cfc48b6c9057b4e02a7c4",
+      "constraint_sha256_hex": "6ec0173a98bfe1d7d07e32aa45ab429dea02e24fe7c45966aadabe9fef16ef2f",
       "verdict": "covered"
     },
     {
@@ -389,7 +383,7 @@
       "start": 18708,
       "end": 18711,
       "constraint_count": 3,
-      "constraint_sha256_hex": "47781a535c0a42d4c2ae66cbb78f45694de7b37bbef4a60d4df81580af0dfc99",
+      "constraint_sha256_hex": "d55f127a03c69eec1609fd73b8f91d398734f41d115c5a56ffed228bcd6f6643",
       "verdict": "covered"
     },
     {
@@ -401,7 +395,7 @@
       "start": 18711,
       "end": 19757,
       "constraint_count": 1046,
-      "constraint_sha256_hex": "6a3926782c514a5d9864bb52ea9d724e9be6e6b5ead012d23bee653efa94a110",
+      "constraint_sha256_hex": "44d2e3cb196e8da08b744bd3fb1e41c052a6ad60adb8cf12535a984e81acfb4b",
       "verdict": "covered"
     },
     {
@@ -411,7 +405,7 @@
       "start": 19757,
       "end": 19761,
       "constraint_count": 4,
-      "constraint_sha256_hex": "ec89efa7fa4be4fa06811ca412f0f9ffedceb29f15756d083ee742f1f3461026",
+      "constraint_sha256_hex": "55e88d0333000be20f640b573fc1996cd03cd4e941c4495be22ca380dc89462a",
       "verdict": "covered"
     },
     {
@@ -423,7 +417,7 @@
       "start": 19761,
       "end": 19764,
       "constraint_count": 3,
-      "constraint_sha256_hex": "72f1a9a86300b65529ed9cc39890c7ac06a1e6523af9a898f3f847b84d4a7845",
+      "constraint_sha256_hex": "1efc279634d8ab9c4cdf664ec54f830329cfb4b6f1594f2cd791a5769f69a7d0",
       "verdict": "covered"
     },
     {
@@ -435,7 +429,7 @@
       "start": 19764,
       "end": 19767,
       "constraint_count": 3,
-      "constraint_sha256_hex": "28847d513ba39df0a62e608a7b19449a33f127033882b8a0271d4ab110a59275",
+      "constraint_sha256_hex": "04d6ff1de2be317b421a3c585ac317e9118175b09cc3e4084b18ffb3879317a0",
       "verdict": "covered"
     },
     {
@@ -477,7 +471,7 @@
       "start": 19768,
       "end": 20198,
       "constraint_count": 430,
-      "constraint_sha256_hex": "f8d3c8ec34c22c1a22c6fa5e9d7e29b32ea7552b555bba58099e2fcab273e6ee",
+      "constraint_sha256_hex": "579ec3545869111fdd5092e3fe841fdb8e1cedde4c1e34478b983c289c41c9d4",
       "verdict": "covered"
     },
     {
@@ -487,7 +481,7 @@
       "start": 20198,
       "end": 20199,
       "constraint_count": 1,
-      "constraint_sha256_hex": "aa6163ae07d3017c72b74129203ff6289d2d85c4d657c3eaedb910cb3ac64347",
+      "constraint_sha256_hex": "ec0d4a5ef45f34237568c0d91d4bb5df9af513603341aa9fa3c3252513863c7a",
       "verdict": "covered"
     },
     {
@@ -499,7 +493,7 @@
       "start": 20199,
       "end": 20509,
       "constraint_count": 310,
-      "constraint_sha256_hex": "6060d1a121ebbbb86cc7a312aea489d5c7e98d581f84e6e5abccfb53af6212d4",
+      "constraint_sha256_hex": "03462e553fed038343abf77067c78c7c397e6191a1a91e99ea60ee7c9ebd1e9c",
       "verdict": "covered"
     },
     {
@@ -509,7 +503,7 @@
       "start": 20509,
       "end": 20510,
       "constraint_count": 1,
-      "constraint_sha256_hex": "9004c029901b4735ee71a3e6ebc46bdbf1b85b0cb85be0ec36625015568af22f",
+      "constraint_sha256_hex": "2efead4461dbfab89b25e9a7635174650bb5c3a86d9bc2571b49d672c4bb9fa2",
       "verdict": "covered"
     },
     {
@@ -521,7 +515,7 @@
       "start": 20510,
       "end": 29525,
       "constraint_count": 9015,
-      "constraint_sha256_hex": "2be30f37cb2cd1fd6b13a90ddf1cbb6cfefe76d17a3ee518f7a8a41d9d1a6246",
+      "constraint_sha256_hex": "bcc23e97da358af764e2d6d58717a1c008ace4fa5e0f921c2a9be1b63c105db3",
       "verdict": "covered"
     },
     {
@@ -531,7 +525,7 @@
       "start": 29525,
       "end": 29526,
       "constraint_count": 1,
-      "constraint_sha256_hex": "8b9721888b22b366deb85a350969765c01d327b8c1ce4a41d951806b152554ee",
+      "constraint_sha256_hex": "fe6d7d11e0f2faaade3b44c761d87f7ed3e7b40f8d5d991ce65abb6a1882d5a0",
       "verdict": "covered"
     },
     {
@@ -543,7 +537,7 @@
       "start": 29526,
       "end": 31338,
       "constraint_count": 1812,
-      "constraint_sha256_hex": "000703d0546be170159c115f76dc509bc93200f1b161ba5a69129d9376f7897e",
+      "constraint_sha256_hex": "a86616d5a1609902e27828569189b7788785e1650538dae158f6727a2f40dc36",
       "verdict": "covered"
     },
     {
@@ -555,7 +549,7 @@
       "start": 31338,
       "end": 31341,
       "constraint_count": 3,
-      "constraint_sha256_hex": "9ce83b6c4127326589a9b3de3891166045e2efa6a8048e4307549f4def2badd5",
+      "constraint_sha256_hex": "46919dc03a5ee9b8c58f251f71abb349330d47f9118a5fa1b68ea91f572f9785",
       "verdict": "covered"
     },
     {
@@ -567,7 +561,7 @@
       "start": 31341,
       "end": 32387,
       "constraint_count": 1046,
-      "constraint_sha256_hex": "b0fa74cd3a1c95e8757e098aa48ce3f6b2799911181fb07654f3309a1640dd5e",
+      "constraint_sha256_hex": "92d1024eafba94300c91df0ffec3ddd0b1a743ebb24d6929b29b3c191fbc02fd",
       "verdict": "covered"
     },
     {
@@ -577,7 +571,7 @@
       "start": 32387,
       "end": 32391,
       "constraint_count": 4,
-      "constraint_sha256_hex": "5af8e06ffd793ee09f9a6a273a53e70a7c06e32193be30a76ca70da76db8449e",
+      "constraint_sha256_hex": "93a49b6bcf2842c41c280f929a68e2cbfe85f10ce677e3aeff296b52e3b28b69",
       "verdict": "covered"
     },
     {
@@ -589,7 +583,7 @@
       "start": 32391,
       "end": 32394,
       "constraint_count": 3,
-      "constraint_sha256_hex": "7d7919d59494bf9dba19e93de2e1c31b4fec718e897f3f59a9604a4a18863c16",
+      "constraint_sha256_hex": "fa138e234743b18d0e56379c1895b72afcf0b19f682271e79042f565849db743",
       "verdict": "covered"
     },
     {
@@ -601,7 +595,7 @@
       "start": 32394,
       "end": 32397,
       "constraint_count": 3,
-      "constraint_sha256_hex": "c2d532708a344c529d6caf1c47d047d42f7d916d650253a513aa85e72f6b321a",
+      "constraint_sha256_hex": "2b83d4275a8bfb52465f9038a5ce3a3c411f249f5734958fc671d74748873fb9",
       "verdict": "covered"
     },
     {
@@ -611,7 +605,7 @@
       "start": 32397,
       "end": 32398,
       "constraint_count": 1,
-      "constraint_sha256_hex": "6f439a9f763385124ba6af740f1ce8aa628717f45a45654404b9d10a0132e60f",
+      "constraint_sha256_hex": "52cac8ca9f8f9ed5dc95f7b2cb5f0d9b63ec9f8ef06932ace06fbfed292a4dbd",
       "verdict": "covered"
     },
     {
@@ -643,7 +637,7 @@
       "start": 32398,
       "end": 32828,
       "constraint_count": 430,
-      "constraint_sha256_hex": "23f9709e95118537126b576d063cc94251c888169acc407c3630a1d6021f035c",
+      "constraint_sha256_hex": "8f8756315fd4af53e0c850877e425c2f88661953ea32a70fef5d1a8834f9591e",
       "verdict": "covered"
     },
     {
@@ -653,7 +647,7 @@
       "start": 32828,
       "end": 32829,
       "constraint_count": 1,
-      "constraint_sha256_hex": "0db221846bf2366edeefd0448169f0b873a2401ccd9def38c16756306417277a",
+      "constraint_sha256_hex": "6d8b2a036d3c6ba42df21f5922e6ad98e8571c7ad5d4536663b531a9fddfc82a",
       "verdict": "covered"
     },
     {
@@ -663,7 +657,7 @@
       "start": 32829,
       "end": 32833,
       "constraint_count": 4,
-      "constraint_sha256_hex": "528700ac8a7205cd1e699dc4caa42c1c86ee11e40bd95a3291eba5e74703f7f6",
+      "constraint_sha256_hex": "248ff3a808c009fca6342bb410f8700a75fdcfbb70d7716808df4b3d8915034b",
       "verdict": "covered"
     },
     {
@@ -675,7 +669,7 @@
       "start": 32833,
       "end": 32836,
       "constraint_count": 3,
-      "constraint_sha256_hex": "ef74fe4340b620ef0a4541b1420b829cc4543f00b010830960f81f88dd75c532",
+      "constraint_sha256_hex": "a58e5283079a4e981e2332b15a10afda6d4bac439e95e395c7938bb67b99a9f6",
       "verdict": "covered"
     },
     {
@@ -687,7 +681,7 @@
       "start": 32836,
       "end": 32839,
       "constraint_count": 3,
-      "constraint_sha256_hex": "fa5691d5cd973f7384615916ec6b2c96754b00cb36cd1ab69067025d36d24332",
+      "constraint_sha256_hex": "7398e820f455e6152d17388aa694838e15f32a858383e8871bb5bebcc99f8f0b",
       "verdict": "covered"
     },
     {
@@ -697,7 +691,7 @@
       "start": 32839,
       "end": 32840,
       "constraint_count": 1,
-      "constraint_sha256_hex": "1b8838f54a7fec041c5d169cb7d96085ec923cc3094497a862dcb3cfc6d65d72",
+      "constraint_sha256_hex": "adc07a0ad3763c4c2fe0a51944067f195518b90e205a590b6f2904e7b877a1c3",
       "verdict": "covered"
     },
     {
@@ -719,7 +713,7 @@
       "start": 32840,
       "end": 35033,
       "constraint_count": 2193,
-      "constraint_sha256_hex": "9e4daec49a6c0567b4c8c08b6f90c4c3fb95f3a77cc330fc2955aa2a0a93a8a4",
+      "constraint_sha256_hex": "b60993ae5755e836009808c26445523e99260927c0c55a5ef58b4623f3fad63a",
       "verdict": "covered"
     },
     {
@@ -731,7 +725,7 @@
       "start": 35033,
       "end": 35036,
       "constraint_count": 3,
-      "constraint_sha256_hex": "6b26ec506de1d3e8e44060c542017fe6841b0e068c39ecd3dc34b4d2700d6292",
+      "constraint_sha256_hex": "e64123a7f2b1046fd519fef983377151233f6068a9cacb6ba40336c77aa992f4",
       "verdict": "covered"
     },
     {
@@ -743,7 +737,7 @@
       "start": 35036,
       "end": 36082,
       "constraint_count": 1046,
-      "constraint_sha256_hex": "b3205859c1bcd331b4cc69f0dd7af3e7b3c6bf9f0479fc6021d950b1500c2205",
+      "constraint_sha256_hex": "ac7eff66ca90e117caa0a8c9c167d43c5be1fa8f42c433b3dc9b4e42824541fc",
       "verdict": "covered"
     },
     {
@@ -795,7 +789,7 @@
       "start": 36082,
       "end": 36552,
       "constraint_count": 470,
-      "constraint_sha256_hex": "819c800e3ebb56de89f8383072cdf921d31e669da744274ba3bcda37555ec78b",
+      "constraint_sha256_hex": "bcb541bfb05089872fdbb50e0baaad96369f8f58909e35c31a5e53064cf59444",
       "verdict": "covered"
     },
     {
@@ -805,13 +799,13 @@
       "start": 36552,
       "end": 36553,
       "constraint_count": 1,
-      "constraint_sha256_hex": "5e97f3bda2774a89f76a0149d806d92e96beed54c5b1cc51b63242f8d3c635d9",
+      "constraint_sha256_hex": "18862591a7b8c5b229622989895279e01ce55c0d48115fbad209696c9cfe8790",
       "verdict": "covered"
     }
   ],
   "deployed_obligations": {
     "circuit": "note_reshape2x1",
-    "sr1cs_sha256_hex": "8ce49eee4a2e383197534ffb52b17af8961e74b1fa403822fb25f4490fb7830b",
+    "sr1cs_sha256_hex": "90fe6bdd01f52c889a6ccd5d642e6b98befcd5c87ab301ec21682d7d53d25ad1",
     "total_obligations": 43,
     "discharged": 43,
     "functional_assumptions": 0,
@@ -832,8 +826,8 @@
         "end": 4,
         "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
         "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-        "relation_sha256_hex": "1438d18659fd332be74837d2dceeaab4d5cc2e1c5077adea6aa0dfaeb0338c04",
-        "wire_role_sha256_hex": "0a599782c5065aaa089305120c495dc2aee6cbc1a38c0f6349fd676b2153da45",
+        "relation_sha256_hex": "87a510615e0b4f1b985dc56dd47e9919e8ea83f59d9cf6d99592e30fcf68c7d2",
+        "wire_role_sha256_hex": "111369999dd0d8e250ba2dc32ab1226f2cdfe170ac2eb9f09b57efb5916729f7",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst2_bound",
@@ -847,8 +841,8 @@
         "end": 8,
         "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
         "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-        "relation_sha256_hex": "764925ae39b424f0d93a3f551a0b01645457661b93322306221a7f076e6d07f3",
-        "wire_role_sha256_hex": "1e9835c6023e7781a39f0ae339d0251bb86384be4761300a6925b8d4e4f0f5bc",
+        "relation_sha256_hex": "eba64804d3ba484026c897d62ae897e715a14fe887c688d362e68f635339982a",
+        "wire_role_sha256_hex": "b592465acd1ec754d7be63bd1b617edcbe34c29e2075c9fe21c62b7837f68973",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst3_bound",
@@ -862,8 +856,8 @@
         "end": 12,
         "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
         "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-        "relation_sha256_hex": "5abee15d1148762c392026697e92fffe39df79862df0d6efb1bffaf54d811009",
-        "wire_role_sha256_hex": "1fe11722a15a9084058397386c1236f5d438e5671623b967883f94bf9f5add1a",
+        "relation_sha256_hex": "941d3514041c93604a78c7aa3d5546475409ed0f9abf56561cd070a65cecfbaa",
+        "wire_role_sha256_hex": "e48ef134a5d256859ebc23866c92e40f584a15d6b01f66703cf6c5cbd527004f",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst4_bound",
@@ -877,8 +871,8 @@
         "end": 1058,
         "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
         "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-        "relation_sha256_hex": "c7044169b63bcd7e2abba6870bc8179c936ede6fb4d53bc6b77193d55f4f24d4",
-        "wire_role_sha256_hex": "6e158c03e511e252c62c5b0506c53e92eb8a1ec1ca7ae6d7d26e3aab3c60f726",
+        "relation_sha256_hex": "5880f1400acb8e29fbd68a02876a860282b01390dab26e72dffe68329ff3e4af",
+        "wire_role_sha256_hex": "b60ffe4f8a2a375e5869cc67d70bce631063545052a6030d1b5f838c89d57f50",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst5_bound",
@@ -892,8 +886,8 @@
         "end": 7135,
         "class_key": "decaf.diversified_transmission_key@f7b90071283b887a",
         "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
-        "relation_sha256_hex": "24c921308a9027038185a265ab86d86b3e9837f30a51ff1c9b8a3c61a9f07603",
-        "wire_role_sha256_hex": "2ab8d7dcb5b3bc6e3060d9b665c814dd1243eed22419e3e491746a6de14bbbf7",
+        "relation_sha256_hex": "7c4140a42441c412f77f5d246dce0917b8fc7a8db185f812d8ba8ead996f3ee9",
+        "wire_role_sha256_hex": "fc2cab9407162de24abcf6b321002387219fb0af517afe94fb0dca24ab49814b",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst6_bound",
@@ -907,8 +901,8 @@
         "end": 7138,
         "class_key": "decaf.assert_equivalent@33ce4e8355a9a671",
         "constant_vector_sha256_hex": "c78e793aa4d8f81f40305396be86cc7512337ae2cb7ba50a1a55806d07607754",
-        "relation_sha256_hex": "200f7328de80f8207b50505d81d1cabba4542de9d0946fe46e59a67d24e8bc7e",
-        "wire_role_sha256_hex": "46049e52dc1eb36157840edd2d63eab79fa3961ca495aaa8dd5a51060ce89577",
+        "relation_sha256_hex": "3465a8b21d818f760c384599e184040d7a93c0332523902f7b1dff98c5183258",
+        "wire_role_sha256_hex": "333ecbd776fd3a9cf0d2f6408470d41e54deabd714b10450973f8ed60c96bbd2",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst7_bound",
@@ -922,8 +916,8 @@
         "end": 7568,
         "class_key": "gadget.note_commitment@99344ebca62df7e8",
         "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
-        "relation_sha256_hex": "e6f00db41cb53b5c4820ac98b084a947af6a5702c6834c8494a2f17ad073702e",
-        "wire_role_sha256_hex": "a41ad64542a8ade3a9734825f4fcd30d636be28db6e8836f1b4950ac292f5dad",
+        "relation_sha256_hex": "bbe973868b6a5e3bc59189158809b989ab7af3e13eddd752d1b5e3889ed3f121",
+        "wire_role_sha256_hex": "4d92d74143bcdfe47b6b2ff29dbd44614717429e8feeb35a247155d0e91289e5",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst9_bound",
@@ -937,8 +931,8 @@
         "end": 7569,
         "class_key": "assert.eq@06c76cbbea275f19",
         "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
-        "relation_sha256_hex": "7136a32814217c612a20ae06b4608f42391e4b10115e03b76648223e47e4c78b",
-        "wire_role_sha256_hex": "cc23b03860b124971965da24e733efad30a9292c5e996816909c1fae3f405c9a",
+        "relation_sha256_hex": "92585ee67bf25ba8739b678d8a73afb2651de58777291d85c7e87308c9f31914",
+        "wire_role_sha256_hex": "2c3ebb69790d398b585c0d7d955c14a69b786b5929fd80b055e7d7ad4b9e472d",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst10_bound",
@@ -952,8 +946,8 @@
         "end": 7879,
         "class_key": "gadget.nullifier@96286f6f866cc60c",
         "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
-        "relation_sha256_hex": "6c177c7c2cd76431a96e8accd8b6f2d3a6cb285e8670e4cf5c22d0c4e3f96750",
-        "wire_role_sha256_hex": "009561bc8813cce3f13d0de74c37ec5902b9fc16914d5e9a3509bc1857b27114",
+        "relation_sha256_hex": "b0aeb469c64722b6f7aab6426d4e93820fd3ab81ddfa24c01610815bd4718ff6",
+        "wire_role_sha256_hex": "e75dc50e9ef267b7475bd86b7cf49840e63222e1ce9c0a5b0d08c243069ef084",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst11_bound",
@@ -967,8 +961,8 @@
         "end": 7880,
         "class_key": "assert.eq@3c90b3a5e0a7cdfc",
         "constant_vector_sha256_hex": "910dabe3b4845cbdaea2b5042b08e67a0e0020ed3d574b9af73b4356fc1a5fd3",
-        "relation_sha256_hex": "1e1cbb4f98e5e60fd24c0fe14e965df63e342d91fee7dd7f6dcb7f17d8500c89",
-        "wire_role_sha256_hex": "cce7d39c1aeb565873917ebe947ef291c5c93e6eb705c433032fe71b4da4188b",
+        "relation_sha256_hex": "d6c8bb0484105af9ebea241431c8f855c20037850b8362ab79c14bb22b03829d",
+        "wire_role_sha256_hex": "af427fe76371a276b2efe8704d1f095661d6578e6924a5cc6e350cef21cdde5c",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst12_bound",
@@ -982,8 +976,8 @@
         "end": 16895,
         "class_key": "gadget.state_commitment_path@088ab48133b9d3af",
         "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
-        "relation_sha256_hex": "b90be521e6ee4a89aa1584a994db7ead5c9fe79bb39104466549d152a0245428",
-        "wire_role_sha256_hex": "e357aa0986bead1ca6d103353394b7dc30881d3a8c0a0552e65a1ab835cef9b9",
+        "relation_sha256_hex": "396765a0fe932c8e2010032246092eddef2280188bc7d139b333e24e445c4c9e",
+        "wire_role_sha256_hex": "82c0ad016b8a3448db543c79021c7c3e60c169a4df666844deacaeedaea54f2d",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst13_bound",
@@ -997,8 +991,8 @@
         "end": 16896,
         "class_key": "assert.eq@79834932d11ef8ff",
         "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
-        "relation_sha256_hex": "dc95ea0a7592659dac3b3a2915b8d6cb93948a0d239d8c036af210665faa24a6",
-        "wire_role_sha256_hex": "1b56dadde8daff7030e651522a5f89ca808d93d7cbda2affb9dd3d64642e75be",
+        "relation_sha256_hex": "1ef81e13b47cb487ae3490a2bd675aa20b609096c96c4df504357849e93eec74",
+        "wire_role_sha256_hex": "38d00140d6cdb4c3e96eab7b7b7dd3a21497b48a8dad7961432993aa4f589c3f",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst14_bound",
@@ -1012,8 +1006,8 @@
         "end": 18708,
         "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
         "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
-        "relation_sha256_hex": "c1820400c27688aff02758d426f41b5bb426059209f8b598ca04538b3aa7c911",
-        "wire_role_sha256_hex": "d57d255ab914bc365249a1d78c4be852e76d5e5d36bd85a551cd706d780d8f7d",
+        "relation_sha256_hex": "31afcc9a1dd4a7ea6fa435efe1d48e48d13bd00df32e4903e747f378f9893671",
+        "wire_role_sha256_hex": "1d138fbaa4a8f894f8f3d0810a54ae1823ac831f37a74717124f25371b1759c9",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst15_bound",
@@ -1027,8 +1021,8 @@
         "end": 18711,
         "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
         "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-        "relation_sha256_hex": "28b265229afc2d5630c3840fef592fd932886a937eaabbfd21debf2c3b987024",
-        "wire_role_sha256_hex": "95bb18fbf91fa09615141216f18e78a256f74d6689702850595ff690260229a5",
+        "relation_sha256_hex": "c1cb124e03295645bfe1e8fce11c4ad414f3088ae6d94f5009eea810b3e779e0",
+        "wire_role_sha256_hex": "1863d1c4cb0e487cff93c681c3fa745417bec492e0ac27f92e23b9852d9107f8",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst16_bound",
@@ -1042,8 +1036,8 @@
         "end": 19757,
         "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
         "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-        "relation_sha256_hex": "60fc853050c041f98967e3c8e46311eeb0f25a1c55d6358793e89cfd6cced186",
-        "wire_role_sha256_hex": "a9d18340e48b324635f79467ae9f482e235d60cefd1f4cbd447d883cac134231",
+        "relation_sha256_hex": "51a6cec9635abe718f4868339c0753da65f1f9b0d42dad2ceefd558a87ed8505",
+        "wire_role_sha256_hex": "fbf6116ba38076b0b87141d267e87b593a2a5c60ef25f8549cd39be2921a733a",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst17_bound",
@@ -1057,8 +1051,8 @@
         "end": 19761,
         "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
         "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-        "relation_sha256_hex": "c288bb4d9071afdd08fe23141589b357b882eebb8e24b8d540887579f2ab9b56",
-        "wire_role_sha256_hex": "84693b4bf8604200830850b3cd1bd262750d40b11d7b792df2b4f3fb8f16ad7c",
+        "relation_sha256_hex": "650dd6c052617bce801052defb58f9370b4c67280f1c6f9e6dba385cd05a0a0c",
+        "wire_role_sha256_hex": "044b9caf53f1177c94c1b0ea72ca0dba4e2401bb375dce608119950ff0ac5877",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst18_bound",
@@ -1072,8 +1066,8 @@
         "end": 19764,
         "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
         "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-        "relation_sha256_hex": "d53efc63b71bb429225daf61c051347f31c21f50ad6619b5fbd17c6ccceeff4b",
-        "wire_role_sha256_hex": "ff8d5bc9e06a8fc1b0da1c9af0112b0858ea14d43ea2ef832207091b861457c0",
+        "relation_sha256_hex": "e33ebfcf495e563134a91b4d3b6d871d56ba2f1fae59cd69840d6ff7cafc67f4",
+        "wire_role_sha256_hex": "a9c724190c198fe19a2dd1d5afafe0022ca7b4d9858f2605a8fafebf7d680924",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst19_bound",
@@ -1087,8 +1081,8 @@
         "end": 19767,
         "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
         "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-        "relation_sha256_hex": "9780d9daa39ac93f4776621a3c20001246ca2a9c5eef3781a7ca093f1c75fb14",
-        "wire_role_sha256_hex": "ebeea4aebdcfa0f430050792768abbc7c908893bf84d79cdc82ce0c40e36347c",
+        "relation_sha256_hex": "ddc5cdb2b350706081b1bd63434779de6058800caf78bc3353992f52b1440505",
+        "wire_role_sha256_hex": "1d21806d0a3b038d72151df1def266a9c858f8b37c452b79c1e2c0a97218cb89",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst20_bound",
@@ -1117,8 +1111,8 @@
         "end": 20198,
         "class_key": "gadget.note_commitment@99344ebca62df7e8",
         "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
-        "relation_sha256_hex": "e99c66ad51f706b1c23e73da740cd83d7b3fd8434566456ddddb7d47a45d95dd",
-        "wire_role_sha256_hex": "bbc933d1ff2692c751875528abbfde1a2cc3e06db14aaf8942002ecdc026735c",
+        "relation_sha256_hex": "d9fb0427b389dcbb0a66d7d03c13fadaf539ceb7efba1d2574c13296c2993dd2",
+        "wire_role_sha256_hex": "196ff2232b41b0174b9c089a83587aa35297865a9544ded397f5acff84a0f05a",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst24_bound",
@@ -1132,8 +1126,8 @@
         "end": 20199,
         "class_key": "assert.eq@06c76cbbea275f19",
         "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
-        "relation_sha256_hex": "6b551fb1ab2163c06c1efed8300a18cdeac5973315b8c5d2eb73bc7babf9475b",
-        "wire_role_sha256_hex": "8c084646eec94d4157e42dd17304cecaeba839873f43e5fe6d3c9a2c42fb6100",
+        "relation_sha256_hex": "9b6fca15324b0e0aa3a05a43b072d86209b27fe9f05357da65a08a6565ff4d99",
+        "wire_role_sha256_hex": "9cc86ac425543c42bc450cf21e484fbaa3149df06e8c3fe1d58427ed4d3d12b8",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst25_bound",
@@ -1147,8 +1141,8 @@
         "end": 20509,
         "class_key": "gadget.nullifier@96286f6f866cc60c",
         "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
-        "relation_sha256_hex": "243564994df90eb37189019670820b665ebb363d224a22bda8ad54d65a3a99b9",
-        "wire_role_sha256_hex": "25d4556137a1cf8988ca6c7facaab029e635d7e06c99cca72fbb0b5c0088d6e7",
+        "relation_sha256_hex": "771685ac16eb82b97c46e8ef5a51d9a41d790b7d26ad896edb4ac1ba86525d72",
+        "wire_role_sha256_hex": "0fbd87e90cd18fc5a20341e03b133a733eb038168a2978346948a6217412cdf2",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst26_bound",
@@ -1162,8 +1156,8 @@
         "end": 20510,
         "class_key": "assert.eq@3c90b3a5e0a7cdfc",
         "constant_vector_sha256_hex": "910dabe3b4845cbdaea2b5042b08e67a0e0020ed3d574b9af73b4356fc1a5fd3",
-        "relation_sha256_hex": "7004e8e0ae9f6a1aa44d6ece203f98c776e9b3dbf6cac9650ffbab6b38a1eae5",
-        "wire_role_sha256_hex": "4e6f8998bd5df6d9c95f00a4a0ebb514148772dbe5347f70abc63d01cbd1a204",
+        "relation_sha256_hex": "d0b4c9035feaf500903c19977478c4be1bd3989f0e24fe5d89c247672041a7d7",
+        "wire_role_sha256_hex": "d5961b336d6bca8a5f27b1b72ada7f3c017313f273d87930848c9999577565cb",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst27_bound",
@@ -1177,8 +1171,8 @@
         "end": 29525,
         "class_key": "gadget.state_commitment_path@088ab48133b9d3af",
         "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
-        "relation_sha256_hex": "a7fb9e4901c9eb182ce406d4e2175d926222a2e6be2418b53b5acc24d17ff789",
-        "wire_role_sha256_hex": "61e1b8aac54ea15c1f68f3a2cf68a459c03138cfc16e8eb883611e7c6a8fbda2",
+        "relation_sha256_hex": "c77d08d24526fc1c36705d5a6b90eea44d17c69cffce2f243cf6f4b8255f8405",
+        "wire_role_sha256_hex": "d1e33e3176602f43a091dd95aba37bf603e5dca6b16de1d18ccc7a727b00b83c",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst28_bound",
@@ -1192,8 +1186,8 @@
         "end": 29526,
         "class_key": "assert.eq@79834932d11ef8ff",
         "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
-        "relation_sha256_hex": "c5fd71a1fadfd80e5bb1292de2d1d7716f541c2753342c7fb1699ecdbec179f1",
-        "wire_role_sha256_hex": "461fa4026c0fe5f308efdc882b2bd0f586f0464998e9d4caaf5e17a141951e29",
+        "relation_sha256_hex": "1499104d92e28684958f9add04d84ce7565376bb15c85797b7f5717efd2f0954",
+        "wire_role_sha256_hex": "d5370e58d9adfd054bac06c46e069302769646f20d91b7a7cb5e225cad13b344",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst29_bound",
@@ -1207,8 +1201,8 @@
         "end": 31338,
         "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
         "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
-        "relation_sha256_hex": "7d91b33ae356928125279de73939fa528a84b14beaad0581f5eb2dc739d31784",
-        "wire_role_sha256_hex": "14f8c847c74e89d148d2850345a7ab540b20334fc7155d604469b4bbd7d3900d",
+        "relation_sha256_hex": "718afa23b9fb92f1c6a3e294fe2de6821f96cf2266636f301e822842b7531cee",
+        "wire_role_sha256_hex": "222af55db48f8fd7f234cdc941582f1608407d5fcaa08267ef9c31364fd4b46a",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst30_bound",
@@ -1222,8 +1216,8 @@
         "end": 31341,
         "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
         "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-        "relation_sha256_hex": "8c448d71358b5b11beb6424987b6e453af46c7a3a88734651896fb7f3e10dbc1",
-        "wire_role_sha256_hex": "02471996ca096d37b152d34ab630b3a37b97b61c6cfc9a9a3c30f2f0b05dac94",
+        "relation_sha256_hex": "5bbf286a3144ec4bd1cb5d9fdf62ebfe4fe98bdf0ac7d5ce1bf272104adc9da5",
+        "wire_role_sha256_hex": "39f31e3f007f8982cd309f6b7828a4edc8abc6598113d6282c99466008e1f308",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst31_bound",
@@ -1237,8 +1231,8 @@
         "end": 32387,
         "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
         "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
-        "relation_sha256_hex": "6c7f9ceeb6ebdae2b1cd3973355101b48a59b6812cb042cdcf4f5cc817242431",
-        "wire_role_sha256_hex": "d4c908c946e6fb9465092660a31a7b87c343f593d9defd22adacade6c8e34978",
+        "relation_sha256_hex": "9ca5fdf7dc7a40be36afe25bc8f7739fddca6f37248c0e649d9a555d9b8fc41c",
+        "wire_role_sha256_hex": "ca7189cac0126d3327655c93c63998bc5a8b67965b1304a686f7e1174d07dcd8",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst32_bound",
@@ -1252,8 +1246,8 @@
         "end": 32391,
         "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
         "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-        "relation_sha256_hex": "fe51da7ec6b486b317002a2c3526ce972d8b4c49cd74e58bbc6cb2694a136a57",
-        "wire_role_sha256_hex": "6128d27fab755f42bc59b452b2166fa05e3ddcdeea6a2cbc0e18223609690371",
+        "relation_sha256_hex": "d6aabc63219cf00f8d2971372594ba3b454cee7e44d0f99eba349e1cbd39a8c4",
+        "wire_role_sha256_hex": "f2c69ea90cb0f41504be4e7e639aebb10e64825102991fd69b746a591c5ad780",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst33_bound",
@@ -1267,8 +1261,8 @@
         "end": 32394,
         "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
         "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-        "relation_sha256_hex": "4899c8b43db7b34a393c1a20c9e6a23bcdc0516c71e99dd73135b3cc9ae26084",
-        "wire_role_sha256_hex": "641532aaeb4ea720705bc85beb829a05c2b95a402de24d864f9560cfc9d918af",
+        "relation_sha256_hex": "495892970e0e103cf35f2103cf2e313f4f0e7334048baf0d68aafa9bc725c67a",
+        "wire_role_sha256_hex": "068d495f923e9f297c36eeac9ea509187bfaebebe8e7898505af8b34656094bd",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst34_bound",
@@ -1282,8 +1276,8 @@
         "end": 32397,
         "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
         "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-        "relation_sha256_hex": "c920982adbed2a4dd37223704188a79a6081eda3d1e6e84077829019a7a22d8e",
-        "wire_role_sha256_hex": "b0a0e3458dd104a54793bc56e7b93c6be24f9850765e1b85534af2afaac2e267",
+        "relation_sha256_hex": "6f7762076696132693492b8a085a23f96f72115294b42a67d28af819454ddc4e",
+        "wire_role_sha256_hex": "5f1d903e924a2f9c574654f6225fcf2189dd864e6a62d8404496d3c41cfa798f",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst35_bound",
@@ -1297,8 +1291,8 @@
         "end": 32398,
         "class_key": "assert.eq@944014bd89e246a5",
         "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
-        "relation_sha256_hex": "86ed2f5c5b9acefc13e7423579ba6b81aa6d329e955b4ef9d27495254a0e0c48",
-        "wire_role_sha256_hex": "0ddfd2818a27ef90e8826a0cbedfdddc70e1de65a80104bb68fa458b3267b7ae",
+        "relation_sha256_hex": "7937502e8ade9f2dcb804f406fb0c61cb928ae7a5a64c0dd7448772f8d9f1f78",
+        "wire_role_sha256_hex": "bfea6a1807fd5ee0d22d6f28cd3516403b080741b404fb03166efd27ced36ddf",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst36_bound",
@@ -1312,8 +1306,8 @@
         "end": 32828,
         "class_key": "gadget.note_commitment@99344ebca62df7e8",
         "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
-        "relation_sha256_hex": "452eaa25b8ec3bb397d39332a39fec427ea40b272525da0bded52a4db51c61b5",
-        "wire_role_sha256_hex": "b7cae422dd0239f3926a12b0f9d06295f3ae4dc845f61fccd997c05b8a7abe8f",
+        "relation_sha256_hex": "0a4ef6f05893a67b6f66b249456cb98ee81ad2f722759e03c755a833e97d3df3",
+        "wire_role_sha256_hex": "426d9fe3e2c18c9b6419a23711b56278e9f7bce9666d2a9feec24d5c6a68e49d",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst39_bound",
@@ -1327,8 +1321,8 @@
         "end": 32829,
         "class_key": "assert.eq@06c76cbbea275f19",
         "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
-        "relation_sha256_hex": "2fc0a73f0caac6f0c33761fc342802b67c5f3769aaa7880529a30158c886d0fc",
-        "wire_role_sha256_hex": "bdb491af457d45322aee5edf664c0487c5d35b78f1b8fdab980804f3b15bff8a",
+        "relation_sha256_hex": "a5da80d93bf1d5dc8d20eeb1d33ed6fc19fb50701d77c8d7d56087a63b1a0ba4",
+        "wire_role_sha256_hex": "64b7d64dd158c78ac8def8f5e3f54430f18476c1aa7714e5b77a9166fb8ff6b6",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst40_bound",
@@ -1342,8 +1336,8 @@
         "end": 32833,
         "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
         "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
-        "relation_sha256_hex": "a8fc5dd76ab41548443897863282f45709dd040b7d3143e0b825b85b167258cf",
-        "wire_role_sha256_hex": "d0bc6da4565ae79fcd3991cb99057da248471fc5848c8072f4ab0b9f6b65fed8",
+        "relation_sha256_hex": "9f02b3548f9e970c009e52ec670b74a60a541a3c214984b1122f4fe56cd8a333",
+        "wire_role_sha256_hex": "f5e21887986dca21578887a90b3d094b1fab4cf77bccc5f57a167551fb005fe9",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst41_bound",
@@ -1357,8 +1351,8 @@
         "end": 32836,
         "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
         "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-        "relation_sha256_hex": "25f0dd1bf6b54ccbb543a5adadddde1b5d88e3e67622ef2aa98d710cd5b3e1c6",
-        "wire_role_sha256_hex": "f4e5808bd5715c8923f59d9ec019d771c824541ae30cf99cdad58875514910b1",
+        "relation_sha256_hex": "faa27985341aa4cadb73a0d33446a1833285255817b18867f227f47836e479fa",
+        "wire_role_sha256_hex": "2873e5216e46d3eabcf32e6589659c343239f943914e1673abc43e675af288e4",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst42_bound",
@@ -1372,8 +1366,8 @@
         "end": 32839,
         "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
         "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
-        "relation_sha256_hex": "f9fdfd23f44dc1d5da61f9feebdf8811748b64fc577e51e904ad20d1d919bbe6",
-        "wire_role_sha256_hex": "4dae5b01fd264d283314f56dbd945fec71084980ed5db4973548df9961c9bb91",
+        "relation_sha256_hex": "e3d091e77c702c0f39110237a8e48a25db714f615b643e20257915c193d58b37",
+        "wire_role_sha256_hex": "9aaae7888f789f8f8a2a208958f0be6a8f5f0ca5615d26e25e0f6aeeae9de288",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst43_bound",
@@ -1387,8 +1381,8 @@
         "end": 32840,
         "class_key": "assert.eq@944014bd89e246a5",
         "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
-        "relation_sha256_hex": "70c5db5dde7e5ea4544d146f3d499018eae13418c025cba8667d7e5ea422ff9a",
-        "wire_role_sha256_hex": "966126af11b0390f30d323ad9d9607ce09e1f91b024bb0117558c4c154b082e5",
+        "relation_sha256_hex": "651b0d3f6bbc15ba53bb0960e8741f810ec414489e5c1cb093022f1a0944a78f",
+        "wire_role_sha256_hex": "612e3a61dd25406ebb78318a1a01c0028f3e8ac787790ab5b1a2b7f234db067e",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst44_bound",
@@ -1402,8 +1396,8 @@
         "end": 35033,
         "class_key": "decaf.conservation_net_balance_commitment@0e9794fce60e864b",
         "constant_vector_sha256_hex": "cab153871312b7e2464004ac1ca19d63ebd2a65161ed4fd56f6ecaac5d94f13f",
-        "relation_sha256_hex": "d20f3bbe23fbf01bccaae8362593b096c516ab69d4bbaaaeefd6999d8e6d860c",
-        "wire_role_sha256_hex": "aeed5aaae5b1c3ab9d51a2cea3a56669d5a227aaf8fef24289e06cd2bc6150bd",
+        "relation_sha256_hex": "1da8c27c7f11adcd181ad6f0f0f28d439f857e0d43dd4649039e4371aeb366d6",
+        "wire_role_sha256_hex": "661579abf6956d53e1a70bf6afd5835fefea9e49643ee30b8e25693b1ac8893b",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst46_bound",
@@ -1417,8 +1411,8 @@
         "end": 35036,
         "class_key": "decaf.assert_equivalent@33ce4e8355a9a671",
         "constant_vector_sha256_hex": "528dcca721223d426f26acde59e09b3253ac9d0e717e2fc65f97e6f7141684b0",
-        "relation_sha256_hex": "d5d065e903e8f7e8b96d552fb315350298394554e023d024781a132e73796ccf",
-        "wire_role_sha256_hex": "d2583292c51685b2ffa79a0faf4816b0df93244c06d62385d60c9752ca314c10",
+        "relation_sha256_hex": "6dd8958d9b3014f667a900bea2f3f04ecd1e62ac06218dc51cc1826c2fe798ff",
+        "wire_role_sha256_hex": "5a2cb3ef5f56bf91bcba1ae3690ccee9ed55f26bb04fb063799bd13082847b61",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst47_bound",
@@ -1432,8 +1426,8 @@
         "end": 36082,
         "class_key": "decaf.compress_to_field@aaf77ee7e9fa9bd1",
         "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
-        "relation_sha256_hex": "38bbe56a5859354333df4d5912c3a88bfc9dc0277046e4b8f1e872bee3771e37",
-        "wire_role_sha256_hex": "d6b157ae4f7560906fd7be88c9f6e0c774a7b9317ffb4924f0bae06a7203f600",
+        "relation_sha256_hex": "d10525f7ea1f871229e32be8d13c5a277f3d0d187b37bfa8efd8463b51376fae",
+        "wire_role_sha256_hex": "cda00440f4d1fb9d4b785ef02efa527259577f1b6358b5686d5325ae062aa816",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst48_bound",
@@ -1447,8 +1441,8 @@
         "end": 36552,
         "class_key": "statement.hash@33a145d438545b5d",
         "constant_vector_sha256_hex": "9f5d800c8b252ff641b14d7c021e2ae8f0cde417dcb6669e85de6c755561fdb1",
-        "relation_sha256_hex": "fc17837d5dc7b6679e61366f298068ac9cfd4d0533f125643f48f5dd14c225e6",
-        "wire_role_sha256_hex": "59f2475759d40ff83c5f717734b3a76b6638db462603bc19fd400a5ac07b79a5",
+        "relation_sha256_hex": "cc2fbb41b720590662dabd13ef4b8936e2986c6f652214d9223aa60570d8fe8a",
+        "wire_role_sha256_hex": "e9812af9525ec8ef24dae254e1cc60753ac2d0fdf0c7afd5936849cd2b2e7c02",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst53_bound",
@@ -1462,8 +1456,8 @@
         "end": 36553,
         "class_key": "assert.eq@fcdce018977caef8",
         "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
-        "relation_sha256_hex": "b5308186a645c0a7ab9f897d99b48d1c03260bfd578bde0d089311370a657a1e",
-        "wire_role_sha256_hex": "2f4821c877cc682f2d54699300755fdc16fd362f1dc692729a1c65f3b8107552",
+        "relation_sha256_hex": "ecab510f859d366f5c2a5ea55dc4470fedf0edc299e30129ca38466866aae94d",
+        "wire_role_sha256_hex": "69a9d4ad7dd9013cfa212b16f5b59b3c74cfdfcc0bc034f39aa128ba7fead5df",
         "verdict": {
           "kind": "discharged",
           "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.inst54_bound",

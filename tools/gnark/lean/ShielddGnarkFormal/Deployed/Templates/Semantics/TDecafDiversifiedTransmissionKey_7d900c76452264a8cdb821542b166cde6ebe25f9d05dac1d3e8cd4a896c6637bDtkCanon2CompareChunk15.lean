@@ -39,25 +39,25 @@ theorem dtkCanon2_compare_chunk15 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Depl
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 242 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 243 = rho 1532 from rfl]
+    rw [show dtkCanon2Flag rho 243 = rho 1526 from rfl]
     linear_combination r883
   · have hb : pmBit 243 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 244 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 245 = rho 1531 from rfl]
+    rw [show dtkCanon2Flag rho 245 = rho 1525 from rfl]
     linear_combination r882
   · have hb : pmBit 245 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 246 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 247 = rho 1530 from rfl]
+    rw [show dtkCanon2Flag rho 247 = rho 1524 from rfl]
     linear_combination r881
   · have hb : pmBit 247 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 248 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 249 = rho 1529 from rfl]
+    rw [show dtkCanon2Flag rho 249 = rho 1523 from rfl]
     linear_combination r880
   · have hb : pmBit 249 = true := by decide +kernel
     simp [hb] at hpm

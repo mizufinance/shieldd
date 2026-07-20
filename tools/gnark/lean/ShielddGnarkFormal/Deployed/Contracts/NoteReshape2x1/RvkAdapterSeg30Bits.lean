@@ -9,7 +9,7 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg30RvkBits_toBinary (rho : Nat -> Seg30.F) (h : Seg30.relation rho) :
-    GatesDef.to_binary (rho 187) 251 (seg30RvkBits rho) := by
+    GatesDef.to_binary (rho 184) 251 (seg30RvkBits rho) := by
   unfold Seg30.relation at h
   rcases h with ⟨
     p0, p1, p2, p3, p4, p5, p6, p7, p8, p9,
@@ -275,20 +275,20 @@ theorem seg30RvkBits_toBinary (rho : Nat -> Seg30.F) (h : Seg30.relation rho) :
   unfold Seg30.relationRow248 at r248
   unfold Seg30.relationRow249 at r249
   unfold Seg30.relationRow250 at r250
-  have hrecover := recover_ofFn_eq_recBits rho 28317 251
-  have hacc : powSumAcc rho 0 1 28317 251 = rho 187 := by
+  have hrecover := recover_ofFn_eq_recBits rho 28311 251
+  have hacc : powSumAcc rho 0 1 28311 251 = rho 184 := by
     unfold Seg30.relationRow251 Seg30.relationLc0 Seg30.relationLc0Part0 Seg30.relationLc0Part1 Seg30.relationLc0Part2 Seg30.relationLc0Part3 Seg30.relationLc0Part4 Seg30.relationLc0Part5 Seg30.relationLc0Part6 Seg30.relationLc0Part7 at r251
     simp only [powSumAcc]
     linear_combination r251
-  have hrec : recover_binary_zmod' (seg30RvkBits rho) = rho 187 := by
+  have hrec : recover_binary_zmod' (seg30RvkBits rho) = rho 184 := by
     simp only [seg30RvkBits]
     rw [hrecover]
     rw [powSumAcc_eq] at hacc
     simpa using hacc
-  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 187) (seg30RvkBits rho)
+  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 184) (seg30RvkBits rho)
   · intro i hi
     have key := seg30RvkBits_get rho i hi
-    have hgoal : rho (28317 + i) * (1 - rho (28317 + i)) = 0 := by
+    have hgoal : rho (28311 + i) * (1 - rho (28311 + i)) = 0 := by
       interval_cases i
       · linear_combination r0
       · linear_combination r1
@@ -541,7 +541,7 @@ theorem seg30RvkBits_toBinary (rho : Nat -> Seg30.F) (h : Seg30.relation rho) :
       · linear_combination r248
       · linear_combination r249
       · linear_combination r250
-    have key' : (seg30RvkBits rho)[i] = rho (28317 + i) := by
+    have key' : (seg30RvkBits rho)[i] = rho (28311 + i) := by
       rw [← getElem!_pos (seg30RvkBits rho) i (by simpa using hi)]
       exact key
     exact key' ▸ hgoal

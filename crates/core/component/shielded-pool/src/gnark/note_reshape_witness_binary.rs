@@ -20,8 +20,6 @@ impl NoteReshapeWitnessV1 {
         put_u32(&mut buf, self.family_id.get());
         put_u32(&mut buf, self.n_in);
         put_u32(&mut buf, self.n_out);
-        put_u32(&mut buf, self.active_inputs);
-        put_u32(&mut buf, self.active_outputs);
         put_bytes(&mut buf, &self.anchor);
         put_bytes(&mut buf, &self.balance_commitment);
         put_bytes(&mut buf, &self.claimed_statement_hash);
@@ -30,7 +28,12 @@ impl NoteReshapeWitnessV1 {
         put_bytes(&mut buf, &self.ak);
         put_bytes(&mut buf, &self.nk);
         for spend in &self.spends {
-            encode_spend(&mut buf, spend)?;
+            encode_spend(
+                &mut buf,
+                spend,
+                self.family_id.spec().input_padding
+                    == crate::note_reshape::InputPaddingPolicy::SyntheticPrivate,
+            )?;
         }
         for output in &self.outputs {
             encode_output(&mut buf, output);
@@ -64,8 +67,6 @@ impl NoteReshapeWitnessV1 {
         let family_id = crate::NoteReshapeFamilyId::try_from(cursor.read_u32()?)?;
         let n_in = cursor.read_u32()?;
         let n_out = cursor.read_u32()?;
-        let active_inputs = cursor.read_u32()?;
-        let active_outputs = cursor.read_u32()?;
         let anchor = cursor.read_fixed::<32>()?;
         let balance_commitment = cursor.read_fixed::<32>()?;
         let claimed_statement_hash = cursor.read_fixed::<32>()?;
@@ -84,7 +85,13 @@ impl NoteReshapeWitnessV1 {
             )
         }
         let spends = (0..n_in)
-            .map(|_| decode_spend(&mut cursor))
+            .map(|_| {
+                decode_spend(
+                    &mut cursor,
+                    family_id.spec().input_padding
+                        == crate::note_reshape::InputPaddingPolicy::SyntheticPrivate,
+                )
+            })
             .collect::<Result<Vec<_>>>()?;
         let outputs = (0..n_out)
             .map(|_| decode_output(&mut cursor))
@@ -93,26 +100,11 @@ impl NoteReshapeWitnessV1 {
         let ak_affine = cursor.read_point_affine()?;
         cursor.finish("note reshape witness")?;
 
-        let computed_active_inputs = spends.iter().filter(|spend| !spend.is_dummy).count() as u32;
-        let computed_active_outputs =
-            outputs.iter().filter(|output| !output.is_dummy).count() as u32;
-        if active_inputs != computed_active_inputs || active_outputs != computed_active_outputs {
-            bail!(
-                "note reshape active count mismatch: header {}x{}, flags {}x{}",
-                active_inputs,
-                active_outputs,
-                computed_active_inputs,
-                computed_active_outputs
-            )
-        }
-
         Ok(Self {
             family_id,
             total_length,
             n_in,
             n_out,
-            active_inputs,
-            active_outputs,
             anchor,
             balance_commitment,
             claimed_statement_hash,
@@ -128,11 +120,17 @@ impl NoteReshapeWitnessV1 {
     }
 }
 
-fn encode_spend(buf: &mut Vec<u8>, spend: &NoteReshapeSpendWitnessV1) -> Result<()> {
-    put_u32(buf, if spend.is_dummy { 1 } else { 0 });
+fn encode_spend(
+    buf: &mut Vec<u8>,
+    spend: &NoteReshapeSpendWitnessV1,
+    synthetic_private_padding: bool,
+) -> Result<()> {
+    if synthetic_private_padding {
+        put_u32(buf, if spend.is_dummy { 1 } else { 0 });
+        put_bytes(buf, &spend.dummy_nullifier_seed);
+        put_bytes(buf, &spend.dummy_spend_auth_key);
+    }
     put_bytes(buf, &spend.nullifier);
-    put_bytes(buf, &spend.dummy_nullifier_seed);
-    put_bytes(buf, &spend.dummy_spend_auth_key);
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
     put_bytes(buf, &spend.spent_note_asset_id);
@@ -148,17 +146,29 @@ fn encode_spend(buf: &mut Vec<u8>, spend: &NoteReshapeSpendWitnessV1) -> Result<
     Ok(())
 }
 
-fn decode_spend(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeSpendWitnessV1> {
-    let is_dummy = match cursor.read_u32()? {
-        0 => false,
-        1 => true,
-        value => bail!("invalid note reshape input dummy flag {value}"),
+fn decode_spend(
+    cursor: &mut BinaryCursor<'_>,
+    synthetic_private_padding: bool,
+) -> Result<NoteReshapeSpendWitnessV1> {
+    let (is_dummy, dummy_nullifier_seed, dummy_spend_auth_key) = if synthetic_private_padding {
+        let is_dummy = match cursor.read_u32()? {
+            0 => false,
+            1 => true,
+            value => bail!("invalid note reshape input dummy flag {value}"),
+        };
+        (
+            is_dummy,
+            cursor.read_fixed::<32>()?,
+            cursor.read_fixed::<32>()?,
+        )
+    } else {
+        (false, [0u8; 32], [0u8; 32])
     };
     Ok(NoteReshapeSpendWitnessV1 {
         is_dummy,
         nullifier: cursor.read_fixed::<32>()?,
-        dummy_nullifier_seed: cursor.read_fixed::<32>()?,
-        dummy_spend_auth_key: cursor.read_fixed::<32>()?,
+        dummy_nullifier_seed,
+        dummy_spend_auth_key,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
         spent_note_asset_id: cursor.read_fixed::<32>()?,
@@ -175,7 +185,6 @@ fn decode_spend(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeSpendWitness
 }
 
 fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV1) {
-    put_u32(buf, if output.is_dummy { 1 } else { 0 });
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
@@ -187,13 +196,7 @@ fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV1) {
 }
 
 fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV1> {
-    let is_dummy = match cursor.read_u32()? {
-        0 => false,
-        1 => true,
-        value => bail!("invalid note reshape output dummy flag {value}"),
-    };
     Ok(NoteReshapeOutputWitnessV1 {
-        is_dummy,
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,

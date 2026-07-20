@@ -15,6 +15,8 @@ import argparse
 import json
 from pathlib import Path
 
+from write_if_changed import write_if_changed
+
 REPO = Path(__file__).resolve().parents[3].parent
 MANIFEST = (
     REPO
@@ -121,8 +123,8 @@ def main() -> None:
         print(f"checked {args.out} ({count} conjuncts)")
         return
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(contents)
-    print(f"wrote {args.out} ({count} conjuncts)")
+    if write_if_changed(args.out, contents):
+        print(f"wrote {args.out} ({count} conjuncts)")
 
 
 if __name__ == "__main__":

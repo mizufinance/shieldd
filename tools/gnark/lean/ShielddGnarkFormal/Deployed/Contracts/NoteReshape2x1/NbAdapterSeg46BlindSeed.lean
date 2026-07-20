@@ -11,13 +11,13 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg46Blind_hstep_zero (rho : Nat -> Seg46.F)
     (bits : List.Vector Bool 251)
-    (hb0 : rho 31661 = Bool.toZMod bits[0]!) :
+    (hb0 : rho 31655 = Bool.toZMod bits[0]!) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 0
       (Bool.toZMod bits[0]!) (seg46BlindAccState rho 0)
       (seg46BlindAccState rho 1) := by
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 0
     (Bool.toZMod bits[0]!) ⟨0, 1⟩
-    (Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 31661))
+    (Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 31655))
   rw [hb0]
   exact Shieldd.GnarkFormal.Deployed.NetBalance.seedStepRel bits[0]!
 

@@ -13,10 +13,10 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NoteReshapeSpendWitnessV1 {
-    pub is_dummy: bool,
+    pub(crate) is_dummy: bool,
     pub nullifier: [u8; 32],
-    pub dummy_nullifier_seed: [u8; 32],
-    pub dummy_spend_auth_key: [u8; 32],
+    pub(crate) dummy_nullifier_seed: [u8; 32],
+    pub(crate) dummy_spend_auth_key: [u8; 32],
     pub spent_note_blinding: [u8; 32],
     pub spent_note_amount: [u8; 32],
     pub spent_note_asset_id: [u8; 32],
@@ -33,7 +33,6 @@ pub struct NoteReshapeSpendWitnessV1 {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NoteReshapeOutputWitnessV1 {
-    pub is_dummy: bool,
     pub note_commitment: [u8; 32],
     pub created_note_blinding: [u8; 32],
     pub created_note_amount: [u8; 32],
@@ -50,8 +49,6 @@ pub struct NoteReshapeWitnessV1 {
     pub total_length: u32,
     pub n_in: u32,
     pub n_out: u32,
-    pub active_inputs: u32,
-    pub active_outputs: u32,
     pub anchor: [u8; 32],
     pub balance_commitment: [u8; 32],
     pub claimed_statement_hash: [u8; 32],
@@ -79,9 +76,6 @@ fn spend_witness(
     private: &NoteReshapeInputPrivate,
     index: usize,
 ) -> Result<NoteReshapeSpendWitnessV1> {
-    if public.is_dummy != private.is_dummy {
-        bail!("note reshape input {index} dummy flag differs between public and private witness")
-    }
     let state_commitment_auth_path = private
         .state_commitment_proof
         .auth_path()
@@ -89,7 +83,7 @@ fn spend_witness(
         .map(|siblings| siblings.map(|sibling| Fq::from(sibling).to_bytes()))
         .collect::<Vec<_>>();
     Ok(NoteReshapeSpendWitnessV1 {
-        is_dummy: public.is_dummy,
+        is_dummy: private.is_dummy,
         nullifier: public.nullifier.0.to_bytes(),
         dummy_nullifier_seed: private.dummy_nullifier_seed.to_bytes(),
         dummy_spend_auth_key: private.dummy_spend_auth_key.to_bytes(),
@@ -119,11 +113,7 @@ fn output_witness(
     private: &NoteReshapeOutputPrivate,
     index: usize,
 ) -> Result<NoteReshapeOutputWitnessV1> {
-    if public.is_dummy != private.is_dummy {
-        bail!("note reshape output {index} dummy flag differs between public and private witness")
-    }
     Ok(NoteReshapeOutputWitnessV1 {
-        is_dummy: public.is_dummy,
         note_commitment: public.note_commitment.0.to_bytes(),
         created_note_blinding: private.created_note.note_blinding().to_bytes(),
         created_note_amount: Fq::from(private.created_note.value().amount).to_bytes(),
@@ -186,12 +176,6 @@ impl NoteReshapeWitnessV1 {
             total_length: 0,
             n_in: public.inputs.len() as u32,
             n_out: public.outputs.len() as u32,
-            active_inputs: public.inputs.iter().filter(|input| !input.is_dummy).count() as u32,
-            active_outputs: public
-                .outputs
-                .iter()
-                .filter(|output| !output.is_dummy)
-                .count() as u32,
             anchor: Fq::from(public.anchor).to_bytes(),
             balance_commitment: public.balance_commitment.to_bytes(),
             claimed_statement_hash: claimed_statement_hash.to_bytes(),

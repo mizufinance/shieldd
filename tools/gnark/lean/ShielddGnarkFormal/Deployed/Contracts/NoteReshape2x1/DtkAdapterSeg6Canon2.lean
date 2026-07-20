@@ -11,8 +11,8 @@ open Shieldd.GnarkFormal.Extracted.CanonicalFqBits
 theorem seg6Canon2_canonical (rho : Nat -> Seg6.F)
     (h : Seg6.relation rho) (k : List.Vector Seg6.F 253 -> Prop)
     (hk : k (seg6Canon2Bits rho)) :
-    canonicalFqBitsGadget (rho 1275) k := by
-  exact canonicalFqBitsGadget_of_components (rho 1275) (seg6Canon2Bits rho) k
+    canonicalFqBitsGadget (rho 1269) k := by
+  exact canonicalFqBitsGadget_of_components (rho 1269) (seg6Canon2Bits rho) k
     (seg6Canon2_recover rho h) (seg6Canon2_binary rho h) (seg6Canon2_chain rho h k hk)
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1

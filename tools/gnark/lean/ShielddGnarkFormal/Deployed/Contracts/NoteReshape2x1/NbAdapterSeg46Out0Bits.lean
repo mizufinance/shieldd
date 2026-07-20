@@ -12,7 +12,7 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg46Out0Bits_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
-    GatesDef.to_binary (rho 193) 128 (seg46Out0Bits rho) := by
+    GatesDef.to_binary (rho 187) 128 (seg46Out0Bits rho) := by
   unfold Seg46.relation at h
 
   rcases h with ⟨
@@ -289,9 +289,9 @@ theorem seg46Out0Bits_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
 
   unfold Seg46.relationRow385 at r385
 
-  have hrecover := recover_ofFn_eq_recBits rho 31533 128
+  have hrecover := recover_ofFn_eq_recBits rho 31527 128
 
-  have hacc : powSumAcc rho 0 1 31533 128 = rho 193 := by
+  have hacc : powSumAcc rho 0 1 31527 128 = rho 187 := by
 
     unfold Seg46.relationRow386 Seg46.relationLc2 Seg46.relationLc2Part0 Seg46.relationLc2Part1 Seg46.relationLc2Part2 Seg46.relationLc2Part3 at r386
 
@@ -299,7 +299,7 @@ theorem seg46Out0Bits_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
 
     linear_combination r386
 
-  have hrec : recover_binary_zmod' (seg46Out0Bits rho) = rho 193 := by
+  have hrec : recover_binary_zmod' (seg46Out0Bits rho) = rho 187 := by
 
     simp only [seg46Out0Bits]
 
@@ -309,10 +309,10 @@ theorem seg46Out0Bits_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
 
     simpa using hacc
 
-  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 193) (seg46Out0Bits rho)
+  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 187) (seg46Out0Bits rho)
   · intro i hi
     have key := seg46Out0Bits_get rho i hi
-    have hgoal : rho (31533 + i) * (1 - rho (31533 + i)) = 0 := by
+    have hgoal : rho (31527 + i) * (1 - rho (31527 + i)) = 0 := by
       interval_cases i
       · linear_combination r258
       · linear_combination r259
@@ -442,7 +442,7 @@ theorem seg46Out0Bits_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
       · linear_combination r383
       · linear_combination r384
       · linear_combination r385
-    have key' : (seg46Out0Bits rho)[i] = rho (31533 + i) := by
+    have key' : (seg46Out0Bits rho)[i] = rho (31527 + i) := by
       rw [← getElem!_pos (seg46Out0Bits rho) i (by simpa using hi)]
       exact key
     exact key' ▸ hgoal

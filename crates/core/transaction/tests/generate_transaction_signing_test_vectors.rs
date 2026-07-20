@@ -10,8 +10,9 @@ use ibc_types::core::{
 use ibc_types::timestamp::Timestamp;
 use proptest::prelude::*;
 use proptest::strategy::ValueTree;
-use proptest::test_runner::{Config, TestRunner};
-use rand_core::OsRng;
+use proptest::test_runner::TestRunner;
+use rand::{rngs::StdRng, SeedableRng};
+use rand_core::{CryptoRng, Error as RandError, RngCore};
 use shieldd_sdk_asset::{asset::Id, Value, BASE_ASSET_DENOM};
 use shieldd_sdk_fee::Fee;
 use shieldd_sdk_governance::{
@@ -37,6 +38,39 @@ use std::str::FromStr;
 use std::{fs::File, io::Read};
 use tendermint;
 
+thread_local! {
+    static VECTOR_RNG: std::cell::RefCell<StdRng> = std::cell::RefCell::new(
+        StdRng::seed_from_u64(0x7368_6965_6c64_645f),
+    );
+}
+
+fn with_vector_rng<T>(f: impl FnOnce(&mut StdRng) -> T) -> T {
+    VECTOR_RNG.with(|rng| f(&mut rng.borrow_mut()))
+}
+
+struct OsRng;
+
+impl RngCore for OsRng {
+    fn next_u32(&mut self) -> u32 {
+        with_vector_rng(|rng| rng.next_u32())
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        with_vector_rng(|rng| rng.next_u64())
+    }
+
+    fn fill_bytes(&mut self, destination: &mut [u8]) {
+        with_vector_rng(|rng| rng.fill_bytes(destination));
+    }
+
+    fn try_fill_bytes(&mut self, destination: &mut [u8]) -> Result<(), RandError> {
+        self.fill_bytes(destination);
+        Ok(())
+    }
+}
+
+impl CryptoRng for OsRng {}
+
 fn amount_strategy() -> impl Strategy<Value = Amount> {
     let inner_uint_range = 0u128..1_000_000_000_000_000_000u128;
     inner_uint_range.prop_map(|uint| Amount::from_le_bytes(uint.to_le_bytes()))
@@ -55,7 +89,7 @@ fn address_strategy() -> impl Strategy<Value = Address> {
     // normally we would use address::dummy, but this seems to not work properly
     // for some reason (invalid key errors on computing effecthash.)
     prop::strategy::LazyJust::new(|| {
-        let seed_phrase = SeedPhrase::generate(&mut OsRng);
+        let seed_phrase = with_vector_rng(|rng| SeedPhrase::generate(rng));
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
         let addr = sk.full_viewing_key().payment_address(0u32.into()).0;
 
@@ -64,15 +98,16 @@ fn address_strategy() -> impl Strategy<Value = Address> {
 }
 
 fn note_strategy(addr: Address) -> impl Strategy<Value = Note> {
-    value_strategy().prop_map(move |value| Note::generate(&mut OsRng, &addr, value))
+    value_strategy().prop_map(move |value| with_vector_rng(|rng| Note::generate(rng, &addr, value)))
 }
 
 fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedInputPlan> {
     let tct_strategy = any::<shieldd_sdk_tct::Position>();
     let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()).0);
 
-    (tct_strategy, note_strategy)
-        .prop_map(|(tct_pos, note)| ShieldedInputPlan::new(&mut OsRng, note, tct_pos))
+    (tct_strategy, note_strategy).prop_map(|(tct_pos, note)| {
+        with_vector_rng(|rng| ShieldedInputPlan::new(rng, note, tct_pos))
+    })
 }
 
 fn identity_key_strategy() -> impl Strategy<Value = IdentityKey> {
@@ -82,11 +117,11 @@ fn identity_key_strategy() -> impl Strategy<Value = IdentityKey> {
 }
 
 fn signing_key_strategy() -> impl Strategy<Value = SigningKey<SpendAuth>> {
-    prop::strategy::LazyJust::new(|| SigningKey::<SpendAuth>::new(OsRng))
+    prop::strategy::LazyJust::new(|| with_vector_rng(|rng| SigningKey::<SpendAuth>::new(rng)))
 }
 
 fn consensus_secret_key_strategy() -> impl Strategy<Value = Ed25519SigningKey> {
-    prop::strategy::LazyJust::new(|| Ed25519SigningKey::new(OsRng))
+    prop::strategy::LazyJust::new(|| with_vector_rng(|rng| Ed25519SigningKey::new(rng)))
 }
 
 fn validator_strategy() -> impl Strategy<Value = (validator::Validator, SigningKey<SpendAuth>)> {
@@ -417,7 +452,7 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
 #[ignore]
 fn generate_transaction_signing_test_vectors() {
     // Run this to regenerate the `EffectHash` test vectors. Ignored by default.
-    let mut runner = TestRunner::new(Config::default());
+    let mut runner = TestRunner::deterministic();
     let test_vectors_dir = "tests/signing_test_vectors";
     std::fs::create_dir_all(test_vectors_dir).expect("failed to create test vectors dir");
 

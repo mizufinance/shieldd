@@ -9,8 +9,8 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 theorem seg28_scp_step5 (rho : Nat -> Seg28.F) (h : Seg28.relation rho) :
     seg28ScpNode5Out rho =
       Shieldd.GnarkFormal.QuadPath.recoverStep Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 ((545001158149490383238005163525397553024965043366546261617421270984613353336 : Seg28.F) + (6 : Seg28.F))
-        (seg28ScpNode4Out rho) (rho 169) (rho 170) (rho 171)
-        (rho 19639) (rho 19640) := by
+        (seg28ScpNode4Out rho) (rho 166) (rho 167) (rho 168)
+        (rho 19633) (rho 19634) := by
   have hnode := seg28_scp_node5_eq rho h
   unfold Seg28.relation at h
   rcases h with ⟨
@@ -31,10 +31,10 @@ theorem seg28_scp_step5 (rho : Nat -> Seg28.F) (h : Seg28.relation rho) :
   rcases p26 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r2099, r2100, r2101, r2102, _, r2104, r2105, _, r2107, r2108, _, r2110, _, r2112, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
   exact hnode.trans
     (Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recoverStep_eq Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 ((545001158149490383238005163525397553024965043366546261617421270984613353336 : Seg28.F) + (6 : Seg28.F))
-      (seg28ScpNode4Out rho) (rho 169) (rho 170) (rho 171)
-      (rho 19639) (rho 19640)
-      (rho 21477) (rho 21478) (rho 21479) (rho 21480)
-      (rho 21481) (rho 21482) (rho 21483) (rho 21484) (rho 21485) (rho 21486)
+      (seg28ScpNode4Out rho) (rho 166) (rho 167) (rho 168)
+      (rho 19633) (rho 19634)
+      (rho 21471) (rho 21472) (rho 21473) (rho 21474)
+      (rho 21475) (rho 21476) (rho 21477) (rho 21478) (rho 21479) (rho 21480)
       (by unfold Seg28.relationRow2099 at r2099; linear_combination r2099)
       (by unfold Seg28.relationRow2100 at r2100; linear_combination r2100)
       (by unfold Seg28.relationRow2101 at r2101; linear_combination r2101)

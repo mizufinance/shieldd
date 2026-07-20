@@ -7,34 +7,34 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg6RStep17L (rho : Nat -> Seg6.F) (r2297 : Seg6.relationRow2297 rho) :
-    rho 2698 = seg6RPe18 rho * (1 - rho 1907) := by
+    rho 2692 = seg6RPe18 rho * (1 - rho 1901) := by
   unfold Seg6.relationRow2297 at r2297
   unfold seg6RPe18
   linear_combination -r2297
 
 theorem seg6RStep17IlMul (rho : Nat -> Seg6.F) (r2298 : Seg6.relationRow2298 rho) :
-    rho 2699 = seg6RIl18 rho * (rho 2698) := by
+    rho 2693 = seg6RIl18 rho * (rho 2692) := by
   unfold Seg6.relationRow2298 at r2298
   rw [seg6RStep17IlLc rho] at r2298
   linear_combination -r2298
 
 theorem seg6RStep17Acc (rho : Nat -> Seg6.F) :
-    seg6RIl17 rho = seg6RIl18 rho + (rho 2698) - (rho 2699) := by
+    seg6RIl17 rho = seg6RIl18 rho + (rho 2692) - (rho 2693) := by
   have hstate : seg6RIl17 rho = seg6RIl18 rho + seg6RIlAtom125 rho := by rfl
   rw [hstate]
   unfold seg6RIlAtom125
   ring
 
 theorem seg6RStep17Pe (rho : Nat -> Seg6.F) (r2299 : Seg6.relationRow2299 rho) :
-    seg6RPe17 rho = seg6RPe18 rho * rho 1907 := by
+    seg6RPe17 rho = seg6RPe18 rho * rho 1901 := by
   unfold Seg6.relationRow2299 at r2299
   unfold seg6RPe17 seg6RPe18
   linear_combination -r2299
 
 theorem seg6RStep17 (rho : Nat -> Seg6.F) (r2297 : Seg6.relationRow2297 rho) (r2298 : Seg6.relationRow2298 rho) (r2299 : Seg6.relationRow2299 rho) :
-    seg6RPe17 rho = seg6RPe18 rho * rho 1907 ∧
-    seg6RIl17 rho = seg6RIl18 rho + seg6RPe18 rho * (1 - rho 1907) -
-      seg6RIl18 rho * (seg6RPe18 rho * (1 - rho 1907)) := by
+    seg6RPe17 rho = seg6RPe18 rho * rho 1901 ∧
+    seg6RIl17 rho = seg6RIl18 rho + seg6RPe18 rho * (1 - rho 1901) -
+      seg6RIl18 rho * (seg6RPe18 rho * (1 - rho 1901)) := by
   constructor
   · exact seg6RStep17Pe rho r2299
   · rw [seg6RStep17Acc rho, seg6RStep17L rho r2297, seg6RStep17IlMul rho r2298, seg6RStep17L rho r2297]
@@ -59,11 +59,11 @@ theorem seg6_r_chunk17 (rho : Nat -> Seg6.F) (h : Seg6.relation rho) (k : Prop) 
   rcases p28 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r2297, r2298, r2299, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
   have hsteps : ∀ n, 17 ≤ n → n < 18 →
       if Shieldd.GnarkFormal.Extracted.IvkModR.rBit n then
-        seg6RPeState rho n = seg6RPeState rho (n + 1) * rho (1890 + n) ∧
-        seg6RIlState rho n = seg6RIlState rho (n + 1) + seg6RPeState rho (n + 1) * (1 - rho (1890 + n)) -
-          seg6RIlState rho (n + 1) * (seg6RPeState rho (n + 1) * (1 - rho (1890 + n)))
+        seg6RPeState rho n = seg6RPeState rho (n + 1) * rho (1884 + n) ∧
+        seg6RIlState rho n = seg6RIlState rho (n + 1) + seg6RPeState rho (n + 1) * (1 - rho (1884 + n)) -
+          seg6RIlState rho (n + 1) * (seg6RPeState rho (n + 1) * (1 - rho (1884 + n)))
       else
-        seg6RPeState rho n = seg6RPeState rho (n + 1) * (1 - rho (1890 + n)) ∧
+        seg6RPeState rho n = seg6RPeState rho (n + 1) * (1 - rho (1884 + n)) ∧
         seg6RIlState rho n = seg6RIlState rho (n + 1) := by
     intro n hnlo hnhi
     interval_cases n

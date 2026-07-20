@@ -39,6 +39,10 @@ impl NoteReshapePlan {
         outputs: Vec<ShieldedOutputPlan>,
         value_blinding: Fr,
     ) -> anyhow::Result<Self> {
+        // Wallet policy is intentionally directional: 2x1 is the exact
+        // two-input path; 4x1 and 8x1 hide many-to-one input arity with
+        // synthetic private inputs; 1x8 hides output arity with ordinary
+        // zero-value notes. Keep family selection here, at the wallet edge.
         let family_id = NoteReshapeFamilyId::smallest_covering(spends.len(), outputs.len())
             .ok_or_else(|| {
                 anyhow!(
@@ -56,6 +60,9 @@ impl NoteReshapePlan {
         outputs: Vec<ShieldedOutputPlan>,
         value_blinding: Fr,
     ) -> anyhow::Result<Self> {
+        // `spends` and `outputs` are the wallet's real items. Padding is
+        // derived below and is never accepted as an externally supplied
+        // public count or action flag.
         ensure!(
             !spends.is_empty(),
             "note_reshape requires at least one spend"
@@ -132,7 +139,6 @@ impl NoteReshapePlan {
                 nullifier: shieldd_sdk_sct::Nullifier(Fq::from(0u64)),
                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(Fr::from(0u64))),
                 encrypted_backref: crate::EncryptedBackref::dummy(),
-                is_dummy: false,
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut inputs, family_id.input_count(), |slot| {
@@ -140,7 +146,6 @@ impl NoteReshapePlan {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
                 rk: padder.synthetic_dummy_verification_key(slot),
                 encrypted_backref: crate::EncryptedBackref::dummy(),
-                is_dummy: true,
             }
         });
         let mut output_bodies = outputs
@@ -149,7 +154,6 @@ impl NoteReshapePlan {
                 note_payload: output.output_note().payload(),
                 wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
-                is_dummy: false,
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut output_bodies, family_id.output_count(), |slot| {
@@ -157,7 +161,6 @@ impl NoteReshapePlan {
                 note_payload: padder.synthetic_dummy_output_note(slot).payload(),
                 wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
-                is_dummy: true,
             }
         });
 
@@ -199,26 +202,6 @@ impl NoteReshapePlan {
 
     pub fn validate_shape(&self) -> anyhow::Result<()> {
         self.body.validate_shape()?;
-        ensure!(
-            self.spends.len()
-                == self
-                    .body
-                    .inputs
-                    .iter()
-                    .filter(|input| !input.is_dummy)
-                    .count(),
-            "note reshape plan real input count does not match body flags",
-        );
-        ensure!(
-            self.outputs.len()
-                == self
-                    .body
-                    .outputs
-                    .iter()
-                    .filter(|output| !output.is_dummy)
-                    .count(),
-            "note reshape plan real output count does not match body flags",
-        );
         ensure!(
             self.spends.len() >= self.body.family_id.min_real_inputs(),
             "note reshape plan has too few real spends: {}",
@@ -337,7 +320,6 @@ impl NoteReshapePlan {
                 Ok(NoteReshapeInputPublic {
                     nullifier: spend.nullifier(fvk),
                     rk: spend.rk(fvk),
-                    is_dummy: false,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -345,7 +327,6 @@ impl NoteReshapePlan {
             NoteReshapeInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
                 rk: padder.synthetic_dummy_verification_key(slot),
-                is_dummy: true,
             }
         });
 
@@ -355,7 +336,6 @@ impl NoteReshapePlan {
             .map(|output| {
                 Ok(NoteReshapeOutputPublic {
                     note_commitment: output.output_note().commit(),
-                    is_dummy: false,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -364,7 +344,6 @@ impl NoteReshapePlan {
             self.family_id().output_count(),
             |slot| NoteReshapeOutputPublic {
                 note_commitment: padder.synthetic_dummy_output_note(slot).commit(),
-                is_dummy: true,
             },
         );
 
@@ -404,7 +383,6 @@ impl NoteReshapePlan {
             .map(|output| {
                 Ok(NoteReshapeOutputPrivate {
                     created_note: output.output_note(),
-                    is_dummy: false,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -413,7 +391,6 @@ impl NoteReshapePlan {
             self.family_id().output_count(),
             |slot| NoteReshapeOutputPrivate {
                 created_note: padder.synthetic_dummy_output_note(slot),
-                is_dummy: true,
             },
         );
 
@@ -453,7 +430,6 @@ impl NoteReshapePlan {
                     nullifier: spend_body.nullifier,
                     rk: spend_body.rk,
                     encrypted_backref: spend_body.encrypted_backref,
-                    is_dummy: false,
                 }
             })
             .collect::<Vec<_>>();
@@ -462,7 +438,6 @@ impl NoteReshapePlan {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
                 rk: padder.synthetic_dummy_verification_key(slot),
                 encrypted_backref: crate::EncryptedBackref::dummy(),
-                is_dummy: true,
             }
         });
         let mut outputs = self
@@ -475,7 +450,6 @@ impl NoteReshapePlan {
                     note_payload,
                     wrapped_memo_key,
                     ovk_wrapped_key,
-                    is_dummy: false,
                 }
             })
             .collect::<Vec<_>>();
@@ -484,7 +458,6 @@ impl NoteReshapePlan {
                 note_payload: padder.synthetic_dummy_output_note(slot).payload(),
                 wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
-                is_dummy: true,
             }
         });
 
@@ -589,6 +562,8 @@ impl TryFrom<pb::NoteReshapePlan> for NoteReshapePlan {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -611,5 +586,43 @@ mod tests {
             NoteReshapeFamilyId::smallest_covering(1, 2),
             Some(NoteReshapeFamilyId::OneByEight)
         );
+    }
+
+    #[test]
+    fn synthetic_input_slots_have_distinct_nullifiers() {
+        for family_id in [
+            NoteReshapeFamilyId::FourByOne,
+            NoteReshapeFamilyId::EightByOne,
+        ] {
+            let (public, private) =
+                crate::test_proof_helpers::proof_test_helpers::build_note_reshape_roundtrip_inputs(
+                    family_id,
+                );
+            let all = public
+                .inputs
+                .iter()
+                .map(|input| input.nullifier)
+                .collect::<HashSet<_>>();
+            assert_eq!(
+                all.len(),
+                public.inputs.len(),
+                "{} produced duplicate input nullifiers",
+                family_id.label()
+            );
+
+            let synthetic = public
+                .inputs
+                .iter()
+                .zip(&private.inputs)
+                .filter(|(_, input)| input.is_dummy)
+                .map(|(input, _)| input.nullifier)
+                .collect::<HashSet<_>>();
+            assert_eq!(
+                synthetic.len(),
+                private.inputs.iter().filter(|input| input.is_dummy).count(),
+                "{} produced duplicate synthetic nullifiers",
+                family_id.label()
+            );
+        }
     }
 }

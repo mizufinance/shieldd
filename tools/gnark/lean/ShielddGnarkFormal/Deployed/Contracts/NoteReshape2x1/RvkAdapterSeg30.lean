@@ -337,9 +337,9 @@ theorem seg30_sound (rho : Nat -> Seg30.F)
     (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order)
     Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order] at hbin
   rcases hbin with ⟨hscalarLt, hbits⟩
-  let bitsBool := Fin.toBitsLE (⟨(rho 187).val, hscalarLt⟩ : Fin (2 ^ 251))
+  let bitsBool := Fin.toBitsLE (⟨(rho 184).val, hscalarLt⟩ : Fin (2 ^ 251))
   have hbitAt : ∀ i, i < 251 →
-      rho (28317 + i) = Bool.toZMod bitsBool[i]! := by
+      rho (28311 + i) = Bool.toZMod bitsBool[i]! := by
     intro i hi
     rw [← seg30RvkBits_get rho i hi, hbits]
     change (bitsBool.map Bool.toZMod)[i]! = Bool.toZMod bitsBool[i]!
@@ -352,8 +352,8 @@ theorem seg30_sound (rho : Nat -> Seg30.F)
     by_cases hzero : i = 0
     · subst i
       change RvkFixedBaseLadder.FixedStepRel 0 (Bool.toZMod bitsBool[0]!) ⟨0, 1⟩
-        (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627 : Seg30.F) * rho 28317,
-          (1 : Seg30.F) + (6060471950081851567114691557659790004756535011754163002297540472747064943287 : Seg30.F) * rho 28317⟩ : EdwardsBridge.Point)
+        (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627 : Seg30.F) * rho 28311,
+          (1 : Seg30.F) + (6060471950081851567114691557659790004756535011754163002297540472747064943287 : Seg30.F) * rho 28311⟩ : EdwardsBridge.Point)
       rw [hbitAt 0 (by omega)]
       simpa [
         Shieldd.GnarkFormal.RvkFixedRun.seedAcc,
@@ -408,8 +408,8 @@ theorem seg30_sound (rho : Nat -> Seg30.F)
       exact hsTail20 i (by omega) (by omega) hacc
   have htrace := Shieldd.GnarkFormal.RvkFixedRun.trace_final_semantic
     bitsBool (seg30RvkAcc rho) hstep EdwardsBridge.identity_onCurve
-  have hLcx : Seg30.relationLc1448 rho = 4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX250 rho := seg30_lcx rho
-  have hLcy : Seg30.relationLc1447 rho = 1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY250 rho := seg30_lcy rho
+  have hLcx : Seg30.relationLc1448 rho = 4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28311 + seg30AccX250 rho := seg30_lcx rho
+  have hLcy : Seg30.relationLc1447 rho = 1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28311 + seg30AccY250 rho := seg30_lcy rho
   have hp' : onCurve (⟨Seg30.relationLc1448 rho, Seg30.relationLc1447 rho⟩ : EdwardsBridge.Point) := by
     rw [hLcx, hLcy]
     exact htrace.2
@@ -421,15 +421,15 @@ theorem seg30_sound (rho : Nat -> Seg30.F)
   unfold Seg30.relationRow1811 at r1811
   unfold Seg30.relationRow1806 at r1806
   unfold Seg30.relationRow1805 at r1805
-  have e7 : rho 30123 = rho 6 * (Seg30.relationLc1447 rho) := by linear_combination -r1807
-  have e8 : rho 30124 = rho 7 * (Seg30.relationLc1448 rho) := by linear_combination -r1808
-  have e9 : rho 30125 = 3021 * rho 30123 * rho 30124 := by linear_combination -r1809
-  have hG : Seg30.relationLc1446 rho = rho 30121 := by linear_combination r1805
-  have e75 : rho 30121 = Seg30.relationLc1446 rho := hG.symm
-  have e76 : rho 30122 = rho 30121 * (rho 6 + rho 7) := by linear_combination -r1806
+  have e7 : rho 30117 = rho 6 * (Seg30.relationLc1447 rho) := by linear_combination -r1807
+  have e8 : rho 30118 = rho 7 * (Seg30.relationLc1448 rho) := by linear_combination -r1808
+  have e9 : rho 30119 = 3021 * rho 30117 * rho 30118 := by linear_combination -r1809
+  have hG : Seg30.relationLc1446 rho = rho 30115 := by linear_combination r1805
+  have e75 : rho 30115 = Seg30.relationLc1446 rho := hG.symm
+  have e76 : rho 30116 = rho 30115 * (rho 6 + rho 7) := by linear_combination -r1806
   have hakC : onCurve (⟨rho 6, rho 7⟩ : EdwardsBridge.Point) := hak
-  have hadd : addSpec ⟨rho 6, rho 7⟩ (⟨Seg30.relationLc1448 rho, Seg30.relationLc1447 rho⟩ : EdwardsBridge.Point) ⟨rho 30126, rho 30127⟩ := by
-    apply RvkDeployedRung.deployedTail_addSpec (rho 6) (rho 7) (rho 30126) (rho 30127) _ hakC hp'
+  have hadd : addSpec ⟨rho 6, rho 7⟩ (⟨Seg30.relationLc1448 rho, Seg30.relationLc1447 rho⟩ : EdwardsBridge.Point) ⟨rho 30120, rho 30121⟩ := by
+    apply RvkDeployedRung.deployedTail_addSpec (rho 6) (rho 7) (rho 30120) (rho 30121) _ hakC hp'
     · simp only [EdwardsBridge.d]
       rw [e9, e7, e8] at r1810
       linear_combination r1810
@@ -439,7 +439,7 @@ theorem seg30_sound (rho : Nat -> Seg30.F)
       linear_combination r1811
   have hstate : seg30RvkAcc rho 251 =
       (⟨Seg30.relationLc1448 rho, Seg30.relationLc1447 rho⟩ : EdwardsBridge.Point) := by
-    change (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28317 + seg30AccX250 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28317 + seg30AccY250 rho : Seg30.F)⟩ : EdwardsBridge.Point) = _
+    change (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 28311 + seg30AccX250 rho : Seg30.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 28311 + seg30AccY250 rho : Seg30.F)⟩ : EdwardsBridge.Point) = _
     rw [hLcx, hLcy]
   have htraceModel : (⟨Seg30.relationLc1448 rho, Seg30.relationLc1447 rho⟩ : EdwardsBridge.Point) =
       Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩
@@ -448,22 +448,22 @@ theorem seg30_sound (rho : Nat -> Seg30.F)
     exact htrace.1
   have heq := EdwardsBridge.addSpec_eq
     ⟨rho 6, rho 7⟩ (⟨Seg30.relationLc1448 rho, Seg30.relationLc1447 rho⟩ : EdwardsBridge.Point)
-    ⟨rho 30126, rho 30127⟩ hakC hp' hadd
+    ⟨rho 30120, rho 30121⟩ hakC hp' hadd
   have hmodel := Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits_toA
-    bitsBool (rho 187) 251 0 ⟨0, 1⟩
+    bitsBool (rho 184) 251 0 ⟨0, 1⟩
     (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) (by omega)
     (by
       intro i _ hi
       exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit
-        (rho 187).val hscalarLt i hi)
-  have hfinal : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk (rho 30126) (rho 30127) =
+        (rho 184).val hscalarLt i hi)
+  have hfinal : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk (rho 30120) (rho 30121) =
       Shieldd.GnarkFormal.ScalarMulBridge.toA (EdwardsBridge.addF ⟨rho 6, rho 7⟩
         (Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩
           (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0))) := by
     rw [← htraceModel, ← heq]
     rfl
   have hspec : Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
-      ⟨rho 6, rho 7⟩ (rho 187) ⟨rho 30126, rho 30127⟩ := by
+      ⟨rho 6, rho 7⟩ (rho 184) ⟨rho 30120, rho 30121⟩ := by
     show Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk _ _ =
       Shieldd.GnarkFormal.Decaf377Assumptions.rvk _ _
     rw [hfinal, Shieldd.GnarkFormal.ScalarMulBridge.toA_addF, hmodel]

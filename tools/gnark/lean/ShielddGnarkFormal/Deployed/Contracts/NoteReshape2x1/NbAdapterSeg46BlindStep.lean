@@ -12,7 +12,7 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1
 
 theorem seg46Blind_hstep (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
     (bits : List.Vector Bool 251)
-    (hbitAt : ∀ i, i < 251 → rho (31661 + i) = Bool.toZMod bits[i]!) :
+    (hbitAt : ∀ i, i < 251 → rho (31655 + i) = Bool.toZMod bits[i]!) :
     ∀ i, i < 251 →
       EdwardsBridge.onCurve (seg46BlindAccState rho i) →
       Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i
@@ -21,7 +21,7 @@ theorem seg46Blind_hstep (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   intro i hi hacc
   by_cases hzero : i = 0
   · subst i
-    have hb0 : rho 31661 = Bool.toZMod bits[0]! := by
+    have hb0 : rho 31655 = Bool.toZMod bits[0]! := by
       simpa using hbitAt 0 (by omega)
     exact seg46Blind_hstep_zero rho bits hb0
   ·

@@ -62,7 +62,7 @@ theorem seg15_steps17 (rho : Nat -> Seg15.F)
     (r1716 : Seg15.relationRow1716 rho)
     : ∀ i, 235 ≤ i → i ≤ 239 → onCurve (seg15RvkAcc rho i) →
         RvkFixedBaseLadder.FixedStepRel i
-          (rho (16136 + i)) (seg15RvkAcc rho i) (seg15RvkAcc rho (i + 1)) := by
+          (rho (16130 + i)) (seg15RvkAcc rho i) (seg15RvkAcc rho (i + 1)) := by
   intro i hlo hhi hacc
   interval_cases i
   · exact seg15_step235 rho r235 r1677 r1678 r1679 r1680 r1681 r1682 r1683 r1684 hacc

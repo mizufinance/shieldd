@@ -26,6 +26,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import gen_dtk_slice as dtk
+from write_if_changed import write_if_changed
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMAL = ROOT / "ShielddGnarkFormal"
@@ -38,9 +39,9 @@ ORDER = 844446174942837042424882493878154653137589933515406382793523345591740923
 NB_GX = 4661681602708190761543544705274244814260880986867766715334030151044279151219
 NB_GYM1 = 4337336842509898676347982752646772244181661588533917621717979456142867120377
 SEG_START, ROW_COUNT = 32840, 2193
-OUT_X_WIRE, OUT_Y_WIRE = 33463, 33464
+OUT_X_WIRE, OUT_Y_WIRE = 33457, 33458
 CONSERVATION_ROW = 387
-IN0_WIRE, IN1_WIRE, OUT0_WIRE = 15, 105, 193
+IN0_WIRE, IN1_WIRE, OUT0_WIRE = 15, 102, 187
 
 Lc = dict[int, int]
 
@@ -94,22 +95,22 @@ def singleton_wire(side: Lc) -> int:
 # Amount range blocks (ZK-ASSUME-AMOUNT-RANGE): label, bit_base, booleanity
 # row span (inclusive), recomposition row, amount wire.
 AMOUNT_BLOCKS = (
-    ("In0", 31277, (0, 127), 128, IN0_WIRE),
-    ("In1", 31405, (129, 256), 257, IN1_WIRE),
-    ("Out0", 31533, (258, 385), 386, OUT0_WIRE),
+    ("In0", 31271, (0, 127), 128, IN0_WIRE),
+    ("In1", 31399, (129, 256), 257, IN1_WIRE),
+    ("Out0", 31527, (258, 385), 386, OUT0_WIRE),
 )
 
 # Blinding fixed-base ladder (rvk shape). Seed term: bits[0] wire folded into
 # every accumulator row (same encoding as rvk — see memory rvk-fixedbase-bit0).
-BLIND_BIT_BASE = 31661          # booleanity wires 31661 .. 31911 (251 bits)
+BLIND_BIT_BASE = 31655          # booleanity wires 31655 .. 31905 (251 bits)
 BLIND_BINARY_ROWS = (388, 638)
 BLIND_COPY_ROW = 639            # 1*LcN = 1*rho 5
 BLIND_WIRE = 5
 # Accumulator wire pairs: 149 at stride 5, then 101 at stride 8 (250 rungs;
 # rung k consumes bit wire BLIND_BIT_BASE+1+k).
 BLIND_ACCS = tuple(
-    [(31915 + 5 * k, 31916 + 5 * k) for k in range(149)]
-    + [(32663 + 8 * j, 32664 + 8 * j) for j in range(101)]
+    [(31909 + 5 * k, 31910 + 5 * k) for k in range(149)]
+    + [(32657 + 8 * j, 32658 + 8 * j) for j in range(101)]
 )
 
 
@@ -452,14 +453,14 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
     lines += [
         "def seg46BlindAccState (rho : Nat -> Seg46.F) : Nat -> EdwardsBridge.Point",
         "  | 0 => ⟨0, 1⟩",
-        "  | 1 => Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 31661)",
+        f"  | 1 => Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho {BLIND_BIT_BASE})",
     ]
     for state in range(2, 252):
         delta = state - 1
         lines.append(
-            f"  | {state} => ⟨(({NB_GX} : Seg46.F) * rho 31661 + "
+            f"  | {state} => ⟨(({NB_GX} : Seg46.F) * rho {BLIND_BIT_BASE} + "
             f"{blind_delta_name('X', delta)} rho : Seg46.F), "
-            f"((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + "
+            f"((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho {BLIND_BIT_BASE} + "
             f"{blind_delta_name('Y', delta)} rho : Seg46.F)⟩"
         )
     lines += [
@@ -536,23 +537,23 @@ def emit_blind_fused_rung(
     emit_blind_delta_step(lines, rungs, k)
     previous = k - 1
     if k == 1:
-        # Arm 1 of seg46BlindAccState is `seedAcc (rho 31661)`; `x + DeltaX0`
+        # Arm 1 of seg46BlindAccState is the seed accumulator; `x + DeltaX0`
         # (i.e. `x + 0`) is not defeq for opaque ZMod terms, so state the
         # acc1-shaped pair without the zero delta.
         prev_pair = [
-            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho 31661 : Seg46.F),",
-            f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 : Seg46.F)⟩",
+            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho {BLIND_BIT_BASE} : Seg46.F),",
+            f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho {BLIND_BIT_BASE} : Seg46.F)⟩",
         ]
     else:
         prev_pair = [
-            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho 31661 + {blind_delta_name('X', previous)} rho : Seg46.F),",
-            f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + {blind_delta_name('Y', previous)} rho : Seg46.F)⟩",
+            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho {BLIND_BIT_BASE} + {blind_delta_name('X', previous)} rho : Seg46.F),",
+            f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho {BLIND_BIT_BASE} + {blind_delta_name('Y', previous)} rho : Seg46.F)⟩",
         ]
     lines += [
         f"  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel {k}",
         *prev_pair,
-        f"    ⟨(({NB_GX} : Seg46.F) * rho 31661 + {blind_delta_name('X', k)} rho : Seg46.F),",
-        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + {blind_delta_name('Y', k)} rho : Seg46.F)⟩",
+        f"    ⟨(({NB_GX} : Seg46.F) * rho {BLIND_BIT_BASE} + {blind_delta_name('X', k)} rho : Seg46.F),",
+        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho {BLIND_BIT_BASE} + {blind_delta_name('Y', k)} rho : Seg46.F)⟩",
         # k=1: next-state deltas are single wires, defeq by delta unfold; the
         # hnext rewrites would introduce a non-defeq `Delta0 + wire` shape.
         ("  rw [← hbitValue]" if k == 1 else "  rw [hnextx, hnexty, ← hbitValue]"),
@@ -562,7 +563,7 @@ def emit_blind_fused_rung(
     sx = singleton_wire(rows[r_add_x][0])
     sy = singleton_wire(rows[r_add_y][0])
     theorem = "rung1" if k == 1 else f"rung{k}_wide"
-    args = ["(rho 31661)", f"(rho {rung.bit})"]
+    args = [f"(rho {BLIND_BIT_BASE})", f"(rho {rung.bit})"]
     if k > 1:
         args += [
             f"({blind_delta_name('X', previous)} rho)",
@@ -612,14 +613,14 @@ def emit_blind_split_rung(
     dy = f"{blind_delta_name('Y', previous)} rho"
     lines += [
         f"  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel {k}",
-        f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho 31661 + {dx} : Seg46.F),",
-        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + {dy} : Seg46.F)⟩",
-        f"    ⟨(({NB_GX} : Seg46.F) * rho 31661 + {blind_delta_name('X', k)} rho : Seg46.F),",
-        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + {blind_delta_name('Y', k)} rho : Seg46.F)⟩",
+        f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho {BLIND_BIT_BASE} + {dx} : Seg46.F),",
+        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho {BLIND_BIT_BASE} + {dy} : Seg46.F)⟩",
+        f"    ⟨(({NB_GX} : Seg46.F) * rho {BLIND_BIT_BASE} + {blind_delta_name('X', k)} rho : Seg46.F),",
+        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho {BLIND_BIT_BASE} + {blind_delta_name('Y', k)} rho : Seg46.F)⟩",
         "  rw [hnextx, hnexty, ← hbitValue]",
         # splitRung_stepRel's select-Y third arg is left-associated
         # ((1+g*b0+d1y) + sdy); reassociate the goal to match.
-        f"  rw [← add_assoc ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661)",
+        f"  rw [← add_assoc ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho {BLIND_BIT_BASE})",
         f"    ({dy}) (rho {cert.sdy})]",
         "  exact Shieldd.GnarkFormal.RvkFixedSplitRung.splitRung_stepRel",
         f"    (Shieldd.GnarkFormal.Deployed.NetBalance.Cb {k})",
@@ -630,7 +631,7 @@ def emit_blind_split_rung(
         f"    ({cert.rb} : Seg46.F) ({cert.cc} : Seg46.F)",
         f"    ({cert.px} : Seg46.F) ({cert.py} : Seg46.F)",
         f"    ({cert.qb0} : Seg46.F) ({cert.neg_gx} : Seg46.F) ({cert.neg_gym1} : Seg46.F)",
-        f"    (rho 31661) ({dx}) ({dy}) (rho {cert.bit})",
+        f"    (rho {BLIND_BIT_BASE}) ({dx}) ({dy}) (rho {cert.bit})",
         f"    (rho {cert.i67}) (rho {cert.i68}) (rho {cert.i69}) (rho {cert.i71})",
         f"    (rho {cert.out_x}) (rho {cert.out_y}) (rho {cert.sdx}) (rho {cert.sdy}) hacc",
         f"    (Shieldd.GnarkFormal.Deployed.NetBalance.Cb_onCurve {k})",
@@ -678,7 +679,7 @@ def emit_blind_chunk(
     lines += [
         f"theorem seg46Blind_hstep_c{chunk_index} (rho : Nat -> Seg46.F)",
         "    (h : Seg46.relation rho) (bits : List.Vector Bool 251)",
-        "    (hbitAt : ∀ i, i < 251 → rho (31661 + i) = Bool.toZMod bits[i]!) :",
+        f"    (hbitAt : ∀ i, i < 251 → rho ({BLIND_BIT_BASE} + i) = Bool.toZMod bits[i]!) :",
         f"    ∀ i, {lo} ≤ i → i < {hi} →",
         "      EdwardsBridge.onCurve (seg46BlindAccState rho i) →",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i",
@@ -749,7 +750,7 @@ def emit_blind_selector(
         "",
         f"theorem {blind_selector_theorem(node.lo, node.hi)} (rho : Nat -> Seg46.F)",
         "    (h : Seg46.relation rho) (bits : List.Vector Bool 251)",
-        "    (hbitAt : ∀ i, i < 251 → rho (31661 + i) = Bool.toZMod bits[i]!) :",
+        f"    (hbitAt : ∀ i, i < 251 → rho ({BLIND_BIT_BASE} + i) = Bool.toZMod bits[i]!) :",
         f"    ∀ i, {lo} ≤ i → i < {hi} →",
         "      EdwardsBridge.onCurve (seg46BlindAccState rho i) →",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i",
@@ -778,13 +779,13 @@ def emit_blind_seed() -> str:
         "",
         "theorem seg46Blind_hstep_zero (rho : Nat -> Seg46.F)",
         "    (bits : List.Vector Bool 251)",
-        "    (hb0 : rho 31661 = Bool.toZMod bits[0]!) :",
+        f"    (hb0 : rho {BLIND_BIT_BASE} = Bool.toZMod bits[0]!) :",
         "    Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 0",
         "      (Bool.toZMod bits[0]!) (seg46BlindAccState rho 0)",
         "      (seg46BlindAccState rho 1) := by",
         "  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 0",
         "    (Bool.toZMod bits[0]!) ⟨0, 1⟩",
-        "    (Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 31661))",
+        f"    (Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho {BLIND_BIT_BASE}))",
         "  rw [hb0]",
         "  exact Shieldd.GnarkFormal.Deployed.NetBalance.seedStepRel bits[0]!",
         "",
@@ -803,13 +804,13 @@ def emit_blind_endpoint() -> str:
         "",
         "theorem seg46BlindAccState_final_x (rho : Nat -> Seg46.F) :",
         "    (seg46BlindAccState rho 251).x = Specs.nbX rho := by",
-        "  change _ * rho 31661 + seg46BlindDeltaX250 rho = Specs.nbX rho",
+        f"  change _ * rho {BLIND_BIT_BASE} + seg46BlindDeltaX250 rho = Specs.nbX rho",
         "  simp only [seg46BlindDeltaX250, Specs.nbX, zero_add, one_mul]",
         "  ring",
         "",
         "theorem seg46BlindAccState_final_y (rho : Nat -> Seg46.F) :",
         "    (seg46BlindAccState rho 251).y = Specs.nbY rho := by",
-        "  change 1 + _ * rho 31661 + seg46BlindDeltaY250 rho = Specs.nbY rho",
+        f"  change 1 + _ * rho {BLIND_BIT_BASE} + seg46BlindDeltaY250 rho = Specs.nbY rho",
         "  simp only [seg46BlindDeltaY250, Specs.nbY, zero_add, one_mul]",
         "  ring",
         "",
@@ -835,7 +836,7 @@ def emit_blind_step(rungs: tuple[BlindRung, ...]) -> str:
         "",
         "theorem seg46Blind_hstep (rho : Nat -> Seg46.F) (h : Seg46.relation rho)",
         "    (bits : List.Vector Bool 251)",
-        "    (hbitAt : ∀ i, i < 251 → rho (31661 + i) = Bool.toZMod bits[i]!) :",
+        f"    (hbitAt : ∀ i, i < 251 → rho ({BLIND_BIT_BASE} + i) = Bool.toZMod bits[i]!) :",
         "    ∀ i, i < 251 →",
         "      EdwardsBridge.onCurve (seg46BlindAccState rho i) →",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i",
@@ -844,7 +845,7 @@ def emit_blind_step(rungs: tuple[BlindRung, ...]) -> str:
         "  intro i hi hacc",
         "  by_cases hzero : i = 0",
         "  · subst i",
-        "    have hb0 : rho 31661 = Bool.toZMod bits[0]! := by",
+        f"    have hb0 : rho {BLIND_BIT_BASE} = Bool.toZMod bits[0]! := by",
         "      simpa using hbitAt 0 (by omega)",
         "    exact seg46Blind_hstep_zero rho bits hb0",
         "  ·",
@@ -879,7 +880,7 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
         "      Shieldd.GnarkFormal.Deployed.NetBalance.blindGen ∧",
         "    EdwardsBridge.onCurve (seg46BlindAccState rho 251) := by",
         "  have hbitAt : ∀ i, i < 251 →",
-        "      rho (31661 + i) = Bool.toZMod bits[i]! := by",
+        f"      rho ({BLIND_BIT_BASE} + i) = Bool.toZMod bits[i]! := by",
         "    intro i hi",
         "    rw [← seg46BlindBits_get rho i hi, hbits]",
         "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),",
@@ -1128,7 +1129,7 @@ def generate(output_contracts: Path, write_literal: bool) -> None:
     print(f"blinding ladder: {len(blind)} rungs ({len(blind) - n_late} 5-row, {n_late} 8-row)")
     if write_literal:
         literal = with_generated_header(emit_fixed_base_literal(seating["rows"]))
-        (FORMAL / "NbFixedBaseLiteral.lean").write_text(literal)
+        write_if_changed(FORMAL / "NbFixedBaseLiteral.lean", literal)
         print(f"wrote NbFixedBaseLiteral.lean ({len(literal.splitlines())} lines)")
 
     output_contracts.mkdir(parents=True, exist_ok=True)
@@ -1138,7 +1139,7 @@ def generate(output_contracts: Path, write_literal: bool) -> None:
             if stale.stem not in modules:
                 stale.unlink()
     for module, contents in modules.items():
-        (output_contracts / f"{module}.lean").write_text(contents)
+        write_if_changed(output_contracts / f"{module}.lean", contents)
     print(f"wrote {len(modules)} seg46 adapter modules")
 
 

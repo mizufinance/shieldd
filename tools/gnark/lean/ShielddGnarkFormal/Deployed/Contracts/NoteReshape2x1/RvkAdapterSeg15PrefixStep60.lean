@@ -21,16 +21,16 @@ theorem seg15_prefix_step60 (rho : Nat -> Seg15.F)
     (r550 : Seg15.relationRow550 rho)
     (r551 : Seg15.relationRow551 rho)
     (hacc : onCurve (seg15RvkAcc rho 60)) :
-    RvkFixedBaseLadder.FixedStepRel 60 (rho 16196)
+    RvkFixedBaseLadder.FixedStepRel 60 (rho 16190)
       (seg15RvkAcc rho 60) (seg15RvkAcc rho (60 + 1)) := by
-  have hbrow60 : (1*(rho 16196))*(1 + (-1)*(rho 16196)) = 0 := by
+  have hbrow60 : (1*(rho 16190))*(1 + (-1)*(rho 16190)) = 0 := by
     simpa [Seg15.relationRow60] using r60
-  have hinput : onCurve ((⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX59 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY59 rho : Seg15.F)⟩ : EdwardsBridge.Point)) := by
+  have hinput : onCurve ((⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16130 + seg15AccX59 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16130 + seg15AccY59 rho : Seg15.F)⟩ : EdwardsBridge.Point)) := by
     exact hacc
-  have hr60 : RvkFixedBaseLadder.FixedStepRel 60 (rho 16196)
-      ((⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX59 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY59 rho : Seg15.F)⟩ : EdwardsBridge.Point)) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16136 + seg15AccX60 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16136 + seg15AccY60 rho : Seg15.F)⟩ : EdwardsBridge.Point) := by
+  have hr60 : RvkFixedBaseLadder.FixedStepRel 60 (rho 16190)
+      ((⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16130 + seg15AccX59 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16130 + seg15AccY59 rho : Seg15.F)⟩ : EdwardsBridge.Point)) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 16130 + seg15AccX60 rho : Seg15.F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 16130 + seg15AccY60 rho : Seg15.F)⟩ : EdwardsBridge.Point) := by
     simpa [Shieldd.GnarkFormal.RvkFixedGenInst0.acc60, seg15AccX60, seg15AccY60, add_assoc] using
-      Shieldd.GnarkFormal.RvkFixedGenInst0.rung60_wide (rho 16136 : Seg15.F) (rho 16196 : Seg15.F) (seg15AccX59 rho : Seg15.F) (seg15AccY59 rho : Seg15.F) (rho 16682 : Seg15.F) (rho 16683 : Seg15.F) (rho 16684 : Seg15.F) (rho 16685 : Seg15.F) (rho 16686 : Seg15.F) hinput
+      Shieldd.GnarkFormal.RvkFixedGenInst0.rung60_wide (rho 16130 : Seg15.F) (rho 16190 : Seg15.F) (seg15AccX59 rho : Seg15.F) (seg15AccY59 rho : Seg15.F) (rho 16676 : Seg15.F) (rho 16677 : Seg15.F) (rho 16678 : Seg15.F) (rho 16679 : Seg15.F) (rho 16680 : Seg15.F) hinput
         (by simpa using seg15_prefix_60_v2 rho r547)
         (by simpa using seg15_prefix_60_addX rho r548)
         (by simpa using seg15_prefix_60_addY rho r549)

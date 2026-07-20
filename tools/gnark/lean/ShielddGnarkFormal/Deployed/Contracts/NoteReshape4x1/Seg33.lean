@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contract
-import ShielddGnarkFormal.Deployed.Templates.Simple
+import ShielddGnarkFormal.Deployed.Templates.Core
+import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEq_047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e
 import Mathlib.Data.ZMod.Basic
 
 set_option maxRecDepth 1000000
@@ -10,7 +11,7 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg33
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
 
-def wireSeatingTable : List Nat := [0, 20, 27633, 21, 27634, 27635]
+def wireSeatingTable : List Nat := [0, 16]
 
 def wireSeating : Nat -> Nat :=
 fun localWire => wireSeatingTable.getD localWire 0
@@ -19,15 +20,15 @@ def localRho (rho : Nat -> F) : Nat -> F :=
     Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating
 
 def relation (rho : Nat -> F) : Prop :=
-    Shieldd.GnarkFormal.Deployed.Templates.Simple.onCurveRelation (localRho rho)
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e.relation (localRho rho)
 
 def spec (rho : Nat -> F) : Prop :=
-    Shieldd.GnarkFormal.Deployed.Templates.Simple.onCurveSpec (localRho rho)
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e.spec (localRho rho)
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 33,
-relationSha256Hex := "7904738f49be557dcc1dd6b36f3b3045462bd75a2cb8f2edb1e45bd9f0d70f4d",
-wireRoleSha256Hex := "aa1fb323717fb92c84c7290b52638e2419a78412bb0057badd6e8ee39df0af94",
+relationSha256Hex := "9af6da6022d906317eb385666f1bd03373430abdf6bf2fa224a57c74d78f7bf3",
+wireRoleSha256Hex := "ac61f09ebc6d63d3ab0f3aad3f874f6e380cbd975517c2740cd49a4fc4c7e23e",
 relation := relation,
 spec := spec
 }

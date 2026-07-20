@@ -40,7 +40,7 @@ theorem dtkCanon2_compare_chunk9 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 147 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 148 = rho 1578 from rfl]
+    rw [show dtkCanon2Flag rho 148 = rho 1572 from rfl]
     linear_combination r932
   · have hb : pmBit 148 = true := by decide +kernel
     simp [hb] at hpm
@@ -48,19 +48,19 @@ theorem dtkCanon2_compare_chunk9 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 150 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 151 = rho 1576 from rfl]
+    rw [show dtkCanon2Flag rho 151 = rho 1570 from rfl]
     linear_combination r931
   · erw [dtkCanon2Bits_get rho 151 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 152 = rho 1576 from rfl]
+    rw [show dtkCanon2Flag rho 152 = rho 1570 from rfl]
     linear_combination r930
   · erw [dtkCanon2Bits_get rho 152 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 153 = rho 1576 from rfl]
+    rw [show dtkCanon2Flag rho 153 = rho 1570 from rfl]
     linear_combination r929
   · erw [dtkCanon2Bits_get rho 153 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 154 = rho 1576 from rfl]
+    rw [show dtkCanon2Flag rho 154 = rho 1570 from rfl]
     linear_combination r928
   · have hb : pmBit 154 = true := by decide +kernel
     simp [hb] at hpm
@@ -70,13 +70,13 @@ theorem dtkCanon2_compare_chunk9 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 157 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 158 = rho 1573 from rfl]
+    rw [show dtkCanon2Flag rho 158 = rho 1567 from rfl]
     linear_combination r927
   · have hb : pmBit 158 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon2Bits_get rho 159 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 160 = rho 1572 from rfl]
+    rw [show dtkCanon2Flag rho 160 = rho 1566 from rfl]
     linear_combination r926
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

@@ -34,7 +34,7 @@ theorem seg46Blind_rows121 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r509, r1240, r1241, r1242, r1243, r1244⟩
 
 theorem seg46Blind_rung121 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31782 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31776 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 121)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       121 (Bool.toZMod bit) (seg46BlindAccState rho 121)
@@ -63,26 +63,26 @@ theorem seg46Blind_rung121 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1244
 
   have hnextx : seg46BlindDeltaX121 rho =
-      seg46BlindDeltaX120 rho + rho 32515 := by
+      seg46BlindDeltaX120 rho + rho 32509 := by
     unfold seg46BlindDeltaX121 seg46BlindDeltaX120
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 120]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 120]
 
     ring
 
   have hnexty : seg46BlindDeltaY121 rho =
-      seg46BlindDeltaY120 rho + rho 32516 := by
+      seg46BlindDeltaY120 rho + rho 32510 := by
     unfold seg46BlindDeltaY121 seg46BlindDeltaY120
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 120]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 120]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 121
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX120 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY120 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX121 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY121 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX120 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY120 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX121 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY121 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung121_wide (rho 31661) (rho 31782) (seg46BlindDeltaX120 rho) (seg46BlindDeltaY120 rho) (rho 32512) (rho 32513) (rho 32514) (rho 32515) (rho 32516) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung121_wide (rho 31655) (rho 31776) (seg46BlindDeltaX120 rho) (seg46BlindDeltaY120 rho) (rho 32506) (rho 32507) (rho 32508) (rho 32509) (rho 32510) hacc
   · unfold seg46BlindDeltaX120 seg46BlindDeltaY120
     linear_combination r1240
   · unfold seg46BlindDeltaX120 seg46BlindDeltaY120
@@ -120,7 +120,7 @@ theorem seg46Blind_rows122 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r510, r1245, r1246, r1247, r1248, r1249⟩
 
 theorem seg46Blind_rung122 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31783 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31777 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 122)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       122 (Bool.toZMod bit) (seg46BlindAccState rho 122)
@@ -149,26 +149,26 @@ theorem seg46Blind_rung122 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1249
 
   have hnextx : seg46BlindDeltaX122 rho =
-      seg46BlindDeltaX121 rho + rho 32520 := by
+      seg46BlindDeltaX121 rho + rho 32514 := by
     unfold seg46BlindDeltaX122 seg46BlindDeltaX121
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 121]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 121]
 
     ring
 
   have hnexty : seg46BlindDeltaY122 rho =
-      seg46BlindDeltaY121 rho + rho 32521 := by
+      seg46BlindDeltaY121 rho + rho 32515 := by
     unfold seg46BlindDeltaY122 seg46BlindDeltaY121
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 121]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 121]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 122
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX121 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY121 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX122 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY122 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX121 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY121 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX122 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY122 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung122_wide (rho 31661) (rho 31783) (seg46BlindDeltaX121 rho) (seg46BlindDeltaY121 rho) (rho 32517) (rho 32518) (rho 32519) (rho 32520) (rho 32521) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung122_wide (rho 31655) (rho 31777) (seg46BlindDeltaX121 rho) (seg46BlindDeltaY121 rho) (rho 32511) (rho 32512) (rho 32513) (rho 32514) (rho 32515) hacc
   · unfold seg46BlindDeltaX121 seg46BlindDeltaY121
     linear_combination r1245
   · unfold seg46BlindDeltaX121 seg46BlindDeltaY121
@@ -206,7 +206,7 @@ theorem seg46Blind_rows123 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r511, r1250, r1251, r1252, r1253, r1254⟩
 
 theorem seg46Blind_rung123 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31784 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31778 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 123)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       123 (Bool.toZMod bit) (seg46BlindAccState rho 123)
@@ -235,26 +235,26 @@ theorem seg46Blind_rung123 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1254
 
   have hnextx : seg46BlindDeltaX123 rho =
-      seg46BlindDeltaX122 rho + rho 32525 := by
+      seg46BlindDeltaX122 rho + rho 32519 := by
     unfold seg46BlindDeltaX123 seg46BlindDeltaX122
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 122]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 122]
 
     ring
 
   have hnexty : seg46BlindDeltaY123 rho =
-      seg46BlindDeltaY122 rho + rho 32526 := by
+      seg46BlindDeltaY122 rho + rho 32520 := by
     unfold seg46BlindDeltaY123 seg46BlindDeltaY122
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 122]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 122]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 123
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX122 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY122 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX123 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY123 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX122 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY122 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX123 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY123 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung123_wide (rho 31661) (rho 31784) (seg46BlindDeltaX122 rho) (seg46BlindDeltaY122 rho) (rho 32522) (rho 32523) (rho 32524) (rho 32525) (rho 32526) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung123_wide (rho 31655) (rho 31778) (seg46BlindDeltaX122 rho) (seg46BlindDeltaY122 rho) (rho 32516) (rho 32517) (rho 32518) (rho 32519) (rho 32520) hacc
   · unfold seg46BlindDeltaX122 seg46BlindDeltaY122
     linear_combination r1250
   · unfold seg46BlindDeltaX122 seg46BlindDeltaY122
@@ -292,7 +292,7 @@ theorem seg46Blind_rows124 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r512, r1255, r1256, r1257, r1258, r1259⟩
 
 theorem seg46Blind_rung124 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31785 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31779 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 124)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       124 (Bool.toZMod bit) (seg46BlindAccState rho 124)
@@ -321,26 +321,26 @@ theorem seg46Blind_rung124 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1259
 
   have hnextx : seg46BlindDeltaX124 rho =
-      seg46BlindDeltaX123 rho + rho 32530 := by
+      seg46BlindDeltaX123 rho + rho 32524 := by
     unfold seg46BlindDeltaX124 seg46BlindDeltaX123
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 123]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 123]
 
     ring
 
   have hnexty : seg46BlindDeltaY124 rho =
-      seg46BlindDeltaY123 rho + rho 32531 := by
+      seg46BlindDeltaY123 rho + rho 32525 := by
     unfold seg46BlindDeltaY124 seg46BlindDeltaY123
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 123]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 123]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 124
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX123 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY123 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX124 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY124 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX123 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY123 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX124 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY124 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung124_wide (rho 31661) (rho 31785) (seg46BlindDeltaX123 rho) (seg46BlindDeltaY123 rho) (rho 32527) (rho 32528) (rho 32529) (rho 32530) (rho 32531) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung124_wide (rho 31655) (rho 31779) (seg46BlindDeltaX123 rho) (seg46BlindDeltaY123 rho) (rho 32521) (rho 32522) (rho 32523) (rho 32524) (rho 32525) hacc
   · unfold seg46BlindDeltaX123 seg46BlindDeltaY123
     linear_combination r1255
   · unfold seg46BlindDeltaX123 seg46BlindDeltaY123
@@ -378,7 +378,7 @@ theorem seg46Blind_rows125 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r513, r1260, r1261, r1262, r1263, r1264⟩
 
 theorem seg46Blind_rung125 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31786 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31780 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 125)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       125 (Bool.toZMod bit) (seg46BlindAccState rho 125)
@@ -407,26 +407,26 @@ theorem seg46Blind_rung125 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1264
 
   have hnextx : seg46BlindDeltaX125 rho =
-      seg46BlindDeltaX124 rho + rho 32535 := by
+      seg46BlindDeltaX124 rho + rho 32529 := by
     unfold seg46BlindDeltaX125 seg46BlindDeltaX124
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 124]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 124]
 
     ring
 
   have hnexty : seg46BlindDeltaY125 rho =
-      seg46BlindDeltaY124 rho + rho 32536 := by
+      seg46BlindDeltaY124 rho + rho 32530 := by
     unfold seg46BlindDeltaY125 seg46BlindDeltaY124
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 124]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 124]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 125
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX124 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY124 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX125 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY125 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX124 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY124 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX125 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY125 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung125_wide (rho 31661) (rho 31786) (seg46BlindDeltaX124 rho) (seg46BlindDeltaY124 rho) (rho 32532) (rho 32533) (rho 32534) (rho 32535) (rho 32536) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung125_wide (rho 31655) (rho 31780) (seg46BlindDeltaX124 rho) (seg46BlindDeltaY124 rho) (rho 32526) (rho 32527) (rho 32528) (rho 32529) (rho 32530) hacc
   · unfold seg46BlindDeltaX124 seg46BlindDeltaY124
     linear_combination r1260
   · unfold seg46BlindDeltaX124 seg46BlindDeltaY124
@@ -464,7 +464,7 @@ theorem seg46Blind_rows126 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r514, r1265, r1266, r1267, r1268, r1269⟩
 
 theorem seg46Blind_rung126 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31787 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31781 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 126)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       126 (Bool.toZMod bit) (seg46BlindAccState rho 126)
@@ -493,26 +493,26 @@ theorem seg46Blind_rung126 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1269
 
   have hnextx : seg46BlindDeltaX126 rho =
-      seg46BlindDeltaX125 rho + rho 32540 := by
+      seg46BlindDeltaX125 rho + rho 32534 := by
     unfold seg46BlindDeltaX126 seg46BlindDeltaX125
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 125]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 125]
 
     ring
 
   have hnexty : seg46BlindDeltaY126 rho =
-      seg46BlindDeltaY125 rho + rho 32541 := by
+      seg46BlindDeltaY125 rho + rho 32535 := by
     unfold seg46BlindDeltaY126 seg46BlindDeltaY125
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 125]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 125]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 126
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX125 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY125 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX126 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY126 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX125 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY125 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX126 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY126 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung126_wide (rho 31661) (rho 31787) (seg46BlindDeltaX125 rho) (seg46BlindDeltaY125 rho) (rho 32537) (rho 32538) (rho 32539) (rho 32540) (rho 32541) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung126_wide (rho 31655) (rho 31781) (seg46BlindDeltaX125 rho) (seg46BlindDeltaY125 rho) (rho 32531) (rho 32532) (rho 32533) (rho 32534) (rho 32535) hacc
   · unfold seg46BlindDeltaX125 seg46BlindDeltaY125
     linear_combination r1265
   · unfold seg46BlindDeltaX125 seg46BlindDeltaY125
@@ -550,7 +550,7 @@ theorem seg46Blind_rows127 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r515, r1270, r1271, r1272, r1273, r1274⟩
 
 theorem seg46Blind_rung127 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31788 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31782 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 127)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       127 (Bool.toZMod bit) (seg46BlindAccState rho 127)
@@ -579,26 +579,26 @@ theorem seg46Blind_rung127 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1274
 
   have hnextx : seg46BlindDeltaX127 rho =
-      seg46BlindDeltaX126 rho + rho 32545 := by
+      seg46BlindDeltaX126 rho + rho 32539 := by
     unfold seg46BlindDeltaX127 seg46BlindDeltaX126
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 126]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 126]
 
     ring
 
   have hnexty : seg46BlindDeltaY127 rho =
-      seg46BlindDeltaY126 rho + rho 32546 := by
+      seg46BlindDeltaY126 rho + rho 32540 := by
     unfold seg46BlindDeltaY127 seg46BlindDeltaY126
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 126]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 126]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 127
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX126 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY126 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX127 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY127 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX126 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY126 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX127 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY127 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung127_wide (rho 31661) (rho 31788) (seg46BlindDeltaX126 rho) (seg46BlindDeltaY126 rho) (rho 32542) (rho 32543) (rho 32544) (rho 32545) (rho 32546) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung127_wide (rho 31655) (rho 31782) (seg46BlindDeltaX126 rho) (seg46BlindDeltaY126 rho) (rho 32536) (rho 32537) (rho 32538) (rho 32539) (rho 32540) hacc
   · unfold seg46BlindDeltaX126 seg46BlindDeltaY126
     linear_combination r1270
   · unfold seg46BlindDeltaX126 seg46BlindDeltaY126
@@ -636,7 +636,7 @@ theorem seg46Blind_rows128 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r516, r1275, r1276, r1277, r1278, r1279⟩
 
 theorem seg46Blind_rung128 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31789 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31783 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 128)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       128 (Bool.toZMod bit) (seg46BlindAccState rho 128)
@@ -665,26 +665,26 @@ theorem seg46Blind_rung128 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1279
 
   have hnextx : seg46BlindDeltaX128 rho =
-      seg46BlindDeltaX127 rho + rho 32550 := by
+      seg46BlindDeltaX127 rho + rho 32544 := by
     unfold seg46BlindDeltaX128 seg46BlindDeltaX127
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 127]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 127]
 
     ring
 
   have hnexty : seg46BlindDeltaY128 rho =
-      seg46BlindDeltaY127 rho + rho 32551 := by
+      seg46BlindDeltaY127 rho + rho 32545 := by
     unfold seg46BlindDeltaY128 seg46BlindDeltaY127
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 127]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 127]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 128
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX127 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY127 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX128 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY128 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX127 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY127 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX128 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY128 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung128_wide (rho 31661) (rho 31789) (seg46BlindDeltaX127 rho) (seg46BlindDeltaY127 rho) (rho 32547) (rho 32548) (rho 32549) (rho 32550) (rho 32551) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung128_wide (rho 31655) (rho 31783) (seg46BlindDeltaX127 rho) (seg46BlindDeltaY127 rho) (rho 32541) (rho 32542) (rho 32543) (rho 32544) (rho 32545) hacc
   · unfold seg46BlindDeltaX127 seg46BlindDeltaY127
     linear_combination r1275
   · unfold seg46BlindDeltaX127 seg46BlindDeltaY127
@@ -722,7 +722,7 @@ theorem seg46Blind_rows129 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r517, r1280, r1281, r1282, r1283, r1284⟩
 
 theorem seg46Blind_rung129 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31790 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31784 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 129)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       129 (Bool.toZMod bit) (seg46BlindAccState rho 129)
@@ -751,26 +751,26 @@ theorem seg46Blind_rung129 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1284
 
   have hnextx : seg46BlindDeltaX129 rho =
-      seg46BlindDeltaX128 rho + rho 32555 := by
+      seg46BlindDeltaX128 rho + rho 32549 := by
     unfold seg46BlindDeltaX129 seg46BlindDeltaX128
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 128]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 128]
 
     ring
 
   have hnexty : seg46BlindDeltaY129 rho =
-      seg46BlindDeltaY128 rho + rho 32556 := by
+      seg46BlindDeltaY128 rho + rho 32550 := by
     unfold seg46BlindDeltaY129 seg46BlindDeltaY128
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 128]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 128]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 129
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX128 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY128 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX129 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY129 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX128 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY128 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX129 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY129 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung129_wide (rho 31661) (rho 31790) (seg46BlindDeltaX128 rho) (seg46BlindDeltaY128 rho) (rho 32552) (rho 32553) (rho 32554) (rho 32555) (rho 32556) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung129_wide (rho 31655) (rho 31784) (seg46BlindDeltaX128 rho) (seg46BlindDeltaY128 rho) (rho 32546) (rho 32547) (rho 32548) (rho 32549) (rho 32550) hacc
   · unfold seg46BlindDeltaX128 seg46BlindDeltaY128
     linear_combination r1280
   · unfold seg46BlindDeltaX128 seg46BlindDeltaY128
@@ -808,7 +808,7 @@ theorem seg46Blind_rows130 (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   exact ⟨r518, r1285, r1286, r1287, r1288, r1289⟩
 
 theorem seg46Blind_rung130 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
-    (bit : Bool) (hbitValue : rho 31791 = Bool.toZMod bit)
+    (bit : Bool) (hbitValue : rho 31785 = Bool.toZMod bit)
     (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho 130)) :
     Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel
       130 (Bool.toZMod bit) (seg46BlindAccState rho 130)
@@ -837,26 +837,26 @@ theorem seg46Blind_rung130 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
   simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r1289
 
   have hnextx : seg46BlindDeltaX130 rho =
-      seg46BlindDeltaX129 rho + rho 32560 := by
+      seg46BlindDeltaX129 rho + rho 32554 := by
     unfold seg46BlindDeltaX130 seg46BlindDeltaX129
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31915 5 129]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31909 5 129]
 
     ring
 
   have hnexty : seg46BlindDeltaY130 rho =
-      seg46BlindDeltaY129 rho + rho 32561 := by
+      seg46BlindDeltaY129 rho + rho 32555 := by
     unfold seg46BlindDeltaY130 seg46BlindDeltaY129
-    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31916 5 129]
+    rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 31910 5 129]
 
     ring
 
   change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel 130
-    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX129 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY129 rho : Seg46.F)⟩
-    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31661 + seg46BlindDeltaX130 rho : Seg46.F),
-      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31661 + seg46BlindDeltaY130 rho : Seg46.F)⟩
+    (Bool.toZMod bit) ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX129 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY129 rho : Seg46.F)⟩
+    ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : Seg46.F) * rho 31655 + seg46BlindDeltaX130 rho : Seg46.F),
+      ((1 : Seg46.F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : Seg46.F) * rho 31655 + seg46BlindDeltaY130 rho : Seg46.F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung130_wide (rho 31661) (rho 31791) (seg46BlindDeltaX129 rho) (seg46BlindDeltaY129 rho) (rho 32557) (rho 32558) (rho 32559) (rho 32560) (rho 32561) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung130_wide (rho 31655) (rho 31785) (seg46BlindDeltaX129 rho) (seg46BlindDeltaY129 rho) (rho 32551) (rho 32552) (rho 32553) (rho 32554) (rho 32555) hacc
   · unfold seg46BlindDeltaX129 seg46BlindDeltaY129
     linear_combination r1285
   · unfold seg46BlindDeltaX129 seg46BlindDeltaY129
@@ -871,7 +871,7 @@ theorem seg46Blind_rung130 (rho : Nat -> Seg46.F) (h : Seg46.relation rho)
 
 theorem seg46Blind_hstep_c12 (rho : Nat -> Seg46.F)
     (h : Seg46.relation rho) (bits : List.Vector Bool 251)
-    (hbitAt : ∀ i, i < 251 → rho (31661 + i) = Bool.toZMod bits[i]!) :
+    (hbitAt : ∀ i, i < 251 → rho (31655 + i) = Bool.toZMod bits[i]!) :
     ∀ i, 121 ≤ i → i < 131 →
       EdwardsBridge.onCurve (seg46BlindAccState rho i) →
       Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i

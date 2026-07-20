@@ -20,7 +20,7 @@ def seg5Rho (rho : Nat → Seg5.F) : Nat → Seg5.F
 | 0 => 1
 | 17 => rho 17
 | 18 => rho 18
-| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + 0) else rho i
+| i => if 210 ≤ i ∧ i ≤ 912 then rho (i - 6) else rho i
 
 theorem seg5_hrec1 (rho : Nat → Seg5.F)
     (p56 : Seg5.relationPart56 rho) :

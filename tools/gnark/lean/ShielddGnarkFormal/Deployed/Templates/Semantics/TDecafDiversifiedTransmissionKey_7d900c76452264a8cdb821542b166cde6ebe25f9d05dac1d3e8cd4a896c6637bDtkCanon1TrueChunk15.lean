@@ -31,53 +31,53 @@ theorem dtkCanon1_flag_step_chunk15 (rho : Nat -> F) (h : Shieldd.GnarkFormal.De
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow287 at r287
   intro m hmlo hmhi
   interval_cases m
-  · rw [show dtkCanon1Flag rho 240 = rho 1192 from rfl, show dtkCanon1Flag rho 241 = rho 1191 from rfl]
+  · rw [show dtkCanon1Flag rho 240 = rho 1186 from rfl, show dtkCanon1Flag rho 241 = rho 1185 from rfl]
     have hb : pmBit 240 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [dtkCanon1Bits_get rho 240 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r287
-  · rw [show dtkCanon1Flag rho 241 = rho 1191 from rfl, show dtkCanon1Flag rho 242 = rho 1190 from rfl]
+  · rw [show dtkCanon1Flag rho 241 = rho 1185 from rfl, show dtkCanon1Flag rho 242 = rho 1184 from rfl]
     have hb : pmBit 241 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [dtkCanon1Bits_get rho 241 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r286
-  · rw [show dtkCanon1Flag rho 242 = rho 1190 from rfl, show dtkCanon1Flag rho 243 = rho 1190 from rfl]
+  · rw [show dtkCanon1Flag rho 242 = rho 1184 from rfl, show dtkCanon1Flag rho 243 = rho 1184 from rfl]
     have hb : pmBit 242 = false := by decide +kernel
     rw [show trueFactor (dtkCanon1Bits rho) 242 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show dtkCanon1Flag rho 243 = rho 1190 from rfl, show dtkCanon1Flag rho 244 = rho 1189 from rfl]
+  · rw [show dtkCanon1Flag rho 243 = rho 1184 from rfl, show dtkCanon1Flag rho 244 = rho 1183 from rfl]
     have hb : pmBit 243 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [dtkCanon1Bits_get rho 243 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r285
-  · rw [show dtkCanon1Flag rho 244 = rho 1189 from rfl, show dtkCanon1Flag rho 245 = rho 1189 from rfl]
+  · rw [show dtkCanon1Flag rho 244 = rho 1183 from rfl, show dtkCanon1Flag rho 245 = rho 1183 from rfl]
     have hb : pmBit 244 = false := by decide +kernel
     rw [show trueFactor (dtkCanon1Bits rho) 244 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show dtkCanon1Flag rho 245 = rho 1189 from rfl, show dtkCanon1Flag rho 246 = rho 1188 from rfl]
+  · rw [show dtkCanon1Flag rho 245 = rho 1183 from rfl, show dtkCanon1Flag rho 246 = rho 1182 from rfl]
     have hb : pmBit 245 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [dtkCanon1Bits_get rho 245 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r284
-  · rw [show dtkCanon1Flag rho 246 = rho 1188 from rfl, show dtkCanon1Flag rho 247 = rho 1188 from rfl]
+  · rw [show dtkCanon1Flag rho 246 = rho 1182 from rfl, show dtkCanon1Flag rho 247 = rho 1182 from rfl]
     have hb : pmBit 246 = false := by decide +kernel
     rw [show trueFactor (dtkCanon1Bits rho) 246 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show dtkCanon1Flag rho 247 = rho 1188 from rfl, show dtkCanon1Flag rho 248 = rho 1187 from rfl]
+  · rw [show dtkCanon1Flag rho 247 = rho 1182 from rfl, show dtkCanon1Flag rho 248 = rho 1181 from rfl]
     have hb : pmBit 247 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [dtkCanon1Bits_get rho 247 (by omega)]
     simp only [Nat.reduceAdd]
     linear_combination -r283
-  · rw [show dtkCanon1Flag rho 248 = rho 1187 from rfl, show dtkCanon1Flag rho 249 = rho 1187 from rfl]
+  · rw [show dtkCanon1Flag rho 248 = rho 1181 from rfl, show dtkCanon1Flag rho 249 = rho 1181 from rfl]
     have hb : pmBit 248 = false := by decide +kernel
     rw [show trueFactor (dtkCanon1Bits rho) 248 = 1 from by simp [trueFactor, hb]]
     ring
-  · rw [show dtkCanon1Flag rho 249 = rho 1187 from rfl, show dtkCanon1Flag rho 250 = rho 276 from rfl]
+  · rw [show dtkCanon1Flag rho 249 = rho 1181 from rfl, show dtkCanon1Flag rho 250 = rho 276 from rfl]
     have hb : pmBit 249 = true := by decide +kernel
     simp only [trueFactor, hb, ↓reduceIte]
     erw [dtkCanon1Bits_get rho 249 (by omega)]

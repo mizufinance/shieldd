@@ -275,8 +275,8 @@ theorem seg15RvkBits_toBinary (rho : Nat -> Seg15.F) (h : Seg15.relation rho) :
   unfold Seg15.relationRow248 at r248
   unfold Seg15.relationRow249 at r249
   unfold Seg15.relationRow250 at r250
-  have hrecover := recover_ofFn_eq_recBits rho 16136 251
-  have hacc : powSumAcc rho 0 1 16136 251 = rho 97 := by
+  have hrecover := recover_ofFn_eq_recBits rho 16130 251
+  have hacc : powSumAcc rho 0 1 16130 251 = rho 97 := by
     unfold Seg15.relationRow251 Seg15.relationLc0 Seg15.relationLc0Part0 Seg15.relationLc0Part1 Seg15.relationLc0Part2 Seg15.relationLc0Part3 Seg15.relationLc0Part4 Seg15.relationLc0Part5 Seg15.relationLc0Part6 Seg15.relationLc0Part7 at r251
     simp only [powSumAcc]
     linear_combination r251
@@ -288,7 +288,7 @@ theorem seg15RvkBits_toBinary (rho : Nat -> Seg15.F) (h : Seg15.relation rho) :
   apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 97) (seg15RvkBits rho)
   · intro i hi
     have key := seg15RvkBits_get rho i hi
-    have hgoal : rho (16136 + i) * (1 - rho (16136 + i)) = 0 := by
+    have hgoal : rho (16130 + i) * (1 - rho (16130 + i)) = 0 := by
       interval_cases i
       · linear_combination r0
       · linear_combination r1
@@ -541,7 +541,7 @@ theorem seg15RvkBits_toBinary (rho : Nat -> Seg15.F) (h : Seg15.relation rho) :
       · linear_combination r248
       · linear_combination r249
       · linear_combination r250
-    have key' : (seg15RvkBits rho)[i] = rho (16136 + i) := by
+    have key' : (seg15RvkBits rho)[i] = rho (16130 + i) := by
       rw [← getElem!_pos (seg15RvkBits rho) i (by simpa using hi)]
       exact key
     exact key' ▸ hgoal

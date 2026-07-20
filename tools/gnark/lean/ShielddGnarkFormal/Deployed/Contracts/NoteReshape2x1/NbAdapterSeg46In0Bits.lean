@@ -289,9 +289,9 @@ theorem seg46In0Bits_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
 
   unfold Seg46.relationRow127 at r127
 
-  have hrecover := recover_ofFn_eq_recBits rho 31277 128
+  have hrecover := recover_ofFn_eq_recBits rho 31271 128
 
-  have hacc : powSumAcc rho 0 1 31277 128 = rho 15 := by
+  have hacc : powSumAcc rho 0 1 31271 128 = rho 15 := by
 
     unfold Seg46.relationRow128 Seg46.relationLc0 Seg46.relationLc0Part0 Seg46.relationLc0Part1 Seg46.relationLc0Part2 Seg46.relationLc0Part3 at r128
 
@@ -312,7 +312,7 @@ theorem seg46In0Bits_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
   apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 15) (seg46In0Bits rho)
   · intro i hi
     have key := seg46In0Bits_get rho i hi
-    have hgoal : rho (31277 + i) * (1 - rho (31277 + i)) = 0 := by
+    have hgoal : rho (31271 + i) * (1 - rho (31271 + i)) = 0 := by
       interval_cases i
       · linear_combination r0
       · linear_combination r1
@@ -442,7 +442,7 @@ theorem seg46In0Bits_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
       · linear_combination r125
       · linear_combination r126
       · linear_combination r127
-    have key' : (seg46In0Bits rho)[i] = rho (31277 + i) := by
+    have key' : (seg46In0Bits rho)[i] = rho (31271 + i) := by
       rw [← getElem!_pos (seg46In0Bits rho) i (by simpa using hi)]
       exact key
     exact key' ▸ hgoal

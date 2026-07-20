@@ -36,13 +36,11 @@ impl NoteReshapeFamilyId {
 pub struct NoteReshapeInputPublic {
     pub nullifier: Nullifier,
     pub rk: VerificationKey<SpendAuth>,
-    pub is_dummy: bool,
 }
 
 #[derive(Clone, Debug)]
 pub struct NoteReshapeOutputPublic {
     pub note_commitment: tct::StateCommitment,
-    pub is_dummy: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -71,37 +69,6 @@ impl NoteReshapeProofPublic {
             spec.n_out,
             self.outputs.len()
         );
-        validate_dummy_suffix(
-            "input",
-            &self
-                .inputs
-                .iter()
-                .map(|input| input.is_dummy)
-                .collect::<Vec<_>>(),
-        )?;
-        validate_dummy_suffix(
-            "output",
-            &self
-                .outputs
-                .iter()
-                .map(|output| output.is_dummy)
-                .collect::<Vec<_>>(),
-        )?;
-        ensure!(
-            !self.inputs[0].is_dummy,
-            "note reshape input slot 0 must be real"
-        );
-        ensure!(
-            !self.outputs[0].is_dummy,
-            "note reshape output slot 0 must be real"
-        );
-        self.family_id.validate_real_counts(
-            self.inputs.iter().filter(|input| !input.is_dummy).count(),
-            self.outputs
-                .iter()
-                .filter(|output| !output.is_dummy)
-                .count(),
-        )?;
         Ok(())
     }
 
@@ -127,15 +94,14 @@ pub struct NoteReshapeInputPrivate {
     pub state_commitment_proof: tct::Proof,
     pub spent_note: Note,
     pub spend_auth_randomizer: Fr,
-    pub is_dummy: bool,
-    pub dummy_nullifier_seed: Fq,
-    pub dummy_spend_auth_key: Fr,
+    pub(crate) is_dummy: bool,
+    pub(crate) dummy_nullifier_seed: Fq,
+    pub(crate) dummy_spend_auth_key: Fr,
 }
 
 #[derive(Clone, Debug)]
 pub struct NoteReshapeOutputPrivate {
     pub created_note: Note,
-    pub is_dummy: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -165,36 +131,30 @@ impl NoteReshapeProofPrivate {
             spec.n_out,
             self.outputs.len()
         );
-        validate_dummy_suffix(
-            "private input",
-            &self
-                .inputs
-                .iter()
-                .map(|input| input.is_dummy)
-                .collect::<Vec<_>>(),
-        )?;
-        validate_dummy_suffix(
-            "private output",
-            &self
-                .outputs
-                .iter()
-                .map(|output| output.is_dummy)
-                .collect::<Vec<_>>(),
-        )?;
-        ensure!(
-            !self.inputs[0].is_dummy,
-            "note reshape input slot 0 must be real"
-        );
-        ensure!(
-            !self.outputs[0].is_dummy,
-            "note reshape output slot 0 must be real"
-        );
+        if self.family_id.spec().input_padding
+            == super::generated::InputPaddingPolicy::SyntheticPrivate
+        {
+            validate_dummy_suffix(
+                "private input",
+                &self
+                    .inputs
+                    .iter()
+                    .map(|input| input.is_dummy)
+                    .collect::<Vec<_>>(),
+            )?;
+            ensure!(
+                !self.inputs[0].is_dummy,
+                "note reshape input slot 0 must be real"
+            );
+        } else {
+            ensure!(
+                self.inputs.iter().all(|input| !input.is_dummy),
+                "fixed note reshape inputs cannot be dummy"
+            );
+        }
         self.family_id.validate_real_counts(
             self.inputs.iter().filter(|input| !input.is_dummy).count(),
-            self.outputs
-                .iter()
-                .filter(|output| !output.is_dummy)
-                .count(),
+            self.outputs.len(),
         )?;
         Ok(())
     }
@@ -307,5 +267,91 @@ impl TryFrom<pb::ZkNoteReshapeProof> for NoteReshapeProof {
 
     fn try_from(value: pb::ZkNoteReshapeProof) -> Result<Self, Self::Error> {
         Ok(Self { inner: value.inner })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NoteReshapeProof;
+    use crate::{note_reshape::NoteReshapeFamilyId, test_proof_helpers::proof_test_helpers};
+
+    #[test]
+    fn note_reshape_proof_public_shape_rejects_wrong_input_and_output_shapes() {
+        for family_id in NoteReshapeFamilyId::ALL {
+            let (mut public, _) =
+                proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            public.inputs.pop();
+            assert!(
+                public.validate_shape().is_err(),
+                "{} must reject an input shape mutation",
+                family_id.label()
+            );
+
+            let (mut public, _) =
+                proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            public.outputs.pop();
+            assert!(
+                public.validate_shape().is_err(),
+                "{} must reject an output shape mutation",
+                family_id.label()
+            );
+        }
+    }
+
+    #[cfg(any(unix, windows))]
+    fn should_skip_note_reshape_proof_roundtrip() -> bool {
+        if cfg!(debug_assertions) {
+            eprintln!(
+                "skipping note_reshape GNARK proof roundtrip in debug builds; use `cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys note_reshape_fresh_fixture_proof_roundtrip --lib` for real proving"
+            );
+            return true;
+        }
+        if crate::gnark::GnarkNoteReshapeClient::env_override_configured() {
+            return false;
+        }
+        let has_library = crate::gnark::GnarkNoteReshapeClient::bundled_lib_path().is_some()
+            || crate::gnark::GnarkNoteReshapeClient::auto_lib_path().is_some();
+        let has_proving_keys = NoteReshapeFamilyId::ALL
+            .into_iter()
+            .all(|family_id| !family_id.proving_key_bytes().is_empty());
+        if !has_library || !has_proving_keys {
+            eprintln!(
+                "skipping note_reshape GNARK proof roundtrip: no bundled or external prover transport is available"
+            );
+            return true;
+        }
+        false
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn note_reshape_fresh_fixture_proof_roundtrip_rejects_cross_family_vks() {
+        if should_skip_note_reshape_proof_roundtrip() {
+            return;
+        }
+
+        for family_id in NoteReshapeFamilyId::ALL {
+            let (public, private) =
+                proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            let proof = NoteReshapeProof::prove(public.clone(), private)
+                .unwrap_or_else(|error| panic!("prove {} fixture: {error}", family_id.label()));
+            proof
+                .verify(&public)
+                .unwrap_or_else(|error| panic!("verify {} fixture: {error}", family_id.label()));
+
+            for other_family in NoteReshapeFamilyId::ALL {
+                if other_family == family_id {
+                    continue;
+                }
+                assert!(
+                    proof
+                        .verify_with_prepared_vk(&public, other_family.proof_verification_key())
+                        .is_err(),
+                    "{} proof must not verify with {} VK",
+                    family_id.label(),
+                    other_family.label()
+                );
+            }
+        }
     }
 }

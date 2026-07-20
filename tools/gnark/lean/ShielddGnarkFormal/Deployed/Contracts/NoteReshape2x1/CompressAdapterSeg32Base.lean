@@ -18,9 +18,9 @@ instance seg32FactPrime : Fact (Nat.Prime Seg32.Order) :=
 
 def seg32Rho (rho : Nat → Seg32.F) : Nat → Seg32.F
 | 0 => 1
-| 17 => rho 102
-| 18 => rho 103
-| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + 29920) else rho i
+| 17 => rho 99
+| 18 => rho 100
+| i => if 210 ≤ i ∧ i ≤ 912 then rho (i + 29914) else rho i
 
 theorem seg32_hrec1 (rho : Nat → Seg32.F)
     (p56 : Seg32.relationPart56 rho) :

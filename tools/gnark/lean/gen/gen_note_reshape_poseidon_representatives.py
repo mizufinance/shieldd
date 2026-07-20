@@ -83,8 +83,13 @@ instance templateFactPrime : Fact (Nat.Prime Order) :=
 def _note_context():
     key, name = NOTE_KEY, NAMES[NOTE_KEY]
     segment = _segment(key, 9, 430)
-    extracted = poseidon.parse_segments("GadgetNoteCommitmentWithOutput431_7f228e")
-    deployed = poseidon.note_mapping(0, 5565, 572, 912)
+    stem = "GadgetNoteCommitmentWithOutput431_7f228e"
+    extracted = poseidon.parse_segments(stem)
+    deployed_local = poseidon.derive_mapping(stem, RELATIONS.glob(f"{name}Defs*.lean"))
+    deployed = {
+        wire: segment["wire_seating"][local]
+        for wire, local in deployed_local.items()
+    }
     used = {
         int(w[1:])
         for index, part in extracted.items()
@@ -96,7 +101,6 @@ def _note_context():
     namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}"
     relation = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}"
     relation_import = relation.replace("Shieldd.GnarkFormal", "ShielddGnarkFormal")
-    stem = "GadgetNoteCommitmentWithOutput431_7f228e"
     extracted_ns = f"Shieldd.GnarkFormal.Extracted.Deployed.{stem}"
     return extracted, mapping, namespace, relation, relation_import, stem, extracted_ns
 
@@ -156,8 +160,8 @@ def _note_provider() -> str:
     prefix = "template"
     final = ["w1312", "w1317", "w1322", "w1327", "w1332", "w1337", "w1342"]
     nested = poseidon.build_nested(extracted_ns, extracted, mapping, 0, 85, poseidon.conj_eq(final, mapping))
-    input_ids = (14, 15, 16, 19, 22, 572, 912)
-    output_ids = (6877, 6882, 6887, 6892, 6897, 6902, 6907)
+    input_ids = tuple(segment["wire_roles"]["input"])
+    output_ids = tuple(segment["wire_roles"]["output"])
     inverse = {global_wire: local for local, global_wire in enumerate(segment["wire_seating"])}
     spec = (
         "def spec (rho : Nat → F) : Prop :=\n"
@@ -237,9 +241,10 @@ def _nullifier_provider() -> str:
         poseidon.conj_eq([f"w{wire}" for wire in final], mapping),
     )
     inverse = {global_wire: local for local, global_wire in enumerate(segment["wire_seating"])}
+    output_ids = tuple(segment["wire_roles"]["output"])
     spec = f"""def spec (rho : Nat → F) : Prop :=
   Shieldd.GnarkFormal.Deployed.Nullifier.s38_1
-      (rho {inverse[7202]}) (rho {inverse[7207]}) (rho {inverse[7212]}) (rho {inverse[7217]}) =
+      {' '.join(f'(rho {inverse[wire]})' for wire in output_ids)} =
     Shieldd.GnarkFormal.Poseidon3Bridge.permSpec3
       Shieldd.GnarkFormal.Poseidon3Bridge.nullifierDomainLit
       (rho {inverse[8]}) (rho {inverse[23]}) (rho {inverse[24]})

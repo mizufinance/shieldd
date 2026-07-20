@@ -6,93 +6,89 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8
 
 open Shieldd.GnarkFormal
 
-/-- Exact deployed control obligations. -/
-structure ControlSpec (rho : Nat → DeployedF) : Prop where
-  AssertBooleanSeg1 : Seg1.contract.spec rho
-  AssertBooleanSeg2 : Seg2.contract.spec rho
-  AssertBooleanSeg3 : Seg3.contract.spec rho
-  AssertBooleanSeg4 : Seg4.contract.spec rho
-  AssertBooleanSeg5 : Seg5.contract.spec rho
-  AssertBooleanSeg6 : Seg6.contract.spec rho
-  AssertBooleanSeg7 : Seg7.contract.spec rho
-  AssertBooleanSeg8 : Seg8.contract.spec rho
-  AssertBooleanSeg9 : Seg9.contract.spec rho
-  AssertDummySuffixSeg10 : Seg10.contract.spec rho
-  AssertDummySuffixSeg11 : Seg11.contract.spec rho
-  AssertActiveRangeSeg12 : Seg12.contract.spec rho
-  AssertActiveRangeSeg13 : Seg13.contract.spec rho
-  AssertEqIfSeg23 : Seg23.contract.spec rho
-  AssertEqIfSeg26 : Seg26.contract.spec rho
-  DummyMuxSeg28 : Seg28.contract.spec rho
-  AssertEqIfSeg36 : Seg36.contract.spec rho
-  AssertEqIfSeg51 : Seg51.contract.spec rho
-  AssertEqIfSeg61 : Seg61.contract.spec rho
-  AssertEqIfSeg71 : Seg71.contract.spec rho
-  AssertEqIfSeg81 : Seg81.contract.spec rho
-  AssertEqIfSeg91 : Seg91.contract.spec rho
-  AssertEqIfSeg101 : Seg101.contract.spec rho
-  AssertEqIfSeg111 : Seg111.contract.spec rho
-  AssertEqIfSeg121 : Seg121.contract.spec rho
-
 /-- Exact deployed shared obligations. -/
 structure SharedSpec (rho : Nat → DeployedF) : Prop where
-  DecafAssertOnCurveSeg15 : Seg15.contract.spec rho
-  DecafAssertOnCurveSeg16 : Seg16.contract.spec rho
-  DecafAssertOnCurveSeg17 : Seg17.contract.spec rho
-  DecafCompressToFieldSeg18 : Seg18.contract.spec rho
-  DecafDiversifiedTransmissionKeySeg19 : Seg19.contract.spec rho
-  DecafAssertEquivalentSeg20 : Seg20.contract.spec rho
+  DecafAssertOnCurveSeg2 : Seg2.contract.spec rho
+  DecafAssertOnCurveSeg3 : Seg3.contract.spec rho
+  DecafAssertOnCurveSeg4 : Seg4.contract.spec rho
+  DecafCompressToFieldSeg5 : Seg5.contract.spec rho
+  DecafDiversifiedTransmissionKeySeg6 : Seg6.contract.spec rho
+  DecafAssertEquivalentSeg7 : Seg7.contract.spec rho
 
 /-- Exact deployed balance obligations. -/
 structure BalanceSpec (rho : Nat → DeployedF) : Prop where
-  DecafConservationNetBalanceCommitmentSeg123 : Seg123.contract.spec rho
-  DecafAssertEquivalentSeg124 : Seg124.contract.spec rho
-  DecafCompressToFieldSeg125 : Seg125.contract.spec rho
+  DecafConservationNetBalanceCommitmentSeg87 : Seg87.contract.spec rho
+  DecafAssertEquivalentSeg88 : Seg88.contract.spec rho
+  DecafCompressToFieldSeg89 : Seg89.contract.spec rho
 
 /-- Exact deployed transcript obligations. -/
 structure TranscriptSpec (rho : Nat → DeployedF) : Prop where
-  StatementHashSeg131 : Seg131.contract.spec rho
-  AssertEqSeg132 : Seg132.contract.spec rho
+  StatementHashSeg94 : Seg94.contract.spec rho
+  AssertEqSeg95 : Seg95.contract.spec rho
 
 /-- Exact deployed spend0 obligations. -/
 structure Spend0Spec (rho : Nat → DeployedF) : Prop where
-  GadgetNoteCommitmentSeg22 : Seg22.contract.spec rho
-  GadgetNullifierSeg24 : Seg24.contract.spec rho
-  GadgetStateCommitmentPathSeg25 : Seg25.contract.spec rho
-  GadgetSyntheticDummyNullifierSeg27 : Seg27.contract.spec rho
-  AssertEqSeg29 : Seg29.contract.spec rho
-  DecafRandomizedVerificationKeySeg30 : Seg30.contract.spec rho
-  DecafRandomizedVerificationKeyDummySeg31 : Seg31.contract.spec rho
-  DecafAssertEquivalentIfSeg32 : Seg32.contract.spec rho
-  DecafAssertEquivalentIfSeg33 : Seg33.contract.spec rho
-  DecafDiversifiedTransmissionKeySeg34 : Seg34.contract.spec rho
-  DecafAssertEquivalentIfSeg35 : Seg35.contract.spec rho
-  DecafAssertOnCurveSeg37 : Seg37.contract.spec rho
-  DecafAssertEquivalentSeg38 : Seg38.contract.spec rho
-  DecafAssertEquivalentSeg39 : Seg39.contract.spec rho
-  AssertEqSeg40 : Seg40.contract.spec rho
-  DecafCompressToFieldSeg41 : Seg41.contract.spec rho
+  GadgetNoteCommitmentSeg9 : Seg9.contract.spec rho
+  AssertEqSeg10 : Seg10.contract.spec rho
+  GadgetNullifierSeg11 : Seg11.contract.spec rho
+  AssertEqSeg12 : Seg12.contract.spec rho
+  GadgetStateCommitmentPathSeg13 : Seg13.contract.spec rho
+  AssertEqSeg14 : Seg14.contract.spec rho
+  DecafRandomizedVerificationKeySeg15 : Seg15.contract.spec rho
+  DecafAssertEquivalentSeg16 : Seg16.contract.spec rho
+  DecafCompressToFieldSeg17 : Seg17.contract.spec rho
+  DecafAssertOnCurveSeg18 : Seg18.contract.spec rho
+  DecafAssertEquivalentSeg19 : Seg19.contract.spec rho
+  DecafAssertEquivalentSeg20 : Seg20.contract.spec rho
+  AssertEqSeg21 : Seg21.contract.spec rho
 
 /-- Exact deployed output0 obligations. -/
 structure Output0Spec (rho : Nat → DeployedF) : Prop where
-  GadgetNoteCommitmentSeg44 : Seg44.contract.spec rho
-  AssertEqSeg45 : Seg45.contract.spec rho
-  DecafAssertOnCurveSeg46 : Seg46.contract.spec rho
-  DecafAssertEquivalentSeg47 : Seg47.contract.spec rho
-  DecafAssertEquivalentSeg48 : Seg48.contract.spec rho
-  AssertEqSeg49 : Seg49.contract.spec rho
+  GadgetNoteCommitmentSeg24 : Seg24.contract.spec rho
+  AssertEqSeg25 : Seg25.contract.spec rho
+  DecafAssertOnCurveSeg26 : Seg26.contract.spec rho
+  DecafAssertEquivalentSeg27 : Seg27.contract.spec rho
+  DecafAssertEquivalentSeg28 : Seg28.contract.spec rho
+  AssertEqSeg29 : Seg29.contract.spec rho
 
 /-- Exact deployed output1 obligations. -/
 structure Output1Spec (rho : Nat → DeployedF) : Prop where
-  GadgetNoteCommitmentSeg54 : Seg54.contract.spec rho
-  AssertEqSeg55 : Seg55.contract.spec rho
-  DecafAssertOnCurveSeg56 : Seg56.contract.spec rho
-  DecafAssertEquivalentSeg57 : Seg57.contract.spec rho
-  DecafAssertEquivalentSeg58 : Seg58.contract.spec rho
-  AssertEqSeg59 : Seg59.contract.spec rho
+  GadgetNoteCommitmentSeg32 : Seg32.contract.spec rho
+  AssertEqSeg33 : Seg33.contract.spec rho
+  DecafAssertOnCurveSeg34 : Seg34.contract.spec rho
+  DecafAssertEquivalentSeg35 : Seg35.contract.spec rho
+  DecafAssertEquivalentSeg36 : Seg36.contract.spec rho
+  AssertEqSeg37 : Seg37.contract.spec rho
 
 /-- Exact deployed output2 obligations. -/
 structure Output2Spec (rho : Nat → DeployedF) : Prop where
+  GadgetNoteCommitmentSeg40 : Seg40.contract.spec rho
+  AssertEqSeg41 : Seg41.contract.spec rho
+  DecafAssertOnCurveSeg42 : Seg42.contract.spec rho
+  DecafAssertEquivalentSeg43 : Seg43.contract.spec rho
+  DecafAssertEquivalentSeg44 : Seg44.contract.spec rho
+  AssertEqSeg45 : Seg45.contract.spec rho
+
+/-- Exact deployed output3 obligations. -/
+structure Output3Spec (rho : Nat → DeployedF) : Prop where
+  GadgetNoteCommitmentSeg48 : Seg48.contract.spec rho
+  AssertEqSeg49 : Seg49.contract.spec rho
+  DecafAssertOnCurveSeg50 : Seg50.contract.spec rho
+  DecafAssertEquivalentSeg51 : Seg51.contract.spec rho
+  DecafAssertEquivalentSeg52 : Seg52.contract.spec rho
+  AssertEqSeg53 : Seg53.contract.spec rho
+
+/-- Exact deployed output4 obligations. -/
+structure Output4Spec (rho : Nat → DeployedF) : Prop where
+  GadgetNoteCommitmentSeg56 : Seg56.contract.spec rho
+  AssertEqSeg57 : Seg57.contract.spec rho
+  DecafAssertOnCurveSeg58 : Seg58.contract.spec rho
+  DecafAssertEquivalentSeg59 : Seg59.contract.spec rho
+  DecafAssertEquivalentSeg60 : Seg60.contract.spec rho
+  AssertEqSeg61 : Seg61.contract.spec rho
+
+/-- Exact deployed output5 obligations. -/
+structure Output5Spec (rho : Nat → DeployedF) : Prop where
   GadgetNoteCommitmentSeg64 : Seg64.contract.spec rho
   AssertEqSeg65 : Seg65.contract.spec rho
   DecafAssertOnCurveSeg66 : Seg66.contract.spec rho
@@ -100,53 +96,25 @@ structure Output2Spec (rho : Nat → DeployedF) : Prop where
   DecafAssertEquivalentSeg68 : Seg68.contract.spec rho
   AssertEqSeg69 : Seg69.contract.spec rho
 
-/-- Exact deployed output3 obligations. -/
-structure Output3Spec (rho : Nat → DeployedF) : Prop where
-  GadgetNoteCommitmentSeg74 : Seg74.contract.spec rho
-  AssertEqSeg75 : Seg75.contract.spec rho
-  DecafAssertOnCurveSeg76 : Seg76.contract.spec rho
-  DecafAssertEquivalentSeg77 : Seg77.contract.spec rho
-  DecafAssertEquivalentSeg78 : Seg78.contract.spec rho
-  AssertEqSeg79 : Seg79.contract.spec rho
-
-/-- Exact deployed output4 obligations. -/
-structure Output4Spec (rho : Nat → DeployedF) : Prop where
-  GadgetNoteCommitmentSeg84 : Seg84.contract.spec rho
-  AssertEqSeg85 : Seg85.contract.spec rho
-  DecafAssertOnCurveSeg86 : Seg86.contract.spec rho
-  DecafAssertEquivalentSeg87 : Seg87.contract.spec rho
-  DecafAssertEquivalentSeg88 : Seg88.contract.spec rho
-  AssertEqSeg89 : Seg89.contract.spec rho
-
-/-- Exact deployed output5 obligations. -/
-structure Output5Spec (rho : Nat → DeployedF) : Prop where
-  GadgetNoteCommitmentSeg94 : Seg94.contract.spec rho
-  AssertEqSeg95 : Seg95.contract.spec rho
-  DecafAssertOnCurveSeg96 : Seg96.contract.spec rho
-  DecafAssertEquivalentSeg97 : Seg97.contract.spec rho
-  DecafAssertEquivalentSeg98 : Seg98.contract.spec rho
-  AssertEqSeg99 : Seg99.contract.spec rho
-
 /-- Exact deployed output6 obligations. -/
 structure Output6Spec (rho : Nat → DeployedF) : Prop where
-  GadgetNoteCommitmentSeg104 : Seg104.contract.spec rho
-  AssertEqSeg105 : Seg105.contract.spec rho
-  DecafAssertOnCurveSeg106 : Seg106.contract.spec rho
-  DecafAssertEquivalentSeg107 : Seg107.contract.spec rho
-  DecafAssertEquivalentSeg108 : Seg108.contract.spec rho
-  AssertEqSeg109 : Seg109.contract.spec rho
+  GadgetNoteCommitmentSeg72 : Seg72.contract.spec rho
+  AssertEqSeg73 : Seg73.contract.spec rho
+  DecafAssertOnCurveSeg74 : Seg74.contract.spec rho
+  DecafAssertEquivalentSeg75 : Seg75.contract.spec rho
+  DecafAssertEquivalentSeg76 : Seg76.contract.spec rho
+  AssertEqSeg77 : Seg77.contract.spec rho
 
 /-- Exact deployed output7 obligations. -/
 structure Output7Spec (rho : Nat → DeployedF) : Prop where
-  GadgetNoteCommitmentSeg114 : Seg114.contract.spec rho
-  AssertEqSeg115 : Seg115.contract.spec rho
-  DecafAssertOnCurveSeg116 : Seg116.contract.spec rho
-  DecafAssertEquivalentSeg117 : Seg117.contract.spec rho
-  DecafAssertEquivalentSeg118 : Seg118.contract.spec rho
-  AssertEqSeg119 : Seg119.contract.spec rho
+  GadgetNoteCommitmentSeg80 : Seg80.contract.spec rho
+  AssertEqSeg81 : Seg81.contract.spec rho
+  DecafAssertOnCurveSeg82 : Seg82.contract.spec rho
+  DecafAssertEquivalentSeg83 : Seg83.contract.spec rho
+  DecafAssertEquivalentSeg84 : Seg84.contract.spec rho
+  AssertEqSeg85 : Seg85.contract.spec rho
 
 structure NoteReshape1x8Statement (rho : Nat → DeployedF) : Prop where
-  control : ControlSpec rho
   shared : SharedSpec rho
   balance : BalanceSpec rho
   transcript : TranscriptSpec rho
@@ -163,19 +131,18 @@ structure NoteReshape1x8Statement (rho : Nat → DeployedF) : Prop where
 theorem note_reshape1x8_statement (rho : Nat → DeployedF) (h : relationAll rho) :
     NoteReshape1x8Statement rho := by
   exact {
-    control := ⟨specOf1 rho h, specOf2 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h, specOf8 rho h, specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf23 rho h, specOf26 rho h, specOf28 rho h, specOf36 rho h, specOf51 rho h, specOf61 rho h, specOf71 rho h, specOf81 rho h, specOf91 rho h, specOf101 rho h, specOf111 rho h, specOf121 rho h⟩
-    shared := ⟨specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h⟩
-    balance := ⟨specOf123 rho h, specOf124 rho h, specOf125 rho h⟩
-    transcript := ⟨specOf131 rho h, specOf132 rho h⟩
-    spend0 := ⟨specOf22 rho h, specOf24 rho h, specOf25 rho h, specOf27 rho h, specOf29 rho h, specOf30 rho h, specOf31 rho h, specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf37 rho h, specOf38 rho h, specOf39 rho h, specOf40 rho h, specOf41 rho h⟩
-    output0 := ⟨specOf44 rho h, specOf45 rho h, specOf46 rho h, specOf47 rho h, specOf48 rho h, specOf49 rho h⟩
-    output1 := ⟨specOf54 rho h, specOf55 rho h, specOf56 rho h, specOf57 rho h, specOf58 rho h, specOf59 rho h⟩
-    output2 := ⟨specOf64 rho h, specOf65 rho h, specOf66 rho h, specOf67 rho h, specOf68 rho h, specOf69 rho h⟩
-    output3 := ⟨specOf74 rho h, specOf75 rho h, specOf76 rho h, specOf77 rho h, specOf78 rho h, specOf79 rho h⟩
-    output4 := ⟨specOf84 rho h, specOf85 rho h, specOf86 rho h, specOf87 rho h, specOf88 rho h, specOf89 rho h⟩
-    output5 := ⟨specOf94 rho h, specOf95 rho h, specOf96 rho h, specOf97 rho h, specOf98 rho h, specOf99 rho h⟩
-    output6 := ⟨specOf104 rho h, specOf105 rho h, specOf106 rho h, specOf107 rho h, specOf108 rho h, specOf109 rho h⟩
-    output7 := ⟨specOf114 rho h, specOf115 rho h, specOf116 rho h, specOf117 rho h, specOf118 rho h, specOf119 rho h⟩
+    shared := ⟨specOf2 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h⟩
+    balance := ⟨specOf87 rho h, specOf88 rho h, specOf89 rho h⟩
+    transcript := ⟨specOf94 rho h, specOf95 rho h⟩
+    spend0 := ⟨specOf9 rho h, specOf10 rho h, specOf11 rho h, specOf12 rho h, specOf13 rho h, specOf14 rho h, specOf15 rho h, specOf16 rho h, specOf17 rho h, specOf18 rho h, specOf19 rho h, specOf20 rho h, specOf21 rho h⟩
+    output0 := ⟨specOf24 rho h, specOf25 rho h, specOf26 rho h, specOf27 rho h, specOf28 rho h, specOf29 rho h⟩
+    output1 := ⟨specOf32 rho h, specOf33 rho h, specOf34 rho h, specOf35 rho h, specOf36 rho h, specOf37 rho h⟩
+    output2 := ⟨specOf40 rho h, specOf41 rho h, specOf42 rho h, specOf43 rho h, specOf44 rho h, specOf45 rho h⟩
+    output3 := ⟨specOf48 rho h, specOf49 rho h, specOf50 rho h, specOf51 rho h, specOf52 rho h, specOf53 rho h⟩
+    output4 := ⟨specOf56 rho h, specOf57 rho h, specOf58 rho h, specOf59 rho h, specOf60 rho h, specOf61 rho h⟩
+    output5 := ⟨specOf64 rho h, specOf65 rho h, specOf66 rho h, specOf67 rho h, specOf68 rho h, specOf69 rho h⟩
+    output6 := ⟨specOf72 rho h, specOf73 rho h, specOf74 rho h, specOf75 rho h, specOf76 rho h, specOf77 rho h⟩
+    output7 := ⟨specOf80 rho h, specOf81 rho h, specOf82 rho h, specOf83 rho h, specOf84 rho h, specOf85 rho h⟩
   }
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8

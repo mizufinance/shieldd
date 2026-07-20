@@ -110,15 +110,15 @@ NB_TEMPLATES = (
     ),
     NbTemplate(
         "decaf.conservation_net_balance_commitment@f779542ea2a073487b8ab36fd2798d44fa0136855070c44e2ae2edc44c180a79",
-        "note_reshape4x1", 115, 4, 1, 2451,
+        "note_reshape4x1", 110, 4, 1, 2451,
     ),
     NbTemplate(
         "decaf.conservation_net_balance_commitment@91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3",
-        "note_reshape8x1", 207, 8, 1, 2967,
+        "note_reshape8x1", 202, 8, 1, 2967,
     ),
     NbTemplate(
         "decaf.conservation_net_balance_commitment@b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a",
-        "note_reshape1x8", 123, 1, 8, 2967,
+        "note_reshape1x8", 87, 1, 8, 2967,
     ),
 )
 
