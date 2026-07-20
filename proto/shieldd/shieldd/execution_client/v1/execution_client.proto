@@ -5,9 +5,9 @@ package shieldd.execution_client.v1;
 import "google/protobuf/timestamp.proto";
 import "shieldd/core/app/v1/app.proto";
 
-// ExecutionClient is the gRPC boundary used by a host chain to drive Shieldd
+// ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
 // execution without embedding the Shieldd app in-process.
-service ExecutionClient {
+service ExecutionClientService {
   // InitGenesis initializes Shieldd state from full genesis content or a
   // checkpoint supplied by the host chain.
   rpc InitGenesis(InitGenesisRequest) returns (InitGenesisResponse) {}

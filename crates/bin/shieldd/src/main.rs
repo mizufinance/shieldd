@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 use cnidarium::Storage;
 use execution_client::GrpcExecutionClient;
 use shieldd_sdk_app::{APP_VERSION, SUBSTORE_PREFIXES};
-use shieldd_sdk_proto::execution_client::v1::execution_client_server::ExecutionClientServer;
+use shieldd_sdk_proto::execution_client::v1::execution_client_service_server::ExecutionClientServiceServer;
 use tonic::transport::Server;
 use tracing_subscriber::{prelude::*, EnvFilter};
 
@@ -78,7 +78,7 @@ async fn start(db: PathBuf, bind: SocketAddr) -> anyhow::Result<()> {
     }
 
     Server::builder()
-        .add_service(ExecutionClientServer::new(GrpcExecutionClient::new(
+        .add_service(ExecutionClientServiceServer::new(GrpcExecutionClient::new(
             storage,
         )))
         .serve(bind)

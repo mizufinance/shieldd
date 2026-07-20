@@ -7,7 +7,7 @@ use shieldd_sdk_app::{
 use shieldd_sdk_proto::{
     core::app::v1 as proto_app,
     execution_client::v1::{
-        execution_client_server::ExecutionClient as ExecutionClientService, BeginBlockRequest,
+        execution_client_service_server::ExecutionClientService, BeginBlockRequest,
         BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
         CommitResponse as ProtoCommitResponse, DeliverTxRequest, DeliverTxResponse, DepositRequest,
         DepositResponse, EndBlockRequest, EndBlockResponse, Event as ProtoEvent,

@@ -412,7 +412,7 @@ impl ::prost::Name for ExportGenesisResponse {
 }
 /// Generated client implementations.
 #[cfg(feature = "rpc")]
-pub mod execution_client_client {
+pub mod execution_client_service_client {
     #![allow(
         unused_variables,
         dead_code,
@@ -422,13 +422,13 @@ pub mod execution_client_client {
     )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    /// ExecutionClient is the gRPC boundary used by a host chain to drive Shieldd
+    /// ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
     /// execution without embedding the Shieldd app in-process.
     #[derive(Debug, Clone)]
-    pub struct ExecutionClientClient<T> {
+    pub struct ExecutionClientServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl ExecutionClientClient<tonic::transport::Channel> {
+    impl ExecutionClientServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -439,7 +439,7 @@ pub mod execution_client_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> ExecutionClientClient<T>
+    impl<T> ExecutionClientServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -457,7 +457,7 @@ pub mod execution_client_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> ExecutionClientClient<InterceptedService<T, F>>
+        ) -> ExecutionClientServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -471,7 +471,9 @@ pub mod execution_client_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
-            ExecutionClientClient::new(InterceptedService::new(inner, interceptor))
+            ExecutionClientServiceClient::new(
+                InterceptedService::new(inner, interceptor),
+            )
         }
         /// Compress requests with the given encoding.
         ///
@@ -523,13 +525,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/InitGenesis",
+                "/shieldd.execution_client.v1.ExecutionClientService/InitGenesis",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "InitGenesis",
                     ),
                 );
@@ -553,13 +555,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/BeginBlock",
+                "/shieldd.execution_client.v1.ExecutionClientService/BeginBlock",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "BeginBlock",
                     ),
                 );
@@ -584,13 +586,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/Deposit",
+                "/shieldd.execution_client.v1.ExecutionClientService/Deposit",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "Deposit",
                     ),
                 );
@@ -615,13 +617,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/CheckTx",
+                "/shieldd.execution_client.v1.ExecutionClientService/CheckTx",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "CheckTx",
                     ),
                 );
@@ -645,13 +647,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/DeliverTx",
+                "/shieldd.execution_client.v1.ExecutionClientService/DeliverTx",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "DeliverTx",
                     ),
                 );
@@ -675,13 +677,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/EndBlock",
+                "/shieldd.execution_client.v1.ExecutionClientService/EndBlock",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "EndBlock",
                     ),
                 );
@@ -702,13 +704,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/Commit",
+                "/shieldd.execution_client.v1.ExecutionClientService/Commit",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "Commit",
                     ),
                 );
@@ -732,13 +734,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/Rollback",
+                "/shieldd.execution_client.v1.ExecutionClientService/Rollback",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "Rollback",
                     ),
                 );
@@ -762,13 +764,13 @@ pub mod execution_client_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.execution_client.v1.ExecutionClient/ExportGenesis",
+                "/shieldd.execution_client.v1.ExecutionClientService/ExportGenesis",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "shieldd.execution_client.v1.ExecutionClient",
+                        "shieldd.execution_client.v1.ExecutionClientService",
                         "ExportGenesis",
                     ),
                 );
@@ -778,7 +780,7 @@ pub mod execution_client_client {
 }
 /// Generated server implementations.
 #[cfg(feature = "rpc")]
-pub mod execution_client_server {
+pub mod execution_client_service_server {
     #![allow(
         unused_variables,
         dead_code,
@@ -787,9 +789,9 @@ pub mod execution_client_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with ExecutionClientServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with ExecutionClientServiceServer.
     #[async_trait]
-    pub trait ExecutionClient: std::marker::Send + std::marker::Sync + 'static {
+    pub trait ExecutionClientService: std::marker::Send + std::marker::Sync + 'static {
         /// InitGenesis initializes Shieldd state from full genesis content or a
         /// checkpoint supplied by the host chain.
         async fn init_genesis(
@@ -857,17 +859,17 @@ pub mod execution_client_server {
             tonic::Status,
         >;
     }
-    /// ExecutionClient is the gRPC boundary used by a host chain to drive Shieldd
+    /// ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
     /// execution without embedding the Shieldd app in-process.
     #[derive(Debug)]
-    pub struct ExecutionClientServer<T> {
+    pub struct ExecutionClientServiceServer<T> {
         inner: Arc<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
         max_decoding_message_size: Option<usize>,
         max_encoding_message_size: Option<usize>,
     }
-    impl<T> ExecutionClientServer<T> {
+    impl<T> ExecutionClientServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -918,9 +920,10 @@ pub mod execution_client_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for ExecutionClientServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>>
+    for ExecutionClientServiceServer<T>
     where
-        T: ExecutionClient,
+        T: ExecutionClientService,
         B: Body + std::marker::Send + 'static,
         B::Error: Into<StdError> + std::marker::Send + 'static,
     {
@@ -935,11 +938,11 @@ pub mod execution_client_server {
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             match req.uri().path() {
-                "/shieldd.execution_client.v1.ExecutionClient/InitGenesis" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/InitGenesis" => {
                     #[allow(non_camel_case_types)]
-                    struct InitGenesisSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct InitGenesisSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::InitGenesisRequest>
                     for InitGenesisSvc<T> {
                         type Response = super::InitGenesisResponse;
@@ -953,7 +956,8 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::init_genesis(&inner, request).await
+                                <T as ExecutionClientService>::init_genesis(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -980,11 +984,11 @@ pub mod execution_client_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.execution_client.v1.ExecutionClient/BeginBlock" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/BeginBlock" => {
                     #[allow(non_camel_case_types)]
-                    struct BeginBlockSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct BeginBlockSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::BeginBlockRequest>
                     for BeginBlockSvc<T> {
                         type Response = super::BeginBlockResponse;
@@ -998,7 +1002,8 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::begin_block(&inner, request).await
+                                <T as ExecutionClientService>::begin_block(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -1025,11 +1030,11 @@ pub mod execution_client_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.execution_client.v1.ExecutionClient/Deposit" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/Deposit" => {
                     #[allow(non_camel_case_types)]
-                    struct DepositSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct DepositSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::DepositRequest>
                     for DepositSvc<T> {
                         type Response = super::DepositResponse;
@@ -1043,7 +1048,8 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::deposit(&inner, request).await
+                                <T as ExecutionClientService>::deposit(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -1070,11 +1076,11 @@ pub mod execution_client_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.execution_client.v1.ExecutionClient/CheckTx" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/CheckTx" => {
                     #[allow(non_camel_case_types)]
-                    struct CheckTxSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct CheckTxSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::CheckTxRequest>
                     for CheckTxSvc<T> {
                         type Response = super::CheckTxResponse;
@@ -1088,7 +1094,8 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::check_tx(&inner, request).await
+                                <T as ExecutionClientService>::check_tx(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -1115,11 +1122,11 @@ pub mod execution_client_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.execution_client.v1.ExecutionClient/DeliverTx" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/DeliverTx" => {
                     #[allow(non_camel_case_types)]
-                    struct DeliverTxSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct DeliverTxSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::DeliverTxRequest>
                     for DeliverTxSvc<T> {
                         type Response = super::DeliverTxResponse;
@@ -1133,7 +1140,8 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::deliver_tx(&inner, request).await
+                                <T as ExecutionClientService>::deliver_tx(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -1160,11 +1168,11 @@ pub mod execution_client_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.execution_client.v1.ExecutionClient/EndBlock" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/EndBlock" => {
                     #[allow(non_camel_case_types)]
-                    struct EndBlockSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct EndBlockSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::EndBlockRequest>
                     for EndBlockSvc<T> {
                         type Response = super::EndBlockResponse;
@@ -1178,7 +1186,8 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::end_block(&inner, request).await
+                                <T as ExecutionClientService>::end_block(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -1205,11 +1214,11 @@ pub mod execution_client_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.execution_client.v1.ExecutionClient/Commit" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/Commit" => {
                     #[allow(non_camel_case_types)]
-                    struct CommitSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct CommitSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::CommitRequest>
                     for CommitSvc<T> {
                         type Response = super::CommitResponse;
@@ -1223,7 +1232,7 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::commit(&inner, request).await
+                                <T as ExecutionClientService>::commit(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -1250,11 +1259,11 @@ pub mod execution_client_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.execution_client.v1.ExecutionClient/Rollback" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/Rollback" => {
                     #[allow(non_camel_case_types)]
-                    struct RollbackSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct RollbackSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::RollbackRequest>
                     for RollbackSvc<T> {
                         type Response = super::RollbackResponse;
@@ -1268,7 +1277,8 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::rollback(&inner, request).await
+                                <T as ExecutionClientService>::rollback(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -1295,11 +1305,11 @@ pub mod execution_client_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.execution_client.v1.ExecutionClient/ExportGenesis" => {
+                "/shieldd.execution_client.v1.ExecutionClientService/ExportGenesis" => {
                     #[allow(non_camel_case_types)]
-                    struct ExportGenesisSvc<T: ExecutionClient>(pub Arc<T>);
+                    struct ExportGenesisSvc<T: ExecutionClientService>(pub Arc<T>);
                     impl<
-                        T: ExecutionClient,
+                        T: ExecutionClientService,
                     > tonic::server::UnaryService<super::ExportGenesisRequest>
                     for ExportGenesisSvc<T> {
                         type Response = super::ExportGenesisResponse;
@@ -1313,7 +1323,10 @@ pub mod execution_client_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ExecutionClient>::export_genesis(&inner, request)
+                                <T as ExecutionClientService>::export_genesis(
+                                        &inner,
+                                        request,
+                                    )
                                     .await
                             };
                             Box::pin(fut)
@@ -1361,7 +1374,7 @@ pub mod execution_client_server {
             }
         }
     }
-    impl<T> Clone for ExecutionClientServer<T> {
+    impl<T> Clone for ExecutionClientServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -1374,8 +1387,8 @@ pub mod execution_client_server {
         }
     }
     /// Generated gRPC service name
-    pub const SERVICE_NAME: &str = "shieldd.execution_client.v1.ExecutionClient";
-    impl<T> tonic::server::NamedService for ExecutionClientServer<T> {
+    pub const SERVICE_NAME: &str = "shieldd.execution_client.v1.ExecutionClientService";
+    impl<T> tonic::server::NamedService for ExecutionClientServiceServer<T> {
         const NAME: &'static str = SERVICE_NAME;
     }
 }
