@@ -146,7 +146,18 @@ def _rewrite(source: str) -> str:
     source = source.replace("Seg6.F", "F")
     source = source.replace("Seg6.", RELATION + ".")
     source = source.replace("DtkAdapterSeg6", NAME + "Dtk")
+    # The shared extracted Poseidon module names its internal round-segments
+    # seg0..segN; round-segment 6 collides textually with this slice's circuit
+    # index.  The transport rename below turns the local `seg6_poseidon_eq`
+    # theorem into `dtk_poseidon_eq`, but must not touch the extracted module's
+    # `.seg6` member (which the proof unfolds).  Protect it across the rename.
+    ext_seg6 = re.compile(
+        r"(Extracted\.Deployed\.DtkIvkPoseidon270_[0-9a-f]+\.)seg6\b"
+    )
+    sentinel = "\x00EXTSEG6\x00"
+    source = ext_seg6.sub(lambda m: m.group(1) + sentinel, source)
     source = source.replace("seg6", "dtk")
+    source = source.replace(sentinel, "seg6")
     source = source.replace(
         f"instance dtkDtkFactPrime : Fact (Nat.Prime {RELATION}.Order) :=",
         "instance dtkDtkFactPrime : Fact (Nat.Prime Order) :=",
@@ -161,7 +172,10 @@ def _rewrite(source: str) -> str:
     forbidden = (
         "NoteReshape2x1", "representativeRho", "representativeSeating", "Seg6.", "seg6"
     )
-    leaked = [marker for marker in forbidden if marker in source]
+    # The extracted Poseidon module's `.seg6` member is a legitimate reference,
+    # not a leaked NoteReshape2x1 transport name; mask it before scanning.
+    scan = ext_seg6.sub(r"\1SEG", source)
+    leaked = [marker for marker in forbidden if marker in scan]
     if leaked:
         marker = leaked[0]
         at = source.index(marker)

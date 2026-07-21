@@ -3252,6 +3252,13 @@ def emit_poseidon_adapter(
     final_outputs = [outputs[-1] for outputs in sbox_outputs[-3:]]
     compressed_pos = seat_wire(cfg, 1269)
     compressed_neg = seat_wire(cfg, 1609)
+    # Seat the seed (8) and the two ivk output wires (9, 10) through the wire
+    # seating like every other reference.  The 2x1 representative seats these to
+    # identity, but the deployed-template shadow remaps them, so hardcoding the
+    # local indices would desync this lemma from the seated relation rows.
+    seed = seat_wire(cfg, 8)
+    out_x = seat_wire(cfg, 9)
+    out_y = seat_wire(cfg, 10)
     lines = [
         f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}Base\n",
         "import ShielddGnarkFormal.Deployed.DtkIvkPoseidon.SemanticBridge\n\n",
@@ -3261,11 +3268,11 @@ def emit_poseidon_adapter(
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n",
         f"theorem seg{cfg.seg}_poseidon_eq (rho : Nat -> Seg{cfg.seg}.F) "
         f"(h : Seg{cfg.seg}.relation rho) :\n",
-        "    rho 9 + "
-        "2111115437357092606062206234695386632838870926408408195193685246394721360383 * rho 10 =\n",
+        f"    rho {out_x} + "
+        f"2111115437357092606062206234695386632838870926408408195193685246394721360383 * rho {out_y} =\n",
         "      Shieldd.GnarkFormal.Poseidon2Bridge.permSpec2\n",
         "        (9361307723838134966014044876631201920149619 : Seg"
-        f"{cfg.seg}.F) (rho 8) (rho {compressed_neg} - rho {compressed_pos}) := by\n",
+        f"{cfg.seg}.F) (rho {seed}) (rho {compressed_neg} - rho {compressed_pos}) := by\n",
     ]
     emit_unpack(lines, cfg, keep)
     relation = f"Shieldd.GnarkFormal.Extracted.Deployed.{module}.relation"
@@ -3275,7 +3282,7 @@ def emit_poseidon_adapter(
          f"z = rho {seat_wire(cfg, final_outputs[2])}"]
     )
     lines.append(
-        f"  have hrel : {relation} (rho 8) (rho {compressed_pos}) (rho {compressed_neg}) "
+        f"  have hrel : {relation} (rho {seed}) (rho {compressed_pos}) (rho {compressed_neg}) "
         f"({pin}) := by\n"
     )
     lines.append(f"    unfold {relation}\n")
@@ -3303,7 +3310,7 @@ def emit_poseidon_adapter(
     lines.extend(
         [
             "  have hs := Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon."
-            f"relation_sound_permSpec (rho 8) (rho {compressed_pos}) (rho {compressed_neg}) _ hrel\n",
+            f"relation_sound_permSpec (rho {seed}) (rho {compressed_pos}) (rho {compressed_neg}) _ hrel\n",
             "  rcases hs with ⟨x, y, z, ⟨rfl, rfl, rfl⟩, hs⟩\n",
             f"  unfold Seg{cfg.seg}.relationRow{final_row} at r{final_row}\n",
             "  unfold Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon.s38_1 "
