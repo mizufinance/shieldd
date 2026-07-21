@@ -58,132 +58,132 @@ theorem rows13 (rho : Nat → F)
   rcases p179 with ⟨r895, r896, r897, r898, r899⟩
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow834 at r834
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r834
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r834
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow835 at r835
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r835
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r835
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow836 at r836
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r836
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r836
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow837 at r837
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r837
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r837
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow838 at r838
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r838
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r838
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow839 at r839
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r839
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r839
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow840 at r840
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r840
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r840
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow841 at r841
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r841
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r841
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow842 at r842
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r842
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r842
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow843 at r843
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r843
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r843
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow844 at r844
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r844
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r844
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow845 at r845
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r845
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r845
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow846 at r846
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r846
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r846
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow847 at r847
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r847
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r847
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow848 at r848
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r848
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r848
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow849 at r849
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r849
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r849
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow850 at r850
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r850
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r850
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow851 at r851
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r851
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r851
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow852 at r852
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r852
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r852
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow853 at r853
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r853
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r853
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow854 at r854
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r854
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r854
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow855 at r855
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r855
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r855
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow856 at r856
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r856
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r856
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow857 at r857
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r857
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r857
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow858 at r858
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r858
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r858
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow859 at r859
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r859
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r859
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow860 at r860
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r860
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r860
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow861 at r861
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r861
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r861
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow862 at r862
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r862
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r862
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow863 at r863
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r863
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r863
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow864 at r864
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r864
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r864
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow865 at r865
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r865
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r865
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow866 at r866
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r866
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r866
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow867 at r867
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r867
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r867
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow868 at r868
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r868
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r868
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow869 at r869
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r869
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r869
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow870 at r870
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r870
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r870
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow871 at r871
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r871
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r871
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow872 at r872
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r872
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r872
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow873 at r873
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r873
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r873
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow874 at r874
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r874
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r874
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow875 at r875
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r875
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r875
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow876 at r876
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r876
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r876
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow877 at r877
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r877
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r877
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow878 at r878
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r878
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r878
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow879 at r879
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r879
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r879
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow880 at r880
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r880
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r880
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow881 at r881
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r881
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r881
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow882 at r882
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r882
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r882
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow883 at r883
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r883
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r883
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow884 at r884
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r884
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r884
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow885 at r885
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r885
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r885
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow886 at r886
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r886
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r886
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow887 at r887
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r887
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r887
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow888 at r888
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r888
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r888
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow889 at r889
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r889
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r889
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow890 at r890
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r890
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r890
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow891 at r891
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r891
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r891
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow892 at r892
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r892
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r892
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow893 at r893
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r893
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r893
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow894 at r894
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r894
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r894
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow895 at r895
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r895
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r895
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow896 at r896
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r896
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r896
   · unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e.relationRow897 at r897
-    simpa [templateRho, inputX, inputY, mul_eq_zero] using r897
+    simpa [templateRho, inputX, inputY, -mul_eq_zero] using r897
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafCompressToField_f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e

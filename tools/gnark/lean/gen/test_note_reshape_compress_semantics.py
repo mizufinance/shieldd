@@ -105,7 +105,7 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
             digest.update(b"\0")
         self.assertEqual(
             digest.hexdigest(),
-            "881668840906770b99660a0e11454139d4f1d6c9ae1824b4059a963e1a263d26",
+            "8e62c63f8b6d084ecd2fbaee03733a2f8cbfed3f2b762b6e1055ae700d1c5f10",
         )
 
 

@@ -534,7 +534,13 @@ def _row_chunk(
     for hyp, _ in chunk:
         row = reviewed.bridge_row_for_hyp(hyp)
         lc_simp = _relation_lc_simp(family, row)
-        simp = f"[templateRho, inputX, inputY, mul_eq_zero{', ' + lc_simp if lc_simp else ''}]"
+        # `-mul_eq_zero` drops the global `@[simp]` lemma from the default set:
+        # it rewrites the booleanity goal `a * b = 0` into the disjunction
+        # `a = 0 ∨ b = 0` while leaving the relation hypothesis in product form,
+        # so `simpa … using r{row}` fails to unify. Keeping the rest of the
+        # default set is required to evaluate templateRho's `if lo ≤ n ∧ n ≤ hi`
+        # seating guards and the residual Nat/ring arithmetic.
+        simp = f"[templateRho, inputX, inputY, -mul_eq_zero{', ' + lc_simp if lc_simp else ''}]"
         lines.extend(
             [
                 f"  · unfold {exact}.relationRow{row} at r{row}",
