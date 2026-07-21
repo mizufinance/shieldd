@@ -1174,6 +1174,15 @@ technique); vendored `ArkworksScalarMulGenerated.lean`;
 `decode_g{1,2}_mul_{projective,affine}_step_generic` (one iteration = decoded
 tangent double + optional decoded chord add, composing S3-26/27 laws;
 generic-branch premises exposed). Full Ipp green, zero sorry, audited axioms.
+
+**S3-28 FINALE — COMPLETE (Green D; 2026-07-20; commit `d0026c58e`).**
+Landed `ArkworksScalarMulGlvEndomorphism`, `ArkworksScalarMulGlvG1Neg`,
+`ArkworksScalarMulGlvScheduleValue`, `ArkworksScalarMulGlvBase`, and
+`ArkworksScalarMulGlvFinal`, with key theorems `glvBeta_cube`,
+`valid_g1_glv_endomorphism`, `valid_g1_neg`, `jointValue_glvPairs_255`,
+`valid_g1_glv_wrapper_signed`, and `valid_g1_glv_mul_projective`.
+The cited `assume.bls12377-g1-glv-eigenspace` boundary is retained.
+Gate: full Ipp (3496 jobs), GLV parity, and axiom-clean audit green.
 PART 2 LANDED (green PARTIAL — algebraic invariant boundary; 2026-07-19,
 orchestrator; sol-HIGH with design authority, peak 1.86 GB, 12 kills caught).
 DESIGN CALL (sol): the loop invariant belongs ABOVE the coordinate fields —
