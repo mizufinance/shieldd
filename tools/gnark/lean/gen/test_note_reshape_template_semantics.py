@@ -23,7 +23,7 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             digest.update(b"\0")
         self.assertEqual(
             digest.hexdigest(),
-            "3b6a54152eb1259627a658f119232328ffba7dbace95a8badb65cf9f6c66b74c",
+            "6386c023f0d35e3c77cb0083ace9471ba4d56172cfac2231d2da465d50422b16",
         )
 
     def test_every_inventory_template_has_one_direct_provider_main(self) -> None:

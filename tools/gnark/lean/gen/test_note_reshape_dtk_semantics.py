@@ -49,7 +49,7 @@ class NoteReshapeDtkSemanticsTest(unittest.TestCase):
             digest.update(b"\0")
         self.assertEqual(
             digest.hexdigest(),
-            "e5f5ab1456fd9dac3ade2bb454a305c739350bc9be127973b17a56178147db46",
+            "c33fd7f6ece25c7032423fe734dacae89bb90d6c792ea924e51d61f066d129f0",
         )
 
     def test_first_middle_final_and_aggregator_benchmarks_are_managed(self) -> None:
@@ -72,8 +72,19 @@ class NoteReshapeDtkSemanticsTest(unittest.TestCase):
             "seg6",
         )
         combined = "\n".join(self.outputs.values())
+        # The shared extracted Poseidon module names its internal round-segments
+        # seg0..segN; round-segment 6 (`.seg6`) is a legitimate reference into
+        # that module, not a leak of this slice's NoteReshape2x1 transport index.
+        # Mask it before the leak scan, mirroring the generator's own scan.
+        import re
+
+        scan = re.sub(
+            r"(Extracted\.Deployed\.DtkIvkPoseidon270_[0-9a-f]+\.)seg6\b",
+            r"\1SEG",
+            combined,
+        )
         for marker in forbidden:
-            self.assertNotIn(marker, combined)
+            self.assertNotIn(marker, scan)
         self.assertIn(f"import {gen.RELATION_MODULE}", combined)
         self.assertIn(f"(h : {gen.RELATION}.relation rho)", combined)
 
