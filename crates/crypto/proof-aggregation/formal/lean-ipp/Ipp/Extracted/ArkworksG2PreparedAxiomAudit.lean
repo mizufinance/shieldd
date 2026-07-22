@@ -1,7 +1,8 @@
 import Ipp.Extracted.ArkworksG2PreparedSchedule
 import Ipp.Extracted.ArkworksG2PreparedDouble
+import Ipp.Extracted.ArkworksG2PreparedAddStep
 
-/-! Axiom gate for the S3-33 prepared-G2 schedule and doubling-line proof. -/
+/-! Axiom gate for the prepared-G2 schedule, doubling, and mixed-addition lines. -/
 
 #print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.initialState_coordinates
 #print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.extractedAteBit_eq_testBit
@@ -54,3 +55,24 @@ import Ipp.Extracted.ArkworksG2PreparedDouble
 #print axioms Ipp.Extracted.ArkworksG2PreparedDoubleTransition.transition_of
 #print axioms Ipp.Extracted.ArkworksG2PreparedDoubleCap.combine_double_line_spec
 #print axioms Ipp.Extracted.ArkworksG2PreparedDouble.g2_double_line_spec
+
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionModel.addLine_decode_generic
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionTransport.addLine_represents_add
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionOps.g2_add_line_eq_segmented
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment1A.segment1A_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment1B.segment1B_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment1.segment1_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment2A.segment2A_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment2B.segment2B_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment2.segment2_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment3A.segment3A_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment3B.segment3B_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionSegment3.segment3_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionAssembly.assemble_add_model
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionExecute.g2_add_line_exec_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionAll.allGenericHomogeneousAdds
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionTransition.transition_of
+#print axioms Ipp.Extracted.ArkworksG2PreparedAdditionCap.combine_add_line_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAddition.g2_add_line_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedAddStep.g2_add_line_valid_add_step
+#print axioms Ipp.Extracted.ArkworksG2PreparedAddStep.preparedSchedule_add_step_instantiated
