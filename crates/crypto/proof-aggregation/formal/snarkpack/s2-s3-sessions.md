@@ -1834,6 +1834,11 @@ Session-2 verification:
   There are no `sorry`s or declared axioms in the campaign Lean files.
 - Prover, release, and release-gated tests were not run.
 
+**S3-36 DONE (2026-07-22; commit `8b7dada95`).** `miller_schedule_spec`
+lands the single-pair Miller schedule as a 63-step fold via `MillerLoopInv`
+and fuel induction. The schedule length is 69: 63 doublings plus additions at
+bits `{58,56,51,47,46,0}`. Parity: 14; gate: 3660.
+
 ### Session 3 — executed round, outer loop, subtraction, and decode (2026-07-15)
 
 Status: COMPLETE. The generated Fq multiplication path is connected to the
