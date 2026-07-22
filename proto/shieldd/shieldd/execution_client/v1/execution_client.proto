@@ -1,0 +1,195 @@
+syntax = "proto3";
+
+package shieldd.execution_client.v1;
+
+import "google/protobuf/timestamp.proto";
+import "shieldd/core/app/v1/app.proto";
+
+// ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
+// execution without embedding the Shieldd app in-process.
+service ExecutionClientService {
+  // InitGenesis initializes Shieldd state from full genesis content or a
+  // checkpoint supplied by the host chain.
+  rpc InitGenesis(InitGenesisRequest) returns (InitGenesisResponse) {}
+  // BeginBlock opens a new Shieldd block at the host chain's block height.
+  rpc BeginBlock(BeginBlockRequest) returns (BeginBlockResponse) {}
+  // Deposit mints Shieldd notes for assets escrowed or burned by the host
+  // chain.
+  rpc Deposit(DepositRequest) returns (DepositResponse) {}
+  // CheckTx validates a Shieldd transaction supplied by the host chain without
+  // applying state changes.
+  rpc CheckTx(CheckTxRequest) returns (CheckTxResponse) {}
+  // DeliverTx applies a Shieldd transaction supplied by the host chain.
+  rpc DeliverTx(DeliverTxRequest) returns (DeliverTxResponse) {}
+  // EndBlock finalizes the active Shieldd block.
+  rpc EndBlock(EndBlockRequest) returns (EndBlockResponse) {}
+  // Commit persists the pending Shieldd state and returns the committed root.
+  rpc Commit(CommitRequest) returns (CommitResponse) {}
+  // Rollback discards uncommitted Shieldd state for the current execution phase.
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+  // ExportGenesis exports the currently committed Shieldd state as genesis.
+  rpc ExportGenesis(ExportGenesisRequest) returns (ExportGenesisResponse) {}
+}
+
+// InitGenesisRequest carries the Shieldd genesis payload controlled by the host
+// chain.
+message InitGenesisRequest {
+  // Genesis state to initialize, either full content or a checkpoint.
+  shieldd.core.app.v1.GenesisAppState genesis = 1;
+}
+
+// InitGenesisResponse is empty on success.
+message InitGenesisResponse {
+}
+
+// BeginBlockRequest carries the host-chain block fields Shieldd uses during
+// begin-block execution.
+message BeginBlockRequest {
+  // Host-chain block height.
+  int64 height = 1;
+  // Host-chain block time.
+  google.protobuf.Timestamp time = 2;
+}
+
+// BeginBlockResponse contains non-consensus events emitted by Shieldd.
+message BeginBlockResponse {
+  // Events emitted during begin-block execution.
+  repeated Event events = 1;
+}
+
+// DepositRequest describes a host-chain deposit that should mint a Shieldd note.
+message DepositRequest {
+  // Host-chain asset denomination.
+  string denom = 1;
+  // Base-unit amount encoded as a decimal string.
+  string amount = 2;
+  // Shieldd recipient address.
+  string recipient = 3;
+  // Host-chain source used for replay protection and deposit identity.
+  HostSource source = 4;
+}
+
+// HostSource identifies the host-chain message that caused a Shieldd deposit.
+message HostSource {
+  // Host-chain block height containing the deposit message.
+  uint64 height = 1;
+  // Host-chain transaction hash containing the deposit message.
+  bytes tx_hash = 2;
+  // Zero-based message index within the host-chain transaction.
+  uint32 msg_index = 3;
+}
+
+// DepositResponse returns the deterministic Shieldd deposit identifier.
+message DepositResponse {
+  // Deposit identifier used as the Shieldd commitment source transaction id.
+  bytes deposit_id = 1;
+}
+
+// CheckTxRequest carries a Shieldd transaction to validate without applying
+// state changes.
+message CheckTxRequest {
+  // Raw Shieldd transaction bytes.
+  bytes tx = 1;
+}
+
+// CheckTxResponse contains the Shieldd transaction admission result.
+message CheckTxResponse {
+  // Non-zero when Shieldd rejected the transaction.
+  uint32 code = 1;
+  // Response data emitted by the transaction.
+  bytes data = 2;
+  // Human-readable validation log.
+  string log = 3;
+  // Additional validation information.
+  string info = 4;
+  // Gas requested by the transaction.
+  int64 gas_wanted = 5;
+  // Gas consumed by validation.
+  int64 gas_used = 6;
+  // Events emitted during transaction validation.
+  repeated Event events = 7;
+  // Module or subsystem that produced a non-zero code.
+  string codespace = 8;
+}
+
+// DeliverTxRequest carries a Shieldd transaction supplied by the host chain.
+message DeliverTxRequest {
+  // Raw Shieldd transaction bytes.
+  bytes tx = 1;
+}
+
+// DeliverTxResponse contains the Shieldd transaction execution result.
+message DeliverTxResponse {
+  // Non-zero when Shieldd rejected the transaction.
+  uint32 code = 1;
+  // Response data emitted by the transaction.
+  bytes data = 2;
+  // Human-readable execution log.
+  string log = 3;
+  // Additional execution information.
+  string info = 4;
+  // Gas requested by the transaction.
+  int64 gas_wanted = 5;
+  // Gas consumed by the transaction.
+  int64 gas_used = 6;
+  // Events emitted during transaction execution.
+  repeated Event events = 7;
+  // Module or subsystem that produced a non-zero code.
+  string codespace = 8;
+}
+
+// EndBlockRequest identifies the host-chain block being finalized.
+message EndBlockRequest {
+  // Host-chain block height.
+  int64 height = 1;
+}
+
+// EndBlockResponse contains non-consensus events emitted by Shieldd.
+message EndBlockResponse {
+  // Events emitted during end-block execution.
+  repeated Event events = 1;
+}
+
+// Event describes a non-consensus execution event emitted by Shieldd.
+message Event {
+  // Event type.
+  string type = 1;
+  // Event attributes.
+  repeated EventAttribute attributes = 2;
+}
+
+// EventAttribute is a key-value pair attached to a Shieldd execution event.
+message EventAttribute {
+  // Attribute key.
+  string key = 1;
+  // Attribute value.
+  string value = 2;
+  // Whether host-chain indexers should index this attribute.
+  bool index = 3;
+}
+
+// CommitRequest is empty because all pending state is held by the execution
+// client.
+message CommitRequest {}
+
+// CommitResponse contains the root hash committed by Shieldd.
+message CommitResponse {
+  // Committed Shieldd application root hash.
+  bytes root_hash = 1;
+}
+
+// RollbackRequest is empty because rollback applies to the current pending
+// execution phase.
+message RollbackRequest {}
+
+// RollbackResponse is empty on success.
+message RollbackResponse {}
+
+// ExportGenesisRequest is empty because it exports the latest committed state.
+message ExportGenesisRequest {}
+
+// ExportGenesisResponse returns the exported Shieldd genesis payload.
+message ExportGenesisResponse {
+  // Exported Shieldd genesis state.
+  shieldd.core.app.v1.GenesisAppState genesis = 1;
+}

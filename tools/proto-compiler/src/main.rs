@@ -72,6 +72,7 @@ fn main() -> anyhow::Result<()> {
                 "../../proto/shieldd/shieldd/util/node/v1/node.proto",
                 "../../proto/shieldd/shieldd/util/tendermint_proxy/v1/tendermint_proxy.proto",
                 "../../proto/shieldd/shieldd/view/v1/view.proto",
+                "../../proto/shieldd/shieldd/execution_client/v1/execution_client.proto",
                 "../../proto/rust-vendored/tendermint/abci/types.proto",
                 "../../proto/rust-vendored/tendermint/types/validator.proto",
                 "../../proto/rust-vendored/tendermint/p2p/types.proto",
