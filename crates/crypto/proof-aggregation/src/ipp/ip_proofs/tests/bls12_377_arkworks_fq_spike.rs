@@ -4,7 +4,7 @@ use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, Fr, G1Affine, G1Projective, G2Affine, G2
 use ark_ec::{scalar_mul::glv::GLVConfig, AffineRepr, CurveGroup, PrimeGroup};
 use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{test_rng, UniformRand};
+use ark_std::{test_rng, UniformRand, Zero};
 use std::convert::TryInto;
 
 #[path = "../src/s3_07_arkworks_fq_spike.rs"]
@@ -74,6 +74,60 @@ fn mont_g2_affine(value: G2Affine) -> spike::G2AffineMont {
 
 fn assert_same_g2_class(actual: spike::G2ProjMont, expected: G2Projective) {
     assert_eq!(ark_g2(actual).into_affine(), expected.into_affine());
+}
+
+fn ark_g1_affine(value: spike::G1AffineMont) -> G1Affine {
+    if value.infinity {
+        G1Affine::identity()
+    } else {
+        G1Affine::new_unchecked(ark(value.x), ark(value.y))
+    }
+}
+
+fn ark_g2_affine(value: spike::G2AffineMont) -> G2Affine {
+    if value.infinity {
+        G2Affine::identity()
+    } else {
+        G2Affine::new_unchecked(ark2(value.x), ark2(value.y))
+    }
+}
+
+fn scaled_g1(point: G1Projective, z: Fq) -> G1Projective {
+    let affine = point.into_affine();
+    if affine.is_zero() {
+        G1Projective::zero()
+    } else {
+        let z2 = z.square();
+        G1Projective::new_unchecked(affine.x * z2, affine.y * z2 * z, z)
+    }
+}
+
+fn scaled_g2(point: G2Projective, z: Fq2) -> G2Projective {
+    let affine = point.into_affine();
+    if affine.is_zero() {
+        G2Projective::zero()
+    } else {
+        let z2 = z.square();
+        G2Projective::new_unchecked(affine.x * z2, affine.y * z2 * z, z)
+    }
+}
+
+fn random_nonzero_fq(rng: &mut impl ark_std::rand::Rng) -> Fq {
+    loop {
+        let value = Fq::rand(rng);
+        if !value.is_zero() {
+            return value;
+        }
+    }
+}
+
+fn random_nonzero_fq2(rng: &mut impl ark_std::rand::Rng) -> Fq2 {
+    loop {
+        let value = Fq2::rand(rng);
+        if !value.is_zero() {
+            return value;
+        }
+    }
 }
 
 fn check_g2(a: G2Projective, b: G2Projective, affine: G2Affine) {
@@ -244,6 +298,77 @@ fn g1_edges_and_512_random_vectors_match_arkworks_projective_classes() {
             G1Affine::rand(&mut rng),
         );
     }
+}
+
+#[test]
+fn normalization_single_and_batch_matches_arkworks_for_g1_and_g2() {
+    let mut rng = test_rng();
+    let g1 = G1Projective::generator();
+    let g2 = G2Projective::generator();
+    let g1_zero = G1Projective::new_unchecked(Fq::from(9_u64), Fq::from(11_u64), Fq::ZERO);
+    let g2_zero = G2Projective::new_unchecked(
+        Fq2::new(Fq::from(9_u64), Fq::from(1_u64)),
+        Fq2::new(Fq::from(11_u64), Fq::from(2_u64)),
+        Fq2::ZERO,
+    );
+    let g1_scaled = scaled_g1(g1, Fq::from(7_u64));
+    let g2_scaled = scaled_g2(g2, Fq2::new(Fq::from(7_u64), Fq::from(3_u64)));
+
+    for point in [G1Projective::zero(), g1_zero, g1, g1_scaled] {
+        assert_eq!(
+            ark_g1_affine(spike::g1_into_affine(mont_g1(point))),
+            point.into_affine()
+        );
+    }
+    for point in [G2Projective::zero(), g2_zero, g2, g2_scaled] {
+        assert_eq!(
+            ark_g2_affine(spike::g2_into_affine(mont_g2(point))),
+            point.into_affine()
+        );
+    }
+
+    let g1_mixed = vec![G1Projective::zero(), g1_scaled, g1_zero, g1, g1_scaled];
+    let g2_mixed = vec![G2Projective::zero(), g2_scaled, g2_zero, g2, g2_scaled];
+    let g1_actual = spike::g1_normalize_batch(&g1_mixed.iter().copied().map(mont_g1).collect::<Vec<_>>());
+    let g2_actual = spike::g2_normalize_batch(&g2_mixed.iter().copied().map(mont_g2).collect::<Vec<_>>());
+    assert_eq!(
+        g1_actual.iter().copied().map(ark_g1_affine).collect::<Vec<_>>(),
+        G1Projective::normalize_batch(&g1_mixed)
+    );
+    assert_eq!(
+        g2_actual.iter().copied().map(ark_g2_affine).collect::<Vec<_>>(),
+        G2Projective::normalize_batch(&g2_mixed)
+    );
+
+    let g1_all_zero = vec![G1Projective::zero(); 257];
+    let g2_all_zero = vec![G2Projective::zero(); 257];
+    assert_eq!(
+        spike::g1_normalize_batch(&g1_all_zero.iter().copied().map(mont_g1).collect::<Vec<_>>())
+            .iter().copied().map(ark_g1_affine).collect::<Vec<_>>(),
+        G1Projective::normalize_batch(&g1_all_zero)
+    );
+    assert_eq!(
+        spike::g2_normalize_batch(&g2_all_zero.iter().copied().map(mont_g2).collect::<Vec<_>>())
+            .iter().copied().map(ark_g2_affine).collect::<Vec<_>>(),
+        G2Projective::normalize_batch(&g2_all_zero)
+    );
+
+    let mut g1_random = Vec::with_capacity(256);
+    let mut g2_random = Vec::with_capacity(256);
+    for _ in 0..256 {
+        g1_random.push(scaled_g1(G1Projective::rand(&mut rng), random_nonzero_fq(&mut rng)));
+        g2_random.push(scaled_g2(G2Projective::rand(&mut rng), random_nonzero_fq2(&mut rng)));
+    }
+    assert_eq!(
+        spike::g1_normalize_batch(&g1_random.iter().copied().map(mont_g1).collect::<Vec<_>>())
+            .iter().copied().map(ark_g1_affine).collect::<Vec<_>>(),
+        G1Projective::normalize_batch(&g1_random)
+    );
+    assert_eq!(
+        spike::g2_normalize_batch(&g2_random.iter().copied().map(mont_g2).collect::<Vec<_>>())
+            .iter().copied().map(ark_g2_affine).collect::<Vec<_>>(),
+        G2Projective::normalize_batch(&g2_random)
+    );
 }
 
 fn mont(value: Fq) -> FqMont {

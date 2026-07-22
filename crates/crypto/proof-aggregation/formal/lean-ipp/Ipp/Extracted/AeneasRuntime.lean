@@ -42,6 +42,9 @@ end Result
 
 def lift {α : Type u} (value : α) : Result α := .ok value
 
+/-- Executable stand-in for the stateless global allocator type. -/
+def Global : Type := Unit
+
 inductive ControlFlow (α : Type u) (β : Type v) where
   | cont (value : α)
   | done (value : β)
@@ -204,6 +207,9 @@ instance : LT Usize where
 instance (left right : Usize) : Decidable (left < right) :=
   inferInstanceAs (Decidable (left.val < right.val))
 
+@[simp] theorem Usize.lt_iff_val_lt (left right : Usize) :
+    left < right ↔ left.val < right.val := Iff.rfl
+
 instance : HAdd Usize Usize (Result Usize) where
   hAdd left right := .ok ⟨left.val + right.val⟩
 
@@ -240,6 +246,23 @@ def with_capacity (T : Type u) (_capacity : Usize) : Vec T := ⟨[]⟩
 
 def push {T : Type u} (items : Vec T) (value : T) : Result (Vec T) :=
   .ok ⟨items.val ++ [value]⟩
+
+private def popList {T : Type u} : List T → Option T × List T
+  | [] => (none, [])
+  | [value] => (some value, [])
+  | value :: rest =>
+      let (last, initial) := popList rest
+      (last, value :: initial)
+
+def pop {T : Type u} (_allocator : Type) (items : Vec T) : Result (Option T × Vec T) :=
+  let (last, initial) := popList items.val
+  .ok (last, ⟨initial⟩)
+
+@[simp] theorem pop_empty {T : Type u} (allocator : Type) :
+    pop (T := T) allocator ⟨[]⟩ = .ok (none, ⟨[]⟩) := rfl
+
+@[simp] theorem pop_singleton {T : Type u} (allocator : Type) (value : T) :
+    pop allocator ⟨[value]⟩ = .ok (some value, ⟨[]⟩) := rfl
 
 end Vec
 end alloc.vec

@@ -2186,6 +2186,231 @@ pub fn extract_s3_28(
     )
 }
 
+/// Faithful Jacobian-to-affine conversion used by `Projective::into_affine`.
+pub fn g1_into_affine(a: G1ProjMont) -> G1AffineMont {
+    if a.z == FQ_ZERO {
+        return G1AffineMont {
+            x: FQ_ZERO,
+            y: FQ_ONE,
+            infinity: true,
+        };
+    }
+    if a.z == FQ_ONE {
+        return G1AffineMont {
+            x: a.x,
+            y: a.y,
+            infinity: false,
+        };
+    }
+    let zinv = match inv(a.z) {
+        Some(value) => value,
+        None => {
+            return G1AffineMont {
+                x: FQ_ZERO,
+                y: FQ_ONE,
+                infinity: true,
+            }
+        }
+    };
+    let z2 = square(zinv);
+    G1AffineMont {
+        x: mul(a.x, z2),
+        y: mul(mul(a.y, z2), zinv),
+        infinity: false,
+    }
+}
+
+/// Montgomery batch inversion, including arkworks' zero-skipping behavior.
+fn g1_batch_invert_reversed(values: &[G1ProjMont]) -> Vec<FqMont> {
+    let mut products = Vec::with_capacity(values.len());
+    let mut product = FQ_ONE;
+    let mut i = 0_usize;
+    while i < values.len() {
+        let value = values[i].z;
+        if value == FQ_ZERO {
+        } else {
+            products.push(product);
+            product = mul(product, value);
+        }
+        i += 1;
+    }
+    let mut inverse = match inv(product) {
+        Some(value) => value,
+        None => FQ_ZERO,
+    };
+    let mut result = Vec::with_capacity(values.len());
+    i = values.len();
+    while i > 0 {
+        i -= 1;
+        let value = values[i].z;
+        if value == FQ_ZERO {
+            result.push(FQ_ZERO);
+        } else {
+            let prefix = match products.pop() {
+                Some(value) => value,
+                None => FQ_ZERO,
+            };
+            let next = mul(inverse, value);
+            result.push(mul(inverse, prefix));
+            inverse = next;
+        }
+    }
+    result
+}
+
+/// Faithful `short_weierstrass::Projective::normalize_batch` for G1.
+pub fn g1_normalize_batch(values: &[G1ProjMont]) -> Vec<G1AffineMont> {
+    let mut inverses = g1_batch_invert_reversed(values);
+    let mut result = Vec::with_capacity(values.len());
+    let mut i = 0_usize;
+    while i < values.len() {
+        let value = values[i];
+        let zinv = match inverses.pop() {
+            Some(value) => value,
+            None => FQ_ZERO,
+        };
+        if value.z == FQ_ZERO {
+            result.push(G1AffineMont {
+                x: FQ_ZERO,
+                y: FQ_ONE,
+                infinity: true,
+            });
+        } else {
+            let z2 = square(zinv);
+            result.push(G1AffineMont {
+                x: mul(value.x, z2),
+                y: mul(mul(value.y, z2), zinv),
+                infinity: false,
+            });
+        }
+        i += 1;
+    }
+    result
+}
+
+/// Faithful Jacobian-to-affine conversion used by `Projective::into_affine`.
+pub fn g2_into_affine(a: G2ProjMont) -> G2AffineMont {
+    if a.z == FQ2_ZERO {
+        return G2AffineMont {
+            x: FQ2_ZERO,
+            y: FQ2_ONE,
+            infinity: true,
+        };
+    }
+    if a.z == FQ2_ONE {
+        return G2AffineMont {
+            x: a.x,
+            y: a.y,
+            infinity: false,
+        };
+    }
+    let zinv = match fq2_inv(a.z) {
+        Some(value) => value,
+        None => {
+            return G2AffineMont {
+                x: FQ2_ZERO,
+                y: FQ2_ONE,
+                infinity: true,
+            }
+        }
+    };
+    let z2 = fq2_square(zinv);
+    G2AffineMont {
+        x: fq2_mul(a.x, z2),
+        y: fq2_mul(fq2_mul(a.y, z2), zinv),
+        infinity: false,
+    }
+}
+
+/// Montgomery batch inversion for Fq2, with zero entries skipped.
+fn g2_batch_invert_reversed(values: &[G2ProjMont]) -> Vec<Fq2Mont> {
+    let mut products = Vec::with_capacity(values.len());
+    let mut product = FQ2_ONE;
+    let mut i = 0_usize;
+    while i < values.len() {
+        let value = values[i].z;
+        if value == FQ2_ZERO {
+        } else {
+            products.push(product);
+            product = fq2_mul(product, value);
+        }
+        i += 1;
+    }
+    let mut inverse = match fq2_inv(product) {
+        Some(value) => value,
+        None => FQ2_ZERO,
+    };
+    let mut result = Vec::with_capacity(values.len());
+    i = values.len();
+    while i > 0 {
+        i -= 1;
+        let value = values[i].z;
+        if value == FQ2_ZERO {
+            result.push(FQ2_ZERO);
+        } else {
+            let prefix = match products.pop() {
+                Some(value) => value,
+                None => FQ2_ZERO,
+            };
+            let next = fq2_mul(inverse, value);
+            result.push(fq2_mul(inverse, prefix));
+            inverse = next;
+        }
+    }
+    result
+}
+
+/// Faithful `short_weierstrass::Projective::normalize_batch` for G2.
+pub fn g2_normalize_batch(values: &[G2ProjMont]) -> Vec<G2AffineMont> {
+    let mut inverses = g2_batch_invert_reversed(values);
+    let mut result = Vec::with_capacity(values.len());
+    let mut i = 0_usize;
+    while i < values.len() {
+        let value = values[i];
+        let zinv = match inverses.pop() {
+            Some(value) => value,
+            None => FQ2_ZERO,
+        };
+        if value.z == FQ2_ZERO {
+            result.push(G2AffineMont {
+                x: FQ2_ZERO,
+                y: FQ2_ONE,
+                infinity: true,
+            });
+        } else {
+            let z2 = fq2_square(zinv);
+            result.push(G2AffineMont {
+                x: fq2_mul(value.x, z2),
+                y: fq2_mul(fq2_mul(value.y, z2), zinv),
+                infinity: false,
+            });
+        }
+        i += 1;
+    }
+    result
+}
+
+/// Extraction root for single and batch G1/G2 normalization.
+#[doc(hidden)]
+pub fn extract_s3_29(
+    g1: G1ProjMont,
+    g1_batch: &[G1ProjMont],
+    g2: G2ProjMont,
+    g2_batch: &[G2ProjMont],
+) -> (
+    G1AffineMont,
+    Vec<G1AffineMont>,
+    G2AffineMont,
+    Vec<G2AffineMont>,
+) {
+    (
+        g1_into_affine(g1),
+        g1_normalize_batch(g1_batch),
+        g2_into_affine(g2),
+        g2_normalize_batch(g2_batch),
+    )
+}
+
 #[cfg(test)]
 mod inversion_tests {
     use super::{inv, FqMont};
