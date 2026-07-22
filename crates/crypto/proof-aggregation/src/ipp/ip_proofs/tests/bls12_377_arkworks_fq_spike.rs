@@ -1,7 +1,7 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
 use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{scalar_mul::glv::GLVConfig, AffineRepr, CurveGroup, PrimeGroup};
+use ark_ec::{pairing::Pairing, scalar_mul::glv::GLVConfig, AffineRepr, CurveGroup, PrimeGroup};
 use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand, Zero};
@@ -665,6 +665,33 @@ fn check_sqrt_and_bytes(value: Fq) {
         Fq::deserialize_uncompressed(bytes.as_slice()).ok(),
         spike::from_bytes(bytes).map(ark),
     );
+}
+
+fn check_prepared_g2(value: G2Affine) {
+    type Prepared = <ark_bls12_377::Bls12_377 as Pairing>::G2Prepared;
+    let actual = spike::extract_s3_33(mont_g2_affine(value));
+    let expected = Prepared::from(value);
+    assert_eq!(actual.infinity, expected.infinity);
+    assert_eq!(actual.ell_coeffs.len(), expected.ell_coeffs.len());
+    let mut i = 0_usize;
+    while i < expected.ell_coeffs.len() {
+        let a = actual.ell_coeffs[i];
+        let e = expected.ell_coeffs[i];
+        assert_eq!(ark2(a.0), e.0);
+        assert_eq!(ark2(a.1), e.1);
+        assert_eq!(ark2(a.2), e.2);
+        i += 1;
+    }
+}
+
+#[test]
+fn prepared_g2_coefficients_match_arkworks_generator_random_and_infinity() {
+    check_prepared_g2(G2Affine::generator());
+    check_prepared_g2(G2Affine::identity());
+    let mut rng = test_rng();
+    for _ in 0..4 {
+        check_prepared_g2(G2Affine::rand(&mut rng));
+    }
 }
 
 #[test]

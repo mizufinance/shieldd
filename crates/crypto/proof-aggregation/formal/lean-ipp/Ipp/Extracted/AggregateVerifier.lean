@@ -10,7 +10,7 @@ open ark_ip_proofs
 -- This older extraction used `U64` as a machine-index alias.  Keep that
 -- generated representation local now that the shared runtime also exposes
 -- the bounded arithmetic `Aeneas.Std.U64` used by the field extractions.
-abbrev U64 := Aeneas.Std.LegacyU64
+abbrev U64 := Aeneas.Std.Usize
 
 set_option maxHeartbeats 20000
 set_option maxRecDepth 2048

@@ -1,0 +1,56 @@
+import Ipp.Extracted.ArkworksG2PreparedSchedule
+import Ipp.Extracted.ArkworksG2PreparedDouble
+
+/-! Axiom gate for the S3-33 prepared-G2 schedule and doubling-line proof. -/
+
+#print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.initialState_coordinates
+#print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.extractedAteBit_eq_testBit
+#print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.ate_schedule_positions
+#print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.preparedSchedule_uses_ate_bits
+#print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.g2_prepared_loop_eq_schedule
+#print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.g2_prepared_infinity
+#print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.g2_prepared_finite_schedule
+
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.bind_eq_ok
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.result_bind_assoc
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.fq2_double_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.fq2_add_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.fq2_sub_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.fq2_neg_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.fq2_mul_fp_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.segment1_eq_cut
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.segment2_eq_cut
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.segment3_eq_cut
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleOps.g2_double_line_eq_segmented
+
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment1A.segment1A_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment1B.segment1B_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment1C.segment1C_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment1Assembly.assemble_segment1_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment1.segment1_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment2A.segment2A_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment2B.segment2B_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment2.segment2_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment3A.segment3A_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment3B.segment3B_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleSegment3.segment3_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleAssembly.assemble_double_model
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoublePrefix.segment12_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoublePrefix.segmentedDoubleLine_eq_segment12
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleExecute.g2_double_line_cut_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDouble.g2_double_line_exec_spec
+
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.decodeHomogeneous_coordinates
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.ate_twoInv_add_self
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.ate_twoInv_ne_zero
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.fq2MulFq_twoInv_add_self
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.doubleLine_decode_generic
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.doubleLine_decode_order_two
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.doubleLine_decode_infinity
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.doubleLine_represents_double
+#print axioms Ipp.Extracted.ArkworksG2PreparedModel.g2_coeff_b_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedModelTransport.doubleLine_represents_model
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleAll.allHomogeneousDoubles
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleTransition.transition_of
+#print axioms Ipp.Extracted.ArkworksG2PreparedDoubleCap.combine_double_line_spec
+#print axioms Ipp.Extracted.ArkworksG2PreparedDouble.g2_double_line_spec

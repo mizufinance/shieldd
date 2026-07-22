@@ -12,12 +12,7 @@ noncomputable section
 
 namespace Aeneas
 
-inductive UScalarTy where
-  | U32
-
 namespace Std
-
-abbrev U32 := Usize
 
 structure LegacyArray (T : Type) (size : Usize) where
   val : List T
@@ -32,13 +27,6 @@ def to_slice {T : Type} {size : Usize} (items : LegacyArray T size) : Slice T :=
 
 end LegacyArray
 end Std
-
-namespace UScalar
-
-def cast (_target : UScalarTy) (value : Std.Usize) : Std.U32 :=
-  ⟨value.val⟩
-
-end UScalar
 
 instance : HMul Std.Usize Std.Usize (Result Std.Usize) where
   hMul left right := .ok ⟨left.val * right.val⟩

@@ -13,7 +13,7 @@ namespace ark_ip_proofs
 
 structure applications.groth16_aggregation.AggregateVerifierEffect (Self :
   Type) (F : Type) (E : Type) where
-  derive_randomizer : Self → Std.LegacyU64 → Result ((core.result.Result (Option
+  derive_randomizer : Self → Std.Usize → Result ((core.result.Result (Option
     F) E) × Self)
   verify_combined : Self → F → Result ((core.result.Result (Bool × Bool)
     E) × Self)
@@ -31,8 +31,8 @@ def applications.groth16_aggregation.verify_aggregate_proof_core_loop.body
   (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (AggregateVerifierEffectInst :
   applications.groth16_aggregation.AggregateVerifierEffect FX F E)
-  (effect : FX) (nonce : Std.LegacyU64) :
-  Result (ControlFlow (FX × Std.LegacyU64) (core.result.Result
+  (effect : FX) (nonce : Std.Usize) :
+  Result (ControlFlow (FX × Std.Usize) (core.result.Result
     (applications.groth16_aggregation.AggregateVerifierCoreOutput F FX) E)) := do
   let (r, effect1) ←
     AggregateVerifierEffectInst.derive_randomizer effect nonce
@@ -84,7 +84,7 @@ def applications.groth16_aggregation.verify_aggregate_proof_core_loop
   (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (AggregateVerifierEffectInst :
   applications.groth16_aggregation.AggregateVerifierEffect FX F E)
-  (effect : FX) (nonce : Std.LegacyU64) :
+  (effect : FX) (nonce : Std.Usize) :
   Result (core.result.Result
     (applications.groth16_aggregation.AggregateVerifierCoreOutput F FX) E) := do
   loop

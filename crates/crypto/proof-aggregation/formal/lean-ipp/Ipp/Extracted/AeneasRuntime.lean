@@ -190,6 +190,8 @@ structure Usize where
   val : Nat
 deriving DecidableEq, Repr
 
+abbrev U32 := Usize
+
 namespace Usize
 
 def ofNat (value : Nat) : Usize := ⟨value⟩
@@ -241,6 +243,8 @@ structure Vec (T : Type u) where
 deriving Repr
 
 namespace Vec
+
+def new {T : Type u} : Vec T := ⟨[]⟩
 
 def with_capacity (T : Type u) (_capacity : Usize) : Vec T := ⟨[]⟩
 
@@ -561,6 +565,15 @@ end IteratorRange
 end core.iter.range
 
 end Std
+
+inductive UScalarTy where
+  | U32
+
+namespace UScalar
+
+def cast (_target : UScalarTy) (value : Std.Usize) : Std.U32 := ⟨value.val⟩
+
+end UScalar
 end Aeneas
 
 namespace ark_ip_proofs.core.mem

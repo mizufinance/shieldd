@@ -10,26 +10,6 @@ set_option maxRecDepth 2048
 
 noncomputable section
 
-namespace Aeneas
-
-inductive UScalarTy where
-  | U64
-  | Usize
-
-namespace Std
-
-abbrev LegacyU64 := Usize
-
-end Std
-
-namespace UScalar
-
-def cast (_target : UScalarTy) (value : Std.Usize) : Std.Usize :=
-  ⟨value.val⟩
-
-end UScalar
-end Aeneas
-
 namespace ark_ip_proofs
 
 def massert (condition : Prop) [Decidable condition] : Result Unit :=
@@ -579,7 +559,7 @@ def applications.groth16_aggregation.fold_public_inputs_core_loop7
 def applications.groth16_aggregation.fold_public_inputs_core
   {F : Type} {G1 : Type} (corecloneCloneInst : core.clone.Clone F)
   (corecmpPartialEqInst : core.cmp.PartialEq F F) (coreconvertFromFU64Inst :
-  core.convert.From F Std.LegacyU64) (num_traitsidentitiesOneInst :
+  core.convert.From F Std.Usize) (num_traitsidentitiesOneInst :
   num_traits.identities.One F) (num_traitsidentitiesZeroInst :
   num_traits.identities.Zero F) (coreopsarithAddInst : core.ops.arith.Add F F
   F) (coreopsarithDivInst : core.ops.arith.Div F F F) (coreopsarithMulInst :
@@ -606,7 +586,7 @@ def applications.groth16_aggregation.fold_public_inputs_core
   if b1
   then
     let i1 := Slice.len public_inputs
-    let i2 ← lift (UScalar.cast .U64 i1)
+    let i2 ← lift (UScalar.cast .U32 i1)
     let r_sum ← coreconvertFromFU64Inst.«from» i2
     let i3 := Slice.len public_inputs
     let r_vec ← alloc.vec.from_elem corecloneCloneInst t1 i3
@@ -677,7 +657,7 @@ def applications.groth16_aggregation.verify_combined_ppe_core
   {F : Type} {G1 : Type} {G2Prepared : Type} {GT : Type} {E : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
   core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
-  Std.LegacyU64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  Std.Usize) (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
   (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
   core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
@@ -722,7 +702,7 @@ def
   Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
   core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
-  Std.LegacyU64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  Std.Usize) (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
   (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
   core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
@@ -769,7 +749,7 @@ def
   Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
   core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
-  Std.LegacyU64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  Std.Usize) (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
   (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
   core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
@@ -823,7 +803,7 @@ def applications.groth16_aggregation.verify_combined_checks_core
   Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
   core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
-  Std.LegacyU64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  Std.Usize) (num_traitsidentitiesOneInst : num_traits.identities.One F)
   (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
   (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
   core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
@@ -870,7 +850,7 @@ def applications.groth16_aggregation.verify_combined_checks_core
     if b
     then
       let i ← core.num.Usize.ilog2 num_proofs
-      let expected_rounds ← lift (UScalar.cast .Usize i)
+      let expected_rounds ← lift (UScalar.cast .U32 i)
       let actual_rounds := alloc.vec.Vec.len input.tipp_mipp.proof.gipa_proof
       if actual_rounds != expected_rounds
       then

@@ -1,4 +1,5 @@
 import Ipp.Extracted.ArkworksG2Generated
+import Ipp.Extracted.ArkworksG2PreparedGenerated
 import Ipp.Extracted.ArkworksFq2
 import Ipp.Bls12377
 import Mathlib.Tactic

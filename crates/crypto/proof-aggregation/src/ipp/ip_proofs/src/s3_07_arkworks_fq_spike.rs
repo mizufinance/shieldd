@@ -1780,6 +1780,98 @@ pub fn g2_affine_neg(a: G2AffineMont) -> G2AffineMont {
     }
 }
 
+pub type G2EllCoeffMont = (Fq2Mont, Fq2Mont, Fq2Mont);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct G2PreparedMont {
+    pub ell_coeffs: Vec<G2EllCoeffMont>,
+    pub infinity: bool,
+}
+
+const G2_COEFF_B: Fq2Mont = Fq2Mont {
+    c0: FQ_ZERO,
+    c1: FqMont([
+        9255502405446297221,
+        10229180150694123945,
+        9215585410771530959,
+        13357015519562362907,
+        5437107869987383107,
+        16259554076827459,
+    ]),
+};
+
+fn fq2_mul_fp(a: Fq2Mont, b: FqMont) -> Fq2Mont {
+    Fq2Mont { c0: mul(a.c0, b), c1: mul(a.c1, b) }
+}
+
+fn g2_double_line(mut a: G2ProjMont, two_inv: FqMont) -> (G2ProjMont, G2EllCoeffMont) {
+    let mut aa = fq2_mul(a.x, a.y);
+    aa = fq2_mul_fp(aa, two_inv);
+    let b = fq2_square(a.y);
+    let c = fq2_square(a.z);
+    let e = fq2_mul(G2_COEFF_B, fq2_add(fq2_double(c), c));
+    let f = fq2_add(fq2_double(e), e);
+    let mut g = fq2_add(b, f);
+    g = fq2_mul_fp(g, two_inv);
+    let h = fq2_sub(fq2_square(fq2_add(a.y, a.z)), fq2_add(b, c));
+    let i = fq2_sub(e, b);
+    let j = fq2_square(a.x);
+    let e_square = fq2_square(e);
+    a.x = fq2_mul(aa, fq2_sub(b, f));
+    a.y = fq2_sub(fq2_square(g), fq2_add(fq2_double(e_square), e_square));
+    a.z = fq2_mul(b, h);
+    (a, (fq2_neg(h), fq2_add(fq2_double(j), j), i))
+}
+
+fn g2_add_line(mut a: G2ProjMont, q: G2AffineMont) -> (G2ProjMont, G2EllCoeffMont) {
+    let theta = fq2_sub(a.y, fq2_mul(q.y, a.z));
+    let lambda = fq2_sub(a.x, fq2_mul(q.x, a.z));
+    let c = fq2_square(theta);
+    let d = fq2_square(lambda);
+    let e = fq2_mul(lambda, d);
+    let f = fq2_mul(a.z, c);
+    let g = fq2_mul(a.x, d);
+    let h = fq2_sub(fq2_add(e, f), fq2_double(g));
+    a.x = fq2_mul(lambda, h);
+    a.y = fq2_sub(fq2_mul(theta, fq2_sub(g, h)), fq2_mul(e, a.y));
+    a.z = fq2_mul(a.z, e);
+    let j = fq2_sub(fq2_mul(theta, q.x), fq2_mul(lambda, q.y));
+    (a, (lambda, fq2_neg(theta), j))
+}
+
+/// Faithful BLS12-377 `G2Prepared::from` construction through the D-twist
+/// homogeneous double/add line schedule.
+pub fn g2_prepared(q: G2AffineMont) -> G2PreparedMont {
+    if q.infinity {
+        return G2PreparedMont { ell_coeffs: Vec::new(), infinity: true };
+    }
+    let two_inv = match inv(double(FQ_ONE)) {
+        Some(value) => value,
+        None => FQ_ZERO,
+    };
+    let mut r = G2ProjMont { x: q.x, y: q.y, z: FQ2_ONE };
+    let mut ell_coeffs = Vec::with_capacity(95);
+    let mut i = 63_usize;
+    while i > 0 {
+        i -= 1;
+        let bit = ((0x8508_c000_0000_0001_u64 >> i) & 1) != 0;
+        let (next, coeff) = g2_double_line(r, two_inv);
+        r = next;
+        ell_coeffs.push(coeff);
+        if bit {
+            let (next, coeff) = g2_add_line(r, q);
+            r = next;
+            ell_coeffs.push(coeff);
+        }
+    }
+    G2PreparedMont { ell_coeffs, infinity: false }
+}
+
+#[doc(hidden)]
+pub fn extract_s3_33(q: G2AffineMont) -> G2PreparedMont {
+    g2_prepared(q)
+}
+
 /// Extraction root whose closure contains every reached S3-27 G2 formula.
 #[doc(hidden)]
 pub fn extract_s3_27(

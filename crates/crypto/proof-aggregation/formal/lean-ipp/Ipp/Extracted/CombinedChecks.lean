@@ -18,7 +18,7 @@ private noncomputable def partialEq (T : Type) :
     exact .ok (decide (left = right))
 
 private def fromU64 (F : Type) [NatCast F] :
-    ark_ip_proofs.core.convert.From F Std.LegacyU64 where
+    ark_ip_proofs.core.convert.From F Std.Usize where
   «from» value := .ok value.val
 
 private def add (T : Type) [Add T] :
