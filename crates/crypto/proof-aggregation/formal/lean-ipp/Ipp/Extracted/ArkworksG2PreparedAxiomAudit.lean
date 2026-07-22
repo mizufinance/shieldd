@@ -1,6 +1,17 @@
 import Ipp.Extracted.ArkworksG2PreparedSchedule
 import Ipp.Extracted.ArkworksG2PreparedDouble
 import Ipp.Extracted.ArkworksG2PreparedAddStep
+import Ipp.Extracted.ArkworksG2PreparedScalar
+import Ipp.Extracted.ArkworksG2PreparedResult
+import Ipp.Extracted.ArkworksG2PreparedInput
+import Ipp.Extracted.ArkworksG2PreparedGenericityHomogeneous
+import Ipp.Extracted.ArkworksG2PreparedPointStepDouble
+import Ipp.Extracted.ArkworksG2PreparedPointStepAddition
+import Ipp.Extracted.ArkworksG2PreparedModelPrefix
+import Ipp.Extracted.ArkworksG2PreparedLoopPureStepFalse
+import Ipp.Extracted.ArkworksG2PreparedLoopPureStepTrue
+import Ipp.Extracted.ArkworksG2PreparedLoopDoubleFacts
+import Ipp.Extracted.ArkworksG2PreparedLoopAdditionFacts
 
 /-! Axiom gate for the prepared-G2 schedule, doubling, and mixed-addition lines. -/
 
@@ -76,3 +87,30 @@ import Ipp.Extracted.ArkworksG2PreparedAddStep
 #print axioms Ipp.Extracted.ArkworksG2PreparedAddition.g2_add_line_spec
 #print axioms Ipp.Extracted.ArkworksG2PreparedAddStep.g2_add_line_valid_add_step
 #print axioms Ipp.Extracted.ArkworksG2PreparedAddStep.preparedSchedule_add_step_instantiated
+
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.ate_addition_scalar_table
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.doubledScalar_mem
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.accumulatedScalar_step
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.accumulatedScalar_initial
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.accumulatedScalar_final
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.additionDoubledScalars_safe
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.additionDoubledScalars_mod_safe
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.addOrderOf_eq_scalarModulus
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.nsmul_ne_zero_of_lt_scalarModulus
+#print axioms Ipp.Extracted.ArkworksG2PreparedScalar.additionScalar_generic
+#print axioms Ipp.Extracted.ArkworksG2PreparedResult.decodePrepared_infinity
+#print axioms Ipp.Extracted.ArkworksG2PreparedInput.finite_ne_zero
+#print axioms Ipp.Extracted.ArkworksG2PreparedInput.affineRepOfPoint_eq
+#print axioms Ipp.Extracted.ArkworksG2PreparedInput.initialState_canonical
+#print axioms Ipp.Extracted.ArkworksG2PreparedInput.initialState_representsDecoded
+#print axioms Ipp.Extracted.ArkworksG2PreparedGenericity.represented_eq_or_eq_neg_of_same_x
+#print axioms Ipp.Extracted.ArkworksG2PreparedGenericityHomogeneous.homogeneous_generic_of_point_exclusions
+#print axioms Ipp.Extracted.ArkworksG2PreparedPointStep.double_model_represents_nsmul
+#print axioms Ipp.Extracted.ArkworksG2PreparedPointStep.add_model_generic_and_represents
+#print axioms Ipp.Extracted.ArkworksG2PreparedModelPrefix.preparedModelAt_step
+#print axioms Ipp.Extracted.ArkworksG2PreparedModelPrefix.preparedModelAt_initial
+#print axioms Ipp.Extracted.ArkworksG2PreparedModelPrefix.preparedModelAt_final
+#print axioms Ipp.Extracted.ArkworksG2PreparedLoopPureStep.false_step
+#print axioms Ipp.Extracted.ArkworksG2PreparedLoopPureStep.true_step
+#print axioms Ipp.Extracted.ArkworksG2PreparedLoopDoubleFacts.double_facts
+#print axioms Ipp.Extracted.ArkworksG2PreparedLoopAdditionFacts.addition_facts
