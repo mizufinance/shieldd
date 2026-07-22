@@ -1987,6 +1987,11 @@ theorem is claimed. Decoder correctness uses returned-root soundness,
 determinism, and spec conformance, which is sufficient for injectivity and
 GAP-08. F04B-2 is done and S3-F05B is next and unblocked.
 
+**S3-35 DONE (2026-07-22; commit `01490ef11`).** `g1_ell_spec` now
+conforms finite-G1 line evaluation to the D-twist `mul_by_034(f, c0*y,
+c1*x, c2)` layout, reusing the S3-21 sparse-multiply conformance. Parity:
+13; gate: 3652 jobs.
+
 F04B-2 verification:
 
 - Normal and `hax_compilation` focused parity tests both pass all four tests,

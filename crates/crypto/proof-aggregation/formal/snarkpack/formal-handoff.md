@@ -290,9 +290,9 @@ The concrete commitment/pairing adapters, serialization/subgroup behavior,
 MSM implementation, and cryptographic binding rows remain assumptions or S3
 work; the public delegators are covered by Rust parity tests rather than Lean.
 
-Prepared-G2 schedule, doubling/addition lines, and full executed
-G2Prepared coefficient-sequence validity are landed in S3-33/34. Remaining
-pairing work is S3-35..41.
+Prepared-G2 schedule, doubling/addition lines, full executed G2Prepared
+coefficient-sequence validity, and finite-G1 line evaluation (`g1_ell_spec`)
+are landed in S3-33/34/35. Remaining pairing work is S3-36..41.
 
 `verify_tipp_mipp` now delegates to the explicit typed
 `verify_tipp_mipp_core`; the core has a single error exit after its round loop,
