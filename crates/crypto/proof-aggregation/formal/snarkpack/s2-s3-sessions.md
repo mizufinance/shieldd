@@ -1379,6 +1379,14 @@ digit decomposition, and bucket accumulation invariant for one window,
 including empty, length mismatch, zeros, and identities. Acceptance: no
 opaque bucket result. Begins retiring the standalone MSM assumption.
 
+**S3-29 DONE — normalization and affine conversion conformance.** `into_affine`
+(`valid_g1_into_affine`/`valid_g2_into_affine`) and general `normalize_batch`
+were proved for both curves, covering singleton zero/nonzero, all-infinity, and
+general elementwise cases via the Montgomery batch-inversion invariant. The
+index-loop extractable spike and executable `Vec.pop` lesson are recorded here;
+commits `4887293c6` (part 1) and `e398c6ebb` (part 2). Gate: full Ipp (3541 jobs),
+11 parity tests passed, axiom-clean.
+
 **S3-31 — G1/G2 MSM capstone** — `HARD (sol)` — `GATED` on S3-30. Compose the
 window invariant and prove both executed MSM paths represent
 `∑ i, scalar_i • point_i`, including final window recombination and errors.
