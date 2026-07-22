@@ -519,6 +519,32 @@ fn finite_g1_ell_d_twist_matches_arkworks_wiring() {
     }
 }
 
+fn check_miller_pair(g1: G1Affine, g2: G2Affine) {
+    type Prepared = <ark_bls12_377::Bls12_377 as Pairing>::G2Prepared;
+    let prepared = Prepared::from(g2);
+    let coeffs = prepared
+        .ell_coeffs
+        .iter()
+        .map(|coeff| (mont2(coeff.0), mont2(coeff.1), mont2(coeff.2)))
+        .collect();
+    let actual = ark12(spike::extract_s3_36(coeffs, mont_g1_affine(g1)));
+    let expected = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop(
+        [g1],
+        [prepared],
+    )
+    .0;
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn single_pair_miller_schedule_matches_arkworks_generator_and_random_pairs() {
+    check_miller_pair(G1Affine::generator(), G2Affine::generator());
+    let mut rng = test_rng();
+    for _ in 0..12 {
+        check_miller_pair(G1Affine::rand(&mut rng), G2Affine::rand(&mut rng));
+    }
+}
+
 #[test]
 fn fq12_edges_and_512_random_vectors_match_arkworks() {
     let zero6 = Fq6::ZERO;

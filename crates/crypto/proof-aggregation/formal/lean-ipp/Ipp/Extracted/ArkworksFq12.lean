@@ -1318,7 +1318,7 @@ private theorem canonical_fq_one_limbs :
   rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE]
   exact Ipp.Extracted.ArkworksFqSqrtBytes.canonical_ONE
 
-private theorem fq12_one_spec :
+theorem fq12_one_spec :
     Canonical12 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE ∧
       decodeFq12 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE =
         Ipp.Bls12377.fq12One := by

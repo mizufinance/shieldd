@@ -1283,6 +1283,37 @@ pub fn extract_s3_35(
     g1_ell(f, coeffs, p)
 }
 
+/// Faithful single-pair BLS12-377 Miller accumulation over prepared lines.
+/// Coefficients are consumed MSB-first: doubling, then addition when the ate
+/// bit is set, for each of the 63 bits after the leading one.
+pub fn miller_schedule(coeffs: Vec<G2EllCoeffMont>, p: G1AffineMont) -> Fq12Mont {
+    let mut f = FQ12_ONE;
+    let mut coeff_index = 0_usize;
+    let mut bit_index = 63_usize;
+    while bit_index > 0 {
+        bit_index -= 1;
+        f = fq12_square(f);
+        let double_coeff = coeffs[coeff_index];
+        coeff_index += 1;
+        f = g1_ell(f, double_coeff, p).3;
+        if ((0x8508_c000_0000_0001_u64 >> bit_index) & 1) != 0 {
+            let add_coeff = coeffs[coeff_index];
+            coeff_index += 1;
+            f = g1_ell(f, add_coeff, p).3;
+        }
+    }
+    f
+}
+
+/// Extraction root for the single-pair Miller schedule.
+#[doc(hidden)]
+pub fn extract_s3_36(
+    coeffs: Vec<G2EllCoeffMont>,
+    p: G1AffineMont,
+) -> Fq12Mont {
+    miller_schedule(coeffs, p)
+}
+
 /// Quadratic-extension conjugation, also the nonzero unitary inverse.
 pub fn fq12_conjugate(a: Fq12Mont) -> Fq12Mont {
     Fq12Mont {
