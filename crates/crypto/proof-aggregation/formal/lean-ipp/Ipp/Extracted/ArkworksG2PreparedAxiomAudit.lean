@@ -12,6 +12,7 @@ import Ipp.Extracted.ArkworksG2PreparedLoopPureStepFalse
 import Ipp.Extracted.ArkworksG2PreparedLoopPureStepTrue
 import Ipp.Extracted.ArkworksG2PreparedLoopDoubleFacts
 import Ipp.Extracted.ArkworksG2PreparedLoopAdditionFacts
+import Ipp.Extracted.ArkworksG2PreparedValid
 
 /-! Axiom gate for the prepared-G2 schedule, doubling, and mixed-addition lines. -/
 
@@ -114,3 +115,11 @@ import Ipp.Extracted.ArkworksG2PreparedLoopAdditionFacts
 #print axioms Ipp.Extracted.ArkworksG2PreparedLoopPureStep.true_step
 #print axioms Ipp.Extracted.ArkworksG2PreparedLoopDoubleFacts.double_facts
 #print axioms Ipp.Extracted.ArkworksG2PreparedLoopAdditionFacts.addition_facts
+#print axioms Ipp.Extracted.ArkworksG2PreparedLoopInvariant.PreparedLoopInv
+#print axioms Ipp.Extracted.ArkworksG2PreparedLoopStep.preparedLoopInv_step
+#print axioms Ipp.Extracted.ArkworksG2PreparedLoopFuel.preparedLoopResult
+#print axioms Ipp.Extracted.ArkworksG2PreparedInvSome.inv_some_of_execution
+#print axioms Ipp.Extracted.ArkworksG2PreparedTwoInv.two_inv_facts
+#print axioms Ipp.Extracted.ArkworksG2PreparedFiniteCoefficients.finite_coefficients
+#print axioms Ipp.Extracted.ArkworksG2PreparedFiniteResult.valid_g2_prepared_finite
+#print axioms Ipp.Extracted.ArkworksG2PreparedValid.valid_g2_prepared
