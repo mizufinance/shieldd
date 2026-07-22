@@ -1416,6 +1416,16 @@ S3-21 and S3-33/34. Prove D-twist evaluation and `mul_by_034` operand layout
 equal `evalLine`/`sparse034`. Acceptance: all coefficient signs/positions and
 infinity behavior are pinned. Narrows the line-evaluation row.
 
+**S3-33 DONE (2026-07-22; commit `835bf2ef5`).** Prepared-G2 schedule and
+doubling line are landed: the executed coefficient sequence, infinity handling,
+and Miller-loop schedule were extracted and proved against `valid_g2_prepared`.
+
+**S3-34 DONE (2026-07-22; commits `867d74ac6`, `694365175`, `759a2019b`).**
+The addition line and `AddStep` were landed, Miller-loop genericity was derived
+for the concrete ate scalars, and `valid_g2_prepared` became the capstone: the
+full executed G2Prepared coefficient sequence is proven for prime-subgroup
+inputs, retaining the subgroup premise discharged by S3-32/GAP-09.
+
 **S3-36 — Miller-loop refinement** — `HARD (sol)` — `GATED` on S3-35. Prove
 the executed 63-bit signed/positive schedule, square/line accumulation, and
 conjugation choices equal `millerLoop` for one pair. Acceptance: bit order and
