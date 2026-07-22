@@ -2,8 +2,8 @@
 -- [ark_ip_proofs]: BLS12-377 G1/G2 projective-to-affine normalization.
 -- Closed graph rooted at s3_07_arkworks_fq_spike::extract_s3_29; the existing
 -- G1/G2 and Fq/Fq2 arithmetic graphs are imported rather than duplicated.
-import Ipp.Extracted.ArkworksG1
-import Ipp.Extracted.ArkworksG2
+import Ipp.Extracted.ArkworksG1Generated
+import Ipp.Extracted.ArkworksG2Generated
 
 open Aeneas Aeneas.Std Result ControlFlow Error
 open Std.Do
@@ -499,4 +499,3 @@ def s3_07_arkworks_fq_spike.extract_s3_29
   ok (gam, v, gam1, v1)
 
 end ark_ip_proofs
-

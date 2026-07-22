@@ -264,6 +264,36 @@ def pop {T : Type u} (_allocator : Type) (items : Vec T) : Result (Option T × V
 @[simp] theorem pop_singleton {T : Type u} (allocator : Type) (value : T) :
     pop allocator ⟨[value]⟩ = .ok (some value, ⟨[]⟩) := rfl
 
+@[simp] theorem pop_append_singleton {T : Type u} (allocator : Type)
+    (items : List T) (value : T) :
+    pop allocator ⟨items ++ [value]⟩ = .ok (some value, ⟨items⟩) := by
+  induction items with
+  | nil => rfl
+  | cons head tail ih =>
+      unfold pop at ih ⊢
+      simp only [Result.ok.injEq, Prod.mk.injEq] at ih
+      have ih' :
+          (popList (tail ++ [value])).fst = some value ∧
+          (popList (tail ++ [value])).snd = tail := by
+        simpa using ih
+      simp [popList, ih'.1, ih'.2]
+
+@[simp] theorem pop_replicate_succ {T : Type u} (allocator : Type)
+    (value : T) (n : Nat) :
+    pop allocator ⟨List.replicate (n + 1) value⟩ =
+      .ok (some value, ⟨List.replicate n value⟩) := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+      unfold pop at ih ⊢
+      simp only [Result.ok.injEq, Prod.mk.injEq] at ih
+      have ih' :
+          (popList (value :: List.replicate n value)).fst = some value ∧
+          (popList (value :: List.replicate n value)).snd =
+            List.replicate n value := by
+        simpa [List.replicate_succ] using ih
+      simp [List.replicate_succ, popList, ih'.1, ih'.2]
+
 end Vec
 end alloc.vec
 

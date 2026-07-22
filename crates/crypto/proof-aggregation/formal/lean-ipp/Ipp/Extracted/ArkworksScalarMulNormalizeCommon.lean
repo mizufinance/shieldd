@@ -1,4 +1,5 @@
 import Ipp.Extracted.ArkworksScalarMulNormalizeGenerated
+import Ipp.Extracted.ArkworksG2
 
 /-!
 S3-29: executed Jacobian-to-affine normalization preserves the represented
@@ -108,6 +109,36 @@ theorem decode_fq_one :
       Ipp.Bls12377.baseMontgomeryRadix]
   rw [hmod]
   exact ZMod.coe_mul_inv_eq_one _ baseMontgomeryRadix_coprime
+
+/-- A successful base-field inversion returns `none` only for zero limbs. -/
+theorem inv_none_imp_zero_val
+    (x : ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont)
+    (h : ark_ip_proofs.s3_07_arkworks_fq_spike.inv x = .ok none) :
+    x.val = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.inv at h
+  simp only [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
+    Result.bind_ok] at h
+  by_cases hz : x.val = (MacCampaign.Array.replicate 6#usize
+      (MacCampaign.U64.ofNat 0)).val
+  · simpa [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO] using hz
+  · exfalso
+    rw [if_neg (by simp [hz])] at h
+    cases hloop : ark_ip_proofs.s3_07_arkworks_fq_spike.inv_loop0
+        (MacCampaign.Array.make 6#usize
+          [MacCampaign.U64.ofNat 1, MacCampaign.U64.ofNat 0,
+           MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0,
+           MacCampaign.U64.ofNat 0, MacCampaign.U64.ofNat 0])
+        x ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS
+        ark_ip_proofs.s3_07_arkworks_fq_spike.R2
+        (MacCampaign.Array.replicate 6#usize (MacCampaign.U64.ofNat 0)) with
+    | ok val =>
+        rw [hloop] at h
+        obtain ⟨u, b, c⟩ := val
+        simp only [Result.bind_ok,
+          ark_ip_proofs.core.array.equality.PartialEqArray.eq] at h
+        split at h <;> simp at h
+    | fail e => rw [hloop] at h; simp at h
+    | div => rw [hloop] at h; simp at h
 
 theorem fq2_zero_canonical :
     Canonical2 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO := by
