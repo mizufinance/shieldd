@@ -1259,6 +1259,30 @@ pub fn fq12_mul_by_034(a: Fq12Mont, c0: Fq2Mont, c3: Fq2Mont, c4: Fq2Mont) -> Fq
     }
 }
 
+/// BLS12-377's finite-G1 D-twist line evaluation. The caller has already
+/// filtered G1 infinity, matching the multi-Miller traversal.
+pub fn g1_ell(
+    f: Fq12Mont,
+    coeffs: G2EllCoeffMont,
+    p: G1AffineMont,
+) -> (Fq2Mont, Fq2Mont, Fq2Mont, Fq12Mont) {
+    let c0 = fq2_mul_fp(coeffs.0, p.y);
+    let c1 = fq2_mul_fp(coeffs.1, p.x);
+    let c2 = coeffs.2;
+    let output = fq12_mul_by_034(f, c0, c1, c2);
+    (c0, c1, c2, output)
+}
+
+/// Extraction root for the executed finite-G1 D-twist line evaluation.
+#[doc(hidden)]
+pub fn extract_s3_35(
+    f: Fq12Mont,
+    coeffs: G2EllCoeffMont,
+    p: G1AffineMont,
+) -> (Fq2Mont, Fq2Mont, Fq2Mont, Fq12Mont) {
+    g1_ell(f, coeffs, p)
+}
+
 /// Quadratic-extension conjugation, also the nonzero unitary inverse.
 pub fn fq12_conjugate(a: Fq12Mont) -> Fq12Mont {
     Fq12Mont {

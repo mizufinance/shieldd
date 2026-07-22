@@ -488,6 +488,37 @@ fn check_fq12(a: Fq12, b: Fq12, c0: Fq2, c3: Fq2, c4: Fq2) {
     );
 }
 
+fn check_ell(f: Fq12, coeff: (Fq2, Fq2, Fq2), point: G1Affine) {
+    assert!(!point.infinity);
+    let mut expected = coeff;
+    expected.0 = Fq2::new(expected.0.c0 * point.y, expected.0.c1 * point.y);
+    expected.1 = Fq2::new(expected.1.c0 * point.x, expected.1.c1 * point.x);
+    let mut expected_f = f;
+    expected_f.mul_by_034(&expected.0, &expected.1, &expected.2);
+
+    let actual = spike::extract_s3_35(
+        mont12(f),
+        (mont2(coeff.0), mont2(coeff.1), mont2(coeff.2)),
+        mont_g1_affine(point),
+    );
+    assert_eq!(ark2(actual.0), expected.0);
+    assert_eq!(ark2(actual.1), expected.1);
+    assert_eq!(ark2(actual.2), expected.2);
+    assert_eq!(ark12(actual.3), expected_f);
+}
+
+#[test]
+fn finite_g1_ell_d_twist_matches_arkworks_wiring() {
+    type Prepared = <ark_bls12_377::Bls12_377 as Pairing>::G2Prepared;
+    let prepared = Prepared::from(G2Affine::generator());
+    let coeff = prepared.ell_coeffs[0];
+    let coeff = (coeff.0, coeff.1, coeff.2);
+    let mut rng = test_rng();
+    for point in [G1Affine::generator(), G1Affine::rand(&mut rng), G1Affine::rand(&mut rng)] {
+        check_ell(Fq12::rand(&mut rng), coeff, point);
+    }
+}
+
 #[test]
 fn fq12_edges_and_512_random_vectors_match_arkworks() {
     let zero6 = Fq6::ZERO;
