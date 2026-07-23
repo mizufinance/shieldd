@@ -39,6 +39,7 @@ def f (x : Std.U64) (y : Std.U128) (b : Std.U8) :
   let c : Array Std.U8 8 := Array.repeat b 8
   let z := UScalar.cast .U128 x
   let q := UScalar.cast UScalarTy.U64 y
+  let r := UScalar.cast .Usize x
   let _ := Array.index_usize a 0
   let _ := Array.update a 0 x
   let _ := Array.to_slice a
@@ -60,6 +61,7 @@ def f (x : Std.U64) (y : Std.U128) (b : Std.U8) :
             "MacCampaign.Array.replicate b 8",
             "MacCampaign.castU128 x",
             "MacCampaign.castU64 y",
+            "MacCampaign.u64ToUsize x",
             "MacCampaign.Array.index_usize",
             "MacCampaign.Array.update",
             "MacCampaign.Array.to_slice",
@@ -74,6 +76,19 @@ def f (x : Std.U64) (y : Std.U128) (b : Std.U8) :
         for body in ("def x : Std.U256 := by sorry\n", "def x : UScalarTy.U256 := by sorry\n"):
             completed, _ = self.run_normalize(raw(body))
             self.assertNotEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+
+    def test_signed_runtime_tokens_fail_closed(self):
+        for token in (
+            "Std.I64",
+            "IScalarTy.I64",
+            "IScalar",
+            "UScalar.hcast",
+            "IScalar.hcast",
+            "#i64",
+            "core.num.I64.",
+        ):
+            completed, _ = self.run_normalize(raw(f"def x := {token}foo\n"))
+            self.assertNotEqual(completed.returncode, 0, token)
 
     def test_wrapping_rules_use_verified_mac_campaign_targets(self):
         completed, output = self.run_normalize(raw("""\
@@ -134,7 +149,7 @@ def f (r a : Array Std.U64 6) (x : Std.U64) := by
         self.assertEqual(completed.returncode, 0, completed.stderr)
         provenance = json.loads(output.with_name(output.name + ".provenance.json").read_text())
         self.assertEqual(len(provenance["raw_lean_sha256"]), 64)
-        self.assertEqual(provenance["normalizer_revision"], "normalize-aeneas-lean-v1")
+        self.assertEqual(provenance["normalizer_revision"], "normalize-aeneas-lean-v2")
 
 
 if __name__ == "__main__":

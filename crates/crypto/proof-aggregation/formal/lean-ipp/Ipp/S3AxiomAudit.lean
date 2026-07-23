@@ -1,6 +1,7 @@
 import Ipp.Extracted.ArkworksFinalExpSpec
 import Ipp.Extracted.ArkworksMultiPairing
 import Ipp.Extracted.ArkworksSubgroupCheck
+import Ipp.Extracted.ArkworksMsm
 import Ipp.Bls12377Pairing
 import Ipp.Extracted.ArkworksMultiPairingGt
 
@@ -64,3 +65,18 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g2_subgroup_check
 #print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g1_subgroup_check_checked_membership
 #print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g2_subgroup_check_checked_membership
+#print axioms Ipp.Extracted.ArkworksMsm.nonfinalDigit_step
+#print axioms Ipp.Extracted.ArkworksMsm.finalDigit_step
+#print axioms Ipp.Extracted.ArkworksMsm.nonfinalDigit_bounds
+#print axioms Ipp.Extracted.ArkworksMsm.finalDigit_bounds
+#print axioms Ipp.Extracted.ArkworksMsm.makeDigits_value_pow_two
+#print axioms Ipp.Extracted.ArkworksMsm.makeDigitsModel_bounded
+#print axioms Ipp.Extracted.ArkworksMsm.processBuckets_apply
+#print axioms Ipp.Extracted.ArkworksMsm.reverseRunningFold_spec
+#print axioms Ipp.Extracted.ArkworksMsm.oneWindow_value
+#print axioms Ipp.Extracted.ArkworksMsm.oneWindow_zero_digits
+#print axioms Ipp.Extracted.ArkworksMsm.oneWindow_identity_bases
+#print axioms Ipp.Extracted.ArkworksMsm.g1_msm_length_mismatch
+#print axioms Ipp.Extracted.ArkworksMsm.g2_msm_length_mismatch
+#print axioms Ipp.Extracted.ArkworksMsm.g1_msm_empty_identity
+#print axioms Ipp.Extracted.ArkworksMsm.g2_msm_empty_identity

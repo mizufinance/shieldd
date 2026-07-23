@@ -254,6 +254,12 @@ def index_mut {T : Type u} (_inst : Type) (items : Vec T)
       .ok (value, fun replacement => ⟨items.val.set index.val replacement⟩)
   | none => .fail .arrayOutOfBounds
 
+def index {T : Type u} (_inst : Type) (items : Vec T)
+    (index : Usize) : Result T :=
+  match items.val[index.val]? with
+  | some value => .ok value
+  | none => .fail .arrayOutOfBounds
+
 def new {T : Type u} : Vec T := ⟨[]⟩
 
 def with_capacity (T : Type u) (_capacity : Usize) : Vec T := ⟨[]⟩
@@ -309,7 +315,14 @@ def pop {T : Type u} (_allocator : Type) (items : Vec T) : Result (Option T × V
       simp [List.replicate_succ, popList, ih'.1, ih'.2]
 
 end Vec
+
 end alloc.vec
+
+namespace core.slice.index
+
+def SliceIndexUsizeSlice (_T : Type) : Type := Unit
+
+end core.slice.index
 
 namespace core.cmp.impls.OrdUsize
 
@@ -368,12 +381,25 @@ end I32
 def castU128 (value : U64) : U128 :=
   ⟨value.val, Nat.lt_trans value.isLt (by decide)⟩
 def castU64 (value : U128) : U64 := U64.ofNat value.val
+def u64ToUsize (value : U64) : Usize := Usize.ofNat value.val
 
 def add64 (left right : U64) : Result U64 :=
   if h : left.val + right.val < u64Base then
     .ok ⟨left.val + right.val, h⟩
   else
     .fail .integerOverflow
+
+def sub64 (left right : U64) : Result U64 :=
+  if h : right.val ≤ left.val then
+    .ok ⟨left.val - right.val, by have hleft := left.isLt; omega⟩
+  else
+    .fail .integerOverflow
+
+def div64 (left right : U64) : Result U64 :=
+  if right.val = 0 then
+    .div
+  else
+    .ok (U64.ofNat (left.val / right.val))
 
 def add128 (left right : U128) : Result U128 :=
   if h : left.val + right.val < u128Base then
@@ -392,6 +418,14 @@ def shr128 (value : U128) (shift : I32) : Result U128 :=
     .ok (U128.ofNat (value.val / 2 ^ shift.val))
   else
     .fail .integerOverflow
+
+def shl64ByUsize (value : U64) (shift : Usize) : Result U64 :=
+  if shift.val < 64 then .ok (U64.ofNat (value.val * 2 ^ shift.val))
+  else .fail .integerOverflow
+
+def shr64ByUsize (value : U64) (shift : Usize) : Result U64 :=
+  if shift.val < 64 then .ok (U64.ofNat (value.val / 2 ^ shift.val))
+  else .fail .integerOverflow
 
 def wrappingMul64 (left right : U64) : U64 :=
   U64.ofNat (left.val * right.val)
@@ -458,12 +492,21 @@ def shr64 (value : U64) (shift : I32) : Result U64 :=
 
 instance instHAddU128 : HAdd U128 U128 (Result U128) where hAdd := add128
 instance instHMulU128 : HMul U128 U128 (Result U128) where hMul := mul128
+instance instHAddU64 : HAdd U64 U64 (Result U64) where hAdd := add64
+instance instHAddU64Result : HAdd U64 (Result U64) (Result U64) where
+  hAdd left right := right.bind (add64 left)
+instance instHSubU64 : HSub U64 U64 (Result U64) where hSub := sub64
+instance instHDivU64 : HDiv U64 U64 (Result U64) where hDiv := div64
 instance instHShiftRightU128 : HShiftRight U128 I32 (Result U128) where
   hShiftRight := shr128
 instance instHShiftRightU64 : HShiftRight U64 I32 (Result U64) where
   hShiftRight := shr64
 instance instHShiftLeftU64 : HShiftLeft U64 I32 (Result U64) where
   hShiftLeft := shl64
+instance instHShiftRightU64Usize : HShiftRight U64 Usize (Result U64) where
+  hShiftRight := shr64ByUsize
+instance instHShiftLeftU64Usize : HShiftLeft U64 Usize (Result U64) where
+  hShiftLeft := shl64ByUsize
 
 @[simp] theorem shl64_one (value : U64) :
     (value <<< I32.ofNat 1 : Result U64) = .ok (U64.ofNat (value.val * 2)) := by
@@ -478,7 +521,11 @@ instance instHShiftLeftU64 : HShiftLeft U64 I32 (Result U64) where
 def or64 (left right : U64) : U64 :=
   U64.ofNat (left.val ||| right.val)
 
+def and64 (left right : U64) : Result U64 :=
+  .ok (U64.ofNat (left.val &&& right.val))
+
 instance instHOrU64 : HOr U64 U64 U64 where hOr := or64
+instance instHAndU64 : HAnd U64 U64 (Result U64) where hAnd := and64
 
 instance instHSubUsize : HSub Usize Usize (Result Usize) where
   hSub left right :=
@@ -495,6 +542,21 @@ instance instHSubUsize : HSub Usize Usize (Result Usize) where
 
 instance instHMulUsize : HMul Usize Usize (Result Usize) where
   hMul left right := .ok ⟨left.val * right.val⟩
+
+instance instHDivUsize : HDiv Usize Usize (Result Usize) where
+  hDiv left right := if right.val = 0 then .div else .ok ⟨left.val / right.val⟩
+
+instance instHModUsize : HMod Usize Usize (Result Usize) where
+  hMod left right := if right.val = 0 then .div else .ok ⟨left.val % right.val⟩
+
+instance instHShiftRightUsizeI32 : HShiftRight Usize I32 (Result Usize) where
+  hShiftRight left right := .ok ⟨left.val / 2 ^ right.val⟩
+
+instance instHShiftLeftUsizeI32 : HShiftLeft Usize I32 (Result Usize) where
+  hShiftLeft left right := .ok ⟨left.val * 2 ^ right.val⟩
+
+instance instHShiftLeftUsizeUsize : HShiftLeft Usize Usize (Result Usize) where
+  hShiftLeft left right := .ok ⟨left.val * 2 ^ right.val⟩
 
 @[simp] theorem mul_eq (left right : Usize) :
     (left * right : Result Usize) = .ok ⟨left.val * right.val⟩ := rfl
@@ -525,10 +587,17 @@ end Array
 
 namespace core.clone
 
-structure Clone (Self : Type) where
+structure Clone (Self : Type u) where
   clone : Self → Result Self
 
 end core.clone
+
+namespace alloc.vec
+
+def from_elem {T : Type u} (_clone : core.clone.Clone T) (value : T) (size : Usize) : Result (Vec T) :=
+  .ok ⟨List.replicate size.val value⟩
+
+end alloc.vec
 
 namespace core.default
 
@@ -549,7 +618,7 @@ end core.mem
 
 namespace core.ops.range
 
-structure Range where
+structure Range (_T : Type := Usize) where
   start : Usize
   «end» : Usize
 

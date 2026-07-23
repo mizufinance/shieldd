@@ -2723,6 +2723,210 @@ pub fn extract_s3_29(
     )
 }
 
+fn msm_window_size(size: usize) -> usize {
+    if size < 32 {
+        3
+    } else {
+        let mut n = size;
+        let mut log = 0_usize;
+        while n > 1 {
+            n >>= 1;
+            log += 1;
+        }
+        log + 2
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct WnafDigit {
+    negative: bool,
+    magnitude: u64,
+}
+
+/// Faithful ark-ec 0.5.0 `make_digits`, specialized to BLS12-377 `Fr`.
+fn make_wnaf_digits(scalar: [u64; 4], w: usize, num_bits: usize) -> Vec<WnafDigit> {
+    let radix: u64 = 1_u64 << w;
+    let window_mask = radix - 1;
+    let digits_count = (num_bits + w - 1) / w;
+    let mut carry = 0_u64;
+    let mut digits = Vec::with_capacity(digits_count);
+    let mut i = 0_usize;
+    while i < digits_count {
+        let bit_offset = i * w;
+        let u64_idx = bit_offset / 64;
+        let bit_idx = bit_offset % 64;
+        let bit_buf = if bit_idx < 64 - w || u64_idx == scalar.len() - 1 {
+            scalar[u64_idx] >> bit_idx
+        } else {
+            (scalar[u64_idx] >> bit_idx) | (scalar[1 + u64_idx] << (64 - bit_idx))
+        };
+        let coef = carry + (bit_buf & window_mask);
+        let next_carry = (coef + radix / 2) >> w;
+        let last = i == digits_count - 1;
+        let magnitude = if last || next_carry == 0 { coef } else { radix - coef };
+        let negative = !last && next_carry != 0 && magnitude != 0;
+        digits.push(WnafDigit { negative, magnitude });
+        carry = next_carry;
+        i += 1;
+    }
+    digits
+}
+
+fn g1_msm_unchecked(bases: &[G1AffineMont], scalars: &[[u64; 4]]) -> G1ProjMont {
+    let size = if bases.len() < scalars.len() { bases.len() } else { scalars.len() };
+    if size == 0 {
+        return g1_zero();
+    }
+    let c = msm_window_size(size);
+    let num_bits = 253_usize;
+    let digits_count = (num_bits + c - 1) / c;
+    let mut all_digits = Vec::with_capacity(size * digits_count);
+    let mut i = 0_usize;
+    while i < size {
+        let digits = make_wnaf_digits(scalars[i], c, num_bits);
+        let mut j = 0_usize;
+        while j < digits.len() {
+            all_digits.push(digits[j]);
+            j += 1;
+        }
+        i += 1;
+    }
+    let mut window_sums = Vec::with_capacity(digits_count);
+    let bucket_count = 1_usize << c;
+    let mut window = 0_usize;
+    while window < digits_count {
+        let mut buckets = vec![g1_zero(); bucket_count];
+        let mut point = 0_usize;
+        while point < size {
+            let digit = all_digits[point * digits_count + window];
+            if digit.magnitude != 0 {
+                let bucket = (digit.magnitude - 1) as usize;
+                let base = if digit.negative {
+                    g1_affine_neg(bases[point])
+                } else {
+                    bases[point]
+                };
+                buckets[bucket] = g1_add_mixed(buckets[bucket], base);
+            }
+            point += 1;
+        }
+        let mut running_sum = g1_zero();
+        let mut result = g1_zero();
+        let mut bucket = bucket_count;
+        while bucket > 0 {
+            bucket -= 1;
+            running_sum = g1_add(running_sum, buckets[bucket]);
+            result = g1_add(result, running_sum);
+        }
+        window_sums.push(result);
+        window += 1;
+    }
+    let lowest = window_sums[0];
+    let mut result = g1_zero();
+    let mut window = digits_count;
+    while window > 1 {
+        window -= 1;
+        result = g1_add(result, window_sums[window]);
+        let mut bit = 0_usize;
+        while bit < c {
+            result = g1_double(result);
+            bit += 1;
+        }
+    }
+    g1_add(lowest, result)
+}
+
+fn g2_msm_unchecked(bases: &[G2AffineMont], scalars: &[[u64; 4]]) -> G2ProjMont {
+    let size = if bases.len() < scalars.len() { bases.len() } else { scalars.len() };
+    if size == 0 {
+        return g2_zero();
+    }
+    let c = msm_window_size(size);
+    let num_bits = 253_usize;
+    let digits_count = (num_bits + c - 1) / c;
+    let mut all_digits = Vec::with_capacity(size * digits_count);
+    let mut i = 0_usize;
+    while i < size {
+        let digits = make_wnaf_digits(scalars[i], c, num_bits);
+        let mut j = 0_usize;
+        while j < digits.len() {
+            all_digits.push(digits[j]);
+            j += 1;
+        }
+        i += 1;
+    }
+    let mut window_sums = Vec::with_capacity(digits_count);
+    let bucket_count = 1_usize << c;
+    let mut window = 0_usize;
+    while window < digits_count {
+        let mut buckets = vec![g2_zero(); bucket_count];
+        let mut point = 0_usize;
+        while point < size {
+            let digit = all_digits[point * digits_count + window];
+            if digit.magnitude != 0 {
+                let bucket = (digit.magnitude - 1) as usize;
+                let base = if digit.negative {
+                    g2_affine_neg(bases[point])
+                } else {
+                    bases[point]
+                };
+                buckets[bucket] = g2_add_mixed(buckets[bucket], base);
+            }
+            point += 1;
+        }
+        let mut running_sum = g2_zero();
+        let mut result = g2_zero();
+        let mut bucket = bucket_count;
+        while bucket > 0 {
+            bucket -= 1;
+            running_sum = g2_add(running_sum, buckets[bucket]);
+            result = g2_add(result, running_sum);
+        }
+        window_sums.push(result);
+        window += 1;
+    }
+    let lowest = window_sums[0];
+    let mut result = g2_zero();
+    let mut window = digits_count;
+    while window > 1 {
+        window -= 1;
+        result = g2_add(result, window_sums[window]);
+        let mut bit = 0_usize;
+        while bit < c {
+            result = g2_double(result);
+            bit += 1;
+        }
+    }
+    g2_add(lowest, result)
+}
+
+pub fn g1_msm(bases: &[G1AffineMont], scalars: &[[u64; 4]]) -> Result<G1ProjMont, usize> {
+    if bases.len() != scalars.len() {
+        return Err(if bases.len() < scalars.len() { bases.len() } else { scalars.len() });
+    }
+    Ok(g1_msm_unchecked(bases, scalars))
+}
+
+pub fn g2_msm(bases: &[G2AffineMont], scalars: &[[u64; 4]]) -> Result<G2ProjMont, usize> {
+    if bases.len() != scalars.len() {
+        return Err(if bases.len() < scalars.len() { bases.len() } else { scalars.len() });
+    }
+    Ok(g2_msm_unchecked(bases, scalars))
+}
+
+/// Extraction root for the sequential signed-digit bucket MSM copies.
+pub fn extract_s3_30(
+    g1_bases: &[G1AffineMont],
+    g1_scalars: &[[u64; 4]],
+    g2_bases: &[G2AffineMont],
+    g2_scalars: &[[u64; 4]],
+) -> (Result<G1ProjMont, usize>, Result<G2ProjMont, usize>) {
+    (
+        g1_msm(g1_bases, g1_scalars),
+        g2_msm(g2_bases, g2_scalars),
+    )
+}
+
 #[cfg(test)]
 mod inversion_tests {
     use super::{inv, FqMont};
@@ -2759,5 +2963,136 @@ mod inversion_tests {
         for _ in 0..512 {
             check(Fq::rand(&mut rng));
         }
+    }
+}
+
+#[cfg(test)]
+mod wnaf_tests {
+    use super::{make_wnaf_digits, msm_window_size};
+    use ark_bls12_377::Fr;
+    use ark_ff::PrimeField;
+    use ark_std::{test_rng, UniformRand};
+
+    fn literal_i64_digits(scalar: [u64; 4], w: usize, num_bits: usize) -> Vec<i64> {
+        let radix = 1_u64 << w;
+        let window_mask = radix - 1;
+        let digits_count = (num_bits + w - 1) / w;
+        let mut carry = 0_u64;
+        let mut digits = Vec::with_capacity(digits_count);
+        let mut i = 0_usize;
+        while i < digits_count {
+            let bit_offset = i * w;
+            let u64_idx = bit_offset / 64;
+            let bit_idx = bit_offset % 64;
+            let bit_buf = if bit_idx < 64 - w || u64_idx == scalar.len() - 1 {
+                scalar[u64_idx] >> bit_idx
+            } else {
+                (scalar[u64_idx] >> bit_idx) | (scalar[1 + u64_idx] << (64 - bit_idx))
+            };
+            let coef = carry + (bit_buf & window_mask);
+            carry = (coef + radix / 2) >> w;
+            let mut digit = (coef as i64) - ((carry << w) as i64);
+            if i == digits_count - 1 {
+                digit += (carry << w) as i64;
+            }
+            digits.push(digit);
+            i += 1;
+        }
+        digits
+    }
+
+    #[test]
+    fn sign_magnitude_digits_match_literal_i64_arkworks_reference() {
+        let mut modulus_minus_one = <Fr as PrimeField>::MODULUS;
+        modulus_minus_one.0[0] -= 1;
+        let edge_scalars = [
+            [0_u64; 4],
+            [1, 0, 0, 0],
+            modulus_minus_one.0,
+            [u64::MAX, 1, 0, 0],
+            [u64::MAX - 1, 0, 1, 0],
+            [0, u64::MAX, 0, 1],
+        ];
+        let windows = [3_usize, 4, 5, 7, 8, 11, 16];
+        let mut checked = 0_usize;
+        let mut scalar_index = 0_usize;
+        while scalar_index < edge_scalars.len() {
+            let mut window_index = 0_usize;
+            while window_index < windows.len() {
+                let w = windows[window_index];
+                let actual = make_wnaf_digits(edge_scalars[scalar_index], w, 253);
+                let expected = literal_i64_digits(edge_scalars[scalar_index], w, 253);
+                assert_eq!(actual.len(), expected.len());
+                let mut i = 0_usize;
+                while i < actual.len() {
+                    let value = if actual[i].negative {
+                        -(actual[i].magnitude as i128)
+                    } else {
+                        actual[i].magnitude as i128
+                    };
+                    assert_eq!(value, expected[i] as i128);
+                    if actual[i].magnitude == 0 {
+                        assert!(!actual[i].negative);
+                    }
+                    checked += 1;
+                    i += 1;
+                }
+                window_index += 1;
+            }
+            scalar_index += 1;
+        }
+
+        let mut rng = test_rng();
+        let mut random_index = 0_usize;
+        while random_index < 512 {
+            let scalar = Fr::rand(&mut rng).into_bigint().0;
+            let mut window_index = 0_usize;
+            while window_index < windows.len() {
+                let w = windows[window_index];
+                let actual = make_wnaf_digits(scalar, w, 253);
+                let expected = literal_i64_digits(scalar, w, 253);
+                let mut i = 0_usize;
+                while i < actual.len() {
+                    let value = if actual[i].negative {
+                        -(actual[i].magnitude as i128)
+                    } else {
+                        actual[i].magnitude as i128
+                    };
+                    assert_eq!(value, expected[i] as i128);
+                    checked += 1;
+                    i += 1;
+                }
+                window_index += 1;
+            }
+            random_index += 1;
+        }
+        assert!(checked > 7 * (6 + 512)); // every generated window was checked above
+    }
+
+    #[test]
+    fn msm_window_selection_matches_boundary_rule() {
+        let sizes = [
+            1_usize, 2, 3, 4, 7, 8, 15, 16, 31, 32, 33, 34, 63, 64, 65, 127, 128, 129,
+        ];
+        let mut checked = 0_usize;
+        let mut i = 0_usize;
+        while i < sizes.len() {
+            let size = sizes[i];
+            let expected = if size < 32 {
+                3
+            } else {
+                let mut n = size;
+                let mut log = 0_usize;
+                while n > 1 {
+                    n >>= 1;
+                    log += 1;
+                }
+                log + 2
+            };
+            assert_eq!(msm_window_size(size), expected);
+            checked += 1;
+            i += 1;
+        }
+        assert_eq!(checked, 18);
     }
 }

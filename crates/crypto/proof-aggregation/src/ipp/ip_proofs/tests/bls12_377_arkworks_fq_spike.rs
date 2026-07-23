@@ -3,7 +3,7 @@
 use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::{
     pairing::{MillerLoopOutput, Pairing},
-    scalar_mul::glv::GLVConfig,
+    scalar_mul::{glv::GLVConfig, variable_base::VariableBaseMSM},
     AffineRepr, CurveGroup, PrimeGroup,
 };
 use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
@@ -95,6 +95,28 @@ fn ark_g2_affine(value: spike::G2AffineMont) -> G2Affine {
     } else {
         G2Affine::new_unchecked(ark2(value.x), ark2(value.y))
     }
+}
+
+fn scalar_limbs(value: Fr) -> [u64; 4] {
+    value.into_bigint().0
+}
+
+fn check_g1_msm(bases: &[G1Affine], scalars: &[Fr]) {
+    let expected = <G1Projective as VariableBaseMSM>::msm(bases, scalars)
+        .map(|value| value.into_affine());
+    let mont_bases = bases.iter().copied().map(mont_g1_affine).collect::<Vec<_>>();
+    let mont_scalars = scalars.iter().copied().map(scalar_limbs).collect::<Vec<_>>();
+    let actual = spike::g1_msm(&mont_bases, &mont_scalars).map(|value| ark_g1(value).into_affine());
+    assert_eq!(actual, expected);
+}
+
+fn check_g2_msm(bases: &[G2Affine], scalars: &[Fr]) {
+    let expected = <G2Projective as VariableBaseMSM>::msm(bases, scalars)
+        .map(|value| value.into_affine());
+    let mont_bases = bases.iter().copied().map(mont_g2_affine).collect::<Vec<_>>();
+    let mont_scalars = scalars.iter().copied().map(scalar_limbs).collect::<Vec<_>>();
+    let actual = spike::g2_msm(&mont_bases, &mont_scalars).map(|value| ark_g2(value).into_affine());
+    assert_eq!(actual, expected);
 }
 
 fn scaled_g1(point: G1Projective, z: Fq) -> G1Projective {
@@ -1017,6 +1039,72 @@ fn edge_and_512_random_vectors_match_arkworks_fq_arithmetic() {
     for _ in 0..512 {
         check(Fq::rand(&mut rng), Fq::rand(&mut rng));
     }
+}
+
+#[test]
+fn wnaf_bucket_msm_matches_arkworks_g1_and_g2_edges_mismatches_and_512_random() {
+    let mut rng = test_rng();
+    let sizes = [0_usize, 1, 31, 32, 33];
+    for &size in &sizes {
+        let g1_bases = (0..size)
+            .map(|_| G1Affine::rand(&mut rng))
+            .collect::<Vec<_>>();
+        let g2_bases = (0..size)
+            .map(|_| G2Affine::rand(&mut rng))
+            .collect::<Vec<_>>();
+        let scalars = (0..size)
+            .map(|_| Fr::rand(&mut rng))
+            .collect::<Vec<_>>();
+        check_g1_msm(&g1_bases, &scalars);
+        check_g2_msm(&g2_bases, &scalars);
+    }
+
+    let mut modulus_minus_one = <Fr as PrimeField>::MODULUS;
+    modulus_minus_one.0[0] -= 1;
+    let carry_scalars = vec![
+        Fr::from_bigint(BigInt([u64::MAX, 1, 0, 0])).unwrap(),
+        Fr::from_bigint(BigInt([u64::MAX - 1, 0, 1, 0])).unwrap(),
+        Fr::from_bigint(modulus_minus_one).unwrap(),
+    ];
+    let carry_g1 = (0..3)
+        .map(|_| G1Affine::rand(&mut rng))
+        .collect::<Vec<_>>();
+    let carry_g2 = (0..3)
+        .map(|_| G2Affine::rand(&mut rng))
+        .collect::<Vec<_>>();
+    check_g1_msm(&carry_g1, &carry_scalars);
+    check_g2_msm(&carry_g2, &carry_scalars);
+
+    for size in [1_usize, 31, 32, 33] {
+        let g1_bases = vec![G1Affine::generator(); size];
+        let g2_bases = vec![G2Affine::generator(); size];
+        let zero_scalars = vec![Fr::from(0_u64); size];
+        check_g1_msm(&g1_bases, &zero_scalars);
+        check_g2_msm(&g2_bases, &zero_scalars);
+        let identity_g1 = vec![G1Affine::identity(); size];
+        let identity_g2 = vec![G2Affine::identity(); size];
+        let random_scalars = (0..size).map(|_| Fr::rand(&mut rng)).collect::<Vec<_>>();
+        check_g1_msm(&identity_g1, &random_scalars);
+        check_g2_msm(&identity_g2, &random_scalars);
+    }
+
+    let mismatch_g1 = vec![G1Affine::generator(); 3];
+    let mismatch_g2 = vec![G2Affine::generator(); 3];
+    let mismatch_scalars = vec![Fr::from(1_u64); 2];
+    check_g1_msm(&mismatch_g1, &mismatch_scalars);
+    check_g2_msm(&mismatch_g2, &mismatch_scalars);
+    check_g1_msm(&mismatch_g1[..2], &vec![Fr::from(1_u64); 3]);
+    check_g2_msm(&mismatch_g2[..2], &vec![Fr::from(1_u64); 3]);
+
+    let g1_bases = (0..512)
+        .map(|_| G1Affine::rand(&mut rng))
+        .collect::<Vec<_>>();
+    let g2_bases = (0..512)
+        .map(|_| G2Affine::rand(&mut rng))
+        .collect::<Vec<_>>();
+    let scalars = (0..512).map(|_| Fr::rand(&mut rng)).collect::<Vec<_>>();
+    check_g1_msm(&g1_bases, &scalars);
+    check_g2_msm(&g2_bases, &scalars);
 }
 
 #[test]
