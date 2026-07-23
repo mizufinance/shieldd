@@ -17,20 +17,20 @@ set_option maxHeartbeats 1000000
 /-- Replacing the active factor advances the line-pass product prefix. -/
 theorem advance_line_product
     (filtered : List ExecPair) (chunkStart width cursor processed : Nat)
-    (baseValues : List Fq12Model) (f nextF : Fq12LimbPair)
+    (baseValues : List Fq12Model) (f nextF : Fq12Model)
     (pair : ExecPair) (coeff : G2EllCoeffLimb)
     (hactive : processed < width)
     (hbaseLength : baseValues.length = width)
     (hpairGet : filtered[chunkStart + processed]? = some pair)
     (hcoeffGet : pair.1.val[cursor]? = some coeff)
-    (haccumulator : decodeFq12 f =
+    (haccumulator : f =
       ((lineValues filtered chunkStart width cursor baseValues).take processed ++
         baseValues.drop processed).prod)
-    (hdecode : decodeFq12 nextF =
-      ellModel (decodeFq12 f) (decodeEllCoeff coeff).1
+    (hdecode : nextF =
+      ellModel f (decodeEllCoeff coeff).1
         (decodeEllCoeff coeff).2.1 (decodeEllCoeff coeff).2.2
         (decode pair.2.x) (decode pair.2.y)) :
-    decodeFq12 nextF =
+    nextF =
       ((lineValues filtered chunkStart width cursor baseValues).take
           (processed + 1) ++ baseValues.drop (processed + 1)).prod := by
   have hbaseBound : processed < baseValues.length := by omega
@@ -52,8 +52,8 @@ theorem advance_line_product
   have hbaseDrop := List.drop_eq_getElem_cons hbaseBound
   have hlineTake := List.take_succ_eq_append_getElem hlineBound
   calc
-    decodeFq12 nextF =
-        ellModel (decodeFq12 f) (decodeEllCoeff coeff).1
+    nextF =
+        ellModel f (decodeEllCoeff coeff).1
           (decodeEllCoeff coeff).2.1 (decodeEllCoeff coeff).2.2
           (decode pair.2.x) (decode pair.2.y) := hdecode
     _ = ellModel

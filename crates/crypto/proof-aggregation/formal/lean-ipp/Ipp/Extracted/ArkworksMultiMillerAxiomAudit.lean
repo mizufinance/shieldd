@@ -1,4 +1,4 @@
-import Ipp.Extracted.ArkworksMultiMillerLineProduct
+import Ipp.Extracted.ArkworksMultiMiller
 
 /-! Axiom gate and package anchor for the green multi-Miller proof layers. -/
 
@@ -9,3 +9,9 @@ import Ipp.Extracted.ArkworksMultiMillerLineProduct
 #print axioms Ipp.Extracted.ArkworksMultiMillerLineExecution.line_body_witness
 #print axioms Ipp.Extracted.ArkworksMultiMillerLineSemantics.line_semantics
 #print axioms Ipp.Extracted.ArkworksMultiMillerLineProduct.advance_line_product
+#print axioms Ipp.Extracted.ArkworksMultiMillerLineStep.doubling_line_step
+#print axioms Ipp.Extracted.ArkworksMultiMillerDoublingPass.doubling_line_pass
+#print axioms Ipp.Extracted.ArkworksMultiMillerAdditionPass.addition_line_pass
+#print axioms Ipp.Extracted.ArkworksMultiMillerChunkLoop.chunk_schedule_spec
+#print axioms Ipp.Extracted.ArkworksMultiMillerOuterLoop.outer_schedule_spec
+#print axioms Ipp.Extracted.ArkworksMultiMiller.multi_miller_schedule_spec
