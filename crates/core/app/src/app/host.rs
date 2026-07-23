@@ -45,12 +45,14 @@ pub struct HostTxResponse {
     pub gas_used: i64,
     pub events: Vec<abci::Event>,
     pub codespace: String,
+    pub withdrawals: Vec<HostWithdrawal>,
 }
 
 impl HostTxResponse {
-    fn accepted(events: Vec<abci::Event>) -> Self {
+    fn accepted(events: Vec<abci::Event>, withdrawals: Vec<HostWithdrawal>) -> Self {
         Self {
             events,
+            withdrawals,
             ..Default::default()
         }
     }
@@ -63,6 +65,14 @@ impl HostTxResponse {
             ..Default::default()
         }
     }
+}
+
+/// Host-chain transfer emitted by an accepted shielded withdrawal.
+#[derive(Clone, Debug)]
+pub struct HostWithdrawal {
+    pub recipient: String,
+    pub denom: String,
+    pub amount: Amount,
 }
 
 #[derive(Clone, Debug)]
@@ -257,7 +267,7 @@ impl HostExecution {
                 .deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))
                 .await
             {
-                Ok(events) => HostTxResponse::accepted(events),
+                Ok(events) => HostTxResponse::accepted(events, Vec::new()),
                 Err(error) => HostTxResponse::rejected(error),
             },
         )
@@ -276,7 +286,7 @@ impl HostExecution {
                 .deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))
                 .await
             {
-                Ok(events) => HostTxResponse::accepted(events),
+                Ok(events) => HostTxResponse::accepted(events, Vec::new()),
                 Err(error) => HostTxResponse::rejected(error),
             },
         )
@@ -876,5 +886,12 @@ mod tests {
         };
 
         assert!(validate_host_source(&source).is_err());
+    }
+
+    #[test]
+    fn accepted_host_tx_response_accepts_empty_withdrawals() {
+        let response = HostTxResponse::accepted(Vec::new(), Vec::new());
+
+        assert!(response.withdrawals.is_empty());
     }
 }

@@ -1,11 +1,12 @@
 use anyhow::{Context as _, Result};
 use cnidarium::Storage;
 use shieldd_sdk_app::{
-    app::{HostBlock, HostExecution, HostTxResponse},
+    app::{HostBlock, HostExecution, HostTxResponse, HostWithdrawal},
     genesis::AppState,
 };
 use shieldd_sdk_proto::{
     core::app::v1 as proto_app,
+    cosmos::base::v1beta1::Coin,
     execution_client::v1::{
         execution_client_service_server::ExecutionClientService, BeginBlockRequest,
         BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
@@ -13,6 +14,7 @@ use shieldd_sdk_proto::{
         DepositResponse, EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
         EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
         InitGenesisRequest, InitGenesisResponse, RollbackRequest, RollbackResponse,
+        Withdrawal as ProtoWithdrawal,
     },
 };
 use tendermint::{abci, Time};
@@ -197,7 +199,21 @@ fn deliver_tx_response(response: HostTxResponse) -> Result<DeliverTxResponse> {
         gas_used: response.gas_used,
         events: encode_events(response.events)?,
         codespace: response.codespace,
+        withdrawals: encode_withdrawals(response.withdrawals),
     })
+}
+
+fn encode_withdrawals(withdrawals: Vec<HostWithdrawal>) -> Vec<ProtoWithdrawal> {
+    withdrawals
+        .into_iter()
+        .map(|withdrawal| ProtoWithdrawal {
+            recipient: withdrawal.recipient,
+            coin: Some(Coin {
+                denom: withdrawal.denom,
+                amount: withdrawal.amount.to_string(),
+            }),
+        })
+        .collect()
 }
 
 fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
@@ -266,5 +282,27 @@ mod tests {
         .expect_err("missing time must be rejected");
 
         assert!(err.to_string().contains("missing begin_block time"));
+    }
+
+    #[test]
+    fn deliver_tx_response_has_no_withdrawals_without_a_host_action() {
+        let response = deliver_tx_response(HostTxResponse::default()).expect("valid response");
+
+        assert!(response.withdrawals.is_empty());
+    }
+
+    #[test]
+    fn encode_withdrawals_maps_recipient_and_coin() {
+        let encoded = encode_withdrawals(vec![HostWithdrawal {
+            recipient: "bank1recipient".to_owned(),
+            denom: "ushieldd".to_owned(),
+            amount: 42u64.into(),
+        }]);
+
+        assert_eq!(encoded.len(), 1);
+        assert_eq!(encoded[0].recipient, "bank1recipient");
+        let coin = encoded[0].coin.as_ref().expect("withdrawal coin");
+        assert_eq!(coin.denom, "ushieldd");
+        assert_eq!(coin.amount, "42");
     }
 }

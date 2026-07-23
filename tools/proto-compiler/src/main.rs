@@ -31,6 +31,10 @@ fn main() -> anyhow::Result<()> {
     // TODO: which of these is the right path?
     config.extern_path(".ics23", "::ics23");
     config.extern_path(".cosmos.ics23", "::ics23");
+    config.type_attribute(
+        ".cosmos.base.v1beta1.Coin",
+        "#[derive(serde::Serialize, serde::Deserialize)]",
+    );
 
     config
         .out_dir(&target_dir)
