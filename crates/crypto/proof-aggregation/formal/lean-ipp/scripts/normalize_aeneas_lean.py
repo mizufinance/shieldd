@@ -145,19 +145,21 @@ def _transform(text: str, *, extra_imports: list[str], raw: bool) -> str:
     replacements = [
         (re.compile(r"(?<![\w.])UScalar\.cast\s+(?:\.U128|UScalarTy\.U128)\s+([A-Za-z_][\w'.]*)"), r"MacCampaign.castU128 \1"),
         (re.compile(r"(?<![\w.])UScalar\.cast\s+(?:\.U64|UScalarTy\.U64)\s+([A-Za-z_][\w'.]*)"), r"MacCampaign.castU64 \1"),
-        (re.compile(r"\bArray\s+Std\.U64\b"), "MacCampaign.Array MacCampaign.U64"),
-        (re.compile(r"\bArray\s+Std\.U128\b"), "MacCampaign.Array MacCampaign.U128"),
-        (re.compile(r"\bArray\s+Std\.U8\b"), "MacCampaign.Array UInt8"),
+        (re.compile(r"(?<![\w.])Array\s+Std\.U64\b"), "MacCampaign.Array MacCampaign.U64"),
+        (re.compile(r"(?<![\w.])Array\s+Std\.U128\b"), "MacCampaign.Array MacCampaign.U128"),
+        (re.compile(r"(?<![\w.])Array\s+Std\.U8\b"), "MacCampaign.Array UInt8"),
         (re.compile(r"\bStd\.U64\.ofNat\b"), "MacCampaign.U64.ofNat"),
         (re.compile(r"\bStd\.U128\.ofNat\b"), "MacCampaign.U128.ofNat"),
         (re.compile(r"\bStd\.U64\b"), "MacCampaign.U64"),
         (re.compile(r"\bStd\.U128\b"), "MacCampaign.U128"),
         (re.compile(r"\bStd\.U8\b"), "UInt8"),
-        (re.compile(r"\bArray\.index_usize\b"), "MacCampaign.Array.index_usize"),
-        (re.compile(r"\bArray\.update\b"), "MacCampaign.Array.update"),
-        (re.compile(r"\bArray\.make\b"), "MacCampaign.Array.make"),
-        (re.compile(r"\bArray\.repeat\b"), "MacCampaign.Array.replicate"),
-        (re.compile(r"\bArray\.to_slice\b"), "MacCampaign.Array.to_slice"),
+        (re.compile(r"\bcore\.num\.U64\.wrapping_mul\b"), "MacCampaign.wrappingMul64"),
+        (re.compile(r"\bcore\.num\.U128\.wrapping_sub\b"), "MacCampaign.wrappingSub128"),
+        (re.compile(r"(?<![\w.])Array\.index_usize\b"), "MacCampaign.Array.index_usize"),
+        (re.compile(r"(?<![\w.])Array\.update\b"), "MacCampaign.Array.update"),
+        (re.compile(r"(?<![\w.])Array\.make\b"), "MacCampaign.Array.make"),
+        (re.compile(r"(?<![\w.])Array\.repeat\b"), "MacCampaign.Array.replicate"),
+        (re.compile(r"(?<![\w.])Array\.to_slice\b"), "MacCampaign.Array.to_slice"),
     ]
     result = _replace_code(text, replacements)
     result = _replace_code(result, [(re.compile(r"^import Aeneas\r?$", re.MULTILINE), "import Ipp.Extracted.AeneasRuntime")])
@@ -180,7 +182,9 @@ def _fail_closed(text: str) -> None:
         if re.search(rf"(?<![.\w]){re.escape(name)}\b", code)
     ]
     unknown = re.findall(
-        r"\bStd\.U(?:\d+)\b|\bUScalarTy\.U\d+\b|\bUScalar\.cast\b|\bcore\.num\.[A-Za-z0-9_.]+",
+        r"\bStd\.U(?:\d+)\b|\bUScalarTy\.U\d+\b|\bUScalar\.cast\b|"
+        r"\bcore\.num\.U(?:64|128)\.wrapping_[A-Za-z0-9_]+\b|"
+        r"\bcore\.num\.[A-Za-z0-9_.]+",
         code,
     )
     if residual or unknown:

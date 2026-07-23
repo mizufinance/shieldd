@@ -75,13 +75,31 @@ def f (x : Std.U64) (y : Std.U128) (b : Std.U8) :
             completed, _ = self.run_normalize(raw(body))
             self.assertNotEqual(completed.returncode, 0, completed.stdout + completed.stderr)
 
+    def test_wrapping_rules_use_verified_mac_campaign_targets(self):
+        completed, output = self.run_normalize(raw("""\
+def f (x y : MacCampaign.U64) (a b : MacCampaign.U128) := by
+  let p := core.num.U64.wrapping_mul x y
+  let q := core.num.U128.wrapping_sub a b
+  exact (p, q)
+"""))
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = output.read_text(encoding="utf-8")
+        self.assertIn("MacCampaign.wrappingMul64 x y", result)
+        self.assertIn("MacCampaign.wrappingSub128 a b", result)
+
+    def test_unmapped_wrapping_builtin_fails_closed(self):
+        completed, _ = self.run_normalize(raw(
+            "def x (value : MacCampaign.U64) := core.num.U64.wrapping_rotate value\n"
+        ))
+        self.assertNotEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+
     def test_forbidden_builtin_in_comment_is_not_rewritten_or_rejected(self):
         completed, output = self.run_normalize(raw("-- Std.U256 and Array.repeat are documentation\n"))
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("-- Std.U256 and Array.repeat are documentation", output.read_text(encoding="utf-8"))
 
     def test_idempotence_and_check(self):
-        completed, first = self.run_normalize(raw("def x : Std.U64 := Std.U64.ofNat 4\n"))
+        completed, first = self.run_normalize(raw("def x : Array Std.U64 1 := Array.make 1\n"))
         self.assertEqual(completed.returncode, 0, completed.stderr)
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)
