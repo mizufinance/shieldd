@@ -14,7 +14,7 @@ import Ipp.Extracted.ArkworksG2PreparedLoopDoubleFacts
 import Ipp.Extracted.ArkworksG2PreparedLoopAdditionFacts
 import Ipp.Extracted.ArkworksG2PreparedValid
 
-/-! Axiom gate for the prepared-G2 schedule, doubling, and mixed-addition lines. -/
+/-! Assumption gate for the prepared-G2 schedule, doubling, and mixed-addition lines. -/
 
 #print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.initialState_coordinates
 #print axioms Ipp.Extracted.ArkworksG2PreparedSchedule.extractedAteBit_eq_testBit

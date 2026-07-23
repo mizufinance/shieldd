@@ -1,6 +1,6 @@
 import Ipp.Extracted.ArkworksMultiMiller
 
-/-! Axiom gate and package anchor for the green multi-Miller proof layers. -/
+/-! Assumption gate and package anchor for the green multi-Miller proof layers. -/
 
 #print axioms ark_ip_proofs.s3_07_arkworks_fq_spike.extract_s3_37
 #print axioms Ipp.Extracted.ArkworksMultiMillerModel.fq12Prod_square

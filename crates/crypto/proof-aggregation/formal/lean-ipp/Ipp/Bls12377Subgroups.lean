@@ -101,7 +101,8 @@ theorem scalarModulus_sq_not_dvd_g2GroupOrder :
 
 section G1
 
-local instance : Fact baseModulus.Prime := ⟨arithmeticFacts.basePrime⟩
+local instance subgroupG1BasePrimeFact : Fact baseModulus.Prime :=
+  ⟨arithmeticFacts.basePrime⟩
 
 /--
 The arkworks 0.5.0 checked G1 membership predicate: scalar multiplication by
@@ -283,8 +284,10 @@ end G1
 
 section G2
 
-local instance : Fact baseModulus.Prime := ⟨arithmeticFacts.basePrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance subgroupG2BasePrimeFact : Fact baseModulus.Prime :=
+  ⟨arithmeticFacts.basePrime⟩
+local instance subgroupG2NonresidueFact :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
 
 /--

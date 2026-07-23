@@ -1,5 +1,7 @@
 import Ipp.Extracted.ArkworksFinalExpSpec
 import Ipp.Extracted.ArkworksMultiPairing
+import Ipp.Bls12377Pairing
+import Ipp.Extracted.ArkworksMultiPairingGt
 
 /-!
 S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
@@ -48,3 +50,12 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.Extracted.ArkworksMultiPairing.multi_miller_schedule_partition_invariant
 #print axioms Ipp.Extracted.ArkworksMultiPairing.multi_pairing_spec
 #print axioms Ipp.Extracted.ArkworksMultiPairing.multi_pairing_product_spec
+#print axioms Ipp.Bls12377.executedPairingExponent_mul_scalarModulus
+#print axioms Ipp.Bls12377.executedFinalExponent_mem_gtGroup
+#print axioms Ipp.Bls12377.gtValue_successfulFinalExponentGt
+#print axioms Ipp.Bls12377.gtValue_executablePairing_of_nonzero
+#print axioms Ipp.Bls12377.PublishedPairingBilinear
+#print axioms Ipp.Bls12377.PublishedPairingNondegenerate
+#print axioms Ipp.Bls12377.PublishedPairingBilinearNondegenerate
+#print axioms Ipp.Extracted.ArkworksMultiPairingGt.arkworksPairingExponent_eq_executedPairingExponent
+#print axioms Ipp.Extracted.ArkworksMultiPairingGt.pairingModel_eq_gtValue

@@ -1,6 +1,6 @@
 import Ipp.Extracted.ArkworksG2Mathlib
 import Ipp.Extracted.ArkworksG2PreparedGenerated
-import Ipp.Bls12377Pairing
+import Ipp.Bls12377PairingModel
 import Mathlib.Tactic
 
 /-! S3-33 homogeneous accumulator and line-coefficient model boundary. -/

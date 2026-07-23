@@ -1,4 +1,5 @@
 import Ipp.Extracted.AggregateVerifier
+import Ipp.Extracted.AggregateVerifierPairingAdapter
 
 -- The standalone helper modules are audited by their own source #print blocks;
 -- this fixture audits the closed S2 verifier graph in one non-conflicting import.
@@ -30,4 +31,17 @@ import Ipp.Extracted.AggregateVerifier
 #print axioms Ipp.Extracted.AggregateVerifier.run_randomizer_error
 #print axioms Ipp.Extracted.AggregateVerifier.run_combined_error
 #print axioms Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_refinement_statement
+#print axioms Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_pairing_adapter_statement
+#print axioms Ipp.Bls12377.g1PrimeSubgroupModule
+#print axioms Ipp.Bls12377.g2PrimeSubgroupModule
+#print axioms Ipp.Bls12377.arkPairingOutputModule
+#print axioms Ipp.Bls12377.executablePairingLinear
+#print axioms Ipp.Bls12377.executablePairingLinear_apply
+#print axioms Ipp.Bls12377.statementWithExecutablePairing_e
+#print axioms Ipp.Bls12377.tippPairingEffect_failure
+#print axioms Ipp.Bls12377.tippPairingEffect_two_pair_law
+#print axioms Ipp.Bls12377.prepareNegative_value
+#print axioms Ipp.Bls12377.preparedPairingEffect_two_pair_law
+#print axioms Ipp.Bls12377.preparedPairingEffect_failure
+#print axioms Ipp.Bls12377.ppePairingAdapterLaws
 #print axioms Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_profiled_with_trace_refinement_statement

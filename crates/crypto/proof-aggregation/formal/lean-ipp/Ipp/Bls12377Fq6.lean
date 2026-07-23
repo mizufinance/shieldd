@@ -1,4 +1,4 @@
-import Ipp.Bls12377Pairing
+import Ipp.Bls12377PairingModel
 import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.FieldTheory.KummerExtension
 
