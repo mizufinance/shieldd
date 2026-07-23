@@ -1839,6 +1839,11 @@ lands the single-pair Miller schedule as a 63-step fold via `MillerLoopInv`
 and fuel induction. The schedule length is 69: 63 doublings plus additions at
 bits `{58,56,51,47,46,0}`. Parity: 14; gate: 3660.
 
+**S3-37 DONE (2026-07-23; commits `3a621228b` + `6122e2e34`).**
+`multi_miller_schedule_spec` proves the prepared multi-Miller traversal equals
+the product of the per-pair Miller folds. The chunk-of-4 traversal, filter,
+and opaque-Fq12 composition defeat the heartbeat blowup. Parity: 15; gate: 3684.
+
 ### Session 3 — executed round, outer loop, subtraction, and decode (2026-07-15)
 
 Status: COMPLETE. The generated Fq multiplication path is connected to the

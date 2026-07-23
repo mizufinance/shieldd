@@ -291,9 +291,10 @@ MSM implementation, and cryptographic binding rows remain assumptions or S3
 work; the public delegators are covered by Rust parity tests rather than Lean.
 
 Prepared-G2 schedule, doubling/addition lines, full executed G2Prepared
-coefficient-sequence validity, finite-G1 line evaluation (`g1_ell_spec`), and
-the single-pair Miller schedule (`miller_schedule_spec`) are landed in
-S3-33/34/35/36. Remaining pairing work is S3-37..41.
+coefficient-sequence validity, finite-G1 line evaluation (`g1_ell_spec`), the
+single-pair Miller schedule (`miller_schedule_spec`), and the multi-Miller
+product refinement (`multi_miller_schedule_spec`) are landed in S3-33..37.
+Remaining pairing work is S3-38..41.
 
 `verify_tipp_mipp` now delegates to the explicit typed
 `verify_tipp_mipp_core`; the core has a single error exit after its round loop,
