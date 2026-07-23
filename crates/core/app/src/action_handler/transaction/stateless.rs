@@ -15,6 +15,7 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
             Action::Consolidate(consolidate) => consolidate.body.outputs.len(),
             Action::Split(split) => split.body.outputs.len(),
             Action::ShieldedIcs20Withdrawal(_) => 1,
+            Action::ShieldedHostWithdrawal(_) => 1,
             _ => 0,
         })
         .sum::<usize>();

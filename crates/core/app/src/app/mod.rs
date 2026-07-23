@@ -154,6 +154,9 @@ fn action_family_id(action: &Action) -> Option<ProofFamilyId> {
         Action::ShieldedIcs20Withdrawal(withdrawal) => Some(
             ProofFamilyId::ShieldedIcs20Withdrawal(withdrawal.body.family_id),
         ),
+        Action::ShieldedHostWithdrawal(withdrawal) => Some(ProofFamilyId::ShieldedIcs20Withdrawal(
+            withdrawal.body.family_id,
+        )),
         _ => None,
     }
 }
@@ -1455,6 +1458,37 @@ impl App {
                             .expect("shielded ICS-20 withdrawal family exists")
                             .push(item);
                     }
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
+                        let t1 = Instant::now();
+                        let public =
+                            shieldd_sdk_shielded_pool::component::shielded_host_withdrawal_extract_public(
+                                withdrawal,
+                                &context,
+                            )
+                            .context("shielded host withdrawal extract public failed")?;
+                        profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
+
+                        let t2 = Instant::now();
+                        let item =
+                            shieldd_sdk_shielded_pool::component::shielded_host_withdrawal_to_batch_item(
+                                withdrawal,
+                                public,
+                            )
+                            .context("shielded host withdrawal to_batch_item failed")?;
+                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
+                        let family_id =
+                            action_family_id(&Action::ShieldedHostWithdrawal(withdrawal.clone()))
+                                .expect("shielded host withdrawal has a proof family");
+
+                        tx_proof_items
+                            .get_mut(&family_id)
+                            .expect("shielded withdrawal family exists")
+                            .push(item.clone());
+                        proof_items
+                            .get_mut(&family_id)
+                            .expect("shielded withdrawal family exists")
+                            .push(item);
+                    }
                     Action::Consolidate(_) => {
                         let consolidate = match action {
                             Action::Consolidate(consolidate) => consolidate,
@@ -1571,6 +1605,14 @@ impl App {
                             .extend(transfer.body.inputs.iter().map(|input| input.nullifier));
                     }
                     Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                        anchor_pairs.insert((
+                            withdrawal.body.compliance_anchor,
+                            withdrawal.body.asset_anchor,
+                        ));
+                        spend_nullifiers
+                            .extend(withdrawal.body.inputs.iter().map(|input| input.nullifier));
+                    }
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
                         anchor_pairs.insert((
                             withdrawal.body.compliance_anchor,
                             withdrawal.body.asset_anchor,
@@ -2556,6 +2598,11 @@ impl App {
                                 .as_ref()
                                 .map(|body| body.inputs.len())
                                 .unwrap_or_default(),
+                            Some(ProtoAction::ShieldedHostWithdrawal(withdrawal)) => withdrawal
+                                .body
+                                .as_ref()
+                                .map(|body| body.inputs.len())
+                                .unwrap_or_default(),
                             _ => 0,
                         })
                         .sum()
@@ -2977,6 +3024,15 @@ impl App {
                         "converting proto shielded ICS-20 withdrawal nullifier",
                     )?;
                 }
+                Some(ProtoAction::ShieldedHostWithdrawal(w)) => {
+                    push_nullifiers(
+                        &mut spend_nullifiers,
+                        w.body
+                            .iter()
+                            .flat_map(|b| b.inputs.iter().filter_map(|i| i.nullifier.as_ref())),
+                        "converting proto shielded host withdrawal nullifier",
+                    )?;
+                }
                 _ => {}
             }
         }
@@ -3149,6 +3205,12 @@ impl App {
                             .insert((transfer.body.compliance_anchor, transfer.body.asset_anchor));
                     }
                     Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                        unique_pairs.insert((
+                            withdrawal.body.compliance_anchor,
+                            withdrawal.body.asset_anchor,
+                        ));
+                    }
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
                         unique_pairs.insert((
                             withdrawal.body.compliance_anchor,
                             withdrawal.body.asset_anchor,

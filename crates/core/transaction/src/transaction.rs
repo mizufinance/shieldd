@@ -17,7 +17,10 @@ use shieldd_sdk_proto::{
     DomainType, Message,
 };
 use shieldd_sdk_sct::Nullifier;
-use shieldd_sdk_shielded_pool::{Consolidate, Note, ShieldedIcs20WithdrawalView, Split, Transfer};
+use shieldd_sdk_shielded_pool::{
+    Consolidate, Note, ShieldedHostWithdrawal, ShieldedHostWithdrawalView,
+    ShieldedIcs20WithdrawalView, Split, Transfer,
+};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_txhash::{
@@ -152,7 +155,8 @@ impl Transaction {
                 Action::Transfer(_)
                 | Action::Consolidate(_)
                 | Action::Split(_)
-                | Action::ShieldedIcs20Withdrawal(_) => 1,
+                | Action::ShieldedIcs20Withdrawal(_)
+                | Action::ShieldedHostWithdrawal(_) => 1,
                 _ => 0,
             })
             .sum::<usize>()
@@ -217,6 +221,12 @@ impl Transaction {
                     )
                 }),
                 Action::ShieldedIcs20Withdrawal(withdrawal) => Some((
+                    withdrawal.body.change_output.note_payload.clone(),
+                    withdrawal.body.change_output.ovk_wrapped_key.clone(),
+                    withdrawal.body.change_output.wrapped_memo_key.clone(),
+                    withdrawal.body.balance_commitment,
+                )),
+                Action::ShieldedHostWithdrawal(withdrawal) => Some((
                     withdrawal.body.change_output.note_payload.clone(),
                     withdrawal.body.change_output.ovk_wrapped_key.clone(),
                     withdrawal.body.change_output.wrapped_memo_key.clone(),
@@ -325,6 +335,25 @@ impl Transaction {
                         }
                     }
                 }
+                Action::ShieldedHostWithdrawal(withdrawal) => {
+                    let output = &withdrawal.body.change_output;
+                    let ovk_wrapped_key = output.ovk_wrapped_key.clone();
+                    let commitment = output.note_payload.note_commitment;
+                    let epk = &output.note_payload.ephemeral_key;
+                    let cv = withdrawal.body.balance_commitment;
+                    let shared_secret =
+                        Note::decrypt_key(ovk_wrapped_key, commitment, cv, fvk.outgoing(), epk);
+
+                    match shared_secret {
+                        Ok(shared_secret) => {
+                            result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
+                        }
+                        Err(_) => {
+                            let shared_secret = fvk.incoming().key_agreement_with(epk)?;
+                            result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
+                        }
+                    }
+                }
                 Action::ValidatorDefinition(_)
                 | Action::IbcRelay(_)
                 | Action::ProposalSubmit(_)
@@ -361,6 +390,7 @@ impl Transaction {
                     | ActionView::Consolidate(_)
                     | ActionView::Split(_)
                     | ActionView::ShieldedIcs20Withdrawal(_)
+                    | ActionView::ShieldedHostWithdrawal(_)
             ) && memo_plaintext.is_none()
             {
                 memo_plaintext = match self.transaction_body().memo {
@@ -502,6 +532,16 @@ impl Transaction {
         })
     }
 
+    pub fn shielded_host_withdrawals(&self) -> impl Iterator<Item = &ShieldedHostWithdrawal> {
+        self.actions().filter_map(|action| {
+            if let Action::ShieldedHostWithdrawal(withdrawal) = action {
+                Some(withdrawal)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn spent_nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
         let mut nullifiers = self
             .actions()
@@ -526,6 +566,12 @@ impl Transaction {
                     .map(|input| input.nullifier)
                     .collect(),
                 Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal
+                    .body
+                    .inputs
+                    .iter()
+                    .map(|input| input.nullifier)
+                    .collect(),
+                Action::ShieldedHostWithdrawal(withdrawal) => withdrawal
                     .body
                     .inputs
                     .iter()
@@ -574,6 +620,9 @@ impl Transaction {
                     .map(|output| Some(output.note_payload.note_commitment))
                     .collect::<Vec<_>>(),
                 Action::ShieldedIcs20Withdrawal(withdrawal) => vec![Some(
+                    withdrawal.body.change_output.note_payload.note_commitment,
+                )],
+                Action::ShieldedHostWithdrawal(withdrawal) => vec![Some(
                     withdrawal.body.change_output.note_payload.note_commitment,
                 )],
                 _ => vec![None],
@@ -728,6 +777,11 @@ fn payload_key_from_view(action_view: &ActionView) -> Option<&PayloadKey> {
             ..
         }) => Some(payload_key),
         ActionView::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalView::Opaque { .. }) => None,
+        ActionView::ShieldedHostWithdrawal(ShieldedHostWithdrawalView::Visible {
+            payload_key,
+            ..
+        }) => Some(payload_key),
+        ActionView::ShieldedHostWithdrawal(ShieldedHostWithdrawalView::Opaque { .. }) => None,
         _ => None,
     }
 }

@@ -346,7 +346,9 @@ pub(crate) fn supports_parallel_prepare(tx: &Transaction) -> bool {
 fn action_requires_historical_check(action: &Action) -> bool {
     matches!(
         action,
-        Action::IbcRelay(_) | Action::ShieldedIcs20Withdrawal(_)
+        Action::IbcRelay(_)
+            | Action::ShieldedIcs20Withdrawal(_)
+            | Action::ShieldedHostWithdrawal(_)
     )
 }
 

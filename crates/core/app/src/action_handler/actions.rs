@@ -35,6 +35,7 @@ impl AppActionHandler for Action {
                     .await
             }
             Action::ShieldedIcs20Withdrawal(action) => action.check_stateless(context).await,
+            Action::ShieldedHostWithdrawal(action) => action.check_stateless(context).await,
             Action::ComplianceRegisterAsset(action) => action.check_stateless(()).await,
             Action::ComplianceRegisterUser(action) => action.check_stateless(()).await,
             Action::AggregateBundle(_) => bail!(
@@ -59,6 +60,7 @@ impl AppActionHandler for Action {
                     .await
             }
             Action::ShieldedIcs20Withdrawal(action) => action.check_historical(state).await,
+            Action::ShieldedHostWithdrawal(action) => action.check_historical(state).await,
             Action::ComplianceRegisterAsset(action) => action.check_historical(state).await,
             Action::ComplianceRegisterUser(action) => action.check_historical(state).await,
             Action::AggregateBundle(_) => bail!(
@@ -83,6 +85,7 @@ impl AppActionHandler for Action {
                     .await
             }
             Action::ShieldedIcs20Withdrawal(action) => action.check_and_execute(state).await,
+            Action::ShieldedHostWithdrawal(action) => action.check_and_execute(state).await,
             Action::ComplianceRegisterAsset(action) => action.check_and_execute(state).await,
             Action::ComplianceRegisterUser(action) => action.check_and_execute(state).await,
             Action::AggregateBundle(_) => bail!(

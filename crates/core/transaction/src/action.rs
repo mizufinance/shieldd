@@ -22,6 +22,7 @@ pub enum Action {
     ProposalSubmit(shieldd_sdk_governance::ProposalSubmit),
     ValidatorVote(shieldd_sdk_governance::ValidatorVote),
     ShieldedIcs20Withdrawal(shieldd_sdk_shielded_pool::ShieldedIcs20Withdrawal),
+    ShieldedHostWithdrawal(shieldd_sdk_shielded_pool::ShieldedHostWithdrawal),
     ComplianceRegisterAsset(MsgRegisterAsset),
     ComplianceRegisterUser(MsgRegisterUser),
     AggregateBundle(AggregateBundle),
@@ -38,6 +39,7 @@ impl EffectingData for Action {
             Action::ValidatorDefinition(defn) => defn.effect_hash(),
             Action::IbcRelay(payload) => payload.effect_hash(),
             Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.effect_hash(),
+            Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.effect_hash(),
             Action::ComplianceRegisterAsset(action) => action.effect_hash(),
             Action::ComplianceRegisterUser(action) => action.effect_hash(),
             Action::AggregateBundle(bundle) => {
@@ -74,6 +76,9 @@ impl Action {
             Action::ShieldedIcs20Withdrawal(_) => {
                 tracing::info_span!("ShieldedIcs20Withdrawal", ?idx)
             }
+            Action::ShieldedHostWithdrawal(_) => {
+                tracing::info_span!("ShieldedHostWithdrawal", ?idx)
+            }
             Action::ComplianceRegisterAsset(_) => {
                 tracing::info_span!("ComplianceRegisterAsset", ?idx)
             }
@@ -98,6 +103,7 @@ impl Action {
             Action::ComplianceRegisterUser(_) => 81,
             Action::AggregateBundle(_) => 82,
             Action::ShieldedIcs20Withdrawal(_) => 200,
+            Action::ShieldedHostWithdrawal(_) => 201,
         }
     }
 }
@@ -111,6 +117,7 @@ impl IsAction for Action {
             Action::ProposalSubmit(submit) => submit.balance_commitment(),
             Action::ValidatorVote(vote) => vote.balance_commitment(),
             Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.balance_commitment(),
+            Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.balance_commitment(),
             Action::IbcRelay(action) => action.balance_commitment(),
             Action::ValidatorDefinition(_) => balance::Commitment::default(),
             Action::ComplianceRegisterAsset(_) => balance::Commitment::default(),
@@ -127,6 +134,7 @@ impl IsAction for Action {
             Action::ProposalSubmit(action) => action.view_from_perspective(txp),
             Action::ValidatorVote(action) => action.view_from_perspective(txp),
             Action::ShieldedIcs20Withdrawal(action) => action.view_from_perspective(txp),
+            Action::ShieldedHostWithdrawal(action) => action.view_from_perspective(txp),
             Action::ValidatorDefinition(action) => {
                 ActionView::ValidatorDefinition(action.to_owned())
             }
@@ -173,6 +181,9 @@ impl From<Action> for pb::Action {
             Action::ShieldedIcs20Withdrawal(inner) => pb::Action {
                 action: Some(pb::action::Action::ShieldedIcs20Withdrawal(inner.into())),
             },
+            Action::ShieldedHostWithdrawal(inner) => pb::Action {
+                action: Some(pb::action::Action::ShieldedHostWithdrawal(inner.into())),
+            },
             Action::ComplianceRegisterAsset(inner) => pb::Action {
                 action: Some(pb::action::Action::ComplianceRegisterAsset(inner.into())),
             },
@@ -214,6 +225,9 @@ impl TryFrom<pb::Action> for Action {
             }
             pb::action::Action::ShieldedIcs20Withdrawal(inner) => {
                 Ok(Action::ShieldedIcs20Withdrawal(inner.try_into()?))
+            }
+            pb::action::Action::ShieldedHostWithdrawal(inner) => {
+                Ok(Action::ShieldedHostWithdrawal(inner.try_into()?))
             }
             pb::action::Action::ComplianceRegisterAsset(inner) => {
                 Ok(Action::ComplianceRegisterAsset(inner.try_into()?))
