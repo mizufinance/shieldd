@@ -216,6 +216,70 @@ message HostWithdrawal {
   asset.v1.Value value = 2;
 }
 
+// Withdraws shielded funds to the host chain while keeping shielded change in the same action.
+message ShieldedHostWithdrawal {
+  // The effecting data of the withdrawal.
+  ShieldedHostWithdrawalBody body = 1;
+  // The authorizing signatures for each consumed input.
+  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The proof that the withdrawal is well-formed.
+  ZKShieldedIcs20WithdrawalProof proof = 3;
+}
+
+message ShieldedHostWithdrawalBody {
+  // The proving family this action uses.
+  uint32 family_id = 1;
+  // The state commitment tree anchor used during proof generation.
+  crypto.tct.v1.MerkleRoot anchor = 2;
+  // A commitment to the net balance of the action.
+  asset.v1.BalanceCommitment balance_commitment = 3;
+  // The consumed notes.
+  repeated TransferInputBody inputs = 4;
+  // The embedded host-chain withdrawal payload.
+  HostWithdrawal withdrawal = 5;
+  // The sender-owned change note or sender-owned zero-value dummy.
+  ShieldedIcs20WithdrawalChangeBody change_output = 6;
+  // Target timestamp for compliance verification (Unix UTC seconds).
+  uint64 target_timestamp = 7;
+  // Compliance tree anchor (user tree root) used during proof generation.
+  crypto.tct.v1.StateCommitment compliance_anchor = 8;
+  // Asset tree anchor used during proof generation.
+  crypto.tct.v1.StateCommitment asset_anchor = 9;
+}
+
+message ShieldedHostWithdrawalView {
+  message Visible {
+    ShieldedHostWithdrawal withdrawal = 1;
+    repeated NoteView spent_notes = 2;
+    NoteView change_note = 3;
+    keys.v1.PayloadKey payload_key = 4;
+  }
+
+  message Opaque {
+    ShieldedHostWithdrawal withdrawal = 1;
+  }
+
+  oneof shielded_host_withdrawal_view {
+    Visible visible = 1;
+    Opaque opaque = 2;
+  }
+}
+
+message ShieldedHostWithdrawalPlan {
+  // The public body this plan will produce.
+  ShieldedHostWithdrawalBody body = 1;
+  // The blinding factor to use for the net balance commitment.
+  bytes value_blinding = 2;
+  // The net action balance committed by the action body.
+  asset.v1.Balance balance = 3;
+  // The shielded input plans fused into this withdrawal.
+  repeated ShieldedInputPlan spends = 4;
+  // The sender-owned change output, if any.
+  ShieldedOutputPlan change_output = 5;
+  // The embedded host-chain withdrawal payload.
+  HostWithdrawal withdrawal = 6;
+}
+
 message ShieldedIcs20WithdrawalChangeBody {
   // The minimal data required to scan and process the created change note.
   NotePayload note_payload = 1;

@@ -3941,6 +3941,922 @@ impl<'de> serde::Deserialize<'de> for NoteView {
         deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.NoteView", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ShieldedHostWithdrawal {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.body.is_some() {
+            len += 1;
+        }
+        if !self.auth_sigs.is_empty() {
+            len += 1;
+        }
+        if self.proof.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawal", len)?;
+        if let Some(v) = self.body.as_ref() {
+            struct_ser.serialize_field("body", v)?;
+        }
+        if !self.auth_sigs.is_empty() {
+            struct_ser.serialize_field("authSigs", &self.auth_sigs)?;
+        }
+        if let Some(v) = self.proof.as_ref() {
+            struct_ser.serialize_field("proof", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawal {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "body",
+            "auth_sigs",
+            "authSigs",
+            "proof",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Body,
+            AuthSigs,
+            Proof,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "body" => Ok(GeneratedField::Body),
+                            "authSigs" | "auth_sigs" => Ok(GeneratedField::AuthSigs),
+                            "proof" => Ok(GeneratedField::Proof),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ShieldedHostWithdrawal;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawal")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ShieldedHostWithdrawal, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut body__ = None;
+                let mut auth_sigs__ = None;
+                let mut proof__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Body => {
+                            if body__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("body"));
+                            }
+                            body__ = map_.next_value()?;
+                        }
+                        GeneratedField::AuthSigs => {
+                            if auth_sigs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authSigs"));
+                            }
+                            auth_sigs__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Proof => {
+                            if proof__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("proof"));
+                            }
+                            proof__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(ShieldedHostWithdrawal {
+                    body: body__,
+                    auth_sigs: auth_sigs__.unwrap_or_default(),
+                    proof: proof__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawal", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ShieldedHostWithdrawalBody {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.family_id != 0 {
+            len += 1;
+        }
+        if self.anchor.is_some() {
+            len += 1;
+        }
+        if self.balance_commitment.is_some() {
+            len += 1;
+        }
+        if !self.inputs.is_empty() {
+            len += 1;
+        }
+        if self.withdrawal.is_some() {
+            len += 1;
+        }
+        if self.change_output.is_some() {
+            len += 1;
+        }
+        if self.target_timestamp != 0 {
+            len += 1;
+        }
+        if self.compliance_anchor.is_some() {
+            len += 1;
+        }
+        if self.asset_anchor.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody", len)?;
+        if self.family_id != 0 {
+            struct_ser.serialize_field("familyId", &self.family_id)?;
+        }
+        if let Some(v) = self.anchor.as_ref() {
+            struct_ser.serialize_field("anchor", v)?;
+        }
+        if let Some(v) = self.balance_commitment.as_ref() {
+            struct_ser.serialize_field("balanceCommitment", v)?;
+        }
+        if !self.inputs.is_empty() {
+            struct_ser.serialize_field("inputs", &self.inputs)?;
+        }
+        if let Some(v) = self.withdrawal.as_ref() {
+            struct_ser.serialize_field("withdrawal", v)?;
+        }
+        if let Some(v) = self.change_output.as_ref() {
+            struct_ser.serialize_field("changeOutput", v)?;
+        }
+        if self.target_timestamp != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("targetTimestamp", ToString::to_string(&self.target_timestamp).as_str())?;
+        }
+        if let Some(v) = self.compliance_anchor.as_ref() {
+            struct_ser.serialize_field("complianceAnchor", v)?;
+        }
+        if let Some(v) = self.asset_anchor.as_ref() {
+            struct_ser.serialize_field("assetAnchor", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "family_id",
+            "familyId",
+            "anchor",
+            "balance_commitment",
+            "balanceCommitment",
+            "inputs",
+            "withdrawal",
+            "change_output",
+            "changeOutput",
+            "target_timestamp",
+            "targetTimestamp",
+            "compliance_anchor",
+            "complianceAnchor",
+            "asset_anchor",
+            "assetAnchor",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            FamilyId,
+            Anchor,
+            BalanceCommitment,
+            Inputs,
+            Withdrawal,
+            ChangeOutput,
+            TargetTimestamp,
+            ComplianceAnchor,
+            AssetAnchor,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "familyId" | "family_id" => Ok(GeneratedField::FamilyId),
+                            "anchor" => Ok(GeneratedField::Anchor),
+                            "balanceCommitment" | "balance_commitment" => Ok(GeneratedField::BalanceCommitment),
+                            "inputs" => Ok(GeneratedField::Inputs),
+                            "withdrawal" => Ok(GeneratedField::Withdrawal),
+                            "changeOutput" | "change_output" => Ok(GeneratedField::ChangeOutput),
+                            "targetTimestamp" | "target_timestamp" => Ok(GeneratedField::TargetTimestamp),
+                            "complianceAnchor" | "compliance_anchor" => Ok(GeneratedField::ComplianceAnchor),
+                            "assetAnchor" | "asset_anchor" => Ok(GeneratedField::AssetAnchor),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ShieldedHostWithdrawalBody;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ShieldedHostWithdrawalBody, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut family_id__ = None;
+                let mut anchor__ = None;
+                let mut balance_commitment__ = None;
+                let mut inputs__ = None;
+                let mut withdrawal__ = None;
+                let mut change_output__ = None;
+                let mut target_timestamp__ = None;
+                let mut compliance_anchor__ = None;
+                let mut asset_anchor__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::FamilyId => {
+                            if family_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyId"));
+                            }
+                            family_id__ = Some(
+                                map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0,
+                            );
+                        }
+                        GeneratedField::Anchor => {
+                            if anchor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("anchor"));
+                            }
+                            anchor__ = map_.next_value()?;
+                        }
+                        GeneratedField::BalanceCommitment => {
+                            if balance_commitment__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("balanceCommitment"));
+                            }
+                            balance_commitment__ = map_.next_value()?;
+                        }
+                        GeneratedField::Inputs => {
+                            if inputs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("inputs"));
+                            }
+                            inputs__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Withdrawal => {
+                            if withdrawal__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("withdrawal"));
+                            }
+                            withdrawal__ = map_.next_value()?;
+                        }
+                        GeneratedField::ChangeOutput => {
+                            if change_output__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("changeOutput"));
+                            }
+                            change_output__ = map_.next_value()?;
+                        }
+                        GeneratedField::TargetTimestamp => {
+                            if target_timestamp__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("targetTimestamp"));
+                            }
+                            target_timestamp__ = Some(
+                                map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0,
+                            );
+                        }
+                        GeneratedField::ComplianceAnchor => {
+                            if compliance_anchor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("complianceAnchor"));
+                            }
+                            compliance_anchor__ = map_.next_value()?;
+                        }
+                        GeneratedField::AssetAnchor => {
+                            if asset_anchor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetAnchor"));
+                            }
+                            asset_anchor__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(ShieldedHostWithdrawalBody {
+                    family_id: family_id__.unwrap_or_default(),
+                    anchor: anchor__,
+                    balance_commitment: balance_commitment__,
+                    inputs: inputs__.unwrap_or_default(),
+                    withdrawal: withdrawal__,
+                    change_output: change_output__,
+                    target_timestamp: target_timestamp__.unwrap_or_default(),
+                    compliance_anchor: compliance_anchor__,
+                    asset_anchor: asset_anchor__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ShieldedHostWithdrawalPlan {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.body.is_some() {
+            len += 1;
+        }
+        if !self.value_blinding.is_empty() {
+            len += 1;
+        }
+        if self.balance.is_some() {
+            len += 1;
+        }
+        if !self.spends.is_empty() {
+            len += 1;
+        }
+        if self.change_output.is_some() {
+            len += 1;
+        }
+        if self.withdrawal.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalPlan", len)?;
+        if let Some(v) = self.body.as_ref() {
+            struct_ser.serialize_field("body", v)?;
+        }
+        if !self.value_blinding.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("valueBlinding", pbjson::private::base64::encode(&self.value_blinding).as_str())?;
+        }
+        if let Some(v) = self.balance.as_ref() {
+            struct_ser.serialize_field("balance", v)?;
+        }
+        if !self.spends.is_empty() {
+            struct_ser.serialize_field("spends", &self.spends)?;
+        }
+        if let Some(v) = self.change_output.as_ref() {
+            struct_ser.serialize_field("changeOutput", v)?;
+        }
+        if let Some(v) = self.withdrawal.as_ref() {
+            struct_ser.serialize_field("withdrawal", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "body",
+            "value_blinding",
+            "valueBlinding",
+            "balance",
+            "spends",
+            "change_output",
+            "changeOutput",
+            "withdrawal",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Body,
+            ValueBlinding,
+            Balance,
+            Spends,
+            ChangeOutput,
+            Withdrawal,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "body" => Ok(GeneratedField::Body),
+                            "valueBlinding" | "value_blinding" => Ok(GeneratedField::ValueBlinding),
+                            "balance" => Ok(GeneratedField::Balance),
+                            "spends" => Ok(GeneratedField::Spends),
+                            "changeOutput" | "change_output" => Ok(GeneratedField::ChangeOutput),
+                            "withdrawal" => Ok(GeneratedField::Withdrawal),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ShieldedHostWithdrawalPlan;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalPlan")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ShieldedHostWithdrawalPlan, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut body__ = None;
+                let mut value_blinding__ = None;
+                let mut balance__ = None;
+                let mut spends__ = None;
+                let mut change_output__ = None;
+                let mut withdrawal__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Body => {
+                            if body__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("body"));
+                            }
+                            body__ = map_.next_value()?;
+                        }
+                        GeneratedField::ValueBlinding => {
+                            if value_blinding__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("valueBlinding"));
+                            }
+                            value_blinding__ = Some(
+                                map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0,
+                            );
+                        }
+                        GeneratedField::Balance => {
+                            if balance__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("balance"));
+                            }
+                            balance__ = map_.next_value()?;
+                        }
+                        GeneratedField::Spends => {
+                            if spends__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("spends"));
+                            }
+                            spends__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ChangeOutput => {
+                            if change_output__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("changeOutput"));
+                            }
+                            change_output__ = map_.next_value()?;
+                        }
+                        GeneratedField::Withdrawal => {
+                            if withdrawal__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("withdrawal"));
+                            }
+                            withdrawal__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(ShieldedHostWithdrawalPlan {
+                    body: body__,
+                    value_blinding: value_blinding__.unwrap_or_default(),
+                    balance: balance__,
+                    spends: spends__.unwrap_or_default(),
+                    change_output: change_output__,
+                    withdrawal: withdrawal__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalPlan", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ShieldedHostWithdrawalView {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.shielded_host_withdrawal_view.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView", len)?;
+        if let Some(v) = self.shielded_host_withdrawal_view.as_ref() {
+            match v {
+                shielded_host_withdrawal_view::ShieldedHostWithdrawalView::Visible(v) => {
+                    struct_ser.serialize_field("visible", v)?;
+                }
+                shielded_host_withdrawal_view::ShieldedHostWithdrawalView::Opaque(v) => {
+                    struct_ser.serialize_field("opaque", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalView {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "visible",
+            "opaque",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Visible,
+            Opaque,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "visible" => Ok(GeneratedField::Visible),
+                            "opaque" => Ok(GeneratedField::Opaque),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ShieldedHostWithdrawalView;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ShieldedHostWithdrawalView, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut shielded_host_withdrawal_view__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Visible => {
+                            if shielded_host_withdrawal_view__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("visible"));
+                            }
+                            shielded_host_withdrawal_view__ = map_.next_value::<::std::option::Option<_>>()?.map(shielded_host_withdrawal_view::ShieldedHostWithdrawalView::Visible)
+;
+                        }
+                        GeneratedField::Opaque => {
+                            if shielded_host_withdrawal_view__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("opaque"));
+                            }
+                            shielded_host_withdrawal_view__ = map_.next_value::<::std::option::Option<_>>()?.map(shielded_host_withdrawal_view::ShieldedHostWithdrawalView::Opaque)
+;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(ShieldedHostWithdrawalView {
+                    shielded_host_withdrawal_view: shielded_host_withdrawal_view__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for shielded_host_withdrawal_view::Opaque {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.withdrawal.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Opaque", len)?;
+        if let Some(v) = self.withdrawal.as_ref() {
+            struct_ser.serialize_field("withdrawal", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for shielded_host_withdrawal_view::Opaque {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "withdrawal",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Withdrawal,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "withdrawal" => Ok(GeneratedField::Withdrawal),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = shielded_host_withdrawal_view::Opaque;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Opaque")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<shielded_host_withdrawal_view::Opaque, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut withdrawal__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Withdrawal => {
+                            if withdrawal__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("withdrawal"));
+                            }
+                            withdrawal__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(shielded_host_withdrawal_view::Opaque {
+                    withdrawal: withdrawal__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Opaque", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for shielded_host_withdrawal_view::Visible {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.withdrawal.is_some() {
+            len += 1;
+        }
+        if !self.spent_notes.is_empty() {
+            len += 1;
+        }
+        if self.change_note.is_some() {
+            len += 1;
+        }
+        if self.payload_key.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Visible", len)?;
+        if let Some(v) = self.withdrawal.as_ref() {
+            struct_ser.serialize_field("withdrawal", v)?;
+        }
+        if !self.spent_notes.is_empty() {
+            struct_ser.serialize_field("spentNotes", &self.spent_notes)?;
+        }
+        if let Some(v) = self.change_note.as_ref() {
+            struct_ser.serialize_field("changeNote", v)?;
+        }
+        if let Some(v) = self.payload_key.as_ref() {
+            struct_ser.serialize_field("payloadKey", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for shielded_host_withdrawal_view::Visible {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "withdrawal",
+            "spent_notes",
+            "spentNotes",
+            "change_note",
+            "changeNote",
+            "payload_key",
+            "payloadKey",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Withdrawal,
+            SpentNotes,
+            ChangeNote,
+            PayloadKey,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "withdrawal" => Ok(GeneratedField::Withdrawal),
+                            "spentNotes" | "spent_notes" => Ok(GeneratedField::SpentNotes),
+                            "changeNote" | "change_note" => Ok(GeneratedField::ChangeNote),
+                            "payloadKey" | "payload_key" => Ok(GeneratedField::PayloadKey),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = shielded_host_withdrawal_view::Visible;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Visible")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<shielded_host_withdrawal_view::Visible, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut withdrawal__ = None;
+                let mut spent_notes__ = None;
+                let mut change_note__ = None;
+                let mut payload_key__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Withdrawal => {
+                            if withdrawal__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("withdrawal"));
+                            }
+                            withdrawal__ = map_.next_value()?;
+                        }
+                        GeneratedField::SpentNotes => {
+                            if spent_notes__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("spentNotes"));
+                            }
+                            spent_notes__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ChangeNote => {
+                            if change_note__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("changeNote"));
+                            }
+                            change_note__ = map_.next_value()?;
+                        }
+                        GeneratedField::PayloadKey => {
+                            if payload_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("payloadKey"));
+                            }
+                            payload_key__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(shielded_host_withdrawal_view::Visible {
+                    withdrawal: withdrawal__,
+                    spent_notes: spent_notes__.unwrap_or_default(),
+                    change_note: change_note__,
+                    payload_key: payload_key__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Visible", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ShieldedIcs20Withdrawal {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>

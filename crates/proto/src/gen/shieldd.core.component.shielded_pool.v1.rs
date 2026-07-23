@@ -574,6 +574,182 @@ impl ::prost::Name for HostWithdrawal {
         "/shieldd.core.component.shielded_pool.v1.HostWithdrawal".into()
     }
 }
+/// Withdraws shielded funds to the host chain while keeping shielded change in the same action.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ShieldedHostWithdrawal {
+    /// The effecting data of the withdrawal.
+    #[prost(message, optional, tag = "1")]
+    pub body: ::core::option::Option<ShieldedHostWithdrawalBody>,
+    /// The authorizing signatures for each consumed input.
+    #[prost(message, repeated, tag = "2")]
+    pub auth_sigs: ::prost::alloc::vec::Vec<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+    >,
+    /// The proof that the withdrawal is well-formed.
+    #[prost(message, optional, tag = "3")]
+    pub proof: ::core::option::Option<ZkShieldedIcs20WithdrawalProof>,
+}
+impl ::prost::Name for ShieldedHostWithdrawal {
+    const NAME: &'static str = "ShieldedHostWithdrawal";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawal".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawal".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ShieldedHostWithdrawalBody {
+    /// The proving family this action uses.
+    #[prost(uint32, tag = "1")]
+    pub family_id: u32,
+    /// The state commitment tree anchor used during proof generation.
+    #[prost(message, optional, tag = "2")]
+    pub anchor: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::MerkleRoot,
+    >,
+    /// A commitment to the net balance of the action.
+    #[prost(message, optional, tag = "3")]
+    pub balance_commitment: ::core::option::Option<
+        super::super::super::asset::v1::BalanceCommitment,
+    >,
+    /// The consumed notes.
+    #[prost(message, repeated, tag = "4")]
+    pub inputs: ::prost::alloc::vec::Vec<TransferInputBody>,
+    /// The embedded host-chain withdrawal payload.
+    #[prost(message, optional, tag = "5")]
+    pub withdrawal: ::core::option::Option<HostWithdrawal>,
+    /// The sender-owned change note or sender-owned zero-value dummy.
+    #[prost(message, optional, tag = "6")]
+    pub change_output: ::core::option::Option<ShieldedIcs20WithdrawalChangeBody>,
+    /// Target timestamp for compliance verification (Unix UTC seconds).
+    #[prost(uint64, tag = "7")]
+    pub target_timestamp: u64,
+    /// Compliance tree anchor (user tree root) used during proof generation.
+    #[prost(message, optional, tag = "8")]
+    pub compliance_anchor: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    /// Asset tree anchor used during proof generation.
+    #[prost(message, optional, tag = "9")]
+    pub asset_anchor: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+}
+impl ::prost::Name for ShieldedHostWithdrawalBody {
+    const NAME: &'static str = "ShieldedHostWithdrawalBody";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ShieldedHostWithdrawalView {
+    #[prost(
+        oneof = "shielded_host_withdrawal_view::ShieldedHostWithdrawalView",
+        tags = "1, 2"
+    )]
+    pub shielded_host_withdrawal_view: ::core::option::Option<
+        shielded_host_withdrawal_view::ShieldedHostWithdrawalView,
+    >,
+}
+/// Nested message and enum types in `ShieldedHostWithdrawalView`.
+pub mod shielded_host_withdrawal_view {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Visible {
+        #[prost(message, optional, tag = "1")]
+        pub withdrawal: ::core::option::Option<super::ShieldedHostWithdrawal>,
+        #[prost(message, repeated, tag = "2")]
+        pub spent_notes: ::prost::alloc::vec::Vec<super::NoteView>,
+        #[prost(message, optional, tag = "3")]
+        pub change_note: ::core::option::Option<super::NoteView>,
+        #[prost(message, optional, tag = "4")]
+        pub payload_key: ::core::option::Option<
+            super::super::super::super::keys::v1::PayloadKey,
+        >,
+    }
+    impl ::prost::Name for Visible {
+        const NAME: &'static str = "Visible";
+        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+        fn full_name() -> ::prost::alloc::string::String {
+            "shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Visible"
+                .into()
+        }
+        fn type_url() -> ::prost::alloc::string::String {
+            "/shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Visible"
+                .into()
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Opaque {
+        #[prost(message, optional, tag = "1")]
+        pub withdrawal: ::core::option::Option<super::ShieldedHostWithdrawal>,
+    }
+    impl ::prost::Name for Opaque {
+        const NAME: &'static str = "Opaque";
+        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+        fn full_name() -> ::prost::alloc::string::String {
+            "shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Opaque"
+                .into()
+        }
+        fn type_url() -> ::prost::alloc::string::String {
+            "/shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView.Opaque"
+                .into()
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum ShieldedHostWithdrawalView {
+        #[prost(message, tag = "1")]
+        Visible(Visible),
+        #[prost(message, tag = "2")]
+        Opaque(Opaque),
+    }
+}
+impl ::prost::Name for ShieldedHostWithdrawalView {
+    const NAME: &'static str = "ShieldedHostWithdrawalView";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalView".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ShieldedHostWithdrawalPlan {
+    /// The public body this plan will produce.
+    #[prost(message, optional, tag = "1")]
+    pub body: ::core::option::Option<ShieldedHostWithdrawalBody>,
+    /// The blinding factor to use for the net balance commitment.
+    #[prost(bytes = "vec", tag = "2")]
+    pub value_blinding: ::prost::alloc::vec::Vec<u8>,
+    /// The net action balance committed by the action body.
+    #[prost(message, optional, tag = "3")]
+    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
+    /// The shielded input plans fused into this withdrawal.
+    #[prost(message, repeated, tag = "4")]
+    pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
+    /// The sender-owned change output, if any.
+    #[prost(message, optional, tag = "5")]
+    pub change_output: ::core::option::Option<ShieldedOutputPlan>,
+    /// The embedded host-chain withdrawal payload.
+    #[prost(message, optional, tag = "6")]
+    pub withdrawal: ::core::option::Option<HostWithdrawal>,
+}
+impl ::prost::Name for ShieldedHostWithdrawalPlan {
+    const NAME: &'static str = "ShieldedHostWithdrawalPlan";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalPlan".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalPlan".into()
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedIcs20WithdrawalChangeBody {
     /// The minimal data required to scan and process the created change note.
