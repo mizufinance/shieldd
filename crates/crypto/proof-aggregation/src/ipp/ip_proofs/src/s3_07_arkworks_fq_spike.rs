@@ -1385,6 +1385,44 @@ pub fn extract_s3_37(
     multi_miller_schedule(pairs)
 }
 
+/// Sequential model of the prepared multi-pairing wrapper. The production
+/// path partitions prepared pairs by the rayon thread count, multiplies the
+/// chunk Miller outputs, then performs one final exponentiation. The model
+/// uses four as the fixed partition representative; only the partition fold
+/// is modeled sequentially because rayon is outside the extraction boundary.
+pub fn multi_pairing(
+    pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>,
+) -> Option<Fq12Mont> {
+    let mut result = FQ12_ONE;
+    let mut chunk_start = 0_usize;
+    while chunk_start < pairs.len() {
+        let mut chunk_end = chunk_start + 4;
+        if chunk_end > pairs.len() {
+            chunk_end = pairs.len();
+        }
+        let mut chunk = Vec::new();
+        let mut index = chunk_start;
+        while index < chunk_end {
+            let pair = pairs[index].clone();
+            if !pair.1.infinity && pair.0.len() != 0 {
+                chunk.push(pair);
+            }
+            index += 1;
+        }
+        result = fq12_mul(result, multi_miller_schedule(chunk));
+        chunk_start = chunk_end;
+    }
+    final_exp(result)
+}
+
+/// Extraction root for the sequential multi-pairing model.
+#[doc(hidden)]
+pub fn extract_s3_40(
+    pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>,
+) -> Option<Fq12Mont> {
+    multi_pairing(pairs)
+}
+
 /// Quadratic-extension conjugation, also the nonzero unitary inverse.
 pub fn fq12_conjugate(a: Fq12Mont) -> Fq12Mont {
     Fq12Mont {

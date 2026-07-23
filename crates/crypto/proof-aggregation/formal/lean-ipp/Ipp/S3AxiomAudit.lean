@@ -1,4 +1,5 @@
 import Ipp.Extracted.ArkworksFinalExpSpec
+import Ipp.Extracted.ArkworksMultiPairing
 
 /-!
 S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
@@ -44,3 +45,6 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.Extracted.ArkworksFinalExpHard.final_exp_hard_factor_three_spec
 #print axioms Ipp.Extracted.ArkworksFinalExpHard.final_exp_trace
 #print axioms Ipp.Extracted.ArkworksFinalExpHard.final_exp_spec
+#print axioms Ipp.Extracted.ArkworksMultiPairing.multi_miller_schedule_partition_invariant
+#print axioms Ipp.Extracted.ArkworksMultiPairing.multi_pairing_spec
+#print axioms Ipp.Extracted.ArkworksMultiPairing.multi_pairing_product_spec

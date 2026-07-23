@@ -664,6 +664,68 @@ fn multi_miller_schedule_matches_arkworks_filtered_and_chunked_batches() {
     }
 }
 
+fn check_multi_pairing_batch(g1s: Vec<G1Affine>, g2s: Vec<G2Affine>) {
+    assert_eq!(g1s.len(), g2s.len());
+    type Prepared = <ark_bls12_377::Bls12_377 as Pairing>::G2Prepared;
+    let mut pairs = Vec::new();
+    let mut index = 0_usize;
+    while index < g1s.len() {
+        let prepared = Prepared::from(g2s[index]);
+        let coeffs = prepared
+            .ell_coeffs
+            .iter()
+            .map(|coeff| (mont2(coeff.0), mont2(coeff.1), mont2(coeff.2)))
+            .collect();
+        pairs.push((coeffs, mont_g1_affine(g1s[index])));
+        index += 1;
+    }
+    let actual = spike::extract_s3_40(pairs).map(ark12);
+    let expected = <ark_bls12_377::Bls12_377 as Pairing>::multi_pairing(g1s, g2s);
+    assert_eq!(actual, Some(expected.0));
+}
+
+#[test]
+fn multi_pairing_matches_arkworks_edges_and_random_batches() {
+    check_multi_pairing_batch(vec![], vec![]);
+    check_multi_pairing_batch(
+        vec![G1Affine::generator()],
+        vec![G2Affine::generator()],
+    );
+    check_multi_pairing_batch(
+        vec![G1Affine::generator(), G1Affine::rand(&mut test_rng())],
+        vec![G2Affine::generator(), G2Affine::rand(&mut test_rng())],
+    );
+    check_multi_pairing_batch(
+        vec![
+            G1Affine::generator(),
+            G1Affine::rand(&mut test_rng()),
+            G1Affine::rand(&mut test_rng()),
+        ],
+        vec![
+            G2Affine::generator(),
+            G2Affine::rand(&mut test_rng()),
+            G2Affine::rand(&mut test_rng()),
+        ],
+    );
+    check_multi_pairing_batch(
+        vec![G1Affine::identity(), G1Affine::generator()],
+        vec![G2Affine::rand(&mut test_rng()), G2Affine::identity()],
+    );
+
+    let mut rng = test_rng();
+    for size in [4_usize, 5, 7, 9, 12] {
+        let mut g1s = Vec::new();
+        let mut g2s = Vec::new();
+        let mut index = 0_usize;
+        while index < size {
+            g1s.push(G1Affine::rand(&mut rng));
+            g2s.push(G2Affine::rand(&mut rng));
+            index += 1;
+        }
+        check_multi_pairing_batch(g1s, g2s);
+    }
+}
+
 #[test]
 fn fq12_edges_and_512_random_vectors_match_arkworks() {
     let zero6 = Fq6::ZERO;
