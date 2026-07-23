@@ -1834,6 +1834,20 @@ Session-2 verification:
   There are no `sorry`s or declared axioms in the campaign Lean files.
 - Prover, release, and release-gated tests were not run.
 
+**S3-40 DONE (2026-07-23; commit `2c94894d5`).**
+`multi_pairing_spec` / `multi_pairing_product_spec` identify the executed
+multi-pairing with the product of `pairingModel`, hence
+`(∏ pairFold)^E`. Chunk-partition invariance and the rayon-equals-sequential
+and `pairingModel = e` boundaries are proved. Parity: 18.
+
+**S3-41 DONE (2026-07-23; commit `bbe392b54`).**
+`PublishedPairingBilinearNondegenerate` is repaired to
+`Bilinear ∧ Nondegenerate` over the prime subgroups, with GT membership proved.
+The handoff row is `assume.bls12377-optimal-ate-pairing-laws`. The S2 adapter
+`verify_aggregate_proof_pairing_adapter_statement` fixes `stmt.e` and effects
+to the concrete executable pairing and cites only `PublishedPairingBilinear`.
+The remaining `MillerPair`-to-subgroup representation boundary is recorded.
+
 **S3-39 DONE (2026-07-23; commits `48d3a88fa` + `51688a576`).**
 `cyclExp_eq_pow` is proved by `NafFoldInvariant`; `final_exp_hard_spec` is
 `decode^E_chain` over the 18-step chain; the FACTOR-3 identity is proved as

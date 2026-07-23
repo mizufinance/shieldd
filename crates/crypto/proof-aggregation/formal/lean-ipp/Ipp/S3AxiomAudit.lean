@@ -1,5 +1,6 @@
 import Ipp.Extracted.ArkworksFinalExpSpec
 import Ipp.Extracted.ArkworksMultiPairing
+import Ipp.Extracted.ArkworksSubgroupCheck
 import Ipp.Bls12377Pairing
 import Ipp.Extracted.ArkworksMultiPairingGt
 
@@ -59,3 +60,7 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.Bls12377.PublishedPairingBilinearNondegenerate
 #print axioms Ipp.Extracted.ArkworksMultiPairingGt.arkworksPairingExponent_eq_executedPairingExponent
 #print axioms Ipp.Extracted.ArkworksMultiPairingGt.pairingModel_eq_gtValue
+#print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g1_subgroup_check
+#print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g2_subgroup_check
+#print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g1_subgroup_check_checked_membership
+#print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g2_subgroup_check_checked_membership
