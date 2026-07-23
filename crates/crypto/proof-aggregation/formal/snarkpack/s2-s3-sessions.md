@@ -1834,6 +1834,13 @@ Session-2 verification:
   There are no `sorry`s or declared axioms in the campaign Lean files.
 - Prover, release, and release-gated tests were not run.
 
+**S3-39 DONE (2026-07-23; commits `48d3a88fa` + `51688a576`).**
+`cyclExp_eq_pow` is proved by `NafFoldInvariant`; `final_exp_hard_spec` is
+`decode^E_chain` over the 18-step chain; the FACTOR-3 identity is proved as
+`E_chain * scalarModulus = 3(q^4-q^2+1)` via `norm_num` (not the textbook
+factor-1 identity). `final_exp_spec` is landed and discharges the S3-21
+cyclotomic laws. Parity: 17; gate: 3728.
+
 **S3-36 DONE (2026-07-22; commit `8b7dada95`).** `miller_schedule_spec`
 lands the single-pair Miller schedule as a 63-step fold via `MillerLoopInv`
 and fuel induction. The schedule length is 69: 63 doublings plus additions at

@@ -369,3 +369,6 @@ generated-artifact freshness manifest, the named theorem list, and the
 extracted-directory no-shim scan. Keep the full formal gate out of default
 `just check` unless it satisfies the default CI runtime policy; it remains a
 required SnarkPack workflow gate.
+
+S3-38 and S3-39 final-exponentiation work is landed. The remaining pairing
+capstone is S3-40/S3-41: model and prove the multi-pairing wrapper.
