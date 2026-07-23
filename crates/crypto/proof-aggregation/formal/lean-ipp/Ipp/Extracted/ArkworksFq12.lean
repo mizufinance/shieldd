@@ -602,6 +602,90 @@ theorem decode_fq12_inv_none (a : Fq12LimbPair) (ha : Canonical12 a)
   · change fq12InvNormRoute a = .ok none at hexec
     exact fq12_inv_norm_none a ha hexec
 
+private theorem fq_limb_eq_zero_of_canonical
+    (a : Ipp.Extracted.ArkworksFqMul.LimbArray)
+    (ha : Ipp.Extracted.ArkworksFqMul.limbsToNat a <
+      Ipp.Bls12377.baseModulus)
+    (hzero : Ipp.Extracted.ArkworksFqMul.decode a = 0) :
+    a = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO := by
+  have hcanonicalZero :
+      Ipp.Extracted.ArkworksFqMul.limbsToNat
+        ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO <
+          Ipp.Bls12377.baseModulus := by
+    rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO]
+    change Ipp.Extracted.ArkworksFqMul.limbsToNat
+      Ipp.Extracted.ArkworksFqInv.zeroArray < Ipp.Bls12377.baseModulus
+    simp [Ipp.Extracted.ArkworksFqInv.limbsToNat_zeroArray,
+      Ipp.Bls12377.baseModulus]
+  have hdecodeZero :
+      Ipp.Extracted.ArkworksFqMul.decode
+        ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO = 0 := by
+    rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO]
+    change Ipp.Extracted.ArkworksFqMul.decode
+      Ipp.Extracted.ArkworksFqInv.zeroArray = 0
+    simp [Ipp.Extracted.ArkworksFqMul.decode_eq_cast_mul_inv,
+      Ipp.Extracted.ArkworksFqInv.limbsToNat_zeroArray]
+  apply Ipp.Extracted.ArkworksFqSqrtBytes.decode_injective_of_canonical
+    ha hcanonicalZero
+  exact hzero.trans hdecodeZero.symm
+
+private theorem fq2_limb_eq_zero_of_canonical (a : Fq2LimbPair)
+    (ha : Canonical2 a) (hzero : decodeFq2 a = Ipp.Bls12377.fq2Zero) :
+    a = ⟨ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ := by
+  have h0 : a.c0 = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO := by
+    apply fq_limb_eq_zero_of_canonical a.c0 ha.1
+    simpa [decodeFq2, Ipp.Bls12377.fq2Zero] using
+      congrArg QuadraticAlgebra.re hzero
+  have h1 : a.c1 = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO := by
+    apply fq_limb_eq_zero_of_canonical a.c1 ha.2
+    simpa [decodeFq2, Ipp.Bls12377.fq2Zero] using
+      congrArg QuadraticAlgebra.im hzero
+  cases a
+  simp_all
+
+private theorem fq6_limb_eq_zero_of_canonical (a : Fq6LimbTriple)
+    (ha : Canonical6 a) (hzero : decodeFq6 a = Ipp.Bls12377.fq6Zero) :
+    a = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO := by
+  have h0 : a.c0 =
+      ⟨ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO,
+        ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ := by
+    apply fq2_limb_eq_zero_of_canonical a.c0 ha.1
+    simpa [decodeFq6, Ipp.Bls12377.fq6Zero] using
+      congrArg Ipp.Bls12377.Fq6Model.c0 hzero
+  have h1 : a.c1 =
+      ⟨ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO,
+        ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ := by
+    apply fq2_limb_eq_zero_of_canonical a.c1 ha.2.1
+    simpa [decodeFq6, Ipp.Bls12377.fq6Zero] using
+      congrArg Ipp.Bls12377.Fq6Model.c1 hzero
+  have h2 : a.c2 =
+      ⟨ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO,
+        ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO⟩ := by
+    apply fq2_limb_eq_zero_of_canonical a.c2 ha.2.2
+    simpa [decodeFq6, Ipp.Bls12377.fq6Zero] using
+      congrArg Ipp.Bls12377.Fq6Model.c2 hzero
+  cases a
+  simp_all [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO]
+
+/-- A canonical limb tower decoding to zero is the structural zero tower. -/
+theorem fq12_limb_eq_zero_of_canonical (a : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hzero : decodeFq12 a = Ipp.Bls12377.fq12Zero) :
+    a = ⟨ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO,
+      ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO⟩ := by
+  have h0 : a.c0 = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO := by
+    apply fq6_limb_eq_zero_of_canonical a.c0 ha.1
+    simpa [decodeFq12, Ipp.Bls12377.fq12Zero] using
+      congrArg Ipp.Bls12377.Fq12Model.c0 hzero
+  have h1 : a.c1 = ark_ip_proofs.s3_07_arkworks_fq_spike.FQ6_ZERO := by
+    apply fq6_limb_eq_zero_of_canonical a.c1 ha.2
+    simpa [decodeFq12, Ipp.Bls12377.fq12Zero] using
+      congrArg Ipp.Bls12377.Fq12Model.c1 hzero
+  cases a
+  simp_all
+
 private theorem fq12_conjugate_spec (a output : Fq12LimbPair)
     (ha : Canonical12 a)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_conjugate a = .ok output) :
@@ -614,6 +698,14 @@ private theorem fq12_conjugate_spec (a output : Fq12LimbPair)
   simp only [Result.ok.injEq] at hret
   subst output
   exact ⟨⟨ha.1, (fq6_neg_spec a.c1 c1 ha.2 hc1).1⟩, hdecode⟩
+
+/-- Executed Fq12 conjugation preserves canonical limb representation. -/
+theorem canonical12_conjugate (a output : Fq12LimbPair)
+    (ha : Canonical12 a)
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_conjugate a =
+      .ok output) :
+    Canonical12 output :=
+  (fq12_conjugate_spec a output ha hexec).1
 
 /-- Cyclotomic inverse is syntactically conjugation on every nonzero input. -/
 theorem decode_fq12_cyclotomic_inverse_some (a output : Fq12LimbPair)

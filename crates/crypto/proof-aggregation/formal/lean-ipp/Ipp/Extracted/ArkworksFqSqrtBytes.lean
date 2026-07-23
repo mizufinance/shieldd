@@ -869,7 +869,7 @@ private theorem limbsToNat_injective {left right : LimbArray}
     · apply u64_ext; simpa [limb, limbWord] using h4
     · apply u64_ext; simpa [limb, limbWord] using h5
 
-private theorem decode_injective_of_canonical {left right : LimbArray}
+theorem decode_injective_of_canonical {left right : LimbArray}
     (hl : Canonical left) (hr : Canonical right)
     (hdecode : decode left = decode right) : left = right := by
   rw [decode_eq_cast_mul_inv, decode_eq_cast_mul_inv] at hdecode

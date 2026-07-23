@@ -51,6 +51,22 @@ private theorem fq6_twelfth_reduce :
           (((baseModulus ^ 6 - 1) / 12) / (baseModulus - 1)) := by
   norm_num [baseModulus]
 
+/-- The quadratic character of the Fq12 nonresidue in Fq6 is negative. -/
+theorem fq6V_pow_half :
+    fq6V ^ ((baseModulus ^ 6 - 1) / 2) =
+      algebraMap Fq Fq6Canonical (-1) := by
+  have hminusFive : (-5 : Fq) ≠ 0 := by
+    intro h
+    exact arithmeticFacts.fq2Nonresidue 0 (by simpa using h.symm)
+  have hfermat : (-5 : Fq) ^ (baseModulus - 1) = 1 :=
+    ZMod.pow_card_sub_one_eq_one hminusFive
+  have hbase : (-5 : Fq) ^ ((baseModulus ^ 6 - 1) / 12) = -1 := by
+    rw [fq6_twelfth_reduce, pow_add, pow_mul, hfermat, one_pow, mul_one]
+    simpa [baseModulus] using Ipp.Bls12377Certificates.minus_five_pow_half
+  rw [fq6_half_thrice, pow_mul, fq6V_cube, ← map_pow,
+    fq6_sixth_twice, fq2U_pow_twice, hbase]
+  simp
+
 /-- The cubic generator `v` is not a square in the canonical Fq6 field. -/
 theorem fq6V_not_square : ∀ b : Fq6Canonical, b ^ 2 ≠ fq6V := by
   intro b hb
@@ -61,26 +77,12 @@ theorem fq6V_not_square : ∀ b : Fq6Canonical, b ^ 2 ≠ fq6V := by
   have hsquare : fq6V ^ ((baseModulus ^ 6 - 1) / 2) = 1 := by
     rw [← hb, ← pow_mul, fq6_half_twice, ← fq6_card]
     exact FiniteField.pow_card_sub_one_eq_one b hb0
-  have hminusFive : (-5 : Fq) ≠ 0 := by
-    intro h
-    exact arithmeticFacts.fq2Nonresidue 0 (by simpa using h.symm)
-  have hfermat : (-5 : Fq) ^ (baseModulus - 1) = 1 :=
-    ZMod.pow_card_sub_one_eq_one hminusFive
-  have hbase : (-5 : Fq) ^ ((baseModulus ^ 6 - 1) / 12) = -1 := by
-    rw [fq6_twelfth_reduce, pow_add, pow_mul, hfermat, one_pow, mul_one]
-    simpa [baseModulus] using Ipp.Bls12377Certificates.minus_five_pow_half
-  have hcollapse :
-      fq6V ^ ((baseModulus ^ 6 - 1) / 2) =
-        algebraMap Fq Fq6Canonical (-1) := by
-    rw [fq6_half_thrice, pow_mul, fq6V_cube, ← map_pow,
-      fq6_sixth_twice, fq2U_pow_twice, hbase]
-    simp
   have hnegOne_ne_one : algebraMap Fq Fq6Canonical (-1) ≠ 1 := by
     intro h
     have h' := (algebraMap Fq Fq6Canonical).injective h
     letI : Fact (2 < baseModulus) := ⟨by norm_num [baseModulus]⟩
     exact ZMod.neg_one_ne_one h'
-  exact hnegOne_ne_one (hcollapse.symm.trans hsquare)
+  exact hnegOne_ne_one (fq6V_pow_half.symm.trans hsquare)
 
 noncomputable def fq12Polynomial : Polynomial Fq6Canonical := X ^ 2 - C fq6V
 
@@ -145,6 +147,11 @@ noncomputable def fq12ConjAut :
     Fq12Canonical ≃ₐ[Fq6Canonical] Fq12Canonical :=
   AlgEquiv.ofAlgHom fq12ConjHom fq12ConjHom
     fq12ConjHom_involutive fq12ConjHom_involutive
+
+@[simp] theorem fq12ConjAut_root :
+    fq12ConjAut (AdjoinRoot.root fq12Polynomial) =
+      -AdjoinRoot.root fq12Polynomial := by
+  simp [fq12ConjAut, fq12ConjHom]
 
 private noncomputable def fq12Basis :
     Module.Basis (Fin 2) Fq6Canonical Fq12Canonical :=
@@ -282,6 +289,7 @@ theorem fq12Coefficients_pow (a : Fq12Model) (n : Nat) :
       rw [fq12Coefficients_mul, ih, pow_succ]
 
 #print axioms fq6V_not_square
+#print axioms fq6V_pow_half
 #print axioms fq12Polynomial_irreducible
 #print axioms fq6_card
 #print axioms fq12_card
@@ -292,6 +300,7 @@ theorem fq12Coefficients_pow (a : Fq12Model) (n : Nat) :
 #print axioms fq12QuadraticNorm_coefficients
 #print axioms fq12QuadraticNorm_eq_zero_iff
 #print axioms fq12ConjAut
+#print axioms fq12ConjAut_root
 #print axioms fq12Coefficients_conjugate
 
 end Ipp.Bls12377

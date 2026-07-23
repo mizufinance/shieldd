@@ -39,6 +39,7 @@ ark-ed-on-bls12-381 = "0.5"
 ark-relations = "0.5"
 ark-r1cs-std = "0.5"
 blake2 = "0.9"
+num-bigint = "0.4"
 
 [features]
 default = [ "parallel" ]

@@ -1428,6 +1428,26 @@ pub fn fq12_frobenius(a: Fq12Mont, power: usize) -> Fq12Mont {
     }
 }
 
+/// Arkworks BLS12 easy final-exponentiation part, preserving inverse failure.
+pub fn final_exp_easy(f: Fq12Mont) -> Option<Fq12Mont> {
+    let f1 = fq12_conjugate(f);
+    match fq12_inv(f) {
+        None => None,
+        Some(mut f2) => {
+            let mut r = fq12_mul(f1, f2);
+            f2 = r;
+            r = fq12_frobenius(r, 2);
+            Some(fq12_mul(r, f2))
+        }
+    }
+}
+
+/// Extraction root for the faithful easy final-exponentiation sequence.
+#[doc(hidden)]
+pub fn extract_s3_38(f: Fq12Mont) -> Option<Fq12Mont> {
+    final_exp_easy(f)
+}
+
 /// Granger--Scott cyclotomic squaring for the `q^2 = 1 (mod 6)` branch.
 pub fn fq12_cyclotomic_square(a: Fq12Mont) -> Fq12Mont {
     let r0 = a.c0.c0;

@@ -5,6 +5,7 @@ use ark_ec::{pairing::Pairing, scalar_mul::glv::GLVConfig, AffineRepr, CurveGrou
 use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand, Zero};
+use num_bigint::BigUint;
 use std::convert::TryInto;
 
 #[path = "../src/s3_07_arkworks_fq_spike.rs"]
@@ -413,6 +414,43 @@ fn ark12(value: Fq12Mont) -> Fq12 {
     Fq12::new(ark6(value.c0), ark6(value.c1))
 }
 
+fn easy_final_exp_arkworks(f: Fq12) -> Option<Fq12> {
+    let mut f1 = f;
+    f1.conjugate_in_place();
+    f.inverse().map(|mut f2| {
+        let mut r = f1 * f2;
+        f2 = r;
+        r.frobenius_map_in_place(2);
+        r * f2
+    })
+}
+
+fn easy_exponent() -> Vec<u64> {
+    let mut modulus = Vec::new();
+    let limbs = Fq::MODULUS.0;
+    let mut i = 0_usize;
+    while i < limbs.len() {
+        modulus.extend_from_slice(&limbs[i].to_le_bytes());
+        i += 1;
+    }
+    let q = BigUint::from_bytes_le(&modulus);
+    let exponent = (&q.pow(6) - 1_u32) * (&q.pow(2) + 1_u32);
+    exponent.to_u64_digits()
+}
+
+fn check_easy_final_exp(f: Fq12) {
+    let expected = easy_final_exp_arkworks(f);
+    assert_eq!(spike::extract_s3_38(mont12(f)).map(ark12), expected);
+    assert_eq!(
+        expected,
+        if f.is_zero() {
+            None
+        } else {
+            Some(f.pow(easy_exponent().as_slice()))
+        }
+    );
+}
+
 fn bytes2(value: Fq2) -> Fq2Bytes {
     Fq2Bytes {
         c0: canonical_bytes(value.c0),
@@ -654,6 +692,39 @@ fn fq12_edges_and_512_random_vectors_match_arkworks() {
             Fq2::rand(&mut rng),
             Fq2::rand(&mut rng),
         );
+    }
+}
+
+#[test]
+fn final_exponentiation_easy_matches_arkworks_and_bignum_power() {
+    let zero6 = Fq6::ZERO;
+    let one6 = Fq6::ONE;
+    let edges = [
+        Fq12::ZERO,
+        Fq12::ONE,
+        -Fq12::ONE,
+        Fq12::new(zero6, one6),
+        Fq12::new(one6, -one6),
+    ];
+    for &f in &edges {
+        check_easy_final_exp(f);
+    }
+
+    let mut rng = test_rng();
+    for _ in 0..16 {
+        check_easy_final_exp(Fq12::rand(&mut rng));
+    }
+
+    type Prepared = <ark_bls12_377::Bls12_377 as Pairing>::G2Prepared;
+    for _ in 0..5 {
+        let g1 = G1Affine::rand(&mut rng);
+        let prepared = Prepared::from(G2Affine::rand(&mut rng));
+        let f = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop(
+            [g1],
+            [prepared],
+        )
+        .0;
+        check_easy_final_exp(f);
     }
 }
 
