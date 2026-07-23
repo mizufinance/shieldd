@@ -10,7 +10,7 @@ import Ipp.Kzg
 import Ipp.Gipa
 import Ipp.Composition
 import Ipp.FiatShamir
-import Ipp.Extracted.ArkworksFinalExpEasy
+import Ipp.Extracted.ArkworksFinalExpSpec
 import VCVio.CryptoFoundations.SigmaProtocol
 
 -- If this elaborates, the VCVio dependency is available to the proof units.
