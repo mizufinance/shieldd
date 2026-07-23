@@ -2002,6 +2002,14 @@ conforms finite-G1 line evaluation to the D-twist `mul_by_034(f, c0*y,
 c1*x, c2)` layout, reusing the S3-21 sparse-multiply conformance. Parity:
 13; gate: 3652 jobs.
 
+**S3-38 DONE (2026-07-23; commit `c615b9a4c`).** `final_exp_easy_spec` is
+`f^((q^6-1)(q^2+1))`; `final_exp_easy_none_iff` and
+`final_exp_easy_cyclotomic` establish
+`(q^6-1)(q^2+1)(q^4-q^2+1)=q^12-1`, hence
+`x^(q^4-q^2+1)=1` via `FiniteField.pow_card_sub_one_eq_one`, discharging the
+S3-21 cyclotomic hypothesis. Path A composition is landed. Parity: 16;
+gate: 3688. Added `Ipp/S3AxiomAudit.lean`.
+
 F04B-2 verification:
 
 - Normal and `hax_compilation` focused parity tests both pass all four tests,

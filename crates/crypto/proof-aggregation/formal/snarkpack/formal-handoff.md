@@ -294,7 +294,7 @@ Prepared-G2 schedule, doubling/addition lines, full executed G2Prepared
 coefficient-sequence validity, finite-G1 line evaluation (`g1_ell_spec`), the
 single-pair Miller schedule (`miller_schedule_spec`), and the multi-Miller
 product refinement (`multi_miller_schedule_spec`) are landed in S3-33..37.
-Remaining pairing work is S3-38..41.
+S3-38 has landed. The remaining pairing work is S3-39..41.
 
 `verify_tipp_mipp` now delegates to the explicit typed
 `verify_tipp_mipp_core`; the core has a single error exit after its round loop,
