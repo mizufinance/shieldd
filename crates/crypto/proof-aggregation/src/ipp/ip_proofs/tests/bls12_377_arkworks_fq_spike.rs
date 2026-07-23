@@ -1,7 +1,11 @@
 //! MAC-campaign parity gate for the monomorphic safe-Rust CIOS copy.
 
 use ark_bls12_377::{Fq, Fq12, Fq2, Fq6, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{pairing::Pairing, scalar_mul::glv::GLVConfig, AffineRepr, CurveGroup, PrimeGroup};
+use ark_ec::{
+    pairing::{MillerLoopOutput, Pairing},
+    scalar_mul::glv::GLVConfig,
+    AffineRepr, CurveGroup, PrimeGroup,
+};
 use ark_ff::{AdditiveGroup, BigInt, CyclotomicMultSubgroup, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{test_rng, UniformRand, Zero};
@@ -451,6 +455,14 @@ fn check_easy_final_exp(f: Fq12) {
     );
 }
 
+fn check_full_final_exp(f: Fq12) {
+    let expected = <ark_bls12_377::Bls12_377 as Pairing>::final_exponentiation(
+        MillerLoopOutput(f),
+    )
+    .map(|output| output.0);
+    assert_eq!(spike::extract_s3_39(mont12(f)).map(ark12), expected);
+}
+
 fn bytes2(value: Fq2) -> Fq2Bytes {
     Fq2Bytes {
         c0: canonical_bytes(value.c0),
@@ -725,6 +737,38 @@ fn final_exponentiation_easy_matches_arkworks_and_bignum_power() {
         )
         .0;
         check_easy_final_exp(f);
+    }
+}
+
+#[test]
+fn final_exponentiation_hard_matches_arkworks_miller_outputs_and_edges() {
+    let zero6 = Fq6::ZERO;
+    let one6 = Fq6::ONE;
+    for f in [
+        Fq12::ZERO,
+        Fq12::ONE,
+        -Fq12::ONE,
+        Fq12::new(zero6, one6),
+        Fq12::new(one6, -one6),
+    ] {
+        check_full_final_exp(f);
+    }
+
+    let mut rng = test_rng();
+    for _ in 0..8 {
+        check_full_final_exp(Fq12::rand(&mut rng));
+    }
+
+    type Prepared = <ark_bls12_377::Bls12_377 as Pairing>::G2Prepared;
+    for _ in 0..8 {
+        let g1 = G1Affine::rand(&mut rng);
+        let prepared = Prepared::from(G2Affine::rand(&mut rng));
+        let f = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop(
+            [g1],
+            [prepared],
+        )
+        .0;
+        check_full_final_exp(f);
     }
 }
 

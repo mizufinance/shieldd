@@ -1448,6 +1448,42 @@ pub fn extract_s3_38(f: Fq12Mont) -> Option<Fq12Mont> {
     final_exp_easy(f)
 }
 
+/// Arkworks BLS12 hard final-exponentiation chain for positive `X`.
+pub fn final_exp_hard(mut r: Fq12Mont) -> Fq12Mont {
+    let mut y0 = fq12_cyclotomic_square(r);
+    let mut y1 = fq12_cyclotomic_exp(r);
+    let mut y2 = fq12_conjugate(r);
+    y1 = fq12_mul(y1, y2);
+    y2 = fq12_cyclotomic_exp(y1);
+    y1 = fq12_conjugate(y1);
+    y1 = fq12_mul(y1, y2);
+    y2 = fq12_cyclotomic_exp(y1);
+    y1 = fq12_frobenius(y1, 1);
+    y1 = fq12_mul(y1, y2);
+    r = fq12_mul(r, y0);
+    y0 = fq12_cyclotomic_exp(y1);
+    y2 = fq12_cyclotomic_exp(y0);
+    y0 = fq12_frobenius(y1, 2);
+    y1 = fq12_conjugate(y1);
+    y1 = fq12_mul(y1, y2);
+    y1 = fq12_mul(y1, y0);
+    fq12_mul(r, y1)
+}
+
+/// Full BLS12-377 final exponentiation, preserving inverse failure.
+pub fn final_exp(f: Fq12Mont) -> Option<Fq12Mont> {
+    match final_exp_easy(f) {
+        None => None,
+        Some(r) => Some(final_exp_hard(r)),
+    }
+}
+
+/// Extraction root for the faithful full final-exponentiation sequence.
+#[doc(hidden)]
+pub fn extract_s3_39(f: Fq12Mont) -> Option<Fq12Mont> {
+    final_exp(f)
+}
+
 /// Granger--Scott cyclotomic squaring for the `q^2 = 1 (mod 6)` branch.
 pub fn fq12_cyclotomic_square(a: Fq12Mont) -> Fq12Mont {
     let r0 = a.c0.c0;
