@@ -208,6 +208,14 @@ message TransferPlan {
   repeated ShieldedOutputPlan outputs = 5;
 }
 
+// Releases shielded value to a recipient on the host chain.
+message HostWithdrawal {
+  // The host-chain recipient.
+  string recipient = 1;
+  // The canonical Shieldd value to release.
+  asset.v1.Value value = 2;
+}
+
 message ShieldedIcs20WithdrawalChangeBody {
   // The minimal data required to scan and process the created change note.
   NotePayload note_payload = 1;

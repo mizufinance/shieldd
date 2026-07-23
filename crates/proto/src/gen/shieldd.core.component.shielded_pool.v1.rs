@@ -554,6 +554,26 @@ impl ::prost::Name for TransferPlan {
         "/shieldd.core.component.shielded_pool.v1.TransferPlan".into()
     }
 }
+/// Releases shielded value to a recipient on the host chain.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HostWithdrawal {
+    /// The host-chain recipient.
+    #[prost(string, tag = "1")]
+    pub recipient: ::prost::alloc::string::String,
+    /// The canonical Shieldd value to release.
+    #[prost(message, optional, tag = "2")]
+    pub value: ::core::option::Option<super::super::super::asset::v1::Value>,
+}
+impl ::prost::Name for HostWithdrawal {
+    const NAME: &'static str = "HostWithdrawal";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.HostWithdrawal".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.HostWithdrawal".into()
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedIcs20WithdrawalChangeBody {
     /// The minimal data required to scan and process the created change note.
