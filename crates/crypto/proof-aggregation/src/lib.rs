@@ -10,6 +10,7 @@ mod padding;
 mod preflight;
 mod srs;
 mod statement;
+mod strict_deserialize;
 mod transcript;
 mod transfer_family_dispatch;
 

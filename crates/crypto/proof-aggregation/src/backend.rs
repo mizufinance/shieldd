@@ -15,7 +15,7 @@ use ark_ip_proofs::applications::groth16_aggregation::{
 use ark_ip_proofs::challenge::{
     challenge_context_preimage, ChallengeContext, ChallengeTraceSink, VecChallengeTraceSink,
 };
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_serialize::CanonicalSerialize;
 use decaf377::{Bls12_377, Fq};
 use digest::Digest;
 use shieldd_sdk_proof_aggregation_trace_schema::{
@@ -33,6 +33,7 @@ use crate::{
     },
     srs::DevSrs,
     statement::{AggregateStatement, AggregateStatementError},
+    strict_deserialize::deserialize_compressed_strict,
     transcript::{
         ConsolidateTranscriptDigest, ShieldedIcs20WithdrawalTranscriptDigest,
         SplitTranscriptDigest, TransferTranscriptDigest,
@@ -230,7 +231,7 @@ pub fn set_rayon_threads_per_batch_for_bench(n: usize) {
 pub(crate) fn deserialize_aggregate_proof<D: Digest>(
     aggregate_proof_bytes: &[u8],
 ) -> Result<AggregateProof<Bls12_377, D>, AggregateVerifyError> {
-    AggregateProof::<Bls12_377, D>::deserialize_compressed(&aggregate_proof_bytes[..])
+    deserialize_compressed_strict::<AggregateProof<Bls12_377, D>>(aggregate_proof_bytes)
         .map_err(|err| AggregateVerifyError::MalformedProofBytes(err.to_string()))
 }
 
@@ -1240,6 +1241,7 @@ mod tests {
     use ark_ip_proofs::challenge::VecChallengeTraceSink;
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
+    use ark_serialize::CanonicalDeserialize;
     use ark_snark::SNARK;
     use decaf377::Fq;
     use proptest::prelude::*;
@@ -1249,7 +1251,8 @@ mod tests {
 
     use crate::transcript::TransferTranscriptDigest;
     use crate::{
-        aggregate_family, aggregate_family_profiled, pad_items_to_power_of_two, srs_id,
+        aggregate_family, aggregate_family_profiled, decode_wrapped_aggregate_proof,
+        encode_wrapped_aggregate_proof, pad_items_to_power_of_two, srs_id,
         statement::aggregate_verification_key_digest, verify_family_aggregate,
         verify_family_aggregate_profiled, AggregateStatement, AggregateVerifyError,
         AGGREGATE_PROTOCOL_VERSION,
@@ -1754,6 +1757,53 @@ mod tests {
 
         verify_family_aggregate(&statement, &pvk, &aggregate, &srs)
             .expect("aggregate verification should succeed");
+    }
+
+    #[test]
+    fn strict_boundary_rejects_nested_infinity_alias() {
+        let (pvk, items) = sample_items();
+        let srs = DevSrs::default();
+        let padded_items =
+            pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
+        let statement = statement_for_items(
+            ProofFamilyId::Transfer,
+            &pvk,
+            items.len(),
+            &padded_items,
+            &srs,
+        );
+        let aggregate = aggregate_family(&statement, &pvk, &padded_items, &srs)
+            .expect("aggregation should succeed");
+        let inner = decode_wrapped_aggregate_proof(
+            &aggregate,
+            statement.statement_digest(),
+            Some(MAX_AGGREGATE_PROOF_BYTES),
+        )
+        .expect("aggregate wrapper should decode");
+
+        // The first four fields are pairing outputs. The following `agg_c` is
+        // a compressed G1 nested inside AggregateProof; retain its x-coordinate
+        // and set only the infinity flag (the compressed flag is already set).
+        let agg_c_offset = 4 * compressed_bytes(&PairingOutput::<Bls12_377>::zero()).len();
+        let mut mutated_inner = inner.to_vec();
+        mutated_inner[agg_c_offset + g1_compressed_len() - 1] |= 0x40;
+        assert!(
+            AggregateProof::<Bls12_377, TransferTranscriptDigest>::deserialize_compressed(
+                &mutated_inner[..]
+            )
+            .is_ok()
+        );
+        assert!(deserialize_aggregate_proof::<TransferTranscriptDigest>(&mutated_inner).is_err());
+
+        let mutated = encode_wrapped_aggregate_proof(statement.statement_digest(), &mutated_inner)
+            .expect("mutated aggregate should fit wrapper");
+        let err = verify_family_aggregate(&statement, &pvk, &mutated, &srs)
+            .expect_err("nested infinity alias should reject at the boundary");
+        assert!(matches!(err, AggregateVerifyError::MalformedProofBytes(_)));
+    }
+
+    fn g1_compressed_len() -> usize {
+        compressed_bytes(&BackendG1::zero().into_affine()).len()
     }
 
     #[test]
