@@ -1314,6 +1314,77 @@ pub fn extract_s3_36(
     miller_schedule(coeffs, p)
 }
 
+/// Faithful BLS12-377 multi-Miller accumulation, including arkworks' chunks of
+/// four. An empty coefficient vector represents a zero prepared G2.
+pub fn multi_miller_schedule(
+    pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>,
+) -> Fq12Mont {
+    let mut filtered = Vec::new();
+    let mut pair_index = 0_usize;
+    while pair_index < pairs.len() {
+        let pair = pairs[pair_index].clone();
+        if !pair.1.infinity && pair.0.len() != 0 {
+            filtered.push(pair);
+        }
+        pair_index += 1;
+    }
+
+    let mut result = FQ12_ONE;
+    let mut chunk_start = 0_usize;
+    while chunk_start < filtered.len() {
+        let mut chunk_end = chunk_start + 4;
+        if chunk_end > filtered.len() {
+            chunk_end = filtered.len();
+        }
+        let mut cursors = Vec::new();
+        let mut cursor_index = chunk_start;
+        while cursor_index < chunk_end {
+            cursors.push(0_usize);
+            cursor_index += 1;
+        }
+
+        let mut f = FQ12_ONE;
+        let mut bit_index = 63_usize;
+        while bit_index > 0 {
+            bit_index -= 1;
+            f = fq12_square(f);
+
+            let mut local_index = 0_usize;
+            while local_index < cursors.len() {
+                let pair_position = chunk_start + local_index;
+                let coeff_index = cursors[local_index];
+                let coeff = filtered[pair_position].0[coeff_index];
+                cursors[local_index] += 1;
+                f = g1_ell(f, coeff, filtered[pair_position].1).3;
+                local_index += 1;
+            }
+
+            if ((0x8508_c000_0000_0001_u64 >> bit_index) & 1) != 0 {
+                let mut local_index = 0_usize;
+                while local_index < cursors.len() {
+                    let pair_position = chunk_start + local_index;
+                    let coeff_index = cursors[local_index];
+                    let coeff = filtered[pair_position].0[coeff_index];
+                    cursors[local_index] += 1;
+                    f = g1_ell(f, coeff, filtered[pair_position].1).3;
+                    local_index += 1;
+                }
+            }
+        }
+        result = fq12_mul(result, f);
+        chunk_start = chunk_end;
+    }
+    result
+}
+
+/// Extraction root for the faithful multi-pair Miller schedule.
+#[doc(hidden)]
+pub fn extract_s3_37(
+    pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>,
+) -> Fq12Mont {
+    multi_miller_schedule(pairs)
+}
+
 /// Quadratic-extension conjugation, also the nonzero unitary inverse.
 pub fn fq12_conjugate(a: Fq12Mont) -> Fq12Mont {
     Fq12Mont {

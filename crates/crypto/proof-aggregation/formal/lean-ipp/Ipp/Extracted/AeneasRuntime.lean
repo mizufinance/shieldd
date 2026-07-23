@@ -244,6 +244,16 @@ deriving Repr
 
 namespace Vec
 
+def len {T : Type u} (items : Vec T) : Usize :=
+  ⟨items.val.length⟩
+
+def index_mut {T : Type u} (_inst : Type) (items : Vec T)
+    (index : Usize) : Result (T × (T → Vec T)) :=
+  match items.val[index.val]? with
+  | some value =>
+      .ok (value, fun replacement => ⟨items.val.set index.val replacement⟩)
+  | none => .fail .arrayOutOfBounds
+
 def new {T : Type u} : Vec T := ⟨[]⟩
 
 def with_capacity (T : Type u) (_capacity : Usize) : Vec T := ⟨[]⟩
