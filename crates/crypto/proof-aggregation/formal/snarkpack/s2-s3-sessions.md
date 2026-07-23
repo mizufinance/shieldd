@@ -1834,6 +1834,19 @@ Session-2 verification:
   There are no `sorry`s or declared axioms in the campaign Lean files.
 - Prover, release, and release-gated tests were not run.
 
+S3-32 DONE: executed subgroup check = `mul_affine(P, characteristic()).is_zero()`,
+composes from `valid_g1/g2_mul_affine`; `valid_g1/g2_subgroup_check = decide
+inPrimeSubgroup`; discharges subgroup half of S3-26/27 boundary. Commit
+`772102499`.
+
+STRICT DECODE WRAPPER (GAP-08/09 prep): `deserialize_compressed_strict`
+(round-trip canonical gate) rerouting `backend.rs::deserialize_aggregate_proof`
++ `srs.rs`; rejects arkworks' permissive infinity aliases; 66 proof-agg tests.
+Commit `9d071e2e9`.
+
+AENEAS NORMALIZER (Decision C): `scripts/normalize_aeneas_lean.py` fail-closed
+dialect bridge. Commit `1b1b0948b`.
+
 **S3-40 DONE (2026-07-23; commit `2c94894d5`).**
 `multi_pairing_spec` / `multi_pairing_product_spec` identify the executed
 multi-pairing with the product of `pairingModel`, hence
