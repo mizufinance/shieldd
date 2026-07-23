@@ -4,32 +4,28 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use cnidarium_component::ActionHandler;
-use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_ibc::StateReadExt as _;
 use shieldd_sdk_proof_params::batch::{self, BatchItem};
-use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_txhash::{EffectingData, TransactionContext};
 
 use crate::{
     component::{
-        action_handler::note_reshape,
+        action_handler::{note_reshape, shielded_withdrawal},
         transfer::{Ics20TransferExecutionExt as _, Ics20TransferWriteExt as _},
     },
-    ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalChangeBody,
-    ShieldedIcs20WithdrawalChangePublic, ShieldedIcs20WithdrawalInputPublic,
-    ShieldedIcs20WithdrawalProofPublic, TransferInputBody,
+    ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalChangeBody, ShieldedIcs20WithdrawalProofPublic,
+    TransferInputBody,
 };
 
 pub fn shielded_ics20_withdrawal_verify_auth_sigs(
     action: &ShieldedIcs20Withdrawal,
     context: &TransactionContext,
 ) -> Result<()> {
-    note_reshape::verify_auth_sigs(
+    shielded_withdrawal::verify_auth_sigs(
         "shielded_ics20_withdrawal",
         &action.body.inputs,
         &action.auth_sigs,
         context,
-        |input| &input.rk,
     )
 }
 
@@ -37,36 +33,21 @@ pub fn shielded_ics20_withdrawal_extract_public(
     action: &ShieldedIcs20Withdrawal,
     context: &TransactionContext,
 ) -> Result<ShieldedIcs20WithdrawalProofPublic> {
-    let effect_hash = action.body.withdrawal.effect_hash();
-    let effect_hash_bytes = effect_hash.as_bytes();
-    let public = ShieldedIcs20WithdrawalProofPublic {
-        family_id: action.body.family_id,
-        anchor: context.anchor,
-        balance_commitment: action.body.balance_commitment,
-        asset_anchor: action.body.asset_anchor,
-        compliance_anchor: action.body.compliance_anchor,
-        target_timestamp: decaf377::Fq::from(action.body.target_timestamp),
-        inputs: action
-            .body
-            .inputs
-            .iter()
-            .map(|input| ShieldedIcs20WithdrawalInputPublic {
-                nullifier: input.nullifier,
-                rk: input.rk,
-            })
-            .collect(),
-        change_output: ShieldedIcs20WithdrawalChangePublic {
-            note_commitment: action.body.change_output.note_payload.note_commitment,
+    shielded_withdrawal::extract_public(
+        shielded_withdrawal::ProofPublicData {
+            family_id: action.body.family_id,
+            balance_commitment: action.body.balance_commitment,
+            asset_anchor: action.body.asset_anchor,
+            compliance_anchor: action.body.compliance_anchor,
+            target_timestamp: action.body.target_timestamp,
+            inputs: &action.body.inputs,
+            change_output: &action.body.change_output,
+            outbound_value: action.body.withdrawal.value(),
+            withdrawal_effect_hash: action.body.withdrawal.effect_hash(),
         },
-        outbound_asset_id: action.body.withdrawal.denom.id().0,
-        outbound_amount: decaf377::Fq::from(action.body.withdrawal.amount),
-        withdrawal_effect_hash_lo: decaf377::Fq::from_le_bytes_mod_order(&effect_hash_bytes[..32]),
-        withdrawal_effect_hash_hi: decaf377::Fq::from_le_bytes_mod_order(&effect_hash_bytes[32..]),
-    };
-    public
-        .validate_shape()
-        .context("shielded ICS-20 withdrawal proof family shape mismatch")?;
-    Ok(public)
+        context,
+    )
+    .context("shielded ICS-20 withdrawal proof family shape mismatch")
 }
 
 pub fn shielded_ics20_withdrawal_to_batch_item(
@@ -113,19 +94,13 @@ impl ActionHandler for ShieldedIcs20Withdrawal {
     }
 
     async fn check_and_execute<S: StateWrite>(&self, mut state: S) -> Result<()> {
-        state
-            .validate_compliance_anchors(&self.body.compliance_anchor, &self.body.asset_anchor)
-            .await
-            .context("invalid compliance anchors")?;
-
-        let block_time = state.get_current_block_timestamp().await?;
-        let block_unix = block_time.unix_timestamp();
-        anyhow::ensure!(block_unix >= 0, "block timestamp is negative");
-        let block_timestamp = block_unix as u64;
-        shieldd_sdk_compliance::registry::check_timestamp_freshness(
+        let block_time = shielded_withdrawal::validate_compliance(
+            &state,
+            &self.body.compliance_anchor,
+            &self.body.asset_anchor,
             self.body.target_timestamp,
-            block_timestamp,
-        )?;
+        )
+        .await?;
 
         let current_block_time = block_time;
         state
