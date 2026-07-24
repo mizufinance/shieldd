@@ -137,3 +137,5 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.Extracted.ArkworksMsm.msmScalarDigits_value
 #print axioms Ipp.Extracted.ArkworksMsm.msm_digits_exchange
 #print axioms Ipp.Extracted.ArkworksMsm.msm_windowValue_eq_ordered
+#print axioms Ipp.Extracted.ArkworksMsm.executed_g1_msm
+#print axioms Ipp.Extracted.ArkworksMsm.executed_g2_msm

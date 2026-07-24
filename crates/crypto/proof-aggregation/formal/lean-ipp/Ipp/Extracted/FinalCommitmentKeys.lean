@@ -321,7 +321,8 @@ private theorem coefficientList_eq_transcriptCoeffs {F : Type} [Field F]
     rw [List.getElem?_eq_none (by simpa [hlen] using hi)]
     simp [hi]
 
-/-- The named arkworks-MSM boundary required by design decision A. -/
+/-- The retained production-copy MSM boundary after the concrete checked
+G1/G2 copies are discharged by `executed_g1_msm` and `executed_g2_msm`. -/
 def OrderedMsmConformance {F G : Type} [Field F] [AddCommGroup G] [Module F G]
     {n : ℕ} (keys : Fin n → G) (coefficients : Fin n → F) : Prop :=
   ark_ip_proofs.gipa.ordered_msm

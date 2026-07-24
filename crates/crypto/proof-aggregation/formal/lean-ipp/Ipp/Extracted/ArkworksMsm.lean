@@ -20,6 +20,9 @@ import Ipp.Extracted.ArkworksMsmCollectWidth
 import Ipp.Extracted.ArkworksMsmG1WindowLoopResult
 import Ipp.Extracted.ArkworksMsmG2WindowLoopResult
 import Ipp.Extracted.ArkworksMsmExchange
+import Ipp.Extracted.ArkworksMsmFinalModel
+import Ipp.Extracted.ArkworksMsmG1Final
+import Ipp.Extracted.ArkworksMsmG2Final
 
 namespace Ipp.Extracted.ArkworksMsm
 
