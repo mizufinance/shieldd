@@ -126,11 +126,10 @@ private def scalarWindowCoefficient (scalar : ScalarArray)
 private theorem scalarWindowWith_spec {α : Type} (scalar : ScalarArray)
     (width index : Nat) (next : MacCampaign.U64 → Result α)
     (hwidth : 0 < width) (hwidth64 : width < 64)
-    (hcovered : index * width + width ≤ 256) :
+    (hbit : index * width < 256) :
     scalarWindowWith scalar width index next =
       next (MacCampaign.U64.ofNat
         (scalarWindowBuffer scalar (index * width) % 2 ^ width)) := by
-  have hbit : index * width < 256 := by omega
   have hwordIndex : index * width / 64 < 4 := by omega
   have hbitIndex : index * width % 64 < 64 :=
     Nat.mod_lt _ (by decide)
@@ -356,11 +355,11 @@ private theorem scalarWindowWith_spec {α : Type} (scalar : ScalarArray)
 
 private theorem scalarWindowCoefficient_spec (scalar : ScalarArray)
     (width index : Nat) (hwidth : 0 < width) (hwidth64 : width < 64)
-    (hcovered : index * width + width ≤ 256) :
+    (hbit : index * width < 256) :
     scalarWindowCoefficient scalar width index =
       .ok (MacCampaign.U64.ofNat
         (scalarWindowBuffer scalar (index * width) % 2 ^ width)) := by
-  exact scalarWindowWith_spec scalar width index .ok hwidth hwidth64 hcovered
+  exact scalarWindowWith_spec scalar width index .ok hwidth hwidth64 hbit
 
 private def digitAfterCoefficient (width : Nat) (radix : MacCampaign.U64)
     (digitsCount : Usize) (carry coefficient : MacCampaign.U64)
@@ -585,7 +584,7 @@ theorem makeDigitsBody_step (scalar : ScalarArray) (width count carry index : Na
     (digits : alloc.vec.Vec WnafDigit)
     (hwidth : 0 < width) (hwidth64 : width < 64)
     (hcount : 0 < count) (hindex : index < count)
-    (hcovered : index * width + width ≤ 256) (hcarry : carry ≤ 1) :
+    (hbit : index * width < 256) (hcarry : carry ≤ 1) :
     let coefficient :=
       scalarWindowBuffer scalar (index * width) % 2 ^ width
     ark_ip_proofs.s3_07_arkworks_fq_spike.make_wnaf_digits_loop.body
@@ -602,7 +601,7 @@ theorem makeDigitsBody_step (scalar : ScalarArray) (width count carry index : Na
   dsimp only
   rw [makeDigitsBody_eq scalar width count (MacCampaign.U64.ofNat carry)
     digits index hwidth64 hcount, if_pos hindex,
-    scalarWindowWith_spec scalar width index _ hwidth hwidth64 hcovered]
+    scalarWindowWith_spec scalar width index _ hwidth hwidth64 hbit]
   apply digitAfterCoefficient_spec width count carry
     (scalarWindowBuffer scalar (index * width) % 2 ^ width) index digits
     hwidth hwidth64 hcount hindex hcarry

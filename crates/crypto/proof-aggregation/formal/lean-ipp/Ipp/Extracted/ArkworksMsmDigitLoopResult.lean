@@ -38,7 +38,9 @@ theorem makeDigitsLoop_result (scalar : ScalarArray)
     (width count carry index : Nat) (digits output : alloc.vec.Vec WnafDigit)
     (hwidth : 0 < width) (hwidth64 : width < 64)
     (hcount : 0 < count) (hindex : index ≤ count)
-    (hcovered : count * width ≤ 256) (hcarry : carry ≤ 1)
+    (hstarts : ∀ currentIndex, currentIndex < count →
+      currentIndex * width < 256)
+    (hcarry : carry ≤ 1)
     (hexec :
       ark_ip_proofs.s3_07_arkworks_fq_spike.make_wnaf_digits_loop
         scalar (Usize.ofNat width) (MacCampaign.U64.ofNat (2 ^ width))
@@ -86,17 +88,11 @@ theorem makeDigitsLoop_result (scalar : ScalarArray)
         subst state
         have hdoneIndex : count ≤ currentIndex := by
           by_contra hnot
-          have hstepCovered :
-              currentIndex * width + width ≤ 256 := by
-            calc
-              currentIndex * width + width =
-                  (currentIndex + 1) * width := by simp [Nat.add_mul]
-              _ ≤ count * width :=
-                Nat.mul_le_mul_right width (by omega)
-              _ ≤ 256 := hcovered
+          have hstepBit : currentIndex * width < 256 :=
+            hstarts currentIndex (by omega)
           have hstep := makeDigitsBody_step scalar width count currentCarry
             currentIndex currentDigits hwidth hwidth64 hcount (by omega)
-            hstepCovered hcurrentCarry
+            hstepBit hcurrentCarry
           simp only [loopBody] at hbody
           rw [hstep] at hbody
           simp at hbody
@@ -125,19 +121,14 @@ theorem makeDigitsLoop_result (scalar : ScalarArray)
             (MacCampaign.U64.ofNat currentCarry) currentDigits currentIndex
             hwidth64 hcount (by omega)] at hbody
           simp at hbody
-        have hstepCovered : currentIndex * width + width ≤ 256 := by
-          calc
-            currentIndex * width + width =
-                (currentIndex + 1) * width := by simp [Nat.add_mul]
-            _ ≤ count * width :=
-              Nat.mul_le_mul_right width (by omega)
-            _ ≤ 256 := hcovered
+        have hstepBit : currentIndex * width < 256 :=
+          hstarts currentIndex hstepIndex
         have hbodyStep := makeDigitsBody_step scalar width count currentCarry
           currentIndex currentDigits hwidth hwidth64 hcount hstepIndex
-          hstepCovered hcurrentCarry
+          hstepBit hcurrentCarry
         have hcoefficient :=
-          scalarWindowBuffer_windows scalar width count currentIndex hwidth
-            (by omega) hstepIndex hstepCovered
+          scalarWindowBuffer_windows_of_start scalar width count currentIndex
+            hwidth (by omega) hstepIndex hstepBit
         have hwindowsLength : windows.length = count := by
           simp [windows]
         have hwindowIndex : currentIndex < windows.length := by
@@ -192,7 +183,7 @@ theorem makeDigits_result (scalar : ScalarArray) (width numBits : Nat)
     (hwidth : 0 < width) (hwidth64 : width < 64)
     (hnumBits : 0 < numBits)
     (hcount : 0 < (numBits + width - 1) / width)
-    (hcovered : ((numBits + width - 1) / width) * width ≤ 256)
+    (hnumBitsLe : numBits ≤ 256)
     (hexec :
       ark_ip_proofs.s3_07_arkworks_fq_spike.make_wnaf_digits
         scalar (Usize.ofNat width) (Usize.ofNat numBits) = .ok output) :
@@ -252,7 +243,20 @@ theorem makeDigits_result (scalar : ScalarArray) (width numBits : Nat)
   have hmodel := makeDigitsLoop_result scalar width count 0 0
     (alloc.vec.Vec.with_capacity WnafDigit (Usize.ofNat count)) output
     hwidth hwidth64 (by simpa [count] using hcount) (by omega)
-    (by simpa [count] using hcovered) (by omega) hexec
+    (by
+      intro currentIndex hcurrentIndex
+      have hbefore : currentIndex * width < numBits := by
+        by_contra hnot
+        have hceilLe :
+            numBits ⌈/⌉ width ≤ currentIndex :=
+          (ceilDiv_le_iff_le_mul (a := width) (b := numBits)
+            (c := currentIndex) hwidth).2 (by
+              simpa [Nat.mul_comm] using Nat.le_of_not_gt hnot)
+        have hcountCeil : count = numBits ⌈/⌉ width := by
+          simp [count, Nat.ceilDiv_eq_add_pred_div]
+        omega
+      exact lt_of_lt_of_le hbefore hnumBitsLe)
+    (by omega) hexec
   simpa [count, alloc.vec.Vec.with_capacity] using hmodel
 
 #print axioms makeDigitsLoop_result

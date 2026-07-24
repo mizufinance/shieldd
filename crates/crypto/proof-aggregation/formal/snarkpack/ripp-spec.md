@@ -58,7 +58,9 @@ For the covered verifier orchestration, the abstract-trace/review-only evidence
 is replaced by the named Lean theorem list in
 `formal/snarkpack/s2-refinement-theorems.txt`. The executed core refines
 `Ipp.FsAccepts` only under the named challenge-serializer/digest trace boundary,
-the explicit `OrderedMsmConformance` premise, the commitment and
+  the explicit `OrderedMsmConformance` premise (now limited to the final
+  monomorphic wrapper composition, production-copy identification, and retained
+  Rayon correspondence), the commitment and
 pairing-effect interpretation laws targeted by S3-41, and Rust parity tests for
 the concrete delegators. The theorem list does not prove S3 arithmetic,
 serialization/subgroup behavior, hash-as-a-random-oracle, KZG binding, or
