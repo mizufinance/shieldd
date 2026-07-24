@@ -41,7 +41,10 @@ The S2 claim is that the executed verifier orchestration core refines
 `Ipp.FsAccepts`, conditional on all of the following named boundaries:
 
 1. the `fs.challenge-preimage` challenge-serializer/digest trace boundary;
-2. the explicit `OrderedMsmConformance` premise for production MSM calls;
+2. the explicit `OrderedMsmConformance` premise for production MSM calls,
+   narrowed by S3-31 to the final unchecked/checked monomorphic-copy composition,
+   the parity-pinned copy-to-`G::msm(normalize_batch)` identification, and the
+   retained Rayon correspondence;
 3. the commitment and pairing-effect interpretation laws, targeted for
    discharge by S3-41; and
 4. the production delegator layer being pinned by Rust parity tests, not by

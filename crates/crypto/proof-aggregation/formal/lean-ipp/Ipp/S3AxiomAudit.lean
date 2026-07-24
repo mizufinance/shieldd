@@ -4,6 +4,7 @@ import Ipp.Extracted.ArkworksSubgroupCheck
 import Ipp.Extracted.ArkworksMsm
 import Ipp.Bls12377Pairing
 import Ipp.Extracted.ArkworksMultiPairingGt
+import Ipp.StrictG1Decode
 
 /-!
 S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
@@ -65,6 +66,16 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g2_subgroup_check
 #print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g1_subgroup_check_checked_membership
 #print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g2_subgroup_check_checked_membership
+#print axioms Ipp.StrictG1Decode.g1_strict_checked_success_iff
+#print axioms Ipp.StrictG1Decode.strict_rejects_malformed_flags
+#print axioms Ipp.StrictG1Decode.strict_rejects_noncanonical_field
+#print axioms Ipp.StrictG1Decode.strict_rejects_non_curve_root
+#print axioms Ipp.StrictG1Decode.strict_rejects_noncanonical_infinity
+#print axioms Ipp.StrictG1Decode.strict_rejects_trailing_input
+#print axioms Ipp.StrictG1Decode.strict_rejects_failed_subgroup_check
+#print axioms Ipp.StrictG1Decode.strict_success_prime_subgroup
+#print axioms Ipp.StrictG1Decode.executed_subgroup_check_accepts_strict
+#print axioms Ipp.StrictG1Decode.g1_strict_checked_byte_injective
 #print axioms Ipp.Extracted.ArkworksMsm.nonfinalDigit_step
 #print axioms Ipp.Extracted.ArkworksMsm.finalDigit_step
 #print axioms Ipp.Extracted.ArkworksMsm.nonfinalDigit_bounds

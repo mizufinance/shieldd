@@ -252,6 +252,62 @@ noncomputable def Represents (p : Point) (q : G1) : Prop :=
   else ∃ h : g1Curve.toAffine.Nonsingular (p.x.1 : Fq) (p.y.1 : Fq),
     affineEquiv q = .some _ _ h
 
+/-- A decoded affine record represents at most one Mathlib G1 point. -/
+theorem Represents.right_unique {p : Point} {q q' : G1}
+    (hq : Represents p q) (hq' : Represents p q') : q = q' := by
+  by_cases hinf : p.infinity = true
+  · simp [Represents, hinf] at hq hq'
+    exact hq.trans hq'.symm
+  · have hfin : p.infinity = false := by
+      cases h : p.infinity <;> simp_all
+    simp [Represents, hfin] at hq hq'
+    rcases hq with ⟨hcurve, hq⟩
+    rcases hq' with ⟨hcurve', hq'⟩
+    apply affineEquiv.injective
+    rw [hq, hq']
+
+/-- Canonically decoded records representing the same G1 point are equal. -/
+theorem decode_Represents_left_unique {xs ys : List UInt8} {p p' : Point} {q : G1}
+    (hx : decode xs = some p) (hy : decode ys = some p')
+    (hp : Represents p q) (hp' : Represents p' q) : p = p' := by
+  by_cases hinf : p.infinity = true
+  · have hpeq : p = infinityPoint := decode_eq_infinityPoint_of_infinity hx hinf
+    subst p
+    have hq : q = 0 := by simpa [Represents, infinityPoint] using hp
+    by_cases hinf' : p'.infinity = true
+    · exact (decode_eq_infinityPoint_of_infinity hy hinf').symm
+    · have hfin' : p'.infinity = false := by
+        cases h : p'.infinity <;> simp_all
+      simp [Represents, hfin', hq] at hp'
+  · have hfin : p.infinity = false := by
+      cases h : p.infinity <;> simp_all
+    by_cases hinf' : p'.infinity = true
+    · have hq : q = 0 := by simpa [Represents, hinf'] using hp'
+      simp [Represents, hfin, hq] at hp
+    · have hfin' : p'.infinity = false := by
+        cases h : p'.infinity <;> simp_all
+      simp [Represents, hfin] at hp
+      simp [Represents, hfin'] at hp'
+      rcases hp with ⟨hcurve, hp⟩
+      rcases hp' with ⟨hcurve', hp'⟩
+      have heq := hp.symm.trans hp'
+      have hcoords := WeierstrassCurve.Affine.Point.some.inj heq
+      have hx : p.x.1 = p'.x.1 := by
+        have hval := congrArg ZMod.val hcoords.1
+        change p.x.1 % baseModulus = p'.x.1 % baseModulus at hval
+        rw [Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using p.x.2),
+          Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using p'.x.2)] at hval
+        exact hval
+      have hy : p.y.1 = p'.y.1 := by
+        have hval := congrArg ZMod.val hcoords.2
+        change p.y.1 % baseModulus = p'.y.1 % baseModulus at hval
+        rw [Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using p.y.2),
+          Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using p'.y.2)] at hval
+        exact hval
+      cases p
+      cases p'
+      simp_all [Subtype.ext_iff]
+
 /-- Checked decoding means representation by a point accepted by arkworks' G1 subgroup check. -/
 noncomputable def CheckedPrimeSubgroupPoint (p : Point) : Prop :=
   ∃ q : G1, Represents p q ∧ arkworksG1CheckedMembership q
