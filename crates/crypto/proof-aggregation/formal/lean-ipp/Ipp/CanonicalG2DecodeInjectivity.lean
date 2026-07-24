@@ -231,6 +231,63 @@ noncomputable def Represents (p : Point) (q : G2) : Prop :=
   | .finite x y => ∃ h : g2Curve.toAffine.Nonsingular (toFq2 x) (toFq2 y),
       affineEquiv q = .some _ _ h
 
+/-- A decoded affine record represents at most one Mathlib G2 point. -/
+theorem Represents.right_unique {p : Point} {q q' : G2}
+    (hq : Represents p q) (hq' : Represents p q') : q = q' := by
+  cases p with
+  | infinity =>
+      exact hq.trans hq'.symm
+  | finite x y =>
+      rcases hq with ⟨hcurve, hq⟩
+      rcases hq' with ⟨hcurve', hq'⟩
+      apply affineEquiv.injective
+      rw [hq, hq']
+
+private theorem toFq2_injective {x y : Fq2Value}
+    (h : toFq2 x = toFq2 y) : x = y := by
+  apply Prod.ext
+  · apply Subtype.ext
+    have hval := congrArg ZMod.val (congrArg QuadraticAlgebra.re h)
+    change x.1.1 % baseModulus = y.1.1 % baseModulus at hval
+    rw [Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using x.1.2),
+      Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using y.1.2)] at hval
+    exact hval
+  · apply Subtype.ext
+    have hval := congrArg ZMod.val (congrArg QuadraticAlgebra.im h)
+    change x.2.1 % baseModulus = y.2.1 % baseModulus at hval
+    rw [Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using x.2.2),
+      Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using y.2.2)] at hval
+    exact hval
+
+/-- Canonically decoded records representing the same G2 point are equal. -/
+theorem decode_Represents_left_unique {xs ys : List UInt8} {p p' : Point} {q : G2}
+    (_hx : decode xs = some p) (_hy : decode ys = some p')
+    (hp : Represents p q) (hp' : Represents p' q) : p = p' := by
+  cases p with
+  | infinity =>
+      cases p' with
+      | infinity => rfl
+      | finite x' y' =>
+          have hq : q = 0 := hp
+          subst q
+          simp [Represents] at hp'
+  | finite x y =>
+      cases p' with
+      | infinity =>
+          have hq : q = 0 := hp'
+          subst q
+          simp [Represents] at hp
+      | finite x' y' =>
+          rcases hp with ⟨hcurve, hp⟩
+          rcases hp' with ⟨hcurve', hp'⟩
+          have heq := hp.symm.trans hp'
+          have hcoords := WeierstrassCurve.Affine.Point.some.inj heq
+          have hx : x = x' := toFq2_injective hcoords.1
+          have hy : y = y' := toFq2_injective hcoords.2
+          subst x'
+          subst y'
+          rfl
+
 /-- Checked decoding means representation by a point accepted by arkworks' G2 subgroup check. -/
 noncomputable def CheckedPrimeSubgroupPoint (p : Point) : Prop :=
   ∃ q : G2, Represents p q ∧ arkworksG2CheckedMembership q

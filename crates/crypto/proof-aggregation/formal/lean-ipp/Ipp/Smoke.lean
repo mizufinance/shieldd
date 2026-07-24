@@ -11,6 +11,7 @@ import Ipp.Gipa
 import Ipp.Composition
 import Ipp.FiatShamir
 import Ipp.StrictG1Decode
+import Ipp.StrictG2DecodeBridge
 import Ipp.Extracted.ArkworksFinalExpSpec
 import VCVio.CryptoFoundations.SigmaProtocol
 
