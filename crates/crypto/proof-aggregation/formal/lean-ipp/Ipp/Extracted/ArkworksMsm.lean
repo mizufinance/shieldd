@@ -6,6 +6,9 @@ import Ipp.Extracted.ArkworksMsmWindow
 import Ipp.Extracted.ArkworksMsmG1Reverse
 import Ipp.Extracted.ArkworksMsmG2Reverse
 import Ipp.Extracted.ArkworksMsmWrappers
+import Ipp.Extracted.ArkworksMsmDigitLoopResult
+import Ipp.Extracted.ArkworksMsmG1WindowExec
+import Ipp.Extracted.ArkworksMsmG2WindowExec
 
 namespace Ipp.Extracted.ArkworksMsm
 
