@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GNARK="$ROOT/tools/gnark"
 GEN="$ROOT/tools/gnark/lean/gen/gen_template_inventory.py"
 EXPECTED="$GNARK/artifacts/note-reshape-template-inventory.json"
+REGISTRY="$GNARK/artifacts/proof-template-registry.json"
 
 fail() {
   echo "template inventory check failed: $*" >&2
@@ -23,9 +24,10 @@ for circuit in "${circuits[@]}"; do
   ir="$tmp_dir/$circuit.json"
   (
     cd "$ROOT"
-    cargo run -q -p shieldd-constraint-coverage -- \
+    cargo run --release -q -p shieldd-constraint-coverage -- \
       --manifest "$manifest" \
       --sr1cs "$sr1cs" \
+      --template-registry "$REGISTRY" \
       --ir-out "$ir"
   )
   irs+=("$ir")

@@ -1,2 +1,0 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RvkAdapterSeg15Acc
-import Mathlib.Tactic

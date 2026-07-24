@@ -504,7 +504,7 @@ pub const NB_GYM1: &str =
 
 /// Per-instance cert file for the seg52 blinding ladder's fused rungs: header +
 /// per-rung bindings/theorems only (the ladder walk and the 8-row split rungs
-/// are emitted by `gen/gen_nb_slice.py`, which consumes `rung{i}`/`rung{i}_wide`).
+/// are consumed by the normalized NB recovery, using `rung{i}`/`rung{i}_wide`).
 pub fn emit_nb_file(rows: &[Constraint], fused_base: usize, n: usize) -> String {
     let b0 = rows[fused_base].l[0].wire;
     let neg_gx = coeff_at(&rows[fused_base + 3].r, b0).unwrap().to_owned();
@@ -1704,7 +1704,7 @@ mod tests {
             .unwrap_or(149);
         // seg46 (NB-1 conservation shape) starts at absolute row 32840; first
         // fused blinding rung at segment-relative 640 (BLIND_COPY_ROW + 1; see
-        // gen/gen_nb_slice.py BLIND_* constants).
+        // normalized NB recovery BLIND_* constants).
         let out = emit_nb_file(&rows, 32840 + 640, n);
         std::fs::write(
             "../../../tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg46.lean",

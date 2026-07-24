@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkLtRChunk195
 
 set_option maxRecDepth 1000000
@@ -5,6 +6,8 @@ set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 theorem dtkRStep196L (rho : Nat -> F) (r1936 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow1936 rho) :
     rho 1430 = dtkRPe197 rho * (1 - rho 1179) := by
@@ -40,9 +43,9 @@ theorem dtkRStep196 (rho : Nat -> F) (r1936 : Shieldd.GnarkFormal.Deployed.Templ
   · rw [dtkRStep196Acc rho, dtkRStep196L rho r1936, dtkRStep196IlMul rho r1937, dtkRStep196L rho r1936]
 
 theorem dtk_r_chunk196 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) (k : Prop) (hq4 : Shieldd.GnarkFormal.Extracted.IvkModR.ltcRec (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit
-    (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 10) k) 253 (1 : F) (0 : F)) :
+    (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 978) k) 253 (1 : F) (0 : F)) :
     Shieldd.GnarkFormal.Extracted.IvkModR.ltcRec (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.rBit
-      (Shieldd.GnarkFormal.DtkBridge.rContK (dtkIvkBits rho) (rho 10) k) 197 (dtkRPeState rho 197) (dtkRIlState rho 197) := by
+      (Shieldd.GnarkFormal.DtkBridge.rContK (dtkIvkBits rho) (rho 978) k) 197 (dtkRPeState rho 197) (dtkRIlState rho 197) := by
   have htail := dtk_r_chunk195 rho h k hq4
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
   rcases h with ⟨
@@ -71,7 +74,7 @@ theorem dtk_r_chunk196 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templa
       simp only [hb, ↓reduceIte, Nat.reduceAdd]
       exact dtkRStep196 rho r1936 r1937 r1938
   have ht := Shieldd.GnarkFormal.Deployed.Dtk.stateTrace_span_to_ltcRec
-    (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.rBit (Shieldd.GnarkFormal.DtkBridge.rContK (dtkIvkBits rho) (rho 10) k)
+    (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.rBit (Shieldd.GnarkFormal.DtkBridge.rContK (dtkIvkBits rho) (rho 978) k)
     (dtkRPeState rho) (dtkRIlState rho) 196 1
     (by intro n hnlo hnhi; have key := dtkIvkBits_get rho n (by omega); erw [key]; exact hsteps n hnlo hnhi) htail (by omega)
   simpa only [Nat.reduceAdd] using ht

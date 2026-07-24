@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.Extracted.DecafEncodeToCurve
 import ShielddGnarkFormal.CanonicalFqBitsBridge
+import ShielddGnarkFormal.ChoiceFreeBinary
 import ShielddGnarkFormal.CompressToFieldBridge
 import ShielddGnarkFormal.EdwardsCompleteness
 import ProvenZk.Lemmas
@@ -390,7 +391,8 @@ theorem absF_neg (v : F) : absF (-v) = absF v := by
 theorem ofBitsLE_parity {d : ℕ} (x : List.Vector Bool (d + 1)) :
     (Fin.ofBitsLE x).val % 2 = x.head.toNat := by
   conv_lhs => rw [← x.cons_head_tail]
-  simp only [Fin.ofBitsLE, List.Vector.reverse_cons, Fin.ofBitsBE_snoc]
+  simp only [Fin.ofBitsLE, List.Vector.reverse_cons,
+    Shieldd.GnarkFormal.ChoiceFreeBinary.ofBitsBE_snoc_val]
   cases x.head <;> simp [Nat.add_mul_mod_self_left]
 
 /-- Canonical bits recover the input's canonical `ZMod` representative. -/
@@ -399,7 +401,7 @@ theorem to_binary_val_eq_of_lt (In : F) (x : List.Vector Bool 253)
     (hlt : (Fin.ofBitsLE x).val < Order) :
     In.val = (Fin.ofBitsLE x).val := by
   have hrec : recover_binary_zmod' (x.map (Bool.toZMod (N := Order))) = In := hbin.1
-  rw [recover_binary_zmod'_map_toZMod_eq_Fin_ofBitsLE] at hrec
+  rw [Shieldd.GnarkFormal.ChoiceFreeBinary.recover_binary_map_toZMod_eq_ofBitsLE] at hrec
   rw [← hrec]
   exact ZMod.val_natCast_of_lt hlt
 

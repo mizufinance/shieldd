@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import re
 import unittest
 
@@ -12,18 +11,21 @@ class NoteReshapeRvkSemanticsTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.outputs = rvk.generated_files()
 
-    def test_exact_output_set_and_path_bytes_are_pinned(self) -> None:
+    def test_exact_output_set_and_provider_namespace(self) -> None:
         self.assertEqual(len(self.outputs), 817)
-        digest = hashlib.sha256()
-        for path in sorted(self.outputs, key=lambda item: str(item)):
-            digest.update(str(path.relative_to(rvk.LEAN)).encode())
-            digest.update(b"\0")
-            digest.update(self.outputs[path].encode())
-            digest.update(b"\0")
-        self.assertEqual(
-            digest.hexdigest(),
-            "4cd5a2936c2d2c684485764d24d5e00d71556fae1ce9b3f84a9aa34cabe5a0ff",
-        )
+        provider = self.outputs[rvk.OUT / f"{rvk.NAME}.lean"]
+        self.assertIn(f"namespace {rvk.NAMESPACE}\n", provider)
+        self.assertNotIn(".RvkSupport", "\n".join(self.outputs.values()))
+        self.assertIn("theorem sound ", provider)
+        self.assertNotIn("theorem rvk_sound ", provider)
+
+    def test_recovery_discovers_monolithic_and_sharded_fixed_rungs(self) -> None:
+        for inst in ("Inst0", "Inst1"):
+            source = rvk.rvk.fixed_src(inst)
+            self.assertIn("theorem rung1\n", source)
+            self.assertIn("theorem rung149_wide\n", source)
+            self.assertTrue(rvk.rvk.rung_hypothesis(inst, 1, "v2"))
+            self.assertTrue(rvk.rvk.rung_hypothesis(inst, 149, "selY"))
 
     def test_one_rung_proof_chunks_are_exact(self) -> None:
         self.assertEqual(rvk.PROOF_RUNG_CHUNK_SIZE, 1)

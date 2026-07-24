@@ -11,7 +11,7 @@ set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
-namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.RvkSupport
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
 
 open EdwardsBridge
 open Bool (toZMod)
@@ -94,5 +94,5 @@ theorem rvk_step195 (rho : Nat -> F)
       h13_195 h14_195 h15_195 h16_195 h17_195 h18_195 hSelX_195 hSelY_195 hbrow195
   exact hr195
 
-end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.RvkSupport
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
 

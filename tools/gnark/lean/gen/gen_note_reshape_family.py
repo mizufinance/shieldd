@@ -15,10 +15,16 @@ import re
 from pathlib import Path
 
 from write_if_changed import write_if_changed
+from template_ir import SegmentTemplate
 
 SEMANTICS = (
     Path(__file__).resolve().parents[1]
     / "ShielddGnarkFormal/Deployed/Templates/Semantics"
+)
+BENCH = Path(__file__).resolve().parents[1] / "bench"
+LEGACY_2X1_BENCH_IMPORT = re.compile(
+    r"ShielddGnarkFormal\.Deployed\.Contracts\.NoteReshape2x1\."
+    r"(?:Specs|Wiring|SegDefs|[A-Za-z0-9]*Adapter)"
 )
 
 
@@ -54,7 +60,7 @@ def check_semantic_providers(ir: dict) -> None:
     forbidden = []
     for key in sorted(
         {
-            segment["template_key"]
+            SegmentTemplate.parse(segment).proof_template_id
             for segment in constraint_segments(ir)
         }
     ):
@@ -124,14 +130,20 @@ def render_bounds(ir: dict) -> str:
     circuit = ir["circuit"]
     module = camel(circuit)
     segments = constraint_segments(ir)
-    imports = "\n".join(
+    segment_imports = [
         f"import ShielddGnarkFormal.Deployed.Contracts.{module}.Seg{s['index']}"
         for s in segments
-    )
+    ]
+    template_imports = sorted({
+        "import ShielddGnarkFormal.Deployed.Templates.Generated."
+        + template_name(SegmentTemplate.parse(segment).proof_template_id)
+        for segment in segments
+    })
+    imports = "\n".join([*segment_imports, *template_imports])
     proofs = []
     for segment in segments:
         index = segment["index"]
-        key = segment["template_key"]
+        key = SegmentTemplate.parse(segment).proof_template_id
         generated = template_name(key)
         prefix = f"Shieldd.GnarkFormal.Deployed.Templates.Generated.{generated}"
         relation = f"{prefix}.relation"
@@ -284,9 +296,15 @@ def render_statement(ir: dict) -> str:
     fields = []
     constructors = []
     for group, items in groups.items():
-        if not items:
-            continue
         name = f"{camel(group)}Spec"
+        if not items:
+            structures.append(
+                f"/-- Exact deployed {group} obligations. -/\n"
+                f"def {name} (_rho : Nat → DeployedF) : Prop := True"
+            )
+            fields.append(f"  {group} : {name} rho")
+            constructors.append(f"    {group} := True.intro")
+            continue
         lines = []
         values = []
         for segment in items:
@@ -332,6 +350,11 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--manifest-out", type=Path)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="delete obsolete family-local Lean files not owned by the normalized generator",
+    )
     args = parser.parse_args()
     ir = load(args.ir)
     previous = load(args.manifest)
@@ -350,6 +373,37 @@ def main() -> None:
                 raise SystemExit(f"stale generated family artifact: {path}")
         else:
             write_if_changed(path, contents)
+    if args.prune:
+        owned = set(files)
+        owned.update(
+            path
+            for path in args.out_dir.glob("Seg*.lean")
+            if re.fullmatch(r"Seg\d+\.lean", path.name)
+        )
+        obsolete = sorted(set(args.out_dir.rglob("*.lean")) - owned)
+        obsolete_bench = []
+        if ir["circuit"] == "note_reshape2x1":
+            obsolete_bench = sorted(
+                path
+                for path in BENCH.glob("*.lean")
+                if LEGACY_2X1_BENCH_IMPORT.search(path.read_text())
+            )
+        obsolete.extend(obsolete_bench)
+        if args.check and obsolete:
+            raise SystemExit(
+                "obsolete family-local generated files:\n" + "\n".join(map(str, obsolete))
+            )
+        if not args.check:
+            for path in obsolete:
+                path.unlink()
+            for directory in sorted(
+                (path for path in args.out_dir.rglob("*") if path.is_dir()),
+                reverse=True,
+            ):
+                if not any(directory.iterdir()):
+                    directory.rmdir()
+            if obsolete:
+                print(f"removed {len(obsolete)} obsolete family proof artifacts")
     if not args.check:
         print(f"wrote {module} family proof artifacts ({len(files)})")
 

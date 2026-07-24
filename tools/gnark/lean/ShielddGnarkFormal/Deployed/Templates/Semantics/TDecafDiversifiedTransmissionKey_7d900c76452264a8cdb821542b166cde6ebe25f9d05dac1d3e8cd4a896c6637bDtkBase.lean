@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b
 import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.EdwardsBridge
@@ -13,11 +14,24 @@ namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTran
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 instance dtkDtkFactPrime : Fact (Nat.Prime Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
+section ChoiceFreeOnCurve
+
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) : Neg F := (ZMod.commRing _).toNeg
+
 def onCurveAt (x y : F) : Prop :=
-  y * y - x * x = 1 + 3021 * x * x * y * y
+  -(x * x) + y * y = 1 + 3021 * (x * x) * (y * y)
+
+end ChoiceFreeOnCurve
 
 def spec (rho : Nat → F) : Prop :=
   onCurveAt (rho 2211) (rho 2213) →

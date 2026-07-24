@@ -58,13 +58,23 @@ while IFS= read -r circuit; do
   sr1cs="$tmp_dir/$circuit.sr1cs"
   fresh="$tmp_dir/$circuit-manifest.json"
 
-  (
-    cd "$GNARK_DIR"
-    go run ./cmd/gnarkctl export-fv \
-      --circuit "$circuit" \
-      --sr1cs-out "$sr1cs" \
-      --manifest-out "$fresh" >/dev/null
-  )
+  if [[ "$circuit" == "transfer" ]]; then
+    (
+      cd "$GNARK_DIR"
+      go run ./cmd/gnarkctl export-r1cs \
+        --circuit "$circuit" --format picus --out "$sr1cs" >/dev/null
+      go run ./cmd/gnarkctl export-manifest \
+        --circuit "$circuit" --sr1cs "$sr1cs" --out "$fresh" >/dev/null
+    )
+  else
+    (
+      cd "$GNARK_DIR"
+      go run ./cmd/gnarkctl export-fv \
+        --circuit "$circuit" \
+        --sr1cs-out "$sr1cs" \
+        --manifest-out "$fresh" >/dev/null
+    )
+  fi
 
   want="$(json_field "$committed" sr1cs_sha256_hex)"
   have="$(json_field "$fresh" sr1cs_sha256_hex)"

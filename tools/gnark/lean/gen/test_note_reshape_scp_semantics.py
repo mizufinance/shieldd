@@ -44,6 +44,19 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
     def test_repeated_generation_is_byte_identical(self):
         self.assertEqual(self.outputs, scp.generated_files())
 
+    def test_tactic_dependencies_are_explicit(self):
+        tactic_imports = {
+            "linear_combination": "Mathlib.Tactic.LinearCombination",
+            "interval_cases": "Mathlib.Tactic.IntervalCases",
+            "norm_num": "Mathlib.Tactic.NormNum",
+        }
+        for path, source in self.outputs.items():
+            if path.parent != scp.OUT:
+                continue
+            for tactic, module in tactic_imports.items():
+                if tactic in source:
+                    self.assertIn(f"import {module}\n", source, path.name)
+
 
 class DirectEqSemanticsTests(unittest.TestCase):
     def test_simple_prototype_uses_exact_relation(self):

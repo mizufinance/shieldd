@@ -9,15 +9,15 @@ restamping is never a fix for a failed semantic or source-drift gate.
 1. Focused circuit and statement-seam tests pass.
 2. Fresh Go compilation is byte-identical to the deployed SR1CS and semantic
    manifest.
-3. Fresh typed IR, normalized coverage manifest, exact contract and adapter
-   sets, Wiring, Capstone, and generated Statement byte-match the committed
-   files.
+3. Fresh typed IR, verified proof-template witnesses, normalized coverage
+   manifest, exact contracts and template semantics, Wiring, Capstone, and
+   generated Statement byte-match the committed files and ownership manifest.
 4. Every deployed obligation is discharged and its relation/wire-role hashes
    match the exact rows.
 5. The protocol-readable Lean statement builds from the deployed capstone.
 6. No project axiom or compiler-backed primality shortcut exists, and
-   `#print axioms` for the scalar-field certificate, capstones, and Statements
-   matches each reviewed baseline.
+   the bounded `.olean` audit reports exactly `[propext, Quot.sound]` for the
+   scalar-field certificate and all eight final capstone/Statement theorems.
 7. PK/VK metadata pins match the deployed files; VK JSON and binary encode the
    same key.
 8. The deployed keys prove and verify the committed witness against a freshly
@@ -36,13 +36,20 @@ scripts/check-fv-census.sh
 scripts/check-extracted-lean-heartbeats.sh
 bash scripts/check-manifest-pin.sh all
 bash scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
-LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh full all
+LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh drift all
+LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh typed all
+python3 scripts/gen-note-reshape-family-artifacts.py
+LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh release all
 bash scripts/check-soundness-invariants.sh
 ```
 
-The full FV gate performs the deployed-key round trip for all five checked
-circuits, including the four NoteReshape families and transfer. Run any
-repository-wide release/prover suites required by CI after the focused gates.
+The `drift` mode proves source, extraction, generator, ownership, and emitted
+Lean stability. `typed` adds the selected Statement closures, typed theorem
+bindings, obligation coverage, and the enforced exact axiom audit. `release`
+adds deployed PK/VK derivation, prove/verify, negative key-family checks,
+soundness invariants, and final evidence validation. `release all` is the
+terminal four-family certification. Transfer retains its separate FV release
+path.
 
 The focused StatementHash resource gate uses a 120 s / 4 GiB aggregator budget,
 a 2 GiB marginal-RSS leaf budget, and a 50 MiB generated-olean budget. Recent
@@ -63,8 +70,8 @@ reduction.
 ## Failure handling
 
 - Source/SR1CS mismatch: regenerate and review the semantic diff; never restamp.
-- IR/contract/adapter/wiring/capstone/Statement mismatch: fix the generator or
-  proof, regenerate, and review the exact diff.
+- IR/witness/contract/template/wiring/capstone/Statement mismatch: fix the
+  extractor, generator, or proof, regenerate, and review the exact diff.
 - New project axiom: stop; the NoteReshape FV path permits none.
 - Key round-trip failure: the key set is stale or inconsistent; run a fresh
   setup and replace the complete PK/VK/SR1CS/metadata set together.

@@ -13,6 +13,6 @@ ZK-FIND-WITHDRAWAL-EFFECT-HASH-EXTERNAL|crates/core/component/shielded-pool/src/
 ZK-FIND-DUMMY-NULLIFIER-DOMAIN|crates/core/component/shielded-pool/src/note_reshape_padding.rs:synthetic_dummy_nullifier
 ZK-FIND-RUST-GO-FIELD-CORRESPONDENCE|tools/gnark/internal/abi/statement_fields.go:ReconstructedTransferStatementFieldsFromWitnessV1
 ZK-PROP-AMOUNT-RANGE-128|tools/gnark/internal/circuits/amount_range_test.go:TestAmountRangeBoundIs128Bits
-ZK-PROP-NOTE-RESHAPE-STATEMENT-SEAM|tools/gnark/internal/primitives/crypto_primitives_test.go:TestNoteReshape2x1StatementSeamMatchesShielddVectors
+ZK-PROP-NOTE-RESHAPE-STATEMENT-SEAM|tools/gnark/internal/primitives/crypto_primitives_test.go:TestNoteReshapeStatementSeamsMatchShielddVectors
 ZK-PROP-C2X1-STATEMENT-SUFFICIENT|crates/core/component/compliance/formal/alloy/note_reshape2x1-statement-sufficiency.als:assert NoDoubleSpend
 ZK-PROP-TRANSFER-STATEMENT-SUFFICIENT|crates/core/component/compliance/formal/alloy/transfer-statement-sufficiency.als:assert NoDoubleSpend

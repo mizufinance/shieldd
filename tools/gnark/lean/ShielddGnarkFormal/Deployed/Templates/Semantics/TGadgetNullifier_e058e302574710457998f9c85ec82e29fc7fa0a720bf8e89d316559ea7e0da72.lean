@@ -13,6 +13,19 @@ abbrev F := ZMod Order
 instance templateFactPrime : Fact (Nat.Prime Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
+local instance (priority := 2000) baseCommRing : CommRing F := ZMod.commRing _
+local instance (priority := 3000) baseAdd : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) baseAddSemigroup : AddSemigroup F := (ZMod.commRing _).toAddSemigroup
+local instance (priority := 3000) baseMul : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) baseNatCast : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) baseZero : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) baseOne : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) baseNeg : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) baseSub : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) baseMulOneClass : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) baseCommSemiring : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) baseRing : Ring F := (ZMod.commRing _).toRing
+
 def spec (rho : Nat → F) : Prop :=
   Shieldd.GnarkFormal.Deployed.Nullifier.s38_1
       (rho 298) (rho 303) (rho 308) (rho 313) =
@@ -630,13 +643,15 @@ theorem template_part43_to_extracted (rho : Nat → F)
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg43
   refine ⟨(rho 219), (rho 220), (rho 221), (rho 222), (rho 223), ?_, ?_, ?_, ?_, ?_, hk⟩
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0Part1] at h0
-    linear_combination h0
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0Part1, choiceFreeAddAssoc] using h0
   · exact h1
   · exact h2
   · exact h3
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0Part1] at h4
-    linear_combination h4
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc0Part1, choiceFreeAddAssoc] using h4
 
 theorem template_part44_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationPart44 rho)
@@ -646,13 +661,15 @@ theorem template_part44_to_extracted (rho : Nat → F)
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg44
   refine ⟨(rho 224), (rho 225), (rho 226), (rho 227), (rho 228), ?_, ?_, ?_, ?_, ?_, hk⟩
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1Part1] at h0
-    linear_combination h0
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1Part1, choiceFreeAddAssoc] using h0
   · exact h1
   · exact h2
   · exact h3
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1Part1] at h4
-    linear_combination h4
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc1Part1, choiceFreeAddAssoc] using h4
 
 theorem template_part45_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationPart45 rho)
@@ -662,13 +679,15 @@ theorem template_part45_to_extracted (rho : Nat → F)
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg45
   refine ⟨(rho 229), (rho 230), (rho 231), (rho 232), (rho 233), ?_, ?_, ?_, ?_, ?_, hk⟩
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2Part1] at h0
-    linear_combination h0
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2Part1, choiceFreeAddAssoc] using h0
   · exact h1
   · exact h2
   · exact h3
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2Part1] at h4
-    linear_combination h4
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc2Part1, choiceFreeAddAssoc] using h4
 
 theorem template_part46_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationPart46 rho)
@@ -678,13 +697,15 @@ theorem template_part46_to_extracted (rho : Nat → F)
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg46
   refine ⟨(rho 234), (rho 235), (rho 236), (rho 237), (rho 238), ?_, ?_, ?_, ?_, ?_, hk⟩
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3Part1] at h0
-    linear_combination h0
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3Part1, choiceFreeAddAssoc] using h0
   · exact h1
   · exact h2
   · exact h3
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3Part1] at h4
-    linear_combination h4
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc3Part1, choiceFreeAddAssoc] using h4
 
 theorem template_part47_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationPart47 rho)
@@ -694,13 +715,15 @@ theorem template_part47_to_extracted (rho : Nat → F)
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg47
   refine ⟨(rho 239), (rho 240), (rho 241), (rho 242), (rho 243), ?_, ?_, ?_, ?_, ?_, hk⟩
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4Part1] at h0
-    linear_combination h0
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4Part1, choiceFreeAddAssoc] using h0
   · exact h1
   · exact h2
   · exact h3
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4Part1] at h4
-    linear_combination h4
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc4Part1, choiceFreeAddAssoc] using h4
 
 theorem template_part48_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationPart48 rho)
@@ -710,13 +733,15 @@ theorem template_part48_to_extracted (rho : Nat → F)
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg48
   refine ⟨(rho 244), (rho 245), (rho 246), (rho 247), (rho 248), ?_, ?_, ?_, ?_, ?_, hk⟩
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5Part1] at h0
-    linear_combination h0
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5Part1, choiceFreeAddAssoc] using h0
   · exact h1
   · exact h2
   · exact h3
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5Part1] at h4
-    linear_combination h4
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc5Part1, choiceFreeAddAssoc] using h4
 
 theorem template_part49_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationPart49 rho)
@@ -726,13 +751,15 @@ theorem template_part49_to_extracted (rho : Nat → F)
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.seg49
   refine ⟨(rho 249), (rho 250), (rho 251), (rho 252), (rho 253), ?_, ?_, ?_, ?_, ?_, hk⟩
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6Part1] at h0
-    linear_combination h0
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6Part1, choiceFreeAddAssoc] using h0
   · exact h1
   · exact h2
   · exact h3
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6Part1] at h4
-    linear_combination h4
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F baseAddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationLc6Part1, choiceFreeAddAssoc] using h4
 
 theorem template_part50_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.relationPart50 rho)

@@ -14,10 +14,12 @@
 //! drift the IR from the deployed rows). Lean is generated *from* this IR; we
 //! never parse Lean back to R1CS.
 
+use crate::template_registry::{match_registry, TemplateEquivalenceWitness, TemplateRegistry};
 use crate::{ConstraintManifest, CoverageError, Sr1cs};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 /// One `(coeff wire)` term of a linear combination.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -42,7 +44,7 @@ impl Constraint {
 
     /// Re-render to the canonical `.sr1cs` token string. The X-check compares
     /// this against the original line, so a parse/serialize mismatch fails loud.
-    fn render(&self) -> String {
+    pub(crate) fn render(&self) -> String {
         fn side(terms: &[Term]) -> String {
             let inner: String = terms
                 .iter()
@@ -107,18 +109,14 @@ pub struct SegmentIr {
     /// first occurrence across the complete segment; coefficients and all
     /// row/side/term ordering remain part of the digest.
     #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub normalized_relation_sha256_hex: String,
-    /// Number of local wires, including local wire 0 for the R1CS constant.
-    #[serde(default)]
-    pub local_wire_count: usize,
-    /// Local-to-global wire seating. Entry `i` is the deployed global wire for
-    /// local wire `i`; entry 0 is always global wire 0.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub wire_seating: Vec<usize>,
-    /// Operation plus the full normalized relation digest. This is the key for
-    /// sharing one reusable proof template across deployed instances.
+    pub deployed_normalized_relation_sha256_hex: String,
+    /// Stable reviewed proof identity, independent of deployed presentation.
     #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub template_key: String,
+    pub proof_template_id: String,
+    /// Audited equivalence between the reviewed canonical proof template and
+    /// this deployed presentation. Empty only for zero-row marker segments.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template_equivalence_witness: Option<TemplateEquivalenceWitness>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -146,7 +144,7 @@ pub struct CircuitIr {
     pub segments: Vec<SegmentIr>,
 }
 
-pub const DEPLOYED_SLICE_IR_SCHEMA: &str = "shieldd.gnark.deployed_slice_ir.v2";
+pub const DEPLOYED_SLICE_IR_SCHEMA: &str = "shieldd.gnark.deployed_slice_ir.v3";
 
 /// A relation with local wire ids and its exact local-to-global seating.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -500,7 +498,12 @@ pub fn check_reconstruction(
 
 /// Build the canonical IR from the manifest partition and the parsed `.sr1cs`,
 /// running the round-trip X-check on every constraint.
-pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitIr, CoverageError> {
+pub fn build_ir(
+    manifest: &ConstraintManifest,
+    sr1cs: &Sr1cs,
+    registry: &TemplateRegistry,
+    registry_root: &Path,
+) -> Result<CircuitIr, CoverageError> {
     // 1. Scan every row + round-trip check (independence: IR == deployed rows).
     // Do not retain parsed rows: transfer has 252k rows / a 267 MiB source
     // file, and retaining the source strings, parsed coefficient strings, and
@@ -555,9 +558,8 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
         let mut relation_hash = String::new();
         let mut wire_role_hash = String::new();
         let mut normalized_relation_hash = String::new();
-        let mut local_wire_count = 0usize;
-        let mut wire_seating = Vec::new();
-        let mut template_key = String::new();
+        let mut proof_template_id = String::new();
+        let mut template_equivalence_witness = None;
         if seg.constraint_count > 0 {
             let segment_rows =
                 sr1cs
@@ -575,9 +577,15 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
             let normalized = normalize_relation(&parsed_rows);
             check_reconstruction(seg.index, &seg.op, &parsed_rows, &normalized)?;
             normalized_relation_hash = normalized.sha256_hex.clone();
-            local_wire_count = normalized.wire_seating.len();
-            wire_seating = normalized.wire_seating.clone();
-            template_key = format!("{}@{}", seg.op, normalized_relation_hash);
+            let equivalence = match_registry(
+                registry,
+                registry_root,
+                &seg.op,
+                &normalized.rows,
+                &normalized.wire_seating,
+            )?;
+            proof_template_id = equivalence.proof_template_id.clone();
+            template_equivalence_witness = Some(equivalence);
             // shape + constant vector over the slice
             let mut shape = String::new();
             let mut consts = String::new();
@@ -644,10 +652,9 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
             constant_vector_sha256_hex: const_hash,
             relation_sha256_hex: relation_hash,
             wire_role_sha256_hex: wire_role_hash,
-            normalized_relation_sha256_hex: normalized_relation_hash,
-            local_wire_count,
-            wire_seating,
-            template_key,
+            deployed_normalized_relation_sha256_hex: normalized_relation_hash,
+            proof_template_id,
+            template_equivalence_witness,
         });
     }
 
@@ -782,7 +789,16 @@ fn wire_roles_for_seen(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parse_sr1cs;
+    use crate::{
+        parse_sr1cs,
+        template_registry::{seed_reviewed_templates, TemplateRegistry},
+    };
+
+    fn build_test_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> CircuitIr {
+        let mut registry = TemplateRegistry::empty();
+        seed_reviewed_templates(&mut registry, manifest, sr1cs, Path::new("/tmp"), None).unwrap();
+        build_ir(manifest, sr1cs, &registry, Path::new("/tmp")).unwrap()
+    }
 
     #[test]
     fn parses_and_round_trips_a_constraint() {
@@ -838,7 +854,7 @@ mod tests {
     fn builds_ir_with_classes_and_wire_roles() {
         let manifest = manifest_two();
         let sr1cs = sr1cs_two();
-        let ir = build_ir(&manifest, &sr1cs).unwrap();
+        let ir = build_test_ir(&manifest, &sr1cs);
         // two gadget rows collapse to one class with two distinct const vectors
         let gadget_class = ir
             .classes
@@ -861,7 +877,7 @@ mod tests {
     fn round_trip_check_bites_on_garbled_row() {
         // a coeff the renderer would normalize differently would fail; here we
         // ensure a well-formed file passes and the hash is stable.
-        let ir = build_ir(&manifest_two(), &sr1cs_two()).unwrap();
+        let ir = build_test_ir(&manifest_two(), &sr1cs_two());
         assert_eq!(ir.nb_constraints, 3);
         assert_eq!(ir.schema, DEPLOYED_SLICE_IR_SCHEMA);
     }

@@ -6,6 +6,9 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8
 
 open Shieldd.GnarkFormal
 
+/-- Exact deployed control obligations. -/
+def ControlSpec (_rho : Nat → DeployedF) : Prop := True
+
 /-- Exact deployed shared obligations. -/
 structure SharedSpec (rho : Nat → DeployedF) : Prop where
   DecafAssertOnCurveSeg2 : Seg2.contract.spec rho
@@ -115,6 +118,7 @@ structure Output7Spec (rho : Nat → DeployedF) : Prop where
   AssertEqSeg85 : Seg85.contract.spec rho
 
 structure NoteReshape1x8Statement (rho : Nat → DeployedF) : Prop where
+  control : ControlSpec rho
   shared : SharedSpec rho
   balance : BalanceSpec rho
   transcript : TranscriptSpec rho
@@ -131,6 +135,7 @@ structure NoteReshape1x8Statement (rho : Nat → DeployedF) : Prop where
 theorem note_reshape1x8_statement (rho : Nat → DeployedF) (h : relationAll rho) :
     NoteReshape1x8Statement rho := by
   exact {
+    control := True.intro
     shared := ⟨specOf2 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h, specOf7 rho h⟩
     balance := ⟨specOf87 rho h, specOf88 rho h, specOf89 rho h⟩
     transcript := ⟨specOf94 rho h, specOf95 rho h⟩

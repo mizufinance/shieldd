@@ -94,6 +94,18 @@ set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f
 
+local instance (priority := 2000) providerCommRing : CommRing F := ZMod.commRing _
+local instance (priority := 3000) providerAdd : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) providerMul : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) providerNatCast : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) providerZero : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) providerOne : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) providerNeg : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) providerSub : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) providerMulOneClass : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) providerCommSemiring : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) providerRing : Ring F := (ZMod.commRing _).toRing
+
 def spec (rho : Nat → F) : Prop :=
   Shieldd.GnarkFormal.Deployed.NoteCommitment.spec38
       (rho 1) (rho 7) (rho 13) (rho 26) (rho 32) (rho 19) (rho 20) =

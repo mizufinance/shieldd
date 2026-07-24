@@ -318,7 +318,7 @@ impl LtChainRepr {
 
 /// One canonicity-ladder seating within the note_reshape2x1 DTK segment, pinning
 /// the ladder to its bound (branch pattern) and bit-wire base. Mirrors
-/// `gen_dtk_slice.py::dtk_ltc_traces`.
+/// `dtk_recovery.py::dtk_ltc_traces`.
 struct LadderSeat {
     label: &'static str,
     bit_base: usize,
@@ -329,7 +329,7 @@ struct LadderSeat {
 
 fn note_reshape2x1_ladders() -> Vec<LadderSeat> {
     let r = scalar_order();
-    let q4 = &crate::field::modulus() - &(&r * 4u32);
+    let q4 = crate::field::modulus() - &(&r * 4u32);
     vec![
         LadderSeat {
             label: "R",
@@ -480,7 +480,7 @@ mod tests {
     use crate::load_sr1cs;
 
     // DTK segment global offset and R/Q4 ladder seating, mirroring
-    // gen_dtk_slice.py::dtk_ltc_traces (the current Python recovery). T1-d
+    // dtk_recovery.py::dtk_ltc_traces (the current Python recovery). T1-d
     // hoisted DTK computation into Define() (segment 5 in emission order);
     // Wave 2 T1-f moved its offset (shared compress inserted before it) and
     // T1-h shifted wire numbering (bits threaded from IVKModRDecomposition;
@@ -533,7 +533,7 @@ mod tests {
     #[test]
     fn recovers_q4_ladder_from_real_sr1cs() {
         let rows = dtk_rows();
-        let bound = &modulus() - &(&scalar_order() * 4u32);
+        let bound = modulus() - &(&scalar_order() * 4u32);
         let repr = recover_lt_chain(&rows, &bound, BIT_BASE, 2346)
             .expect("Q4 ladder recovery must succeed");
         assert_eq!(repr.end_row, 2715, "Q4 ladder row span");
@@ -550,7 +550,7 @@ mod tests {
         // pattern, so recovery fails (or, if it structurally matched, the gate
         // would reject). Either way it does not return a passing chain.
         let rows = dtk_rows();
-        let wrong = &modulus() - &(&scalar_order() * 4u32); // Q4 bound at R start
+        let wrong = modulus() - &(&scalar_order() * 4u32); // Q4 bound at R start
         let result = recover_lt_chain(&rows, &wrong, BIT_BASE, 1828);
         let bad = match result {
             Err(_) => return, // recovery already fails closed

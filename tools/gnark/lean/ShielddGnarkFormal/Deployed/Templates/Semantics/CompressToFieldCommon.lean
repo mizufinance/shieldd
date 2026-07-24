@@ -12,6 +12,22 @@ namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.CompressToFieldCommon
 
 open Shieldd.GnarkFormal.Extracted.DecafCompressToField
 
+local instance (priority := 2000) commonCommRing : CommRing F := ZMod.commRing _
+local instance (priority := 3000) commonAdd : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) commonAddSemigroup : AddSemigroup F := (ZMod.commRing _).toAddSemigroup
+local instance (priority := 3000) commonMul : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) commonNatCast : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) commonZero : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) commonOne : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) commonNeg : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) commonSub : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) commonMulOneClass : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) commonCommSemiring : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) commonRing : Ring F := (ZMod.commRing _).toRing
+
+theorem common_one_mul (value : F) : commonOne.one * value = value :=
+  @one_mul F commonMulOneClass value
+
 variable [Fact (Nat.Prime Order)]
 
 structure CompressRows0 (rho : Nat → F) : Prop where

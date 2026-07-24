@@ -12,6 +12,18 @@ open Shieldd.GnarkFormal.Poseidon6Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon6Link
 
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.Order)]
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) : Ring F := (ZMod.commRing _).toRing
+
 
 theorem circuit_sound_eq (w14 w15 w16 w19 w22 w572 w912 out : F)
     (h : Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.relation w14 w15 w16 w19 w22 w572 w912 (fun actual => actual = out)) :

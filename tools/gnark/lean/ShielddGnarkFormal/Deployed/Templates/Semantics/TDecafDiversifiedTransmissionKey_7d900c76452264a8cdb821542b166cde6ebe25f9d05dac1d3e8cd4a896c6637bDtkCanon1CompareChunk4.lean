@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkCanon1CompareChunk3
 
 set_option maxRecDepth 1000000
@@ -5,6 +6,8 @@ set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Extracted.CanonicalFqBits
 
@@ -44,63 +47,63 @@ theorem dtkCanon1_compare_chunk4 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 65 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 66 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 66 = rho 356 from rfl]
     linear_combination r474
   · erw [dtkCanon1Bits_get rho 66 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 67 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 67 = rho 356 from rfl]
     linear_combination r473
   · erw [dtkCanon1Bits_get rho 67 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 68 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 68 = rho 356 from rfl]
     linear_combination r472
   · erw [dtkCanon1Bits_get rho 68 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 69 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 69 = rho 356 from rfl]
     linear_combination r471
   · erw [dtkCanon1Bits_get rho 69 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 70 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 70 = rho 356 from rfl]
     linear_combination r470
   · erw [dtkCanon1Bits_get rho 70 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 71 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 71 = rho 356 from rfl]
     linear_combination r469
   · erw [dtkCanon1Bits_get rho 71 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 72 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 72 = rho 356 from rfl]
     linear_combination r468
   · erw [dtkCanon1Bits_get rho 72 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 73 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 73 = rho 356 from rfl]
     linear_combination r467
   · erw [dtkCanon1Bits_get rho 73 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 74 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 74 = rho 356 from rfl]
     linear_combination r466
   · erw [dtkCanon1Bits_get rho 74 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 75 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 75 = rho 356 from rfl]
     linear_combination r465
   · erw [dtkCanon1Bits_get rho 75 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 76 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 76 = rho 356 from rfl]
     linear_combination r464
   · erw [dtkCanon1Bits_get rho 76 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 77 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 77 = rho 356 from rfl]
     linear_combination r463
   · erw [dtkCanon1Bits_get rho 77 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 78 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 78 = rho 356 from rfl]
     linear_combination r462
   · erw [dtkCanon1Bits_get rho 78 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 79 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 79 = rho 356 from rfl]
     linear_combination r461
   · erw [dtkCanon1Bits_get rho 79 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 80 = rho 1260 from rfl]
+    rw [show dtkCanon1Flag rho 80 = rho 356 from rfl]
     linear_combination r460
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import Callable
 
+from template_ir import SegmentTemplate
+
 
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
@@ -34,9 +36,10 @@ def templates() -> tuple[tuple[str, int, int], ...]:
     ir = json.loads(IR.read_text())
     first: dict[str, tuple[str, int, int]] = {}
     for segment in ir["segments"]:
-        key = segment.get("template_key")
-        if key and segment["op"] in SMALL_OPS:
-            first.setdefault(key, (key, segment["constraint_count"], segment["local_wire_count"]))
+        if segment["constraint_count"] and segment["op"] in SMALL_OPS:
+            template = SegmentTemplate.parse(segment)
+            key = template.proof_template_id
+            first.setdefault(key, (key, segment["constraint_count"], len(template.canonical_wire_seating)))
     result = tuple(first.values())
     if len(result) != 11:
         raise ValueError(f"expected 11 small representative templates, found {len(result)}")

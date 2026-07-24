@@ -14,8 +14,9 @@ import json
 from pathlib import Path
 
 from write_if_changed import write_if_changed
+from template_ir import SegmentTemplate
 
-IR_SCHEMA = "shieldd.gnark.deployed_slice_ir.v2"
+IR_SCHEMA = "shieldd.gnark.deployed_slice_ir.v3"
 INVENTORY_SCHEMA = "shieldd.gnark.normalized_template_inventory.v1"
 NOTE_RESHAPE = {"note_reshape2x1", "note_reshape4x1", "note_reshape8x1", "note_reshape1x8"}
 
@@ -60,12 +61,13 @@ def inventory(irs: list[dict], require_note_reshape: bool = False) -> dict:
                 f"{circuit} seg {index}: structural marker carries constraints",
             )
             op = segment.get("op", "")
-            normalized_hash = segment.get("normalized_relation_sha256_hex", "")
-            seating = segment.get("wire_seating", [])
-            local_wire_count = segment.get("local_wire_count", 0)
-            template_key = segment.get("template_key", "")
+            template = SegmentTemplate.parse(segment)
+            template_key = template.proof_template_id
+            normalized_hash = template_key.rpartition("@")[2]
+            seating = template.canonical_wire_seating
+            local_wire_count = len(seating)
             require(op and normalized_hash and template_key, f"{circuit} seg {index}: missing template metadata")
-            require(template_key == f"{op}@{normalized_hash}", f"{circuit} seg {index}: malformed template key")
+            require(template_key.startswith(f"{op}@"), f"{circuit} seg {index}: malformed proof-template id")
             require(local_wire_count == len(seating), f"{circuit} seg {index}: local wire count/seating mismatch")
             require(seating and seating[0] == 0, f"{circuit} seg {index}: seating does not reserve wire 0")
             require(len(set(seating)) == len(seating), f"{circuit} seg {index}: seating is not injective")

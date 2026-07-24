@@ -10,6 +10,7 @@ license.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
+flate2 = "1.0.30"
 hex = { workspace = true }
 num-bigint = { workspace = true }
 num-traits = { workspace = true }

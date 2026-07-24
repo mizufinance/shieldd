@@ -7,6 +7,7 @@ import ShielddGnarkFormal.RvkFixedGenInst0
 import ShielddGnarkFormal.RvkFixedBaseLiteral
 import ShielddGnarkFormal.RvkFixedSplitRung
 import ShielddGnarkFormal.StructuredLC
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkPrime
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000

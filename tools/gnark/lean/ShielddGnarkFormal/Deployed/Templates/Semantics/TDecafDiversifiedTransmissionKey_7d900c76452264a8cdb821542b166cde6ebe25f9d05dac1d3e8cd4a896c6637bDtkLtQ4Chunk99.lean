@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkLtQ4Chunk98
 
 set_option maxRecDepth 1000000
@@ -5,6 +6,8 @@ set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 theorem dtkQ4Step99L (rho : Nat -> F) (r2527 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow2527 rho) :
     rho 2020 = dtkQ4Pe100 rho * (1 - rho 1082) := by
@@ -42,7 +45,7 @@ theorem dtkQ4Step99 (rho : Nat -> F) (r2527 : Shieldd.GnarkFormal.Deployed.Templ
 
 theorem dtk_q4_chunk99 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) (k : Prop) (hk : k) :
     Shieldd.GnarkFormal.Extracted.IvkModR.ltcRec (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit
-      (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 10) k) 100 (dtkQ4PeState rho 100) (dtkQ4IlState rho 100) := by
+      (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 978) k) 100 (dtkQ4PeState rho 100) (dtkQ4IlState rho 100) := by
   have htail := dtk_q4_chunk98 rho h k hk
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
   rcases h with ⟨
@@ -71,7 +74,7 @@ theorem dtk_q4_chunk99 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templa
       simp only [hb, ↓reduceIte, Nat.reduceAdd]
       exact dtkQ4Step99 rho r2527 r2528 r2529
   have ht := Shieldd.GnarkFormal.Deployed.Dtk.stateTrace_span_to_ltcRec
-    (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 10) k)
+    (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 978) k)
     (dtkQ4PeState rho) (dtkQ4IlState rho) 99 1
     (by intro n hnlo hnhi; have key := dtkIvkBits_get rho n (by omega); erw [key]; exact hsteps n hnlo hnhi) htail (by omega)
   simpa only [Nat.reduceAdd] using ht

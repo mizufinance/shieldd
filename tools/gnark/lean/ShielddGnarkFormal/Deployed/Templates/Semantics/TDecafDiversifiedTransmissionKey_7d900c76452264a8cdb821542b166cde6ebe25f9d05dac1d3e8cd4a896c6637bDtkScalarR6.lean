@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkScalarDefs
 
 set_option maxRecDepth 1000000
@@ -6,128 +7,130 @@ set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs
 
-theorem dtk_rows66 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3571 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3572 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3573 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3574 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3575 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3576 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3577 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3578 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3579 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3580 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3581 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3582 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3583 rho := by
+theorem dtk_rows36 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3181 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3182 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3183 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3184 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3185 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3186 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3187 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3188 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3189 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3190 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3191 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3192 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3193 rho := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
   rcases h with ⟨
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, p39,
     _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, p44, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _
   ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart44 at p44
-  rcases p44 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3571, r3572, r3573, r3574, r3575, r3576, r3577, r3578, r3579, r3580, r3581, r3582, r3583, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3571, r3572, r3573, r3574, r3575, r3576, r3577, r3578, r3579, r3580, r3581, r3582, r3583⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart39 at p39
+  rcases p39 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3181, r3182, r3183, r3184, r3185, r3186, r3187, r3188, r3189, r3190, r3191, r3192, r3193, _, _, _, _, _, _⟩
+  exact ⟨r3181, r3182, r3183, r3184, r3185, r3186, r3187, r3188, r3189, r3190, r3191, r3192, r3193⟩
 
-theorem dtk_rung66 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1049 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX66 rho : F), (dtkAccY66 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3063 : F), (rho 3064 : F)⟩ →
+theorem dtk_rung36 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    ∀ (bit : Bool), rho 1019 = Bool.toZMod bit →
+      EdwardsBridge.onCurve ⟨(dtkAccX36 rho : F), (dtkAccY36 rho : F)⟩ →
+      EdwardsBridge.onCurve ⟨(rho 2673 : F), (rho 2674 : F)⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX66 rho : F), (dtkAccY66 rho : F)⟩
-        ⟨(rho 3063 : F), (rho 3064 : F)⟩
-        ⟨(dtkAccX67 rho : F), (dtkAccY67 rho : F)⟩
-        ⟨(rho 3076 : F), (rho 3077 : F)⟩ := by
-  obtain ⟨r3571, r3572, r3573, r3574, r3575, r3576, r3577, r3578, r3579, r3580, r3581, r3582, r3583⟩ := dtk_rows66 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3571 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc416 at r3571
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3571
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3572 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc417 at r3572
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3572
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3573 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc418 at r3573
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3573
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3574 at r3574
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3575 at r3575
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3576 at r3576
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3577 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc419 at r3577
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3577
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3578 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc420 at r3578
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3578
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3579 at r3579
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3580 at r3580
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3581 at r3581
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3582 at r3582
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3583 at r3583
-  have hrung66 (bit : Bool) (hbit : rho 1049 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX66 rho : F), (dtkAccY66 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3063 : F), (rho 3064 : F)⟩) :
+        ⟨(dtkAccX36 rho : F), (dtkAccY36 rho : F)⟩
+        ⟨(rho 2673 : F), (rho 2674 : F)⟩
+        ⟨(dtkAccX37 rho : F), (dtkAccY37 rho : F)⟩
+        ⟨(rho 2686 : F), (rho 2687 : F)⟩ := by
+  obtain ⟨r3181, r3182, r3183, r3184, r3185, r3186, r3187, r3188, r3189, r3190, r3191, r3192, r3193⟩ := dtk_rows36 rho h
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3181 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc266 at r3181
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3181
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3182 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc267 at r3182
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3182
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3183 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc268 at r3183
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3183
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3184 at r3184
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3185 at r3185
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3186 at r3186
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3187 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc269 at r3187
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3187
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3188 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc270 at r3188
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3188
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3189 at r3189
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3190 at r3190
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3191 at r3191
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3192 at r3192
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3193 at r3193
+  have hrung36 (bit : Bool) (hbit : rho 1019 = Bool.toZMod bit)
+      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX36 rho : F), (dtkAccY36 rho : F)⟩)
+      (hcur : EdwardsBridge.onCurve ⟨(rho 2673 : F), (rho 2674 : F)⟩) :
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX66 rho : F), (dtkAccY66 rho : F)⟩
-        ⟨(rho 3063 : F), (rho 3064 : F)⟩
-        ⟨(dtkAccX67 rho : F), (dtkAccY67 rho : F)⟩
-        ⟨(rho 3076 : F), (rho 3077 : F)⟩ := by
-    have hnextx : dtkAccX67 rho = dtkAccX66 rho + rho 3071 := by
-      unfold dtkAccX67 dtkAccX66
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 65]
+        ⟨(dtkAccX36 rho : F), (dtkAccY36 rho : F)⟩
+        ⟨(rho 2673 : F), (rho 2674 : F)⟩
+        ⟨(dtkAccX37 rho : F), (dtkAccY37 rho : F)⟩
+        ⟨(rho 2686 : F), (rho 2687 : F)⟩ := by
+    have hnextx : dtkAccX37 rho = dtkAccX36 rho + rho 2681 := by
+      unfold dtkAccX37 dtkAccX36
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 35]
       ring
-    have hnexty : dtkAccY67 rho = dtkAccY66 rho + rho 3072 := by
-      unfold dtkAccY67 dtkAccY66
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 66]
+    have hnexty : dtkAccY37 rho = dtkAccY36 rho + rho 2682 := by
+      unfold dtkAccY37 dtkAccY36
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 36]
       ring
-    have ha0 : (rho 3063 + rho 3064) * (dtkAccX66 rho + dtkAccY66 rho) = rho 3065 := by
-      unfold dtkAccX66 dtkAccY66
-      linear_combination r3571
-    have ha1 : rho 3064 * dtkAccX66 rho = rho 3066 := by
-      unfold dtkAccX66
-      linear_combination r3572
-    have ha2 : rho 3063 * dtkAccY66 rho = rho 3067 := by
-      unfold dtkAccY66
-      linear_combination r3573
-    have ha3 : 3021 * rho 3066 * rho 3067 = rho 3068 := by
-      linear_combination r3574
-    have ha4 : rho 3069 * (1 + rho 3068) = rho 3066 + rho 3067 := by
-      linear_combination r3575
-    have ha5 : rho 3070 * (1 - rho 3068) = rho 3065 - rho 3066 - rho 3067 := by
-      linear_combination r3576
+    have ha0 : (rho 2673 + rho 2674) * (dtkAccX36 rho + dtkAccY36 rho) = rho 2675 := by
+      unfold dtkAccX36 dtkAccY36
+      linear_combination r3181
+    have ha1 : rho 2674 * dtkAccX36 rho = rho 2676 := by
+      unfold dtkAccX36
+      linear_combination r3182
+    have ha2 : rho 2673 * dtkAccY36 rho = rho 2677 := by
+      unfold dtkAccY36
+      linear_combination r3183
+    have ha3 : 3021 * rho 2676 * rho 2677 = rho 2678 := by
+      linear_combination r3184
+    have ha4 : rho 2679 * (1 + rho 2678) = rho 2676 + rho 2677 := by
+      linear_combination r3185
+    have ha5 : rho 2680 * (1 - rho 2678) = rho 2675 - rho 2676 - rho 2677 := by
+      linear_combination r3186
     have haddx :
-        rho 3069 * (1 + 3021 * (rho 3064 * dtkAccX66 rho) * (rho 3063 * dtkAccY66 rho)) =
-          rho 3064 * dtkAccX66 rho + rho 3063 * dtkAccY66 rho := by
+        rho 2679 * (1 + 3021 * (rho 2674 * dtkAccX36 rho) * (rho 2673 * dtkAccY36 rho)) =
+          rho 2674 * dtkAccX36 rho + rho 2673 * dtkAccY36 rho := by
       rw [ha1, ha2, ha3]
       exact ha4
     have haddy :
-        rho 3070 * (1 - 3021 * (rho 3064 * dtkAccX66 rho) * (rho 3063 * dtkAccY66 rho)) =
-          (-1) * (rho 3064 * dtkAccX66 rho) - rho 3063 * dtkAccY66 rho +
-            (dtkAccY66 rho - dtkAccX66 rho * (-1)) * (rho 3063 + rho 3064) := by
+        rho 2680 * (1 - 3021 * (rho 2674 * dtkAccX36 rho) * (rho 2673 * dtkAccY36 rho)) =
+          (-1) * (rho 2674 * dtkAccX36 rho) - rho 2673 * dtkAccY36 rho +
+            (dtkAccY36 rho - dtkAccX36 rho * (-1)) * (rho 2673 + rho 2674) := by
       rw [ha1, ha2, ha3]
       calc
-        rho 3070 * (1 - rho 3068) = rho 3065 - rho 3066 - rho 3067 := ha5
-        _ = (-1) * rho 3066 - rho 3067 + (dtkAccY66 rho - dtkAccX66 rho * (-1)) * (rho 3063 + rho 3064) := by
+        rho 2680 * (1 - rho 2678) = rho 2675 - rho 2676 - rho 2677 := ha5
+        _ = (-1) * rho 2676 - rho 2677 + (dtkAccY36 rho - dtkAccX36 rho * (-1)) * (rho 2673 + rho 2674) := by
           rw [← ha0]
           ring
-    have hselx : dtkAccX67 rho = dtkAccX66 rho - Bool.toZMod bit * (dtkAccX66 rho - rho 3069) := by
-      have hd : rho 3071 = Bool.toZMod bit * (rho 3069 - dtkAccX66 rho) := by
+    have hselx : dtkAccX37 rho = dtkAccX36 rho - Bool.toZMod bit * (dtkAccX36 rho - rho 2679) := by
+      have hd : rho 2681 = Bool.toZMod bit * (rho 2679 - dtkAccX36 rho) := by
         rw [← hbit]
-        unfold dtkAccX66
-        linear_combination -r3577
+        unfold dtkAccX36
+        linear_combination -r3187
       rw [hnextx]
       linear_combination hd
-    have hsely : dtkAccY67 rho = dtkAccY66 rho - Bool.toZMod bit * (dtkAccY66 rho - rho 3070) := by
-      have hd : rho 3072 = Bool.toZMod bit * (rho 3070 - dtkAccY66 rho) := by
+    have hsely : dtkAccY37 rho = dtkAccY36 rho - Bool.toZMod bit * (dtkAccY36 rho - rho 2680) := by
+      have hd : rho 2682 = Bool.toZMod bit * (rho 2680 - dtkAccY36 rho) := by
         rw [← hbit]
-        unfold dtkAccY66
-        linear_combination -r3578
+        unfold dtkAccY36
+        linear_combination -r3188
       rw [hnexty]
       linear_combination hd
-    have hd0 : rho 3063 * rho 3064 = rho 3073 := by linear_combination r3579
-    have hd1 : rho 3063 * rho 3063 = rho 3074 := by linear_combination r3580
-    have hd2 : rho 3064 * rho 3064 = rho 3075 := by linear_combination r3581
-    have hd3 : rho 3076 * (rho 3064 * rho 3064 + rho 3063 * rho 3063 * (-1)) = 2 * (rho 3063 * rho 3064) := by
+    have hd0 : rho 2673 * rho 2674 = rho 2683 := by linear_combination r3189
+    have hd1 : rho 2673 * rho 2673 = rho 2684 := by linear_combination r3190
+    have hd2 : rho 2674 * rho 2674 = rho 2685 := by linear_combination r3191
+    have hd3 : rho 2686 * (rho 2674 * rho 2674 + rho 2673 * rho 2673 * (-1)) = 2 * (rho 2673 * rho 2674) := by
       rw [hd0, hd1, hd2]
-      linear_combination r3582
-    have hd4 : rho 3077 * (2 - (rho 3064 * rho 3064 + rho 3063 * rho 3063 * (-1))) = rho 3064 * rho 3064 - rho 3063 * rho 3063 * (-1) := by
+      linear_combination r3192
+    have hd4 : rho 2687 * (2 - (rho 2674 * rho 2674 + rho 2673 * rho 2673 * (-1))) = rho 2674 * rho 2674 - rho 2673 * rho 2673 * (-1) := by
       rw [hd1, hd2]
-      linear_combination r3583
+      linear_combination r3193
     apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX66 rho : F), (dtkAccY66 rho : F)⟩
-      ⟨(rho 3063 : F), (rho 3064 : F)⟩
-      ⟨(rho 3069 : F), (rho 3070 : F)⟩
-      ⟨(dtkAccX67 rho : F), (dtkAccY67 rho : F)⟩
-      ⟨(rho 3076 : F), (rho 3077 : F)⟩
+      (Bool.toZMod bit) ⟨(dtkAccX36 rho : F), (dtkAccY36 rho : F)⟩
+      ⟨(rho 2673 : F), (rho 2674 : F)⟩
+      ⟨(rho 2679 : F), (rho 2680 : F)⟩
+      ⟨(dtkAccX37 rho : F), (dtkAccY37 rho : F)⟩
+      ⟨(rho 2686 : F), (rho 2687 : F)⟩
       hacc hcur
     · simpa [EdwardsBridge.d] using haddx
     · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -136,128 +139,130 @@ theorem dtk_rung66 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantic
     · exact hsely
     · simpa [EdwardsBridge.a_eq] using hd3
     · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung66
+  exact hrung36
 
-theorem dtk_rows67 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3584 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3585 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3586 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3587 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3588 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3589 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3590 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3591 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3592 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3593 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3594 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3595 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3596 rho := by
+theorem dtk_rows37 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3194 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3195 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3196 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3197 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3198 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3199 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3200 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3201 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3202 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3203 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3204 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3205 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3206 rho := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
   rcases h with ⟨
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, p44, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, p39,
+    p40, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _
   ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart44 at p44
-  rcases p44 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3584, r3585, r3586, r3587, r3588, r3589, r3590, r3591, r3592, r3593, r3594, r3595, r3596, _, _, _⟩
-  exact ⟨r3584, r3585, r3586, r3587, r3588, r3589, r3590, r3591, r3592, r3593, r3594, r3595, r3596⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart39 at p39
+  rcases p39 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3194, r3195, r3196, r3197, r3198, r3199⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart40 at p40
+  rcases p40 with ⟨r3200, r3201, r3202, r3203, r3204, r3205, r3206, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  exact ⟨r3194, r3195, r3196, r3197, r3198, r3199, r3200, r3201, r3202, r3203, r3204, r3205, r3206⟩
 
-theorem dtk_rung67 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1050 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX67 rho : F), (dtkAccY67 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3076 : F), (rho 3077 : F)⟩ →
+theorem dtk_rung37 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    ∀ (bit : Bool), rho 1020 = Bool.toZMod bit →
+      EdwardsBridge.onCurve ⟨(dtkAccX37 rho : F), (dtkAccY37 rho : F)⟩ →
+      EdwardsBridge.onCurve ⟨(rho 2686 : F), (rho 2687 : F)⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX67 rho : F), (dtkAccY67 rho : F)⟩
-        ⟨(rho 3076 : F), (rho 3077 : F)⟩
-        ⟨(dtkAccX68 rho : F), (dtkAccY68 rho : F)⟩
-        ⟨(rho 3089 : F), (rho 3090 : F)⟩ := by
-  obtain ⟨r3584, r3585, r3586, r3587, r3588, r3589, r3590, r3591, r3592, r3593, r3594, r3595, r3596⟩ := dtk_rows67 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3584 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc421 at r3584
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3584
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3585 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc422 at r3585
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3585
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3586 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc423 at r3586
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3586
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3587 at r3587
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3588 at r3588
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3589 at r3589
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3590 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc424 at r3590
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3590
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3591 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc425 at r3591
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3591
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3592 at r3592
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3593 at r3593
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3594 at r3594
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3595 at r3595
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3596 at r3596
-  have hrung67 (bit : Bool) (hbit : rho 1050 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX67 rho : F), (dtkAccY67 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3076 : F), (rho 3077 : F)⟩) :
+        ⟨(dtkAccX37 rho : F), (dtkAccY37 rho : F)⟩
+        ⟨(rho 2686 : F), (rho 2687 : F)⟩
+        ⟨(dtkAccX38 rho : F), (dtkAccY38 rho : F)⟩
+        ⟨(rho 2699 : F), (rho 2700 : F)⟩ := by
+  obtain ⟨r3194, r3195, r3196, r3197, r3198, r3199, r3200, r3201, r3202, r3203, r3204, r3205, r3206⟩ := dtk_rows37 rho h
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3194 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc271 at r3194
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3194
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3195 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc272 at r3195
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3195
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3196 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc273 at r3196
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3196
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3197 at r3197
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3198 at r3198
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3199 at r3199
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3200 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc274 at r3200
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3200
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3201 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc275 at r3201
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3201
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3202 at r3202
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3203 at r3203
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3204 at r3204
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3205 at r3205
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3206 at r3206
+  have hrung37 (bit : Bool) (hbit : rho 1020 = Bool.toZMod bit)
+      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX37 rho : F), (dtkAccY37 rho : F)⟩)
+      (hcur : EdwardsBridge.onCurve ⟨(rho 2686 : F), (rho 2687 : F)⟩) :
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX67 rho : F), (dtkAccY67 rho : F)⟩
-        ⟨(rho 3076 : F), (rho 3077 : F)⟩
-        ⟨(dtkAccX68 rho : F), (dtkAccY68 rho : F)⟩
-        ⟨(rho 3089 : F), (rho 3090 : F)⟩ := by
-    have hnextx : dtkAccX68 rho = dtkAccX67 rho + rho 3084 := by
-      unfold dtkAccX68 dtkAccX67
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 66]
+        ⟨(dtkAccX37 rho : F), (dtkAccY37 rho : F)⟩
+        ⟨(rho 2686 : F), (rho 2687 : F)⟩
+        ⟨(dtkAccX38 rho : F), (dtkAccY38 rho : F)⟩
+        ⟨(rho 2699 : F), (rho 2700 : F)⟩ := by
+    have hnextx : dtkAccX38 rho = dtkAccX37 rho + rho 2694 := by
+      unfold dtkAccX38 dtkAccX37
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 36]
       ring
-    have hnexty : dtkAccY68 rho = dtkAccY67 rho + rho 3085 := by
-      unfold dtkAccY68 dtkAccY67
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 67]
+    have hnexty : dtkAccY38 rho = dtkAccY37 rho + rho 2695 := by
+      unfold dtkAccY38 dtkAccY37
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 37]
       ring
-    have ha0 : (rho 3076 + rho 3077) * (dtkAccX67 rho + dtkAccY67 rho) = rho 3078 := by
-      unfold dtkAccX67 dtkAccY67
-      linear_combination r3584
-    have ha1 : rho 3077 * dtkAccX67 rho = rho 3079 := by
-      unfold dtkAccX67
-      linear_combination r3585
-    have ha2 : rho 3076 * dtkAccY67 rho = rho 3080 := by
-      unfold dtkAccY67
-      linear_combination r3586
-    have ha3 : 3021 * rho 3079 * rho 3080 = rho 3081 := by
-      linear_combination r3587
-    have ha4 : rho 3082 * (1 + rho 3081) = rho 3079 + rho 3080 := by
-      linear_combination r3588
-    have ha5 : rho 3083 * (1 - rho 3081) = rho 3078 - rho 3079 - rho 3080 := by
-      linear_combination r3589
+    have ha0 : (rho 2686 + rho 2687) * (dtkAccX37 rho + dtkAccY37 rho) = rho 2688 := by
+      unfold dtkAccX37 dtkAccY37
+      linear_combination r3194
+    have ha1 : rho 2687 * dtkAccX37 rho = rho 2689 := by
+      unfold dtkAccX37
+      linear_combination r3195
+    have ha2 : rho 2686 * dtkAccY37 rho = rho 2690 := by
+      unfold dtkAccY37
+      linear_combination r3196
+    have ha3 : 3021 * rho 2689 * rho 2690 = rho 2691 := by
+      linear_combination r3197
+    have ha4 : rho 2692 * (1 + rho 2691) = rho 2689 + rho 2690 := by
+      linear_combination r3198
+    have ha5 : rho 2693 * (1 - rho 2691) = rho 2688 - rho 2689 - rho 2690 := by
+      linear_combination r3199
     have haddx :
-        rho 3082 * (1 + 3021 * (rho 3077 * dtkAccX67 rho) * (rho 3076 * dtkAccY67 rho)) =
-          rho 3077 * dtkAccX67 rho + rho 3076 * dtkAccY67 rho := by
+        rho 2692 * (1 + 3021 * (rho 2687 * dtkAccX37 rho) * (rho 2686 * dtkAccY37 rho)) =
+          rho 2687 * dtkAccX37 rho + rho 2686 * dtkAccY37 rho := by
       rw [ha1, ha2, ha3]
       exact ha4
     have haddy :
-        rho 3083 * (1 - 3021 * (rho 3077 * dtkAccX67 rho) * (rho 3076 * dtkAccY67 rho)) =
-          (-1) * (rho 3077 * dtkAccX67 rho) - rho 3076 * dtkAccY67 rho +
-            (dtkAccY67 rho - dtkAccX67 rho * (-1)) * (rho 3076 + rho 3077) := by
+        rho 2693 * (1 - 3021 * (rho 2687 * dtkAccX37 rho) * (rho 2686 * dtkAccY37 rho)) =
+          (-1) * (rho 2687 * dtkAccX37 rho) - rho 2686 * dtkAccY37 rho +
+            (dtkAccY37 rho - dtkAccX37 rho * (-1)) * (rho 2686 + rho 2687) := by
       rw [ha1, ha2, ha3]
       calc
-        rho 3083 * (1 - rho 3081) = rho 3078 - rho 3079 - rho 3080 := ha5
-        _ = (-1) * rho 3079 - rho 3080 + (dtkAccY67 rho - dtkAccX67 rho * (-1)) * (rho 3076 + rho 3077) := by
+        rho 2693 * (1 - rho 2691) = rho 2688 - rho 2689 - rho 2690 := ha5
+        _ = (-1) * rho 2689 - rho 2690 + (dtkAccY37 rho - dtkAccX37 rho * (-1)) * (rho 2686 + rho 2687) := by
           rw [← ha0]
           ring
-    have hselx : dtkAccX68 rho = dtkAccX67 rho - Bool.toZMod bit * (dtkAccX67 rho - rho 3082) := by
-      have hd : rho 3084 = Bool.toZMod bit * (rho 3082 - dtkAccX67 rho) := by
+    have hselx : dtkAccX38 rho = dtkAccX37 rho - Bool.toZMod bit * (dtkAccX37 rho - rho 2692) := by
+      have hd : rho 2694 = Bool.toZMod bit * (rho 2692 - dtkAccX37 rho) := by
         rw [← hbit]
-        unfold dtkAccX67
-        linear_combination -r3590
+        unfold dtkAccX37
+        linear_combination -r3200
       rw [hnextx]
       linear_combination hd
-    have hsely : dtkAccY68 rho = dtkAccY67 rho - Bool.toZMod bit * (dtkAccY67 rho - rho 3083) := by
-      have hd : rho 3085 = Bool.toZMod bit * (rho 3083 - dtkAccY67 rho) := by
+    have hsely : dtkAccY38 rho = dtkAccY37 rho - Bool.toZMod bit * (dtkAccY37 rho - rho 2693) := by
+      have hd : rho 2695 = Bool.toZMod bit * (rho 2693 - dtkAccY37 rho) := by
         rw [← hbit]
-        unfold dtkAccY67
-        linear_combination -r3591
+        unfold dtkAccY37
+        linear_combination -r3201
       rw [hnexty]
       linear_combination hd
-    have hd0 : rho 3076 * rho 3077 = rho 3086 := by linear_combination r3592
-    have hd1 : rho 3076 * rho 3076 = rho 3087 := by linear_combination r3593
-    have hd2 : rho 3077 * rho 3077 = rho 3088 := by linear_combination r3594
-    have hd3 : rho 3089 * (rho 3077 * rho 3077 + rho 3076 * rho 3076 * (-1)) = 2 * (rho 3076 * rho 3077) := by
+    have hd0 : rho 2686 * rho 2687 = rho 2696 := by linear_combination r3202
+    have hd1 : rho 2686 * rho 2686 = rho 2697 := by linear_combination r3203
+    have hd2 : rho 2687 * rho 2687 = rho 2698 := by linear_combination r3204
+    have hd3 : rho 2699 * (rho 2687 * rho 2687 + rho 2686 * rho 2686 * (-1)) = 2 * (rho 2686 * rho 2687) := by
       rw [hd0, hd1, hd2]
-      linear_combination r3595
-    have hd4 : rho 3090 * (2 - (rho 3077 * rho 3077 + rho 3076 * rho 3076 * (-1))) = rho 3077 * rho 3077 - rho 3076 * rho 3076 * (-1) := by
+      linear_combination r3205
+    have hd4 : rho 2700 * (2 - (rho 2687 * rho 2687 + rho 2686 * rho 2686 * (-1))) = rho 2687 * rho 2687 - rho 2686 * rho 2686 * (-1) := by
       rw [hd1, hd2]
-      linear_combination r3596
+      linear_combination r3206
     apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX67 rho : F), (dtkAccY67 rho : F)⟩
-      ⟨(rho 3076 : F), (rho 3077 : F)⟩
-      ⟨(rho 3082 : F), (rho 3083 : F)⟩
-      ⟨(dtkAccX68 rho : F), (dtkAccY68 rho : F)⟩
-      ⟨(rho 3089 : F), (rho 3090 : F)⟩
+      (Bool.toZMod bit) ⟨(dtkAccX37 rho : F), (dtkAccY37 rho : F)⟩
+      ⟨(rho 2686 : F), (rho 2687 : F)⟩
+      ⟨(rho 2692 : F), (rho 2693 : F)⟩
+      ⟨(dtkAccX38 rho : F), (dtkAccY38 rho : F)⟩
+      ⟨(rho 2699 : F), (rho 2700 : F)⟩
       hacc hcur
     · simpa [EdwardsBridge.d] using haddx
     · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -266,130 +271,128 @@ theorem dtk_rung67 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantic
     · exact hsely
     · simpa [EdwardsBridge.a_eq] using hd3
     · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung67
+  exact hrung37
 
-theorem dtk_rows68 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3597 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3598 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3599 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3600 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3601 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3602 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3603 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3604 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3605 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3606 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3607 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3608 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3609 rho := by
+theorem dtk_rows38 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3207 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3208 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3209 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3210 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3211 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3212 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3213 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3214 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3215 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3216 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3217 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3218 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3219 rho := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
   rcases h with ⟨
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, p44, p45, _, _, _, _,
+    p40, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _
   ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart44 at p44
-  rcases p44 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3597, r3598, r3599⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart45 at p45
-  rcases p45 with ⟨r3600, r3601, r3602, r3603, r3604, r3605, r3606, r3607, r3608, r3609, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3597, r3598, r3599, r3600, r3601, r3602, r3603, r3604, r3605, r3606, r3607, r3608, r3609⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart40 at p40
+  rcases p40 with ⟨_, _, _, _, _, _, _, r3207, r3208, r3209, r3210, r3211, r3212, r3213, r3214, r3215, r3216, r3217, r3218, r3219, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  exact ⟨r3207, r3208, r3209, r3210, r3211, r3212, r3213, r3214, r3215, r3216, r3217, r3218, r3219⟩
 
-theorem dtk_rung68 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1051 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX68 rho : F), (dtkAccY68 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3089 : F), (rho 3090 : F)⟩ →
+theorem dtk_rung38 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    ∀ (bit : Bool), rho 1021 = Bool.toZMod bit →
+      EdwardsBridge.onCurve ⟨(dtkAccX38 rho : F), (dtkAccY38 rho : F)⟩ →
+      EdwardsBridge.onCurve ⟨(rho 2699 : F), (rho 2700 : F)⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX68 rho : F), (dtkAccY68 rho : F)⟩
-        ⟨(rho 3089 : F), (rho 3090 : F)⟩
-        ⟨(dtkAccX69 rho : F), (dtkAccY69 rho : F)⟩
-        ⟨(rho 3102 : F), (rho 3103 : F)⟩ := by
-  obtain ⟨r3597, r3598, r3599, r3600, r3601, r3602, r3603, r3604, r3605, r3606, r3607, r3608, r3609⟩ := dtk_rows68 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3597 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc426 at r3597
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3597
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3598 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc427 at r3598
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3598
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3599 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc428 at r3599
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3599
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3600 at r3600
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3601 at r3601
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3602 at r3602
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3603 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc429 at r3603
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3603
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3604 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc430 at r3604
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3604
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3605 at r3605
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3606 at r3606
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3607 at r3607
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3608 at r3608
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3609 at r3609
-  have hrung68 (bit : Bool) (hbit : rho 1051 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX68 rho : F), (dtkAccY68 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3089 : F), (rho 3090 : F)⟩) :
+        ⟨(dtkAccX38 rho : F), (dtkAccY38 rho : F)⟩
+        ⟨(rho 2699 : F), (rho 2700 : F)⟩
+        ⟨(dtkAccX39 rho : F), (dtkAccY39 rho : F)⟩
+        ⟨(rho 2712 : F), (rho 2713 : F)⟩ := by
+  obtain ⟨r3207, r3208, r3209, r3210, r3211, r3212, r3213, r3214, r3215, r3216, r3217, r3218, r3219⟩ := dtk_rows38 rho h
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3207 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc276 at r3207
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3207
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3208 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc277 at r3208
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3208
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3209 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc278 at r3209
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3209
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3210 at r3210
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3211 at r3211
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3212 at r3212
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3213 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc279 at r3213
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3213
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3214 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc280 at r3214
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3214
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3215 at r3215
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3216 at r3216
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3217 at r3217
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3218 at r3218
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3219 at r3219
+  have hrung38 (bit : Bool) (hbit : rho 1021 = Bool.toZMod bit)
+      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX38 rho : F), (dtkAccY38 rho : F)⟩)
+      (hcur : EdwardsBridge.onCurve ⟨(rho 2699 : F), (rho 2700 : F)⟩) :
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX68 rho : F), (dtkAccY68 rho : F)⟩
-        ⟨(rho 3089 : F), (rho 3090 : F)⟩
-        ⟨(dtkAccX69 rho : F), (dtkAccY69 rho : F)⟩
-        ⟨(rho 3102 : F), (rho 3103 : F)⟩ := by
-    have hnextx : dtkAccX69 rho = dtkAccX68 rho + rho 3097 := by
-      unfold dtkAccX69 dtkAccX68
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 67]
+        ⟨(dtkAccX38 rho : F), (dtkAccY38 rho : F)⟩
+        ⟨(rho 2699 : F), (rho 2700 : F)⟩
+        ⟨(dtkAccX39 rho : F), (dtkAccY39 rho : F)⟩
+        ⟨(rho 2712 : F), (rho 2713 : F)⟩ := by
+    have hnextx : dtkAccX39 rho = dtkAccX38 rho + rho 2707 := by
+      unfold dtkAccX39 dtkAccX38
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 37]
       ring
-    have hnexty : dtkAccY69 rho = dtkAccY68 rho + rho 3098 := by
-      unfold dtkAccY69 dtkAccY68
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 68]
+    have hnexty : dtkAccY39 rho = dtkAccY38 rho + rho 2708 := by
+      unfold dtkAccY39 dtkAccY38
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 38]
       ring
-    have ha0 : (rho 3089 + rho 3090) * (dtkAccX68 rho + dtkAccY68 rho) = rho 3091 := by
-      unfold dtkAccX68 dtkAccY68
-      linear_combination r3597
-    have ha1 : rho 3090 * dtkAccX68 rho = rho 3092 := by
-      unfold dtkAccX68
-      linear_combination r3598
-    have ha2 : rho 3089 * dtkAccY68 rho = rho 3093 := by
-      unfold dtkAccY68
-      linear_combination r3599
-    have ha3 : 3021 * rho 3092 * rho 3093 = rho 3094 := by
-      linear_combination r3600
-    have ha4 : rho 3095 * (1 + rho 3094) = rho 3092 + rho 3093 := by
-      linear_combination r3601
-    have ha5 : rho 3096 * (1 - rho 3094) = rho 3091 - rho 3092 - rho 3093 := by
-      linear_combination r3602
+    have ha0 : (rho 2699 + rho 2700) * (dtkAccX38 rho + dtkAccY38 rho) = rho 2701 := by
+      unfold dtkAccX38 dtkAccY38
+      linear_combination r3207
+    have ha1 : rho 2700 * dtkAccX38 rho = rho 2702 := by
+      unfold dtkAccX38
+      linear_combination r3208
+    have ha2 : rho 2699 * dtkAccY38 rho = rho 2703 := by
+      unfold dtkAccY38
+      linear_combination r3209
+    have ha3 : 3021 * rho 2702 * rho 2703 = rho 2704 := by
+      linear_combination r3210
+    have ha4 : rho 2705 * (1 + rho 2704) = rho 2702 + rho 2703 := by
+      linear_combination r3211
+    have ha5 : rho 2706 * (1 - rho 2704) = rho 2701 - rho 2702 - rho 2703 := by
+      linear_combination r3212
     have haddx :
-        rho 3095 * (1 + 3021 * (rho 3090 * dtkAccX68 rho) * (rho 3089 * dtkAccY68 rho)) =
-          rho 3090 * dtkAccX68 rho + rho 3089 * dtkAccY68 rho := by
+        rho 2705 * (1 + 3021 * (rho 2700 * dtkAccX38 rho) * (rho 2699 * dtkAccY38 rho)) =
+          rho 2700 * dtkAccX38 rho + rho 2699 * dtkAccY38 rho := by
       rw [ha1, ha2, ha3]
       exact ha4
     have haddy :
-        rho 3096 * (1 - 3021 * (rho 3090 * dtkAccX68 rho) * (rho 3089 * dtkAccY68 rho)) =
-          (-1) * (rho 3090 * dtkAccX68 rho) - rho 3089 * dtkAccY68 rho +
-            (dtkAccY68 rho - dtkAccX68 rho * (-1)) * (rho 3089 + rho 3090) := by
+        rho 2706 * (1 - 3021 * (rho 2700 * dtkAccX38 rho) * (rho 2699 * dtkAccY38 rho)) =
+          (-1) * (rho 2700 * dtkAccX38 rho) - rho 2699 * dtkAccY38 rho +
+            (dtkAccY38 rho - dtkAccX38 rho * (-1)) * (rho 2699 + rho 2700) := by
       rw [ha1, ha2, ha3]
       calc
-        rho 3096 * (1 - rho 3094) = rho 3091 - rho 3092 - rho 3093 := ha5
-        _ = (-1) * rho 3092 - rho 3093 + (dtkAccY68 rho - dtkAccX68 rho * (-1)) * (rho 3089 + rho 3090) := by
+        rho 2706 * (1 - rho 2704) = rho 2701 - rho 2702 - rho 2703 := ha5
+        _ = (-1) * rho 2702 - rho 2703 + (dtkAccY38 rho - dtkAccX38 rho * (-1)) * (rho 2699 + rho 2700) := by
           rw [← ha0]
           ring
-    have hselx : dtkAccX69 rho = dtkAccX68 rho - Bool.toZMod bit * (dtkAccX68 rho - rho 3095) := by
-      have hd : rho 3097 = Bool.toZMod bit * (rho 3095 - dtkAccX68 rho) := by
+    have hselx : dtkAccX39 rho = dtkAccX38 rho - Bool.toZMod bit * (dtkAccX38 rho - rho 2705) := by
+      have hd : rho 2707 = Bool.toZMod bit * (rho 2705 - dtkAccX38 rho) := by
         rw [← hbit]
-        unfold dtkAccX68
-        linear_combination -r3603
+        unfold dtkAccX38
+        linear_combination -r3213
       rw [hnextx]
       linear_combination hd
-    have hsely : dtkAccY69 rho = dtkAccY68 rho - Bool.toZMod bit * (dtkAccY68 rho - rho 3096) := by
-      have hd : rho 3098 = Bool.toZMod bit * (rho 3096 - dtkAccY68 rho) := by
+    have hsely : dtkAccY39 rho = dtkAccY38 rho - Bool.toZMod bit * (dtkAccY38 rho - rho 2706) := by
+      have hd : rho 2708 = Bool.toZMod bit * (rho 2706 - dtkAccY38 rho) := by
         rw [← hbit]
-        unfold dtkAccY68
-        linear_combination -r3604
+        unfold dtkAccY38
+        linear_combination -r3214
       rw [hnexty]
       linear_combination hd
-    have hd0 : rho 3089 * rho 3090 = rho 3099 := by linear_combination r3605
-    have hd1 : rho 3089 * rho 3089 = rho 3100 := by linear_combination r3606
-    have hd2 : rho 3090 * rho 3090 = rho 3101 := by linear_combination r3607
-    have hd3 : rho 3102 * (rho 3090 * rho 3090 + rho 3089 * rho 3089 * (-1)) = 2 * (rho 3089 * rho 3090) := by
+    have hd0 : rho 2699 * rho 2700 = rho 2709 := by linear_combination r3215
+    have hd1 : rho 2699 * rho 2699 = rho 2710 := by linear_combination r3216
+    have hd2 : rho 2700 * rho 2700 = rho 2711 := by linear_combination r3217
+    have hd3 : rho 2712 * (rho 2700 * rho 2700 + rho 2699 * rho 2699 * (-1)) = 2 * (rho 2699 * rho 2700) := by
       rw [hd0, hd1, hd2]
-      linear_combination r3608
-    have hd4 : rho 3103 * (2 - (rho 3090 * rho 3090 + rho 3089 * rho 3089 * (-1))) = rho 3090 * rho 3090 - rho 3089 * rho 3089 * (-1) := by
+      linear_combination r3218
+    have hd4 : rho 2713 * (2 - (rho 2700 * rho 2700 + rho 2699 * rho 2699 * (-1))) = rho 2700 * rho 2700 - rho 2699 * rho 2699 * (-1) := by
       rw [hd1, hd2]
-      linear_combination r3609
+      linear_combination r3219
     apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX68 rho : F), (dtkAccY68 rho : F)⟩
-      ⟨(rho 3089 : F), (rho 3090 : F)⟩
-      ⟨(rho 3095 : F), (rho 3096 : F)⟩
-      ⟨(dtkAccX69 rho : F), (dtkAccY69 rho : F)⟩
-      ⟨(rho 3102 : F), (rho 3103 : F)⟩
+      (Bool.toZMod bit) ⟨(dtkAccX38 rho : F), (dtkAccY38 rho : F)⟩
+      ⟨(rho 2699 : F), (rho 2700 : F)⟩
+      ⟨(rho 2705 : F), (rho 2706 : F)⟩
+      ⟨(dtkAccX39 rho : F), (dtkAccY39 rho : F)⟩
+      ⟨(rho 2712 : F), (rho 2713 : F)⟩
       hacc hcur
     · simpa [EdwardsBridge.d] using haddx
     · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -398,128 +401,128 @@ theorem dtk_rung68 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantic
     · exact hsely
     · simpa [EdwardsBridge.a_eq] using hd3
     · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung68
+  exact hrung38
 
-theorem dtk_rows69 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3610 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3611 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3612 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3613 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3614 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3615 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3616 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3617 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3618 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3619 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3620 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3621 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3622 rho := by
+theorem dtk_rows39 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3220 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3221 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3222 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3223 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3224 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3225 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3226 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3227 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3228 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3229 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3230 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3231 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3232 rho := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
   rcases h with ⟨
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, p45, _, _, _, _,
+    p40, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _
   ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart45 at p45
-  rcases p45 with ⟨_, _, _, _, _, _, _, _, _, _, r3610, r3611, r3612, r3613, r3614, r3615, r3616, r3617, r3618, r3619, r3620, r3621, r3622, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3610, r3611, r3612, r3613, r3614, r3615, r3616, r3617, r3618, r3619, r3620, r3621, r3622⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart40 at p40
+  rcases p40 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3220, r3221, r3222, r3223, r3224, r3225, r3226, r3227, r3228, r3229, r3230, r3231, r3232, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  exact ⟨r3220, r3221, r3222, r3223, r3224, r3225, r3226, r3227, r3228, r3229, r3230, r3231, r3232⟩
 
-theorem dtk_rung69 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1052 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX69 rho : F), (dtkAccY69 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3102 : F), (rho 3103 : F)⟩ →
+theorem dtk_rung39 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    ∀ (bit : Bool), rho 1022 = Bool.toZMod bit →
+      EdwardsBridge.onCurve ⟨(dtkAccX39 rho : F), (dtkAccY39 rho : F)⟩ →
+      EdwardsBridge.onCurve ⟨(rho 2712 : F), (rho 2713 : F)⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX69 rho : F), (dtkAccY69 rho : F)⟩
-        ⟨(rho 3102 : F), (rho 3103 : F)⟩
-        ⟨(dtkAccX70 rho : F), (dtkAccY70 rho : F)⟩
-        ⟨(rho 3115 : F), (rho 3116 : F)⟩ := by
-  obtain ⟨r3610, r3611, r3612, r3613, r3614, r3615, r3616, r3617, r3618, r3619, r3620, r3621, r3622⟩ := dtk_rows69 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3610 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc431 at r3610
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3610
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3611 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc432 at r3611
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3611
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3612 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc433 at r3612
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3612
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3613 at r3613
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3614 at r3614
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3615 at r3615
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3616 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc434 at r3616
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3616
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3617 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc435 at r3617
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3617
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3618 at r3618
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3619 at r3619
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3620 at r3620
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3621 at r3621
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3622 at r3622
-  have hrung69 (bit : Bool) (hbit : rho 1052 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX69 rho : F), (dtkAccY69 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3102 : F), (rho 3103 : F)⟩) :
+        ⟨(dtkAccX39 rho : F), (dtkAccY39 rho : F)⟩
+        ⟨(rho 2712 : F), (rho 2713 : F)⟩
+        ⟨(dtkAccX40 rho : F), (dtkAccY40 rho : F)⟩
+        ⟨(rho 2725 : F), (rho 2726 : F)⟩ := by
+  obtain ⟨r3220, r3221, r3222, r3223, r3224, r3225, r3226, r3227, r3228, r3229, r3230, r3231, r3232⟩ := dtk_rows39 rho h
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3220 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc281 at r3220
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3220
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3221 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc282 at r3221
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3221
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3222 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc283 at r3222
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3222
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3223 at r3223
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3224 at r3224
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3225 at r3225
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3226 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc284 at r3226
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3226
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3227 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc285 at r3227
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3227
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3228 at r3228
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3229 at r3229
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3230 at r3230
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3231 at r3231
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3232 at r3232
+  have hrung39 (bit : Bool) (hbit : rho 1022 = Bool.toZMod bit)
+      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX39 rho : F), (dtkAccY39 rho : F)⟩)
+      (hcur : EdwardsBridge.onCurve ⟨(rho 2712 : F), (rho 2713 : F)⟩) :
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX69 rho : F), (dtkAccY69 rho : F)⟩
-        ⟨(rho 3102 : F), (rho 3103 : F)⟩
-        ⟨(dtkAccX70 rho : F), (dtkAccY70 rho : F)⟩
-        ⟨(rho 3115 : F), (rho 3116 : F)⟩ := by
-    have hnextx : dtkAccX70 rho = dtkAccX69 rho + rho 3110 := by
-      unfold dtkAccX70 dtkAccX69
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 68]
+        ⟨(dtkAccX39 rho : F), (dtkAccY39 rho : F)⟩
+        ⟨(rho 2712 : F), (rho 2713 : F)⟩
+        ⟨(dtkAccX40 rho : F), (dtkAccY40 rho : F)⟩
+        ⟨(rho 2725 : F), (rho 2726 : F)⟩ := by
+    have hnextx : dtkAccX40 rho = dtkAccX39 rho + rho 2720 := by
+      unfold dtkAccX40 dtkAccX39
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 38]
       ring
-    have hnexty : dtkAccY70 rho = dtkAccY69 rho + rho 3111 := by
-      unfold dtkAccY70 dtkAccY69
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 69]
+    have hnexty : dtkAccY40 rho = dtkAccY39 rho + rho 2721 := by
+      unfold dtkAccY40 dtkAccY39
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 39]
       ring
-    have ha0 : (rho 3102 + rho 3103) * (dtkAccX69 rho + dtkAccY69 rho) = rho 3104 := by
-      unfold dtkAccX69 dtkAccY69
-      linear_combination r3610
-    have ha1 : rho 3103 * dtkAccX69 rho = rho 3105 := by
-      unfold dtkAccX69
-      linear_combination r3611
-    have ha2 : rho 3102 * dtkAccY69 rho = rho 3106 := by
-      unfold dtkAccY69
-      linear_combination r3612
-    have ha3 : 3021 * rho 3105 * rho 3106 = rho 3107 := by
-      linear_combination r3613
-    have ha4 : rho 3108 * (1 + rho 3107) = rho 3105 + rho 3106 := by
-      linear_combination r3614
-    have ha5 : rho 3109 * (1 - rho 3107) = rho 3104 - rho 3105 - rho 3106 := by
-      linear_combination r3615
+    have ha0 : (rho 2712 + rho 2713) * (dtkAccX39 rho + dtkAccY39 rho) = rho 2714 := by
+      unfold dtkAccX39 dtkAccY39
+      linear_combination r3220
+    have ha1 : rho 2713 * dtkAccX39 rho = rho 2715 := by
+      unfold dtkAccX39
+      linear_combination r3221
+    have ha2 : rho 2712 * dtkAccY39 rho = rho 2716 := by
+      unfold dtkAccY39
+      linear_combination r3222
+    have ha3 : 3021 * rho 2715 * rho 2716 = rho 2717 := by
+      linear_combination r3223
+    have ha4 : rho 2718 * (1 + rho 2717) = rho 2715 + rho 2716 := by
+      linear_combination r3224
+    have ha5 : rho 2719 * (1 - rho 2717) = rho 2714 - rho 2715 - rho 2716 := by
+      linear_combination r3225
     have haddx :
-        rho 3108 * (1 + 3021 * (rho 3103 * dtkAccX69 rho) * (rho 3102 * dtkAccY69 rho)) =
-          rho 3103 * dtkAccX69 rho + rho 3102 * dtkAccY69 rho := by
+        rho 2718 * (1 + 3021 * (rho 2713 * dtkAccX39 rho) * (rho 2712 * dtkAccY39 rho)) =
+          rho 2713 * dtkAccX39 rho + rho 2712 * dtkAccY39 rho := by
       rw [ha1, ha2, ha3]
       exact ha4
     have haddy :
-        rho 3109 * (1 - 3021 * (rho 3103 * dtkAccX69 rho) * (rho 3102 * dtkAccY69 rho)) =
-          (-1) * (rho 3103 * dtkAccX69 rho) - rho 3102 * dtkAccY69 rho +
-            (dtkAccY69 rho - dtkAccX69 rho * (-1)) * (rho 3102 + rho 3103) := by
+        rho 2719 * (1 - 3021 * (rho 2713 * dtkAccX39 rho) * (rho 2712 * dtkAccY39 rho)) =
+          (-1) * (rho 2713 * dtkAccX39 rho) - rho 2712 * dtkAccY39 rho +
+            (dtkAccY39 rho - dtkAccX39 rho * (-1)) * (rho 2712 + rho 2713) := by
       rw [ha1, ha2, ha3]
       calc
-        rho 3109 * (1 - rho 3107) = rho 3104 - rho 3105 - rho 3106 := ha5
-        _ = (-1) * rho 3105 - rho 3106 + (dtkAccY69 rho - dtkAccX69 rho * (-1)) * (rho 3102 + rho 3103) := by
+        rho 2719 * (1 - rho 2717) = rho 2714 - rho 2715 - rho 2716 := ha5
+        _ = (-1) * rho 2715 - rho 2716 + (dtkAccY39 rho - dtkAccX39 rho * (-1)) * (rho 2712 + rho 2713) := by
           rw [← ha0]
           ring
-    have hselx : dtkAccX70 rho = dtkAccX69 rho - Bool.toZMod bit * (dtkAccX69 rho - rho 3108) := by
-      have hd : rho 3110 = Bool.toZMod bit * (rho 3108 - dtkAccX69 rho) := by
+    have hselx : dtkAccX40 rho = dtkAccX39 rho - Bool.toZMod bit * (dtkAccX39 rho - rho 2718) := by
+      have hd : rho 2720 = Bool.toZMod bit * (rho 2718 - dtkAccX39 rho) := by
         rw [← hbit]
-        unfold dtkAccX69
-        linear_combination -r3616
+        unfold dtkAccX39
+        linear_combination -r3226
       rw [hnextx]
       linear_combination hd
-    have hsely : dtkAccY70 rho = dtkAccY69 rho - Bool.toZMod bit * (dtkAccY69 rho - rho 3109) := by
-      have hd : rho 3111 = Bool.toZMod bit * (rho 3109 - dtkAccY69 rho) := by
+    have hsely : dtkAccY40 rho = dtkAccY39 rho - Bool.toZMod bit * (dtkAccY39 rho - rho 2719) := by
+      have hd : rho 2721 = Bool.toZMod bit * (rho 2719 - dtkAccY39 rho) := by
         rw [← hbit]
-        unfold dtkAccY69
-        linear_combination -r3617
+        unfold dtkAccY39
+        linear_combination -r3227
       rw [hnexty]
       linear_combination hd
-    have hd0 : rho 3102 * rho 3103 = rho 3112 := by linear_combination r3618
-    have hd1 : rho 3102 * rho 3102 = rho 3113 := by linear_combination r3619
-    have hd2 : rho 3103 * rho 3103 = rho 3114 := by linear_combination r3620
-    have hd3 : rho 3115 * (rho 3103 * rho 3103 + rho 3102 * rho 3102 * (-1)) = 2 * (rho 3102 * rho 3103) := by
+    have hd0 : rho 2712 * rho 2713 = rho 2722 := by linear_combination r3228
+    have hd1 : rho 2712 * rho 2712 = rho 2723 := by linear_combination r3229
+    have hd2 : rho 2713 * rho 2713 = rho 2724 := by linear_combination r3230
+    have hd3 : rho 2725 * (rho 2713 * rho 2713 + rho 2712 * rho 2712 * (-1)) = 2 * (rho 2712 * rho 2713) := by
       rw [hd0, hd1, hd2]
-      linear_combination r3621
-    have hd4 : rho 3116 * (2 - (rho 3103 * rho 3103 + rho 3102 * rho 3102 * (-1))) = rho 3103 * rho 3103 - rho 3102 * rho 3102 * (-1) := by
+      linear_combination r3231
+    have hd4 : rho 2726 * (2 - (rho 2713 * rho 2713 + rho 2712 * rho 2712 * (-1))) = rho 2713 * rho 2713 - rho 2712 * rho 2712 * (-1) := by
       rw [hd1, hd2]
-      linear_combination r3622
+      linear_combination r3232
     apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX69 rho : F), (dtkAccY69 rho : F)⟩
-      ⟨(rho 3102 : F), (rho 3103 : F)⟩
-      ⟨(rho 3108 : F), (rho 3109 : F)⟩
-      ⟨(dtkAccX70 rho : F), (dtkAccY70 rho : F)⟩
-      ⟨(rho 3115 : F), (rho 3116 : F)⟩
+      (Bool.toZMod bit) ⟨(dtkAccX39 rho : F), (dtkAccY39 rho : F)⟩
+      ⟨(rho 2712 : F), (rho 2713 : F)⟩
+      ⟨(rho 2718 : F), (rho 2719 : F)⟩
+      ⟨(dtkAccX40 rho : F), (dtkAccY40 rho : F)⟩
+      ⟨(rho 2725 : F), (rho 2726 : F)⟩
       hacc hcur
     · simpa [EdwardsBridge.d] using haddx
     · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -528,128 +531,128 @@ theorem dtk_rung69 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantic
     · exact hsely
     · simpa [EdwardsBridge.a_eq] using hd3
     · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung69
+  exact hrung39
 
-theorem dtk_rows70 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3623 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3624 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3625 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3626 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3627 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3628 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3629 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3630 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3631 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3632 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3633 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3634 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3635 rho := by
+theorem dtk_rows40 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3233 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3234 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3235 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3236 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3237 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3238 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3239 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3240 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3241 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3242 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3243 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3244 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3245 rho := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
   rcases h with ⟨
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, p45, _, _, _, _,
+    p40, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _
   ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart45 at p45
-  rcases p45 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3623, r3624, r3625, r3626, r3627, r3628, r3629, r3630, r3631, r3632, r3633, r3634, r3635, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3623, r3624, r3625, r3626, r3627, r3628, r3629, r3630, r3631, r3632, r3633, r3634, r3635⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart40 at p40
+  rcases p40 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3233, r3234, r3235, r3236, r3237, r3238, r3239, r3240, r3241, r3242, r3243, r3244, r3245, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  exact ⟨r3233, r3234, r3235, r3236, r3237, r3238, r3239, r3240, r3241, r3242, r3243, r3244, r3245⟩
 
-theorem dtk_rung70 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1053 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX70 rho : F), (dtkAccY70 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3115 : F), (rho 3116 : F)⟩ →
+theorem dtk_rung40 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    ∀ (bit : Bool), rho 1023 = Bool.toZMod bit →
+      EdwardsBridge.onCurve ⟨(dtkAccX40 rho : F), (dtkAccY40 rho : F)⟩ →
+      EdwardsBridge.onCurve ⟨(rho 2725 : F), (rho 2726 : F)⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX70 rho : F), (dtkAccY70 rho : F)⟩
-        ⟨(rho 3115 : F), (rho 3116 : F)⟩
-        ⟨(dtkAccX71 rho : F), (dtkAccY71 rho : F)⟩
-        ⟨(rho 3128 : F), (rho 3129 : F)⟩ := by
-  obtain ⟨r3623, r3624, r3625, r3626, r3627, r3628, r3629, r3630, r3631, r3632, r3633, r3634, r3635⟩ := dtk_rows70 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3623 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc436 at r3623
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3623
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3624 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc437 at r3624
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3624
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3625 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc438 at r3625
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3625
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3626 at r3626
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3627 at r3627
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3628 at r3628
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3629 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc439 at r3629
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3629
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3630 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc440 at r3630
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3630
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3631 at r3631
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3632 at r3632
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3633 at r3633
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3634 at r3634
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3635 at r3635
-  have hrung70 (bit : Bool) (hbit : rho 1053 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX70 rho : F), (dtkAccY70 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3115 : F), (rho 3116 : F)⟩) :
+        ⟨(dtkAccX40 rho : F), (dtkAccY40 rho : F)⟩
+        ⟨(rho 2725 : F), (rho 2726 : F)⟩
+        ⟨(dtkAccX41 rho : F), (dtkAccY41 rho : F)⟩
+        ⟨(rho 2738 : F), (rho 2739 : F)⟩ := by
+  obtain ⟨r3233, r3234, r3235, r3236, r3237, r3238, r3239, r3240, r3241, r3242, r3243, r3244, r3245⟩ := dtk_rows40 rho h
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3233 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc286 at r3233
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3233
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3234 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc287 at r3234
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3234
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3235 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc288 at r3235
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3235
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3236 at r3236
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3237 at r3237
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3238 at r3238
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3239 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc289 at r3239
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3239
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3240 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc290 at r3240
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3240
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3241 at r3241
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3242 at r3242
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3243 at r3243
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3244 at r3244
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3245 at r3245
+  have hrung40 (bit : Bool) (hbit : rho 1023 = Bool.toZMod bit)
+      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX40 rho : F), (dtkAccY40 rho : F)⟩)
+      (hcur : EdwardsBridge.onCurve ⟨(rho 2725 : F), (rho 2726 : F)⟩) :
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX70 rho : F), (dtkAccY70 rho : F)⟩
-        ⟨(rho 3115 : F), (rho 3116 : F)⟩
-        ⟨(dtkAccX71 rho : F), (dtkAccY71 rho : F)⟩
-        ⟨(rho 3128 : F), (rho 3129 : F)⟩ := by
-    have hnextx : dtkAccX71 rho = dtkAccX70 rho + rho 3123 := by
-      unfold dtkAccX71 dtkAccX70
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 69]
+        ⟨(dtkAccX40 rho : F), (dtkAccY40 rho : F)⟩
+        ⟨(rho 2725 : F), (rho 2726 : F)⟩
+        ⟨(dtkAccX41 rho : F), (dtkAccY41 rho : F)⟩
+        ⟨(rho 2738 : F), (rho 2739 : F)⟩ := by
+    have hnextx : dtkAccX41 rho = dtkAccX40 rho + rho 2733 := by
+      unfold dtkAccX41 dtkAccX40
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 39]
       ring
-    have hnexty : dtkAccY71 rho = dtkAccY70 rho + rho 3124 := by
-      unfold dtkAccY71 dtkAccY70
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 70]
+    have hnexty : dtkAccY41 rho = dtkAccY40 rho + rho 2734 := by
+      unfold dtkAccY41 dtkAccY40
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 40]
       ring
-    have ha0 : (rho 3115 + rho 3116) * (dtkAccX70 rho + dtkAccY70 rho) = rho 3117 := by
-      unfold dtkAccX70 dtkAccY70
-      linear_combination r3623
-    have ha1 : rho 3116 * dtkAccX70 rho = rho 3118 := by
-      unfold dtkAccX70
-      linear_combination r3624
-    have ha2 : rho 3115 * dtkAccY70 rho = rho 3119 := by
-      unfold dtkAccY70
-      linear_combination r3625
-    have ha3 : 3021 * rho 3118 * rho 3119 = rho 3120 := by
-      linear_combination r3626
-    have ha4 : rho 3121 * (1 + rho 3120) = rho 3118 + rho 3119 := by
-      linear_combination r3627
-    have ha5 : rho 3122 * (1 - rho 3120) = rho 3117 - rho 3118 - rho 3119 := by
-      linear_combination r3628
+    have ha0 : (rho 2725 + rho 2726) * (dtkAccX40 rho + dtkAccY40 rho) = rho 2727 := by
+      unfold dtkAccX40 dtkAccY40
+      linear_combination r3233
+    have ha1 : rho 2726 * dtkAccX40 rho = rho 2728 := by
+      unfold dtkAccX40
+      linear_combination r3234
+    have ha2 : rho 2725 * dtkAccY40 rho = rho 2729 := by
+      unfold dtkAccY40
+      linear_combination r3235
+    have ha3 : 3021 * rho 2728 * rho 2729 = rho 2730 := by
+      linear_combination r3236
+    have ha4 : rho 2731 * (1 + rho 2730) = rho 2728 + rho 2729 := by
+      linear_combination r3237
+    have ha5 : rho 2732 * (1 - rho 2730) = rho 2727 - rho 2728 - rho 2729 := by
+      linear_combination r3238
     have haddx :
-        rho 3121 * (1 + 3021 * (rho 3116 * dtkAccX70 rho) * (rho 3115 * dtkAccY70 rho)) =
-          rho 3116 * dtkAccX70 rho + rho 3115 * dtkAccY70 rho := by
+        rho 2731 * (1 + 3021 * (rho 2726 * dtkAccX40 rho) * (rho 2725 * dtkAccY40 rho)) =
+          rho 2726 * dtkAccX40 rho + rho 2725 * dtkAccY40 rho := by
       rw [ha1, ha2, ha3]
       exact ha4
     have haddy :
-        rho 3122 * (1 - 3021 * (rho 3116 * dtkAccX70 rho) * (rho 3115 * dtkAccY70 rho)) =
-          (-1) * (rho 3116 * dtkAccX70 rho) - rho 3115 * dtkAccY70 rho +
-            (dtkAccY70 rho - dtkAccX70 rho * (-1)) * (rho 3115 + rho 3116) := by
+        rho 2732 * (1 - 3021 * (rho 2726 * dtkAccX40 rho) * (rho 2725 * dtkAccY40 rho)) =
+          (-1) * (rho 2726 * dtkAccX40 rho) - rho 2725 * dtkAccY40 rho +
+            (dtkAccY40 rho - dtkAccX40 rho * (-1)) * (rho 2725 + rho 2726) := by
       rw [ha1, ha2, ha3]
       calc
-        rho 3122 * (1 - rho 3120) = rho 3117 - rho 3118 - rho 3119 := ha5
-        _ = (-1) * rho 3118 - rho 3119 + (dtkAccY70 rho - dtkAccX70 rho * (-1)) * (rho 3115 + rho 3116) := by
+        rho 2732 * (1 - rho 2730) = rho 2727 - rho 2728 - rho 2729 := ha5
+        _ = (-1) * rho 2728 - rho 2729 + (dtkAccY40 rho - dtkAccX40 rho * (-1)) * (rho 2725 + rho 2726) := by
           rw [← ha0]
           ring
-    have hselx : dtkAccX71 rho = dtkAccX70 rho - Bool.toZMod bit * (dtkAccX70 rho - rho 3121) := by
-      have hd : rho 3123 = Bool.toZMod bit * (rho 3121 - dtkAccX70 rho) := by
+    have hselx : dtkAccX41 rho = dtkAccX40 rho - Bool.toZMod bit * (dtkAccX40 rho - rho 2731) := by
+      have hd : rho 2733 = Bool.toZMod bit * (rho 2731 - dtkAccX40 rho) := by
         rw [← hbit]
-        unfold dtkAccX70
-        linear_combination -r3629
+        unfold dtkAccX40
+        linear_combination -r3239
       rw [hnextx]
       linear_combination hd
-    have hsely : dtkAccY71 rho = dtkAccY70 rho - Bool.toZMod bit * (dtkAccY70 rho - rho 3122) := by
-      have hd : rho 3124 = Bool.toZMod bit * (rho 3122 - dtkAccY70 rho) := by
+    have hsely : dtkAccY41 rho = dtkAccY40 rho - Bool.toZMod bit * (dtkAccY40 rho - rho 2732) := by
+      have hd : rho 2734 = Bool.toZMod bit * (rho 2732 - dtkAccY40 rho) := by
         rw [← hbit]
-        unfold dtkAccY70
-        linear_combination -r3630
+        unfold dtkAccY40
+        linear_combination -r3240
       rw [hnexty]
       linear_combination hd
-    have hd0 : rho 3115 * rho 3116 = rho 3125 := by linear_combination r3631
-    have hd1 : rho 3115 * rho 3115 = rho 3126 := by linear_combination r3632
-    have hd2 : rho 3116 * rho 3116 = rho 3127 := by linear_combination r3633
-    have hd3 : rho 3128 * (rho 3116 * rho 3116 + rho 3115 * rho 3115 * (-1)) = 2 * (rho 3115 * rho 3116) := by
+    have hd0 : rho 2725 * rho 2726 = rho 2735 := by linear_combination r3241
+    have hd1 : rho 2725 * rho 2725 = rho 2736 := by linear_combination r3242
+    have hd2 : rho 2726 * rho 2726 = rho 2737 := by linear_combination r3243
+    have hd3 : rho 2738 * (rho 2726 * rho 2726 + rho 2725 * rho 2725 * (-1)) = 2 * (rho 2725 * rho 2726) := by
       rw [hd0, hd1, hd2]
-      linear_combination r3634
-    have hd4 : rho 3129 * (2 - (rho 3116 * rho 3116 + rho 3115 * rho 3115 * (-1))) = rho 3116 * rho 3116 - rho 3115 * rho 3115 * (-1) := by
+      linear_combination r3244
+    have hd4 : rho 2739 * (2 - (rho 2726 * rho 2726 + rho 2725 * rho 2725 * (-1))) = rho 2726 * rho 2726 - rho 2725 * rho 2725 * (-1) := by
       rw [hd1, hd2]
-      linear_combination r3635
+      linear_combination r3245
     apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX70 rho : F), (dtkAccY70 rho : F)⟩
-      ⟨(rho 3115 : F), (rho 3116 : F)⟩
-      ⟨(rho 3121 : F), (rho 3122 : F)⟩
-      ⟨(dtkAccX71 rho : F), (dtkAccY71 rho : F)⟩
-      ⟨(rho 3128 : F), (rho 3129 : F)⟩
+      (Bool.toZMod bit) ⟨(dtkAccX40 rho : F), (dtkAccY40 rho : F)⟩
+      ⟨(rho 2725 : F), (rho 2726 : F)⟩
+      ⟨(rho 2731 : F), (rho 2732 : F)⟩
+      ⟨(dtkAccX41 rho : F), (dtkAccY41 rho : F)⟩
+      ⟨(rho 2738 : F), (rho 2739 : F)⟩
       hacc hcur
     · simpa [EdwardsBridge.d] using haddx
     · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -658,128 +661,128 @@ theorem dtk_rung70 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantic
     · exact hsely
     · simpa [EdwardsBridge.a_eq] using hd3
     · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung70
+  exact hrung40
 
-theorem dtk_rows71 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3636 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3637 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3638 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3639 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3640 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3641 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3642 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3643 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3644 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3645 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3646 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3647 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3648 rho := by
+theorem dtk_rows41 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3246 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3247 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3248 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3249 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3250 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3251 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3252 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3253 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3254 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3255 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3256 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3257 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3258 rho := by
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
   rcases h with ⟨
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, p45, _, _, _, _,
+    p40, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _, _, _, _, _,
     _, _, _, _, _, _
   ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart45 at p45
-  rcases p45 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3636, r3637, r3638, r3639, r3640, r3641, r3642, r3643, r3644, r3645, r3646, r3647, r3648, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3636, r3637, r3638, r3639, r3640, r3641, r3642, r3643, r3644, r3645, r3646, r3647, r3648⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart40 at p40
+  rcases p40 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3246, r3247, r3248, r3249, r3250, r3251, r3252, r3253, r3254, r3255, r3256, r3257, r3258, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  exact ⟨r3246, r3247, r3248, r3249, r3250, r3251, r3252, r3253, r3254, r3255, r3256, r3257, r3258⟩
 
-theorem dtk_rung71 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1054 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX71 rho : F), (dtkAccY71 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3128 : F), (rho 3129 : F)⟩ →
+theorem dtk_rung41 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
+    ∀ (bit : Bool), rho 1024 = Bool.toZMod bit →
+      EdwardsBridge.onCurve ⟨(dtkAccX41 rho : F), (dtkAccY41 rho : F)⟩ →
+      EdwardsBridge.onCurve ⟨(rho 2738 : F), (rho 2739 : F)⟩ →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX71 rho : F), (dtkAccY71 rho : F)⟩
-        ⟨(rho 3128 : F), (rho 3129 : F)⟩
-        ⟨(dtkAccX72 rho : F), (dtkAccY72 rho : F)⟩
-        ⟨(rho 3141 : F), (rho 3142 : F)⟩ := by
-  obtain ⟨r3636, r3637, r3638, r3639, r3640, r3641, r3642, r3643, r3644, r3645, r3646, r3647, r3648⟩ := dtk_rows71 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3636 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc441 at r3636
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3636
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3637 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc442 at r3637
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3637
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3638 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc443 at r3638
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3638
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3639 at r3639
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3640 at r3640
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3641 at r3641
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3642 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc444 at r3642
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3642
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3643 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc445 at r3643
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3643
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3644 at r3644
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3645 at r3645
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3646 at r3646
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3647 at r3647
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3648 at r3648
-  have hrung71 (bit : Bool) (hbit : rho 1054 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX71 rho : F), (dtkAccY71 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3128 : F), (rho 3129 : F)⟩) :
+        ⟨(dtkAccX41 rho : F), (dtkAccY41 rho : F)⟩
+        ⟨(rho 2738 : F), (rho 2739 : F)⟩
+        ⟨(dtkAccX42 rho : F), (dtkAccY42 rho : F)⟩
+        ⟨(rho 2751 : F), (rho 2752 : F)⟩ := by
+  obtain ⟨r3246, r3247, r3248, r3249, r3250, r3251, r3252, r3253, r3254, r3255, r3256, r3257, r3258⟩ := dtk_rows41 rho h
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3246 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc291 at r3246
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3246
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3247 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc292 at r3247
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3247
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3248 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc293 at r3248
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3248
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3249 at r3249
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3250 at r3250
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3251 at r3251
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3252 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc294 at r3252
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3252
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3253 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc295 at r3253
+  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3253
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3254 at r3254
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3255 at r3255
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3256 at r3256
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3257 at r3257
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3258 at r3258
+  have hrung41 (bit : Bool) (hbit : rho 1024 = Bool.toZMod bit)
+      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX41 rho : F), (dtkAccY41 rho : F)⟩)
+      (hcur : EdwardsBridge.onCurve ⟨(rho 2738 : F), (rho 2739 : F)⟩) :
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX71 rho : F), (dtkAccY71 rho : F)⟩
-        ⟨(rho 3128 : F), (rho 3129 : F)⟩
-        ⟨(dtkAccX72 rho : F), (dtkAccY72 rho : F)⟩
-        ⟨(rho 3141 : F), (rho 3142 : F)⟩ := by
-    have hnextx : dtkAccX72 rho = dtkAccX71 rho + rho 3136 := by
-      unfold dtkAccX72 dtkAccX71
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 70]
+        ⟨(dtkAccX41 rho : F), (dtkAccY41 rho : F)⟩
+        ⟨(rho 2738 : F), (rho 2739 : F)⟩
+        ⟨(dtkAccX42 rho : F), (dtkAccY42 rho : F)⟩
+        ⟨(rho 2751 : F), (rho 2752 : F)⟩ := by
+    have hnextx : dtkAccX42 rho = dtkAccX41 rho + rho 2746 := by
+      unfold dtkAccX42 dtkAccX41
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 40]
       ring
-    have hnexty : dtkAccY72 rho = dtkAccY71 rho + rho 3137 := by
-      unfold dtkAccY72 dtkAccY71
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 71]
+    have hnexty : dtkAccY42 rho = dtkAccY41 rho + rho 2747 := by
+      unfold dtkAccY42 dtkAccY41
+      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 41]
       ring
-    have ha0 : (rho 3128 + rho 3129) * (dtkAccX71 rho + dtkAccY71 rho) = rho 3130 := by
-      unfold dtkAccX71 dtkAccY71
-      linear_combination r3636
-    have ha1 : rho 3129 * dtkAccX71 rho = rho 3131 := by
-      unfold dtkAccX71
-      linear_combination r3637
-    have ha2 : rho 3128 * dtkAccY71 rho = rho 3132 := by
-      unfold dtkAccY71
-      linear_combination r3638
-    have ha3 : 3021 * rho 3131 * rho 3132 = rho 3133 := by
-      linear_combination r3639
-    have ha4 : rho 3134 * (1 + rho 3133) = rho 3131 + rho 3132 := by
-      linear_combination r3640
-    have ha5 : rho 3135 * (1 - rho 3133) = rho 3130 - rho 3131 - rho 3132 := by
-      linear_combination r3641
+    have ha0 : (rho 2738 + rho 2739) * (dtkAccX41 rho + dtkAccY41 rho) = rho 2740 := by
+      unfold dtkAccX41 dtkAccY41
+      linear_combination r3246
+    have ha1 : rho 2739 * dtkAccX41 rho = rho 2741 := by
+      unfold dtkAccX41
+      linear_combination r3247
+    have ha2 : rho 2738 * dtkAccY41 rho = rho 2742 := by
+      unfold dtkAccY41
+      linear_combination r3248
+    have ha3 : 3021 * rho 2741 * rho 2742 = rho 2743 := by
+      linear_combination r3249
+    have ha4 : rho 2744 * (1 + rho 2743) = rho 2741 + rho 2742 := by
+      linear_combination r3250
+    have ha5 : rho 2745 * (1 - rho 2743) = rho 2740 - rho 2741 - rho 2742 := by
+      linear_combination r3251
     have haddx :
-        rho 3134 * (1 + 3021 * (rho 3129 * dtkAccX71 rho) * (rho 3128 * dtkAccY71 rho)) =
-          rho 3129 * dtkAccX71 rho + rho 3128 * dtkAccY71 rho := by
+        rho 2744 * (1 + 3021 * (rho 2739 * dtkAccX41 rho) * (rho 2738 * dtkAccY41 rho)) =
+          rho 2739 * dtkAccX41 rho + rho 2738 * dtkAccY41 rho := by
       rw [ha1, ha2, ha3]
       exact ha4
     have haddy :
-        rho 3135 * (1 - 3021 * (rho 3129 * dtkAccX71 rho) * (rho 3128 * dtkAccY71 rho)) =
-          (-1) * (rho 3129 * dtkAccX71 rho) - rho 3128 * dtkAccY71 rho +
-            (dtkAccY71 rho - dtkAccX71 rho * (-1)) * (rho 3128 + rho 3129) := by
+        rho 2745 * (1 - 3021 * (rho 2739 * dtkAccX41 rho) * (rho 2738 * dtkAccY41 rho)) =
+          (-1) * (rho 2739 * dtkAccX41 rho) - rho 2738 * dtkAccY41 rho +
+            (dtkAccY41 rho - dtkAccX41 rho * (-1)) * (rho 2738 + rho 2739) := by
       rw [ha1, ha2, ha3]
       calc
-        rho 3135 * (1 - rho 3133) = rho 3130 - rho 3131 - rho 3132 := ha5
-        _ = (-1) * rho 3131 - rho 3132 + (dtkAccY71 rho - dtkAccX71 rho * (-1)) * (rho 3128 + rho 3129) := by
+        rho 2745 * (1 - rho 2743) = rho 2740 - rho 2741 - rho 2742 := ha5
+        _ = (-1) * rho 2741 - rho 2742 + (dtkAccY41 rho - dtkAccX41 rho * (-1)) * (rho 2738 + rho 2739) := by
           rw [← ha0]
           ring
-    have hselx : dtkAccX72 rho = dtkAccX71 rho - Bool.toZMod bit * (dtkAccX71 rho - rho 3134) := by
-      have hd : rho 3136 = Bool.toZMod bit * (rho 3134 - dtkAccX71 rho) := by
+    have hselx : dtkAccX42 rho = dtkAccX41 rho - Bool.toZMod bit * (dtkAccX41 rho - rho 2744) := by
+      have hd : rho 2746 = Bool.toZMod bit * (rho 2744 - dtkAccX41 rho) := by
         rw [← hbit]
-        unfold dtkAccX71
-        linear_combination -r3642
+        unfold dtkAccX41
+        linear_combination -r3252
       rw [hnextx]
       linear_combination hd
-    have hsely : dtkAccY72 rho = dtkAccY71 rho - Bool.toZMod bit * (dtkAccY71 rho - rho 3135) := by
-      have hd : rho 3137 = Bool.toZMod bit * (rho 3135 - dtkAccY71 rho) := by
+    have hsely : dtkAccY42 rho = dtkAccY41 rho - Bool.toZMod bit * (dtkAccY41 rho - rho 2745) := by
+      have hd : rho 2747 = Bool.toZMod bit * (rho 2745 - dtkAccY41 rho) := by
         rw [← hbit]
-        unfold dtkAccY71
-        linear_combination -r3643
+        unfold dtkAccY41
+        linear_combination -r3253
       rw [hnexty]
       linear_combination hd
-    have hd0 : rho 3128 * rho 3129 = rho 3138 := by linear_combination r3644
-    have hd1 : rho 3128 * rho 3128 = rho 3139 := by linear_combination r3645
-    have hd2 : rho 3129 * rho 3129 = rho 3140 := by linear_combination r3646
-    have hd3 : rho 3141 * (rho 3129 * rho 3129 + rho 3128 * rho 3128 * (-1)) = 2 * (rho 3128 * rho 3129) := by
+    have hd0 : rho 2738 * rho 2739 = rho 2748 := by linear_combination r3254
+    have hd1 : rho 2738 * rho 2738 = rho 2749 := by linear_combination r3255
+    have hd2 : rho 2739 * rho 2739 = rho 2750 := by linear_combination r3256
+    have hd3 : rho 2751 * (rho 2739 * rho 2739 + rho 2738 * rho 2738 * (-1)) = 2 * (rho 2738 * rho 2739) := by
       rw [hd0, hd1, hd2]
-      linear_combination r3647
-    have hd4 : rho 3142 * (2 - (rho 3129 * rho 3129 + rho 3128 * rho 3128 * (-1))) = rho 3129 * rho 3129 - rho 3128 * rho 3128 * (-1) := by
+      linear_combination r3257
+    have hd4 : rho 2752 * (2 - (rho 2739 * rho 2739 + rho 2738 * rho 2738 * (-1))) = rho 2739 * rho 2739 - rho 2738 * rho 2738 * (-1) := by
       rw [hd1, hd2]
-      linear_combination r3648
+      linear_combination r3258
     apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX71 rho : F), (dtkAccY71 rho : F)⟩
-      ⟨(rho 3128 : F), (rho 3129 : F)⟩
-      ⟨(rho 3134 : F), (rho 3135 : F)⟩
-      ⟨(dtkAccX72 rho : F), (dtkAccY72 rho : F)⟩
-      ⟨(rho 3141 : F), (rho 3142 : F)⟩
+      (Bool.toZMod bit) ⟨(dtkAccX41 rho : F), (dtkAccY41 rho : F)⟩
+      ⟨(rho 2738 : F), (rho 2739 : F)⟩
+      ⟨(rho 2744 : F), (rho 2745 : F)⟩
+      ⟨(dtkAccX42 rho : F), (dtkAccY42 rho : F)⟩
+      ⟨(rho 2751 : F), (rho 2752 : F)⟩
       hacc hcur
     · simpa [EdwardsBridge.d] using haddx
     · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
@@ -788,664 +791,12 @@ theorem dtk_rung71 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantic
     · exact hsely
     · simpa [EdwardsBridge.a_eq] using hd3
     · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung71
-
-theorem dtk_rows72 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3649 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3650 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3651 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3652 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3653 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3654 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3655 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3656 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3657 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3658 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3659 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3660 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3661 rho := by
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
-  rcases h with ⟨
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, p45, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _
-  ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart45 at p45
-  rcases p45 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3649, r3650, r3651, r3652, r3653, r3654, r3655, r3656, r3657, r3658, r3659, r3660, r3661, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3649, r3650, r3651, r3652, r3653, r3654, r3655, r3656, r3657, r3658, r3659, r3660, r3661⟩
-
-theorem dtk_rung72 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1055 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX72 rho : F), (dtkAccY72 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3141 : F), (rho 3142 : F)⟩ →
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX72 rho : F), (dtkAccY72 rho : F)⟩
-        ⟨(rho 3141 : F), (rho 3142 : F)⟩
-        ⟨(dtkAccX73 rho : F), (dtkAccY73 rho : F)⟩
-        ⟨(rho 3154 : F), (rho 3155 : F)⟩ := by
-  obtain ⟨r3649, r3650, r3651, r3652, r3653, r3654, r3655, r3656, r3657, r3658, r3659, r3660, r3661⟩ := dtk_rows72 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3649 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc446 at r3649
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3649
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3650 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc447 at r3650
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3650
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3651 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc448 at r3651
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3651
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3652 at r3652
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3653 at r3653
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3654 at r3654
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3655 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc449 at r3655
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3655
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3656 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc450 at r3656
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3656
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3657 at r3657
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3658 at r3658
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3659 at r3659
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3660 at r3660
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3661 at r3661
-  have hrung72 (bit : Bool) (hbit : rho 1055 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX72 rho : F), (dtkAccY72 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3141 : F), (rho 3142 : F)⟩) :
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX72 rho : F), (dtkAccY72 rho : F)⟩
-        ⟨(rho 3141 : F), (rho 3142 : F)⟩
-        ⟨(dtkAccX73 rho : F), (dtkAccY73 rho : F)⟩
-        ⟨(rho 3154 : F), (rho 3155 : F)⟩ := by
-    have hnextx : dtkAccX73 rho = dtkAccX72 rho + rho 3149 := by
-      unfold dtkAccX73 dtkAccX72
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 71]
-      ring
-    have hnexty : dtkAccY73 rho = dtkAccY72 rho + rho 3150 := by
-      unfold dtkAccY73 dtkAccY72
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 72]
-      ring
-    have ha0 : (rho 3141 + rho 3142) * (dtkAccX72 rho + dtkAccY72 rho) = rho 3143 := by
-      unfold dtkAccX72 dtkAccY72
-      linear_combination r3649
-    have ha1 : rho 3142 * dtkAccX72 rho = rho 3144 := by
-      unfold dtkAccX72
-      linear_combination r3650
-    have ha2 : rho 3141 * dtkAccY72 rho = rho 3145 := by
-      unfold dtkAccY72
-      linear_combination r3651
-    have ha3 : 3021 * rho 3144 * rho 3145 = rho 3146 := by
-      linear_combination r3652
-    have ha4 : rho 3147 * (1 + rho 3146) = rho 3144 + rho 3145 := by
-      linear_combination r3653
-    have ha5 : rho 3148 * (1 - rho 3146) = rho 3143 - rho 3144 - rho 3145 := by
-      linear_combination r3654
-    have haddx :
-        rho 3147 * (1 + 3021 * (rho 3142 * dtkAccX72 rho) * (rho 3141 * dtkAccY72 rho)) =
-          rho 3142 * dtkAccX72 rho + rho 3141 * dtkAccY72 rho := by
-      rw [ha1, ha2, ha3]
-      exact ha4
-    have haddy :
-        rho 3148 * (1 - 3021 * (rho 3142 * dtkAccX72 rho) * (rho 3141 * dtkAccY72 rho)) =
-          (-1) * (rho 3142 * dtkAccX72 rho) - rho 3141 * dtkAccY72 rho +
-            (dtkAccY72 rho - dtkAccX72 rho * (-1)) * (rho 3141 + rho 3142) := by
-      rw [ha1, ha2, ha3]
-      calc
-        rho 3148 * (1 - rho 3146) = rho 3143 - rho 3144 - rho 3145 := ha5
-        _ = (-1) * rho 3144 - rho 3145 + (dtkAccY72 rho - dtkAccX72 rho * (-1)) * (rho 3141 + rho 3142) := by
-          rw [← ha0]
-          ring
-    have hselx : dtkAccX73 rho = dtkAccX72 rho - Bool.toZMod bit * (dtkAccX72 rho - rho 3147) := by
-      have hd : rho 3149 = Bool.toZMod bit * (rho 3147 - dtkAccX72 rho) := by
-        rw [← hbit]
-        unfold dtkAccX72
-        linear_combination -r3655
-      rw [hnextx]
-      linear_combination hd
-    have hsely : dtkAccY73 rho = dtkAccY72 rho - Bool.toZMod bit * (dtkAccY72 rho - rho 3148) := by
-      have hd : rho 3150 = Bool.toZMod bit * (rho 3148 - dtkAccY72 rho) := by
-        rw [← hbit]
-        unfold dtkAccY72
-        linear_combination -r3656
-      rw [hnexty]
-      linear_combination hd
-    have hd0 : rho 3141 * rho 3142 = rho 3151 := by linear_combination r3657
-    have hd1 : rho 3141 * rho 3141 = rho 3152 := by linear_combination r3658
-    have hd2 : rho 3142 * rho 3142 = rho 3153 := by linear_combination r3659
-    have hd3 : rho 3154 * (rho 3142 * rho 3142 + rho 3141 * rho 3141 * (-1)) = 2 * (rho 3141 * rho 3142) := by
-      rw [hd0, hd1, hd2]
-      linear_combination r3660
-    have hd4 : rho 3155 * (2 - (rho 3142 * rho 3142 + rho 3141 * rho 3141 * (-1))) = rho 3142 * rho 3142 - rho 3141 * rho 3141 * (-1) := by
-      rw [hd1, hd2]
-      linear_combination r3661
-    apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX72 rho : F), (dtkAccY72 rho : F)⟩
-      ⟨(rho 3141 : F), (rho 3142 : F)⟩
-      ⟨(rho 3147 : F), (rho 3148 : F)⟩
-      ⟨(dtkAccX73 rho : F), (dtkAccY73 rho : F)⟩
-      ⟨(rho 3154 : F), (rho 3155 : F)⟩
-      hacc hcur
-    · simpa [EdwardsBridge.d] using haddx
-    · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
-    · cases bit <;> simp [Bool.toZMod_zero, Bool.toZMod_one]
-    · exact hselx
-    · exact hsely
-    · simpa [EdwardsBridge.a_eq] using hd3
-    · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung72
-
-theorem dtk_rows73 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3662 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3663 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3664 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3665 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3666 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3667 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3668 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3669 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3670 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3671 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3672 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3673 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3674 rho := by
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
-  rcases h with ⟨
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, p45, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _
-  ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart45 at p45
-  rcases p45 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3662, r3663, r3664, r3665, r3666, r3667, r3668, r3669, r3670, r3671, r3672, r3673, r3674, _, _, _, _, _⟩
-  exact ⟨r3662, r3663, r3664, r3665, r3666, r3667, r3668, r3669, r3670, r3671, r3672, r3673, r3674⟩
-
-theorem dtk_rung73 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1056 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX73 rho : F), (dtkAccY73 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3154 : F), (rho 3155 : F)⟩ →
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX73 rho : F), (dtkAccY73 rho : F)⟩
-        ⟨(rho 3154 : F), (rho 3155 : F)⟩
-        ⟨(dtkAccX74 rho : F), (dtkAccY74 rho : F)⟩
-        ⟨(rho 3167 : F), (rho 3168 : F)⟩ := by
-  obtain ⟨r3662, r3663, r3664, r3665, r3666, r3667, r3668, r3669, r3670, r3671, r3672, r3673, r3674⟩ := dtk_rows73 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3662 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc451 at r3662
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3662
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3663 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc452 at r3663
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3663
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3664 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc453 at r3664
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3664
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3665 at r3665
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3666 at r3666
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3667 at r3667
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3668 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc454 at r3668
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3668
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3669 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc455 at r3669
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3669
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3670 at r3670
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3671 at r3671
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3672 at r3672
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3673 at r3673
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3674 at r3674
-  have hrung73 (bit : Bool) (hbit : rho 1056 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX73 rho : F), (dtkAccY73 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3154 : F), (rho 3155 : F)⟩) :
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX73 rho : F), (dtkAccY73 rho : F)⟩
-        ⟨(rho 3154 : F), (rho 3155 : F)⟩
-        ⟨(dtkAccX74 rho : F), (dtkAccY74 rho : F)⟩
-        ⟨(rho 3167 : F), (rho 3168 : F)⟩ := by
-    have hnextx : dtkAccX74 rho = dtkAccX73 rho + rho 3162 := by
-      unfold dtkAccX74 dtkAccX73
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 72]
-      ring
-    have hnexty : dtkAccY74 rho = dtkAccY73 rho + rho 3163 := by
-      unfold dtkAccY74 dtkAccY73
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 73]
-      ring
-    have ha0 : (rho 3154 + rho 3155) * (dtkAccX73 rho + dtkAccY73 rho) = rho 3156 := by
-      unfold dtkAccX73 dtkAccY73
-      linear_combination r3662
-    have ha1 : rho 3155 * dtkAccX73 rho = rho 3157 := by
-      unfold dtkAccX73
-      linear_combination r3663
-    have ha2 : rho 3154 * dtkAccY73 rho = rho 3158 := by
-      unfold dtkAccY73
-      linear_combination r3664
-    have ha3 : 3021 * rho 3157 * rho 3158 = rho 3159 := by
-      linear_combination r3665
-    have ha4 : rho 3160 * (1 + rho 3159) = rho 3157 + rho 3158 := by
-      linear_combination r3666
-    have ha5 : rho 3161 * (1 - rho 3159) = rho 3156 - rho 3157 - rho 3158 := by
-      linear_combination r3667
-    have haddx :
-        rho 3160 * (1 + 3021 * (rho 3155 * dtkAccX73 rho) * (rho 3154 * dtkAccY73 rho)) =
-          rho 3155 * dtkAccX73 rho + rho 3154 * dtkAccY73 rho := by
-      rw [ha1, ha2, ha3]
-      exact ha4
-    have haddy :
-        rho 3161 * (1 - 3021 * (rho 3155 * dtkAccX73 rho) * (rho 3154 * dtkAccY73 rho)) =
-          (-1) * (rho 3155 * dtkAccX73 rho) - rho 3154 * dtkAccY73 rho +
-            (dtkAccY73 rho - dtkAccX73 rho * (-1)) * (rho 3154 + rho 3155) := by
-      rw [ha1, ha2, ha3]
-      calc
-        rho 3161 * (1 - rho 3159) = rho 3156 - rho 3157 - rho 3158 := ha5
-        _ = (-1) * rho 3157 - rho 3158 + (dtkAccY73 rho - dtkAccX73 rho * (-1)) * (rho 3154 + rho 3155) := by
-          rw [← ha0]
-          ring
-    have hselx : dtkAccX74 rho = dtkAccX73 rho - Bool.toZMod bit * (dtkAccX73 rho - rho 3160) := by
-      have hd : rho 3162 = Bool.toZMod bit * (rho 3160 - dtkAccX73 rho) := by
-        rw [← hbit]
-        unfold dtkAccX73
-        linear_combination -r3668
-      rw [hnextx]
-      linear_combination hd
-    have hsely : dtkAccY74 rho = dtkAccY73 rho - Bool.toZMod bit * (dtkAccY73 rho - rho 3161) := by
-      have hd : rho 3163 = Bool.toZMod bit * (rho 3161 - dtkAccY73 rho) := by
-        rw [← hbit]
-        unfold dtkAccY73
-        linear_combination -r3669
-      rw [hnexty]
-      linear_combination hd
-    have hd0 : rho 3154 * rho 3155 = rho 3164 := by linear_combination r3670
-    have hd1 : rho 3154 * rho 3154 = rho 3165 := by linear_combination r3671
-    have hd2 : rho 3155 * rho 3155 = rho 3166 := by linear_combination r3672
-    have hd3 : rho 3167 * (rho 3155 * rho 3155 + rho 3154 * rho 3154 * (-1)) = 2 * (rho 3154 * rho 3155) := by
-      rw [hd0, hd1, hd2]
-      linear_combination r3673
-    have hd4 : rho 3168 * (2 - (rho 3155 * rho 3155 + rho 3154 * rho 3154 * (-1))) = rho 3155 * rho 3155 - rho 3154 * rho 3154 * (-1) := by
-      rw [hd1, hd2]
-      linear_combination r3674
-    apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX73 rho : F), (dtkAccY73 rho : F)⟩
-      ⟨(rho 3154 : F), (rho 3155 : F)⟩
-      ⟨(rho 3160 : F), (rho 3161 : F)⟩
-      ⟨(dtkAccX74 rho : F), (dtkAccY74 rho : F)⟩
-      ⟨(rho 3167 : F), (rho 3168 : F)⟩
-      hacc hcur
-    · simpa [EdwardsBridge.d] using haddx
-    · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
-    · cases bit <;> simp [Bool.toZMod_zero, Bool.toZMod_one]
-    · exact hselx
-    · exact hsely
-    · simpa [EdwardsBridge.a_eq] using hd3
-    · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung73
-
-theorem dtk_rows74 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3675 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3676 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3677 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3678 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3679 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3680 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3681 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3682 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3683 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3684 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3685 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3686 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3687 rho := by
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
-  rcases h with ⟨
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, p45, p46, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _
-  ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart45 at p45
-  rcases p45 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3675, r3676, r3677, r3678, r3679⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart46 at p46
-  rcases p46 with ⟨r3680, r3681, r3682, r3683, r3684, r3685, r3686, r3687, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3675, r3676, r3677, r3678, r3679, r3680, r3681, r3682, r3683, r3684, r3685, r3686, r3687⟩
-
-theorem dtk_rung74 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1057 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX74 rho : F), (dtkAccY74 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3167 : F), (rho 3168 : F)⟩ →
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX74 rho : F), (dtkAccY74 rho : F)⟩
-        ⟨(rho 3167 : F), (rho 3168 : F)⟩
-        ⟨(dtkAccX75 rho : F), (dtkAccY75 rho : F)⟩
-        ⟨(rho 3180 : F), (rho 3181 : F)⟩ := by
-  obtain ⟨r3675, r3676, r3677, r3678, r3679, r3680, r3681, r3682, r3683, r3684, r3685, r3686, r3687⟩ := dtk_rows74 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3675 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc456 at r3675
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3675
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3676 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc457 at r3676
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3676
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3677 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc458 at r3677
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3677
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3678 at r3678
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3679 at r3679
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3680 at r3680
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3681 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc459 at r3681
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3681
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3682 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc460 at r3682
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3682
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3683 at r3683
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3684 at r3684
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3685 at r3685
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3686 at r3686
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3687 at r3687
-  have hrung74 (bit : Bool) (hbit : rho 1057 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX74 rho : F), (dtkAccY74 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3167 : F), (rho 3168 : F)⟩) :
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX74 rho : F), (dtkAccY74 rho : F)⟩
-        ⟨(rho 3167 : F), (rho 3168 : F)⟩
-        ⟨(dtkAccX75 rho : F), (dtkAccY75 rho : F)⟩
-        ⟨(rho 3180 : F), (rho 3181 : F)⟩ := by
-    have hnextx : dtkAccX75 rho = dtkAccX74 rho + rho 3175 := by
-      unfold dtkAccX75 dtkAccX74
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 73]
-      ring
-    have hnexty : dtkAccY75 rho = dtkAccY74 rho + rho 3176 := by
-      unfold dtkAccY75 dtkAccY74
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 74]
-      ring
-    have ha0 : (rho 3167 + rho 3168) * (dtkAccX74 rho + dtkAccY74 rho) = rho 3169 := by
-      unfold dtkAccX74 dtkAccY74
-      linear_combination r3675
-    have ha1 : rho 3168 * dtkAccX74 rho = rho 3170 := by
-      unfold dtkAccX74
-      linear_combination r3676
-    have ha2 : rho 3167 * dtkAccY74 rho = rho 3171 := by
-      unfold dtkAccY74
-      linear_combination r3677
-    have ha3 : 3021 * rho 3170 * rho 3171 = rho 3172 := by
-      linear_combination r3678
-    have ha4 : rho 3173 * (1 + rho 3172) = rho 3170 + rho 3171 := by
-      linear_combination r3679
-    have ha5 : rho 3174 * (1 - rho 3172) = rho 3169 - rho 3170 - rho 3171 := by
-      linear_combination r3680
-    have haddx :
-        rho 3173 * (1 + 3021 * (rho 3168 * dtkAccX74 rho) * (rho 3167 * dtkAccY74 rho)) =
-          rho 3168 * dtkAccX74 rho + rho 3167 * dtkAccY74 rho := by
-      rw [ha1, ha2, ha3]
-      exact ha4
-    have haddy :
-        rho 3174 * (1 - 3021 * (rho 3168 * dtkAccX74 rho) * (rho 3167 * dtkAccY74 rho)) =
-          (-1) * (rho 3168 * dtkAccX74 rho) - rho 3167 * dtkAccY74 rho +
-            (dtkAccY74 rho - dtkAccX74 rho * (-1)) * (rho 3167 + rho 3168) := by
-      rw [ha1, ha2, ha3]
-      calc
-        rho 3174 * (1 - rho 3172) = rho 3169 - rho 3170 - rho 3171 := ha5
-        _ = (-1) * rho 3170 - rho 3171 + (dtkAccY74 rho - dtkAccX74 rho * (-1)) * (rho 3167 + rho 3168) := by
-          rw [← ha0]
-          ring
-    have hselx : dtkAccX75 rho = dtkAccX74 rho - Bool.toZMod bit * (dtkAccX74 rho - rho 3173) := by
-      have hd : rho 3175 = Bool.toZMod bit * (rho 3173 - dtkAccX74 rho) := by
-        rw [← hbit]
-        unfold dtkAccX74
-        linear_combination -r3681
-      rw [hnextx]
-      linear_combination hd
-    have hsely : dtkAccY75 rho = dtkAccY74 rho - Bool.toZMod bit * (dtkAccY74 rho - rho 3174) := by
-      have hd : rho 3176 = Bool.toZMod bit * (rho 3174 - dtkAccY74 rho) := by
-        rw [← hbit]
-        unfold dtkAccY74
-        linear_combination -r3682
-      rw [hnexty]
-      linear_combination hd
-    have hd0 : rho 3167 * rho 3168 = rho 3177 := by linear_combination r3683
-    have hd1 : rho 3167 * rho 3167 = rho 3178 := by linear_combination r3684
-    have hd2 : rho 3168 * rho 3168 = rho 3179 := by linear_combination r3685
-    have hd3 : rho 3180 * (rho 3168 * rho 3168 + rho 3167 * rho 3167 * (-1)) = 2 * (rho 3167 * rho 3168) := by
-      rw [hd0, hd1, hd2]
-      linear_combination r3686
-    have hd4 : rho 3181 * (2 - (rho 3168 * rho 3168 + rho 3167 * rho 3167 * (-1))) = rho 3168 * rho 3168 - rho 3167 * rho 3167 * (-1) := by
-      rw [hd1, hd2]
-      linear_combination r3687
-    apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX74 rho : F), (dtkAccY74 rho : F)⟩
-      ⟨(rho 3167 : F), (rho 3168 : F)⟩
-      ⟨(rho 3173 : F), (rho 3174 : F)⟩
-      ⟨(dtkAccX75 rho : F), (dtkAccY75 rho : F)⟩
-      ⟨(rho 3180 : F), (rho 3181 : F)⟩
-      hacc hcur
-    · simpa [EdwardsBridge.d] using haddx
-    · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
-    · cases bit <;> simp [Bool.toZMod_zero, Bool.toZMod_one]
-    · exact hselx
-    · exact hsely
-    · simpa [EdwardsBridge.a_eq] using hd3
-    · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung74
-
-theorem dtk_rows75 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3688 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3689 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3690 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3691 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3692 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3693 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3694 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3695 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3696 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3697 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3698 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3699 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3700 rho := by
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
-  rcases h with ⟨
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, p46, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _
-  ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart46 at p46
-  rcases p46 with ⟨_, _, _, _, _, _, _, _, r3688, r3689, r3690, r3691, r3692, r3693, r3694, r3695, r3696, r3697, r3698, r3699, r3700, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3688, r3689, r3690, r3691, r3692, r3693, r3694, r3695, r3696, r3697, r3698, r3699, r3700⟩
-
-theorem dtk_rung75 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1058 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX75 rho : F), (dtkAccY75 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3180 : F), (rho 3181 : F)⟩ →
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX75 rho : F), (dtkAccY75 rho : F)⟩
-        ⟨(rho 3180 : F), (rho 3181 : F)⟩
-        ⟨(dtkAccX76 rho : F), (dtkAccY76 rho : F)⟩
-        ⟨(rho 3193 : F), (rho 3194 : F)⟩ := by
-  obtain ⟨r3688, r3689, r3690, r3691, r3692, r3693, r3694, r3695, r3696, r3697, r3698, r3699, r3700⟩ := dtk_rows75 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3688 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc461 at r3688
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3688
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3689 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc462 at r3689
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3689
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3690 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc463 at r3690
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3690
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3691 at r3691
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3692 at r3692
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3693 at r3693
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3694 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc464 at r3694
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3694
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3695 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc465 at r3695
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3695
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3696 at r3696
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3697 at r3697
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3698 at r3698
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3699 at r3699
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3700 at r3700
-  have hrung75 (bit : Bool) (hbit : rho 1058 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX75 rho : F), (dtkAccY75 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3180 : F), (rho 3181 : F)⟩) :
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX75 rho : F), (dtkAccY75 rho : F)⟩
-        ⟨(rho 3180 : F), (rho 3181 : F)⟩
-        ⟨(dtkAccX76 rho : F), (dtkAccY76 rho : F)⟩
-        ⟨(rho 3193 : F), (rho 3194 : F)⟩ := by
-    have hnextx : dtkAccX76 rho = dtkAccX75 rho + rho 3188 := by
-      unfold dtkAccX76 dtkAccX75
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 74]
-      ring
-    have hnexty : dtkAccY76 rho = dtkAccY75 rho + rho 3189 := by
-      unfold dtkAccY76 dtkAccY75
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 75]
-      ring
-    have ha0 : (rho 3180 + rho 3181) * (dtkAccX75 rho + dtkAccY75 rho) = rho 3182 := by
-      unfold dtkAccX75 dtkAccY75
-      linear_combination r3688
-    have ha1 : rho 3181 * dtkAccX75 rho = rho 3183 := by
-      unfold dtkAccX75
-      linear_combination r3689
-    have ha2 : rho 3180 * dtkAccY75 rho = rho 3184 := by
-      unfold dtkAccY75
-      linear_combination r3690
-    have ha3 : 3021 * rho 3183 * rho 3184 = rho 3185 := by
-      linear_combination r3691
-    have ha4 : rho 3186 * (1 + rho 3185) = rho 3183 + rho 3184 := by
-      linear_combination r3692
-    have ha5 : rho 3187 * (1 - rho 3185) = rho 3182 - rho 3183 - rho 3184 := by
-      linear_combination r3693
-    have haddx :
-        rho 3186 * (1 + 3021 * (rho 3181 * dtkAccX75 rho) * (rho 3180 * dtkAccY75 rho)) =
-          rho 3181 * dtkAccX75 rho + rho 3180 * dtkAccY75 rho := by
-      rw [ha1, ha2, ha3]
-      exact ha4
-    have haddy :
-        rho 3187 * (1 - 3021 * (rho 3181 * dtkAccX75 rho) * (rho 3180 * dtkAccY75 rho)) =
-          (-1) * (rho 3181 * dtkAccX75 rho) - rho 3180 * dtkAccY75 rho +
-            (dtkAccY75 rho - dtkAccX75 rho * (-1)) * (rho 3180 + rho 3181) := by
-      rw [ha1, ha2, ha3]
-      calc
-        rho 3187 * (1 - rho 3185) = rho 3182 - rho 3183 - rho 3184 := ha5
-        _ = (-1) * rho 3183 - rho 3184 + (dtkAccY75 rho - dtkAccX75 rho * (-1)) * (rho 3180 + rho 3181) := by
-          rw [← ha0]
-          ring
-    have hselx : dtkAccX76 rho = dtkAccX75 rho - Bool.toZMod bit * (dtkAccX75 rho - rho 3186) := by
-      have hd : rho 3188 = Bool.toZMod bit * (rho 3186 - dtkAccX75 rho) := by
-        rw [← hbit]
-        unfold dtkAccX75
-        linear_combination -r3694
-      rw [hnextx]
-      linear_combination hd
-    have hsely : dtkAccY76 rho = dtkAccY75 rho - Bool.toZMod bit * (dtkAccY75 rho - rho 3187) := by
-      have hd : rho 3189 = Bool.toZMod bit * (rho 3187 - dtkAccY75 rho) := by
-        rw [← hbit]
-        unfold dtkAccY75
-        linear_combination -r3695
-      rw [hnexty]
-      linear_combination hd
-    have hd0 : rho 3180 * rho 3181 = rho 3190 := by linear_combination r3696
-    have hd1 : rho 3180 * rho 3180 = rho 3191 := by linear_combination r3697
-    have hd2 : rho 3181 * rho 3181 = rho 3192 := by linear_combination r3698
-    have hd3 : rho 3193 * (rho 3181 * rho 3181 + rho 3180 * rho 3180 * (-1)) = 2 * (rho 3180 * rho 3181) := by
-      rw [hd0, hd1, hd2]
-      linear_combination r3699
-    have hd4 : rho 3194 * (2 - (rho 3181 * rho 3181 + rho 3180 * rho 3180 * (-1))) = rho 3181 * rho 3181 - rho 3180 * rho 3180 * (-1) := by
-      rw [hd1, hd2]
-      linear_combination r3700
-    apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX75 rho : F), (dtkAccY75 rho : F)⟩
-      ⟨(rho 3180 : F), (rho 3181 : F)⟩
-      ⟨(rho 3186 : F), (rho 3187 : F)⟩
-      ⟨(dtkAccX76 rho : F), (dtkAccY76 rho : F)⟩
-      ⟨(rho 3193 : F), (rho 3194 : F)⟩
-      hacc hcur
-    · simpa [EdwardsBridge.d] using haddx
-    · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
-    · cases bit <;> simp [Bool.toZMod_zero, Bool.toZMod_one]
-    · exact hselx
-    · exact hsely
-    · simpa [EdwardsBridge.a_eq] using hd3
-    · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung75
-
-theorem dtk_rows76 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3701 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3702 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3703 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3704 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3705 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3706 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3707 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3708 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3709 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3710 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3711 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3712 rho ∧ Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3713 rho := by
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation at h
-  rcases h with ⟨
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, p46, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _, _, _, _, _,
-    _, _, _, _, _, _
-  ⟩
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationPart46 at p46
-  rcases p46 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r3701, r3702, r3703, r3704, r3705, r3706, r3707, r3708, r3709, r3710, r3711, r3712, r3713, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
-  exact ⟨r3701, r3702, r3703, r3704, r3705, r3706, r3707, r3708, r3709, r3710, r3711, r3712, r3713⟩
-
-theorem dtk_rung76 (rho : Nat -> Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho) :
-    ∀ (bit : Bool), rho 1059 = Bool.toZMod bit →
-      EdwardsBridge.onCurve ⟨(dtkAccX76 rho : F), (dtkAccY76 rho : F)⟩ →
-      EdwardsBridge.onCurve ⟨(rho 3193 : F), (rho 3194 : F)⟩ →
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX76 rho : F), (dtkAccY76 rho : F)⟩
-        ⟨(rho 3193 : F), (rho 3194 : F)⟩
-        ⟨(dtkAccX77 rho : F), (dtkAccY77 rho : F)⟩
-        ⟨(rho 3206 : F), (rho 3207 : F)⟩ := by
-  obtain ⟨r3701, r3702, r3703, r3704, r3705, r3706, r3707, r3708, r3709, r3710, r3711, r3712, r3713⟩ := dtk_rows76 rho h
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3701 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc466 at r3701
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3701
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3702 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc467 at r3702
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3702
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3703 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc468 at r3703
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3703
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3704 at r3704
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3705 at r3705
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3706 at r3706
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3707 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc469 at r3707
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3707
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3708 Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationLc470 at r3708
-  simp only [Shieldd.GnarkFormal.StructuredLC.eval, Shieldd.GnarkFormal.StructuredLC.sumRuns, Shieldd.GnarkFormal.StructuredLC.sumResidual, Shieldd.GnarkFormal.StrideRun.eval] at r3708
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3709 at r3709
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3710 at r3710
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3711 at r3711
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3712 at r3712
-  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relationRow3713 at r3713
-  have hrung76 (bit : Bool) (hbit : rho 1059 = Bool.toZMod bit)
-      (hacc : EdwardsBridge.onCurve ⟨(dtkAccX76 rho : F), (dtkAccY76 rho : F)⟩)
-      (hcur : EdwardsBridge.onCurve ⟨(rho 3193 : F), (rho 3194 : F)⟩) :
-      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)
-        ⟨(dtkAccX76 rho : F), (dtkAccY76 rho : F)⟩
-        ⟨(rho 3193 : F), (rho 3194 : F)⟩
-        ⟨(dtkAccX77 rho : F), (dtkAccY77 rho : F)⟩
-        ⟨(rho 3206 : F), (rho 3207 : F)⟩ := by
-    have hnextx : dtkAccX77 rho = dtkAccX76 rho + rho 3201 := by
-      unfold dtkAccX77 dtkAccX76
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2226 13 75]
-      ring
-    have hnexty : dtkAccY77 rho = dtkAccY76 rho + rho 3202 := by
-      unfold dtkAccY77 dtkAccY76
-      rw [Shieldd.GnarkFormal.StrideRun.sumAux_succ rho 2214 13 76]
-      ring
-    have ha0 : (rho 3193 + rho 3194) * (dtkAccX76 rho + dtkAccY76 rho) = rho 3195 := by
-      unfold dtkAccX76 dtkAccY76
-      linear_combination r3701
-    have ha1 : rho 3194 * dtkAccX76 rho = rho 3196 := by
-      unfold dtkAccX76
-      linear_combination r3702
-    have ha2 : rho 3193 * dtkAccY76 rho = rho 3197 := by
-      unfold dtkAccY76
-      linear_combination r3703
-    have ha3 : 3021 * rho 3196 * rho 3197 = rho 3198 := by
-      linear_combination r3704
-    have ha4 : rho 3199 * (1 + rho 3198) = rho 3196 + rho 3197 := by
-      linear_combination r3705
-    have ha5 : rho 3200 * (1 - rho 3198) = rho 3195 - rho 3196 - rho 3197 := by
-      linear_combination r3706
-    have haddx :
-        rho 3199 * (1 + 3021 * (rho 3194 * dtkAccX76 rho) * (rho 3193 * dtkAccY76 rho)) =
-          rho 3194 * dtkAccX76 rho + rho 3193 * dtkAccY76 rho := by
-      rw [ha1, ha2, ha3]
-      exact ha4
-    have haddy :
-        rho 3200 * (1 - 3021 * (rho 3194 * dtkAccX76 rho) * (rho 3193 * dtkAccY76 rho)) =
-          (-1) * (rho 3194 * dtkAccX76 rho) - rho 3193 * dtkAccY76 rho +
-            (dtkAccY76 rho - dtkAccX76 rho * (-1)) * (rho 3193 + rho 3194) := by
-      rw [ha1, ha2, ha3]
-      calc
-        rho 3200 * (1 - rho 3198) = rho 3195 - rho 3196 - rho 3197 := ha5
-        _ = (-1) * rho 3196 - rho 3197 + (dtkAccY76 rho - dtkAccX76 rho * (-1)) * (rho 3193 + rho 3194) := by
-          rw [← ha0]
-          ring
-    have hselx : dtkAccX77 rho = dtkAccX76 rho - Bool.toZMod bit * (dtkAccX76 rho - rho 3199) := by
-      have hd : rho 3201 = Bool.toZMod bit * (rho 3199 - dtkAccX76 rho) := by
-        rw [← hbit]
-        unfold dtkAccX76
-        linear_combination -r3707
-      rw [hnextx]
-      linear_combination hd
-    have hsely : dtkAccY77 rho = dtkAccY76 rho - Bool.toZMod bit * (dtkAccY76 rho - rho 3200) := by
-      have hd : rho 3202 = Bool.toZMod bit * (rho 3200 - dtkAccY76 rho) := by
-        rw [← hbit]
-        unfold dtkAccY76
-        linear_combination -r3708
-      rw [hnexty]
-      linear_combination hd
-    have hd0 : rho 3193 * rho 3194 = rho 3203 := by linear_combination r3709
-    have hd1 : rho 3193 * rho 3193 = rho 3204 := by linear_combination r3710
-    have hd2 : rho 3194 * rho 3194 = rho 3205 := by linear_combination r3711
-    have hd3 : rho 3206 * (rho 3194 * rho 3194 + rho 3193 * rho 3193 * (-1)) = 2 * (rho 3193 * rho 3194) := by
-      rw [hd0, hd1, hd2]
-      linear_combination r3712
-    have hd4 : rho 3207 * (2 - (rho 3194 * rho 3194 + rho 3193 * rho 3193 * (-1))) = rho 3194 * rho 3194 - rho 3193 * rho 3193 * (-1) := by
-      rw [hd1, hd2]
-      linear_combination r3713
-    apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel
-      (Bool.toZMod bit) ⟨(dtkAccX76 rho : F), (dtkAccY76 rho : F)⟩
-      ⟨(rho 3193 : F), (rho 3194 : F)⟩
-      ⟨(rho 3199 : F), (rho 3200 : F)⟩
-      ⟨(dtkAccX77 rho : F), (dtkAccY77 rho : F)⟩
-      ⟨(rho 3206 : F), (rho 3207 : F)⟩
-      hacc hcur
-    · simpa [EdwardsBridge.d] using haddx
-    · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
-    · cases bit <;> simp [Bool.toZMod_zero, Bool.toZMod_one]
-    · exact hselx
-    · exact hsely
-    · simpa [EdwardsBridge.a_eq] using hd3
-    · simpa [EdwardsBridge.a_eq] using hd4
-  exact hrung76
+  exact hrung41
 
 theorem dtk_hstep_c6 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho)
     (bits : List.Vector Bool 251)
     (hbitAt : ∀ i, i < 251 → rho (983 + i) = Bool.toZMod bits[i]!) :
-    ∀ i, 66 ≤ i → i < 77 →
+    ∀ i, 36 ≤ i → i < 42 →
       EdwardsBridge.onCurve (dtkLadderAccState rho i) →
       EdwardsBridge.onCurve (dtkLadderCurState rho i) →
       Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bits[i]!)
@@ -1453,15 +804,10 @@ theorem dtk_hstep_c6 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Template
         (dtkLadderAccState rho (i + 1)) (dtkLadderCurState rho (i + 1)) := by
   intro i hlo hhi hacc hcur
   interval_cases i
-  · exact dtk_rung66 rho h bits[66]! (hbitAt 66 (by omega)) hacc hcur
-  · exact dtk_rung67 rho h bits[67]! (hbitAt 67 (by omega)) hacc hcur
-  · exact dtk_rung68 rho h bits[68]! (hbitAt 68 (by omega)) hacc hcur
-  · exact dtk_rung69 rho h bits[69]! (hbitAt 69 (by omega)) hacc hcur
-  · exact dtk_rung70 rho h bits[70]! (hbitAt 70 (by omega)) hacc hcur
-  · exact dtk_rung71 rho h bits[71]! (hbitAt 71 (by omega)) hacc hcur
-  · exact dtk_rung72 rho h bits[72]! (hbitAt 72 (by omega)) hacc hcur
-  · exact dtk_rung73 rho h bits[73]! (hbitAt 73 (by omega)) hacc hcur
-  · exact dtk_rung74 rho h bits[74]! (hbitAt 74 (by omega)) hacc hcur
-  · exact dtk_rung75 rho h bits[75]! (hbitAt 75 (by omega)) hacc hcur
-  · exact dtk_rung76 rho h bits[76]! (hbitAt 76 (by omega)) hacc hcur
+  · exact dtk_rung36 rho h bits[36]! (hbitAt 36 (by omega)) hacc hcur
+  · exact dtk_rung37 rho h bits[37]! (hbitAt 37 (by omega)) hacc hcur
+  · exact dtk_rung38 rho h bits[38]! (hbitAt 38 (by omega)) hacc hcur
+  · exact dtk_rung39 rho h bits[39]! (hbitAt 39 (by omega)) hacc hcur
+  · exact dtk_rung40 rho h bits[40]! (hbitAt 40 (by omega)) hacc hcur
+  · exact dtk_rung41 rho h bits[41]! (hbitAt 41 (by omega)) hacc hcur
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

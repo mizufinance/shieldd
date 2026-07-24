@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import Mathlib.Data.ZMod.Basic
 
 import ShielddGnarkFormal.StructuredLC

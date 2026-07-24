@@ -84,7 +84,7 @@ theorem nbBlind_rung141 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX141 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY141 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung141_wide (rho 1162) (rho 1303) (nbBlindDeltaX140 rho) (nbBlindDeltaY140 rho) (rho 2114) (rho 2115) (rho 2116) (rho 2117) (rho 2118) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung141_wide (rho 1162) (rho 1303) (nbBlindDeltaX140 rho) (nbBlindDeltaY140 rho) (rho 2114) (rho 2115) (rho 2116) (rho 2117) (rho 2118) hacc
   · unfold nbBlindDeltaX140 nbBlindDeltaY140
     linear_combination r2114
   · unfold nbBlindDeltaX140 nbBlindDeltaY140
@@ -172,7 +172,7 @@ theorem nbBlind_rung142 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX142 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY142 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung142_wide (rho 1162) (rho 1304) (nbBlindDeltaX141 rho) (nbBlindDeltaY141 rho) (rho 2119) (rho 2120) (rho 2121) (rho 2122) (rho 2123) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung142_wide (rho 1162) (rho 1304) (nbBlindDeltaX141 rho) (nbBlindDeltaY141 rho) (rho 2119) (rho 2120) (rho 2121) (rho 2122) (rho 2123) hacc
   · unfold nbBlindDeltaX141 nbBlindDeltaY141
     linear_combination r2119
   · unfold nbBlindDeltaX141 nbBlindDeltaY141
@@ -260,7 +260,7 @@ theorem nbBlind_rung143 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX143 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY143 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung143_wide (rho 1162) (rho 1305) (nbBlindDeltaX142 rho) (nbBlindDeltaY142 rho) (rho 2124) (rho 2125) (rho 2126) (rho 2127) (rho 2128) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung143_wide (rho 1162) (rho 1305) (nbBlindDeltaX142 rho) (nbBlindDeltaY142 rho) (rho 2124) (rho 2125) (rho 2126) (rho 2127) (rho 2128) hacc
   · unfold nbBlindDeltaX142 nbBlindDeltaY142
     linear_combination r2124
   · unfold nbBlindDeltaX142 nbBlindDeltaY142
@@ -348,7 +348,7 @@ theorem nbBlind_rung144 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX144 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY144 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung144_wide (rho 1162) (rho 1306) (nbBlindDeltaX143 rho) (nbBlindDeltaY143 rho) (rho 2129) (rho 2130) (rho 2131) (rho 2132) (rho 2133) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung144_wide (rho 1162) (rho 1306) (nbBlindDeltaX143 rho) (nbBlindDeltaY143 rho) (rho 2129) (rho 2130) (rho 2131) (rho 2132) (rho 2133) hacc
   · unfold nbBlindDeltaX143 nbBlindDeltaY143
     linear_combination r2129
   · unfold nbBlindDeltaX143 nbBlindDeltaY143
@@ -436,7 +436,7 @@ theorem nbBlind_rung145 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX145 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY145 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung145_wide (rho 1162) (rho 1307) (nbBlindDeltaX144 rho) (nbBlindDeltaY144 rho) (rho 2134) (rho 2135) (rho 2136) (rho 2137) (rho 2138) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung145_wide (rho 1162) (rho 1307) (nbBlindDeltaX144 rho) (nbBlindDeltaY144 rho) (rho 2134) (rho 2135) (rho 2136) (rho 2137) (rho 2138) hacc
   · unfold nbBlindDeltaX144 nbBlindDeltaY144
     linear_combination r2134
   · unfold nbBlindDeltaX144 nbBlindDeltaY144
@@ -524,7 +524,7 @@ theorem nbBlind_rung146 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX146 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY146 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung146_wide (rho 1162) (rho 1308) (nbBlindDeltaX145 rho) (nbBlindDeltaY145 rho) (rho 2139) (rho 2140) (rho 2141) (rho 2142) (rho 2143) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung146_wide (rho 1162) (rho 1308) (nbBlindDeltaX145 rho) (nbBlindDeltaY145 rho) (rho 2139) (rho 2140) (rho 2141) (rho 2142) (rho 2143) hacc
   · unfold nbBlindDeltaX145 nbBlindDeltaY145
     linear_combination r2139
   · unfold nbBlindDeltaX145 nbBlindDeltaY145
@@ -612,7 +612,7 @@ theorem nbBlind_rung147 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX147 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY147 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung147_wide (rho 1162) (rho 1309) (nbBlindDeltaX146 rho) (nbBlindDeltaY146 rho) (rho 2144) (rho 2145) (rho 2146) (rho 2147) (rho 2148) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung147_wide (rho 1162) (rho 1309) (nbBlindDeltaX146 rho) (nbBlindDeltaY146 rho) (rho 2144) (rho 2145) (rho 2146) (rho 2147) (rho 2148) hacc
   · unfold nbBlindDeltaX146 nbBlindDeltaY146
     linear_combination r2144
   · unfold nbBlindDeltaX146 nbBlindDeltaY146
@@ -700,7 +700,7 @@ theorem nbBlind_rung148 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX148 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY148 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung148_wide (rho 1162) (rho 1310) (nbBlindDeltaX147 rho) (nbBlindDeltaY147 rho) (rho 2149) (rho 2150) (rho 2151) (rho 2152) (rho 2153) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung148_wide (rho 1162) (rho 1310) (nbBlindDeltaX147 rho) (nbBlindDeltaY147 rho) (rho 2149) (rho 2150) (rho 2151) (rho 2152) (rho 2153) hacc
   · unfold nbBlindDeltaX147 nbBlindDeltaY147
     linear_combination r2149
   · unfold nbBlindDeltaX147 nbBlindDeltaY147
@@ -788,7 +788,7 @@ theorem nbBlind_rung149 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     ⟨((4661681602708190761543544705274244814260880986867766715334030151044279151219 : F) * rho 1162 + nbBlindDeltaX149 rho : F),
       ((1 : F) + (4337336842509898676347982752646772244181661588533917621717979456142867120377 : F) * rho 1162 + nbBlindDeltaY149 rho : F)⟩
   rw [hnextx, hnexty, ← hbitValue]
-  apply Shieldd.GnarkFormal.NbFixedGenShieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3.rung149_wide (rho 1162) (rho 1311) (nbBlindDeltaX148 rho) (nbBlindDeltaY148 rho) (rho 2154) (rho 2155) (rho 2156) (rho 2157) (rho 2158) hacc
+  apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung149_wide (rho 1162) (rho 1311) (nbBlindDeltaX148 rho) (nbBlindDeltaY148 rho) (rho 2154) (rho 2155) (rho 2156) (rho 2157) (rho 2158) hacc
   · unfold nbBlindDeltaX148 nbBlindDeltaY148
     linear_combination r2154
   · unfold nbBlindDeltaX148 nbBlindDeltaY148

@@ -7,6 +7,19 @@ set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f
 
+local instance (priority := 2000) part64CommRing : CommRing F := ZMod.commRing _
+local instance (priority := 3000) part64Add : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) part64AddSemigroup : AddSemigroup F := (ZMod.commRing _).toAddSemigroup
+local instance (priority := 3000) part64Mul : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) part64NatCast : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) part64Zero : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) part64One : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) part64Neg : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) part64Sub : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) part64MulOneClass : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) part64CommSemiring : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) part64Ring : Ring F := (ZMod.commRing _).toRing
+
 theorem template_part64_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationPart64 rho)
     {k : F → F → F → F → F → F → F → Prop} (hk : k (rho 302) (rho 307) (rho 312) (rho 317) (rho 322) (rho 327) (rho 332)) :
@@ -15,11 +28,13 @@ theorem template_part64_to_extracted (rho : Nat → F)
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64
   refine ⟨(rho 328), (rho 329), (rho 330), (rho 331), (rho 332), ?_, ?_, ?_, ?_, ?_, hk⟩
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12Part1] at h0
-    linear_combination h0
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F part64AddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12Part1, choiceFreeAddAssoc] using h0
   · exact h1
   · exact h2
   · exact h3
-  · simp only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12Part1] at h4
-    linear_combination h4
+  · have choiceFreeAddAssoc (a b c : F) : a + b + c = a + (b + c) :=
+      @add_assoc F part64AddSemigroup a b c
+    simpa only [Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12Part0, Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationLc12Part1, choiceFreeAddAssoc] using h4
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f

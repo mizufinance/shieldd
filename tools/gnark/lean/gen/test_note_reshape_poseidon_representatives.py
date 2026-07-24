@@ -40,6 +40,54 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
         self.assertIn("permSpec3", nullifier)
         self.assertNotIn("def spec (rho : Nat -> F) : Prop :=\n  relation rho", note + nullifier)
 
+    def test_tactic_dependencies_are_explicit(self) -> None:
+        for path, source in self.outputs.items():
+            if path.parent == poseidon.OUT and "linear_combination" in source:
+                self.assertIn("import Mathlib.Tactic.LinearCombination\n", source, path.name)
+            if path.parent == poseidon.OUT and "ring_nf" in source:
+                self.assertIn("import Mathlib.Tactic.Ring\n", source, path.name)
+
+    def test_note_commitment_bridge_uses_associativity_only(self) -> None:
+        note = poseidon.NAMES[poseidon.NOTE_KEY]
+        combined = "\n".join(
+            source
+            for path, source in self.outputs.items()
+            if path.name.startswith(f"{note}Part")
+        )
+        self.assertIn("@add_assoc F part60AddSemigroup", combined)
+        self.assertIn("choiceFreeAddAssoc] using h0", combined)
+        self.assertNotIn("linear_combination", combined)
+        self.assertNotIn("ring_nf", combined)
+        part60 = self.outputs[poseidon.OUT / f"{note}Part60.lean"]
+        self.assertIn("part60AddSemigroup : AddSemigroup F :=", part60)
+        part0 = self.outputs[poseidon.OUT / f"{note}Part0.lean"]
+        self.assertNotIn("part0AddSemigroup : AddSemigroup F :=", part0)
+
+    def test_generated_providers_seat_choice_free_zmod_operations(self) -> None:
+        note = poseidon.NAMES[poseidon.NOTE_KEY]
+        nullifier = poseidon.NAMES[poseidon.NULLIFIER_KEY]
+        expected_owner = {
+            poseidon.OUT / f"{note}Base.lean": "base",
+            poseidon.OUT / f"{note}Part60.lean": "part60",
+            poseidon.OUT / f"{note}.lean": "provider",
+        }
+        for path, owner in expected_owner.items():
+            source = self.outputs[path]
+            self.assertIn(f"{owner}CommRing : CommRing F :=", source, path.name)
+            self.assertIn(f"{owner}Ring : Ring F :=", source, path.name)
+
+        nullifier_source = self.outputs[poseidon.OUT / f"{nullifier}.lean"]
+        self.assertIn("baseCommRing : CommRing F :=", nullifier_source)
+
+    def test_note_commitment_shards_have_disjoint_instance_names(self) -> None:
+        note = poseidon.NAMES[poseidon.NOTE_KEY]
+        part0 = self.outputs[poseidon.OUT / f"{note}Part0.lean"]
+        part1 = self.outputs[poseidon.OUT / f"{note}Part1.lean"]
+        self.assertIn("part0Add : Add F :=", part0)
+        self.assertNotIn("part1Add : Add F :=", part0)
+        self.assertIn("part1Add : Add F :=", part1)
+        self.assertNotIn("part0Add : Add F :=", part1)
+
 
 if __name__ == "__main__":
     unittest.main()

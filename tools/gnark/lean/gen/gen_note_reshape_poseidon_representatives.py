@@ -7,7 +7,9 @@ import json
 import re
 from pathlib import Path
 
-import gen_note_reshape2x1_poseidon_adapters as poseidon
+import poseidon_recovery as poseidon
+from lean_zmod_instances import named_instance_block
+from template_ir import SegmentTemplate
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -25,6 +27,16 @@ NAMES = {
     NOTE_KEY: "TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
     NULLIFIER_KEY: "TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
 }
+
+
+def _with_explicit_tactic_imports(source: str) -> str:
+    """Declare tactics used by a generated module instead of relying on imports."""
+    imports = []
+    if "linear_combination" in source and "import Mathlib.Tactic.LinearCombination\n" not in source:
+        imports.append("import Mathlib.Tactic.LinearCombination\n")
+    if "ring_nf" in source and "import Mathlib.Tactic.Ring\n" not in source:
+        imports.append("import Mathlib.Tactic.Ring\n")
+    return "".join(imports) + source
 
 
 def _relation_lc_names(name: str) -> dict[int, tuple[str, ...]]:
@@ -46,50 +58,49 @@ def _relation_lc_names(name: str) -> dict[int, tuple[str, ...]]:
     return result
 
 
-def _segment(key: str, index: int, rows: int) -> dict:
+def _segment(key: str, rows: int) -> dict:
     ir = json.loads(IR.read_text())
-    matches = [s for s in ir["segments"] if s.get("template_key") == key and s["index"] == index]
-    if len(matches) != 1:
-        raise ValueError(f"expected one segment {index} for {key}")
-    segment = matches[0]
-    if segment["constraint_count"] != rows:
-        raise ValueError(f"{key}: row-count pin drifted")
-    if len(set(segment["wire_seating"])) != segment["local_wire_count"]:
-        raise ValueError(f"{key}: seating is not injective")
-    return segment
+    operation = key.split("@", 1)[0]
+    matches = [
+        segment for segment in ir["segments"]
+        if segment.get("proof_template_id") == key and segment.get("op") == operation
+    ]
+    if not matches:
+        raise ValueError(f"missing deployed representative for {key}")
+    role_projections = []
+    for segment in matches:
+        if segment["constraint_count"] != rows:
+            raise ValueError(f"{key}: row-count pin drifted")
+        seating = SegmentTemplate.parse(segment).canonical_wire_seating
+        if len(set(seating)) != len(seating):
+            raise ValueError(f"{key}: seating is not injective")
+        inverse = {wire: local for local, wire in enumerate(seating)}
+        role_projections.append({
+            role: tuple(inverse[wire] for wire in segment["wire_roles"][role])
+            for role in ("input", "output")
+        })
+    if any(roles != role_projections[0] for roles in role_projections[1:]):
+        raise ValueError(f"{key}: canonical boundary roles differ across instances")
+    return min(matches, key=lambda item: item["template_equivalence_witness"]["witness_sha256_hex"])
 
 
-def _local_mapping(segment: dict, deployed_mapping: dict[int, int], used: set[int]) -> dict[int, int]:
-    inverse = {global_wire: local for local, global_wire in enumerate(segment["wire_seating"])}
-    result = {}
-    for extracted in used:
-        global_wire = deployed_mapping.get(extracted, extracted)
-        if global_wire not in inverse:
-            raise ValueError(f"unseated extracted wire {extracted} / deployed wire {global_wire}")
-        result[extracted] = inverse[global_wire]
-    return result
-
-
-def _definitions() -> str:
+def _definitions(*, include_add_semigroup: bool = False) -> str:
     return f"""def Order : Nat := {ORDER}
 abbrev F := ZMod Order
 
 instance templateFactPrime : Fact (Nat.Prime Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
+{named_instance_block("base", include_add_semigroup=include_add_semigroup)}
 """
 
 
 def _note_context():
     key, name = NOTE_KEY, NAMES[NOTE_KEY]
-    segment = _segment(key, 9, 430)
+    _segment(key, 430)
     stem = "GadgetNoteCommitmentWithOutput431_7f228e"
     extracted = poseidon.parse_segments(stem)
     deployed_local = poseidon.derive_mapping(stem, RELATIONS.glob(f"{name}Defs*.lean"))
-    deployed = {
-        wire: segment["wire_seating"][local]
-        for wire, local in deployed_local.items()
-    }
     used = {
         int(w[1:])
         for index, part in extracted.items()
@@ -97,7 +108,10 @@ def _note_context():
         for field in ("binders", "witnesses", "cont")
         for w in part[field]
     }
-    mapping = _local_mapping(segment, deployed, used)
+    missing = used - deployed_local.keys()
+    if missing:
+        raise ValueError(f"note-commitment canonical mapping is incomplete: {sorted(missing)}")
+    mapping = {wire: deployed_local[wire] for wire in used}
     namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}"
     relation = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}"
     relation_import = relation.replace("Shieldd.GnarkFormal", "ShielddGnarkFormal")
@@ -138,8 +152,12 @@ def _note_part_provider(part: int) -> str:
         part,
         part,
         _relation_lc_names(NAMES[NOTE_KEY]),
+        f"part{part}AddSemigroup",
     )
     helpers = _normalize_note_adapter_text(helpers, relation)
+    instances = named_instance_block(
+        f"part{part}", include_add_semigroup="choiceFreeAddAssoc" in helpers
+    )
     return f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.{NAMES[NOTE_KEY]}Base
 import {relation_import}
 import ShielddGnarkFormal.Extracted.Deployed.{stem}
@@ -149,20 +167,24 @@ set_option maxHeartbeats 20000000
 
 namespace {namespace}
 
+{instances}
 {helpers}end {namespace}
 """
 
 
 def _note_provider() -> str:
     key, name = NOTE_KEY, NAMES[NOTE_KEY]
-    segment = _segment(key, 9, 430)
+    segment = _segment(key, 430)
     extracted, mapping, namespace, relation, relation_import, stem, extracted_ns = _note_context()
     prefix = "template"
     final = ["w1312", "w1317", "w1322", "w1327", "w1332", "w1337", "w1342"]
     nested = poseidon.build_nested(extracted_ns, extracted, mapping, 0, 85, poseidon.conj_eq(final, mapping))
     input_ids = tuple(segment["wire_roles"]["input"])
     output_ids = tuple(segment["wire_roles"]["output"])
-    inverse = {global_wire: local for local, global_wire in enumerate(segment["wire_seating"])}
+    inverse = {
+        global_wire: local
+        for local, global_wire in enumerate(SegmentTemplate.parse(segment).canonical_wire_seating)
+    }
     spec = (
         "def spec (rho : Nat → F) : Prop :=\n"
         "  Shieldd.GnarkFormal.Deployed.NoteCommitment.spec38\n"
@@ -189,6 +211,7 @@ set_option maxHeartbeats 20000000
 
 namespace {namespace}
 
+{named_instance_block("provider")}
 {spec}
 
 def {prefix}NotePrefix (rho : Nat → F) : Prop :=
@@ -208,19 +231,9 @@ end {namespace}
     return _normalize_note_adapter_text(text, relation)
 
 
-def _replace_rho_wires(text: str, segment: dict) -> str:
-    inverse = {global_wire: local for local, global_wire in enumerate(segment["wire_seating"])}
-    def replace(match: re.Match[str]) -> str:
-        wire = int(match.group(1))
-        if wire not in inverse:
-            raise ValueError(f"nullifier adapter references unseated deployed wire {wire}")
-        return f"rho {inverse[wire]}"
-    return re.sub(r"rho (\d+)", replace, text)
-
-
 def _nullifier_provider() -> str:
     key, name = NULLIFIER_KEY, NAMES[NULLIFIER_KEY]
-    segment = _segment(key, 11, 310)
+    segment = _segment(key, 310)
     stem = "GadgetNullifier310_6eee7c"
     extracted = poseidon.parse_segments(stem)
     mapping = poseidon.derive_mapping(
@@ -240,7 +253,10 @@ def _nullifier_provider() -> str:
         part_count - 1,
         poseidon.conj_eq([f"w{wire}" for wire in final], mapping),
     )
-    inverse = {global_wire: local for local, global_wire in enumerate(segment["wire_seating"])}
+    inverse = {
+        global_wire: local
+        for local, global_wire in enumerate(SegmentTemplate.parse(segment).canonical_wire_seating)
+    }
     output_ids = tuple(segment["wire_roles"]["output"])
     spec = f"""def spec (rho : Nat → F) : Prop :=
   Shieldd.GnarkFormal.Deployed.Nullifier.s38_1
@@ -271,6 +287,7 @@ def _nullifier_provider() -> str:
         0,
         part_count - 1,
         _relation_lc_names(name),
+        "baseAddSemigroup",
     )
     helpers = helpers.replace(f"{relation}.F", "F")
     relation_to = f"""theorem template_relation_to_nullifier (rho : Nat → F)
@@ -294,7 +311,7 @@ set_option maxHeartbeats 20000000
 
 namespace {namespace}
 
-{_definitions()}{spec}{helpers}{relation_to}{sound}
+{_definitions(include_add_semigroup=True)}{spec}{helpers}{relation_to}{sound}
 
 end {namespace}
 """
@@ -308,6 +325,10 @@ def generated_files() -> dict[Path, str]:
     }
     for part in range(86):
         outputs[OUT / f"{NAMES[NOTE_KEY]}Part{part}.lean"] = _note_part_provider(part)
+    outputs = {
+        path: _with_explicit_tactic_imports(source) if path.parent == OUT else source
+        for path, source in outputs.items()
+    }
     for key, name in NAMES.items():
         outputs[BENCH / f"NoteReshapeTemplate{name}Import.lean"] = (
             f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}\n"

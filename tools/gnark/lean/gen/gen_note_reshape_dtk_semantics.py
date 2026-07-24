@@ -3,11 +3,14 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 from pathlib import Path
 
-import gen_dtk_slice as dtk
+import dtk_recovery as dtk
+from template_ir import SegmentTemplate
+from write_if_changed import write_if_changed
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -21,6 +24,7 @@ KEY = "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25
 NAME = "TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 ROW_COUNT = 6077
+LTR_DEFS_DECLARATIONS_PER_SHARD = 220
 RELATION = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{NAME}"
 RELATION_MODULE = RELATION.replace("Shieldd.GnarkFormal", "ShielddGnarkFormal")
 NAMESPACE = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{NAME}.DtkSupport"
@@ -39,20 +43,18 @@ BENCH_CANDIDATES = (
 
 def _segment() -> dict:
     ir = json.loads(IR.read_text())
-    matches = [segment for segment in ir["segments"] if segment.get("template_key") == KEY]
+    matches = [segment for segment in ir["segments"] if segment.get("proof_template_id") == KEY]
     if len(matches) != 1:
         raise ValueError("expected exactly one normalized DTK representative")
     segment = matches[0]
     expected = {
-        "index": 6,
         "op": "decaf.diversified_transmission_key",
         "constraint_count": ROW_COUNT,
-        "local_wire_count": 5571,
     }
     for field, value in expected.items():
         if segment.get(field) != value:
             raise ValueError(f"DTK normalized source {field} drifted")
-    seating = segment["wire_seating"]
+    seating = SegmentTemplate.parse(segment).canonical_wire_seating
     if len(seating) != 5571 or len(set(seating)) != 5571 or seating[0] != 0:
         raise ValueError("DTK normalized seating pin drifted")
     return segment
@@ -74,6 +76,26 @@ def _relation_source() -> str:
     if rows != set(range(ROW_COUNT)):
         raise ValueError("DTK normalized rows are not exact")
     return source
+
+
+def _reviewed_wire_seating() -> tuple[int, ...]:
+    """Canonical-local to reviewed proof coordinates; deployment-independent."""
+    seating: list[int | None] = [None] * 5571
+    residual = {
+        0: 0, 1: 6, 2: 907, 3: 7, 11: 917, 12: 916, 13: 918,
+        14: 919, 15: 915, 706: 8, 977: 9, 978: 10, 2208: 3110,
+        2209: 3109, 2210: 3111, 2211: 17, 2212: 3112, 2213: 18,
+    }
+    for local, reference in residual.items():
+        seating[local] = reference
+    for local, reference, count in (
+        (4, 908, 7), (16, 920, 690), (707, 1610, 270),
+        (979, 1880, 1229), (2214, 3113, 3357),
+    ):
+        seating[local:local + count] = range(reference, reference + count)
+    if any(value is None for value in seating):
+        raise ValueError("DTK reviewed wire context is incomplete")
+    return tuple(int(value) for value in seating)
 
 
 def _deployed_shadow(source: str, seating: tuple[int, ...]) -> str:
@@ -109,7 +131,8 @@ def _deployed_shadow(source: str, seating: tuple[int, ...]) -> str:
 
 
 def _cfg() -> dtk.Instance:
-    seating = tuple(_segment()["wire_seating"])
+    _segment()
+    seating = _reviewed_wire_seating()
     inverse = {wire: local for local, wire in enumerate(seating)}
     for wire in (6, 7, 8, 9, 10, 17, 18):
         if wire not in inverse:
@@ -124,8 +147,37 @@ def _cfg() -> dtk.Instance:
     )
 
 
+def _scalar_outputs() -> tuple[list[int], list[int]]:
+    """Reviewed output-equivalence coordinates in canonical template space."""
+    ir = json.loads(IR.read_text())
+    key = (
+        "decaf.assert_equivalent@"
+        "9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3"
+    )
+    matches = [
+        segment for segment in ir["segments"]
+        if segment.get("proof_template_id") == key
+        and segment.get("op") == "decaf.assert_equivalent"
+    ]
+    if len(matches) != 1:
+        raise ValueError("expected exactly one DTK output-equivalence segment")
+    segment = SegmentTemplate.parse(matches[0])
+    if len(segment.canonical_wire_seating) != 507:
+        raise ValueError("DTK output-equivalence seating width drifted")
+    seating = [0] * 507
+    seating[0], seating[1], seating[253], seating[254], seating[506] = 0, 21, 6470, 20, 6471
+    for local, reference, stride, count in (
+        (2, 3112, 13, 150), (152, 5063, 14, 101),
+        (255, 3113, 13, 150), (405, 5064, 14, 101),
+    ):
+        for offset in range(count):
+            seating[local + offset] = reference + stride * offset
+    return list(seating[2:253]), list(seating[255:506])
+
+
 def _rewrite(source: str) -> str:
     old_module = "ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1"
+    source = "import ShielddGnarkFormal.ChoiceFreeZMod\n" + source
     source = source.replace(old_module + ".DtkAdapterSeg6", MODULE_PREFIX)
     source = source.replace(old_module + ".Seg6", RELATION_MODULE)
     source = source.replace(
@@ -140,6 +192,16 @@ def _rewrite(source: str) -> str:
     ).replace(
         "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1", f"end {NAMESPACE}"
     )
+    namespace_anchor = f"namespace {NAMESPACE}\n\n"
+    if namespace_anchor in source:
+        if source.count(namespace_anchor) != 1:
+            raise ValueError("DTK semantic namespace anchor drifted")
+        source = source.replace(
+            namespace_anchor,
+            namespace_anchor
+            + "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
+            1,
+        )
     source = source.replace(
         "Shieldd.GnarkFormal.Deployed.Dtk.Outputs", NAMESPACE + ".Outputs"
     )
@@ -188,8 +250,19 @@ def _rewrite(source: str) -> str:
 
 def _inject_spec(base: str, cfg: dtk.Instance) -> str:
     insertion = f"""
+section ChoiceFreeOnCurve
+
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) : Neg F := (ZMod.commRing _).toNeg
+
 def onCurveAt (x y : F) : Prop :=
-  y * y - x * x = 1 + 3021 * x * x * y * y
+  -(x * x) + y * y = 1 + 3021 * (x * x) * (y * y)
+
+end ChoiceFreeOnCurve
 
 def spec (rho : Nat → F) : Prop :=
   onCurveAt (rho {cfg.div_x}) (rho {cfg.div_y}) →
@@ -295,7 +368,7 @@ def _render_reviewed(
         )
         previous_lt = component
     r_defs = "DtkAdapterSeg6LtRDefs"
-    outputs[f"{r_defs}.lean"] = dtk.emit_ltc_defs(cfg, r_trace, previous_lt)
+    outputs.update(_shard_ltr_defs(dtk.emit_ltc_defs(cfg, r_trace, previous_lt), r_defs))
     previous_lt = r_defs
     for chunk_index, _ in enumerate(dtk.ltc_chunks()):
         component = f"DtkAdapterSeg6LtRChunk{chunk_index}"
@@ -305,6 +378,50 @@ def _render_reviewed(
         previous_lt = component
     outputs["DtkAdapterSeg6Lt.lean"] = dtk.emit_ltc(cfg)
     outputs["DtkAdapterSeg6.lean"] = dtk.emit_adapter(cfg)
+    return outputs
+
+
+def _shard_ltr_defs(source: str, facade: str) -> dict[str, str]:
+    """Split the large R-ladder declaration environment into bounded modules."""
+    namespace = "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1"
+    namespace_marker = f"namespace {namespace}\n\n"
+    end_marker = f"\nend {namespace}\n"
+    if source.count(namespace_marker) != 1 or source.count(end_marker) != 1:
+        raise ValueError("DTK LtR definition module framing drifted")
+    prelude, framed_body = source.split(namespace_marker, 1)
+    body, trailing = framed_body.rsplit(end_marker, 1)
+    if trailing:
+        raise ValueError("DTK LtR definition module has trailing content")
+    starts = [match.start() for match in re.finditer(r"(?m)^(?:def|theorem) ", body)]
+    if not starts or body[:starts[0]].strip():
+        raise ValueError("DTK LtR declarations are not structurally splittable")
+    declarations = [
+        body[start:end]
+        for start, end in zip(starts, (*starts[1:], len(body)), strict=True)
+    ]
+    groups = [
+        declarations[start:start + LTR_DEFS_DECLARATIONS_PER_SHARD]
+        for start in range(0, len(declarations), LTR_DEFS_DECLARATIONS_PER_SHARD)
+    ]
+    outputs: dict[str, str] = {}
+    previous = None
+    for index, group in enumerate(groups):
+        component = f"{facade}Part{index}"
+        header = prelude if previous is None else (
+            f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{previous}\n\n"
+            "set_option maxRecDepth 1000000\n"
+            "set_option maxHeartbeats 20000000\n"
+            "set_option linter.unusedVariables false\n\n"
+        )
+        outputs[f"{component}.lean"] = (
+            header + namespace_marker + "".join(group) + end_marker.lstrip("\n")
+        )
+        previous = component
+    if previous is None:
+        raise ValueError("DTK LtR definition sharding produced no modules")
+    outputs[f"{facade}.lean"] = (
+        f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.{previous}\n"
+    )
     return outputs
 
 
@@ -319,7 +436,7 @@ def _generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
     old_parts_cache = dict(dtk._RELATION_PARTS_CACHE)
     old_layouts = dict(dtk.LTC_ATOM_LAYOUTS)
     scalar_rows = dtk.sr1cs_lc_rows()
-    rungs = dtk.dtk_scalar_rungs(scalar_rows)
+    rungs = dtk.dtk_scalar_rungs(scalar_rows, _scalar_outputs())
     try:
         dtk.source = lambda seg: shadow if seg == cfg.seg else old_source(seg)
         dtk.INSTANCES = (cfg,)
@@ -360,8 +477,14 @@ def _generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
         outputs[bench / f"NoteReshapeTemplateDtk{label}Import.lean"] = (
             f"import {module}\n"
         )
-    if len(outputs) != 627:
-        raise ValueError(f"expected 619 DTK semantic modules and eight benchmark imports, got {len(outputs)}")
+    fixed_semantic_modules = 604
+    expected_semantic_modules = fixed_semantic_modules + len(dtk.scalar_chunks(rungs))
+    expected_outputs = expected_semantic_modules + len(BENCH_CANDIDATES)
+    if len(outputs) != expected_outputs:
+        raise ValueError(
+            f"expected {expected_semantic_modules} DTK semantic modules and "
+            f"{len(BENCH_CANDIDATES)} benchmark imports, got {len(outputs)}"
+        )
     return outputs
 
 
@@ -383,3 +506,29 @@ def generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
         dtk._SOURCE_CACHE.update(saved_source_cache)
         dtk._RELATION_PARTS_CACHE.clear()
         dtk._RELATION_PARTS_CACHE.update(saved_parts_cache)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    outputs = generated_files()
+    if args.check:
+        stale = [
+            str(path)
+            for path, source in outputs.items()
+            if not path.is_file() or path.read_text() != source
+        ]
+        if stale:
+            raise SystemExit(
+                "stale normalized DTK semantic providers:\n" + "\n".join(stale)
+            )
+        return
+    for path, source in outputs.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if write_if_changed(path, source):
+            print(f"wrote {path}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,2 +1,0 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg13Base
-import ShielddGnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode4350_280afe

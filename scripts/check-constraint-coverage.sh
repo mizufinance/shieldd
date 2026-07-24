@@ -94,6 +94,25 @@ done
 # Cheap dangling-reference gate: every bridge_theorem named in a manifest must
 # resolve as a fully qualified Lean declaration. This checks the name exists; the
 # full Lean tier still type-checks theorem uses in the whole-circuit artifacts.
+bridge_import_for_theorem() {
+  local theorem="$1" namespace
+  case "$theorem" in
+    Shieldd.GnarkFormal.Deployed.*)
+      return 0
+      ;;
+    Shieldd.GnarkFormal.AnchorMerkle.*)
+      printf '%s\n' ShielddGnarkFormal.AnchorMerkleSpec
+      ;;
+    Shieldd.GnarkFormal.*.*)
+      namespace="${theorem%.*}"
+      printf '%s\n' "${namespace/Shieldd.GnarkFormal/ShielddGnarkFormal}"
+      ;;
+    *)
+      fail "bridge theorem is not fully qualified: $theorem"
+      ;;
+  esac
+}
+
 check_bridge_theorems() {
   local report="$1" circuit="$2" lean_check="$tmp_dir/$circuit-bridge-theorems.lean"
   local bounds_module="ShielddGnarkFormal.Deployed.Contracts.$(contract_module_dir_for_circuit "$circuit").Bounds"
@@ -109,6 +128,16 @@ check_bridge_theorems() {
       printf 'import %s\n' "$bounds_module"
     fi
     echo "import ShielddGnarkFormal.Deployed.Contract"
+    jq -r '
+      .segments[].bridge_theorem // empty,
+      .deployed_obligations.obligations[]?.verdict.lean_theorem // empty
+    ' "$report" | sort -u | while IFS= read -r thm; do
+      [[ -z "$thm" ]] && continue
+      bridge_import_for_theorem "$thm"
+    done | sort -u | while IFS= read -r module; do
+      [[ -z "$module" ]] && continue
+      printf 'import %s\n' "$module"
+    done
     if [[ -f "$capstone_path" ]]; then
       local capstone_ns="Shieldd.GnarkFormal.${capstone_module#ShielddGnarkFormal.}"
       printf '#check @%s.%s_deployed_sound\n' "${capstone_ns%.Capstone}" "$circuit"
@@ -238,45 +267,6 @@ check_generated_templates() {
   done
 }
 
-check_generated_adapter_family() {
-  local committed_dir="$1" generated_dir="$2" prefix="$3" circuit="$4"
-  local committed_list="$tmp_dir/$circuit-$prefix-committed.txt"
-  local generated_list="$tmp_dir/$circuit-$prefix-generated.txt"
-  local adapter_file missing extra
-
-  [[ -d "$committed_dir" ]] || fail "missing committed adapter dir $committed_dir"
-  [[ -d "$generated_dir" ]] || fail "missing generated adapter dir $generated_dir"
-  (
-    cd "$committed_dir"
-    find . -maxdepth 1 -type f -name "${prefix}*.lean" | sed 's#^\./##' | sort
-  ) > "$committed_list"
-  (
-    cd "$generated_dir"
-    find . -maxdepth 1 -type f -name "${prefix}*.lean" | sed 's#^\./##' | sort
-  ) > "$generated_list"
-
-  [[ -s "$generated_list" ]] \
-    || fail "generator emitted no ${prefix}*.lean adapters for $circuit"
-  missing="$(comm -23 "$committed_list" "$generated_list")"
-  extra="$(comm -13 "$committed_list" "$generated_list")"
-  if [[ -n "$missing" ]]; then
-    printf '%s\n' "$missing" | sed 's/^/Committed adapter not emitted: /' >&2
-    fail "generated $prefix adapter set is missing committed files for $circuit"
-  fi
-  if [[ -n "$extra" ]]; then
-    printf '%s\n' "$extra" | sed 's/^/Generated adapter not committed: /' >&2
-    fail "generated $prefix adapter set has uncommitted files for $circuit"
-  fi
-
-  while IFS= read -r adapter_file; do
-    [[ -z "$adapter_file" ]] && continue
-    if ! cmp -s "$committed_dir/$adapter_file" "$generated_dir/$adapter_file"; then
-      diff -u "$committed_dir/$adapter_file" "$generated_dir/$adapter_file" >&2 || true
-      fail "generated adapter drifted for $circuit: $adapter_file"
-    fi
-  done < "$committed_list"
-}
-
 coverage_manifest_for_circuit() {
   case "$1" in
     note_reshape2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-coverage-manifest.json" ;;
@@ -390,16 +380,20 @@ if [[ "$require_full_deployed" -eq 1 ]]; then
     (
       cd "$ROOT"
       if [[ "$template_circuit" == "note_reshape2x1" ]]; then
-        cargo run -q -p shieldd-constraint-coverage -- \
+        cargo run --release -q -p shieldd-constraint-coverage -- \
           --manifest "$template_artifact_dir/$template_circuit-manifest.json" \
           --sr1cs "$template_artifact_dir/$template_circuit.sr1cs" \
+          --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
           --lean-template-out "$tmp_template_root" \
+          --report-out "$tmp_dir/$template_circuit-template-report.json" \
           --lt-seating-out "$tmp_dir/note_reshape2x1-dtk-lt-seating.json"
       else
-        cargo run -q -p shieldd-constraint-coverage -- \
+        cargo run --release -q -p shieldd-constraint-coverage -- \
           --manifest "$template_artifact_dir/$template_circuit-manifest.json" \
           --sr1cs "$template_artifact_dir/$template_circuit.sr1cs" \
-          --lean-template-out "$tmp_template_root"
+          --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
+          --lean-template-out "$tmp_template_root" \
+          --report-out "$tmp_dir/$template_circuit-template-report.json"
       fi
     )
   done
@@ -451,9 +445,10 @@ while IFS= read -r circuit; do
 
   (
     cd "$ROOT"
-    cargo run -q -p shieldd-constraint-coverage -- \
+    cargo run --release -q -p shieldd-constraint-coverage -- \
       --manifest "$manifest" \
       --sr1cs "$sr1cs" \
+      --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
       --coverage-manifest "$coverage_manifest" \
       --coverage-ir "$coverage_ir" \
       --ir-out "$tmp_ir" \
@@ -476,81 +471,22 @@ while IFS= read -r circuit; do
     contract_generation_args=(--lean-contract-out "$tmp_contract_root")
     (
       cd "$ROOT"
-      cargo run -q -p shieldd-constraint-coverage -- \
+      cargo run --release -q -p shieldd-constraint-coverage -- \
         --manifest "$manifest" \
         --sr1cs "$sr1cs" \
+        --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
         "${contract_generation_args[@]}"
     )
     check_generated_contracts "$committed_contract_dir" "$tmp_contract_dir" "$circuit"
     contracts_checked=1
   fi
-  if [[ "$circuit" == "note_reshape2x1" ]]; then
-    python3 "$ROOT/tools/gnark/lean/gen/gen_wiring.py" \
-      --ir "$tmp_ir" \
-      --out "$tmp_contract_dir/Wiring.lean" \
-      || fail "generated named wiring drift for $circuit"
-    python3 "$ROOT/tools/gnark/lean/gen/gen_capstone.py" \
-      --manifest "$tmp_coverage_manifest" \
-      --out "$tmp_contract_dir/Capstone.lean" \
-      || fail "generated deployed capstone drift for $circuit"
-    cmp -s "$committed_contract_dir/Wiring.lean" "$tmp_contract_dir/Wiring.lean" \
-      || fail "generated named wiring drift for $circuit"
-    cmp -s "$committed_contract_dir/Capstone.lean" "$tmp_contract_dir/Capstone.lean" \
-      || fail "generated deployed capstone drift for $circuit"
-    python3 "$ROOT/tools/gnark/lean/gen/gen_dtk_slice.py" \
-      --adapter-out "$tmp_contract_dir" \
-      || fail "failed to regenerate deployed DTK adapter family for $circuit"
-    python3 "$ROOT/tools/gnark/lean/gen/gen_rvk_deployed_adapters.py" \
-      --adapter-out "$tmp_contract_dir" \
-      || fail "failed to regenerate deployed RVK adapter family for $circuit"
-    python3 "$ROOT/tools/gnark/lean/gen/gen_scp_adapters.py" \
-      --adapter-out "$tmp_contract_dir" \
-      --spec-out "$tmp_dir/$circuit-scp-specs.txt" \
-      || fail "failed to regenerate deployed SCP adapter family for $circuit"
-    python3 "$ROOT/tools/gnark/lean/gen/gen_nb_slice.py" \
-      --adapter-out "$tmp_contract_dir" \
-      || fail "failed to regenerate deployed net-balance adapter family for $circuit"
-    python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape2x1_compress_adapters.py" \
-      --adapter-out "$tmp_contract_dir" \
-      || fail "failed to regenerate deployed compress adapter family for $circuit"
-    check_generated_adapter_family \
-      "$committed_contract_dir" "$tmp_contract_dir" "DtkAdapterSeg" "$circuit"
-    check_generated_adapter_family \
-      "$committed_contract_dir" "$tmp_contract_dir" "RvkAdapterSeg" "$circuit"
-    check_generated_adapter_family \
-      "$committed_contract_dir" "$tmp_contract_dir" "ScpAdapterSeg" "$circuit"
-    check_generated_adapter_family \
-      "$committed_contract_dir" "$tmp_contract_dir" "NbAdapter" "$circuit"
-    check_generated_adapter_family \
-      "$committed_contract_dir" "$tmp_contract_dir" "CompressAdapter" "$circuit"
-    # Glue holds the hand-authored onCurve / DTK-consumer endpoints (not emitted
-    # by the contract generator); seed those from the committed tree, then let
-    # gen_glue_specs rederive the mechanical (linear / assert_equivalent) specs
-    # from tmp's freshly generated Seg relations so wire drift surfaces here.
-    mkdir -p "$tmp_contract_dir/Specs"
-    cp "$committed_contract_dir/Specs/Glue.lean" "$tmp_contract_dir/Specs/Glue.lean"
-    python3 "$ROOT/tools/gnark/lean/gen/gen_glue_specs.py" \
-      --contract-dir "$tmp_contract_dir" \
-      || fail "failed to regenerate deployed glue specs for $circuit"
-    if ! cmp -s "$committed_contract_dir/Specs/Glue.lean" "$tmp_contract_dir/Specs/Glue.lean"; then
-      diff -u "$committed_contract_dir/Specs/Glue.lean" "$tmp_contract_dir/Specs/Glue.lean" >&2 || true
-      fail "generated glue spec drift for $circuit"
-    fi
-    python3 "$ROOT/tools/gnark/lean/gen/gen_statement.py" \
-      --ir "$tmp_ir" \
-      --manifest "$tmp_coverage_manifest" \
-      --out "$tmp_contract_dir/Statement.lean" \
-      || fail "failed to regenerate protocol statement for $circuit"
-    if ! cmp -s "$committed_contract_dir/Statement.lean" "$tmp_contract_dir/Statement.lean"; then
-      diff -u "$committed_contract_dir/Statement.lean" "$tmp_contract_dir/Statement.lean" >&2 || true
-      fail "generated protocol statement drift for $circuit"
-    fi
-  elif [[ "$circuit" == "note_reshape4x1" || "$circuit" == "note_reshape8x1" || "$circuit" == "note_reshape1x8" ]]; then
+  if [[ "$circuit" == note_reshape* ]]; then
     python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_family.py" \
       --ir "$tmp_ir" \
       --manifest "$tmp_coverage_manifest" \
       --out-dir "$tmp_contract_dir" \
       --manifest-out "$tmp_coverage_manifest" \
+      --prune \
       || fail "generated family proof artifacts drift for $circuit"
     if ! cmp -s "$committed_contract_dir/Bounds.lean" "$tmp_contract_dir/Bounds.lean" \
       || ! cmp -s "$committed_contract_dir/Capstone.lean" "$tmp_contract_dir/Capstone.lean" \
@@ -627,9 +563,10 @@ while IFS= read -r circuit; do
         || fail "missing committed deployed contract dir $committed_contract_dir"
       (
         cd "$ROOT"
-        cargo run -q -p shieldd-constraint-coverage -- \
+        cargo run --release -q -p shieldd-constraint-coverage -- \
           --manifest "$manifest" \
           --sr1cs "$sr1cs" \
+          --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
           --lean-contract-out "$tmp_contract_root"
       )
       check_generated_contracts "$committed_contract_dir" "$tmp_contract_dir" "$circuit"

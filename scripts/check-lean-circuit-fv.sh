@@ -25,6 +25,8 @@ case "$MODE" in
     ;;
 esac
 
+export LEAN_NUM_THREADS="${LEAN_NUM_THREADS:-1}"
+
 fail() {
   echo "check-lean-circuit-fv failed: $*" >&2
   exit 1
@@ -82,7 +84,10 @@ sha256_file() {
 }
 
 tmp_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir"' EXIT
+cleanup() {
+  rm -rf "$tmp_dir"
+}
+trap cleanup EXIT
 fresh_dir="$tmp_dir/compiled"
 mkdir -p "$fresh_dir"
 export GOCACHE="${GOCACHE:-$tmp_dir/go-cache}"
@@ -138,6 +143,7 @@ echo "==> generator unit, drift, and mtime tests"
   cd "$ROOT/tools/gnark/lean/gen"
   python3 -m unittest discover -p 'test_*.py'
 )
+python3 "$ROOT/tools/gnark/lean/gen/gen_template_ownership.py" --check
 
 echo "==> emitted-Lean hygiene"
 "$ROOT/scripts/check-structured-lc-lint.sh"
@@ -227,23 +233,26 @@ FV_FRESH_DIR="$fresh_dir" \
   $selected_circuits
 
 echo "==> final theorem axioms"
-axioms_file="$tmp_dir/axioms.lean"
-{
-  echo "import ShielddGnarkFormal.Deployed.PrimeOrderCertificate"
-  while IFS= read -r circuit; do
-    [[ -z "$circuit" ]] && continue
-    echo "import ShielddGnarkFormal.Deployed.Contracts.$(module_for "$circuit").Statement"
-  done <<< "$selected_circuits"
-  echo "#print axioms Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime"
-  while IFS= read -r circuit; do
-    [[ -z "$circuit" ]] && continue
-    echo "#print axioms Shieldd.GnarkFormal.Deployed.Contracts.$(module_for "$circuit").${circuit}_statement"
-  done <<< "$selected_circuits"
-} > "$axioms_file"
 (
   cd "$LEAN_DIR"
-  lake env lean "$axioms_file"
+  lake build oleanAxiomAudit
 )
+axiom_args=(
+  --lean-dir "$LEAN_DIR"
+  --root-module ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+  --declaration Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime
+)
+while IFS= read -r circuit; do
+  [[ -z "$circuit" ]] && continue
+  module="$(module_for "$circuit")"
+  axiom_args+=(
+    --root-module "ShielddGnarkFormal.Deployed.Contracts.$module.Statement"
+    --declaration "Shieldd.GnarkFormal.Deployed.Contracts.$module.${circuit}_deployed_sound"
+    --declaration "Shieldd.GnarkFormal.Deployed.Contracts.$module.${circuit}_statement"
+  )
+done <<< "$selected_circuits"
+python3 "$LEAN_DIR/gen/olean_axiom_audit.py" "${axiom_args[@]}" \
+  || fail "axiom audit requires every selected theorem to depend on exactly [propext, Quot.sound]"
 
 if [[ "$MODE" == "release" ]]; then
   echo "==> deployed PK/VK prove-verify and release checks"

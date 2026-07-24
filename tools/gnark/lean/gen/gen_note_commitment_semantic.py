@@ -1,10 +1,14 @@
 import json, pathlib, re
 from textwrap import indent
 
+from lean_zmod_instances import INSTANCE_BLOCK, normalize_choice_free_zmod_file
+
 HERE = pathlib.Path(__file__).resolve().parent           # tools/gnark/lean/gen
 ROOT = HERE.parents[3]                                    # repo root
 OUT = ROOT/'tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteCommitment'
 OUT.mkdir(parents=True, exist_ok=True)
+DEPLOYED_BRIDGE = ROOT/'tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteCommitmentDeployedBridge.lean'
+normalize_choice_free_zmod_file(DEPLOYED_BRIDGE)
 
 data = json.load(open(HERE/'gendata.json'))
 Order = 8444461749428370424248824938781546531375899335154063827935233455917409239041
@@ -68,7 +72,7 @@ def lit(n): return f"({n} : F)"
 def flit(n): return lit(n % Order)
 def coeff_eq_big(a,b):
     if (a % Order) == (b % Order):
-        return f"show ({a} : F) = ({b % Order} : F) from by exact (ZMod.natCast_eq_natCast_iff' {a} {b % Order} {MOD}).mpr (by decide)"
+        return f"show ({a} : F) = ({b % Order} : F) from (ZMod.natCast_mod {a} {MOD}).symm"
     raise AssertionError((a,b,a%Order,b%Order))
 
 def vars_for_lc(d):
@@ -229,7 +233,7 @@ def write(path, text):
     path.write_text(text)
     print('wrote', path, len(text))
 
-header_common = """set_option maxRecDepth 1000000
+header_common = f"""set_option maxRecDepth 1000000
 set_option maxHeartbeats 2000000
 set_option linter.unusedVariables false
 set_option linter.unreachableTactic false
@@ -241,6 +245,7 @@ open Shieldd.GnarkFormal.Poseidon6Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon6Link
 
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.Order)]
+{INSTANCE_BLOCK}
 
 """
 footer = "end Shieldd.GnarkFormal.Deployed.NoteCommitment\n"
@@ -257,7 +262,7 @@ def emit_full_state(lines, g):
         if g == 0:
             red_const = state[g][i].get('one',0)%Order
             raw_const = M[i][0] * Sval
-            lines.append(f"theorem s{g}_{i}_flat {args_decl(args)} :\n    {s_call(g,i)} = {red_expr} := by\n  unfold s{g}_{i} row7\n  rw [show {flit(M[i][0])} * {flit(Sval)} = {flit(red_const)} from by\n    change ({raw_const} : F) = {flit(red_const)}\n    exact (ZMod.natCast_eq_natCast_iff' {raw_const} {red_const} {MOD}).mpr (by decide)]\n\n")
+            lines.append(f"theorem s{g}_{i}_flat {args_decl(args)} :\n    {s_call(g,i)} = {red_expr} := by\n  unfold s{g}_{i} row7\n  rw [show {flit(M[i][0])} * {flit(Sval)} = {flit(red_const)} from by\n    change ({raw_const} : F) = {flit(red_const)}\n    exact {coeff_eq_big(raw_const, red_const)}]\n\n")
         else:
             lines.append(f"theorem s{g}_{i}_flat {args_decl(args)} :\n    {s_call(g,i)} = {red_expr} := by\n  unfold s{g}_{i} row7\n  rfl\n\n")
 
@@ -269,7 +274,7 @@ def emit_full_arg_lemmas(lines, g):
         rhs_flat = lc_expr(state[prev][i])
         dep_const = dep.get('one',0)%Order
         st_const = state[prev][i].get('one',0)%Order
-        lines.append(f"theorem arg{g}_{i}_eq {args_decl(args)} :\n    {lc_expr(dep)} = {s_call(prev,i)} + {flit(cs[g][i])} := by\n  calc\n    {lc_expr(dep)} = ({rhs_flat}) + {flit(cs[g][i])} := by\n      rw [show {flit(dep_const)} = {flit(st_const)} + {flit(cs[g][i])} from by exact (ZMod.natCast_eq_natCast_iff' {(st_const + cs[g][i])} {dep_const} {MOD}).mpr (by decide)]\n      all_goals ring\n    _ = {s_call(prev,i)} + {flit(cs[g][i])} := by rw [← s{prev}_{i}_flat]\n\n")
+        lines.append(f"theorem arg{g}_{i}_eq {args_decl(args)} :\n    {lc_expr(dep)} = {s_call(prev,i)} + {flit(cs[g][i])} := by\n  calc\n    {lc_expr(dep)} = ({rhs_flat}) + {flit(cs[g][i])} := by\n      rw [show {flit(dep_const)} = {flit(st_const)} + {flit(cs[g][i])} from by\n        exact (ZMod.natCast_mod {(st_const + cs[g][i])} {MOD}).trans (Nat.cast_add {st_const} {cs[g][i]})]\n      all_goals ring\n    _ = {s_call(prev,i)} + {flit(cs[g][i])} := by rw [← s{prev}_{i}_flat]\n\n")
 
 def emit_full_round_eq(lines, g):
     args_prev = state_args(g-1)
@@ -297,22 +302,22 @@ base.append(f"""theorem p17_domain_eq :
   have hx :
       ({Dlit} : F) + ({cs[0][0]} : F) = {flit(sumDC)} := by
     change ({Dlit + cs[0][0]} : F) = {flit(sumDC)}
-    exact (ZMod.natCast_eq_natCast_iff' {Dlit + cs[0][0]} {sumDC} {MOD}).mpr (by decide)
+    exact {coeff_eq_big(Dlit + cs[0][0], sumDC)}
   have h0 : {flit(sumDC)} * {flit(sumDC)} = {flit(a2)} := by
     change ({sumDC * sumDC} : F) = {flit(a2)}
-    exact (ZMod.natCast_eq_natCast_iff' {sumDC * sumDC} {a2} {MOD}).mpr (by decide)
+    exact {coeff_eq_big(sumDC * sumDC, a2)}
   have h1 : {flit(a2)} * {flit(a2)} = {flit(a4)} := by
     change ({a2 * a2} : F) = {flit(a4)}
-    exact (ZMod.natCast_eq_natCast_iff' {a2 * a2} {a4} {MOD}).mpr (by decide)
+    exact {coeff_eq_big(a2 * a2, a4)}
   have h2 : {flit(a4)} * {flit(a4)} = {flit(a8)} := by
     change ({a4 * a4} : F) = {flit(a8)}
-    exact (ZMod.natCast_eq_natCast_iff' {a4 * a4} {a8} {MOD}).mpr (by decide)
+    exact {coeff_eq_big(a4 * a4, a8)}
   have h3 : {flit(a8)} * {flit(a8)} = {flit(a16)} := by
     change ({a8 * a8} : F) = {flit(a16)}
-    exact (ZMod.natCast_eq_natCast_iff' {a8 * a8} {a16} {MOD}).mpr (by decide)
+    exact {coeff_eq_big(a8 * a8, a16)}
   have h4 : {flit(a16)} * {flit(sumDC)} = {flit(Sval)} := by
     change ({a16 * sumDC} : F) = {flit(Sval)}
-    exact (ZMod.natCast_eq_natCast_iff' {a16 * sumDC} {Sval} {MOD}).mpr (by decide)
+    exact {coeff_eq_big(a16 * sumDC, Sval)}
   rw [hx]
   exact (p17_from_rows {flit(sumDC)} {flit(a2)} {flit(a4)} {flit(a8)} {flit(a16)} {flit(Sval)} h0 h1 h2 h3 h4).symm
 
@@ -360,7 +365,7 @@ for g in range(4,35):
     rhs_flat = lc_expr(state[prev][0])
     dep_const = dep_arg.get('one',0)%Order
     st_const = state[prev][0].get('one',0)%Order
-    lines.append(f"theorem arg{g}_0_eq {args_decl(args_prev)} :\n    {lc_expr(dep_arg)} = {s_call(prev,0)} + {flit(cs[g][0])} := by\n  calc\n    {lc_expr(dep_arg)} = ({rhs_flat}) + {flit(cs[g][0])} := by\n      rw [show {flit(dep_const)} = {flit(st_const)} + {flit(cs[g][0])} from by exact (ZMod.natCast_eq_natCast_iff' {(st_const + cs[g][0])} {dep_const} {MOD}).mpr (by decide)]\n      all_goals ring\n    _ = {s_call(prev,0)} + {flit(cs[g][0])} := by rw [← s{prev}_0_flat]\n\n")
+    lines.append(f"theorem arg{g}_0_eq {args_decl(args_prev)} :\n    {lc_expr(dep_arg)} = {s_call(prev,0)} + {flit(cs[g][0])} := by\n  calc\n    {lc_expr(dep_arg)} = ({rhs_flat}) + {flit(cs[g][0])} := by\n      rw [show {flit(dep_const)} = {flit(st_const)} + {flit(cs[g][0])} from by\n        exact (ZMod.natCast_mod {(st_const + cs[g][0])} {MOD}).trans (Nat.cast_add {st_const} {cs[g][0]})]\n      all_goals ring\n    _ = {s_call(prev,0)} + {flit(cs[g][0])} := by rw [← s{prev}_0_flat]\n\n")
     # flat lemmas
     # raw unmodded state after substituting previous reduced flats.
     raw_lanes = [{groups[g][0]:1}] + [add(state[prev][j], {'one': cs[g][j]}, mod=False) for j in range(1,7)]
@@ -408,7 +413,7 @@ for g in range(35,39):
         rhs_flat=lc_expr(state[prev][i])
         dep_const=dep.get('one',0)%Order
         st_const=state[prev][i].get('one',0)%Order
-        lines.append(f"theorem arg{g}_{i}_eq {args_decl(args_prev)} :\n    {lc_expr(dep)} = {s_call(prev,i)} + {flit(cs[g][i])} := by\n  calc\n    {lc_expr(dep)} = ({rhs_flat}) + {flit(cs[g][i])} := by\n      rw [show {flit(dep_const)} = {flit(st_const)} + {flit(cs[g][i])} from by exact (ZMod.natCast_eq_natCast_iff' {(st_const + cs[g][i])} {dep_const} {MOD}).mpr (by decide)]\n      all_goals ring\n    _ = {s_call(prev,i)} + {flit(cs[g][i])} := by rw [← s{prev}_{i}_flat]\n\n")
+        lines.append(f"theorem arg{g}_{i}_eq {args_decl(args_prev)} :\n    {lc_expr(dep)} = {s_call(prev,i)} + {flit(cs[g][i])} := by\n  calc\n    {lc_expr(dep)} = ({rhs_flat}) + {flit(cs[g][i])} := by\n      rw [show {flit(dep_const)} = {flit(st_const)} + {flit(cs[g][i])} from by\n        exact (ZMod.natCast_mod {(st_const + cs[g][i])} {MOD}).trans (Nat.cast_add {st_const} {cs[g][i]})]\n      all_goals ring\n    _ = {s_call(prev,i)} + {flit(cs[g][i])} := by rw [← s{prev}_{i}_flat]\n\n")
     hargs=[]; hwdecl=[]
     for i,w in enumerate(groups[g]):
         dep = add(state[prev][i], {'one': cs[g][i]}, mod=True)
@@ -420,15 +425,32 @@ for g in range(35,39):
 lines.append(footer)
 write(OUT/'FullTail.lean', ''.join(lines))
 
+# The final link belongs to this generator as well. Keeping it on the same
+# explicit operation context prevents a reintroduced field instance in the
+# otherwise definitional spec equality.
+lines = ["import ShielddGnarkFormal.Deployed.NoteCommitment.FullTail\n\n", header_common]
+lines.append(f"""theorem spec38_eq_permSpec {public_decl()} :
+    ({spec_call(38)})[1] =
+      permSpec6
+        {flit(Dlit)}
+        w14 w15 w16 (w912 - w572) w19 w22 := by
+  rfl
+
+""")
+lines.append(footer)
+write(OUT/'SpecLink.lean', ''.join(lines))
+
 # Raw CPS-relation semantic bridge. The extracted relation is a nested CPS chain
 # of 87 segment predicates. We prove it round-aligned into bounded range lemmas
 # (each ≤11 segments, well within the 60-gate limit), threading the opaque
 # continuation `k` and the staged-spec accumulator across each range boundary.
 # The public composition does ONE rcases per range (≈11), never an 87-walk.
 raw = "Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e"
+raw_path = ROOT/"tools/gnark/lean/ShielddGnarkFormal/Extracted/Deployed/GadgetNoteCommitmentWithOutput431_7f228e.lean"
+normalize_choice_free_zmod_file(raw_path)
 
 # --- parse the extracted relation def: seg{i} <args> (fun <boundvars> => ... ---
-ext_text = (ROOT/"tools/gnark/lean/ShielddGnarkFormal/Extracted/Deployed/GadgetNoteCommitmentWithOutput431_7f228e.lean").read_text().splitlines()
+ext_text = raw_path.read_text().splitlines()
 ri = next(i for i, l in enumerate(ext_text) if l.startswith("def relation"))
 seg_args = {}   # i -> input window vars (list)
 seg_bvs = {}    # i -> continuation-bound vars (list) = exit window of seg i

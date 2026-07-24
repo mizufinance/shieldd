@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkCanon2CompareChunk1
 
 set_option maxRecDepth 1000000
@@ -5,6 +6,8 @@ set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Extracted.CanonicalFqBits
 
@@ -42,63 +45,63 @@ theorem dtkCanon2_compare_chunk2 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
   interval_cases j
   · erw [dtkCanon2Bits_get rho 32 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 33 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 33 = rho 704 from rfl]
     linear_combination r1011
   · erw [dtkCanon2Bits_get rho 33 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 34 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 34 = rho 704 from rfl]
     linear_combination r1010
   · erw [dtkCanon2Bits_get rho 34 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 35 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 35 = rho 704 from rfl]
     linear_combination r1009
   · erw [dtkCanon2Bits_get rho 35 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 36 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 36 = rho 704 from rfl]
     linear_combination r1008
   · erw [dtkCanon2Bits_get rho 36 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 37 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 37 = rho 704 from rfl]
     linear_combination r1007
   · erw [dtkCanon2Bits_get rho 37 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 38 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 38 = rho 704 from rfl]
     linear_combination r1006
   · erw [dtkCanon2Bits_get rho 38 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 39 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 39 = rho 704 from rfl]
     linear_combination r1005
   · erw [dtkCanon2Bits_get rho 39 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 40 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 40 = rho 704 from rfl]
     linear_combination r1004
   · erw [dtkCanon2Bits_get rho 40 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 41 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 41 = rho 704 from rfl]
     linear_combination r1003
   · erw [dtkCanon2Bits_get rho 41 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 42 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 42 = rho 704 from rfl]
     linear_combination r1002
   · erw [dtkCanon2Bits_get rho 42 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 43 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 43 = rho 704 from rfl]
     linear_combination r1001
   · erw [dtkCanon2Bits_get rho 43 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 44 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 44 = rho 704 from rfl]
     linear_combination r1000
   · erw [dtkCanon2Bits_get rho 44 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 45 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 45 = rho 704 from rfl]
     linear_combination r999
   · erw [dtkCanon2Bits_get rho 45 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 46 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 46 = rho 704 from rfl]
     linear_combination r998
   · erw [dtkCanon2Bits_get rho 46 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon2Flag rho 47 = rho 1608 from rfl]
+    rw [show dtkCanon2Flag rho 47 = rho 704 from rfl]
     linear_combination r997
   · have hb : pmBit 47 = true := by decide +kernel
     simp [hb] at hpm

@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkBase
 import ShielddGnarkFormal.Deployed.Dtk.LtConst
 import ShielddGnarkFormal.DtkBridge
@@ -8,6 +9,8 @@ set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 def dtkQ4IlAtom0 (rho : Nat -> F) : F := rho 1967
 def dtkQ4IlAtom1 (rho : Nat -> F) : F := rho 1969 + (-1 : F) * rho 1970

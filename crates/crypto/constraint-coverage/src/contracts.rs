@@ -9,8 +9,12 @@ use crate::ir::{
     check_reconstruction, normalize_relation, parse_constraint, CircuitIr, Constraint, SegmentIr,
     Term,
 };
+use crate::template_registry::{
+    load_template_rows, verify_witness, TemplateRegistry, TEMPLATE_REGISTRY_SCHEMA,
+};
 use crate::{CoverageError, Sr1cs};
 use std::collections::BTreeMap;
+use std::path::Path;
 
 pub struct ContractFile {
     pub segment_index: usize,
@@ -47,16 +51,15 @@ fn circuit_module(circuit: &str) -> String {
     out
 }
 
-fn is_padded_note_reshape_family(circuit: &str) -> bool {
+fn is_note_reshape_family(circuit: &str) -> bool {
     matches!(
         circuit,
-        "note_reshape4x1" | "note_reshape8x1" | "note_reshape1x8"
+        "note_reshape2x1" | "note_reshape4x1" | "note_reshape8x1" | "note_reshape1x8"
     )
 }
 
-fn uses_normalized_template_contract(circuit: &str, segment: &SegmentIr) -> bool {
-    is_padded_note_reshape_family(circuit)
-        || (circuit == "note_reshape2x1" && segment.op == "statement.hash")
+fn uses_normalized_template_contract(circuit: &str, _segment: &SegmentIr) -> bool {
+    is_note_reshape_family(circuit)
 }
 
 /// The `Specs` submodule holding a segment's hand-authored endpoint.
@@ -853,8 +856,16 @@ fn render_generated_template(template_key: &str, rows: &[Constraint]) -> Vec<Tem
     files
 }
 
+fn canonical_seating(segment: &SegmentIr) -> &[usize] {
+    &segment
+        .template_equivalence_witness
+        .as_ref()
+        .expect("constraint-bearing segment has a template witness")
+        .canonical_local_to_deployed_wire_seating
+}
+
 fn render_generated_template_contract(circuit: &str, segment: &SegmentIr) -> ContractFile {
-    let template = template_module_name(&segment.template_key);
+    let template = template_module_name(&segment.proof_template_id);
     let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
     let module = contract_module(circuit, segment.index);
     let file_name = contract_file_name(circuit, segment.index);
@@ -882,7 +893,7 @@ fn render_generated_template_contract(circuit: &str, segment: &SegmentIr) -> Con
          end Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n",
         max_heartbeats = MAX_CONTRACT_HEARTBEATS,
         template = template,
-        wire_seating = render_wire_seating(&segment.wire_seating),
+        wire_seating = render_wire_seating(canonical_seating(segment)),
         segment_index = segment.index,
         relation_hash = segment.relation_sha256_hex,
         wire_role_hash = segment.wire_role_sha256_hex,
@@ -893,69 +904,6 @@ fn render_generated_template_contract(circuit: &str, segment: &SegmentIr) -> Con
         file_name,
         contents,
     }
-}
-
-// These are the reviewed, coefficient-sensitive normalized relations used by
-// the small cross-circuit spike. Matching the full template key makes a drift
-// fail back to ordinary generation rather than silently assigning a changed
-// relation to the wrong Lean theorem.
-const ON_CURVE_TEMPLATE_KEY: &str =
-    "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e";
-const ASSERT_EQ_TEMPLATE_KEY: &str =
-    "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd";
-
-fn render_seated_template_contract(
-    circuit: &str,
-    segment: &SegmentIr,
-    relation_template: &str,
-    spec_template: &str,
-) -> ContractFile {
-    let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
-    let module = contract_module(circuit, segment.index);
-    let file_name = contract_file_name(circuit, segment.index);
-    let contents = format!(
-        "import ShielddGnarkFormal.Deployed.Contract\n\
-         import ShielddGnarkFormal.Deployed.Templates.Simple\n\
-         import Mathlib.Data.ZMod.Basic\n\n\
-         set_option maxRecDepth 1000000\n\
-         set_option maxHeartbeats {max_heartbeats}\n\n\
-         namespace Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n\n\
-         def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041\n\
-         abbrev F := ZMod Order\n\n\
-         {wire_seating}\n\n\
-         def localRho (rho : Nat -> F) : Nat -> F :=\n    Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating\n\n\
-         def relation (rho : Nat -> F) : Prop :=\n    Shieldd.GnarkFormal.Deployed.Templates.Simple.{relation_template} (localRho rho)\n\n\
-         def spec (rho : Nat -> F) : Prop :=\n    Shieldd.GnarkFormal.Deployed.Templates.Simple.{spec_template} (localRho rho)\n\n\
-         def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {{\n\
-           segmentIndex := {segment_index},\n\
-           relationSha256Hex := \"{relation_hash}\",\n\
-           wireRoleSha256Hex := \"{wire_role_hash}\",\n\
-           relation := relation,\n\
-           spec := spec\n\
-         }}\n\n\
-         end Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n",
-        max_heartbeats = MAX_CONTRACT_HEARTBEATS,
-        relation_template = relation_template,
-        spec_template = spec_template,
-        wire_seating = render_wire_seating(&segment.wire_seating),
-        segment_index = segment.index,
-        relation_hash = segment.relation_sha256_hex,
-        wire_role_hash = segment.wire_role_sha256_hex,
-    );
-    ContractFile {
-        segment_index: segment.index,
-        module,
-        file_name,
-        contents,
-    }
-}
-
-fn render_on_curve_template_contract(circuit: &str, segment: &SegmentIr) -> ContractFile {
-    render_seated_template_contract(circuit, segment, "onCurveRelation", "onCurveSpec")
-}
-
-fn render_assert_eq_template_contract(circuit: &str, segment: &SegmentIr) -> ContractFile {
-    render_seated_template_contract(circuit, segment, "assertEqRelation", "assertEqSpec")
 }
 
 fn parse_segment_rows(
@@ -979,12 +927,6 @@ fn parse_segment_rows(
 }
 
 fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> Vec<ContractFile> {
-    if segment.template_key == ON_CURVE_TEMPLATE_KEY {
-        return vec![render_on_curve_template_contract(circuit, segment)];
-    }
-    if segment.template_key == ASSERT_EQ_TEMPLATE_KEY {
-        return vec![render_assert_eq_template_contract(circuit, segment)];
-    }
     // The new NoteReshape families share the normalized-template substrate.
     // Their instance contracts must stay small even for dense Poseidon and
     // scalar-multiplication slices; the normalized relation is emitted once by
@@ -1147,9 +1089,11 @@ fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> V
 pub fn generate_templates(
     ir: &CircuitIr,
     sr1cs: &Sr1cs,
+    registry: &TemplateRegistry,
+    registry_root: &Path,
 ) -> Result<Vec<TemplateFile>, CoverageError> {
     let mut files = Vec::new();
-    visit_templates(ir, sr1cs, |file| files.push(file))?;
+    visit_templates(ir, sr1cs, registry, registry_root, |file| files.push(file))?;
     Ok(files)
 }
 
@@ -1159,9 +1103,11 @@ pub fn generate_templates(
 pub fn visit_templates(
     ir: &CircuitIr,
     sr1cs: &Sr1cs,
+    registry: &TemplateRegistry,
+    registry_root: &Path,
     visit: impl FnMut(TemplateFile),
 ) -> Result<(), CoverageError> {
-    visit_templates_filtered(ir, sr1cs, None, visit)
+    visit_templates_filtered(ir, sr1cs, registry, registry_root, None, visit)
 }
 
 /// Visit only normalized templates whose operation/hash key contains
@@ -1170,55 +1116,76 @@ pub fn visit_templates(
 pub fn visit_templates_filtered(
     ir: &CircuitIr,
     sr1cs: &Sr1cs,
+    registry: &TemplateRegistry,
+    registry_root: &Path,
     filter: Option<&str>,
     mut visit: impl FnMut(TemplateFile),
 ) -> Result<(), CoverageError> {
+    if registry.schema != TEMPLATE_REGISTRY_SCHEMA {
+        return Err(CoverageError::TemplateRegistry(format!(
+            "unsupported schema {:?}",
+            registry.schema
+        )));
+    }
     let mut instances = BTreeMap::<String, Vec<&SegmentIr>>::new();
     for segment in &ir.segments {
-        if segment.constraint_count == 0 || segment.template_key.is_empty() {
+        if segment.constraint_count == 0 || segment.proof_template_id.is_empty() {
             continue;
         }
         instances
-            .entry(segment.template_key.clone())
+            .entry(segment.proof_template_id.clone())
             .or_default()
             .push(segment);
     }
-    for (template_key, segments) in instances {
-        if filter.is_some_and(|needle| !template_key.contains(needle)) {
+    for (proof_template_id, segments) in instances {
+        if filter.is_some_and(|needle| !proof_template_id.contains(needle)) {
             continue;
         }
-        let representative = segments[0];
-        let rows = parse_segment_rows(sr1cs, representative)?;
-        let normalized = normalize_relation(&rows);
-        check_reconstruction(representative.index, &representative.op, &rows, &normalized)?;
-        let expected_key = format!("{}@{}", representative.op, normalized.sha256_hex);
-        if expected_key != template_key {
-            return Err(CoverageError::NormalizedMetadataMismatch {
-                segment_index: representative.index,
-                op: representative.op.clone(),
-                field: "template_key",
-                expected: template_key,
-                actual: expected_key,
-            });
-        }
-        for segment in segments.into_iter().skip(1) {
-            let sibling_rows = parse_segment_rows(sr1cs, segment)?;
-            let sibling = normalize_relation(&sibling_rows);
-            check_reconstruction(segment.index, &segment.op, &sibling_rows, &sibling)?;
-            if sibling.rows != normalized.rows {
-                return Err(CoverageError::NormalizedReconstructionMismatch {
+        let template = registry
+            .templates
+            .iter()
+            .find(|template| template.proof_template_id == proof_template_id)
+            .ok_or_else(|| CoverageError::UnreviewedTemplate {
+                op: segments[0].op.clone(),
+            })?;
+        let canonical_rows = load_template_rows(template, registry_root)?;
+        for segment in segments {
+            let rows = parse_segment_rows(sr1cs, segment)?;
+            let normalized = normalize_relation(&rows);
+            check_reconstruction(segment.index, &segment.op, &rows, &normalized)?;
+            if normalized.sha256_hex != segment.deployed_normalized_relation_sha256_hex {
+                return Err(CoverageError::NormalizedMetadataMismatch {
                     segment_index: segment.index,
                     op: segment.op.clone(),
-                    row: 0,
-                    expected: format!("same normalized rows as segment {}", representative.index),
-                    reconstructed: format!(
-                        "different normalized rows for template {}",
-                        template_key
-                    ),
+                    field: "deployed_normalized_relation_sha256_hex",
+                    expected: segment.deployed_normalized_relation_sha256_hex.clone(),
+                    actual: normalized.sha256_hex,
                 });
             }
+            let witness = segment
+                .template_equivalence_witness
+                .as_ref()
+                .ok_or_else(|| CoverageError::NormalizedMetadataMismatch {
+                    segment_index: segment.index,
+                    op: segment.op.clone(),
+                    field: "template_equivalence_witness",
+                    expected: "verified witness".to_owned(),
+                    actual: "missing".to_owned(),
+                })?;
+            if !verify_witness(
+                template,
+                registry_root,
+                &normalized.rows,
+                &normalized.wire_seating,
+                witness,
+            ) {
+                return Err(CoverageError::TemplateRegistry(format!(
+                    "invalid equivalence witness for segment {} ({})",
+                    segment.index, segment.op
+                )));
+            }
         }
-        for file in render_generated_template(&template_key, &normalized.rows) {
+        for file in render_generated_template(&proof_template_id, &canonical_rows) {
             visit(file);
         }
     }
@@ -1234,41 +1201,32 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
         let segment_rows = parse_segment_rows(sr1cs, segment)?;
         let normalized = normalize_relation(&segment_rows);
         check_reconstruction(segment.index, &segment.op, &segment_rows, &normalized)?;
-        if normalized.sha256_hex != segment.normalized_relation_sha256_hex {
+        if normalized.sha256_hex != segment.deployed_normalized_relation_sha256_hex {
             return Err(CoverageError::NormalizedMetadataMismatch {
                 segment_index: segment.index,
                 op: segment.op.clone(),
-                field: "normalized_relation_sha256_hex",
-                expected: segment.normalized_relation_sha256_hex.clone(),
+                field: "deployed_normalized_relation_sha256_hex",
+                expected: segment.deployed_normalized_relation_sha256_hex.clone(),
                 actual: normalized.sha256_hex,
             });
         }
-        if normalized.wire_seating != segment.wire_seating {
+        let witness = segment
+            .template_equivalence_witness
+            .as_ref()
+            .ok_or_else(|| CoverageError::NormalizedMetadataMismatch {
+                segment_index: segment.index,
+                op: segment.op.clone(),
+                field: "template_equivalence_witness",
+                expected: "verified witness".to_owned(),
+                actual: "missing".to_owned(),
+            })?;
+        if witness.proof_template_id != segment.proof_template_id {
             return Err(CoverageError::NormalizedMetadataMismatch {
                 segment_index: segment.index,
                 op: segment.op.clone(),
-                field: "wire_seating",
-                expected: format!("{:?}", segment.wire_seating),
-                actual: format!("{:?}", normalized.wire_seating),
-            });
-        }
-        if normalized.wire_seating.len() != segment.local_wire_count {
-            return Err(CoverageError::NormalizedMetadataMismatch {
-                segment_index: segment.index,
-                op: segment.op.clone(),
-                field: "local_wire_count",
-                expected: segment.local_wire_count.to_string(),
-                actual: normalized.wire_seating.len().to_string(),
-            });
-        }
-        let template_key = format!("{}@{}", segment.op, normalized.sha256_hex);
-        if template_key != segment.template_key {
-            return Err(CoverageError::NormalizedMetadataMismatch {
-                segment_index: segment.index,
-                op: segment.op.clone(),
-                field: "template_key",
-                expected: segment.template_key.clone(),
-                actual: template_key,
+                field: "proof_template_id",
+                expected: segment.proof_template_id.clone(),
+                actual: witness.proof_template_id.clone(),
             });
         }
         files.extend(render_contract(&ir.circuit, segment, &segment_rows));
@@ -1302,6 +1260,21 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
 mod tests {
     use super::*;
     use crate::ir::{parse_rows, CircuitIr, SegmentIr, WireRoles};
+    use crate::template_registry::{RowPermutationWitness, TemplateEquivalenceWitness};
+
+    fn identity_witness(
+        proof_template_id: &str,
+        seating: Vec<usize>,
+        row_count: usize,
+    ) -> TemplateEquivalenceWitness {
+        TemplateEquivalenceWitness {
+            proof_template_id: proof_template_id.to_owned(),
+            canonical_local_to_deployed_wire_seating: seating,
+            canonical_row_to_deployed_row: RowPermutationWitness::Identity { row_count },
+            row_transforms: Vec::new(),
+            witness_sha256_hex: "test-witness".to_owned(),
+        }
+    }
 
     fn t(coeff: &str, wire: usize) -> Term {
         Term {
@@ -1503,7 +1476,7 @@ mod tests {
     fn renders_exact_contract_for_constraint_segment() {
         let mut ir = CircuitIr {
             schema: "test".to_owned(),
-            circuit: "note_reshape2x1".to_owned(),
+            circuit: "synthetic".to_owned(),
             sr1cs_sha256_hex: "sr1cs".to_owned(),
             nb_constraints: 1,
             classes: Vec::new(),
@@ -1519,10 +1492,13 @@ mod tests {
                 constant_vector_sha256_hex: "constants".to_owned(),
                 relation_sha256_hex: "relation".to_owned(),
                 wire_role_sha256_hex: "roles".to_owned(),
-                normalized_relation_sha256_hex: "normalized".to_owned(),
-                local_wire_count: 4,
-                wire_seating: vec![0, 1, 2, 3],
-                template_key: "assert.eq@normalized".to_owned(),
+                deployed_normalized_relation_sha256_hex: "normalized".to_owned(),
+                proof_template_id: "assert.eq@normalized".to_owned(),
+                template_equivalence_witness: Some(identity_witness(
+                    "assert.eq@normalized",
+                    vec![0, 1, 2, 3],
+                    1,
+                )),
             }],
         };
         let sr1cs = Sr1cs {
@@ -1533,19 +1509,22 @@ mod tests {
             sha256_hex: "sr1cs".to_owned(),
         };
         let normalized = normalize_relation(&parse_rows(&sr1cs).expect("parse test rows"));
-        ir.segments[0].normalized_relation_sha256_hex = normalized.sha256_hex.clone();
-        ir.segments[0].wire_seating = normalized.wire_seating.clone();
-        ir.segments[0].local_wire_count = normalized.wire_seating.len();
-        ir.segments[0].template_key = format!("assert.eq@{}", normalized.sha256_hex);
+        ir.segments[0].deployed_normalized_relation_sha256_hex = normalized.sha256_hex.clone();
+        ir.segments[0].proof_template_id = format!("assert.eq@{}", normalized.sha256_hex);
+        ir.segments[0].template_equivalence_witness = Some(identity_witness(
+            &ir.segments[0].proof_template_id,
+            normalized.wire_seating.clone(),
+            1,
+        ));
 
         let files = generate(&ir, &sr1cs).expect("generate contract");
         assert_eq!(files.len(), 1);
         let file = &files[0];
         assert_eq!(file.segment_index, 100);
-        assert_eq!(file.file_name, "NoteReshape2x1/Seg100.lean");
+        assert_eq!(file.file_name, "Synthetic/Seg100.lean");
         assert_eq!(
             file.module,
-            "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg100"
+            "Shieldd.GnarkFormal.Deployed.Contracts.Synthetic.Seg100"
         );
         assert!(file.contents.contains("segmentIndex := 100"));
         assert!(file.contents.contains("relationSha256Hex := \"relation\""));
@@ -1553,12 +1532,11 @@ mod tests {
         assert!(file
             .contents
             .contains("((2 : F) * rho 1) * ((3 : F) * rho 2) = ((6 : F) * rho 3)"));
-        // seg100 is a synthetic index outside every family's segment-index
-        // list, so it imports the narrow
-        // `Specs.Glue` submodule, not the monolithic `Specs` aggregator.
+        // Non-NoteReshape consumers keep their direct exact-row contract and
+        // monolithic Specs endpoint.
         assert!(file
             .contents
-            .contains("import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Glue\n"));
+            .contains("import ShielddGnarkFormal.Deployed.Contracts.Synthetic.Specs\n"));
         assert!(file
             .contents
             .contains("def spec (rho : Nat -> F) : Prop := Specs.deployedSpec100 rho"));
@@ -1569,7 +1547,7 @@ mod tests {
     }
 
     #[test]
-    fn renders_repeated_assert_eq_as_a_seated_template() {
+    fn renders_repeated_assert_eq_through_the_registry_facade() {
         let mut ir = CircuitIr {
             schema: "test".to_owned(),
             circuit: "note_reshape2x1".to_owned(),
@@ -1588,10 +1566,9 @@ mod tests {
                 constant_vector_sha256_hex: "constants".to_owned(),
                 relation_sha256_hex: "relation".to_owned(),
                 wire_role_sha256_hex: "roles".to_owned(),
-                normalized_relation_sha256_hex: String::new(),
-                local_wire_count: 3,
-                wire_seating: vec![0, 106, 16],
-                template_key: String::new(),
+                deployed_normalized_relation_sha256_hex: String::new(),
+                proof_template_id: String::new(),
+                template_equivalence_witness: Some(identity_witness("", vec![0, 106, 16], 1)),
             }],
         };
         let sr1cs = Sr1cs {
@@ -1602,35 +1579,35 @@ mod tests {
             sha256_hex: "sr1cs".to_owned(),
         };
         let normalized = normalize_relation(&parse_rows(&sr1cs).expect("parse test rows"));
-        ir.segments[0].normalized_relation_sha256_hex = normalized.sha256_hex.clone();
-        ir.segments[0].wire_seating = normalized.wire_seating.clone();
-        ir.segments[0].local_wire_count = normalized.wire_seating.len();
-        ir.segments[0].template_key = format!("assert.eq@{}", normalized.sha256_hex);
+        ir.segments[0].deployed_normalized_relation_sha256_hex = normalized.sha256_hex.clone();
+        ir.segments[0].proof_template_id = format!("assert.eq@{}", normalized.sha256_hex);
+        ir.segments[0].template_equivalence_witness = Some(identity_witness(
+            &ir.segments[0].proof_template_id,
+            normalized.wire_seating.clone(),
+            1,
+        ));
 
         let files = generate(&ir, &sr1cs).expect("generate template contract");
         let file = &files[0];
         assert!(file
             .contents
-            .contains("import ShielddGnarkFormal.Deployed.Templates.Simple"));
-        assert!(file
-            .contents
-            .contains("Simple.assertEqRelation (localRho rho)"));
-        assert!(file.contents.contains("Simple.assertEqSpec (localRho rho)"));
+            .contains("import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEq_"));
+        assert!(file.contents.contains(".relation (localRho rho)"));
+        assert!(file.contents.contains(".spec (localRho rho)"));
+        assert!(!file.contents.contains("Templates.Simple"));
         assert!(file
             .contents
             .contains("wireSeatingTable : List Nat := [0, 106, 16]"));
         assert!(!file.contents.contains("Specs.deployedSpec36"));
 
-        let original_seating = ir.segments[0].wire_seating.clone();
-        ir.segments[0].wire_seating.swap(1, 2);
+        ir.segments[0].template_equivalence_witness = None;
         assert!(matches!(
             generate(&ir, &sr1cs),
             Err(CoverageError::NormalizedMetadataMismatch {
-                field: "wire_seating",
+                field: "template_equivalence_witness",
                 ..
             })
         ));
-        ir.segments[0].wire_seating = original_seating;
     }
 
     #[test]

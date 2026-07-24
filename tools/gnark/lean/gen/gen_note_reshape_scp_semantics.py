@@ -14,8 +14,9 @@ import re
 from contextlib import contextmanager
 from pathlib import Path
 
-import gen_dtk_slice as dtk
-import gen_scp_adapters as scp
+import dtk_recovery as dtk
+import scp_recovery as scp
+from template_ir import SegmentTemplate
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -41,25 +42,17 @@ SOURCE_SEGMENT = 13
 
 def _segment() -> dict:
     ir = json.loads(IR.read_text())
-    matches = [segment for segment in ir["segments"] if segment.get("template_key") == KEY]
+    matches = [segment for segment in ir["segments"] if segment.get("proof_template_id") == KEY]
     if len(matches) != 2:
         raise SystemExit(f"expected two deployed instances of {KEY}, found {len(matches)}")
-    selected = [segment for segment in matches if segment.get("index") == SOURCE_SEGMENT]
-    if len(selected) != 1:
-        raise SystemExit(f"expected one segment-{SOURCE_SEGMENT} SCP proof representative")
-    segment = selected[0]
-    expected = {
-        "index": SOURCE_SEGMENT,
-        "constraint_count": ROW_COUNT,
-        "local_wire_count": LOCAL_WIRE_COUNT,
-    }
-    for field, value in expected.items():
-        if segment.get(field) != value:
-            raise SystemExit(f"SCP representative {field} drifted: {segment.get(field)} != {value}")
-    seating = segment["wire_seating"]
-    if len(seating) != LOCAL_WIRE_COUNT or len(set(seating)) != len(seating):
-        raise SystemExit("SCP representative seating is not an injective local-wire table")
-    return segment
+    for segment in matches:
+        if segment.get("op") != "gadget.state_commitment_path" \
+                or segment.get("constraint_count") != ROW_COUNT:
+            raise SystemExit("SCP deployed instance shape drifted")
+        seating = SegmentTemplate.parse(segment).canonical_wire_seating
+        if len(seating) != LOCAL_WIRE_COUNT or len(set(seating)) != len(seating):
+            raise SystemExit("SCP deployed seating is not an injective local-wire table")
+    return matches[0]
 
 
 def _relation_source() -> str:
@@ -87,10 +80,34 @@ def _parts(_: int) -> list[list[int]]:
     return [list(range(first, min(first + PART_SIZE, ROW_COUNT))) for first in range(0, ROW_COUNT, PART_SIZE)]
 
 
+def _reviewed_reference_seating() -> tuple[int, ...]:
+    """Canonical-local to reviewed SCP proof coordinates."""
+    seating: list[int | None] = [None] * LOCAL_WIRE_COUNT
+    seating[0], seating[1], seating[280] = 0, 23, 24
+    seating[2:280] = range(7212, 7490)
+    seating[281:285] = range(7490, 7494)
+    for level in range(24):
+        local = 285 + 363 * level
+        reference = 7494 + 360 * level
+        boundary = 94 - 3 * level
+        for offset, value in enumerate(
+            (boundary, reference, boundary + 1, reference + 1, reference + 2, boundary + 2)
+        ):
+            seating[local + offset] = value
+        count = 353 if level == 23 else 357
+        seating[local + 6:local + 6 + count] = range(reference + 3, reference + 3 + count)
+    if any(value is None for value in seating):
+        raise ValueError("SCP reviewed wire context is incomplete")
+    return tuple(int(value) for value in seating)
+
+
 @contextmanager
-def _normalized_emitter_inputs(segment: dict, rows: dict[int, str]):
+def _normalized_emitter_inputs(rows: dict[int, str]):
     """Temporarily parameterize the reviewed emitter with normalized metadata."""
-    seating_inverse = {global_wire: local_wire for local_wire, global_wire in enumerate(segment["wire_seating"])}
+    seating_inverse = {
+        global_wire: local_wire
+        for local_wire, global_wire in enumerate(_reviewed_reference_seating())
+    }
     deployed_wire_map = scp.wire_map
 
     def local_wire_map(seg: int, source_wire: int) -> int:
@@ -149,6 +166,15 @@ def _rewrite(text: str) -> str:
     text = text.replace("_seg13", "_template")
     if "NoteReshape2x1" in text or "representativeRho" in text:
         raise SystemExit("normalized SCP provider retained a deployed-relation dependency")
+    tactic_imports = (
+        ("linear_combination", "Mathlib.Tactic.LinearCombination"),
+        ("interval_cases", "Mathlib.Tactic.IntervalCases"),
+        ("norm_num", "Mathlib.Tactic.NormNum"),
+    )
+    for tactic, module in tactic_imports:
+        declaration = f"import {module}\n"
+        if tactic in text and declaration not in text:
+            text = declaration + text
     return text
 
 
@@ -177,10 +203,10 @@ def _main(inst: scp.Instance) -> str:
 
 
 def generated_files() -> dict[Path, str]:
-    segment = _segment()
+    _segment()
     rows = _rows()
     outputs: dict[Path, str] = {}
-    with _normalized_emitter_inputs(segment, rows):
+    with _normalized_emitter_inputs(rows):
         inst = scp.Instance(SOURCE_SEGMENT)
         outputs[OUT / f"{NAME}ScpBase.lean"] = _base(inst)
         outputs[OUT / f"{NAME}ScpLeaf.lean"] = _rewrite(scp.emit_leaf(inst)) + "\n"

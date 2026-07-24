@@ -11,9 +11,9 @@ set -euo pipefail
 #      the linter's hard-fail rules PASS on them (current green generation must
 #      not contain a fuel-unroll / wide-carried-rcases / >8-arm-match).
 #
-# The committed DtkAdapter tree is NOT linted here: it is the pre-switchover flat
-# corpus (wide inline rcases) that the separate switchover thread replaces, so it
-# would legitimately trip R2. The lint target is generated, opaque-form output.
+# The obsolete per-deployment adapter trees have been removed. This live probe
+# checks freshly generated seated contracts; normalized provider sources are
+# covered by the emitted-source heartbeat/census gates in the outer FV driver.
 
 fail() { echo "check-structured-lc-lint failed: $*" >&2; exit 1; }
 
@@ -38,9 +38,10 @@ mkdir -p "$ROOT/tools/gnark/lean/.lake"
 TMP="$(mktemp -d "$ROOT/tools/gnark/lean/.lake/structured-lc-lint.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
-if ! cargo run -q -p shieldd-constraint-coverage -- \
+if ! cargo run --release -q -p shieldd-constraint-coverage -- \
     --manifest "$ARTIFACT_DIR/note_reshape2x1-manifest.json" \
     --sr1cs "$ARTIFACT_DIR/note_reshape2x1.sr1cs" \
+    --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
     --lean-contract-out "$TMP/generated" >"$TMP/generate.log" 2>&1; then
   cat "$TMP/generate.log" >&2
   fail "contract generation failed"

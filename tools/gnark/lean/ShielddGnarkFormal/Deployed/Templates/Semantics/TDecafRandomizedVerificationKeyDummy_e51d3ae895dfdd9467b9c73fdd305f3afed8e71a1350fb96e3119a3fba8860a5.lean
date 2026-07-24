@@ -62,9 +62,24 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
         exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit
           (rho 2057).val hSecondLt i hi)
   have heq := EdwardsBridge.addSpec_eq p q ⟨rho 3617, rho 3618⟩ hp hq hadd
+  have hfinal : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk
+      (rho 3617) (rho 3618) =
+      Shieldd.GnarkFormal.ScalarMulBridge.toA (EdwardsBridge.addF p q) := by
+    rw [← heq]
+    rfl
   constructor
-  · rw [← Shieldd.GnarkFormal.ScalarMulBridge.toA_addF, ← hFirstModel, ← hSecondModel]
-    rw [← hFirst.1, ← hSecond.1, ← heq]
+  · rw [hfinal, Shieldd.GnarkFormal.ScalarMulBridge.toA_addF]
+    dsimp only [p, q]
+    rw [hFirst.1, hSecond.1, hFirstModel, hSecondModel]
+    simp only [Shieldd.GnarkFormal.Decaf377Assumptions.rvk,
+      Shieldd.GnarkFormal.Decaf377Assumptions.scalarMulLE,
+      Shieldd.GnarkFormal.Decaf377Assumptions.generator,
+      Shieldd.GnarkFormal.Decaf377Assumptions.identity,
+      Shieldd.GnarkFormal.ScalarMulBridge.toA,
+      Shieldd.GnarkFormal.RvkFixedBaseConstants.C,
+      Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,
+      Shieldd.GnarkFormal.RvkBridge.genXNat,
+      Shieldd.GnarkFormal.RvkBridge.genYNat]
     rfl
   · exact Shieldd.GnarkFormal.RvkDeployedRung.addSpec_onCurve hp hq hadd
 

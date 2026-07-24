@@ -16,9 +16,10 @@ mkdir -p "$LEAN_DIR/.lake"
 TMP="$(mktemp -d "$LEAN_DIR/.lake/structured-lc-dtk-probes.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
-if ! cargo run -q -p shieldd-constraint-coverage -- \
+if ! cargo run --release -q -p shieldd-constraint-coverage -- \
     --manifest "$ARTIFACT_DIR/note_reshape2x1-manifest.json" \
     --sr1cs "$ARTIFACT_DIR/note_reshape2x1.sr1cs" \
+    --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
     --lean-contract-out "$TMP/generated" >"$TMP/generate.log" 2>&1; then
   cat "$TMP/generate.log" >&2
   fail "contract generation failed"

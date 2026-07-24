@@ -74,7 +74,7 @@ _FUEL_REF = re.compile(
 _DECL = re.compile(r"^(theorem|lemma|def|instance|example)\b[ \t]+([^\s(:{]*)", re.M)
 
 # Projection lemmas exempt from R2: emitted as `…_rows<idx>` by
-# gen_dtk_slice.py::emit_row_projection; their entire body is the wide
+# dtk_recovery.py::emit_row_projection; their entire body is the wide
 # destructure and their type is the bare relationRow conjunction.
 _PROJECTION_NAME = re.compile(r"_rows\d+$")
 

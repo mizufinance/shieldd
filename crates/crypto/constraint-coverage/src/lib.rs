@@ -16,6 +16,7 @@ pub mod ltchain;
 pub mod obligations;
 pub mod rowmap;
 pub mod rvkfixed;
+pub mod template_registry;
 pub mod wiring;
 
 #[derive(Debug, Error)]
@@ -130,6 +131,12 @@ pub enum CoverageError {
         expected: String,
         actual: String,
     },
+    #[error("proof-template registry error: {0}")]
+    TemplateRegistry(String),
+    #[error("unreviewed proof template for operation {op:?}")]
+    UnreviewedTemplate { op: String },
+    #[error("ambiguous proof template for operation {op:?}: {count} registry matches")]
+    AmbiguousTemplate { op: String, count: usize },
 }
 
 #[derive(Debug, Deserialize)]

@@ -13,6 +13,7 @@ API.  The family orchestrator owns writing/checking the returned files.
 from __future__ import annotations
 
 import json
+import gzip
 import re
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -20,8 +21,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable, Iterator
 
-import gen_dtk_slice as dtk
-import gen_nb_slice as rvk_emitter
+import dtk_recovery as dtk
+import nb_recovery as rvk_emitter
+from template_ir import SegmentTemplate
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -33,6 +35,7 @@ DEFAULT_OUT = FORMAL_ROOT / "Deployed/Templates/Semantics"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 GEN_X = 4959445789346820725352484487855828915252512307947624787834978378872129235627
 GEN_Y_MINUS_ONE = 6060471950081851567114691557659790004756535011754163002297540472747064943287
+GEN_XY_CANONICAL = (GEN_X + GEN_Y_MINUS_ONE) % ORDER
 
 TEMPLATE_KEY = (
     "decaf.randomized_verification_key.dummy@"
@@ -40,7 +43,6 @@ TEMPLATE_KEY = (
 )
 DIGEST = TEMPLATE_KEY.split("@", 1)[1]
 CIRCUIT = "note_reshape4x1"
-SEGMENT = 24
 CONSTRAINT_COUNT = 3618
 LOCAL_WIRE_COUNT = 3619
 RELATION_STEM = "TDecafRandomizedVerificationKeyDummy_" + DIGEST
@@ -110,65 +112,57 @@ Row = tuple[Lc, Lc, Lc]
 def _segment() -> dict:
     ir_path = ROOT / f"crates/core/component/shielded-pool/formal/{CIRCUIT}-deployed-slice-ir.json"
     ir = json.loads(ir_path.read_text())
-    matches = [item for item in ir["segments"] if item["index"] == SEGMENT]
-    if len(matches) != 1:
-        raise ValueError(f"{CIRCUIT}: expected one segment {SEGMENT}")
-    segment = matches[0]
+    matches = [
+        item for item in ir["segments"]
+        if item.get("proof_template_id") == TEMPLATE_KEY
+        and item.get("op") == "decaf.randomized_verification_key.dummy"
+    ]
+    if not matches:
+        raise ValueError(f"{CIRCUIT}: missing deployed instance of {TEMPLATE_KEY}")
     pins = {
         "op": "decaf.randomized_verification_key.dummy",
-        "template_key": TEMPLATE_KEY,
         "constraint_count": CONSTRAINT_COUNT,
     }
-    for field, expected in pins.items():
-        if segment.get(field) != expected:
-            raise ValueError(
-                f"{CIRCUIT}:Seg{SEGMENT} {field} drift: "
-                f"{segment.get(field)!r} != {expected!r}"
-            )
-    if segment["end"] - segment["start"] != CONSTRAINT_COUNT:
-        raise ValueError("dummy RVK representative row range drift")
-    seating = segment["wire_seating"]
-    if len(seating) != LOCAL_WIRE_COUNT or len(set(seating)) != LOCAL_WIRE_COUNT:
-        raise ValueError("dummy RVK normalized wire seating drift")
-    if seating[0] != 0:
-        raise ValueError("dummy RVK constant wire is not local wire zero")
-    return segment
+    for segment in matches:
+        for field, expected in pins.items():
+            if segment.get(field) != expected:
+                raise ValueError(
+                    f"{CIRCUIT}:{TEMPLATE_KEY} {field} drift: "
+                    f"{segment.get(field)!r} != {expected!r}"
+                )
+        if segment["end"] - segment["start"] != CONSTRAINT_COUNT:
+            raise ValueError("dummy RVK representative row range drift")
+        seating = SegmentTemplate.parse(segment).canonical_wire_seating
+        if len(seating) != LOCAL_WIRE_COUNT or len(set(seating)) != LOCAL_WIRE_COUNT:
+            raise ValueError("dummy RVK normalized wire seating drift")
+        if seating[0] != 0:
+            raise ValueError("dummy RVK constant wire is not local wire zero")
+    return min(matches, key=lambda item: item["template_equivalence_witness"]["witness_sha256_hex"])
 
 
 def normalized_rows() -> list[Row]:
-    segment = _segment()
-    inverse = {global_wire: local for local, global_wire in enumerate(segment["wire_seating"])}
+    _segment()
     pattern = re.compile(r"\(constraint \[(.*?)\] \[(.*?)\] \[(.*?)\]\)$")
     rows: list[Row] = []
-    index = 0
-    artifact = ROOT / f"tools/gnark/artifacts/{CIRCUIT}/{CIRCUIT}.sr1cs"
-    with artifact.open() as source_file:
+    artifact = ROOT / f"tools/gnark/artifacts/proof-template-relations/{DIGEST}.sr1cs.gz"
+    with gzip.open(artifact, "rt") as source_file:
         for raw in source_file:
             line = raw.strip()
-            if not line.startswith("(constraint "):
-                continue
-            if index >= segment["end"]:
-                break
-            if index >= segment["start"]:
-                match = pattern.fullmatch(line)
-                if match is None:
-                    raise ValueError(f"unparseable dummy RVK SR1CS row {index}")
-                sides: list[Lc] = []
-                for group in match.groups():
-                    side: Lc = {}
-                    for coefficient, wire in re.findall(r"\(([-0-9]+) (\d+)\)", group):
-                        global_wire = int(wire)
-                        if global_wire not in inverse:
-                            raise ValueError(f"dummy RVK row references unseated wire {global_wire}")
-                        local = inverse[global_wire]
-                        value = (side.get(local, 0) + int(coefficient)) % ORDER
-                        if value:
-                            side[local] = value
-                        else:
-                            side.pop(local, None)
-                    sides.append(side)
-                rows.append((sides[0], sides[1], sides[2]))
-            index += 1
+            match = pattern.fullmatch(line)
+            if match is None:
+                raise ValueError(f"unparseable canonical dummy RVK row {len(rows)}")
+            sides: list[Lc] = []
+            for group in match.groups():
+                side: Lc = {}
+                for coefficient, wire in re.findall(r"\(([-0-9]+) (\d+)\)", group):
+                    local = int(wire)
+                    value = (side.get(local, 0) + int(coefficient)) % ORDER
+                    if value:
+                        side[local] = value
+                    else:
+                        side.pop(local, None)
+                sides.append(side)
+            rows.append((sides[0], sides[1], sides[2]))
     if len(rows) != CONSTRAINT_COUNT:
         raise ValueError(f"expected {CONSTRAINT_COUNT} dummy RVK rows, got {len(rows)}")
     return rows
@@ -345,6 +339,10 @@ def _emit_base(name: str, namespace: str, relation_module: str) -> str:
 
 
 def _rewrite(source: str, ladder: Ladder, module_prefix: str, namespace: str, relation: str) -> str:
+    source = source.replace(
+        "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.CompressAdapterCommon",
+        "import ShielddGnarkFormal.Deployed.Templates.Semantics.BinaryRecomposition",
+    )
     old_prefix = "ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46"
     common_prefix = module_prefix.removesuffix(ladder.label)
     source = source.replace(old_prefix + "Base", common_prefix + "Base")
@@ -373,6 +371,31 @@ def _rewrite(source: str, ladder: Ladder, module_prefix: str, namespace: str, re
     source = source.replace("seg46Blind", f"dummyRvk{ladder.label}")
     source = re.sub(r"\b31661\b", str(ladder.bit_base), source)
     return source
+
+
+def _install_prime_support_import(source: str, support_module: str, label: str) -> str:
+    lines = source.splitlines()
+    import_end = 0
+    while import_end < len(lines) and lines[import_end].startswith("import "):
+        import_end += 1
+    if import_end == 0 or any(line == f"import {support_module}" for line in lines):
+        raise ValueError(f"{label}: provider import shape drift")
+    lines.insert(import_end, f"import {support_module}")
+    return "\n".join(lines) + ("\n" if source.endswith("\n") else "")
+
+
+def _emit_prime_support(namespace: str) -> str:
+    return f"""import ShielddGnarkFormal.Extracted.DecafEdwardsAdd
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+
+namespace {namespace}
+
+instance dummyRvkEdwardsAddFactPrime : Fact (Nat.Prime
+    Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+end {namespace}
+"""
 
 
 def _emit_trace(ladder: Ladder, module_prefix: str, namespace: str) -> str:
@@ -416,12 +439,160 @@ def _point_y(ladder: Ladder) -> str:
     return f"(1 : F) + ({GEN_Y_MINUS_ONE} : F) * rho {ladder.bit_base} + dummyRvk{ladder.label}DeltaY250 rho"
 
 
-def _emit_native_add(module_root: str, namespace: str, relation: str) -> str:
+def _emit_tail_lcs(module_root: str, namespace: str, relation: str) -> str:
     first, second = LADDERS
+    entries = (
+        (3012, f"({_point_x(first)}) + ({_point_y(first)})", (first, "X", "Y")),
+        (3013, f"({_point_x(second)}) + ({_point_y(second)})", (second, "X", "Y")),
+        (3014, _point_x(first), (first, "X")),
+        (3015, _point_y(second), (second, "Y")),
+        (3016, _point_x(second), (second, "X")),
+        (3017, _point_y(first), (first, "Y")),
+    )
     lines = [
         f"import {module_root}{first.label}Defs",
         f"import {module_root}{second.label}Defs",
+        "import ShielddGnarkFormal.DummyRvkTailBridge",
+        "import Mathlib.Tactic.LinearCombination",
+        "",
+        "set_option maxRecDepth 1000000",
+        "set_option maxHeartbeats 20000000",
+        "",
+        f"namespace {namespace}",
+        "",
+        "theorem dummyRvk_genXYCoefficient :",
+        f"    (({GEN_X} : F) + ({GEN_Y_MINUS_ONE} : F)) = "
+        f"{GEN_XY_CANONICAL} := "
+        "Shieldd.GnarkFormal.DummyRvkTailBridge.fixedGeneratorXYCoefficient",
+        "",
+    ]
+    for lc, expression, delta_spec in entries:
+        lines += [
+            f"theorem dummyRvk_lc{lc} (rho : Nat -> F) :",
+            f"    {relation}.relationLc{lc} rho = {expression} := by",
+            f"  unfold {relation}.relationLc{lc}",
+            "  simp only [StructuredLC.eval, StructuredLC.sumRuns, "
+            "StructuredLC.sumResidual, StrideRun.eval]",
+        ]
+        ladder = delta_spec[0]
+        deltas = " ".join(
+            f"dummyRvk{ladder.label}Delta{axis}250" for axis in delta_spec[1:]
+        )
+        lines.append(f"  unfold {deltas}")
+        for atom_index, axis in enumerate(delta_spec[1:]):
+            fused = ladder.fused_x if axis == "X" else ladder.fused_y
+            split = ladder.split_x if axis == "X" else ladder.split_y
+            lines += [
+                f"  generalize hs{atom_index}f : StrideRun.sumAux rho {fused} 5 149 = s{atom_index}f",
+                f"  generalize hs{atom_index}s : StrideRun.sumAux rho {split} 8 101 = s{atom_index}s",
+            ]
+        if lc in (3012, 3013):
+            lines += [
+                "  rw [← dummyRvk_genXYCoefficient]",
+                "  rw [add_mul]",
+                "  simp only [zero_add, add_zero, one_mul, mul_one]",
+                "  ac_rfl",
+            ]
+        else:
+            lines += [
+                "  simp only [zero_add, add_zero, one_mul, mul_one]",
+                "  ac_rfl",
+            ]
+        lines.append("")
+    lines += [f"end {namespace}", ""]
+    return "\n".join(lines)
+
+
+def _emit_tail_rows(module_root: str, namespace: str, relation: str) -> str:
+    lines = [
+        f"import {relation.replace('Shieldd.GnarkFormal', 'ShielddGnarkFormal')}",
+        f"import {module_root}Base",
+        "",
+        f"namespace {namespace}",
+        "",
+        "structure DummyRvkTailRows (rho : Nat -> F) : Prop where",
+    ]
+    lines.extend(
+        f"  r{row} : {relation}.relationRow{row} rho" for row in TAIL_ROWS
+    )
+    lines += [
+        "",
+        "theorem dummyRvk_tail_rows (rho : Nat -> F)",
+        f"    (h : {relation}.relation rho) : DummyRvkTailRows rho := by",
+    ]
+    dtk.emit_unpack(lines, SimpleNamespace(seg=46), set(TAIL_ROWS))
+    fields = ", ".join(f"r{row}" for row in TAIL_ROWS)
+    lines += [f"  exact ⟨{fields}⟩", "", f"end {namespace}", ""]
+    return "\n".join(lines).replace("Seg46.", relation + ".")
+
+
+def _emit_tail_products(module_root: str, namespace: str, relation: str) -> str:
+    first, second = LADDERS
+    lines = [
+        f"import {module_root}TailRows",
+        f"import {module_root}TailLcs",
+        "",
+        f"namespace {namespace}",
+        "",
+        "structure DummyRvkTailProducts (rho : Nat -> F) : Prop where",
+        f"  e11 : rho 3611 = (dummyRvk{first.label}AccState rho 251).x +",
+        f"    (dummyRvk{first.label}AccState rho 251).y",
+        f"  e12 : rho 3612 = (dummyRvk{second.label}AccState rho 251).x +",
+        f"    (dummyRvk{second.label}AccState rho 251).y",
+        "  e13 : rho 3613 =",
+        f"    ((dummyRvk{first.label}AccState rho 251).x + (dummyRvk{first.label}AccState rho 251).y) *",
+        f"    ((dummyRvk{second.label}AccState rho 251).x + (dummyRvk{second.label}AccState rho 251).y)",
+        f"  e14 : rho 3614 = (dummyRvk{first.label}AccState rho 251).x *",
+        f"    (dummyRvk{second.label}AccState rho 251).y",
+        f"  e15 : rho 3615 = (dummyRvk{second.label}AccState rho 251).x *",
+        f"    (dummyRvk{first.label}AccState rho 251).y",
+        "  e16 : rho 3616 = 3021 * rho 3614 * rho 3615",
+        "",
+        "theorem dummyRvk_tail_products (rho : Nat -> F)",
+        f"    (h : {relation}.relation rho) : DummyRvkTailProducts rho := by",
+        "  rcases dummyRvk_tail_rows rho h with ⟨r3610, r3611, r3612, r3613, r3614, r3615, _, _⟩",
+    ]
+    for row in range(3610, 3616):
+        lines.append(f"  unfold {relation}.relationRow{row} at r{row}")
+    lines += [
+        f"  have e11 : rho 3611 = (dummyRvk{first.label}AccState rho 251).x +",
+        f"      (dummyRvk{first.label}AccState rho 251).y := by",
+        "    rw [dummyRvk_lc3012] at r3610",
+        "    simpa only [one_mul, mul_one] using r3610.symm",
+        f"  have e12 : rho 3612 = (dummyRvk{second.label}AccState rho 251).x +",
+        f"      (dummyRvk{second.label}AccState rho 251).y := by",
+        "    rw [dummyRvk_lc3013] at r3611",
+        "    simpa only [one_mul, mul_one] using r3611.symm",
+        f"  have e14 : rho 3614 = (dummyRvk{first.label}AccState rho 251).x *",
+        f"      (dummyRvk{second.label}AccState rho 251).y := by",
+        "    rw [dummyRvk_lc3014, dummyRvk_lc3015] at r3613",
+        "    simpa only [one_mul, mul_one] using r3613.symm",
+        f"  have e15 : rho 3615 = (dummyRvk{second.label}AccState rho 251).x *",
+        f"      (dummyRvk{first.label}AccState rho 251).y := by",
+        "    rw [dummyRvk_lc3016, dummyRvk_lc3017] at r3614",
+        "    simpa only [one_mul, mul_one] using r3614.symm",
+        "  have e13 : rho 3613 =",
+        f"      ((dummyRvk{first.label}AccState rho 251).x + (dummyRvk{first.label}AccState rho 251).y) *",
+        f"      ((dummyRvk{second.label}AccState rho 251).x + (dummyRvk{second.label}AccState rho 251).y) := by",
+        "    rw [← e11, ← e12]",
+        "    simpa only [one_mul, mul_one] using r3612.symm",
+        "  have e16 : rho 3616 = 3021 * rho 3614 * rho 3615 := by",
+        "    simpa only [one_mul, mul_one] using r3615.symm",
+        "  exact ⟨e11, e12, e13, e14, e15, e16⟩",
+        "",
+        f"end {namespace}",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _emit_native_add(module_root: str, namespace: str, relation: str) -> str:
+    first, second = LADDERS
+    lines = [
+        f"import {module_root}TailRows",
+        f"import {module_root}TailProducts",
         "import ShielddGnarkFormal.RvkDeployedRung",
+        "import ShielddGnarkFormal.DummyRvkTailBridge",
         "import Mathlib.Tactic.LinearCombination", "",
         "set_option maxRecDepth 1000000", "set_option maxHeartbeats 20000000",
         "set_option linter.unusedVariables false", "", f"namespace {namespace}", "",
@@ -431,43 +602,20 @@ def _emit_native_add(module_root: str, namespace: str, relation: str) -> str:
         f"    (hq : EdwardsBridge.onCurve (dummyRvk{second.label}AccState rho 251)) :",
         f"    EdwardsBridge.addSpec (dummyRvk{first.label}AccState rho 251)",
         f"      (dummyRvk{second.label}AccState rho 251) ⟨rho {OUT_X}, rho {OUT_Y}⟩ := by",
+        "  rcases dummyRvk_tail_rows rho h with ⟨_, _, _, _, _, _, r3616, r3617⟩",
+        "  rcases dummyRvk_tail_products rho h with ⟨e11, e12, e13, e14, e15, e16⟩",
     ]
-    dtk.emit_unpack(lines, SimpleNamespace(seg=46), set(TAIL_ROWS))
-    for row in TAIL_ROWS:
+    for row in (3616, 3617):
         lines.append(f"  unfold Seg46.relationRow{row} at r{row}")
     lines += [
-        f"  have e11 : rho 3611 = (dummyRvk{first.label}AccState rho 251).x +",
-        f"      (dummyRvk{first.label}AccState rho 251).y := by",
-        f"    change rho 3611 = ({_point_x(first)}) + ({_point_y(first)})",
-        f"    unfold dummyRvk{first.label}DeltaX250 dummyRvk{first.label}DeltaY250",
-        "    linear_combination r3610",
-        f"  have e12 : rho 3612 = (dummyRvk{second.label}AccState rho 251).x +",
-        f"      (dummyRvk{second.label}AccState rho 251).y := by",
-        f"    change rho 3612 = ({_point_x(second)}) + ({_point_y(second)})",
-        f"    unfold dummyRvk{second.label}DeltaX250 dummyRvk{second.label}DeltaY250",
-        "    linear_combination r3611",
-        f"  have e14 : rho 3614 = (dummyRvk{first.label}AccState rho 251).x *",
-        f"      (dummyRvk{second.label}AccState rho 251).y := by",
-        f"    change rho 3614 = ({_point_x(first)}) * ({_point_y(second)})",
-        f"    unfold dummyRvk{first.label}DeltaX250 dummyRvk{second.label}DeltaY250",
-        "    linear_combination r3613",
-        f"  have e15 : rho 3615 = (dummyRvk{second.label}AccState rho 251).x *",
-        f"      (dummyRvk{first.label}AccState rho 251).y := by",
-        f"    change rho 3615 = ({_point_x(second)}) * ({_point_y(first)})",
-        f"    unfold dummyRvk{second.label}DeltaX250 dummyRvk{first.label}DeltaY250",
-        "    linear_combination r3614",
-        f"  have e13 : rho 3613 =",
-        f"      ((dummyRvk{first.label}AccState rho 251).x + (dummyRvk{first.label}AccState rho 251).y) *",
-        f"      ((dummyRvk{second.label}AccState rho 251).x + (dummyRvk{second.label}AccState rho 251).y) := by",
-        "    rw [← e11, ← e12]", "    linear_combination r3612",
-        "  have e16 : rho 3616 = 3021 * rho 3614 * rho 3615 := by",
-        "    linear_combination r3615",
         "  apply Shieldd.GnarkFormal.RvkDeployedRung.deployedTail_addSpec _ _ _ _ _ hp hq",
-        "  · simp only [EdwardsBridge.d]", "    rw [e16, e14, e15]",
-        "    linear_combination r3616",
-        "  · simp only [EdwardsBridge.d, EdwardsBridge.a]",
-        "    rw [show (EdwardsBridge.a : EdwardsBridge.F) = -1 from by decide]",
-        "    rw [e16, e13, e14, e15]", "    linear_combination r3617", "",
+        "  · rw [e16, e14, e15] at r3616",
+        "    apply Shieldd.GnarkFormal.DummyRvkTailBridge.deployedTail_x_row",
+        "    simpa only [one_mul, mul_one] using r3616",
+        "  · rw [e16, e13, e14, e15] at r3617",
+        "    apply Shieldd.GnarkFormal.DummyRvkTailBridge.deployedTail_y_row",
+        "    simpa only [one_mul, mul_one] using r3617",
+        "",
         f"end {namespace}", "",
     ]
     return "\n".join(lines).replace("Seg46.", relation + ".")
@@ -537,9 +685,24 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
         exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit
           (rho {second.scalar_wire}).val hSecondLt i hi)
   have heq := EdwardsBridge.addSpec_eq p q ⟨rho {OUT_X}, rho {OUT_Y}⟩ hp hq hadd
+  have hfinal : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk
+      (rho {OUT_X}) (rho {OUT_Y}) =
+      Shieldd.GnarkFormal.ScalarMulBridge.toA (EdwardsBridge.addF p q) := by
+    rw [← heq]
+    rfl
   constructor
-  · rw [← Shieldd.GnarkFormal.ScalarMulBridge.toA_addF, ← hFirstModel, ← hSecondModel]
-    rw [← hFirst.1, ← hSecond.1, ← heq]
+  · rw [hfinal, Shieldd.GnarkFormal.ScalarMulBridge.toA_addF]
+    dsimp only [p, q]
+    rw [hFirst.1, hSecond.1, hFirstModel, hSecondModel]
+    simp only [Shieldd.GnarkFormal.Decaf377Assumptions.rvk,
+      Shieldd.GnarkFormal.Decaf377Assumptions.scalarMulLE,
+      Shieldd.GnarkFormal.Decaf377Assumptions.generator,
+      Shieldd.GnarkFormal.Decaf377Assumptions.identity,
+      Shieldd.GnarkFormal.ScalarMulBridge.toA,
+      Shieldd.GnarkFormal.RvkFixedBaseConstants.C,
+      Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,
+      Shieldd.GnarkFormal.RvkBridge.genXNat,
+      Shieldd.GnarkFormal.RvkBridge.genYNat]
     rfl
   · exact Shieldd.GnarkFormal.RvkDeployedRung.addSpec_onCurve hp hq hadd
 
@@ -578,8 +741,10 @@ def generated_dummy_rvk_semantic_files(
     relation_module = relation.replace("Shieldd.GnarkFormal", "ShielddGnarkFormal")
     root_prefix = f"{name}DummyRvk"
     module_root = f"ShielddGnarkFormal.Deployed.Templates.Semantics.{root_prefix}"
+    prime_module = module_root + "Prime"
     outputs = {
-        out / f"{root_prefix}Base.lean": GENERATED_HEADER + _emit_base(name, support_ns, relation_module)
+        out / f"{root_prefix}Base.lean": GENERATED_HEADER + _emit_base(name, support_ns, relation_module),
+        out / f"{root_prefix}Prime.lean": GENERATED_HEADER + _emit_prime_support(support_ns),
     }
     for ladder, rungs in zip(LADDERS, seating["rungs"], strict=True):
         module_prefix = module_root + ladder.label
@@ -591,14 +756,30 @@ def generated_dummy_rvk_semantic_files(
         for old_name, source in modules.items():
             suffix = old_name.removeprefix("NbAdapterSeg46Blind")
             rewritten = _rewrite(source, ladder, module_prefix, support_ns, relation)
+            if suffix == "Defs":
+                rewritten = _install_prime_support_import(
+                    rewritten, prime_module, f"{ladder.label}Defs"
+                )
             outputs[out / f"{root_prefix}{ladder.label}{suffix}.lean"] = GENERATED_HEADER + rewritten
-        rewritten_binary = _rewrite(binary, ladder, module_prefix, support_ns, relation)
+        rewritten_binary = _install_prime_support_import(
+            _rewrite(binary, ladder, module_prefix, support_ns, relation),
+            prime_module,
+            f"{ladder.label}Bits",
+        )
         outputs[out / f"{root_prefix}{ladder.label}Bits.lean"] = GENERATED_HEADER + rewritten_binary
         outputs[out / f"{root_prefix}{ladder.label}Trace.lean"] = GENERATED_HEADER + _emit_trace(
             ladder, module_prefix, support_ns
         )
+    outputs[out / f"{root_prefix}TailLcs.lean"] = GENERATED_HEADER + _emit_tail_lcs(
+        module_root, support_ns, relation
+    )
     with _configured(LADDERS[0], relation_source):
-        native_add = _emit_native_add(module_root, support_ns, relation)
+        tail_rows = _emit_tail_rows(module_root, support_ns, relation)
+    outputs[out / f"{root_prefix}TailRows.lean"] = GENERATED_HEADER + tail_rows
+    outputs[out / f"{root_prefix}TailProducts.lean"] = GENERATED_HEADER + _emit_tail_products(
+        module_root, support_ns, relation
+    )
+    native_add = _emit_native_add(module_root, support_ns, relation)
     outputs[out / f"{root_prefix}NativeAdd.lean"] = GENERATED_HEADER + native_add
     outputs[out / f"{name}.lean"] = GENERATED_HEADER + _emit_provider(
         name, module_root, support_ns, relation

@@ -1,6 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contract
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Glue
-import ShielddGnarkFormal.StructuredLC
+import ShielddGnarkFormal.Deployed.Templates.Core
+import ShielddGnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalent_534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e
 import Mathlib.Data.ZMod.Basic
 
 set_option maxRecDepth 1000000
@@ -11,14 +11,19 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg35
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
 
-def relation (rho : Nat -> F) : Prop :=
-    ((1 : F) * rho 107) * ((1 : F) * rho 21) = ((1 : F) * rho 30832) ∧
-    ((1 : F) * rho 20) * ((1 : F) * rho 108) = ((1 : F) * rho 30833) ∧
-    ((1 : F)) * ((1 : F) * rho 30832) = ((1 : F) * rho 30833)
+def wireSeatingTable : List Nat := [0, 107, 21, 30832, 20, 108, 30833]
 
-/-- Semantic projection: the hand-authored Layer-2 endpoint for this
-deployed segment, seated on this slice's wire roles. -/
-def spec (rho : Nat -> F) : Prop := Specs.deployedSpec35 rho
+def wireSeating : Nat -> Nat :=
+fun localWire => wireSeatingTable.getD localWire 0
+
+def localRho (rho : Nat -> F) : Nat -> F :=
+    Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating
+
+def relation (rho : Nat -> F) : Prop :=
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalent_534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e.relation (localRho rho)
+
+def spec (rho : Nat -> F) : Prop :=
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TDecafAssertEquivalent_534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e.spec (localRho rho)
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 35,

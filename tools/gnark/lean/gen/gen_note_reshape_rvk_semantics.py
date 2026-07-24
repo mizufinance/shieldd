@@ -9,7 +9,8 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
-import gen_rvk_deployed_adapters as rvk
+import rvk_recovery as rvk
+from template_ir import SegmentTemplate
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -24,7 +25,7 @@ NAME = "TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb76
 PROOF_RUNG_CHUNK_SIZE = 1
 RELATION = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{NAME}"
 RELATION_MODULE = RELATION.replace("Shieldd.GnarkFormal", "ShielddGnarkFormal")
-NAMESPACE = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{NAME}.RvkSupport"
+NAMESPACE = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{NAME}"
 MODULE_PREFIX = f"ShielddGnarkFormal.Deployed.Templates.Semantics.{NAME}Rvk"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 
@@ -96,23 +97,26 @@ def _flat_shadow(source: str) -> str:
 
 def _segment() -> dict:
     ir = json.loads(IR.read_text())
-    matches = [segment for segment in ir["segments"] if segment["index"] == 15]
-    if len(matches) != 1:
-        raise ValueError("expected exactly one note_reshape2x1 segment 15")
-    segment = matches[0]
+    matches = [
+        segment for segment in ir["segments"]
+        if segment.get("proof_template_id") == KEY
+        and segment.get("op") == "decaf.randomized_verification_key"
+    ]
+    if not matches:
+        raise ValueError("missing deployed normalized RVK instance")
     expected = {
         "op": "decaf.randomized_verification_key",
-        "template_key": KEY,
+        "proof_template_id": KEY,
         "constraint_count": 1812,
-        "local_wire_count": 1815,
     }
-    for field, value in expected.items():
-        if segment.get(field) != value:
-            raise ValueError(f"RVK representative {field} drifted")
-    seating = segment["wire_seating"]
-    if len(seating) != 1815 or len(set(seating)) != 1815 or seating[0] != 0:
-        raise ValueError("RVK normalized seating pin drifted")
-    return segment
+    for segment in matches:
+        for field, value in expected.items():
+            if segment.get(field) != value:
+                raise ValueError(f"RVK representative {field} drifted")
+        seating = SegmentTemplate.parse(segment).canonical_wire_seating
+        if len(seating) != 1815 or len(set(seating)) != 1815 or seating[0] != 0:
+            raise ValueError("RVK normalized seating pin drifted")
+    return min(matches, key=lambda item: item["template_equivalence_witness"]["witness_sha256_hex"])
 
 
 @cache
@@ -140,39 +144,19 @@ def _structured_relation_lcs() -> dict[int, StructuredLc]:
 
 
 def _local_cfg() -> dict:
-    seating = _segment()["wire_seating"]
-    inverse = {global_wire: local for local, global_wire in enumerate(seating)}
-    original = rvk.INSTANCES[15]
-
-    def seat(wire: int) -> int:
-        if wire not in inverse:
-            raise ValueError(f"RVK proof references unseated wire {wire}")
-        return inverse[wire]
-
-    cfg = dict(original)
-    for key in (
-        "b0", "prefix_x1", "prefix_y1", "cont_x150", "cont_y150",
-        "randomizer", "akX", "akY", "i75", "i76", "i77", "i78", "i79",
-    ):
-        cfg[key] = seat(original[key])
-    cfg["out"] = tuple(seat(wire) for wire in original["out"])
-
-    # These affine runs are consumed symbolically by the reviewed emitter.
-    for k in range(251):
-        if seat(original["b0"] + k) != cfg["b0"] + k:
-            raise ValueError(f"RVK bit run lost affine normalized seating at {k}")
-    for k in range(1, rvk.PREFIX_N + 1):
-        if seat(rvk.xwire(original, k)) != rvk.xwire(cfg, k):
-            raise ValueError(f"RVK prefix X run drifted at rung {k}")
-        if seat(rvk.ywire(original, k)) != rvk.ywire(cfg, k):
-            raise ValueError(f"RVK prefix Y run drifted at rung {k}")
-    for k in range(rvk.CONT_START, rvk.TOTAL_N + 1):
-        first = original["cont_x150"] - 6 + 8 * (k - rvk.CONT_START)
-        local_first = cfg["cont_x150"] - 6 + 8 * (k - rvk.CONT_START)
-        for offset in range(8):
-            if seat(first + offset) != local_first + offset:
-                raise ValueError(f"RVK split rung {k} lost affine normalized seating")
-    return cfg
+    """Immutable reviewed certificate coordinates in canonical template space."""
+    _segment()
+    return {
+        "inst": "Inst0", "b0": 1, "prefix_x1": 256, "prefix_y1": 257,
+        "cont_x150": 1004, "cont_y150": 1005, "vbase": 247,
+        "split_row0": 997, "split_lc0": 739, "out": (1813, 1814),
+        "randomizer": 252, "akX": 1807, "akY": 1808,
+        "lcx": 1448, "lcy": 1447, "lc46": 1446,
+        "i75": 1806, "i76": 1809, "i77": 1810, "i78": 1811,
+        "i79": 1812, "r1805": 1805,
+        "tail": {"pre": 1806, "x7": 1807, "y8": 1808, "d9": 1809,
+                 "outx": 1810, "outy": 1811},
+    }
 
 
 def _base() -> str:
@@ -445,6 +429,7 @@ def _rewrite(source: str) -> str:
     source = source.replace("Seg15.F", "F")
     source = source.replace("Seg15.", RELATION + ".")
     source = source.replace("seg15", "rvk")
+    source = source.replace("theorem rvk_sound ", "theorem sound ")
     source = source.replace(
         f"(h : {RELATION}.relation rho) : {RELATION}.spec rho := by",
         f"(h : {RELATION}.relation rho) : spec rho := by",

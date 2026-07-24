@@ -7816,6 +7816,7 @@ version = "2.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "flate2",
  "hex",
  "num-bigint",
  "num-traits",

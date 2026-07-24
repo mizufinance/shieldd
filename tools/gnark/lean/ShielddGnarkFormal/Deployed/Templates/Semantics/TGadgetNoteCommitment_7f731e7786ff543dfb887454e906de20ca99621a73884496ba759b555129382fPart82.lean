@@ -7,6 +7,18 @@ set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f
 
+local instance (priority := 2000) part82CommRing : CommRing F := ZMod.commRing _
+local instance (priority := 3000) part82Add : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) part82Mul : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) part82NatCast : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) part82Zero : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) part82One : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) part82Neg : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) part82Sub : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) part82MulOneClass : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) part82CommSemiring : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) part82Ring : Ring F := (ZMod.commRing _).toRing
+
 theorem template_part82_to_extracted (rho : Nat → F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.relationPart82 rho)
     {k : F → F → F → F → F → F → F → F → F → F → F → Prop} (hk : k (rho 372) (rho 377) (rho 382) (rho 387) (rho 392) (rho 397) (rho 402) (rho 407) (rho 412) (rho 417) (rho 422)) :

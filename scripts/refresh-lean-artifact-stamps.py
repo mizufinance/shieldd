@@ -75,34 +75,6 @@ def deployed(circuit: str) -> dict[str, str]:
     return values
 
 
-def note_reshape2x1_values() -> dict[str, str]:
-    contract = LEAN / "ShielddGnarkFormal/Deployed/Contracts/NoteReshape2x1"
-    values = common() | deployed("note_reshape2x1")
-    values.update(
-        {
-            "deployed_statement_source_sha256": sha(contract / "Statement.lean"),
-            "deployed_capstone_source_sha256": sha(contract / "Capstone.lean"),
-            "deployed_wiring_source_sha256": sha(contract / "Wiring.lean"),
-            "coverage_ir_sha256": sha(FORMAL / "note_reshape2x1-deployed-slice-ir.json"),
-            "coverage_manifest_sha256": sha(FORMAL / "note_reshape2x1-coverage-manifest.json"),
-            "dtk_lt_seating_sha256": sha(FORMAL / "note_reshape2x1-dtk-lt-seating.json"),
-            "constraint_coverage_contracts_source_sha256": sha(ROOT / "crates/crypto/constraint-coverage/src/contracts.rs"),
-            "go_define_source_sha256": sha(ROOT / "tools/gnark/internal/circuits/note_reshape_circuit.go"),
-            "poseidon_go_source_sha256": sha(ROOT / "tools/gnark/internal/primitives/poseidon377.go"),
-            "gadget_labels_source_sha256": sha(ROOT / "tools/gnark/internal/circuits/gadgets_constraint.go"),
-            "gnarkctl_source_sha256": sha(ROOT / "tools/gnark/cmd/gnarkctl/main.go"),
-            "dtk_generator_source_sha256": sha(LEAN / "gen/gen_dtk_slice.py"),
-            "rvk_generator_source_sha256": sha(LEAN / "gen/gen_rvk_deployed_adapters.py"),
-            "scp_generator_source_sha256": sha(LEAN / "gen/gen_scp_adapters.py"),
-            "generated_contract_source_sha256": sha(LEAN / "gen/generated_contract_source.py"),
-            "statement_generator_source_sha256": sha(LEAN / "gen/gen_statement.py"),
-            "wiring_generator_source_sha256": sha(LEAN / "gen/gen_wiring.py"),
-            "capstone_generator_source_sha256": sha(LEAN / "gen/gen_capstone.py"),
-        }
-    )
-    return values
-
-
 def transfer_values(go_wiring: Path, lean_wiring: Path) -> dict[str, str]:
     values = common() | deployed("transfer")
     values.update(
@@ -141,7 +113,6 @@ def main() -> None:
     parser.add_argument("--transfer-go-wiring", type=Path, required=True)
     parser.add_argument("--transfer-lean-wiring", type=Path, required=True)
     args = parser.parse_args()
-    update(FORMAL / "note_reshape2x1-whole-circuit-lean-artifact.txt", note_reshape2x1_values())
     update(FORMAL / "transfer-whole-circuit-lean-artifact.txt", transfer_values(args.transfer_go_wiring, args.transfer_lean_wiring))
 
 

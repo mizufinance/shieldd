@@ -1,5 +1,5 @@
 -- FIXTURE: the correct switchover forms. Must PASS the hard-fail rules.
--- Mirrors what gen_dtk_slice.py emits post-switchover.
+-- Mirrors what dtk_recovery.py emits post-switchover.
 
 -- Safe fuel handling: eval (one step, sumAux stays opaque) + symbolic peel lemma.
 theorem good_rung (rho : Nat → F) (h0 : StrideRun.eval rho r = a) : True := by

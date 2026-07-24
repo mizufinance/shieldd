@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkCanon
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkLt
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkPoseidon
@@ -11,16 +12,18 @@ set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs
 open Shieldd.GnarkFormal.DeployedGadgets
 
 theorem dtk_dtkSeg0 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.relation rho)
     (hdiv : onCurveAt (rho 2211) (rho 2213)) :
     Shieldd.GnarkFormal.DtkBridge.dtkSeg0
-      (rho 8) (rho 6) (rho 7) (rho 2211) (rho 2213)
-      (rho 10) (rho 15) (rho 9) (rho 10)
-      (fun ivkBits => Shieldd.GnarkFormal.DtkBridge.dtkTailK ivkBits (rho 10)
-        (∃ scalarBits, GatesDef.to_binary (rho 9) 251 scalarBits ∧
+      (rho 706) (rho 1) (rho 3) (rho 2211) (rho 2213)
+      (rho 10) (rho 15) (rho 977) (rho 978)
+      (fun ivkBits => Shieldd.GnarkFormal.DtkBridge.dtkTailK ivkBits (rho 978)
+        (∃ scalarBits, GatesDef.to_binary (rho 977) 251 scalarBits ∧
           Shieldd.GnarkFormal.DtkBridge.dtkLadderK scalarBits
             (Shieldd.GnarkFormal.ScalarMulBridge.finalKWithOutputCurve
               (dtkOutX rho : F) (dtkOutY rho : F))
@@ -29,12 +32,12 @@ theorem dtk_dtkSeg0 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates
   have hq4T := dtk_q4_ladder rho h True trivial
   have hrT := dtk_r_ladder rho h True hq4T
   have htailT := Shieldd.GnarkFormal.DtkBridge.dtkSeg1_build
-    (dtkIvkBits rho) (rho 10) True hrT
-  change Shieldd.GnarkFormal.DtkBridge.dtkTailK (dtkIvkBits rho) (rho 10) True at htailT
+    (dtkIvkBits rho) (rho 978) True hrT
+  change Shieldd.GnarkFormal.DtkBridge.dtkTailK (dtkIvkBits rho) (rho 978) True at htailT
   have hladders := (Shieldd.GnarkFormal.DtkBridge.dtkTailK_laddersTail
     _ _ _ htailT).1
-  have hScalarBinary : GatesDef.to_binary (rho 9) 251 (dtkScalarBits rho) :=
-    Shieldd.GnarkFormal.Extracted.IvkModR.laddersTail_to_binary_251 (rho 10) (rho 9)
+  have hScalarBinary : GatesDef.to_binary (rho 977) 251 (dtkScalarBits rho) :=
+    Shieldd.GnarkFormal.Extracted.IvkModR.laddersTail_to_binary_251 (rho 978) (rho 977)
       (dtkIvkBits rho) (dtkScalarBits rho) hIvkBinary hladders
       (by
         intro i
@@ -42,7 +45,7 @@ theorem dtk_dtkSeg0 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates
           List.Vector.getElem_def, List.Vector.toList_ofFn, List.getElem_ofFn])
   obtain ⟨scalarBool, hScalarEq⟩ := is_vector_binary_iff_exists_bool_vec.mp hScalarBinary.2
   have hScalarLadder := dtk_scalar_ladder rho h scalarBool hScalarEq hdiv
-  let scalarTail : Prop := ∃ scalarBits, GatesDef.to_binary (rho 9) 251 scalarBits ∧
+  let scalarTail : Prop := ∃ scalarBits, GatesDef.to_binary (rho 977) 251 scalarBits ∧
     Shieldd.GnarkFormal.DtkBridge.dtkLadderK scalarBits
       (Shieldd.GnarkFormal.ScalarMulBridge.finalKWithOutputCurve
         (dtkOutX rho : F) (dtkOutY rho : F))
@@ -51,8 +54,8 @@ theorem dtk_dtkSeg0 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates
   have hq4 := dtk_q4_ladder rho h scalarTail hScalarTail
   have hr := dtk_r_ladder rho h scalarTail hq4
   have htail := Shieldd.GnarkFormal.DtkBridge.dtkSeg1_build
-    (dtkIvkBits rho) (rho 10) scalarTail hr
-  change Shieldd.GnarkFormal.DtkBridge.dtkTailK (dtkIvkBits rho) (rho 10) scalarTail at htail
+    (dtkIvkBits rho) (rho 978) scalarTail hr
+  change Shieldd.GnarkFormal.DtkBridge.dtkTailK (dtkIvkBits rho) (rho 978) scalarTail at htail
   have hposeidon := dtk_poseidon_eq rho h
   have hP0 : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : F) = 0 := by decide
   have hcm : (5602780471396575806509277699913763570037463653793953144491313093258883571225 : F) = -2841681278031794617739547238867782961338435681360110683443920362658525667816 := by decide
@@ -160,7 +163,7 @@ theorem dtk_dtkSeg0 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates
     rho 5, (by first | linear_combination r2 + (3021 : F) * rho 4 * (r6 - r0) | linear_combination r2 - (3021 : F) * rho 4 * (r6 - r0) | linear_combination -r2 + (3021 : F) * rho 4 * (r6 - r0) | linear_combination -r2 - (3021 : F) * rho 4 * (r6 - r0)),
     (1 : F) + rho 5, rfl, (by first | linear_combination r3 + (r6 - r0) | linear_combination r3 - (r6 - r0) | linear_combination -r3 + (r6 - r0) | linear_combination -r3 - (r6 - r0)),
     rho 6, (by first | linear_combination r4 | linear_combination -r4),
-    rho 6 + rho 6, rfl, rho 6 - rho 6, rfl,
+    rho 1 + rho 6, rfl, rho 1 - rho 6, rfl,
     rho 7, (by first | linear_combination r5 | linear_combination -r5), (-3022 : F) * rho 7, (by first | rfl | (rw [show (8444461749428370424248824938781546531375899335154063827935233455917409236019 : F) = -3022 from by decide]; ring)),
     rho 9, (by first | linear_combination r7 | linear_combination -r7), hws, rho 12, hz,
     rho 9 + rho 13, hsel15, rho 14, hinv,
@@ -200,12 +203,12 @@ theorem dtk_dtkSeg0 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates
   refine ⟨(1 : F) - rho 366, (by simpa [hb2]), -rho 365, (by ring),
     rho 705 - rho 365, hsel48, ?_⟩
   refine Shieldd.GnarkFormal.DtkBridge.perm2_intro ?_
-  refine ⟨(2111115437357092606062206234695386632838870926408408195193685246394721360383 : F) * rho 10, rfl,
-    (2111115437357092606062206234695386632838870926408408195193685246394721360383 : F) * rho 10 + rho 9, rfl,
-    (by first | linear_combination hposeidon | linear_combination (2 : F) * hposeidon | linear_combination -hposeidon | linear_combination (-2 : F) * hposeidon), rho 10 - (1 : F), rfl,
-    rho 979, (by first | linear_combination r1317 | linear_combination -r1317), rho 10 - (2 : F), rfl,
-    rho 980, (by first | linear_combination r1318 | linear_combination -r1318), rho 10 - (3 : F), rfl,
-    rho 981, (by first | linear_combination r1319 | linear_combination -r1319), rho 10 - (4 : F), rfl,
+  refine ⟨(2111115437357092606062206234695386632838870926408408195193685246394721360383 : F) * rho 978, rfl,
+    (2111115437357092606062206234695386632838870926408408195193685246394721360383 : F) * rho 978 + rho 977, rfl,
+    (by first | linear_combination hposeidon | linear_combination (2 : F) * hposeidon | linear_combination -hposeidon | linear_combination (-2 : F) * hposeidon), rho 978 - (1 : F), rfl,
+    rho 979, (by first | linear_combination r1317 | linear_combination -r1317), rho 978 - (2 : F), rfl,
+    rho 980, (by first | linear_combination r1318 | linear_combination -r1318), rho 978 - (3 : F), rfl,
+    rho 981, (by first | linear_combination r1319 | linear_combination -r1319), rho 978 - (4 : F), rfl,
     rho 982, (by first | linear_combination r1320 | linear_combination -r1320), (by first | linear_combination r1321 | linear_combination -r1321),
     dtkIvkBits rho, hIvkBinary, ?_⟩
   simpa [scalarTail] using htail
@@ -215,21 +218,21 @@ theorem dtk_sound (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.R
   intro hdiv
   have hseg0 := dtk_dtkSeg0 rho h hdiv
   have hcircuit := Shieldd.GnarkFormal.Deployed.Dtk.dtk_circuit_of_seg0
-    (rho 8) (rho 6) (rho 7) (rho 2211) (rho 2213)
-    (rho 10) (rho 15) (rho 9) (rho 10)
+    (rho 706) (rho 1) (rho 3) (rho 2211) (rho 2213)
+    (rho 10) (rho 15) (rho 977) (rho 978)
     (dtkOutX rho : F) (dtkOutY rho : F) hseg0
   have hdiv' : EdwardsBridge.onCurve ⟨(rho 2211 : F), (rho 2213 : F)⟩ := by
     simpa only [onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using hdiv
   have hcircuit' : Shieldd.GnarkFormal.Decaf377Assumptions.DiversifiedTransmissionKeyCircuit
-      (rho 8) ⟨rho 6, rho 7⟩ ⟨rho 2211, rho 2213⟩ (rho 9) (rho 10)
+      (rho 706) ⟨rho 1, rho 3⟩ ⟨rho 2211, rho 2213⟩ (rho 977) (rho 978)
       ⟨dtkOutX rho, dtkOutY rho⟩ :=
     ⟨rho 10, rho 15, hcircuit⟩
   refine ⟨Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound
-    (rho 8) ⟨rho 6, rho 7⟩ ⟨rho 2211, rho 2213⟩ (rho 9) (rho 10)
+    (rho 706) ⟨rho 1, rho 3⟩ ⟨rho 2211, rho 2213⟩ (rho 977) (rho 978)
     ⟨dtkOutX rho, dtkOutY rho⟩ hdiv' hcircuit', ?_⟩
   simpa only [onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using
     Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_onCurve
-      (rho 8) ⟨rho 6, rho 7⟩ ⟨rho 2211, rho 2213⟩ (rho 9) (rho 10)
+      (rho 706) ⟨rho 1, rho 3⟩ ⟨rho 2211, rho 2213⟩ (rho 977) (rho 978)
       ⟨dtkOutX rho, dtkOutY rho⟩ hdiv' hcircuit'
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

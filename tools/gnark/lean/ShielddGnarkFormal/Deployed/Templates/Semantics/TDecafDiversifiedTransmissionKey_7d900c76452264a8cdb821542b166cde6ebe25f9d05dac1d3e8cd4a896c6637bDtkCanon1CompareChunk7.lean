@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkCanon1CompareChunk6
 
 set_option maxRecDepth 1000000
@@ -5,6 +6,8 @@ set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Extracted.CanonicalFqBits
 
@@ -35,25 +38,25 @@ theorem dtkCanon1_compare_chunk7 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
   interval_cases j
   · erw [dtkCanon1Bits_get rho 112 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 113 = rho 1245 from rfl]
+    rw [show dtkCanon1Flag rho 113 = rho 341 from rfl]
     linear_combination r442
   · have hb : pmBit 113 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 114 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 115 = rho 1244 from rfl]
+    rw [show dtkCanon1Flag rho 115 = rho 340 from rfl]
     linear_combination r441
   · have hb : pmBit 115 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 116 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 117 = rho 1243 from rfl]
+    rw [show dtkCanon1Flag rho 117 = rho 339 from rfl]
     linear_combination r440
   · have hb : pmBit 117 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 118 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 119 = rho 1242 from rfl]
+    rw [show dtkCanon1Flag rho 119 = rho 338 from rfl]
     linear_combination r439
   · have hb : pmBit 119 = true := by decide +kernel
     simp [hb] at hpm
@@ -61,11 +64,11 @@ theorem dtkCanon1_compare_chunk7 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 121 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 122 = rho 1240 from rfl]
+    rw [show dtkCanon1Flag rho 122 = rho 336 from rfl]
     linear_combination r438
   · erw [dtkCanon1Bits_get rho 122 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 123 = rho 1240 from rfl]
+    rw [show dtkCanon1Flag rho 123 = rho 336 from rfl]
     linear_combination r437
   · have hb : pmBit 123 = true := by decide +kernel
     simp [hb] at hpm
@@ -73,13 +76,13 @@ theorem dtkCanon1_compare_chunk7 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deplo
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 125 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 126 = rho 1238 from rfl]
+    rw [show dtkCanon1Flag rho 126 = rho 334 from rfl]
     linear_combination r436
   · have hb : pmBit 126 = true := by decide +kernel
     simp [hb] at hpm
   · erw [dtkCanon1Bits_get rho 127 (by omega)]
     simp only [Nat.reduceAdd]
-    rw [show dtkCanon1Flag rho 128 = rho 1237 from rfl]
+    rw [show dtkCanon1Flag rho 128 = rho 333 from rfl]
     linear_combination r435
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport

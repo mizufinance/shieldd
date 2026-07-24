@@ -1,6 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contract
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Glue
-import ShielddGnarkFormal.StructuredLC
+import ShielddGnarkFormal.Deployed.Templates.Core
+import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69
 import Mathlib.Data.ZMod.Basic
 
 set_option maxRecDepth 1000000
@@ -11,12 +11,19 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg54
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
 
-def relation (rho : Nat -> F) : Prop :=
-    ((1 : F)) * ((4691367638571316902360458299323081406319944075085591015519574142176338466134 : F) * rho 34598 + (7600015574485533381823942444903391878238309401638657445141710110325668315137 : F) * rho 34603 + (2303035022571373752067861346940421781284336182314744680345972760704747974284 : F) * rho 34608 + (7740756603642672888894756193883084320427907723891225175607297334590958469121 : F) * rho 34613 + (7794887768703111160845069174259889105885445540142212764247907805462223912961 : F) * rho 34618 + (7841285910183486822516766014582864636277620811214487840225573923351880007681 : F) * rho 34623 + (7881497632799812395965569942862776762617506046143792906072884558856248623105 : F) * rho 34628 + (7916682890089097272733273380107699873164905626706934838689281364922571161601 : F) * rho 34633) = ((1 : F) * rho 1)
+def wireSeatingTable : List Nat := [0, 34598, 34603, 34608, 34613, 34618, 34623, 34628, 34633, 1]
 
-/-- Semantic projection: the hand-authored Layer-2 endpoint for this
-deployed segment, seated on this slice's wire roles. -/
-def spec (rho : Nat -> F) : Prop := Specs.deployedSpec54 rho
+def wireSeating : Nat -> Nat :=
+fun localWire => wireSeatingTable.getD localWire 0
+
+def localRho (rho : Nat -> F) : Nat -> F :=
+    Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating
+
+def relation (rho : Nat -> F) : Prop :=
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.relation (localRho rho)
+
+def spec (rho : Nat -> F) : Prop :=
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69.spec (localRho rho)
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 54,

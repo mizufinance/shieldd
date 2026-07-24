@@ -56,18 +56,26 @@ relation path is retained.
 Go Define source
   -> freshly compiled SR1CS, byte-equal to deployed SR1CS
   -> semantic segment manifest, byte-equal to the committed manifest
-  -> typed slice IR and normalized coverage manifest
+  -> typed slice IR and verified proof-template equivalence witness
+  -> reviewed proof-template registry and normalized coverage manifest
   -> exact generated row contracts
   -> generated named Wiring and exhaustive Capstone
   -> generated family role map and Statement theorem
   -> deployed PK/VK pins and a deployed-key prove/verify round trip
 ```
 
-No handwritten circuit replica participates in this chain. Changing Go source,
-rows, segment boundaries, operation labels, wire roles, proof-class status,
-theorem names, named wiring, capstone membership, Statement membership, key
-bytes, or generated output makes a gate fail. Generated Lean must be fixed
-through its generator and then regenerated; never edit it directly.
+No handwritten circuit replica participates in this chain. The extractor may
+reuse a reviewed template only after reconstructing every deployed row from its
+canonical row with a wire and row permutation, optional L/R swap, and valid
+nonzero R1CS scaling. Term ordering is normalized. Aliases, coefficients,
+equations, or unmatched templates fail closed as unreviewed. Broader polynomial
+equivalence and variable elimination are intentionally out of scope.
+
+Changing Go source, segment boundaries, operation labels, wire roles,
+proof-class status, theorem names, named wiring, capstone membership, Statement
+membership, key bytes, or generated output makes a gate fail unless the change
+is covered by a verified local-equivalence witness. Generated Lean must be
+fixed through its generator and then regenerated; never edit it directly.
 
 Lean's theorem starts from the conjunction of exact deployed segment relations.
 The Rust coverage gate is the checked bridge establishing that those relations
@@ -86,6 +94,12 @@ Authoritative evidence lives at:
   bounds, capstones, wiring, and Statements;
 - `tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/` — exact normalized
   template relations and their reusable semantic providers;
+- `tools/gnark/artifacts/proof-template-registry.json` and
+  `tools/gnark/artifacts/proof-template-relations/` — reviewed canonical
+  relations and stable template identities;
+- `tools/gnark/artifacts/proof-template-ownership.json` —
+  template-owned generated files, exact byte digests, family consumers, and
+  per-family semantic-closure hashes;
 - `crates/core/component/compliance/formal/assumption-ledger.md` — named
   assumptions and removal paths.
 
@@ -96,8 +110,10 @@ representation bridges. The BLS12-377 scalar-field modulus itself is proved
 prime by a kernel-checked Lucas certificate. The gate forbids project axioms and
 compiler-backed certificate shortcuts, then requires the certificate, deployed
 capstones, and readable Statements to expose their reviewed axiom baselines.
-Each deployed Statement's exact standard-axiom baseline is recorded in its
-stamped artifact and checked by the gate. Protocol handlers and
+The memory-bounded `.olean` dependency auditor requires each final theorem to
+depend on exactly `[propext, Quot.sound]`; every other axiom, including
+`Classical.choice` and `sorryAx`, fails the gate. Each deployed Statement's
+exact standard-axiom baseline is recorded in its stamped artifact. Protocol handlers and
 accepted-language/state-machine claims remain separate evidence.
 
 ## Editing workflow
@@ -106,11 +122,14 @@ accepted-language/state-machine claims remain separate evidence.
 2. Run focused Go tests and export a fresh candidate SR1CS/manifest.
 3. Inspect the semantic segment diff. New or changed relations require an
    explicit proof; deleted relations require an explanation.
-4. Regenerate typed IR, contracts, adapters, wiring, capstone, and Statement
-   from their generators.
-5. Build the narrowest changed Lean modules in dependency order.
-6. Run the stamps gate, then the full gate and deployed-key round trip.
-7. Update the compact stamped artifact only after every source gate is green.
+4. Regenerate typed IR and verify its registry witness. A new relation must be
+   reviewed and added to the registry before proof generation can continue.
+5. Regenerate contracts, template semantics, wiring, capstone, Statement, and
+   the ownership manifest from their generators.
+6. Build the narrowest changed Lean modules in dependency order.
+7. Run `drift`, then `typed`; generate evidence only after the axiom audit is
+   green, and finish with `release` for the deployed-key round trip.
+8. Update compact stamped artifacts only after every source gate is green.
 
 Lean resource rules are load-bearing: run one Lake command at a time, set
 `LEAN_NUM_THREADS=1`, build the narrowest named module, keep generated
@@ -128,7 +147,9 @@ Useful commands:
 ```sh
 scripts/check-manifest-pin.sh all
 scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
-LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh stamps all
-LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh full all
+LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh drift all
+LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh typed all
+python3 scripts/gen-note-reshape-family-artifacts.py
+LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh release all
 bash scripts/check-soundness-invariants.sh
 ```

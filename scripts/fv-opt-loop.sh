@@ -68,8 +68,8 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 case "$circuit" in
-  note_reshape2x1|transfer) ;;
-  *) fail "--circuit must be note_reshape2x1 or transfer" ;;
+  note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8) ;;
+  *) fail "--circuit must be a NoteReshape family" ;;
 esac
 
 formal_dir="$ROOT/crates/core/component/shielded-pool/formal"
@@ -82,20 +82,17 @@ artifact_dir="$GNARK_DIR/artifacts/$circuit"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-# Regeneration family map: obligation op -> generator under tools/gnark/lean/gen.
-# An op absent here has no landed proof substrate: the change is unsupported and
-# needs a proof design before any Go edit lands (optimization candidate policy).
+# Registry-backed discovery replaces the old fixed segment/generator map. An
+# operation absent from the reviewed NoteReshape inventory is unsupported until
+# its proof template is reviewed and registered.
 generator_for_op() {
-  case "$1" in
-    decaf.net_balance_commitment) echo "gen_nb_slice.py" ;;
-    decaf.diversified_transmission_key) echo "gen_dtk_slice.py" ;;
-    decaf.compress_to_field) echo "gen_note_reshape2x1_compress_adapters.py" ;;
-    decaf.randomized_verification_key) echo "gen_rvk_deployed_adapters.py" ;;
-    gadget.state_commitment_path) echo "gen_state_commitment_nodes.py" ;;
-    gadget.note_commitment) echo "gen_note_commitment_semantic.py" ;;
-    gadget.nullifier|statement.hash|assert.eq|decaf.assert_equivalent|decaf.assert_on_curve) echo "gen_scp_adapters.py" ;;
-    *) echo "" ;;
-  esac
+  local op="$1"
+  if jq -e --arg op "$op" '.templates[] | select(.op == $op)' \
+      "$GNARK_DIR/artifacts/note-reshape-template-inventory.json" >/dev/null; then
+    echo "gen_note_reshape_template_semantics.py"
+  else
+    echo ""
+  fi
 }
 
 # ---- Step 1: recompile + fresh extraction ---------------------------------
@@ -112,9 +109,10 @@ recompile_and_extract() {
   )
   (
     cd "$ROOT"
-    cargo run -q -p shieldd-constraint-coverage -- \
+    cargo run --release -q -p shieldd-constraint-coverage -- \
       --manifest "$manifest" \
       --sr1cs "$sr1cs" \
+      --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
       --coverage-manifest "$coverage_manifest" \
       --coverage-ir "$coverage_ir" \
       --report-out "$fresh_report"

@@ -44,9 +44,10 @@ def relation_inventory(ir: dict) -> dict:
                     "end",
                     "constraint_count",
                     "wire_roles",
-                    "local_wire_count",
                     "class_key",
-                    "template_key",
+                    "proof_template_id",
+                    "deployed_normalized_relation_sha256_hex",
+                    "template_equivalence_witness",
                     "relation_sha256_hex",
                     "wire_role_sha256_hex",
                 )
@@ -107,20 +108,7 @@ def tree_hash(root: Path, patterns: tuple[str, ...]) -> str | None:
 
 
 def contract_patterns(circuit: str) -> tuple[str, ...]:
-    if circuit != "note_reshape2x1":
-        return ("Seg*.lean", "Bounds.lean", "Capstone.lean", "Statement.lean")
-    return (
-        "Seg*.lean",
-        "Bounds.lean",
-        "Capstone.lean",
-        "Statement.lean",
-        "Wiring.lean",
-        "DtkAdapter*.lean",
-        "RvkAdapter*.lean",
-        "ScpAdapter*.lean",
-        "NbAdapter*.lean",
-        "CompressAdapter*.lean",
-    )
+    return ("Seg*.lean", "Bounds.lean", "Capstone.lean", "Statement.lean")
 
 
 def main() -> int:

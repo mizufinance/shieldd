@@ -13,18 +13,28 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.outputs = gen.generated_files()
 
-    def test_generated_file_set_and_bytes_are_pinned(self) -> None:
-        self.assertEqual(len(self.outputs), 12699)
-        digest = hashlib.sha256()
-        for path in sorted(self.outputs, key=lambda item: str(item)):
-            digest.update(str(path.relative_to(gen.LEAN)).encode())
-            digest.update(b"\0")
-            digest.update(self.outputs[path].encode())
-            digest.update(b"\0")
-        self.assertEqual(
-            digest.hexdigest(),
-            "056659f703e9a68e54cec83ef34dd1ee9005512068d974337422aea0a52d5c11",
+    def test_generated_bytes_are_pinned_per_template_owner(self) -> None:
+        ownership_path = gen.ROOT / "tools/gnark/artifacts/proof-template-ownership.json"
+        ownership = json.loads(ownership_path.read_text())
+        pinned = {
+            gen.ROOT / item["path"]: item["sha256_hex"]
+            for template in ownership["templates"]
+            for item in template["files"]
+        }
+        pinned.update(
+            {
+                gen.ROOT / item["path"]: item["sha256_hex"]
+                for item in ownership["shared_files"]
+            }
         )
+        missing = sorted(path for path in self.outputs if path not in pinned)
+        self.assertEqual(missing, [])
+        for path, source in self.outputs.items():
+            self.assertEqual(
+                hashlib.sha256(source.encode()).hexdigest(),
+                pinned[path],
+                path.name,
+            )
 
     def test_every_inventory_template_has_one_direct_provider_main(self) -> None:
         inventory = json.loads(gen.INVENTORY.read_text())
@@ -42,6 +52,43 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             relative = str(path.relative_to(gen.LEAN)).lower()
             self.assertNotIn(legacy_direction, relative)
             self.assertNotIn("split1x", relative)
+
+    def test_dummy_rvk_support_installs_the_extracted_prime_instance(self) -> None:
+        bases = [
+            text
+            for path, text in self.outputs.items()
+            if "RandomizedVerificationKeyDummy" in path.name
+            and path.name.endswith("DummyRvkBase.lean")
+        ]
+        self.assertEqual(len(bases), 1)
+        self.assertNotIn("EdwardsAddFactPrime", bases[0])
+        prime = {
+            path.name: text
+            for path, text in self.outputs.items()
+            if "RandomizedVerificationKeyDummy" in path.name
+            and path.name.endswith("DummyRvkPrime.lean")
+        }
+        self.assertEqual(len(prime), 1)
+        self.assertIn(
+            "instance dummyRvkEdwardsAddFactPrime : Fact (Nat.Prime\n"
+            "    Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order) :=",
+            next(iter(prime.values())),
+        )
+        consumers = {
+            path.name: text
+            for path, text in self.outputs.items()
+            if "RandomizedVerificationKeyDummy" in path.name
+            and path.name.endswith(("Bits.lean", "Defs.lean"))
+        }
+        self.assertEqual(len(consumers), 4)
+        for name, text in consumers.items():
+            self.assertIn(
+                ".TDecafRandomizedVerificationKeyDummy_"
+                "e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5"
+                "DummyRvkPrime",
+                text,
+                name,
+            )
 
     def test_shared_scalar_trace_is_sharded_one_round_per_module(self) -> None:
         shared = {

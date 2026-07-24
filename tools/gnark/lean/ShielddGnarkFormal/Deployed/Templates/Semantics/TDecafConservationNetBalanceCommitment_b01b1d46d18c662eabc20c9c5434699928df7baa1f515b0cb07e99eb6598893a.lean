@@ -24,6 +24,7 @@ namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafConservationNet
 
 open Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a.NbSupport
 open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
+open Shieldd.GnarkFormal.ScalarMulBridge
 
 abbrev Order : Nat := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a.NbSupport.Order
 abbrev F := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a.NbSupport.F
@@ -64,14 +65,19 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
       Extracted.ConservationNetBalanceCommitment.Gates.eq s[1] (nbBlindAccState rho 251).y ∧
       True)
     ⟨by simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
-        GatesGnark8, GatesDef.eq],
+        GatesGnark8, GatesDef.eq]; rfl,
       by simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
-        GatesGnark8, GatesDef.eq],
+        GatesGnark8, GatesDef.eq]; rfl,
       True.intro⟩
   have hcons := nb_conservation rho h
-  refine ⟨Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbIn0Bits rho, hIn0Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbOut0Bits rho, hOut0Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbOut1Bits rho, hOut1Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbOut2Bits rho, hOut2Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbOut3Bits rho, hOut3Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbOut4Bits rho, hOut4Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbOut5Bits rho, hOut5Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbOut6Bits rho, hOut6Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.NetBalanceCommitmentBridge.pow128_lt_order ⟨nbOut7Bits rho, hOut7Bin⟩, hcons, ?_⟩
+  refine ⟨Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbIn0Bits rho, hIn0Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut0Bits rho, hOut0Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut1Bits rho, hOut1Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut2Bits rho, hOut2Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut3Bits rho, hOut3Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut4Bits rho, hOut4Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut5Bits rho, hOut5Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut6Bits rho, hOut6Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut7Bits rho, hOut7Bin⟩, hcons, ?_⟩
+  have hBlindBin' : Extracted.NetBalanceCommitment.Gates.to_binary
+      (rho 1413) 251 (nbBlindBits rho) := by
+    simpa only [Extracted.ConservationNetBalanceCommitment.Gates,
+      Extracted.NetBalanceCommitment.Gates, GatesGnark9, GatesGnark8] using hBlindBin
   obtain ⟨P, _hPon, hPeq, _z, _w, hk⟩ :=
-    nbLadder pow251_lt_order blindGen_onCurve hLadder.1
+    nbLadder pow251_lt_order blindGen_onCurve
+      ⟨nbBlindBits rho, hBlindBin', hLadder.1⟩
   simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
     GatesGnark8, GatesDef.eq] at hk
   obtain ⟨hx, hy, -⟩ := hk

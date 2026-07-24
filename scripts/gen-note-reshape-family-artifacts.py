@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render stamped whole-circuit evidence for the padded NoteReshape families."""
+"""Render stamped whole-circuit evidence for every NoteReshape family."""
 
 from __future__ import annotations
 
@@ -18,27 +18,28 @@ sys.path.insert(0, str(LEAN / "gen"))
 from write_if_changed import write_if_changed
 
 FAMILIES = {
+    "note_reshape2x1": "NoteReshape2x1",
     "note_reshape4x1": "NoteReshape4x1",
     "note_reshape8x1": "NoteReshape8x1",
     "note_reshape1x8": "NoteReshape1x8",
 }
+OWNERSHIP = GNARK / "artifacts/proof-template-ownership.json"
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def semantics_tree_sha256() -> str:
-    root = LEAN / "ShielddGnarkFormal/Deployed/Templates/Semantics"
-    digest = hashlib.sha256()
-    for path in sorted(root.rglob("*.lean")):
-        relative = path.relative_to(root).as_posix().encode()
-        contents = path.read_bytes()
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        digest.update(len(contents).to_bytes(8, "big"))
-        digest.update(contents)
-    return digest.hexdigest()
+def family_semantic_closure(circuit: str) -> str:
+    ownership = json.loads(OWNERSHIP.read_text())
+    matches = [
+        family["semantic_closure_sha256_hex"]
+        for family in ownership["families"]
+        if family["circuit"] == circuit
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"missing ownership closure for {circuit}")
+    return matches[0]
 
 
 def render(circuit: str) -> str:
@@ -57,7 +58,8 @@ def render(circuit: str) -> str:
         "deployed_capstone_source_sha256": sha256(contract_dir / "Capstone.lean"),
         "family_generator_source_sha256": sha256(LEAN / "gen/gen_note_reshape_family.py"),
         "template_semantics_generator_source_sha256": sha256(LEAN / "gen/gen_note_reshape_template_semantics.py"),
-        "template_semantics_tree_sha256": semantics_tree_sha256(),
+        "proof_template_ownership_sha256": sha256(OWNERSHIP),
+        "family_semantic_closure_sha256": family_semantic_closure(circuit),
         "template_inventory_sha256": sha256(GNARK / "artifacts/note-reshape-template-inventory.json"),
         "dtk_lt_seating_sha256": sha256(FORMAL / "note_reshape2x1-dtk-lt-seating.json"),
         "constraint_coverage_script_sha256": sha256(ROOT / "scripts/check-constraint-coverage.sh"),
@@ -96,11 +98,7 @@ def render(circuit: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--semantics-tree-sha256", action="store_true")
     args = parser.parse_args()
-    if args.semantics_tree_sha256:
-        print(semantics_tree_sha256())
-        return
     for circuit in FAMILIES:
         path = FORMAL / f"{circuit}-whole-circuit-lean-artifact.txt"
         contents = render(circuit)

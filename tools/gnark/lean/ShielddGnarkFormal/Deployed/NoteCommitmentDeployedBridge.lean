@@ -21,6 +21,17 @@ open Shieldd.GnarkFormal.Poseidon6Bridge
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.Order)]
 
 abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.F
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) : Ring F := (ZMod.commRing _).toRing
 
 theorem p17_from_rows (x v0 v1 v2 v3 v4 : F)
     (h0 : x * x = v0) (h1 : v0 * v0 = v1) (h2 : v1 * v1 = v2)
