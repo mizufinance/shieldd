@@ -1,3 +1,4 @@
+import Ipp.StrictGtDecode
 import Ipp.Extracted.ArkworksFinalExpSpec
 import Ipp.Extracted.ArkworksMultiPairing
 import Ipp.Extracted.ArkworksSubgroupCheck
@@ -89,6 +90,18 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.StrictG2Decode.strict_success_prime_subgroup
 #print axioms Ipp.StrictG2Decode.executed_subgroup_check_accepts_strict
 #print axioms Ipp.StrictG2Decode.g2_strict_checked_byte_injective
+#print axioms Ipp.Bls12377.pairingOutputModelOfValue_injective
+#print axioms Ipp.Bls12377.checkedPairingOutputEquivGt_value
+#print axioms Ipp.CanonicalGtDecode.decode_exact_consumption
+#print axioms Ipp.CanonicalGtDecode.decode_injective
+#print axioms Ipp.CanonicalGtDecode.decode_rejects_wrong_length
+#print axioms Ipp.CanonicalGtDecode.decode_rejects_noncanonical_field
+#print axioms Ipp.StrictGtDecode.gt_strict_checked_success_iff
+#print axioms Ipp.StrictGtDecode.strict_rejects_noncanonical_field
+#print axioms Ipp.StrictGtDecode.strict_rejects_failed_valid_check
+#print axioms Ipp.StrictGtDecode.strict_rejects_trailing_input
+#print axioms Ipp.StrictGtDecode.strict_success_cardinal_r_gt
+#print axioms Ipp.StrictGtDecode.gt_strict_checked_byte_injective
 #print axioms Ipp.Extracted.ArkworksMsm.nonfinalDigit_step
 #print axioms Ipp.Extracted.ArkworksMsm.finalDigit_step
 #print axioms Ipp.Extracted.ArkworksMsm.nonfinalDigit_bounds

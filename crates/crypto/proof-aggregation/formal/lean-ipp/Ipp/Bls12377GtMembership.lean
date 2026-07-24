@@ -14,7 +14,7 @@ open Ipp.CanonicalWire
 local instance : Fact baseModulus.Prime := ⟨arithmeticFacts.basePrime⟩
 local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance gtMembershipFintypeFq2 : Fintype Fq2 :=
   Fintype.ofEquiv (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
 
 private def fq2ModelOfValue (x : Fq2Value) : Fq2 :=
@@ -40,6 +40,43 @@ theorem pairingOutputModelOfValue_eq_of_matches {x : PairingOutputValue}
   unfold pairingOutputModelOfValue fq6ModelOfValue
   congr 2 <;> apply QuadraticAlgebra.ext <;> simp only [fq2ModelOfValue] <;>
     apply fq_natCast_eq_of_eq_val <;> assumption
+
+private theorem fq2ModelOfValue_injective : Function.Injective fq2ModelOfValue := by
+  intro x y h
+  apply Prod.ext
+  · apply Subtype.ext
+    have hval := congrArg ZMod.val (congrArg QuadraticAlgebra.re h)
+    change x.1.1 % baseModulus = y.1.1 % baseModulus at hval
+    rw [Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using x.1.2),
+      Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using y.1.2)] at hval
+    exact hval
+  · apply Subtype.ext
+    have hval := congrArg ZMod.val (congrArg QuadraticAlgebra.im h)
+    change x.2.1 % baseModulus = y.2.1 % baseModulus at hval
+    rw [Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using x.2.2),
+      Nat.mod_eq_of_lt (by simpa [baseModulus, fqModulus] using y.2.2)] at hval
+    exact hval
+
+private theorem fq6ModelOfValue_injective : Function.Injective fq6ModelOfValue := by
+  intro x y h
+  apply Prod.ext
+  · apply fq2ModelOfValue_injective
+    exact congrArg Fq6Model.c0 h
+  · apply Prod.ext
+    · apply fq2ModelOfValue_injective
+      exact congrArg Fq6Model.c1 h
+    · apply fq2ModelOfValue_injective
+      exact congrArg Fq6Model.c2 h
+
+/-- Canonical Fq12 values inject into the executable tower model. -/
+theorem pairingOutputModelOfValue_injective :
+    Function.Injective pairingOutputModelOfValue := by
+  intro x y h
+  apply Prod.ext
+  · apply fq6ModelOfValue_injective
+    exact congrArg Fq12Model.c0 h
+  · apply fq6ModelOfValue_injective
+    exact congrArg Fq12Model.c1 h
 
 /-- Arkworks' checked `PairingOutput` condition, before its executed GAP-10 refinement. -/
 def arkworksPairingOutputCheckedMembership (x : Fq12Model) : Prop :=
@@ -134,6 +171,12 @@ noncomputable def checkedPairingOutputEquivGt :
     {x : Fq12Model // arkworksPairingOutputCheckedMembership x} ≃ GtGroup :=
   checkedModelEquivCanonical.trans checkedCanonicalEquivGt
 
+/-- The checked-model equivalence preserves the underlying canonical Fq12 value. -/
+theorem checkedPairingOutputEquivGt_value
+    (x : {x : Fq12Model // arkworksPairingOutputCheckedMembership x}) :
+    gtValue (checkedPairingOutputEquivGt x) = fq12Coefficients x.1 := by
+  rfl
+
 /-- The checked `PairingOutput` set has the concrete scalar-modulus cardinality. -/
 theorem arkworksPairingOutputCheckedMembership_card :
     Nat.card {x : Fq12Model // arkworksPairingOutputCheckedMembership x} =
@@ -193,10 +236,12 @@ theorem field_zero_rejected_and_ne_arkPairingOutput_zero :
   simpa using fq12_zero_ne_gt_identity
 
 #print axioms pairingOutputModelOfValue_eq_of_matches
+#print axioms pairingOutputModelOfValue_injective
 #print axioms arkworksPairingOutputCheckedMembership_iff_pow
 #print axioms arkworksPairingOutputCheckedMembership_iff_nonzero_pow
 #print axioms arkworksPairingOutputCheckedMembership_iff_exists_mem_gtGroup
 #print axioms checkedPairingOutputEquivGt
+#print axioms checkedPairingOutputEquivGt_value
 #print axioms arkworksPairingOutputCheckedMembership_card
 #print axioms pairingOutput_checked_factorization_and_cardinality
 #print axioms pairingOutputValueMember_eq_true_iff
