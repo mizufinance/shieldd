@@ -279,6 +279,30 @@ theorem reverseRunningFold_spec (buckets : List G) :
       simp only [reverseRunningFold, ih, weightedBucketList, List.sum_cons]
       apply Prod.ext <;> simp <;> abel
 
+/-- Reverse running fold with explicit initial running/result state. -/
+def reverseRunningFrom : List G → G → G → G × G
+  | [], running, result => (running, result)
+  | bucket :: rest, running, result =>
+      let tail := reverseRunningFrom rest running result
+      let nextRunning := tail.1 + bucket
+      (nextRunning, tail.2 + nextRunning)
+
+theorem reverseRunningFrom_append (buckets : List G) (bucket running result : G) :
+    reverseRunningFrom (buckets ++ [bucket]) running result =
+      reverseRunningFrom buckets (running + bucket) (result + (running + bucket)) := by
+  induction buckets with
+  | nil => rfl
+  | cons head rest ih =>
+      simp only [List.cons_append, reverseRunningFrom]
+      rw [ih]
+
+theorem reverseRunningFrom_zero (buckets : List G) :
+    reverseRunningFrom buckets 0 0 = reverseRunningFold buckets := by
+  induction buckets with
+  | nil => rfl
+  | cons bucket rest ih =>
+      simp only [reverseRunningFrom, reverseRunningFold, ih]
+
 end Buckets
 
 #print axioms WnafDigit.value_of_not_negative
@@ -294,5 +318,7 @@ end Buckets
 #print axioms oneWindow_zero_digits
 #print axioms oneWindow_identity_bases
 #print axioms reverseRunningFold_spec
+#print axioms reverseRunningFrom_append
+#print axioms reverseRunningFrom_zero
 
 end Ipp.Extracted.ArkworksMsm

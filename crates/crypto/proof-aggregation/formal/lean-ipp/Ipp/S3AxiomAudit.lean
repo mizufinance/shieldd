@@ -80,3 +80,14 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.Extracted.ArkworksMsm.g2_msm_length_mismatch
 #print axioms Ipp.Extracted.ArkworksMsm.g1_msm_empty_identity
 #print axioms Ipp.Extracted.ArkworksMsm.g2_msm_empty_identity
+#print axioms Ipp.Extracted.ArkworksMsm.scalarWindows_get
+#print axioms Ipp.Extracted.ArkworksScalarMul.scalar_bit_spec
+#print axioms Ipp.Extracted.ArkworksMsm.scalarWindowBuffer_spec
+#print axioms Ipp.Extracted.ArkworksMsm.scalarWindowBuffer_windows
+#print axioms Ipp.Extracted.ArkworksMsm.scalar_index_value
+#print axioms Ipp.Extracted.ArkworksMsm.reverseRunningFrom_append
+#print axioms Ipp.Extracted.ArkworksMsm.reverseRunningFrom_zero
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g1_reverse_bucket_fold
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g1_reverse_bucket_fold_zero
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g2_reverse_bucket_fold
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g2_reverse_bucket_fold_zero

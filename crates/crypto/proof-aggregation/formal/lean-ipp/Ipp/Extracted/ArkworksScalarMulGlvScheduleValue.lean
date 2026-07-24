@@ -17,7 +17,7 @@ private theorem widen4_word (scalar : ScalarArray) (i : Nat) (hi : i < 4) :
       Ipp.Extracted.ArkworksFqMul.limbWord, Ipp.Extracted.ArkworksFr.limb,
       Ipp.Extracted.ArkworksFr.limbWord, MacCampaign.Array.make]
 
-private theorem scalar_bit_spec (scalar : ScalarArray) (bit : Nat)
+theorem scalar_bit_spec (scalar : ScalarArray) (bit : Nat)
     (hbit : bit < 256) :
     scalarToNat scalar / 2 ^ bit % 2 =
       scalarWord scalar (bit / 64) / 2 ^ (bit % 64) % 2 := by
@@ -87,5 +87,6 @@ theorem jointValue_glvPairs_255 (k1 k2 : ScalarArray)
     Nat.mod_eq_of_lt hk1, Nat.mod_eq_of_lt hk2]
 
 #print axioms jointValue_glvPairs_255
+#print axioms scalar_bit_spec
 
 end Ipp.Extracted.ArkworksScalarMul

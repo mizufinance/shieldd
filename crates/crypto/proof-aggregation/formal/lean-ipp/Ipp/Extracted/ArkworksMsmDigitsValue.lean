@@ -31,6 +31,25 @@ theorem scalarWindows_lt (radix scalar count : Nat) (hradix : 0 < radix) :
       · exact Nat.mod_lt _ hradix
       · exact ih (scalar / radix) coefficient htail
 
+theorem scalarWindows_get (radix scalar count index : Nat)
+    (hindex : index < count) :
+    (scalarWindows radix scalar count)[index]'(by
+      simpa [scalarWindows_length] using hindex) =
+      scalar / radix ^ index % radix := by
+  induction index generalizing scalar count with
+  | zero =>
+      cases count with
+      | zero => omega
+      | succ count => simp [scalarWindows]
+  | succ index ih =>
+      cases count with
+      | zero => omega
+      | succ count =>
+          simp only [scalarWindows, List.getElem_cons_succ]
+          rw [ih (scalar / radix) count (by omega), pow_succ,
+            Nat.div_div_eq_div_mul,
+            Nat.mul_comm radix (radix ^ index)]
+
 /-- Positional evaluation of ordinary unsigned radix windows. -/
 def evalWindows (radix : Nat) : List Nat → Int
   | [] => 0
@@ -273,6 +292,7 @@ theorem makeDigitsModel_bounded (radix carry : Nat) (windows : List Nat)
 
 #print axioms scalarWindows_length
 #print axioms scalarWindows_lt
+#print axioms scalarWindows_get
 #print axioms makeDigitsModel_length
 #print axioms makeDigitsModel_eval
 #print axioms evalWindows_scalarWindows
