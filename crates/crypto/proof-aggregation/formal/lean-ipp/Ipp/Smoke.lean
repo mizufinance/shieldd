@@ -13,6 +13,7 @@ import Ipp.FiatShamir
 import Ipp.StrictG1Decode
 import Ipp.StrictG2DecodeBridge
 import Ipp.StrictGtDecode
+import Ipp.ChallengeMessageSerialization
 import Ipp.Extracted.ArkworksFinalExpSpec
 import VCVio.CryptoFoundations.SigmaProtocol
 

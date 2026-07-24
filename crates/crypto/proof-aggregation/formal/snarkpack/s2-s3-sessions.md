@@ -1561,16 +1561,25 @@ Acceptance: zero, one, noncanonical, trailing, and off-subgroup fixtures pass.
 Narrows the executed GT serialization/subgroup row and supplies S3-41.
 
 **GAP-11 — aggregate decode and challenge serializer composition** — `HARD
-(sol)` — `GATED` on GAP-08/09/10 and S2-19. Prove aggregate traversal covers
-the landed exact G1/G2/`4+8μ` GT inventory with exact byte consumption, then
-prove each challenge-stage Rust component concatenation equals the Lean
-serializer used by `Ipp.ChallengeEncoding`. Acceptance: every deployed stage
-constructor is covered and mutation fixtures reject. Retires
-`assume.challenge-message-serialization-injective` for SnarkPack aggregate
-messages and narrows any remaining arkworks row to non-aggregate consumers.
+(sol)` — `DONE`. `Ipp/AggregateSerialization.lean` proves strict aggregate
+byte injectivity from the exact top-level round trip and states the GAP-14
+traversal gate: full consumption, `4+8μ` GT, `5+2μ` G1, three G2, the
+round-vector frame, and four singleton `IdentityOutput` frames per round.
+`Ipp/CanonicalSerializers.lean` proves canonical Fr and uncompressed
+projective-to-affine G1/G2 serializer injectivity.
+`Ipp/ChallengeMessageSerialization.lean` composes those with strict canonical
+GT bytes for randomizer, x0, GIPA round, final bridge, and KZG, then proves the
+fully framed typed preimage injective. This discharges the S2
+`fs.challenge-preimage` message-serialization premise and retires
+`assume.challenge-message-serialization-injective`; the general arkworks row
+remains only for non-aggregate consumers pending GAP-14. Single-threaded
+per-file peak working sets were 1872 MiB (`AggregateSerialization`), 1510 MiB
+(`CanonicalSerializers`), and 1985.3 MiB (`ChallengeMessageSerialization`).
+The pinned Lean v4.30.0 `lake build Ipp` gate passed with 3784 jobs; the new
+capstones audit to only `propext`, `Classical.choice`, and `Quot.sound`.
 
 **GAP-14 — serialization/subgroup gate and ledger retirement** — `MECHANICAL
-(luna)` — `GATED` on GAP-11. Gate decoder extraction freshness, malformed/
+(luna)` — `READY` after GAP-11. Gate decoder extraction freshness, malformed/
 trailing/noncanonical/torsion fixtures, focused/full Lean builds, and axiom
 audits; update `formal-handoff.md`. Acceptance: retire `arkworks serialization
 and subgroup behavior` only for the fully proved BLS12-377 G1/G2/GT aggregate

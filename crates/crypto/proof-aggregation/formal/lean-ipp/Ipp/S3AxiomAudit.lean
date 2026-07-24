@@ -7,6 +7,9 @@ import Ipp.Bls12377Pairing
 import Ipp.Extracted.ArkworksMultiPairingGt
 import Ipp.StrictG1Decode
 import Ipp.StrictG2DecodeBridge
+import Ipp.AggregateSerialization
+import Ipp.CanonicalSerializers
+import Ipp.ChallengeMessageSerialization
 
 /-!
 S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
@@ -102,6 +105,14 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.StrictGtDecode.strict_rejects_trailing_input
 #print axioms Ipp.StrictGtDecode.strict_success_cardinal_r_gt
 #print axioms Ipp.StrictGtDecode.gt_strict_checked_byte_injective
+#print axioms Ipp.AggregateSerialization.aggregate_strict_decode_injective
+#print axioms Ipp.AggregateSerialization.aggregate_decoder_traversal_conformance
+#print axioms Ipp.CanonicalSerializers.serializeFr_injective
+#print axioms Ipp.CanonicalSerializers.serializeG1_injective
+#print axioms Ipp.CanonicalSerializers.serializeG2_injective
+#print axioms Ipp.ChallengeMessageSerialization.serializeCanonicalGt_injective
+#print axioms Ipp.ChallengeMessageSerialization.challenge_message_serialize_injective
+#print axioms Ipp.ChallengeMessageSerialization.challenge_preimage_typed_injective
 #print axioms Ipp.Extracted.ArkworksMsm.nonfinalDigit_step
 #print axioms Ipp.Extracted.ArkworksMsm.finalDigit_step
 #print axioms Ipp.Extracted.ArkworksMsm.nonfinalDigit_bounds
