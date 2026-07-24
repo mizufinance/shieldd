@@ -9,6 +9,9 @@ import Ipp.Extracted.ArkworksMsmWrappers
 import Ipp.Extracted.ArkworksMsmDigitLoopResult
 import Ipp.Extracted.ArkworksMsmG1WindowExec
 import Ipp.Extracted.ArkworksMsmG2WindowExec
+import Ipp.Extracted.ArkworksMsmRecombine
+import Ipp.Extracted.ArkworksMsmG1Recombine
+import Ipp.Extracted.ArkworksMsmG2Recombine
 
 namespace Ipp.Extracted.ArkworksMsm
 

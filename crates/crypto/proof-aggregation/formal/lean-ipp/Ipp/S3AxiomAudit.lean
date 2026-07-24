@@ -109,3 +109,12 @@ S3 executable-arithmetic axiom-audit gate (per-theorem `#print axioms`).
 #print axioms Ipp.Extracted.ArkworksMsm.valid_g2_window_body
 #print axioms Ipp.Extracted.ArkworksMsm.valid_g2_window_zero_digits
 #print axioms Ipp.Extracted.ArkworksMsm.valid_g2_window_identity_bases
+#print axioms Ipp.Extracted.ArkworksMsm.windowValue_eq_sum
+#print axioms Ipp.Extracted.ArkworksMsm.evalDigits_eq_sum
+#print axioms Ipp.Extracted.ArkworksMsm.window_sum_exchange
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g1_window_doubles
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g1_recombine_loop
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g1_cross_window
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g2_window_doubles
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g2_recombine_loop
+#print axioms Ipp.Extracted.ArkworksMsm.valid_g2_cross_window
