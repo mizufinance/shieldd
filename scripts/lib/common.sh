@@ -410,32 +410,65 @@ orbis_pinned_rev_from_cargo() {
         log_error "Cannot derive Orbis pin: $cargo_toml not found"
         return 1
     fi
-    # All three orbis-rs git deps must share one rev; extract the first one and
-    # verify the others match so a stray edit can't silently drift.
+    # All three orbis-rs git deps must share one rev.
+    local pins
+    pins="$(grep -oE 'orbis-rs", rev = "[0-9a-f]{40}"' "$cargo_toml" | grep -oE '[0-9a-f]{40}')"
+    local pin_count
+    pin_count="$(printf '%s\n' "$pins" | grep -c '^[0-9a-f]')"
+    if [ "$pin_count" -ne 3 ]; then
+        log_error "Expected exactly three Orbis Cargo rev pins, found $pin_count"
+        return 1
+    fi
     local revs
-    revs="$(grep -oE 'orbis-rs", rev = "[0-9a-f]{40}"' "$cargo_toml" | grep -oE '[0-9a-f]{40}' | sort -u)"
-    local count
-    count="$(printf '%s\n' "$revs" | grep -c '^[0-9a-f]')"
-    if [ "$count" -ne 1 ]; then
+    revs="$(printf '%s\n' "$pins" | sort -u)"
+    local rev_count
+    rev_count="$(printf '%s\n' "$revs" | grep -c '^[0-9a-f]')"
+    if [ "$rev_count" -ne 1 ]; then
         log_error "Orbis Cargo.toml rev pins are inconsistent: $revs"
         return 1
     fi
     printf '%s' "$revs"
 }
 
-# Orbis node image, pinned to the same orbis-rs rev as the Cargo git deps so the
-# runtime and the linked client never drift. The published multi-arch tag encodes
-# the crypto feature. Override ORBIS_IMAGE to bypass. sourcehub:dev is a rolling
-# tag pulled directly (no ref pin) — override SOURCEHUB_IMAGE / SOURCEHUB_PLATFORM
-# (e.g. a locally-built linux/arm64 image on Apple Silicon) as needed.
+# Load the digest-pinned integration images and verify that the Orbis image's
+# source revision matches all three Cargo git dependencies.
 ensure_orbis_images() {
-    if [ -z "${ORBIS_IMAGE:-}" ]; then
-        local rev crypto
-        rev="$(orbis_pinned_rev_from_cargo)" || return 1
-        crypto="${ORBIS_INTEGRATION_CRYPTO:-decaf377}"
-        export ORBIS_IMAGE="ghcr.io/sourcenetwork/orbis-rs:${rev}-${crypto}"
+    local lock_file="$COMPLIANCE_REPO_ROOT/deployments/orbis/images.lock.json"
+    if [ ! -f "$lock_file" ]; then
+        log_error "Orbis image lock not found: $lock_file"
+        return 1
     fi
-    export SOURCEHUB_IMAGE="${SOURCEHUB_IMAGE:-ghcr.io/sourcenetwork/sourcehub:dev}"
+    if ! command -v jq >/dev/null 2>&1; then
+        log_error "jq not found; cannot load Orbis image lock"
+        return 1
+    fi
+    if ! jq -e '
+        .schema_version == 1
+        and (.orbis.source_revision | strings | test("^[0-9a-f]{40}$"))
+        and (.orbis.crypto | strings | length > 0)
+        and (.orbis.image | strings | test("^ghcr\\.io/sourcenetwork/orbis-rs@sha256:[0-9a-f]{64}$"))
+        and (.sourcehub.image | strings | test("^ghcr\\.io/sourcenetwork/sourcehub@sha256:[0-9a-f]{64}$"))
+    ' "$lock_file" >/dev/null; then
+        log_error "Invalid Orbis image lock: $lock_file"
+        return 1
+    fi
+
+    local cargo_rev lock_rev
+    cargo_rev="$(orbis_pinned_rev_from_cargo)" || return 1
+    lock_rev="$(jq -r '.orbis.source_revision' "$lock_file")"
+    if [ "$cargo_rev" != "$lock_rev" ]; then
+        log_error "Orbis image revision $lock_rev does not match Cargo revision $cargo_rev"
+        return 1
+    fi
+
+    if [ "${CI:-}" = "true" ] \
+        && { [ "${ORBIS_IMAGE+x}" = "x" ] || [ "${SOURCEHUB_IMAGE+x}" = "x" ]; }; then
+        log_error "CI may not override digest-pinned Orbis integration images"
+        return 1
+    fi
+
+    export ORBIS_IMAGE="${ORBIS_IMAGE:-$(jq -r '.orbis.image' "$lock_file")}"
+    export SOURCEHUB_IMAGE="${SOURCEHUB_IMAGE:-$(jq -r '.sourcehub.image' "$lock_file")}"
     export SOURCEHUB_PLATFORM="${SOURCEHUB_PLATFORM:-linux/amd64}"
 }
 

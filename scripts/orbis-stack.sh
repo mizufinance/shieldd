@@ -15,8 +15,8 @@ fi
 case "$ACTION" in
     up)
         print_banner "Orbis Runtime Bring-Up" "sourcehub + 3 nodes via vendored runtime contract"
-        ensure_docker_daemon
         ensure_orbis_images
+        ensure_docker_daemon
         run_orbis_compose "$COMPOSE_FILE" down -v --remove-orphans
         run_orbis_compose "$COMPOSE_FILE" up -d --pull missing
         wait_for_orbis_stack
@@ -24,8 +24,8 @@ case "$ACTION" in
         ;;
     pull)
         print_banner "Orbis Runtime Image Pull"
-        ensure_docker_daemon
         ensure_orbis_images
+        ensure_docker_daemon
         run_orbis_compose "$COMPOSE_FILE" pull
         log_success "Orbis images pulled"
         ;;
@@ -40,13 +40,13 @@ case "$ACTION" in
         log_success "Orbis stack stopped"
         ;;
     logs)
-        ensure_docker_daemon
         ensure_orbis_images
+        ensure_docker_daemon
         run_orbis_compose "$COMPOSE_FILE" logs
         ;;
     ps)
-        ensure_docker_daemon
         ensure_orbis_images
+        ensure_docker_daemon
         run_orbis_compose "$COMPOSE_FILE" ps
         ;;
     *)
