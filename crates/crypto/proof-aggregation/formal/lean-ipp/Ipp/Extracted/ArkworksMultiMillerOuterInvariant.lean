@@ -5,7 +5,7 @@ import Ipp.Extracted.ArkworksMultiMillerMul
 namespace Ipp.Extracted.ArkworksMultiMillerOuterInvariant
 
 open Ipp.Bls12377
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiMillerChunkModel
 

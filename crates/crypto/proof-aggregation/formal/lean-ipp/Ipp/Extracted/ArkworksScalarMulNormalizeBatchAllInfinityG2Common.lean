@@ -15,8 +15,9 @@ theorem g2_eq_zero_of_zero_z
       z ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO = .ok true := by
   unfold
     ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
-    ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_eq
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq
   simp [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO,
     ark_ip_proofs.core.array.equality.PartialEqArray.eq, hz.1, hz.2]
 
 end Ipp.Extracted.ArkworksScalarMulNormalize

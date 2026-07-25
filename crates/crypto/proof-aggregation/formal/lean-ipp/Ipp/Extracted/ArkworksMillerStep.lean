@@ -1,5 +1,4 @@
 import Ipp.Extracted.ArkworksMillerInvariant
-import Ipp.Extracted.ArkworksG2PreparedSchedule
 import Mathlib.Tactic
 
 /-! One extracted Miller body step preserves the bundled loop invariant. -/
@@ -8,10 +7,8 @@ namespace Ipp.Extracted.ArkworksMillerStep
 
 open Aeneas Aeneas.Std Result ControlFlow
 open Ipp.Bls12377
-open Ipp.Extracted.ArkworksFq12
 open Ipp.Extracted.ArkworksFqMul
 open Ipp.Extracted.ArkworksEll
-open Ipp.Extracted.ArkworksG2PreparedSchedule (extractedAteBit_eq_testBit)
 open Ipp.Extracted.ArkworksMillerModel
 open Ipp.Extracted.ArkworksMillerInvariant
 
@@ -72,27 +69,56 @@ theorem millerLoopInv_step
               rw [hdoubleEll] at hbody
               simp only [Result.bind_ok] at hbody
               have hposition : remaining - 1 < 64 := by omega
-              have hpmod : (remaining - 1) % MacCampaign.i32Base =
-                  remaining - 1 := by
-                apply Nat.mod_eq_of_lt
-                exact lt_trans hposition (by norm_num [MacCampaign.i32Base])
               have hshift :
                   (9586122913090633729#u64 >>>
-                    MacCampaign.I32.ofNat (remaining - 1) :
+                    ({ val := remaining - 1 } : Usize) :
                     Result MacCampaign.U64) =
                     .ok (MacCampaign.U64.ofNat
                       (9586122913090633729 / 2 ^ (remaining - 1))) := by
-                change MacCampaign.shr64
+                change MacCampaign.shr64ByUsize
                   (MacCampaign.U64.ofNat 9586122913090633729)
-                  (MacCampaign.I32.ofNat (remaining - 1)) = _
-                unfold MacCampaign.shr64
-                rw [show (MacCampaign.I32.ofNat (remaining - 1)).val =
-                      remaining - 1 by exact hpmod,
-                    if_pos hposition]
+                  ({ val := remaining - 1 } : Usize) = _
+                unfold MacCampaign.shr64ByUsize
+                rw [show (({ val := remaining - 1 } : Usize)).val =
+                      remaining - 1 by rfl, if_pos hposition]
                 norm_num [MacCampaign.U64.ofNat, MacCampaign.u64Base]
               rw [hshift] at hbody
-              simp only [Result.bind_ok, MacCampaign.U64.ofNat] at hbody
-              rw [nonzeroAteBitValue_eq_testBit (remaining - 1)] at hbody
+              simp only [Result.bind_ok] at hbody
+              have hquot :
+                  9586122913090633729 / 2 ^ (remaining - 1) <
+                    MacCampaign.u64Base := by
+                apply lt_of_le_of_lt (Nat.div_le_self _ _)
+                norm_num [MacCampaign.u64Base]
+              have hlowBound :
+                  9586122913090633729 / 2 ^ (remaining - 1) % 2 <
+                    MacCampaign.u64Base :=
+                lt_trans (Nat.mod_lt _ (by decide)) (by decide)
+              have hlow :
+                  MacCampaign.U64.ofNat
+                        (9586122913090633729 / 2 ^ (remaining - 1)) &&&
+                      1#u64 =
+                    MacCampaign.U64.ofNat
+                      (9586122913090633729 / 2 ^ (remaining - 1) % 2) := by
+                apply Ipp.Extracted.ArkworksFqByteRuntime.u64_eq_of_val_eq
+                rw [Ipp.Extracted.ArkworksFqByteRuntime.u64_and_one_val]
+                simp [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquot,
+                  Nat.mod_eq_of_lt hlowBound]
+              rw [hlow] at hbody
+              simp only [Aeneas.lift, Result.bind_ok] at hbody
+              have hbitEq :
+                  (MacCampaign.U64.ofNat
+                      (9586122913090633729 / 2 ^ (remaining - 1) % 2) !=
+                    0#u64) =
+                    ateLoopParameter.testBit (remaining - 1) := by
+                rw [← nonzeroAteBitValue_eq_testBit (remaining - 1)]
+                have hmodLt :
+                    9586122913090633729 / 2 ^ (remaining - 1) % 2 < 2 :=
+                  Nat.mod_lt _ (by decide)
+                interval_cases hmod :
+                    9586122913090633729 / 2 ^ (remaining - 1) % 2 <;>
+                  simp [MacCampaign.U64.ofNat, MacCampaign.u64Base,
+                    hmod]
+              rw [hbitEq] at hbody
               have hdoubleMem : doubleCoeff ∈ coeffs :=
                 List.mem_of_getElem? hdoubleGet
               rcases g1_ell_spec squared doubleCoeff p
@@ -153,5 +179,7 @@ theorem millerLoopInv_step
                             rw [hcount, millerCoeffCount, hinv.coeffIndex,
                               millerScheduleBit_eq remaining hpos hbound, hbit]
                             simp
+
+#print axioms millerLoopInv_step
 
 end Ipp.Extracted.ArkworksMillerStep

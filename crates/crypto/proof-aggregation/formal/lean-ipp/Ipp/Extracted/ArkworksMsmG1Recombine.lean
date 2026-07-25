@@ -208,7 +208,7 @@ theorem valid_g1_recombine_loop
         have hnextIndex : nextWindow.val < windowSums.val.length := by omega
         have hwindowSum : windowSum = windowSums.val[nextWindow.val] := by
           have hreverse : windowSums.val[nextWindow.val] = windowSum := by
-            simpa [alloc.vec.Vec.index, hnextIndex] using hindexExec
+            simpa [ark_ip_proofs.alloc.vec.Vec.index, hnextIndex] using hindexExec
           exact hreverse.symm
         subst windowSum
         let nextPoint : G1AffinePoint :=

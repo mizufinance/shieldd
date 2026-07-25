@@ -158,6 +158,7 @@ theorem decode_fq2_zero :
 
 theorem decode_fq2_one :
     decodeFq2 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ONE = 1 := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ONE]
   apply QuadraticAlgebra.ext
   · change decode ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ONE =
       (1 : Ipp.Bls12377.Fq)
@@ -173,7 +174,7 @@ theorem fq2_eq_zero
       .ok (Ipp.Extracted.ArkworksG2.isZeroFq2Mont a) := by
   unfold
     ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
-    ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_eq
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq
     Ipp.Extracted.ArkworksG2.isZeroFq2Mont
   by_cases h : a.c0.val =
       ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO.val <;>
@@ -186,7 +187,7 @@ theorem fq2_eq_components
       a b = .ok (decide (a.c0.val = b.c0.val ∧ a.c1.val = b.c1.val)) := by
   unfold
     ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq
-    ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_eq
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq
   by_cases h0 : a.c0.val = b.c0.val <;>
     by_cases h1 : a.c1.val = b.c1.val <;>
       simp [ark_ip_proofs.core.array.equality.PartialEqArray.eq, h0, h1]

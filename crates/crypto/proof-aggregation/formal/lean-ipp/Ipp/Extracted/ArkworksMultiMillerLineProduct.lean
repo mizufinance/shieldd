@@ -5,7 +5,7 @@ import Ipp.Extracted.ArkworksMultiMillerLineSemantics
 namespace Ipp.Extracted.ArkworksMultiMillerLineProduct
 
 open Ipp.Bls12377
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksFqMul
 open Ipp.Extracted.ArkworksEll
 open Ipp.Extracted.ArkworksMillerModel

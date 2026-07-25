@@ -557,10 +557,12 @@ private theorem decode_fq2_zero_limbs :
       Ipp.Extracted.ArkworksFqInv.limbsToNat_zeroArray]
 
 theorem fq2_eq_zero_decode (a : Fq2LimbPair)
-    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_eq a
+    (hexec :
+      ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq a
       ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO = .ok true) :
     decodeFq2 a = 0 := by
-  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_eq at hexec
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont.Insts.CoreCmpPartialEqFq2Mont.eq at hexec
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont.Insts.CoreCmpPartialEqFqMont.eq at hexec
   simp only [ark_ip_proofs.core.array.equality.PartialEqArray.eq,
     Result.bind_ok] at hexec
   let z := ark_ip_proofs.s3_07_arkworks_fq_spike.FQ2_ZERO
@@ -814,8 +816,7 @@ private theorem fq2_frobenius_spec (a output : Fq2LimbPair)
   have hdecode := decode_fq2_frobenius a output ha hexec
   unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius at hexec
   obtain ⟨c1, hc1, hret⟩ := bind_eq_ok hexec
-  simp only [Result.ok.injEq] at hret
-  subst output
+  cases hret
   exact ⟨⟨ha.1,
     (Ipp.Extracted.ArkworksFqOps.extracted_neg_spec a.c1 c1 ha.2 hc1).1⟩,
     hdecode⟩
@@ -882,6 +883,12 @@ theorem decode_fq6_frobenius_one (a output : Fq6LimbTriple)
        Ipp.Bls12377.fq2U ^ (2 * ((Ipp.Bls12377.baseModulus - 1) / 3)) *
          star (decodeFq2 a.c2)⟩ := by
   unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_frobenius at hexec
+  obtain ⟨index, hindex, hexec⟩ := bind_eq_ok hexec
+  have hindexValue : (1#usize % 6#usize : Result Usize) = .ok 1#usize := by
+    rfl
+  have : (1#usize : Usize) = index :=
+    Result.ok.inj (hindexValue.symm.trans hindex)
+  subst index
   obtain ⟨c0, hc0, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c1, hc1, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c2, hc2, hexec⟩ := bind_eq_ok hexec
@@ -939,6 +946,12 @@ theorem decode_fq6_frobenius_two (a output : Fq6LimbTriple)
        Ipp.Bls12377.fq2U ^ (2 * ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 3)) *
          decodeFq2 a.c2⟩ := by
   unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq6_frobenius at hexec
+  obtain ⟨index, hindex, hexec⟩ := bind_eq_ok hexec
+  have hindexValue : (2#usize % 6#usize : Result Usize) = .ok 2#usize := by
+    rfl
+  have : (2#usize : Usize) = index :=
+    Result.ok.inj (hindexValue.symm.trans hindex)
+  subst index
   obtain ⟨c0, hc0, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c1, hc1, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c2, hc2, hexec⟩ := bind_eq_ok hexec
@@ -961,11 +974,17 @@ theorem decode_fq6_frobenius_two (a output : Fq6LimbTriple)
   subst c0
   subst c2
   have ec3 : a.c0 = c3 := by
-    simpa [ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius_power] using hc3
+    unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius_power at hc3
+    rw [show (2#usize % 2#usize : Result Usize) = .ok 0#usize by rfl] at hc3
+    simpa only [Result.bind_ok, if_true, Result.ok.injEq] using hc3
   have ec4 : a.c1 = c4 := by
-    simpa [ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius_power] using hc4
+    unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius_power at hc4
+    rw [show (2#usize % 2#usize : Result Usize) = .ok 0#usize by rfl] at hc4
+    simpa only [Result.bind_ok, if_true, Result.ok.injEq] using hc4
   have ec6 : a.c2 = c6 := by
-    simpa [ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius_power] using hc6
+    unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_frobenius_power at hc6
+    rw [show (2#usize % 2#usize : Result Usize) = .ok 0#usize by rfl] at hc6
+    simpa only [Result.bind_ok, if_true, Result.ok.injEq] using hc6
   subst c3
   subst c4
   subst c6

@@ -7,14 +7,21 @@ import Mathlib.Tactic
 namespace Ipp.Extracted.ArkworksMultiMillerModel
 
 open Ipp.Bls12377
-open Ipp.Extracted.ArkworksFq12
 open Ipp.Extracted.ArkworksFqMul
 open Ipp.Extracted.ArkworksEll
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMillerModel
 
 abbrev MillerPair := List G2EllCoeffLimb × G1AffineLimb
 abbrev ExecPair := Aeneas.Std.alloc.vec.Vec G2EllCoeffLimb × G1AffineLimb
 abbrev Fq12Limb := ark_ip_proofs.s3_07_arkworks_fq_spike.Fq12Mont
+
+/-- The multi-Miller Fq12 one is canonical and decodes to model one. -/
+theorem fq12_one_spec :
+    Canonical12 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE ∧
+      decodeFq12 ark_ip_proofs.s3_07_arkworks_fq_spike.FQ12_ONE =
+        Ipp.Bls12377.fq12One :=
+  Ipp.Extracted.ArkworksMillerInvariant.fq12_one_spec
 
 /-- Nested-list input represented at the extracted vector boundary. -/
 def encodePair (pair : MillerPair) : ExecPair := (⟨pair.1⟩, pair.2)

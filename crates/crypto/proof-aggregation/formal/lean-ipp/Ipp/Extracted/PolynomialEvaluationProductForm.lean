@@ -40,7 +40,7 @@ private def finVec {T : Type} {n : ℕ} (v : Fin n → T) :
 def polynomial_evaluation_product_form_refinement_statement
     {F : Type} [Field F] {μ : ℕ} (x : Fin μ → F) (z rShift : F) : Prop :=
   ark_ip_proofs.tipa.polynomial_evaluation_product_form_from_transcript
-      (cloneModel F) (oneModel F) (zeroModel F) (addModel F) (mulModel F)
+      (cloneModel F) (oneModel F) (addModel F) (mulModel F)
       (finVec x) z rShift =
     .ok (∏ j : Fin μ, (1 + (x j * rShift ^ (2 ^ (j : ℕ))) *
       (z ^ 2) ^ (2 ^ (j : ℕ))))
@@ -262,7 +262,7 @@ theorem hax_translated_polynomial_evaluation_product_form_eq
 theorem hax_translated_polynomial_evaluation_product_form_eq_coefficients
     {F : Type} [Field F] {μ : Nat} (x : Fin μ → F) (z rShift : F) :
     ark_ip_proofs.tipa.polynomial_evaluation_product_form_from_transcript
-        (cloneModel F) (oneModel F) (zeroModel F) (addModel F) (mulModel F)
+        (cloneModel F) (oneModel F) (addModel F) (mulModel F)
         (finVec x) z rShift =
       .ok (∑ i : Fin (2 ^ μ), Ipp.transcriptCoeffs x rShift i *
         (z ^ 2) ^ (i : Nat)) := by

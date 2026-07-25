@@ -63,8 +63,8 @@ private theorem additionTraceCore
         unfold
           ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop1_loop1_loop1.body
           at hbody
-        rw [show Aeneas.Std.alloc.vec.Vec.len cursors = (⟨width⟩ : Usize) by
-          simp [Aeneas.Std.alloc.vec.Vec.len, hcursorsLength]] at hbody
+        rw [show ark_ip_proofs.alloc.vec.Vec.len cursors = (⟨width⟩ : Usize) by
+          simp [ark_ip_proofs.alloc.vec.Vec.len, hcursorsLength]] at hbody
         rw [if_neg (show ¬(⟨processed⟩ : Usize) < ⟨width⟩ by
           exact hactive)] at hbody
         simp only [Result.ok.injEq, ControlFlow.done.injEq] at hbody
@@ -90,8 +90,8 @@ private theorem additionTraceCore
         unfold
           ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop1_loop1_loop1.body
           at hstep
-        rw [show Aeneas.Std.alloc.vec.Vec.len cursors = (⟨width⟩ : Usize) by
-          simp [Aeneas.Std.alloc.vec.Vec.len, hcursorsLength]] at hstep
+        rw [show ark_ip_proofs.alloc.vec.Vec.len cursors = (⟨width⟩ : Usize) by
+          simp [ark_ip_proofs.alloc.vec.Vec.len, hcursorsLength]] at hstep
         rw [if_neg (show ¬(⟨processed⟩ : Usize) < ⟨width⟩ by
           exact hnot)] at hstep
         cases hstep

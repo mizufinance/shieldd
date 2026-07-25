@@ -388,9 +388,10 @@ theorem final_commitment_keys_refinement
       coefficientList_eq_transcriptCoeffs (fun j => (x j)⁻¹)
   unfold ark_ip_proofs.gipa.compute_final_commitment_keys_core
   simp [ark_ip_proofs.core.num.Usize.is_power_of_two,
-    ark_ip_proofs.massert, finSlice, copyModel, lift, Std.Array.make,
-    Std.Array.to_slice, MacCampaign.Array.make, MacCampaign.Array.to_slice,
-    alloc.slice.Slice.into_vec, ark_ip_proofs.alloc.vec.Vec.len, Slice.len]
+    ark_ip_proofs.massert, finSlice, copyModel, lift,
+    ark_ip_proofs.Array.make, ark_ip_proofs.Std.Array.to_slice,
+    ark_ip_proofs.alloc.slice.Slice.into_vec,
+    ark_ip_proofs.alloc.vec.Vec.len, Slice.len]
   rw [show Usize.ofNat 0 = (⟨0⟩ : Usize) by rfl]
   rw [houter]
   simp only [Result.bind_ok]

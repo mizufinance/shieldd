@@ -47,18 +47,6 @@ theorem usize_mac_div_value (left right output : Usize)
   cases hexec
   rfl
 
-theorem usize_glv_div_value (left right output : Usize)
-    (hnonzero : right.val ≠ 0)
-    (hexec :
-      @HDiv.hDiv Usize Usize (Result Usize)
-        ark_ip_proofs.GlvRuntime.instHDivUsizeResult left right =
-          .ok output) :
-    output.val = left.val / right.val := by
-  simp only [HDiv.hDiv] at hexec
-  rw [if_neg hnonzero] at hexec
-  cases hexec
-  rfl
-
 theorem DigitsBounded.magnitude_le {radix : Nat} {digits : List WnafDigit}
     (hbounded : DigitsBounded radix digits) (digit : WnafDigit)
     (hdigit : digit ∈ digits) :
@@ -116,6 +104,5 @@ theorem msmScalarDigits_magnitude_le (width : Nat) (scalar : ScalarArray)
 #print axioms usize_add_value
 #print axioms usize_sub_value
 #print axioms usize_mac_div_value
-#print axioms usize_glv_div_value
 
 end Ipp.Extracted.ArkworksMsm

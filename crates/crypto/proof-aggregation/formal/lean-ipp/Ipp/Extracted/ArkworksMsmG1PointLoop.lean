@@ -26,6 +26,15 @@ private theorem u64_eq_of_val_eq {left right : MacCampaign.U64}
   cases right
   simp_all
 
+private theorem updateAt_eq_set {T : Type} (items : List T)
+    (index : Nat) (value : T) :
+    ark_ip_proofs.alloc.vec.Vec.updateAt items index value =
+      items.set index value := by
+  induction items generalizing index with
+  | nil => simp [ark_ip_proofs.alloc.vec.Vec.updateAt]
+  | cons item items ih =>
+      cases index <;> simp [ark_ip_proofs.alloc.vec.Vec.updateAt, ih]
+
 /-- One generated G1 point-body transition realizes one generic bucket update. -/
 theorem valid_g1_point_body_step
     (bases : Slice ark_ip_proofs.s3_07_arkworks_fq_spike.G1AffineMont)
@@ -71,12 +80,21 @@ theorem valid_g1_point_body_step
     rw [List.getElem?_eq_getElem hdigitIndex, hdigit]
   have hbaseGet : bases.val[point.val]? = some bases.val[point.val] :=
     List.getElem?_eq_getElem hbaseIndex
+  have hdigitExec :
+      ark_ip_proofs.alloc.vec.Vec.index
+          (ark_ip_proofs.core.slice.index.SliceIndexUsizeSlice
+            ark_ip_proofs.s3_07_arkworks_fq_spike.WnafDigit)
+          allDigits
+          (⟨point.val * digitsCount.val + window.val⟩ : Usize) =
+        .ok digit := by
+    simp [ark_ip_proofs.alloc.vec.Vec.index, hdigitGet]
   unfold
     ark_ip_proofs.s3_07_arkworks_fq_spike.g1_msm_unchecked_loop1_loop0.body
     at hexec
   rw [if_pos (show point < size by exact hpoint)] at hexec
-  simp only [MacCampaign.mul_eq, Result.bind_ok, Aeneas.Std.add_eq,
-    alloc.vec.Vec.index, hdigitGet] at hexec
+  simp only [MacCampaign.mul_eq, Result.bind_ok, Aeneas.Std.add_eq] at hexec
+  rw [hdigitExec] at hexec
+  simp only [Result.bind_ok] at hexec
   by_cases hzero : digit.magnitude.val = 0
   · have hdigitZero : digit.magnitude = 0#u64 :=
       u64_eq_of_val_eq (by simpa using hzero)
@@ -116,7 +134,7 @@ theorem valid_g1_point_body_step
       simp [selected, MacCampaign.U64.ofNat, honeWord,
         Nat.mod_eq_of_lt hselectedWord]
     rw [hsubExec] at hexec
-    simp [Aeneas.lift, MacCampaign.u64ToUsize,
+    simp [Aeneas.lift, MacCampaign.castUsize,
       MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hselectedWord] at hexec
     have hselected : selected < bucketCount := by
       dsimp [selected]
@@ -133,19 +151,19 @@ theorem valid_g1_point_body_step
               (signedBase digit basePoint) ∧
           (do
             let gpm ←
-              alloc.vec.Vec.index
-                (core.slice.index.SliceIndexUsizeSlice
+              ark_ip_proofs.alloc.vec.Vec.index
+                (ark_ip_proofs.core.slice.index.SliceIndexUsizeSlice
                   ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont)
                 buckets (Usize.ofNat selected)
             let gpm1 ←
               ark_ip_proofs.s3_07_arkworks_fq_spike.g1_add_mixed
                 gpm signedBaseRaw
             let (_, setBack) ←
-              alloc.vec.Vec.index_mut
-                (core.slice.index.SliceIndexUsizeSlice
+              ark_ip_proofs.alloc.vec.Vec.index_mut
+                (ark_ip_proofs.core.slice.index.SliceIndexUsizeSlice
                   ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont)
                 buckets (Usize.ofNat selected)
-            ok (cont (setBack gpm1, Usize.ofNat (point.val + 1)))) =
+            ok (cont (setBack gpm1, ⟨point.val + 1⟩))) =
               (ok (cont (nextBuckets, nextPoint)) :
                 Result (ControlFlow
                   (alloc.vec.Vec
@@ -174,23 +192,24 @@ theorem valid_g1_point_body_step
                   hexec
     obtain ⟨signedBaseRaw, hsignedValid, hexec⟩ := hsigned
     have hbucketExec :
-        alloc.vec.Vec.index
-          (core.slice.index.SliceIndexUsizeSlice
+        ark_ip_proofs.alloc.vec.Vec.index
+          (ark_ip_proofs.core.slice.index.SliceIndexUsizeSlice
             ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont)
           buckets (Usize.ofNat selected) =
             .ok buckets.val[selected] := by
-      simp [alloc.vec.Vec.index, hbucketGet]
+      simp [ark_ip_proofs.alloc.vec.Vec.index, hbucketGet]
     rw [hbucketExec] at hexec
     simp only [Result.bind_ok] at hexec
     obtain ⟨sumRaw, hadd, hexec⟩ := bind_eq_ok hexec
     have hsetExec :
-        alloc.vec.Vec.index_mut
-          (core.slice.index.SliceIndexUsizeSlice
+        ark_ip_proofs.alloc.vec.Vec.index_mut
+          (ark_ip_proofs.core.slice.index.SliceIndexUsizeSlice
             ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont)
           buckets (Usize.ofNat selected) =
             .ok (buckets.val[selected],
               fun replacement => ⟨buckets.val.set selected replacement⟩) := by
-      simp [alloc.vec.Vec.index_mut, hbucketGet]
+      simp [ark_ip_proofs.alloc.vec.Vec.index_mut, hbucketGet,
+        updateAt_eq_set]
     rw [hsetExec] at hexec
     simp only [Result.bind_ok, Aeneas.Std.add_eq, Result.ok.injEq,
       ControlFlow.cont.injEq, Prod.mk.injEq] at hexec

@@ -29,8 +29,15 @@ def pairToNat (value : PairArray) : Nat :=
 def wideToNat (value : WideArray) : Nat :=
   Ipp.Extracted.ArkworksFqMul.limbsToNat value
 
+theorem fr_modulus_eq :
+    ark_ip_proofs.s3_07_arkworks_fq_spike.FR_MODULUS =
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.FR_MODULUS,
+    ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS]
+
 theorem fr_modulus_value :
     scalarToNat ark_ip_proofs.s3_07_arkworks_fq_spike.FR_MODULUS = r := by
+  rw [fr_modulus_eq]
   exact Ipp.Extracted.ArkworksFr.modulus_limbsToNat
 
 theorem glv_a_value :
@@ -61,8 +68,9 @@ theorem extracted_geq_fr_spec (value : ScalarArray) :
     ark_ip_proofs.s3_07_arkworks_fq_spike.geq_4 value
         ark_ip_proofs.s3_07_arkworks_fq_spike.FR_MODULUS =
       .ok (decide (r ≤ scalarToNat value)) := by
+  rw [fr_modulus_eq]
   rw [show ark_ip_proofs.s3_07_arkworks_fq_spike.geq_4 value
-      ark_ip_proofs.s3_07_arkworks_fq_spike.FR_MODULUS =
+      ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS =
       ark_ip_proofs.s3_07_arkworks_fr_spike.geq_modulus value by rfl]
   rw [Ipp.Extracted.ArkworksFr.extracted_geq_modulus_spec]
   congr 2
@@ -80,16 +88,24 @@ theorem extracted_geq_fr_spec (value : ScalarArray) :
               Ipp.Extracted.ArkworksFr.limbCount ≤
             Ipp.Extracted.ArkworksFr.prefixToNat value
               Ipp.Extracted.ArkworksFr.limbCount := by
-          simpa [r, scalarToNat, Ipp.Extracted.ArkworksFr.limbsToNat,
-            Ipp.Extracted.ArkworksFr.modulus_limbsToNat] using hle
+          change Ipp.Extracted.ArkworksFr.limbsToNat
+            ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS ≤
+              Ipp.Extracted.ArkworksFr.limbsToNat value
+          rw [Ipp.Extracted.ArkworksFr.modulus_limbsToNat]
+          exact hle
         have := hs.mpr hp
         simp [h] at this
       simp [h, hn]
   | true =>
       have hle : r ≤ scalarToNat value := by
         have hp := hs.mp h
-        simpa [r, scalarToNat, Ipp.Extracted.ArkworksFr.limbsToNat,
-          Ipp.Extracted.ArkworksFr.modulus_limbsToNat] using hp
+        change Ipp.Bls12377.scalarModulus ≤
+          Ipp.Extracted.ArkworksFr.limbsToNat value
+        change Ipp.Extracted.ArkworksFr.limbsToNat
+          ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS ≤
+            Ipp.Extracted.ArkworksFr.limbsToNat value at hp
+        rw [Ipp.Extracted.ArkworksFr.modulus_limbsToNat] at hp
+        exact hp
       simp [h, hle]
 
 theorem extracted_gt4_spec (left right : ScalarArray) :

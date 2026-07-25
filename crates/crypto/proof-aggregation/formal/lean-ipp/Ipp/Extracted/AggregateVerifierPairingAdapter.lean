@@ -35,7 +35,7 @@ theorem verify_aggregate_proof_pairing_adapter_statement
     (aggregateEffect challengeEffect finalAggregateEffect : AFX)
     (combinedResult : core.result.Result (Bool × Bool) AE)
     (randomizerTrace : RandomizerTrace aggregateEffects.derive_randomizer
-      aggregateEffect 0#usize challengeEffect transcript.randomizer)
+      aggregateEffect 0#u64 challengeEffect transcript.randomizer)
     (aggregateCombined :
       aggregateEffects.verify_combined challengeEffect transcript.randomizer =
         .ok (combinedResult, finalAggregateEffect))

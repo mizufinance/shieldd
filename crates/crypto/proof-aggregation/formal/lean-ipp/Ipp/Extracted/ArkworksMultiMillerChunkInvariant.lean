@@ -6,7 +6,7 @@ import Ipp.Extracted.ArkworksMultiMillerLineBoundary
 namespace Ipp.Extracted.ArkworksMultiMillerChunkInvariant
 
 open Aeneas Aeneas.Std
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMillerModel
 open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiMillerChunkModel

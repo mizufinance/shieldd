@@ -109,28 +109,6 @@ theorem valid_g1_add_mixed (a output : G1ProjLimbTriple) (b : G1AffineLimbPair)
             (by simpa [q] using g1_chord_on_curve p q hp hq hx) hexec
           exact ⟨hd.1, by simpa [q] using hd.2⟩
 
-/-- One executed G1 projective-base bit step preserves validity and algebraic meaning. -/
-theorem valid_g1_mul_projective_step (accumulator base output : G1ProjLimbTriple)
-    (accumulatorPoint basePoint : G1AffinePoint) (bit : Bool)
-    (ha : ValidG1LoopState accumulator accumulatorPoint)
-    (hb : ValidG1LoopState base basePoint)
-    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_mul_projective_step
-      accumulator base bit = .ok output) :
-    ValidG1LoopState output
-      (accumulatorPoint + accumulatorPoint + if bit then basePoint else 0) := by
-  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_mul_projective_step at hexec
-  obtain ⟨doubled, hdoubled, hexec⟩ := bind_eq_ok_g1 hexec
-  have hd := valid_g1_double accumulator doubled accumulatorPoint ha hdoubled
-  cases bit with
-  | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte, Result.ok.injEq] at hexec ⊢
-      subst output
-      simpa using hd
-  | true =>
-      simp only [↓reduceIte] at hexec ⊢
-      exact valid_g1_add doubled base output (accumulatorPoint + accumulatorPoint)
-        basePoint hd hb hexec
-
 /-- One executed G1 affine-base bit step preserves validity and algebraic meaning. -/
 theorem valid_g1_mul_affine_step (accumulator output : G1ProjLimbTriple)
     (base : G1AffineLimbPair) (accumulatorPoint basePoint : G1AffinePoint) (bit : Bool)
@@ -154,7 +132,6 @@ theorem valid_g1_mul_affine_step (accumulator output : G1ProjLimbTriple)
         (accumulatorPoint + accumulatorPoint) basePoint hd hb hexec
 
 #print axioms valid_g1_add_mixed
-#print axioms valid_g1_mul_projective_step
 #print axioms valid_g1_mul_affine_step
 
 end Ipp.Extracted.ArkworksScalarMul

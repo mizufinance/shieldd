@@ -1,4 +1,8 @@
 import Ipp.Extracted.ArkworksScalarMulGenerated
+import Ipp.Extracted.ArkworksFqMul
+import Ipp.Extracted.ArkworksFq2
+import Ipp.Extracted.ArkworksG1
+import Ipp.Extracted.ArkworksG2
 
 /-! S3-28 part 1: decoded scalar-loop states and generic single-bit laws. -/
 
@@ -52,30 +56,6 @@ private theorem bind_eq_ok {α β : Type} {action : Result α}
   | ok value => exact ⟨value, rfl, hexec⟩
   | fail error => simp at hexec
   | div => simp at hexec
-
-/-- One G1 projective-base bit step decodes to double, then optional chord add. -/
-theorem decode_g1_mul_projective_step_generic
-    (accumulator base output : G1ProjLimbTriple) (bit : Bool)
-    (ha : CanonicalG1 accumulator) (hb : CanonicalG1 base)
-    (p q : Ipp.Bls12377.Fq × Ipp.Bls12377.Fq)
-    (hpa : decodeG1 accumulator = some p) (hqb : decodeG1 base = some q)
-    (hy : p.2 ≠ 0) (hx : (tangentDouble p).1 ≠ q.1)
-    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_mul_projective_step
-      accumulator base bit = .ok output) :
-    CanonicalG1 output ∧ decodeG1 output =
-      if bit then some (chordAdd (tangentDouble p) q) else some (tangentDouble p) := by
-  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g1_mul_projective_step at hexec
-  obtain ⟨doubled, hdoubled, hexec⟩ := bind_eq_ok hexec
-  have hd := decode_g1_double_generic accumulator doubled ha p hpa hy hdoubled
-  cases bit with
-  | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte, Result.ok.injEq] at hexec ⊢
-      subst output
-      exact hd
-  | true =>
-      simp only [↓reduceIte] at hexec ⊢
-      exact decode_g1_add_generic doubled base output hd.1 hb
-        (tangentDouble p) q hd.2 hqb hx hexec
 
 /-- One G1 affine-base bit step decodes to double, then optional mixed chord add. -/
 theorem decode_g1_mul_affine_step_generic
@@ -154,7 +134,6 @@ theorem decode_g2_mul_affine_step_generic
       exact decode_g2_add_mixed_generic doubled output base hd.1 hbx hby
         (tangentDoubleG2 p) hinfinity hd.2 hx hexec
 
-#print axioms decode_g1_mul_projective_step_generic
 #print axioms decode_g1_mul_affine_step_generic
 #print axioms decode_g2_mul_projective_step_generic
 #print axioms decode_g2_mul_affine_step_generic

@@ -5,7 +5,7 @@ import Ipp.Extracted.ArkworksMultiMillerAdditionPass
 namespace Ipp.Extracted.ArkworksMultiMillerLineBoundary
 
 open Aeneas Aeneas.Std
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiMillerLineModel
 

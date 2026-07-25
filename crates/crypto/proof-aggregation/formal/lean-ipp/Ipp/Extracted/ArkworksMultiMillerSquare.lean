@@ -5,7 +5,8 @@ import Ipp.Extracted.ArkworksMultiMillerChunkInvariant
 namespace Ipp.Extracted.ArkworksMultiMillerSquare
 
 open Aeneas Result
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
+open Ipp.Extracted.ArkworksMillerInvariant
 open Ipp.Extracted.ArkworksMultiMillerModel
 
 /-- Square conformance without exposing either accumulator representation. -/

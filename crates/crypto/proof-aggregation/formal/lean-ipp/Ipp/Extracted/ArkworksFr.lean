@@ -1,4 +1,5 @@
 import Ipp.Extracted.ArkworksFrGenerated
+import Ipp.Extracted.ArkworksFrBytesWord
 import Ipp.Extracted.ArkworksFqMul
 import Ipp.Extracted.ArkworksFqOps
 import Ipp.Extracted.ArkworksFqSqrtBytes
@@ -101,13 +102,16 @@ theorem extracted_mac_eq_model (accumulator left right carry : MacCampaign.U64) 
     decide
   simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.mac, lift,
     Result.bind_ok, MacCampaign.castU128]
-  simp only [MacCampaign.mul128, dif_pos hmul, Result.bind_ok]
-  simp only [MacCampaign.add128, dif_pos haddProduct, Result.bind_ok]
+  simp only [MacCampaign.hMulU128_eq, MacCampaign.mul128, dif_pos hmul,
+    Result.bind_ok]
+  simp only [MacCampaign.hAddU128_eq, MacCampaign.add128,
+    dif_pos haddProduct, Result.bind_ok]
   have hvalueRaw :
       accumulator.val + left.val * right.val + carry.val <
         MacCampaign.u128Base := by simpa [value] using hvalue
   simp only [dif_pos hvalueRaw, Result.bind_ok, MacCampaign.castU64]
-  simp only [MacCampaign.shr128, if_pos hshift, Result.bind_ok]
+  simp only [MacCampaign.hShiftRightU128_eq, MacCampaign.shr128,
+    if_pos hshift, Result.bind_ok]
   simp [extractedMacModel, MacCampaign.U64.ofNat,
     MacCampaign.U128.ofNat, MacCampaign.u64Base, MacCampaign.u128Base,
     wordBase, hshiftValue]
@@ -322,18 +326,25 @@ theorem extracted_macChainInvariant_step (r a : FrLimbArray)
 theorem modulus_limbsToNat :
     limbsToNat ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS =
       Ipp.Bls12377.scalarModulus := by
-  decide
+  rw [ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS]
+  norm_num [limbsToNat, prefixToNat, limbCount, limb, limbWord,
+    MacCampaign.Array.make, MacCampaign.U64.ofNat, MacCampaign.u64Base,
+    wordBase, Ipp.Bls12377.scalarModulus]
 
 theorem inv_mul_modulus_low_add_one_mod_wordBase :
     (ark_ip_proofs.s3_07_arkworks_fr_spike.INV.val *
         limb ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS ⟨0, by decide⟩ + 1) %
       wordBase = 0 := by
-  decide
+  rw [ark_ip_proofs.s3_07_arkworks_fr_spike.INV,
+    ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS]
+  norm_num [limb, limbWord, limbCount, MacCampaign.Array.make,
+    MacCampaign.U64.ofNat, MacCampaign.u64Base, wordBase]
 
 theorem inv_val :
     ark_ip_proofs.s3_07_arkworks_fr_spike.INV.val =
       725501752471715839 := by
-  decide
+  rw [ark_ip_proofs.s3_07_arkworks_fr_spike.INV]
+  rfl
 
 theorem array_index_limbWord (value : FrLimbArray) (i : Fin limbCount) :
     MacCampaign.Array.index_usize value (Usize.ofNat i.val) =
@@ -819,9 +830,11 @@ theorem extracted_sbb_eq_model (left right borrow : MacCampaign.U64)
   have hshiftValue : (MacCampaign.I32.ofNat 127).val = 127 := by decide
   have hbase : MacCampaign.u128Base = 2 ^ 128 := rfl
   simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.sbb, lift,
-    Result.bind_ok, MacCampaign.castU128, MacCampaign.add128, dif_pos hadd,
+    Result.bind_ok, MacCampaign.castU128, MacCampaign.hAddU128_eq,
+    MacCampaign.add128, dif_pos hadd,
     MacCampaign.wrappingSub128, MacCampaign.castU64,
-    MacCampaign.shr128, if_pos hshift]
+    MacCampaign.castU64Source_u128,
+    MacCampaign.hShiftRightU128_eq, MacCampaign.shr128, if_pos hshift]
   simp only [sbbModel]
   congr 1
   apply Prod.ext
@@ -1549,12 +1562,13 @@ theorem extracted_adc_eq_model (left right carry : MacCampaign.U64)
   have hshift : (MacCampaign.I32.ofNat 64).val < 128 := by decide
   have hshiftValue : (MacCampaign.I32.ofNat 64).val = 64 := by decide
   simp only [ark_ip_proofs.s3_07_arkworks_fr_spike.adc, lift,
-    Result.bind_ok, MacCampaign.castU128, MacCampaign.add128,
+    Result.bind_ok, MacCampaign.castU128, MacCampaign.hAddU128_eq,
+    MacCampaign.add128,
     dif_pos hsum]
   have hvalueRaw : left.val + right.val + carry.val <
       MacCampaign.u128Base := by simpa [value] using hvalue
   simp only [dif_pos hvalueRaw, MacCampaign.castU64,
-    MacCampaign.shr128, if_pos hshift]
+    MacCampaign.hShiftRightU128_eq, MacCampaign.shr128, if_pos hshift]
   simp [adcModel, MacCampaign.U64.ofNat, MacCampaign.U128.ofNat,
     MacCampaign.u64Base, MacCampaign.u128Base, wordBase,
     Nat.mod_eq_of_lt hcarryOut, hshiftValue]
@@ -2757,6 +2771,13 @@ private theorem extracted_array_eq (left right : FrLimbArray) :
       .ok (decide (left.val = right.val)) := by
   simp [ark_ip_proofs.core.array.equality.PartialEqArray.eq]
 
+private theorem extracted_array_ne (left right : FrLimbArray) :
+    ark_ip_proofs.core.array.equality.PartialEqArray.ne
+      ark_ip_proofs.core.cmp.PartialEqU64 left right =
+      .ok (decide (left.val ≠ right.val)) := by
+  simp [ark_ip_proofs.core.array.equality.PartialEqArray.ne,
+    ark_ip_proofs.core.array.equality.PartialEqArray.eq]
+
 private theorem eq_oneArray4_of_value_one (value : FrLimbArray)
     (hvalue : limbsToNat value = 1) : value = oneArray4 := by
   have hfour := limbsToNat_four value
@@ -2880,10 +2901,10 @@ theorem inv_loop0_body_spec (a0 u v b c : FrLimbArray)
           limbsToNat u + limbsToNat v := by
   unfold ark_ip_proofs.s3_07_arkworks_fr_spike.inv_loop0.body at hexec
   obtain ⟨ueq, hueq, hrest⟩ := bind_eq_ok hexec
-  rw [extracted_array_eq] at hueq
+  rw [extracted_array_ne] at hueq
   by_cases hu : u.val = oneArray4.val
-  · have hueqValue : ueq = true := by
-      rw [decide_eq_true_eq.mpr hu] at hueq
+  · have hueqValue : ueq = false := by
+      rw [decide_eq_false_iff_not.mpr (not_not_intro hu)] at hueq
       exact (Result.ok.inj hueq).symm
     subst ueq
     rw [if_neg (by simp)] at hrest
@@ -2894,16 +2915,16 @@ theorem inv_loop0_body_spec (a0 u v b c : FrLimbArray)
       apply MacCampaign.Array.ext
       exact hu
     exact ⟨huArray, by simpa [huArray] using hinvariant.u_lane⟩
-  · have hueqValue : ueq = false := by
-      rw [decide_eq_false_iff_not.mpr hu] at hueq
+  · have hueqValue : ueq = true := by
+      rw [decide_eq_true_eq.mpr hu] at hueq
       exact (Result.ok.inj hueq).symm
     subst ueq
     rw [if_pos (by simp)] at hrest
     obtain ⟨veq, hveq, hrest⟩ := bind_eq_ok hrest
-    rw [extracted_array_eq] at hveq
+    rw [extracted_array_ne] at hveq
     by_cases hv : v.val = oneArray4.val
-    · have hveqValue : veq = true := by
-        rw [decide_eq_true_eq.mpr hv] at hveq
+    · have hveqValue : veq = false := by
+        rw [decide_eq_false_iff_not.mpr (not_not_intro hv)] at hveq
         exact (Result.ok.inj hveq).symm
       subst veq
       rw [if_neg (by simp)] at hrest
@@ -2916,8 +2937,8 @@ theorem inv_loop0_body_spec (a0 u v b c : FrLimbArray)
       refine ⟨?_, by simpa [hvArray] using hinvariant.v_lane⟩
       intro huArray
       exact hu (congrArg MacCampaign.Array.val huArray)
-    · have hveqValue : veq = false := by
-        rw [decide_eq_false_iff_not.mpr hv] at hveq
+    · have hveqValue : veq = true := by
+        rw [decide_eq_true_eq.mpr hv] at hveq
         exact (Result.ok.inj hveq).symm
       subst veq
       rw [if_pos (by simp)] at hrest
@@ -3068,10 +3089,12 @@ private theorem initial_inv_invariant (a : FrLimbArray)
     intro hdvd
     have hle := Nat.le_of_dvd haPos hdvd
     exact (Nat.not_le_of_lt ha) hle
-  refine ⟨?_, ?_, hcoprime⟩
-  · refine ⟨?_, limbsToNat_R2_lt, haPos⟩
-    simpa only [Nat.mul_comm] using R2_modEq.mul_right (limbsToNat a)
-  · refine ⟨?_, ?_, ?_⟩
+  apply InvInvariant.mk
+  · apply CoefficientInvariant.mk
+    · simpa only [Nat.mul_comm] using R2_modEq.mul_right (limbsToNat a)
+    · exact limbsToNat_R2_lt
+    · exact haPos
+  · apply CoefficientInvariant.mk
     · rw [zeroLimbs4_value, modulus_limbsToNat]
       simpa only [Nat.zero_mul, Nat.add_zero] using
         (Nat.ModEq.modulus_mul_add (m := frModulus)
@@ -3080,6 +3103,8 @@ private theorem initial_inv_invariant (a : FrLimbArray)
       norm_num [frModulus, Ipp.Bls12377.scalarModulus]
     · rw [modulus_limbsToNat]
       norm_num [frModulus, Ipp.Bls12377.scalarModulus]
+  · rw [modulus_limbsToNat]
+    exact hcoprime
 
 theorem extracted_inv_spec (a output : FrLimbArray)
     (ha : limbsToNat a < frModulus) (hne : a ≠ zeroLimbs4)
@@ -3201,7 +3226,7 @@ generic GAP-01 little-endian decoder directly — no Fr-specific wire records
 exist in GAP-01, and challenge-stage consumers (GAP-11) compose from
 `decodeLE`. `to_bytes` remains pinned by the Rust parity tests. -/
 
-abbrev FrByteArray := ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 32
+abbrev FrByteArray := MacCampaign.Array UInt8 32#usize
 
 def bytesValue (bytes : FrByteArray) : Nat :=
   Ipp.CanonicalWire.decodeLE bytes.val
@@ -3226,18 +3251,18 @@ private def byteChunkList (bytes : FrByteArray) (offset : Fin 25) : List UInt8 :
       omega⟩
 
 private def byteChunk (bytes : FrByteArray) (offset : Fin 25) :
-    ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 8 :=
+    MacCampaign.Array UInt8 8#usize :=
   ⟨byteChunkList bytes offset, by simp [byteChunkList]⟩
 
 private theorem bytes_to_limbs_eq (bytes : FrByteArray) :
     ark_ip_proofs.s3_07_arkworks_fr_spike.bytes_to_limbs bytes = (do
-      let w0 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+      let w0 ← ark_ip_proofs.s3_07_arkworks_fr_spike.bytes_to_word
         (byteChunk bytes 0)
-      let w1 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+      let w1 ← ark_ip_proofs.s3_07_arkworks_fr_spike.bytes_to_word
         (byteChunk bytes 8)
-      let w2 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+      let w2 ← ark_ip_proofs.s3_07_arkworks_fr_spike.bytes_to_word
         (byteChunk bytes 16)
-      let w3 ← ark_ip_proofs.s3_07_arkworks_fq_spike.bytes_to_word
+      let w3 ← ark_ip_proofs.s3_07_arkworks_fr_spike.bytes_to_word
         (byteChunk bytes 24)
       ok (MacCampaign.Array.make 4#usize [w0, w1, w2, w3])) := by
   rw [byteArray_eq_ofFn bytes]
@@ -3295,10 +3320,10 @@ theorem bytes_to_limbs_value_spec
   subst value
   rw [byteArray_eq_ofFn bytes]
   apply four_word_values_spec bytes w0 w1 w2 w3
-  · exact Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_word_spec _ w0 hw0
-  · exact Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_word_spec _ w1 hw1
-  · exact Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_word_spec _ w2 hw2
-  · exact Ipp.Extracted.ArkworksFqSqrtBytes.bytes_to_word_spec _ w3 hw3
+  · exact Ipp.Extracted.ArkworksFrBytesWord.bytes_to_word_spec _ w0 hw0
+  · exact Ipp.Extracted.ArkworksFrBytesWord.bytes_to_word_spec _ w1 hw1
+  · exact Ipp.Extracted.ArkworksFrBytesWord.bytes_to_word_spec _ w2 hw2
+  · exact Ipp.Extracted.ArkworksFrBytesWord.bytes_to_word_spec _ w3 hw3
 
 /-- The extracted reader rejects whenever its reconstructed integer is not below `r`. -/
 theorem extracted_from_bytes_rejects_noncanonical
@@ -3316,7 +3341,10 @@ theorem extracted_from_bytes_rejects_noncanonical
       ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS limbCount = true := by
     apply (geqPrefix_spec value
       ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS limbCount (by omega)).2
-    simpa [limbsToNat, modulus_limbsToNat] using hge
+    change limbsToNat ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS ≤
+      limbsToNat value
+    rw [modulus_limbsToNat]
+    exact hge
   rw [hcompare, if_pos rfl]
 
 theorem decode_from_bytes_conversion

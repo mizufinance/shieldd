@@ -6,7 +6,7 @@ import Ipp.Extracted.ArkworksMultiMillerOuterLoop
 namespace Ipp.Extracted.ArkworksMultiMiller
 
 open Aeneas Aeneas.Std Result
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiMillerFilter
 open Ipp.Extracted.ArkworksMultiMillerChunkModel

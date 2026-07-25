@@ -17,21 +17,18 @@ abbrev WideArray := MacCampaign.Array MacCampaign.U64 6#usize
 def setBit (value : WideArray) (bit : Nat) : Result WideArray := do
   let limb := bit / 64
   let offset := bit % 64
-  let mask <- MacCampaign.shl64 1#u64 (MacCampaign.I32.ofNat offset)
+  let mask <- MacCampaign.shl64ByUsize 1#u64 (Usize.ofNat offset)
   let word <- MacCampaign.Array.index_usize value (Usize.ofNat limb)
   let updated := MacCampaign.or64 word mask
   MacCampaign.Array.update value (Usize.ofNat limb) updated
 
 private theorem mask_spec (offset : Nat) (hoffset : offset < 64) :
-    MacCampaign.shl64 1#u64 (MacCampaign.I32.ofNat offset) =
+    MacCampaign.shl64ByUsize 1#u64 (Usize.ofNat offset) =
       .ok (MacCampaign.U64.ofNat (2 ^ offset)) := by
-  have hoff32 : offset % MacCampaign.i32Base = offset := by
-    apply Nat.mod_eq_of_lt
-    exact lt_trans hoffset (by norm_num [MacCampaign.i32Base])
   have hpow : 2 ^ offset < MacCampaign.u64Base := by
     rw [MacCampaign.u64Base]
     exact (Nat.pow_lt_pow_iff_right (by decide : 1 < 2)).2 hoffset
-  simp [MacCampaign.shl64, MacCampaign.I32.ofNat, hoff32, hoffset,
+  simp [MacCampaign.shl64ByUsize, Usize.ofNat, hoffset,
     MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hpow,
     MacCampaign.u64Base]
 

@@ -5,7 +5,7 @@ import Ipp.Extracted.ArkworksMultiMillerOuterInvariant
 namespace Ipp.Extracted.ArkworksMultiMillerOuterStep
 
 open Aeneas Aeneas.Std Result ControlFlow
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiMillerCursors
 open Ipp.Extracted.ArkworksMultiMillerChunkModel
@@ -54,8 +54,8 @@ theorem outerLoopInv_step
   unfold ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop1.body
     at hbody
   rw [if_pos (show (⟨start⟩ : Usize) <
-    Aeneas.Std.alloc.vec.Vec.len ⟨filtered⟩ by
-      simpa [Aeneas.Std.alloc.vec.Vec.len] using hactive)] at hbody
+      ark_ip_proofs.alloc.vec.Vec.len ⟨filtered⟩ by
+        simpa [ark_ip_proofs.alloc.vec.Vec.len] using hactive)] at hbody
   simp only [Aeneas.Std.add_eq, Result.bind_ok] at hbody
   have hbodyNormalized :
       (do
@@ -72,14 +72,14 @@ theorem outerLoopInv_step
           (nextResult, ⟨nextChunk filtered start⟩))) = Result.ok flow := by
     by_cases hcap : start + 4 > filtered.length
     · rw [if_pos (by
-        simpa [Aeneas.Std.alloc.vec.Vec.len] using hcap)]
+      simpa [ark_ip_proofs.alloc.vec.Vec.len] using hcap)]
         at hbody
       have hmin : nextChunk filtered start = filtered.length := by
         unfold nextChunk
         exact Nat.min_eq_right (by omega)
-      simpa [Aeneas.Std.alloc.vec.Vec.len, hmin] using hbody
+      simpa [ark_ip_proofs.alloc.vec.Vec.len, hmin] using hbody
     · rw [if_neg (by
-        simpa [Aeneas.Std.alloc.vec.Vec.len] using hcap)]
+      simpa [ark_ip_proofs.alloc.vec.Vec.len] using hcap)]
         at hbody
       have hmin : nextChunk filtered start = start + 4 := by
         unfold nextChunk

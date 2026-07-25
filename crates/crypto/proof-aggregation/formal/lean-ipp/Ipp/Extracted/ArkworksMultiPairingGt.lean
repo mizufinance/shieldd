@@ -11,7 +11,6 @@ open Ipp.Bls12377
 open Ipp.Extracted.ArkworksFinalExpEasy
 open Ipp.Extracted.ArkworksFinalExpCyclotomic
 open Ipp.Extracted.ArkworksFinalExpHard
-open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiPairing
 
 local instance : Fact baseModulus.Prime := ⟨arithmeticFacts.basePrime⟩

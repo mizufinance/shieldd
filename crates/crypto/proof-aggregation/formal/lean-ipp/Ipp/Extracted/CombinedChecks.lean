@@ -18,7 +18,7 @@ private noncomputable def partialEq (T : Type) :
     exact .ok (decide (left = right))
 
 private def fromU64 (F : Type) [NatCast F] :
-    ark_ip_proofs.core.convert.From F Std.Usize where
+    ark_ip_proofs.core.convert.From F MacCampaign.U64 where
   «from» value := .ok value.val
 
 private def add (T : Type) [Add T] :
@@ -214,7 +214,7 @@ theorem run_round_mismatch
   unfold run ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
   simp only [hnonempty, ↓reduceIte]
   rw [hpower, hilog]
-  simp [lift, UScalar.cast, hmismatch, roundError]
+  simp [lift, MacCampaign.castUsize_self, hmismatch, roundError]
 
 /-- The TIPP/MIPP error is wrapped only after the PPE call has completed,
     matching the extracted production order. -/
@@ -246,7 +246,7 @@ theorem run_tipp_error
   unfold run ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
   simp only [hnonempty, ↓reduceIte]
   rw [hpower, hilog]
-  simp only [Result.bind_ok, lift, UScalar.cast]
+  simp only [Result.bind_ok, lift, MacCampaign.castUsize_self]
   simp only [if_true]
   simp [hrounds]
   change (runTipp effects tippPairing input.tipp_mipp effect tipp_pairing >>=
@@ -292,7 +292,7 @@ theorem run_refinement_statement
   unfold run ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
   simp only [hnonempty, ↓reduceIte]
   rw [hpower, hilog]
-  simp only [Result.bind_ok, lift, UScalar.cast]
+  simp only [Result.bind_ok, lift, MacCampaign.castUsize_self]
   simp only [if_true]
   simp [hrounds]
   change ((runTipp effects tippPairing input.tipp_mipp effect tipp_pairing >>=

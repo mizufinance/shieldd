@@ -117,7 +117,8 @@ theorem valid_g1_reverse_bucket_fold
         have hindex : nextBucket.val < buckets.val.length := by omega
         have hbucketValue : bucketValue = buckets.val[nextBucket.val] := by
           have hreverse : buckets.val[nextBucket.val] = bucketValue := by
-            simpa [alloc.vec.Vec.index, hindex] using hindexExec
+            simpa [ark_ip_proofs.alloc.vec.Vec.index,
+              List.getElem?_eq_getElem hindex] using hindexExec
           exact hreverse.symm
         subst bucketValue
         let bucketPoint : G1AffinePoint :=

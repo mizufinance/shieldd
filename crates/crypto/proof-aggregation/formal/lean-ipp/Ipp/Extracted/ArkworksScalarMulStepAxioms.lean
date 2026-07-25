@@ -13,7 +13,6 @@ namespace Ipp.Extracted.ArkworksScalarMul
 #print axioms valid_g1_add
 #print axioms valid_g2_add
 #print axioms valid_g1_add_mixed
-#print axioms valid_g1_mul_projective_step
 #print axioms valid_g1_mul_affine_step
 #print axioms valid_g2_add_mixed
 #print axioms valid_g2_mul_projective_step

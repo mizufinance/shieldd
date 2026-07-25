@@ -40,8 +40,8 @@ private theorem filterTraceCore (pairs : List ExecPair)
           exact hnonempty (List.length_eq_zero_iff.mp hlen)
         simp [filterBody,
           ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop0.body,
-          Aeneas.Std.alloc.vec.Vec.len, ark_ip_proofs.alloc.vec.Vec.index,
-          Aeneas.Std.alloc.vec.Vec.push, hlt] at hbody
+          ark_ip_proofs.alloc.vec.Vec.len, ark_ip_proofs.alloc.vec.Vec.index,
+          ark_ip_proofs.BuiltinClone, Aeneas.Std.alloc.vec.Vec.push, hlt] at hbody
         rw [hinfinity] at hbody
         simp only [Bool.false_eq_true, if_false] at hbody
         rw [if_neg hlenU] at hbody
@@ -49,7 +49,7 @@ private theorem filterTraceCore (pairs : List ExecPair)
       have hindex : pairIndex = pairs.length := by omega
       simp [filterBody,
         ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop0.body,
-        Aeneas.Std.alloc.vec.Vec.len, hdone] at hbody
+        ark_ip_proofs.alloc.vec.Vec.len, hdone] at hbody
       subst filtered
       simpa [hindex] using hprefix
   | @next state next result hstep hnext ih =>
@@ -59,7 +59,7 @@ private theorem filterTraceCore (pairs : List ExecPair)
         by_contra hnot
         simp [filterBody,
           ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop0.body,
-          Aeneas.Std.alloc.vec.Vec.len, hnot] at hstep
+          ark_ip_proofs.alloc.vec.Vec.len, hnot] at hstep
       have hpair := hvalid pairIndex pairs[pairIndex]
         (List.getElem?_eq_getElem hlt)
       have hinfinity := validPair_not_infinity (pair :=
@@ -75,8 +75,8 @@ private theorem filterTraceCore (pairs : List ExecPair)
           (⟨filtered.val ++ [pairs[pairIndex]]⟩, ⟨pairIndex + 1⟩) := by
         simp [filterBody,
           ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop0.body,
-          Aeneas.Std.alloc.vec.Vec.len, ark_ip_proofs.alloc.vec.Vec.index,
-          Aeneas.Std.alloc.vec.Vec.push, hlt] at hstep
+          ark_ip_proofs.alloc.vec.Vec.len, ark_ip_proofs.alloc.vec.Vec.index,
+          ark_ip_proofs.BuiltinClone, Aeneas.Std.alloc.vec.Vec.push, hlt] at hstep
         rw [hinfinity] at hstep
         simp only [Bool.false_eq_true, if_false] at hstep
         rw [if_neg hlenU] at hstep

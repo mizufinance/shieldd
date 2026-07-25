@@ -6,7 +6,7 @@ namespace Ipp.Extracted.ArkworksFqMul
 
 open Aeneas Aeneas.Std Result
 
-abbrev LimbArray := ark_ip_proofs.s3_07_arkworks_fq_spike.LimbArray
+abbrev LimbArray := ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont
 abbrev ExtractedMac := ark_ip_proofs.s3_07_arkworks_fq_spike.Mac
 
 def wordBase : Nat := 2 ^ 64
@@ -151,15 +151,15 @@ theorem extracted_mac_eq_model (accumulator left right carry : MacCampaign.U64) 
     decide
   have hshiftValue : (MacCampaign.I32.ofNat 64).val = 64 := by
     decide
-  simp only [ark_ip_proofs.s3_07_arkworks_fq_spike.mac, lift,
-    Result.bind_ok, MacCampaign.castU128]
-  simp only [MacCampaign.mul128, dif_pos hmul, Result.bind_ok]
-  simp only [MacCampaign.add128, dif_pos haddProduct, Result.bind_ok]
   have hvalueRaw :
       accumulator.val + left.val * right.val + carry.val <
         MacCampaign.u128Base := by simpa [value] using hvalue
-  simp only [dif_pos hvalueRaw, Result.bind_ok, MacCampaign.castU64]
-  simp only [MacCampaign.shr128, if_pos hshift, Result.bind_ok]
+  simp only [ark_ip_proofs.s3_07_arkworks_fq_spike.mac, lift,
+    Result.bind_ok, MacCampaign.castU128, MacCampaign.hMulU128_eq,
+    MacCampaign.hAddU128_eq, MacCampaign.hShiftRightU128_eq,
+    MacCampaign.mul128, dif_pos hmul, MacCampaign.add128,
+    dif_pos haddProduct, dif_pos hvalueRaw, MacCampaign.castU64,
+    MacCampaign.shr128, if_pos hshift]
   simp [extractedMacModel, MacCampaign.U64.ofNat,
     MacCampaign.U128.ofNat, MacCampaign.u64Base, MacCampaign.u128Base,
     wordBase, hshiftValue]
@@ -409,19 +409,26 @@ theorem extracted_macChainInvariant_step (r a : LimbArray)
 theorem modulus_limbsToNat :
     limbsToNat ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS =
       Ipp.Bls12377.baseModulus := by
-  decide
+  norm_num [limbsToNat, prefixToNat, limb, limbWord, limbCount, wordBase,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS,
+    MacCampaign.Array.make, MacCampaign.U64.ofNat, MacCampaign.u64Base,
+    Ipp.Bls12377.baseModulus]
 
 /-- The pinned Montgomery inverse negates the modulus low limb modulo one word. -/
 theorem inv_mul_modulus_low_add_one_mod_wordBase :
     (ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val *
         limb ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS ⟨0, by decide⟩ + 1) %
       wordBase = 0 := by
-  decide
+  norm_num [ark_ip_proofs.s3_07_arkworks_fq_spike.INV,
+    ark_ip_proofs.s3_07_arkworks_fq_spike.MODULUS, limb, limbWord, limbCount,
+    wordBase, MacCampaign.Array.make, MacCampaign.U64.ofNat,
+    MacCampaign.u64Base]
 
 theorem inv_val :
     ark_ip_proofs.s3_07_arkworks_fq_spike.INV.val =
       9586122913090633727 := by
-  decide
+  norm_num [ark_ip_proofs.s3_07_arkworks_fq_spike.INV,
+    MacCampaign.U64.ofNat, MacCampaign.u64Base]
 
 /-- Array indexing at an in-range limb agrees with the proof-layer projection. -/
 theorem array_index_limbWord (value : LimbArray) (i : Fin limbCount) :
@@ -1028,8 +1035,10 @@ theorem extracted_sbb_eq_model (left right borrow : MacCampaign.U64)
   have hshift : (MacCampaign.I32.ofNat 127).val < 128 := by decide
   have hshiftValue : (MacCampaign.I32.ofNat 127).val = 127 := by decide
   simp only [ark_ip_proofs.s3_07_arkworks_fq_spike.sbb, lift,
-    Result.bind_ok, MacCampaign.castU128, MacCampaign.add128, dif_pos hadd,
+    Result.bind_ok, MacCampaign.castU128, MacCampaign.hAddU128_eq,
+    MacCampaign.hShiftRightU128_eq, MacCampaign.add128, dif_pos hadd,
     MacCampaign.wrappingSub128, MacCampaign.castU64,
+    MacCampaign.castU64Source_u128,
     MacCampaign.shr128, if_pos hshift]
   simp only [sbbModel]
   congr 1

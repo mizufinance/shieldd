@@ -380,8 +380,54 @@ end I32
 
 def castU128 (value : U64) : U128 :=
   ⟨value.val, Nat.lt_trans value.isLt (by decide)⟩
-def castU64 (value : U128) : U64 := U64.ofNat value.val
-def u64ToUsize (value : U64) : Usize := Usize.ofNat value.val
+
+class CastU64Source (T : Type) where
+  toNat : T → Nat
+
+instance : CastU64Source U128 where
+  toNat value := value.val
+
+instance : CastU64Source Usize where
+  toNat value := value.val
+
+instance : CastU64Source UInt8 where
+  toNat value := value.toNat
+
+@[simp] theorem castU64Source_u128 (value : U128) :
+    CastU64Source.toNat value = value.val := rfl
+
+@[simp] theorem castU64Source_usize (value : Usize) :
+    CastU64Source.toNat value = value.val := rfl
+
+@[simp] theorem castU64Source_u8 (value : UInt8) :
+    CastU64Source.toNat value = value.toNat := rfl
+
+def castU64 {T : Type} [CastU64Source T] (value : T) : U64 :=
+  U64.ofNat (CastU64Source.toNat value)
+
+def castU8 (value : U64) : UInt8 := UInt8.ofNat value.val
+
+class CastUsizeSource (T : Type) where
+  toNat : T → Nat
+
+instance : CastUsizeSource U64 where
+  toNat value := value.val
+
+instance : CastUsizeSource Usize where
+  toNat value := value.val
+
+@[simp] theorem castUsizeSource_u64 (value : U64) :
+    CastUsizeSource.toNat value = value.val := rfl
+
+@[simp] theorem castUsizeSource_usize (value : Usize) :
+    CastUsizeSource.toNat value = value.val := rfl
+
+def castUsize {T : Type} [CastUsizeSource T] (value : T) : Usize :=
+  Usize.ofNat (CastUsizeSource.toNat value)
+
+@[simp] theorem castUsize_self (value : Usize) : castUsize value = value := by
+  cases value
+  rfl
 
 def add64 (left right : U64) : Result U64 :=
   if h : left.val + right.val < u64Base then
@@ -525,7 +571,8 @@ def and64 (left right : U64) : Result U64 :=
   .ok (U64.ofNat (left.val &&& right.val))
 
 instance instHOrU64 : HOr U64 U64 U64 where hOr := or64
-instance instHAndU64 : HAnd U64 U64 (Result U64) where hAnd := and64
+instance instHAndU64 : HAnd U64 U64 U64 where
+  hAnd left right := U64.ofNat (left.val &&& right.val)
 
 instance instHSubUsize : HSub Usize Usize (Result Usize) where
   hSub left right :=
@@ -557,6 +604,15 @@ instance instHShiftLeftUsizeI32 : HShiftLeft Usize I32 (Result Usize) where
 
 instance instHShiftLeftUsizeUsize : HShiftLeft Usize Usize (Result Usize) where
   hShiftLeft left right := .ok ⟨left.val * 2 ^ right.val⟩
+
+@[simp] theorem hAddU128_eq (left right : U128) :
+    (left + right : Result U128) = add128 left right := rfl
+
+@[simp] theorem hMulU128_eq (left right : U128) :
+    (left * right : Result U128) = mul128 left right := rfl
+
+@[simp] theorem hShiftRightU128_eq (value : U128) (shift : I32) :
+    (value >>> shift : Result U128) = shr128 value shift := rfl
 
 @[simp] theorem mul_eq (left right : Usize) :
     (left * right : Result Usize) = .ok ⟨left.val * right.val⟩ := rfl
@@ -709,6 +765,49 @@ namespace ark_ip_proofs
 
 open Aeneas Aeneas.Std Result ControlFlow Error
 
+namespace core.marker
+
+structure Copy (Self : Type) where
+
+def PhantomData (_T : Type) := Unit
+
+end core.marker
+
+namespace core.ops.arith
+
+structure Add (Self : Type) (Rhs : Type) (Self_Output : Type) where
+  add : Self → Rhs → Result Self_Output
+
+structure Sub (Self : Type) (Rhs : Type) (Self_Output : Type) where
+  sub : Self → Rhs → Result Self_Output
+
+structure Mul (Self : Type) (Rhs : Type) (Self_Output : Type) where
+  mul : Self → Rhs → Result Self_Output
+
+structure Neg (Self : Type) (Self_Output : Type) where
+  neg : Self → Result Self_Output
+
+structure MulAssign (Self : Type) (Rhs : Type) where
+  mul_assign : Self → Rhs → Result Self
+
+structure Div (Self : Type) (Rhs : Type) (Self_Output : Type) where
+  div : Self → Rhs → Result Self_Output
+
+end core.ops.arith
+
+namespace num_traits.identities
+
+structure Zero (Self : Type) where
+  coreopsarithAddInst : core.ops.arith.Add Self Self Self
+  zero : Result Self
+  is_zero : Self → Result Bool
+
+structure One (Self : Type) where
+  coreopsarithMulInst : core.ops.arith.Mul Self Self Self
+  one : Result Self
+
+end num_traits.identities
+
 namespace core.ops.function
 
 structure FnOnce (Self : Type) (Args : Type) (Output : Type) where
@@ -763,9 +862,117 @@ end core.result
 
 namespace core.convert
 
+structure From (Self : Type) (T : Type) where
+  «from» : T → Result Self
+
 def FromSame (_E : Type) := Unit
 
 end core.convert
+
+namespace core.slice
+
+namespace Slice
+
+def is_empty {T : Type} (slice : Aeneas.Std.Slice T) : Result Bool :=
+  .ok slice.val.isEmpty
+
+def reverse {T : Type} (items : Aeneas.Std.Slice T) : Aeneas.Std.Slice T :=
+  ⟨items.val.reverse⟩
+
+end Slice
+
+namespace index
+
+structure SliceIndexUsizeSlice (T : Type) where
+
+end index
+end core.slice
+
+def massert (condition : Prop) [Decidable condition] : Result Unit :=
+  if condition then .ok () else .fail .panic
+
+namespace alloc.slice.Slice
+
+def into_vec {T : Type} (items : Aeneas.Std.Slice T) :
+    Aeneas.Std.alloc.vec.Vec T :=
+  ⟨items.val⟩
+
+def reverse {T : Type} (items : Aeneas.Std.Slice T) : Aeneas.Std.Slice T :=
+  ⟨items.val.reverse⟩
+
+end alloc.slice.Slice
+
+namespace alloc.vec
+
+def repeat_values {T : Type} (cloneInst : core.clone.Clone T) (value : T) :
+    Nat → Result (List T)
+  | 0 => .ok []
+  | Nat.succ count => do
+      let copy ← cloneInst.clone value
+      let rest ← repeat_values cloneInst value count
+      .ok (copy :: rest)
+
+def from_elem {T : Type} (cloneInst : core.clone.Clone T) (value : T)
+    (len : Aeneas.Std.Usize) : Result (Aeneas.Std.alloc.vec.Vec T) := do
+  let values ← repeat_values cloneInst value len.val
+  .ok ⟨values⟩
+
+namespace Vec
+
+def new (T : Type) : Aeneas.Std.alloc.vec.Vec T := ⟨[]⟩
+
+def len {T : Type} (items : Aeneas.Std.alloc.vec.Vec T) : Aeneas.Std.Usize :=
+  ⟨items.val.length⟩
+
+def index {T : Type} (_inst : Type) (items : Aeneas.Std.alloc.vec.Vec T)
+    (index : Aeneas.Std.Usize) : Result T :=
+  match items.val[index.val]? with
+  | some value => .ok value
+  | none => .fail .arrayOutOfBounds
+
+def updateAt {T : Type} : List T → Nat → T → List T
+  | [], _, _ => []
+  | _ :: rest, 0, value => value :: rest
+  | item :: rest, Nat.succ index, value => item :: updateAt rest index value
+
+def index_mut {T : Type} (_inst : Type) (items : Aeneas.Std.alloc.vec.Vec T)
+    (index : Aeneas.Std.Usize) :
+    Result (T × (T → Aeneas.Std.alloc.vec.Vec T)) :=
+  match items.val[index.val]? with
+  | some old => .ok (old, fun value => ⟨updateAt items.val index.val value⟩)
+  | none => .fail .arrayOutOfBounds
+
+def deref {T : Type} (items : Aeneas.Std.alloc.vec.Vec T) :
+    Aeneas.Std.Slice T :=
+  ⟨items.val⟩
+
+def deref_mut {T : Type} (items : Aeneas.Std.alloc.vec.Vec T) :
+    Aeneas.Std.Slice T × (Aeneas.Std.Slice T → Aeneas.Std.alloc.vec.Vec T) :=
+  (⟨items.val⟩, fun slice => ⟨slice.val⟩)
+
+end Vec
+end alloc.vec
+
+namespace Array
+
+def make {T : Type} (_size : Aeneas.Std.Usize) (items : List T) :
+    Aeneas.Std.Slice T :=
+  ⟨items⟩
+
+def to_slice {T : Type} (items : Aeneas.Std.Slice T) : Aeneas.Std.Slice T :=
+  items
+
+end Array
+
+namespace Std.Array
+
+def to_slice {T : Type} (items : Aeneas.Std.Slice T) : Aeneas.Std.Slice T :=
+  items
+
+end Std.Array
+
+def BuiltinClone (T : Type) : core.clone.Clone T where
+  clone value := .ok value
 
 namespace core.option.Option
 
@@ -801,6 +1008,11 @@ namespace core.array.equality.PartialEqArray
 def eq {T : Type} [DecidableEq T] {size : Usize} (_elementEq : core.cmp.PartialEq T T)
     (left right : MacCampaign.Array T size) : Result Bool :=
   .ok (decide (left.val = right.val))
+
+def ne {T : Type} [DecidableEq T] {size : Usize} (elementEq : core.cmp.PartialEq T T)
+    (left right : MacCampaign.Array T size) : Result Bool := do
+  let equal ← eq elementEq left right
+  .ok (!equal)
 
 end core.array.equality.PartialEqArray
 

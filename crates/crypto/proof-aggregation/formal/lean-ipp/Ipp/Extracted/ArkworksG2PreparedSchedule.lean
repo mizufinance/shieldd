@@ -1,4 +1,5 @@
 import Ipp.Extracted.ArkworksG2PreparedGenerated
+import Ipp.Extracted.ArkworksFqByteRuntime
 import Ipp.Bls12377Core
 import Mathlib.Tactic
 
@@ -10,6 +11,26 @@ The step callbacks remain abstract so addition semantics can be supplied later.
 namespace Ipp.Extracted.ArkworksG2PreparedSchedule
 
 open Aeneas Aeneas.Std Result ControlFlow
+open Ipp.Extracted.ArkworksFqByteRuntime
+
+private theorem extractedBit_eq (value : MacCampaign.U64) :
+    (value &&& 1#u64 != 0#u64) = (value.val % 2 == 1) := by
+  by_cases heq :
+      value &&& MacCampaign.U64.ofNat 1 = MacCampaign.U64.ofNat 0
+  · have hval := congrArg MacCampaign.U64.val heq
+    rw [u64_and_one_val] at hval
+    norm_num [MacCampaign.U64.ofNat, MacCampaign.u64Base] at hval
+    simp [heq, hval]
+  · have hvalne : value.val % 2 ≠ 0 := by
+      intro hzero
+      apply heq
+      apply u64_eq_of_val_eq
+      rw [u64_and_one_val]
+      simpa [MacCampaign.U64.ofNat, MacCampaign.u64Base] using hzero
+    have hmod : value.val % 2 = 1 := by
+      have := Nat.mod_lt value.val (by decide : 0 < 2)
+      omega
+    simp [heq, hmod]
 
 abbrev FqMont := ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont
 abbrev Fq2Mont := ark_ip_proofs.s3_07_arkworks_fq_spike.Fq2Mont
@@ -23,8 +44,9 @@ abbrev AddStep := G2ProjMont → G2AffineMont → Result (G2ProjMont × EllCoeff
 /-- The exact unsigned bit test used by the extracted Rust loop. -/
 def extractedAteBit (position : Std.Usize) : Result Bool := do
   let shifted ←
-    (9586122913090633729#u64 >>> MacCampaign.I32.ofNat position.val)
-  .ok (shifted.val % 2 == 1)
+    (9586122913090633729#u64 >>> position)
+  let bit ← lift (shifted &&& 1#u64)
+  .ok (bit != 0#u64)
 
 /-- One prepared-G2 schedule step with abstract doubling and addition effects. -/
 def scheduleBody (doubleStep : DoubleStep) (addStep : AddStep)
@@ -34,12 +56,11 @@ def scheduleBody (doubleStep : DoubleStep) (addStep : AddStep)
   let (r, coeffs, i) := state
   if i > 0#usize then
     let nextI ← i - 1#usize
-    let shift ← .ok (MacCampaign.I32.ofNat nextI.val)
-    let shifted ← 9586122913090633729#u64 >>> shift
-    let bit := shifted.val % 2 == 1
+    let shifted ← 9586122913090633729#u64 >>> nextI
+    let bit ← lift (shifted &&& 1#u64)
     let (doubled, doubleCoeff) ← doubleStep r
     let coeffs ← alloc.vec.Vec.push coeffs doubleCoeff
-    if bit then
+    if bit != 0#u64 then
       let (added, addCoeff) ← addStep doubled q
       let coeffs ← alloc.vec.Vec.push coeffs addCoeff
       .ok (.cont (added, coeffs, nextI))
@@ -69,17 +90,30 @@ theorem extractedAteBit_eq_testBit (position : Nat) (hposition : position < 64) 
     extractedAteBit ⟨position⟩ =
       .ok (Ipp.Bls12377.ateLoopParameter.testBit position) := by
   unfold extractedAteBit
-  change MacCampaign.shr64 (MacCampaign.U64.ofNat 9586122913090633729)
-      (MacCampaign.I32.ofNat position) >>= (fun shifted =>
-        .ok (shifted.val % 2 == 1)) = _
-  have hpmod : position % MacCampaign.i32Base = position := by
-    apply Nat.mod_eq_of_lt
-    exact lt_trans hposition (by norm_num [MacCampaign.i32Base])
-  unfold MacCampaign.shr64
-  rw [show (MacCampaign.I32.ofNat position).val = position by
-    exact hpmod]
+  change MacCampaign.shr64ByUsize
+      (MacCampaign.U64.ofNat 9586122913090633729)
+      (Usize.ofNat position) >>= (fun shifted =>
+        lift (shifted &&& 1#u64) >>= (fun bit =>
+          .ok (bit != 0#u64))) = _
+  unfold MacCampaign.shr64ByUsize
+  rw [show (Usize.ofNat position).val = position by
+    rfl]
   rw [if_pos hposition]
-  simp [MacCampaign.U64.ofNat, MacCampaign.u64Base,
+  have hconstant :
+      (MacCampaign.U64.ofNat 9586122913090633729).val =
+        9586122913090633729 := by
+    norm_num [MacCampaign.U64.ofNat, MacCampaign.u64Base]
+  rw [hconstant]
+  have hquotient :
+      9586122913090633729 / 2 ^ position < MacCampaign.u64Base := by
+    apply lt_of_le_of_lt (Nat.div_le_self _ _)
+    norm_num [MacCampaign.u64Base]
+  have hshifted :
+      (MacCampaign.U64.ofNat
+        (9586122913090633729 / 2 ^ position)).val =
+        9586122913090633729 / 2 ^ position := by
+    simp [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquotient]
+  simp [Aeneas.lift, extractedBit_eq, hshifted,
     Ipp.Bls12377.ateLoopParameter, Nat.testBit, Nat.shiftRight_eq_div_pow]
 
 /-- The schedule positions are exactly 62 down to 0, hence the 63 ate bits. -/
@@ -115,7 +149,7 @@ theorem g2_prepared_infinity (q : G2AffineMont) (hinfinity : q.infinity = true) 
     ark_ip_proofs.s3_07_arkworks_fq_spike.g2_prepared q =
       .ok { ell_coeffs := ⟨[]⟩, infinity := true } := by
   unfold ark_ip_proofs.s3_07_arkworks_fq_spike.g2_prepared
-  simp [hinfinity, alloc.vec.Vec.with_capacity]
+  simp [hinfinity, ark_ip_proofs.alloc.vec.Vec.new]
 
 /-- Once `2⁻¹` is computed, finite preparation is exactly the abstract schedule. -/
 theorem g2_prepared_finite_schedule (q : G2AffineMont) (two twoInv : FqMont)

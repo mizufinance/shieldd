@@ -157,14 +157,14 @@ private theorem scalarWindowWith_spec {α : Type} (scalar : ScalarArray)
       simpa [scalar.hlen] using hwordIndex
     have hindexExec :
         MacCampaign.Array.index_usize scalar
-          (Usize.ofNat (Div.div (index * width) 64)) = .ok word := by
+          ({ val := Div.div (index * width) 64 } : Usize) = .ok word := by
       simp [MacCampaign.Array.index_usize,
         List.getElem?_eq_getElem hwordIndexList, word]
     rw [hindexExec]
     simp only [Result.bind_ok]
     have hshiftExec :
         MacCampaign.shr64ByUsize word
-          (Usize.ofNat (Mod.mod (index * width) 64)) =
+          ({ val := Mod.mod (index * width) 64 } : Usize) =
         .ok (MacCampaign.U64.ofNat
           (word.val >>> Mod.mod (index * width) 64)) := by
       simp [MacCampaign.shr64ByUsize, hbitIndex,
@@ -212,17 +212,19 @@ private theorem scalarWindowWith_spec {α : Type} (scalar : ScalarArray)
     · have hlastNat : index * width / 64 = 3 :=
         hdivEq.symm.trans hlast
       have hlastU :
-          Usize.ofNat (Div.div (index * width) 64) =
+          ({ val := Div.div (index * width) 64 } : Usize) =
             ({ val := 3 } : Usize) := by
         exact congrArg (fun value => ({ val := value } : Usize)) hlast
       rw [if_pos hlastU]
       obtain ⟨word, hwordExec, hwordValue⟩ :=
         scalar_index_exec scalar (Div.div (index * width) 64) hwordIndex
+      change MacCampaign.Array.index_usize scalar
+        ({ val := Div.div (index * width) 64 } : Usize) = .ok word at hwordExec
       rw [hwordExec]
       simp only [Result.bind_ok]
       have hshiftExec :
           MacCampaign.shr64ByUsize word
-            (Usize.ofNat (Mod.mod (index * width) 64)) =
+            ({ val := Mod.mod (index * width) 64 } : Usize) =
           .ok (MacCampaign.U64.ofNat
             (word.val >>> Mod.mod (index * width) 64)) := by
         simp [MacCampaign.shr64ByUsize, hbitIndex,
@@ -263,11 +265,13 @@ private theorem scalarWindowWith_spec {α : Type} (scalar : ScalarArray)
       obtain ⟨highWord, hhighExec, hhighValue⟩ :=
         scalar_index_exec scalar (1 + Div.div (index * width) 64)
           hnextIndex
+      change MacCampaign.Array.index_usize scalar
+        ({ val := Div.div (index * width) 64 } : Usize) = .ok lowWord at hlowExec
       rw [hlowExec]
       simp only [Result.bind_ok]
       have hlowShiftExec :
           MacCampaign.shr64ByUsize lowWord
-              (Usize.ofNat (Mod.mod (index * width) 64)) =
+              ({ val := Mod.mod (index * width) 64 } : Usize) =
             .ok (MacCampaign.U64.ofNat
               (lowWord.val >>> Mod.mod (index * width) 64)) := by
         simp [MacCampaign.shr64ByUsize, hbitIndex,
@@ -285,24 +289,18 @@ private theorem scalarWindowWith_spec {α : Type} (scalar : ScalarArray)
           64 - Mod.mod (index * width) 64 < 64 := by
         omega
       rw [MacCampaign.sub_eq (Usize.ofNat 64)
-        (Usize.ofNat (Mod.mod (index * width) 64)) (by
+        ({ val := Mod.mod (index * width) 64 } : Usize) (by
           change Mod.mod (index * width) 64 ≤ 64
           omega)]
       simp only [Result.bind_ok, Usize.ofNat_val]
       have hhighShiftExec :
           MacCampaign.shl64ByUsize highWord
-              (Usize.ofNat (64 - Mod.mod (index * width) 64)) =
+              ({ val := 64 - Mod.mod (index * width) 64 } : Usize) =
             .ok (MacCampaign.U64.ofNat
               (highWord.val <<< (64 - Mod.mod (index * width) 64))) := by
         simp [MacCampaign.shl64ByUsize, hhighShiftBound,
           Nat.shiftLeft_eq]
-      have hhighShiftExec' :
-          MacCampaign.shl64ByUsize highWord
-              ({ val := 64 - Mod.mod (index * width) 64 } : Usize) =
-            .ok (MacCampaign.U64.ofNat
-              (highWord.val <<< (64 - Mod.mod (index * width) 64))) := by
-        exact hhighShiftExec
-      rw [hhighShiftExec']
+      rw [hhighShiftExec]
       simp only [Result.bind_ok, MacCampaign.and64, MacCampaign.or64]
       rw [hlowValue, hhighValue]
       have hmask :

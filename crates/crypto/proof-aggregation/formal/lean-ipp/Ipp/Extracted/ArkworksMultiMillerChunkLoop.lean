@@ -5,7 +5,7 @@ import Ipp.Extracted.ArkworksMultiMillerChunkStep
 namespace Ipp.Extracted.ArkworksMultiMillerChunkLoop
 
 open Aeneas Aeneas.Std Result ControlFlow
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiMillerChunkModel
 open Ipp.Extracted.ArkworksMultiMillerChunkInvariant

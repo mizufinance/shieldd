@@ -27,7 +27,7 @@ private noncomputable def partialEqModel (T : Type) :
     exact .ok (decide (left = right))
 
 private def fromU64Model (F : Type) [NatCast F] :
-    ark_ip_proofs.core.convert.From F Std.Usize where
+    ark_ip_proofs.core.convert.From F MacCampaign.U64 where
   «from» value := .ok value.val
 
 private def addModel (T : Type) [Add T] :
@@ -640,7 +640,7 @@ private theorem geometricSum_div {F : Type} [Field F] (r : F) (m : ℕ)
 theorem fold_public_inputs_refinement_statement
     {F G : Type} [Field F] [AddCommGroup G] [Module F G]
     {m n : ℕ} (gamma : Fin (n + 1) → G) (inputs : Fin m → Fin n → F)
-    (r : F) (hm : 0 < m) :
+    (r : F) (hm : 0 < m) (hm64 : m < MacCampaign.u64Base) :
     ark_ip_proofs.applications.groth16_aggregation.fold_public_inputs_core
         (cloneModel F) (partialEqModel F) (fromU64Model F) (oneModel F)
         (zeroModel F) (addModel F) (divModel F) (mulModel F) (subModel F)
@@ -663,10 +663,13 @@ theorem fold_public_inputs_refinement_statement
   unfold inputSlice at hvalidate
   rw [hvalidate]
   simp only [Result.bind_ok, cloneModel_clone, oneModel, partialEqModel]
+  have hcast : (MacCampaign.castU64 ({ val := m } : Usize)).val = m := by
+    change m % MacCampaign.u64Base = m
+    exact Nat.mod_eq_of_lt hm64
   by_cases hr : r = 1
   · subst r
-    simp only [decide_true, if_true, UScalar.cast, lift, fromU64Model,
-      Nat.cast_ofNat, Result.bind_ok]
+    simp only [decide_true, if_true, lift, fromU64Model, hcast,
+      Result.bind_ok]
     rw [fromElem_eq_replicate]
     simp only [Result.bind_ok]
     rw [powerLoop1 (F := F) 1 m hm]
@@ -813,6 +816,7 @@ theorem verify_combined_ppe_refinement_statement
     [DecidableEq GT]
     {m n : ℕ} (gammaABC : Fin (n + 1) → G1)
     (publicInputs : Fin m → Fin n → F) (r : F) (hm : 0 < m)
+    (hm64 : m < MacCampaign.u64Base)
     (e : G1 →ₗ[F] G2 →ₗ[F] GT)
     (normalize : G1 → G1) (preparedValue : G2Prepared → G2)
     (outcome : E → Option Unit)
@@ -865,7 +869,7 @@ theorem verify_combined_ppe_refinement_statement
                   gammaABC (Fin.succ j)) gamma +
           e aggC delta = ipAb := by
   unfold ark_ip_proofs.applications.groth16_aggregation.verify_combined_ppe_core
-  rw [fold_public_inputs_refinement_statement gammaABC publicInputs r hm]
+  rw [fold_public_inputs_refinement_statement gammaABC publicInputs r hm hm64]
   simp only [Result.bind_ok]
   exact verify_ppe_refinement_statement e normalize preparedValue outcome effect
     pairing alpha beta gamma delta _ aggC gammaNeg deltaNeg ipAb _

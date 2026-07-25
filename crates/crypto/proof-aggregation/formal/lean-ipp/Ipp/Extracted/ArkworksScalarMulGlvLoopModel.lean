@@ -1,10 +1,12 @@
 import Ipp.Extracted.ArkworksScalarMulGlvSchedule
+import Ipp.Extracted.ArkworksFqByteRuntime
 
 /-! Symbolic model of the extracted single-countdown GLV joint loop. -/
 
 namespace Ipp.Extracted.ArkworksScalarMul
 
 open Aeneas Aeneas.Std Result ControlFlow
+open Ipp.Extracted.ArkworksFqByteRuntime
 
 set_option maxHeartbeats 4000000
 
@@ -35,26 +37,24 @@ theorem extracted_glv_bit (scalar : ScalarArray) {bit : Nat} (hbit : bit < 256) 
         ⟨bit / 64, by simpa [Ipp.Extracted.ArkworksFr.limbCount] using hlimb⟩).val =
         scalarWord scalar (bit / 64) := by
     simp [scalarWord, hlimb, Ipp.Extracted.ArkworksFr.limb]
-  change MacCampaign.shr64
+  change MacCampaign.shr64ByUsize
       (Ipp.Extracted.ArkworksFr.limbWord scalar
         ⟨bit / 64, by simpa [Ipp.Extracted.ArkworksFr.limbCount] using hlimb⟩)
-      (MacCampaign.I32.ofNat (bit % 64)) >>= _ = _
-  rw [show MacCampaign.shr64
+      (Usize.ofNat (bit % 64)) >>= _ = _
+  rw [show MacCampaign.shr64ByUsize
       (Ipp.Extracted.ArkworksFr.limbWord scalar
         ⟨bit / 64, by simpa [Ipp.Extracted.ArkworksFr.limbCount] using hlimb⟩)
-      (MacCampaign.I32.ofNat (bit % 64)) =
+      (Usize.ofNat (bit % 64)) =
       .ok (MacCampaign.U64.ofNat
         (scalarWord scalar (bit / 64) / 2 ^ (bit % 64))) by
-    have hi32 : bit % 64 % MacCampaign.i32Base = bit % 64 :=
-      Nat.mod_eq_of_lt (lt_trans hlocal (by decide))
-    simp [MacCampaign.shr64, MacCampaign.I32.ofNat, hi32, hlocal, hword]]
+    simp [MacCampaign.shr64ByUsize, Usize.ofNat, hlocal, hword]]
   simp only [Result.bind_ok]
   unfold glvBit
   change (do
-      let low ← lift (ark_ip_proofs.GlvRuntime.and64
+      let low ← lift
         (MacCampaign.U64.ofNat
-          (scalarWord scalar (bit / 64) / 2 ^ (bit % 64)))
-        (MacCampaign.U64.ofNat 1))
+            (scalarWord scalar (bit / 64) / 2 ^ (bit % 64)) &&&
+          MacCampaign.U64.ofNat 1)
       ok (decide (low = MacCampaign.U64.ofNat 1))) = _
   have hquot : scalarWord scalar (bit / 64) / 2 ^ (bit % 64) <
       MacCampaign.u64Base := by
@@ -64,10 +64,21 @@ theorem extracted_glv_bit (scalar : ScalarArray) {bit : Nat} (hbit : bit < 256) 
   have hlow : scalarWord scalar (bit / 64) / 2 ^ (bit % 64) % 2 <
       MacCampaign.u64Base :=
     lt_trans (Nat.mod_lt _ (by decide)) (by decide)
-  simp [Aeneas.lift, ark_ip_proofs.GlvRuntime.and64,
-    MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquot,
-    Nat.mod_eq_of_lt hlow,
-    Nat.mod_eq_of_lt (show 1 < MacCampaign.u64Base by decide)]
+  simp only [Aeneas.lift, Result.bind_ok, Result.ok.injEq]
+  apply Bool.eq_iff_iff.mpr
+  simp only [decide_eq_true_eq]
+  rw [Nat.and_one_is_mod]
+  constructor
+  · intro heq
+    have hval := congrArg MacCampaign.U64.val heq
+    rw [u64_and_one_val] at hval
+    simpa [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquot,
+      MacCampaign.u64Base] using hval
+  · intro hmod
+    apply u64_eq_of_val_eq
+    rw [u64_and_one_val]
+    simpa [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquot,
+      MacCampaign.u64Base] using hmod
 
 /-- The extracted scalar-bit helper selects the corresponding schedule bit. -/
 theorem extracted_g1_glv_scalar_bit (scalar : ScalarArray) {bit : Nat}

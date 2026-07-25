@@ -929,6 +929,12 @@ theorem decode_fq12_frobenius_one (a output : Fq12LimbPair)
              Ipp.Bls12377.fq2U ^ ((Ipp.Bls12377.baseModulus - 1) / 6)⟩⟩ := by
   unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_frobenius at hexec
   obtain ⟨table, htable, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨index, hindex, hexec⟩ := bind_eq_ok hexec
+  have hindexValue : (1#usize % 12#usize : Result Usize) = .ok 1#usize := by
+    rfl
+  have : (1#usize : Usize) = index :=
+    Result.ok.inj (hindexValue.symm.trans hindex)
+  subst index
   obtain ⟨coeff, hcoeff, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c0, hc0, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c1p, hc1p, hexec⟩ := bind_eq_ok hexec
@@ -986,6 +992,12 @@ theorem decode_fq12_frobenius_two (a output : Fq12LimbPair)
              ((Ipp.Bls12377.baseModulus ^ 2 - 1) / 6)⟩⟩ := by
   unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq12_frobenius at hexec
   obtain ⟨table, htable, hexec⟩ := bind_eq_ok hexec
+  obtain ⟨index, hindex, hexec⟩ := bind_eq_ok hexec
+  have hindexValue : (2#usize % 12#usize : Result Usize) = .ok 2#usize := by
+    rfl
+  have : (2#usize : Usize) = index :=
+    Result.ok.inj (hindexValue.symm.trans hindex)
+  subst index
   obtain ⟨coeff, hcoeff, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c0, hc0, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c1p, hc1p, hexec⟩ := bind_eq_ok hexec
@@ -1493,7 +1505,7 @@ theorem decode_fq12_cyclotomic_exp (a output : Fq12LimbPair)
 /-! ### Canonical 576-byte GT wire -/
 
 private theorem fq_to_bytes_wire (a : LimbArray)
-    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 48)
+    (bytes : MacCampaign.Array UInt8 48#usize)
     (ha : Canonical a)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.to_bytes a = .ok bytes) :
     asFqWire bytes = Ipp.CanonicalWire.encodeFqCanonical (canonicalFqValue a) := by
@@ -1565,7 +1577,7 @@ theorem decode_fq12_to_bytes (a : Fq12LimbPair) (bytes : Fq12ByteTower)
   rw [fq6_to_bytes_wire a.c0 c0 ha.1 h0, fq6_to_bytes_wire a.c1 c1 ha.2 h1]
 
 private theorem fq_from_bytes_some
-    (bytes : ark_ip_proofs.s3_07_arkworks_fq_spike.ByteArray 48)
+    (bytes : MacCampaign.Array UInt8 48#usize)
     (a : LimbArray)
     (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.from_bytes bytes =
       .ok (some a)) :

@@ -24,6 +24,24 @@ private theorem bind_eq_ok {α β : Type} {action : Result α}
   | fail error => simp at hexec
   | div => simp at hexec
 
+private theorem repeatValues_eq_replicate
+    (value : ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont)
+    (count : Nat) :
+    ark_ip_proofs.alloc.vec.repeat_values
+        ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont.Insts.CoreCloneClone
+        value count =
+      .ok (List.replicate count value) := by
+  induction count with
+  | zero => rfl
+  | succ count ih =>
+      rw [ark_ip_proofs.alloc.vec.repeat_values]
+      simp only [
+        ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont.Insts.CoreCloneClone,
+        ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont.Insts.CoreCloneClone.clone,
+        Result.bind_ok]
+      rw [ih]
+      simp [List.replicate_succ]
+
 /-- One successful generated G1 window appends its generic signed bucket sum. -/
 theorem valid_g1_window_body
     (bases : Slice ark_ip_proofs.s3_07_arkworks_fq_spike.G1AffineMont)
@@ -87,7 +105,9 @@ theorem valid_g1_window_body
         alloc.vec.Vec
           ark_ip_proofs.s3_07_arkworks_fq_spike.G1ProjMont) =
         initialBuckets := by
-    simpa [alloc.vec.from_elem] using hinitialExec
+    simpa only [ark_ip_proofs.alloc.vec.from_elem,
+      repeatValues_eq_replicate, Result.bind_ok, Result.ok.injEq] using
+        hinitialExec
   subst initialBuckets
   let zeroBuckets : Buckets (G := G1AffinePoint) bucketCount.val :=
     fun _ => 0

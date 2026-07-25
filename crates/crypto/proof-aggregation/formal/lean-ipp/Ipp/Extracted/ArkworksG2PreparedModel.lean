@@ -245,32 +245,41 @@ private theorem fq_zero_canonical :
     Ipp.Extracted.ArkworksFqMul.limbWord, MacCampaign.Array.replicate,
     MacCampaign.U64.ofNat, MacCampaign.u64Base, baseModulus]
 
+private def g2CoeffB1 : Ipp.Extracted.ArkworksFqMul.LimbArray :=
+  MacCampaign.Array.make 6#usize [
+    9255502405446297221#u64, 10229180150694123945#u64,
+    9215585410771530959#u64, 13357015519562362907#u64,
+    5437107869987383107#u64, 16259554076827459#u64]
+
 set_option maxRecDepth 4096 in
 theorem g2_coeff_b_spec :
     Canonical2 ark_ip_proofs.s3_07_arkworks_fq_spike.G2_COEFF_B ∧
       decodeFq2 ark_ip_proofs.s3_07_arkworks_fq_spike.G2_COEFF_B = g2TwistB := by
+  rw [ark_ip_proofs.s3_07_arkworks_fq_spike.G2_COEFF_B]
   constructor
-  · refine ⟨fq_zero_canonical, ?_⟩
-    rw [ark_ip_proofs.s3_07_arkworks_fq_spike.G2_COEFF_B,
-      Ipp.Extracted.ArkworksFqMul.limbsToNat_six]
-    norm_num [Ipp.Extracted.ArkworksFqMul.limb,
-      Ipp.Extracted.ArkworksFqMul.limbWord, Array.make, MacCampaign.Array.make,
-      MacCampaign.U64.ofNat, MacCampaign.u64Base,
-      Ipp.Extracted.ArkworksFqMul.wordBase, baseModulus]
+  · constructor
+    · change Ipp.Extracted.ArkworksFqMul.limbsToNat
+        ark_ip_proofs.s3_07_arkworks_fq_spike.FQ_ZERO < baseModulus
+      exact fq_zero_canonical
+    · rw [Ipp.Extracted.ArkworksFqMul.limbsToNat_six]
+      norm_num [Ipp.Extracted.ArkworksFqMul.limb,
+        Ipp.Extracted.ArkworksFqMul.limbWord, Array.make, MacCampaign.Array.make,
+        MacCampaign.U64.ofNat, MacCampaign.u64Base,
+        Ipp.Extracted.ArkworksFqMul.wordBase, baseModulus]
   · apply QuadraticAlgebra.ext
     · simpa [decodeFq2, ark_ip_proofs.s3_07_arkworks_fq_spike.G2_COEFF_B,
         g2TwistB] using decode_fq_zero
     · change Ipp.Extracted.ArkworksFqMul.decode
-          ark_ip_proofs.s3_07_arkworks_fq_spike.G2_COEFF_B.c1 =
+          g2CoeffB1 =
         (155198655607781456406391640216936120121836107652948796323930557600032281009004493664981332883744016074664192874906 : Fq)
       rw [Ipp.Extracted.ArkworksFqMul.decode_eq_cast_mul_inv]
       have hmod :
           (Ipp.Extracted.ArkworksFqMul.limbsToNat
-              ark_ip_proofs.s3_07_arkworks_fq_spike.G2_COEFF_B.c1 : Fq) =
+              g2CoeffB1 : Fq) =
             (155198655607781456406391640216936120121836107652948796323930557600032281009004493664981332883744016074664192874906 : Fq) *
               (baseMontgomeryRadix : Fq) := by
         apply (ZMod.natCast_eq_natCast_iff _ _ _).2
-        norm_num [Nat.ModEq, ark_ip_proofs.s3_07_arkworks_fq_spike.G2_COEFF_B,
+        norm_num [Nat.ModEq, g2CoeffB1,
           Ipp.Extracted.ArkworksFqMul.limbsToNat,
           Ipp.Extracted.ArkworksFqMul.prefixToNat,
           Ipp.Extracted.ArkworksFqMul.limbCount,

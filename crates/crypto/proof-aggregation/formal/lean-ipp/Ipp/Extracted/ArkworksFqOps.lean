@@ -10,7 +10,7 @@ open Ipp.Extracted.ArkworksFqMul
 
 set_option maxHeartbeats 400000
 
-abbrev LimbArray := ark_ip_proofs.s3_07_arkworks_fq_spike.LimbArray
+abbrev LimbArray := ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont
 abbrev ExtractedMac := ark_ip_proofs.s3_07_arkworks_fq_spike.Mac
 
 private theorem u64_eq_of_val_eq (left right : MacCampaign.U64)
@@ -61,13 +61,13 @@ theorem extracted_adc_eq_model (left right carry : MacCampaign.U64)
     simpa [u128Base_eq] using hvalue
   have hshift : (MacCampaign.I32.ofNat 64).val < 128 := by decide
   have hshiftValue : (MacCampaign.I32.ofNat 64).val = 64 := by decide
-  simp only [ark_ip_proofs.s3_07_arkworks_fq_spike.adc, lift,
-    Result.bind_ok, MacCampaign.castU128, MacCampaign.add128,
-    dif_pos hsum]
   have hvalueRaw : left.val + right.val + carry.val <
       MacCampaign.u128Base := by simpa [value] using hvalue
-  simp only [dif_pos hvalueRaw, MacCampaign.castU64,
-    MacCampaign.shr128, if_pos hshift]
+  simp only [ark_ip_proofs.s3_07_arkworks_fq_spike.adc, lift,
+    Result.bind_ok, MacCampaign.castU128, MacCampaign.hAddU128_eq,
+    MacCampaign.add128, dif_pos hsum, dif_pos hvalueRaw,
+    MacCampaign.castU64, MacCampaign.castU64Source_u128,
+    MacCampaign.hShiftRightU128_eq, MacCampaign.shr128, if_pos hshift]
   simp [adcModel, MacCampaign.U64.ofNat, MacCampaign.U128.ofNat,
     MacCampaign.u64Base, MacCampaign.u128Base, wordBase,
     Nat.mod_eq_of_lt hcarryOut, hshiftValue]
@@ -134,13 +134,14 @@ theorem extracted_adc_general_spec (left right carry : MacCampaign.U64)
     omega
   have hshift : (MacCampaign.I32.ofNat 64).val < 128 := by decide
   have hshiftValue : (MacCampaign.I32.ofNat 64).val = 64 := by decide
-  simp only [ark_ip_proofs.s3_07_arkworks_fq_spike.adc, lift,
-    Result.bind_ok, MacCampaign.castU128, MacCampaign.add128,
-    dif_pos hsum] at hexec
   have hvalueRaw : left.val + right.val + carry.val <
       MacCampaign.u128Base := by simpa [value] using hvalue
-  simp only [dif_pos hvalueRaw, MacCampaign.castU64,
-    MacCampaign.shr128, if_pos hshift] at hexec
+  simp only [ark_ip_proofs.s3_07_arkworks_fq_spike.adc, lift,
+    Result.bind_ok, MacCampaign.castU128, MacCampaign.hAddU128_eq,
+    MacCampaign.add128, dif_pos hsum, dif_pos hvalueRaw,
+    MacCampaign.castU64, MacCampaign.castU64Source_u128,
+    MacCampaign.hShiftRightU128_eq, MacCampaign.shr128,
+    if_pos hshift] at hexec
   simp [MacCampaign.U64.ofNat, MacCampaign.U128.ofNat,
     MacCampaign.u64Base, MacCampaign.u128Base, hshiftValue,
     Nat.mod_eq_of_lt hcarryOut] at hexec

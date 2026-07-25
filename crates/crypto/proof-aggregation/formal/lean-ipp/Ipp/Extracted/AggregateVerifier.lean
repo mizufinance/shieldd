@@ -7,10 +7,7 @@ open Aeneas Aeneas.Std Result ControlFlow Error
 open Std.Do
 open ark_ip_proofs
 
--- This older extraction used `U64` as a machine-index alias.  Keep that
--- generated representation local now that the shared runtime also exposes
--- the bounded arithmetic `Aeneas.Std.U64` used by the field extractions.
-abbrev U64 := Aeneas.Std.Usize
+abbrev U64 := MacCampaign.U64
 
 set_option maxHeartbeats 20000
 set_option maxRecDepth 2048
@@ -106,10 +103,11 @@ inductive RandomizerTrace {F E FX : Type} [Zero F] [One F]
       (derive_eq : derive effect nonce = .ok (.Ok (some randomizer), next))
       (nonzero : randomizer ≠ 0) (not_one : randomizer ≠ 1) :
       RandomizerTrace derive effect nonce next randomizer
-  | retry {effect next final nonce candidate randomizer}
+  | retry {effect next final nonce nextNonce candidate randomizer}
       (derive_eq : derive effect nonce = .ok (.Ok candidate, next))
       (rejected : candidate = none ∨ candidate = some 0 ∨ candidate = some 1)
-      (tail : RandomizerTrace derive next ⟨nonce.val + 1⟩ final randomizer) :
+      (increment_eq : (nonce + 1#u64 : Result U64) = .ok nextNonce)
+      (tail : RandomizerTrace derive next nextNonce final randomizer) :
       RandomizerTrace derive effect nonce final randomizer
 
 /-- A chronological retry prefix ending in a challenge-effect error. -/
@@ -119,10 +117,11 @@ inductive RandomizerErrorTrace {F E FX : Type} [Zero F] [One F]
   | fail {effect next nonce error}
       (derive_eq : derive effect nonce = .ok (.Err error, next)) :
       RandomizerErrorTrace derive effect nonce error
-  | retry {effect next nonce candidate error}
+  | retry {effect next nonce nextNonce candidate error}
       (derive_eq : derive effect nonce = .ok (.Ok candidate, next))
       (rejected : candidate = none ∨ candidate = some 0 ∨ candidate = some 1)
-      (tail : RandomizerErrorTrace derive next ⟨nonce.val + 1⟩ error) :
+      (increment_eq : (nonce + 1#u64 : Result U64) = .ok nextNonce)
+      (tail : RandomizerErrorTrace derive next nextNonce error) :
       RandomizerErrorTrace derive effect nonce error
 
 private def body {F E FX : Type} [Field F]
@@ -133,36 +132,43 @@ private def body {F E FX : Type} [Field F]
 
 private theorem body_retry_none {F E FX : Type} [Field F]
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
-      FX F E) {effect next : FX} {nonce : U64}
+      FX F E) {effect next : FX} {nonce nextNonce : U64}
     (h : effects.derive_randomizer effect nonce = .ok (.Ok none, next)) :
-    body effects (effect, nonce) = .ok (.cont (next, ⟨nonce.val + 1⟩)) := by
+    (increment_eq : (nonce + 1#u64 : Result U64) = .ok nextNonce) →
+    body effects (effect, nonce) = .ok (.cont (next, nextNonce)) := by
+  intro increment_eq
   unfold body
     ark_ip_proofs.applications.groth16_aggregation.verify_aggregate_proof_core_loop.body
   rw [h]
-  simp only [core.result.Result.Insts.CoreOpsTry.branch, Result.bind_ok,
-    Aeneas.Std.add_eq, Usize.ofNat]
+  simp only [core.result.Result.Insts.CoreOpsTry.branch, Result.bind_ok]
+  rw [increment_eq]
+  rfl
 
 private theorem body_retry_zero {F E FX : Type} [Field F]
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
-      FX F E) {effect next : FX} {nonce : U64}
+      FX F E) {effect next : FX} {nonce nextNonce : U64}
     (h : effects.derive_randomizer effect nonce = .ok (.Ok (some 0), next)) :
-    body effects (effect, nonce) = .ok (.cont (next, ⟨nonce.val + 1⟩)) := by
+    (increment_eq : (nonce + 1#u64 : Result U64) = .ok nextNonce) →
+    body effects (effect, nonce) = .ok (.cont (next, nextNonce)) := by
+  intro increment_eq
   unfold body
     ark_ip_proofs.applications.groth16_aggregation.verify_aggregate_proof_core_loop.body
   rw [h]
   simp [core.result.Result.Insts.CoreOpsTry.branch, partialEq, zero,
-    core.cmp.PartialEq.ne, Usize.ofNat]
+    core.cmp.PartialEq.ne, increment_eq]
 
 private theorem body_retry_one {F E FX : Type} [Field F]
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
-      FX F E) {effect next : FX} {nonce : U64}
+      FX F E) {effect next : FX} {nonce nextNonce : U64}
     (h : effects.derive_randomizer effect nonce = .ok (.Ok (some 1), next)) :
-    body effects (effect, nonce) = .ok (.cont (next, ⟨nonce.val + 1⟩)) := by
+    (increment_eq : (nonce + 1#u64 : Result U64) = .ok nextNonce) →
+    body effects (effect, nonce) = .ok (.cont (next, nextNonce)) := by
+  intro increment_eq
   unfold body
     ark_ip_proofs.applications.groth16_aggregation.verify_aggregate_proof_core_loop.body
   rw [h]
   simp [core.result.Result.Insts.CoreOpsTry.branch, partialEq, zero, one,
-    core.cmp.PartialEq.ne, Usize.ofNat]
+    core.cmp.PartialEq.ne, increment_eq]
 
 private theorem body_accept {F E FX : Type} [Field F]
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
@@ -220,11 +226,14 @@ private theorem loopResult_of_trace
   induction trace with
   | accept derive_eq nonzero not_one =>
       exact .done (body_accept effects derive_eq nonzero not_one combined_eq)
-  | retry derive_eq rejected tail ih =>
+  | retry derive_eq rejected increment_eq tail ih =>
       rcases rejected with rfl | rfl | rfl
-      · exact LoopResult.next (body_retry_none effects derive_eq) (ih combined_eq)
-      · exact LoopResult.next (body_retry_zero effects derive_eq) (ih combined_eq)
-      · exact LoopResult.next (body_retry_one effects derive_eq) (ih combined_eq)
+      · exact LoopResult.next (body_retry_none effects derive_eq increment_eq)
+          (ih combined_eq)
+      · exact LoopResult.next (body_retry_zero effects derive_eq increment_eq)
+          (ih combined_eq)
+      · exact LoopResult.next (body_retry_one effects derive_eq increment_eq)
+          (ih combined_eq)
 
 /-- Fixed decoded challenge attempts determine the extracted result. This
     includes retry order, both effect error images, and Boolean conjunction. -/
@@ -233,7 +242,7 @@ theorem run_of_trace
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
       FX F E) {effect challengeEffect finalEffect : FX} {randomizer : F}
     {combinedResult : core.result.Result (Bool × Bool) E}
-    (trace : RandomizerTrace effects.derive_randomizer effect 0#usize
+    (trace : RandomizerTrace effects.derive_randomizer effect 0#u64
       challengeEffect randomizer)
     (combined_eq : effects.verify_combined challengeEffect randomizer =
       .ok (combinedResult, finalEffect)) :
@@ -268,18 +277,18 @@ private theorem loopResult_of_error_trace
     LoopResult (body effects) (effect, nonce) (.ok (.Err error)) := by
   induction trace with
   | fail derive_eq => exact .done (body_challenge_error effects derive_eq)
-  | retry derive_eq rejected tail ih =>
+  | retry derive_eq rejected increment_eq tail ih =>
       rcases rejected with rfl | rfl | rfl
-      · exact .next (body_retry_none effects derive_eq) ih
-      · exact .next (body_retry_zero effects derive_eq) ih
-      · exact .next (body_retry_one effects derive_eq) ih
+      · exact .next (body_retry_none effects derive_eq increment_eq) ih
+      · exact .next (body_retry_zero effects derive_eq increment_eq) ih
+      · exact .next (body_retry_one effects derive_eq increment_eq) ih
 
 /-- A challenge-effect error is returned before any combined verifier call. -/
 theorem run_challenge_error
     {F E FX : Type} [Field F]
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
       FX F E) (effect next : FX) (error : E)
-    (derive_eq : effects.derive_randomizer effect 0#usize =
+    (derive_eq : effects.derive_randomizer effect 0#u64 =
       .ok (.Err error, next)) :
     run effects effect = .ok (.Err error) := by
   unfold run ark_ip_proofs.applications.groth16_aggregation.verify_aggregate_proof_core
@@ -293,7 +302,7 @@ theorem run_randomizer_error
     {F E FX : Type} [Field F]
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
       FX F E) {effect : FX} {error : E}
-    (trace : RandomizerErrorTrace effects.derive_randomizer effect 0#usize error) :
+    (trace : RandomizerErrorTrace effects.derive_randomizer effect 0#u64 error) :
     run effects effect = .ok (.Err error) := by
   unfold run ark_ip_proofs.applications.groth16_aggregation.verify_aggregate_proof_core
     ark_ip_proofs.applications.groth16_aggregation.verify_aggregate_proof_core_loop
@@ -304,7 +313,7 @@ theorem run_combined_error
     {F E FX : Type} [Field F]
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
       FX F E) {effect challengeEffect finalEffect : FX} {randomizer : F} {error : E}
-    (trace : RandomizerTrace effects.derive_randomizer effect 0#usize
+    (trace : RandomizerTrace effects.derive_randomizer effect 0#u64
       challengeEffect randomizer)
     (combined_eq : effects.verify_combined challengeEffect randomizer =
       .ok (.Err error, finalEffect)) :
@@ -319,14 +328,14 @@ private theorem RandomizerTrace.guards
     randomizer ≠ 0 ∧ randomizer ≠ 1 := by
   induction trace with
   | accept _ nonzero not_one => exact ⟨nonzero, not_one⟩
-  | retry _ _ _ ih => exact ih
+  | retry _ _ _ _ ih => exact ih
 
 private theorem run_accepts_iff
     {F E FX : Type} [Field F]
     (effects : ark_ip_proofs.applications.groth16_aggregation.AggregateVerifierEffect
       FX F E) {effect challengeEffect finalEffect : FX} {randomizer : F}
     {combinedResult : core.result.Result (Bool × Bool) E}
-    (trace : RandomizerTrace effects.derive_randomizer effect 0#usize
+    (trace : RandomizerTrace effects.derive_randomizer effect 0#u64
       challengeEffect randomizer)
     (combined_eq : effects.verify_combined challengeEffect randomizer =
       .ok (combinedResult, finalEffect)) :
@@ -358,7 +367,7 @@ theorem verify_aggregate_proof_refinement_statement
     (aggregateEffect challengeEffect finalAggregateEffect : AFX)
     (combinedResult : core.result.Result (Bool × Bool) AE)
     (randomizerTrace : RandomizerTrace aggregateEffects.derive_randomizer
-      aggregateEffect 0#usize challengeEffect transcript.randomizer)
+      aggregateEffect 0#u64 challengeEffect transcript.randomizer)
     (aggregateCombined :
       aggregateEffects.verify_combined challengeEffect transcript.randomizer =
         .ok (combinedResult, finalAggregateEffect))
@@ -454,7 +463,7 @@ theorem verify_aggregate_proof_profiled_with_trace_refinement_statement
     (aggregateEffect challengeEffect finalAggregateEffect : AFX)
     (combinedResult : core.result.Result (Bool × Bool) AE)
     (randomizerTrace : RandomizerTrace aggregateEffects.derive_randomizer
-      aggregateEffect 0#usize challengeEffect transcript.randomizer)
+      aggregateEffect 0#u64 challengeEffect transcript.randomizer)
     (aggregateCombined :
       aggregateEffects.verify_combined challengeEffect transcript.randomizer =
         .ok (combinedResult, finalAggregateEffect))

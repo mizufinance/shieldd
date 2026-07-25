@@ -41,8 +41,11 @@ theorem body_spec (current : ScalarArray)
         ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS
           Ipp.Extracted.ArkworksFr.limbCount = true := by
       apply hcmp.mpr
-      simpa [r, scalarToNat, Ipp.Extracted.ArkworksFr.limbsToNat,
-        Ipp.Extracted.ArkworksFr.modulus_limbsToNat] using hge
+      change Ipp.Extracted.ArkworksFr.limbsToNat
+        ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS ≤
+          Ipp.Extracted.ArkworksFr.limbsToNat current
+      rw [Ipp.Extracted.ArkworksFr.modulus_limbsToNat]
+      exact hge
     cases hsub : ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw current
         ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS with
     | ok next =>
@@ -69,8 +72,13 @@ theorem body_spec (current : ScalarArray)
       intro hp
       have := hcmp.mp hp
       apply hge
-      simpa [r, scalarToNat, Ipp.Extracted.ArkworksFr.limbsToNat,
-        Ipp.Extracted.ArkworksFr.modulus_limbsToNat] using this
+      change Ipp.Bls12377.scalarModulus ≤
+        Ipp.Extracted.ArkworksFr.limbsToNat current
+      change Ipp.Extracted.ArkworksFr.limbsToNat
+        ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS ≤
+          Ipp.Extracted.ArkworksFr.limbsToNat current at this
+      rw [Ipp.Extracted.ArkworksFr.modulus_limbsToNat] at this
+      exact this
     rw [if_neg hp] at hexec
     exact ⟨(Result.ok.inj hexec).symm, hlt⟩
 

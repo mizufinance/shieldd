@@ -5,7 +5,7 @@ import Ipp.Extracted.ArkworksMultiMillerOuterStep
 namespace Ipp.Extracted.ArkworksMultiMillerOuterLoop
 
 open Aeneas Aeneas.Std Result ControlFlow
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiMillerChunkModel
 open Ipp.Extracted.ArkworksMultiMillerOuterInvariant
@@ -48,8 +48,8 @@ private theorem outerTraceCore
           ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop1.body
           at hbody
         rw [if_neg (show ¬(⟨start⟩ : Usize) <
-          Aeneas.Std.alloc.vec.Vec.len ⟨filtered⟩ by
-            simpa [Aeneas.Std.alloc.vec.Vec.len] using hactive)] at hbody
+      ark_ip_proofs.alloc.vec.Vec.len ⟨filtered⟩ by
+        simpa [ark_ip_proofs.alloc.vec.Vec.len] using hactive)] at hbody
         simp only [Result.ok.injEq, ControlFlow.done.injEq] at hbody
         rw [← hbody] at hresult
         have hout : result = out := Result.ok.inj hresult
@@ -68,8 +68,8 @@ private theorem outerTraceCore
           ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop1.body
           at hstep
         rw [if_neg (show ¬(⟨start⟩ : Usize) <
-          Aeneas.Std.alloc.vec.Vec.len ⟨filtered⟩ by
-            simpa [Aeneas.Std.alloc.vec.Vec.len] using hnot)] at hstep
+      ark_ip_proofs.alloc.vec.Vec.len ⟨filtered⟩ by
+        simpa [ark_ip_proofs.alloc.vec.Vec.len] using hnot)] at hstep
         cases hstep
       have hnextInv := outerLoopInv_step filtered start result
         (.cont (nextResult, nextStart)) hvalid hactive hinv hstep

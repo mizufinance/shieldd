@@ -25,8 +25,9 @@ inductive LineBodyWitness
       (lineExec : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_ell f coeff pair.2 =
         .ok (c0, c1, c2, nextF))
       (flowEq : flow = .cont
-        (⟨cursors.val.set processed ⟨cursor + 1⟩⟩, nextF,
-          ⟨processed + 1⟩)) :
+        (⟨ark_ip_proofs.alloc.vec.Vec.updateAt cursors.val processed
+            ⟨cursor + (Usize.ofNat 1).val⟩⟩,
+          nextF, ⟨processed + (Usize.ofNat 1).val⟩)) :
       LineBodyWitness flow filtered chunkStart cursor processed cursors f
 
 set_option maxHeartbeats 2000000
@@ -65,12 +66,12 @@ theorem line_body_witness
   unfold
     ark_ip_proofs.s3_07_arkworks_fq_spike.multi_miller_schedule_loop1_loop1_loop0.body
     at hbody
-  rw [show Aeneas.Std.alloc.vec.Vec.len cursors = (⟨width⟩ : Usize) by
-    simp [Aeneas.Std.alloc.vec.Vec.len, hcursorsLength]] at hbody
+  rw [show ark_ip_proofs.alloc.vec.Vec.len cursors = (⟨width⟩ : Usize) by
+    simp [ark_ip_proofs.alloc.vec.Vec.len, hcursorsLength]] at hbody
   rw [if_pos (show (⟨processed⟩ : Usize) < ⟨width⟩ by exact hactive)] at hbody
   simp only [Aeneas.Std.add_eq, Result.bind_ok] at hbody
   simp only [ark_ip_proofs.alloc.vec.Vec.index, hcursorsGet, hpairGet,
-    hcoeffGet, Aeneas.Std.alloc.vec.Vec.index_mut, Result.bind_ok] at hbody
+    hcoeffGet, ark_ip_proofs.alloc.vec.Vec.index_mut, Result.bind_ok] at hbody
   cases hell : ark_ip_proofs.s3_07_arkworks_fq_spike.g1_ell f coeff pair.2 with
   | fail error => rw [hell] at hbody; cases hbody
   | div => rw [hell] at hbody; cases hbody

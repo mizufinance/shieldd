@@ -1,5 +1,4 @@
-import Ipp.Extracted.ArkworksEllGenerated
-import Ipp.Extracted.ArkworksFq12
+import Ipp.Extracted.ArkworksEllFq12
 import Mathlib.Tactic
 
 /-! S3-35 finite-G1 line-evaluation coefficient-placement conformance. -/
@@ -9,7 +8,7 @@ namespace Ipp.Extracted.ArkworksEll
 open Aeneas Aeneas.Std Result
 open Ipp.Bls12377
 open Ipp.Extracted.ArkworksFq2
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksFqMul
 
 abbrev Fq12Limb := Fq12LimbPair
@@ -47,11 +46,11 @@ private theorem bind_eq_ok {alpha beta : Type} {action : Result alpha}
 theorem fq2_mul_fp_ell_spec (a : Fq2LimbPair) (b : LimbArray)
     (output : Fq2LimbPair) (ha : Canonical2 a)
     (hb : limbsToNat b < baseModulus)
-    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul_fp_ell a b =
+    (hexec : ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul_fp a b =
       .ok output) :
     Canonical2 output ∧
       decodeFq2 output = decodeFq2 a * algebraMap Fq Fq2 (decode b) := by
-  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul_fp_ell at hexec
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.fq2_mul_fp at hexec
   obtain ⟨c0, h0, hexec⟩ := bind_eq_ok hexec
   obtain ⟨c1, h1, hret⟩ := bind_eq_ok hexec
   simp only [Result.ok.injEq] at hret

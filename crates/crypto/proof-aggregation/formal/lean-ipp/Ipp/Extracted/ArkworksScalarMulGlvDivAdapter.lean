@@ -1,12 +1,15 @@
 import Ipp.Extracted.ArkworksScalarMulGlvGenerated
 import Ipp.Extracted.ArkworksScalarMulGlvDivLoopCore
 import Ipp.Extracted.ArkworksScalarMulGlvWideBitCore
+import Ipp.Extracted.ArkworksScalarMulGlvArithmetic
+import Ipp.Extracted.ArkworksFqByteRuntime
 
 /-! Adapter from the extracted checked-primitive division graph to the Nat model. -/
 
 namespace Ipp.Extracted.ArkworksScalarMul.GlvDivAdapter
 
 open Aeneas Aeneas.Std Result ControlFlow
+open Ipp.Extracted.ArkworksFqByteRuntime
 
 abbrev ScalarArray := MacCampaign.Array MacCampaign.U64 4#usize
 abbrev WideArray := MacCampaign.Array MacCampaign.U64 6#usize
@@ -67,24 +70,22 @@ theorem extracted_wide_bit (value : WideArray) (bit : Nat) (hbit : bit < 384) :
   simp only [Result.bind_ok]
   rw [hrem]
   simp only [Result.bind_ok]
-  change MacCampaign.shr64
+  change MacCampaign.shr64ByUsize
       (Ipp.Extracted.ArkworksFqMul.limbWord value ⟨bit / 64, hlimb⟩)
-      (MacCampaign.I32.ofNat (bit % 64)) >>= _ = _
+      (Usize.ofNat (bit % 64)) >>= _ = _
   have hword :
       (Ipp.Extracted.ArkworksFqMul.limbWord value ⟨bit / 64, hlimb⟩).val =
         Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt value
           (bit / 64) := by
     simp [Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt,
       hlimb, Ipp.Extracted.ArkworksFqMul.limb]
-  rw [show MacCampaign.shr64
+  rw [show MacCampaign.shr64ByUsize
       (Ipp.Extracted.ArkworksFqMul.limbWord value ⟨bit / 64, hlimb⟩)
-      (MacCampaign.I32.ofNat (bit % 64)) =
+      (Usize.ofNat (bit % 64)) =
       .ok (MacCampaign.U64.ofNat
         (Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt value
           (bit / 64) / 2 ^ (bit % 64))) by
-    have hi32 : bit % 64 % MacCampaign.i32Base = bit % 64 :=
-      Nat.mod_eq_of_lt (lt_trans hoffset (by decide))
-    simp [MacCampaign.shr64, MacCampaign.I32.ofNat, hi32, hoffset, hword]]
+    simp [MacCampaign.shr64ByUsize, Usize.ofNat, hoffset, hword]]
   simp only [Result.bind_ok]
   have hquot :
       Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt value
@@ -112,16 +113,16 @@ theorem extracted_wide_bit (value : WideArray) (bit : Nat) (hbit : bit < 384) :
       Ipp.Extracted.ArkworksScalarMul.GlvWideUpdateCore.wideToNat] using hbits
   unfold Ipp.Extracted.ArkworksScalarMul.GlvDivBodyCore.wideBit
   change (do
-      let low <- lift (ark_ip_proofs.GlvRuntime.and64
+      let low <- lift
         (MacCampaign.U64.ofNat
-          (Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt value
-            (bit / 64) / 2 ^ (bit % 64))) 1#u64)
+            (Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt value
+              (bit / 64) / 2 ^ (bit % 64)) &&& 1#u64)
       .ok (decide (low = 1#u64))) = _
-  simp [Aeneas.lift, ark_ip_proofs.GlvRuntime.and64,
-    MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquot,
-    Nat.mod_eq_of_lt hlow, Nat.mod_eq_of_lt
-      (show 1 < MacCampaign.u64Base by decide),
-    Ipp.Extracted.ArkworksScalarMul.GlvDivBodyCore.wideToNat]
+  simp only [Aeneas.lift, Result.bind_ok, Result.ok.injEq]
+  apply Bool.eq_iff_iff.mpr
+  simp only [decide_eq_true_eq]
+  rw [Ipp.Extracted.ArkworksFqByteRuntime.u64_and_one_eq_one]
+  simp only [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquot]
   change (Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt value
       (bit / 64) / 2 ^ (bit % 64) % 2 = 1) ↔
     (Ipp.Extracted.ArkworksScalarMul.GlvDivBodyCore.wideToNat value /
@@ -163,6 +164,8 @@ private theorem extracted_reduce_once_eq_core (value : ScalarArray) :
         .ok (.cont next)
       else .ok (.done value)) =
       Ipp.Extracted.ArkworksScalarMul.GlvReduceCore.body value := by
+  unfold Ipp.Extracted.ArkworksScalarMul.GlvReduceCore.body
+  rw [Ipp.Extracted.ArkworksScalarMul.GlvArithmetic.fr_modulus_eq]
   rfl
 
 theorem extracted_body_eq_core (numerator quotient : WideArray)
@@ -203,19 +206,15 @@ theorem extracted_body_eq_core (numerator quotient : WideArray)
           ((remaining - 1) / 64) := by
       simp [Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt,
         hlimb, Ipp.Extracted.ArkworksFqMul.limb]
-    have hshr : MacCampaign.shr64
+    have hshr : MacCampaign.shr64ByUsize
         (Ipp.Extracted.ArkworksFqMul.limbWord numerator
           ⟨(remaining - 1) / 64, hlimb⟩)
-        (MacCampaign.I32.ofNat
-          (Usize.ofNat ((remaining - 1) % 64)).val) =
+        (Usize.ofNat ((remaining - 1) % 64)) =
         .ok (MacCampaign.U64.ofNat
           (Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt numerator
             ((remaining - 1) / 64) / 2 ^ ((remaining - 1) % 64))) := by
-      have hi32 : (remaining - 1) % 64 % MacCampaign.i32Base =
-          (remaining - 1) % 64 :=
-        Nat.mod_eq_of_lt (lt_trans hoffset (by decide))
-      simp [MacCampaign.shr64, MacCampaign.I32.ofNat, hi32, hoffset, hword]
-    change MacCampaign.shr64 _ _ >>= _ = _
+      simp [MacCampaign.shr64ByUsize, Usize.ofNat, hoffset, hword]
+    change MacCampaign.shr64ByUsize _ _ >>= _ = _
     rw [hshr]
     simp only [Result.bind_ok]
     have hquot :
@@ -238,10 +237,10 @@ theorem extracted_body_eq_core (numerator quotient : WideArray)
         decide
           (Ipp.Extracted.ArkworksScalarMul.GlvWideBitCore.wideWordAt numerator
             ((remaining - 1) / 64) / 2 ^ ((remaining - 1) % 64) % 2 = 1) := by
-      change decide (ark_ip_proofs.GlvRuntime.and64 _ _ = _) = _
-      simp [ark_ip_proofs.GlvRuntime.and64, MacCampaign.U64.ofNat,
-        Nat.mod_eq_of_lt hquot, Nat.mod_eq_of_lt hlow,
-        Nat.mod_eq_of_lt (show 1 < MacCampaign.u64Base by decide)]
+      apply Bool.eq_iff_iff.mpr
+      simp only [decide_eq_true_eq]
+      rw [Ipp.Extracted.ArkworksFqByteRuntime.u64_and_one_eq_one]
+      simp [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquot]
     simp only [Aeneas.lift, Result.bind_ok]
     rw [hand]
     rw [wide_bit_bool numerator (remaining - 1) hbit]
@@ -255,7 +254,9 @@ theorem extracted_body_eq_core (numerator quotient : WideArray)
         unfold Ipp.Extracted.ArkworksScalarMul.GlvReduceCore.body
         rw [show ark_ip_proofs.s3_07_arkworks_fq_spike.geq_4 shifted
           ark_ip_proofs.s3_07_arkworks_fq_spike.FR_MODULUS =
-          ark_ip_proofs.s3_07_arkworks_fr_spike.geq_modulus shifted by rfl]
+          ark_ip_proofs.s3_07_arkworks_fr_spike.geq_modulus shifted by
+            rw [Ipp.Extracted.ArkworksScalarMul.GlvArithmetic.fr_modulus_eq]
+            rfl]
         cases hgeq : ark_ip_proofs.s3_07_arkworks_fr_spike.geq_modulus shifted with
         | ok geq =>
             simp only [Result.bind_ok]
@@ -265,7 +266,9 @@ theorem extracted_body_eq_core (numerator quotient : WideArray)
                 rw [show ark_ip_proofs.s3_07_arkworks_fq_spike.sub_4 shifted
                   ark_ip_proofs.s3_07_arkworks_fq_spike.FR_MODULUS =
                   ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw shifted
-                    ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS by rfl]
+                    ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS by
+                      rw [Ipp.Extracted.ArkworksScalarMul.GlvArithmetic.fr_modulus_eq]
+                      rfl]
                 cases hsub : ark_ip_proofs.s3_07_arkworks_fr_spike.sub_raw shifted
                     ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS with
                 | ok nextRemainder =>

@@ -1,5 +1,6 @@
 import Ipp.Extracted.ArkworksScalarMulSchedule
 import Ipp.Extracted.ArkworksScalarMulStep
+import Ipp.Extracted.ArkworksFqByteRuntime
 
 /-! Symbolic refinement of the generated nested scalar countdown loops. -/
 
@@ -259,8 +260,8 @@ def scalarInnerExtractedBody {Acc : Type} (step : Acc → Bool → Result Acc)
   if bitIndex > 0#usize then
     let nextBit ← bitIndex - 1#usize
     let word ← MacCampaign.Array.index_usize scalar limb
-    let shifted ← word >>> (MacCampaign.I32.ofNat nextBit.val)
-    let low := MacCampaign.U64.ofNat (shifted.val % 2)
+    let shifted ← word >>> nextBit
+    let low ← lift (shifted &&& 1#u64)
     let bit := low = 1#u64
     if started then
       let output ← step accumulator bit
@@ -292,39 +293,46 @@ theorem scalarInnerExtractedBody_eq_model {Acc : Type}
       ⟨limb, by simpa [Ipp.Extracted.ArkworksFr.limbCount] using hlimb⟩
     rw [hindex]
     simp only [Result.bind_ok]
-    have hshiftVal : (MacCampaign.I32.ofNat (bitIndex.val - 1)).val =
-        bitIndex.val - 1 := by
-      simp only [MacCampaign.I32.ofNat]
-      rw [Nat.mod_eq_of_lt]
-      exact lt_trans hbit (by decide)
     have hword :
         (Ipp.Extracted.ArkworksFr.limbWord scalar
           ⟨limb, by simpa [Ipp.Extracted.ArkworksFr.limbCount] using hlimb⟩).val =
           scalarWord scalar limb := by
       simp [scalarWord, hlimb, Ipp.Extracted.ArkworksFr.limb]
-    change MacCampaign.shr64
+    change MacCampaign.shr64ByUsize
         (Ipp.Extracted.ArkworksFr.limbWord scalar
           ⟨limb, by simpa [Ipp.Extracted.ArkworksFr.limbCount] using hlimb⟩)
-        (MacCampaign.I32.ofNat (bitIndex.val - 1)) >>= _ = _
-    rw [show MacCampaign.shr64
+        (Usize.ofNat (bitIndex.val - 1)) >>= _ = _
+    rw [show MacCampaign.shr64ByUsize
         (Ipp.Extracted.ArkworksFr.limbWord scalar
           ⟨limb, by simpa [Ipp.Extracted.ArkworksFr.limbCount] using hlimb⟩)
-        (MacCampaign.I32.ofNat (bitIndex.val - 1)) =
+        (Usize.ofNat (bitIndex.val - 1)) =
         .ok (MacCampaign.U64.ofNat
           (scalarWord scalar limb / 2 ^ (bitIndex.val - 1))) by
-      simp [MacCampaign.shr64, hshiftVal, hbit, hword]]
+      simp [MacCampaign.shr64ByUsize, Usize.ofNat, hbit, hword]]
     simp only [Result.bind_ok]
-    have hquot : scalarWord scalar limb / 2 ^ (bitIndex.val - 1) <
-        MacCampaign.u64Base := by
+    have hquot :
+        scalarWord scalar limb / 2 ^ (bitIndex.val - 1) <
+          MacCampaign.u64Base := by
       apply lt_of_le_of_lt (Nat.div_le_self _ _)
       simpa [MacCampaign.u64Base, Ipp.Extracted.ArkworksFqMul.wordBase] using
         scalarWord_lt scalar hlimb
-    rw [u64_ofNat_val_of_lt hquot]
-    unfold scalarBit
-    have hlow : scalarWord scalar limb / 2 ^ (bitIndex.val - 1) % 2 <
-        MacCampaign.u64Base :=
+    have hlowBound :
+        scalarWord scalar limb / 2 ^ (bitIndex.val - 1) % 2 <
+          MacCampaign.u64Base :=
       lt_trans (Nat.mod_lt _ (by decide)) (by decide)
-    simp [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hlow,
+    have hlow :
+        MacCampaign.U64.ofNat
+              (scalarWord scalar limb / 2 ^ (bitIndex.val - 1)) &&&
+            1#u64 =
+          MacCampaign.U64.ofNat
+            (scalarWord scalar limb / 2 ^ (bitIndex.val - 1) % 2) := by
+      apply Ipp.Extracted.ArkworksFqByteRuntime.u64_eq_of_val_eq
+      rw [Ipp.Extracted.ArkworksFqByteRuntime.u64_and_one_val]
+      simp [MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hquot,
+        Nat.mod_eq_of_lt hlowBound]
+    rw [hlow]
+    unfold scalarBit
+    simp [lift, MacCampaign.U64.ofNat, Nat.mod_eq_of_lt hlowBound,
       Nat.mod_eq_of_lt (show 1 < MacCampaign.u64Base by decide), Usize.ofNat]
   · rw [if_neg (show ¬bitIndex > 0#usize by exact hpos), if_neg hpos]
 

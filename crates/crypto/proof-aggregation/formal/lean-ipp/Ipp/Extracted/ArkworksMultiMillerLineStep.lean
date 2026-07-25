@@ -5,7 +5,7 @@ import Ipp.Extracted.ArkworksMultiMillerLineProduct
 namespace Ipp.Extracted.ArkworksMultiMillerLineStep
 
 open Aeneas Aeneas.Std Result ControlFlow
-open Ipp.Extracted.ArkworksFq12
+open Ipp.Extracted.ArkworksEllFq12
 open Ipp.Extracted.ArkworksMultiMillerModel
 open Ipp.Extracted.ArkworksMultiMillerLineModel
 open Ipp.Extracted.ArkworksMultiMillerLineExecution
@@ -13,6 +13,15 @@ open Ipp.Extracted.ArkworksMultiMillerLineSemantics
 open Ipp.Extracted.ArkworksMultiMillerLineProduct
 
 set_option maxHeartbeats 1000000
+
+private theorem updateAt_eq_set {T : Type} (items : List T)
+    (index : Nat) (value : T) :
+    ark_ip_proofs.alloc.vec.Vec.updateAt items index value =
+      items.set index value := by
+  induction items generalizing index with
+  | nil => simp [ark_ip_proofs.alloc.vec.Vec.updateAt]
+  | cons item items ih =>
+      cases index <;> simp [ark_ip_proofs.alloc.vec.Vec.updateAt, ih]
 
 /-- One successful active doubling-line body preserves the exact pass invariant. -/
 theorem doubling_line_step
@@ -51,7 +60,9 @@ theorem doubling_line_step
       have hnextCursors :
           nextCursors =
             ⟨cursors.val.set processed ⟨cursor + 1⟩⟩ :=
-        congrArg Prod.fst hflowState
+        by
+          simpa only [updateAt_eq_set, Usize.ofNat_val] using
+            congrArg Prod.fst hflowState
       have hnextF : nextF = witnessF :=
         congrArg (fun state => state.2.1) hflowState
       have hnextProcessed : nextProcessed = ⟨processed + 1⟩ :=

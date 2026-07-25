@@ -26,12 +26,7 @@ theorem gt_round (remainder twiceRemainder : ScalarArray)
         Ipp.Extracted.ArkworksScalarMul.GlvShiftCore.bitToNat false)) := by
   have htwice := Ipp.Extracted.ArkworksScalarMul.GlvShiftCore.shl4addbit_spec
     remainder twiceRemainder false hbound hshift
-  rw [show ark_ip_proofs.s3_07_arkworks_fq_spike.gt_4 twiceRemainder
-      ark_ip_proofs.s3_07_arkworks_fq_spike.FR_MODULUS =
-      ark_ip_proofs.s3_07_arkworks_fr_spike.gt twiceRemainder
-        ark_ip_proofs.s3_07_arkworks_fr_spike.MODULUS by rfl]
-  rw [Ipp.Extracted.ArkworksFr.extracted_gt_spec,
-    Ipp.Extracted.ArkworksFr.modulus_limbsToNat]
+  rw [extracted_gt4_spec, fr_modulus_value]
   change Result.ok (decide (r <
     Ipp.Extracted.ArkworksScalarMul.GlvShiftCore.scalarToNat twiceRemainder)) = _
   rw [htwice]

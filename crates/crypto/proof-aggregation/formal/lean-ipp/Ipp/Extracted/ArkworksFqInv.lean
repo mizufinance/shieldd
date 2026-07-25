@@ -14,7 +14,7 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 8192
 set_option exponentiation.threshold 1000
 
-abbrev LimbArray := ark_ip_proofs.s3_07_arkworks_fq_spike.LimbArray
+abbrev LimbArray := ark_ip_proofs.s3_07_arkworks_fq_spike.FqMont
 
 private theorem bind_eq_ok {α β : Type} {action : Result α}
     {next : α → Result β} {output : β}
@@ -798,6 +798,13 @@ private theorem extracted_array_eq (left right : LimbArray) :
       .ok (decide (left.val = right.val)) := by
   simp [ark_ip_proofs.core.array.equality.PartialEqArray.eq]
 
+private theorem extracted_array_ne (left right : LimbArray) :
+    ark_ip_proofs.core.array.equality.PartialEqArray.ne
+      ark_ip_proofs.core.cmp.PartialEqU64 left right =
+      .ok (decide (left.val ≠ right.val)) := by
+  simp [ark_ip_proofs.core.array.equality.PartialEqArray.ne,
+    ark_ip_proofs.core.array.equality.PartialEqArray.eq]
+
 private theorem eq_oneArray_of_value_one (value : LimbArray)
     (hvalue : limbsToNat value = 1) : value = oneArray := by
   have hsix := limbsToNat_six value
@@ -951,10 +958,10 @@ theorem inv_loop0_body_spec (a0 u v b c : LimbArray)
           limbsToNat u + limbsToNat v := by
   unfold ark_ip_proofs.s3_07_arkworks_fq_spike.inv_loop0.body at hexec
   obtain ⟨ueq, hueq, hrest⟩ := bind_eq_ok hexec
-  rw [extracted_array_eq] at hueq
+  rw [extracted_array_ne] at hueq
   by_cases hu : u.val = oneArray.val
-  · have hueqValue : ueq = true := by
-      rw [decide_eq_true_eq.mpr hu] at hueq
+  · have hueqValue : ueq = false := by
+      rw [decide_eq_false_iff_not.mpr (not_not_intro hu)] at hueq
       exact (Result.ok.inj hueq).symm
     subst ueq
     rw [if_neg (by simp)] at hrest
@@ -965,16 +972,16 @@ theorem inv_loop0_body_spec (a0 u v b c : LimbArray)
       apply MacCampaign.Array.ext
       exact hu
     exact ⟨huArray, by simpa [huArray] using hinvariant.u_lane⟩
-  · have hueqValue : ueq = false := by
-      rw [decide_eq_false_iff_not.mpr hu] at hueq
+  · have hueqValue : ueq = true := by
+      rw [decide_eq_true_eq.mpr hu] at hueq
       exact (Result.ok.inj hueq).symm
     subst ueq
     rw [if_pos (by simp)] at hrest
     obtain ⟨veq, hveq, hrest⟩ := bind_eq_ok hrest
-    rw [extracted_array_eq] at hveq
+    rw [extracted_array_ne] at hveq
     by_cases hv : v.val = oneArray.val
-    · have hveqValue : veq = true := by
-        rw [decide_eq_true_eq.mpr hv] at hveq
+    · have hveqValue : veq = false := by
+        rw [decide_eq_false_iff_not.mpr (not_not_intro hv)] at hveq
         exact (Result.ok.inj hveq).symm
       subst veq
       rw [if_neg (by simp)] at hrest
@@ -987,8 +994,8 @@ theorem inv_loop0_body_spec (a0 u v b c : LimbArray)
       refine ⟨?_, by simpa [hvArray] using hinvariant.v_lane⟩
       intro huArray
       exact hu (congrArg MacCampaign.Array.val huArray)
-    · have hveqValue : veq = false := by
-        rw [decide_eq_false_iff_not.mpr hv] at hveq
+    · have hveqValue : veq = true := by
+        rw [decide_eq_true_eq.mpr hv] at hveq
         exact (Result.ok.inj hveq).symm
       subst veq
       rw [if_pos (by simp)] at hrest
@@ -1188,10 +1195,12 @@ private theorem initial_inv_invariant (a : LimbArray)
     intro hdvd
     have hle := Nat.le_of_dvd haPos hdvd
     exact (Nat.not_le_of_lt ha) hle
-  refine ⟨?_, ?_, hcoprime⟩
-  · refine ⟨?_, limbsToNat_R2_lt, haPos⟩
-    simpa only [Nat.mul_comm] using R2_modEq.mul_right (limbsToNat a)
-  · refine ⟨?_, ?_, ?_⟩
+  apply InvInvariant.mk
+  · apply CoefficientInvariant.mk
+    · simpa only [Nat.mul_comm] using R2_modEq.mul_right (limbsToNat a)
+    · exact limbsToNat_R2_lt
+    · exact haPos
+  · apply CoefficientInvariant.mk
     · rw [limbsToNat_zeroArray, modulus_limbsToNat]
       simpa only [Nat.zero_mul, Nat.add_zero] using
         (Nat.ModEq.modulus_mul_add (m := modulus)
@@ -1200,6 +1209,8 @@ private theorem initial_inv_invariant (a : LimbArray)
       norm_num [modulus, Ipp.Bls12377.baseModulus]
     · rw [modulus_limbsToNat]
       norm_num [modulus, Ipp.Bls12377.baseModulus]
+  · rw [modulus_limbsToNat]
+    exact hcoprime
 
 theorem extracted_inv_spec (a output : LimbArray)
     (ha : limbsToNat a < modulus) (hne : a ≠ zeroArray)

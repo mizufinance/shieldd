@@ -1585,6 +1585,29 @@ audits; update `formal-handoff.md`. Acceptance: retire `arkworks serialization
 and subgroup behavior` only for the fully proved BLS12-377 G1/G2/GT aggregate
 boundary and state any other consumer explicitly. GAP-12 is not a dependency.
 
+### GAP completion ledger
+
+- **GAP-08 — COMPLETE:** executed strict compressed G1 success-iff and byte
+  injectivity proved; malformed, trailing, noncanonical, identity, and torsion
+  rejection fixtures pass.
+- **GAP-09 — COMPLETE:** executed strict compressed G2 success-iff and byte
+  injectivity proved; component-order, sign, malformed, trailing,
+  noncanonical, identity, and torsion fixtures pass.
+- **GAP-10 — COMPLETE:** executed strict uncompressed GT success-iff and byte
+  injectivity proved; canonical Fq12, membership, noncanonical, trailing, and
+  zero/identity behavior are covered.
+- **GAP-11 — COMPLETE:** `aggregate_strict_decode_injective` and
+  `aggregate_decoder_traversal_conformance` prove the exact aggregate layout;
+  `challenge_message_serialize_injective` retires
+  `assume.challenge-message-serialization-injective`.
+- **GAP-14 — COMPLETE:** aggregate-boundary Rust fixtures reach
+  `backend.rs::deserialize_aggregate_proof` through the strict wrapper and
+  reject malformed flags, trailing bytes, nested noncanonical GT fields,
+  nested G1/G2 infinity aliases, and a nested non-subgroup component; valid
+  aggregate bytes round-trip. The serialization/subgroup handoff row is
+  narrowed to this proved aggregate boundary; SRS/VK/proof-byte consumers
+  outside it, hax/copy correspondence, and delegator parity remain assumed.
+
 ## Critical paths
 
 The completed S2 path was:

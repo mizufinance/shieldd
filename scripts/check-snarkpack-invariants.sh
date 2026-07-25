@@ -164,30 +164,9 @@ check_s2_target_completeness() {
 }
 
 check_s2_generated_freshness() {
-  local manifest=crates/crypto/proof-aggregation/formal/snarkpack/hax-generated-hashes.txt
-  local generated_dir=crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted
-  [[ -f "$manifest" ]] || fail "S2 generated freshness manifest is missing"
-  [[ -d "$generated_dir" ]] || fail "extracted Lean directory is missing"
-
-  local kind expected path actual
-  while read -r kind expected path; do
-    [[ -z "$kind" || "$kind" =~ ^# ]] && continue
-    [[ "$kind" == generated || "$kind" == source ]] \
-      || fail "invalid freshness manifest record kind: $kind"
-    [[ "$expected" =~ ^[0-9a-f]{64}$ ]] \
-      || fail "invalid freshness hash for $path"
-    [[ -f "$path" ]] || fail "freshness manifest path is missing: $path"
-    actual="$(hash_file "$path")"
-    [[ "$actual" == "$expected" ]] \
-      || fail "$kind artifact is stale: $path (expected $expected, got $actual)"
-  done < <(tr -d '\r' < "$manifest")
-
-  local recorded generated
-  recorded="$(awk '$1 == "generated" { print $3 }' "$manifest" | sort)"
-  generated="$(find "$generated_dir" -type f -name '*Generated.lean' | sort)"
-  if ! diff -u <(printf '%s\n' "$recorded") <(printf '%s\n' "$generated"); then
-    fail "freshness manifest does not cover exactly the generated Lean artifacts"
-  fi
+  local checker=crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py
+  [[ -f "$checker" ]] || fail "Lean extraction manifest checker is missing"
+  python3 "$checker" check || fail "Lean extraction manifest check failed"
 }
 
 check_s2_extracted_directory() {

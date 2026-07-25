@@ -13,6 +13,14 @@ abbrev ReducedSpec := GlvReduceCore.ReducedSpec
 theorem extracted_reduce_fr_eq_model (input : ScalarArray) :
     ark_ip_proofs.s3_07_arkworks_fq_spike.reduce_fr input =
       GlvReduceCore.reduce input := by
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.reduce_fr
+    ark_ip_proofs.s3_07_arkworks_fq_spike.reduce_fr_loop
+    GlvReduceCore.reduce
+  congr 1
+  funext scalar
+  unfold ark_ip_proofs.s3_07_arkworks_fq_spike.reduce_fr_loop.body
+    GlvReduceCore.body
+  rw [fr_modulus_eq]
   rfl
 
 theorem extracted_reduce_fr_spec (input output : ScalarArray)

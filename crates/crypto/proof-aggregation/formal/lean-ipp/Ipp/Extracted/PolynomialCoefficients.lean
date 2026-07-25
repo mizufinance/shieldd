@@ -295,8 +295,12 @@ private theorem usizeLt (left right : Usize) :
 private theorem usizeMul (left right : Usize) :
     (left * right : Result Usize) = .ok ⟨left.val * right.val⟩ := rfl
 
-private theorem usizeSub (left right : Usize) :
-    (left - right : Result Usize) = .ok ⟨left.val - right.val⟩ := rfl
+private theorem usizeSub (left right : Usize) (h : right.val ≤ left.val) :
+    (left - right : Result Usize) = .ok ⟨left.val - right.val⟩ := by
+  change (if right.val ≤ left.val then
+      Result.ok ({ val := left.val - right.val } : Usize)
+    else Result.fail .integerOverflow) = _
+  simp [h]
 
 private theorem interleaveFuel {F : Type} [Field F]
     (coefficients : alloc.vec.Vec F) (f : ℕ → F)
@@ -444,9 +448,9 @@ private theorem generated_eq {F : Type} [Field F] {μ : ℕ}
   have hlen : ark_ip_proofs.alloc.vec.Vec.len (finVec x) = ⟨μ⟩ := by
     simp [ark_ip_proofs.alloc.vec.Vec.len, finVec]
   unfold ark_ip_proofs.tipa.polynomial_coefficients_from_transcript
-  simp [oneModel, cloneModel, lift, Std.LegacyArray.make,
-    Std.LegacyArray.to_slice,
-    alloc.slice.Slice.into_vec]
+  simp [oneModel, cloneModel, lift, ark_ip_proofs.Array.make,
+    ark_ip_proofs.Std.Array.to_slice,
+    ark_ip_proofs.alloc.slice.Slice.into_vec]
   rw [hlen]
   simp only [Usize.ofNat]
   rw [hout]
@@ -459,7 +463,9 @@ private theorem generated_eq {F : Type} [Field F] {μ : ℕ}
       omega)
   simp only [Nat.zero_add, List.nil_append, f] at hinterleave
   simp only [cloneModel, a] at hinterleave
-  simp [usizeMul, usizeSub, alloc.vec.Vec.with_capacity]
+  have hpow : 0 < 2 ^ μ := pow_pos (by decide) μ
+  have hsub : 1 ≤ 2 ^ μ * 2 := by omega
+  simp [usizeMul, usizeSub, hsub, alloc.vec.Vec.with_capacity]
   rw [hinterleave]
   simp [xn]
 

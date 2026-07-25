@@ -49,15 +49,16 @@ theorem g1_append_digit_row
           at hbody
         by_cases hlt : index < digits.val.length
         · rw [if_pos (show Usize.ofNat index <
-              alloc.vec.Vec.len digits by simpa [alloc.vec.Vec.len])] at hbody
+              ark_ip_proofs.alloc.vec.Vec.len digits by
+                simpa [ark_ip_proofs.alloc.vec.Vec.len])] at hbody
           obtain ⟨_, _, hbody⟩ := bind_eq_ok hbody
           obtain ⟨_, _, hbody⟩ := bind_eq_ok hbody
           obtain ⟨_, _, hbody⟩ := bind_eq_ok hbody
           simp at hbody
         · have heq : index = digits.val.length := by omega
           rw [if_neg (show ¬Usize.ofNat index <
-              alloc.vec.Vec.len digits by
-                simp [alloc.vec.Vec.len]
+              ark_ip_proofs.alloc.vec.Vec.len digits by
+                simp [ark_ip_proofs.alloc.vec.Vec.len]
                 omega)] at hbody
           simp only [Result.ok.injEq, ControlFlow.done.injEq] at hbody
           cases hbody
@@ -73,15 +74,16 @@ theorem g1_append_digit_row
             ark_ip_proofs.s3_07_arkworks_fq_spike.g1_msm_unchecked_loop0_loop0.body]
             at hbody
           rw [if_neg (show ¬Usize.ofNat index <
-              alloc.vec.Vec.len digits by
-                simp [alloc.vec.Vec.len]
+              ark_ip_proofs.alloc.vec.Vec.len digits by
+                simp [ark_ip_proofs.alloc.vec.Vec.len]
                 omega)] at hbody
           simp at hbody
         simp only [loopBody,
           ark_ip_proofs.s3_07_arkworks_fq_spike.g1_msm_unchecked_loop0_loop0.body]
           at hbody
         rw [if_pos (show Usize.ofNat index <
-            alloc.vec.Vec.len digits by simpa [alloc.vec.Vec.len])] at hbody
+            ark_ip_proofs.alloc.vec.Vec.len digits by
+              simpa [ark_ip_proofs.alloc.vec.Vec.len])] at hbody
         obtain ⟨digit, hindex, hbody⟩ := bind_eq_ok hbody
         obtain ⟨nextDigits, hpush, hbody⟩ := bind_eq_ok hbody
         obtain ⟨nextIndex, hadd, hreturn⟩ := bind_eq_ok hbody
@@ -89,7 +91,7 @@ theorem g1_append_digit_row
         cases hreturn
         have hdigit : digit = digits.val[index] := by
           symm
-          simpa [alloc.vec.Vec.index,
+          simpa [ark_ip_proofs.alloc.vec.Vec.index,
             List.getElem?_eq_getElem hlt] using hindex
         subst digit
         have hnextDigits :

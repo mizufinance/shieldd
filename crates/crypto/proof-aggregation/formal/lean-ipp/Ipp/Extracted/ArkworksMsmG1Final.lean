@@ -262,7 +262,7 @@ theorem executed_g1_msm
           have hwindowSumsPositive : 0 < windowSums.val.length := by
             rw [hwindowLength]
             exact hdigitsCountPositive
-          unfold alloc.vec.Vec.index at hlowest
+          unfold ark_ip_proofs.alloc.vec.Vec.index at hlowest
           simp only [Usize.ofNat_val] at hlowest
           rw [List.getElem?_eq_getElem hwindowSumsPositive] at hlowest
           simp only [Result.ok.injEq] at hlowest
