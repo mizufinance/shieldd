@@ -1,9 +1,9 @@
 # Orbis integration stack: prebuilt images (no in-pipeline build).
 #
 # sourcehub + 3 orbis nodes are pulled from GHCR instead of built from a
-# vendored orbis-rs checkout. ORBIS_IMAGE is pinned to the same orbis-rs rev as
-# the Cargo git deps (see scripts/lib/common.sh, which derives it from the pin);
-# the multi-arch (amd64+arm64) tag encodes the crypto feature.
+# vendored orbis-rs checkout. scripts/lib/common.sh loads digest-pinned images
+# from images.lock.json and verifies the Orbis source revision against the Cargo
+# git dependencies.
 #
 # The published orbis images are production builds (ENABLE_INTEGRATION_TEST=false)
 # so they do NOT self-fund. orbis-funder funds each node's sourcehub account from
@@ -15,9 +15,7 @@
 # local-test fixtures only.
 services:
   sourcehub:
-    image: ${SOURCEHUB_IMAGE:-ghcr.io/sourcenetwork/sourcehub:dev}
-    # sourcehub:dev is published amd64-only; override to a locally-built
-    # linux/arm64 image on Apple Silicon to avoid the blst SIGILL under emulation.
+    image: ${SOURCEHUB_IMAGE:?SOURCEHUB_IMAGE must be loaded from images.lock.json}
     platform: ${SOURCEHUB_PLATFORM:-linux/amd64}
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -52,7 +50,7 @@ services:
       start_period: 30s
 
   node1:
-    image: ${ORBIS_IMAGE:-ghcr.io/sourcenetwork/orbis-rs:b5d229aaadef4c0127203c2fccafb6771f38eaca-decaf377}
+    image: ${ORBIS_IMAGE:?ORBIS_IMAGE must be loaded from images.lock.json}
     environment:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret1testsecret1
@@ -79,7 +77,7 @@ services:
       start_period: 30s
 
   node2:
-    image: ${ORBIS_IMAGE:-ghcr.io/sourcenetwork/orbis-rs:b5d229aaadef4c0127203c2fccafb6771f38eaca-decaf377}
+    image: ${ORBIS_IMAGE:?ORBIS_IMAGE must be loaded from images.lock.json}
     environment:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret2testsecret2
@@ -104,7 +102,7 @@ services:
       start_period: 30s
 
   node3:
-    image: ${ORBIS_IMAGE:-ghcr.io/sourcenetwork/orbis-rs:b5d229aaadef4c0127203c2fccafb6771f38eaca-decaf377}
+    image: ${ORBIS_IMAGE:?ORBIS_IMAGE must be loaded from images.lock.json}
     environment:
       - ORBIS_PASSWORD=testpassword123
       - ORBIS_SECRET_KEY=testsecret3testsecret3
@@ -138,7 +136,7 @@ services:
   # host-side readiness wait can gate on stable nodes rather than the flapping
   # (restart: on-failure) healthcheck.
   orbis-funder:
-    image: ${SOURCEHUB_IMAGE:-ghcr.io/sourcenetwork/sourcehub:dev}
+    image: ${SOURCEHUB_IMAGE:?SOURCEHUB_IMAGE must be loaded from images.lock.json}
     platform: ${SOURCEHUB_PLATFORM:-linux/amd64}
     entrypoint: ["/bin/sh", "-c"]
     command:
