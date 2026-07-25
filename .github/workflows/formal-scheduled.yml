@@ -1,0 +1,35 @@
+name: formal-scheduled
+
+on:
+  schedule:
+    - cron: '17 9 * * *' # dev
+    - cron: '41 9 * * *' # main
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  snarkpack-dev:
+    if: github.event.schedule == '17 9 * * *'
+    uses: ./.github/workflows/snarkpack-formal.yml
+    with:
+      target_ref: dev
+
+  soundness-dev:
+    if: github.event.schedule == '17 9 * * *'
+    uses: ./.github/workflows/soundness-formal.yml
+    with:
+      target_ref: dev
+
+  snarkpack-main:
+    if: github.event.schedule == '41 9 * * *'
+    uses: ./.github/workflows/snarkpack-formal.yml
+    with:
+      target_ref: main
+
+  soundness-main:
+    if: github.event.schedule == '41 9 * * *'
+    uses: ./.github/workflows/soundness-formal.yml
+    with:
+      target_ref: main

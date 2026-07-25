@@ -98,6 +98,12 @@ jobs:
       # TODO(fv-image-digest): replace the sentinel after running:
       # gh run view "$(gh run list --workflow snarkpack-fv-toolchain-image.yml --commit 027ddbd4c06bc1eb378664ed250099bce4c65817 --limit 1 --json databaseId --jq '.[0].databaseId')" --log | grep -oE 'ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:[0-9a-f]{64}' | tail -1
       image: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:TODO_REPLACE_FROM_027ddbd4c_WORKFLOW
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

@@ -56,12 +56,26 @@ RUN git clone --filter=blob:none https://github.com/cryspen/hax.git /opt/hax \
       -o /tmp/charon.tar.gz \
       https://github.com/AeneasVerif/charon/releases/download/nightly-2026.07.01/charon-linux-x86_64.tar.gz \
     && echo "${CHARON_ARCHIVE_SHA256}  /tmp/charon.tar.gz" | sha256sum -c - \
-    && rm -f /tmp/aeneas.tar.gz /tmp/charon.tar.gz \
+    && mkdir /tmp/aeneas-unpack /tmp/charon-unpack \
+    && tar -xzf /tmp/aeneas.tar.gz -C /tmp/aeneas-unpack \
+    && tar -xzf /tmp/charon.tar.gz -C /tmp/charon-unpack \
+    && aeneas_bin="$(find /tmp/aeneas-unpack -type f -name aeneas)" \
+    && charon_bin="$(find /tmp/charon-unpack -type f -name charon)" \
+    && test -n "${aeneas_bin}" \
+    && test -n "${charon_bin}" \
+    && test "$(printf '%s\n' "${aeneas_bin}" | wc -l)" -eq 1 \
+    && test "$(printf '%s\n' "${charon_bin}" | wc -l)" -eq 1 \
+    && install -m 0755 "${aeneas_bin}" "${CARGO_HOME}/bin/aeneas" \
+    && install -m 0755 "${charon_bin}" "${CARGO_HOME}/bin/charon" \
+    && rm -rf \
+      /tmp/aeneas.tar.gz /tmp/aeneas-unpack \
+      /tmp/charon.tar.gz /tmp/charon-unpack \
     && opam init --bare --disable-sandboxing -y \
     && opam switch create hax 5.1.1 -y \
     && eval "$(opam env --switch=hax --set-switch)" \
     && cd /opt/hax \
-    && ./setup.sh -j 2 \
+    && grep -Fq -- "--no-aeneas" ./setup.sh \
+    && ./setup.sh -j 2 --no-aeneas \
     && rustup default 1.89.0 \
     && chmod -R a+rwX "${CARGO_HOME}" "${RUSTUP_HOME}" "${OPAMROOT}"
 
