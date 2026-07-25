@@ -43,7 +43,7 @@ is shown to:
 3. satisfy the same `LeafData` equations, KZG accept predicates, randomizer
    restrictions, and final PPE in `Ipp.FsAccepts`; and
 4. preserve the named cryptographic and query-bound premises of
-   `Ipp.s1_soundness`,
+   `Ipp.S1.s1_soundness`,
 
 then S1 applies unchanged. In that precise sense, a proved S1-model-preserving
 optimization is proved soundness-preserving. Neither byte equality on a test

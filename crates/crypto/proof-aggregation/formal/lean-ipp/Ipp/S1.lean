@@ -9,7 +9,7 @@ lane accepting tree and the root-set premise needed by `u4_capstone`.
 open OracleSpec OracleComp ENNReal Function
 open scoped OracleSpec.PrimitiveQuery ENNReal BigOperators
 
-namespace Ipp
+namespace Ipp.S1
 
 noncomputable section
 
@@ -212,4 +212,4 @@ theorem s1_soundness [Fintype F]
 
 end
 
-end Ipp
+end Ipp.S1

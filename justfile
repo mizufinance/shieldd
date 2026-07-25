@@ -91,9 +91,14 @@ snarkpack-slow:
 snarkpack-fuzz-smoke:
     bash -lc 'set -euo pipefail; unset ROCKSDB_LIB_DIR ROCKSDB_INCLUDE_DIR; toolchain="${SNARKPACK_FUZZ_TOOLCHAIN:-nightly-2025-09-30}"; export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH" RUSTUP_TOOLCHAIN="$toolchain"; runs="${SNARKPACK_FUZZ_RUNS:-16}"; fuzz_dir="crates/crypto/proof-aggregation-fuzz"; tmp="$(mktemp -d)"; trap "rm -rf \"$tmp\"" EXIT; cargo fuzz build --fuzz-dir "$fuzz_dir"; for target in wrapper_inner_range preflight_aggregate_verify deserialize_aggregate_proof sidecar_decoding aggregate_bundle_shape proposal_validation; do mkdir -p "$tmp/$target"; cp "$fuzz_dir"/corpus/"$target"/* "$tmp/$target"/; cargo fuzz run --fuzz-dir "$fuzz_dir" "$target" "$tmp/$target" -- -runs="$runs"; done'
 
-# Check durable SnarkPack hardening invariants.
+# Check durable SnarkPack runtime and formal-handoff invariants.
 snarkpack-invariants:
-    ./scripts/check-snarkpack-invariants.sh
+    bash scripts/check-snarkpack-runtime-invariants.sh
+    bash scripts/check-snarkpack-invariants.sh
+
+# Run the consolidated SnarkPack functional-verification gate.
+snarkpack-fv:
+    bash scripts/snarkpack-fv.sh
 
 # Run pinned SnarkPack formal extraction and F* proof checks.
 snarkpack-formal:
@@ -102,11 +107,6 @@ snarkpack-formal:
 # Enforce SnarkPack valid-vs-adversarial DoS latency and size thresholds.
 snarkpack-dos-gate:
     cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture
-
-# Build the SnarkPack S1/S2 Lean mechanization; run focused S2 modules, named
-# theorem axiom audits, then exactly one full package build.
-snarkpack-lean-ipp:
-    bash scripts/check-snarkpack-lean-ipp.sh
 
 # Run the default gnark validation suite.
 gnark-proof-tests: gnark-proof-tests-fast

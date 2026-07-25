@@ -1,8 +1,8 @@
 # S1 mechanization scope — completed
 
-Status: S1 COMPLETE. `Ipp.s1_soundness` is proved in
+Status: S1 COMPLETE. `Ipp.S1.s1_soundness` is proved in
 `formal/lean-ipp/Ipp/S1.lean`, audited without project axioms, and gated by
-`just snarkpack-lean-ipp`. The two Filecoin-lineage trust rows in
+`just snarkpack-fv`. The two Filecoin-lineage trust rows in
 `formal-handoff.md` are retired in favor of this theorem, two named
 cryptographic assumptions, and the explicit quantitative ROM sub-rows below.
 
@@ -16,7 +16,7 @@ cryptographic assumptions, and the explicit quantitative ROM sub-rows below.
   per-proof Groth16 pairing equation.
 - U5b/U5c/U5d: FS game, combined-replay forking, and deterministic projection;
   the R1--R7 design-review repair trail is recorded in `REPORT-CODEX.md`.
-- U5e: `Ipp.s1_soundness`, consuming the named assumptions and an explicit
+- U5e: `Ipp.S1.s1_soundness`, consuming the named assumptions and an explicit
   `BadEventBudget`.
 
 The forking design was rebuilt around one combined-replay experiment rather
