@@ -461,16 +461,33 @@ def graph_map(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def select_graphs(
-    manifest: dict[str, Any], requested: Sequence[str] | None
+    manifest: dict[str, Any],
+    requested: Sequence[str] | None,
+    *,
+    shard_index: int | None = None,
+    shard_count: int | None = None,
 ) -> list[dict[str, Any]]:
+    if (shard_index is None) != (shard_count is None):
+        raise ManifestError("--shard-index and --shard-count must be used together")
+    if shard_count is not None and shard_count <= 0:
+        raise ManifestError("--shard-count must be positive")
+    if shard_index is not None and not 0 <= shard_index < shard_count:
+        raise ManifestError("--shard-index must be in [0, --shard-count)")
+
     graphs = graph_map(manifest)
-    if not requested:
-        return list(manifest["graphs"])
-    unknown = sorted(set(requested) - graphs.keys())
-    if unknown:
-        raise ManifestError(f"unknown graph id(s): {', '.join(unknown)}")
-    requested_set = set(requested)
-    return [graph for graph in manifest["graphs"] if graph["id"] in requested_set]
+    selected_ids: set[str] | None = None
+    if requested:
+        unknown = sorted(set(requested) - graphs.keys())
+        if unknown:
+            raise ManifestError(f"unknown graph id(s): {', '.join(unknown)}")
+        selected_ids = set(requested)
+
+    return [
+        graph
+        for position, graph in enumerate(manifest["graphs"])
+        if (selected_ids is None or graph["id"] in selected_ids)
+        and (shard_count is None or position % shard_count == shard_index)
+    ]
 
 
 def _tail(text: str, lines: int = 50) -> str:
@@ -690,7 +707,12 @@ def command_affected(args: argparse.Namespace) -> int:
 def command_compare(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.manifest)
     validate_manifest(manifest, manifest_path=args.manifest)
-    selected = select_graphs(manifest, args.graph)
+    selected = select_graphs(
+        manifest,
+        args.graph,
+        shard_index=args.shard_index,
+        shard_count=args.shard_count,
+    )
     all_match = True
     for graph in selected:
         matches, report = compare_graph(graph)
@@ -741,6 +763,8 @@ def parser() -> argparse.ArgumentParser:
 
     compare = commands.add_parser("compare")
     compare.add_argument("--graph", action="append")
+    compare.add_argument("--shard-index", type=int)
+    compare.add_argument("--shard-count", type=int)
     compare.set_defaults(handler=command_compare)
 
     regenerate = commands.add_parser("regenerate")

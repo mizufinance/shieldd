@@ -620,8 +620,10 @@ def normalize_files(
                 f"{path}: raw and transformed declaration names/order differ: "
                 f"raw={raw_names}, transformed={transformed_names}"
             )
+        if len(raw_declarations) != len(transformed_declarations):
+            raise NormalizeError("raw and normalized declaration counts differ")
         for raw_declaration, declaration in zip(
-            raw_declarations, transformed_declarations, strict=True
+            raw_declarations, transformed_declarations
         ):
             previous_raw = raw_by_name.get(raw_declaration.name)
             if previous_raw is None:

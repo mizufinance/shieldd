@@ -11,7 +11,7 @@ ENV PATH="/usr/local/elan/bin:/usr/local/cargo/bin:/usr/local/opam/hax/bin:${PAT
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       build-essential ca-certificates curl git jq libgmp-dev nodejs opam \
-      pkg-config python3 unzip xz-utils \
+      pkg-config python3 rsync unzip xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 ARG JUST_VERSION=1.57.0
@@ -78,6 +78,6 @@ RUN set -eux; \
     test "$(charon version)" = "0.1.218"; \
     test "$(git -C /opt/aeneas-source rev-parse HEAD)" = "${AENEAS_COMMIT}"; \
     test "$(git -C /opt/charon-source rev-parse HEAD)" = "${CHARON_COMMIT}"; \
-    python3 --version; git --version; just --version
+    python3 --version; git --version; rsync --version; just --version
 
 CMD ["/bin/bash"]

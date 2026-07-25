@@ -106,11 +106,50 @@ run_static() {
   fi
 }
 
-run_compare() {
-  local graph
-  for graph in "$@"; do
-    python3 "$EXTRACTIONS" compare --graph "$graph"
-  done
+selected_graphs=()
+load_changed_graphs() {
+  if [[ -n "${SNARKPACK_FV_GRAPHS_JSON:-}" ]]; then
+    mapfile -t selected_graphs < <(
+      python3 - "${SNARKPACK_FV_GRAPHS_JSON}" <<'PY'
+import json
+import sys
+
+value = json.loads(sys.argv[1])
+if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+    raise SystemExit("SNARKPACK_FV_GRAPHS_JSON must be an array of graph ids")
+for item in value:
+    print(item)
+PY
+    )
+    return
+  fi
+  [[ -n "${SNARKPACK_FV_BASE:-}" ]] \
+    || fail "SNARKPACK_FV_BASE or SNARKPACK_FV_GRAPHS_JSON is required"
+  mapfile -t selected_graphs < <(
+    python3 "$EXTRACTIONS" affected --base "$SNARKPACK_FV_BASE"
+  )
+}
+
+run_extract() {
+  local scope="$1"
+  local args=(compare)
+  if [[ "$scope" == changed ]]; then
+    load_changed_graphs
+    if ((${#selected_graphs[@]} == 0)); then
+      echo "snarkpack FV: no extraction graphs affected"
+      return
+    fi
+    local graph
+    for graph in "${selected_graphs[@]}"; do
+      args+=(--graph "$graph")
+    done
+  fi
+  if [[ -n "${SNARKPACK_FV_SHARD_INDEX:-}" || -n "${SNARKPACK_FV_SHARD_COUNT:-}" ]]; then
+    [[ -n "${SNARKPACK_FV_SHARD_INDEX:-}" && -n "${SNARKPACK_FV_SHARD_COUNT:-}" ]] \
+      || fail "SNARKPACK_FV_SHARD_INDEX and SNARKPACK_FV_SHARD_COUNT must be set together"
+    args+=(--shard-index "$SNARKPACK_FV_SHARD_INDEX" --shard-count "$SNARKPACK_FV_SHARD_COUNT")
+  fi
+  python3 "$EXTRACTIONS" "${args[@]}"
 }
 
 run_parity() {
@@ -160,24 +199,8 @@ configure_lake() {
   fi
 }
 
-run_audit() {
-  local audit_files=(Ipp/ProofAudit.lean Ipp/ProofAuditMiller.lean)
-  local audit_log
-  audit_log="$(mktemp)"
-  trap 'rm -f "$audit_log"' RETURN
-
-  local audit
-  for audit in "${audit_files[@]}"; do
-    echo "snarkpack FV: elaborate $audit"
-    (
-      cd "$LEAN_DIR"
-      "${lake_command[@]}" env lean "$audit"
-    ) >>"$audit_log" 2>&1 || {
-      cat "$audit_log" >&2
-      fail "$audit did not elaborate"
-    }
-  done
-
+audit_build_log() {
+  local audit_log="$1"
   local expected_results audit_summary
   expected_results="$(grep -h -c '^#print axioms ' "$LEAN_DIR"/Ipp/ProofAudit*.lean | awk '{ total += $1 } END { print total + 0 }')"
   audit_summary="$(
@@ -213,23 +236,26 @@ PY
   }
 
   echo "snarkpack FV audit: $audit_summary"
-  rm -f "$audit_log"
-  trap - RETURN
 }
 
-run_all() {
-  echo "snarkpack FV: reproduce all extraction graphs"
-  python3 "$EXTRACTIONS" compare
-  run_parity
-
+run_lean() {
   configure_lake
   export LEAN_NUM_THREADS=1
-  echo "snarkpack FV: single-threaded Ipp build"
+  local audit_log
+  audit_log="$(mktemp)"
+  trap 'rm -f "$audit_log"' RETURN
+  echo "snarkpack FV: single-process, single-threaded Ipp build and proof audit"
+  set +e
   (
     cd "$LEAN_DIR"
     "${lake_command[@]}" build Ipp
-  )
-  run_audit
+  ) 2>&1 | tee "$audit_log"
+  local build_status="${PIPESTATUS[0]}"
+  set -e
+  ((build_status == 0)) || fail "Ipp did not build"
+  audit_build_log "$audit_log"
+  rm -f "$audit_log"
+  trap - RETURN
 }
 
 main() {
@@ -237,25 +263,34 @@ main() {
     static)
       run_static
       ;;
-    changed)
-      run_static
-      [[ -n "${SNARKPACK_FV_BASE:-}" ]] \
-        || fail "SNARKPACK_FV_BASE is required in changed mode"
-      mapfile -t affected_graphs < <(python3 "$EXTRACTIONS" affected --base "$SNARKPACK_FV_BASE")
-      if ((${#affected_graphs[@]} == 0)); then
-        echo "snarkpack FV: no extraction graphs affected"
+    extract-changed)
+      run_extract changed
+      ;;
+    extract-all)
+      run_extract all
+      ;;
+    parity-changed)
+      load_changed_graphs
+      if ((${#selected_graphs[@]} == 0)); then
+        echo "snarkpack FV: no parity graphs affected"
       else
-        echo "snarkpack FV: ${#affected_graphs[@]} affected extraction graph(s)"
-        run_compare "${affected_graphs[@]}"
-        run_parity "${affected_graphs[@]}"
+        run_parity "${selected_graphs[@]}"
       fi
       ;;
-    all)
+    parity-all)
+      run_parity
+      ;;
+    lean)
+      run_lean
+      ;;
+    full)
       run_static
-      run_all
+      run_extract all
+      run_parity
+      run_lean
       ;;
     *)
-      fail "SNARKPACK_FV_MODE must be static, changed, or all (got $MODE)"
+      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean, or full (got $MODE)"
       ;;
   esac
 

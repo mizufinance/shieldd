@@ -1,163 +1,241 @@
 name: snarkpack-formal
 
 on:
+  workflow_call:
+    inputs:
+      target_ref:
+        description: Branch whose committed state is the reusable-run candidate.
+        required: true
+        type: string
   workflow_dispatch:
-  schedule:
-    - cron: '17 9 * * *'
+    inputs:
+      target_ref:
+        description: Branch whose committed state is the manual-run candidate.
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - main
   pull_request:
-    paths:
-      - '.github/workflows/snarkpack-formal.yml'
-      - 'crates/crypto/proof-aggregation/formal/**'
-      - 'crates/crypto/proof-aggregation-fuzz/**'
-      - 'crates/crypto/proof-aggregation-reference/**'
-      - 'crates/core/app/src/app/mod.rs'
-      - 'crates/crypto/proof-aggregation/Cargo.toml'
-      - 'crates/crypto/proof-aggregation/src/**'
-      - 'crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md'
-      - 'crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md'
-      - 'crates/crypto/proof-aggregation/optimization-playbook.md'
-      - 'crates/crypto/proof-aggregation-fuzz/fuzz-corpus-baseline.md'
-      - 'crates/bench/bench-thresholds.md'
-      - 'docs/snarkpack/design.md'
-      - 'docs/snarkpack/verification.md'
-      - 'justfile'
-      - 'scripts/check-snarkpack-invariants.sh'
-      - 'scripts/check-snarkpack-runtime-invariants.sh'
-      - 'scripts/snarkpack-fv.sh'
-      - 'scripts/snarkpack-formal.sh'
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || 'sched' }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ inputs.target_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
+env:
+  CANDIDATE_REF: ${{ (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch') && inputs.target_ref || '' }}
+  SNARKPACK_FUZZ_TOOLCHAIN: nightly-2025-09-30
+  CARGO_FUZZ_VERSION: 0.13.2
+
 jobs:
-  fv:
+  applicability:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    outputs:
+      status: ${{ steps.classify.outputs.status }}
+      tier: ${{ steps.classify.outputs.tier }}
+      run: ${{ steps.classify.outputs.run }}
+      explanation: ${{ steps.classify.outputs.explanation }}
+      graphs: ${{ steps.classify.outputs.graphs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ env.CANDIDATE_REF }}
           fetch-depth: 0
-      - uses: extractions/setup-just@v2
+      - name: Classify candidate
+        id: classify
+        shell: bash
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          MERGE_BASE: ${{ github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          args=(
+            --gate snarkpack-formal
+            --event "$GITHUB_EVENT_NAME"
+            --github-output "$GITHUB_OUTPUT"
+          )
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            args+=(--base "$PR_BASE")
+          elif [[ "$GITHUB_EVENT_NAME" == merge_group ]]; then
+            args+=(--base "$MERGE_BASE")
+          fi
+          python3 scripts/ci/gate-applicability.py "${args[@]}"
+
+  static:
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+          lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
-          rust-cache-prefix: snarkpack-fv
-
-      - name: Install pinned hax
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/opt"
-          git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$HOME/.local/opt/hax-v0.3.7"
-          nix profile install \
-            "$HOME/.local/opt/hax-v0.3.7#hax" \
-            "$HOME/.local/opt/hax-v0.3.7#hax-engine"
-          echo "HAX_PROOF_LIBS_HOME=$HOME/.local/opt/hax-v0.3.7/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
-
-      - name: Install pinned Lean
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
-          sh /tmp/elan-init.sh -y --default-toolchain leanprover/lean4:v4.30.0
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-
-      - name: Check affected SnarkPack FV graphs
-        if: github.event_name == 'pull_request'
+          rust-cache-prefix: snarkpack-static
+      - name: Run static FV invariants
         env:
-          SNARKPACK_FV_MODE: changed
-          SNARKPACK_FV_BASE: ${{ github.event.pull_request.base.sha }}
+          SNARKPACK_FV_MODE: static
         run: nix develop --command just snarkpack-fv
 
-      - name: Reproduce, build, and audit all SnarkPack FV graphs
-        if: github.event_name != 'pull_request'
-        env:
-          SNARKPACK_FV_MODE: all
-        run: nix develop --command just snarkpack-fv
-
-  formal:
-    runs-on: blacksmith-16vcpu-ubuntu-2404
-    timeout-minutes: 90
+  toolchain:
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       fail-fast: false
-      # PR runs check out the PR head (single empty ref). Scheduled/dispatch runs
-      # only ever fire on the default branch, so explicitly exercise both main and
-      # dev by checking each out in a matrix leg.
       matrix:
-        ref: ${{ fromJSON(github.event_name == 'pull_request' && '[""]' || '["main", "dev"]') }}
-    env:
-      SNARKPACK_FUZZ_TOOLCHAIN: nightly-2025-09-30
+        lane: ${{ fromJSON(needs.applicability.outputs.tier == 'static' && '["fstar"]' || needs.applicability.outputs.tier == 'full' && '["extract-0","extract-1","extract-2","extract-3","lean","fstar"]' || '["extract-0","extract-1","extract-2","extract-3","fstar"]') }}
+    container:
+      # TODO(fv-image-digest): replace the sentinel after running:
+      # gh run view "$(gh run list --workflow snarkpack-fv-toolchain-image.yml --commit 027ddbd4c06bc1eb378664ed250099bce4c65817 --limit 1 --json databaseId --jq '.[0].databaseId')" --log | grep -oE 'ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:[0-9a-f]{64}' | tail -1
+      image: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:TODO_REPLACE_FROM_027ddbd4c_WORKFLOW
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ matrix.ref }}
+          ref: ${{ env.CANDIDATE_REF }}
+          lfs: true
+      - name: Restore Lean build cache
+        if: matrix.lane == 'lean'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
+          key: lean-ipp-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/**/*.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}
+      - name: Run toolchain lane
+        shell: bash
+        env:
+          APPLICABILITY_TIER: ${{ needs.applicability.outputs.tier }}
+          LANE: ${{ matrix.lane }}
+          SNARKPACK_FV_GRAPHS_JSON: ${{ needs.applicability.outputs.graphs }}
+        run: |
+          set -euo pipefail
+          case "$LANE" in
+            extract-*)
+              export SNARKPACK_FV_MODE="$(
+                [[ "$APPLICABILITY_TIER" == extract-changed ]] &&
+                  echo extract-changed || echo extract-all
+              )"
+              export SNARKPACK_FV_SHARD_INDEX="${LANE#extract-}"
+              export SNARKPACK_FV_SHARD_COUNT=4
+              just snarkpack-fv
+              ;;
+            lean)
+              export LEAN_NUM_THREADS=1
+              export SNARKPACK_FV_MODE=lean
+              just snarkpack-fv
+              ;;
+            fstar)
+              just snarkpack-formal
+              ;;
+            *)
+              echo "unsupported toolchain lane: $LANE" >&2
+              exit 1
+              ;;
+          esac
 
+  parity:
+    needs: applicability
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.run == 'true' &&
+      contains(fromJSON('["extract-changed","extract-all","full"]'), needs.applicability.outputs.tier)
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+          lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
-          rust-cache-prefix: snarkpack-formal
+          rust-cache-prefix: snarkpack-parity
+      - name: Run Rust/reference parity once
+        env:
+          SNARKPACK_FV_MODE: ${{ needs.applicability.outputs.tier == 'extract-changed' && 'parity-changed' || 'parity-all' }}
+          SNARKPACK_FV_GRAPHS_JSON: ${{ needs.applicability.outputs.graphs }}
+        run: nix develop --command just snarkpack-fv
 
-      - name: Install pinned Z3
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/opt"
-          curl -L \
-            -o /tmp/z3-4.14.1.zip \
-            https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
-          unzip -q /tmp/z3-4.14.1.zip -d "$HOME/.local/opt"
-          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
-
-      - name: Install pinned F*
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/opt"
-          curl -L \
-            -o /tmp/fstar-v2026.05.24.tar.gz \
-            https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
-          tar -xzf /tmp/fstar-v2026.05.24.tar.gz -C "$HOME/.local/opt"
-          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
-
-      - name: Install pinned hax
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/opt"
-          git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$HOME/.local/opt/hax-v0.3.7"
-          nix profile install \
-            "$HOME/.local/opt/hax-v0.3.7#hax" \
-            "$HOME/.local/opt/hax-v0.3.7#hax-engine"
-          echo "HAX_PROOF_LIBS_HOME=$HOME/.local/opt/hax-v0.3.7/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
-
-      - name: Install pinned Lean
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
-          sh /tmp/elan-init.sh -y --default-toolchain leanprover/lean4:v4.11.0
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-
-      - name: Run SnarkPack formal gate
-        run: nix develop --command just snarkpack-formal
-
-      - name: Check SnarkPack formal invariants
-        run: nix develop --command just snarkpack-invariants
-
-      - name: Install cargo-fuzz
+  fuzz:
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: snarkpack-fuzz
+      - name: Install exact cargo-fuzz
         run: |
           rustup toolchain install "$SNARKPACK_FUZZ_TOOLCHAIN" --profile minimal
-          cargo +"$SNARKPACK_FUZZ_TOOLCHAIN" install cargo-fuzz --locked
-
-      - name: Run SnarkPack fuzz smoke
-        if: github.event_name == 'pull_request'
+          cargo +"$SNARKPACK_FUZZ_TOOLCHAIN" install cargo-fuzz --locked --version "$CARGO_FUZZ_VERSION"
+      - name: Run fuzz smoke
+        env:
+          SNARKPACK_FUZZ_RUNS: ${{ (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
         run: nix develop --command just snarkpack-fuzz-smoke
 
-      - name: Run scheduled SnarkPack fuzz smoke
-        if: github.event_name != 'pull_request'
-        run: nix develop --command env SNARKPACK_FUZZ_RUNS=256 just snarkpack-fuzz-smoke
-
-      - name: Run SnarkPack DoS gate
+  dos:
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: snarkpack-dos
+      - name: Run DoS thresholds
         run: nix develop --command just snarkpack-dos-gate
+
+  summary:
+    if: always()
+    needs: [applicability, static, toolchain, parity, fuzz, dos]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require the selected contract
+        shell: bash
+        env:
+          APPLICABILITY: ${{ needs.applicability.result }}
+          STATUS: ${{ needs.applicability.outputs.status }}
+          TIER: ${{ needs.applicability.outputs.tier }}
+          STATIC: ${{ needs.static.result }}
+          TOOLCHAIN: ${{ needs.toolchain.result }}
+          PARITY: ${{ needs.parity.result }}
+          FUZZ: ${{ needs.fuzz.result }}
+          DOS: ${{ needs.dos.result }}
+        run: |
+          set -euo pipefail
+          [[ "$APPLICABILITY" == success && "$STATUS" != block ]]
+          if [[ "$STATUS" == skip ]]; then
+            [[ "$STATIC" == skipped && "$TOOLCHAIN" == skipped && "$PARITY" == skipped ]]
+            [[ "$FUZZ" == skipped && "$DOS" == skipped ]]
+            exit 0
+          fi
+          [[ "$STATIC" == success && "$TOOLCHAIN" == success && "$FUZZ" == success && "$DOS" == success ]]
+          case "$TIER" in
+            static)
+              [[ "$PARITY" == skipped ]]
+              ;;
+            extract-changed|extract-all)
+              [[ "$PARITY" == success ]]
+              ;;
+            full)
+              [[ "$PARITY" == success ]]
+              ;;
+            *)
+              echo "unsupported applicability tier: $TIER" >&2
+              exit 1
+              ;;
+          esac

@@ -18,22 +18,21 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: bufbuild/buf-setup-action@v1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           buf_api_token: ${{ secrets.BUF_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           input: 'proto'
 
-      - uses: bufbuild/buf-lint-action@v1
-        with:
-          input: 'proto'
+      - name: Lint protobuf modules
+        run: buf lint proto
 
       # N.B. We don't check for breaking changes here, because we do so per-PR, and notify there.
       # Occasionally we'll make breaking changes, the PR CI is notification enough of that.
       # We still want to publish the resulting changes to the BSR.
 
-      - uses: bufbuild/buf-push-action@v1
-        with:
-          buf_token: ${{ secrets.BUF_TOKEN }}
-          input: 'proto/shieldd'
+      - name: Push protobuf module
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+        run: buf push proto/shieldd

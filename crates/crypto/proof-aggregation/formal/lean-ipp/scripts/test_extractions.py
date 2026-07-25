@@ -182,6 +182,57 @@ class ExtractionManifestTests(unittest.TestCase):
                 sorted(graph["id"] for graph in self.manifest["graphs"]),
             )
 
+    def test_shards_are_stable_disjoint_and_cover_the_manifest(self):
+        shards = [
+            EXTRACTIONS.select_graphs(
+                self.manifest, None, shard_index=index, shard_count=4
+            )
+            for index in range(4)
+        ]
+        ids = [[graph["id"] for graph in shard] for shard in shards]
+        self.assertEqual([len(shard) for shard in ids], [8, 8, 8, 8])
+        self.assertEqual(len({graph_id for shard in ids for graph_id in shard}), 32)
+        self.assertEqual(
+            [
+                graph["id"]
+                for position, graph in enumerate(self.manifest["graphs"])
+                if position % 4 == 2
+            ],
+            ids[2],
+        )
+
+    def test_requested_graphs_keep_manifest_position_when_sharded(self):
+        requested = [
+            self.manifest["graphs"][1]["id"],
+            self.manifest["graphs"][4]["id"],
+            self.manifest["graphs"][9]["id"],
+        ]
+        selected = EXTRACTIONS.select_graphs(
+            self.manifest, requested, shard_index=1, shard_count=4
+        )
+        self.assertEqual(
+            [graph["id"] for graph in selected],
+            [self.manifest["graphs"][1]["id"], self.manifest["graphs"][9]["id"]],
+        )
+
+    def test_invalid_shard_arguments_fail_closed(self):
+        for index, count, needle in (
+            (0, None, "used together"),
+            (None, 4, "used together"),
+            (0, 0, "positive"),
+            (-1, 4, "must be in"),
+            (4, 4, "must be in"),
+        ):
+            with self.subTest(index=index, count=count):
+                with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+                    EXTRACTIONS.select_graphs(
+                        self.manifest,
+                        None,
+                        shard_index=index,
+                        shard_count=count,
+                    )
+                self.assertIn(needle, str(raised.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

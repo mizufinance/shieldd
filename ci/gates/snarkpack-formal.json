@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "gate": "snarkpack-formal",
+  "tiers": [
+    "skip",
+    "static",
+    "extract-changed",
+    "extract-all",
+    "full"
+  ],
+  "events": {
+    "pull_request": {
+      "conservative_tier": "extract-all"
+    },
+    "merge_group": {
+      "conservative_tier": "full"
+    },
+    "schedule": {
+      "tier": "full"
+    },
+    "workflow_call": {
+      "tier": "full"
+    },
+    "workflow_dispatch": {
+      "tier": "full"
+    }
+  },
+  "derived_inputs": [
+    {
+      "type": "cargo_local_closure",
+      "packages": [
+        "shieldd-sdk-proof-aggregation",
+        "shieldd-sdk-proof-aggregation-fuzz",
+        "shieldd-sdk-proof-aggregation-reference"
+      ],
+      "tiers": {
+        "pull_request": "static",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "local Cargo dependency closure for SnarkPack implementation, fuzzing, and reference gates"
+    },
+    {
+      "type": "lean_extraction_manifest",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json",
+      "global_inputs": [
+        ".cargo/config.toml",
+        "Cargo.lock",
+        "Cargo.toml",
+        "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/AeneasRuntime.lean",
+        "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py",
+        "rust-toolchain.toml"
+      ],
+      "graph_tiers": {
+        "pull_request": "extract-changed",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "global_tiers": {
+        "pull_request": "extract-all",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "SnarkPack proof extraction manifest"
+    }
+  ],
+  "explicit_inputs": [
+    {
+      "patterns": [
+        ".cargo/config.toml",
+        "Cargo.lock",
+        "Cargo.toml",
+        "rust-toolchain.toml"
+      ],
+      "tiers": {
+        "pull_request": "extract-all",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "workspace dependency or Rust toolchain input affects every extraction and parity graph"
+    },
+    {
+      "patterns": [
+        ".github/actions/setup-nix-rust/**",
+        ".github/workflows/snarkpack-formal.yml",
+        "ci/gates/snarkpack-formal.json",
+        "flake.lock",
+        "flake.nix",
+        "justfile",
+        "scripts/check-snarkpack-invariants.sh",
+        "scripts/check-snarkpack-runtime-invariants.sh",
+        "scripts/ci/gate-applicability.py",
+        "scripts/ci/test_gate_applicability.py",
+        "scripts/snarkpack-formal.sh",
+        "scripts/snarkpack-fv.sh"
+      ],
+      "tiers": {
+        "pull_request": "extract-all",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "workflow, environment, classifier, or invoked gate implementation"
+    },
+    {
+      "patterns": [
+        "crates/bench/bench-thresholds.md",
+        "crates/core/app/src/app/mod.rs",
+        "crates/crypto/proof-aggregation/formal/**",
+        "docs/snarkpack/**"
+      ],
+      "tiers": {
+        "pull_request": "static",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "SnarkPack formal specification, invariant, or integration input"
+    }
+  ],
+  "irrelevant_inputs": [
+    {
+      "patterns": [
+        ".github/ISSUE_TEMPLATE/**",
+        "LICENSE",
+        "LICENSE-*",
+        "docs/**"
+      ],
+      "reason": "documentation-only path outside the declared SnarkPack contract"
+    }
+  ]
+}

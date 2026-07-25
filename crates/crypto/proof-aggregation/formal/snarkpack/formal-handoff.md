@@ -91,9 +91,15 @@ parity-pinned; it is not promoted to a proof by extraction freshness.
 
 ## Gates And Toolchains
 
-- `just snarkpack-fv`: extraction freshness/reproduction, parity, pinned Lean
-  `4.30.0`, a single `lake` at a time with `LEAN_NUM_THREADS=1`, and the
-  145-capstone audit.
+- `just snarkpack-fv`: explicit `static`, `extract-changed`, `extract-all`,
+  `parity-changed`, `parity-all`, `lean`, and `full` modes. Extraction
+  comparison supports four stable manifest-order shards. The `lean` mode uses
+  one `lake build Ipp` process with `LEAN_NUM_THREADS=1` and validates the
+  145-capstone audit from that build log.
+- `.github/workflows/snarkpack-formal.yml`: fail-closed applicability plus
+  independent static, four-way extraction, parity, Lean, F*, fuzz, and DoS
+  lanes. Pull requests select the smallest sound tier; merge-queue and reusable
+  branch runs require the full contract.
 - `just snarkpack-formal`: unchanged hax `v0.3.7` and F* `v2026.05.24`
   pipeline with Rust `1.89`, OCaml `5.1.1`, Z3 `4.14.1`, and OPAM switch
   `hax-0.3.7`.

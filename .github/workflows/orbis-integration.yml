@@ -2,53 +2,49 @@ name: orbis-integration
 on:
   pull_request:
   workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  paths:
+  applicability:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      RUSTUP_TOOLCHAIN: stable
     outputs:
-      orbis: ${{ steps.filter.outputs.orbis }}
+      status: ${{ steps.classify.outputs.status }}
+      tier: ${{ steps.classify.outputs.tier }}
+      run: ${{ steps.classify.outputs.run }}
+      explanation: ${{ steps.classify.outputs.explanation }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          lfs: false
+          fetch-depth: 0
 
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            orbis:
-              - '.github/actions/setup-nix-rust/**'
-              - '.github/workflows/orbis-integration.yml'
-              - 'Cargo.lock'
-              - 'Cargo.toml'
-              - 'compliance-docs/testing.md'
-              - 'crates/bin/orbis-audit/**'
-              - 'crates/bin/orbis-integration/**'
-              - 'crates/bin/pcli/**'
-              - 'crates/bin/pclientd/**'
-              - 'crates/bin/pd/**'
-              - 'crates/core/component/compliance/**'
-              - 'crates/core/component/shielded-pool/**'
-              - 'crates/crypto/proof-params/**'
-              - 'crates/util/orbis-client/**'
-              - 'deployments/orbis/**'
-              - 'flake.lock'
-              - 'flake.nix'
-              - 'justfile'
-              - 'scripts/lib/**'
-              - 'scripts/orbis-*.sh'
-              - 'scripts/shieldd-*.sh'
-              - 'testnets/validators-single.json'
-              - 'tools/gnark/**'
+      - name: Classify Orbis integration applicability
+        id: classify
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || '' }}
+        run: |
+          args=(
+            --gate orbis-integration
+            --event "${{ github.event_name }}"
+            --head "$GITHUB_SHA"
+            --github-output "$GITHUB_OUTPUT"
+            --pretty
+          )
+          if [[ -n "$BASE_SHA" ]]; then
+            args+=(--base "$BASE_SHA")
+          fi
+          python3 scripts/ci/gate-applicability.py "${args[@]}"
 
   flow:
-    needs: paths
-    if: github.event_name == 'workflow_dispatch' || needs.paths.outputs.orbis == 'true'
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 45
     concurrency:
@@ -79,7 +75,7 @@ jobs:
       ORBIS_NODE3_ENDPOINT: http://127.0.0.1:35053
     steps:
       - name: Checkout Shieldd
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: shieldd
           lfs: true
@@ -134,34 +130,44 @@ jobs:
 
       - name: Upload integration artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: orbis-integration-artifacts
           path: |
             ${{ env.COMPLIANCE_TMP }}/**
 
   summary:
-    needs: [paths, flow]
+    name: Orbis Integration Summary
+    needs: [applicability, flow]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Check Orbis integration result
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          SHOULD_RUN: ${{ needs.paths.outputs.orbis }}
-          PATHS_RESULT: ${{ needs.paths.result }}
+          APPLICABILITY_RESULT: ${{ needs.applicability.result }}
+          STATUS: ${{ needs.applicability.outputs.status }}
+          TIER: ${{ needs.applicability.outputs.tier }}
+          EXPLANATION: ${{ needs.applicability.outputs.explanation }}
           ORBIS_RESULT: ${{ needs.flow.result }}
         run: |
-          if [ "$PATHS_RESULT" != "success" ]; then
-            echo "path filtering failed: $PATHS_RESULT"
+          if [[ "$APPLICABILITY_RESULT" != "success" ]]; then
+            echo "applicability classification failed: $APPLICABILITY_RESULT"
             exit 1
           fi
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] || [ "$SHOULD_RUN" = "true" ]; then
-            if [ "$ORBIS_RESULT" != "success" ]; then
-              echo "flow did not pass: $ORBIS_RESULT"
+          if [[ "$STATUS" == "skip" ]]; then
+            if [[ "$ORBIS_RESULT" != "skipped" ]]; then
+              echo "skip tier unexpectedly ran flow: $ORBIS_RESULT"
               exit 1
             fi
-            echo "flow passed"
-          else
-            echo "flow skipped for unrelated changes"
+            echo "explained skip: $EXPLANATION"
+            exit 0
           fi
+          if [[ "$STATUS" != "run" ]]; then
+            echo "invalid applicability status: $STATUS"
+            exit 1
+          fi
+          if [[ "$TIER" != "full" || "$ORBIS_RESULT" != "success" ]]; then
+            echo "required Orbis contract failed: tier=$TIER flow=$ORBIS_RESULT"
+            exit 1
+          fi
+          echo "Orbis tier $TIER passed"

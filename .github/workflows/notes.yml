@@ -4,6 +4,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Deployment subdirectory for generated documentation.
+        required: false
+        type: string
   workflow_call:
 
 jobs:
@@ -16,22 +21,22 @@ jobs:
     runs-on: buildjet-16vcpu-ubuntu-2204
     steps:
       - name: Checkout the source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           lfs: true
 
       - name: install nix
-        uses: nixbuild/nix-quick-install-action@v28
+        uses: nixbuild/nix-quick-install-action@60e9c39264d4714139af3cdf15f691b19eec3530 # v28
 
       - name: setup nix cache
-        uses: nix-community/cache-nix-action@v5
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
           backend: buildjet
 
       - name: Load Rust caching
-        uses: astriaorg/buildjet-rust-cache@v2.5.1
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
 
       # Previously we used a GHA helper to look up the version, which was overkill.
       # Let's still log the version of the docs we intend to build.
@@ -50,7 +55,7 @@ jobs:
           tree firebase-tmp
 
       - name: Deploy protocol spec to firebase
-        uses: w9jds/firebase-action@v12.9.0
+        uses: w9jds/firebase-action@27f890f050c1cccd01b032a19ebdf19808177159 # v12.9.0
         with:
           args: deploy
         env:
@@ -71,7 +76,7 @@ jobs:
           cp index.html firebase-tmp/${{ github.event.inputs.image_tag || github.ref_name }}
 
       - name: Deploy API docs to firebase
-        uses: w9jds/firebase-action@v12.9.0
+        uses: w9jds/firebase-action@27f890f050c1cccd01b032a19ebdf19808177159 # v12.9.0
         with:
           args: deploy
         env:
