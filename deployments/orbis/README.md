@@ -37,3 +37,11 @@ SourceHub backend maps document, key-derivation, node-info, and ring records to
 `ensure_orbis_images` and brings the stack up with `docker compose up -d
 --pull missing` — no `orbis-rs`/`sourcehub` source build. This keeps CI fast
 (nothing to compile) while the runtime stays pinned in repo via Cargo.toml.
+
+CI serializes only the Orbis flow around the runner's fixed host ports. At the
+start of that critical section, `scripts/orbis-ci-cleanup.sh` removes stale
+Compose projects named `orbis-<run>-<attempt>` and tracked Shieldd processes
+whose executable and command line prove they belong to the matching
+`/tmp/orbis-<run>-<attempt>` root. It never kills an unidentified port owner.
+The workflow pulls images while Rust binaries compile, then performs both
+in-process and unconditional workflow cleanup.
