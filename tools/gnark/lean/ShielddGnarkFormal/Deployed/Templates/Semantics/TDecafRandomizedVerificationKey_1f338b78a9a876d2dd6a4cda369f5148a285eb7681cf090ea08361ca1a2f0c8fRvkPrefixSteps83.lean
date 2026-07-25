@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkPrefixStep84
 
 set_option maxRecDepth 1000000
@@ -6,9 +7,11 @@ set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open EdwardsBridge
 open Bool (toZMod)
-open Shieldd.GnarkFormal.RvkFixedBaseLiteral
+open Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree
 
 theorem rvk_prefix_steps83 (rho : Nat -> F)
     (r84 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationRow84 rho)
@@ -18,7 +21,7 @@ theorem rvk_prefix_steps83 (rho : Nat -> F)
     (r670 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationRow670 rho)
     (r671 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationRow671 rho)
     : ∀ i, 84 ≤ i → i ≤ 84 → onCurve (rvkRvkAcc rho i) →
-        RvkFixedBaseLadder.FixedStepRel i
+        RvkFixedBaseLadderChoiceFree.FixedStepRel i
           (rho (1 + i)) (rvkRvkAcc rho i) (rvkRvkAcc rho (i + 1)) := by
   intro i hlo hhi hacc
   interval_cases i

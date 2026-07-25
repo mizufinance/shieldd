@@ -1,11 +1,15 @@
 import ShielddGnarkFormal.Deployed.Templates.Relations.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZMod
 import Mathlib.Tactic.LinearCombination
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order

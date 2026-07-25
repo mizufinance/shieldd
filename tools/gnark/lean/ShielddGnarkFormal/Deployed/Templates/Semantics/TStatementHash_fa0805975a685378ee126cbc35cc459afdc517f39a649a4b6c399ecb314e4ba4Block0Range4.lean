@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4Block0Round35Lane0
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4Block0Round35Lane1
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4Block0Round35Lane2
@@ -35,6 +36,8 @@ set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4.Block0Range4
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.Order
 abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.F

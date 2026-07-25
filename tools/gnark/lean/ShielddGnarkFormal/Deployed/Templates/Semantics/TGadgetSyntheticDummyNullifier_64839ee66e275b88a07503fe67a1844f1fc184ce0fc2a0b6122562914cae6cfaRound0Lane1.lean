@@ -2,6 +2,7 @@ import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNull
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfaPart1
 import ShielddGnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarBase
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfaFixed
 import Mathlib.Tactic.Ring
 
@@ -9,6 +10,9 @@ set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa.Round0Lane1
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 abbrev Order : Nat := Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.Order
 abbrev F := Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.F

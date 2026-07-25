@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import ShielddGnarkFormal.Deployed.StateCommitmentPathNode21DeployedBridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPathNode21.SpecLink
 import Mathlib.Tactic.LinearCombination
@@ -9,6 +10,8 @@ set_option linter.unreachableTactic false
 set_option linter.unusedTactic false
 
 namespace Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode21
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon4Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon4Link

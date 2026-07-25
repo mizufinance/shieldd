@@ -8,6 +8,8 @@ set_option linter.unusedTactic false
 
 namespace Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open Shieldd.GnarkFormal.Poseidon2Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon2Link
 

@@ -65,4 +65,14 @@ theorem exists_bool_vector_of_to_binary {N d : ℕ}
   have hval := congrArg ZMod.val hrecover
   simpa [ZMod.val_natCast_of_lt hfit] using hval.symm
 
+/-- A valid binary decomposition places the field representative in the
+decomposition range, without using the generic classical `Fin` round trip. -/
+theorem range_of_to_binary {N d : ℕ}
+    {a : ZMod N} {v : List.Vector (ZMod N) d}
+    (hpow : 2 ^ d < N) (h : GatesDef.to_binary a d v) :
+    a.val < 2 ^ d := by
+  obtain ⟨bits, _, hval⟩ := exists_bool_vector_of_to_binary hpow h
+  rw [hval]
+  exact (Fin.ofBitsLE bits).isLt
+
 end Shieldd.GnarkFormal.ChoiceFreeBinary

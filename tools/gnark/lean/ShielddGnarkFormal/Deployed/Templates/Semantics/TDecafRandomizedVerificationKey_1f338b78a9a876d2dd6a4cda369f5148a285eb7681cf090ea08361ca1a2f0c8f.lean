@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkBase
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkAcc
@@ -205,11 +206,11 @@ import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificat
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkSteps98
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkSteps99
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkSteps100
-import ShielddGnarkFormal.RvkFixedGenInst0
-import ShielddGnarkFormal.RvkFixedSplitRung
-import ShielddGnarkFormal.RvkFixedBaseLiteral
-import ShielddGnarkFormal.RvkFixedBaseLadder
-import ShielddGnarkFormal.RvkFixedRun
+import ShielddGnarkFormal.RvkFixedGenInst0ChoiceFree
+import ShielddGnarkFormal.RvkFixedSplitRungChoiceFree
+import ShielddGnarkFormal.RvkFixedBaseLiteralChoiceFree
+import ShielddGnarkFormal.RvkFixedBaseLadderChoiceFree
+import ShielddGnarkFormal.RvkFixedRunChoiceFree
 import ShielddGnarkFormal.RvkDeployedRung
 import ShielddGnarkFormal.Deployed.PrimeOrder
 
@@ -219,9 +220,11 @@ set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open EdwardsBridge
 open Bool (toZMod)
-open Shieldd.GnarkFormal.RvkFixedBaseLiteral
+open Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree
 
 theorem sound (rho : Nat -> F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relation rho) : spec rho := by
@@ -573,11 +576,9 @@ theorem sound (rho : Nat -> F)
       r249 r1789 r1790 r1791 r1792 r1793 r1794 r1795 r1796
   have hsTail100 := rvk_steps100 rho
       r250 r1797 r1798 r1799 r1800 r1801 r1802 r1803 r1804
-  rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
-    (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order)
-    Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order] at hbin
-  rcases hbin with ⟨hscalarLt, hbits⟩
-  let bitsBool := Fin.toBitsLE (⟨(rho 252).val, hscalarLt⟩ : Fin (2 ^ 251))
+  obtain ⟨bitsBool, hbits, hscalarValue⟩ :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.exists_bool_vector_of_to_binary
+      Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order hbin
   have hbitAt : ∀ i, i < 251 →
       rho (1 + i) = Bool.toZMod bitsBool[i]! := by
     intro i hi
@@ -586,22 +587,22 @@ theorem sound (rho : Nat -> F)
     rw [getElem!_pos (bitsBool.map Bool.toZMod) i (by simpa using hi),
       getElem!_pos bitsBool i (by simpa using hi), List.Vector.getElem_map]
   have hstep : ∀ i, i < 251 → onCurve (rvkRvkAcc rho i) →
-      RvkFixedBaseLadder.FixedStepRel i (Bool.toZMod bitsBool[i]!)
+      RvkFixedBaseLadderChoiceFree.FixedStepRel i (Bool.toZMod bitsBool[i]!)
         (rvkRvkAcc rho i) (rvkRvkAcc rho (i + 1)) := by
     intro i hi hacc
     by_cases hzero : i = 0
     · subst i
-      change RvkFixedBaseLadder.FixedStepRel 0 (Bool.toZMod bitsBool[0]!) ⟨0, 1⟩
+      change RvkFixedBaseLadderChoiceFree.FixedStepRel 0 (Bool.toZMod bitsBool[0]!) ⟨0, 1⟩
         (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627 : F) * rho 1,
           (1 : F) + (6060471950081851567114691557659790004756535011754163002297540472747064943287 : F) * rho 1⟩ : EdwardsBridge.Point)
       rw [hbitAt 0 (by omega)]
       simpa [
-        Shieldd.GnarkFormal.RvkFixedRun.seedAcc,
-        Shieldd.GnarkFormal.RvkFixedBaseConstants.C,
-        Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,
+        Shieldd.GnarkFormal.RvkFixedRunChoiceFree.seedAcc,
+        Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree.C,
+        Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree.generator,
         Shieldd.GnarkFormal.RvkBridge.genXNat,
         Shieldd.GnarkFormal.RvkBridge.genYNat] using
-        (Shieldd.GnarkFormal.RvkFixedRun.seedStepRel bitsBool[0]!)
+        (Shieldd.GnarkFormal.RvkFixedRunChoiceFree.seedStepRel bitsBool[0]!)
     · rw [← hbitAt i hi]
       by_cases hprefix : i ≤ 149
       · exact hsPrefix i (by omega) hprefix hacc
@@ -806,7 +807,7 @@ theorem sound (rho : Nat -> F)
       by_cases htail99 : i ≤ 249
       · exact hsTail99 i (by omega) htail99 hacc
       exact hsTail100 i (by omega) (by omega) hacc
-  have htrace := Shieldd.GnarkFormal.RvkFixedRun.trace_final_semantic
+  have htrace := Shieldd.GnarkFormal.RvkFixedRunChoiceFree.trace_final_semantic
     bitsBool (rvkRvkAcc rho) hstep EdwardsBridge.identity_onCurve
   have hLcx : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationLc1556 rho = 4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 1 + rvkAccX250 rho := rvk_lcx rho
   have hLcy : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationLc1555 rho = 1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 1 + rvkAccY250 rho := rvk_lcy rho
@@ -843,7 +844,7 @@ theorem sound (rho : Nat -> F)
     rw [hLcx, hLcy]
   have htraceModel : (⟨Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationLc1556 rho, Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationLc1555 rho⟩ : EdwardsBridge.Point) =
       Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩
-        (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) := by
+        (Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree.C 0) := by
     rw [← hstate]
     exact htrace.1
   have heq := EdwardsBridge.addSpec_eq
@@ -851,15 +852,16 @@ theorem sound (rho : Nat -> F)
     ⟨rho 1813, rho 1814⟩ hakC hp' hadd
   have hmodel := Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits_toA
     bitsBool (rho 252) 251 0 ⟨0, 1⟩
-    (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) (by omega)
+    (Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree.C 0) (by omega)
     (by
       intro i _ hi
-      exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit
-        (rho 252).val hscalarLt i hi)
+      rw [hscalarValue]
+      exact (Shieldd.GnarkFormal.ScalarMulBridge.ofBitsLE_testBit
+        bitsBool i hi).symm)
   have hfinal : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk (rho 1813) (rho 1814) =
       Shieldd.GnarkFormal.ScalarMulBridge.toA (EdwardsBridge.addF ⟨rho 1807, rho 1808⟩
         (Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits bitsBool 251 0 ⟨0, 1⟩
-          (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0))) := by
+          (Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree.C 0))) := by
     rw [← htraceModel, ← heq]
     rfl
   have hspec : Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec
@@ -872,11 +874,10 @@ theorem sound (rho : Nat -> F)
       Shieldd.GnarkFormal.Decaf377Assumptions.generator,
       Shieldd.GnarkFormal.Decaf377Assumptions.identity,
       Shieldd.GnarkFormal.ScalarMulBridge.toA,
-      Shieldd.GnarkFormal.RvkFixedBaseConstants.C,
-      Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,
+      Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree.C,
+      Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree.generator,
       Shieldd.GnarkFormal.RvkBridge.genXNat,
       Shieldd.GnarkFormal.RvkBridge.genYNat]
-    rfl
   exact ⟨hspec, RvkDeployedRung.addSpec_onCurve hakC hp' hadd⟩
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f

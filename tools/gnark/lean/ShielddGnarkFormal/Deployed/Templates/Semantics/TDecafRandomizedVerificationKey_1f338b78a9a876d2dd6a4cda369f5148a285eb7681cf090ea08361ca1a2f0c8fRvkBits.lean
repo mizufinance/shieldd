@@ -1,12 +1,15 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkAcc
 import ShielddGnarkFormal.Deployed.Templates.Semantics.BinaryRecomposition
-import ShielddGnarkFormal.RvkToBinary
+import ShielddGnarkFormal.RvkToBinaryChoiceFree
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 theorem rvkRvkBits_toBinary (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relation rho) :
     GatesDef.to_binary (rho 252) 251 (rvkRvkBits rho) := by
@@ -285,7 +288,7 @@ theorem rvkRvkBits_toBinary (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.T
     rw [hrecover]
     rw [powSumAcc_eq] at hacc
     simpa using hacc
-  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 252) (rvkRvkBits rho)
+  apply Shieldd.GnarkFormal.RvkToBinaryChoiceFree.to_binary_of_deployed (rho 252) (rvkRvkBits rho)
   · intro i hi
     have key := rvkRvkBits_get rho i hi
     have hgoal : rho (1 + i) * (1 - rho (1 + i)) = 0 := by

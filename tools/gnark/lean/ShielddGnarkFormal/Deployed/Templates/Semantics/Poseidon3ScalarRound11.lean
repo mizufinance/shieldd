@@ -2,11 +2,15 @@ import ShielddGnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound10
 import ShielddGnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace
 import ShielddGnarkFormal.Deployed.Poseidon3Link
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon3Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon3Link

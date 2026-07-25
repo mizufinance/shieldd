@@ -1,12 +1,16 @@
 import ShielddGnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6
 import ShielddGnarkFormal.Deployed.NullifierDeployedBridge
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import Mathlib.Tactic.LinearCombination
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.Part40
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 abbrev Order : Nat :=
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.Order

@@ -10,8 +10,8 @@ restamping is never a fix for a failed semantic or source-drift gate.
 2. Fresh Go compilation is byte-identical to the deployed SR1CS and semantic
    manifest.
 3. Fresh typed IR, verified proof-template witnesses, normalized coverage
-   manifest, exact contracts and template semantics, Wiring, Capstone, and
-   generated Statement byte-match the committed files and ownership manifest.
+   manifest, exact contracts and template semantics, Bounds, Capstone, and
+   Statement byte-match the committed files and ownership manifest.
 4. Every deployed obligation is discharged and its relation/wire-role hashes
    match the exact rows.
 5. The protocol-readable Lean statement builds from the deployed capstone.

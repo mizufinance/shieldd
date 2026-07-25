@@ -13,8 +13,11 @@ import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBala
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893aNbBlindBits
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893aNbBlind
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893aNbConserv
-import ShielddGnarkFormal.ConservationNetBalanceCommitmentBridge
 import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.ChoiceFreeBinary
+import ShielddGnarkFormal.Deployed.NetBalance.ChoiceFreeLadder
+import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -22,6 +25,7 @@ set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a.NbSupport
 open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
 open Shieldd.GnarkFormal.ScalarMulBridge
@@ -58,36 +62,19 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
   have hOut6Bin := nbOut6Bits_toBinary rho h
   have hOut7Bin := nbOut7Bits_toBinary rho h
   have hBlindBin := nbBlindBits_toBinary rho h
-  obtain ⟨blindBool, hBlindEq⟩ := is_vector_binary_iff_exists_bool_vec.mp hBlindBin.2
-  have hLadder := nbBlind_ladder rho h blindBool hBlindEq
-    (fun s =>
-      Extracted.ConservationNetBalanceCommitment.Gates.eq s[0] (nbBlindAccState rho 251).x ∧
-      Extracted.ConservationNetBalanceCommitment.Gates.eq s[1] (nbBlindAccState rho 251).y ∧
-      True)
-    ⟨by simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
-        GatesGnark8, GatesDef.eq]; rfl,
-      by simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
-        GatesGnark8, GatesDef.eq]; rfl,
-      True.intro⟩
+  obtain ⟨blindBool, hBlindEq, hBlindValue⟩ :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.exists_bool_vector_of_to_binary
+      pow251_lt_order hBlindBin
+  have hBlindScalar := nbBlind_scalarMul rho h blindBool hBlindEq hBlindValue
   have hcons := nb_conservation rho h
-  refine ⟨Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbIn0Bits rho, hIn0Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut0Bits rho, hOut0Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut1Bits rho, hOut1Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut2Bits rho, hOut2Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut3Bits rho, hOut3Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut4Bits rho, hOut4Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut5Bits rho, hOut5Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut6Bits rho, hOut6Bin⟩, Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nbOut7Bits rho, hOut7Bin⟩, hcons, ?_⟩
-  have hBlindBin' : Extracted.NetBalanceCommitment.Gates.to_binary
-      (rho 1413) 251 (nbBlindBits rho) := by
-    simpa only [Extracted.ConservationNetBalanceCommitment.Gates,
-      Extracted.NetBalanceCommitment.Gates, GatesGnark9, GatesGnark8] using hBlindBin
-  obtain ⟨P, _hPon, hPeq, _z, _w, hk⟩ :=
-    nbLadder pow251_lt_order blindGen_onCurve
-      ⟨nbBlindBits rho, hBlindBin', hLadder.1⟩
-  simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
-    GatesGnark8, GatesDef.eq] at hk
-  obtain ⟨hx, hy, -⟩ := hk
-  have hbg : toA (⟨(4661681602708190761543544705274244814260880986867766715334030151044279151219 : F),
-      (4337336842509898676347982752646772244181661588533917621717979456142867120378 : F)⟩ : EdwardsBridge.Point) =
+  refine ⟨Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hIn0Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut0Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut1Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut2Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut3Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut4Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut5Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut6Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut7Bin, hcons, ?_⟩
+  have hbg : toA Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree.blindGen =
       Shieldd.GnarkFormal.Decaf377Assumptions.valueBlindingGenerator := rfl
-  have hout : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk
-      (nbBlindAccState rho 251).x (nbBlindAccState rho 251).y = toA P := by
-    rw [← hx, ← hy]
-    rfl
-  rw [hout, hPeq, hbg]
+  change toA (nbBlindAccState rho 251) =
+    Shieldd.GnarkFormal.Decaf377Assumptions.scalarMulLE 251
+      Shieldd.GnarkFormal.Decaf377Assumptions.valueBlindingGenerator
+      (rho 1413)
+  rw [← hbg]
+  exact hBlindScalar
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a

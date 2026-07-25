@@ -1,9 +1,12 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Poseidon3Bridge
 
 /-! Reusable deployed-slice ⇒ `permSpec3` link for width-4 Poseidon. Each
 `fr4`/`pr4` round has whole-state and resource-bounded per-lane forms. -/
 
 namespace Shieldd.GnarkFormal.Deployed.Poseidon3Link
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon3Bridge
 open Shieldd.GnarkFormal.Extracted.Nullifier (F)

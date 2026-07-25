@@ -1,8 +1,12 @@
 import ShielddGnarkFormal.RvkDeployedRung
+import ShielddGnarkFormal.ChoiceFreeZModCast
 
 /-! Small algebraic bridges for the normalized synthetic-dummy RVK tail. -/
 
 namespace Shieldd.GnarkFormal.DummyRvkTailBridge
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.ScalarMulBridge
 open Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd (Order)
@@ -14,9 +18,12 @@ theorem fixedGeneratorXYCoefficient :
     (4959445789346820725352484487855828915252512307947624787834978378872129235627 : F) +
       6060471950081851567114691557659790004756535011754163002297540472747064943287 =
     2575455990000301868218351106734072388633147984547723962197285395701784939873 := by
-  have horder : (Order : F) = 0 := ZMod.natCast_self Order
-  change (8444461749428370424248824938781546531375899335154063827935233455917409239041 : F) = 0 at horder
-  linear_combination horder
+  simpa only [Nat.cast_add] using
+    (ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq Order
+      (4959445789346820725352484487855828915252512307947624787834978378872129235627 +
+        6060471950081851567114691557659790004756535011754163002297540472747064943287)
+      2575455990000301868218351106734072388633147984547723962197285395701784939873
+      (Nat.Prime.ne_zero Fact.out) (by decide))
 
 theorem deployedTail_x_row
     (akX akY pX pY outX : F)

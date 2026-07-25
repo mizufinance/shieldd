@@ -10,6 +10,7 @@ sys.path.insert(0, str(HERE))
 
 import gen_note_reshape_scp_semantics as scp
 import gen_note_reshape_direct_representatives as direct
+import gen_poseidon_bridge as poseidon_bridge
 
 
 class NormalizedScpSemanticsTests(unittest.TestCase):
@@ -34,6 +35,58 @@ class NormalizedScpSemanticsTests(unittest.TestCase):
         self.assertIn(f"(h : {scp.EXACT}.relation rho)", main)
         self.assertIn("theorem sound", main)
         self.assertIn("def spec", main)
+
+    def test_choice_free_projection_owns_the_normalized_recovery_boundary(self):
+        combined = "\n".join(
+            source
+            for path, source in self.outputs.items()
+            if path.parent == scp.OUT
+        )
+        self.assertIn(
+            "ShielddGnarkFormal.Deployed.StateCommitmentPath.ProjectionChoiceFree",
+            combined,
+        )
+        self.assertIn(
+            "Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.recover24H",
+            combined,
+        )
+        self.assertIn(
+            "Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.recoverStep",
+            combined,
+        )
+        self.assertNotIn(
+            "Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recover24H",
+            combined,
+        )
+        self.assertNotIn(
+            "Shieldd.GnarkFormal.QuadPath.recoverStep",
+            combined,
+        )
+
+    def test_choice_free_zmod_owns_normalized_arithmetic(self):
+        for path, source in self.outputs.items():
+            if path.parent != scp.OUT:
+                continue
+            self.assertIn(
+                "import ShielddGnarkFormal.ChoiceFreeZMod\n",
+                source,
+                path.name,
+            )
+            self.assertIn(
+                "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+                source,
+                path.name,
+            )
+
+    def test_shared_state_commitment_poseidon_bridges_are_choice_free(self):
+        names = ["state_commitment_leaf"] + [
+            f"state_commitment_node{level}" for level in range(24)
+        ]
+        for name in names:
+            self.assertTrue(
+                poseidon_bridge.CONFIGS[name].get("choice_free_zmod"),
+                name,
+            )
 
     def test_local_wire_metadata_is_used(self):
         base = self.outputs[scp.OUT / f"{scp.NAME}ScpBase.lean"]

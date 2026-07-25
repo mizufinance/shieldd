@@ -17,6 +17,7 @@ NOT touched here, keeping the regression bite meaningful.
 """
 import json, pathlib, re, sys
 
+from lean_zmod_instances import normalize_choice_free_zmod_file
 from write_if_changed import write_if_changed
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -43,6 +44,7 @@ CONFIGS = {
         W=3,
         leaf="DtkIvkPoseidon",
         slice_stem=json.load(open(HERE / "dtk_ivk_gendata.json"))["slice_stem"],
+        choice_free_zmod=True,
         link="Poseidon2Link",
         bridge_ns="Poseidon2Bridge",
         deployed_bridge="DtkIvkPoseidonDeployedBridge",
@@ -54,6 +56,7 @@ CONFIGS = {
         W=4,
         leaf="Nullifier",                       # Deployed.{leaf} namespace + subdir
         slice_stem="GadgetNullifier310_6eee7c",
+        choice_free_zmod=True,
         link="Poseidon3Link",                   # provides fr_eq4/pr_eq4/row4
         bridge_ns="Poseidon3Bridge",            # provides p17, permSpec3
         deployed_bridge="NullifierDeployedBridge",  # provides p17_from_rows, seg{i}_sound base
@@ -79,6 +82,7 @@ CONFIGS["state_commitment_leaf"] = dict(
     W=2,
     leaf="StateCommitmentPathLeaf",
     slice_stem=json.load(open(_leaf_gd))["slice_stem"] if _leaf_gd.exists() else None,
+    choice_free_zmod=True,
     link="Poseidon1Link",
     bridge_ns="Poseidon1Bridge",
     deployed_bridge="StateCommitmentPathLeafDeployedBridge",
@@ -96,6 +100,7 @@ for _k in range(24):
         W=5,
         leaf=f"StateCommitmentPathNode{_k}",
         slice_stem=json.load(open(_gd))["slice_stem"] if _gd.exists() else None,
+        choice_free_zmod=True,
         link="Poseidon4Link",
         bridge_ns="Poseidon4Bridge",
         deployed_bridge=f"StateCommitmentPathNode{_k}DeployedBridge",
@@ -123,6 +128,8 @@ def build(cfgname):
     leaf = cfg["leaf"]
     OUT = DEPLOYED / leaf
     OUT.mkdir(parents=True, exist_ok=True)
+    if cfg.get("choice_free_zmod"):
+        normalize_choice_free_zmod_file(EXTRACTED / f"{stem}.lean")
 
     gd = json.load(open(HERE / f"{cfgname}_gendata.json"))
     cs = {int(k): [int(x) % Order for x in v] for k, v in gd["cs"].items()}
@@ -177,6 +184,18 @@ def build(cfgname):
 
     def lit(n):
         return f"({n} : F)"
+
+    def nat_cast_eq(a, b):
+        if cfg.get("choice_free_zmod"):
+            return (
+                "Shieldd.GnarkFormal.ChoiceFreeZMod."
+                f"natCast_eq_natCast_of_mod_eq {MOD} {a} {b} "
+                "(by decide) (by decide)"
+            )
+        return (
+            f"(ZMod.natCast_eq_natCast_iff' {a} {b} {MOD}).mpr "
+            "(by decide)"
+        )
 
     def lc_expr(d):
         parts = []
@@ -284,7 +303,9 @@ def build(cfgname):
         "set_option linter.unreachableTactic false\n"
         "set_option linter.unusedTactic false\n\n"
         f"namespace Shieldd.GnarkFormal.Deployed.{leaf}\n\n"
-        f"open Shieldd.GnarkFormal.{cfg['bridge_ns']}\n"
+        + ("open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n"
+           if cfg.get("choice_free_zmod") else "")
+        + f"open Shieldd.GnarkFormal.{cfg['bridge_ns']}\n"
         f"open Shieldd.GnarkFormal.Deployed.{cfg['link']}\n\n"
         f"variable [Fact (Nat.Prime {MOD})]\n\n"
         + (f"instance : Fact (Nat.Prime {cfg['extracted_ns']}.Order) :=\n"
@@ -292,6 +313,10 @@ def build(cfgname):
            if cfg.get("extracted_ns") else "")
     )
     footer = f"end Shieldd.GnarkFormal.Deployed.{leaf}\n"
+    choice_free_import = (
+        "import ShielddGnarkFormal.ChoiceFreeZModCast\n"
+        if cfg.get("choice_free_zmod") else ""
+    )
 
     def fr_eq():
         return f"fr_eq{W}"
@@ -317,7 +342,7 @@ def build(cfgname):
                     f"  unfold s{g}_{i} {rowfn()}\n"
                     f"  rw [show {flit(M[i][0])} * {flit(Sval)} = {flit(red_const)} from by\n"
                     f"    change ({raw_const} : F) = {flit(red_const)}\n"
-                    f"    exact (ZMod.natCast_eq_natCast_iff' {raw_const} {red_const} {MOD}).mpr (by decide)]\n\n")
+                    f"    exact {nat_cast_eq(raw_const, red_const)}]\n\n")
             else:
                 lines.append(f"theorem s{g}_{i}_flat {adecl(args)} :\n    {s_call(g, i)} = {red} := by\n  unfold s{g}_{i} {rowfn()}\n  rfl\n\n")
 
@@ -332,7 +357,7 @@ def build(cfgname):
             lines.append(
                 f"theorem arg{g}_{i}_eq {adecl(args)} :\n    {lc_expr(dep)} = {s_call(prev, i)} + {flit(cs[g][i])} := by\n"
                 f"  calc\n    {lc_expr(dep)} = ({rhs}) + {flit(cs[g][i])} := by\n"
-                f"      rw [show {flit(dc)} = {flit(sc)} + {flit(cs[g][i])} from by exact (ZMod.natCast_eq_natCast_iff' {(sc + cs[g][i]) % Order} {dc} {MOD}).mpr (by decide)]\n"
+                f"      rw [show {flit(dc)} = {flit(sc)} + {flit(cs[g][i])} from by exact {nat_cast_eq((sc + cs[g][i]) % Order, dc)}]\n"
                 f"      all_goals ring\n    _ = {s_call(prev, i)} + {flit(cs[g][i])} := by rw [← s{prev}_{i}_flat]\n\n")
 
     def emit_round_eq_full(lines, g):
@@ -400,7 +425,7 @@ def build(cfgname):
         lines.append(
             f"theorem arg{g}_0_eq {adecl(ap)} :\n    {lc_expr(dep)} = {s_call(prev, 0)} + {flit(cs[g][0])} := by\n"
             f"  calc\n    {lc_expr(dep)} = ({rhs}) + {flit(cs[g][0])} := by\n"
-            f"      rw [show {flit(dc)} = {flit(sc)} + {flit(cs[g][0])} from by exact (ZMod.natCast_eq_natCast_iff' {(sc + cs[g][0]) % Order} {dc} {MOD}).mpr (by decide)]\n"
+            f"      rw [show {flit(dc)} = {flit(sc)} + {flit(cs[g][0])} from by exact {nat_cast_eq((sc + cs[g][0]) % Order, dc)}]\n"
             f"      all_goals ring\n    _ = {s_call(prev, 0)} + {flit(cs[g][0])} := by rw [← s{prev}_0_flat]\n\n")
         raw_lanes = [{gw(g)[0]: 1}] + [add(state[prev][j], {'one': cs[g][j]}, mod=False) for j in range(1, W)]
         raw_state = mds(raw_lanes, mod=False)
@@ -417,7 +442,10 @@ def build(cfgname):
                 if a % Order != b:
                     raise AssertionError((g, i, k, a % Order, b))
                 if a != b:
-                    rwshows.append(f"show ({a} : F) = ({b} : F) from by exact (ZMod.natCast_eq_natCast_iff' {a} {b} {MOD}).mpr (by decide)")
+                    rwshows.append(
+                        f"show ({a} : F) = ({b} : F) from by "
+                        f"exact {nat_cast_eq(a, b)}"
+                    )
             rwline = ("\n      rw [" + ", ".join(rwshows) + "]") if rwshows else ""
             lines.append(
                 f"theorem s{g}_{i}_flat {adecl(args)} :\n    {s_call(g, i)} = {red} := by\n"
@@ -433,7 +461,8 @@ def build(cfgname):
             f"  exact {pr_eq()} ({st_call(prev)}) ({cs_vec(g)}) {gw(g)[0]} {hproof}\n\n")
 
     # ===== Base.lean (round 0) =====
-    base = [f"import ShielddGnarkFormal.Deployed.{cfg['deployed_bridge']}\n"
+    base = [choice_free_import,
+            f"import ShielddGnarkFormal.Deployed.{cfg['deployed_bridge']}\n"
             f"import ShielddGnarkFormal.Deployed.{cfg['link']}\n\n", header]
     sumDC = (Dlit + cs[0][0]) % Order
     a2 = sumDC * sumDC % Order
@@ -444,12 +473,12 @@ def build(cfgname):
         f"theorem p17_domain_eq :\n    p17 (({Dlit} : F) + ({cs[0][0]} : F)) = {flit(Sval)} := by\n"
         f"  have hx : ({Dlit} : F) + ({cs[0][0]} : F) = {flit(sumDC)} := by\n"
         f"    change ({Dlit + cs[0][0]} : F) = {flit(sumDC)}\n"
-        f"    exact (ZMod.natCast_eq_natCast_iff' {Dlit + cs[0][0]} {sumDC} {MOD}).mpr (by decide)\n"
-        f"  have h0 : {flit(sumDC)} * {flit(sumDC)} = {flit(a2)} := by\n    change ({sumDC * sumDC} : F) = {flit(a2)}\n    exact (ZMod.natCast_eq_natCast_iff' {sumDC * sumDC} {a2} {MOD}).mpr (by decide)\n"
-        f"  have h1 : {flit(a2)} * {flit(a2)} = {flit(a4)} := by\n    change ({a2 * a2} : F) = {flit(a4)}\n    exact (ZMod.natCast_eq_natCast_iff' {a2 * a2} {a4} {MOD}).mpr (by decide)\n"
-        f"  have h2 : {flit(a4)} * {flit(a4)} = {flit(a8)} := by\n    change ({a4 * a4} : F) = {flit(a8)}\n    exact (ZMod.natCast_eq_natCast_iff' {a4 * a4} {a8} {MOD}).mpr (by decide)\n"
-        f"  have h3 : {flit(a8)} * {flit(a8)} = {flit(a16)} := by\n    change ({a8 * a8} : F) = {flit(a16)}\n    exact (ZMod.natCast_eq_natCast_iff' {a8 * a8} {a16} {MOD}).mpr (by decide)\n"
-        f"  have h4 : {flit(a16)} * {flit(sumDC)} = {flit(Sval)} := by\n    change ({a16 * sumDC} : F) = {flit(Sval)}\n    exact (ZMod.natCast_eq_natCast_iff' {a16 * sumDC} {Sval} {MOD}).mpr (by decide)\n"
+        f"    exact {nat_cast_eq(Dlit + cs[0][0], sumDC)}\n"
+        f"  have h0 : {flit(sumDC)} * {flit(sumDC)} = {flit(a2)} := by\n    change ({sumDC * sumDC} : F) = {flit(a2)}\n    exact {nat_cast_eq(sumDC * sumDC, a2)}\n"
+        f"  have h1 : {flit(a2)} * {flit(a2)} = {flit(a4)} := by\n    change ({a2 * a2} : F) = {flit(a4)}\n    exact {nat_cast_eq(a2 * a2, a4)}\n"
+        f"  have h2 : {flit(a4)} * {flit(a4)} = {flit(a8)} := by\n    change ({a4 * a4} : F) = {flit(a8)}\n    exact {nat_cast_eq(a4 * a4, a8)}\n"
+        f"  have h3 : {flit(a8)} * {flit(a8)} = {flit(a16)} := by\n    change ({a8 * a8} : F) = {flit(a16)}\n    exact {nat_cast_eq(a8 * a8, a16)}\n"
+        f"  have h4 : {flit(a16)} * {flit(sumDC)} = {flit(Sval)} := by\n    change ({a16 * sumDC} : F) = {flit(Sval)}\n    exact {nat_cast_eq(a16 * sumDC, Sval)}\n"
         f"  rw [hx]\n"
         f"  exact (p17_from_rows {flit(sumDC)} {flit(a2)} {flit(a4)} {flit(a8)} {flit(a16)} {flit(Sval)} h0 h1 h2 h3 h4).symm\n\n")
     emit_state_full(base, 0)
@@ -468,7 +497,8 @@ def build(cfgname):
     # ===== leading full rounds 1..first_partial-1 =====
     for g in range(1, first_partial):
         prev_imp = "Base" if g == 1 else f"Round{g - 1:02d}"
-        lines = [f"import ShielddGnarkFormal.Deployed.{leaf}.{prev_imp}\n\n", header]
+        lines = [choice_free_import,
+                 f"import ShielddGnarkFormal.Deployed.{leaf}.{prev_imp}\n\n", header]
         emit_state_full(lines, g)
         emit_arg_lemmas_full(lines, g)
         emit_round_eq_full(lines, g)
@@ -479,7 +509,8 @@ def build(cfgname):
 
     # ===== partial rounds =====
     for g in range(first_partial, last_partial + 1):
-        lines = [f"import ShielddGnarkFormal.Deployed.{leaf}.Round{g - 1:02d}\n\n", header]
+        lines = [choice_free_import,
+                 f"import ShielddGnarkFormal.Deployed.{leaf}.Round{g - 1:02d}\n\n", header]
         emit_state_partial(lines, g)
         emit_spec_def(lines, g)
         emit_spec_eq(lines, g)
@@ -487,7 +518,8 @@ def build(cfgname):
         write_if_changed(OUT / f"Round{g:02d}.lean", "".join(lines))
 
     # ===== full tail =====
-    lines = [f"import ShielddGnarkFormal.Deployed.{leaf}.Round{tail_start - 1:02d}\n\n", header]
+    lines = [choice_free_import,
+             f"import ShielddGnarkFormal.Deployed.{leaf}.Round{tail_start - 1:02d}\n\n", header]
     for g in range(tail_start, NROUNDS):
         args = state_args(g)
         for i in range(W):
@@ -503,7 +535,8 @@ def build(cfgname):
     write_if_changed(OUT / "FullTail.lean", "".join(lines))
 
     # ===== SpecLink: (spec{LAST} ..)[1] = permSpecW domain inputs =====
-    speclink = [f"import ShielddGnarkFormal.Deployed.{leaf}.FullTail\n\n", header]
+    speclink = [choice_free_import,
+                f"import ShielddGnarkFormal.Deployed.{leaf}.FullTail\n\n", header]
     speclink.append(
         f"theorem spec{LAST}_eq_permSpec {pub_decl} :\n"
         f"    ({spec_call(LAST)})[1] = {cfg['spec']} {cfg['domain_sym']} {pub_use} := by\n"
@@ -546,7 +579,9 @@ def build(cfgname):
         return lc_expr(dep)
 
     # seg{i}_sound lemmas: reconstruct the i-th deployed 5-row S-box.
-    SEG = [f"import ShielddGnarkFormal.Deployed.{cfg['deployed_bridge']}\nimport ShielddGnarkFormal.Deployed.{leaf}.SpecLink\nimport Mathlib.Tactic.LinearCombination\n\n", header]
+    SEG = [choice_free_import,
+           f"import ShielddGnarkFormal.Deployed.{cfg['deployed_bridge']}\nimport ShielddGnarkFormal.Deployed.{leaf}.SpecLink\nimport Mathlib.Tactic.LinearCombination\n\n",
+           header]
     bridge_seg_base = cfg.get("seg_lemmas_in_bridge", set())
     for s in sorted(seg_args):
         r = seg2round[s]
@@ -586,7 +621,8 @@ def build(cfgname):
         step_args = list(dict.fromkeys(state_args(r - 1) + state_args(r)))
         return f"  have hSpec{r} := spec{r}_step {spec_in_use} {ause(step_args)} hSpec{r - 1} {' '.join(hw_round_names(r))}\n"
 
-    RB = [f"import ShielddGnarkFormal.Deployed.{leaf}.SegSound\n\n", header]
+    RB = [choice_free_import,
+          f"import ShielddGnarkFormal.Deployed.{leaf}.SegSound\n\n", header]
     for R, segs in enumerate(RANGES):
         first, last = segs[0], segs[-1]
         g0 = seg2round[first]

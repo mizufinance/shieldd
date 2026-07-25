@@ -70,6 +70,9 @@ class StatementHashSemanticsTest(unittest.TestCase):
         for text in first.values():
             self.assertNotIn("native_decide", text)
             self.assertNotIn("axiom ", text)
+            self.assertIn(subject.CHOICE_FREE_ZMOD_IMPORT, text)
+            if "\nnamespace " in text:
+                self.assertIn(subject.CHOICE_FREE_ZMOD_SCOPE, text)
         for family in subject.FAMILIES:
             main = first[subject.OUT / f"{family.name}.lean"]
             trace = first[subject.OUT / f"{family.name}TraceBlock0Round0.lean"]
@@ -95,10 +98,19 @@ class StatementHashSemanticsTest(unittest.TestCase):
         row = outputs[subject.OUT / f"{family.name}RowBlock0Round0Lane0.lean"]
         self.assertIn("Fixed.b0l0), (rho ", row)
         self.assertNotIn("Fixed.b0l0 rho", row)
-        self.assertIn("ZMod.natCast_eq_natCast_iff'", row)
+        self.assertIn("ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq", row)
+        fixed = outputs[subject.OUT / f"{family.name}Fixed.lean"]
+        self.assertIn("ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq", fixed)
+        self.assertNotIn("ZMod.natCast_eq_natCast_iff'", row + fixed)
         self.assertIn("relationPart6 rho) :\n", lane)
         self.assertIn("ScalarBlock0Round0Lane0.state_eq_endpoint", lane)
         self.assertIn("RowBlock0Round0Lane0.endpoint_eq_rawState", lane)
+
+    def test_poseidon_cast_bridge_is_choice_free(self) -> None:
+        bridge = (subject.LEAN / "ShielddGnarkFormal/Poseidon7Bridge.lean").read_text()
+        self.assertIn("import ShielddGnarkFormal.ChoiceFreeZModCast", bridge)
+        self.assertIn("ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq", bridge)
+        self.assertNotIn("ZMod.natCast_eq_natCast_iff'", bridge)
 
     def test_affine_minus_one_renders_as_signed_field_coefficient(self) -> None:
         rendered = subject.LC.make(terms={7: -1, 8: 1}).render()

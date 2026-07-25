@@ -143,6 +143,18 @@ def _normalized_emitter_inputs(rows: dict[int, str]):
 
 def _rewrite(text: str) -> str:
     """Retarget emitted proof text to the exact normalized namespace."""
+    text = text.replace(
+        "ShielddGnarkFormal.Deployed.StateCommitmentPath.Projection",
+        "ShielddGnarkFormal.Deployed.StateCommitmentPath.ProjectionChoiceFree",
+    )
+    text = text.replace(
+        "Shieldd.GnarkFormal.Deployed.StateCommitmentPath.",
+        "Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.",
+    )
+    text = text.replace(
+        "Shieldd.GnarkFormal.QuadPath.recoverStep",
+        "Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.recoverStep",
+    )
     old_import = "ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.ScpAdapterSeg13"
     text = text.replace(old_import, f"{SEMANTICS_IMPORT}Scp")
     text = text.replace(
@@ -175,6 +187,17 @@ def _rewrite(text: str) -> str:
         declaration = f"import {module}\n"
         if tactic in text and declaration not in text:
             text = declaration + text
+    namespace_marker = f"namespace {SEMANTICS}\n\n"
+    if namespace_marker in text:
+        choice_free_import = "import ShielddGnarkFormal.ChoiceFreeZMod\n"
+        if choice_free_import not in text:
+            text = choice_free_import + text
+        text = text.replace(
+            namespace_marker,
+            namespace_marker
+            + "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
+            1,
+        )
     return text
 
 
@@ -196,7 +219,10 @@ def _main(inst: scp.Instance) -> str:
     proof = _rewrite(proof)
     spec = _rewrite(scp.spec_text(inst)).replace("def deployedSpec13", "def spec")
     spec = spec.replace("Deployed state-commitment", "Normalized state-commitment")
-    marker = f"namespace {SEMANTICS}\n\n"
+    marker = (
+        f"namespace {SEMANTICS}\n\n"
+        "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n"
+    )
     if marker not in proof:
         raise SystemExit("SCP main namespace marker drifted")
     return proof.replace(marker, marker + spec + "\n", 1) + "\n"

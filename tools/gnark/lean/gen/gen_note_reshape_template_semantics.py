@@ -255,11 +255,15 @@ def render_poseidon3_trace() -> str:
         )
     return f"""import ShielddGnarkFormal.Deployed.NullifierDeployedBridge
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon3Bridge
 
@@ -304,11 +308,15 @@ def render_poseidon3_scalar_base() -> str:
     return f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace
 import ShielddGnarkFormal.Deployed.Poseidon3Link
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarBase
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon3Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon3Link
@@ -391,11 +399,15 @@ theorem output_eq_permSpec3 (domain in0 in1 in2 : F) :
 import ShielddGnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace
 import ShielddGnarkFormal.Deployed.Poseidon3Link
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
 
 namespace {namespace}
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon3Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon3Link
@@ -653,7 +665,9 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
         return (
             "(by\n"
             f"      {norm}\n"
-            f"      exact (ZMod.natCast_eq_natCast_iff' {left} {right} Order).mpr (by decide))"
+            "      exact Shieldd.GnarkFormal.ChoiceFreeZMod."
+            f"natCast_eq_natCast_of_mod_eq Order {left} {right} "
+            "(by decide) (by decide))"
         )
 
     c0 = rounds[0][1]
@@ -732,12 +746,16 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
 import ShielddGnarkFormal.Deployed.Poseidon3Link
 import ShielddGnarkFormal.Deployed.NullifierDeployedBridge
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import Mathlib.Tactic.NormNum{ring_import}
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 
 namespace {fixed_namespace}
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 abbrev Order : Nat :=
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.Order
@@ -779,12 +797,16 @@ end {fixed_namespace}
         part_leaf = f"""import {relation_module}
 import ShielddGnarkFormal.Deployed.NullifierDeployedBridge
 import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import Mathlib.Tactic.LinearCombination
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 
 namespace {part_namespace}
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 abbrev Order : Nat :=
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.Order
@@ -816,6 +838,7 @@ end {part_namespace}
             ],
             f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{scalar_round_ns(gate).rsplit('.', 1)[-1]}",
             "import ShielddGnarkFormal.Deployed.PrimeOrderCertificate",
+            "import ShielddGnarkFormal.ChoiceFreeZModCast",
         ]
         if gate >= 1:
             imports.append(f"import {nullifier_round_module(gate)}")
@@ -867,7 +890,9 @@ end {part_namespace}
                             f"    rw [show {scalar_endpoint(0, box_lane)} + ({rounds[gate][1][box_lane]} : F) = {input_expr} by",
                             f"      unfold {fixed_namespace}.s0_{box_lane}",
                             f"      have hc : ({left_constant} : F) = ({right_constant} : F) :=",
-                            f"        (ZMod.natCast_eq_natCast_iff' {left_constant} {right_constant} Order).mpr (by decide)",
+                            "        Shieldd.GnarkFormal.ChoiceFreeZMod."
+                            f"natCast_eq_natCast_of_mod_eq Order {left_constant} "
+                            f"{right_constant} (by decide) (by decide)",
                             f"      linear_combination hc, ← hp{part}]",
                         ]
                     )
@@ -926,6 +951,9 @@ set_option maxHeartbeats 20000000
 
 namespace {lane_namespace}
 
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 abbrev Order : Nat := {trace_ns}.Order
 abbrev F := {trace_ns}.F
 
@@ -948,6 +976,7 @@ end {lane_namespace}
             for lane in range(4)
         )
         imports += "\nimport ShielddGnarkFormal.Deployed.PrimeOrderCertificate"
+        imports += "\nimport ShielddGnarkFormal.ChoiceFreeZModCast"
         parts = [
             part
             for gate in range(gate_start, gate_end + 1)
@@ -980,6 +1009,9 @@ set_option maxHeartbeats 4000000
 
 namespace {range_namespace}
 
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 abbrev Order : Nat := {trace_ns}.Order
 abbrev F := {trace_ns}.F
 
@@ -1000,6 +1032,7 @@ end {range_namespace}
         for index in range(len(gate_ranges))
     )
     imports += "\nimport ShielddGnarkFormal.Deployed.PrimeOrderCertificate"
+    imports += "\nimport ShielddGnarkFormal.ChoiceFreeZModCast"
     threading = []
     for range_index, (gate_start, gate_end) in enumerate(gate_ranges):
         parts = [
@@ -1022,6 +1055,9 @@ set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
 
 namespace {namespace}
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 abbrev Order : Nat := {trace_ns}.Order
 abbrev F := {trace_ns}.F
@@ -1059,6 +1095,7 @@ def render_small_provider(key: str) -> str:
     imports = (
         f"import {relation_module}\n"
         "import ShielddGnarkFormal.Deployed.PrimeOrderCertificate\n"
+        "import ShielddGnarkFormal.ChoiceFreeZMod\n"
         "import Mathlib.Tactic.LinearCombination"
     )
     prelude = f"""{imports}
@@ -1067,6 +1104,9 @@ set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
 
 namespace {namespace}
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 def Order : Nat := {ORDER}
 abbrev F := ZMod Order

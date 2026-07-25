@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ProvenZk.Gates
 import ShielddGnarkFormal.Extracted.PoseidonHash4
 
@@ -9,6 +10,8 @@ set_option maxHeartbeats 50000000
 Generated from note_reshape2x1.sr1cs global rows [14725,15075); do not edit by hand. -/
 
 namespace Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode18350_67677e
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.PoseidonHash4.Order
 variable [Fact (Nat.Prime Order)]

@@ -1,9 +1,12 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1TraceBlock1Round38
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1.Trace
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 @[irreducible] def hash2 (rho : Nat → F) : F :=
   Shieldd.GnarkFormal.Poseidon7Bridge.permSpec7 domainLit (hash1 rho) (rho 976 + rho 977) ((-1 : F) * rho 983 + rho 984) (rho 990 + rho 991) ((-1 : F) * rho 997 + rho 998) (rho 1004 + rho 1005) ((-1 : F) * rho 1011 + rho 1012)

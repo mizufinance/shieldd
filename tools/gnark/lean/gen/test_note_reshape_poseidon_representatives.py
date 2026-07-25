@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 import gen_note_reshape_poseidon_representatives as poseidon
+import gen_poseidon_bridge as poseidon_bridge
 
 
 class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
@@ -78,6 +79,45 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
 
         nullifier_source = self.outputs[poseidon.OUT / f"{nullifier}.lean"]
         self.assertIn("baseCommRing : CommRing F :=", nullifier_source)
+
+    def test_shared_nullifier_poseidon_provider_is_choice_free(self) -> None:
+        self.assertTrue(
+            poseidon_bridge.CONFIGS["nullifier"].get("choice_free_zmod"),
+        )
+        extracted = (
+            poseidon.LEAN
+            / "ShielddGnarkFormal/Extracted/Deployed/GadgetNullifier310_6eee7c.lean"
+        ).read_text()
+        self.assertIn(
+            "local instance (priority := 2000) : CommRing F := ZMod.commRing _",
+            extracted,
+        )
+        for relative in (
+            "Deployed/Poseidon3Link.lean",
+            "Deployed/NullifierDeployedBridge.lean",
+        ):
+            source = (poseidon.LEAN / "ShielddGnarkFormal" / relative).read_text()
+            self.assertIn("import ShielddGnarkFormal.ChoiceFreeZMod", source)
+            self.assertIn(
+                "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
+                source,
+            )
+
+        modules = sorted(
+            (poseidon.LEAN / "ShielddGnarkFormal/Deployed/Nullifier").glob("*.lean")
+        )
+        self.assertTrue(modules)
+        for path in modules:
+            with self.subTest(path=path.name):
+                source = path.read_text()
+                self.assertIn(
+                    "import ShielddGnarkFormal.ChoiceFreeZModCast",
+                    source,
+                )
+                self.assertIn(
+                    "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
+                    source,
+                )
 
     def test_note_commitment_shards_have_disjoint_instance_names(self) -> None:
         note = poseidon.NAMES[poseidon.NOTE_KEY]

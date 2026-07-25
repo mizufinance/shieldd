@@ -14,6 +14,17 @@ namespace Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c
 abbrev Order : ℕ := Shieldd.GnarkFormal.Extracted.Nullifier.Order
 variable [Fact (Nat.Prime Order)]
 abbrev F := Shieldd.GnarkFormal.Extracted.Nullifier.F
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) : Ring F := (ZMod.commRing _).toRing
 
 def seg0 (w8 w23 w24 : F) (k : F → F → F → Prop) : Prop :=
 ∃ w1343 w1344 w1345 w1346 w1347 : F,

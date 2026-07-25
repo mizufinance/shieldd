@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
 import ShielddGnarkFormal.Deployed.PrimeOrder
 
@@ -9,6 +10,8 @@ namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmen
 
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 instance seg13ScpFactPrime : Fact (Nat.Prime Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩

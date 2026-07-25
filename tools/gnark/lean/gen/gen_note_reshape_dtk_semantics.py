@@ -291,6 +291,69 @@ def spec (rho : Nat → F) : Prop :=
     return base.replace(prime, prime + insertion, 1)
 
 
+def _inject_output_curve_boundary(source: str) -> str:
+    import_anchor = "import ShielddGnarkFormal.ChoiceFreeZMod\n"
+    boundary_import = "import ShielddGnarkFormal.Deployed.Dtk.OutputCurve\n"
+    if source.count(import_anchor) != 1 or boundary_import in source:
+        raise ValueError("DTK scalar output-curve import anchor drifted")
+    source = source.replace(
+        import_anchor,
+        import_anchor + boundary_import,
+        1,
+    )
+    old_call = (
+        "apply Shieldd.GnarkFormal.Deployed.Dtk."
+        "outputCurveGates_of_onCurve"
+    )
+    new_call = (
+        "apply Shieldd.GnarkFormal.Deployed.Dtk.OutputCurve."
+        "outputCurveGates_of_onCurve"
+    )
+    if source.count(old_call) != 1:
+        raise ValueError("DTK scalar output-curve theorem anchor drifted")
+    return source.replace(old_call, new_call, 1)
+
+
+def _inject_ivk_truncation_boundary(source: str) -> str:
+    import_anchor = "import ShielddGnarkFormal.ChoiceFreeZMod\n"
+    boundary_import = "import ShielddGnarkFormal.IvkModRTruncation\n"
+    if source.count(import_anchor) != 1 or boundary_import in source:
+        raise ValueError("DTK IVK truncation import anchor drifted")
+    source = source.replace(
+        import_anchor,
+        import_anchor + boundary_import,
+        1,
+    )
+    old_call = (
+        "Shieldd.GnarkFormal.Extracted.IvkModR."
+        "laddersTail_to_binary_251"
+    )
+    new_call = (
+        "Shieldd.GnarkFormal.Extracted.IvkModR.Truncation."
+        "laddersTail_to_binary_251"
+    )
+    if source.count(old_call) != 1:
+        raise ValueError("DTK IVK truncation theorem anchor drifted")
+    return source.replace(old_call, new_call, 1)
+
+
+def _inject_rvk_binary_boundary(source: str) -> str:
+    import_anchor = "import ShielddGnarkFormal.ChoiceFreeZMod\n"
+    boundary_import = "import ShielddGnarkFormal.RvkToBinaryChoiceFree\n"
+    if source.count(import_anchor) != 1 or boundary_import in source:
+        raise ValueError("DTK RVK binary import anchor drifted")
+    source = source.replace(
+        import_anchor,
+        import_anchor + boundary_import,
+        1,
+    )
+    old_call = "Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed"
+    new_call = "Shieldd.GnarkFormal.RvkToBinaryChoiceFree.to_binary_of_deployed"
+    if source.count(old_call) != 1:
+        raise ValueError("DTK RVK binary theorem anchor drifted")
+    return source.replace(old_call, new_call, 1)
+
+
 def _facade() -> str:
     semantic = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{NAME}"
     return f"""import {MODULE_PREFIX}
@@ -467,6 +530,12 @@ def _generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
         rendered = _rewrite(source)
         if suffix == "Base":
             rendered = _inject_spec(rendered, cfg)
+        if suffix == "Scalar":
+            rendered = _inject_output_curve_boundary(rendered)
+        if suffix == "Bits":
+            rendered = _inject_rvk_binary_boundary(rendered)
+        if suffix == "":
+            rendered = _inject_ivk_truncation_boundary(rendered)
         outputs[target] = rendered
     outputs[out / f"{NAME}.lean"] = _facade()
     for suffix in BENCH_CANDIDATES:

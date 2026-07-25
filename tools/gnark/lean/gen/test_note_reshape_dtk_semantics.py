@@ -95,7 +95,13 @@ class NoteReshapeDtkSemanticsTest(unittest.TestCase):
                 self.assertIn(parts[index - 1].stem, source)
         facade = self.outputs[gen.OUT / f"{gen.NAME}DtkLtRDefs.lean"]
         self.assertIn(parts[-1].stem, facade)
-        self.assertEqual(facade.count("import "), 1)
+        self.assertEqual(
+            re.findall(r"(?m)^import (.+)$", facade),
+            [
+                "ShielddGnarkFormal.ChoiceFreeZMod",
+                f"{gen.MODULE_PREFIX}LtRDefsPart{len(parts) - 1}",
+            ],
+        )
 
     def test_provider_consumes_only_the_exact_normalized_relation(self) -> None:
         forbidden = (
@@ -174,6 +180,116 @@ class NoteReshapeDtkSemanticsTest(unittest.TestCase):
         self.assertIn(
             "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
             gen._rewrite(reviewed_source),
+        )
+
+    def test_shared_ivk_poseidon_provider_uses_choice_free_zmod_instances(self) -> None:
+        extracted = (
+            reviewed.EXTRACTED_DEPLOYED / "DtkIvkPoseidon270_e622e7.lean"
+        ).read_text()
+        bridge = (
+            reviewed.FORMAL / "Deployed/DtkIvkPoseidonDeployedBridge.lean"
+        ).read_text()
+        self.assertIn("import ShielddGnarkFormal.ChoiceFreeZMod\n", extracted)
+        self.assertIn(
+            "import ShielddGnarkFormal.ChoiceFreeZModCast\n",
+            bridge,
+        )
+        for source in (extracted, bridge):
+            self.assertIn(
+                "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+                source,
+            )
+        link = (
+            reviewed.FORMAL / "Deployed/Poseidon2Link.lean"
+        ).read_text()
+        self.assertIn("import ShielddGnarkFormal.ChoiceFreeZMod\n", link)
+        self.assertIn(
+            "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+            link,
+        )
+        poseidon = reviewed.FORMAL / "Deployed/DtkIvkPoseidon"
+        modules = sorted(poseidon.glob("*.lean"))
+        self.assertTrue(modules)
+        combined = "\n".join(path.read_text() for path in modules)
+        self.assertNotIn("ZMod.natCast_eq_natCast_iff'", combined)
+        self.assertIn(
+            "ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq",
+            combined,
+        )
+        for path in modules:
+            with self.subTest(path=path.name):
+                self.assertIn(
+                    "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+                    path.read_text(),
+                )
+
+    def test_shared_deployed_scalar_rung_uses_choice_free_zmod_instances(self) -> None:
+        source = (reviewed.FORMAL / "RvkDeployedRung.lean").read_text()
+        self.assertIn("import ShielddGnarkFormal.ChoiceFreeZMod\n", source)
+        self.assertIn(
+            "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+            source,
+        )
+
+    def test_normalized_bits_use_isolated_choice_free_rvk_binary(self) -> None:
+        source = (reviewed.FORMAL / "RvkToBinaryChoiceFree.lean").read_text()
+        self.assertIn("import ShielddGnarkFormal.ChoiceFreeZMod\n", source)
+        self.assertIn(
+            "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+            source,
+        )
+        self.assertIn(
+            "ChoiceFreeZMod.eq_zero_or_eq_zero_of_mul_eq_zero Order h",
+            source,
+        )
+        self.assertNotIn("mul_eq_zero.mp h", source)
+        legacy = (reviewed.FORMAL / "RvkToBinary.lean").read_text()
+        self.assertNotIn("ChoiceFreeZMod", legacy)
+        bits = self.outputs[gen.OUT / f"{gen.NAME}DtkBits.lean"]
+        self.assertIn(
+            "import ShielddGnarkFormal.RvkToBinaryChoiceFree\n",
+            bits,
+        )
+        self.assertIn(
+            "Shieldd.GnarkFormal.RvkToBinaryChoiceFree."
+            "to_binary_of_deployed",
+            bits,
+        )
+
+    def test_normalized_scalar_uses_isolated_choice_free_output_curve(self) -> None:
+        source = (reviewed.FORMAL / "Deployed/Dtk/OutputCurve.lean").read_text()
+        self.assertIn("import ShielddGnarkFormal.ChoiceFreeZMod\n", source)
+        self.assertIn(
+            "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+            source,
+        )
+        scalar = self.outputs[gen.OUT / f"{gen.NAME}DtkScalar.lean"]
+        self.assertIn(
+            "import ShielddGnarkFormal.Deployed.Dtk.OutputCurve\n",
+            scalar,
+        )
+        self.assertIn(
+            "Shieldd.GnarkFormal.Deployed.Dtk.OutputCurve."
+            "outputCurveGates_of_onCurve",
+            scalar,
+        )
+
+    def test_normalized_main_uses_isolated_choice_free_ivk_truncation(self) -> None:
+        source = (reviewed.FORMAL / "IvkModRTruncation.lean").read_text()
+        self.assertIn("import ShielddGnarkFormal.ChoiceFreeIvkBinary\n", source)
+        self.assertIn(
+            "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+            source,
+        )
+        main = self.outputs[gen.OUT / f"{gen.NAME}Dtk.lean"]
+        self.assertIn(
+            "import ShielddGnarkFormal.IvkModRTruncation\n",
+            main,
+        )
+        self.assertIn(
+            "Shieldd.GnarkFormal.Extracted.IvkModR.Truncation."
+            "laddersTail_to_binary_251",
+            main,
         )
 
     def test_generated_support_signatures_use_local_boundary_wires(self) -> None:

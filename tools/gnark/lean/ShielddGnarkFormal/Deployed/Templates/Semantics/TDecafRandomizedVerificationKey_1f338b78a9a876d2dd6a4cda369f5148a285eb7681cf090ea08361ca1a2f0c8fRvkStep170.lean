@@ -1,10 +1,11 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkAcc
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkLemmas20
-import ShielddGnarkFormal.RvkFixedGenInst0
-import ShielddGnarkFormal.RvkFixedSplitRung
-import ShielddGnarkFormal.RvkFixedBaseLiteral
-import ShielddGnarkFormal.RvkFixedBaseLadder
+import ShielddGnarkFormal.RvkFixedGenInst0ChoiceFree
+import ShielddGnarkFormal.RvkFixedSplitRungChoiceFree
+import ShielddGnarkFormal.RvkFixedBaseLiteralChoiceFree
+import ShielddGnarkFormal.RvkFixedBaseLadderChoiceFree
 import ShielddGnarkFormal.Deployed.PrimeOrder
 
 set_option maxRecDepth 1000000
@@ -13,9 +14,11 @@ set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open EdwardsBridge
 open Bool (toZMod)
-open Shieldd.GnarkFormal.RvkFixedBaseLiteral
+open Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree
 
 theorem rvk_step170 (rho : Nat -> F)
     (r170 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationRow170 rho)
@@ -28,7 +31,7 @@ theorem rvk_step170 (rho : Nat -> F)
     (r1163 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationRow1163 rho)
     (r1164 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationRow1164 rho)
     (hacc : onCurve (rvkRvkAcc rho 170)) :
-    RvkFixedBaseLadder.FixedStepRel 170 (rho 171)
+    RvkFixedBaseLadderChoiceFree.FixedStepRel 170 (rho 171)
       (rvkRvkAcc rho 170) (rvkRvkAcc rho (170 + 1)) := by
   have hbrow170 : (1*(rho 171))*(1 + (-1)*(rho 171)) = 0 := by
     simpa [Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationRow170] using r170
@@ -69,8 +72,8 @@ theorem rvk_step170 (rho : Nat -> F)
     have hLc := rvk_lc993 rho
     rw [hLc] at r1164
     linear_combination r1164
-  have hr170 : RvkFixedBaseLadder.FixedStepRel 170 (rho 171) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 1 + rvkAccX169 rho : F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 1 + rvkAccY169 rho : F)⟩ : EdwardsBridge.Point) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 1 + rvkAccX170 rho : F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 1 + rvkAccY170 rho : F)⟩ : EdwardsBridge.Point) := by
-    simpa [RvkFixedSplitRung.GX, RvkFixedSplitRung.GYM1, rvkAccX170_succ, rvkAccY170_succ, add_assoc] using RvkFixedSplitRung.splitRung_fixedStepRel 170
+  have hr170 : RvkFixedBaseLadderChoiceFree.FixedStepRel 170 (rho 171) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 1 + rvkAccX169 rho : F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 1 + rvkAccY169 rho : F)⟩ : EdwardsBridge.Point) (⟨(4959445789346820725352484487855828915252512307947624787834978378872129235627*rho 1 + rvkAccX170 rho : F), (1+6060471950081851567114691557659790004756535011754163002297540472747064943287*rho 1 + rvkAccY170 rho : F)⟩ : EdwardsBridge.Point) := by
+    simpa [RvkFixedSplitRungChoiceFree.GX, RvkFixedSplitRungChoiceFree.GYM1, rvkAccX170_succ, rvkAccY170_succ, add_assoc] using RvkFixedSplitRungChoiceFree.splitRung_fixedStepRel 170
       (8184062698146943358494781358089637684750315020587119053955285774853199597574 : EdwardsBridge.F) (7571970803872891766144720013752373785427830016251704634266804566158152502649 : EdwardsBridge.F) (7311571752591464700390676433060464938802245701684759860286856885093942861182 : EdwardsBridge.F)
       (2575455990000301868218351106734072388633147984547723962197285395701784939873 : EdwardsBridge.F) (7321381047978916657381227325493198811539079499194854071404395739434491179601 : EdwardsBridge.F) (1491578523302326890287634702565833052377336688757681437395404834396561461943 : EdwardsBridge.F)
       (1496499589516708972553470574944181141820166792175120230999873448120688628571 : EdwardsBridge.F) (1986162742338048645222729760309734427501451042536165862024719942533116029529 : EdwardsBridge.F) (872490945555478658104104925029172745948069318902359193668428889759256736392 : EdwardsBridge.F)

@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8fRvkAcc
 
 set_option maxRecDepth 1000000
@@ -5,6 +6,8 @@ set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 theorem rvk_lc1281 (rho : Nat -> F) :
     Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relationLc1281 rho = rvkAccX211 rho + rvkAccY211 rho + 2575455990000301868218351106734072388633147984547723962197285395701784939873*rho 1 + 1 := by

@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import Mathlib.Tactic.NormNum
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660ebScpSteps
 
@@ -6,6 +7,8 @@ set_option maxHeartbeats 50000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 /-- Normalized state-commitment Merkle path endpoint (seg13): the position
 bits are boolean and recompose to the position input, and the root output LC
@@ -67,7 +70,7 @@ def spec (rho : Nat → F) : Prop :=
       + (7388904030749824121217721821433853214953911918259805849443329273927733084161 : F) * rho 8982
       + (4691367638571316902360458299323081406319944075085591015519574142176338466134 : F) * rho 8987
       + (7600015574485533381823942444903391878238309401638657445141710110325668315137 : F) * rho 8992
-    = Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recover24H
+    = Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.recover24H
       Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4
       (fun k => (545001158149490383238005163525397553024965043366546261617421270984613353336 : F)
         + (k : F) + (1 : F))
@@ -81,9 +84,9 @@ def spec (rho : Nat → F) : Prop :=
 theorem sound (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relation rho) :
     spec rho := by
   unfold spec
-  have hprefixZero := Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recoverPrefix_zero Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 (fun k => (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) + (k : F) + (1 : F)) (Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1 (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) (rho 1)) (fun k => rho (285 + 363 * k)) (fun k => rho (287 + 363 * k)) (fun k => rho (290 + 363 * k)) (fun k => rho (232 + 2 * k)) (fun k => rho (233 + 2 * k))
+  have hprefixZero := Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.recoverPrefix_zero Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 (fun k => (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) + (k : F) + (1 : F)) (Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1 (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) (rho 1)) (fun k => rho (285 + 363 * k)) (fun k => rho (287 + 363 * k)) (fun k => rho (290 + 363 * k)) (fun k => rho (232 + 2 * k)) (fun k => rho (233 + 2 * k))
   norm_num at hprefixZero
-  have hprefixSucc (k : Nat) := Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recoverPrefix_succ Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 (fun k => (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) + (k : F) + (1 : F)) (Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1 (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) (rho 1)) (fun k => rho (285 + 363 * k)) (fun k => rho (287 + 363 * k)) (fun k => rho (290 + 363 * k)) (fun k => rho (232 + 2 * k)) (fun k => rho (233 + 2 * k)) k
+  have hprefixSucc (k : Nat) := Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.recoverPrefix_succ Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 (fun k => (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) + (k : F) + (1 : F)) (Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1 (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) (rho 1)) (fun k => rho (285 + 363 * k)) (fun k => rho (287 + 363 * k)) (fun k => rho (290 + 363 * k)) (fun k => rho (232 + 2 * k)) (fun k => rho (233 + 2 * k)) k
   have e := template_scp_leaf_eq rho h
   have a0 := template_scp_step0 rho h
   rw [e] at a0
@@ -229,7 +232,7 @@ theorem sound (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relat
   rw [← hprefixSucc23] at a23
   refine ⟨template_scp_bits_bool rho h, template_scp_recompose rho h, ?_⟩
   rw [← seg13ScpNode23Out]
-  rw [Shieldd.GnarkFormal.Deployed.StateCommitmentPath.recover24H_eq_prefix23]
+  rw [Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.recover24H_eq_prefix23]
   exact a23
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb

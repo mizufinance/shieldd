@@ -3264,11 +3264,13 @@ def generate_poseidon_shape(*, write_auxiliary: bool = True) -> tuple[str, list[
     module = f"DtkIvkPoseidon270_{digest[:6]}"
     lines = [
         "import ProvenZk.Gates\n",
+        "import ShielddGnarkFormal.ChoiceFreeZMod\n",
         "import ShielddGnarkFormal.Extracted.Poseidon2\n\n",
         "set_option linter.unusedVariables false\n",
         "set_option maxRecDepth 100000\n",
         "set_option maxHeartbeats 4000000\n\n",
         f"namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n",
+        "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
         "abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.Poseidon2.Order\n",
         "variable [Fact (Nat.Prime Order)]\n",
         "abbrev F := Shieldd.GnarkFormal.Extracted.Poseidon2.F\n\n",
@@ -3329,10 +3331,13 @@ def generate_poseidon_shape(*, write_auxiliary: bool = True) -> tuple[str, list[
             json.dumps(data, indent=2) + "\n",
         )
 
-    bridge = f"""import ShielddGnarkFormal.Extracted.Deployed.{module}
+    bridge = f"""import ShielddGnarkFormal.ChoiceFreeZModCast
+import ShielddGnarkFormal.Extracted.Deployed.{module}
 import ShielddGnarkFormal.Poseidon2Bridge
 
 namespace Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon2Bridge
 

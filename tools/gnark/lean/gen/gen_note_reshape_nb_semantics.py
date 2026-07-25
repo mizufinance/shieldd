@@ -36,6 +36,9 @@ FORMAL_ROOT = LEAN_ROOT / "ShielddGnarkFormal"
 RELATIONS_ROOT = FORMAL_ROOT / "Deployed/Templates/Relations"
 DEFAULT_OUT = FORMAL_ROOT / "Deployed/Templates/Semantics"
 FIXED_BASE_LITERAL = FORMAL_ROOT / "NbFixedBaseLiteral.lean"
+FIXED_BASE_LITERAL_CHOICE_FREE = FORMAL_ROOT / "NbFixedBaseLiteralChoiceFree.lean"
+FIXED_GEN = FORMAL_ROOT / "NbFixedGenSeg46.lean"
+FIXED_GEN_CHOICE_FREE = FORMAL_ROOT / "NbFixedGenSeg46ChoiceFree.lean"
 IR_ROOT = REPO_ROOT / "crates/core/component/shielded-pool/formal"
 ARTIFACT_ROOT = REPO_ROOT / "tools/gnark/artifacts"
 
@@ -398,9 +401,30 @@ def _rewrite(
     source: str, template: NbTemplate, module_prefix: str, namespace: str,
     relation: str,
 ) -> str:
+    source = "import ShielddGnarkFormal.ChoiceFreeZMod\n" + source
     source = source.replace(
         "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.CompressAdapterCommon",
         "import ShielddGnarkFormal.Deployed.Templates.Semantics.BinaryRecomposition",
+    )
+    source = source.replace(
+        "ShielddGnarkFormal.Deployed.NetBalance.Ladder",
+        "ShielddGnarkFormal.Deployed.NetBalance.ChoiceFreeLadder",
+    )
+    source = source.replace(
+        "ShielddGnarkFormal.NbFixedBaseLiteral",
+        "ShielddGnarkFormal.NbFixedBaseLiteralChoiceFree",
+    )
+    source = source.replace(
+        "ShielddGnarkFormal.NbFixedGenSeg46",
+        "ShielddGnarkFormal.NbFixedGenSeg46ChoiceFree",
+    )
+    source = source.replace(
+        "ShielddGnarkFormal.RvkFixedSplitRung",
+        "ShielddGnarkFormal.RvkFixedSplitRungChoiceFree",
+    )
+    source = source.replace(
+        "ShielddGnarkFormal.RvkToBinary",
+        "ShielddGnarkFormal.RvkToBinaryChoiceFree",
     )
     source = source.replace(
         "ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.NbAdapterSeg46",
@@ -420,6 +444,34 @@ def _rewrite(
     source = re.sub(r"(?<![A-Za-z0-9_])Seg46\.", relation + ".", source)
     source = source.replace("seg46", "nb")
     source = re.sub(r"\b31661\b", str(template.blind_bit_base), source)
+    source = source.replace(
+        "Shieldd.GnarkFormal.Deployed.NetBalance.",
+        "Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree.",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.NbFixedBaseLiteral.",
+        "Shieldd.GnarkFormal.NbFixedBaseLiteralChoiceFree.",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.NbFixedGenSeg46.",
+        "Shieldd.GnarkFormal.NbFixedGenSeg46ChoiceFree.",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.RvkFixedSplitRung.",
+        "Shieldd.GnarkFormal.RvkFixedSplitRungChoiceFree.",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.RvkToBinary.",
+        "Shieldd.GnarkFormal.RvkToBinaryChoiceFree.",
+    )
+    anchor = f"namespace {namespace}\n\n"
+    if source.count(anchor) != 1:
+        raise ValueError("normalized NB namespace anchor drifted")
+    source = source.replace(
+        anchor,
+        anchor + "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
+        1,
+    )
     return source
 
 
@@ -427,6 +479,7 @@ def _emit_base(
     template: NbTemplate, namespace: str, relation_module: str,
 ) -> str:
     lines = [
+        "import ShielddGnarkFormal.ChoiceFreeZMod",
         f"import {relation_module}",
         "import ShielddGnarkFormal.Deployed.PrimeOrderCertificate",
         "import ShielddGnarkFormal.Extracted.DecafEdwardsAdd",
@@ -435,6 +488,8 @@ def _emit_base(
         "set_option maxHeartbeats 20000000",
         "",
         f"namespace {namespace}",
+        "",
+        "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
         "",
         f"def Order : Nat := {ORDER}",
         "abbrev F := ZMod Order",
@@ -505,7 +560,6 @@ def _emit_provider(
     provider_namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}"
     amount_wires = template.input_wires + template.output_wires
     ranges = [f"(rho {wire}).val < 2 ^ 128" for wire in amount_wires]
-    endpoint = "⟨(nbBlindAccState rho 251).x, (nbBlindAccState rho 251).y⟩"
     spec_parts = [
         *ranges,
         f"({_sum(template.input_wires)}) = ({_sum(template.output_wires)})",
@@ -518,8 +572,8 @@ def _emit_provider(
     range_proofs = []
     for label, _, _, _, _ in template.amount_blocks:
         range_proofs.append(
-            "Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.range_of_to_binary "
-            f"Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order ⟨nb{label}Bits rho, h{label}Bin⟩"
+            "Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary "
+            f"Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order h{label}Bin"
         )
     amount_imports = "\n".join(
         f"import {module_prefix}{label}Bits"
@@ -529,8 +583,11 @@ def _emit_provider(
 import {module_prefix}BlindBits
 import {module_prefix}Blind
 import {module_prefix}Conserv
-import ShielddGnarkFormal.ConservationNetBalanceCommitmentBridge
 import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.ChoiceFreeBinary
+import ShielddGnarkFormal.Deployed.NetBalance.ChoiceFreeLadder
+import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -538,6 +595,7 @@ set_option linter.unusedVariables false
 
 namespace {provider_namespace}
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open {namespace}
 open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
 open Shieldd.GnarkFormal.ScalarMulBridge
@@ -554,40 +612,117 @@ def spec (rho : Nat -> F) : Prop :=
 theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
 {chr(10).join(f'  have h{label}Bin := nb{label}Bits_toBinary rho h' for label, *_ in template.amount_blocks)}
   have hBlindBin := nbBlindBits_toBinary rho h
-  obtain ⟨blindBool, hBlindEq⟩ := is_vector_binary_iff_exists_bool_vec.mp hBlindBin.2
-  have hLadder := nbBlind_ladder rho h blindBool hBlindEq
-    (fun s =>
-      Extracted.ConservationNetBalanceCommitment.Gates.eq s[0] (nbBlindAccState rho 251).x ∧
-      Extracted.ConservationNetBalanceCommitment.Gates.eq s[1] (nbBlindAccState rho 251).y ∧
-      True)
-    ⟨by simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
-        GatesGnark8, GatesDef.eq]; rfl,
-      by simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
-        GatesGnark8, GatesDef.eq]; rfl,
-      True.intro⟩
+  obtain ⟨blindBool, hBlindEq, hBlindValue⟩ :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.exists_bool_vector_of_to_binary
+      pow251_lt_order hBlindBin
+  have hBlindScalar := nbBlind_scalarMul rho h blindBool hBlindEq hBlindValue
   have hcons := nb_conservation rho h
   refine ⟨{', '.join(range_proofs)}, hcons, ?_⟩
-  have hBlindBin' : Extracted.NetBalanceCommitment.Gates.to_binary
-      (rho {template.blind_wire}) 251 (nbBlindBits rho) := by
-    simpa only [Extracted.ConservationNetBalanceCommitment.Gates,
-      Extracted.NetBalanceCommitment.Gates, GatesGnark9, GatesGnark8] using hBlindBin
-  obtain ⟨P, _hPon, hPeq, _z, _w, hk⟩ :=
-    nbLadder pow251_lt_order blindGen_onCurve
-      ⟨nbBlindBits rho, hBlindBin', hLadder.1⟩
-  simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
-    GatesGnark8, GatesDef.eq] at hk
-  obtain ⟨hx, hy, -⟩ := hk
-  have hbg : toA (⟨({NB_GX} : F),
-      ({NB_GYM1 + 1} : F)⟩ : EdwardsBridge.Point) =
+  have hbg : toA Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree.blindGen =
       Shieldd.GnarkFormal.Decaf377Assumptions.valueBlindingGenerator := rfl
-  have hout : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk
-      (nbBlindAccState rho 251).x (nbBlindAccState rho 251).y = toA P := by
-    rw [← hx, ← hy]
-    rfl
-  rw [hout, hPeq, hbg]
+  change toA (nbBlindAccState rho 251) =
+    Shieldd.GnarkFormal.Decaf377Assumptions.scalarMulLE 251
+      Shieldd.GnarkFormal.Decaf377Assumptions.valueBlindingGenerator
+      (rho {template.blind_wire})
+  rw [← hbg]
+  exact hBlindScalar
 
 end {provider_namespace}
 """
+
+
+def _emit_blind_semantic(
+    template: NbTemplate, module_prefix: str, namespace: str, relation: str,
+) -> str:
+    return f"""import {module_prefix}BlindStep
+import ShielddGnarkFormal.Deployed.NetBalance.ChoiceFreeLadder
+import ShielddGnarkFormal.ChoiceFreeZMod
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace {namespace}
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+open Shieldd.GnarkFormal.ScalarMulBridge
+
+theorem nbBlind_scalarMul (rho : Nat -> F) (h : {relation}.relation rho)
+    (bits : List.Vector Bool 251)
+    (hbits : nbBlindBits rho = bits.map Bool.toZMod)
+    (hvalue : (rho {template.blind_wire}).val = (Fin.ofBitsLE bits).val) :
+    toA (nbBlindAccState rho 251) =
+      Decaf377Assumptions.scalarMulLE 251
+        (toA Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree.blindGen)
+        (rho {template.blind_wire}) := by
+  have hbitAt : ∀ i, i < 251 →
+      rho ({template.blind_bit_base} + i) = Bool.toZMod bits[i]! := by
+    intro i hi
+    rw [← nbBlindBits_get rho i hi, hbits]
+    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),
+      getElem!_pos bits i (by simpa using hi), List.Vector.getElem_map]
+  have hstep := nbBlind_hstep rho h bits hbitAt
+  exact Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree.fixedTrace_to_scalarMulLE
+    bits (rho {template.blind_wire}) (nbBlindAccState rho) hvalue rfl hstep
+
+end {namespace}
+"""
+
+
+def _choice_free_fixed_base_literal(source: str) -> str:
+    source = "import ShielddGnarkFormal.ChoiceFreeZMod\n" + source
+    source = source.replace(
+        "ShielddGnarkFormal.Deployed.NetBalance.Ladder",
+        "ShielddGnarkFormal.Deployed.NetBalance.ChoiceFreeLadder",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.Deployed.NetBalance",
+        "Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.NbFixedBaseLiteral",
+        "Shieldd.GnarkFormal.NbFixedBaseLiteralChoiceFree",
+    )
+    anchor = "namespace Shieldd.GnarkFormal.NbFixedBaseLiteralChoiceFree\n\n"
+    if source.count(anchor) != 1:
+        raise ValueError("choice-free NB literal namespace anchor drifted")
+    return source.replace(
+        anchor,
+        anchor + "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
+        1,
+    )
+
+
+def _choice_free_fixed_gen(source: str) -> str:
+    source = "import ShielddGnarkFormal.ChoiceFreeZMod\n" + source
+    source = source.replace(
+        "ShielddGnarkFormal.Deployed.NetBalance.Ladder",
+        "ShielddGnarkFormal.Deployed.NetBalance.ChoiceFreeLadder",
+    )
+    source = source.replace(
+        "ShielddGnarkFormal.NbFixedBaseLiteral",
+        "ShielddGnarkFormal.NbFixedBaseLiteralChoiceFree",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.Deployed.NetBalance",
+        "Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.NbFixedBaseLiteral",
+        "Shieldd.GnarkFormal.NbFixedBaseLiteralChoiceFree",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.NbFixedGenSeg46",
+        "Shieldd.GnarkFormal.NbFixedGenSeg46ChoiceFree",
+    )
+    anchor = "namespace Shieldd.GnarkFormal.NbFixedGenSeg46ChoiceFree\n"
+    if source.count(anchor) != 1:
+        raise ValueError("choice-free NB fixed-gen namespace anchor drifted")
+    return source.replace(
+        anchor,
+        anchor + "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+        1,
+    )
 
 
 def _render_template(
@@ -614,7 +749,14 @@ def _render_template(
     )
     for old_name, source in modules.items():
         suffix = old_name.removeprefix("NbAdapterSeg46")
-        rewritten = _rewrite(source, template, module_prefix, namespace, relation)
+        if suffix == "Blind":
+            rewritten = _emit_blind_semantic(
+                template, module_prefix, namespace, relation
+            )
+        else:
+            rewritten = _rewrite(
+                source, template, module_prefix, namespace, relation
+            )
         outputs[out / f"{name}Nb{suffix}.lean"] = GENERATED_HEADER + rewritten
 
     conservation = conservation.replace("PLACEHOLDER_BASE", module_prefix + "Base")
@@ -644,9 +786,14 @@ def generated_nb_semantic_files(
         outputs.update(rendered)
     first = recover(NB_TEMPLATES[0])
     with _configured_nb(NB_TEMPLATES[0], first):
-        outputs[FIXED_BASE_LITERAL] = nb.with_generated_header(
+        fixed_literal = nb.with_generated_header(
             nb.emit_fixed_base_literal(first["rows"])
         )
+        outputs[FIXED_BASE_LITERAL] = fixed_literal
+        outputs[FIXED_BASE_LITERAL_CHOICE_FREE] = _choice_free_fixed_base_literal(
+            fixed_literal
+        )
+    outputs[FIXED_GEN_CHOICE_FREE] = _choice_free_fixed_gen(FIXED_GEN.read_text())
     expected_providers = {
         out / (template_name_fn(template.key) + ".lean") for template in NB_TEMPLATES
     }

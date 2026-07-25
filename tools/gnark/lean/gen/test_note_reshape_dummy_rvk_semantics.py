@@ -37,6 +37,53 @@ class NoteReshapeDummyRvkSemanticsTest(unittest.TestCase):
         for forbidden in ("fun _ h => h", "axiom ", "native_decide"):
             self.assertNotIn(forbidden, combined)
 
+    def test_every_output_uses_choice_free_zmod_support(self) -> None:
+        combined = "\n".join(self.outputs.values())
+        for path, source in self.outputs.items():
+            self.assertIn(
+                "import ShielddGnarkFormal.ChoiceFreeZMod\n",
+                source,
+                path.name,
+            )
+            self.assertIn("attribute [-instance] ZMod.instField", source, path.name)
+            self.assertIn(
+                "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
+                source,
+                path.name,
+            )
+        self.assertIn("RvkToBinaryChoiceFree.to_binary_of_deployed", combined)
+        self.assertNotIn("RvkToBinary.to_binary_of_deployed", combined)
+        for old in (
+            "RvkFixedGenInst0.",
+            "RvkFixedSplitRung.",
+            "RvkFixedBaseLiteral.",
+            "RvkFixedBaseLadder.",
+            "RvkFixedBaseConstants.",
+            "RvkFixedRun.",
+        ):
+            self.assertNotIn(old, combined)
+
+    def test_provider_recovers_bit_vectors_constructively(self) -> None:
+        provider = next(
+            source
+            for path, source in self.outputs.items()
+            if path.name == gen.default_template_name(gen.TEMPLATE_KEY) + ".lean"
+        )
+        self.assertEqual(
+            provider.count(
+                "ChoiceFreeBinary.exists_bool_vector_of_to_binary"
+            ),
+            2,
+        )
+        self.assertEqual(provider.count("ScalarMulBridge.ofBitsLE_testBit"), 2)
+        self.assertNotIn("Fin.toBitsLE", provider)
+        self.assertNotIn("toBitsLE_get!_eq_testBit", provider)
+        self.assertIn(
+            "Shieldd.GnarkFormal.RvkBridge.genYNat]\n"
+            "  · exact Shieldd.GnarkFormal.RvkDeployedRung.addSpec_onCurve",
+            provider,
+        )
+
     def test_native_add_is_sharded_from_row_recovery_and_lc_normalization(self) -> None:
         native_add = next(
             text

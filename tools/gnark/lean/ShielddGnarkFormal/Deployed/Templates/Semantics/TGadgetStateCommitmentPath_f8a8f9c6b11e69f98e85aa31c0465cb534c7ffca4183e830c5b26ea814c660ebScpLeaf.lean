@@ -1,13 +1,16 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import Mathlib.Tactic.LinearCombination
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660ebScpBase
 import ShielddGnarkFormal.Deployed.StateCommitmentPathLeaf.SemanticBridge
-import ShielddGnarkFormal.Deployed.StateCommitmentPath.Projection
+import ShielddGnarkFormal.Deployed.StateCommitmentPath.ProjectionChoiceFree
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 set_option linter.unusedVariables false
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 theorem template_scp_leaf_eq (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relation rho) :
     seg13ScpLeafOut rho = Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1 (545001158149490383238005163525397553024965043366546261617421270984613353336 : F) (rho 1) := by
@@ -178,7 +181,7 @@ theorem template_scp_leaf_eq (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.
   rcases hs with ⟨x, y, ⟨rfl, rfl⟩, hs⟩
   simpa [seg13ScpLeafOut, Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf.s38_1,
     Shieldd.GnarkFormal.Deployed.Poseidon1Link.row2,
-    Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf.tctLeafDomainLit, Shieldd.GnarkFormal.Deployed.StateCommitmentPath.tctLeafDomainLit] using hs
+    Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf.tctLeafDomainLit, Shieldd.GnarkFormal.Deployed.StateCommitmentPathChoiceFree.tctLeafDomainLit] using hs
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
 

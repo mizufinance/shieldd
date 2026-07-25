@@ -1,8 +1,10 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode15350_83acd9
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 
 namespace Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode15
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon4Bridge
 
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode15350_83acd9.Order)]

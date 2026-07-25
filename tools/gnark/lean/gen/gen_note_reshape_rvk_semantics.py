@@ -16,9 +16,16 @@ from template_ir import SegmentTemplate
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
 IR = ROOT / "crates/core/component/shielded-pool/formal/note_reshape2x1-deployed-slice-ir.json"
+FORMAL_ROOT = LEAN / "ShielddGnarkFormal"
 RELATIONS = LEAN / "ShielddGnarkFormal/Deployed/Templates/Relations"
 OUT = LEAN / "ShielddGnarkFormal/Deployed/Templates/Semantics"
 BENCH = LEAN / "bench"
+FIXED_BASE_LITERAL = FORMAL_ROOT / "RvkFixedBaseLiteral.lean"
+FIXED_BASE_LITERAL_CHOICE_FREE = FORMAL_ROOT / "RvkFixedBaseLiteralChoiceFree.lean"
+FIXED_GEN = FORMAL_ROOT / "RvkFixedGenInst0"
+FIXED_GEN_CHOICE_FREE = FORMAL_ROOT / "RvkFixedGenInst0ChoiceFree"
+FIXED_GEN_FACADE = FORMAL_ROOT / "RvkFixedGenInst0.lean"
+FIXED_GEN_CHOICE_FREE_FACADE = FORMAL_ROOT / "RvkFixedGenInst0ChoiceFree.lean"
 
 KEY = "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f"
 NAME = "TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f"
@@ -160,7 +167,8 @@ def _local_cfg() -> dict:
 
 
 def _base() -> str:
-    return f"""import {RELATION_MODULE}
+    return f"""import ShielddGnarkFormal.ChoiceFreeZMod
+import {RELATION_MODULE}
 import ShielddGnarkFormal.Deployed.PrimeOrder
 import ShielddGnarkFormal.Decaf377Assumptions
 
@@ -168,6 +176,8 @@ set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 
 namespace {NAMESPACE}
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 def Order : Nat := {ORDER}
 abbrev F := ZMod Order
@@ -410,10 +420,179 @@ def _emit_structured_tail_helpers(
     lines.append("")
 
 
+def _choice_free_fixed_base_literal(source: str) -> str:
+    source = "import ShielddGnarkFormal.ChoiceFreeZMod\n" + source
+    replacements = (
+        (
+            "ShielddGnarkFormal.RvkFixedBaseConstants",
+            "ShielddGnarkFormal.RvkFixedBaseConstantsChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseConstants",
+            "Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree",
+        ),
+        (
+            "RvkFixedBaseRung.",
+            "RvkFixedBaseRungChoiceFree.",
+        ),
+        (
+            "RvkFixedBaseLadder.",
+            "RvkFixedBaseLadderChoiceFree.",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteral",
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree",
+        ),
+    )
+    for old, new in replacements:
+        source = source.replace(old, new)
+    anchor = "namespace Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree\n\n"
+    if source.count(anchor) != 1:
+        raise ValueError("choice-free RVK literal namespace anchor drifted")
+    return source.replace(
+        anchor,
+        anchor + "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
+        1,
+    )
+
+
+def _choice_free_fixed_gen(source: str) -> str:
+    source = "import ShielddGnarkFormal.ChoiceFreeZMod\n" + source
+    replacements = (
+        (
+            "ShielddGnarkFormal.RvkFixedGenInst0",
+            "ShielddGnarkFormal.RvkFixedGenInst0ChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedGenInst0",
+            "Shieldd.GnarkFormal.RvkFixedGenInst0ChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedBaseRung",
+            "ShielddGnarkFormal.RvkFixedBaseRungChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseRung",
+            "Shieldd.GnarkFormal.RvkFixedBaseRungChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedBaseLiteral",
+            "ShielddGnarkFormal.RvkFixedBaseLiteralChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteral",
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedBaseLadder",
+            "ShielddGnarkFormal.RvkFixedBaseLadderChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseLadder",
+            "Shieldd.GnarkFormal.RvkFixedBaseLadderChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseConstants",
+            "Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree",
+        ),
+        (
+            "RvkFixedBaseRung.",
+            "RvkFixedBaseRungChoiceFree.",
+        ),
+        (
+            "RvkFixedBaseLadder.",
+            "RvkFixedBaseLadderChoiceFree.",
+        ),
+    )
+    for old, new in replacements:
+        source = source.replace(old, new)
+    anchor = "namespace Shieldd.GnarkFormal.RvkFixedGenInst0ChoiceFree\n"
+    if source.count(anchor) != 1:
+        raise ValueError("choice-free RVK fixed-gen namespace anchor drifted")
+    return source.replace(
+        anchor,
+        anchor + "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+        1,
+    )
+
+
+def _choice_free_fixed_gen_facade(source: str) -> str:
+    old = "ShielddGnarkFormal.RvkFixedGenInst0."
+    new = "ShielddGnarkFormal.RvkFixedGenInst0ChoiceFree."
+    if source.count(old) != 31:
+        raise ValueError("RVK fixed-gen facade import set drifted")
+    return source.replace(old, new)
+
+
 def _rewrite(source: str) -> str:
     old_root = "ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1"
+    source = "import ShielddGnarkFormal.ChoiceFreeZMod\n" + source
     source = source.replace(old_root + ".RvkAdapterSeg15", MODULE_PREFIX)
     source = source.replace(old_root + ".Seg15", RELATION_MODULE)
+    replacements = (
+        (
+            "ShielddGnarkFormal.RvkFixedGenInst0",
+            "ShielddGnarkFormal.RvkFixedGenInst0ChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedGenInst0",
+            "Shieldd.GnarkFormal.RvkFixedGenInst0ChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedSplitRung",
+            "ShielddGnarkFormal.RvkFixedSplitRungChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedSplitRung",
+            "Shieldd.GnarkFormal.RvkFixedSplitRungChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedBaseLiteral",
+            "ShielddGnarkFormal.RvkFixedBaseLiteralChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteral",
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedBaseLadder",
+            "ShielddGnarkFormal.RvkFixedBaseLadderChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseLadder",
+            "Shieldd.GnarkFormal.RvkFixedBaseLadderChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseConstants",
+            "Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedRun",
+            "ShielddGnarkFormal.RvkFixedRunChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedRun",
+            "Shieldd.GnarkFormal.RvkFixedRunChoiceFree",
+        ),
+        (
+            "RvkFixedSplitRung.",
+            "RvkFixedSplitRungChoiceFree.",
+        ),
+        (
+            "RvkFixedBaseLadder.",
+            "RvkFixedBaseLadderChoiceFree.",
+        ),
+    )
+    for old, new in replacements:
+        source = source.replace(old, new)
+    source = source.replace(
+        "import ShielddGnarkFormal.RvkToBinary\n",
+        "import ShielddGnarkFormal.RvkToBinaryChoiceFree\n",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed",
+        "Shieldd.GnarkFormal.RvkToBinaryChoiceFree.to_binary_of_deployed",
+    )
     source = source.replace(
         "import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Specs.Rvk\n", ""
     )
@@ -426,6 +605,14 @@ def _rewrite(source: str) -> str:
     ).replace(
         "end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1", f"end {NAMESPACE}"
     )
+    namespace_anchor = f"namespace {NAMESPACE}\n"
+    if source.count(namespace_anchor) != 1:
+        raise ValueError("normalized RVK namespace anchor drifted")
+    source = source.replace(
+        namespace_anchor,
+        namespace_anchor + "\nopen scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+        1,
+    )
     source = source.replace("Seg15.F", "F")
     source = source.replace("Seg15.", RELATION + ".")
     source = source.replace("seg15", "rvk")
@@ -437,6 +624,67 @@ def _rewrite(source: str) -> str:
     source = source.replace(
         f"  unfold {RELATION}.spec Specs.deployedSpec15", "  unfold spec"
     )
+    classical_bit_model = f"""  rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
+    (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order)
+    Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order] at hbin
+  rcases hbin with ⟨hscalarLt, hbits⟩
+  let bitsBool := Fin.toBitsLE (⟨(rho 252).val, hscalarLt⟩ : Fin (2 ^ 251))
+  have hbitAt : ∀ i, i < 251 →
+      rho (1 + i) = Bool.toZMod bitsBool[i]! := by
+    intro i hi
+    rw [← rvkRvkBits_get rho i hi, hbits]
+    change (bitsBool.map Bool.toZMod)[i]! = Bool.toZMod bitsBool[i]!
+    rw [getElem!_pos (bitsBool.map Bool.toZMod) i (by simpa using hi),
+      getElem!_pos bitsBool i (by simpa using hi), List.Vector.getElem_map]
+"""
+    constructive_bit_model = f"""  obtain ⟨bitsBool, hbits, hscalarValue⟩ :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.exists_bool_vector_of_to_binary
+      Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order hbin
+  have hbitAt : ∀ i, i < 251 →
+      rho (1 + i) = Bool.toZMod bitsBool[i]! := by
+    intro i hi
+    rw [← rvkRvkBits_get rho i hi, hbits]
+    change (bitsBool.map Bool.toZMod)[i]! = Bool.toZMod bitsBool[i]!
+    rw [getElem!_pos (bitsBool.map Bool.toZMod) i (by simpa using hi),
+      getElem!_pos bitsBool i (by simpa using hi), List.Vector.getElem_map]
+"""
+    classical_scalar_bridge = """    (by
+      intro i _ hi
+      exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit
+        (rho 252).val hscalarLt i hi)
+"""
+    constructive_scalar_bridge = """    (by
+      intro i _ hi
+      rw [hscalarValue]
+      exact (Shieldd.GnarkFormal.ScalarMulBridge.ofBitsLE_testBit
+        bitsBool i hi).symm)
+"""
+    if "have hspec : Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec" in source:
+        if source.count(classical_bit_model) != 1:
+            raise ValueError("normalized RVK bit recovery shape drifted")
+        if source.count(classical_scalar_bridge) != 1:
+            raise ValueError("normalized RVK scalar bit bridge shape drifted")
+        source = source.replace(
+            classical_bit_model,
+            constructive_bit_model,
+            1,
+        ).replace(
+            classical_scalar_bridge,
+            constructive_scalar_bridge,
+            1,
+        )
+    stale_rfl = (
+        "      Shieldd.GnarkFormal.RvkBridge.genYNat]\n"
+        "    rfl\n"
+    )
+    if "have hspec : Shieldd.GnarkFormal.Decaf377Assumptions.RandomizedVerificationKeySpec" in source:
+        if source.count(stale_rfl) != 1:
+            raise ValueError("normalized RVK final simplification shape drifted")
+        source = source.replace(
+            stale_rfl,
+            "      Shieldd.GnarkFormal.RvkBridge.genYNat]\n",
+            1,
+        )
     return source
 
 
@@ -477,7 +725,17 @@ def generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
         certs = [rvk.split_cert(15, cfg, k) for k in range(rvk.CONT_START, rvk.TOTAL_N + 1)]
         prefix_certs = [rvk.prefix_cert(15, cfg, k) for k in range(1, rvk.PREFIX_N + 1)]
         prefix_chunks = rvk.chunks(prefix_certs, PROOF_RUNG_CHUNK_SIZE)
-        outputs: dict[Path, str] = {out / f"{NAME}RvkBase.lean": _base()}
+        outputs: dict[Path, str] = {
+            out / f"{NAME}RvkBase.lean": _base(),
+            FIXED_BASE_LITERAL_CHOICE_FREE:
+                _choice_free_fixed_base_literal(FIXED_BASE_LITERAL.read_text()),
+            FIXED_GEN_CHOICE_FREE_FACADE:
+                _choice_free_fixed_gen_facade(FIXED_GEN_FACADE.read_text()),
+        }
+        for path in sorted(FIXED_GEN.glob("*.lean")):
+            outputs[FIXED_GEN_CHOICE_FREE / path.name] = _choice_free_fixed_gen(
+                path.read_text()
+            )
         previous = f"{MODULE_PREFIX}Base"
         for xy in ("X", "Y"):
             for index, states in enumerate(rvk.acc_state_chunks()):

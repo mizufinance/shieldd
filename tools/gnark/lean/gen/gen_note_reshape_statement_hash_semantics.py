@@ -28,6 +28,8 @@ OUT = LEAN / "ShielddGnarkFormal/Deployed/Templates/Semantics"
 GENDATA = Path(__file__).with_name("statement_hash_gendata.json")
 INVENTORY = ROOT / "tools/gnark/artifacts/note-reshape-template-inventory.json"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
+CHOICE_FREE_ZMOD_IMPORT = "import ShielddGnarkFormal.ChoiceFreeZMod\n"
+CHOICE_FREE_ZMOD_SCOPE = "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n"
 
 
 @dataclass(frozen=True)
@@ -619,7 +621,8 @@ def _render_fixed(provider: Provider) -> str:
                 f"{trace}.roundConstants0[{lane}]) := by\n"
                 f"  norm_num [Order, F, {trace}.Order, b{block.index}l{lane}, Shieldd.GnarkFormal.Poseidon7Bridge.p17, "
                 f"{trace}.roundConstants0, {trace}.domainLit, {trace}.pad0Lit, {trace}.pad1Lit]\n"
-                f"  exact (ZMod.natCast_eq_natCast_iff' {output} {base ** 17} Order).mpr (by decide)"
+                f"  exact Shieldd.GnarkFormal.ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq "
+                f"Order {output} {base ** 17} (by decide) (by decide)"
             )
     return f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}TraceBase
 import ShielddGnarkFormal.Deployed.StatementHashDeployedBridge
@@ -882,7 +885,8 @@ def _render_row_normalization(provider: Provider, block: Block, round_index: int
         folded = block.states[round_index][lane].const
         normalization = (
             "  norm_num; linear_combination "
-            f"(ZMod.natCast_eq_natCast_iff' {unfolded} {folded} Order).mpr (by decide)"
+            "Shieldd.GnarkFormal.ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq "
+            f"Order {unfolded} {folded} (by decide) (by decide)"
         )
     return f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}TraceBlock{block.index}Round{round_index}
 import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}Fixed
@@ -1190,7 +1194,19 @@ def _provider_files(provider: Provider) -> dict[Path, str]:
             outputs[OUT / f"{name}Block{block.index}Range{range_index}.lean"] = _render_range(provider, block, range_index)
         outputs[OUT / f"{name}Block{block.index}.lean"] = _render_block(provider, block)
     outputs[OUT / f"{name}.lean"] = _render_provider(provider)
-    return outputs
+    normalized = {}
+    for path, source in outputs.items():
+        source = CHOICE_FREE_ZMOD_IMPORT + source
+        namespace = re.search(r"(?m)^namespace [^\n]+\n", source)
+        if namespace is not None:
+            source = (
+                source[: namespace.end()]
+                + "\n"
+                + CHOICE_FREE_ZMOD_SCOPE
+                + source[namespace.end() :]
+            )
+        normalized[path] = source
+    return normalized
 
 
 def generated_files() -> dict[Path, str]:
@@ -1227,6 +1243,7 @@ def _validate_outputs(outputs: dict[Path, str]) -> None:
         "native_decide",
         "axiom ",
         "def spec (rho : Nat → F) : Prop := relation rho",
+        "ZMod.natCast_eq_natCast_iff'",
         "\n  fr8 (",
         "\n  pr8 (",
     )

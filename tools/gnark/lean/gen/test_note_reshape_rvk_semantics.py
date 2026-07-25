@@ -12,7 +12,7 @@ class NoteReshapeRvkSemanticsTest(unittest.TestCase):
         cls.outputs = rvk.generated_files()
 
     def test_exact_output_set_and_provider_namespace(self) -> None:
-        self.assertEqual(len(self.outputs), 817)
+        self.assertEqual(len(self.outputs), 850)
         provider = self.outputs[rvk.OUT / f"{rvk.NAME}.lean"]
         self.assertIn(f"namespace {rvk.NAMESPACE}\n", provider)
         self.assertNotIn(".RvkSupport", "\n".join(self.outputs.values()))
@@ -55,7 +55,7 @@ class NoteReshapeRvkSemanticsTest(unittest.TestCase):
                     f"  have hsTail{index + 1} :=", start
                 )
             else:
-                end = source.index("  let bitsBool", start)
+                end = source.index("  have hbitAt", start)
             actual_rows = [
                 int(row) for row in re.findall(r"\br(\d+)\b", source[start:end])
             ]
@@ -123,6 +123,78 @@ class NoteReshapeRvkSemanticsTest(unittest.TestCase):
         for path, source in self.outputs.items():
             for marker in forbidden:
                 self.assertNotIn(marker, source, f"{path}: {marker}")
+
+    def test_binary_recovery_uses_choice_free_zmod_boundary(self) -> None:
+        source = self.outputs[rvk.OUT / f"{rvk.NAME}RvkBits.lean"]
+        self.assertIn(
+            "import ShielddGnarkFormal.RvkToBinaryChoiceFree\n",
+            source,
+        )
+        self.assertIn(
+            "Shieldd.GnarkFormal.RvkToBinaryChoiceFree.to_binary_of_deployed",
+            source,
+        )
+        self.assertNotIn("ShielddGnarkFormal.RvkToBinary\n", source)
+        self.assertNotIn(
+            "Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed",
+            source,
+        )
+
+    def test_entire_normalized_ladder_uses_choice_free_boundaries(self) -> None:
+        generated = "\n".join(
+            source
+            for path, source in self.outputs.items()
+            if path.parent == rvk.OUT
+        )
+        for marker in (
+            "RvkFixedGenInst0ChoiceFree",
+            "RvkFixedSplitRungChoiceFree",
+            "RvkFixedBaseLiteralChoiceFree",
+            "RvkFixedBaseLadderChoiceFree",
+            "RvkFixedBaseConstantsChoiceFree",
+            "RvkFixedRunChoiceFree",
+        ):
+            self.assertIn(marker, generated)
+        for marker in (
+            "ShielddGnarkFormal.RvkFixedGenInst0\n",
+            "ShielddGnarkFormal.RvkFixedSplitRung\n",
+            "ShielddGnarkFormal.RvkFixedBaseLiteral\n",
+            "ShielddGnarkFormal.RvkFixedBaseLadder\n",
+            "Shieldd.GnarkFormal.RvkFixedGenInst0.",
+            "Shieldd.GnarkFormal.RvkFixedSplitRung.",
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteral.",
+            "Shieldd.GnarkFormal.RvkFixedBaseLadder.",
+            "Shieldd.GnarkFormal.RvkFixedBaseConstants.",
+            "Shieldd.GnarkFormal.RvkFixedRun.",
+            "ScalarMulBridge.toBitsLE_get!_eq_testBit",
+        ):
+            self.assertNotIn(marker, generated)
+        literal = self.outputs[rvk.FIXED_BASE_LITERAL_CHOICE_FREE]
+        self.assertIn(
+            "namespace Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree",
+            literal,
+        )
+        fixed_gen = {
+            path.name: source
+            for path, source in self.outputs.items()
+            if path.parent == rvk.FIXED_GEN_CHOICE_FREE
+        }
+        self.assertEqual(len(fixed_gen), 31)
+        self.assertIn("Base.lean", fixed_gen)
+        for name, source in fixed_gen.items():
+            self.assertIn(
+                "namespace Shieldd.GnarkFormal.RvkFixedGenInst0ChoiceFree",
+                source,
+                name,
+            )
+            self.assertIn(
+                "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
+                source,
+                name,
+            )
+        facade = self.outputs[rvk.FIXED_GEN_CHOICE_FREE_FACADE]
+        self.assertEqual(facade.count("RvkFixedGenInst0ChoiceFree."), 31)
+        self.assertNotIn("RvkFixedGenInst0.", facade)
 
     def test_benchmark_candidates_are_an_exact_importable_subset(self) -> None:
         candidates = (

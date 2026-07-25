@@ -269,6 +269,7 @@ def gen_level(level, sr1cs_rows, cs, tct_domain):
     module = f"{camel(op)}350_{sh[:6]}"
 
     lean = [
+        "import ShielddGnarkFormal.ChoiceFreeZMod\n",
         "import ProvenZk.Gates\n",
         "import ShielddGnarkFormal.Extracted.PoseidonHash4\n\n",
         "set_option linter.unusedVariables false\n",
@@ -278,6 +279,7 @@ def gen_level(level, sr1cs_rows, cs, tct_domain):
         "(size 350, 70 segments of 5 rows).\n",
         f"Generated from note_reshape2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
         f"namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n",
+        "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
         "abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.PoseidonHash4.Order\n",
         "variable [Fact (Nat.Prime Order)]\n",
         "abbrev F := Shieldd.GnarkFormal.Extracted.PoseidonHash4.F\n\n",
@@ -319,11 +321,13 @@ def gen_level(level, sr1cs_rows, cs, tct_domain):
     gd_path = pathlib.Path(__file__).resolve().parent / f"state_commitment_node{level}_gendata.json"
     write_if_changed(gd_path, json.dumps(gendata, indent=2) + "\n")
 
-    shim = f"""import ShielddGnarkFormal.Extracted.Deployed.{module}
+    shim = f"""import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.Extracted.Deployed.{module}
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 
 namespace Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode{level}
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon4Bridge
 
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.{module}.Order)]
@@ -400,6 +404,7 @@ def gen_leaf(sr1cs_rows, tct_domain):
     module = f"{camel(op)}230_{sh[:6]}"
 
     lean = [
+        "import ShielddGnarkFormal.ChoiceFreeZMod\n",
         "import ProvenZk.Gates\n",
         "import ShielddGnarkFormal.Extracted.PoseidonHash1\n\n",
         "set_option linter.unusedVariables false\n",
@@ -409,6 +414,7 @@ def gen_leaf(sr1cs_rows, tct_domain):
         "(size 230, 46 segments of 5 rows).\n",
         f"Generated from note_reshape2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
         f"namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n",
+        "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
         "abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.PoseidonHash1.Order\n",
         "variable [Fact (Nat.Prime Order)]\n",
         "abbrev F := Shieldd.GnarkFormal.Extracted.PoseidonHash1.F\n\n",
@@ -443,12 +449,14 @@ def gen_leaf(sr1cs_rows, tct_domain):
         json.dumps(gendata, indent=2) + "\n",
     )
 
-    shim = f"""import ShielddGnarkFormal.Extracted.Deployed.{module}
+    shim = f"""import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.Extracted.Deployed.{module}
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 import ShielddGnarkFormal.Poseidon1Bridge
 
 namespace Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon1Bridge
 
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.{module}.Order)]

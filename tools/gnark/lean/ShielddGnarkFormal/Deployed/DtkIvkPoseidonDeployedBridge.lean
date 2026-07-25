@@ -1,7 +1,10 @@
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import ShielddGnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7
 import ShielddGnarkFormal.Poseidon2Bridge
 
 namespace Shieldd.GnarkFormal.Deployed.DtkIvkPoseidon
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon2Bridge
 

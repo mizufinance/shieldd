@@ -1,4 +1,5 @@
 import ProvenZk.Gates
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Extracted.Poseidon2
 
 set_option linter.unusedVariables false
@@ -6,6 +7,8 @@ set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Extracted.Deployed.DtkIvkPoseidon270_e622e7
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.Poseidon2.Order
 variable [Fact (Nat.Prime Order)]

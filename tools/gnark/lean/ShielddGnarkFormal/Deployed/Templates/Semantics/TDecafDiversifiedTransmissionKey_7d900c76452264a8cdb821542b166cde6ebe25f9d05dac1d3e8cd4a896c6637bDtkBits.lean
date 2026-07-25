@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.RvkToBinaryChoiceFree
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkBase
 import ShielddGnarkFormal.Deployed.Templates.Semantics.BinaryRecomposition
 import ShielddGnarkFormal.RvkToBinary
@@ -295,7 +296,7 @@ theorem dtkIvk_toBinary (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templ
     rw [hrecover]
     rw [powSumAcc_eq] at hacc
     simpa using hacc
-  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho 977) (dtkIvkBits rho)
+  apply Shieldd.GnarkFormal.RvkToBinaryChoiceFree.to_binary_of_deployed (rho 977) (dtkIvkBits rho)
   · intro i hi
     have key : (dtkIvkBits rho)[i] = rho (983 + i) := by
       conv_lhs => rw [List.Vector.getElem_def]

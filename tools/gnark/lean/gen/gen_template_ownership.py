@@ -30,6 +30,29 @@ IR_PATHS = tuple(
 )
 SHARED_SEMANTICS = (
     "tools/gnark/lean/ShielddGnarkFormal/NbFixedBaseLiteral.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/NbFixedBaseLiteralChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg46ChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZMod.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZModCast.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeIvkBinary.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/IvkModRTruncation.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/RvkToBinaryChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/RvkFixedBaseConstantsChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/RvkFixedBaseLadderChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/RvkFixedBaseLiteralChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/RvkFixedGenInst0ChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/RvkFixedBaseRungChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/RvkFixedSplitRungChoiceFree.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/RvkFixedRunChoiceFree.lean",
+    *(
+        str(path.relative_to(ROOT))
+        for path in sorted(
+            (LEAN / "ShielddGnarkFormal/RvkFixedGenInst0ChoiceFree").glob("*.lean")
+        )
+    ),
+    "tools/gnark/lean/ShielddGnarkFormal/Deployed/Dtk/OutputCurve.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/Deployed/NetBalance/ChoiceFreeLadder.lean",
+    "tools/gnark/lean/ShielddGnarkFormal/Deployed/StateCommitmentPath/ProjectionChoiceFree.lean",
     "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/BinaryRecomposition.lean",
     "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/CompressToFieldCommon.lean",
     "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/Poseidon3Trace.lean",

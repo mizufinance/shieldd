@@ -630,6 +630,7 @@ import {module_prefix}{first.label}Trace
 import {module_prefix}{second.label}Trace
 import {module_prefix}NativeAdd
 import ShielddGnarkFormal.Decaf377Assumptions
+import ShielddGnarkFormal.ChoiceFreeBinary
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -655,13 +656,12 @@ def spec (rho : Nat -> F) : Prop :=
 theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
   have hFirstBin := dummyRvk{first.label}Bits_toBinary rho h
   have hSecondBin := dummyRvk{second.label}Bits_toBinary rho h
-  rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
-    (N := Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order)
-    Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order] at hFirstBin hSecondBin
-  rcases hFirstBin with ⟨hFirstLt, hFirstBits⟩
-  rcases hSecondBin with ⟨hSecondLt, hSecondBits⟩
-  let firstBits := Fin.toBitsLE (⟨(rho {first.scalar_wire}).val, hFirstLt⟩ : Fin (2 ^ 251))
-  let secondBits := Fin.toBitsLE (⟨(rho {second.scalar_wire}).val, hSecondLt⟩ : Fin (2 ^ 251))
+  obtain ⟨firstBits, hFirstBits, hFirstScalarValue⟩ :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.exists_bool_vector_of_to_binary
+      Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order hFirstBin
+  obtain ⟨secondBits, hSecondBits, hSecondScalarValue⟩ :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.exists_bool_vector_of_to_binary
+      Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order hSecondBin
   have hFirst := dummyRvk{first.label}_trace rho h firstBits hFirstBits
   have hSecond := dummyRvk{second.label}_trace rho h secondBits hSecondBits
   let p := dummyRvk{first.label}AccState rho 251
@@ -675,15 +675,17 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
       (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) (by omega)
       (by
         intro i _ hi
-        exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit
-          (rho {first.scalar_wire}).val hFirstLt i hi)
+        rw [hFirstScalarValue]
+        exact (Shieldd.GnarkFormal.ScalarMulBridge.ofBitsLE_testBit
+          firstBits i hi).symm)
   have hSecondModel := Shieldd.GnarkFormal.ScalarMulBridge.scalarMulFromBits_toA
     secondBits (rho {second.scalar_wire}) 251 0 ⟨0, 1⟩
       (Shieldd.GnarkFormal.RvkFixedBaseConstants.C 0) (by omega)
       (by
         intro i _ hi
-        exact Shieldd.GnarkFormal.ScalarMulBridge.toBitsLE_get!_eq_testBit
-          (rho {second.scalar_wire}).val hSecondLt i hi)
+        rw [hSecondScalarValue]
+        exact (Shieldd.GnarkFormal.ScalarMulBridge.ofBitsLE_testBit
+          secondBits i hi).symm)
   have heq := EdwardsBridge.addSpec_eq p q ⟨rho {OUT_X}, rho {OUT_Y}⟩ hp hq hadd
   have hfinal : Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk
       (rho {OUT_X}) (rho {OUT_Y}) =
@@ -703,11 +705,94 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
       Shieldd.GnarkFormal.RvkFixedBaseConstants.generator,
       Shieldd.GnarkFormal.RvkBridge.genXNat,
       Shieldd.GnarkFormal.RvkBridge.genYNat]
-    rfl
   · exact Shieldd.GnarkFormal.RvkDeployedRung.addSpec_onCurve hp hq hadd
 
 end {provider_ns}
 """
+
+
+def _choice_free_output(source: str, namespace: str) -> str:
+    """Route every normalized dummy-RVK module through constructive ZMod support."""
+    if "import ShielddGnarkFormal.ChoiceFreeZMod\n" not in source:
+        source = source.replace(
+            "import ",
+            "import ShielddGnarkFormal.ChoiceFreeZMod\nimport ",
+            1,
+        )
+    replacements = (
+        (
+            "ShielddGnarkFormal.RvkFixedGenInst0",
+            "ShielddGnarkFormal.RvkFixedGenInst0ChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedGenInst0",
+            "Shieldd.GnarkFormal.RvkFixedGenInst0ChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedSplitRung",
+            "ShielddGnarkFormal.RvkFixedSplitRungChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedSplitRung",
+            "Shieldd.GnarkFormal.RvkFixedSplitRungChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedBaseLiteral",
+            "ShielddGnarkFormal.RvkFixedBaseLiteralChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteral",
+            "Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedBaseLadder",
+            "ShielddGnarkFormal.RvkFixedBaseLadderChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseLadder",
+            "Shieldd.GnarkFormal.RvkFixedBaseLadderChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedBaseConstants",
+            "Shieldd.GnarkFormal.RvkFixedBaseConstantsChoiceFree",
+        ),
+        (
+            "ShielddGnarkFormal.RvkFixedRun",
+            "ShielddGnarkFormal.RvkFixedRunChoiceFree",
+        ),
+        (
+            "Shieldd.GnarkFormal.RvkFixedRun",
+            "Shieldd.GnarkFormal.RvkFixedRunChoiceFree",
+        ),
+        (
+            "RvkFixedSplitRung.",
+            "RvkFixedSplitRungChoiceFree.",
+        ),
+        (
+            "RvkFixedBaseLadder.",
+            "RvkFixedBaseLadderChoiceFree.",
+        ),
+    )
+    for old, new in replacements:
+        source = source.replace(old, new)
+    source = source.replace(
+        "import ShielddGnarkFormal.RvkToBinary\n",
+        "import ShielddGnarkFormal.RvkToBinaryChoiceFree\n",
+    )
+    source = source.replace(
+        "Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed",
+        "Shieldd.GnarkFormal.RvkToBinaryChoiceFree.to_binary_of_deployed",
+    )
+    anchor = f"namespace {namespace}\n"
+    if source.count(anchor) != 1:
+        raise ValueError(f"dummy RVK choice-free namespace anchor drifted: {namespace}")
+    return source.replace(
+        anchor,
+        anchor
+        + "\nattribute [-instance] ZMod.instField\n"
+        + "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+        1,
+    )
 
 
 def benchmark_candidates(
@@ -784,6 +869,14 @@ def generated_dummy_rvk_semantic_files(
     outputs[out / f"{name}.lean"] = GENERATED_HEADER + _emit_provider(
         name, module_root, support_ns, relation
     )
+    provider_path = out / f"{name}.lean"
+    for path, source in tuple(outputs.items()):
+        target_namespace = (
+            f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}"
+            if path == provider_path
+            else support_ns
+        )
+        outputs[path] = _choice_free_output(source, target_namespace)
     forbidden = (
         "fun _ h => h", "spec (rho : Nat -> F) : Prop :=\n  relation rho",
         "axiom ", "native_decide", "identity semantics",

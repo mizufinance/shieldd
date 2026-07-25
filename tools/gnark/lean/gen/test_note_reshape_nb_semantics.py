@@ -49,7 +49,7 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
             self.assertEqual(conservation[2], {wire: 1 for wire in template.output_wires})
 
     def test_generated_file_set_and_bytes_are_pinned(self) -> None:
-        self.assertEqual(len(self.outputs), 255)
+        self.assertEqual(len(self.outputs), 257)
         provider_names = {
             gen.default_template_name(template.key) + ".lean"
             for template in gen.NB_TEMPLATES
@@ -69,10 +69,42 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, combined)
         self.assertIn("scalarMulLE 251", combined)
-        self.assertIn("range_of_to_binary", combined)
+        self.assertIn("ChoiceFreeBinary.range_of_to_binary", combined)
+        self.assertNotIn(
+            "ConservationNetBalanceCommitmentBridge.range_of_to_binary",
+            combined,
+        )
         self.assertIn("ScalarMulBridge.pow128_lt_order", combined)
         self.assertIn("open Shieldd.GnarkFormal.ScalarMulBridge", combined)
         self.assertIn("nb_conservation", combined)
+        self.assertIn("NetBalanceChoiceFree.fixedTrace_to_scalarMulLE", combined)
+        self.assertIn("RvkToBinaryChoiceFree.to_binary_of_deployed", combined)
+        self.assertNotIn("NetBalance.fixedTrace_to_nbLadderK", combined)
+        self.assertNotIn("NetBalanceCommitmentBridge.nbLadder", combined)
+
+    def test_choice_free_shared_certificates_are_generated(self) -> None:
+        literal = self.outputs[gen.FIXED_BASE_LITERAL_CHOICE_FREE]
+        fixed_gen = self.outputs[gen.FIXED_GEN_CHOICE_FREE]
+        self.assertIn(
+            "namespace Shieldd.GnarkFormal.NbFixedBaseLiteralChoiceFree",
+            literal,
+        )
+        self.assertIn(
+            "open Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree",
+            literal,
+        )
+        self.assertIn(
+            "namespace Shieldd.GnarkFormal.NbFixedGenSeg46ChoiceFree",
+            fixed_gen,
+        )
+        self.assertIn(
+            "open Shieldd.GnarkFormal.NbFixedBaseLiteralChoiceFree",
+            fixed_gen,
+        )
+        self.assertNotIn(
+            "open Shieldd.GnarkFormal.Deployed.NetBalance (",
+            literal + fixed_gen,
+        )
 
     def test_registry_drift_fails_closed(self) -> None:
         template = replace(gen.NB_TEMPLATES[0], key="decaf.conservation_net_balance_commitment@deadbeef")
@@ -89,7 +121,12 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
 
     def test_segment_namespace_rewrite_is_token_bounded(self) -> None:
         template = gen.NB_TEMPLATES[0]
-        source = "apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung141_wide\nexact Seg46.relationRow0\n"
+        source = (
+            "namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n\n"
+            "apply Shieldd.GnarkFormal.NbFixedGenSeg46.rung141_wide\n"
+            "exact Seg46.relationRow0\n"
+            "\nend Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1\n"
+        )
         rewritten = gen._rewrite(
             source,
             template,
@@ -97,7 +134,7 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
             "Template.Namespace",
             "Template.Relation",
         )
-        self.assertIn("NbFixedGenSeg46.rung141_wide", rewritten)
+        self.assertIn("NbFixedGenSeg46ChoiceFree.rung141_wide", rewritten)
         self.assertIn("Template.Relation.relationRow0", rewritten)
         self.assertNotIn("NbFixedGenTemplate.Relation", rewritten)
 

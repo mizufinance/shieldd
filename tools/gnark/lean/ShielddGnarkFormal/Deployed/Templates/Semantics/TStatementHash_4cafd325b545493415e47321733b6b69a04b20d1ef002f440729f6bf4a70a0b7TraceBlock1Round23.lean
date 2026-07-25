@@ -1,9 +1,12 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7TraceBlock1Round22
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
 
 namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.Trace
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 def state1_23 (rho : Nat → F) : List.Vector F 8 :=
   Shieldd.GnarkFormal.Poseidon7Bridge.pr8 (state1_22 rho) roundConstants23

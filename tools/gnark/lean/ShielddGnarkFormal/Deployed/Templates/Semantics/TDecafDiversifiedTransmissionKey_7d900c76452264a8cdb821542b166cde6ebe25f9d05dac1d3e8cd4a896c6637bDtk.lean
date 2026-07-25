@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.IvkModRTruncation
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkCanon
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkLt
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkPoseidon
@@ -37,7 +38,7 @@ theorem dtk_dtkSeg0 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates
   have hladders := (Shieldd.GnarkFormal.DtkBridge.dtkTailK_laddersTail
     _ _ _ htailT).1
   have hScalarBinary : GatesDef.to_binary (rho 977) 251 (dtkScalarBits rho) :=
-    Shieldd.GnarkFormal.Extracted.IvkModR.laddersTail_to_binary_251 (rho 978) (rho 977)
+    Shieldd.GnarkFormal.Extracted.IvkModR.Truncation.laddersTail_to_binary_251 (rho 978) (rho 977)
       (dtkIvkBits rho) (dtkScalarBits rho) hIvkBinary hladders
       (by
         intro i

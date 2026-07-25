@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.Extracted.PoseidonHash7
 import ShielddGnarkFormal.Poseidon377
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import ProvenZk.Gates
 
 set_option maxRecDepth 100000
@@ -73,7 +74,8 @@ theorem natCastSum8MulEq
   have hCast :
       ((a0 * b0 + a1 * b1 + a2 * b2 + a3 * b3 +
         a4 * b4 + a5 * b5 + a6 * b6 + a7 * b7 : Nat) : F) = (folded : F) :=
-    (ZMod.natCast_eq_natCast_iff' _ _ Order).mpr h
+    Shieldd.GnarkFormal.ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq
+      Order _ _ (by decide) h
   norm_num only [Nat.cast_add, Nat.cast_mul] at hCast
   exact hCast
 

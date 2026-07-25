@@ -59,8 +59,8 @@ Go Define source
   -> typed slice IR and verified proof-template equivalence witness
   -> reviewed proof-template registry and normalized coverage manifest
   -> exact generated row contracts
-  -> generated named Wiring and exhaustive Capstone
-  -> generated family role map and Statement theorem
+  -> generated template Bounds and exhaustive Capstone
+  -> generated role-partitioned Statement theorem
   -> deployed PK/VK pins and a deployed-key prove/verify round trip
 ```
 
@@ -72,7 +72,7 @@ equations, or unmatched templates fail closed as unreviewed. Broader polynomial
 equivalence and variable elimination are intentionally out of scope.
 
 Changing Go source, segment boundaries, operation labels, wire roles,
-proof-class status, theorem names, named wiring, capstone membership, Statement
+proof-class status, theorem names, capstone membership, Statement
 membership, key bytes, or generated output makes a gate fail unless the change
 is covered by a verified local-equivalence witness. Generated Lean must be
 fixed through its generator and then regenerated; never edit it directly.

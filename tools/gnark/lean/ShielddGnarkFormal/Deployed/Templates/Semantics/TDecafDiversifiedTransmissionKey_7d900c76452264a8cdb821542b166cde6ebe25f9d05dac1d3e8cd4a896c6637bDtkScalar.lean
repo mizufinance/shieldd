@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.Deployed.Dtk.OutputCurve
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkScalarDefs
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkScalarR0
 import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637bDtkScalarR1
@@ -163,7 +164,7 @@ theorem dtk_scalar_ladder (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Tem
     intro hacc
     unfold Shieldd.GnarkFormal.ScalarMulBridge.finalKWithOutputCurve GatesDef.eq
     refine ⟨rfl, rfl, ?_⟩
-    apply Shieldd.GnarkFormal.Deployed.Dtk.outputCurveGates_of_onCurve
+    apply Shieldd.GnarkFormal.Deployed.Dtk.OutputCurve.outputCurveGates_of_onCurve
     have hacc' : EdwardsBridge.onCurve ⟨(dtkAccX251 rho : F), (dtkAccY251 rho : F)⟩ := hacc
     simpa only [dtkOutX, dtkOutY] using hacc'
   rw [hbits]

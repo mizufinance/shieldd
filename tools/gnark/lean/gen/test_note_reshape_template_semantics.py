@@ -46,6 +46,15 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
         self.assertEqual(len(expected), 48)
         self.assertEqual(actual, expected)
 
+    def test_small_providers_use_choice_free_zmod_instances(self) -> None:
+        source = gen.render_small_provider(gen.DUMMY_MUX)
+        self.assertIn("import ShielddGnarkFormal.ChoiceFreeZMod\n", source)
+        self.assertIn("attribute [-instance] ZMod.instField\n", source)
+        self.assertIn(
+            "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n",
+            source,
+        )
+
     def test_generated_family_filenames_use_note_reshape_vocabulary(self) -> None:
         legacy_direction = "con" + "solidate"
         for path in self.outputs:
@@ -99,6 +108,18 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
         self.assertEqual(len(shared), 40)
         self.assertIn("Poseidon3Trace.lean", shared)
         self.assertIn("Poseidon3ScalarBase.lean", shared)
+        for name, text in shared.items():
+            self.assertIn(
+                "import ShielddGnarkFormal.ChoiceFreeZMod",
+                text,
+                name,
+            )
+            self.assertIn("attribute [-instance] ZMod.instField", text, name)
+            self.assertIn(
+                "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
+                text,
+                name,
+            )
         for gate in range(1, 39):
             name = f"Poseidon3ScalarRound{gate:02d}.lean"
             text = shared[name]
@@ -169,6 +190,17 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
         self.assertEqual({gate for _, gate, _, _ in lanes}, set(range(39)))
         self.assertEqual({lane for _, _, lane, _ in lanes}, set(range(4)))
         for name, gate, lane, text in lanes:
+            self.assertIn(
+                "import ShielddGnarkFormal.ChoiceFreeZModCast",
+                text,
+                name,
+            )
+            self.assertIn("attribute [-instance] ZMod.instField", text, name)
+            self.assertIn(
+                "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
+                text,
+                name,
+            )
             scalar_module = (
                 "Poseidon3ScalarBase"
                 if gate == 0
@@ -202,7 +234,11 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
         key = next(iter(gen.SYNTHETIC_DUMMY_NULLIFIER))
         name = gen.template_name(key)
         gate1 = self.outputs[gen.OUT / f"{name}Round1Lane0.lean"]
-        self.assertIn("ZMod.natCast_eq_natCast_iff'", gate1)
+        self.assertIn(
+            "ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq",
+            gate1,
+        )
+        self.assertNotIn("ZMod.natCast_eq_natCast_iff'", gate1)
         self.assertIn("linear_combination hc", gate1)
         self.assertRegex(gate1, r"  rw \[ha0, ha1, ha2, ha3\]\n\nend ")
         self.assertNotRegex(gate1, r"rw \[ha0, ha1, ha2, ha3\]\n\s+rfl")
@@ -227,6 +263,27 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             if not any(marker in name for marker in ("Part", "Round", "Range", "Fixed"))
         ]
         self.assertEqual(len(mains), 8)
+
+    def test_every_synthetic_provider_shard_is_choice_free(self) -> None:
+        synthetic = [
+            (path.name, text)
+            for path, text in self.outputs.items()
+            if "SyntheticDummyNullifier" in path.name
+        ]
+        self.assertEqual(len(synthetic), 8 * (61 + 39 * 4 + 9 + 1 + 1))
+        for name, text in synthetic:
+            self.assertIn(
+                "import ShielddGnarkFormal.ChoiceFreeZModCast",
+                text,
+                name,
+            )
+            self.assertIn("attribute [-instance] ZMod.instField", text, name)
+            self.assertIn(
+                "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod",
+                text,
+                name,
+            )
+            self.assertNotIn("ZMod.natCast_eq_natCast_iff'", text, name)
 
     def test_synthetic_aggregators_install_the_prime_instance(self) -> None:
         synthetic_aggregators = {

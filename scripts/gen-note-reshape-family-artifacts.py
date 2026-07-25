@@ -101,13 +101,19 @@ def main() -> None:
     args = parser.parse_args()
     for circuit in FAMILIES:
         path = FORMAL / f"{circuit}-whole-circuit-lean-artifact.txt"
+        sidecar = Path(f"{path}.sha256")
         contents = render(circuit)
+        digest = hashlib.sha256(contents.encode()).hexdigest() + "\n"
         if args.check:
             if path.read_text() != contents:
                 raise SystemExit(f"stale family artifact: {path}")
+            if not sidecar.is_file() or sidecar.read_text() != digest:
+                raise SystemExit(f"stale family artifact sidecar: {sidecar}")
         else:
             if write_if_changed(path, contents):
                 print(f"wrote {path}")
+            if write_if_changed(sidecar, digest):
+                print(f"wrote {sidecar}")
 
 
 if __name__ == "__main__":
