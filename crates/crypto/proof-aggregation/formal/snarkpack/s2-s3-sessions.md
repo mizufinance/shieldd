@@ -2093,3 +2093,27 @@ F04B-2 verification:
   exactly `propext`, `Classical.choice`, and `Quot.sound`; the changed Lean
   files contain no `sorry` and declare no axioms.
 - Prover, release, and release-gated tests were not run.
+
+### FV simplification WS1--WS6 (2026-07-25)
+
+- **WS1 — COMPLETE** (`3268e9f8f`): repaired extraction provenance and
+  introduced the canonical 32-graph manifest with reproducible normalized
+  outputs and source/parity freshness pins.
+- **WS2 — COMPLETE** (`512c1a393`): retired the obsolete pre-Lean registry
+  stack and updated all in-repo callers to the manifest-backed design.
+- **WS3 — COMPLETE** (`512c1a393`, `fc279d672`): retired the
+  lean-conformance and trace-schema crates while preserving the F*/hax
+  extraction boundary.
+- **WS4 — COMPLETE** (`ee81bfaa6`): reduced the reference crate to the
+  retained two-way interoperability oracle and removed the fuzz crate's
+  obsolete dependency.
+- **WS5 — COMPLETE** (`893d650aa`): unified extraction reproduction, parity,
+  the single-threaded Lean build, and the 145-capstone allowlist audit under
+  `snarkpack-fv`; split the runtime invariant checks from the unchanged F*
+  gate.
+- **WS6 — COMPLETE** (this worktree): revalidated and refreshed the seven
+  stale `groth16_aggregation.rs` graph inputs with byte-identical outputs,
+  rewrote the formal handoff around the final conditional claim and exact
+  standing boundaries, and folded the GAP-14 retirement directly into the
+  reached BLS12-377 aggregate boundary. Final FV: 3813 Lean jobs and 145
+  audited capstones.
