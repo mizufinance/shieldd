@@ -35,6 +35,7 @@ class ExtractionManifestTests(unittest.TestCase):
 
     def test_real_manifest_schema_hashes_and_exact_coverage(self):
         self.validate(self.manifest, verify_files=True)
+        self.assertEqual(self.manifest["schema_version"], 2)
         outputs = [graph["output"] for graph in self.manifest["graphs"]]
         self.assertEqual(len(outputs), 32)
         self.assertEqual(len(set(outputs)), 32)
@@ -85,6 +86,11 @@ class ExtractionManifestTests(unittest.TestCase):
                 manifest["toolchains"][key] = value
                 self.assert_invalid(manifest, f"toolchains.{key}")
 
+    def test_schema_one_is_rejected(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["schema_version"] = 1
+        self.assert_invalid(manifest, "schema_version: expected 2")
+
     def test_duplicate_ids_and_outputs_are_rejected(self):
         manifest = copy.deepcopy(self.manifest)
         manifest["graphs"][1]["id"] = manifest["graphs"][0]["id"]
@@ -120,10 +126,28 @@ class ExtractionManifestTests(unittest.TestCase):
         manifest["graphs"][0]["inputs"][0]["sha256"] = "f" * 64
         self.assert_invalid(manifest, "stale", verify_files=True)
 
-    def test_raw_hash_count_and_output_normalized_hash_must_match(self):
+    def test_selected_digest_and_output_normalized_hash_must_match(self):
         manifest = copy.deepcopy(self.manifest)
-        manifest["graphs"][0]["normalization"]["raw_sha256"].pop()
-        self.assert_invalid(manifest, "expected 2")
+        del manifest["graphs"][0]["normalization"][
+            "selected_raw_declarations_sha256"
+        ]
+        self.assert_invalid(
+            manifest, "missing selected_raw_declarations_sha256"
+        )
+
+        for malformed in ("f" * 63, "F" * 64, ["f" * 64]):
+            with self.subTest(malformed=malformed):
+                manifest = copy.deepcopy(self.manifest)
+                manifest["graphs"][0]["normalization"][
+                    "selected_raw_declarations_sha256"
+                ] = malformed
+                self.assert_invalid(
+                    manifest, "selected_raw_declarations_sha256"
+                )
+
+        manifest = copy.deepcopy(self.manifest)
+        manifest["graphs"][0]["normalization"]["raw_sha256"] = []
+        self.assert_invalid(manifest, "unknown raw_sha256")
 
         manifest = copy.deepcopy(self.manifest)
         manifest["graphs"][0]["normalization"]["normalized_sha256"] = "f" * 64

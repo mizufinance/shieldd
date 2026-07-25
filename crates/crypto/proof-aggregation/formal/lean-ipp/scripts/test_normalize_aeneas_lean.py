@@ -69,7 +69,7 @@ class NormalizerTests(unittest.TestCase):
         completed = subprocess.run(command, capture_output=True, text=True)
         return completed, output
 
-    def test_rewrite_rules_extra_import_and_both_hashes(self):
+    def test_rewrite_rules_extra_import_and_hash_metadata(self):
         source = self.write(
             "raw.lean",
             raw(
@@ -120,10 +120,21 @@ def s3_07_arkworks_fq_spike.root (x : Std.U64) (y : Std.U128) (b : Std.U8) :
         ):
             self.assertIn(spelling, result)
         metadata = json.loads(completed.stdout)
-        self.assertEqual(len(metadata["raw_sha256"]), 1)
-        self.assertEqual(len(metadata["raw_sha256"][0]), 64)
+        self.assertEqual(len(metadata["selected_raw_declarations_sha256"]), 64)
+        self.assertNotIn("raw_sha256", metadata)
         self.assertEqual(len(metadata["normalized_sha256"]), 64)
-        self.assertEqual(metadata["normalizer_revision"], "normalize-aeneas-lean-v7")
+        self.assertEqual(
+            NORMALIZER.NORMALIZED_ARTIFACT_REVISION,
+            "normalize-aeneas-lean-v7",
+        )
+        self.assertEqual(
+            result.splitlines()[1],
+            "-- Deterministically assembled by normalize-aeneas-lean-v7.",
+        )
+        self.assertEqual(
+            metadata["normalizer_revision"],
+            "normalize-aeneas-lean-v8",
+        )
         self.assertFalse(output.with_name(output.name + ".provenance.json").exists())
 
     def test_strips_trailing_horizontal_whitespace(self):
@@ -233,6 +244,105 @@ def unrelated := 2""",
         self.assertIn("def selected.root", result)
         self.assertNotIn("def unrelated", result)
 
+    def test_unselected_change_preserves_output_and_selected_digest(self):
+        first = self.write(
+            "first.lean",
+            raw(
+                "function",
+                "def selected.helper := 1\n"
+                "def selected.root := selected.helper\n"
+                "def unrelated := 2",
+            ),
+        )
+        completed, output = self.run_normalize(
+            [first],
+            roots=("ark_ip_proofs::selected::root",),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        original_content = output.read_bytes()
+        original_metadata = json.loads(completed.stdout)
+
+        first.write_text(
+            raw(
+                "function",
+                "def selected.helper := 1\n"
+                "def selected.root := selected.helper\n"
+                "def unrelated := 999",
+            ),
+            encoding="utf-8",
+        )
+        completed, output = self.run_normalize(
+            [first],
+            roots=("ark_ip_proofs::selected::root",),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(output.read_bytes(), original_content)
+        self.assertEqual(
+            json.loads(completed.stdout)["selected_raw_declarations_sha256"],
+            original_metadata["selected_raw_declarations_sha256"],
+        )
+
+    def test_selected_change_changes_selected_digest(self):
+        source = self.write(
+            "raw.lean",
+            raw("function", "def selected.root := 1"),
+        )
+        completed, _ = self.run_normalize(
+            [source],
+            roots=("ark_ip_proofs::selected::root",),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        original_digest = json.loads(completed.stdout)[
+            "selected_raw_declarations_sha256"
+        ]
+
+        source.write_text(
+            raw("function", "def selected.root := 2"),
+            encoding="utf-8",
+        )
+        completed, _ = self.run_normalize(
+            [source],
+            roots=("ark_ip_proofs::selected::root",),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertNotEqual(
+            json.loads(completed.stdout)["selected_raw_declarations_sha256"],
+            original_digest,
+        )
+
+    def test_selected_change_erased_by_normalization_changes_only_selected_digest(self):
+        source = self.write(
+            "raw.lean",
+            raw("function", "@[irreducible]\ndef selected.root := 1"),
+        )
+        completed, output = self.run_normalize(
+            [source],
+            roots=("ark_ip_proofs::selected::root",),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        original_content = output.read_bytes()
+        original_digest = json.loads(completed.stdout)[
+            "selected_raw_declarations_sha256"
+        ]
+
+        source.write_text(
+            raw(
+                "function",
+                "@[irreducible, global_simps]\ndef selected.root := 1",
+            ),
+            encoding="utf-8",
+        )
+        completed, output = self.run_normalize(
+            [source],
+            roots=("ark_ip_proofs::selected::root",),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(output.read_bytes(), original_content)
+        self.assertNotEqual(
+            json.loads(completed.stdout)["selected_raw_declarations_sha256"],
+            original_digest,
+        )
+
     def test_aeneas_attributes_are_removed_without_dropping_standard_attributes(self):
         source = self.write(
             "raw.lean",
@@ -311,7 +421,23 @@ def s3_07_arkworks_fq_spike.root : Array Std.I8 3 :=
         second = self.write("second.lean", raw("function", "def shared := 2"))
         completed, _ = self.run_normalize([first, second])
         self.assertNotEqual(completed.returncode, 0)
-        self.assertIn("conflicting declarations", completed.stderr)
+        self.assertIn("conflicting raw declarations", completed.stderr)
+
+    def test_raw_conflict_erased_by_normalization_fails_closed(self):
+        first = self.write(
+            "first.lean",
+            raw("function", "@[irreducible]\ndef shared := 1"),
+        )
+        second = self.write(
+            "second.lean",
+            raw(
+                "function",
+                "@[irreducible, global_simps]\ndef shared := 1",
+            ),
+        )
+        completed, _ = self.run_normalize([first, second])
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("conflicting raw declarations", completed.stderr)
 
     def test_reuse_module_replaces_declaration_and_imports_module(self):
         source = self.write(

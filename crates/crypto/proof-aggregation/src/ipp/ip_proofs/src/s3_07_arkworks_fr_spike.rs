@@ -116,8 +116,7 @@ fn gt(left: [u64; 4], right: [u64; 4]) -> bool {
         || (left[3] == right[3]
             && (left[2] > right[2]
                 || (left[2] == right[2]
-                    && (left[1] > right[1]
-                        || (left[1] == right[1] && left[0] > right[0])))))
+                    && (left[1] > right[1] || (left[1] == right[1] && left[0] > right[0])))))
 }
 
 #[inline(always)]

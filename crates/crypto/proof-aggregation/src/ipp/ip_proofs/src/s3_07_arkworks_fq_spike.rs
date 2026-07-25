@@ -1307,18 +1307,13 @@ pub fn miller_schedule(coeffs: Vec<G2EllCoeffMont>, p: G1AffineMont) -> Fq12Mont
 
 /// Extraction root for the single-pair Miller schedule.
 #[doc(hidden)]
-pub fn extract_s3_36(
-    coeffs: Vec<G2EllCoeffMont>,
-    p: G1AffineMont,
-) -> Fq12Mont {
+pub fn extract_s3_36(coeffs: Vec<G2EllCoeffMont>, p: G1AffineMont) -> Fq12Mont {
     miller_schedule(coeffs, p)
 }
 
 /// Faithful BLS12-377 multi-Miller accumulation, including arkworks' chunks of
 /// four. An empty coefficient vector represents a zero prepared G2.
-pub fn multi_miller_schedule(
-    pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>,
-) -> Fq12Mont {
+pub fn multi_miller_schedule(pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>) -> Fq12Mont {
     let mut filtered = Vec::new();
     let mut pair_index = 0_usize;
     while pair_index < pairs.len() {
@@ -1379,9 +1374,7 @@ pub fn multi_miller_schedule(
 
 /// Extraction root for the faithful multi-pair Miller schedule.
 #[doc(hidden)]
-pub fn extract_s3_37(
-    pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>,
-) -> Fq12Mont {
+pub fn extract_s3_37(pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>) -> Fq12Mont {
     multi_miller_schedule(pairs)
 }
 
@@ -1390,9 +1383,7 @@ pub fn extract_s3_37(
 /// chunk Miller outputs, then performs one final exponentiation. The model
 /// uses four as the fixed partition representative; only the partition fold
 /// is modeled sequentially because rayon is outside the extraction boundary.
-pub fn multi_pairing(
-    pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>,
-) -> Option<Fq12Mont> {
+pub fn multi_pairing(pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>) -> Option<Fq12Mont> {
     let mut result = FQ12_ONE;
     let mut chunk_start = 0_usize;
     while chunk_start < pairs.len() {
@@ -1417,9 +1408,7 @@ pub fn multi_pairing(
 
 /// Extraction root for the sequential multi-pairing model.
 #[doc(hidden)]
-pub fn extract_s3_40(
-    pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>,
-) -> Option<Fq12Mont> {
+pub fn extract_s3_40(pairs: Vec<(Vec<G2EllCoeffMont>, G1AffineMont)>) -> Option<Fq12Mont> {
     multi_pairing(pairs)
 }
 
@@ -2021,7 +2010,10 @@ const G2_COEFF_B: Fq2Mont = Fq2Mont {
 };
 
 fn fq2_mul_fp(a: Fq2Mont, b: FqMont) -> Fq2Mont {
-    Fq2Mont { c0: mul(a.c0, b), c1: mul(a.c1, b) }
+    Fq2Mont {
+        c0: mul(a.c0, b),
+        c1: mul(a.c1, b),
+    }
 }
 
 fn g2_double_line(mut a: G2ProjMont, two_inv: FqMont) -> (G2ProjMont, G2EllCoeffMont) {
@@ -2063,13 +2055,20 @@ fn g2_add_line(mut a: G2ProjMont, q: G2AffineMont) -> (G2ProjMont, G2EllCoeffMon
 /// homogeneous double/add line schedule.
 pub fn g2_prepared(q: G2AffineMont) -> G2PreparedMont {
     if q.infinity {
-        return G2PreparedMont { ell_coeffs: Vec::new(), infinity: true };
+        return G2PreparedMont {
+            ell_coeffs: Vec::new(),
+            infinity: true,
+        };
     }
     let two_inv = match inv(double(FQ_ONE)) {
         Some(value) => value,
         None => FQ_ZERO,
     };
-    let mut r = G2ProjMont { x: q.x, y: q.y, z: FQ2_ONE };
+    let mut r = G2ProjMont {
+        x: q.x,
+        y: q.y,
+        z: FQ2_ONE,
+    };
     let mut ell_coeffs = Vec::with_capacity(95);
     let mut i = 63_usize;
     while i > 0 {
@@ -2084,7 +2083,10 @@ pub fn g2_prepared(q: G2AffineMont) -> G2PreparedMont {
             ell_coeffs.push(coeff);
         }
     }
-    G2PreparedMont { ell_coeffs, infinity: false }
+    G2PreparedMont {
+        ell_coeffs,
+        infinity: false,
+    }
 }
 
 #[doc(hidden)]
@@ -2763,9 +2765,16 @@ fn make_wnaf_digits(scalar: [u64; 4], w: usize, num_bits: usize) -> Vec<WnafDigi
         let coef = carry + (bit_buf & window_mask);
         let next_carry = (coef + radix / 2) >> w;
         let last = i == digits_count - 1;
-        let magnitude = if last || next_carry == 0 { coef } else { radix - coef };
+        let magnitude = if last || next_carry == 0 {
+            coef
+        } else {
+            radix - coef
+        };
         let negative = !last && next_carry != 0 && magnitude != 0;
-        digits.push(WnafDigit { negative, magnitude });
+        digits.push(WnafDigit {
+            negative,
+            magnitude,
+        });
         carry = next_carry;
         i += 1;
     }
@@ -2773,7 +2782,11 @@ fn make_wnaf_digits(scalar: [u64; 4], w: usize, num_bits: usize) -> Vec<WnafDigi
 }
 
 fn g1_msm_unchecked(bases: &[G1AffineMont], scalars: &[[u64; 4]]) -> G1ProjMont {
-    let size = if bases.len() < scalars.len() { bases.len() } else { scalars.len() };
+    let size = if bases.len() < scalars.len() {
+        bases.len()
+    } else {
+        scalars.len()
+    };
     if size == 0 {
         return g1_zero();
     }
@@ -2837,7 +2850,11 @@ fn g1_msm_unchecked(bases: &[G1AffineMont], scalars: &[[u64; 4]]) -> G1ProjMont 
 }
 
 fn g2_msm_unchecked(bases: &[G2AffineMont], scalars: &[[u64; 4]]) -> G2ProjMont {
-    let size = if bases.len() < scalars.len() { bases.len() } else { scalars.len() };
+    let size = if bases.len() < scalars.len() {
+        bases.len()
+    } else {
+        scalars.len()
+    };
     if size == 0 {
         return g2_zero();
     }
@@ -2902,14 +2919,22 @@ fn g2_msm_unchecked(bases: &[G2AffineMont], scalars: &[[u64; 4]]) -> G2ProjMont 
 
 pub fn g1_msm(bases: &[G1AffineMont], scalars: &[[u64; 4]]) -> Result<G1ProjMont, usize> {
     if bases.len() != scalars.len() {
-        return Err(if bases.len() < scalars.len() { bases.len() } else { scalars.len() });
+        return Err(if bases.len() < scalars.len() {
+            bases.len()
+        } else {
+            scalars.len()
+        });
     }
     Ok(g1_msm_unchecked(bases, scalars))
 }
 
 pub fn g2_msm(bases: &[G2AffineMont], scalars: &[[u64; 4]]) -> Result<G2ProjMont, usize> {
     if bases.len() != scalars.len() {
-        return Err(if bases.len() < scalars.len() { bases.len() } else { scalars.len() });
+        return Err(if bases.len() < scalars.len() {
+            bases.len()
+        } else {
+            scalars.len()
+        });
     }
     Ok(g2_msm_unchecked(bases, scalars))
 }
@@ -2921,10 +2946,7 @@ pub fn extract_s3_30(
     g2_bases: &[G2AffineMont],
     g2_scalars: &[[u64; 4]],
 ) -> (Result<G1ProjMont, usize>, Result<G2ProjMont, usize>) {
-    (
-        g1_msm(g1_bases, g1_scalars),
-        g2_msm(g2_bases, g2_scalars),
-    )
+    (g1_msm(g1_bases, g1_scalars), g2_msm(g2_bases, g2_scalars))
 }
 
 #[cfg(test)]

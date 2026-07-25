@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "toolchains": {
     "rust": "1.89.0",
     "lean": "leanprover/lean4:v4.30.0",
@@ -7,7 +7,7 @@
     "hax_commit": "c8e27c5945f7fc5791939cff7c1277f4ab768fe1",
     "charon_commit": "74166d896db4ae4f63101c13c22072fb2022092e",
     "aeneas_commit": "e0a159645386230102a2bf89b4df2dcd2140777e",
-    "normalizer_revision": "normalize-aeneas-lean-v7"
+    "normalizer_revision": "normalize-aeneas-lean-v8"
   },
   "graphs": [
     {
@@ -25,12 +25,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "f587de463cae9cc929532927eb78cc0f3e344f3e3e82cd6a3834ac4d1cbe8afd"
+          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "f587de463cae9cc929532927eb78cc0f3e344f3e3e82cd6a3834ac4d1cbe8afd"
+          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
         }
       ],
       "copy_provenance": [],
@@ -59,10 +59,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "35ca6256244053dc76be6732a4f2764a4ccb20e0e55622f0a1e210adb52e792d",
-          "96aa229ea199b78f461b683a1f7c7178d6eac3253202afc3bfda3889ea21ff83"
-        ],
+        "selected_raw_declarations_sha256": "ed90eda442d8777a5a95462763455235e22f7dd51e4833feacb7ebc3385cafbb",
         "normalized_sha256": "aaf216bf67f28ddf0f1a103beb7fcce5b3d095cea68295fe1c7765257c1a393b"
       },
       "parity": [
@@ -92,12 +89,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "f587de463cae9cc929532927eb78cc0f3e344f3e3e82cd6a3834ac4d1cbe8afd"
+          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "f587de463cae9cc929532927eb78cc0f3e344f3e3e82cd6a3834ac4d1cbe8afd"
+          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
         }
       ],
       "copy_provenance": [],
@@ -126,10 +123,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "35ca6256244053dc76be6732a4f2764a4ccb20e0e55622f0a1e210adb52e792d",
-          "2ce128e64a40cade6f31ebacfd4fb33376f6648f5eb520dd1969d0f370b25bad"
-        ],
+        "selected_raw_declarations_sha256": "581ac15c10942c72745b838f2cbda143b22f9331ed4efd03e0bdfbb99b662680",
         "normalized_sha256": "c9974b2f8f92cba5cc500fb8dc6833d6ee2e5926ee36683f8cdb362a8c01bb89"
       },
       "parity": [
@@ -193,10 +187,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "070f1faa280fa208585f948f3d06e691fa0719b9efa94b1f7974b08c02fa4e96",
-          "43455a62b95a34baed2478dac4186949a2328dbe085b3377b85ddca43f77bb2d"
-        ],
+        "selected_raw_declarations_sha256": "7d8d04aca6cb36ddca4f4c1fe2810323cac50e5bae729c8a870f1c34d1f4a8e9",
         "normalized_sha256": "7646d1afc44a6848b98993025655ba52d61022a09c53d4352b9f0eef810d422d"
       },
       "parity": [
@@ -226,12 +217,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         }
       ],
       "copy_provenance": [],
@@ -260,10 +251,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "b1aee65d9d3bffcc92106fe923b3c2a4304e585830fb2234be978d15fbe3ab1e",
-          "815586a926b2a75db631572004cd8adc640d7c9ae972d546ab32a2e21656208b"
-        ],
+        "selected_raw_declarations_sha256": "07a7aaececbedffd0cba04895294b7bc33e5dacc5d5240459233eefcc2df033d",
         "normalized_sha256": "6182e5592544d589f833e1fc94544bcbdc5191678578fceb3d06976668d18608"
       },
       "parity": [
@@ -293,12 +281,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         }
       ],
       "copy_provenance": [],
@@ -327,10 +315,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "9af9469b625aa971462ca5d22cefd38f69c920113abb1f13dc3f8d40e4d5a745",
-          "82dfb6d07b191bcbf75a00f0c767182ee00b026dc57802a08a6cf8adf435cc2f"
-        ],
+        "selected_raw_declarations_sha256": "135f07d00e642efaec8079e09c8d9eb6ed14c63a1e5ca90d3494d0c48330a0d0",
         "normalized_sha256": "e455527e89594dabec1022fce1b6eb5cd7b9124f50b835a6d72949d54a301fa4"
       },
       "parity": [
@@ -360,12 +345,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         }
       ],
       "copy_provenance": [],
@@ -394,10 +379,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "070f1faa280fa208585f948f3d06e691fa0719b9efa94b1f7974b08c02fa4e96",
-          "36f9a02c36091eabc1e658f97f7e73ad8a5aa9ff076eb7d6445847717759c8d9"
-        ],
+        "selected_raw_declarations_sha256": "eac2d57fb4ce8d8ea19b750cda2bc06df86ee37826504a2f4150c5a45f4b082e",
         "normalized_sha256": "97c792129b65bfb794eeeedabd8c0b5b66b088062fcc3ffa0b623e307188d16c"
       },
       "parity": [
@@ -521,16 +503,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "0942bcb36638842b8beff1d9c69af4627a869af333469aecf8c5236cadc11674",
-          "5907b5649f64a4660702d747ea32ba9006a6f33d70b73be5705a7201ed5d7c67",
-          "95c5f07da544e30842a161e00f27ba03afff00fca7866b032a335db741c50383",
-          "26c5e7cd2ec73b83cadc722a0a10f826f57c4ed0d7b99ccb51dbc84e130c6a93",
-          "8418531c42d3af144abaa7f0bfe8d017fa88a8a366cbab1f03968f46dd699032",
-          "64e81bca90fb7c9f5d15c21f8e13572281f89af07f3037a3b94aba0d8bf103e4",
-          "81c1ea442cff65dbca99eb3067f34fbca0f02fa15b626cf86e1482585380d841",
-          "fa68c2dc99ae8bf8796bdd11f81887d684787d68a2ee03681b88f432e5249e0d"
-        ],
+        "selected_raw_declarations_sha256": "bed7322fdc7f7767a807a380c8677891c65d61935a871e61e668ff57a9a30dd6",
         "normalized_sha256": "fb885c1bb64052f5e1b8c7e5be6b7ff80842eb01a7da3f798f0057f684618aad"
       },
       "parity": [
@@ -594,10 +567,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "4b7c151ecabf795b8c9bc40d396a0f46e4d0e41ed5a7429fb1225a0ea7a001e2",
-          "d209c48edc6baac8a667bc53f84aa885eac5ecab9708903bbfba119292c202bd"
-        ],
+        "selected_raw_declarations_sha256": "328b7d9d7c9c4dfe79e046fbcbd8b36f8a81177b432405e9c384bf342c7de9a0",
         "normalized_sha256": "113ff781d11261c0988c8acf919dbfd1cb0690d9bce53ddc2b1069b836f6b1ae"
       },
       "parity": [
@@ -627,12 +597,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "f587de463cae9cc929532927eb78cc0f3e344f3e3e82cd6a3834ac4d1cbe8afd"
+          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "f587de463cae9cc929532927eb78cc0f3e344f3e3e82cd6a3834ac4d1cbe8afd"
+          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
         }
       ],
       "copy_provenance": [],
@@ -663,10 +633,7 @@
         "reuse_modules": [
           "Ipp.Extracted.PolynomialCoefficientsGenerated"
         ],
-        "raw_sha256": [
-          "f927eca6e333e07f3d61ee22a9f302233303a9e0b176115fbd901dcda49c1d7e",
-          "1eab3d8f0f6fe0f9e6220ca88e2069f452c1368c0d698e750702a917a5df8293"
-        ],
+        "selected_raw_declarations_sha256": "774f5b6adb02a810efc6cc2415fac719624585494bee94e3e9bd357c60f17d91",
         "normalized_sha256": "2f16595ccc54dbba9ca865e087372b66518efd1e47e8ca858c8ec5df06ef693e"
       },
       "parity": [
@@ -696,12 +663,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "f587de463cae9cc929532927eb78cc0f3e344f3e3e82cd6a3834ac4d1cbe8afd"
+          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "f587de463cae9cc929532927eb78cc0f3e344f3e3e82cd6a3834ac4d1cbe8afd"
+          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
         }
       ],
       "copy_provenance": [],
@@ -732,10 +699,7 @@
         "reuse_modules": [
           "Ipp.Extracted.PolynomialCoefficientsGenerated"
         ],
-        "raw_sha256": [
-          "417e34df98729560f16ec2734c9d0123539108a967cd447ee2dac90252c2c170",
-          "d08b2f303dc1704986ca59d9eae3db6d8be118f8b2c012d078fbba3b71b6b8c2"
-        ],
+        "selected_raw_declarations_sha256": "a89963dad02a67aba6017481dc7cb841d28c5968e3df4dc29212086f2c1ed6ec",
         "normalized_sha256": "ab14721aceb5544f592b7e419d3f4ee98c7dd322f7dc94a0fc9e4262a13ceb9b"
       },
       "parity": [
@@ -766,12 +730,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         }
       ],
       "copy_provenance": [],
@@ -819,12 +783,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "898cef33c4f016503a1bc372d163bd400c506343913005b913356d091f3bfa39",
-          "e049ac0371448770c5e56bd6bdbb80175a2cbd7f91d805ca5bd6d19453aad751",
-          "e6fba6f5b4097d519bdbae199b7702fa1c083cb6d1080b591ac3fea7601f891f",
-          "8d1deb6c82dbc1dc111e2bafe3020cd17226edb4e2ad633d6408d53ab19f8660"
-        ],
+        "selected_raw_declarations_sha256": "4f06c46dad282a65f2ee2f8d0fabb75d306bd8e87e66cacaee69d56a9659e0e4",
         "normalized_sha256": "6a93696e50e66b7f4806353bd66d2b16ef4d27f6dbac3a348cbeb4c46a05b310"
       },
       "parity": [
@@ -854,12 +813,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         }
       ],
       "copy_provenance": [],
@@ -888,10 +847,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "a34b765ff81c8abf120730bbb317f2536f33f145dca4f6517e0f90b6504e39f4",
-          "ae37757095e65a8dca3260c47963ca9f217b45cae3c15559bc6db282ededa0b8"
-        ],
+        "selected_raw_declarations_sha256": "94eaa5da5645afa7df0abb21466c2d2721011ba11abe0718a178eb0b63c0a2ed",
         "normalized_sha256": "99b60636bdd19738d5427171e9b48db8587d9d29dbc6e7874e2e1d9e4f4e041b"
       },
       "parity": [
@@ -921,12 +877,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         }
       ],
       "copy_provenance": [],
@@ -957,10 +913,7 @@
         "reuse_modules": [
           "Ipp.Extracted.VerifyTippMippGenerated"
         ],
-        "raw_sha256": [
-          "802e2a249bc49d65cb252b67af7cb6d348408effd678988ffef65105b34bb0b0",
-          "15188b221304257c846b28b6303ba47f9bd029186fbbff6afb60f41944364538"
-        ],
+        "selected_raw_declarations_sha256": "5f5f9a5e5aa73a5835c1e6ee8e595dd7e0f4a557ed378b6a23cefd81dc781c78",
         "normalized_sha256": "5a59989c902c9522b2a2d8daa46dc21943747108d549cf9a2b8f82d74f0cd96f"
       },
       "parity": [
@@ -990,12 +943,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "51ee353b26b8ad6d627933f7326d37a0136fe412f18887a0cb187bbb6bc3e547"
+          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
         }
       ],
       "copy_provenance": [],
@@ -1026,10 +979,7 @@
         "reuse_modules": [
           "Ipp.Extracted.CombinedChecksGenerated"
         ],
-        "raw_sha256": [
-          "1f7d6c05c281c38331fa991160e2b52b1754de1d05fc0976618e0cf32da25978",
-          "447a15aba40c9aa82e5d208456aae3e7cbe2e9214102aa0dec2f0eb49efda796"
-        ],
+        "selected_raw_declarations_sha256": "b09056d43f6380e15f2a270ff522d660085a3165202b6be7b94bc7233ccb971d",
         "normalized_sha256": "bd03eedfb3220f32f20662b60ee3f20b9ffaa276b1dfe0cb7d9f0eed909ee6cd"
       },
       "parity": [
@@ -1059,12 +1009,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -1110,10 +1060,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "520cdab5df4d9ae2f088301f175822c145eef51b7fc81d378e603c245790caa1",
-          "52334b5679afbde4ae380874848587ab7d676f43f5318cfdf45f9d7874fb2abd"
-        ],
+        "selected_raw_declarations_sha256": "0c3050053396bc03214abeca3aac13492f7c9c7ffad8cafe0bde5ef2cb405212",
         "normalized_sha256": "aaa0ec9648813a460c76a23a7d5f0cd3d10685bb658169add81d6f86aefb866f"
       },
       "parity": [
@@ -1145,12 +1092,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -1198,10 +1145,7 @@
         "reuse_modules": [
           "Ipp.Extracted.ArkworksFqMulGenerated"
         ],
-        "raw_sha256": [
-          "520cdab5df4d9ae2f088301f175822c145eef51b7fc81d378e603c245790caa1",
-          "3be51667fe8c9c0c2b6a4568294b94826be0c0336817004027c5352b09d04b9b"
-        ],
+        "selected_raw_declarations_sha256": "1d19009bf1ed0d251bd547bdfb27bf6e19171e2c84d5c258218b1f7b1b12cffd",
         "normalized_sha256": "a7197befc4967ccb64d102e9ad3ef21d7db3230c9e7a3a03e359c304f45403f5"
       },
       "parity": [
@@ -1233,12 +1177,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -1287,10 +1231,7 @@
           "Ipp.Extracted.ArkworksFqMulGenerated",
           "Ipp.Extracted.ArkworksFqOpsGenerated"
         ],
-        "raw_sha256": [
-          "520cdab5df4d9ae2f088301f175822c145eef51b7fc81d378e603c245790caa1",
-          "3739f39277baf2a303ad1dc0807d2c128fc95e450cad2272b65b7df526c02943"
-        ],
+        "selected_raw_declarations_sha256": "c7c9e95116412165f0d621718bae45b210224ed542958b9c0005d0cb4ae078a9",
         "normalized_sha256": "39ee929cf827f32166f3432329936979bdde3f7a01bb18fe8d53cf499ac324c3"
       },
       "parity": [
@@ -1322,12 +1263,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -1377,10 +1318,7 @@
           "Ipp.Extracted.ArkworksFqOpsGenerated",
           "Ipp.Extracted.ArkworksFqInvGenerated"
         ],
-        "raw_sha256": [
-          "a94de74e4d7d824e148704190cf7666afa1344d799ae553540e1ed406ee46e8b",
-          "4bc2c7a2238d1d1879db5867a2c6e33aaa5c35da6c7f27b6d3a33ea3d058a4e8"
-        ],
+        "selected_raw_declarations_sha256": "cf1df83f2797498260960d5ea63a22e280d2a76a6e54aa12279d92a54cc04d4f",
         "normalized_sha256": "c83ef84e2359df0f0c8d0d0fbd3faec6eebd555408203dd7084555d6fa77456d"
       },
       "parity": [
@@ -1418,12 +1356,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fr_spike.rs",
-          "sha256": "c2577f6c79657d5663027629c45e905d90c42b9bacd1817e71f6bae4e6c0a517"
+          "sha256": "4fd8e09cbba836dd50919607a7af53b6a5e67a57fd95142c1df6bab144e82b3b"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fr_spike.rs",
-          "sha256": "51e4ea30810b3116546e4c5b3d61b7ae3bd4b5f49d8e5fd923a3a0816d1b35d0"
+          "sha256": "2bb50198594a938bee50f450d2ab6f866f90408ab640fbaa621f2110c5124e0f"
         }
       ],
       "copy_provenance": [
@@ -1595,22 +1533,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [],
-        "raw_sha256": [
-          "3151600e4ed8f5645ddf4590b2bec57315e71b9ec73333512ed5cc29acba92a7",
-          "83d4dffc8df14c995a17e58c6be571cc9d9c76a512cb86e8a1f75fcc325bb343",
-          "3151600e4ed8f5645ddf4590b2bec57315e71b9ec73333512ed5cc29acba92a7",
-          "da00d016108ccb9344b4140d5f09b77e0850ec67d40149247a98d82948475352",
-          "3151600e4ed8f5645ddf4590b2bec57315e71b9ec73333512ed5cc29acba92a7",
-          "b4f47d1ea929af86efa6f050c36538c568706cb020b83c1e581de50fb5293b5c",
-          "3151600e4ed8f5645ddf4590b2bec57315e71b9ec73333512ed5cc29acba92a7",
-          "eb253b6ce46789ac9a50d2c9d6e0dc01d16e80aa56d059387281a5fe4e8edf08",
-          "356d536e6ea12af0fe4b0fa00d723e9a84c7a0d0c18ab2183631b26e1570ba41",
-          "0235a38f0a763eb0b7d945d54bc76e69def9b8b8568fa0ae625e294e3d60f926",
-          "3151600e4ed8f5645ddf4590b2bec57315e71b9ec73333512ed5cc29acba92a7",
-          "de8a8a284cc5529bd73216a3c57c4a3581050afca83575a9ee7c5fc558afbd14",
-          "3151600e4ed8f5645ddf4590b2bec57315e71b9ec73333512ed5cc29acba92a7",
-          "b1be0b9f714e287b6a2ddf5eee62683011c1674bba8c00b634eb00d64c33d94e"
-        ],
+        "selected_raw_declarations_sha256": "bb5f8d75a3d7d772bb462b5100823fbc378173ea44d644168f9f2b2def80039e",
         "normalized_sha256": "24fab38a33f53975212f9de345d00f603229cae06cf21dc776f4063fb7a555cc"
       },
       "parity": [
@@ -1643,12 +1566,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -1720,12 +1643,7 @@
           "Ipp.Extracted.ArkworksFqInvGenerated",
           "Ipp.Extracted.ArkworksFqSqrtBytesGenerated"
         ],
-        "raw_sha256": [
-          "2c416e86d0a2d1756be2f6857bd1d96d3f65f93783273c97dff4cb0107c11754",
-          "b635ad6854f6a796175488883a8524589ce4c0db74528a8703e0a18d2e55c9d7",
-          "8b17211a541427ef46a7eeb260166cecf28f6905c9443d58087b3cc2279e6da9",
-          "88114b4676761c9f07186b44f3c9ee8123e7a23beb0d35299c865c9961563885"
-        ],
+        "selected_raw_declarations_sha256": "ca6832902ecd2a6cf5ad26225f237e9a46eab051deb1311c347f46e1940647c6",
         "normalized_sha256": "afefe49eb12a695bc67c4d453aa21872baecebede6bea9fffcdfd4358721e2a0"
       },
       "parity": [
@@ -1757,12 +1675,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -1814,10 +1732,7 @@
           "Ipp.Extracted.ArkworksFqSqrtBytesGenerated",
           "Ipp.Extracted.ArkworksFq2Generated"
         ],
-        "raw_sha256": [
-          "50b21f6e620402dc1fa4064dca199faf2508e5366423a727018d45386abcc876",
-          "ee245045417778b85417404e8e0f7105905282f8f1118f176891d173f1bbbe7f"
-        ],
+        "selected_raw_declarations_sha256": "852d49a66e7264bf5e679f34f02b1e995bd316f5dffa5204f2845eb760fed142",
         "normalized_sha256": "f92bb7b564af8d04d4ad5dd060afc4416742d1b74fd492fd2454516b3e4991d2"
       },
       "parity": [
@@ -1849,12 +1764,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -1907,10 +1822,7 @@
           "Ipp.Extracted.ArkworksFq2Generated",
           "Ipp.Extracted.ArkworksFq6Generated"
         ],
-        "raw_sha256": [
-          "de5598a06e35d3d59d3fda023667edab01e04c37af122d895a9781ce3692cdd4",
-          "b482516614e65d4458dd42542b5f1782eaf2551ed12f9aa0dc8f2cfc1c752036"
-        ],
+        "selected_raw_declarations_sha256": "ad16bd82026c8a047c41832a59f3440072e5a3a170f345de62129a92c08f86d4",
         "normalized_sha256": "c6818b680478be297217b2644349f372a7fdc32bb6564f6e7be369ae3ea7a85d"
       },
       "parity": [
@@ -1942,12 +1854,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2007,10 +1919,7 @@
           "Ipp.Extracted.ArkworksFq2Generated",
           "Ipp.Extracted.ArkworksFq6Generated"
         ],
-        "raw_sha256": [
-          "06f5e1004c3ed3b40f9d3aebd31912e7b75cec4561cd16f7d05f06746705c467",
-          "9dc5218fab2426fea5d063a26e11d312bcca21991e61eb79d2a84daa749b1ed7"
-        ],
+        "selected_raw_declarations_sha256": "0d8e51b1ddb44d5cbee50c5fd212e7754ace0e97ab4e3b8a207867abd595bc36",
         "normalized_sha256": "62820267919e846de59a3ce3fb1e7cca1567ef47a0bb3e16085e07d1b89ce5fe"
       },
       "parity": [
@@ -2042,12 +1951,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2107,10 +2016,7 @@
           "Ipp.Extracted.ArkworksFq2Generated",
           "Ipp.Extracted.ArkworksFq6Generated"
         ],
-        "raw_sha256": [
-          "acf54bc5c125052adcbbd287df873b0e3c4fba02547bf2c3adee8998f76946ee",
-          "594fd39fe04eb12f4ad817cc798c105d8cb4d565a7553ae076307ccb4dcc3f53"
-        ],
+        "selected_raw_declarations_sha256": "76420f939b97a5eb010d44f4e3cf2c0e0e938feb6667b543d2f543d26310ebc8",
         "normalized_sha256": "241b910e6d8a54ccd878f6692371ef564566f37012519423ae7e51f6ac61db5d"
       },
       "parity": [
@@ -2142,12 +2048,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2209,10 +2115,7 @@
           "Ipp.Extracted.ArkworksG1Generated",
           "Ipp.Extracted.ArkworksG2Generated"
         ],
-        "raw_sha256": [
-          "50628d21058927f04bd4d28fe8eecfcab8eba1ae714c442a51981024143905c2",
-          "0e110194eab91e60548758960bf3bf63c3301d5629fe737f3602bfb84a1f24ac"
-        ],
+        "selected_raw_declarations_sha256": "96f0083689af5ca9507ee4897510edad4c3700a5d9e95a742daabc82930cbacf",
         "normalized_sha256": "d35fee71881c44cc066f8e8f83a53aa9875701e32a8bc7d1574ce090e185c382"
       },
       "parity": [
@@ -2244,12 +2147,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2310,10 +2213,7 @@
           "Ipp.Extracted.ArkworksFq6Generated",
           "Ipp.Extracted.ArkworksG1Generated"
         ],
-        "raw_sha256": [
-          "cb4e1877e13d9a9b8a50d63c8d2d2cb7e1b134a53e16df2d873515c6e60763fd",
-          "57b06e5f5f659815501b6cc49f8e3d0b755fad596cc8cbd835194afb894a09dc"
-        ],
+        "selected_raw_declarations_sha256": "30e8fcea7515b2aabb14ff804c62c2f7f30badf0769ae530a71d2be440f43d59",
         "normalized_sha256": "a43887c20d85ed5a6ccf8d1096e6b5d885fda39ecf9bd56e67363abf5c9d6d1f"
       },
       "parity": [
@@ -2345,12 +2245,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2412,10 +2312,7 @@
           "Ipp.Extracted.ArkworksG1Generated",
           "Ipp.Extracted.ArkworksG2Generated"
         ],
-        "raw_sha256": [
-          "50628d21058927f04bd4d28fe8eecfcab8eba1ae714c442a51981024143905c2",
-          "733585cc2ad289f30eec972e8a1220fbc40d0692a97bd587a6f84dbd4c991434"
-        ],
+        "selected_raw_declarations_sha256": "5385e2e935229971077af1cdc7d76fd75cacc714aa5a32a80031f9247f7b8b8c",
         "normalized_sha256": "5121b6acd3e594e58dd3b04b7e2b7df8f65b2d55da807413746cc73be6f1bfa1"
       },
       "parity": [
@@ -2447,12 +2344,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2514,10 +2411,7 @@
           "Ipp.Extracted.ArkworksG1Generated",
           "Ipp.Extracted.ArkworksG2Generated"
         ],
-        "raw_sha256": [
-          "b8153920571e0abd9603d9a96c1a1b4de05596f5924eb2f3d77dbb3f7ba388e0",
-          "c3d9e2a0306795579562ac7ec58a0ca98f20a38f907f77bd7f4e0fb7a9e94eeb"
-        ],
+        "selected_raw_declarations_sha256": "be46b6bbd8cac5552388a7472fed9bf838646bffa8dff952984f898748cfa438",
         "normalized_sha256": "cdb2c45a7f2c84592e6ac1e4917d79a2f0f6fe173bb784bdcf3921249c890b5c"
       },
       "parity": [
@@ -2549,12 +2443,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2615,10 +2509,7 @@
           "Ipp.Extracted.ArkworksFq6Generated",
           "Ipp.Extracted.ArkworksG2Generated"
         ],
-        "raw_sha256": [
-          "18da478fb0da92abf32d232581f7d5a8a2ae24839e4fd6695bae2fa7346cabc1",
-          "e47c6c5cfed4c0bcd149570435e152b84e3177912c57e69e29c22bae2761c8ff"
-        ],
+        "selected_raw_declarations_sha256": "d3949207cd856dd74385d26ccd5f5c7aacde8f1365c2db8094a50b5f6d64275e",
         "normalized_sha256": "e993bc230b45b0e9e10aad86412b5aedb8d5a6404a52cf02d89ae66c50513cb8"
       },
       "parity": [
@@ -2650,12 +2541,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2716,10 +2607,7 @@
           "Ipp.Extracted.ArkworksFq6Generated",
           "Ipp.Extracted.ArkworksG1Generated"
         ],
-        "raw_sha256": [
-          "9a0867972beb3ad0b40fe62b02ad2e4b8c23de54bcd4efeaaf813f4ec9ade94f",
-          "571dc8079a8f5d46a9965f437883ee0f965906facbd19880bb04f3c93d042c80"
-        ],
+        "selected_raw_declarations_sha256": "9d9a80ff00e25453d5a5c9ba1dc7940ba8d12e86772e7e8140af27689231432a",
         "normalized_sha256": "e91b773eda1f9e78a57e135c807b2f3c28b5eaf3a415f0e46cdab30e69c0257e"
       },
       "parity": [
@@ -2751,12 +2639,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2818,10 +2706,7 @@
           "Ipp.Extracted.ArkworksG1Generated",
           "Ipp.Extracted.ArkworksEllGenerated"
         ],
-        "raw_sha256": [
-          "9a0867972beb3ad0b40fe62b02ad2e4b8c23de54bcd4efeaaf813f4ec9ade94f",
-          "44d6e5c14c492142bed1cf5f0e50dbab49d748c9370cf66a9cf5983f0ffbbc4c"
-        ],
+        "selected_raw_declarations_sha256": "98f1de92335a2caec7a99e5758c65c131b067e05357872c5ee24fdfe618f05b2",
         "normalized_sha256": "b77f88ee83e97420bc54f69a5ea2241d41c866f6205713f763a921b92aa62574"
       },
       "parity": [
@@ -2853,12 +2738,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
-          "sha256": "fef647e84fa1c7d97df9d87068b0795221a97b4d32020ac20a38a42b13a45de7"
+          "sha256": "91f4c5b2cf946e0893c47d6b35246a8b34894068bc4d5c5d0ec2de3bcb6afed1"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
-          "sha256": "92cb0fcd00db5bb51fdd26a2f4cb3add8bf62846ee65179d97c2e78659361367"
+          "sha256": "34766fe9f89dd4ba30482471434000dc36890280484aba8f4473f77a846f473d"
         }
       ],
       "copy_provenance": [
@@ -2921,10 +2806,7 @@
           "Ipp.Extracted.ArkworksEllGenerated",
           "Ipp.Extracted.ArkworksMillerGenerated"
         ],
-        "raw_sha256": [
-          "9a0867972beb3ad0b40fe62b02ad2e4b8c23de54bcd4efeaaf813f4ec9ade94f",
-          "25ff74984feedad1a53ff559346e39cc938a00f888f8be8e132b4539dd0cdd5e"
-        ],
+        "selected_raw_declarations_sha256": "d9684f01af7be3a743596776e59d20fd38482dd18853a84ca3bdce09b459bdbe",
         "normalized_sha256": "5f5330de346c0e697efa24b761b1493adfc30c74ea1e0160348a6849076dceba"
       },
       "parity": [

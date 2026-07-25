@@ -2403,13 +2403,6 @@ where
         .map_err(|error: String| Box::new(std::io::Error::other(error)) as Error)
 }
 
-fn structured_scalar_final_from_raw_transcript<P: Pairing>(
-    raw_transcript_reversed: &[P::ScalarField],
-    r: &P::ScalarField,
-) -> P::ScalarField {
-    structured_scalar_final_from_raw_transcript_inner(raw_transcript_reversed, r)
-}
-
 fn structured_scalar_final_from_raw_transcript_inner<F>(raw_transcript_reversed: &[F], r: &F) -> F
 where
     F: Clone + One + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
@@ -2613,6 +2606,7 @@ fn verify_ppe_baseline<P: Pairing>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "bench-baseline"))]
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
     use ark_ec::{pairing::Pairing, PrimeGroup};

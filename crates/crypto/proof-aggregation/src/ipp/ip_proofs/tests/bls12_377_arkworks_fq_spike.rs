@@ -13,6 +13,7 @@ use num_bigint::BigUint;
 use std::convert::TryInto;
 
 #[path = "../src/s3_07_arkworks_fq_spike.rs"]
+#[allow(dead_code)]
 mod spike;
 use spike::{Fq12Bytes, Fq12Mont, Fq2Bytes, Fq2Mont, Fq6Bytes, Fq6Mont, FqMont};
 
@@ -102,19 +103,35 @@ fn scalar_limbs(value: Fr) -> [u64; 4] {
 }
 
 fn check_g1_msm(bases: &[G1Affine], scalars: &[Fr]) {
-    let expected = <G1Projective as VariableBaseMSM>::msm(bases, scalars)
-        .map(|value| value.into_affine());
-    let mont_bases = bases.iter().copied().map(mont_g1_affine).collect::<Vec<_>>();
-    let mont_scalars = scalars.iter().copied().map(scalar_limbs).collect::<Vec<_>>();
+    let expected =
+        <G1Projective as VariableBaseMSM>::msm(bases, scalars).map(|value| value.into_affine());
+    let mont_bases = bases
+        .iter()
+        .copied()
+        .map(mont_g1_affine)
+        .collect::<Vec<_>>();
+    let mont_scalars = scalars
+        .iter()
+        .copied()
+        .map(scalar_limbs)
+        .collect::<Vec<_>>();
     let actual = spike::g1_msm(&mont_bases, &mont_scalars).map(|value| ark_g1(value).into_affine());
     assert_eq!(actual, expected);
 }
 
 fn check_g2_msm(bases: &[G2Affine], scalars: &[Fr]) {
-    let expected = <G2Projective as VariableBaseMSM>::msm(bases, scalars)
-        .map(|value| value.into_affine());
-    let mont_bases = bases.iter().copied().map(mont_g2_affine).collect::<Vec<_>>();
-    let mont_scalars = scalars.iter().copied().map(scalar_limbs).collect::<Vec<_>>();
+    let expected =
+        <G2Projective as VariableBaseMSM>::msm(bases, scalars).map(|value| value.into_affine());
+    let mont_bases = bases
+        .iter()
+        .copied()
+        .map(mont_g2_affine)
+        .collect::<Vec<_>>();
+    let mont_scalars = scalars
+        .iter()
+        .copied()
+        .map(scalar_limbs)
+        .collect::<Vec<_>>();
     let actual = spike::g2_msm(&mont_bases, &mont_scalars).map(|value| ark_g2(value).into_affine());
     assert_eq!(actual, expected);
 }
@@ -356,14 +373,24 @@ fn normalization_single_and_batch_matches_arkworks_for_g1_and_g2() {
 
     let g1_mixed = vec![G1Projective::zero(), g1_scaled, g1_zero, g1, g1_scaled];
     let g2_mixed = vec![G2Projective::zero(), g2_scaled, g2_zero, g2, g2_scaled];
-    let g1_actual = spike::g1_normalize_batch(&g1_mixed.iter().copied().map(mont_g1).collect::<Vec<_>>());
-    let g2_actual = spike::g2_normalize_batch(&g2_mixed.iter().copied().map(mont_g2).collect::<Vec<_>>());
+    let g1_actual =
+        spike::g1_normalize_batch(&g1_mixed.iter().copied().map(mont_g1).collect::<Vec<_>>());
+    let g2_actual =
+        spike::g2_normalize_batch(&g2_mixed.iter().copied().map(mont_g2).collect::<Vec<_>>());
     assert_eq!(
-        g1_actual.iter().copied().map(ark_g1_affine).collect::<Vec<_>>(),
+        g1_actual
+            .iter()
+            .copied()
+            .map(ark_g1_affine)
+            .collect::<Vec<_>>(),
         G1Projective::normalize_batch(&g1_mixed)
     );
     assert_eq!(
-        g2_actual.iter().copied().map(ark_g2_affine).collect::<Vec<_>>(),
+        g2_actual
+            .iter()
+            .copied()
+            .map(ark_g2_affine)
+            .collect::<Vec<_>>(),
         G2Projective::normalize_batch(&g2_mixed)
     );
 
@@ -371,29 +398,47 @@ fn normalization_single_and_batch_matches_arkworks_for_g1_and_g2() {
     let g2_all_zero = vec![G2Projective::zero(); 257];
     assert_eq!(
         spike::g1_normalize_batch(&g1_all_zero.iter().copied().map(mont_g1).collect::<Vec<_>>())
-            .iter().copied().map(ark_g1_affine).collect::<Vec<_>>(),
+            .iter()
+            .copied()
+            .map(ark_g1_affine)
+            .collect::<Vec<_>>(),
         G1Projective::normalize_batch(&g1_all_zero)
     );
     assert_eq!(
         spike::g2_normalize_batch(&g2_all_zero.iter().copied().map(mont_g2).collect::<Vec<_>>())
-            .iter().copied().map(ark_g2_affine).collect::<Vec<_>>(),
+            .iter()
+            .copied()
+            .map(ark_g2_affine)
+            .collect::<Vec<_>>(),
         G2Projective::normalize_batch(&g2_all_zero)
     );
 
     let mut g1_random = Vec::with_capacity(256);
     let mut g2_random = Vec::with_capacity(256);
     for _ in 0..256 {
-        g1_random.push(scaled_g1(G1Projective::rand(&mut rng), random_nonzero_fq(&mut rng)));
-        g2_random.push(scaled_g2(G2Projective::rand(&mut rng), random_nonzero_fq2(&mut rng)));
+        g1_random.push(scaled_g1(
+            G1Projective::rand(&mut rng),
+            random_nonzero_fq(&mut rng),
+        ));
+        g2_random.push(scaled_g2(
+            G2Projective::rand(&mut rng),
+            random_nonzero_fq2(&mut rng),
+        ));
     }
     assert_eq!(
         spike::g1_normalize_batch(&g1_random.iter().copied().map(mont_g1).collect::<Vec<_>>())
-            .iter().copied().map(ark_g1_affine).collect::<Vec<_>>(),
+            .iter()
+            .copied()
+            .map(ark_g1_affine)
+            .collect::<Vec<_>>(),
         G1Projective::normalize_batch(&g1_random)
     );
     assert_eq!(
         spike::g2_normalize_batch(&g2_random.iter().copied().map(mont_g2).collect::<Vec<_>>())
-            .iter().copied().map(ark_g2_affine).collect::<Vec<_>>(),
+            .iter()
+            .copied()
+            .map(ark_g2_affine)
+            .collect::<Vec<_>>(),
         G2Projective::normalize_batch(&g2_random)
     );
 }
@@ -478,10 +523,8 @@ fn check_easy_final_exp(f: Fq12) {
 }
 
 fn check_full_final_exp(f: Fq12) {
-    let expected = <ark_bls12_377::Bls12_377 as Pairing>::final_exponentiation(
-        MillerLoopOutput(f),
-    )
-    .map(|output| output.0);
+    let expected = <ark_bls12_377::Bls12_377 as Pairing>::final_exponentiation(MillerLoopOutput(f))
+        .map(|output| output.0);
     assert_eq!(spike::extract_s3_39(mont12(f)).map(ark12), expected);
 }
 
@@ -586,7 +629,11 @@ fn finite_g1_ell_d_twist_matches_arkworks_wiring() {
     let coeff = prepared.ell_coeffs[0];
     let coeff = (coeff.0, coeff.1, coeff.2);
     let mut rng = test_rng();
-    for point in [G1Affine::generator(), G1Affine::rand(&mut rng), G1Affine::rand(&mut rng)] {
+    for point in [
+        G1Affine::generator(),
+        G1Affine::rand(&mut rng),
+        G1Affine::rand(&mut rng),
+    ] {
         check_ell(Fq12::rand(&mut rng), coeff, point);
     }
 }
@@ -600,11 +647,7 @@ fn check_miller_pair(g1: G1Affine, g2: G2Affine) {
         .map(|coeff| (mont2(coeff.0), mont2(coeff.1), mont2(coeff.2)))
         .collect();
     let actual = ark12(spike::extract_s3_36(coeffs, mont_g1_affine(g1)));
-    let expected = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop(
-        [g1],
-        [prepared],
-    )
-    .0;
+    let expected = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop([g1], [prepared]).0;
     assert_eq!(actual, expected);
 }
 
@@ -637,20 +680,13 @@ fn check_multi_miller_batch(g1s: Vec<G1Affine>, g2s: Vec<G2Affine>) {
         index += 1;
     }
     let actual = ark12(spike::extract_s3_37(pairs));
-    let expected = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop(
-        g1s,
-        prepareds,
-    )
-    .0;
+    let expected = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop(g1s, prepareds).0;
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn multi_miller_schedule_matches_arkworks_filtered_and_chunked_batches() {
-    check_multi_miller_batch(
-        vec![G1Affine::generator()],
-        vec![G2Affine::generator()],
-    );
+    check_multi_miller_batch(vec![G1Affine::generator()], vec![G2Affine::generator()]);
     check_multi_miller_batch(
         vec![G1Affine::generator(), G1Affine::rand(&mut test_rng())],
         vec![G2Affine::generator(), G2Affine::rand(&mut test_rng())],
@@ -670,8 +706,16 @@ fn multi_miller_schedule_matches_arkworks_filtered_and_chunked_batches() {
 
     let mut rng = test_rng();
     check_multi_miller_batch(
-        vec![G1Affine::identity(), G1Affine::generator(), G1Affine::rand(&mut rng)],
-        vec![G2Affine::rand(&mut rng), G2Affine::generator(), G2Affine::rand(&mut rng)],
+        vec![
+            G1Affine::identity(),
+            G1Affine::generator(),
+            G1Affine::rand(&mut rng),
+        ],
+        vec![
+            G2Affine::rand(&mut rng),
+            G2Affine::generator(),
+            G2Affine::rand(&mut rng),
+        ],
     );
     for size in [4_usize, 5, 7, 9] {
         let mut g1s = Vec::new();
@@ -709,10 +753,7 @@ fn check_multi_pairing_batch(g1s: Vec<G1Affine>, g2s: Vec<G2Affine>) {
 #[test]
 fn multi_pairing_matches_arkworks_edges_and_random_batches() {
     check_multi_pairing_batch(vec![], vec![]);
-    check_multi_pairing_batch(
-        vec![G1Affine::generator()],
-        vec![G2Affine::generator()],
-    );
+    check_multi_pairing_batch(vec![G1Affine::generator()], vec![G2Affine::generator()]);
     check_multi_pairing_batch(
         vec![G1Affine::generator(), G1Affine::rand(&mut test_rng())],
         vec![G2Affine::generator(), G2Affine::rand(&mut test_rng())],
@@ -815,11 +856,7 @@ fn final_exponentiation_easy_matches_arkworks_and_bignum_power() {
     for _ in 0..5 {
         let g1 = G1Affine::rand(&mut rng);
         let prepared = Prepared::from(G2Affine::rand(&mut rng));
-        let f = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop(
-            [g1],
-            [prepared],
-        )
-        .0;
+        let f = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop([g1], [prepared]).0;
         check_easy_final_exp(f);
     }
 }
@@ -847,11 +884,7 @@ fn final_exponentiation_hard_matches_arkworks_miller_outputs_and_edges() {
     for _ in 0..8 {
         let g1 = G1Affine::rand(&mut rng);
         let prepared = Prepared::from(G2Affine::rand(&mut rng));
-        let f = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop(
-            [g1],
-            [prepared],
-        )
-        .0;
+        let f = <ark_bls12_377::Bls12_377 as Pairing>::multi_miller_loop([g1], [prepared]).0;
         check_full_final_exp(f);
     }
 }
@@ -1052,9 +1085,7 @@ fn wnaf_bucket_msm_matches_arkworks_g1_and_g2_edges_mismatches_and_512_random() 
         let g2_bases = (0..size)
             .map(|_| G2Affine::rand(&mut rng))
             .collect::<Vec<_>>();
-        let scalars = (0..size)
-            .map(|_| Fr::rand(&mut rng))
-            .collect::<Vec<_>>();
+        let scalars = (0..size).map(|_| Fr::rand(&mut rng)).collect::<Vec<_>>();
         check_g1_msm(&g1_bases, &scalars);
         check_g2_msm(&g2_bases, &scalars);
     }
@@ -1066,12 +1097,8 @@ fn wnaf_bucket_msm_matches_arkworks_g1_and_g2_edges_mismatches_and_512_random() 
         Fr::from_bigint(BigInt([u64::MAX - 1, 0, 1, 0])).unwrap(),
         Fr::from_bigint(modulus_minus_one).unwrap(),
     ];
-    let carry_g1 = (0..3)
-        .map(|_| G1Affine::rand(&mut rng))
-        .collect::<Vec<_>>();
-    let carry_g2 = (0..3)
-        .map(|_| G2Affine::rand(&mut rng))
-        .collect::<Vec<_>>();
+    let carry_g1 = (0..3).map(|_| G1Affine::rand(&mut rng)).collect::<Vec<_>>();
+    let carry_g2 = (0..3).map(|_| G2Affine::rand(&mut rng)).collect::<Vec<_>>();
     check_g1_msm(&carry_g1, &carry_scalars);
     check_g2_msm(&carry_g2, &carry_scalars);
 

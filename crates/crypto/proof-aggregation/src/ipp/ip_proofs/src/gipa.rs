@@ -341,6 +341,7 @@ where
     ))
 }
 
+#[cfg(any(test, hax_compilation))]
 fn ordered_msm<K, S>(keys: &[K], scalars: &[S]) -> K
 where
     K: Clone + Add<Output = K> + MulAssign<S>,

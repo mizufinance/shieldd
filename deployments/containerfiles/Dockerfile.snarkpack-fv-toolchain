@@ -1,0 +1,83 @@
+# Pinned Hax/Aeneas/Lean toolchain for SnarkPack formal verification.
+FROM rust:1.89.0-bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CARGO_HOME=/usr/local/cargo
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV ELAN_HOME=/usr/local/elan
+ENV OPAMROOT=/usr/local/opam
+ENV PATH="/usr/local/elan/bin:/usr/local/cargo/bin:/usr/local/opam/hax/bin:${PATH}"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      build-essential ca-certificates curl git jq libgmp-dev nodejs opam \
+      pkg-config python3 unzip xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG JUST_VERSION=1.57.0
+RUN cargo install --locked --version "${JUST_VERSION}" just
+
+# Build elan from a reviewed commit, then install the exact Lean release.
+ARG ELAN_COMMIT=3d5138e1526a569a23901b8ee559032793cf445e
+ARG LEAN_VERSION=leanprover/lean4:v4.30.0
+RUN cargo install --locked \
+      --git https://github.com/leanprover/elan.git \
+      --rev "${ELAN_COMMIT}" elan \
+    && elan-init -y --no-modify-path --default-toolchain "${LEAN_VERSION}" \
+    && rm -f /usr/local/cargo/bin/elan-init \
+    && chmod -R a+rwX "${ELAN_HOME}"
+
+# Use the pinned Hax repository's supported setup and Aeneas installer.
+ARG HAX_COMMIT=c8e27c5945f7fc5791939cff7c1277f4ab768fe1
+ARG CHARON_COMMIT=74166d896db4ae4f63101c13c22072fb2022092e
+ARG AENEAS_COMMIT=e0a159645386230102a2bf89b4df2dcd2140777e
+ARG AENEAS_ARCHIVE_SHA256=5a76680ce77737a5fe2ea3eb3750795bf3f3c13f0e3549d5dbd88e3fc191f2bd
+ARG CHARON_ARCHIVE_SHA256=9ee9516044f25ef04d33016e71c9a05d9f92575c342e99300fff4b9109d67a48
+RUN git clone --filter=blob:none https://github.com/cryspen/hax.git /opt/hax \
+    && git -C /opt/hax checkout --detach "${HAX_COMMIT}" \
+    && test "$(git -C /opt/hax rev-parse HEAD)" = "${HAX_COMMIT}" \
+    && aeneas_short="$(printf '%s' "${AENEAS_COMMIT}" | cut -c1-7)" \
+    && grep -Fq "commit = \"${aeneas_short}\"" /opt/hax/pins.toml \
+    && git clone --filter=blob:none --no-checkout \
+      https://github.com/AeneasVerif/charon.git /opt/charon-source \
+    && git -C /opt/charon-source fetch --depth=1 origin "${CHARON_COMMIT}" \
+    && git -C /opt/charon-source checkout --detach FETCH_HEAD \
+    && test "$(git -C /opt/charon-source rev-parse HEAD)" = "${CHARON_COMMIT}" \
+    && git clone --filter=blob:none --no-checkout \
+      https://github.com/cryspen/aeneas.git /opt/aeneas-source \
+    && git -C /opt/aeneas-source fetch --depth=1 origin "${AENEAS_COMMIT}" \
+    && git -C /opt/aeneas-source checkout --detach FETCH_HEAD \
+    && test "$(git -C /opt/aeneas-source rev-parse HEAD)" = "${AENEAS_COMMIT}" \
+    && curl -fL --retry 3 \
+      -o /tmp/aeneas.tar.gz \
+      https://github.com/cryspen/aeneas/releases/download/nightly-2026.07.01/aeneas-linux-x86_64.tar.gz \
+    && echo "${AENEAS_ARCHIVE_SHA256}  /tmp/aeneas.tar.gz" | sha256sum -c - \
+    && curl -fL --retry 3 \
+      -o /tmp/charon.tar.gz \
+      https://github.com/AeneasVerif/charon/releases/download/nightly-2026.07.01/charon-linux-x86_64.tar.gz \
+    && echo "${CHARON_ARCHIVE_SHA256}  /tmp/charon.tar.gz" | sha256sum -c - \
+    && rm -f /tmp/aeneas.tar.gz /tmp/charon.tar.gz \
+    && opam init --bare --disable-sandboxing -y \
+    && opam switch create hax 5.1.1 -y \
+    && eval "$(opam env --switch=hax --set-switch)" \
+    && cd /opt/hax \
+    && ./setup.sh -j 2 \
+    && rustup default 1.89.0 \
+    && chmod -R a+rwX "${CARGO_HOME}" "${RUSTUP_HOME}" "${OPAMROOT}"
+
+RUN set -eux; \
+    test "$(rustc --version)" = "rustc 1.89.0 (29483883e 2025-08-04)"; \
+    lean --version | grep -F "Lean (version 4.30.0"; \
+    cargo hax --version | grep -F "${HAX_COMMIT}"; \
+    cargo hax into --help | grep -F "aeneas-lean"; \
+    cargo hax into aeneas-lean --help | grep -F -- "--lakefile"; \
+    test -x "$(command -v aeneas)"; \
+    test -x "$(command -v charon)"; \
+    aeneas_short="$(printf '%s' "${AENEAS_COMMIT}" | cut -c1-7)"; \
+    aeneas -version | grep -F "${aeneas_short}"; \
+    test "$(charon version)" = "0.1.218"; \
+    test "$(git -C /opt/aeneas-source rev-parse HEAD)" = "${AENEAS_COMMIT}"; \
+    test "$(git -C /opt/charon-source rev-parse HEAD)" = "${CHARON_COMMIT}"; \
+    python3 --version; git --version; just --version
+
+CMD ["/bin/bash"]

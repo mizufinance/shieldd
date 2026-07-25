@@ -72,7 +72,10 @@ fn edge_and_512_random_vectors_match_arkworks_fr() {
 #[test]
 fn fr_zero_inverse_and_noncanonical_bytes_reject() {
     assert_eq!(spike::inv(FrMont([0; 4])), None);
-    assert_eq!(spike::inv(mont(Fr::from(1_u64))).map(ark), Fr::from(1_u64).inverse());
+    assert_eq!(
+        spike::inv(mont(Fr::from(1_u64))).map(ark),
+        Fr::from(1_u64).inverse()
+    );
 
     // r itself, r + 1, and all-ones are noncanonical.
     let modulus_bytes: [u8; 32] = {

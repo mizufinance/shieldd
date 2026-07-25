@@ -85,7 +85,7 @@ NORMALIZATION_FIELDS = {
     "script",
     "extra_imports",
     "reuse_modules",
-    "raw_sha256",
+    "selected_raw_declarations_sha256",
     "normalized_sha256",
 }
 PARITY_FIELDS = {"cwd", "argv"}
@@ -199,8 +199,8 @@ def validate_manifest(
     manifest_path: Path = MANIFEST_PATH,
 ) -> None:
     _exact_fields(manifest, TOP_FIELDS, "manifest")
-    if manifest["schema_version"] != 1:
-        raise ManifestError("manifest.schema_version: expected 1")
+    if manifest["schema_version"] != 2:
+        raise ManifestError("manifest.schema_version: expected 2")
 
     toolchains = _expect_object(manifest["toolchains"], "manifest.toolchains")
     _exact_fields(toolchains, TOOLCHAIN_FIELDS, "manifest.toolchains")
@@ -316,7 +316,6 @@ def validate_manifest(
         extractions = _expect_list(graph["extractions"], f"{where}.extractions")
         if not extractions:
             raise ManifestError(f"{where}.extractions: must not be empty")
-        raw_output_count = 0
         for extraction_index, raw_extraction in enumerate(extractions):
             item = _expect_object(
                 raw_extraction, f"{where}.extractions[{extraction_index}]"
@@ -369,7 +368,6 @@ def validate_manifest(
                     raw_output,
                     f"{where}.extractions[{extraction_index}].raw_outputs[{output_index}]",
                 )
-            raw_output_count += len(raw_outputs)
 
         normalization = _expect_object(graph["normalization"], f"{where}.normalization")
         _exact_fields(normalization, NORMALIZATION_FIELDS, f"{where}.normalization")
@@ -394,22 +392,10 @@ def validate_manifest(
                 raise ManifestError(
                     f"{where}.normalization.reuse_modules: missing module {module}"
                 )
-        raw_hashes = [
-            _string(item, f"{where}.normalization.raw_sha256[{hash_index}]")
-            for hash_index, item in enumerate(
-                _expect_list(
-                    normalization["raw_sha256"],
-                    f"{where}.normalization.raw_sha256",
-                )
-            )
-        ]
-        if len(raw_hashes) != raw_output_count:
-            raise ManifestError(
-                f"{where}.normalization.raw_sha256: expected {raw_output_count}, "
-                f"found {len(raw_hashes)}"
-            )
-        for hash_index, digest in enumerate(raw_hashes):
-            _hash(digest, f"{where}.normalization.raw_sha256[{hash_index}]")
+        _hash(
+            normalization["selected_raw_declarations_sha256"],
+            f"{where}.normalization.selected_raw_declarations_sha256",
+        )
         normalized_hash = _hash(
             normalization["normalized_sha256"],
             f"{where}.normalization.normalized_sha256",
@@ -527,7 +513,7 @@ def _isolation_dir(
     return isolation
 
 
-def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, list[str]]:
+def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]:
     if os.name == "nt":
         raise ManifestError(
             "compare/regenerate must run inside WSL or another POSIX environment "
@@ -584,29 +570,30 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, list
         roots=graph["roots"],
         lean_root=LEAN_ROOT,
     )
-    return result.content, list(result.raw_sha256)
+    return result.content, result.selected_raw_declarations_sha256
 
 
 def compare_graph(graph: dict[str, Any]) -> tuple[bool, str]:
     with tempfile.TemporaryDirectory(prefix=f"shieldd-extract-{graph['id']}-") as raw_temp:
-        content, raw_hashes = reproduce_graph(graph, Path(raw_temp))
+        content, selected_digest = reproduce_graph(graph, Path(raw_temp))
     committed_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
     committed = committed_path.read_bytes()
     normalized_hash = hashlib.sha256(content).hexdigest()
-    raw_match = raw_hashes == graph["normalization"]["raw_sha256"]
+    expected_selected_digest = graph["normalization"][
+        "selected_raw_declarations_sha256"
+    ]
+    selected_digest_match = selected_digest == expected_selected_digest
     byte_match = content == committed
-    if byte_match and raw_match:
+    if byte_match and selected_digest_match:
         return True, f"{graph['id']}: byte-identical ({normalized_hash})"
     details = [
         f"{graph['id']}: drift",
         f"  committed={hashlib.sha256(committed).hexdigest()}",
         f"  regenerated={normalized_hash}",
     ]
-    if not raw_match:
-        details.append(
-            "  raw expected=" + ",".join(graph["normalization"]["raw_sha256"])
-        )
-        details.append("  raw actual=" + ",".join(raw_hashes))
+    if not selected_digest_match:
+        details.append(f"  selected digest expected={expected_selected_digest}")
+        details.append(f"  selected digest actual={selected_digest}")
     return False, "\n".join(details)
 
 
@@ -724,13 +711,15 @@ def command_regenerate(args: argparse.Namespace) -> int:
         with tempfile.TemporaryDirectory(
             prefix=f"shieldd-extract-{graph['id']}-"
         ) as raw_temp:
-            content, raw_hashes = reproduce_graph(graph, Path(raw_temp))
+            content, selected_digest = reproduce_graph(graph, Path(raw_temp))
         output_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
         output_path.write_bytes(content)
         digest = hashlib.sha256(content).hexdigest()
         updated_graph = updated_graphs[graph["id"]]
         updated_graph["output_sha256"] = digest
-        updated_graph["normalization"]["raw_sha256"] = raw_hashes
+        updated_graph["normalization"][
+            "selected_raw_declarations_sha256"
+        ] = selected_digest
         updated_graph["normalization"]["normalized_sha256"] = digest
         args.manifest.write_bytes(canonical_json(updated))
         print(f"{graph['id']}: regenerated ({digest})", flush=True)
