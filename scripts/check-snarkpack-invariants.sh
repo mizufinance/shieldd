@@ -236,8 +236,6 @@ check_fuzz_crate_boundary() {
     || fail "fuzz crate must depend on libfuzzer-sys"
   rg -n '^shieldd-sdk-proof-aggregation = ' "$manifest" >/dev/null \
     || fail "fuzz crate must use the public proof-aggregation crate boundary"
-  rg -n '^shieldd-sdk-proof-aggregation-reference = ' "$manifest" >/dev/null \
-    || fail "fuzz crate must use the reference oracle crate as a dev-only boundary"
 
   local forbidden_deps
   forbidden_deps="$(

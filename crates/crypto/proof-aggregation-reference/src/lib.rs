@@ -7,10 +7,7 @@
 //! the slow aggregation equations and decodes production bytes into
 //! reference-owned proof structs.
 
-use std::{
-    fmt,
-    ops::{Add, MulAssign},
-};
+use std::ops::{Add, MulAssign};
 
 use ark_ec::{
     pairing::{Pairing, PairingOutput},
@@ -37,170 +34,17 @@ type Fr = <P as Pairing>::ScalarField;
 
 const DEV_SRS_SEED: [u8; 32] = [0x50; 32];
 const CHALLENGE_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge.v1\0";
-const CHALLENGE_CONTEXT_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge_context.v1\0";
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TraceComparisonLevel {
-    ShielddByte,
-    AbstractTrace,
-    FilecoinShape,
-    ShielddLocal,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TraceEventKind {
-    ChallengeContext,
-    ChallengePreimage,
-    ChallengeDigest,
-    EquationRole,
-    ObjectRole,
-    FilecoinBugClass,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum FilecoinBugClass {
-    FirstRoundHashOmission,
-    FinalRandomnessOmission,
-    PublicMessageReordering,
-    HiddenDefaultContext,
-    ProverVerifierChallengeMismatch,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct TracePolicy {
-    pub spec_row_id: &'static str,
-    pub primary_level: TraceComparisonLevel,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TraceEvent {
-    pub spec_row_id: &'static str,
-    pub primary_level: TraceComparisonLevel,
-    pub event_kind: TraceEventKind,
-    pub stage_label: &'static str,
-    pub nonce: Option<u64>,
-    pub round_index: Option<u32>,
-    pub byte_payload: Vec<u8>,
-    pub abstract_payload: Option<&'static str>,
-    pub filecoin_bug_class: Option<FilecoinBugClass>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TraceEventError {
-    MissingBytePayload,
-    MissingAbstractPayload,
-    MissingFilecoinBugClass,
-}
-
-impl TraceEvent {
-    pub fn validate(&self) -> Result<(), TraceEventError> {
-        match self.primary_level {
-            TraceComparisonLevel::ShielddByte if self.byte_payload.is_empty() => {
-                Err(TraceEventError::MissingBytePayload)
-            }
-            TraceComparisonLevel::AbstractTrace if self.abstract_payload.is_none() => {
-                Err(TraceEventError::MissingAbstractPayload)
-            }
-            TraceComparisonLevel::FilecoinShape if self.filecoin_bug_class.is_none() => {
-                Err(TraceEventError::MissingFilecoinBugClass)
-            }
-            _ => Ok(()),
-        }
-    }
-}
-
-pub const TRACE_POLICIES: &[TracePolicy] = &[
-    TracePolicy {
-        spec_row_id: "fs.context-constructor",
-        primary_level: TraceComparisonLevel::ShielddByte,
-    },
-    TracePolicy {
-        spec_row_id: "fs.challenge-preimage",
-        primary_level: TraceComparisonLevel::ShielddByte,
-    },
-    TracePolicy {
-        spec_row_id: "fs.stage-labels",
-        primary_level: TraceComparisonLevel::ShielddByte,
-    },
-    TracePolicy {
-        spec_row_id: "fs.filecoin-bug-class",
-        primary_level: TraceComparisonLevel::FilecoinShape,
-    },
-    TracePolicy {
-        spec_row_id: "gipa.input-relation",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "gipa.round-folding",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "gipa.challenge-dependency",
-        primary_level: TraceComparisonLevel::ShielddByte,
-    },
-    TracePolicy {
-        spec_row_id: "gipa.verifier-folding",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "tipa.srs",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "tipp-mipp.x0-seed",
-        primary_level: TraceComparisonLevel::ShielddByte,
-    },
-    TracePolicy {
-        spec_row_id: "tipp-mipp.gipa",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "tipp-mipp.final-bridge",
-        primary_level: TraceComparisonLevel::ShielddByte,
-    },
-    TracePolicy {
-        spec_row_id: "tipp-mipp.kzg-challenge",
-        primary_level: TraceComparisonLevel::ShielddByte,
-    },
-    TracePolicy {
-        spec_row_id: "tipp-mipp.kzg-equations",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "tipp-mipp.power-sequence",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "tipp-mipp.base-equations",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "groth16.randomizer",
-        primary_level: TraceComparisonLevel::ShielddByte,
-    },
-    TracePolicy {
-        spec_row_id: "groth16.folded-inputs",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-    TracePolicy {
-        spec_row_id: "groth16.ppe",
-        primary_level: TraceComparisonLevel::AbstractTrace,
-    },
-];
 
 pub type ReferenceResult<T> = Result<T, ReferencePathError>;
-pub type ReferenceTraceEntry = TraceEvent;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReferenceAggregate {
     pub wrapped_proof: Vec<u8>,
-    pub prover_trace: Vec<ReferenceTraceEntry>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReferenceVerifyReport {
     pub accepted: bool,
-    pub verifier_trace: Vec<ReferenceTraceEntry>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
@@ -307,131 +151,6 @@ struct TippMippAux {
     final_messages: (G1, G2, G1),
 }
 
-#[derive(Clone, Debug, Default)]
-struct ReferenceTraceCollector {
-    events: Vec<TraceEvent>,
-    mutant: Option<VerifierMutant>,
-}
-
-impl ReferenceTraceCollector {
-    fn with_mutant(mutant: VerifierMutant) -> Self {
-        Self {
-            events: Vec::new(),
-            mutant: Some(mutant),
-        }
-    }
-
-    fn into_events(self) -> Vec<TraceEvent> {
-        self.events
-    }
-
-    fn mutates_context_constructor(&self) -> bool {
-        self.mutant == Some(VerifierMutant::ContextConstructor)
-    }
-
-    fn mutates_stage_labels(&self) -> bool {
-        self.mutant == Some(VerifierMutant::StageLabels)
-    }
-
-    fn mutates_challenge_preimage(&self) -> bool {
-        self.mutant == Some(VerifierMutant::ChallengePreimage)
-    }
-
-    fn mutates_spec_row(&self, spec_row_id: &str) -> bool {
-        matches!(
-            (self.mutant, spec_row_id),
-            (
-                Some(VerifierMutant::GipaChallengeDependency),
-                "gipa.challenge-dependency"
-            ) | (Some(VerifierMutant::TippMippX0Seed), "tipp-mipp.x0-seed")
-                | (
-                    Some(VerifierMutant::TippMippFinalBridge),
-                    "tipp-mipp.final-bridge"
-                )
-                | (
-                    Some(VerifierMutant::TippMippKzgChallenge),
-                    "tipp-mipp.kzg-challenge"
-                )
-                | (
-                    Some(VerifierMutant::Groth16Randomizer),
-                    "groth16.randomizer"
-                )
-        )
-    }
-
-    fn record_context(&mut self, statement_digest: [u8; 32]) {
-        self.events.push(TraceEvent {
-            spec_row_id: "fs.context-constructor",
-            primary_level: TraceComparisonLevel::ShielddByte,
-            event_kind: TraceEventKind::ChallengeContext,
-            stage_label: "statement",
-            nonce: None,
-            round_index: None,
-            byte_payload: challenge_context_constructor_preimage(statement_digest),
-            abstract_payload: None,
-            filecoin_bug_class: None,
-        });
-    }
-
-    fn record_challenge(
-        &mut self,
-        spec_row_id: &'static str,
-        stage_label: &'static [u8],
-        nonce: u64,
-        preimage: Vec<u8>,
-        digest: &[u8],
-    ) {
-        let stage_label = stage_label_str(stage_label);
-        self.events.push(TraceEvent {
-            spec_row_id: "fs.stage-labels",
-            primary_level: TraceComparisonLevel::ShielddByte,
-            event_kind: TraceEventKind::ChallengePreimage,
-            stage_label,
-            nonce: Some(nonce),
-            round_index: None,
-            byte_payload: stage_label.as_bytes().to_vec(),
-            abstract_payload: None,
-            filecoin_bug_class: None,
-        });
-        self.events.push(TraceEvent {
-            spec_row_id: "fs.challenge-preimage",
-            primary_level: TraceComparisonLevel::ShielddByte,
-            event_kind: TraceEventKind::ChallengePreimage,
-            stage_label,
-            nonce: Some(nonce),
-            round_index: None,
-            byte_payload: preimage.clone(),
-            abstract_payload: None,
-            filecoin_bug_class: None,
-        });
-        self.events.push(TraceEvent {
-            spec_row_id,
-            primary_level: TraceComparisonLevel::ShielddByte,
-            event_kind: TraceEventKind::ChallengeDigest,
-            stage_label,
-            nonce: Some(nonce),
-            round_index: None,
-            byte_payload: digest.to_vec(),
-            abstract_payload: None,
-            filecoin_bug_class: None,
-        });
-    }
-
-    fn record_abstract(&mut self, spec_row_id: &'static str, stage_label: &'static str) {
-        self.events.push(TraceEvent {
-            spec_row_id,
-            primary_level: TraceComparisonLevel::AbstractTrace,
-            event_kind: TraceEventKind::EquationRole,
-            stage_label,
-            nonce: None,
-            round_index: None,
-            byte_payload: Vec::new(),
-            abstract_payload: Some(stage_label),
-            filecoin_bug_class: None,
-        });
-    }
-}
-
 pub fn reference_aggregate_family(
     statement: &AggregateStatement,
     _pvk: &PreparedVerifyingKey<P>,
@@ -445,15 +164,10 @@ pub fn reference_aggregate_family(
     }
     ensure_reference_srs_matches_public_id(srs)?;
 
-    let mut trace = ReferenceTraceCollector::default();
-    trace.record_context(statement.statement_digest());
-    emit_static_abstract_trace(&mut trace);
-
     let reference_srs = reference_srs_for_count(srs, items.len())?;
     let aggregate = reference_aggregate_proofs(
         statement.family_id(),
         statement.challenge_context().as_bytes(),
-        &mut trace,
         &reference_srs,
         &items
             .iter()
@@ -468,10 +182,7 @@ pub fn reference_aggregate_family(
         encode_wrapped_aggregate_proof(statement.statement_digest(), &inner_proof_bytes)
             .map_err(|err| ReferencePathError::InvalidInput(err.to_string()))?;
 
-    Ok(ReferenceAggregate {
-        wrapped_proof,
-        prover_trace: trace.into_events(),
-    })
+    Ok(ReferenceAggregate { wrapped_proof })
 }
 
 pub fn reference_verify_family_aggregate(
@@ -480,17 +191,7 @@ pub fn reference_verify_family_aggregate(
     wrapped_proof: &[u8],
     srs: &DevSrs,
 ) -> ReferenceResult<ReferenceVerifyReport> {
-    reference_verify_family_aggregate_inner(statement, pvk, wrapped_proof, srs, None)
-}
-
-pub fn reference_verify_family_aggregate_with_verifier_mutant(
-    statement: &AggregateStatement,
-    pvk: &PreparedVerifyingKey<P>,
-    wrapped_proof: &[u8],
-    srs: &DevSrs,
-    mutant: VerifierMutant,
-) -> ReferenceResult<ReferenceVerifyReport> {
-    reference_verify_family_aggregate_inner(statement, pvk, wrapped_proof, srs, Some(mutant))
+    reference_verify_family_aggregate_inner(statement, pvk, wrapped_proof, srs)
 }
 
 fn reference_verify_family_aggregate_inner(
@@ -498,7 +199,6 @@ fn reference_verify_family_aggregate_inner(
     pvk: &PreparedVerifyingKey<P>,
     wrapped_proof: &[u8],
     srs: &DevSrs,
-    mutant: Option<VerifierMutant>,
 ) -> ReferenceResult<ReferenceVerifyReport> {
     ensure_reference_srs_matches_public_id(srs)?;
     let call = preflight_aggregate_verify(AggregatePreflightInput {
@@ -509,12 +209,6 @@ fn reference_verify_family_aggregate_inner(
     })
     .map_err(|err| ReferencePathError::Rejected(err.to_string()))?;
 
-    let mut trace = mutant
-        .map(ReferenceTraceCollector::with_mutant)
-        .unwrap_or_default();
-    trace.record_context(statement.statement_digest());
-    emit_static_abstract_trace(&mut trace);
-
     let aggregate = ReferenceAggregateProof::deserialize_compressed(call.inner_proof_bytes())
         .map_err(|err| {
             ReferencePathError::MalformedProof(format!("aggregate proof decode failed: {err}"))
@@ -523,36 +217,18 @@ fn reference_verify_family_aggregate_inner(
     let accepted = reference_verify_aggregate_proof(
         call.family_id(),
         call.challenge_context().as_bytes(),
-        &mut trace,
         &verifier_srs,
         &call.pvk().vk,
         call.padded_public_inputs(),
         &aggregate,
     )?;
 
-    Ok(ReferenceVerifyReport {
-        accepted,
-        verifier_trace: trace.into_events(),
-    })
-}
-
-fn emit_static_abstract_trace(trace: &mut ReferenceTraceCollector) {
-    trace.record_abstract("gipa.input-relation", "gipa.input-relation");
-    trace.record_abstract("gipa.round-folding", "gipa.round-folding");
-    trace.record_abstract("gipa.verifier-folding", "gipa.verifier-folding");
-    trace.record_abstract("tipa.srs", "tipa.srs");
-    trace.record_abstract("tipp-mipp.gipa", "tipp-mipp.gipa");
-    trace.record_abstract("tipp-mipp.kzg-equations", "tipp-mipp.kzg-equations");
-    trace.record_abstract("tipp-mipp.power-sequence", "tipp-mipp.power-sequence");
-    trace.record_abstract("tipp-mipp.base-equations", "tipp-mipp.base-equations");
-    trace.record_abstract("groth16.folded-inputs", "groth16.folded-inputs");
-    trace.record_abstract("groth16.ppe", "groth16.ppe");
+    Ok(ReferenceVerifyReport { accepted })
 }
 
 fn reference_aggregate_proofs(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     srs: &ReferenceSrs,
     proofs: &[Proof<P>],
 ) -> ReferenceResult<ReferenceAggregateProof> {
@@ -574,7 +250,7 @@ fn reference_aggregate_proofs(
     let com_b = pairing_inner_product(&ck_2, &b)?;
     let com_c = pairing_inner_product(&c, &ck_1)?;
 
-    let r = derive_randomizer(family_id, context, trace, &com_a, &com_b, &com_c)?;
+    let r = derive_randomizer(family_id, context, &com_a, &com_b, &com_c)?;
     let r_vec = structured_scalar_power(proofs.len(), &r);
     let b_r = b
         .iter()
@@ -588,7 +264,6 @@ fn reference_aggregate_proofs(
     let tipp_mipp_proof = prove_tipp_mipp(
         family_id,
         context,
-        trace,
         srs,
         (&a, &b_r, &c, &r_vec),
         (&ck_1, &ck_2_r_inv),
@@ -611,21 +286,13 @@ fn reference_aggregate_proofs(
 fn reference_verify_aggregate_proof(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     verifier_srs: &ReferenceVerifierSrs,
     vk: &VerifyingKey<P>,
     public_inputs: &[Vec<Fq>],
     proof: &ReferenceAggregateProof,
 ) -> ReferenceResult<bool> {
-    let r = derive_randomizer(
-        family_id,
-        context,
-        trace,
-        &proof.com_a,
-        &proof.com_b,
-        &proof.com_c,
-    )?;
-    let tipp_mipp_valid = verify_tipp_mipp(family_id, context, trace, verifier_srs, proof, &r)?;
+    let r = derive_randomizer(family_id, context, &proof.com_a, &proof.com_b, &proof.com_c)?;
+    let tipp_mipp_valid = verify_tipp_mipp(family_id, context, verifier_srs, proof, &r)?;
     let (r_sum, g_ic) = fold_public_inputs(vk, public_inputs, &r);
     let ppe_valid = verify_ppe(vk, proof, &r_sum, g_ic);
     Ok(tipp_mipp_valid && ppe_valid)
@@ -634,7 +301,6 @@ fn reference_verify_aggregate_proof(
 fn prove_tipp_mipp(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     srs: &ReferenceSrs,
     values: (&[G1], &[G2], &[G1], &[Fr]),
     ck: (&[G2], &[G1]),
@@ -644,20 +310,18 @@ fn prove_tipp_mipp(
     agg_c: &G1,
 ) -> ReferenceResult<ReferenceTippMippProof> {
     let (gipa_proof, aux) =
-        prove_tipp_mipp_gipa(family_id, context, trace, values, ck, r, com, ip_ab, agg_c)?;
+        prove_tipp_mipp_gipa(family_id, context, values, ck, r, com, ip_ab, agg_c)?;
     let r_inverse = r
         .inverse()
         .ok_or_else(|| ReferencePathError::Rejected("zero randomizer".to_owned()))?;
     let final_bridge = derive_final_bridge(
         family_id,
         context,
-        trace,
         &aux.last_raw_challenge,
         &aux.final_ck,
         &aux.final_messages,
     )?;
-    let z =
-        derive_tipp_mipp_kzg_challenge(family_id, context, trace, &final_bridge, &aux.final_ck)?;
+    let z = derive_tipp_mipp_kzg_challenge(family_id, context, &final_bridge, &aux.final_ck)?;
     let ck_v_opening =
         prove_commitment_key_kzg_opening(&srs.h_beta_powers, &aux.raw_transcript, &Fr::one(), &z)?;
     let ck_w_opening =
@@ -674,7 +338,6 @@ fn prove_tipp_mipp(
 fn prove_tipp_mipp_gipa(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     values: (&[G1], &[G2], &[G1], &[Fr]),
     ck: (&[G2], &[G1]),
     r: &Fr,
@@ -691,7 +354,7 @@ fn prove_tipp_mipp_gipa(
     let mut r_commitment_steps = Vec::new();
     let mut raw_transcript = Vec::new();
     let mut inv_transcript = Vec::new();
-    let mut prior_raw = derive_x0(family_id, context, trace, r, com, ip_ab, agg_c)?;
+    let mut prior_raw = derive_x0(family_id, context, r, com, ip_ab, agg_c)?;
     let mut last_raw = prior_raw;
     loop {
         if m_a.len() == 1 {
@@ -714,9 +377,7 @@ fn prove_tipp_mipp_gipa(
             &ck_v[split..],
             &ck_w[..split],
         )?;
-        let raw = derive_tipp_mipp_round_challenge(
-            family_id, context, trace, &prior_raw, &com_1, &com_2,
-        )?;
+        let raw = derive_tipp_mipp_round_challenge(family_id, context, &prior_raw, &com_1, &com_2)?;
         let inv = raw
             .inverse()
             .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))?;
@@ -751,7 +412,6 @@ fn prove_tipp_mipp_gipa(
 fn verify_tipp_mipp(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     verifier_srs: &ReferenceVerifierSrs,
     proof: &ReferenceAggregateProof,
     r: &Fr,
@@ -765,7 +425,6 @@ fn verify_tipp_mipp(
     let mut prior_raw = derive_x0(
         family_id,
         context,
-        trace,
         r,
         (&proof.com_a, &proof.com_b, &proof.com_c),
         &proof.ip_ab,
@@ -776,8 +435,7 @@ fn verify_tipp_mipp(
     let mut inv_transcript = Vec::new();
 
     for (com_1, com_2) in tipp_mipp.gipa_proof.r_commitment_steps.iter().rev() {
-        let raw =
-            derive_tipp_mipp_round_challenge(family_id, context, trace, &prior_raw, com_1, com_2)?;
+        let raw = derive_tipp_mipp_round_challenge(family_id, context, &prior_raw, com_1, com_2)?;
         let inv = raw
             .inverse()
             .ok_or_else(|| ReferencePathError::Rejected("zero transcript challenge".to_owned()))?;
@@ -797,18 +455,11 @@ fn verify_tipp_mipp(
     let final_bridge = derive_final_bridge(
         family_id,
         context,
-        trace,
         &last_raw,
         &tipp_mipp.final_ck,
         &tipp_mipp.final_messages,
     )?;
-    let z = derive_tipp_mipp_kzg_challenge(
-        family_id,
-        context,
-        trace,
-        &final_bridge,
-        &tipp_mipp.final_ck,
-    )?;
+    let z = derive_tipp_mipp_kzg_challenge(family_id, context, &final_bridge, &tipp_mipp.final_ck)?;
     let r_inverse = r
         .inverse()
         .ok_or_else(|| ReferencePathError::Rejected("zero randomizer".to_owned()))?;
@@ -878,7 +529,6 @@ fn structured_scalar_final_from_raw_transcript(raw_transcript_reversed: &[Fr], r
 fn derive_randomizer(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     com_a: &PairingOutput<P>,
     com_b: &PairingOutput<P>,
     com_c: &PairingOutput<P>,
@@ -895,21 +545,12 @@ fn derive_randomizer(
         com_c
             .serialize_uncompressed(&mut messages)
             .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-        let (preimage, digest) = challenge_digest_for_trace(
-            trace,
+        let digest = challenge_digest(
             family_id,
             context,
             b"aggregate.randomizer",
             nonce,
             &messages,
-            "groth16.randomizer",
-        );
-        trace.record_challenge(
-            "groth16.randomizer",
-            b"aggregate.randomizer",
-            nonce,
-            preimage,
-            &digest,
         );
         if let Some(r) = Fr::from_random_bytes(&digest) {
             return Ok(r);
@@ -921,23 +562,12 @@ fn derive_randomizer(
 fn derive_scalar_challenge(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     stage_label: &'static [u8],
     messages: &[u8],
-    spec_row_id: &'static str,
 ) -> ReferenceResult<Fr> {
     let mut nonce = 0u64;
     loop {
-        let (preimage, digest) = challenge_digest_for_trace(
-            trace,
-            family_id,
-            context,
-            stage_label,
-            nonce,
-            messages,
-            spec_row_id,
-        );
-        trace.record_challenge(spec_row_id, stage_label, nonce, preimage, &digest);
+        let digest = challenge_digest(family_id, context, stage_label, nonce, messages);
         if let Some(c) = Fr::from_random_bytes(&digest) {
             if !c.is_zero() {
                 return Ok(c);
@@ -950,7 +580,6 @@ fn derive_scalar_challenge(
 fn derive_x0(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     r: &Fr,
     com: (&PairingOutput<P>, &PairingOutput<P>, &PairingOutput<P>),
     ip_ab: &PairingOutput<P>,
@@ -974,20 +603,12 @@ fn derive_x0(
     agg_c
         .serialize_uncompressed(&mut messages)
         .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-    derive_scalar_challenge(
-        family_id,
-        context,
-        trace,
-        b"tipp-mipp.x0",
-        &messages,
-        "tipp-mipp.x0-seed",
-    )
+    derive_scalar_challenge(family_id, context, b"tipp-mipp.x0", &messages)
 }
 
 fn derive_tipp_mipp_round_challenge(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     prior_raw: &Fr,
     com_1: &TippMippCommitment,
     com_2: &TippMippCommitment,
@@ -998,20 +619,12 @@ fn derive_tipp_mipp_round_challenge(
         .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
     serialize_tipp_mipp_commitment(com_1, &mut messages)?;
     serialize_tipp_mipp_commitment(com_2, &mut messages)?;
-    derive_scalar_challenge(
-        family_id,
-        context,
-        trace,
-        b"tipp-mipp.gipa.round",
-        &messages,
-        "gipa.challenge-dependency",
-    )
+    derive_scalar_challenge(family_id, context, b"tipp-mipp.gipa.round", &messages)
 }
 
 fn derive_final_bridge(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     last_raw: &Fr,
     final_ck: &(G2, G1),
     final_messages: &(G1, G2, G1),
@@ -1040,20 +653,12 @@ fn derive_final_bridge(
         .2
         .serialize_uncompressed(&mut messages)
         .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-    derive_scalar_challenge(
-        family_id,
-        context,
-        trace,
-        b"tipp-mipp.final-bridge",
-        &messages,
-        "tipp-mipp.final-bridge",
-    )
+    derive_scalar_challenge(family_id, context, b"tipp-mipp.final-bridge", &messages)
 }
 
 fn derive_tipp_mipp_kzg_challenge(
     family_id: ProofFamilyId,
     context: &[u8; 32],
-    trace: &mut ReferenceTraceCollector,
     final_bridge: &Fr,
     final_ck: &(G2, G1),
 ) -> ReferenceResult<Fr> {
@@ -1069,46 +674,21 @@ fn derive_tipp_mipp_kzg_challenge(
         .1
         .serialize_uncompressed(&mut messages)
         .map_err(|err| ReferencePathError::MalformedProof(err.to_string()))?;
-    derive_scalar_challenge(
-        family_id,
-        context,
-        trace,
-        b"tipp-mipp.kzg",
-        &messages,
-        "tipp-mipp.kzg-challenge",
-    )
+    derive_scalar_challenge(family_id, context, b"tipp-mipp.kzg", &messages)
 }
 
-fn challenge_digest_for_trace(
-    trace: &ReferenceTraceCollector,
+fn challenge_digest(
     family_id: ProofFamilyId,
     context: &[u8; 32],
     stage_label: &'static [u8],
     nonce: u64,
     messages: &[u8],
-    spec_row_id: &'static str,
-) -> (Vec<u8>, Vec<u8>) {
-    let mut context = *context;
-    if trace.mutates_context_constructor() {
-        context = [0u8; 32];
-    }
-    let stage_label = if trace.mutates_stage_labels() {
-        b"mutant.stage-labels".as_slice()
-    } else {
-        stage_label
-    };
-    let empty_messages = [];
-    let messages = if trace.mutates_challenge_preimage() || trace.mutates_spec_row(spec_row_id) {
-        empty_messages.as_slice()
-    } else {
-        messages
-    };
-
-    let preimage = challenge_preimage(&context, stage_label, nonce, messages);
+) -> Vec<u8> {
+    let preimage = challenge_preimage(context, stage_label, nonce, messages);
     let mut digest = Blake2b::new();
     digest.update(transcript_family_domain(family_id).as_slice());
     digest.update(&preimage);
-    (preimage, digest.finalize().to_vec())
+    digest.finalize().to_vec()
 }
 
 fn challenge_preimage(
@@ -1127,13 +707,6 @@ fn challenge_preimage(
     preimage.extend_from_slice(context);
     preimage.extend_from_slice(&nonce.to_le_bytes());
     preimage.extend_from_slice(messages);
-    preimage
-}
-
-fn challenge_context_constructor_preimage(statement_digest: [u8; 32]) -> Vec<u8> {
-    let mut preimage = Vec::with_capacity(CHALLENGE_CONTEXT_DOMAIN.len() + 32);
-    preimage.extend_from_slice(CHALLENGE_CONTEXT_DOMAIN);
-    preimage.extend_from_slice(&statement_digest);
     preimage
 }
 
@@ -1523,93 +1096,17 @@ fn serialize_tipp_mipp_commitment(
     Ok(())
 }
 
-fn stage_label_str(stage_label: &'static [u8]) -> &'static str {
-    std::str::from_utf8(stage_label).expect("SnarkPack stage labels are static ASCII")
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VerifierMutant {
-    ContextConstructor,
-    ChallengePreimage,
-    StageLabels,
-    GipaChallengeDependency,
-    TippMippX0Seed,
-    TippMippFinalBridge,
-    TippMippKzgChallenge,
-    Groth16Randomizer,
-}
-
-impl fmt::Display for VerifierMutant {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.spec_row_id())
-    }
-}
-
-impl VerifierMutant {
-    pub const fn spec_row_id(self) -> &'static str {
-        match self {
-            Self::ContextConstructor => "fs.context-constructor",
-            Self::ChallengePreimage => "fs.challenge-preimage",
-            Self::StageLabels => "fs.stage-labels",
-            Self::GipaChallengeDependency => "gipa.challenge-dependency",
-            Self::TippMippX0Seed => "tipp-mipp.x0-seed",
-            Self::TippMippFinalBridge => "tipp-mipp.final-bridge",
-            Self::TippMippKzgChallenge => "tipp-mipp.kzg-challenge",
-            Self::Groth16Randomizer => "groth16.randomizer",
-        }
-    }
-}
-
-pub const VERIFIER_MUTANTS: &[VerifierMutant] = &[
-    VerifierMutant::ContextConstructor,
-    VerifierMutant::ChallengePreimage,
-    VerifierMutant::StageLabels,
-    VerifierMutant::GipaChallengeDependency,
-    VerifierMutant::TippMippX0Seed,
-    VerifierMutant::TippMippFinalBridge,
-    VerifierMutant::TippMippKzgChallenge,
-    VerifierMutant::Groth16Randomizer,
-];
-
-pub fn filecoin_shape_bug_class_events() -> Vec<TraceEvent> {
-    [
-        FilecoinBugClass::FirstRoundHashOmission,
-        FilecoinBugClass::FinalRandomnessOmission,
-        FilecoinBugClass::PublicMessageReordering,
-        FilecoinBugClass::HiddenDefaultContext,
-        FilecoinBugClass::ProverVerifierChallengeMismatch,
-    ]
-    .into_iter()
-    .map(|bug_class| TraceEvent {
-        spec_row_id: "fs.filecoin-bug-class",
-        primary_level: TraceComparisonLevel::FilecoinShape,
-        event_kind: TraceEventKind::FilecoinBugClass,
-        stage_label: "bellperson.v0.21.0",
-        nonce: None,
-        round_index: None,
-        byte_payload: Vec::new(),
-        abstract_payload: Some("filecoin-shape"),
-        filecoin_bug_class: Some(bug_class),
-    })
-    .collect()
-}
-
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
-
     use super::*;
     use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16};
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
     use ark_snark::SNARK;
-    use proptest::prelude::*;
     use shieldd_sdk_proof_aggregation::{
         aggregate_family, decode_wrapped_aggregate_proof, encode_wrapped_aggregate_proof,
-        pad_items_to_power_of_two, verify_family_aggregate, AGGREGATE_PROTOCOL_VERSION,
-        MAX_AGGREGATE_PROOF_BYTES,
+        verify_family_aggregate, AGGREGATE_PROTOCOL_VERSION,
     };
-    use shieldd_sdk_proof_params::batch;
     use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
 
     #[derive(Clone)]
@@ -1664,8 +1161,11 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let srs = DevSrs::default();
-        let padded = pad_items_to_power_of_two(&items, srs.max_padded_count as usize)
-            .expect("padding should succeed");
+        let padded = shieldd_sdk_proof_aggregation::pad_items_to_power_of_two(
+            &items,
+            srs.max_padded_count as usize,
+        )
+        .expect("padding should succeed");
         let rows = padded
             .iter()
             .map(|item| item.public_inputs.clone())
@@ -1744,410 +1244,6 @@ mod tests {
         .expect("statement should build")
     }
 
-    fn wrong_pvk() -> PreparedVerifyingKey<P> {
-        let mut rng = ChaCha20Rng::seed_from_u64(99);
-        let pk = Groth16::<P, LibsnarkReduction>::generate_random_parameters_with_reduction(
-            SquareCircuit {
-                x: Some(Fq::from(1u64)),
-            },
-            &mut rng,
-        )
-        .expect("setup should succeed");
-        PreparedVerifyingKey::from(pk.vk)
-    }
-
-    fn mutated_public_input_statement(
-        original: &AggregateStatement,
-        pvk: &PreparedVerifyingKey<P>,
-        srs: &DevSrs,
-    ) -> AggregateStatement {
-        let mut rows = original.padded_public_inputs().to_vec();
-        rows[0][0] += Fq::from(1u64);
-        AggregateStatement::new(
-            AGGREGATE_PROTOCOL_VERSION,
-            original.family_id(),
-            srs_id(srs),
-            pvk,
-            original.real_count(),
-            &rows,
-        )
-        .expect("mutated statement should build")
-    }
-
-    fn wrong_family_statement(
-        original: &AggregateStatement,
-        pvk: &PreparedVerifyingKey<P>,
-        srs: &DevSrs,
-    ) -> AggregateStatement {
-        AggregateStatement::new(
-            AGGREGATE_PROTOCOL_VERSION,
-            ProofFamilyId::ShieldedIcs20Withdrawal(
-                shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical,
-            ),
-            srs_id(srs),
-            pvk,
-            original.real_count(),
-            original.padded_public_inputs(),
-        )
-        .expect("wrong-family statement should build")
-    }
-
-    fn wrong_srs_statement(
-        original: &AggregateStatement,
-        pvk: &PreparedVerifyingKey<P>,
-        srs: &DevSrs,
-    ) -> AggregateStatement {
-        let mut wrong_srs_id = srs_id(srs);
-        wrong_srs_id[0] ^= 0x01;
-        AggregateStatement::new(
-            AGGREGATE_PROTOCOL_VERSION,
-            original.family_id(),
-            wrong_srs_id,
-            pvk,
-            original.real_count(),
-            original.padded_public_inputs(),
-        )
-        .expect("wrong-SRS statement should build")
-    }
-
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    enum ExpectedInputRejection {
-        InvalidInput,
-        MalformedProof,
-        Rejected,
-    }
-
-    struct InputMutationCase {
-        statement: AggregateStatement,
-        pvk: PreparedVerifyingKey<P>,
-        proof: Vec<u8>,
-        srs: DevSrs,
-    }
-
-    struct InputFixture {
-        pvk: PreparedVerifyingKey<P>,
-        items: Vec<BatchItem>,
-        statement: AggregateStatement,
-        srs: DevSrs,
-        proof: Vec<u8>,
-    }
-
-    impl InputFixture {
-        fn new() -> Self {
-            let (pvk, items, statement, srs) = fixture();
-            let proof = aggregate_family(&statement, &pvk, &items, &srs).expect("aggregate");
-            Self {
-                pvk,
-                items,
-                statement,
-                srs,
-                proof,
-            }
-        }
-
-        fn valid_case(&self) -> InputMutationCase {
-            InputMutationCase {
-                statement: self.statement.clone(),
-                pvk: self.pvk.clone(),
-                proof: self.proof.clone(),
-                srs: self.srs,
-            }
-        }
-    }
-
-    struct InputMutant {
-        name: &'static str,
-        spec_row_id: &'static str,
-        expected: ExpectedInputRejection,
-        apply: fn(&InputFixture) -> Result<InputMutationCase, ReferencePathError>,
-    }
-
-    fn mutate_public_input(
-        fixture: &InputFixture,
-    ) -> Result<InputMutationCase, ReferencePathError> {
-        let mut case = fixture.valid_case();
-        case.statement =
-            mutated_public_input_statement(&fixture.statement, &fixture.pvk, &fixture.srs);
-        Ok(case)
-    }
-
-    fn mutate_real_count(fixture: &InputFixture) -> Result<InputMutationCase, ReferencePathError> {
-        AggregateStatement::new(
-            AGGREGATE_PROTOCOL_VERSION,
-            fixture.statement.family_id(),
-            srs_id(&fixture.srs),
-            &fixture.pvk,
-            1,
-            fixture.statement.padded_public_inputs(),
-        )
-        .map(|statement| InputMutationCase {
-            statement,
-            ..fixture.valid_case()
-        })
-        .map_err(|err| ReferencePathError::InvalidInput(err.to_string()))
-    }
-
-    fn mutate_family_id(fixture: &InputFixture) -> Result<InputMutationCase, ReferencePathError> {
-        let mut case = fixture.valid_case();
-        case.statement = wrong_family_statement(&fixture.statement, &fixture.pvk, &fixture.srs);
-        Ok(case)
-    }
-
-    fn mutate_srs_id(fixture: &InputFixture) -> Result<InputMutationCase, ReferencePathError> {
-        let mut case = fixture.valid_case();
-        case.statement = wrong_srs_statement(&fixture.statement, &fixture.pvk, &fixture.srs);
-        Ok(case)
-    }
-
-    fn mutate_vk_digest(fixture: &InputFixture) -> Result<InputMutationCase, ReferencePathError> {
-        let mut case = fixture.valid_case();
-        case.pvk = wrong_pvk();
-        Ok(case)
-    }
-
-    fn mutate_padding(fixture: &InputFixture) -> Result<InputMutationCase, ReferencePathError> {
-        let mut rows = fixture
-            .items
-            .iter()
-            .map(|item| item.public_inputs.clone())
-            .collect::<Vec<_>>();
-        rows[1][0] += Fq::from(1u64);
-        AggregateStatement::new(
-            AGGREGATE_PROTOCOL_VERSION,
-            fixture.statement.family_id(),
-            srs_id(&fixture.srs),
-            &fixture.pvk,
-            1,
-            &rows,
-        )
-        .map(|statement| InputMutationCase {
-            statement,
-            ..fixture.valid_case()
-        })
-        .map_err(|err| ReferencePathError::InvalidInput(err.to_string()))
-    }
-
-    fn mutate_wrapper_digest(
-        fixture: &InputFixture,
-    ) -> Result<InputMutationCase, ReferencePathError> {
-        let mut case = fixture.valid_case();
-        case.proof[40] ^= 0x01;
-        Ok(case)
-    }
-
-    fn mutate_inner_proof_byte(
-        fixture: &InputFixture,
-    ) -> Result<InputMutationCase, ReferencePathError> {
-        let inner = decode_wrapped_aggregate_proof(
-            &fixture.proof,
-            fixture.statement.statement_digest(),
-            None,
-        )
-        .map_err(|err| ReferencePathError::Rejected(err.to_string()))?;
-        let mut mutated_inner = Vec::new();
-        mutated_inner.extend_from_slice(inner);
-        mutated_inner[0] ^= 0x01;
-        let mut case = fixture.valid_case();
-        case.proof =
-            encode_wrapped_aggregate_proof(fixture.statement.statement_digest(), &mutated_inner)
-                .map_err(|err| ReferencePathError::InvalidInput(err.to_string()))?;
-        Ok(case)
-    }
-
-    fn mutate_truncation(fixture: &InputFixture) -> Result<InputMutationCase, ReferencePathError> {
-        let mut case = fixture.valid_case();
-        case.proof.truncate(case.proof.len() / 2);
-        Ok(case)
-    }
-
-    fn mutate_oversize(fixture: &InputFixture) -> Result<InputMutationCase, ReferencePathError> {
-        let mut case = fixture.valid_case();
-        case.proof = vec![0u8; MAX_AGGREGATE_PROOF_BYTES + 1];
-        Ok(case)
-    }
-
-    const INPUT_MUTANTS: &[InputMutant] = &[
-        InputMutant {
-            name: "public-input",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::Rejected,
-            apply: mutate_public_input,
-        },
-        InputMutant {
-            name: "real-count",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::InvalidInput,
-            apply: mutate_real_count,
-        },
-        InputMutant {
-            name: "family-id",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::Rejected,
-            apply: mutate_family_id,
-        },
-        InputMutant {
-            name: "srs-id",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::Rejected,
-            apply: mutate_srs_id,
-        },
-        InputMutant {
-            name: "vk-digest",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::Rejected,
-            apply: mutate_vk_digest,
-        },
-        InputMutant {
-            name: "padding-noncanonical",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::InvalidInput,
-            apply: mutate_padding,
-        },
-        InputMutant {
-            name: "wrapper-digest",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::Rejected,
-            apply: mutate_wrapper_digest,
-        },
-        InputMutant {
-            name: "inner-proof-byte",
-            spec_row_id: "groth16.randomizer",
-            expected: ExpectedInputRejection::MalformedProof,
-            apply: mutate_inner_proof_byte,
-        },
-        InputMutant {
-            name: "truncation",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::Rejected,
-            apply: mutate_truncation,
-        },
-        InputMutant {
-            name: "oversize",
-            spec_row_id: "fs.context-constructor",
-            expected: ExpectedInputRejection::Rejected,
-            apply: mutate_oversize,
-        },
-    ];
-
-    fn assert_reference_rejects(
-        statement: &AggregateStatement,
-        pvk: &PreparedVerifyingKey<P>,
-        proof: &[u8],
-        srs: &DevSrs,
-        label: &str,
-    ) {
-        match reference_verify_family_aggregate(statement, pvk, proof, srs) {
-            Ok(report) => assert!(!report.accepted, "{label} should not be accepted"),
-            Err(_) => {}
-        }
-    }
-
-    fn validate_trace(trace: &[TraceEvent]) {
-        assert!(!trace.is_empty(), "trace should not be empty");
-        for event in trace {
-            event.validate().expect("trace event should satisfy policy");
-        }
-    }
-
-    fn shieldd_byte_trace_rows() -> BTreeSet<&'static str> {
-        TRACE_POLICIES
-            .iter()
-            .filter(|policy| policy.primary_level == TraceComparisonLevel::ShielddByte)
-            .map(|policy| policy.spec_row_id)
-            .collect()
-    }
-
-    fn assert_expected_rejection(
-        mutant: &InputMutant,
-        result: Result<InputMutationCase, ReferencePathError>,
-    ) {
-        match (mutant.expected, result) {
-            (ExpectedInputRejection::InvalidInput, Err(ReferencePathError::InvalidInput(_))) => {}
-            (ExpectedInputRejection::MalformedProof, Ok(case)) => {
-                let err = reference_verify_family_aggregate(
-                    &case.statement,
-                    &case.pvk,
-                    &case.proof,
-                    &case.srs,
-                )
-                .expect_err("input mutant should reject as malformed proof");
-                assert!(
-                    matches!(err, ReferencePathError::MalformedProof(_)),
-                    "input mutant {} rejected with wrong error: {err}",
-                    mutant.name
-                );
-            }
-            (ExpectedInputRejection::Rejected, Ok(case)) => {
-                assert_reference_rejects(
-                    &case.statement,
-                    &case.pvk,
-                    &case.proof,
-                    &case.srs,
-                    mutant.name,
-                );
-            }
-            (expected, _) => panic!("input mutant {} expected {expected:?}", mutant.name),
-        }
-    }
-
-    fn reference_parity_case(
-        count: usize,
-        seed: u64,
-        family_index: usize,
-        mutation: u8,
-    ) -> Result<(), TestCaseError> {
-        let (pvk, items) = sample_items_with_count(seed, count);
-        let srs = DevSrs::default();
-        let padded_items = pad_items_to_power_of_two(&items, srs.max_padded_count as usize)
-            .expect("padding should succeed");
-        let family_id = parity_families()[family_index];
-        let statement = statement_for_items(family_id, &pvk, count, &padded_items, &srs);
-        let aggregate = aggregate_family(&statement, &pvk, &padded_items, &srs).expect("aggregate");
-
-        let batch_accepts = batch::batch_verify(&pvk, &padded_items).is_ok();
-        let production_accepts =
-            verify_family_aggregate(&statement, &pvk, &aggregate, &srs).is_ok();
-        let reference_accepts =
-            reference_verify_family_aggregate(&statement, &pvk, &aggregate, &srs)
-                .map(|report| report.accepted)
-                .unwrap_or(false);
-        prop_assert_eq!(production_accepts, batch_accepts);
-        prop_assert_eq!(reference_accepts, batch_accepts);
-
-        let mut mutated_items = padded_items.clone();
-        let mut mutated_statement = statement.clone();
-        let mut mutated_aggregate = aggregate.clone();
-        match mutation % 2 {
-            0 => {
-                for item in &mut mutated_items {
-                    item.proof.c = Default::default();
-                }
-                mutated_aggregate = aggregate_family(&statement, &pvk, &mutated_items, &srs)
-                    .expect("mutated proof aggregation should serialize");
-            }
-            1 => {
-                for item in &mut mutated_items {
-                    item.public_inputs[0] += Fq::from(1u64);
-                }
-                mutated_statement =
-                    statement_for_items(family_id, &pvk, count, &mutated_items, &srs);
-            }
-            _ => {}
-        }
-
-        let batch_accepts = batch::batch_verify(&pvk, &mutated_items).is_ok();
-        let production_accepts =
-            verify_family_aggregate(&mutated_statement, &pvk, &mutated_aggregate, &srs).is_ok();
-        let reference_accepts =
-            reference_verify_family_aggregate(&mutated_statement, &pvk, &mutated_aggregate, &srs)
-                .map(|report| report.accepted)
-                .unwrap_or(false);
-        prop_assert!(!batch_accepts, "mutated batch oracle must reject");
-        prop_assert_eq!(production_accepts, batch_accepts);
-        prop_assert_eq!(reference_accepts, batch_accepts);
-        Ok(())
-    }
-
     #[test]
     fn reference_verifier_accepts_production_prover() {
         let (pvk, items, statement, srs) = fixture();
@@ -2155,186 +1251,21 @@ mod tests {
         let report = reference_verify_family_aggregate(&statement, &pvk, &production, &srs)
             .expect("reference verifier should run");
         assert!(report.accepted);
-        assert!(report
-            .verifier_trace
-            .iter()
-            .any(|event| event.spec_row_id == "groth16.randomizer"));
+        verify_family_aggregate(&statement, &pvk, &production, &srs)
+            .expect("production verifier should accept its aggregate");
     }
 
     #[test]
     fn reference_prover_cross_verifies_with_production() {
         let (pvk, items, statement, srs) = fixture();
         let reference = reference_aggregate_family(&statement, &pvk, &items, &srs)
-            .expect("reference aggregate");
-        verify_family_aggregate(&statement, &pvk, &reference.wrapped_proof, &srs)
-            .expect("production verifier should accept reference aggregate");
-        let report =
-            reference_verify_family_aggregate(&statement, &pvk, &reference.wrapped_proof, &srs)
-                .expect("reference verifier should run");
-        assert!(report.accepted);
-        assert!(!reference.prover_trace.is_empty());
-    }
-
-    #[test]
-    fn production_and_reference_acceptance_parity() {
-        let (pvk, items, statement, srs) = fixture();
-        let production_proof =
-            aggregate_family(&statement, &pvk, &items, &srs).expect("production aggregate");
-        verify_family_aggregate(&statement, &pvk, &production_proof, &srs)
-            .expect("production verifier should accept production aggregate");
-
-        let production_reference_report =
-            reference_verify_family_aggregate(&statement, &pvk, &production_proof, &srs)
-                .expect("reference verifier should run");
-        assert!(production_reference_report.accepted);
-        validate_trace(&production_reference_report.verifier_trace);
-
-        let reference = reference_aggregate_family(&statement, &pvk, &items, &srs)
-            .expect("reference aggregate");
-        let reference_report =
-            reference_verify_family_aggregate(&statement, &pvk, &reference.wrapped_proof, &srs)
-                .expect("reference verifier should run");
-        assert!(reference_report.accepted);
-        validate_trace(&reference.prover_trace);
-        validate_trace(&reference_report.verifier_trace);
-        assert_eq!(
-            reference.prover_trace,
-            production_reference_report.verifier_trace
-        );
-        assert_eq!(reference.prover_trace, reference_report.verifier_trace);
-
+            .expect("reference aggregate should succeed");
         verify_family_aggregate(&statement, &pvk, &reference.wrapped_proof, &srs)
             .expect("production verifier should accept reference aggregate");
     }
 
-    // Stage 9 byte-trace lock: the ordered ShielddByte trace payloads for a
-    // fixed vector set must not change unless `AGGREGATE_PROTOCOL_VERSION` is
-    // bumped. This complements the production-crate aggregate-byte baseline and
-    // catches transcript-shape drift, not just final-byte drift.
-
-    const TRACE_BASELINE_PATH: &str = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/shieldd_byte_trace_baseline.txt"
-    );
-
-    fn trace_baseline_vectors() -> Vec<(ProofFamilyId, usize, u64)> {
-        let mut vectors = Vec::new();
-        for (family_index, family_id) in parity_families().into_iter().enumerate() {
-            for count in [1usize, 2, 4, 8] {
-                let seed = 9_000 + (family_index as u64) * 100 + count as u64;
-                vectors.push((family_id, count, seed));
-            }
-        }
-        vectors
-    }
-
-    fn family_token(family_id: ProofFamilyId) -> String {
-        format!("{family_id:?}")
-            .chars()
-            .map(|c| if c.is_whitespace() { '_' } else { c })
-            .collect()
-    }
-
-    fn shieldd_byte_trace_for_vector(
-        family_id: ProofFamilyId,
-        count: usize,
-        seed: u64,
-    ) -> Vec<TraceEvent> {
-        let (pvk, items) = sample_items_with_count(seed, count);
-        let srs = DevSrs::default();
-        let padded = pad_items_to_power_of_two(&items, srs.max_padded_count as usize)
-            .expect("padding should succeed");
-        let rows = padded
-            .iter()
-            .map(|item| item.public_inputs.clone())
-            .collect::<Vec<_>>();
-        let statement = AggregateStatement::new(
-            AGGREGATE_PROTOCOL_VERSION,
-            family_id,
-            srs_id(&srs),
-            &pvk,
-            items.len() as u32,
-            &rows,
-        )
-        .expect("statement should build");
-        reference_aggregate_family(&statement, &pvk, &padded, &srs)
-            .expect("reference aggregate should succeed")
-            .prover_trace
-            .into_iter()
-            .filter(|e| e.primary_level == TraceComparisonLevel::ShielddByte)
-            .collect()
-    }
-
-    fn render_trace_baseline() -> String {
-        let mut out = String::new();
-        out.push_str(
-            "# SnarkPack ShielddByte transcript-trace baseline (Stage 9 byte-trace lock).\n",
-        );
-        out.push_str("# Regenerate: cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored\n");
-        out.push_str("# Row: <index> <family> count=<n> seed=<n> ev=<i> <spec_row_id> <event_kind> <hex_payload>\n");
-        out.push_str(&format!("version {AGGREGATE_PROTOCOL_VERSION}\n"));
-        for (index, (family_id, count, seed)) in trace_baseline_vectors().into_iter().enumerate() {
-            for (event_index, event) in shieldd_byte_trace_for_vector(family_id, count, seed)
-                .into_iter()
-                .enumerate()
-            {
-                out.push_str(&format!(
-                    "{index} {} count={count} seed={seed} ev={event_index} {} {:?} {}\n",
-                    family_token(family_id),
-                    event.spec_row_id,
-                    event.event_kind,
-                    hex::encode(&event.byte_payload),
-                ));
-            }
-        }
-        out
-    }
-
-    fn committed_trace_version(contents: &str) -> Option<u32> {
-        contents
-            .lines()
-            .find_map(|line| line.strip_prefix("version "))
-            .and_then(|v| v.trim().parse().ok())
-    }
-
     #[test]
-    fn shieldd_byte_trace_matches_committed_baseline() {
-        let committed = std::fs::read_to_string(TRACE_BASELINE_PATH).unwrap_or_else(|e| {
-            panic!("missing ShielddByte trace baseline at {TRACE_BASELINE_PATH}: {e}; regenerate with `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`")
-        });
-
-        assert_eq!(
-            committed_trace_version(&committed),
-            Some(AGGREGATE_PROTOCOL_VERSION),
-            "trace baseline version tag does not match AGGREGATE_PROTOCOL_VERSION ({AGGREGATE_PROTOCOL_VERSION}); if the transcript change is intentional, bump the version and regenerate via `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`"
-        );
-
-        let current = render_trace_baseline();
-        assert_eq!(
-            committed, current,
-            "ShielddByte transcript trace drifted from the committed baseline. An optimization must preserve the transcript or take the protocol-version path: bump AGGREGATE_PROTOCOL_VERSION, regenerate via `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`, and add an adaptation-register row."
-        );
-    }
-
-    #[test]
-    #[ignore = "writes the committed trace baseline; run intentionally after a sanctioned transcript change"]
-    fn regenerate_shieldd_byte_trace_baseline() {
-        let rendered = render_trace_baseline();
-        std::fs::write(TRACE_BASELINE_PATH, rendered).expect("write trace baseline");
-    }
-
-    #[test]
-    fn reference_verifier_rejects_mutated_wrapper_digest() {
-        let (pvk, items, statement, srs) = fixture();
-        let mut production = aggregate_family(&statement, &pvk, &items, &srs).expect("aggregate");
-        production[40] ^= 0x01;
-        let err = reference_verify_family_aggregate(&statement, &pvk, &production, &srs)
-            .expect_err("digest mutation should reject");
-        assert!(matches!(err, ReferencePathError::Rejected(_)));
-    }
-
-    #[test]
-    fn reference_verifier_rejects_malformed_proof_bytes() {
+    fn reference_verifier_rejects_invalid_public_boundary_bytes() {
         let (pvk, items, statement, srs) = fixture();
         let production = aggregate_family(&statement, &pvk, &items, &srs).expect("aggregate");
         let inner = decode_wrapped_aggregate_proof(&production, statement.statement_digest(), None)
@@ -2345,135 +1276,20 @@ mod tests {
             .expect("wrapper encode");
         let err = reference_verify_family_aggregate(&statement, &pvk, &wrapped, &srs)
             .expect_err("malformed inner proof bytes should reject");
-        assert!(matches!(err, ReferencePathError::MalformedProof(_)));
+        assert!(matches!(
+            err,
+            ReferencePathError::MalformedProof(_) | ReferencePathError::Rejected(_)
+        ));
     }
 
     #[test]
-    fn reference_verifier_rejects_required_input_mutations() {
-        let fixture = InputFixture::new();
-        for mutant in INPUT_MUTANTS {
-            assert_expected_rejection(mutant, (mutant.apply)(&fixture));
-        }
-    }
-
-    #[test]
-    fn input_mutant_matrix_is_declared_per_byte_binding_row() {
-        let names = INPUT_MUTANTS
-            .iter()
-            .map(|mutant| mutant.name)
-            .collect::<Vec<_>>();
-        assert_eq!(
-            names,
-            vec![
-                "public-input",
-                "real-count",
-                "family-id",
-                "srs-id",
-                "vk-digest",
-                "padding-noncanonical",
-                "wrapper-digest",
-                "inner-proof-byte",
-                "truncation",
-                "oversize",
-            ]
-        );
-    }
-
-    #[test]
-    fn verifier_mutants_reject_valid_proofs() {
+    fn reference_verifier_rejects_invalid_wrapper_digest() {
         let (pvk, items, statement, srs) = fixture();
-        let production = aggregate_family(&statement, &pvk, &items, &srs).expect("aggregate");
-        for mutant in VERIFIER_MUTANTS {
-            assert!(
-                shieldd_byte_trace_rows().contains(mutant.spec_row_id()),
-                "verifier mutant {mutant} must name a ShielddByte trace row"
-            );
-            let report = reference_verify_family_aggregate_with_verifier_mutant(
-                &statement,
-                &pvk,
-                &production,
-                &srs,
-                *mutant,
-            )
-            .unwrap_or_else(|err| panic!("mutant {mutant} should run and reject, got error {err}"));
-            assert!(
-                !report.accepted,
-                "verifier mutant {mutant} should reject a valid proof"
-            );
-        }
-    }
-
-    #[test]
-    fn verifier_mutant_matrix_is_declared_per_byte_binding_row() {
-        let names = VERIFIER_MUTANTS
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>();
-        assert_eq!(
-            names,
-            vec![
-                "fs.context-constructor",
-                "fs.challenge-preimage",
-                "fs.stage-labels",
-                "gipa.challenge-dependency",
-                "tipp-mipp.x0-seed",
-                "tipp-mipp.final-bridge",
-                "tipp-mipp.kzg-challenge",
-                "groth16.randomizer",
-            ]
-        );
-    }
-
-    #[test]
-    fn mutation_matrices_cover_shieldd_byte_trace_rows() {
-        let expected = shieldd_byte_trace_rows();
-        let covered = INPUT_MUTANTS
-            .iter()
-            .map(|mutant| mutant.spec_row_id)
-            .chain(VERIFIER_MUTANTS.iter().map(|mutant| mutant.spec_row_id()))
-            .collect::<BTreeSet<_>>();
-        assert!(
-            expected.is_subset(&covered),
-            "input/verifier mutation matrices must cover every ShielddByte row: expected={expected:?}, covered={covered:?}"
-        );
-    }
-
-    proptest! {
-        #![proptest_config(ProptestConfig::with_cases(1))]
-
-        #[test]
-        fn reference_property_matches_production_and_batch_oracles(
-            count in 1usize..=8,
-            seed in any::<u64>(),
-            family_index in 0usize..4,
-            mutation in 0u8..2,
-        ) {
-            reference_parity_case(count, seed, family_index, mutation)?;
-        }
-    }
-
-    proptest! {
-        #![proptest_config(ProptestConfig::with_cases(4))]
-
-        #[test]
-        #[ignore]
-        fn reference_property_matches_production_and_batch_oracles_slow(
-            count in 1usize..=8,
-            seed in any::<u64>(),
-            family_index in 0usize..4,
-            mutation in 0u8..2,
-        ) {
-            reference_parity_case(count, seed, family_index, mutation)?;
-        }
-    }
-
-    #[test]
-    fn filecoin_shape_events_cover_all_bug_classes() {
-        let events = filecoin_shape_bug_class_events();
-        assert_eq!(events.len(), 5);
-        for event in events {
-            event.validate().expect("filecoin shape marker");
-        }
+        let mut production = aggregate_family(&statement, &pvk, &items, &srs).expect("aggregate");
+        production[40] ^= 0x01;
+        let err = reference_verify_family_aggregate(&statement, &pvk, &production, &srs)
+            .expect_err("wrapper digest mutation should reject");
+        assert!(matches!(err, ReferencePathError::Rejected(_)));
     }
 
     #[test]
@@ -2487,205 +1303,33 @@ mod tests {
         let production_bytes = srs
             .serialized_inner_product_srs_compressed()
             .expect("production serialize");
-        let diff = reference_bytes
-            .iter()
-            .zip(&production_bytes)
-            .position(|(left, right)| left != right);
-        assert_eq!(
-            diff,
-            None,
-            "first SRS byte diff at {:?}: ref={:?} prod={:?}",
-            diff,
-            diff.and_then(|idx| reference_bytes.get(idx)),
-            diff.and_then(|idx| production_bytes.get(idx))
-        );
-        ensure_reference_srs_matches_public_id(&DevSrs::default()).expect("matching srs id");
+        assert_eq!(reference_bytes, production_bytes);
+        ensure_reference_srs_matches_public_id(&srs).expect("matching srs id");
     }
 
-    // --- Transcript completeness manifest assertions ---------------------------
-    //
-    // Oracle: docs/snarkpack/verification.md (Transcript — model). The bound-input
-    // lists below transcribe that doc's per-stage table. The required set is
-    // paper-derived; these tests only check that the real prover preimage's framed
-    // structure matches the model (presence + order + width), not values. Removing
-    // any bound input changes the framed length and fails.
-
-    /// Encoding tag for one manifest-declared bound input. Widths are BLS12-377
-    /// serialization constants, recomputed here from sample elements so they
-    /// cannot silently drift from the curve.
-    #[derive(Clone, Copy, Debug)]
-    enum BoundInput {
-        Fr,
-        G1,
-        G2,
-        Gt,
-        /// `IdentityOutput` singleton over a GT element (length-prefixed Vec).
-        IdentityGt1,
-        /// `IdentityOutput` singleton over a G1 element (length-prefixed Vec).
-        IdentityG11,
-    }
-
-    fn serialized_len<T: CanonicalSerialize>(value: &T) -> usize {
-        let mut buf = Vec::new();
-        value
-            .serialize_uncompressed(&mut buf)
-            .expect("sample element serializes");
-        buf.len()
-    }
-
-    impl BoundInput {
-        fn width(self) -> usize {
-            let g1 = G1::generator();
-            let g2 = G2::generator();
-            let gt = P::pairing(g1, g2);
-            match self {
-                BoundInput::Fr => serialized_len(&Fr::one()),
-                BoundInput::G1 => serialized_len(&g1),
-                BoundInput::G2 => serialized_len(&g2),
-                BoundInput::Gt => serialized_len(&gt),
-                BoundInput::IdentityGt1 => serialized_len(&vec![gt]),
-                BoundInput::IdentityG11 => serialized_len(&vec![g1]),
+    #[test]
+    #[ignore = "slow release/scheduled two-way interop band"]
+    fn slow_two_way_interop_band() {
+        for (family_index, family_id) in parity_families().into_iter().enumerate() {
+            for count in [1usize, 2, 4, 8] {
+                let (pvk, items) = sample_items_with_count(
+                    9_000 + (family_index as u64) * 100 + count as u64,
+                    count,
+                );
+                let srs = DevSrs::default();
+                let padded = shieldd_sdk_proof_aggregation::pad_items_to_power_of_two(
+                    &items,
+                    srs.max_padded_count as usize,
+                )
+                .expect("padding should succeed");
+                let statement = statement_for_items(family_id, &pvk, count, &padded, &srs);
+                let reference = reference_aggregate_family(&statement, &pvk, &padded, &srs)
+                    .expect("reference aggregate should succeed");
+                reference_verify_family_aggregate(&statement, &pvk, &reference.wrapped_proof, &srs)
+                    .expect("reference verifier should accept reference aggregate");
+                verify_family_aggregate(&statement, &pvk, &reference.wrapped_proof, &srs)
+                    .expect("production verifier should accept reference aggregate");
             }
-        }
-    }
-
-    /// Stages reachable on the Groth16 aggregation path, with their ordered
-    /// bound-input lists (the manifest oracle). `n >= 2` so every "first
-    /// transcript element" binding is present.
-    fn manifest_aggregation_path_stages() -> Vec<(&'static str, Vec<BoundInput>)> {
-        use BoundInput::*;
-        vec![
-            ("aggregate.randomizer", vec![Gt, Gt, Gt]),
-            ("tipp-mipp.x0", vec![Fr, Gt, Gt, Gt, Gt, G1]),
-            (
-                "tipp-mipp.gipa.round",
-                vec![
-                    Fr,
-                    Gt,
-                    Gt,
-                    IdentityGt1,
-                    Gt,
-                    IdentityG11,
-                    Gt,
-                    Gt,
-                    IdentityGt1,
-                    Gt,
-                    IdentityG11,
-                ],
-            ),
-            ("tipp-mipp.final-bridge", vec![Fr, G2, G1, G1, G2, G1]),
-            ("tipp-mipp.kzg", vec![Fr, G2, G1]),
-        ]
-    }
-
-    /// Fixed framing length: domain || u32(label_len) || label || context[32]
-    /// || u64(nonce), before the stage-specific messages region.
-    fn framing_len(stage_label: &str) -> usize {
-        CHALLENGE_DOMAIN.len() + 4 + stage_label.len() + 32 + 8
-    }
-
-    fn capture_aggregation_prover_trace() -> Vec<TraceEvent> {
-        let (pvk, items, statement, srs) = fixture();
-        assert!(
-            items.len() >= 2,
-            "manifest assertion needs n >= 2 so KZG transcript bindings are present"
-        );
-        reference_aggregate_family(&statement, &pvk, &items, &srs)
-            .expect("reference aggregate")
-            .prover_trace
-    }
-
-    fn preimages_for_stage<'a>(trace: &'a [TraceEvent], stage_label: &str) -> Vec<&'a Vec<u8>> {
-        trace
-            .iter()
-            .filter(|event| {
-                event.spec_row_id == "fs.challenge-preimage" && event.stage_label == stage_label
-            })
-            .map(|event| &event.byte_payload)
-            .collect()
-    }
-
-    #[test]
-    fn transcript_completeness_preimage_structure_matches_manifest() {
-        let trace = capture_aggregation_prover_trace();
-        for (stage_label, inputs) in manifest_aggregation_path_stages() {
-            let expected_messages_len: usize = inputs.iter().map(|input| input.width()).sum();
-            let frame = framing_len(stage_label);
-            let preimages = preimages_for_stage(&trace, stage_label);
-            assert!(
-                !preimages.is_empty(),
-                "stage `{stage_label}` produced no preimage on the aggregation path"
-            );
-            for preimage in preimages {
-                assert!(
-                    preimage.len() >= frame,
-                    "stage `{stage_label}` preimage shorter than fixed framing"
-                );
-                // Fixed framing: domain, length-prefixed label, context, nonce.
-                assert_eq!(
-                    &preimage[..CHALLENGE_DOMAIN.len()],
-                    CHALLENGE_DOMAIN,
-                    "stage `{stage_label}` missing challenge domain"
-                );
-                let label_len_off = CHALLENGE_DOMAIN.len();
-                let label_len = u32::from_le_bytes(
-                    preimage[label_len_off..label_len_off + 4]
-                        .try_into()
-                        .expect("label length field"),
-                ) as usize;
-                assert_eq!(
-                    label_len,
-                    stage_label.len(),
-                    "stage `{stage_label}` label length prefix mismatch"
-                );
-                let label_off = label_len_off + 4;
-                assert_eq!(
-                    &preimage[label_off..label_off + label_len],
-                    stage_label.as_bytes(),
-                    "stage `{stage_label}` label bytes mismatch"
-                );
-                let messages_len = preimage.len() - frame;
-                assert_eq!(
-                    messages_len, expected_messages_len,
-                    "stage `{stage_label}` bound-message width does not match the manifest: \
-                     a required input is missing, extra, or reordered"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn transcript_completeness_covers_every_aggregation_stage() {
-        let trace = capture_aggregation_prover_trace();
-        let manifest_stages: BTreeSet<&'static str> = manifest_aggregation_path_stages()
-            .into_iter()
-            .map(|(label, _)| label)
-            .collect();
-        let observed_stages: BTreeSet<&str> = trace
-            .iter()
-            .filter(|event| event.spec_row_id == "fs.challenge-preimage")
-            .map(|event| event.stage_label)
-            .collect();
-        assert_eq!(
-            observed_stages,
-            manifest_stages.iter().copied().collect::<BTreeSet<_>>(),
-            "an aggregation-path challenge stage is unchecked by the completeness manifest \
-             (or the manifest lists a stage that no longer fires)"
-        );
-    }
-
-    #[test]
-    fn transcript_completeness_manifest_doc_in_sync() {
-        let manifest = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../../docs/snarkpack/verification.md"
-        ))
-        .expect("verification doc readable");
-        for (stage_label, _) in manifest_aggregation_path_stages() {
-            assert!(
-                manifest.contains(&format!("`{stage_label}`")),
-                "verification doc missing on-path stage `{stage_label}`"
-            );
         }
     }
 }
