@@ -54,12 +54,299 @@ finish a task: commit, delete its section here, and add one dated line under
 
 ## Active queue (in order)
 
-### Q3 — post-boundary optimization queue (after Q1+Q2 green)
+### Q5 — Wave 2: batched consolidate optimizations + family pruning (governing)
+Strategy: `docs/soundness/optimization-playbook.md` §5b (2026-07-10). Order:
+Phase 0 family pruning (delete consolidate4x1 + split1x4 — DONE) → Phase 1
+frontier design pass (froze the batch: T1-f, T1-h, NB-1 IN / NB-2, T2-c OUT —
+DONE) → **Phase 2 DONE** (batched Go change-set, landed as 3 independently
+compiling/passing commits: T1-f, T1-h, NB-1) → **Phase 3 DONE 2026-07-12**
+(see `docs/soundness/records/wave2-gate-record.md`) → **Phase 4 DONE
+2026-07-12** (setups + stamps + record; CI green pending push) — one Lean
+re-stamp for the whole batch (the T1-d machinery, now cheaper: derive
+old->new segment mapping, regen adapters, re-point hand-authored layers incl.
+the wiring transcript, one serialized lake campaign, gate battery, one
+`records/wave2-gate-record.md`) → Phase 4 setups for all surviving circuits +
+stamps + CI green in one pass. Do not start any single candidate's Lean regen
+on its own — the whole point is one re-stamp per wave.
+
+**Phase 2 measured per-candidate deltas (consolidate2x1, baseline 44,665;
+`TestCircuitFamiliesCompile` golden is the source of truth, updated in each
+commit):**
+- T1-f (compress sharedDivGen once): 44,665 -> 42,573 (-2,092)
+- T1-h (thread ivk bits into DTK ladder): 42,573 -> 42,321 (-252); also
+  transfer 251,973->251,469 (-504), ics20 90,718->89,962 (-756)
+- NB-1 (conservation short-circuit, NB-2 dropped): 42,321 -> 36,553 (-5,768)
+- **Batch total: 44,665 -> 36,553 (-8,112, -18.2%)**, ahead of the -6-7k
+  projection. consolidate8x1: 138,419->114,047; split1x8: 52,628->28,256
+  (both scale further since NB-1's savings grow with amount count).
+
+lean-circuit-fv / vk-derivation CI is expected RED until Phase 3 lands — by
+design, same pattern as T1-d (transfer's Lean layer is entirely `pending`, 0
+discharged theorems, so T1-h's transfer/ics20 fan-out is stamp-only debt;
+consolidate2x1's Lean layer needs the actual re-stamp for the T1-f/NB-1
+relation changes and T1-h's dropped ToBinary). New wiring-transcript op
+`decaf.conservation_net_balance_commitment` (gadget label
+`gadget-conservation-net-balance-commitment`) has no Lean bridge yet —
+Phase 3 lands `Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge`.
+
+**2026-07-10 Phase 3 checkpoint (mapping table derived, generator rewrite NOT
+started — stopping here to avoid rushing a soundness-critical multi-hour lake
+campaign in one pass):**
+
+Confirmed frontier's `tools/gnark/lean/gen/NB1-SLICE-SPEC.md` (commit
+`91e1dfec3`) against a fresh `export-r1cs`/`export-manifest` run (36,553
+constraints, matches Phase 2 golden exactly; seg 46 =
+`decaf.conservation_net_balance_commitment`, 2,193 rows, `bridge_theorem =
+Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound`
+— matches the spec's citation byte-for-byte). Regenerated artifacts are
+**uncommitted** in the working tree at `tools/gnark/artifacts/consolidate2x1/`
+(`.sr1cs` + manifest), same as T1-d's convention (Lean layer not yet
+consistent with them).
+
+Old->new nonzero-segment mapping (old = committed
+`consolidate2x1-coverage-manifest.json`, 45 obligation-bearing segments; new =
+fresh export, 43 obligation-bearing segments after excluding zero-row
+structural markers `shared.bind`/`spend.begin`/`spend.collect`/
+`output.begin`/`output.collect`/`statement.append`/`statement.append_all`):
+
+| old seg | old op | new seg | new op | note |
+|---|---|---|---|---|
+| 2,3,4 | decaf.assert_on_curve | 2,3,4 | same | unchanged |
+| -- | -- | 5 | decaf.compress_to_field | NEW: shared sharedDivGen compress (T1-f), computed once before DTK |
+| 5 | decaf.diversified_transmission_key | 6 | same | now consumes threaded ivk bits (T1-h), no internal ToBinary |
+| 6 | decaf.assert_equivalent | 7 | same | |
+| 8 | decaf.compress_to_field | -- | -- | DELETED (spend0 per-note divGen compress; superseded by shared seg5) |
+| 9,10,11,12,13,14 | note_commitment/eq/nullifier/eq/state_commitment_path/eq | 9,10,11,12,13,14 | same | unchanged |
+| 15 | decaf.randomized_verification_key | 15 | same | |
+| 16 | decaf.assert_equivalent | 16 | same | |
+| 17 | decaf.compress_to_field | 17 | same | different compress site (post-rvk), NOT the divGen one -- unaffected by T1-f |
+| 18,19,20,21 | on_curve/assert_equiv/assert_equiv/eq | 18,19,20,21 | same | |
+| 24 | decaf.compress_to_field | -- | -- | DELETED (spend1 per-note divGen compress) |
+| 25..37 | note_commitment..eq (spend1 body) | 24..36 | same ops | shifted -1 |
+| 40 | decaf.compress_to_field | -- | -- | DELETED (output0 per-note divGen compress) |
+| 41..46 | note_commitment..assert.eq (output0 body incl. old net-balance-adjacent eq) | 39..44 | same ops shifted | |
+| 48 | decaf.net_balance_commitment | 46 | decaf.conservation_net_balance_commitment | REPLACED -- NB-1, see NB1-SLICE-SPEC.md; relation shape entirely different (3x128 booleanity+recompose + 1 linear row + unchanged blinding ladder, no final Edwards add) |
+| 49 | decaf.assert_equivalent | 47 | same | spec unchanged modulo renumbering per NB1-SLICE-SPEC.md |
+| 50 | decaf.compress_to_field | 48 | same | |
+| 55 | statement.hash | 53 | same | |
+| 56 | assert.eq | 54 | same | |
+
+Net: -3 divGen compress sites + 1 shared insertion (T1-f, -2 net instances,
+matches -2,092 rows), DTK unchanged position count but internal ladder now
+251-bit-vs-threaded (T1-h, -252 rows), net-balance segment fully replaced
+(NB-1, -5,768 rows). This table is advisory for the generator rewrite --
+generators must re-derive wire offsets from the fresh IR directly per
+AGENTS.md ("re-derive from IR, never reuse"), not by reusing this table's
+arithmetic.
+
+**2026-07-10 Phase 3 session 2 — NB-1 mining fully derived and validated
+(generator rewrite NOT yet applied); new BLOCKING prerequisite found in
+`ltchain.rs`, root-cause narrowed but NOT fixed (genuinely stopping here, not
+rushing a guess-patch on a fail-closed soundness gate):**
+
+**(a) NB-1 seg46 mining constants — DONE, fully validated against the fresh
+`.sr1cs` (zero row gaps, byte-exact), ready to drop into `gen_nb_slice.py`:**
+Segment 46 = absolute rows 32840..35032 (2,193 rows). All local (segment-
+relative) row numbers below.
+- `in0` ToBinary: bit_base=31277, booleanity rows 0..127, recompose row 128,
+  amount wire 15.
+- `in1` ToBinary: bit_base=31405, booleanity rows 129..256, recompose row 257,
+  amount wire 105.
+- `out0` ToBinary: bit_base=31533, booleanity rows 258..385, recompose row 386,
+  amount wire 193.
+- Conservation row **387**: `1*(w15+w105) = 1*w193` (in0+in1=out0), single
+  linear row, no booleanity.
+- Blinding ToBinary (rvk shape, unchanged mining code): bit_base=31661,
+  booleanity rows 388..638, recompose row 639, wire 5 (blind).
+- Blinding accumulator ladder: rows 640..2192 (all 250 rungs, `blind_rungs`'
+  existing mining logic works UNCHANGED against this new range — verified by
+  reimplementing it in Python against the real rows, zero mismatches).
+  `BLIND_ACCS = [(31915+5*k, 31916+5*k) for k in range(149)] +
+  [(32663+8*j, 32664+8*j) for j in range(101)]` (250 pairs total).
+- **Output wires are the LAST accumulator pair directly: (33463, 33464)** —
+  confirmed the final rung's own x/y rows are rows 2191/2192 (the very last
+  rows of the segment); there is NO separate final-Edwards-add tail block
+  (matches spec: "output = ladder result directly"). This also means
+  `blind_rungs`'s current hardcoded `range(6401, 7961)` search window and its
+  `prev_end != 7953` assertion must become `range(BLIND_COPY_ROW+1, ROW_COUNT)`
+  / `prev_end != ROW_COUNT - 1` (dynamic, not hardcoded old-segment numbers).
+- Poseidon prefix (`generate_poseidon_shape`/`emit_poseidon_adapter`,
+  ~lines 138-345) and encode-to-curve (`emit_encode_pre`/`emit_encode_post`,
+  ~lines 376-580, plus `ENCODE_CANON`/`emit_canonical_modules`) are GONE from
+  the relation entirely — no `G_v` is derived from `asset_id` anymore (no
+  variable-base scalar mult over amounts either) — delete these functions
+  outright, no aliases. Same for `value_rungs`/`ScalarRung`/`emit_value_*`
+  (DTK-shape variable-base amount ladders, ~lines 580-1360) and `emit_adds`
+  (final Edwards add, ~lines 1787-1915) — all deleted per spec, replaced by
+  the ToBinary blocks + conservation row above. The existing generic
+  `emit_to_binary_module` (already used for the blind ladder's own ToBinary)
+  is the right emitter to reuse for all 4 ToBinary blocks (3 amounts + blind);
+  it just needs the new bit_base/rows/copy_row/wire per block, no logic
+  changes. All `Seg48`/`seg48`-prefixed identifiers throughout the file need
+  renaming to `Seg46`/`seg46` (manifest now points at seg 46, not 48) — this
+  also requires the mechanical per-segment base contracts to be regenerated
+  first (see blocker below) so `Seg46.lean` exists to import.
+- Validation method (reusable): parsed the real `.sr1cs` constraint rows for
+  the segment directly in Python, asserted exact `(L,R,O)` shape at every
+  claimed row/wire, and for the blind ladder independently reimplemented
+  `blind_rungs`' row-scanning algorithm in Python and ran it end-to-end
+  against the real rows — all 250 rungs mine cleanly with the last accumulator
+  row landing exactly on the segment's last row. High confidence, not a guess.
+
+**(b) RESOLVED 2026-07-10 (local commit, deliberately NOT pushed — the new
+constants match the uncommitted regenerated `.sr1cs`, so this lands with the
+Lean layer): the ladders never moved rows — only WIRES. R/Q4 seatings in the
+new circuit are `bit_base=1890` (was 1187), start/end unchanged
+(R 1828..2345, Q4 2346..2715, DTK-segment-local). Found by
+`crates/crypto/constraint-coverage/examples/scan_lt.rs` (new, kept as the
+reusable re-seating locator: scans for the first-rung shape `1×(1−bit_252)`,
+derives bit_base from the row itself, confirms via full `recover_lt_chain` +
+parity gate — no Python port needed). `ltchain.rs` seats + tests re-pinned
+(DTK_OFFSET=1058, DTK_ROWS=6077, BIT_BASE=1890); stale `DTK_ROWS=6329` also
+fixed in `contracts.rs`/`main.rs`/seating JSON. Verified:
+`cargo test -p shieldd-constraint-coverage --lib ltchain` green (4/4) and
+`--lean-contract-out` regenerates ALL per-segment base contracts end-to-end
+(Seg46 for the new conservation segment emitted). Remaining crate test
+failures are the expected rvkfixed/rowmap row-offset re-pins (queued wave
+work, not ltchain). Original diagnosis kept below for the record.**
+
+**(b-original, superseded) BLOCKING: `ltchain.rs`'s
+`consolidate2x1_ladders()` (R/Q4 DTK canonicity-ladder recovery) is stale
+after T1-h's ivk-bit-threading change, and blocks `--lean-contract-out`
+(the mechanical per-segment base-contract regenerator) for the WHOLE circuit,
+not just NB-1/DTK — `cargo run -p shieldd-constraint-coverage --
+--lean-contract-out ...` fails outright before producing any `Seg{N}.lean`
+files, because `contracts::generate` calls
+`ltchain::verify_consolidate2x1_lt_ladders` unconditionally as a gate.
+Diagnosis so far: old `bit_base=1187`/`start=1828`/`end=2345` (R) and
+`start=2346`/`end=2715` (Q4) (local, DTK-segment-relative) no longer match.
+The DTK segment itself is correctly located from the IR by op (seg 6,
+absolute rows 1058..7134, 6,077 rows — the `-252` matches T1-h's claimed
+delta exactly). Searched the segment for 253-wide pure-booleanity runs
+(candidates for the ivk canonical decomposition the ladder compares): found
+one at local rows 28..280 (bit_base=934, recompose target wire 1187 — note
+old `bit_base` constant 1187 numerically equals THIS run's recompose target,
+which may be coincidence or may mean the old code's naming is misleading) and
+another at rows 538..790 (bit_base=1276, recompose target wire 1275).
+Reimplemented `recover_lt_chain`/`lc_mul_at` in Python (byte-faithful port,
+including the "operand proportional to the constant-1 LC needs no row" short
+circuit) and brute-force/exact-pattern-searched for a valid start row
+immediately after either candidate's recompose row, for both R and Q4 bounds
+— **no match found for either candidate in the neighborhood searched**. This
+means either: the ivk ladder consumes rows further away from its own
+recompose row than expected (other unrelated constraints interleaved between
+recompose and ladder start — plausible, gnark's per-gadget row order isn't
+guaranteed contiguous), or neither 253-run found so far is actually the ivk
+value the ladder compares (there may be a third one, or the two found runs
+belong to unrelated DTK-internal values like div_x/div_y canonical checks).
+**Next step (not yet done):** dump ALL 253-wide pure-boolean runs in the
+segment (there were more than the two inspected — the search script exists,
+just needs full output review instead of only the first two), then for each
+candidate's recompose row, widen the post-recompose search window (try
+hundreds of rows, not ~40) using the Python `recover_lt_chain` port already
+written (round-trips: it exactly reproduces the Rust error format when it
+fails, so it's a faithful oracle) — the fix, once located, is a 4-number
+constant update (bit_base/start/end for R, and Q4's for its own end) in
+`consolidate2x1_ladders()`, not a logic change. This one function gates
+ALL of Phase 3 (every family's base-contract regen), so it should be fixed
+before any other generator work, including the NB-1 mining above.
+No code committed this session (working tree unchanged beyond the pre-existing
+uncommitted `.sr1cs`/manifest artifacts from Phase 2/3 session 1) — did not
+want to land a half-verified guess-patch on a fail-closed gate per Agents.md
+("if the same error hits twice, research 3-5 fixes and pick the best, do not
+flail") and per AGENTS.md hard rule 1 (never modify parity-assertion
+semantics by hand without confidence).
+
+Explicitly NOT done in this pass (deliberately stopping before starting, not
+blocked): `gen_nb_slice.py` (2,077 lines) and `gen_dtk_slice.py` (3,317 lines)
+redesigns, adapter regen/lint, the serialized `lake` campaign
+(Bounds->Capstone->Statement, each historically 20-40 min per T1-d), gate
+battery, Phase 4 setups (consolidate2x1/8x1/split1x8) + transfer/ics20 stamp
+audits, `wave2-gate-record.md`. Rationale: both generators are large enough,
+and NB-1's relation is novel enough (not a mechanical wire-shift like T1-d),
+that rewriting them correctly requires the same iterative
+`lean-leaf-bench.sh`-driven debug loop T1-d needed, run by a session that can
+monitor each `lake` build to completion before proceeding (OOM risk is a
+standing incident, not a hypothetical). Picking this up: start from the
+"Old->new mapping" above, implement `gen_nb_slice.py` per `NB1-SLICE-SPEC.md`
+section by section, leaf-bench each new lemma before any adapter build, one
+`lake` at a time.
+
+**2026-07-10 Phase 3 session 3 — generator-rewrite scoping pass, no code
+changed (deliberately stopping before the hand-authored bridge, not blocked
+by a repeated failure):**
+
+Confirmed the `ltchain.rs` fix from session 2 is in place (commit
+`509c12d98`, `--lean-contract-out` regenerates all per-segment base contracts
+end-to-end incl. `Seg46.lean`) and re-read the full mechanical surface of
+`gen_nb_slice.py` (2,077 lines) against `NB1-SLICE-SPEC.md`'s relation shape.
+Findings that de-risk the rewrite for whoever runs it next:
+
+- `emit_to_binary_module`/`emit_to_binary_modules` (lines 1723-1784) are
+  **already fully generic** over `ValueLadder` (bit_base/binary_rows/
+  copy_row/amount_wire) and the blind ladder — no new emitter is needed for
+  the 3 amount ToBinary blocks or the blind ToBinary block, only updated
+  `VALUE_LADDERS`/`BLIND_*` constants (session 2's part (a) numbers) and a
+  `.capitalize()`-derived rename sweep `seg48*`/`Seg48*` -> `seg46*`/`Seg46*`.
+- Functions confirmed DELETE-outright (no callers survive once poseidon/
+  encode/value-ladder/final-add are gone): `generate_poseidon_shape`,
+  `emit_poseidon_adapter`, `emit_encode_pre`, `emit_encode_post`,
+  `ENCODE_CANON`/`emit_canonical_modules` (only consumer was encode/DTK-style
+  canonical checks tied to the deleted value ladders — confirm no other
+  caller before deleting), `value_rungs`/`ScalarRung`/`emit_value_defs_module`/
+  `emit_value_row_projection`/`emit_value_rung`/`emit_value_hstep_chunk`/
+  `emit_value_chunk`/`emit_value_ladder`/`emit_value_modules`, `emit_adds`.
+  Functions confirmed KEEP verbatim (only row/wire constants move): blinding
+  ladder family (`blind_rungs` through `emit_blind_modules`,
+  `blind_split_cert`, `blind_gen_doubles`, `emit_fixed_base_literal`) and
+  `emit_base`/`configure_contract_helpers`/`sr1cs_rows`/`singleton_wire`.
+- New pieces needed, not yet written: (1) a `conservation_row` mining/emit
+  function — single linear-row `1*(w_in0+w_in1) = 1*w_out0` at segment-local
+  row 387, structurally trivial (one `linear_combination` line, no booleanity
+  loop) but has no template in this file since nothing like it existed
+  before; (2) `emit_top`'s replacement — the OLD `emit_top` (lines 1915-2023)
+  wires `seg48_nbBody`/`seg48_sound` through Poseidon -> encode-to-curve ->
+  two variable-base adds -> final blind add, and calls
+  `Shieldd.GnarkFormal.NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound`
+  (523-line hand-authored bridge at `ShielddGnarkFormal/
+  NetBalanceCommitmentBridge.lean`) — **none of this survives**; the new
+  `emit_top` is just booleanity(3x128) ∧ recompose(3) ∧ conservation ∧
+  ladderTrace(blind) ∧ `out = ladderResult` (per spec) feeding the NEW
+  `ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound`,
+  which does not exist yet and has no prior-art file to crib structurally
+  (closest analog is the blind-ladder-to-EdwardsBridge glue already inside
+  the old `emit_top`/`emit_blind_ladder`, which DOES carry over almost
+  verbatim for the "out = ladderResult" conjunct — reuse that half).
+- `Specs/Nb.lean`'s `deployedSpec48` (hand-authored, line 9) also needs a
+  `deployedSpec46` replacement matching the new conjunct shape, and
+  `contracts.rs`'s spec_submodule table needs the seg46 pointer (per queue
+  item 3).
+
+**Why stopping here rather than pushing through:** the hand-authored bridge
+(`ConservationNetBalanceCommitmentBridge.lean`) is the only genuinely novel
+soundness artifact in this wave — it is a real ECC lemma (fixed-base ladder
+trace + a linear conservation row ⟹ curve-point equation), not a mechanical
+regen, and per Agents.md/hard-rule 6 must not be guess-patched: writing it
+correctly means drafting the lemma, debugging it in a `lake env lean` leaf
+probe per `lean-leaf-bench.sh` budgets, iterating until it typechecks, THEN
+running the serialized adapter/Bounds/Capstone/Statement `lake` campaign
+(historically 20-40 min/stage per T1-d) with an RSS watcher live the whole
+time. That loop cannot be safely compressed into a single non-interactive
+pass without risking exactly the failure mode this file has twice already
+declined to rush (2026-07-08 third session, session 2 above). No files were
+changed this session (read-only scoping); `git status` is unchanged from
+session 2 (still just the uncommitted `.sr1cs`/manifest artifacts). Next
+session: rewrite `gen_nb_slice.py` per the DELETE/KEEP/NEW list above, draft
+`ConservationNetBalanceCommitmentBridge.lean`, leaf-bench it, then run the
+lake campaign one stage at a time with a monitored background process.
+
+### Q3 — post-boundary optimization queue (superseded by Q5 for consolidate)
 The 2026-07-07 audit ranked the candidates in
-`docs/soundness/optimization-playbook.md` §2/§2t/§2x. Executor-startable, in
-order: (1) **T1-d** — DONE, see "Recently completed"; (2) **TC-1** base-select
-in `DeriveSharedSecretsSpend`; (3) **T1-h** ToBinary dedup; (4) **F-1** census
-tooling — PARTIALLY DONE, see checkpoint below.
+`docs/soundness/optimization-playbook.md` §2/§2t/§2x. (1) **T1-d** — DONE, see
+"Recently completed"; (2) **TC-1** base-select in `DeriveSharedSecretsSpend`
+(transfer-side, stays queued independently of Wave 2); (3) **T1-h** ToBinary
+dedup — folded into Wave 2 Phase 1; (4) **F-1** census tooling — PARTIALLY
+DONE, see checkpoint below.
 
 **2026-07-08 follow-up session — mechanical scope confirmed, materially bigger
 than "downstream shift after 34" (STOPPING here, do not rush the Lean layer):**
@@ -517,6 +804,41 @@ CI runner's resource pressure.
 
 ## Recently completed
 
+- 2026-07-12: **Q5 DONE (Phases 3+4)** — one Lean re-stamp for the whole Wave 2
+  batch: serialized lake campaign GREEN (NbAdapterSeg46 → CompressAdapters →
+  Bounds → Capstone → Statement → WiringTranscript → Consolidate2x1);
+  `consolidate2x1_circuit_sound` and `transfer_circuit_sound` both on base
+  axioms only; 43/43 obligations discharged; full gate battery GREEN
+  (lean-circuit-fv both circuits, vk-derivation both, constraint-coverage,
+  soundness-invariants, lints); fresh setups for all surviving families;
+  transfer stamps + 16 Seg contracts refreshed per PR97 policy (evaluated:
+  wire shifts only, transcript hash unchanged — NOT contract drift). Local CI
+  equivalents all green (constraint-coverage 66/66, sdk bundled-proving-keys
+  69/69, go circuits ok). Record: `docs/soundness/records/wave2-gate-record.md`;
+  §5 ledger rows added. Fixes en route: gen_dtk_slice.py hardcoded Q4-guard
+  wires (2412/2413/2414 → 3115/3116/3117), stale Specs/{Dtk,Scp}.lean,
+  NullifierAdapters deployedSpec27→26.
+- 2026-07-10: Q5 Phase 2 done — landed the frozen Wave 2 batch (T1-f, T1-h,
+  NB-1; NB-2/T2-c stay out) as 3 independently compiling/passing Go commits
+  on `optimization-consolidate`. consolidate2x1: 44,665 -> 36,553 (-8,112,
+  -18.2%), ahead of the -6-7k projection; see Q5 section above for
+  per-candidate deltas. Lean/`formal/` untouched (Phase 3's job); expect
+  lean-circuit-fv/vk-derivation CI red until then, by design. Next: Phase 3
+  one Lean re-stamp for the whole batch.
+- 2026-07-10: Q5 Phase 0 done — deleted consolidate4x1 and split1x4 families
+  end-to-end (Go family specs, Rust registries/generated.rs, gnark
+  consolidate.rs/split.rs/artifacts.rs/mod.rs, proof-aggregation backend match
+  arms, pcli ConsolidateFamilyArg, note_manager auto-selection, transaction
+  signing test-vector strategy, family/abi Go tests, witness fixtures, deleted
+  `tools/gnark/artifacts/{consolidate4x1,split1x4}/`); no generator/manifest
+  actually produces these registries (transfer's `transfer_families_manifest.json`
+  is also just a hand-synced mirror, not consumed by build.rs) — hand-edited
+  and documented here per that finding. consolidate2x1 stays ID 1,
+  consolidate8x1 stays ID 3, split1x8 stays ID 2 (canonical IDs stable).
+  Left stale `split1x4` mentions inside the sha256-stamped
+  `circuit-constraint-report.txt`/`circuit-whole-picus-report.txt` untouched
+  (hand-editing would invalidate their stamps without a real Picus rerun);
+  Phase 4's stamp re-pass is the right place to regenerate them.
 - 2026-07-10: T1-d CI fallout closed — audited all 7 deployed circuits for
   constraint-count drift post-DTK-hoist (NoteReshape backs all consolidateN/
   splitN members): consolidate4x1 101,391→76,063, consolidate8x1 189,075→
@@ -550,11 +872,6 @@ CI runner's resource pressure.
   coverage report 49/49 discharged, stamps refreshed, diff containment GREEN
   (57,329 identical to pins), full gate battery + prover round-trip GREEN;
   §5 T1-a row landed (record: `docs/soundness/records/t1a-gate-record.md`).
-- 2026-07-07: Q3 F-1 checkpoint closed out — `census` mode confirmed
-  byte-identical to standalone `fv-census.py` on consolidate2x1; exact-dup
-  and net-balance x4 triage confirmed already recorded in the playbook
-  (folded into T1-d / NB-2). Transfer census run remains open (off-peak).
-
 ## Blocked
 
 (none)

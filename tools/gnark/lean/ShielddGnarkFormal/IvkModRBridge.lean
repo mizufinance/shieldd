@@ -259,4 +259,83 @@ theorem circuit_sound (IvkModQ QuotientA IvkReduced : F)
   · rw [hvq, hQval, Nat.mul_comm, Nat.add_comm, Nat.add_mul_div_right _ _ hrpos,
       Nat.div_eq_of_lt hredlt, Nat.zero_add]
 
+/-! ### Deployed-adapter helper: 251-bit truncation of the 253-bit decomposition
+
+The deployed circuit (T1-h) drops the ladder's own 251-bit `to_binary` and
+reuses the first 251 bits of the mod-`r` decomposition. Soundness: the `r`
+ladder pins the decomposition's value below `r < 2^251`, so bits 251/252 are
+zero and the truncation is itself a valid 251-bit decomposition. -/
+
+private theorem ofBitsLE_snoc_val {d : ℕ} (vs : List.Vector Bool d) (b : Bool) :
+    (Fin.ofBitsLE (vs.snoc b)).val = b.toNat * 2 ^ d + (Fin.ofBitsLE vs).val := by
+  rw [Fin.ofBitsLE, List.Vector.reverse_snoc, Fin.ofBitsBE]
+  simp [Fin.ofBitsLE]
+
+theorem laddersTail_to_binary_251 (QuotientA IvkReduced : F)
+    (bits : List.Vector F 253) (bits251 : List.Vector F 251)
+    (hbin : GatesDef.to_binary IvkReduced 253 bits)
+    (h : laddersTail QuotientA bits)
+    (htrunc : ∀ i : Fin 251,
+      bits251.get i = bits[(i : ℕ)]'(Nat.lt_of_lt_of_le i.isLt (by decide))) :
+    GatesDef.to_binary IvkReduced 251 bits251 := by
+  obtain ⟨x, hx⟩ := is_vector_binary_iff_exists_bool_vec.mp hbin.2
+  subst hx
+  -- Ladder vs r pins the recovered value below r < 2^251.
+  unfold laddersTail at h
+  have h1 := ltcRec_sound x rBit rBits boolLow_rBit _ h
+  rw [rBits_val] at h1
+  obtain ⟨hil1, -⟩ := h1
+  simp only [Gates, GatesGnark9, GatesGnark8, GatesDef.eq,
+    Bool.toZMod_eq_one_iff_eq_true, decide_eq_true_iff] at hil1
+  have hr251 : rNat < 2 ^ 251 := by decide +kernel
+  have hrOrd : rNat < Order := by decide +kernel
+  have hlt251 : (Fin.ofBitsLE x).val < 2 ^ 251 := lt_trans hil1 hr251
+  have hredval : IvkReduced.val = (Fin.ofBitsLE x).val :=
+    ImtGap.to_binary_val_eq_of_lt IvkReduced x hbin (lt_trans hil1 hrOrd)
+  -- Split off the top two bits of x.
+  obtain ⟨a, y, hxy⟩ : ∃ a y, x.reverse = a ::ᵥ y :=
+    ⟨x.reverse.head, x.reverse.tail, (List.Vector.cons_head_tail _).symm⟩
+  obtain ⟨b, t, hyt⟩ : ∃ b t, y = b ::ᵥ t :=
+    ⟨y.head, y.tail, (List.Vector.cons_head_tail _).symm⟩
+  rw [hyt] at hxy
+  have hx : x = ((t.reverse).snoc b).snoc a := by
+    rw [List.Vector.reverse_eq.mp hxy, List.Vector.reverse_cons, List.Vector.reverse_cons]
+  have hdecomp : (Fin.ofBitsLE x).val =
+      a.toNat * 2 ^ 252 + (b.toNat * 2 ^ 251 + (Fin.ofBitsLE t.reverse).val) := by
+    rw [hx, ofBitsLE_snoc_val, ofBitsLE_snoc_val]
+  -- Top two bits vanish under the 2^251 bound.
+  have htlt : (Fin.ofBitsLE t.reverse).val < 2 ^ 251 := (Fin.ofBitsLE t.reverse).isLt
+  have ha : a = false := by
+    cases a
+    · rfl
+    · exfalso; simp only [Bool.toNat_true, one_mul] at hdecomp; omega
+  have hb : b = false := by
+    cases b
+    · rfl
+    · exfalso; subst ha
+      simp only [Bool.toNat_true, Bool.toNat_false, one_mul, zero_mul, zero_add] at hdecomp
+      omega
+  subst ha hb
+  have hveq : (Fin.ofBitsLE x).val = (Fin.ofBitsLE t.reverse).val := by
+    simpa using hdecomp
+  -- The truncated vector is the bool truncation's field image.
+  have hbits251 : bits251 = t.reverse.map Bool.toZMod := by
+    apply List.Vector.ext
+    intro i
+    have hi2 : (i : ℕ) < 252 := Nat.lt_of_lt_of_le i.isLt (by decide)
+    have hi3 : (i : ℕ) < 253 := Nat.lt_of_lt_of_le i.isLt (by decide)
+    rw [htrunc i]
+    rw [List.Vector.getElem_map, List.Vector.get_map]
+    have hxel : x[(i : ℕ)]'hi3 = (t.reverse)[(i : ℕ)]'i.isLt := by
+      rw [hx]
+      rw [List.Vector.getElem_snoc_before_length hi2,
+        List.Vector.getElem_snoc_before_length i.isLt]
+    rw [hxel]
+    rfl
+  rw [Gates.to_binary_iff_eq_Fin_ofBitsLE]
+  refine ⟨t.reverse, hbits251, ?_⟩
+  have : ((IvkReduced.val : ℕ) : F) = (((Fin.ofBitsLE t.reverse).val : ℕ) : F) := by
+    rw [hredval, hveq]
+  rwa [ZMod.natCast_val, ZMod.cast_id] at this
+
 end Shieldd.GnarkFormal.Extracted.IvkModR

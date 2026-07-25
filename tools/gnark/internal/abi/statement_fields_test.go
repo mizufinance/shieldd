@@ -44,8 +44,8 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 		assertStatementFieldsMatch(t, "consolidate2x1", reconstructed, witness.StatementFields)
 	})
 
-	t.Run("split1x4", func(t *testing.T) {
-		witness, _, err := DecodeSplitWitnessV1(testfixtures.LoadSplitWitnessV1("split1x4"))
+	t.Run("split1x8", func(t *testing.T) {
+		witness, _, err := DecodeSplitWitnessV1(testfixtures.LoadSplitWitnessV1("split1x8"))
 		if err != nil {
 			t.Fatalf("decode split witness: %v", err)
 		}
@@ -53,7 +53,7 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 		if err != nil {
 			t.Fatalf("reconstruct split statement fields: %v", err)
 		}
-		assertStatementFieldsMatch(t, "split1x4", reconstructed, witness.StatementFields)
+		assertStatementFieldsMatch(t, "split1x8", reconstructed, witness.StatementFields)
 	})
 
 	t.Run("shielded_ics20_withdrawal", func(t *testing.T) {

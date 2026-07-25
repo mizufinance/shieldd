@@ -333,14 +333,14 @@ fn consolidate2x1_ladders() -> Vec<LadderSeat> {
     vec![
         LadderSeat {
             label: "R",
-            bit_base: 1187,
+            bit_base: 1890,
             start: 1828,
             end: 2345,
             bound: r,
         },
         LadderSeat {
             label: "Q4",
-            bit_base: 1187,
+            bit_base: 1890,
             start: 2346,
             end: 2715,
             bound: q4,
@@ -351,7 +351,7 @@ fn consolidate2x1_ladders() -> Vec<LadderSeat> {
 /// Production enforcement: recover and **parity-gate** both consolidate2x1 DTK
 /// canonicity ladders at extraction time (fail-closed), the analogue of
 /// `structure_lc`'s in-line parity assert. `dtk_rows` is the DTK segment slice
-/// (a 6329-row slice of the whole `.sr1cs`, offset varies by circuit revision).
+/// (a 6077-row slice of the whole `.sr1cs`, offset varies by circuit revision).
 /// Returns the recovered chains,
 /// or a descriptive error if recovery, the bound-pinning, or the gate fails.
 pub fn verify_consolidate2x1_lt_ladders(
@@ -423,7 +423,7 @@ pub fn consolidate2x1_lt_seating_json(
         .collect();
     Ok(serde_json::json!({
         "dtk_offset": dtk_offset,
-        "dtk_rows": 6329,
+        "dtk_rows": 6077,
         "ladders": ladders,
     }))
 }
@@ -481,11 +481,13 @@ mod tests {
 
     // DTK segment global offset and R/Q4 ladder seating, mirroring
     // gen_dtk_slice.py::dtk_ltc_traces (the current Python recovery). T1-d
-    // hoisted DTK computation into Define(), moving it from segment 16 to
-    // segment 5 in emission order (was offset 13677, now 12).
-    const DTK_OFFSET: usize = 12;
-    const DTK_ROWS: usize = 6329;
-    const BIT_BASE: usize = 1187;
+    // hoisted DTK computation into Define() (segment 5 in emission order);
+    // Wave 2 T1-f moved its offset (shared compress inserted before it) and
+    // T1-h shifted wire numbering (bits threaded from IVKModRDecomposition;
+    // the redundant 251-bit ToBinary is gone, ladder rows unchanged).
+    const DTK_OFFSET: usize = 1058;
+    const DTK_ROWS: usize = 6077;
+    const BIT_BASE: usize = 1890;
 
     fn dtk_rows() -> Vec<Constraint> {
         let path = concat!(

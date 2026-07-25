@@ -44,8 +44,8 @@ export_demo_gnark_env() {
     export SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/transfer"
 
     export SHIELDD_GNARK_SPLIT_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_split.${ext}"
-    export SHIELDD_GNARK_SPLIT_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/split1x4"
-    export SHIELDD_GNARK_SPLIT1X4_ARTIFACT_DIR="$SHIELDD_GNARK_SPLIT_ARTIFACT_DIR"
+    export SHIELDD_GNARK_SPLIT_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/split1x8"
+    export SHIELDD_GNARK_SPLIT1X8_ARTIFACT_DIR="$SHIELDD_GNARK_SPLIT_ARTIFACT_DIR"
 
     export SHIELDD_GNARK_CONSOLIDATE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_consolidate.${ext}"
     export SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/consolidate2x1"

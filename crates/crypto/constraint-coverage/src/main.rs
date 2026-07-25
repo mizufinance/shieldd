@@ -224,7 +224,7 @@ fn main() -> anyhow::Result<()> {
             manifest.circuit
         );
         let rows = parse_rows(&sr1cs).context("parse rows for lt seating")?;
-        const DTK_ROWS: usize = 6329;
+        const DTK_ROWS: usize = 6077;
         let ir = build_ir(&manifest, &sr1cs).context("build deployed-slice IR for lt seating")?;
         let dtk_offset = ir
             .segments

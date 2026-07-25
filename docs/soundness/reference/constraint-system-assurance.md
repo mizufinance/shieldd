@@ -1,7 +1,7 @@
 # Constraint-System Assurance Strategy
 
 No checked-in Picus artifact currently verifies a *whole* transaction circuit.
-Bounded whole-family Picus attempts on `consolidate2x1`, `split1x4`, and
+Bounded whole-family Picus attempts on `consolidate2x1` and
 `split1x8` all ended without a solver verdict before the process watchdog
 terminated them; the stamped attempt report is
 `crates/core/component/shielded-pool/formal/circuit-whole-picus-report.txt`.
@@ -264,7 +264,7 @@ composition itself is machine-checked end-to-end.
 
 | Tool | Disposition | Reason |
 | --- | --- | --- |
-| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5, plus scalar/ACK/DLEQ/Merkle composition-boundary probes `safe`; whole-family attempts remain undischarged timeouts. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, ACK/DLEQ seam probes, the `*-two-step`/`*-two-round` join-seam probes, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition` with the lift mechanized in Lean for consolidate2x1 and transfer. The whole-circuit attempt now runs with a real multi-hour budget (`scripts/run-whole-circuit-picus.sh`, nightly, non-gating) instead of the 180 s watchdog; `consolidate2x1`/`split1x4`/`split1x8` still wall out without a verdict and are recorded honestly. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
+| Picus | Landed at leaf-gadget scope (C2, CI-only), all leaves `safe` under cvc5, plus scalar/ACK/DLEQ/Merkle composition-boundary probes `safe`; whole-family attempts remain undischarged timeouts. | Runs on Poseidon, nullifier/IMT, quad-path-round, Decaf377 group-law, sqrt-ratio cores, scalar rung, ACK/DLEQ seam probes, the `*-two-step`/`*-two-round` join-seam probes, and key `.sr1cs` exports in the nightly `provers` job; ladders/composites are `safe-by-composition` with the lift mechanized in Lean for consolidate2x1 and transfer. The whole-circuit attempt now runs with a real multi-hour budget (`scripts/run-whole-circuit-picus.sh`, nightly, non-gating) instead of the 180 s watchdog; `consolidate2x1`/`split1x8` still wall out without a verdict and are recorded honestly. Source: [Picus package docs](https://pkg.go.dev/github.com/Veridise/Picus). |
 | Ecne | Follow-up feasibility spike. | Ecne targets R1CS weak/witness verification, but Shieldd needs an export and variable-labeling bridge from gnark artifacts. Source: [0xPARC Ecne overview](https://0xparc.org/writings/ecne). |
 | ACL2/Axe | Landed for bool-select, iszero, Poseidon2, nullifier, and AssetRegistryGap-backed `gadget-imt-gap` semantic gadget proofs. | Useful for theorem-prover-grade R1CS proofs of small high-value gadgets such as Poseidon, nullifier, or encryption components. Source: [Formal Verification of Zero-Knowledge Circuits](https://arxiv.org/abs/2311.08858). |
 | LLZK / ZK Vanguard | Research alternative only if gnark can lower into LLZK. | ZK Vanguard analyzes LLZK IR, not gnark source directly. Source: [ZK Vanguard docs](https://docs.veridise.tools/zkvanguard). |

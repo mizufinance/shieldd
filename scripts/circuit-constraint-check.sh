@@ -228,7 +228,6 @@ fi
   echo "FAMILY transfer undischarged-by-design"
   echo "  note: whole-circuit Picus times out (Poseidon+Merkle+Decaf377); not retried"
   echo "FAMILY consolidate2x1 undischarged-by-design"
-  echo "FAMILY split1x4 undischarged-by-design"
   echo "FAMILY shielded_ics20_withdrawal undischarged-by-design"
 } >>"$tmp_report"
 

@@ -46,6 +46,22 @@ func (c *probeNetBalanceAmount) Define(api frontend.API) error {
 	return err
 }
 
+type probeConservationNetBalanceAmount struct {
+	Amount frontend.Variable
+}
+
+func (c *probeConservationNetBalanceAmount) Define(api frontend.API) error {
+	// Same amount on both sides so Sigma(in)=Sigma(out) holds regardless of
+	// amount value; only the 128-bit range bound is under test here.
+	_, err := computeConservationNetBalanceCommitment(
+		api,
+		[]frontend.Variable{c.Amount},
+		[]frontend.Variable{c.Amount},
+		0,
+	)
+	return err
+}
+
 func TestAmountRangeBoundIs128Bits(t *testing.T) {
 	twoTo128 := new(big.Int).Lsh(big.NewInt(1), 128)
 	maxAmount := new(big.Int).Sub(twoTo128, big.NewInt(1)) // 2^128 - 1
@@ -68,6 +84,13 @@ func TestAmountRangeBoundIs128Bits(t *testing.T) {
 			blank: &probeNetBalanceAmount{},
 			valid: func(a *big.Int) frontend.Circuit {
 				return &probeNetBalanceAmount{Amount: a}
+			},
+		},
+		{
+			name:  "computeConservationNetBalanceCommitment",
+			blank: &probeConservationNetBalanceAmount{},
+			valid: func(a *big.Int) frontend.Circuit {
+				return &probeConservationNetBalanceAmount{Amount: a}
 			},
 		},
 	}

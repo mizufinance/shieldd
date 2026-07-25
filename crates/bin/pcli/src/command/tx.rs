@@ -72,8 +72,6 @@ pub struct TxCmdWithOptions {
 pub enum ConsolidateFamilyArg {
     #[clap(name = "2x1")]
     TwoByOne,
-    #[clap(name = "4x1")]
-    FourByOne,
     #[clap(name = "8x1")]
     EightByOne,
 }
@@ -82,7 +80,6 @@ impl From<ConsolidateFamilyArg> for ConsolidateFamilyId {
     fn from(value: ConsolidateFamilyArg) -> Self {
         match value {
             ConsolidateFamilyArg::TwoByOne => ConsolidateFamilyId::TwoByOne,
-            ConsolidateFamilyArg::FourByOne => ConsolidateFamilyId::FourByOne,
             ConsolidateFamilyArg::EightByOne => ConsolidateFamilyId::EightByOne,
         }
     }

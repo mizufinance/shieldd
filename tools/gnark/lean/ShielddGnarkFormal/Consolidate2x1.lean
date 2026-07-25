@@ -7,7 +7,7 @@ import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.RvkBridge
 import ShielddGnarkFormal.DtkBridge
-import ShielddGnarkFormal.NetBalanceCommitmentBridge
+import ShielddGnarkFormal.ConservationNetBalanceCommitmentBridge
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
@@ -142,8 +142,8 @@ structure DefineModel (i : Inputs) : Prop where
   spend0 : spendCircuit i i.spend0
   spend1 : spendCircuit i i.spend1
   output0 : outputCircuit i i.output0
-  netBalance : Decaf377Assumptions.NetBalanceCommitmentCircuit
-    i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
+  netBalance : Decaf377Assumptions.ConservationNetBalanceCommitmentCircuit
+    i.spend0.note.amount i.spend1.note.amount i.output0.note.amount
     i.actionBalanceBlinding i.balanceCommitmentComputed
   balanceEquivalent : Decaf377Assumptions.AssertEquivalentCircuit
     i.balanceCommitmentComputed i.balanceCommitmentClaimed
@@ -215,8 +215,8 @@ structure SoundSpec (i : Inputs) : Prop where
   spend1 : SpendSound i i.spend1
   output0 : OutputSound i i.output0
   netBalance :
-    Decaf377Assumptions.NetBalanceCommitmentSpec
-      i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
+    Decaf377Assumptions.ConservationNetBalanceCommitmentSpec
+      i.spend0.note.amount i.spend1.note.amount i.output0.note.amount
       i.actionBalanceBlinding i.balanceCommitmentComputed
   balanceEquivalent :
     Decaf377Assumptions.DecafEquivalent i.balanceCommitmentComputed i.balanceCommitmentClaimed
@@ -333,12 +333,14 @@ theorem consolidate2x1_circuit_sound
     (i : Inputs) :
     DefineModel i → SoundSpec i := by
   intro h
-  have hBalanceComputedOn := NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_onCurve
-    i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
-    i.actionBalanceBlinding i.balanceCommitmentComputed h.netBalance
-  have hNetBalanceSpec := NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound
-    i.spend0.note.amount i.spend1.note.amount i.output0.note.amount i.spend0.note.assetID
-    i.actionBalanceBlinding i.balanceCommitmentComputed h.netBalance
+  have hBalanceComputedOn :=
+    ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_onCurve
+      i.spend0.note.amount i.spend1.note.amount i.output0.note.amount
+      i.actionBalanceBlinding i.balanceCommitmentComputed h.netBalance
+  have hNetBalanceSpec :=
+    ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound
+      i.spend0.note.amount i.spend1.note.amount i.output0.note.amount
+      i.actionBalanceBlinding i.balanceCommitmentComputed h.netBalance
   exact {
     spend0 := spend_sound i i.spend0 h.sharedDivGenOnCurve h.sharedTransmissionOnCurve h.spend0
     spend1 := spend_sound i i.spend1 h.sharedDivGenOnCurve h.sharedTransmissionOnCurve h.spend1

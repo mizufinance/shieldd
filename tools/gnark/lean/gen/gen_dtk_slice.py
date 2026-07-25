@@ -45,11 +45,11 @@ SR1CS = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1.sr1cs"
 POSEIDON2 = FORMAL / "Poseidon2Bridge.lean"
 
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
-ROW_COUNT = 6329
+ROW_COUNT = 6077
 LADDER_BITS = 251
 # DTK segment's global row offset in the whole .sr1cs (was 13677 pre-T1-d;
 # DTK hoisting into Define() moved it to the front of emission order).
-DTK_GLOBAL_OFFSET = 12
+DTK_GLOBAL_OFFSET = 1058
 
 
 def write_generated(path: Path, contents: str) -> None:
@@ -61,8 +61,8 @@ def write_generated(path: Path, contents: str) -> None:
 # Wire index of the seg5 (only, post-T1-d) instance. `delta` measures every
 # instance's internal-witness offset relative to this base, so the
 # ladder-accumulator seat arithmetic reuses seg5's layout shifted by `delta`.
-# (Was 13087 for pre-T1-d seg16; DTK now emits near the circuit start.)
-BASE_INTERNAL = 210
+# (Was 210 pre-T1-f; the shared divGen compress inserted 703 wires ahead.)
+BASE_INTERNAL = 913
 
 
 @dataclass(frozen=True)
@@ -108,7 +108,7 @@ class Instance:
 
 
 INSTANCES = (
-    Instance(5, BASE_INTERNAL, 17, 18, 6),
+    Instance(6, BASE_INTERNAL, 17, 18, 7),
 )
 
 
@@ -334,8 +334,10 @@ def emit_base(cfg: Instance) -> str:
     bit_bases = {
         "Canon1": cfg.internal_base + 21,
         "Canon2": cfg.internal_base + 363,
+        # T1-h: the ladder reuses the first 251 bits of the Ivk decomposition;
+        # ScalarBits is the width-251 truncation of the same wire run.
         "Ivk": cfg.internal_base + 977,
-        "Scalar": cfg.internal_base + 2205,
+        "Scalar": cfg.internal_base + 977,
     }
     lines = [
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg{cfg.seg}\n",
@@ -807,10 +809,9 @@ class BinaryBlock:
     rec_row: int
 
 
-def binary_blocks(cfg: Instance) -> tuple[BinaryBlock, BinaryBlock]:
+def binary_blocks(cfg: Instance) -> tuple[BinaryBlock, ...]:
     return (
         BinaryBlock("Ivk", 9, cfg.internal_base + 977, 253, 1322, 1575),
-        BinaryBlock("Scalar", 9, cfg.internal_base + 2205, 251, 2719, 2970),
     )
 
 
@@ -1085,10 +1086,10 @@ def dtk_scalar_rungs() -> tuple[ScalarRung, ...]:
     rungs: list[ScalarRung] = []
     cur_x, cur_y = 17, 18
     for index, (delta_x, delta_y) in enumerate(zip(xs, ys, strict=True)):
-        bit = BASE_INTERNAL + 2205 + index
+        bit = BASE_INTERNAL + 977 + index
         candidates = [
             row
-            for row in range(2971, 6329)
+            for row in range(2717, ROW_COUNT)
             if rows[row][2] == {delta_x: 1}
             and (bit in rows[row][0] or bit in rows[row][1])
         ]
@@ -1113,8 +1114,8 @@ def dtk_scalar_rungs() -> tuple[ScalarRung, ...]:
             next_cur_x, next_cur_y,
         ))
         cur_x, cur_y = next_cur_x, next_cur_y
-    if rungs[0].select_x_row != 2971 or rungs[-1].double_rows[-1] != 6328:
-        raise ValueError("scalar ladder does not span rows 2971..6328")
+    if rungs[0].select_x_row != 2719 or rungs[-1].double_rows[-1] != 6076:
+        raise ValueError("scalar ladder does not span rows 2719..6076")
     return tuple(rungs)
 
 
@@ -1940,7 +1941,7 @@ def emit_ltc_step_function_range(
 def emit_q4_guard_theorem(
     lines: list[str], cfg: Instance, trace: LtcTrace,
 ) -> None:
-    q_guard_wires = [seat_wire(cfg, wire) for wire in (2412, 2413, 2414)]
+    q_guard_wires = [seat_wire(cfg, wire) for wire in (3115, 3116, 3117)]
     q_il0 = ltc_state_name(cfg, trace, "Il", 0)
     lines.extend([
         f"theorem seg{cfg.seg}Q4Guard (rho : Nat -> Seg{cfg.seg}.F) (k : Prop) "
@@ -2554,7 +2555,7 @@ def emit_scalar_hstep_chunk(
     """
     acc_state = f"seg{cfg.seg}LadderAccState"
     cur_state = f"seg{cfg.seg}LadderCurState"
-    base = cfg.internal_base + 2205
+    base = cfg.internal_base + 977
     lo = subset[0].index
     hi = subset[-1].index + 1
     lines.extend([
@@ -2635,7 +2636,7 @@ def emit_scalar(cfg: Instance, rungs: tuple[ScalarRung, ...]) -> str:
     cur_state = f"seg{cfg.seg}LadderCurState"
     lines.extend([
         "  have hbitAt : ∀ i, i < 251 → rho "
-        f"({cfg.internal_base + 2205} + i) = Bool.toZMod bits[i]! := by\n",
+        f"({cfg.internal_base + 977} + i) = Bool.toZMod bits[i]! := by\n",
         "    intro i hi\n",
         f"    rw [← seg{cfg.seg}ScalarBits_get rho i hi, hbits]\n",
         "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi), "
@@ -2730,7 +2731,26 @@ def emit_adapter(cfg: Instance) -> str:
         f"            251 0 ⟨0, 1⟩ ⟨(rho {cfg.div_x} : Seg{cfg.seg}.F), "
         f"(rho {cfg.div_y} : Seg{cfg.seg}.F)⟩)) := by\n",
         f"  have hIvkBinary := seg{cfg.seg}Ivk_toBinary rho h\n",
-        f"  have hScalarBinary := seg{cfg.seg}Scalar_toBinary rho h\n",
+        # T1-h: the deployed ladder reuses the Ivk decomposition's first 251
+        # bits. Run the LT chains once with a trivial continuation to obtain
+        # `laddersTail`, then synthesize the 251-bit `to_binary` witness from
+        # the 253-bit one (r < 2^251 forces bits 251/252 to zero).
+        f"  have hq4T := seg{cfg.seg}_q4_ladder rho h True trivial\n",
+        f"  have hrT := seg{cfg.seg}_r_ladder rho h True hq4T\n",
+        "  have htailT := Shieldd.GnarkFormal.DtkBridge.dtkSeg1_build\n",
+        f"    (seg{cfg.seg}IvkBits rho) (rho 10) True hrT\n",
+        "  change Shieldd.GnarkFormal.DtkBridge.dtkTailK "
+        f"(seg{cfg.seg}IvkBits rho) (rho 10) True at htailT\n",
+        "  have hladders := (Shieldd.GnarkFormal.DtkBridge.dtkTailK_laddersTail\n",
+        "    _ _ _ htailT).1\n",
+        f"  have hScalarBinary : GatesDef.to_binary (rho 9) 251 (seg{cfg.seg}ScalarBits rho) :=\n",
+        "    Shieldd.GnarkFormal.Extracted.IvkModR.laddersTail_to_binary_251 (rho 10) (rho 9)\n",
+        f"      (seg{cfg.seg}IvkBits rho) (seg{cfg.seg}ScalarBits rho) hIvkBinary hladders\n",
+        "      (by\n",
+        "        intro i\n",
+        f"        simp only [seg{cfg.seg}ScalarBits, seg{cfg.seg}IvkBits, "
+        "List.Vector.get_ofFn,\n",
+        "          List.Vector.getElem_def, List.Vector.toList_ofFn, List.getElem_ofFn])\n",
         "  obtain ⟨scalarBool, hScalarEq⟩ := "
         "is_vector_binary_iff_exists_bool_vec.mp hScalarBinary.2\n",
         f"  have hScalarLadder := seg{cfg.seg}_scalar_ladder rho h scalarBool hScalarEq hdiv\n",
@@ -3046,7 +3066,7 @@ def generate_poseidon_shape() -> tuple[str, list[list[int]]]:
     EXTRACTED_DEPLOYED.mkdir(parents=True, exist_ok=True)
     write_generated(EXTRACTED_DEPLOYED / f"{module}.lean", "".join(lines))
 
-    if args[0] != [8, 572, 912]:
+    if args[0] != [8, 1275, 1615]:
         raise ValueError(f"unexpected DTK Poseidon live inputs {args[0]}")
     ranges: list[list[int]] = []
     current_range: list[int] = []
@@ -3068,8 +3088,8 @@ def generate_poseidon_shape() -> tuple[str, list[list[int]]]:
         "seg2round": seg2round,
         "ranges": ranges,
         "domain": "9361307723838134966014044876631201920149619",
-        "public_args": ["w8", "w572", "w912"],
-        "spec_inputs": ["w8", "w912 - w572"],
+        "public_args": ["w8", "w1275", "w1615"],
+        "spec_inputs": ["w8", "w1615 - w1275"],
         "seq": [
             "5629641166285580282832549959187697687583932890102709218623488970611606159361",
             "6333346312071277818186618704086159898531924501365547870951425091938056929281",
@@ -3126,8 +3146,8 @@ def emit_poseidon_adapter(
     final_row = 1316
     keep = set(range(first_row, final_row + 1))
     final_outputs = [outputs[-1] for outputs in sbox_outputs[-3:]]
-    compressed_pos = seat_wire(cfg, 572)
-    compressed_neg = seat_wire(cfg, 912)
+    compressed_pos = seat_wire(cfg, 1275)
+    compressed_neg = seat_wire(cfg, 1615)
     lines = [
         f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.DtkAdapterSeg{cfg.seg}Base\n",
         "import ShielddGnarkFormal.Deployed.DtkIvkPoseidon.SemanticBridge\n\n",

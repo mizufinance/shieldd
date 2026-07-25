@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-"""Generate the deployed net-balance-commitment adapter for consolidate2x1 seg48.
+"""Generate the deployed conservation net-balance adapter for consolidate2x1 seg46.
 
 Sibling of `gen_dtk_slice.py` (see its module docstring for the StructuredLC
-contract; the same rules apply verbatim). Seg48 is one instance, not a seated
-family: 2-in/1-out net balance = poseidonPerm1 prefix + encode-to-curve +
-three variable-base value ladders (DTK rung shape, 128 rungs each) + one
-fixed-base blinding ladder (rvk rung shape, 251 bits) + final Edwards add.
+contract; the same rules apply verbatim). Seg46 is one instance (NB-1 shape):
+three 128-bit amount range blocks (ZK-ASSUME-AMOUNT-RANGE), one linear
+conservation row `in0 + in1 = out0`, and one fixed-base blinding ladder
+(rvk rung shape, 251 bits) whose final accumulator IS the commitment output.
 
-Bridge target is `NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound`
-(the non-"2" variant: zero+in0+in1+out0+blind legs — structurally exact for the
-2x1 gate stream; only the zero leg is synthetic). The manifest's per-op
-`bridge_theorem` string names the "2" variant because the op is shared with
-transfer 2x2; the coverage gate pins inst52_bound + Seg48, not that string.
+Bridge target is `ConservationNetBalanceCommitmentBridge.
+decaf377_conservationNetBalanceCommitment_sound`.
 
 Recovery layer below is self-checking (fail-closed asserts against the raw
-`.sr1cs` rows); emitters land in a follow-up.
+`.sr1cs` rows).
 """
 
 from __future__ import annotations
@@ -39,9 +36,10 @@ SR1CS = ROOT.parent / "artifacts/consolidate2x1/consolidate2x1.sr1cs"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 NB_GX = 4661681602708190761543544705274244814260880986867766715334030151044279151219
 NB_GYM1 = 4337336842509898676347982752646772244181661588533917621717979456142867120377
-SEG_START, ROW_COUNT = 35184, 7961
-OUT_X_WIRE, OUT_Y_WIRE = 40715, 40716
-FINAL_ADD_ROWS = range(7955, 7961)
+SEG_START, ROW_COUNT = 32840, 2193
+OUT_X_WIRE, OUT_Y_WIRE = 33463, 33464
+CONSERVATION_ROW = 387
+IN0_WIRE, IN1_WIRE, OUT0_WIRE = 15, 105, 193
 
 Lc = dict[int, int]
 
@@ -72,7 +70,7 @@ def sr1cs_rows() -> list[tuple[Lc, Lc, Lc]]:
             rows.append(tuple(sides))
         index += 1
     if len(rows) != ROW_COUNT:
-        raise ValueError(f"expected {ROW_COUNT} seg48 rows, got {len(rows)}")
+        raise ValueError(f"expected {ROW_COUNT} seg46 rows, got {len(rows)}")
     return rows
 
 
@@ -85,555 +83,28 @@ def singleton_wire(side: Lc) -> int:
     return wire
 
 
-@dataclass(frozen=True)
-class ValueLadder:
-    """One 128-bit variable-base value ladder (DTK rung shape)."""
-
-    label: str
-    bit_base: int          # booleanity wires bit_base .. bit_base+127
-    binary_rows: tuple[int, int]   # inclusive row span of the to_binary block
-    copy_row: int          # 1*LcN = 1*rho(amount) recomposition/copy row
-    amount_wire: int       # external amount wire
-    acc_x_start: int       # accumulator AP: x_i = acc_x_start + 13*i
-    row_lo: int
-    row_hi: int            # exclusive search bound
-
-
-VALUE_LADDERS = (
-    ValueLadder("in0", 33536, (776, 903), 904, 15, 33664, 904, 2563),
-    ValueLadder("in1", 35322, (2563, 2690), 2691, 105, 35450, 2691, 4356),
-    ValueLadder("out0", 37114, (4356, 4483), 4484, 193, 37242, 4484, 6149),
+# Blinding fixed-base ladder (rvk shape). Seed term: bits[0] wire folded into
+# every accumulator row (same encoding as rvk — see memory rvk-fixedbase-bit0).
+# Amount range blocks (ZK-ASSUME-AMOUNT-RANGE): label, bit_base, booleanity
+# row span (inclusive), recomposition row, amount wire.
+AMOUNT_BLOCKS = (
+    ("In0", 31277, (0, 127), 128, IN0_WIRE),
+    ("In1", 31405, (129, 256), 257, IN1_WIRE),
+    ("Out0", 31533, (258, 385), 386, OUT0_WIRE),
 )
 
 # Blinding fixed-base ladder (rvk shape). Seed term: bits[0] wire folded into
 # every accumulator row (same encoding as rvk — see memory rvk-fixedbase-bit0).
-BLIND_BIT_BASE = 38906          # booleanity wires 38906 .. 39156 (251 bits)
-BLIND_BINARY_ROWS = (6149, 6399)
-BLIND_COPY_ROW = 6400           # 1*Lc13 = 1*rho 5
+BLIND_BIT_BASE = 31661          # booleanity wires 31661 .. 31911 (251 bits)
+BLIND_BINARY_ROWS = (388, 638)
+BLIND_COPY_ROW = 639            # 1*LcN = 1*rho 5
 BLIND_WIRE = 5
 # Accumulator wire pairs: 149 at stride 5, then 101 at stride 8 (250 rungs;
 # rung k consumes bit wire BLIND_BIT_BASE+1+k).
 BLIND_ACCS = tuple(
-    [(39160 + 5 * k, 39161 + 5 * k) for k in range(149)]
-    + [(39908 + 8 * j, 39909 + 8 * j) for j in range(101)]
+    [(31915 + 5 * k, 31916 + 5 * k) for k in range(149)]
+    + [(32663 + 8 * j, 32664 + 8 * j) for j in range(101)]
 )
-
-ASSET_ID_WIRE = 16
-POSEIDON_PREFIX_ROWS = (0, 232)
-POSEIDON_ROW_COUNT = 230
-POSEIDON_DOMAIN = 6888358618106443442961843809729175081075858965522240584763322653509542282215
-POSEIDON_MODULE = "NetBalancePoseidon230_980d2f"
-ENCODE_BINARY_ROWS = (258, 510)  # encode's 253-bit to_binary
-ENCODE_COPY_ROW = 511            # 1*Lc9 = 1*rho 33182
-ENCODE_INPUT_WIRE = 33182
-ENCODE_BIT_BASE = 33186
-ENCODE_OUTPUT_X = 33530
-ENCODE_OUTPUT_Y = 33532
-ENCODE_CANON = dtk.CanonicalBlock(
-    "Canon", ENCODE_INPUT_WIRE, ENCODE_BIT_BASE, ENCODE_BINARY_ROWS[0],
-    ENCODE_COPY_ROW, ENCODE_COPY_ROW + 1,
-)
-
-
-def generate_poseidon_shape() -> list[list[int]]:
-    """Emit the compact 46-S-box width-2 Poseidon prefix and bridge metadata."""
-    raw_rows = [
-        dtk.parse_constraint(line.strip())
-        for line in SR1CS.read_text().splitlines()
-        if line.strip().startswith("(constraint ")
-    ][SEG_START : SEG_START + POSEIDON_ROW_COUNT]
-    if len(raw_rows) != POSEIDON_ROW_COUNT:
-        raise ValueError("missing net-balance Poseidon rows")
-    sboxes = [raw_rows[index : index + 5] for index in range(0, len(raw_rows), 5)]
-    final_outputs: list[int] = []
-    local_outputs: list[set[int]] = []
-    for index, chunk in enumerate(sboxes):
-        outputs = [dtk.singleton_output(row) for row in chunk]
-        if chunk[0][0] != chunk[0][1]:
-            raise ValueError(f"Poseidon S-box {index}: first row is not x*x")
-        for offset in range(1, 4):
-            expected = [("1", outputs[offset - 1])]
-            if chunk[offset][0] != expected or chunk[offset][1] != expected:
-                raise ValueError(f"Poseidon S-box {index}: broken square chain")
-        if chunk[4][0] != [("1", outputs[3])] or chunk[4][1] != chunk[0][0]:
-            raise ValueError(f"Poseidon S-box {index}: broken x16*x row")
-        final_outputs.append(outputs[-1])
-        local_outputs.append(set(outputs))
-
-    round_counts = [1, 2, 2, 2] + [1] * 31 + [2, 2, 2, 2]
-    if sum(round_counts) != len(sboxes):
-        raise AssertionError("bad Poseidon1 round count")
-    groups: dict[str, list[str]] = {}
-    seg2round: dict[str, int] = {}
-    cursor = 0
-    for round_index, count in enumerate(round_counts):
-        groups[str(round_index)] = [
-            f"w{wire}" for wire in final_outputs[cursor : cursor + count]
-        ]
-        for segment in range(cursor, cursor + count):
-            seg2round[str(segment)] = round_index
-        cursor += count
-
-    required = set(int(wire[1:]) for wire in groups["38"])
-    args: list[list[int]] = [[] for _ in sboxes]
-    exits: list[list[int]] = [[] for _ in sboxes]
-    for segment in range(len(sboxes) - 1, -1, -1):
-        chunk = sboxes[segment]
-        used = dtk.row_wires([(row[0], row[1], []) for row in chunk]) - local_outputs[segment]
-        live_in = used | (required - local_outputs[segment])
-        args[segment] = sorted(live_in)
-        live_out = set(required)
-        live_out.add(final_outputs[segment])
-        exits[segment] = sorted(
-            wire for wire in live_out if wire != final_outputs[segment]
-        ) + [final_outputs[segment]]
-        required = live_in
-
-    shape: list[str] = []
-    for row in raw_rows:
-        for side in row:
-            shape.append(str(len(side)) + ":")
-            shape.extend(f"{coeff}@{wire}," for coeff, wire in side)
-    digest = hashlib.sha256("".join(shape).encode()).hexdigest()
-    module = f"NetBalancePoseidon230_{digest[:6]}"
-    if module != POSEIDON_MODULE:
-        raise ValueError(f"Poseidon shape changed: {module}")
-    if args[0] != [ASSET_ID_WIRE]:
-        raise ValueError(f"unexpected Poseidon live inputs {args[0]}")
-    if exits[-1] != [33158, 33163]:
-        raise ValueError(f"unexpected Poseidon exits {exits[-1]}")
-
-    lines = [
-        "import ProvenZk.Gates\n",
-        "import ShielddGnarkFormal.Extracted.PoseidonHash1\n\n",
-        "set_option linter.unusedVariables false\n",
-        "set_option maxRecDepth 100000\n",
-        "set_option maxHeartbeats 4000000\n\n",
-        f"namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n",
-        "abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.PoseidonHash1.Order\n",
-        "variable [Fact (Nat.Prime Order)]\n",
-        "abbrev F := Shieldd.GnarkFormal.Extracted.PoseidonHash1.F\n\n",
-    ]
-    for segment, chunk in enumerate(sboxes):
-        lines.append(dtk.emit_poseidon_segment(segment, args[segment], exits[segment], chunk))
-    public_decl = " ".join(f"(w{wire} : F)" for wire in args[0])
-    final_type = " -> ".join(["F"] * len(exits[-1])) + " -> Prop"
-    lines.append(f"def relation {public_decl} (k : {final_type}) : Prop :=\n")
-    indent = "  "
-    for segment in range(len(sboxes)):
-        use_args = " ".join(f"w{wire}" for wire in args[segment])
-        use_exits = " ".join(f"w{wire}" for wire in exits[segment])
-        lines.append(f"{indent}seg{segment} {use_args} (fun {use_exits} =>\n")
-        indent += "  "
-    lines.append(
-        f"{indent}k " + " ".join(f"w{wire}" for wire in exits[-1])
-        + ")" * len(sboxes) + "\n\n"
-    )
-    lines.append(f"end Shieldd.GnarkFormal.Extracted.Deployed.{module}\n")
-    EXTRACTED_DEPLOYED.mkdir(parents=True, exist_ok=True)
-    (EXTRACTED_DEPLOYED / f"{module}.lean").write_text("".join(lines))
-
-    extracted = (FORMAL / "Extracted/NetBalanceCommitment.lean").read_text()
-    poseidon_body = extracted.split("def poseidonPerm1", 1)[1].split(
-        "def reducedStepOne", 1
-    )[0]
-    constant_rows = re.findall(
-        r"vec!\[\((\d+):F\), \((\d+):F\)\]", poseidon_body
-    )
-    if len(constant_rows) != 39:
-        raise ValueError(f"expected 39 Poseidon1 constant rows, got {len(constant_rows)}")
-    constants = {
-        str(index): list(values) for index, values in enumerate(constant_rows)
-    }
-    ranges: list[list[int]] = []
-    current: list[int] = []
-    cursor = 0
-    for count in round_counts:
-        segments = list(range(cursor, cursor + count))
-        if current and len(current) + count > 8:
-            ranges.append(current)
-            current = []
-        current.extend(segments)
-        cursor += count
-    if current:
-        ranges.append(current)
-    data = {
-        "cs": constants,
-        "groups": groups,
-        "kind": {
-            str(index): "full" if index < 4 or index >= 35 else "partial"
-            for index in range(39)
-        },
-        "seg2round": seg2round,
-        "ranges": ranges,
-        "domain": str(POSEIDON_DOMAIN),
-        "public_args": [f"w{ASSET_ID_WIRE}"],
-        "spec_inputs": [f"w{ASSET_ID_WIRE}"],
-        "seq": [
-            "4222230874714185212124412469390773265687949667577031913967616727958704619521",
-            "5629641166285580282832549959187697687583932890102709218623488970611606159361",
-            "6333346312071277818186618704086159898531924501365547870951425091938056929281",
-        ],
-    }
-    (Path(__file__).resolve().parent / "net_balance_gendata.json").write_text(
-        json.dumps(data, indent=2) + "\n"
-    )
-    bridge = f"""import ShielddGnarkFormal.Extracted.Deployed.{module}
-import ShielddGnarkFormal.Poseidon1Bridge
-
-namespace Shieldd.GnarkFormal.Deployed.NetBalancePoseidon
-
-open Shieldd.GnarkFormal.Poseidon1Bridge
-
-variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.{module}.Order)]
-
-abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.{module}.F
-
-def netBalanceDomainLit : F := ({POSEIDON_DOMAIN} : F)
-
-theorem p17_from_rows (x v0 v1 v2 v3 v4 : F)
-    (h0 : x * x = v0) (h1 : v0 * v0 = v1) (h2 : v1 * v1 = v2)
-    (h3 : v2 * v2 = v3) (h4 : v3 * x = v4) :
-    v4 = p17 x := by
-  unfold p17
-  rw [← h4, ← h3, ← h2, ← h1, ← h0]
-
-end Shieldd.GnarkFormal.Deployed.NetBalancePoseidon
-"""
-    (FORMAL / "Deployed/NetBalancePoseidonDeployedBridge.lean").write_text(bridge)
-    return [[dtk.singleton_output(row) for row in chunk] for chunk in sboxes]
-
-
-def emit_poseidon_adapter(sbox_outputs: list[list[int]]) -> str:
-    cfg = configure_contract_helpers()
-    keep = set(range(POSEIDON_ROW_COUNT))
-    lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Base",
-        "import ShielddGnarkFormal.Deployed.NetBalancePoseidon.SemanticBridge",
-        "",
-        "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 20000000",
-        "set_option linter.unusedVariables false",
-        "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-        "def seg48PoseidonOut (rho : Nat -> Seg48.F) : Seg48.F :=",
-        "  5629641166285580282832549959187697687583932890102709218623488970611606159361 * rho 33158 +",
-        "    6333346312071277818186618704086159898531924501365547870951425091938056929281 * rho 33163",
-        "",
-        "theorem seg48_poseidon_eq (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
-        "    seg48PoseidonOut rho =",
-        "      Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1",
-        f"        ({POSEIDON_DOMAIN} : Seg48.F) (rho {ASSET_ID_WIRE}) := by",
-    ]
-    dtk.emit_unpack(lines, cfg, keep)
-    relation = (
-        "Shieldd.GnarkFormal.Extracted.Deployed."
-        f"{POSEIDON_MODULE}.relation"
-    )
-    lines += [
-        f"  have hrel : {relation} (rho {ASSET_ID_WIRE})",
-        "      (fun x y => x = rho 33158 ∧ y = rho 33163) := by",
-        f"    unfold {relation}",
-    ]
-    for segment, outputs in enumerate(sbox_outputs):
-        lines.append(
-            "    unfold Shieldd.GnarkFormal.Extracted.Deployed."
-            f"{POSEIDON_MODULE}.seg{segment}"
-        )
-        lines.append(
-            "    refine ⟨" + ", ".join(f"rho {wire}" for wire in outputs) + ", "
-        )
-        proofs = []
-        for row in range(5 * segment, 5 * segment + 5):
-            lcs = dtk.row_lc_defs(48, row)
-            if lcs:
-                names = " ".join(
-                    [f"Seg48.relationRow{row}"] + [f"Seg48.{name}" for name in lcs]
-                )
-                proofs.append(
-                    f"(by unfold {names} at r{row}; linear_combination r{row})"
-                )
-            else:
-                proofs.append(f"(by simpa [Seg48.relationRow{row}] using r{row})")
-        lines.append(", ".join(proofs) + ", ?_⟩")
-    lines += [
-        "    exact ⟨rfl, rfl⟩",
-        "  have hs := Shieldd.GnarkFormal.Deployed.NetBalancePoseidon.relation_sound_permSpec "
-        f"(rho {ASSET_ID_WIRE}) _ hrel",
-        "  rcases hs with ⟨x, y, ⟨rfl, rfl⟩, hs⟩",
-        "  simpa [seg48PoseidonOut,",
-        "    Shieldd.GnarkFormal.Deployed.NetBalancePoseidon.s38_1,",
-        "    Shieldd.GnarkFormal.Deployed.Poseidon1Link.row2,",
-        "    Shieldd.GnarkFormal.Deployed.NetBalancePoseidon.netBalanceDomainLit] using hs",
-        "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-def emit_encode_pre() -> str:
-    cfg = configure_contract_helpers()
-    lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Poseidon",
-        "import ShielddGnarkFormal.NetBalanceCommitmentBridge",
-        "import ShielddGnarkFormal.CompressDeployedGadgets",
-        "",
-        "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 20000000",
-        "set_option linter.unusedVariables false",
-        "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-        "open Shieldd.GnarkFormal.DeployedGadgets",
-        "",
-        "def seg48YDen (rho : Nat -> Seg48.F) : Seg48.F :=",
-        "  36517849 * rho 33185 - 1",
-        "",
-        "theorem seg48_encode_pre (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
-        "    (k : Seg48.F -> Seg48.F -> Prop) (hk : k (rho 33182) (seg48YDen rho)) :",
-        "    Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.encodeSeg0",
-        "      (seg48PoseidonOut rho) (rho 33167) (rho 33168) k := by",
-    ]
-    dtk.emit_unpack(lines, cfg, set(range(230, 258)))
-    for row in range(230, 258):
-        dtk.emit_row_unfold(lines, cfg, row)
-    lines += [
-        "  have hp0 : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg48.F) = 0 := by decide",
-        "  have hws : GatesDef.is_bool (rho 33167) :=",
-        "    is_bool_of_row _ (by linear_combination r233)",
-        "  have hz : GatesDef.is_zero (rho 33166) (rho 33169) := by",
-        "    refine is_zero_of_hint _ (rho 33170) _ ?_ ?_",
-        "    · linear_combination -r234",
-        "    · linear_combination r235",
-        "  have hzBool : GatesDef.is_bool (rho 33169) := by",
-        "    rcases hz with hz | hz",
-        "    · rw [hz.2]; exact is_bool_of_row 0 (by ring)",
-        "    · rw [hz.2]; exact is_bool_of_row 1 (by ring)",
-        "  have hsel15 : GatesDef.select (rho 33169) 1 (rho 33166)",
-        "      (rho 33166 + rho 33171) := by",
-        "    refine select_of_row _ _ _ _ hzBool ?_",
-        "    linear_combination -r236",
-        "  have hinv16 : GatesDef.inv (rho 33166 + rho 33171) (rho 33172) :=",
-        "    inv_of_mul _ _ (by linear_combination r237)",
-        "  have hnotWs : GatesDef.is_bool (1 - rho 33167) := by",
-        "    apply is_bool_of_row",
-        "    linear_combination r241",
-        "  have hnotZ : GatesDef.is_bool (1 - rho 33169) := by",
-        "    apply is_bool_of_row",
-        "    linear_combination r243",
-        "  have hand22 : GatesDef.and (1 - rho 33167) (rho 33169) (rho 33175) := by",
-        "    refine and_of_row _ _ _ hnotWs hzBool ?_",
-        "    linear_combination -r242",
-        "  have hand23 : GatesDef.and (1 - rho 33167) (1 - rho 33169) (rho 33176) := by",
-        "    refine and_of_row _ _ _ hnotWs hnotZ ?_",
-        "    linear_combination -r244",
-        "  have hsel36 : GatesDef.select (rho 33167) 1 (-1) (-1 + 2 * rho 33167) := by",
-        "    refine select_of_row _ _ _ _ hws ?_",
-        "    ring",
-        "  have hsel37 : GatesDef.select (rho 33167) 1 (seg48PoseidonOut rho)",
-        "      (seg48PoseidonOut rho + rho 33180) := by",
-        "    refine select_of_row _ _ _ _ hws ?_",
-        "    unfold seg48PoseidonOut",
-        "    linear_combination -r252 + (rho 33158 * rho 33167 + rho 33163 * rho 33167) * hp0",
-        "  have hz31 : (51846360469424372753315419490737795860130232637253383835608017626494646496029159208 : Seg48.F) * rho 33164 - (73721756659725413972062831735380724728489729224093916166732287877872185443385920499235863720254620945400714281000442622466140288089673656635275829952593339392 : Seg48.F) * (rho 33164 * rho 33164) = 0 := by",
-        "    linear_combination (rho 33164 * (6139688 : Seg48.F) - rho 33164 * rho 33164 * (8730190134938541092346690271902776538042097147509701931043324177298716948926374912 : Seg48.F)) * hp0",
-        "  have hz32 : (17176035198337305442922109925481665644818579247703365826020264849336010392209394 : Seg48.F) * (rho 33165 * rho 33164) = 0 := by",
-        "    linear_combination rho 33165 * rho 33164 * (2034 : Seg48.F) * hp0",
-        "  unfold Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.encodeSeg0",
-        "  simp only [Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.Gates,",
-        "    GatesGnark9, GatesGnark8, GatesDef.mul, GatesDef.add, GatesDef.sub,",
-        "    GatesDef.neg, GatesDef.eq]",
-        "  refine ⟨rho 33164, ?_,",
-        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164 : Seg48.F), rfl,",
-        "    (3022 : Seg48.F), (by decide),",
-        "    (3021 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164) : Seg48.F), rfl,",
-        "    (3021 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164) - 3022 : Seg48.F), rfl,",
-        "    (3022 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164) : Seg48.F), rfl,",
-        "    (3022 * (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164) - 3021 : Seg48.F), rfl,",
-        "    rho 33165, ?_,",
-        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164 + 1 : Seg48.F), rfl,",
-        "    (6042 : Seg48.F), rfl, (-6043 : Seg48.F), (by decide),",
-        "    ((2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164 + 1) * (-6043) : Seg48.F), rfl,",
-        "    rho 33166, ?_, hws, rho 33169, hz,",
-        "    rho 33166 + rho 33171, hsel15, rho 33172, hinv16,",
-        "    rho 33173, (by linear_combination -r238),",
-        "    rho 33174, (by linear_combination -r239), (by linear_combination r240),",
-        "    (1 - rho 33167 : Seg48.F), rfl, (1 - rho 33169 : Seg48.F), rfl,",
-        "    rho 33175, hand22, rho 33176, hand23,",
-        "    rho 33173 - rho 33172, rfl, rho 33177, (by linear_combination -r245),",
-        "    (by linear_combination r246), rho 33178, (by linear_combination -r247),",
-        "    (by linear_combination r248),",
-        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33172 : Seg48.F), rfl,",
-        "    (rho 33173 - 2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33172 : Seg48.F), rfl,",
-        "    rho 33179, (by linear_combination -r249 + rho 33176 * rho 33172 * hp0), (by linear_combination r250),",
-        "    rho 33167 + rho 33175, rfl, rho 33167 + rho 33175 + rho 33176, rfl,",
-        "    (by linear_combination r251),",
-        "    (-1 + 2 * rho 33167 : Seg48.F), hsel36,",
-        "    seg48PoseidonOut rho + rho 33180, hsel37,",
-        "    rho 33181, (by unfold seg48PoseidonOut; linear_combination -r253),",
-        "    rho 33182, (by linear_combination -r254 + rho 33181 * rho 33164 * (2034 : Seg48.F) * hp0),",
-        "    (6042 : Seg48.F), rfl, (-6043 : Seg48.F), (by decide), (1 - 2 * rho 33167 : Seg48.F), (by ring),",
-        "    rho 33183, (by linear_combination -r255),",
-        "    rho 33184, (by linear_combination -r256),",
-        "    (2841681278031794617739547238867782961338435681360110683443920362658525667816 * rho 33164 - 1 : Seg48.F), rfl,",
-        "    rho 33185, (by linear_combination -r257), (36517849 : Seg48.F), (by decide),",
-        "    (36517849 * rho 33185 : Seg48.F), (by ring), seg48YDen rho, (by rfl), hk⟩",
-        "  · unfold seg48PoseidonOut",
-        "    linear_combination -r230",
-        "  · linear_combination -r231 + hz31",
-        "  · linear_combination -r232 + hz32",
-        "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-def emit_encode_post() -> str:
-    cfg = configure_contract_helpers()
-    lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Canon",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48EncodePre",
-        "",
-        "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 20000000",
-        "set_option linter.unusedVariables false",
-        "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-        "open Shieldd.GnarkFormal.DeployedGadgets",
-        "",
-        "theorem seg48_encode_post (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
-        "    (k : Seg48.F -> Seg48.F -> Prop) (hk : k (rho 33530) (rho 33532)) :",
-        "    Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbEncodeSeg1K",
-        "      (rho 33167) (rho 33182) (seg48YDen rho) k := by",
-        "  have hrel := h",
-    ]
-    dtk.emit_unpack(lines, cfg, set(range(764, 776)))
-    for row in range(764, 776):
-        dtk.emit_row_unfold(lines, cfg, row)
-    lines += [
-        "  have hp0 : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg48.F) = 0 := by decide",
-        "  have hz : GatesDef.is_zero (rho 33186 - rho 33167) (rho 33525) := by",
-        "    refine is_zero_of_hint _ (rho 33526) _ ?_ ?_",
-        "    · linear_combination -r764",
-        "    · linear_combination r765",
-        "  have hzBool : GatesDef.is_bool (rho 33525) := by",
-        "    rcases hz with hz | hz",
-        "    · rw [hz.2]; exact is_bool_of_row 0 (by ring)",
-        "    · rw [hz.2]; exact is_bool_of_row 1 (by ring)",
-        "  have hsel : GatesDef.select (rho 33525) (-rho 33182) (rho 33182)",
-        "      (rho 33182 + rho 33527) := by",
-        "    refine select_of_row _ _ _ _ hzBool ?_",
-        "    linear_combination -r766",
-        "  have hinvX : GatesDef.inv (1 - rho 33528) (rho 33529) :=",
-        "    inv_of_mul _ _ (by linear_combination r768)",
-        "  have hinvY : GatesDef.inv (seg48YDen rho) (rho 33531) := by",
-        "    apply inv_of_mul",
-        "    unfold seg48YDen",
-        "    linear_combination r770",
-        "  unfold Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbEncodeSeg1K",
-        "  refine seg48Canon_canonical rho hrel _ ?_",
-        "  simp only [Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.Gates,",
-        "    GatesGnark9, GatesGnark8, GatesDef.mul, GatesDef.add, GatesDef.sub,",
-        "    GatesDef.neg, GatesDef.eq]",
-        "  refine ⟨_, rfl, rho 33525, ?_,",
-        "    -rho 33182, (by ring), rho 33182 + rho 33527, hsel,",
-        "    rho 33528, (by linear_combination -r767),",
-        "    (2 * (rho 33182 + rho 33527) : Seg48.F), rfl,",
-        "    -rho 33528, (by linear_combination -rho 33528 * hp0),",
-        "    (1 - rho 33528 : Seg48.F), (by ring),",
-        "    -rho 33528, (by linear_combination -rho 33528 * hp0),",
-        "    (1 + rho 33528 : Seg48.F), (by ring),",
-        "    rho 33529, hinvX, rho 33530, (by linear_combination -r769),",
-        "    rho 33531, hinvY, rho 33532, (by linear_combination -r771),",
-        "    rho 33533, (by linear_combination -r772),",
-        "    rho 33534, (by linear_combination -r773),",
-        "    rho 33534 - rho 33533, rfl, (3021 * rho 33533 : Seg48.F), rfl,",
-        "    rho 33535, (by linear_combination -r774), (1 + rho 33535 : Seg48.F), rfl,",
-        "    (by linear_combination r775), hk⟩",
-        "  · simp only [seg48CanonBits, List.Vector.getElem_def,",
-        "      List.Vector.toList_ofFn, List.getElem_ofFn]",
-        "    simpa using hz",
-        "",
-        "theorem seg48_value_base_onCurve (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
-        "    EdwardsBridge.onCurve ⟨rho 33530, rho 33532⟩ := by",
-    ]
-    dtk.emit_unpack(lines, cfg, set(range(772, 776)), hname="h")
-    for row in range(772, 776):
-        dtk.emit_row_unfold(lines, cfg, row)
-    lines += [
-        "  simp only [EdwardsBridge.onCurve, EdwardsBridge.d]",
-        "  linear_combination r775 - r772 + r773 - r774 -",
-        "    (3021 : Seg48.F) * rho 33533 * r773 -",
-        "    (3021 : Seg48.F) * rho 33532 * rho 33532 * r772",
-        "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-@dataclass(frozen=True)
-class ScalarRung:
-    """One variable-base rung: 6 add rows, selX/selY, 5 double rows."""
-
-    index: int
-    bit: int
-    delta_x: int
-    delta_y: int
-    select_x_row: int
-    select_y_row: int
-    add_rows: tuple[int, ...]
-    double_rows: tuple[int, ...]
-    sum_x: int
-    sum_y: int
-    cur_x: int
-    cur_y: int
-    next_cur_x: int
-    next_cur_y: int
-
-
-def value_rungs(rows: list[tuple[Lc, Lc, Lc]], ladder: ValueLadder) -> tuple[ScalarRung, ...]:
-    """Mine the 128 DTK-shaped rungs of one value ladder (fail-closed)."""
-    rungs: list[ScalarRung] = []
-    cur_x = cur_y = 0
-    for index in range(128):
-        bit = ladder.bit_base + index
-        delta_x = ladder.acc_x_start + 13 * index
-        delta_y = delta_x + 1
-        candidates = [
-            row
-            for row in range(ladder.row_lo, ladder.row_hi)
-            if rows[row][2] == {delta_x: 1}
-            and (bit in rows[row][0] or bit in rows[row][1])
-        ]
-        if len(candidates) != 1:
-            raise ValueError(f"{ladder.label} rung {index}: selected-X rows {candidates}")
-        select_x_row = candidates[0]
-        select_y_row = select_x_row + 1
-        if rows[select_y_row][2] != {delta_y: 1}:
-            raise ValueError(f"{ladder.label} rung {index}: selected-Y row mismatch")
-        add_rows = () if index == 0 else tuple(range(select_x_row - 6, select_x_row))
-        double_rows = tuple(range(select_y_row + 1, select_y_row + 6))
-        if index == 0:
-            cur_x = singleton_wire(rows[double_rows[0]][0])
-            cur_y = singleton_wire(rows[double_rows[0]][1])
-            sum_x, sum_y = cur_x, cur_y
-        else:
-            sum_x = singleton_wire(rows[add_rows[4]][0])
-            sum_y = singleton_wire(rows[add_rows[5]][0])
-        next_cur_x = singleton_wire(rows[double_rows[3]][0])
-        next_cur_y = singleton_wire(rows[double_rows[4]][0])
-        rungs.append(ScalarRung(
-            index, bit, delta_x, delta_y, select_x_row, select_y_row,
-            add_rows, double_rows, sum_x, sum_y, cur_x, cur_y,
-            next_cur_x, next_cur_y,
-        ))
-        cur_x, cur_y = next_cur_x, next_cur_y
-    return tuple(rungs)
 
 
 @dataclass(frozen=True)
@@ -683,8 +154,8 @@ def blind_rungs(rows: list[tuple[Lc, Lc, Lc]]) -> tuple[BlindRung, ...]:
     rungs: list[BlindRung] = []
     prev_end = BLIND_COPY_ROW
     for index, (acc_x, acc_y) in enumerate(BLIND_ACCS):
-        acc_x_rows = [r for r in range(6401, 7961) if rows[r][2] == {acc_x: 1}]
-        acc_y_rows = [r for r in range(6401, 7961) if rows[r][2] == {acc_y: 1}]
+        acc_x_rows = [r for r in range(BLIND_COPY_ROW + 1, ROW_COUNT) if rows[r][2] == {acc_x: 1}]
+        acc_y_rows = [r for r in range(BLIND_COPY_ROW + 1, ROW_COUNT) if rows[r][2] == {acc_y: 1}]
         if len(acc_x_rows) != 1 or len(acc_y_rows) != 1:
             raise ValueError(f"blind rung {index}: acc rows {acc_x_rows}/{acc_y_rows}")
         acc_x_row, acc_y_row = acc_x_rows[0], acc_y_rows[0]
@@ -700,8 +171,9 @@ def blind_rungs(rows: list[tuple[Lc, Lc, Lc]]) -> tuple[BlindRung, ...]:
             index, bit, acc_x, acc_y, acc_x_row, acc_y_row, block, len(block) == 8,
         ))
         prev_end = acc_y_row
-    if prev_end != 7953:
-        raise ValueError(f"blinding ladder ended at row {prev_end}, expected 7953")
+    if prev_end != ROW_COUNT - 1:
+        raise ValueError(
+            f"blinding ladder ended at row {prev_end}, expected {ROW_COUNT - 1}")
     return tuple(rungs)
 
 
@@ -806,8 +278,11 @@ def emit_fixed_base_literal(rows: list[tuple[Lc, Lc, Lc]]) -> str:
     pts = blind_gen_doubles()
     # Fail-closed seed check: the b0 seed-fold coefficients in the first
     # blinding rung's acc rows must be -Lb0.x and -(Lb0.y - 1).
-    seed_x_coeffs = {side.get(BLIND_BIT_BASE) for side in rows[6404]}
-    seed_y_coeffs = {side.get(BLIND_BIT_BASE) for side in rows[6405]}
+    acc_x0, acc_y0 = BLIND_ACCS[0]
+    acc_x_row = next(r for r in range(BLIND_COPY_ROW + 1, ROW_COUNT)
+                     if rows[r][2] == {acc_x0: 1})
+    seed_x_coeffs = {side.get(BLIND_BIT_BASE) for side in rows[acc_x_row]}
+    seed_y_coeffs = {side.get(BLIND_BIT_BASE) for side in rows[acc_x_row + 1]}
     if (ORDER - pts[0][0]) not in seed_x_coeffs:
         raise ValueError("blindGen.x seed coefficient absent from rung-0 acc-x row")
     if (ORDER - (pts[0][1] - 1)) not in seed_y_coeffs:
@@ -818,7 +293,7 @@ def emit_fixed_base_literal(rows: list[tuple[Lc, Lc, Lc]]) -> str:
         "",
         "/-! # Literal binding for the fixed-base blinding constants (generated, i = 0..250)",
         "",
-        "`L i` is the numeral point `2^i * blindGen` for the seg48 net-balance blinding",
+        "`L i` is the numeral point `2^i * blindGen` for the seg46 net-balance blinding",
         "ladder; `C_eq_L i` binds `Deployed.NetBalance.Cb` to these literals via kernel",
         "`decide` on the two `doubleSpec` equations + `doubleSpec_eq`. Mirror of",
         "`RvkFixedBaseLiteral` (see its docstring); no `native_decide`.",
@@ -878,32 +353,29 @@ def emit_fixed_base_literal(rows: list[tuple[Lc, Lc, Lc]]) -> str:
 def emit_base() -> str:
     """Shared bit-vector seating and the deployed prime instance."""
     out = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg48",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg46",
         "import ShielddGnarkFormal.Deployed.PrimeOrderAssumption",
-        "import ShielddGnarkFormal.Extracted.CanonicalFqBits",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        "instance seg48NbFactPrime : Fact (Nat.Prime Seg48.Order) :=",
+        "instance seg46NbFactPrime : Fact (Nat.Prime Seg46.Order) :=",
         "  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩",
         "",
     ]
     bit_vectors = [
-        ("seg48CanonBits", ENCODE_BIT_BASE, 253,
-         "Shieldd.GnarkFormal.Extracted.CanonicalFqBits.F"),
-        *[(f"seg48{lad.label.capitalize()}Bits", lad.bit_base, 128, "Seg48.F")
-          for lad in VALUE_LADDERS],
-        ("seg48BlindBits", BLIND_BIT_BASE, 251, "Seg48.F"),
+        *[(f"seg46{label}Bits", bit_base, 128, "Seg46.F")
+          for label, bit_base, _, _, _ in AMOUNT_BLOCKS],
+        ("seg46BlindBits", BLIND_BIT_BASE, 251, "Seg46.F"),
     ]
     for name, base, width, field in bit_vectors:
         out += [
-            f"def {name} (rho : Nat -> Seg48.F) : List.Vector {field} {width} :=",
+            f"def {name} (rho : Nat -> Seg46.F) : List.Vector {field} {width} :=",
             f"  List.Vector.ofFn (fun i : Fin {width} => rho ({base} + i.val))",
             "",
-            f"theorem {name}_get (rho : Nat -> Seg48.F) (i : Nat) (hi : i < {width}) :",
+            f"theorem {name}_get (rho : Nat -> Seg46.F) (i : Nat) (hi : i < {width}) :",
             f"    ({name} rho)[i]! = rho ({base} + i) := by",
             "  rw [getElem!_pos _ i (by simpa using hi)]",
             "  conv_lhs => rw [List.Vector.getElem_def]",
@@ -914,454 +386,17 @@ def emit_base() -> str:
     return "\n".join(out)
 
 
-def emit_canonical_modules() -> dict[str, str]:
-    """Reuse the DTK canonical-chain emitter for the encode-to-curve block."""
-    dtk.SOURCE_CONTRACTS = CONTRACTS_SOURCE
-    dtk.ROW_COUNT = ROW_COUNT
-    cfg = SimpleNamespace(seg=48)
-    rows = dtk.relation_rows(48)
-    stem = "NbAdapterSeg48Canon"
-    modules = {
-        f"{stem}Rec": dtk.emit_canon_recover(
-            cfg, ENCODE_CANON, None, "NbAdapterSeg48Base"
-        ),
-        f"{stem}Binary": dtk.emit_canon_binary(
-            cfg, ENCODE_CANON, f"{stem}Rec"
-        ),
-        f"{stem}TrueDefs": dtk.emit_canon_true_defs(
-            cfg, ENCODE_CANON, rows, f"{stem}Binary"
-        ),
-    }
-    previous = f"{stem}TrueDefs"
-    for chunk_index, _ in enumerate(dtk.canon_chunks()):
-        name = f"{stem}TrueChunk{chunk_index}"
-        modules[name] = dtk.emit_canon_true_chunk(
-            cfg, ENCODE_CANON, rows, previous, chunk_index
-        )
-        previous = name
-    modules[f"{stem}True"] = dtk.emit_canon_true_thread(
-        cfg, ENCODE_CANON, previous
-    )
-    previous = f"{stem}True"
-    for chunk_index, _ in enumerate(dtk.canon_chunks()):
-        name = f"{stem}CompareChunk{chunk_index}"
-        modules[name] = dtk.emit_canon_compare_chunk(
-            cfg, ENCODE_CANON, rows, previous, chunk_index
-        )
-        previous = name
-    modules[f"{stem}Compare"] = dtk.emit_canon_compare(
-        cfg, ENCODE_CANON, previous
-    )
-    modules[f"{stem}Chain"] = dtk.emit_canon_chain(
-        cfg, ENCODE_CANON, f"{stem}Compare"
-    )
-    modules[stem] = dtk.emit_canon_block(
-        cfg, block=ENCODE_CANON, previous=f"{stem}Chain"
-    )
-    return modules
-
-
-VALUE_CHUNK_SIZE = 11
-
-
 def configure_contract_helpers() -> SimpleNamespace:
     dtk.SOURCE_CONTRACTS = CONTRACTS_SOURCE
     dtk.ROW_COUNT = ROW_COUNT
-    return SimpleNamespace(seg=48)
-
-
-def value_prefix(ladder: ValueLadder) -> str:
-    return f"seg48{ladder.label.capitalize()}"
-
-
-def value_acc_name(ladder: ValueLadder, axis: str, index: int) -> str:
-    return f"{value_prefix(ladder)}Acc{axis}{index}"
-
-
-def value_chunks(rungs: tuple[ScalarRung, ...]) -> list[tuple[ScalarRung, ...]]:
-    return [
-        rungs[index:index + VALUE_CHUNK_SIZE]
-        for index in range(0, len(rungs), VALUE_CHUNK_SIZE)
-    ]
-
-
-def emit_value_defs_module(
-    ladders: dict[str, tuple[ScalarRung, ...]],
-) -> str:
-    out = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Base",
-        "import ShielddGnarkFormal.Deployed.NetBalance.Ladder",
-        "import ShielddGnarkFormal.RvkDeployedRung",
-        "import ShielddGnarkFormal.StructuredLC",
-        "",
-        "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 20000000",
-        "set_option linter.unusedVariables false",
-        "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-    ]
-    for ladder in VALUE_LADDERS:
-        rungs = ladders[ladder.label]
-        prefix = value_prefix(ladder)
-        xs = [rung.delta_x for rung in rungs]
-        ys = [rung.delta_y for rung in rungs]
-        out += [
-            f"def {prefix}AccX0 (_rho : Nat -> Seg48.F) : Seg48.F := 0",
-            f"def {prefix}AccY0 (_rho : Nat -> Seg48.F) : Seg48.F := 1",
-        ]
-        for index in range(1, len(rungs) + 1):
-            out += [
-                f"def {prefix}AccX{index} (rho : Nat -> Seg48.F) : Seg48.F := "
-                f"{dtk.compact_wire_expr(0, xs[:index], 'Seg48.F')}",
-                f"def {prefix}AccY{index} (rho : Nat -> Seg48.F) : Seg48.F := "
-                f"{dtk.compact_wire_expr(1, ys[:index], 'Seg48.F')}",
-            ]
-        out += [
-            "",
-            f"def {prefix}AccState (rho : Nat -> Seg48.F) : Nat -> EdwardsBridge.Point",
-        ]
-        for index in range(len(rungs) + 1):
-            out.append(
-                f"  | {index} => ⟨{prefix}AccX{index} rho, {prefix}AccY{index} rho⟩"
-            )
-        out += [
-            "  | _ => ⟨0, 1⟩",
-            "",
-            f"def {prefix}CurState (rho : Nat -> Seg48.F) : Nat -> EdwardsBridge.Point",
-            f"  | 0 => ⟨rho {rungs[0].cur_x}, rho {rungs[0].cur_y}⟩",
-        ]
-        for index, rung in enumerate(rungs, start=1):
-            out.append(
-                f"  | {index} => ⟨rho {rung.next_cur_x}, rho {rung.next_cur_y}⟩"
-            )
-        out += ["  | _ => ⟨0, 1⟩", ""]
-    out += ["end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
-    return "\n".join(out)
-
-
-def emit_value_row_projection(
-    lines: list[str], name: str, keep_rows: set[int],
-) -> None:
-    cfg = configure_contract_helpers()
-    ordered = sorted(keep_rows)
-    conjunction = " ∧ ".join(f"Seg48.relationRow{row} rho" for row in ordered)
-    lines += [
-        f"theorem {name} (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
-        f"    {conjunction} := by",
-    ]
-    dtk.emit_unpack(lines, cfg, keep_rows)
-    lines += [f"  exact ⟨{', '.join(f'r{row}' for row in ordered)}⟩", ""]
-
-
-def emit_value_rung(
-    lines: list[str], ladder: ValueLadder, rung: ScalarRung,
-    rows: list[tuple[Lc, Lc, Lc]],
-) -> None:
-    cfg = configure_contract_helpers()
-    prefix = value_prefix(ladder)
-    index = rung.index
-    acc_x = value_acc_name(ladder, "X", index)
-    acc_y = value_acc_name(ladder, "Y", index)
-    next_acc_x = value_acc_name(ladder, "X", index + 1)
-    next_acc_y = value_acc_name(ladder, "Y", index + 1)
-    xs = [ladder.acc_x_start + 13 * i for i in range(128)]
-    ys = [wire + 1 for wire in xs]
-    current_x_compact = dtk.compact_wire_lc(0, xs[:index])
-    current_y_compact = dtk.compact_wire_lc(1, ys[:index])
-    next_x_compact = dtk.compact_wire_lc(0, xs[:index + 1])
-    next_y_compact = dtk.compact_wire_lc(1, ys[:index + 1])
-    ax, ay = f"{acc_x} rho", f"{acc_y} rho"
-    nax, nay = f"{next_acc_x} rho", f"{next_acc_y} rho"
-    cur_x, cur_y = f"rho {rung.cur_x}", f"rho {rung.cur_y}"
-    next_cur_x, next_cur_y = f"rho {rung.next_cur_x}", f"rho {rung.next_cur_y}"
-    sum_x, sum_y = f"rho {rung.sum_x}", f"rho {rung.sum_y}"
-    rrows = dtk.rung_rows(rung, rows)
-    projection = f"{prefix}_rows{index}"
-    emit_value_row_projection(lines, projection, rrows)
-    lines += [
-        f"theorem {prefix}_rung{index} (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
-        f"    ∀ (bit : Bool), rho {rung.bit} = Bool.toZMod bit →",
-        f"      EdwardsBridge.onCurve ⟨{ax}, {ay}⟩ →",
-        f"      EdwardsBridge.onCurve ⟨{cur_x}, {cur_y}⟩ →",
-        "      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bit)",
-        f"        ⟨{ax}, {ay}⟩ ⟨{cur_x}, {cur_y}⟩",
-        f"        ⟨{nax}, {nay}⟩ ⟨{next_cur_x}, {next_cur_y}⟩ := by",
-        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(rrows))}⟩ := {projection} rho h",
-    ]
-    for row in sorted(rrows):
-        dtk.emit_row_unfold(lines, cfg, row)
-    lines += [
-        f"  intro bit hbit hacc hcur",
-        f"  have hnextx : {nax} = {ax} + rho {rung.delta_x} := by",
-        f"    unfold {next_acc_x} {acc_x}",
-    ]
-    dtk.emit_compact_acc_bridge(lines, next_x_compact, current_x_compact, "    ")
-    lines += [
-        f"  have hnexty : {nay} = {ay} + rho {rung.delta_y} := by",
-        f"    unfold {next_acc_y} {acc_y}",
-    ]
-    dtk.emit_compact_acc_bridge(lines, next_y_compact, current_y_compact, "    ")
-    if index == 0:
-        lines += [
-            "  have haddx :",
-            f"      {sum_x} * (1 + 3021 * ({cur_y} * {ax}) * ({cur_x} * {ay})) =",
-            f"        {cur_y} * {ax} + {cur_x} * {ay} := by",
-            f"    unfold {acc_x} {acc_y}",
-            "    ring",
-            "  have haddy :",
-            f"      {sum_y} * (1 - 3021 * ({cur_y} * {ax}) * ({cur_x} * {ay})) =",
-            f"        (-1) * ({cur_y} * {ax}) - {cur_x} * {ay} +",
-            f"          ({ay} - {ax} * (-1)) * ({cur_x} + {cur_y}) := by",
-            f"    unfold {acc_x} {acc_y}",
-            "    ring",
-        ]
-    else:
-        a0, a1, a2, a3, a4, a5 = rung.add_rows
-        t0 = singleton_wire(rows[a0][2])
-        t1 = singleton_wire(rows[a1][2])
-        t2 = singleton_wire(rows[a2][2])
-        t3 = singleton_wire(rows[a3][2])
-        acc_sum_row = dtk.acc_sum_row(rung, rows)
-        if acc_sum_row is not None:
-            acc_sum_wire = singleton_wire(rows[a0][0])
-            lines += [
-                f"  have hsum : {ax} + {ay} = rho {acc_sum_wire} := by",
-                f"    unfold {acc_x} {acc_y}",
-                f"    linear_combination r{acc_sum_row}",
-                f"  have ha0 : ({cur_x} + {cur_y}) * ({ax} + {ay}) = rho {t0} := by",
-                "    rw [hsum]",
-                f"    linear_combination r{a0}",
-            ]
-        else:
-            lines += [
-                f"  have ha0 : ({cur_x} + {cur_y}) * ({ax} + {ay}) = rho {t0} := by",
-                f"    unfold {acc_x} {acc_y}",
-                f"    linear_combination r{a0}",
-            ]
-        lines += [
-            f"  have ha1 : {cur_y} * {ax} = rho {t1} := by",
-            f"    unfold {acc_x}",
-            f"    linear_combination r{a1}",
-            f"  have ha2 : {cur_x} * {ay} = rho {t2} := by",
-            f"    unfold {acc_y}",
-            f"    linear_combination r{a2}",
-            f"  have ha3 : 3021 * rho {t1} * rho {t2} = rho {t3} := by",
-            f"    linear_combination r{a3}",
-            f"  have ha4 : {sum_x} * (1 + rho {t3}) = rho {t1} + rho {t2} := by",
-            f"    linear_combination r{a4}",
-            f"  have ha5 : {sum_y} * (1 - rho {t3}) = rho {t0} - rho {t1} - rho {t2} := by",
-            f"    linear_combination r{a5}",
-            "  have haddx :",
-            f"      {sum_x} * (1 + 3021 * ({cur_y} * {ax}) * ({cur_x} * {ay})) =",
-            f"        {cur_y} * {ax} + {cur_x} * {ay} := by",
-            "    rw [ha1, ha2, ha3]",
-            "    exact ha4",
-            "  have haddy :",
-            f"      {sum_y} * (1 - 3021 * ({cur_y} * {ax}) * ({cur_x} * {ay})) =",
-            f"        (-1) * ({cur_y} * {ax}) - {cur_x} * {ay} +",
-            f"          ({ay} - {ax} * (-1)) * ({cur_x} + {cur_y}) := by",
-            "    rw [ha1, ha2, ha3]",
-            "    calc",
-            f"      {sum_y} * (1 - rho {t3}) = rho {t0} - rho {t1} - rho {t2} := ha5",
-            f"      _ = (-1) * rho {t1} - rho {t2} + ({ay} - {ax} * (-1)) *",
-            f"          ({cur_x} + {cur_y}) := by",
-            "        rw [← ha0]",
-            "        ring",
-        ]
-    lines += [
-        f"  have hselx : {nax} = {ax} - Bool.toZMod bit * ({ax} - {sum_x}) := by",
-        f"    have hd : rho {rung.delta_x} = Bool.toZMod bit * ({sum_x} - {ax}) := by",
-        "      rw [← hbit]",
-        f"      unfold {acc_x}",
-        f"      linear_combination -r{rung.select_x_row}",
-        "    rw [hnextx]",
-        "    linear_combination hd",
-        f"  have hsely : {nay} = {ay} - Bool.toZMod bit * ({ay} - {sum_y}) := by",
-        f"    have hd : rho {rung.delta_y} = Bool.toZMod bit * ({sum_y} - {ay}) := by",
-        "      rw [← hbit]",
-        f"      unfold {acc_y}",
-        f"      linear_combination -r{rung.select_y_row}",
-        "    rw [hnexty]",
-        "    linear_combination hd",
-    ]
-    d0, d1, d2, d3, d4 = rung.double_rows
-    vxy = singleton_wire(rows[d0][2])
-    vxx = singleton_wire(rows[d1][2])
-    vyy = singleton_wire(rows[d2][2])
-    lines += [
-        f"  have hd0 : {cur_x} * {cur_y} = rho {vxy} := by linear_combination r{d0}",
-        f"  have hd1 : {cur_x} * {cur_x} = rho {vxx} := by linear_combination r{d1}",
-        f"  have hd2 : {cur_y} * {cur_y} = rho {vyy} := by linear_combination r{d2}",
-        f"  have hd3 : {next_cur_x} * ({cur_y} * {cur_y} + {cur_x} * {cur_x} * (-1)) =",
-        f"      2 * ({cur_x} * {cur_y}) := by",
-        "    rw [hd0, hd1, hd2]",
-        f"    linear_combination r{d3}",
-        f"  have hd4 : {next_cur_y} * (2 - ({cur_y} * {cur_y} + {cur_x} * {cur_x} * (-1))) =",
-        f"      {cur_y} * {cur_y} - {cur_x} * {cur_x} * (-1) := by",
-        "    rw [hd1, hd2]",
-        f"    linear_combination r{d4}",
-        "  apply Shieldd.GnarkFormal.RvkDeployedRung.deployedRung_stepRel",
-        f"    (Bool.toZMod bit) ⟨{ax}, {ay}⟩ ⟨{cur_x}, {cur_y}⟩",
-        f"    ⟨{sum_x}, {sum_y}⟩ ⟨{nax}, {nay}⟩ ⟨{next_cur_x}, {next_cur_y}⟩",
-        "    hacc hcur",
-        "  · simpa [EdwardsBridge.d] using haddx",
-        "  · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy",
-        "  · cases bit <;> simp [Bool.toZMod_zero, Bool.toZMod_one]",
-        "  · exact hselx",
-        "  · exact hsely",
-        "  · simpa [EdwardsBridge.a_eq] using hd3",
-        "  · simpa [EdwardsBridge.a_eq] using hd4",
-        "",
-    ]
-
-
-def emit_value_hstep_chunk(
-    lines: list[str], ladder: ValueLadder, chunk_index: int,
-    subset: tuple[ScalarRung, ...],
-) -> None:
-    prefix = value_prefix(ladder)
-    lo, hi = subset[0].index, subset[-1].index + 1
-    lines += [
-        f"theorem {prefix}_hstep_c{chunk_index} (rho : Nat -> Seg48.F)",
-        "    (h : Seg48.relation rho) (bits : List.Vector Bool 128)",
-        f"    (hbitAt : ∀ i, i < 128 → rho ({ladder.bit_base} + i) = Bool.toZMod bits[i]!) :",
-        f"    ∀ i, {lo} ≤ i → i < {hi} →",
-        f"      EdwardsBridge.onCurve ({prefix}AccState rho i) →",
-        f"      EdwardsBridge.onCurve ({prefix}CurState rho i) →",
-        "      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bits[i]!)",
-        f"        ({prefix}AccState rho i) ({prefix}CurState rho i)",
-        f"        ({prefix}AccState rho (i + 1)) ({prefix}CurState rho (i + 1)) := by",
-        "  intro i hlo hhi hacc hcur",
-        "  interval_cases i",
-    ]
-    for rung in subset:
-        lines.append(
-            f"  · exact {prefix}_rung{rung.index} rho h bits[{rung.index}]! "
-            f"(hbitAt {rung.index} (by omega)) hacc hcur"
-        )
-    lines.append("")
-
-
-def emit_value_chunk(
-    ladder: ValueLadder, chunk_index: int, subset: tuple[ScalarRung, ...],
-    rows: list[tuple[Lc, Lc, Lc]],
-) -> str:
-    lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48ValueDefs",
-        "",
-        "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 20000000",
-        "set_option linter.unusedVariables false",
-        "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-    ]
-    for rung in subset:
-        emit_value_rung(lines, ladder, rung, rows)
-    emit_value_hstep_chunk(lines, ladder, chunk_index, subset)
-    lines += ["end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
-    return "\n".join(lines)
-
-
-def emit_value_ladder(
-    ladder: ValueLadder, rungs: tuple[ScalarRung, ...],
-) -> str:
-    prefix = value_prefix(ladder)
-    chunks = value_chunks(rungs)
-    lines = [
-        *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1."
-            f"NbAdapterSeg48{ladder.label.capitalize()}R{index}"
-            for index in range(len(chunks))
-        ],
-        "",
-        "set_option maxRecDepth 1000000",
-        "set_option maxHeartbeats 20000000",
-        "set_option linter.unusedVariables false",
-        "",
-        "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-        f"theorem {prefix}_ladder (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
-        "    (bits : List.Vector Bool 128)",
-        f"    (hbits : seg48{ladder.label.capitalize()}Bits rho = bits.map Bool.toZMod)",
-        "    (k : List.Vector Seg48.F 4 → Prop)",
-        f"    (hk : k vec![({prefix}AccState rho 128).x, ({prefix}AccState rho 128).y,",
-        f"      ({prefix}CurState rho 128).x, ({prefix}CurState rho 128).y])",
-        f"    (hbase : EdwardsBridge.onCurve ⟨rho {rungs[0].cur_x}, rho {rungs[0].cur_y}⟩) :",
-        "    Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbLadderK",
-        f"      (seg48{ladder.label.capitalize()}Bits rho) k 128 0 ⟨0, 1⟩",
-        f"      ⟨rho {rungs[0].cur_x}, rho {rungs[0].cur_y}⟩ ∧",
-        f"    EdwardsBridge.onCurve ({prefix}AccState rho 128) := by",
-        "  have hbitAt : ∀ i, i < 128 →",
-        f"      rho ({ladder.bit_base} + i) = Bool.toZMod bits[i]! := by",
-        "    intro i hi",
-        f"    rw [← seg48{ladder.label.capitalize()}Bits_get rho i hi, hbits]",
-        "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),",
-        "      getElem!_pos bits i (by simpa using hi), List.Vector.getElem_map]",
-        "  have hstep : ∀ i, i < 128 →",
-        f"      EdwardsBridge.onCurve ({prefix}AccState rho i) →",
-        f"      EdwardsBridge.onCurve ({prefix}CurState rho i) →",
-        "      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bits[i]!)",
-        f"        ({prefix}AccState rho i) ({prefix}CurState rho i)",
-        f"        ({prefix}AccState rho (i + 1)) ({prefix}CurState rho (i + 1)) := by",
-        "    intro i hi hacc hcur",
-    ]
-    for chunk_index, subset in enumerate(chunks):
-        hi_c = subset[-1].index + 1
-        lo_arg = "(by omega)" if chunk_index == 0 else f"hb{chunk_index - 1}"
-        if chunk_index == len(chunks) - 1:
-            lines.append(
-                f"    exact {prefix}_hstep_c{chunk_index} rho h bits hbitAt i "
-                f"{lo_arg} hi hacc hcur"
-            )
-        else:
-            lines += [
-                f"    rcases Nat.lt_or_ge i {hi_c} with hb{chunk_index}|hb{chunk_index}",
-                f"    · exact {prefix}_hstep_c{chunk_index} rho h bits hbitAt i "
-                f"{lo_arg} hb{chunk_index} hacc hcur",
-            ]
-    lines += [
-        "  constructor",
-        "  · rw [hbits]",
-        "    apply Shieldd.GnarkFormal.Deployed.NetBalance.stateTrace_to_nbLadderK",
-        f"      bits k ({prefix}AccState rho) ({prefix}CurState rho) hstep",
-        "      (by intro _; exact hk) 128 0 (by omega)",
-        "    · exact EdwardsBridge.identity_onCurve",
-        "    · exact hbase",
-        "  · exact Shieldd.GnarkFormal.Deployed.NetBalance.stateTrace_final_onCurve",
-        f"      bits ({prefix}AccState rho) ({prefix}CurState rho) hstep",
-        "      EdwardsBridge.identity_onCurve hbase",
-        "",
-        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-def emit_value_modules(
-    seating: dict,
-) -> dict[str, str]:
-    modules = {
-        "NbAdapterSeg48ValueDefs": emit_value_defs_module(seating["value"]),
-    }
-    for ladder in VALUE_LADDERS:
-        rungs = seating["value"][ladder.label]
-        for chunk_index, subset in enumerate(value_chunks(rungs)):
-            modules[f"NbAdapterSeg48{ladder.label.capitalize()}R{chunk_index}"] = (
-                emit_value_chunk(ladder, chunk_index, subset, seating["rows"])
-            )
-        modules[f"NbAdapterSeg48{ladder.label.capitalize()}"] = (
-            emit_value_ladder(ladder, rungs)
-        )
-    return modules
+    return SimpleNamespace(seg=46)
 
 
 BLIND_CHUNK_SIZE = 10
 
 
 def blind_delta_name(axis: str, index: int) -> str:
-    return f"seg48BlindDelta{axis}{index}"
+    return f"seg46BlindDelta{axis}{index}"
 
 
 def blind_chunks(
@@ -1377,9 +412,9 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
     xs = [rung.acc_x for rung in rungs]
     ys = [rung.acc_y for rung in rungs]
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Base",
         "import ShielddGnarkFormal.Deployed.NetBalance.Ladder",
-        "import ShielddGnarkFormal.NbFixedGenSeg48",
+        "import ShielddGnarkFormal.NbFixedGenSeg46",
         "import ShielddGnarkFormal.NbFixedBaseLiteral",
         "import ShielddGnarkFormal.RvkFixedSplitRung",
         "import ShielddGnarkFormal.StructuredLC",
@@ -1392,25 +427,25 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
         "",
     ]
     for axis, wires in (("X", xs), ("Y", ys)):
-        lines.append(f"def {blind_delta_name(axis, 0)} (_rho : Nat -> Seg48.F) : Seg48.F := 0")
+        lines.append(f"def {blind_delta_name(axis, 0)} (_rho : Nat -> Seg46.F) : Seg46.F := 0")
         for index in range(1, len(wires) + 1):
             lines.append(
-                f"def {blind_delta_name(axis, index)} (rho : Nat -> Seg48.F) : Seg48.F := "
-                f"{dtk.compact_wire_expr(0, wires[:index], 'Seg48.F')}"
+                f"def {blind_delta_name(axis, index)} (rho : Nat -> Seg46.F) : Seg46.F := "
+                f"{dtk.compact_wire_expr(0, wires[:index], 'Seg46.F')}"
             )
         lines.append("")
     lines += [
-        "def seg48BlindAccState (rho : Nat -> Seg48.F) : Nat -> EdwardsBridge.Point",
+        "def seg46BlindAccState (rho : Nat -> Seg46.F) : Nat -> EdwardsBridge.Point",
         "  | 0 => ⟨0, 1⟩",
-        "  | 1 => Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 38906)",
+        "  | 1 => Shieldd.GnarkFormal.Deployed.NetBalance.seedAcc (rho 31661)",
     ]
     for state in range(2, 252):
         delta = state - 1
         lines.append(
-            f"  | {state} => ⟨(({NB_GX} : Seg48.F) * rho 38906 + "
-            f"{blind_delta_name('X', delta)} rho : Seg48.F), "
-            f"((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + "
-            f"{blind_delta_name('Y', delta)} rho : Seg48.F)⟩"
+            f"  | {state} => ⟨(({NB_GX} : Seg46.F) * rho 31661 + "
+            f"{blind_delta_name('X', delta)} rho : Seg46.F), "
+            f"((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + "
+            f"{blind_delta_name('Y', delta)} rho : Seg46.F)⟩"
         )
     lines += [
         "  | _ => ⟨0, 1⟩",
@@ -1421,10 +456,24 @@ def emit_blind_defs_module(rungs: tuple[BlindRung, ...]) -> str:
     return "\n".join(lines)
 
 
+def emit_value_row_projection(
+    lines: list[str], name: str, keep_rows: set[int],
+) -> None:
+    cfg = configure_contract_helpers()
+    ordered = sorted(keep_rows)
+    conjunction = " ∧ ".join(f"Seg46.relationRow{row} rho" for row in ordered)
+    lines += [
+        f"theorem {name} (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :",
+        f"    {conjunction} := by",
+    ]
+    dtk.emit_unpack(lines, cfg, keep_rows)
+    lines += [f"  exact ⟨{', '.join(f'r{row}' for row in ordered)}⟩", ""]
+
+
 def emit_blind_projection(
     lines: list[str], k: int, keep_rows: set[int],
 ) -> None:
-    emit_value_row_projection(lines, f"seg48Blind_rows{k}", keep_rows)
+    emit_value_row_projection(lines, f"seg46Blind_rows{k}", keep_rows)
 
 
 def emit_blind_delta_step(
@@ -1459,36 +508,36 @@ def emit_blind_fused_rung(
     keep = set(rung.block_rows) | {bit_row}
     emit_blind_projection(lines, k, keep)
     lines += [
-        f"theorem seg48Blind_rung{k} (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
+        f"theorem seg46Blind_rung{k} (rho : Nat -> Seg46.F) (h : Seg46.relation rho)",
         f"    (bit : Bool) (hbitValue : rho {rung.bit} = Bool.toZMod bit)",
-        f"    (hacc : EdwardsBridge.onCurve (seg48BlindAccState rho {k})) :",
+        f"    (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho {k})) :",
         "    Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel",
-        f"      {k} (Bool.toZMod bit) (seg48BlindAccState rho {k})",
-        f"      (seg48BlindAccState rho {k + 1}) := by",
-        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(keep))}⟩ := seg48Blind_rows{k} rho h",
+        f"      {k} (Bool.toZMod bit) (seg46BlindAccState rho {k})",
+        f"      (seg46BlindAccState rho {k + 1}) := by",
+        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(keep))}⟩ := seg46Blind_rows{k} rho h",
     ]
     for row in sorted(keep):
         dtk.emit_row_unfold(lines, cfg, row)
     emit_blind_delta_step(lines, rungs, k)
     previous = k - 1
     if k == 1:
-        # Arm 1 of seg48BlindAccState is `seedAcc (rho 38906)`; `x + DeltaX0`
+        # Arm 1 of seg46BlindAccState is `seedAcc (rho 31661)`; `x + DeltaX0`
         # (i.e. `x + 0`) is not defeq for opaque ZMod terms, so state the
         # acc1-shaped pair without the zero delta.
         prev_pair = [
-            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg48.F) * rho 38906 : Seg48.F),",
-            f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 : Seg48.F)⟩",
+            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho 31661 : Seg46.F),",
+            f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 : Seg46.F)⟩",
         ]
     else:
         prev_pair = [
-            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg48.F) * rho 38906 + {blind_delta_name('X', previous)} rho : Seg48.F),",
-            f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + {blind_delta_name('Y', previous)} rho : Seg48.F)⟩",
+            f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho 31661 + {blind_delta_name('X', previous)} rho : Seg46.F),",
+            f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + {blind_delta_name('Y', previous)} rho : Seg46.F)⟩",
         ]
     lines += [
         f"  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel {k}",
         *prev_pair,
-        f"    ⟨(({NB_GX} : Seg48.F) * rho 38906 + {blind_delta_name('X', k)} rho : Seg48.F),",
-        f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + {blind_delta_name('Y', k)} rho : Seg48.F)⟩",
+        f"    ⟨(({NB_GX} : Seg46.F) * rho 31661 + {blind_delta_name('X', k)} rho : Seg46.F),",
+        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + {blind_delta_name('Y', k)} rho : Seg46.F)⟩",
         # k=1: next-state deltas are single wires, defeq by delta unfold; the
         # hnext rewrites would introduce a non-defeq `Delta0 + wire` shape.
         ("  rw [← hbitValue]" if k == 1 else "  rw [hnextx, hnexty, ← hbitValue]"),
@@ -1498,7 +547,7 @@ def emit_blind_fused_rung(
     sx = singleton_wire(rows[r_add_x][0])
     sy = singleton_wire(rows[r_add_y][0])
     theorem = "rung1" if k == 1 else f"rung{k}_wide"
-    args = ["(rho 38906)", f"(rho {rung.bit})"]
+    args = ["(rho 31661)", f"(rho {rung.bit})"]
     if k > 1:
         args += [
             f"({blind_delta_name('X', previous)} rho)",
@@ -1512,7 +561,7 @@ def emit_blind_fused_rung(
 
     both = f"{blind_delta_name('X', previous)} {blind_delta_name('Y', previous)}"
     lines += [
-        f"  apply Shieldd.GnarkFormal.NbFixedGenSeg48.{theorem} {' '.join(args)} hacc",
+        f"  apply Shieldd.GnarkFormal.NbFixedGenSeg46.{theorem} {' '.join(args)} hacc",
         *seat(r_v2, both),
         *seat(r_add_x, both),
         *seat(r_add_y, both),
@@ -1532,13 +581,13 @@ def emit_blind_split_rung(
     keep = set(cert.rows) | {bit_row}
     emit_blind_projection(lines, k, keep)
     lines += [
-        f"theorem seg48Blind_rung{k} (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
+        f"theorem seg46Blind_rung{k} (rho : Nat -> Seg46.F) (h : Seg46.relation rho)",
         f"    (bit : Bool) (hbitValue : rho {cert.bit} = Bool.toZMod bit)",
-        f"    (hacc : EdwardsBridge.onCurve (seg48BlindAccState rho {k})) :",
+        f"    (hacc : EdwardsBridge.onCurve (seg46BlindAccState rho {k})) :",
         "    Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel",
-        f"      {k} (Bool.toZMod bit) (seg48BlindAccState rho {k})",
-        f"      (seg48BlindAccState rho {k + 1}) := by",
-        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(keep))}⟩ := seg48Blind_rows{k} rho h",
+        f"      {k} (Bool.toZMod bit) (seg46BlindAccState rho {k})",
+        f"      (seg46BlindAccState rho {k + 1}) := by",
+        f"  obtain ⟨{', '.join(f'r{row}' for row in sorted(keep))}⟩ := seg46Blind_rows{k} rho h",
     ]
     for row in sorted(keep):
         dtk.emit_row_unfold(lines, cfg, row)
@@ -1548,25 +597,25 @@ def emit_blind_split_rung(
     dy = f"{blind_delta_name('Y', previous)} rho"
     lines += [
         f"  change Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel {k}",
-        f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg48.F) * rho 38906 + {dx} : Seg48.F),",
-        f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + {dy} : Seg48.F)⟩",
-        f"    ⟨(({NB_GX} : Seg48.F) * rho 38906 + {blind_delta_name('X', k)} rho : Seg48.F),",
-        f"      ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906 + {blind_delta_name('Y', k)} rho : Seg48.F)⟩",
+        f"    (Bool.toZMod bit) ⟨(({NB_GX} : Seg46.F) * rho 31661 + {dx} : Seg46.F),",
+        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + {dy} : Seg46.F)⟩",
+        f"    ⟨(({NB_GX} : Seg46.F) * rho 31661 + {blind_delta_name('X', k)} rho : Seg46.F),",
+        f"      ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661 + {blind_delta_name('Y', k)} rho : Seg46.F)⟩",
         "  rw [hnextx, hnexty, ← hbitValue]",
         # splitRung_stepRel's select-Y third arg is left-associated
         # ((1+g*b0+d1y) + sdy); reassociate the goal to match.
-        f"  rw [← add_assoc ((1 : Seg48.F) + ({NB_GYM1} : Seg48.F) * rho 38906)",
+        f"  rw [← add_assoc ((1 : Seg46.F) + ({NB_GYM1} : Seg46.F) * rho 31661)",
         f"    ({dy}) (rho {cert.sdy})]",
         "  exact Shieldd.GnarkFormal.RvkFixedSplitRung.splitRung_stepRel",
         f"    (Shieldd.GnarkFormal.Deployed.NetBalance.Cb {k})",
-        f"    ({NB_GX} : Seg48.F) ({NB_GYM1} : Seg48.F)",
-        f"    ({cert.ak_x} : Seg48.F) ({cert.ak_y} : Seg48.F)",
-        f"    ({cert.ev} : Seg48.F) ({cert.kv} : Seg48.F)",
-        f"    ({cert.la} : Seg48.F) ({cert.lb} : Seg48.F)",
-        f"    ({cert.rb} : Seg48.F) ({cert.cc} : Seg48.F)",
-        f"    ({cert.px} : Seg48.F) ({cert.py} : Seg48.F)",
-        f"    ({cert.qb0} : Seg48.F) ({cert.neg_gx} : Seg48.F) ({cert.neg_gym1} : Seg48.F)",
-        f"    (rho 38906) ({dx}) ({dy}) (rho {cert.bit})",
+        f"    ({NB_GX} : Seg46.F) ({NB_GYM1} : Seg46.F)",
+        f"    ({cert.ak_x} : Seg46.F) ({cert.ak_y} : Seg46.F)",
+        f"    ({cert.ev} : Seg46.F) ({cert.kv} : Seg46.F)",
+        f"    ({cert.la} : Seg46.F) ({cert.lb} : Seg46.F)",
+        f"    ({cert.rb} : Seg46.F) ({cert.cc} : Seg46.F)",
+        f"    ({cert.px} : Seg46.F) ({cert.py} : Seg46.F)",
+        f"    ({cert.qb0} : Seg46.F) ({cert.neg_gx} : Seg46.F) ({cert.neg_gym1} : Seg46.F)",
+        f"    (rho 31661) ({dx}) ({dy}) (rho {cert.bit})",
         f"    (rho {cert.i67}) (rho {cert.i68}) (rho {cert.i69}) (rho {cert.i71})",
         f"    (rho {cert.out_x}) (rho {cert.out_y}) (rho {cert.sdx}) (rho {cert.sdy}) hacc",
         f"    (Shieldd.GnarkFormal.Deployed.NetBalance.Cb_onCurve {k})",
@@ -1595,7 +644,7 @@ def emit_blind_chunk(
     rungs: tuple[BlindRung, ...], rows: list[tuple[Lc, Lc, Lc]],
 ) -> str:
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48BlindDefs",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindDefs",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
@@ -1612,21 +661,21 @@ def emit_blind_chunk(
             emit_blind_fused_rung(lines, rungs, k, rows)
     lo, hi = subset[0].index + 1, subset[-1].index + 2
     lines += [
-        f"theorem seg48Blind_hstep_c{chunk_index} (rho : Nat -> Seg48.F)",
-        "    (h : Seg48.relation rho) (bits : List.Vector Bool 251)",
-        "    (hbitAt : ∀ i, i < 251 → rho (38906 + i) = Bool.toZMod bits[i]!) :",
+        f"theorem seg46Blind_hstep_c{chunk_index} (rho : Nat -> Seg46.F)",
+        "    (h : Seg46.relation rho) (bits : List.Vector Bool 251)",
+        "    (hbitAt : ∀ i, i < 251 → rho (31661 + i) = Bool.toZMod bits[i]!) :",
         f"    ∀ i, {lo} ≤ i → i < {hi} →",
-        "      EdwardsBridge.onCurve (seg48BlindAccState rho i) →",
+        "      EdwardsBridge.onCurve (seg46BlindAccState rho i) →",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i",
-        "        (Bool.toZMod bits[i]!) (seg48BlindAccState rho i)",
-        "        (seg48BlindAccState rho (i + 1)) := by",
+        "        (Bool.toZMod bits[i]!) (seg46BlindAccState rho i)",
+        "        (seg46BlindAccState rho (i + 1)) := by",
         "  intro i hlo hhi hacc",
         "  interval_cases i",
     ]
     for rung in subset:
         k = rung.index + 1
         lines.append(
-            f"  · exact seg48Blind_rung{k} rho h bits[{k}]! "
+            f"  · exact seg46Blind_rung{k} rho h bits[{k}]! "
             f"(hbitAt {k} (by omega)) hacc"
         )
     lines += ["", "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
@@ -1637,7 +686,7 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
     chunks = blind_chunks(rungs)
     lines = [
         *[
-            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48BlindR{index}"
+            f"import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindR{index}"
             for index in range(len(chunks))
         ],
         "",
@@ -1647,35 +696,35 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        "theorem seg48Blind_ladder (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
+        "theorem seg46Blind_ladder (rho : Nat -> Seg46.F) (h : Seg46.relation rho)",
         "    (bits : List.Vector Bool 251)",
-        "    (hbits : seg48BlindBits rho = bits.map Bool.toZMod)",
-        "    (k : List.Vector Seg48.F 4 → Prop)",
-        "    (hk : k vec![(seg48BlindAccState rho 251).x,",
-        "      (seg48BlindAccState rho 251).y,",
+        "    (hbits : seg46BlindBits rho = bits.map Bool.toZMod)",
+        "    (k : List.Vector Seg46.F 4 → Prop)",
+        "    (hk : k vec![(seg46BlindAccState rho 251).x,",
+        "      (seg46BlindAccState rho 251).y,",
         "      (Shieldd.GnarkFormal.Deployed.NetBalance.Cb 251).x,",
         "      (Shieldd.GnarkFormal.Deployed.NetBalance.Cb 251).y]) :",
         "    Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbLadderK",
-        "      (seg48BlindBits rho) k 251 0 ⟨0, 1⟩",
+        "      (seg46BlindBits rho) k 251 0 ⟨0, 1⟩",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.blindGen ∧",
-        "    EdwardsBridge.onCurve (seg48BlindAccState rho 251) := by",
+        "    EdwardsBridge.onCurve (seg46BlindAccState rho 251) := by",
         "  have hbitAt : ∀ i, i < 251 →",
-        "      rho (38906 + i) = Bool.toZMod bits[i]! := by",
+        "      rho (31661 + i) = Bool.toZMod bits[i]! := by",
         "    intro i hi",
-        "    rw [← seg48BlindBits_get rho i hi, hbits]",
+        "    rw [← seg46BlindBits_get rho i hi, hbits]",
         "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi),",
         "      getElem!_pos bits i (by simpa using hi), List.Vector.getElem_map]",
         "  have hstep : ∀ i, i < 251 →",
-        "      EdwardsBridge.onCurve (seg48BlindAccState rho i) →",
+        "      EdwardsBridge.onCurve (seg46BlindAccState rho i) →",
         "      Shieldd.GnarkFormal.Deployed.NetBalance.NbFixedStepRel i",
-        "        (Bool.toZMod bits[i]!) (seg48BlindAccState rho i)",
-        "        (seg48BlindAccState rho (i + 1)) := by",
+        "        (Bool.toZMod bits[i]!) (seg46BlindAccState rho i)",
+        "        (seg46BlindAccState rho (i + 1)) := by",
         "    intro i hi hacc",
         "    by_cases hzero : i = 0",
         "    · subst i",
-        "      have hb0 : rho 38906 = Bool.toZMod bits[0]! := by",
+        "      have hb0 : rho 31661 = Bool.toZMod bits[0]! := by",
         "        simpa using hbitAt 0 (by omega)",
-        "      simpa [seg48BlindAccState, hb0] using",
+        "      simpa [seg46BlindAccState, hb0] using",
         "        (Shieldd.GnarkFormal.Deployed.NetBalance.seedStepRel bits[0]!)",
         "    ·",
     ]
@@ -1684,24 +733,24 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
         lo_arg = "(by omega)" if chunk_index == 0 else f"hb{chunk_index - 1}"
         if chunk_index == len(chunks) - 1:
             lines.append(
-                f"      exact seg48Blind_hstep_c{chunk_index} rho h bits hbitAt i "
+                f"      exact seg46Blind_hstep_c{chunk_index} rho h bits hbitAt i "
                 f"{lo_arg} hi hacc"
             )
         else:
             lines += [
                 f"      rcases Nat.lt_or_ge i {hi_c} with hb{chunk_index}|hb{chunk_index}",
-                f"      · exact seg48Blind_hstep_c{chunk_index} rho h bits hbitAt i "
+                f"      · exact seg46Blind_hstep_c{chunk_index} rho h bits hbitAt i "
                 f"{lo_arg} hb{chunk_index} hacc",
             ]
     lines += [
         "  constructor",
         "  · rw [hbits]",
         "    apply Shieldd.GnarkFormal.Deployed.NetBalance.fixedTrace_to_nbLadderK",
-        "      bits k (seg48BlindAccState rho) hstep (by intro _; exact hk)",
+        "      bits k (seg46BlindAccState rho) hstep (by intro _; exact hk)",
         "      251 0 (by omega)",
         "    exact EdwardsBridge.identity_onCurve",
         "  · exact Shieldd.GnarkFormal.Deployed.NetBalance.fixedTrace_final_onCurve",
-        "      bits (seg48BlindAccState rho) hstep EdwardsBridge.identity_onCurve",
+        "      bits (seg46BlindAccState rho) hstep EdwardsBridge.identity_onCurve",
         "",
         "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
@@ -1711,12 +760,12 @@ def emit_blind_ladder(rungs: tuple[BlindRung, ...]) -> str:
 
 def emit_blind_modules(seating: dict) -> dict[str, str]:
     rungs = seating["blind"]
-    modules = {"NbAdapterSeg48BlindDefs": emit_blind_defs_module(rungs)}
+    modules = {"NbAdapterSeg46BlindDefs": emit_blind_defs_module(rungs)}
     for chunk_index, subset in enumerate(blind_chunks(rungs)):
-        modules[f"NbAdapterSeg48BlindR{chunk_index}"] = emit_blind_chunk(
+        modules[f"NbAdapterSeg46BlindR{chunk_index}"] = emit_blind_chunk(
             chunk_index, subset, rungs, seating["rows"]
         )
-    modules["NbAdapterSeg48Blind"] = emit_blind_ladder(rungs)
+    modules["NbAdapterSeg46Blind"] = emit_blind_ladder(rungs)
     return modules
 
 
@@ -1730,7 +779,7 @@ def emit_to_binary_module(
         raise ValueError(f"{label}: {len(rows)} booleanity rows for width {width}")
     block = dtk.CanonicalBlock(label, input_wire, bit_base, bit_rows[0], rec_row, rec_row + 1)
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Base",
         "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon",
         "import ShielddGnarkFormal.RvkToBinary",
         "",
@@ -1740,12 +789,12 @@ def emit_to_binary_module(
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
-        f"theorem {bits_name}_toBinary (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :",
+        f"theorem {bits_name}_toBinary (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :",
         f"    GatesDef.to_binary (rho {input_wire}) {width} ({bits_name} rho) := by",
     ]
     dtk.emit_unpack(lines, cfg, set(rows + [rec_row]))
     for row in rows:
-        lines.append(f"  unfold Seg48.relationRow{row} at r{row}\n")
+        lines.append(f"  unfold Seg46.relationRow{row} at r{row}\n")
     dtk.emit_recomposition(lines, cfg, block, f"({bits_name} rho)", f"r{rec_row}", width)
     lines += [
         f"  apply Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed (rho {input_wire}) ({bits_name} rho)",
@@ -1771,27 +820,24 @@ def emit_to_binary_module(
 
 def emit_to_binary_modules() -> dict[str, str]:
     modules = {}
-    for ladder in VALUE_LADDERS:
-        name = f"seg48{ladder.label.capitalize()}Bits"
-        modules[f"NbAdapterSeg48{ladder.label.capitalize()}Bits"] = emit_to_binary_module(
-            ladder.label.capitalize(), name, ladder.bit_base, 128,
-            ladder.binary_rows, ladder.copy_row, ladder.amount_wire,
+    for label, bit_base, bit_rows, rec_row, amount_wire in AMOUNT_BLOCKS:
+        modules[f"NbAdapterSeg46{label}Bits"] = emit_to_binary_module(
+            label, f"seg46{label}Bits", bit_base, 128,
+            bit_rows, rec_row, amount_wire,
         )
-    modules["NbAdapterSeg48BlindBits"] = emit_to_binary_module(
-        "Blind", "seg48BlindBits", BLIND_BIT_BASE, 251,
+    modules["NbAdapterSeg46BlindBits"] = emit_to_binary_module(
+        "Blind", "seg46BlindBits", BLIND_BIT_BASE, 251,
         BLIND_BINARY_ROWS, BLIND_COPY_ROW, BLIND_WIRE,
     )
     return modules
 
 
-def emit_adds() -> str:
+def emit_conservation() -> str:
+    """Single linear conservation row: in0 + in1 = out0."""
     cfg = configure_contract_helpers()
-    rows = [*range(4990, 4996), *range(6783, 6789), *range(8595, 8601)]
     lines = [
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48In0",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48In1",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Out0",
-        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Blind",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Base",
+        "import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterCommon",
         "",
         "set_option maxRecDepth 1000000",
         "set_option maxHeartbeats 20000000",
@@ -1799,127 +845,29 @@ def emit_adds() -> str:
         "",
         "namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
         "",
+        "theorem seg46_conservation (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :",
+        f"    rho {IN0_WIRE} + rho {IN1_WIRE} = rho {OUT0_WIRE} := by",
     ]
-
-    def theorem(
-        name: str, row0: int, p: str, q: str, out: str, temps: tuple[int, int, int, int],
-        state_defs: list[str], final: bool = False,
-        sum_wire_row: int | None = None, p_sum: str | None = None,
-    ) -> None:
-        t0, t1, t2, t3 = temps
-
-        def pt(e: str) -> str:
-            # Anonymous constructors need an expected type at every use site.
-            return f"(⟨{e[1:-1]}⟩ : EdwardsBridge.Point)" if e.startswith("⟨") else e
-
-        def comps(e: str) -> tuple[str, str] | None:
-            # Split a top-level anonymous constructor into its two components.
-            if not e.startswith("⟨"):
-                return None
-            depth = 0
-            for i, ch in enumerate(e):
-                if ch in "⟨([":
-                    depth += 1
-                elif ch in "⟩)]":
-                    depth -= 1
-                elif ch == "," and depth == 1:
-                    return f"({e[1:i].strip()})", f"({e[i + 1:-1].strip()})"
-            return None
-
-        rc = comps(out)
-        p, q, out = pt(p), pt(q), pt(out)
-        # p/q stay projection-form so h0–h2 leaves are homogeneous; out is
-        # always a literal pair, and its components sit next to numerals in
-        # h4/h5, so they must be the raw Seg48.F wires.
-        px, py = f"({p}).x", f"({p}).y"
-        qx, qy = f"({q}).x", f"({q}).y"
-        rx, ry = rc if rc else (f"({out}).x", f"({out}).y")
-        lines.extend([
-            f"theorem {name} (rho : Nat -> Seg48.F) (h : Seg48.relation rho)",
-            f"    (hp : EdwardsBridge.onCurve ({p})) (hq : EdwardsBridge.onCurve ({q}))" +
-            (" :" if final else " (k : Seg48.F -> Seg48.F -> Prop) (hk : k " + rx + " " + ry + ") :"),
-            ("    EdwardsBridge.addSpec (" + p + ") (" + q + ") (" + out + ") := by") if final else
-            ("    Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbAddK " +
-             px + " " + py + " " + qx + " " + qy + " k ∧\n" +
-             "    EdwardsBridge.addSpec (" + p + ") (" + q + ") (" + out + ") := by"),
-        ])
-        rows_needed = set(range(row0, row0 + 6))
-        if sum_wire_row is not None:
-            rows_needed.add(sum_wire_row)
-        dtk.emit_unpack(lines, cfg, rows_needed)
-        for row in sorted(rows_needed):
-            dtk.emit_row_unfold(lines, cfg, row)
-        eqs = [
-            f"  have h0 : ({px} + {py}) * ({qx} + {qy}) = rho {t0} := by",
-            f"  have h1 : {px} * {qy} = rho {t1} := by",
-            f"  have h2 : {py} * {qx} = rho {t2} := by",
-            f"  have h3 : (3021 : Seg48.F) * rho {t1} * rho {t2} = rho {t3} := by",
-            f"  have h4 : {rx} * ((1 : Seg48.F) + rho {t3}) = rho {t1} + rho {t2} := by",
-            f"  have h5 : {ry} * ((1 : Seg48.F) - rho {t3}) = rho {t0} - rho {t1} - rho {t2} := by",
-        ]
-        for index, head in enumerate(eqs):
-            lines.append(head)
-            if state_defs:
-                lines.append("    try simp only [" + ", ".join(state_defs) + "]")
-            if index == 0 and sum_wire_row is not None:
-                # Row coefficients are reduced mod p while the AccState literals
-                # sum above p; ring works over ZZ, so discharge the p-multiple
-                # residual with a decided characteristic fact.
-                lines.extend([
-                    "    have hchar : (8444461749428370424248824938781546531375899335154063827935233455917409239041 : Seg48.F) = 0 := by decide",
-                    f"    first",
-                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} + (({p_sum}) * rho 38906) * hchar",
-                    f"    | linear_combination r{row0} + ({p_sum}) * r{sum_wire_row} - (({p_sum}) * rho 38906) * hchar",
-                ])
-            else:
-                lines.append(f"    linear_combination r{row0 + index}")
-        lines.extend([
-            "  have hadd := Shieldd.GnarkFormal.Deployed.NetBalance.addSpec_of_rows",
-            f"    {px} {py} {qx} {qy} (rho {t0}) (rho {t1}) (rho {t2}) (rho {t3})",
-            f"    {rx} {ry} hp hq h0 h1 h2 h3 h4 h5",
-        ])
-        if final:
-            lines.append("  exact hadd")
-        else:
-            lines.extend([
-                "  exact ⟨Shieldd.GnarkFormal.NetBalanceCommitmentBridge.nbAddK_of_addSpec",
-                f"    ({p}) ({q}) ({out}) k hadd hk, hadd⟩",
-            ])
-        lines.append("")
-
-    theorem(
-        "seg48_add_inputs", 4350,
-        "seg48In0AccState rho 128", "seg48In1AccState rho 128", "⟨rho 37112, rho 37113⟩",
-        (37108, 37109, 37110, 37111),
-        ["seg48In0AccState", "seg48In0AccX128", "seg48In0AccY128",
-         "seg48In1AccState", "seg48In1AccX128", "seg48In1AccY128"],
-    )
-    theorem(
-        "seg48_add_output", 6143, "⟨rho 37112, rho 37113⟩",
-        "⟨-(seg48Out0AccState rho 128).x, (seg48Out0AccState rho 128).y⟩",
-        "⟨rho 38904, rho 38905⟩", (38900, 38901, 38902, 38903),
-        ["seg48Out0AccState", "seg48Out0AccX128", "seg48Out0AccY128"],
-    )
-    theorem(
-        "seg48_final_addSpec", 7955, "⟨rho 38904, rho 38905⟩",
-        "seg48BlindAccState rho 251", "⟨rho 40715, rho 40716⟩",
-        (40711, 40712, 40713, 40714),
-        ["seg48BlindAccState", "seg48BlindDeltaX250", "seg48BlindDeltaY250"],
-        final=True,
-        sum_wire_row=7954, p_sum="rho 38904 + rho 38905",
-    )
-    lines += ["end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1", ""]
+    dtk.emit_unpack(lines, cfg, {CONSERVATION_ROW})
+    lines += [
+        f"  unfold Seg46.relationRow{CONSERVATION_ROW} at r{CONSERVATION_ROW}",
+        f"  linear_combination r{CONSERVATION_ROW}",
+        "",
+        "end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1",
+        "",
+    ]
     return "\n".join(lines)
 
 
 def emit_top() -> str:
     return f"""import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Specs.Nb
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48EncodePost
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Adds
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48In0Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48In1Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48Out0Bits
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg48BlindBits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46In0Bits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46In1Bits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Out0Bits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46BlindBits
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Blind
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.NbAdapterSeg46Conserv
+import ShielddGnarkFormal.ConservationNetBalanceCommitmentBridge
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 20000000
@@ -1928,96 +876,54 @@ set_option linter.unusedVariables false
 namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 
 open Shieldd.GnarkFormal.NetBalanceCommitmentBridge
+open Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge
 
-theorem seg48_nbBody (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :
-    nbBody (rho 33530) (rho 33532) (rho 15) (rho 105) (rho 193) (rho 5)
-      (rho 40715) (rho 40716) := by
-  have hbase := seg48_value_base_onCurve rho h
-  have hIn0Bin := seg48In0Bits_toBinary rho h
-  have hIn1Bin := seg48In1Bits_toBinary rho h
-  have hOut0Bin := seg48Out0Bits_toBinary rho h
-  have hBlindBin := seg48BlindBits_toBinary rho h
-  obtain ⟨in0Bool, hIn0Eq⟩ := is_vector_binary_iff_exists_bool_vec.mp hIn0Bin.2
-  obtain ⟨in1Bool, hIn1Eq⟩ := is_vector_binary_iff_exists_bool_vec.mp hIn1Bin.2
-  obtain ⟨out0Bool, hOut0Eq⟩ := is_vector_binary_iff_exists_bool_vec.mp hOut0Bin.2
+theorem seg46_conservBody (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
+    conservBody (rho {IN0_WIRE}) (rho {IN1_WIRE}) (rho {OUT0_WIRE}) (rho {BLIND_WIRE})
+      (rho {OUT_X_WIRE}) (rho {OUT_Y_WIRE}) := by
+  have hIn0Bin := seg46In0Bits_toBinary rho h
+  have hIn1Bin := seg46In1Bits_toBinary rho h
+  have hOut0Bin := seg46Out0Bits_toBinary rho h
+  have hBlindBin := seg46BlindBits_toBinary rho h
   obtain ⟨blindBool, hBlindEq⟩ := is_vector_binary_iff_exists_bool_vec.mp hBlindBin.2
-  have hP1On := (seg48In0_ladder rho h in0Bool hIn0Eq (fun _ => True)
-    True.intro hbase).2
-  have hP2On := (seg48In1_ladder rho h in1Bool hIn1Eq (fun _ => True)
-    True.intro hbase).2
-  have hP3On := (seg48Out0_ladder rho h out0Bool hOut0Eq (fun _ => True)
-    True.intro hbase).2
-  have hAdd1 := (seg48_add_inputs rho h hP1On hP2On (fun _ _ => True) True.intro).2
-  have hA1Eq := EdwardsBridge.addSpec_eq
-    (seg48In0AccState rho 128) (seg48In1AccState rho 128)
-    ⟨rho 37112, rho 37113⟩ hP1On hP2On hAdd1
-  have hA1On : EdwardsBridge.onCurve ⟨rho 37112, rho 37113⟩ :=
-    hA1Eq ▸ EdwardsBridge.add_onCurve _ _ hP1On hP2On
-  have hNegOn : EdwardsBridge.onCurve
-      ⟨-(seg48Out0AccState rho 128).x, (seg48Out0AccState rho 128).y⟩ := by
-    simpa [EdwardsBridge.negF] using
-      EdwardsBridge.neg_onCurve (seg48Out0AccState rho 128) hP3On
-  have hAdd2 := (seg48_add_output rho h hA1On hNegOn (fun _ _ => True) True.intro).2
-  have hA2Eq := EdwardsBridge.addSpec_eq ⟨rho 37112, rho 37113⟩
-    ⟨-(seg48Out0AccState rho 128).x, (seg48Out0AccState rho 128).y⟩
-    ⟨rho 38904, rho 38905⟩ hA1On hNegOn hAdd2
-  have hA2On : EdwardsBridge.onCurve ⟨rho 38904, rho 38905⟩ :=
-    hA2Eq ▸ EdwardsBridge.add_onCurve _ _ hA1On hNegOn
-  have hBlindOn := (seg48Blind_ladder rho h blindBool hBlindEq (fun _ => True)
-    True.intro).2
-  have hFinalAdd := seg48_final_addSpec rho h hA2On hBlindOn
-  have hOutEq := EdwardsBridge.addSpec_eq ⟨rho 38904, rho 38905⟩
-    (seg48BlindAccState rho 251) ⟨rho 40715, rho 40716⟩
-    hA2On hBlindOn hFinalAdd
-  have hOutOn : EdwardsBridge.onCurve ⟨rho 40715, rho 40716⟩ :=
-    hOutEq ▸ EdwardsBridge.add_onCurve _ _ hA2On hBlindOn
-  have hFinalK : nbFinalK (rho 38904) (rho 38905)
-      (seg48BlindAccState rho 251).x (seg48BlindAccState rho 251).y
-      (rho 40715) (rho 40716) :=
-    nbFinalK_of_addSpec ⟨rho 38904, rho 38905⟩ (seg48BlindAccState rho 251)
-      ⟨rho 40715, rho 40716⟩ hFinalAdd hOutOn
-  unfold nbBody
-  refine ⟨seg48In0Bits rho, hIn0Bin, ?_⟩
-  refine (seg48In0_ladder rho h in0Bool hIn0Eq _ ?_ hbase).1
-  refine ⟨seg48In1Bits rho, hIn1Bin, ?_⟩
-  refine (seg48In1_ladder rho h in1Bool hIn1Eq _ ?_ hbase).1
-  refine ⟨seg48Out0Bits rho, hOut0Bin, ?_⟩
-  refine (seg48Out0_ladder rho h out0Bool hOut0Eq _ ?_ hbase).1
-  refine nbAddK_of_addSpec ⟨0, 1⟩ (seg48In0AccState rho 128)
-    (seg48In0AccState rho 128) _ 
-    (Shieldd.GnarkFormal.Deployed.NetBalance.identity_addSpec _) ?_
-  refine (seg48_add_inputs rho h hP1On hP2On _ ?_).1
-  refine ⟨-(seg48Out0AccState rho 128).x, ?_, ?_⟩
-  · simp [Extracted.NetBalanceCommitment.Gates, GatesGnark9, GatesGnark8,
-      GatesDef.neg]
-  refine (seg48_add_output rho h hA1On hNegOn _ ?_).1
-  refine ⟨seg48BlindBits rho, hBlindBin, ?_⟩
-  refine (seg48Blind_ladder rho h blindBool hBlindEq _ ?_).1
-  simpa using hFinalK
+  have hcons := seg46_conservation rho h
+  have hLadder := seg46Blind_ladder rho h blindBool hBlindEq
+    (fun s =>
+      Extracted.ConservationNetBalanceCommitment.Gates.eq s[0] (rho {OUT_X_WIRE}) ∧
+      Extracted.ConservationNetBalanceCommitment.Gates.eq s[1] (rho {OUT_Y_WIRE}) ∧
+      True)
+    ⟨by simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
+        GatesGnark8, GatesDef.eq]; rfl,
+      by simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
+        GatesGnark8, GatesDef.eq]; rfl,
+      True.intro⟩
+  unfold conservBody
+  refine ⟨seg46In0Bits rho, hIn0Bin, ?_⟩
+  refine ⟨(0 : Seg46.F) + rho {IN0_WIRE}, by
+    simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
+      GatesGnark8, GatesDef.add], ?_⟩
+  refine ⟨seg46In1Bits rho, hIn1Bin, ?_⟩
+  refine ⟨(0 : Seg46.F) + rho {IN0_WIRE} + rho {IN1_WIRE}, by
+    simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
+      GatesGnark8, GatesDef.add], ?_⟩
+  refine ⟨seg46Out0Bits rho, hOut0Bin, ?_⟩
+  refine ⟨(0 : Seg46.F) + rho {OUT0_WIRE}, by
+    simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
+      GatesGnark8, GatesDef.add], ?_⟩
+  refine ⟨by
+    simp only [Extracted.ConservationNetBalanceCommitment.Gates, GatesGnark9,
+      GatesGnark8, GatesDef.eq]
+    linear_combination hcons, ?_⟩
+  exact ⟨seg46BlindBits rho, hBlindBin, hLadder.1⟩
 
-theorem seg48_sound (rho : Nat -> Seg48.F) (h : Seg48.relation rho) :
-    Specs.deployedSpec48 rho := by
-  have hbody := seg48_nbBody rho h
-  have hpost := seg48_encode_post rho h
-    (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-      (rho 40715) (rho 40716)) hbody
-  have hpre := seg48_encode_pre rho h
-    (fun T YDen => nbEncodeSeg1K (rho 33167) T YDen
-      (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-        (rho 40715) (rho 40716))) hpost
-  rw [seg48_poseidon_eq rho h] at hpre
-  have hposeidon := (Shieldd.GnarkFormal.Poseidon1Bridge.perm1_uncps
-    ({POSEIDON_DOMAIN} : Seg48.F) (rho 16)
-    (fun gate_0 => Extracted.DecafEncodeToCurve.encodeSeg0 gate_0
-      (rho 33167) (rho 33168)
-      (fun T YDen => nbEncodeSeg1K (rho 33167) T YDen
-        (fun vgX vgY => nbBody vgX vgY (rho 15) (rho 105) (rho 193) (rho 5)
-          (rho 40715) (rho 40716))))).mpr hpre
-  have hcircuit := (nb_circuit_eq (rho 15) (rho 105) (rho 193) (rho 16)
-    (rho 5) (rho 33167) (rho 33168) (rho 40715) (rho 40716)).mpr hposeidon
-  apply Shieldd.GnarkFormal.NetBalanceCommitmentBridge.decaf377_netBalanceCommitment_sound
-    (rho 15) (rho 105) (rho 193) (rho 16) (rho 5) ⟨rho 40715, rho 40716⟩
-  exact ⟨rho 33167, rho 33168, hcircuit⟩
+theorem seg46_sound (rho : Nat -> Seg46.F) (h : Seg46.relation rho) :
+    Specs.deployedSpec46 rho := by
+  have hbody := seg46_conservBody rho h
+  have hcircuit := (conserv_circuit_eq (rho {IN0_WIRE}) (rho {IN1_WIRE})
+    (rho {OUT0_WIRE}) (rho {BLIND_WIRE}) (rho {OUT_X_WIRE}) (rho {OUT_Y_WIRE})).mpr hbody
+  exact Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound
+    (rho {IN0_WIRE}) (rho {IN1_WIRE}) (rho {OUT0_WIRE}) (rho {BLIND_WIRE})
+    ⟨rho {OUT_X_WIRE}, rho {OUT_Y_WIRE}⟩ hcircuit
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 """
@@ -2026,51 +932,47 @@ end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 def recover() -> dict:
     """Run the full fail-closed recovery; returns the seating structures."""
     rows = sr1cs_rows()
-    value = {lad.label: value_rungs(rows, lad) for lad in VALUE_LADDERS}
+    for label, bit_base, bit_rows, rec_row, amount_wire in AMOUNT_BLOCKS:
+        for offset, row in enumerate(range(bit_rows[0], bit_rows[1] + 1)):
+            wire = bit_base + offset
+            a, b, c = rows[row]
+            if wire not in a and wire not in b:
+                raise ValueError(f"{label}: bit wire {wire} absent from row {row}")
+        a, b, c = rows[rec_row]
+        if c != {amount_wire: 1}:
+            raise ValueError(
+                f"{label}: recomposition row {rec_row} does not target wire "
+                f"{amount_wire}: {c}")
+    a, b, c = rows[CONSERVATION_ROW]
+    if a != {0: 1} or b != {IN0_WIRE: 1, IN1_WIRE: 1} or c != {OUT0_WIRE: 1}:
+        raise ValueError(
+            f"conservation row {CONSERVATION_ROW} shape mismatch: {rows[CONSERVATION_ROW]}")
     blind = blind_rungs(rows)
-    # Division-form Edwards add: out sits on the A side (out * (1 ± d·t) = …).
-    if rows[7959][0] != {OUT_X_WIRE: 1} or rows[7960][0] != {OUT_Y_WIRE: 1}:
-        raise ValueError("final add rows do not constrain the pinned output wires")
-    return {"rows": rows, "value": value, "blind": blind}
+    if BLIND_ACCS[-1] != (OUT_X_WIRE, OUT_Y_WIRE):
+        raise ValueError("final blind accumulator pair is not the pinned output wires")
+    return {"rows": rows, "blind": blind}
 
 
 def main() -> None:
     seating = recover()
-    poseidon_sboxes = generate_poseidon_shape()
-    print("wrote net-balance Poseidon slice and semantic-bridge metadata")
-    (CONTRACTS / "NbAdapterSeg48Poseidon.lean").write_text(
-        emit_poseidon_adapter(poseidon_sboxes)
-    )
-    print("wrote seg48 Poseidon adapter")
-    (CONTRACTS / "NbAdapterSeg48EncodePre.lean").write_text(emit_encode_pre())
-    (CONTRACTS / "NbAdapterSeg48EncodePost.lean").write_text(emit_encode_post())
-    print("wrote seg48 encode adapters")
-    for label, rungs in seating["value"].items():
-        span = (rungs[0].select_x_row, rungs[-1].double_rows[-1])
-        print(f"value ladder {label}: 128 rungs, rows {span[0]}..{span[1]}")
     blind = seating["blind"]
     n_late = sum(1 for r in blind if r.materialized)
     print(f"blinding ladder: {len(blind)} rungs ({len(blind) - n_late} 5-row, {n_late} 8-row)")
     literal = emit_fixed_base_literal(seating["rows"])
     (FORMAL / "NbFixedBaseLiteral.lean").write_text(literal)
     print(f"wrote NbFixedBaseLiteral.lean ({len(literal.splitlines())} lines)")
-    (CONTRACTS / "NbAdapterSeg48Base.lean").write_text(emit_base())
-    for module, contents in emit_canonical_modules().items():
-        (CONTRACTS / f"{module}.lean").write_text(contents)
-    print("wrote seg48 base and canonical-chain modules")
-    for module, contents in emit_value_modules(seating).items():
-        (CONTRACTS / f"{module}.lean").write_text(contents)
-    print("wrote seg48 value-ladder modules")
+    (CONTRACTS / "NbAdapterSeg46Base.lean").write_text(emit_base())
+    print("wrote seg46 base module")
     for module, contents in emit_blind_modules(seating).items():
         (CONTRACTS / f"{module}.lean").write_text(contents)
-    print("wrote seg48 blinding-ladder modules")
+    print("wrote seg46 blinding-ladder modules")
     for module, contents in emit_to_binary_modules().items():
         (CONTRACTS / f"{module}.lean").write_text(contents)
-    print("wrote seg48 to-binary modules")
-    (CONTRACTS / "NbAdapterSeg48Adds.lean").write_text(emit_adds())
-    print("wrote seg48 add adapters")
-    (CONTRACTS / "NbAdapterSeg48.lean").write_text(emit_top())
-    print("wrote seg48 top adapter")
+    print("wrote seg46 to-binary modules")
+    (CONTRACTS / "NbAdapterSeg46Conserv.lean").write_text(emit_conservation())
+    print("wrote seg46 conservation module")
+    (CONTRACTS / "NbAdapterSeg46.lean").write_text(emit_top())
+    print("wrote seg46 top adapter")
 
 
 if __name__ == "__main__":

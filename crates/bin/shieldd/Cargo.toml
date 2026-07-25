@@ -1,0 +1,24 @@
+[package]
+name = "shieldd"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+description = "Minimal Shieldd execution-client server"
+repository = { workspace = true }
+license = { workspace = true }
+publish = false
+rust-version = "1.75"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive", "env"] }
+cnidarium = { workspace = true, features = ["migration", "rpc"], default-features = true }
+prost = { workspace = true }
+shieldd-sdk-app = { workspace = true, features = ["parallel"], default-features = true }
+shieldd-sdk-proto = { workspace = true, features = ["rpc"], default-features = true }
+tendermint = { workspace = true }
+tendermint-proto = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal", "sync"] }
+tonic = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter", "ansi"] }

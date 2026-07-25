@@ -1,6 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg9
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg25
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg41
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg24
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg39
 import ShielddGnarkFormal.Deployed.NoteCommitment.RawRelationSemanticBridge
 
 set_option maxRecDepth 1000000
@@ -10,780 +10,780 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
 
 theorem seg9_part0_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart0 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) (rho 6733)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) (rho 6482)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) k := by
   unfold Seg9.relationPart0 Seg9.relationRow0 Seg9.relationRow1 Seg9.relationRow2 Seg9.relationRow3 Seg9.relationRow4 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0
-  exact ⟨(rho 6729), (rho 6730), (rho 6731), (rho 6732), (rho 6733), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6478), (rho 6479), (rho 6480), (rho 6481), (rho 6482), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part1_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart1 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) (rho 6733) (rho 6738)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) (rho 6733) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) (rho 6482) (rho 6487)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) (rho 6482) k := by
   unfold Seg9.relationPart1 Seg9.relationRow5 Seg9.relationRow6 Seg9.relationRow7 Seg9.relationRow8 Seg9.relationRow9 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1
-  exact ⟨(rho 6734), (rho 6735), (rho 6736), (rho 6737), (rho 6738), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6483), (rho 6484), (rho 6485), (rho 6486), (rho 6487), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part2_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart2 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 19) (rho 22) (rho 6388) (rho 6728) (rho 6733) (rho 6738) (rho 6743)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) (rho 6733) (rho 6738) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 19) (rho 22) (rho 572) (rho 912) (rho 6482) (rho 6487) (rho 6492)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) (rho 6482) (rho 6487) k := by
   unfold Seg9.relationPart2 Seg9.relationRow10 Seg9.relationRow11 Seg9.relationRow12 Seg9.relationRow13 Seg9.relationRow14 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2
-  exact ⟨(rho 6739), (rho 6740), (rho 6741), (rho 6742), (rho 6743), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6488), (rho 6489), (rho 6490), (rho 6491), (rho 6492), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part3_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart3 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 19) (rho 22) (rho 6733) (rho 6738) (rho 6743) (rho 6748)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 (rho 19) (rho 22) (rho 6388) (rho 6728) (rho 6733) (rho 6738) (rho 6743) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 19) (rho 22) (rho 6482) (rho 6487) (rho 6492) (rho 6497)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 (rho 19) (rho 22) (rho 572) (rho 912) (rho 6482) (rho 6487) (rho 6492) k := by
   unfold Seg9.relationPart3 Seg9.relationRow15 Seg9.relationRow16 Seg9.relationRow17 Seg9.relationRow18 Seg9.relationRow19 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3
-  exact ⟨(rho 6744), (rho 6745), (rho 6746), (rho 6747), (rho 6748), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6493), (rho 6494), (rho 6495), (rho 6496), (rho 6497), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part4_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart4 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 22) (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4 (rho 19) (rho 22) (rho 6733) (rho 6738) (rho 6743) (rho 6748) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 22) (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4 (rho 19) (rho 22) (rho 6482) (rho 6487) (rho 6492) (rho 6497) k := by
   unfold Seg9.relationPart4 Seg9.relationRow20 Seg9.relationRow21 Seg9.relationRow22 Seg9.relationRow23 Seg9.relationRow24 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4
-  exact ⟨(rho 6749), (rho 6750), (rho 6751), (rho 6752), (rho 6753), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6498), (rho 6499), (rho 6500), (rho 6501), (rho 6502), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part5_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart5 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5 (rho 22) (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5 (rho 22) (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) k := by
   unfold Seg9.relationPart5 Seg9.relationRow25 Seg9.relationRow26 Seg9.relationRow27 Seg9.relationRow28 Seg9.relationRow29 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5
-  exact ⟨(rho 6754), (rho 6755), (rho 6756), (rho 6757), (rho 6758), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6503), (rho 6504), (rho 6505), (rho 6506), (rho 6507), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part6_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart6 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6 (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6 (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) k := by
   unfold Seg9.relationPart6 Seg9.relationRow30 Seg9.relationRow31 Seg9.relationRow32 Seg9.relationRow33 Seg9.relationRow34 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6
-  exact ⟨(rho 6759), (rho 6760), (rho 6761), (rho 6762), (rho 6763), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6508), (rho 6509), (rho 6510), (rho 6511), (rho 6512), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part7_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart7 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7 (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7 (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) k := by
   unfold Seg9.relationPart7 Seg9.relationRow35 Seg9.relationRow36 Seg9.relationRow37 Seg9.relationRow38 Seg9.relationRow39 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7
-  exact ⟨(rho 6764), (rho 6765), (rho 6766), (rho 6767), (rho 6768), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6513), (rho 6514), (rho 6515), (rho 6516), (rho 6517), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part8_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart8 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) (rho 6773)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8 (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) (rho 6522)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8 (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) k := by
   unfold Seg9.relationPart8 Seg9.relationRow40 Seg9.relationRow41 Seg9.relationRow42 Seg9.relationRow43 Seg9.relationRow44 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8
-  exact ⟨(rho 6769), (rho 6770), (rho 6771), (rho 6772), (rho 6773), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6518), (rho 6519), (rho 6520), (rho 6521), (rho 6522), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part9_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart9 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) (rho 6773) (rho 6778)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9 (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) (rho 6773) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) (rho 6522) (rho 6527)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9 (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) (rho 6522) k := by
   unfold Seg9.relationPart9 Seg9.relationRow45 Seg9.relationRow46 Seg9.relationRow47 Seg9.relationRow48 Seg9.relationRow49 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9
-  exact ⟨(rho 6774), (rho 6775), (rho 6776), (rho 6777), (rho 6778), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6523), (rho 6524), (rho 6525), (rho 6526), (rho 6527), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part10_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart10 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10 (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) (rho 6773) (rho 6778) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10 (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) (rho 6522) (rho 6527) k := by
   unfold Seg9.relationPart10 Seg9.relationRow50 Seg9.relationRow51 Seg9.relationRow52 Seg9.relationRow53 Seg9.relationRow54 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10
-  exact ⟨(rho 6779), (rho 6780), (rho 6781), (rho 6782), (rho 6783), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6528), (rho 6529), (rho 6530), (rho 6531), (rho 6532), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part11_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart11 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11 (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11 (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) k := by
   unfold Seg9.relationPart11 Seg9.relationRow55 Seg9.relationRow56 Seg9.relationRow57 Seg9.relationRow58 Seg9.relationRow59 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11
-  exact ⟨(rho 6784), (rho 6785), (rho 6786), (rho 6787), (rho 6788), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6533), (rho 6534), (rho 6535), (rho 6536), (rho 6537), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part12_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart12 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12 (rho 6733) (rho 6738) (rho 6743) (rho 6748) (rho 6753) (rho 6758) (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12 (rho 6482) (rho 6487) (rho 6492) (rho 6497) (rho 6502) (rho 6507) (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) k := by
   unfold Seg9.relationPart12 Seg9.relationRow60 Seg9.relationRow61 Seg9.relationRow62 Seg9.relationRow63 Seg9.relationRow64 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12
-  exact ⟨(rho 6789), (rho 6790), (rho 6791), (rho 6792), (rho 6793), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6538), (rho 6539), (rho 6540), (rho 6541), (rho 6542), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part13_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart13 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13 (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13 (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) k := by
   unfold Seg9.relationPart13 Seg9.relationRow65 Seg9.relationRow66 Seg9.relationRow67 Seg9.relationRow68 Seg9.relationRow69 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13
-  exact ⟨(rho 6794), (rho 6795), (rho 6796), (rho 6797), (rho 6798), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6543), (rho 6544), (rho 6545), (rho 6546), (rho 6547), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part14_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart14 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14 (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14 (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) k := by
   unfold Seg9.relationPart14 Seg9.relationRow70 Seg9.relationRow71 Seg9.relationRow72 Seg9.relationRow73 Seg9.relationRow74 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14
-  exact ⟨(rho 6799), (rho 6800), (rho 6801), (rho 6802), (rho 6803), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6548), (rho 6549), (rho 6550), (rho 6551), (rho 6552), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part15_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart15 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) (rho 6808)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15 (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) (rho 6557)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15 (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) k := by
   unfold Seg9.relationPart15 Seg9.relationRow75 Seg9.relationRow76 Seg9.relationRow77 Seg9.relationRow78 Seg9.relationRow79 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15
-  exact ⟨(rho 6804), (rho 6805), (rho 6806), (rho 6807), (rho 6808), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6553), (rho 6554), (rho 6555), (rho 6556), (rho 6557), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part16_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart16 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) (rho 6808) (rho 6813)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16 (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) (rho 6808) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) (rho 6557) (rho 6562)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16 (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) (rho 6557) k := by
   unfold Seg9.relationPart16 Seg9.relationRow80 Seg9.relationRow81 Seg9.relationRow82 Seg9.relationRow83 Seg9.relationRow84 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16
-  exact ⟨(rho 6809), (rho 6810), (rho 6811), (rho 6812), (rho 6813), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6558), (rho 6559), (rho 6560), (rho 6561), (rho 6562), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part17_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart17 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17 (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) (rho 6808) (rho 6813) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17 (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) (rho 6557) (rho 6562) k := by
   unfold Seg9.relationPart17 Seg9.relationRow85 Seg9.relationRow86 Seg9.relationRow87 Seg9.relationRow88 Seg9.relationRow89 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17
-  exact ⟨(rho 6814), (rho 6815), (rho 6816), (rho 6817), (rho 6818), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6563), (rho 6564), (rho 6565), (rho 6566), (rho 6567), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part18_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart18 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18 (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18 (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) k := by
   unfold Seg9.relationPart18 Seg9.relationRow90 Seg9.relationRow91 Seg9.relationRow92 Seg9.relationRow93 Seg9.relationRow94 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18
-  exact ⟨(rho 6819), (rho 6820), (rho 6821), (rho 6822), (rho 6823), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6568), (rho 6569), (rho 6570), (rho 6571), (rho 6572), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part19_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart19 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19 (rho 6763) (rho 6768) (rho 6773) (rho 6778) (rho 6783) (rho 6788) (rho 6793) (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19 (rho 6512) (rho 6517) (rho 6522) (rho 6527) (rho 6532) (rho 6537) (rho 6542) (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) k := by
   unfold Seg9.relationPart19 Seg9.relationRow95 Seg9.relationRow96 Seg9.relationRow97 Seg9.relationRow98 Seg9.relationRow99 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19
-  exact ⟨(rho 6824), (rho 6825), (rho 6826), (rho 6827), (rho 6828), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6573), (rho 6574), (rho 6575), (rho 6576), (rho 6577), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part20_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart20 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20 (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20 (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) k := by
   unfold Seg9.relationPart20 Seg9.relationRow100 Seg9.relationRow101 Seg9.relationRow102 Seg9.relationRow103 Seg9.relationRow104 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20
-  exact ⟨(rho 6829), (rho 6830), (rho 6831), (rho 6832), (rho 6833), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6578), (rho 6579), (rho 6580), (rho 6581), (rho 6582), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part21_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart21 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21 (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21 (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) k := by
   unfold Seg9.relationPart21 Seg9.relationRow105 Seg9.relationRow106 Seg9.relationRow107 Seg9.relationRow108 Seg9.relationRow109 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21
-  exact ⟨(rho 6834), (rho 6835), (rho 6836), (rho 6837), (rho 6838), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6583), (rho 6584), (rho 6585), (rho 6586), (rho 6587), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part22_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart22 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) (rho 6843)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22 (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) (rho 6592)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22 (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) k := by
   unfold Seg9.relationPart22 Seg9.relationRow110 Seg9.relationRow111 Seg9.relationRow112 Seg9.relationRow113 Seg9.relationRow114 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22
-  exact ⟨(rho 6839), (rho 6840), (rho 6841), (rho 6842), (rho 6843), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6588), (rho 6589), (rho 6590), (rho 6591), (rho 6592), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part23_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart23 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) (rho 6843) (rho 6848)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23 (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) (rho 6843) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) (rho 6592) (rho 6597)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23 (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) (rho 6592) k := by
   unfold Seg9.relationPart23 Seg9.relationRow115 Seg9.relationRow116 Seg9.relationRow117 Seg9.relationRow118 Seg9.relationRow119 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23
-  exact ⟨(rho 6844), (rho 6845), (rho 6846), (rho 6847), (rho 6848), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6593), (rho 6594), (rho 6595), (rho 6596), (rho 6597), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part24_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart24 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24 (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) (rho 6843) (rho 6848) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24 (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) (rho 6592) (rho 6597) k := by
   unfold Seg9.relationPart24 Seg9.relationRow120 Seg9.relationRow121 Seg9.relationRow122 Seg9.relationRow123 Seg9.relationRow124 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24
-  exact ⟨(rho 6849), (rho 6850), (rho 6851), (rho 6852), (rho 6853), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6598), (rho 6599), (rho 6600), (rho 6601), (rho 6602), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part25_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart25 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25 (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25 (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) k := by
   unfold Seg9.relationPart25 Seg9.relationRow125 Seg9.relationRow126 Seg9.relationRow127 Seg9.relationRow128 Seg9.relationRow129 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25
-  exact ⟨(rho 6854), (rho 6855), (rho 6856), (rho 6857), (rho 6858), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6603), (rho 6604), (rho 6605), (rho 6606), (rho 6607), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part26_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart26 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26 (rho 6798) (rho 6803) (rho 6808) (rho 6813) (rho 6818) (rho 6823) (rho 6828) (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26 (rho 6547) (rho 6552) (rho 6557) (rho 6562) (rho 6567) (rho 6572) (rho 6577) (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) k := by
   unfold Seg9.relationPart26 Seg9.relationRow130 Seg9.relationRow131 Seg9.relationRow132 Seg9.relationRow133 Seg9.relationRow134 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26
-  exact ⟨(rho 6859), (rho 6860), (rho 6861), (rho 6862), (rho 6863), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6608), (rho 6609), (rho 6610), (rho 6611), (rho 6612), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part27_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart27 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) k := by
   unfold Seg9.relationPart27 Seg9.relationRow135 Seg9.relationRow136 Seg9.relationRow137 Seg9.relationRow138 Seg9.relationRow139 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27
-  exact ⟨(rho 6864), (rho 6865), (rho 6866), (rho 6867), (rho 6868), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6613), (rho 6614), (rho 6615), (rho 6616), (rho 6617), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part28_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart28 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) k := by
   unfold Seg9.relationPart28 Seg9.relationRow140 Seg9.relationRow141 Seg9.relationRow142 Seg9.relationRow143 Seg9.relationRow144 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28
-  exact ⟨(rho 6869), (rho 6870), (rho 6871), (rho 6872), (rho 6873), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6618), (rho 6619), (rho 6620), (rho 6621), (rho 6622), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part29_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart29 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) k := by
   unfold Seg9.relationPart29 Seg9.relationRow145 Seg9.relationRow146 Seg9.relationRow147 Seg9.relationRow148 Seg9.relationRow149 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29
-  exact ⟨(rho 6874), (rho 6875), (rho 6876), (rho 6877), (rho 6878), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6623), (rho 6624), (rho 6625), (rho 6626), (rho 6627), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part30_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart30 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) k := by
   unfold Seg9.relationPart30 Seg9.relationRow150 Seg9.relationRow151 Seg9.relationRow152 Seg9.relationRow153 Seg9.relationRow154 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30
-  exact ⟨(rho 6879), (rho 6880), (rho 6881), (rho 6882), (rho 6883), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6628), (rho 6629), (rho 6630), (rho 6631), (rho 6632), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part31_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart31 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) k := by
   unfold Seg9.relationPart31 Seg9.relationRow155 Seg9.relationRow156 Seg9.relationRow157 Seg9.relationRow158 Seg9.relationRow159 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31
-  exact ⟨(rho 6884), (rho 6885), (rho 6886), (rho 6887), (rho 6888), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6633), (rho 6634), (rho 6635), (rho 6636), (rho 6637), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part32_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart32 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) k := by
   unfold Seg9.relationPart32 Seg9.relationRow160 Seg9.relationRow161 Seg9.relationRow162 Seg9.relationRow163 Seg9.relationRow164 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32
-  exact ⟨(rho 6889), (rho 6890), (rho 6891), (rho 6892), (rho 6893), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6638), (rho 6639), (rho 6640), (rho 6641), (rho 6642), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part33_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart33 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) k := by
   unfold Seg9.relationPart33 Seg9.relationRow165 Seg9.relationRow166 Seg9.relationRow167 Seg9.relationRow168 Seg9.relationRow169 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33
-  exact ⟨(rho 6894), (rho 6895), (rho 6896), (rho 6897), (rho 6898), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6643), (rho 6644), (rho 6645), (rho 6646), (rho 6647), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part34_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart34 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) k := by
   unfold Seg9.relationPart34 Seg9.relationRow170 Seg9.relationRow171 Seg9.relationRow172 Seg9.relationRow173 Seg9.relationRow174 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34
-  exact ⟨(rho 6899), (rho 6900), (rho 6901), (rho 6902), (rho 6903), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6648), (rho 6649), (rho 6650), (rho 6651), (rho 6652), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part35_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart35 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) k := by
   unfold Seg9.relationPart35 Seg9.relationRow175 Seg9.relationRow176 Seg9.relationRow177 Seg9.relationRow178 Seg9.relationRow179 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35
-  exact ⟨(rho 6904), (rho 6905), (rho 6906), (rho 6907), (rho 6908), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6653), (rho 6654), (rho 6655), (rho 6656), (rho 6657), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part36_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart36 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) k := by
   unfold Seg9.relationPart36 Seg9.relationRow180 Seg9.relationRow181 Seg9.relationRow182 Seg9.relationRow183 Seg9.relationRow184 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36
-  exact ⟨(rho 6909), (rho 6910), (rho 6911), (rho 6912), (rho 6913), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6658), (rho 6659), (rho 6660), (rho 6661), (rho 6662), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part37_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart37 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) k := by
   unfold Seg9.relationPart37 Seg9.relationRow185 Seg9.relationRow186 Seg9.relationRow187 Seg9.relationRow188 Seg9.relationRow189 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37
-  exact ⟨(rho 6914), (rho 6915), (rho 6916), (rho 6917), (rho 6918), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6663), (rho 6664), (rho 6665), (rho 6666), (rho 6667), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part38_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart38 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) k := by
   unfold Seg9.relationPart38 Seg9.relationRow190 Seg9.relationRow191 Seg9.relationRow192 Seg9.relationRow193 Seg9.relationRow194 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38
-  exact ⟨(rho 6919), (rho 6920), (rho 6921), (rho 6922), (rho 6923), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6668), (rho 6669), (rho 6670), (rho 6671), (rho 6672), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part39_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart39 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) k := by
   unfold Seg9.relationPart39 Seg9.relationRow195 Seg9.relationRow196 Seg9.relationRow197 Seg9.relationRow198 Seg9.relationRow199 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39
-  exact ⟨(rho 6924), (rho 6925), (rho 6926), (rho 6927), (rho 6928), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6673), (rho 6674), (rho 6675), (rho 6676), (rho 6677), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part40_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart40 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) k := by
   unfold Seg9.relationPart40 Seg9.relationRow200 Seg9.relationRow201 Seg9.relationRow202 Seg9.relationRow203 Seg9.relationRow204 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40
-  exact ⟨(rho 6929), (rho 6930), (rho 6931), (rho 6932), (rho 6933), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6678), (rho 6679), (rho 6680), (rho 6681), (rho 6682), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part41_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart41 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) k := by
   unfold Seg9.relationPart41 Seg9.relationRow205 Seg9.relationRow206 Seg9.relationRow207 Seg9.relationRow208 Seg9.relationRow209 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41
-  exact ⟨(rho 6934), (rho 6935), (rho 6936), (rho 6937), (rho 6938), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6683), (rho 6684), (rho 6685), (rho 6686), (rho 6687), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part42_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart42 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) k := by
   unfold Seg9.relationPart42 Seg9.relationRow210 Seg9.relationRow211 Seg9.relationRow212 Seg9.relationRow213 Seg9.relationRow214 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42
-  exact ⟨(rho 6939), (rho 6940), (rho 6941), (rho 6942), (rho 6943), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6688), (rho 6689), (rho 6690), (rho 6691), (rho 6692), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part43_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart43 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) k := by
   unfold Seg9.relationPart43 Seg9.relationRow215 Seg9.relationRow216 Seg9.relationRow217 Seg9.relationRow218 Seg9.relationRow219 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43
-  exact ⟨(rho 6944), (rho 6945), (rho 6946), (rho 6947), (rho 6948), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6693), (rho 6694), (rho 6695), (rho 6696), (rho 6697), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part44_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart44 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) k := by
   unfold Seg9.relationPart44 Seg9.relationRow220 Seg9.relationRow221 Seg9.relationRow222 Seg9.relationRow223 Seg9.relationRow224 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44
-  exact ⟨(rho 6949), (rho 6950), (rho 6951), (rho 6952), (rho 6953), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6698), (rho 6699), (rho 6700), (rho 6701), (rho 6702), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part45_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart45 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) k := by
   unfold Seg9.relationPart45 Seg9.relationRow225 Seg9.relationRow226 Seg9.relationRow227 Seg9.relationRow228 Seg9.relationRow229 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45
-  exact ⟨(rho 6954), (rho 6955), (rho 6956), (rho 6957), (rho 6958), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6703), (rho 6704), (rho 6705), (rho 6706), (rho 6707), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part46_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart46 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) k := by
   unfold Seg9.relationPart46 Seg9.relationRow230 Seg9.relationRow231 Seg9.relationRow232 Seg9.relationRow233 Seg9.relationRow234 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46
-  exact ⟨(rho 6959), (rho 6960), (rho 6961), (rho 6962), (rho 6963), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6708), (rho 6709), (rho 6710), (rho 6711), (rho 6712), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part47_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart47 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) k := by
   unfold Seg9.relationPart47 Seg9.relationRow235 Seg9.relationRow236 Seg9.relationRow237 Seg9.relationRow238 Seg9.relationRow239 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47
-  exact ⟨(rho 6964), (rho 6965), (rho 6966), (rho 6967), (rho 6968), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6713), (rho 6714), (rho 6715), (rho 6716), (rho 6717), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part48_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart48 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) k := by
   unfold Seg9.relationPart48 Seg9.relationRow240 Seg9.relationRow241 Seg9.relationRow242 Seg9.relationRow243 Seg9.relationRow244 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48
-  exact ⟨(rho 6969), (rho 6970), (rho 6971), (rho 6972), (rho 6973), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6718), (rho 6719), (rho 6720), (rho 6721), (rho 6722), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part49_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart49 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) k := by
   unfold Seg9.relationPart49 Seg9.relationRow245 Seg9.relationRow246 Seg9.relationRow247 Seg9.relationRow248 Seg9.relationRow249 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49
-  exact ⟨(rho 6974), (rho 6975), (rho 6976), (rho 6977), (rho 6978), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6723), (rho 6724), (rho 6725), (rho 6726), (rho 6727), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part50_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart50 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) k := by
   unfold Seg9.relationPart50 Seg9.relationRow250 Seg9.relationRow251 Seg9.relationRow252 Seg9.relationRow253 Seg9.relationRow254 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50
-  exact ⟨(rho 6979), (rho 6980), (rho 6981), (rho 6982), (rho 6983), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6728), (rho 6729), (rho 6730), (rho 6731), (rho 6732), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part51_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart51 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) k := by
   unfold Seg9.relationPart51 Seg9.relationRow255 Seg9.relationRow256 Seg9.relationRow257 Seg9.relationRow258 Seg9.relationRow259 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51
-  exact ⟨(rho 6984), (rho 6985), (rho 6986), (rho 6987), (rho 6988), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6733), (rho 6734), (rho 6735), (rho 6736), (rho 6737), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part52_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart52 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) k := by
   unfold Seg9.relationPart52 Seg9.relationRow260 Seg9.relationRow261 Seg9.relationRow262 Seg9.relationRow263 Seg9.relationRow264 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52
-  exact ⟨(rho 6989), (rho 6990), (rho 6991), (rho 6992), (rho 6993), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6738), (rho 6739), (rho 6740), (rho 6741), (rho 6742), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part53_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart53 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) k := by
   unfold Seg9.relationPart53 Seg9.relationRow265 Seg9.relationRow266 Seg9.relationRow267 Seg9.relationRow268 Seg9.relationRow269 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53
-  exact ⟨(rho 6994), (rho 6995), (rho 6996), (rho 6997), (rho 6998), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6743), (rho 6744), (rho 6745), (rho 6746), (rho 6747), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part54_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart54 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) k := by
   unfold Seg9.relationPart54 Seg9.relationRow270 Seg9.relationRow271 Seg9.relationRow272 Seg9.relationRow273 Seg9.relationRow274 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54
-  exact ⟨(rho 6999), (rho 7000), (rho 7001), (rho 7002), (rho 7003), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6748), (rho 6749), (rho 6750), (rho 6751), (rho 6752), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part55_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart55 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) k := by
   unfold Seg9.relationPart55 Seg9.relationRow275 Seg9.relationRow276 Seg9.relationRow277 Seg9.relationRow278 Seg9.relationRow279 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55
-  exact ⟨(rho 7004), (rho 7005), (rho 7006), (rho 7007), (rho 7008), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6753), (rho 6754), (rho 6755), (rho 6756), (rho 6757), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part56_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart56 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) k := by
   unfold Seg9.relationPart56 Seg9.relationRow280 Seg9.relationRow281 Seg9.relationRow282 Seg9.relationRow283 Seg9.relationRow284 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56
-  exact ⟨(rho 7009), (rho 7010), (rho 7011), (rho 7012), (rho 7013), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6758), (rho 6759), (rho 6760), (rho 6761), (rho 6762), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part57_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart57 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) k := by
   unfold Seg9.relationPart57 Seg9.relationRow285 Seg9.relationRow286 Seg9.relationRow287 Seg9.relationRow288 Seg9.relationRow289 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57
-  exact ⟨(rho 7014), (rho 7015), (rho 7016), (rho 7017), (rho 7018), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6763), (rho 6764), (rho 6765), (rho 6766), (rho 6767), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part58_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart58 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) k := by
   unfold Seg9.relationPart58 Seg9.relationRow290 Seg9.relationRow291 Seg9.relationRow292 Seg9.relationRow293 Seg9.relationRow294 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58
-  exact ⟨(rho 7019), (rho 7020), (rho 7021), (rho 7022), (rho 7023), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6768), (rho 6769), (rho 6770), (rho 6771), (rho 6772), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part59_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart59 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) k := by
   unfold Seg9.relationPart59 Seg9.relationRow295 Seg9.relationRow296 Seg9.relationRow297 Seg9.relationRow298 Seg9.relationRow299 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59
-  exact ⟨(rho 7024), (rho 7025), (rho 7026), (rho 7027), (rho 7028), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6773), (rho 6774), (rho 6775), (rho 6776), (rho 6777), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part60_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart60 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) (rho 7033)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) (rho 6782)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) k := by
   unfold Seg9.relationPart60 Seg9.relationRow300 Seg9.relationRow301 Seg9.relationRow302 Seg9.relationRow303 Seg9.relationRow304 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60
-  exact ⟨(rho 7029), (rho 7030), (rho 7031), (rho 7032), (rho 7033), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6778), (rho 6779), (rho 6780), (rho 6781), (rho 6782), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part61_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart61 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) (rho 7033) (rho 7038)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) (rho 7033) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) (rho 6782) (rho 6787)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) (rho 6782) k := by
   unfold Seg9.relationPart61 Seg9.relationRow305 Seg9.relationRow306 Seg9.relationRow307 Seg9.relationRow308 Seg9.relationRow309 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61
-  exact ⟨(rho 7034), (rho 7035), (rho 7036), (rho 7037), (rho 7038), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6783), (rho 6784), (rho 6785), (rho 6786), (rho 6787), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part62_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart62 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) (rho 7033) (rho 7038) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) (rho 6782) (rho 6787) k := by
   unfold Seg9.relationPart62 Seg9.relationRow310 Seg9.relationRow311 Seg9.relationRow312 Seg9.relationRow313 Seg9.relationRow314 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62
-  exact ⟨(rho 7039), (rho 7040), (rho 7041), (rho 7042), (rho 7043), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6788), (rho 6789), (rho 6790), (rho 6791), (rho 6792), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part63_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart63 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) k := by
   unfold Seg9.relationPart63 Seg9.relationRow315 Seg9.relationRow316 Seg9.relationRow317 Seg9.relationRow318 Seg9.relationRow319 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63
-  exact ⟨(rho 7044), (rho 7045), (rho 7046), (rho 7047), (rho 7048), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6793), (rho 6794), (rho 6795), (rho 6796), (rho 6797), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part64_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart64 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64 (rho 6833) (rho 6838) (rho 6843) (rho 6848) (rho 6853) (rho 6858) (rho 6863) (rho 6868) (rho 6873) (rho 6878) (rho 6883) (rho 6888) (rho 6893) (rho 6898) (rho 6903) (rho 6908) (rho 6913) (rho 6918) (rho 6923) (rho 6928) (rho 6933) (rho 6938) (rho 6943) (rho 6948) (rho 6953) (rho 6958) (rho 6963) (rho 6968) (rho 6973) (rho 6978) (rho 6983) (rho 6988) (rho 6993) (rho 6998) (rho 7003) (rho 7008) (rho 7013) (rho 7018) (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64 (rho 6582) (rho 6587) (rho 6592) (rho 6597) (rho 6602) (rho 6607) (rho 6612) (rho 6617) (rho 6622) (rho 6627) (rho 6632) (rho 6637) (rho 6642) (rho 6647) (rho 6652) (rho 6657) (rho 6662) (rho 6667) (rho 6672) (rho 6677) (rho 6682) (rho 6687) (rho 6692) (rho 6697) (rho 6702) (rho 6707) (rho 6712) (rho 6717) (rho 6722) (rho 6727) (rho 6732) (rho 6737) (rho 6742) (rho 6747) (rho 6752) (rho 6757) (rho 6762) (rho 6767) (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) k := by
   unfold Seg9.relationPart64 Seg9.relationRow320 Seg9.relationRow321 Seg9.relationRow322 Seg9.relationRow323 Seg9.relationRow324 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64
-  exact ⟨(rho 7049), (rho 7050), (rho 7051), (rho 7052), (rho 7053), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6798), (rho 6799), (rho 6800), (rho 6801), (rho 6802), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part65_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart65 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65 (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65 (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) k := by
   unfold Seg9.relationPart65 Seg9.relationRow325 Seg9.relationRow326 Seg9.relationRow327 Seg9.relationRow328 Seg9.relationRow329 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65
-  exact ⟨(rho 7054), (rho 7055), (rho 7056), (rho 7057), (rho 7058), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6803), (rho 6804), (rho 6805), (rho 6806), (rho 6807), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part66_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart66 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66 (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66 (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) k := by
   unfold Seg9.relationPart66 Seg9.relationRow330 Seg9.relationRow331 Seg9.relationRow332 Seg9.relationRow333 Seg9.relationRow334 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66
-  exact ⟨(rho 7059), (rho 7060), (rho 7061), (rho 7062), (rho 7063), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6808), (rho 6809), (rho 6810), (rho 6811), (rho 6812), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part67_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart67 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) (rho 7068)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67 (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) (rho 6817)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67 (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) k := by
   unfold Seg9.relationPart67 Seg9.relationRow335 Seg9.relationRow336 Seg9.relationRow337 Seg9.relationRow338 Seg9.relationRow339 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67
-  exact ⟨(rho 7064), (rho 7065), (rho 7066), (rho 7067), (rho 7068), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6813), (rho 6814), (rho 6815), (rho 6816), (rho 6817), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part68_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart68 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) (rho 7068) (rho 7073)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68 (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) (rho 7068) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) (rho 6817) (rho 6822)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68 (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) (rho 6817) k := by
   unfold Seg9.relationPart68 Seg9.relationRow340 Seg9.relationRow341 Seg9.relationRow342 Seg9.relationRow343 Seg9.relationRow344 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68
-  exact ⟨(rho 7069), (rho 7070), (rho 7071), (rho 7072), (rho 7073), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6818), (rho 6819), (rho 6820), (rho 6821), (rho 6822), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part69_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart69 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69 (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) (rho 7068) (rho 7073) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69 (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) (rho 6817) (rho 6822) k := by
   unfold Seg9.relationPart69 Seg9.relationRow345 Seg9.relationRow346 Seg9.relationRow347 Seg9.relationRow348 Seg9.relationRow349 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69
-  exact ⟨(rho 7074), (rho 7075), (rho 7076), (rho 7077), (rho 7078), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6823), (rho 6824), (rho 6825), (rho 6826), (rho 6827), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part70_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart70 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70 (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70 (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) k := by
   unfold Seg9.relationPart70 Seg9.relationRow350 Seg9.relationRow351 Seg9.relationRow352 Seg9.relationRow353 Seg9.relationRow354 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70
-  exact ⟨(rho 7079), (rho 7080), (rho 7081), (rho 7082), (rho 7083), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6828), (rho 6829), (rho 6830), (rho 6831), (rho 6832), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part71_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart71 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71 (rho 7023) (rho 7028) (rho 7033) (rho 7038) (rho 7043) (rho 7048) (rho 7053) (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71 (rho 6772) (rho 6777) (rho 6782) (rho 6787) (rho 6792) (rho 6797) (rho 6802) (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) k := by
   unfold Seg9.relationPart71 Seg9.relationRow355 Seg9.relationRow356 Seg9.relationRow357 Seg9.relationRow358 Seg9.relationRow359 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71
-  exact ⟨(rho 7084), (rho 7085), (rho 7086), (rho 7087), (rho 7088), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6833), (rho 6834), (rho 6835), (rho 6836), (rho 6837), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part72_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart72 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72 (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72 (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) k := by
   unfold Seg9.relationPart72 Seg9.relationRow360 Seg9.relationRow361 Seg9.relationRow362 Seg9.relationRow363 Seg9.relationRow364 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72
-  exact ⟨(rho 7089), (rho 7090), (rho 7091), (rho 7092), (rho 7093), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6838), (rho 6839), (rho 6840), (rho 6841), (rho 6842), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part73_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart73 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73 (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73 (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) k := by
   unfold Seg9.relationPart73 Seg9.relationRow365 Seg9.relationRow366 Seg9.relationRow367 Seg9.relationRow368 Seg9.relationRow369 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73
-  exact ⟨(rho 7094), (rho 7095), (rho 7096), (rho 7097), (rho 7098), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6843), (rho 6844), (rho 6845), (rho 6846), (rho 6847), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part74_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart74 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) (rho 7103)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74 (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) (rho 6852)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74 (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) k := by
   unfold Seg9.relationPart74 Seg9.relationRow370 Seg9.relationRow371 Seg9.relationRow372 Seg9.relationRow373 Seg9.relationRow374 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74
-  exact ⟨(rho 7099), (rho 7100), (rho 7101), (rho 7102), (rho 7103), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6848), (rho 6849), (rho 6850), (rho 6851), (rho 6852), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part75_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart75 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) (rho 7103) (rho 7108)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75 (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) (rho 7103) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) (rho 6852) (rho 6857)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75 (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) (rho 6852) k := by
   unfold Seg9.relationPart75 Seg9.relationRow375 Seg9.relationRow376 Seg9.relationRow377 Seg9.relationRow378 Seg9.relationRow379 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75
-  exact ⟨(rho 7104), (rho 7105), (rho 7106), (rho 7107), (rho 7108), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6853), (rho 6854), (rho 6855), (rho 6856), (rho 6857), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part76_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart76 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76 (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) (rho 7103) (rho 7108) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76 (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) (rho 6852) (rho 6857) k := by
   unfold Seg9.relationPart76 Seg9.relationRow380 Seg9.relationRow381 Seg9.relationRow382 Seg9.relationRow383 Seg9.relationRow384 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76
-  exact ⟨(rho 7109), (rho 7110), (rho 7111), (rho 7112), (rho 7113), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6858), (rho 6859), (rho 6860), (rho 6861), (rho 6862), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part77_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart77 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77 (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77 (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) k := by
   unfold Seg9.relationPart77 Seg9.relationRow385 Seg9.relationRow386 Seg9.relationRow387 Seg9.relationRow388 Seg9.relationRow389 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77
-  exact ⟨(rho 7114), (rho 7115), (rho 7116), (rho 7117), (rho 7118), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6863), (rho 6864), (rho 6865), (rho 6866), (rho 6867), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part78_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart78 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78 (rho 7058) (rho 7063) (rho 7068) (rho 7073) (rho 7078) (rho 7083) (rho 7088) (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78 (rho 6807) (rho 6812) (rho 6817) (rho 6822) (rho 6827) (rho 6832) (rho 6837) (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) k := by
   unfold Seg9.relationPart78 Seg9.relationRow390 Seg9.relationRow391 Seg9.relationRow392 Seg9.relationRow393 Seg9.relationRow394 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78
-  exact ⟨(rho 7119), (rho 7120), (rho 7121), (rho 7122), (rho 7123), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6868), (rho 6869), (rho 6870), (rho 6871), (rho 6872), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part79_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart79 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79 (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79 (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) k := by
   unfold Seg9.relationPart79 Seg9.relationRow395 Seg9.relationRow396 Seg9.relationRow397 Seg9.relationRow398 Seg9.relationRow399 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79
-  exact ⟨(rho 7124), (rho 7125), (rho 7126), (rho 7127), (rho 7128), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6873), (rho 6874), (rho 6875), (rho 6876), (rho 6877), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part80_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart80 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80 (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80 (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) k := by
   unfold Seg9.relationPart80 Seg9.relationRow400 Seg9.relationRow401 Seg9.relationRow402 Seg9.relationRow403 Seg9.relationRow404 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80
-  exact ⟨(rho 7129), (rho 7130), (rho 7131), (rho 7132), (rho 7133), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6878), (rho 6879), (rho 6880), (rho 6881), (rho 6882), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part81_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart81 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) (rho 7138)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81 (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) (rho 6887)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81 (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) k := by
   unfold Seg9.relationPart81 Seg9.relationRow405 Seg9.relationRow406 Seg9.relationRow407 Seg9.relationRow408 Seg9.relationRow409 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81
-  exact ⟨(rho 7134), (rho 7135), (rho 7136), (rho 7137), (rho 7138), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6883), (rho 6884), (rho 6885), (rho 6886), (rho 6887), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part82_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart82 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) (rho 7138) (rho 7143)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82 (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) (rho 7138) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) (rho 6887) (rho 6892)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82 (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) (rho 6887) k := by
   unfold Seg9.relationPart82 Seg9.relationRow410 Seg9.relationRow411 Seg9.relationRow412 Seg9.relationRow413 Seg9.relationRow414 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82
-  exact ⟨(rho 7139), (rho 7140), (rho 7141), (rho 7142), (rho 7143), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6888), (rho 6889), (rho 6890), (rho 6891), (rho 6892), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part83_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart83 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) (rho 7138) (rho 7143) (rho 7148)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) (rho 7138) (rho 7143) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) (rho 6887) (rho 6892) (rho 6897)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) (rho 6887) (rho 6892) k := by
   unfold Seg9.relationPart83 Seg9.relationRow415 Seg9.relationRow416 Seg9.relationRow417 Seg9.relationRow418 Seg9.relationRow419 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83
-  exact ⟨(rho 7144), (rho 7145), (rho 7146), (rho 7147), (rho 7148), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6893), (rho 6894), (rho 6895), (rho 6896), (rho 6897), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part84_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart84 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) (rho 7138) (rho 7143) (rho 7148) (rho 7153)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) (rho 7138) (rho 7143) (rho 7148) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) (rho 6887) (rho 6892) (rho 6897) (rho 6902)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) (rho 6887) (rho 6892) (rho 6897) k := by
   unfold Seg9.relationPart84 Seg9.relationRow420 Seg9.relationRow421 Seg9.relationRow422 Seg9.relationRow423 Seg9.relationRow424 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84
-  exact ⟨(rho 7149), (rho 7150), (rho 7151), (rho 7152), (rho 7153), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6898), (rho 6899), (rho 6900), (rho 6901), (rho 6902), h0, h1, h2, h3, h4, hk⟩
 
 theorem seg9_part85_to_extracted (rho : Nat → Seg9.F)
     (h : Seg9.relationPart85 rho)
-    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 7128) (rho 7133) (rho 7138) (rho 7143) (rho 7148) (rho 7153) (rho 7158)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 (rho 7093) (rho 7098) (rho 7103) (rho 7108) (rho 7113) (rho 7118) (rho 7123) (rho 7128) (rho 7133) (rho 7138) (rho 7143) (rho 7148) (rho 7153) k := by
+    {k : Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Seg9.F → Prop} (hk : k (rho 6877) (rho 6882) (rho 6887) (rho 6892) (rho 6897) (rho 6902) (rho 6907)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 (rho 6842) (rho 6847) (rho 6852) (rho 6857) (rho 6862) (rho 6867) (rho 6872) (rho 6877) (rho 6882) (rho 6887) (rho 6892) (rho 6897) (rho 6902) k := by
   unfold Seg9.relationPart85 Seg9.relationRow425 Seg9.relationRow426 Seg9.relationRow427 Seg9.relationRow428 Seg9.relationRow429 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85
-  exact ⟨(rho 7154), (rho 7155), (rho 7156), (rho 7157), (rho 7158), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 6903), (rho 6904), (rho 6905), (rho 6906), (rho 6907), h0, h1, h2, h3, h4, hk⟩
 
 def seg9NotePrefix (rho : Nat → Seg9.F) : Prop :=
-  Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) (fun w15 w16 w19 w22 w572 w912 w917 =>
+  Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) (fun w15 w16 w19 w22 w572 w912 w917 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 w15 w16 w19 w22 w572 w912 w917 (fun w16 w19 w22 w572 w912 w917 w922 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 w16 w19 w22 w572 w912 w917 w922 (fun w19 w22 w572 w912 w917 w922 w927 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 w19 w22 w572 w912 w917 w922 w927 (fun w19 w22 w917 w922 w927 w932 =>
@@ -869,7 +869,7 @@ def seg9NotePrefix (rho : Nat → Seg9.F) : Prop :=
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 (fun w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 (fun w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 w1337 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 w1337 (fun w1312 w1317 w1322 w1327 w1332 w1337 w1342 =>
-  w1312 = (rho 7128) ∧ w1317 = (rho 7133) ∧ w1322 = (rho 7138) ∧ w1327 = (rho 7143) ∧ w1332 = (rho 7148) ∧ w1337 = (rho 7153) ∧ w1342 = (rho 7158)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  w1312 = (rho 6877) ∧ w1317 = (rho 6882) ∧ w1322 = (rho 6887) ∧ w1327 = (rho 6892) ∧ w1332 = (rho 6897) ∧ w1337 = (rho 6902) ∧ w1342 = (rho 6907)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
 theorem seg9_relation_to_note_prefix (rho : Nat → Seg9.F)
     (h : Seg9.relation rho) : seg9NotePrefix rho := by
@@ -978,807 +978,807 @@ theorem seg9_relation_to_note_prefix (rho : Nat → Seg9.F)
 
 theorem seg9_sound (rho : Nat → Seg9.F) (h : Seg9.relation rho) : Seg9.spec rho := by
   have hPrefix := seg9_relation_to_note_prefix rho h
-  have r0 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range0_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) _ hPrefix
+  have r0 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range0_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) _ hPrefix
   rcases r0 with ⟨w917, w922, w927, w932, w937, w942, hSpec0, h⟩
-  have r1 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range1_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w917 w922 w927 w932 w937 w942 _ hSpec0 h
+  have r1 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range1_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w917 w922 w927 w932 w937 w942 _ hSpec0 h
   rcases r1 with ⟨w947, w952, w957, w962, w967, w972, w977, hSpec1, h⟩
-  have r2 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range2_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w947 w952 w957 w962 w967 w972 w977 _ hSpec1 h
+  have r2 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range2_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w947 w952 w957 w962 w967 w972 w977 _ hSpec1 h
   rcases r2 with ⟨w982, w987, w992, w997, w1002, w1007, w1012, hSpec2, h⟩
-  have r3 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range3_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w982 w987 w992 w997 w1002 w1007 w1012 _ hSpec2 h
+  have r3 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range3_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w982 w987 w992 w997 w1002 w1007 w1012 _ hSpec2 h
   rcases r3 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, hSpec3, h⟩
-  have r4 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range4_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w1017 w1022 w1027 w1032 w1037 w1042 w1047 _ hSpec3 h
+  have r4 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range4_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 _ hSpec3 h
   rcases r4 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, hSpec13, h⟩
-  have r5 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range5_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 _ hSpec13 h
+  have r5 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range5_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 _ hSpec13 h
   rcases r5 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, w1102, w1107, w1112, w1117, w1122, w1127, w1132, w1137, w1142, w1147, hSpec23, h⟩
-  have r6 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range6_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 _ hSpec23 h
+  have r6 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range6_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 _ hSpec23 h
   rcases r6 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, w1102, w1107, w1112, w1117, w1122, w1127, w1132, w1137, w1142, w1147, w1152, w1157, w1162, w1167, w1172, w1177, w1182, w1187, w1192, w1197, w1202, hSpec34, h⟩
-  have r7 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range7_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 w1152 w1157 w1162 w1167 w1172 w1177 w1182 w1187 w1192 w1197 w1202 _ hSpec34 h
+  have r7 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range7_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 w1152 w1157 w1162 w1167 w1172 w1177 w1182 w1187 w1192 w1197 w1202 _ hSpec34 h
   rcases r7 with ⟨w1207, w1212, w1217, w1222, w1227, w1232, w1237, hSpec35, h⟩
-  have r8 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range8_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w1207 w1212 w1217 w1222 w1227 w1232 w1237 _ hSpec35 h
+  have r8 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range8_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w1207 w1212 w1217 w1222 w1227 w1232 w1237 _ hSpec35 h
   rcases r8 with ⟨w1242, w1247, w1252, w1257, w1262, w1267, w1272, hSpec36, h⟩
-  have r9 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range9_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w1242 w1247 w1252 w1257 w1262 w1267 w1272 _ hSpec36 h
+  have r9 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range9_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w1242 w1247 w1252 w1257 w1262 w1267 w1272 _ hSpec36 h
   rcases r9 with ⟨w1277, w1282, w1287, w1292, w1297, w1302, w1307, hSpec37, h⟩
-  have r10 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range10_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 6388) (rho 6728) w1277 w1282 w1287 w1292 w1297 w1302 w1307 _ hSpec37 h
+  have r10 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range10_sound (rho 14) (rho 15) (rho 16) (rho 19) (rho 22) (rho 572) (rho 912) w1277 w1282 w1287 w1292 w1297 w1302 w1307 _ hSpec37 h
   rcases r10 with ⟨w1312, w1317, w1322, w1327, w1332, w1337, w1342, hSpec38, hk⟩
   rcases hk with ⟨hw1312, hw1317, hw1322, hw1327, hw1332, hw1337, hw1342⟩
   simpa [Seg9.spec, Specs.deployedSpec9, hw1312, hw1317, hw1322, hw1327, hw1332, hw1337, hw1342] using hSpec38
 
-theorem seg25_part0_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart0 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) (rho 19617)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) k := by
-  unfold Seg25.relationPart0 Seg25.relationRow0 Seg25.relationRow1 Seg25.relationRow2 Seg25.relationRow3 Seg25.relationRow4 at h
+theorem seg24_part0_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart0 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) (rho 18663)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) k := by
+  unfold Seg24.relationPart0 Seg24.relationRow0 Seg24.relationRow1 Seg24.relationRow2 Seg24.relationRow3 Seg24.relationRow4 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0
-  exact ⟨(rho 19613), (rho 19614), (rho 19615), (rho 19616), (rho 19617), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18659), (rho 18660), (rho 18661), (rho 18662), (rho 18663), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part1_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart1 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) (rho 19617) (rho 19622)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) (rho 19617) k := by
-  unfold Seg25.relationPart1 Seg25.relationRow5 Seg25.relationRow6 Seg25.relationRow7 Seg25.relationRow8 Seg25.relationRow9 at h
+theorem seg24_part1_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart1 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) (rho 18663) (rho 18668)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) (rho 18663) k := by
+  unfold Seg24.relationPart1 Seg24.relationRow5 Seg24.relationRow6 Seg24.relationRow7 Seg24.relationRow8 Seg24.relationRow9 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1
-  exact ⟨(rho 19618), (rho 19619), (rho 19620), (rho 19621), (rho 19622), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18664), (rho 18665), (rho 18666), (rho 18667), (rho 18668), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part2_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart2 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 109) (rho 112) (rho 19272) (rho 19612) (rho 19617) (rho 19622) (rho 19627)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) (rho 19617) (rho 19622) k := by
-  unfold Seg25.relationPart2 Seg25.relationRow10 Seg25.relationRow11 Seg25.relationRow12 Seg25.relationRow13 Seg25.relationRow14 at h
+theorem seg24_part2_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart2 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 109) (rho 112) (rho 572) (rho 912) (rho 18663) (rho 18668) (rho 18673)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) (rho 18663) (rho 18668) k := by
+  unfold Seg24.relationPart2 Seg24.relationRow10 Seg24.relationRow11 Seg24.relationRow12 Seg24.relationRow13 Seg24.relationRow14 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2
-  exact ⟨(rho 19623), (rho 19624), (rho 19625), (rho 19626), (rho 19627), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18669), (rho 18670), (rho 18671), (rho 18672), (rho 18673), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part3_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart3 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 109) (rho 112) (rho 19617) (rho 19622) (rho 19627) (rho 19632)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 (rho 109) (rho 112) (rho 19272) (rho 19612) (rho 19617) (rho 19622) (rho 19627) k := by
-  unfold Seg25.relationPart3 Seg25.relationRow15 Seg25.relationRow16 Seg25.relationRow17 Seg25.relationRow18 Seg25.relationRow19 at h
+theorem seg24_part3_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart3 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 109) (rho 112) (rho 18663) (rho 18668) (rho 18673) (rho 18678)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 (rho 109) (rho 112) (rho 572) (rho 912) (rho 18663) (rho 18668) (rho 18673) k := by
+  unfold Seg24.relationPart3 Seg24.relationRow15 Seg24.relationRow16 Seg24.relationRow17 Seg24.relationRow18 Seg24.relationRow19 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3
-  exact ⟨(rho 19628), (rho 19629), (rho 19630), (rho 19631), (rho 19632), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18674), (rho 18675), (rho 18676), (rho 18677), (rho 18678), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part4_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart4 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 112) (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4 (rho 109) (rho 112) (rho 19617) (rho 19622) (rho 19627) (rho 19632) k := by
-  unfold Seg25.relationPart4 Seg25.relationRow20 Seg25.relationRow21 Seg25.relationRow22 Seg25.relationRow23 Seg25.relationRow24 at h
+theorem seg24_part4_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart4 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 112) (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4 (rho 109) (rho 112) (rho 18663) (rho 18668) (rho 18673) (rho 18678) k := by
+  unfold Seg24.relationPart4 Seg24.relationRow20 Seg24.relationRow21 Seg24.relationRow22 Seg24.relationRow23 Seg24.relationRow24 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4
-  exact ⟨(rho 19633), (rho 19634), (rho 19635), (rho 19636), (rho 19637), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18679), (rho 18680), (rho 18681), (rho 18682), (rho 18683), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part5_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart5 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5 (rho 112) (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) k := by
-  unfold Seg25.relationPart5 Seg25.relationRow25 Seg25.relationRow26 Seg25.relationRow27 Seg25.relationRow28 Seg25.relationRow29 at h
+theorem seg24_part5_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart5 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5 (rho 112) (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) k := by
+  unfold Seg24.relationPart5 Seg24.relationRow25 Seg24.relationRow26 Seg24.relationRow27 Seg24.relationRow28 Seg24.relationRow29 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5
-  exact ⟨(rho 19638), (rho 19639), (rho 19640), (rho 19641), (rho 19642), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18684), (rho 18685), (rho 18686), (rho 18687), (rho 18688), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part6_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart6 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6 (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) k := by
-  unfold Seg25.relationPart6 Seg25.relationRow30 Seg25.relationRow31 Seg25.relationRow32 Seg25.relationRow33 Seg25.relationRow34 at h
+theorem seg24_part6_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart6 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6 (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) k := by
+  unfold Seg24.relationPart6 Seg24.relationRow30 Seg24.relationRow31 Seg24.relationRow32 Seg24.relationRow33 Seg24.relationRow34 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6
-  exact ⟨(rho 19643), (rho 19644), (rho 19645), (rho 19646), (rho 19647), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18689), (rho 18690), (rho 18691), (rho 18692), (rho 18693), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part7_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart7 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7 (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) k := by
-  unfold Seg25.relationPart7 Seg25.relationRow35 Seg25.relationRow36 Seg25.relationRow37 Seg25.relationRow38 Seg25.relationRow39 at h
+theorem seg24_part7_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart7 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7 (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) k := by
+  unfold Seg24.relationPart7 Seg24.relationRow35 Seg24.relationRow36 Seg24.relationRow37 Seg24.relationRow38 Seg24.relationRow39 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7
-  exact ⟨(rho 19648), (rho 19649), (rho 19650), (rho 19651), (rho 19652), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18694), (rho 18695), (rho 18696), (rho 18697), (rho 18698), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part8_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart8 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) (rho 19657)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8 (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) k := by
-  unfold Seg25.relationPart8 Seg25.relationRow40 Seg25.relationRow41 Seg25.relationRow42 Seg25.relationRow43 Seg25.relationRow44 at h
+theorem seg24_part8_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart8 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) (rho 18703)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8 (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) k := by
+  unfold Seg24.relationPart8 Seg24.relationRow40 Seg24.relationRow41 Seg24.relationRow42 Seg24.relationRow43 Seg24.relationRow44 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8
-  exact ⟨(rho 19653), (rho 19654), (rho 19655), (rho 19656), (rho 19657), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18699), (rho 18700), (rho 18701), (rho 18702), (rho 18703), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part9_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart9 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) (rho 19657) (rho 19662)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9 (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) (rho 19657) k := by
-  unfold Seg25.relationPart9 Seg25.relationRow45 Seg25.relationRow46 Seg25.relationRow47 Seg25.relationRow48 Seg25.relationRow49 at h
+theorem seg24_part9_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart9 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) (rho 18703) (rho 18708)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9 (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) (rho 18703) k := by
+  unfold Seg24.relationPart9 Seg24.relationRow45 Seg24.relationRow46 Seg24.relationRow47 Seg24.relationRow48 Seg24.relationRow49 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9
-  exact ⟨(rho 19658), (rho 19659), (rho 19660), (rho 19661), (rho 19662), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18704), (rho 18705), (rho 18706), (rho 18707), (rho 18708), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part10_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart10 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10 (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) (rho 19657) (rho 19662) k := by
-  unfold Seg25.relationPart10 Seg25.relationRow50 Seg25.relationRow51 Seg25.relationRow52 Seg25.relationRow53 Seg25.relationRow54 at h
+theorem seg24_part10_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart10 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10 (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) (rho 18703) (rho 18708) k := by
+  unfold Seg24.relationPart10 Seg24.relationRow50 Seg24.relationRow51 Seg24.relationRow52 Seg24.relationRow53 Seg24.relationRow54 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10
-  exact ⟨(rho 19663), (rho 19664), (rho 19665), (rho 19666), (rho 19667), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18709), (rho 18710), (rho 18711), (rho 18712), (rho 18713), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part11_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart11 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11 (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) k := by
-  unfold Seg25.relationPart11 Seg25.relationRow55 Seg25.relationRow56 Seg25.relationRow57 Seg25.relationRow58 Seg25.relationRow59 at h
+theorem seg24_part11_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart11 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11 (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) k := by
+  unfold Seg24.relationPart11 Seg24.relationRow55 Seg24.relationRow56 Seg24.relationRow57 Seg24.relationRow58 Seg24.relationRow59 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11
-  exact ⟨(rho 19668), (rho 19669), (rho 19670), (rho 19671), (rho 19672), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18714), (rho 18715), (rho 18716), (rho 18717), (rho 18718), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part12_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart12 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12 (rho 19617) (rho 19622) (rho 19627) (rho 19632) (rho 19637) (rho 19642) (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) k := by
-  unfold Seg25.relationPart12 Seg25.relationRow60 Seg25.relationRow61 Seg25.relationRow62 Seg25.relationRow63 Seg25.relationRow64 at h
+theorem seg24_part12_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart12 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12 (rho 18663) (rho 18668) (rho 18673) (rho 18678) (rho 18683) (rho 18688) (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) k := by
+  unfold Seg24.relationPart12 Seg24.relationRow60 Seg24.relationRow61 Seg24.relationRow62 Seg24.relationRow63 Seg24.relationRow64 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12
-  exact ⟨(rho 19673), (rho 19674), (rho 19675), (rho 19676), (rho 19677), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18719), (rho 18720), (rho 18721), (rho 18722), (rho 18723), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part13_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart13 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13 (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) k := by
-  unfold Seg25.relationPart13 Seg25.relationRow65 Seg25.relationRow66 Seg25.relationRow67 Seg25.relationRow68 Seg25.relationRow69 at h
+theorem seg24_part13_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart13 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13 (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) k := by
+  unfold Seg24.relationPart13 Seg24.relationRow65 Seg24.relationRow66 Seg24.relationRow67 Seg24.relationRow68 Seg24.relationRow69 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13
-  exact ⟨(rho 19678), (rho 19679), (rho 19680), (rho 19681), (rho 19682), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18724), (rho 18725), (rho 18726), (rho 18727), (rho 18728), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part14_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart14 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14 (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) k := by
-  unfold Seg25.relationPart14 Seg25.relationRow70 Seg25.relationRow71 Seg25.relationRow72 Seg25.relationRow73 Seg25.relationRow74 at h
+theorem seg24_part14_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart14 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14 (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) k := by
+  unfold Seg24.relationPart14 Seg24.relationRow70 Seg24.relationRow71 Seg24.relationRow72 Seg24.relationRow73 Seg24.relationRow74 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14
-  exact ⟨(rho 19683), (rho 19684), (rho 19685), (rho 19686), (rho 19687), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18729), (rho 18730), (rho 18731), (rho 18732), (rho 18733), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part15_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart15 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) (rho 19692)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15 (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) k := by
-  unfold Seg25.relationPart15 Seg25.relationRow75 Seg25.relationRow76 Seg25.relationRow77 Seg25.relationRow78 Seg25.relationRow79 at h
+theorem seg24_part15_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart15 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) (rho 18738)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15 (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) k := by
+  unfold Seg24.relationPart15 Seg24.relationRow75 Seg24.relationRow76 Seg24.relationRow77 Seg24.relationRow78 Seg24.relationRow79 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15
-  exact ⟨(rho 19688), (rho 19689), (rho 19690), (rho 19691), (rho 19692), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18734), (rho 18735), (rho 18736), (rho 18737), (rho 18738), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part16_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart16 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) (rho 19692) (rho 19697)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16 (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) (rho 19692) k := by
-  unfold Seg25.relationPart16 Seg25.relationRow80 Seg25.relationRow81 Seg25.relationRow82 Seg25.relationRow83 Seg25.relationRow84 at h
+theorem seg24_part16_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart16 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) (rho 18738) (rho 18743)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16 (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) (rho 18738) k := by
+  unfold Seg24.relationPart16 Seg24.relationRow80 Seg24.relationRow81 Seg24.relationRow82 Seg24.relationRow83 Seg24.relationRow84 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16
-  exact ⟨(rho 19693), (rho 19694), (rho 19695), (rho 19696), (rho 19697), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18739), (rho 18740), (rho 18741), (rho 18742), (rho 18743), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part17_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart17 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17 (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) (rho 19692) (rho 19697) k := by
-  unfold Seg25.relationPart17 Seg25.relationRow85 Seg25.relationRow86 Seg25.relationRow87 Seg25.relationRow88 Seg25.relationRow89 at h
+theorem seg24_part17_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart17 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17 (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) (rho 18738) (rho 18743) k := by
+  unfold Seg24.relationPart17 Seg24.relationRow85 Seg24.relationRow86 Seg24.relationRow87 Seg24.relationRow88 Seg24.relationRow89 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17
-  exact ⟨(rho 19698), (rho 19699), (rho 19700), (rho 19701), (rho 19702), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18744), (rho 18745), (rho 18746), (rho 18747), (rho 18748), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part18_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart18 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18 (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) k := by
-  unfold Seg25.relationPart18 Seg25.relationRow90 Seg25.relationRow91 Seg25.relationRow92 Seg25.relationRow93 Seg25.relationRow94 at h
+theorem seg24_part18_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart18 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18 (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) k := by
+  unfold Seg24.relationPart18 Seg24.relationRow90 Seg24.relationRow91 Seg24.relationRow92 Seg24.relationRow93 Seg24.relationRow94 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18
-  exact ⟨(rho 19703), (rho 19704), (rho 19705), (rho 19706), (rho 19707), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18749), (rho 18750), (rho 18751), (rho 18752), (rho 18753), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part19_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart19 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19 (rho 19647) (rho 19652) (rho 19657) (rho 19662) (rho 19667) (rho 19672) (rho 19677) (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) k := by
-  unfold Seg25.relationPart19 Seg25.relationRow95 Seg25.relationRow96 Seg25.relationRow97 Seg25.relationRow98 Seg25.relationRow99 at h
+theorem seg24_part19_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart19 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19 (rho 18693) (rho 18698) (rho 18703) (rho 18708) (rho 18713) (rho 18718) (rho 18723) (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) k := by
+  unfold Seg24.relationPart19 Seg24.relationRow95 Seg24.relationRow96 Seg24.relationRow97 Seg24.relationRow98 Seg24.relationRow99 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19
-  exact ⟨(rho 19708), (rho 19709), (rho 19710), (rho 19711), (rho 19712), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18754), (rho 18755), (rho 18756), (rho 18757), (rho 18758), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part20_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart20 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20 (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) k := by
-  unfold Seg25.relationPart20 Seg25.relationRow100 Seg25.relationRow101 Seg25.relationRow102 Seg25.relationRow103 Seg25.relationRow104 at h
+theorem seg24_part20_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart20 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20 (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) k := by
+  unfold Seg24.relationPart20 Seg24.relationRow100 Seg24.relationRow101 Seg24.relationRow102 Seg24.relationRow103 Seg24.relationRow104 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20
-  exact ⟨(rho 19713), (rho 19714), (rho 19715), (rho 19716), (rho 19717), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18759), (rho 18760), (rho 18761), (rho 18762), (rho 18763), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part21_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart21 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21 (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) k := by
-  unfold Seg25.relationPart21 Seg25.relationRow105 Seg25.relationRow106 Seg25.relationRow107 Seg25.relationRow108 Seg25.relationRow109 at h
+theorem seg24_part21_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart21 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21 (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) k := by
+  unfold Seg24.relationPart21 Seg24.relationRow105 Seg24.relationRow106 Seg24.relationRow107 Seg24.relationRow108 Seg24.relationRow109 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21
-  exact ⟨(rho 19718), (rho 19719), (rho 19720), (rho 19721), (rho 19722), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18764), (rho 18765), (rho 18766), (rho 18767), (rho 18768), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part22_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart22 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) (rho 19727)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22 (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) k := by
-  unfold Seg25.relationPart22 Seg25.relationRow110 Seg25.relationRow111 Seg25.relationRow112 Seg25.relationRow113 Seg25.relationRow114 at h
+theorem seg24_part22_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart22 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) (rho 18773)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22 (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) k := by
+  unfold Seg24.relationPart22 Seg24.relationRow110 Seg24.relationRow111 Seg24.relationRow112 Seg24.relationRow113 Seg24.relationRow114 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22
-  exact ⟨(rho 19723), (rho 19724), (rho 19725), (rho 19726), (rho 19727), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18769), (rho 18770), (rho 18771), (rho 18772), (rho 18773), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part23_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart23 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) (rho 19727) (rho 19732)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23 (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) (rho 19727) k := by
-  unfold Seg25.relationPart23 Seg25.relationRow115 Seg25.relationRow116 Seg25.relationRow117 Seg25.relationRow118 Seg25.relationRow119 at h
+theorem seg24_part23_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart23 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) (rho 18773) (rho 18778)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23 (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) (rho 18773) k := by
+  unfold Seg24.relationPart23 Seg24.relationRow115 Seg24.relationRow116 Seg24.relationRow117 Seg24.relationRow118 Seg24.relationRow119 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23
-  exact ⟨(rho 19728), (rho 19729), (rho 19730), (rho 19731), (rho 19732), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18774), (rho 18775), (rho 18776), (rho 18777), (rho 18778), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part24_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart24 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24 (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) (rho 19727) (rho 19732) k := by
-  unfold Seg25.relationPart24 Seg25.relationRow120 Seg25.relationRow121 Seg25.relationRow122 Seg25.relationRow123 Seg25.relationRow124 at h
+theorem seg24_part24_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart24 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24 (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) (rho 18773) (rho 18778) k := by
+  unfold Seg24.relationPart24 Seg24.relationRow120 Seg24.relationRow121 Seg24.relationRow122 Seg24.relationRow123 Seg24.relationRow124 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24
-  exact ⟨(rho 19733), (rho 19734), (rho 19735), (rho 19736), (rho 19737), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18779), (rho 18780), (rho 18781), (rho 18782), (rho 18783), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part25_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart25 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25 (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) k := by
-  unfold Seg25.relationPart25 Seg25.relationRow125 Seg25.relationRow126 Seg25.relationRow127 Seg25.relationRow128 Seg25.relationRow129 at h
+theorem seg24_part25_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart25 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25 (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) k := by
+  unfold Seg24.relationPart25 Seg24.relationRow125 Seg24.relationRow126 Seg24.relationRow127 Seg24.relationRow128 Seg24.relationRow129 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25
-  exact ⟨(rho 19738), (rho 19739), (rho 19740), (rho 19741), (rho 19742), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18784), (rho 18785), (rho 18786), (rho 18787), (rho 18788), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part26_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart26 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26 (rho 19682) (rho 19687) (rho 19692) (rho 19697) (rho 19702) (rho 19707) (rho 19712) (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) k := by
-  unfold Seg25.relationPart26 Seg25.relationRow130 Seg25.relationRow131 Seg25.relationRow132 Seg25.relationRow133 Seg25.relationRow134 at h
+theorem seg24_part26_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart26 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26 (rho 18728) (rho 18733) (rho 18738) (rho 18743) (rho 18748) (rho 18753) (rho 18758) (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) k := by
+  unfold Seg24.relationPart26 Seg24.relationRow130 Seg24.relationRow131 Seg24.relationRow132 Seg24.relationRow133 Seg24.relationRow134 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26
-  exact ⟨(rho 19743), (rho 19744), (rho 19745), (rho 19746), (rho 19747), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18789), (rho 18790), (rho 18791), (rho 18792), (rho 18793), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part27_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart27 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) k := by
-  unfold Seg25.relationPart27 Seg25.relationRow135 Seg25.relationRow136 Seg25.relationRow137 Seg25.relationRow138 Seg25.relationRow139 at h
+theorem seg24_part27_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart27 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) k := by
+  unfold Seg24.relationPart27 Seg24.relationRow135 Seg24.relationRow136 Seg24.relationRow137 Seg24.relationRow138 Seg24.relationRow139 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27
-  exact ⟨(rho 19748), (rho 19749), (rho 19750), (rho 19751), (rho 19752), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18794), (rho 18795), (rho 18796), (rho 18797), (rho 18798), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part28_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart28 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) k := by
-  unfold Seg25.relationPart28 Seg25.relationRow140 Seg25.relationRow141 Seg25.relationRow142 Seg25.relationRow143 Seg25.relationRow144 at h
+theorem seg24_part28_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart28 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) k := by
+  unfold Seg24.relationPart28 Seg24.relationRow140 Seg24.relationRow141 Seg24.relationRow142 Seg24.relationRow143 Seg24.relationRow144 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28
-  exact ⟨(rho 19753), (rho 19754), (rho 19755), (rho 19756), (rho 19757), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18799), (rho 18800), (rho 18801), (rho 18802), (rho 18803), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part29_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart29 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) k := by
-  unfold Seg25.relationPart29 Seg25.relationRow145 Seg25.relationRow146 Seg25.relationRow147 Seg25.relationRow148 Seg25.relationRow149 at h
+theorem seg24_part29_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart29 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) k := by
+  unfold Seg24.relationPart29 Seg24.relationRow145 Seg24.relationRow146 Seg24.relationRow147 Seg24.relationRow148 Seg24.relationRow149 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29
-  exact ⟨(rho 19758), (rho 19759), (rho 19760), (rho 19761), (rho 19762), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18804), (rho 18805), (rho 18806), (rho 18807), (rho 18808), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part30_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart30 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) k := by
-  unfold Seg25.relationPart30 Seg25.relationRow150 Seg25.relationRow151 Seg25.relationRow152 Seg25.relationRow153 Seg25.relationRow154 at h
+theorem seg24_part30_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart30 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) k := by
+  unfold Seg24.relationPart30 Seg24.relationRow150 Seg24.relationRow151 Seg24.relationRow152 Seg24.relationRow153 Seg24.relationRow154 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30
-  exact ⟨(rho 19763), (rho 19764), (rho 19765), (rho 19766), (rho 19767), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18809), (rho 18810), (rho 18811), (rho 18812), (rho 18813), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part31_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart31 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) k := by
-  unfold Seg25.relationPart31 Seg25.relationRow155 Seg25.relationRow156 Seg25.relationRow157 Seg25.relationRow158 Seg25.relationRow159 at h
+theorem seg24_part31_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart31 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) k := by
+  unfold Seg24.relationPart31 Seg24.relationRow155 Seg24.relationRow156 Seg24.relationRow157 Seg24.relationRow158 Seg24.relationRow159 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31
-  exact ⟨(rho 19768), (rho 19769), (rho 19770), (rho 19771), (rho 19772), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18814), (rho 18815), (rho 18816), (rho 18817), (rho 18818), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part32_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart32 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) k := by
-  unfold Seg25.relationPart32 Seg25.relationRow160 Seg25.relationRow161 Seg25.relationRow162 Seg25.relationRow163 Seg25.relationRow164 at h
+theorem seg24_part32_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart32 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) k := by
+  unfold Seg24.relationPart32 Seg24.relationRow160 Seg24.relationRow161 Seg24.relationRow162 Seg24.relationRow163 Seg24.relationRow164 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32
-  exact ⟨(rho 19773), (rho 19774), (rho 19775), (rho 19776), (rho 19777), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18819), (rho 18820), (rho 18821), (rho 18822), (rho 18823), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part33_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart33 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) k := by
-  unfold Seg25.relationPart33 Seg25.relationRow165 Seg25.relationRow166 Seg25.relationRow167 Seg25.relationRow168 Seg25.relationRow169 at h
+theorem seg24_part33_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart33 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) k := by
+  unfold Seg24.relationPart33 Seg24.relationRow165 Seg24.relationRow166 Seg24.relationRow167 Seg24.relationRow168 Seg24.relationRow169 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33
-  exact ⟨(rho 19778), (rho 19779), (rho 19780), (rho 19781), (rho 19782), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18824), (rho 18825), (rho 18826), (rho 18827), (rho 18828), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part34_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart34 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) k := by
-  unfold Seg25.relationPart34 Seg25.relationRow170 Seg25.relationRow171 Seg25.relationRow172 Seg25.relationRow173 Seg25.relationRow174 at h
+theorem seg24_part34_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart34 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) k := by
+  unfold Seg24.relationPart34 Seg24.relationRow170 Seg24.relationRow171 Seg24.relationRow172 Seg24.relationRow173 Seg24.relationRow174 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34
-  exact ⟨(rho 19783), (rho 19784), (rho 19785), (rho 19786), (rho 19787), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18829), (rho 18830), (rho 18831), (rho 18832), (rho 18833), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part35_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart35 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) k := by
-  unfold Seg25.relationPart35 Seg25.relationRow175 Seg25.relationRow176 Seg25.relationRow177 Seg25.relationRow178 Seg25.relationRow179 at h
+theorem seg24_part35_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart35 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) k := by
+  unfold Seg24.relationPart35 Seg24.relationRow175 Seg24.relationRow176 Seg24.relationRow177 Seg24.relationRow178 Seg24.relationRow179 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35
-  exact ⟨(rho 19788), (rho 19789), (rho 19790), (rho 19791), (rho 19792), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18834), (rho 18835), (rho 18836), (rho 18837), (rho 18838), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part36_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart36 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) k := by
-  unfold Seg25.relationPart36 Seg25.relationRow180 Seg25.relationRow181 Seg25.relationRow182 Seg25.relationRow183 Seg25.relationRow184 at h
+theorem seg24_part36_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart36 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) k := by
+  unfold Seg24.relationPart36 Seg24.relationRow180 Seg24.relationRow181 Seg24.relationRow182 Seg24.relationRow183 Seg24.relationRow184 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36
-  exact ⟨(rho 19793), (rho 19794), (rho 19795), (rho 19796), (rho 19797), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18839), (rho 18840), (rho 18841), (rho 18842), (rho 18843), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part37_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart37 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) k := by
-  unfold Seg25.relationPart37 Seg25.relationRow185 Seg25.relationRow186 Seg25.relationRow187 Seg25.relationRow188 Seg25.relationRow189 at h
+theorem seg24_part37_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart37 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) k := by
+  unfold Seg24.relationPart37 Seg24.relationRow185 Seg24.relationRow186 Seg24.relationRow187 Seg24.relationRow188 Seg24.relationRow189 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37
-  exact ⟨(rho 19798), (rho 19799), (rho 19800), (rho 19801), (rho 19802), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18844), (rho 18845), (rho 18846), (rho 18847), (rho 18848), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part38_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart38 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) k := by
-  unfold Seg25.relationPart38 Seg25.relationRow190 Seg25.relationRow191 Seg25.relationRow192 Seg25.relationRow193 Seg25.relationRow194 at h
+theorem seg24_part38_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart38 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) k := by
+  unfold Seg24.relationPart38 Seg24.relationRow190 Seg24.relationRow191 Seg24.relationRow192 Seg24.relationRow193 Seg24.relationRow194 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38
-  exact ⟨(rho 19803), (rho 19804), (rho 19805), (rho 19806), (rho 19807), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18849), (rho 18850), (rho 18851), (rho 18852), (rho 18853), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part39_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart39 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) k := by
-  unfold Seg25.relationPart39 Seg25.relationRow195 Seg25.relationRow196 Seg25.relationRow197 Seg25.relationRow198 Seg25.relationRow199 at h
+theorem seg24_part39_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart39 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) k := by
+  unfold Seg24.relationPart39 Seg24.relationRow195 Seg24.relationRow196 Seg24.relationRow197 Seg24.relationRow198 Seg24.relationRow199 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39
-  exact ⟨(rho 19808), (rho 19809), (rho 19810), (rho 19811), (rho 19812), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18854), (rho 18855), (rho 18856), (rho 18857), (rho 18858), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part40_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart40 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) k := by
-  unfold Seg25.relationPart40 Seg25.relationRow200 Seg25.relationRow201 Seg25.relationRow202 Seg25.relationRow203 Seg25.relationRow204 at h
+theorem seg24_part40_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart40 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) k := by
+  unfold Seg24.relationPart40 Seg24.relationRow200 Seg24.relationRow201 Seg24.relationRow202 Seg24.relationRow203 Seg24.relationRow204 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40
-  exact ⟨(rho 19813), (rho 19814), (rho 19815), (rho 19816), (rho 19817), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18859), (rho 18860), (rho 18861), (rho 18862), (rho 18863), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part41_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart41 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) k := by
-  unfold Seg25.relationPart41 Seg25.relationRow205 Seg25.relationRow206 Seg25.relationRow207 Seg25.relationRow208 Seg25.relationRow209 at h
+theorem seg24_part41_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart41 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) k := by
+  unfold Seg24.relationPart41 Seg24.relationRow205 Seg24.relationRow206 Seg24.relationRow207 Seg24.relationRow208 Seg24.relationRow209 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41
-  exact ⟨(rho 19818), (rho 19819), (rho 19820), (rho 19821), (rho 19822), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18864), (rho 18865), (rho 18866), (rho 18867), (rho 18868), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part42_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart42 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) k := by
-  unfold Seg25.relationPart42 Seg25.relationRow210 Seg25.relationRow211 Seg25.relationRow212 Seg25.relationRow213 Seg25.relationRow214 at h
+theorem seg24_part42_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart42 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) k := by
+  unfold Seg24.relationPart42 Seg24.relationRow210 Seg24.relationRow211 Seg24.relationRow212 Seg24.relationRow213 Seg24.relationRow214 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42
-  exact ⟨(rho 19823), (rho 19824), (rho 19825), (rho 19826), (rho 19827), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18869), (rho 18870), (rho 18871), (rho 18872), (rho 18873), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part43_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart43 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) k := by
-  unfold Seg25.relationPart43 Seg25.relationRow215 Seg25.relationRow216 Seg25.relationRow217 Seg25.relationRow218 Seg25.relationRow219 at h
+theorem seg24_part43_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart43 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) k := by
+  unfold Seg24.relationPart43 Seg24.relationRow215 Seg24.relationRow216 Seg24.relationRow217 Seg24.relationRow218 Seg24.relationRow219 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43
-  exact ⟨(rho 19828), (rho 19829), (rho 19830), (rho 19831), (rho 19832), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18874), (rho 18875), (rho 18876), (rho 18877), (rho 18878), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part44_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart44 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) k := by
-  unfold Seg25.relationPart44 Seg25.relationRow220 Seg25.relationRow221 Seg25.relationRow222 Seg25.relationRow223 Seg25.relationRow224 at h
+theorem seg24_part44_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart44 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) k := by
+  unfold Seg24.relationPart44 Seg24.relationRow220 Seg24.relationRow221 Seg24.relationRow222 Seg24.relationRow223 Seg24.relationRow224 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44
-  exact ⟨(rho 19833), (rho 19834), (rho 19835), (rho 19836), (rho 19837), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18879), (rho 18880), (rho 18881), (rho 18882), (rho 18883), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part45_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart45 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) k := by
-  unfold Seg25.relationPart45 Seg25.relationRow225 Seg25.relationRow226 Seg25.relationRow227 Seg25.relationRow228 Seg25.relationRow229 at h
+theorem seg24_part45_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart45 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) k := by
+  unfold Seg24.relationPart45 Seg24.relationRow225 Seg24.relationRow226 Seg24.relationRow227 Seg24.relationRow228 Seg24.relationRow229 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45
-  exact ⟨(rho 19838), (rho 19839), (rho 19840), (rho 19841), (rho 19842), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18884), (rho 18885), (rho 18886), (rho 18887), (rho 18888), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part46_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart46 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) k := by
-  unfold Seg25.relationPart46 Seg25.relationRow230 Seg25.relationRow231 Seg25.relationRow232 Seg25.relationRow233 Seg25.relationRow234 at h
+theorem seg24_part46_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart46 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) k := by
+  unfold Seg24.relationPart46 Seg24.relationRow230 Seg24.relationRow231 Seg24.relationRow232 Seg24.relationRow233 Seg24.relationRow234 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46
-  exact ⟨(rho 19843), (rho 19844), (rho 19845), (rho 19846), (rho 19847), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18889), (rho 18890), (rho 18891), (rho 18892), (rho 18893), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part47_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart47 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) k := by
-  unfold Seg25.relationPart47 Seg25.relationRow235 Seg25.relationRow236 Seg25.relationRow237 Seg25.relationRow238 Seg25.relationRow239 at h
+theorem seg24_part47_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart47 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) k := by
+  unfold Seg24.relationPart47 Seg24.relationRow235 Seg24.relationRow236 Seg24.relationRow237 Seg24.relationRow238 Seg24.relationRow239 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47
-  exact ⟨(rho 19848), (rho 19849), (rho 19850), (rho 19851), (rho 19852), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18894), (rho 18895), (rho 18896), (rho 18897), (rho 18898), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part48_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart48 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) k := by
-  unfold Seg25.relationPart48 Seg25.relationRow240 Seg25.relationRow241 Seg25.relationRow242 Seg25.relationRow243 Seg25.relationRow244 at h
+theorem seg24_part48_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart48 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) k := by
+  unfold Seg24.relationPart48 Seg24.relationRow240 Seg24.relationRow241 Seg24.relationRow242 Seg24.relationRow243 Seg24.relationRow244 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48
-  exact ⟨(rho 19853), (rho 19854), (rho 19855), (rho 19856), (rho 19857), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18899), (rho 18900), (rho 18901), (rho 18902), (rho 18903), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part49_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart49 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) k := by
-  unfold Seg25.relationPart49 Seg25.relationRow245 Seg25.relationRow246 Seg25.relationRow247 Seg25.relationRow248 Seg25.relationRow249 at h
+theorem seg24_part49_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart49 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) k := by
+  unfold Seg24.relationPart49 Seg24.relationRow245 Seg24.relationRow246 Seg24.relationRow247 Seg24.relationRow248 Seg24.relationRow249 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49
-  exact ⟨(rho 19858), (rho 19859), (rho 19860), (rho 19861), (rho 19862), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18904), (rho 18905), (rho 18906), (rho 18907), (rho 18908), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part50_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart50 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) k := by
-  unfold Seg25.relationPart50 Seg25.relationRow250 Seg25.relationRow251 Seg25.relationRow252 Seg25.relationRow253 Seg25.relationRow254 at h
+theorem seg24_part50_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart50 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) k := by
+  unfold Seg24.relationPart50 Seg24.relationRow250 Seg24.relationRow251 Seg24.relationRow252 Seg24.relationRow253 Seg24.relationRow254 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50
-  exact ⟨(rho 19863), (rho 19864), (rho 19865), (rho 19866), (rho 19867), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18909), (rho 18910), (rho 18911), (rho 18912), (rho 18913), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part51_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart51 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) k := by
-  unfold Seg25.relationPart51 Seg25.relationRow255 Seg25.relationRow256 Seg25.relationRow257 Seg25.relationRow258 Seg25.relationRow259 at h
+theorem seg24_part51_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart51 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) k := by
+  unfold Seg24.relationPart51 Seg24.relationRow255 Seg24.relationRow256 Seg24.relationRow257 Seg24.relationRow258 Seg24.relationRow259 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51
-  exact ⟨(rho 19868), (rho 19869), (rho 19870), (rho 19871), (rho 19872), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18914), (rho 18915), (rho 18916), (rho 18917), (rho 18918), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part52_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart52 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) k := by
-  unfold Seg25.relationPart52 Seg25.relationRow260 Seg25.relationRow261 Seg25.relationRow262 Seg25.relationRow263 Seg25.relationRow264 at h
+theorem seg24_part52_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart52 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) k := by
+  unfold Seg24.relationPart52 Seg24.relationRow260 Seg24.relationRow261 Seg24.relationRow262 Seg24.relationRow263 Seg24.relationRow264 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52
-  exact ⟨(rho 19873), (rho 19874), (rho 19875), (rho 19876), (rho 19877), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18919), (rho 18920), (rho 18921), (rho 18922), (rho 18923), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part53_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart53 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) k := by
-  unfold Seg25.relationPart53 Seg25.relationRow265 Seg25.relationRow266 Seg25.relationRow267 Seg25.relationRow268 Seg25.relationRow269 at h
+theorem seg24_part53_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart53 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) k := by
+  unfold Seg24.relationPart53 Seg24.relationRow265 Seg24.relationRow266 Seg24.relationRow267 Seg24.relationRow268 Seg24.relationRow269 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53
-  exact ⟨(rho 19878), (rho 19879), (rho 19880), (rho 19881), (rho 19882), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18924), (rho 18925), (rho 18926), (rho 18927), (rho 18928), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part54_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart54 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) k := by
-  unfold Seg25.relationPart54 Seg25.relationRow270 Seg25.relationRow271 Seg25.relationRow272 Seg25.relationRow273 Seg25.relationRow274 at h
+theorem seg24_part54_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart54 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) k := by
+  unfold Seg24.relationPart54 Seg24.relationRow270 Seg24.relationRow271 Seg24.relationRow272 Seg24.relationRow273 Seg24.relationRow274 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54
-  exact ⟨(rho 19883), (rho 19884), (rho 19885), (rho 19886), (rho 19887), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18929), (rho 18930), (rho 18931), (rho 18932), (rho 18933), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part55_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart55 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) k := by
-  unfold Seg25.relationPart55 Seg25.relationRow275 Seg25.relationRow276 Seg25.relationRow277 Seg25.relationRow278 Seg25.relationRow279 at h
+theorem seg24_part55_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart55 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) k := by
+  unfold Seg24.relationPart55 Seg24.relationRow275 Seg24.relationRow276 Seg24.relationRow277 Seg24.relationRow278 Seg24.relationRow279 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55
-  exact ⟨(rho 19888), (rho 19889), (rho 19890), (rho 19891), (rho 19892), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18934), (rho 18935), (rho 18936), (rho 18937), (rho 18938), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part56_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart56 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) k := by
-  unfold Seg25.relationPart56 Seg25.relationRow280 Seg25.relationRow281 Seg25.relationRow282 Seg25.relationRow283 Seg25.relationRow284 at h
+theorem seg24_part56_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart56 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) k := by
+  unfold Seg24.relationPart56 Seg24.relationRow280 Seg24.relationRow281 Seg24.relationRow282 Seg24.relationRow283 Seg24.relationRow284 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56
-  exact ⟨(rho 19893), (rho 19894), (rho 19895), (rho 19896), (rho 19897), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18939), (rho 18940), (rho 18941), (rho 18942), (rho 18943), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part57_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart57 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) k := by
-  unfold Seg25.relationPart57 Seg25.relationRow285 Seg25.relationRow286 Seg25.relationRow287 Seg25.relationRow288 Seg25.relationRow289 at h
+theorem seg24_part57_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart57 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) k := by
+  unfold Seg24.relationPart57 Seg24.relationRow285 Seg24.relationRow286 Seg24.relationRow287 Seg24.relationRow288 Seg24.relationRow289 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57
-  exact ⟨(rho 19898), (rho 19899), (rho 19900), (rho 19901), (rho 19902), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18944), (rho 18945), (rho 18946), (rho 18947), (rho 18948), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part58_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart58 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) k := by
-  unfold Seg25.relationPart58 Seg25.relationRow290 Seg25.relationRow291 Seg25.relationRow292 Seg25.relationRow293 Seg25.relationRow294 at h
+theorem seg24_part58_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart58 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) k := by
+  unfold Seg24.relationPart58 Seg24.relationRow290 Seg24.relationRow291 Seg24.relationRow292 Seg24.relationRow293 Seg24.relationRow294 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58
-  exact ⟨(rho 19903), (rho 19904), (rho 19905), (rho 19906), (rho 19907), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18949), (rho 18950), (rho 18951), (rho 18952), (rho 18953), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part59_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart59 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) k := by
-  unfold Seg25.relationPart59 Seg25.relationRow295 Seg25.relationRow296 Seg25.relationRow297 Seg25.relationRow298 Seg25.relationRow299 at h
+theorem seg24_part59_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart59 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) k := by
+  unfold Seg24.relationPart59 Seg24.relationRow295 Seg24.relationRow296 Seg24.relationRow297 Seg24.relationRow298 Seg24.relationRow299 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59
-  exact ⟨(rho 19908), (rho 19909), (rho 19910), (rho 19911), (rho 19912), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18954), (rho 18955), (rho 18956), (rho 18957), (rho 18958), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part60_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart60 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) (rho 19917)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) k := by
-  unfold Seg25.relationPart60 Seg25.relationRow300 Seg25.relationRow301 Seg25.relationRow302 Seg25.relationRow303 Seg25.relationRow304 at h
+theorem seg24_part60_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart60 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) (rho 18963)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) k := by
+  unfold Seg24.relationPart60 Seg24.relationRow300 Seg24.relationRow301 Seg24.relationRow302 Seg24.relationRow303 Seg24.relationRow304 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60
-  exact ⟨(rho 19913), (rho 19914), (rho 19915), (rho 19916), (rho 19917), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18959), (rho 18960), (rho 18961), (rho 18962), (rho 18963), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part61_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart61 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) (rho 19917) (rho 19922)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) (rho 19917) k := by
-  unfold Seg25.relationPart61 Seg25.relationRow305 Seg25.relationRow306 Seg25.relationRow307 Seg25.relationRow308 Seg25.relationRow309 at h
+theorem seg24_part61_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart61 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) (rho 18963) (rho 18968)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) (rho 18963) k := by
+  unfold Seg24.relationPart61 Seg24.relationRow305 Seg24.relationRow306 Seg24.relationRow307 Seg24.relationRow308 Seg24.relationRow309 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61
-  exact ⟨(rho 19918), (rho 19919), (rho 19920), (rho 19921), (rho 19922), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18964), (rho 18965), (rho 18966), (rho 18967), (rho 18968), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part62_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart62 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) (rho 19917) (rho 19922) k := by
-  unfold Seg25.relationPart62 Seg25.relationRow310 Seg25.relationRow311 Seg25.relationRow312 Seg25.relationRow313 Seg25.relationRow314 at h
+theorem seg24_part62_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart62 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) (rho 18963) (rho 18968) k := by
+  unfold Seg24.relationPart62 Seg24.relationRow310 Seg24.relationRow311 Seg24.relationRow312 Seg24.relationRow313 Seg24.relationRow314 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62
-  exact ⟨(rho 19923), (rho 19924), (rho 19925), (rho 19926), (rho 19927), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18969), (rho 18970), (rho 18971), (rho 18972), (rho 18973), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part63_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart63 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) k := by
-  unfold Seg25.relationPart63 Seg25.relationRow315 Seg25.relationRow316 Seg25.relationRow317 Seg25.relationRow318 Seg25.relationRow319 at h
+theorem seg24_part63_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart63 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) k := by
+  unfold Seg24.relationPart63 Seg24.relationRow315 Seg24.relationRow316 Seg24.relationRow317 Seg24.relationRow318 Seg24.relationRow319 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63
-  exact ⟨(rho 19928), (rho 19929), (rho 19930), (rho 19931), (rho 19932), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18974), (rho 18975), (rho 18976), (rho 18977), (rho 18978), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part64_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart64 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64 (rho 19717) (rho 19722) (rho 19727) (rho 19732) (rho 19737) (rho 19742) (rho 19747) (rho 19752) (rho 19757) (rho 19762) (rho 19767) (rho 19772) (rho 19777) (rho 19782) (rho 19787) (rho 19792) (rho 19797) (rho 19802) (rho 19807) (rho 19812) (rho 19817) (rho 19822) (rho 19827) (rho 19832) (rho 19837) (rho 19842) (rho 19847) (rho 19852) (rho 19857) (rho 19862) (rho 19867) (rho 19872) (rho 19877) (rho 19882) (rho 19887) (rho 19892) (rho 19897) (rho 19902) (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) k := by
-  unfold Seg25.relationPart64 Seg25.relationRow320 Seg25.relationRow321 Seg25.relationRow322 Seg25.relationRow323 Seg25.relationRow324 at h
+theorem seg24_part64_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart64 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64 (rho 18763) (rho 18768) (rho 18773) (rho 18778) (rho 18783) (rho 18788) (rho 18793) (rho 18798) (rho 18803) (rho 18808) (rho 18813) (rho 18818) (rho 18823) (rho 18828) (rho 18833) (rho 18838) (rho 18843) (rho 18848) (rho 18853) (rho 18858) (rho 18863) (rho 18868) (rho 18873) (rho 18878) (rho 18883) (rho 18888) (rho 18893) (rho 18898) (rho 18903) (rho 18908) (rho 18913) (rho 18918) (rho 18923) (rho 18928) (rho 18933) (rho 18938) (rho 18943) (rho 18948) (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) k := by
+  unfold Seg24.relationPart64 Seg24.relationRow320 Seg24.relationRow321 Seg24.relationRow322 Seg24.relationRow323 Seg24.relationRow324 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64
-  exact ⟨(rho 19933), (rho 19934), (rho 19935), (rho 19936), (rho 19937), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18979), (rho 18980), (rho 18981), (rho 18982), (rho 18983), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part65_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart65 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65 (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) k := by
-  unfold Seg25.relationPart65 Seg25.relationRow325 Seg25.relationRow326 Seg25.relationRow327 Seg25.relationRow328 Seg25.relationRow329 at h
+theorem seg24_part65_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart65 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65 (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) k := by
+  unfold Seg24.relationPart65 Seg24.relationRow325 Seg24.relationRow326 Seg24.relationRow327 Seg24.relationRow328 Seg24.relationRow329 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65
-  exact ⟨(rho 19938), (rho 19939), (rho 19940), (rho 19941), (rho 19942), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18984), (rho 18985), (rho 18986), (rho 18987), (rho 18988), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part66_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart66 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66 (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) k := by
-  unfold Seg25.relationPart66 Seg25.relationRow330 Seg25.relationRow331 Seg25.relationRow332 Seg25.relationRow333 Seg25.relationRow334 at h
+theorem seg24_part66_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart66 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66 (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) k := by
+  unfold Seg24.relationPart66 Seg24.relationRow330 Seg24.relationRow331 Seg24.relationRow332 Seg24.relationRow333 Seg24.relationRow334 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66
-  exact ⟨(rho 19943), (rho 19944), (rho 19945), (rho 19946), (rho 19947), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18989), (rho 18990), (rho 18991), (rho 18992), (rho 18993), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part67_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart67 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) (rho 19952)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67 (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) k := by
-  unfold Seg25.relationPart67 Seg25.relationRow335 Seg25.relationRow336 Seg25.relationRow337 Seg25.relationRow338 Seg25.relationRow339 at h
+theorem seg24_part67_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart67 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) (rho 18998)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67 (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) k := by
+  unfold Seg24.relationPart67 Seg24.relationRow335 Seg24.relationRow336 Seg24.relationRow337 Seg24.relationRow338 Seg24.relationRow339 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67
-  exact ⟨(rho 19948), (rho 19949), (rho 19950), (rho 19951), (rho 19952), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18994), (rho 18995), (rho 18996), (rho 18997), (rho 18998), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part68_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart68 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) (rho 19952) (rho 19957)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68 (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) (rho 19952) k := by
-  unfold Seg25.relationPart68 Seg25.relationRow340 Seg25.relationRow341 Seg25.relationRow342 Seg25.relationRow343 Seg25.relationRow344 at h
+theorem seg24_part68_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart68 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) (rho 18998) (rho 19003)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68 (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) (rho 18998) k := by
+  unfold Seg24.relationPart68 Seg24.relationRow340 Seg24.relationRow341 Seg24.relationRow342 Seg24.relationRow343 Seg24.relationRow344 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68
-  exact ⟨(rho 19953), (rho 19954), (rho 19955), (rho 19956), (rho 19957), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 18999), (rho 19000), (rho 19001), (rho 19002), (rho 19003), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part69_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart69 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69 (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) (rho 19952) (rho 19957) k := by
-  unfold Seg25.relationPart69 Seg25.relationRow345 Seg25.relationRow346 Seg25.relationRow347 Seg25.relationRow348 Seg25.relationRow349 at h
+theorem seg24_part69_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart69 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69 (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) (rho 18998) (rho 19003) k := by
+  unfold Seg24.relationPart69 Seg24.relationRow345 Seg24.relationRow346 Seg24.relationRow347 Seg24.relationRow348 Seg24.relationRow349 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69
-  exact ⟨(rho 19958), (rho 19959), (rho 19960), (rho 19961), (rho 19962), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19004), (rho 19005), (rho 19006), (rho 19007), (rho 19008), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part70_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart70 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70 (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) k := by
-  unfold Seg25.relationPart70 Seg25.relationRow350 Seg25.relationRow351 Seg25.relationRow352 Seg25.relationRow353 Seg25.relationRow354 at h
+theorem seg24_part70_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart70 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70 (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) k := by
+  unfold Seg24.relationPart70 Seg24.relationRow350 Seg24.relationRow351 Seg24.relationRow352 Seg24.relationRow353 Seg24.relationRow354 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70
-  exact ⟨(rho 19963), (rho 19964), (rho 19965), (rho 19966), (rho 19967), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19009), (rho 19010), (rho 19011), (rho 19012), (rho 19013), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part71_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart71 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71 (rho 19907) (rho 19912) (rho 19917) (rho 19922) (rho 19927) (rho 19932) (rho 19937) (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) k := by
-  unfold Seg25.relationPart71 Seg25.relationRow355 Seg25.relationRow356 Seg25.relationRow357 Seg25.relationRow358 Seg25.relationRow359 at h
+theorem seg24_part71_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart71 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71 (rho 18953) (rho 18958) (rho 18963) (rho 18968) (rho 18973) (rho 18978) (rho 18983) (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) k := by
+  unfold Seg24.relationPart71 Seg24.relationRow355 Seg24.relationRow356 Seg24.relationRow357 Seg24.relationRow358 Seg24.relationRow359 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71
-  exact ⟨(rho 19968), (rho 19969), (rho 19970), (rho 19971), (rho 19972), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19014), (rho 19015), (rho 19016), (rho 19017), (rho 19018), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part72_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart72 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72 (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) k := by
-  unfold Seg25.relationPart72 Seg25.relationRow360 Seg25.relationRow361 Seg25.relationRow362 Seg25.relationRow363 Seg25.relationRow364 at h
+theorem seg24_part72_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart72 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72 (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) k := by
+  unfold Seg24.relationPart72 Seg24.relationRow360 Seg24.relationRow361 Seg24.relationRow362 Seg24.relationRow363 Seg24.relationRow364 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72
-  exact ⟨(rho 19973), (rho 19974), (rho 19975), (rho 19976), (rho 19977), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19019), (rho 19020), (rho 19021), (rho 19022), (rho 19023), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part73_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart73 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73 (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) k := by
-  unfold Seg25.relationPart73 Seg25.relationRow365 Seg25.relationRow366 Seg25.relationRow367 Seg25.relationRow368 Seg25.relationRow369 at h
+theorem seg24_part73_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart73 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73 (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) k := by
+  unfold Seg24.relationPart73 Seg24.relationRow365 Seg24.relationRow366 Seg24.relationRow367 Seg24.relationRow368 Seg24.relationRow369 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73
-  exact ⟨(rho 19978), (rho 19979), (rho 19980), (rho 19981), (rho 19982), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19024), (rho 19025), (rho 19026), (rho 19027), (rho 19028), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part74_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart74 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) (rho 19987)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74 (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) k := by
-  unfold Seg25.relationPart74 Seg25.relationRow370 Seg25.relationRow371 Seg25.relationRow372 Seg25.relationRow373 Seg25.relationRow374 at h
+theorem seg24_part74_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart74 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) (rho 19033)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74 (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) k := by
+  unfold Seg24.relationPart74 Seg24.relationRow370 Seg24.relationRow371 Seg24.relationRow372 Seg24.relationRow373 Seg24.relationRow374 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74
-  exact ⟨(rho 19983), (rho 19984), (rho 19985), (rho 19986), (rho 19987), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19029), (rho 19030), (rho 19031), (rho 19032), (rho 19033), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part75_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart75 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) (rho 19987) (rho 19992)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75 (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) (rho 19987) k := by
-  unfold Seg25.relationPart75 Seg25.relationRow375 Seg25.relationRow376 Seg25.relationRow377 Seg25.relationRow378 Seg25.relationRow379 at h
+theorem seg24_part75_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart75 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) (rho 19033) (rho 19038)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75 (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) (rho 19033) k := by
+  unfold Seg24.relationPart75 Seg24.relationRow375 Seg24.relationRow376 Seg24.relationRow377 Seg24.relationRow378 Seg24.relationRow379 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75
-  exact ⟨(rho 19988), (rho 19989), (rho 19990), (rho 19991), (rho 19992), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19034), (rho 19035), (rho 19036), (rho 19037), (rho 19038), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part76_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart76 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76 (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) (rho 19987) (rho 19992) k := by
-  unfold Seg25.relationPart76 Seg25.relationRow380 Seg25.relationRow381 Seg25.relationRow382 Seg25.relationRow383 Seg25.relationRow384 at h
+theorem seg24_part76_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart76 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76 (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) (rho 19033) (rho 19038) k := by
+  unfold Seg24.relationPart76 Seg24.relationRow380 Seg24.relationRow381 Seg24.relationRow382 Seg24.relationRow383 Seg24.relationRow384 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76
-  exact ⟨(rho 19993), (rho 19994), (rho 19995), (rho 19996), (rho 19997), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19039), (rho 19040), (rho 19041), (rho 19042), (rho 19043), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part77_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart77 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77 (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) k := by
-  unfold Seg25.relationPart77 Seg25.relationRow385 Seg25.relationRow386 Seg25.relationRow387 Seg25.relationRow388 Seg25.relationRow389 at h
+theorem seg24_part77_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart77 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77 (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) k := by
+  unfold Seg24.relationPart77 Seg24.relationRow385 Seg24.relationRow386 Seg24.relationRow387 Seg24.relationRow388 Seg24.relationRow389 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77
-  exact ⟨(rho 19998), (rho 19999), (rho 20000), (rho 20001), (rho 20002), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19044), (rho 19045), (rho 19046), (rho 19047), (rho 19048), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part78_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart78 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78 (rho 19942) (rho 19947) (rho 19952) (rho 19957) (rho 19962) (rho 19967) (rho 19972) (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) k := by
-  unfold Seg25.relationPart78 Seg25.relationRow390 Seg25.relationRow391 Seg25.relationRow392 Seg25.relationRow393 Seg25.relationRow394 at h
+theorem seg24_part78_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart78 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78 (rho 18988) (rho 18993) (rho 18998) (rho 19003) (rho 19008) (rho 19013) (rho 19018) (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) k := by
+  unfold Seg24.relationPart78 Seg24.relationRow390 Seg24.relationRow391 Seg24.relationRow392 Seg24.relationRow393 Seg24.relationRow394 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78
-  exact ⟨(rho 20003), (rho 20004), (rho 20005), (rho 20006), (rho 20007), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19049), (rho 19050), (rho 19051), (rho 19052), (rho 19053), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part79_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart79 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79 (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) k := by
-  unfold Seg25.relationPart79 Seg25.relationRow395 Seg25.relationRow396 Seg25.relationRow397 Seg25.relationRow398 Seg25.relationRow399 at h
+theorem seg24_part79_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart79 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79 (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) k := by
+  unfold Seg24.relationPart79 Seg24.relationRow395 Seg24.relationRow396 Seg24.relationRow397 Seg24.relationRow398 Seg24.relationRow399 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79
-  exact ⟨(rho 20008), (rho 20009), (rho 20010), (rho 20011), (rho 20012), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19054), (rho 19055), (rho 19056), (rho 19057), (rho 19058), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part80_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart80 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80 (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) k := by
-  unfold Seg25.relationPart80 Seg25.relationRow400 Seg25.relationRow401 Seg25.relationRow402 Seg25.relationRow403 Seg25.relationRow404 at h
+theorem seg24_part80_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart80 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80 (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) k := by
+  unfold Seg24.relationPart80 Seg24.relationRow400 Seg24.relationRow401 Seg24.relationRow402 Seg24.relationRow403 Seg24.relationRow404 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80
-  exact ⟨(rho 20013), (rho 20014), (rho 20015), (rho 20016), (rho 20017), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19059), (rho 19060), (rho 19061), (rho 19062), (rho 19063), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part81_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart81 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) (rho 20022)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81 (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) k := by
-  unfold Seg25.relationPart81 Seg25.relationRow405 Seg25.relationRow406 Seg25.relationRow407 Seg25.relationRow408 Seg25.relationRow409 at h
+theorem seg24_part81_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart81 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) (rho 19068)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81 (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) k := by
+  unfold Seg24.relationPart81 Seg24.relationRow405 Seg24.relationRow406 Seg24.relationRow407 Seg24.relationRow408 Seg24.relationRow409 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81
-  exact ⟨(rho 20018), (rho 20019), (rho 20020), (rho 20021), (rho 20022), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19064), (rho 19065), (rho 19066), (rho 19067), (rho 19068), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part82_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart82 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) (rho 20022) (rho 20027)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82 (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) (rho 20022) k := by
-  unfold Seg25.relationPart82 Seg25.relationRow410 Seg25.relationRow411 Seg25.relationRow412 Seg25.relationRow413 Seg25.relationRow414 at h
+theorem seg24_part82_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart82 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) (rho 19068) (rho 19073)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82 (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) (rho 19068) k := by
+  unfold Seg24.relationPart82 Seg24.relationRow410 Seg24.relationRow411 Seg24.relationRow412 Seg24.relationRow413 Seg24.relationRow414 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82
-  exact ⟨(rho 20023), (rho 20024), (rho 20025), (rho 20026), (rho 20027), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19069), (rho 19070), (rho 19071), (rho 19072), (rho 19073), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part83_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart83 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) (rho 20022) (rho 20027) (rho 20032)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) (rho 20022) (rho 20027) k := by
-  unfold Seg25.relationPart83 Seg25.relationRow415 Seg25.relationRow416 Seg25.relationRow417 Seg25.relationRow418 Seg25.relationRow419 at h
+theorem seg24_part83_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart83 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) (rho 19068) (rho 19073) (rho 19078)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) (rho 19068) (rho 19073) k := by
+  unfold Seg24.relationPart83 Seg24.relationRow415 Seg24.relationRow416 Seg24.relationRow417 Seg24.relationRow418 Seg24.relationRow419 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83
-  exact ⟨(rho 20028), (rho 20029), (rho 20030), (rho 20031), (rho 20032), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19074), (rho 19075), (rho 19076), (rho 19077), (rho 19078), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part84_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart84 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) (rho 20022) (rho 20027) (rho 20032) (rho 20037)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) (rho 20022) (rho 20027) (rho 20032) k := by
-  unfold Seg25.relationPart84 Seg25.relationRow420 Seg25.relationRow421 Seg25.relationRow422 Seg25.relationRow423 Seg25.relationRow424 at h
+theorem seg24_part84_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart84 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) (rho 19068) (rho 19073) (rho 19078) (rho 19083)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) (rho 19068) (rho 19073) (rho 19078) k := by
+  unfold Seg24.relationPart84 Seg24.relationRow420 Seg24.relationRow421 Seg24.relationRow422 Seg24.relationRow423 Seg24.relationRow424 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84
-  exact ⟨(rho 20033), (rho 20034), (rho 20035), (rho 20036), (rho 20037), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19079), (rho 19080), (rho 19081), (rho 19082), (rho 19083), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg25_part85_to_extracted (rho : Nat → Seg25.F)
-    (h : Seg25.relationPart85 rho)
-    {k : Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Seg25.F → Prop} (hk : k (rho 20012) (rho 20017) (rho 20022) (rho 20027) (rho 20032) (rho 20037) (rho 20042)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 (rho 19977) (rho 19982) (rho 19987) (rho 19992) (rho 19997) (rho 20002) (rho 20007) (rho 20012) (rho 20017) (rho 20022) (rho 20027) (rho 20032) (rho 20037) k := by
-  unfold Seg25.relationPart85 Seg25.relationRow425 Seg25.relationRow426 Seg25.relationRow427 Seg25.relationRow428 Seg25.relationRow429 at h
+theorem seg24_part85_to_extracted (rho : Nat → Seg24.F)
+    (h : Seg24.relationPart85 rho)
+    {k : Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Seg24.F → Prop} (hk : k (rho 19058) (rho 19063) (rho 19068) (rho 19073) (rho 19078) (rho 19083) (rho 19088)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 (rho 19023) (rho 19028) (rho 19033) (rho 19038) (rho 19043) (rho 19048) (rho 19053) (rho 19058) (rho 19063) (rho 19068) (rho 19073) (rho 19078) (rho 19083) k := by
+  unfold Seg24.relationPart85 Seg24.relationRow425 Seg24.relationRow426 Seg24.relationRow427 Seg24.relationRow428 Seg24.relationRow429 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85
-  exact ⟨(rho 20038), (rho 20039), (rho 20040), (rho 20041), (rho 20042), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 19084), (rho 19085), (rho 19086), (rho 19087), (rho 19088), h0, h1, h2, h3, h4, hk⟩
 
-def seg25NotePrefix (rho : Nat → Seg25.F) : Prop :=
-  Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) (fun w15 w16 w19 w22 w572 w912 w917 =>
+def seg24NotePrefix (rho : Nat → Seg24.F) : Prop :=
+  Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) (fun w15 w16 w19 w22 w572 w912 w917 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 w15 w16 w19 w22 w572 w912 w917 (fun w16 w19 w22 w572 w912 w917 w922 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 w16 w19 w22 w572 w912 w917 w922 (fun w19 w22 w572 w912 w917 w922 w927 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 w19 w22 w572 w912 w917 w922 w927 (fun w19 w22 w917 w922 w927 w932 =>
@@ -1864,11 +1864,11 @@ def seg25NotePrefix (rho : Nat → Seg25.F) : Prop :=
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 (fun w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 (fun w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 w1337 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 w1337 (fun w1312 w1317 w1322 w1327 w1332 w1337 w1342 =>
-  w1312 = (rho 20012) ∧ w1317 = (rho 20017) ∧ w1322 = (rho 20022) ∧ w1327 = (rho 20027) ∧ w1332 = (rho 20032) ∧ w1337 = (rho 20037) ∧ w1342 = (rho 20042)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  w1312 = (rho 19058) ∧ w1317 = (rho 19063) ∧ w1322 = (rho 19068) ∧ w1327 = (rho 19073) ∧ w1332 = (rho 19078) ∧ w1337 = (rho 19083) ∧ w1342 = (rho 19088)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
-theorem seg25_relation_to_note_prefix (rho : Nat → Seg25.F)
-    (h : Seg25.relation rho) : seg25NotePrefix rho := by
-  unfold Seg25.relation at h
+theorem seg24_relation_to_note_prefix (rho : Nat → Seg24.F)
+    (h : Seg24.relation rho) : seg24NotePrefix rho := by
+  unfold Seg24.relation at h
   rcases h with ⟨
     p0, p1, p2, p3, p4, p5, p6, p7,
     p8, p9, p10, p11, p12, p13, p14, p15,
@@ -1882,898 +1882,898 @@ theorem seg25_relation_to_note_prefix (rho : Nat → Seg25.F)
     p72, p73, p74, p75, p76, p77, p78, p79,
     p80, p81, p82, p83, p84, p85
   ⟩
-  unfold seg25NotePrefix
-  apply seg25_part0_to_extracted rho p0
-  apply seg25_part1_to_extracted rho p1
-  apply seg25_part2_to_extracted rho p2
-  apply seg25_part3_to_extracted rho p3
-  apply seg25_part4_to_extracted rho p4
-  apply seg25_part5_to_extracted rho p5
-  apply seg25_part6_to_extracted rho p6
-  apply seg25_part7_to_extracted rho p7
-  apply seg25_part8_to_extracted rho p8
-  apply seg25_part9_to_extracted rho p9
-  apply seg25_part10_to_extracted rho p10
-  apply seg25_part11_to_extracted rho p11
-  apply seg25_part12_to_extracted rho p12
-  apply seg25_part13_to_extracted rho p13
-  apply seg25_part14_to_extracted rho p14
-  apply seg25_part15_to_extracted rho p15
-  apply seg25_part16_to_extracted rho p16
-  apply seg25_part17_to_extracted rho p17
-  apply seg25_part18_to_extracted rho p18
-  apply seg25_part19_to_extracted rho p19
-  apply seg25_part20_to_extracted rho p20
-  apply seg25_part21_to_extracted rho p21
-  apply seg25_part22_to_extracted rho p22
-  apply seg25_part23_to_extracted rho p23
-  apply seg25_part24_to_extracted rho p24
-  apply seg25_part25_to_extracted rho p25
-  apply seg25_part26_to_extracted rho p26
-  apply seg25_part27_to_extracted rho p27
-  apply seg25_part28_to_extracted rho p28
-  apply seg25_part29_to_extracted rho p29
-  apply seg25_part30_to_extracted rho p30
-  apply seg25_part31_to_extracted rho p31
-  apply seg25_part32_to_extracted rho p32
-  apply seg25_part33_to_extracted rho p33
-  apply seg25_part34_to_extracted rho p34
-  apply seg25_part35_to_extracted rho p35
-  apply seg25_part36_to_extracted rho p36
-  apply seg25_part37_to_extracted rho p37
-  apply seg25_part38_to_extracted rho p38
-  apply seg25_part39_to_extracted rho p39
-  apply seg25_part40_to_extracted rho p40
-  apply seg25_part41_to_extracted rho p41
-  apply seg25_part42_to_extracted rho p42
-  apply seg25_part43_to_extracted rho p43
-  apply seg25_part44_to_extracted rho p44
-  apply seg25_part45_to_extracted rho p45
-  apply seg25_part46_to_extracted rho p46
-  apply seg25_part47_to_extracted rho p47
-  apply seg25_part48_to_extracted rho p48
-  apply seg25_part49_to_extracted rho p49
-  apply seg25_part50_to_extracted rho p50
-  apply seg25_part51_to_extracted rho p51
-  apply seg25_part52_to_extracted rho p52
-  apply seg25_part53_to_extracted rho p53
-  apply seg25_part54_to_extracted rho p54
-  apply seg25_part55_to_extracted rho p55
-  apply seg25_part56_to_extracted rho p56
-  apply seg25_part57_to_extracted rho p57
-  apply seg25_part58_to_extracted rho p58
-  apply seg25_part59_to_extracted rho p59
-  apply seg25_part60_to_extracted rho p60
-  apply seg25_part61_to_extracted rho p61
-  apply seg25_part62_to_extracted rho p62
-  apply seg25_part63_to_extracted rho p63
-  apply seg25_part64_to_extracted rho p64
-  apply seg25_part65_to_extracted rho p65
-  apply seg25_part66_to_extracted rho p66
-  apply seg25_part67_to_extracted rho p67
-  apply seg25_part68_to_extracted rho p68
-  apply seg25_part69_to_extracted rho p69
-  apply seg25_part70_to_extracted rho p70
-  apply seg25_part71_to_extracted rho p71
-  apply seg25_part72_to_extracted rho p72
-  apply seg25_part73_to_extracted rho p73
-  apply seg25_part74_to_extracted rho p74
-  apply seg25_part75_to_extracted rho p75
-  apply seg25_part76_to_extracted rho p76
-  apply seg25_part77_to_extracted rho p77
-  apply seg25_part78_to_extracted rho p78
-  apply seg25_part79_to_extracted rho p79
-  apply seg25_part80_to_extracted rho p80
-  apply seg25_part81_to_extracted rho p81
-  apply seg25_part82_to_extracted rho p82
-  apply seg25_part83_to_extracted rho p83
-  apply seg25_part84_to_extracted rho p84
-  apply seg25_part85_to_extracted rho p85
+  unfold seg24NotePrefix
+  apply seg24_part0_to_extracted rho p0
+  apply seg24_part1_to_extracted rho p1
+  apply seg24_part2_to_extracted rho p2
+  apply seg24_part3_to_extracted rho p3
+  apply seg24_part4_to_extracted rho p4
+  apply seg24_part5_to_extracted rho p5
+  apply seg24_part6_to_extracted rho p6
+  apply seg24_part7_to_extracted rho p7
+  apply seg24_part8_to_extracted rho p8
+  apply seg24_part9_to_extracted rho p9
+  apply seg24_part10_to_extracted rho p10
+  apply seg24_part11_to_extracted rho p11
+  apply seg24_part12_to_extracted rho p12
+  apply seg24_part13_to_extracted rho p13
+  apply seg24_part14_to_extracted rho p14
+  apply seg24_part15_to_extracted rho p15
+  apply seg24_part16_to_extracted rho p16
+  apply seg24_part17_to_extracted rho p17
+  apply seg24_part18_to_extracted rho p18
+  apply seg24_part19_to_extracted rho p19
+  apply seg24_part20_to_extracted rho p20
+  apply seg24_part21_to_extracted rho p21
+  apply seg24_part22_to_extracted rho p22
+  apply seg24_part23_to_extracted rho p23
+  apply seg24_part24_to_extracted rho p24
+  apply seg24_part25_to_extracted rho p25
+  apply seg24_part26_to_extracted rho p26
+  apply seg24_part27_to_extracted rho p27
+  apply seg24_part28_to_extracted rho p28
+  apply seg24_part29_to_extracted rho p29
+  apply seg24_part30_to_extracted rho p30
+  apply seg24_part31_to_extracted rho p31
+  apply seg24_part32_to_extracted rho p32
+  apply seg24_part33_to_extracted rho p33
+  apply seg24_part34_to_extracted rho p34
+  apply seg24_part35_to_extracted rho p35
+  apply seg24_part36_to_extracted rho p36
+  apply seg24_part37_to_extracted rho p37
+  apply seg24_part38_to_extracted rho p38
+  apply seg24_part39_to_extracted rho p39
+  apply seg24_part40_to_extracted rho p40
+  apply seg24_part41_to_extracted rho p41
+  apply seg24_part42_to_extracted rho p42
+  apply seg24_part43_to_extracted rho p43
+  apply seg24_part44_to_extracted rho p44
+  apply seg24_part45_to_extracted rho p45
+  apply seg24_part46_to_extracted rho p46
+  apply seg24_part47_to_extracted rho p47
+  apply seg24_part48_to_extracted rho p48
+  apply seg24_part49_to_extracted rho p49
+  apply seg24_part50_to_extracted rho p50
+  apply seg24_part51_to_extracted rho p51
+  apply seg24_part52_to_extracted rho p52
+  apply seg24_part53_to_extracted rho p53
+  apply seg24_part54_to_extracted rho p54
+  apply seg24_part55_to_extracted rho p55
+  apply seg24_part56_to_extracted rho p56
+  apply seg24_part57_to_extracted rho p57
+  apply seg24_part58_to_extracted rho p58
+  apply seg24_part59_to_extracted rho p59
+  apply seg24_part60_to_extracted rho p60
+  apply seg24_part61_to_extracted rho p61
+  apply seg24_part62_to_extracted rho p62
+  apply seg24_part63_to_extracted rho p63
+  apply seg24_part64_to_extracted rho p64
+  apply seg24_part65_to_extracted rho p65
+  apply seg24_part66_to_extracted rho p66
+  apply seg24_part67_to_extracted rho p67
+  apply seg24_part68_to_extracted rho p68
+  apply seg24_part69_to_extracted rho p69
+  apply seg24_part70_to_extracted rho p70
+  apply seg24_part71_to_extracted rho p71
+  apply seg24_part72_to_extracted rho p72
+  apply seg24_part73_to_extracted rho p73
+  apply seg24_part74_to_extracted rho p74
+  apply seg24_part75_to_extracted rho p75
+  apply seg24_part76_to_extracted rho p76
+  apply seg24_part77_to_extracted rho p77
+  apply seg24_part78_to_extracted rho p78
+  apply seg24_part79_to_extracted rho p79
+  apply seg24_part80_to_extracted rho p80
+  apply seg24_part81_to_extracted rho p81
+  apply seg24_part82_to_extracted rho p82
+  apply seg24_part83_to_extracted rho p83
+  apply seg24_part84_to_extracted rho p84
+  apply seg24_part85_to_extracted rho p85
   exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
-theorem seg25_sound (rho : Nat → Seg25.F) (h : Seg25.relation rho) : Seg25.spec rho := by
-  have hPrefix := seg25_relation_to_note_prefix rho h
-  have r0 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range0_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) _ hPrefix
+theorem seg24_sound (rho : Nat → Seg24.F) (h : Seg24.relation rho) : Seg24.spec rho := by
+  have hPrefix := seg24_relation_to_note_prefix rho h
+  have r0 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range0_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) _ hPrefix
   rcases r0 with ⟨w917, w922, w927, w932, w937, w942, hSpec0, h⟩
-  have r1 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range1_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w917 w922 w927 w932 w937 w942 _ hSpec0 h
+  have r1 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range1_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w917 w922 w927 w932 w937 w942 _ hSpec0 h
   rcases r1 with ⟨w947, w952, w957, w962, w967, w972, w977, hSpec1, h⟩
-  have r2 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range2_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w947 w952 w957 w962 w967 w972 w977 _ hSpec1 h
+  have r2 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range2_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w947 w952 w957 w962 w967 w972 w977 _ hSpec1 h
   rcases r2 with ⟨w982, w987, w992, w997, w1002, w1007, w1012, hSpec2, h⟩
-  have r3 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range3_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w982 w987 w992 w997 w1002 w1007 w1012 _ hSpec2 h
+  have r3 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range3_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w982 w987 w992 w997 w1002 w1007 w1012 _ hSpec2 h
   rcases r3 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, hSpec3, h⟩
-  have r4 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range4_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w1017 w1022 w1027 w1032 w1037 w1042 w1047 _ hSpec3 h
+  have r4 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range4_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 _ hSpec3 h
   rcases r4 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, hSpec13, h⟩
-  have r5 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range5_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 _ hSpec13 h
+  have r5 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range5_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 _ hSpec13 h
   rcases r5 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, w1102, w1107, w1112, w1117, w1122, w1127, w1132, w1137, w1142, w1147, hSpec23, h⟩
-  have r6 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range6_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 _ hSpec23 h
+  have r6 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range6_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 _ hSpec23 h
   rcases r6 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, w1102, w1107, w1112, w1117, w1122, w1127, w1132, w1137, w1142, w1147, w1152, w1157, w1162, w1167, w1172, w1177, w1182, w1187, w1192, w1197, w1202, hSpec34, h⟩
-  have r7 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range7_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 w1152 w1157 w1162 w1167 w1172 w1177 w1182 w1187 w1192 w1197 w1202 _ hSpec34 h
+  have r7 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range7_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 w1152 w1157 w1162 w1167 w1172 w1177 w1182 w1187 w1192 w1197 w1202 _ hSpec34 h
   rcases r7 with ⟨w1207, w1212, w1217, w1222, w1227, w1232, w1237, hSpec35, h⟩
-  have r8 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range8_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w1207 w1212 w1217 w1222 w1227 w1232 w1237 _ hSpec35 h
+  have r8 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range8_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w1207 w1212 w1217 w1222 w1227 w1232 w1237 _ hSpec35 h
   rcases r8 with ⟨w1242, w1247, w1252, w1257, w1262, w1267, w1272, hSpec36, h⟩
-  have r9 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range9_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w1242 w1247 w1252 w1257 w1262 w1267 w1272 _ hSpec36 h
+  have r9 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range9_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w1242 w1247 w1252 w1257 w1262 w1267 w1272 _ hSpec36 h
   rcases r9 with ⟨w1277, w1282, w1287, w1292, w1297, w1302, w1307, hSpec37, h⟩
-  have r10 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range10_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 19272) (rho 19612) w1277 w1282 w1287 w1292 w1297 w1302 w1307 _ hSpec37 h
+  have r10 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range10_sound (rho 104) (rho 105) (rho 106) (rho 109) (rho 112) (rho 572) (rho 912) w1277 w1282 w1287 w1292 w1297 w1302 w1307 _ hSpec37 h
   rcases r10 with ⟨w1312, w1317, w1322, w1327, w1332, w1337, w1342, hSpec38, hk⟩
   rcases hk with ⟨hw1312, hw1317, hw1322, hw1327, hw1332, hw1337, hw1342⟩
-  simpa [Seg25.spec, Specs.deployedSpec25, hw1312, hw1317, hw1322, hw1327, hw1332, hw1337, hw1342] using hSpec38
+  simpa [Seg24.spec, Specs.deployedSpec24, hw1312, hw1317, hw1322, hw1327, hw1332, hw1337, hw1342] using hSpec38
 
-theorem seg41_part0_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart0 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) (rho 32501)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) k := by
-  unfold Seg41.relationPart0 Seg41.relationRow0 Seg41.relationRow1 Seg41.relationRow2 Seg41.relationRow3 Seg41.relationRow4 at h
+theorem seg39_part0_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart0 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) (rho 30844)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) k := by
+  unfold Seg39.relationPart0 Seg39.relationRow0 Seg39.relationRow1 Seg39.relationRow2 Seg39.relationRow3 Seg39.relationRow4 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0
-  exact ⟨(rho 32497), (rho 32498), (rho 32499), (rho 32500), (rho 32501), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30840), (rho 30841), (rho 30842), (rho 30843), (rho 30844), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part1_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart1 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) (rho 32501) (rho 32506)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) (rho 32501) k := by
-  unfold Seg41.relationPart1 Seg41.relationRow5 Seg41.relationRow6 Seg41.relationRow7 Seg41.relationRow8 Seg41.relationRow9 at h
+theorem seg39_part1_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart1 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) (rho 30844) (rho 30849)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) (rho 30844) k := by
+  unfold Seg39.relationPart1 Seg39.relationRow5 Seg39.relationRow6 Seg39.relationRow7 Seg39.relationRow8 Seg39.relationRow9 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1
-  exact ⟨(rho 32502), (rho 32503), (rho 32504), (rho 32505), (rho 32506), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30845), (rho 30846), (rho 30847), (rho 30848), (rho 30849), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part2_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart2 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 197) (rho 200) (rho 32156) (rho 32496) (rho 32501) (rho 32506) (rho 32511)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) (rho 32501) (rho 32506) k := by
-  unfold Seg41.relationPart2 Seg41.relationRow10 Seg41.relationRow11 Seg41.relationRow12 Seg41.relationRow13 Seg41.relationRow14 at h
+theorem seg39_part2_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart2 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 197) (rho 200) (rho 572) (rho 912) (rho 30844) (rho 30849) (rho 30854)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) (rho 30844) (rho 30849) k := by
+  unfold Seg39.relationPart2 Seg39.relationRow10 Seg39.relationRow11 Seg39.relationRow12 Seg39.relationRow13 Seg39.relationRow14 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2
-  exact ⟨(rho 32507), (rho 32508), (rho 32509), (rho 32510), (rho 32511), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30850), (rho 30851), (rho 30852), (rho 30853), (rho 30854), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part3_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart3 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 197) (rho 200) (rho 32501) (rho 32506) (rho 32511) (rho 32516)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 (rho 197) (rho 200) (rho 32156) (rho 32496) (rho 32501) (rho 32506) (rho 32511) k := by
-  unfold Seg41.relationPart3 Seg41.relationRow15 Seg41.relationRow16 Seg41.relationRow17 Seg41.relationRow18 Seg41.relationRow19 at h
+theorem seg39_part3_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart3 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 197) (rho 200) (rho 30844) (rho 30849) (rho 30854) (rho 30859)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 (rho 197) (rho 200) (rho 572) (rho 912) (rho 30844) (rho 30849) (rho 30854) k := by
+  unfold Seg39.relationPart3 Seg39.relationRow15 Seg39.relationRow16 Seg39.relationRow17 Seg39.relationRow18 Seg39.relationRow19 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3
-  exact ⟨(rho 32512), (rho 32513), (rho 32514), (rho 32515), (rho 32516), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30855), (rho 30856), (rho 30857), (rho 30858), (rho 30859), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part4_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart4 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 200) (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4 (rho 197) (rho 200) (rho 32501) (rho 32506) (rho 32511) (rho 32516) k := by
-  unfold Seg41.relationPart4 Seg41.relationRow20 Seg41.relationRow21 Seg41.relationRow22 Seg41.relationRow23 Seg41.relationRow24 at h
+theorem seg39_part4_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart4 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 200) (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4 (rho 197) (rho 200) (rho 30844) (rho 30849) (rho 30854) (rho 30859) k := by
+  unfold Seg39.relationPart4 Seg39.relationRow20 Seg39.relationRow21 Seg39.relationRow22 Seg39.relationRow23 Seg39.relationRow24 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg4
-  exact ⟨(rho 32517), (rho 32518), (rho 32519), (rho 32520), (rho 32521), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30860), (rho 30861), (rho 30862), (rho 30863), (rho 30864), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part5_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart5 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5 (rho 200) (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) k := by
-  unfold Seg41.relationPart5 Seg41.relationRow25 Seg41.relationRow26 Seg41.relationRow27 Seg41.relationRow28 Seg41.relationRow29 at h
+theorem seg39_part5_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart5 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5 (rho 200) (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) k := by
+  unfold Seg39.relationPart5 Seg39.relationRow25 Seg39.relationRow26 Seg39.relationRow27 Seg39.relationRow28 Seg39.relationRow29 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg5
-  exact ⟨(rho 32522), (rho 32523), (rho 32524), (rho 32525), (rho 32526), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30865), (rho 30866), (rho 30867), (rho 30868), (rho 30869), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part6_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart6 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6 (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) k := by
-  unfold Seg41.relationPart6 Seg41.relationRow30 Seg41.relationRow31 Seg41.relationRow32 Seg41.relationRow33 Seg41.relationRow34 at h
+theorem seg39_part6_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart6 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6 (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) k := by
+  unfold Seg39.relationPart6 Seg39.relationRow30 Seg39.relationRow31 Seg39.relationRow32 Seg39.relationRow33 Seg39.relationRow34 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg6
-  exact ⟨(rho 32527), (rho 32528), (rho 32529), (rho 32530), (rho 32531), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30870), (rho 30871), (rho 30872), (rho 30873), (rho 30874), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part7_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart7 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7 (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) k := by
-  unfold Seg41.relationPart7 Seg41.relationRow35 Seg41.relationRow36 Seg41.relationRow37 Seg41.relationRow38 Seg41.relationRow39 at h
+theorem seg39_part7_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart7 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7 (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) k := by
+  unfold Seg39.relationPart7 Seg39.relationRow35 Seg39.relationRow36 Seg39.relationRow37 Seg39.relationRow38 Seg39.relationRow39 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg7
-  exact ⟨(rho 32532), (rho 32533), (rho 32534), (rho 32535), (rho 32536), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30875), (rho 30876), (rho 30877), (rho 30878), (rho 30879), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part8_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart8 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) (rho 32541)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8 (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) k := by
-  unfold Seg41.relationPart8 Seg41.relationRow40 Seg41.relationRow41 Seg41.relationRow42 Seg41.relationRow43 Seg41.relationRow44 at h
+theorem seg39_part8_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart8 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) (rho 30884)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8 (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) k := by
+  unfold Seg39.relationPart8 Seg39.relationRow40 Seg39.relationRow41 Seg39.relationRow42 Seg39.relationRow43 Seg39.relationRow44 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg8
-  exact ⟨(rho 32537), (rho 32538), (rho 32539), (rho 32540), (rho 32541), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30880), (rho 30881), (rho 30882), (rho 30883), (rho 30884), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part9_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart9 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) (rho 32541) (rho 32546)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9 (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) (rho 32541) k := by
-  unfold Seg41.relationPart9 Seg41.relationRow45 Seg41.relationRow46 Seg41.relationRow47 Seg41.relationRow48 Seg41.relationRow49 at h
+theorem seg39_part9_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart9 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) (rho 30884) (rho 30889)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9 (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) (rho 30884) k := by
+  unfold Seg39.relationPart9 Seg39.relationRow45 Seg39.relationRow46 Seg39.relationRow47 Seg39.relationRow48 Seg39.relationRow49 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg9
-  exact ⟨(rho 32542), (rho 32543), (rho 32544), (rho 32545), (rho 32546), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30885), (rho 30886), (rho 30887), (rho 30888), (rho 30889), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part10_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart10 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10 (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) (rho 32541) (rho 32546) k := by
-  unfold Seg41.relationPart10 Seg41.relationRow50 Seg41.relationRow51 Seg41.relationRow52 Seg41.relationRow53 Seg41.relationRow54 at h
+theorem seg39_part10_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart10 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10 (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) (rho 30884) (rho 30889) k := by
+  unfold Seg39.relationPart10 Seg39.relationRow50 Seg39.relationRow51 Seg39.relationRow52 Seg39.relationRow53 Seg39.relationRow54 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg10
-  exact ⟨(rho 32547), (rho 32548), (rho 32549), (rho 32550), (rho 32551), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30890), (rho 30891), (rho 30892), (rho 30893), (rho 30894), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part11_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart11 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11 (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) k := by
-  unfold Seg41.relationPart11 Seg41.relationRow55 Seg41.relationRow56 Seg41.relationRow57 Seg41.relationRow58 Seg41.relationRow59 at h
+theorem seg39_part11_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart11 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11 (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) k := by
+  unfold Seg39.relationPart11 Seg39.relationRow55 Seg39.relationRow56 Seg39.relationRow57 Seg39.relationRow58 Seg39.relationRow59 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg11
-  exact ⟨(rho 32552), (rho 32553), (rho 32554), (rho 32555), (rho 32556), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30895), (rho 30896), (rho 30897), (rho 30898), (rho 30899), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part12_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart12 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12 (rho 32501) (rho 32506) (rho 32511) (rho 32516) (rho 32521) (rho 32526) (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) k := by
-  unfold Seg41.relationPart12 Seg41.relationRow60 Seg41.relationRow61 Seg41.relationRow62 Seg41.relationRow63 Seg41.relationRow64 at h
+theorem seg39_part12_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart12 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12 (rho 30844) (rho 30849) (rho 30854) (rho 30859) (rho 30864) (rho 30869) (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) k := by
+  unfold Seg39.relationPart12 Seg39.relationRow60 Seg39.relationRow61 Seg39.relationRow62 Seg39.relationRow63 Seg39.relationRow64 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg12
-  exact ⟨(rho 32557), (rho 32558), (rho 32559), (rho 32560), (rho 32561), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30900), (rho 30901), (rho 30902), (rho 30903), (rho 30904), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part13_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart13 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13 (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) k := by
-  unfold Seg41.relationPart13 Seg41.relationRow65 Seg41.relationRow66 Seg41.relationRow67 Seg41.relationRow68 Seg41.relationRow69 at h
+theorem seg39_part13_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart13 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13 (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) k := by
+  unfold Seg39.relationPart13 Seg39.relationRow65 Seg39.relationRow66 Seg39.relationRow67 Seg39.relationRow68 Seg39.relationRow69 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg13
-  exact ⟨(rho 32562), (rho 32563), (rho 32564), (rho 32565), (rho 32566), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30905), (rho 30906), (rho 30907), (rho 30908), (rho 30909), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part14_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart14 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14 (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) k := by
-  unfold Seg41.relationPart14 Seg41.relationRow70 Seg41.relationRow71 Seg41.relationRow72 Seg41.relationRow73 Seg41.relationRow74 at h
+theorem seg39_part14_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart14 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14 (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) k := by
+  unfold Seg39.relationPart14 Seg39.relationRow70 Seg39.relationRow71 Seg39.relationRow72 Seg39.relationRow73 Seg39.relationRow74 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg14
-  exact ⟨(rho 32567), (rho 32568), (rho 32569), (rho 32570), (rho 32571), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30910), (rho 30911), (rho 30912), (rho 30913), (rho 30914), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part15_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart15 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) (rho 32576)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15 (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) k := by
-  unfold Seg41.relationPart15 Seg41.relationRow75 Seg41.relationRow76 Seg41.relationRow77 Seg41.relationRow78 Seg41.relationRow79 at h
+theorem seg39_part15_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart15 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) (rho 30919)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15 (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) k := by
+  unfold Seg39.relationPart15 Seg39.relationRow75 Seg39.relationRow76 Seg39.relationRow77 Seg39.relationRow78 Seg39.relationRow79 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg15
-  exact ⟨(rho 32572), (rho 32573), (rho 32574), (rho 32575), (rho 32576), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30915), (rho 30916), (rho 30917), (rho 30918), (rho 30919), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part16_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart16 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) (rho 32576) (rho 32581)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16 (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) (rho 32576) k := by
-  unfold Seg41.relationPart16 Seg41.relationRow80 Seg41.relationRow81 Seg41.relationRow82 Seg41.relationRow83 Seg41.relationRow84 at h
+theorem seg39_part16_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart16 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) (rho 30919) (rho 30924)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16 (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) (rho 30919) k := by
+  unfold Seg39.relationPart16 Seg39.relationRow80 Seg39.relationRow81 Seg39.relationRow82 Seg39.relationRow83 Seg39.relationRow84 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg16
-  exact ⟨(rho 32577), (rho 32578), (rho 32579), (rho 32580), (rho 32581), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30920), (rho 30921), (rho 30922), (rho 30923), (rho 30924), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part17_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart17 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17 (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) (rho 32576) (rho 32581) k := by
-  unfold Seg41.relationPart17 Seg41.relationRow85 Seg41.relationRow86 Seg41.relationRow87 Seg41.relationRow88 Seg41.relationRow89 at h
+theorem seg39_part17_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart17 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17 (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) (rho 30919) (rho 30924) k := by
+  unfold Seg39.relationPart17 Seg39.relationRow85 Seg39.relationRow86 Seg39.relationRow87 Seg39.relationRow88 Seg39.relationRow89 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg17
-  exact ⟨(rho 32582), (rho 32583), (rho 32584), (rho 32585), (rho 32586), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30925), (rho 30926), (rho 30927), (rho 30928), (rho 30929), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part18_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart18 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18 (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) k := by
-  unfold Seg41.relationPart18 Seg41.relationRow90 Seg41.relationRow91 Seg41.relationRow92 Seg41.relationRow93 Seg41.relationRow94 at h
+theorem seg39_part18_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart18 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18 (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) k := by
+  unfold Seg39.relationPart18 Seg39.relationRow90 Seg39.relationRow91 Seg39.relationRow92 Seg39.relationRow93 Seg39.relationRow94 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg18
-  exact ⟨(rho 32587), (rho 32588), (rho 32589), (rho 32590), (rho 32591), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30930), (rho 30931), (rho 30932), (rho 30933), (rho 30934), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part19_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart19 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19 (rho 32531) (rho 32536) (rho 32541) (rho 32546) (rho 32551) (rho 32556) (rho 32561) (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) k := by
-  unfold Seg41.relationPart19 Seg41.relationRow95 Seg41.relationRow96 Seg41.relationRow97 Seg41.relationRow98 Seg41.relationRow99 at h
+theorem seg39_part19_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart19 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19 (rho 30874) (rho 30879) (rho 30884) (rho 30889) (rho 30894) (rho 30899) (rho 30904) (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) k := by
+  unfold Seg39.relationPart19 Seg39.relationRow95 Seg39.relationRow96 Seg39.relationRow97 Seg39.relationRow98 Seg39.relationRow99 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg19
-  exact ⟨(rho 32592), (rho 32593), (rho 32594), (rho 32595), (rho 32596), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30935), (rho 30936), (rho 30937), (rho 30938), (rho 30939), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part20_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart20 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20 (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) k := by
-  unfold Seg41.relationPart20 Seg41.relationRow100 Seg41.relationRow101 Seg41.relationRow102 Seg41.relationRow103 Seg41.relationRow104 at h
+theorem seg39_part20_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart20 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20 (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) k := by
+  unfold Seg39.relationPart20 Seg39.relationRow100 Seg39.relationRow101 Seg39.relationRow102 Seg39.relationRow103 Seg39.relationRow104 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg20
-  exact ⟨(rho 32597), (rho 32598), (rho 32599), (rho 32600), (rho 32601), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30940), (rho 30941), (rho 30942), (rho 30943), (rho 30944), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part21_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart21 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21 (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) k := by
-  unfold Seg41.relationPart21 Seg41.relationRow105 Seg41.relationRow106 Seg41.relationRow107 Seg41.relationRow108 Seg41.relationRow109 at h
+theorem seg39_part21_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart21 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21 (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) k := by
+  unfold Seg39.relationPart21 Seg39.relationRow105 Seg39.relationRow106 Seg39.relationRow107 Seg39.relationRow108 Seg39.relationRow109 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg21
-  exact ⟨(rho 32602), (rho 32603), (rho 32604), (rho 32605), (rho 32606), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30945), (rho 30946), (rho 30947), (rho 30948), (rho 30949), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part22_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart22 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) (rho 32611)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22 (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) k := by
-  unfold Seg41.relationPart22 Seg41.relationRow110 Seg41.relationRow111 Seg41.relationRow112 Seg41.relationRow113 Seg41.relationRow114 at h
+theorem seg39_part22_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart22 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) (rho 30954)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22 (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) k := by
+  unfold Seg39.relationPart22 Seg39.relationRow110 Seg39.relationRow111 Seg39.relationRow112 Seg39.relationRow113 Seg39.relationRow114 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg22
-  exact ⟨(rho 32607), (rho 32608), (rho 32609), (rho 32610), (rho 32611), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30950), (rho 30951), (rho 30952), (rho 30953), (rho 30954), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part23_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart23 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) (rho 32611) (rho 32616)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23 (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) (rho 32611) k := by
-  unfold Seg41.relationPart23 Seg41.relationRow115 Seg41.relationRow116 Seg41.relationRow117 Seg41.relationRow118 Seg41.relationRow119 at h
+theorem seg39_part23_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart23 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) (rho 30954) (rho 30959)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23 (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) (rho 30954) k := by
+  unfold Seg39.relationPart23 Seg39.relationRow115 Seg39.relationRow116 Seg39.relationRow117 Seg39.relationRow118 Seg39.relationRow119 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg23
-  exact ⟨(rho 32612), (rho 32613), (rho 32614), (rho 32615), (rho 32616), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30955), (rho 30956), (rho 30957), (rho 30958), (rho 30959), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part24_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart24 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24 (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) (rho 32611) (rho 32616) k := by
-  unfold Seg41.relationPart24 Seg41.relationRow120 Seg41.relationRow121 Seg41.relationRow122 Seg41.relationRow123 Seg41.relationRow124 at h
+theorem seg39_part24_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart24 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24 (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) (rho 30954) (rho 30959) k := by
+  unfold Seg39.relationPart24 Seg39.relationRow120 Seg39.relationRow121 Seg39.relationRow122 Seg39.relationRow123 Seg39.relationRow124 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg24
-  exact ⟨(rho 32617), (rho 32618), (rho 32619), (rho 32620), (rho 32621), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30960), (rho 30961), (rho 30962), (rho 30963), (rho 30964), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part25_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart25 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25 (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) k := by
-  unfold Seg41.relationPart25 Seg41.relationRow125 Seg41.relationRow126 Seg41.relationRow127 Seg41.relationRow128 Seg41.relationRow129 at h
+theorem seg39_part25_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart25 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25 (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) k := by
+  unfold Seg39.relationPart25 Seg39.relationRow125 Seg39.relationRow126 Seg39.relationRow127 Seg39.relationRow128 Seg39.relationRow129 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg25
-  exact ⟨(rho 32622), (rho 32623), (rho 32624), (rho 32625), (rho 32626), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30965), (rho 30966), (rho 30967), (rho 30968), (rho 30969), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part26_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart26 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26 (rho 32566) (rho 32571) (rho 32576) (rho 32581) (rho 32586) (rho 32591) (rho 32596) (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) k := by
-  unfold Seg41.relationPart26 Seg41.relationRow130 Seg41.relationRow131 Seg41.relationRow132 Seg41.relationRow133 Seg41.relationRow134 at h
+theorem seg39_part26_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart26 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26 (rho 30909) (rho 30914) (rho 30919) (rho 30924) (rho 30929) (rho 30934) (rho 30939) (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) k := by
+  unfold Seg39.relationPart26 Seg39.relationRow130 Seg39.relationRow131 Seg39.relationRow132 Seg39.relationRow133 Seg39.relationRow134 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg26
-  exact ⟨(rho 32627), (rho 32628), (rho 32629), (rho 32630), (rho 32631), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30970), (rho 30971), (rho 30972), (rho 30973), (rho 30974), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part27_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart27 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) k := by
-  unfold Seg41.relationPart27 Seg41.relationRow135 Seg41.relationRow136 Seg41.relationRow137 Seg41.relationRow138 Seg41.relationRow139 at h
+theorem seg39_part27_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart27 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) k := by
+  unfold Seg39.relationPart27 Seg39.relationRow135 Seg39.relationRow136 Seg39.relationRow137 Seg39.relationRow138 Seg39.relationRow139 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg27
-  exact ⟨(rho 32632), (rho 32633), (rho 32634), (rho 32635), (rho 32636), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30975), (rho 30976), (rho 30977), (rho 30978), (rho 30979), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part28_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart28 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) k := by
-  unfold Seg41.relationPart28 Seg41.relationRow140 Seg41.relationRow141 Seg41.relationRow142 Seg41.relationRow143 Seg41.relationRow144 at h
+theorem seg39_part28_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart28 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) k := by
+  unfold Seg39.relationPart28 Seg39.relationRow140 Seg39.relationRow141 Seg39.relationRow142 Seg39.relationRow143 Seg39.relationRow144 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg28
-  exact ⟨(rho 32637), (rho 32638), (rho 32639), (rho 32640), (rho 32641), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30980), (rho 30981), (rho 30982), (rho 30983), (rho 30984), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part29_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart29 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) k := by
-  unfold Seg41.relationPart29 Seg41.relationRow145 Seg41.relationRow146 Seg41.relationRow147 Seg41.relationRow148 Seg41.relationRow149 at h
+theorem seg39_part29_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart29 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) k := by
+  unfold Seg39.relationPart29 Seg39.relationRow145 Seg39.relationRow146 Seg39.relationRow147 Seg39.relationRow148 Seg39.relationRow149 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg29
-  exact ⟨(rho 32642), (rho 32643), (rho 32644), (rho 32645), (rho 32646), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30985), (rho 30986), (rho 30987), (rho 30988), (rho 30989), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part30_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart30 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) k := by
-  unfold Seg41.relationPart30 Seg41.relationRow150 Seg41.relationRow151 Seg41.relationRow152 Seg41.relationRow153 Seg41.relationRow154 at h
+theorem seg39_part30_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart30 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) k := by
+  unfold Seg39.relationPart30 Seg39.relationRow150 Seg39.relationRow151 Seg39.relationRow152 Seg39.relationRow153 Seg39.relationRow154 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg30
-  exact ⟨(rho 32647), (rho 32648), (rho 32649), (rho 32650), (rho 32651), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30990), (rho 30991), (rho 30992), (rho 30993), (rho 30994), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part31_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart31 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) k := by
-  unfold Seg41.relationPart31 Seg41.relationRow155 Seg41.relationRow156 Seg41.relationRow157 Seg41.relationRow158 Seg41.relationRow159 at h
+theorem seg39_part31_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart31 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) k := by
+  unfold Seg39.relationPart31 Seg39.relationRow155 Seg39.relationRow156 Seg39.relationRow157 Seg39.relationRow158 Seg39.relationRow159 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg31
-  exact ⟨(rho 32652), (rho 32653), (rho 32654), (rho 32655), (rho 32656), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 30995), (rho 30996), (rho 30997), (rho 30998), (rho 30999), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part32_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart32 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) k := by
-  unfold Seg41.relationPart32 Seg41.relationRow160 Seg41.relationRow161 Seg41.relationRow162 Seg41.relationRow163 Seg41.relationRow164 at h
+theorem seg39_part32_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart32 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) k := by
+  unfold Seg39.relationPart32 Seg39.relationRow160 Seg39.relationRow161 Seg39.relationRow162 Seg39.relationRow163 Seg39.relationRow164 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg32
-  exact ⟨(rho 32657), (rho 32658), (rho 32659), (rho 32660), (rho 32661), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31000), (rho 31001), (rho 31002), (rho 31003), (rho 31004), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part33_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart33 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) k := by
-  unfold Seg41.relationPart33 Seg41.relationRow165 Seg41.relationRow166 Seg41.relationRow167 Seg41.relationRow168 Seg41.relationRow169 at h
+theorem seg39_part33_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart33 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) k := by
+  unfold Seg39.relationPart33 Seg39.relationRow165 Seg39.relationRow166 Seg39.relationRow167 Seg39.relationRow168 Seg39.relationRow169 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg33
-  exact ⟨(rho 32662), (rho 32663), (rho 32664), (rho 32665), (rho 32666), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31005), (rho 31006), (rho 31007), (rho 31008), (rho 31009), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part34_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart34 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) k := by
-  unfold Seg41.relationPart34 Seg41.relationRow170 Seg41.relationRow171 Seg41.relationRow172 Seg41.relationRow173 Seg41.relationRow174 at h
+theorem seg39_part34_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart34 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) k := by
+  unfold Seg39.relationPart34 Seg39.relationRow170 Seg39.relationRow171 Seg39.relationRow172 Seg39.relationRow173 Seg39.relationRow174 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg34
-  exact ⟨(rho 32667), (rho 32668), (rho 32669), (rho 32670), (rho 32671), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31010), (rho 31011), (rho 31012), (rho 31013), (rho 31014), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part35_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart35 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) k := by
-  unfold Seg41.relationPart35 Seg41.relationRow175 Seg41.relationRow176 Seg41.relationRow177 Seg41.relationRow178 Seg41.relationRow179 at h
+theorem seg39_part35_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart35 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) k := by
+  unfold Seg39.relationPart35 Seg39.relationRow175 Seg39.relationRow176 Seg39.relationRow177 Seg39.relationRow178 Seg39.relationRow179 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg35
-  exact ⟨(rho 32672), (rho 32673), (rho 32674), (rho 32675), (rho 32676), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31015), (rho 31016), (rho 31017), (rho 31018), (rho 31019), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part36_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart36 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) k := by
-  unfold Seg41.relationPart36 Seg41.relationRow180 Seg41.relationRow181 Seg41.relationRow182 Seg41.relationRow183 Seg41.relationRow184 at h
+theorem seg39_part36_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart36 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) k := by
+  unfold Seg39.relationPart36 Seg39.relationRow180 Seg39.relationRow181 Seg39.relationRow182 Seg39.relationRow183 Seg39.relationRow184 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg36
-  exact ⟨(rho 32677), (rho 32678), (rho 32679), (rho 32680), (rho 32681), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31020), (rho 31021), (rho 31022), (rho 31023), (rho 31024), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part37_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart37 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) k := by
-  unfold Seg41.relationPart37 Seg41.relationRow185 Seg41.relationRow186 Seg41.relationRow187 Seg41.relationRow188 Seg41.relationRow189 at h
+theorem seg39_part37_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart37 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) k := by
+  unfold Seg39.relationPart37 Seg39.relationRow185 Seg39.relationRow186 Seg39.relationRow187 Seg39.relationRow188 Seg39.relationRow189 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg37
-  exact ⟨(rho 32682), (rho 32683), (rho 32684), (rho 32685), (rho 32686), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31025), (rho 31026), (rho 31027), (rho 31028), (rho 31029), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part38_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart38 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) k := by
-  unfold Seg41.relationPart38 Seg41.relationRow190 Seg41.relationRow191 Seg41.relationRow192 Seg41.relationRow193 Seg41.relationRow194 at h
+theorem seg39_part38_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart38 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) k := by
+  unfold Seg39.relationPart38 Seg39.relationRow190 Seg39.relationRow191 Seg39.relationRow192 Seg39.relationRow193 Seg39.relationRow194 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg38
-  exact ⟨(rho 32687), (rho 32688), (rho 32689), (rho 32690), (rho 32691), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31030), (rho 31031), (rho 31032), (rho 31033), (rho 31034), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part39_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart39 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) k := by
-  unfold Seg41.relationPart39 Seg41.relationRow195 Seg41.relationRow196 Seg41.relationRow197 Seg41.relationRow198 Seg41.relationRow199 at h
+theorem seg39_part39_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart39 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) k := by
+  unfold Seg39.relationPart39 Seg39.relationRow195 Seg39.relationRow196 Seg39.relationRow197 Seg39.relationRow198 Seg39.relationRow199 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg39
-  exact ⟨(rho 32692), (rho 32693), (rho 32694), (rho 32695), (rho 32696), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31035), (rho 31036), (rho 31037), (rho 31038), (rho 31039), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part40_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart40 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) k := by
-  unfold Seg41.relationPart40 Seg41.relationRow200 Seg41.relationRow201 Seg41.relationRow202 Seg41.relationRow203 Seg41.relationRow204 at h
+theorem seg39_part40_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart40 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) k := by
+  unfold Seg39.relationPart40 Seg39.relationRow200 Seg39.relationRow201 Seg39.relationRow202 Seg39.relationRow203 Seg39.relationRow204 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg40
-  exact ⟨(rho 32697), (rho 32698), (rho 32699), (rho 32700), (rho 32701), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31040), (rho 31041), (rho 31042), (rho 31043), (rho 31044), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part41_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart41 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) k := by
-  unfold Seg41.relationPart41 Seg41.relationRow205 Seg41.relationRow206 Seg41.relationRow207 Seg41.relationRow208 Seg41.relationRow209 at h
+theorem seg39_part41_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart41 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) k := by
+  unfold Seg39.relationPart41 Seg39.relationRow205 Seg39.relationRow206 Seg39.relationRow207 Seg39.relationRow208 Seg39.relationRow209 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg41
-  exact ⟨(rho 32702), (rho 32703), (rho 32704), (rho 32705), (rho 32706), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31045), (rho 31046), (rho 31047), (rho 31048), (rho 31049), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part42_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart42 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) k := by
-  unfold Seg41.relationPart42 Seg41.relationRow210 Seg41.relationRow211 Seg41.relationRow212 Seg41.relationRow213 Seg41.relationRow214 at h
+theorem seg39_part42_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart42 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) k := by
+  unfold Seg39.relationPart42 Seg39.relationRow210 Seg39.relationRow211 Seg39.relationRow212 Seg39.relationRow213 Seg39.relationRow214 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg42
-  exact ⟨(rho 32707), (rho 32708), (rho 32709), (rho 32710), (rho 32711), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31050), (rho 31051), (rho 31052), (rho 31053), (rho 31054), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part43_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart43 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) k := by
-  unfold Seg41.relationPart43 Seg41.relationRow215 Seg41.relationRow216 Seg41.relationRow217 Seg41.relationRow218 Seg41.relationRow219 at h
+theorem seg39_part43_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart43 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) k := by
+  unfold Seg39.relationPart43 Seg39.relationRow215 Seg39.relationRow216 Seg39.relationRow217 Seg39.relationRow218 Seg39.relationRow219 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg43
-  exact ⟨(rho 32712), (rho 32713), (rho 32714), (rho 32715), (rho 32716), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31055), (rho 31056), (rho 31057), (rho 31058), (rho 31059), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part44_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart44 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) k := by
-  unfold Seg41.relationPart44 Seg41.relationRow220 Seg41.relationRow221 Seg41.relationRow222 Seg41.relationRow223 Seg41.relationRow224 at h
+theorem seg39_part44_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart44 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) k := by
+  unfold Seg39.relationPart44 Seg39.relationRow220 Seg39.relationRow221 Seg39.relationRow222 Seg39.relationRow223 Seg39.relationRow224 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg44
-  exact ⟨(rho 32717), (rho 32718), (rho 32719), (rho 32720), (rho 32721), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31060), (rho 31061), (rho 31062), (rho 31063), (rho 31064), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part45_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart45 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) k := by
-  unfold Seg41.relationPart45 Seg41.relationRow225 Seg41.relationRow226 Seg41.relationRow227 Seg41.relationRow228 Seg41.relationRow229 at h
+theorem seg39_part45_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart45 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) k := by
+  unfold Seg39.relationPart45 Seg39.relationRow225 Seg39.relationRow226 Seg39.relationRow227 Seg39.relationRow228 Seg39.relationRow229 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg45
-  exact ⟨(rho 32722), (rho 32723), (rho 32724), (rho 32725), (rho 32726), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31065), (rho 31066), (rho 31067), (rho 31068), (rho 31069), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part46_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart46 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) k := by
-  unfold Seg41.relationPart46 Seg41.relationRow230 Seg41.relationRow231 Seg41.relationRow232 Seg41.relationRow233 Seg41.relationRow234 at h
+theorem seg39_part46_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart46 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) k := by
+  unfold Seg39.relationPart46 Seg39.relationRow230 Seg39.relationRow231 Seg39.relationRow232 Seg39.relationRow233 Seg39.relationRow234 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg46
-  exact ⟨(rho 32727), (rho 32728), (rho 32729), (rho 32730), (rho 32731), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31070), (rho 31071), (rho 31072), (rho 31073), (rho 31074), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part47_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart47 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) k := by
-  unfold Seg41.relationPart47 Seg41.relationRow235 Seg41.relationRow236 Seg41.relationRow237 Seg41.relationRow238 Seg41.relationRow239 at h
+theorem seg39_part47_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart47 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) k := by
+  unfold Seg39.relationPart47 Seg39.relationRow235 Seg39.relationRow236 Seg39.relationRow237 Seg39.relationRow238 Seg39.relationRow239 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg47
-  exact ⟨(rho 32732), (rho 32733), (rho 32734), (rho 32735), (rho 32736), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31075), (rho 31076), (rho 31077), (rho 31078), (rho 31079), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part48_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart48 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) k := by
-  unfold Seg41.relationPart48 Seg41.relationRow240 Seg41.relationRow241 Seg41.relationRow242 Seg41.relationRow243 Seg41.relationRow244 at h
+theorem seg39_part48_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart48 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) k := by
+  unfold Seg39.relationPart48 Seg39.relationRow240 Seg39.relationRow241 Seg39.relationRow242 Seg39.relationRow243 Seg39.relationRow244 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg48
-  exact ⟨(rho 32737), (rho 32738), (rho 32739), (rho 32740), (rho 32741), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31080), (rho 31081), (rho 31082), (rho 31083), (rho 31084), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part49_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart49 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) k := by
-  unfold Seg41.relationPart49 Seg41.relationRow245 Seg41.relationRow246 Seg41.relationRow247 Seg41.relationRow248 Seg41.relationRow249 at h
+theorem seg39_part49_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart49 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) k := by
+  unfold Seg39.relationPart49 Seg39.relationRow245 Seg39.relationRow246 Seg39.relationRow247 Seg39.relationRow248 Seg39.relationRow249 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg49
-  exact ⟨(rho 32742), (rho 32743), (rho 32744), (rho 32745), (rho 32746), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31085), (rho 31086), (rho 31087), (rho 31088), (rho 31089), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part50_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart50 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) k := by
-  unfold Seg41.relationPart50 Seg41.relationRow250 Seg41.relationRow251 Seg41.relationRow252 Seg41.relationRow253 Seg41.relationRow254 at h
+theorem seg39_part50_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart50 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) k := by
+  unfold Seg39.relationPart50 Seg39.relationRow250 Seg39.relationRow251 Seg39.relationRow252 Seg39.relationRow253 Seg39.relationRow254 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg50
-  exact ⟨(rho 32747), (rho 32748), (rho 32749), (rho 32750), (rho 32751), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31090), (rho 31091), (rho 31092), (rho 31093), (rho 31094), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part51_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart51 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) k := by
-  unfold Seg41.relationPart51 Seg41.relationRow255 Seg41.relationRow256 Seg41.relationRow257 Seg41.relationRow258 Seg41.relationRow259 at h
+theorem seg39_part51_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart51 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) k := by
+  unfold Seg39.relationPart51 Seg39.relationRow255 Seg39.relationRow256 Seg39.relationRow257 Seg39.relationRow258 Seg39.relationRow259 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg51
-  exact ⟨(rho 32752), (rho 32753), (rho 32754), (rho 32755), (rho 32756), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31095), (rho 31096), (rho 31097), (rho 31098), (rho 31099), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part52_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart52 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) k := by
-  unfold Seg41.relationPart52 Seg41.relationRow260 Seg41.relationRow261 Seg41.relationRow262 Seg41.relationRow263 Seg41.relationRow264 at h
+theorem seg39_part52_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart52 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) k := by
+  unfold Seg39.relationPart52 Seg39.relationRow260 Seg39.relationRow261 Seg39.relationRow262 Seg39.relationRow263 Seg39.relationRow264 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg52
-  exact ⟨(rho 32757), (rho 32758), (rho 32759), (rho 32760), (rho 32761), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31100), (rho 31101), (rho 31102), (rho 31103), (rho 31104), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part53_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart53 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) k := by
-  unfold Seg41.relationPart53 Seg41.relationRow265 Seg41.relationRow266 Seg41.relationRow267 Seg41.relationRow268 Seg41.relationRow269 at h
+theorem seg39_part53_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart53 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) k := by
+  unfold Seg39.relationPart53 Seg39.relationRow265 Seg39.relationRow266 Seg39.relationRow267 Seg39.relationRow268 Seg39.relationRow269 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg53
-  exact ⟨(rho 32762), (rho 32763), (rho 32764), (rho 32765), (rho 32766), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31105), (rho 31106), (rho 31107), (rho 31108), (rho 31109), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part54_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart54 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) k := by
-  unfold Seg41.relationPart54 Seg41.relationRow270 Seg41.relationRow271 Seg41.relationRow272 Seg41.relationRow273 Seg41.relationRow274 at h
+theorem seg39_part54_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart54 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) k := by
+  unfold Seg39.relationPart54 Seg39.relationRow270 Seg39.relationRow271 Seg39.relationRow272 Seg39.relationRow273 Seg39.relationRow274 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg54
-  exact ⟨(rho 32767), (rho 32768), (rho 32769), (rho 32770), (rho 32771), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31110), (rho 31111), (rho 31112), (rho 31113), (rho 31114), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part55_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart55 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) k := by
-  unfold Seg41.relationPart55 Seg41.relationRow275 Seg41.relationRow276 Seg41.relationRow277 Seg41.relationRow278 Seg41.relationRow279 at h
+theorem seg39_part55_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart55 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) k := by
+  unfold Seg39.relationPart55 Seg39.relationRow275 Seg39.relationRow276 Seg39.relationRow277 Seg39.relationRow278 Seg39.relationRow279 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg55
-  exact ⟨(rho 32772), (rho 32773), (rho 32774), (rho 32775), (rho 32776), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31115), (rho 31116), (rho 31117), (rho 31118), (rho 31119), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part56_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart56 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) k := by
-  unfold Seg41.relationPart56 Seg41.relationRow280 Seg41.relationRow281 Seg41.relationRow282 Seg41.relationRow283 Seg41.relationRow284 at h
+theorem seg39_part56_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart56 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) k := by
+  unfold Seg39.relationPart56 Seg39.relationRow280 Seg39.relationRow281 Seg39.relationRow282 Seg39.relationRow283 Seg39.relationRow284 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg56
-  exact ⟨(rho 32777), (rho 32778), (rho 32779), (rho 32780), (rho 32781), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31120), (rho 31121), (rho 31122), (rho 31123), (rho 31124), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part57_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart57 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) k := by
-  unfold Seg41.relationPart57 Seg41.relationRow285 Seg41.relationRow286 Seg41.relationRow287 Seg41.relationRow288 Seg41.relationRow289 at h
+theorem seg39_part57_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart57 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) k := by
+  unfold Seg39.relationPart57 Seg39.relationRow285 Seg39.relationRow286 Seg39.relationRow287 Seg39.relationRow288 Seg39.relationRow289 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg57
-  exact ⟨(rho 32782), (rho 32783), (rho 32784), (rho 32785), (rho 32786), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31125), (rho 31126), (rho 31127), (rho 31128), (rho 31129), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part58_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart58 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) k := by
-  unfold Seg41.relationPart58 Seg41.relationRow290 Seg41.relationRow291 Seg41.relationRow292 Seg41.relationRow293 Seg41.relationRow294 at h
+theorem seg39_part58_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart58 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) k := by
+  unfold Seg39.relationPart58 Seg39.relationRow290 Seg39.relationRow291 Seg39.relationRow292 Seg39.relationRow293 Seg39.relationRow294 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg58
-  exact ⟨(rho 32787), (rho 32788), (rho 32789), (rho 32790), (rho 32791), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31130), (rho 31131), (rho 31132), (rho 31133), (rho 31134), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part59_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart59 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) k := by
-  unfold Seg41.relationPart59 Seg41.relationRow295 Seg41.relationRow296 Seg41.relationRow297 Seg41.relationRow298 Seg41.relationRow299 at h
+theorem seg39_part59_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart59 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) k := by
+  unfold Seg39.relationPart59 Seg39.relationRow295 Seg39.relationRow296 Seg39.relationRow297 Seg39.relationRow298 Seg39.relationRow299 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg59
-  exact ⟨(rho 32792), (rho 32793), (rho 32794), (rho 32795), (rho 32796), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31135), (rho 31136), (rho 31137), (rho 31138), (rho 31139), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part60_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart60 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) (rho 32801)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) k := by
-  unfold Seg41.relationPart60 Seg41.relationRow300 Seg41.relationRow301 Seg41.relationRow302 Seg41.relationRow303 Seg41.relationRow304 at h
+theorem seg39_part60_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart60 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) (rho 31144)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) k := by
+  unfold Seg39.relationPart60 Seg39.relationRow300 Seg39.relationRow301 Seg39.relationRow302 Seg39.relationRow303 Seg39.relationRow304 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg60
-  exact ⟨(rho 32797), (rho 32798), (rho 32799), (rho 32800), (rho 32801), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31140), (rho 31141), (rho 31142), (rho 31143), (rho 31144), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part61_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart61 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) (rho 32801) (rho 32806)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) (rho 32801) k := by
-  unfold Seg41.relationPart61 Seg41.relationRow305 Seg41.relationRow306 Seg41.relationRow307 Seg41.relationRow308 Seg41.relationRow309 at h
+theorem seg39_part61_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart61 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) (rho 31144) (rho 31149)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) (rho 31144) k := by
+  unfold Seg39.relationPart61 Seg39.relationRow305 Seg39.relationRow306 Seg39.relationRow307 Seg39.relationRow308 Seg39.relationRow309 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg61
-  exact ⟨(rho 32802), (rho 32803), (rho 32804), (rho 32805), (rho 32806), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31145), (rho 31146), (rho 31147), (rho 31148), (rho 31149), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part62_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart62 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) (rho 32801) (rho 32806) k := by
-  unfold Seg41.relationPart62 Seg41.relationRow310 Seg41.relationRow311 Seg41.relationRow312 Seg41.relationRow313 Seg41.relationRow314 at h
+theorem seg39_part62_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart62 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) (rho 31144) (rho 31149) k := by
+  unfold Seg39.relationPart62 Seg39.relationRow310 Seg39.relationRow311 Seg39.relationRow312 Seg39.relationRow313 Seg39.relationRow314 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg62
-  exact ⟨(rho 32807), (rho 32808), (rho 32809), (rho 32810), (rho 32811), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31150), (rho 31151), (rho 31152), (rho 31153), (rho 31154), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part63_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart63 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) k := by
-  unfold Seg41.relationPart63 Seg41.relationRow315 Seg41.relationRow316 Seg41.relationRow317 Seg41.relationRow318 Seg41.relationRow319 at h
+theorem seg39_part63_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart63 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) k := by
+  unfold Seg39.relationPart63 Seg39.relationRow315 Seg39.relationRow316 Seg39.relationRow317 Seg39.relationRow318 Seg39.relationRow319 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg63
-  exact ⟨(rho 32812), (rho 32813), (rho 32814), (rho 32815), (rho 32816), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31155), (rho 31156), (rho 31157), (rho 31158), (rho 31159), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part64_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart64 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64 (rho 32601) (rho 32606) (rho 32611) (rho 32616) (rho 32621) (rho 32626) (rho 32631) (rho 32636) (rho 32641) (rho 32646) (rho 32651) (rho 32656) (rho 32661) (rho 32666) (rho 32671) (rho 32676) (rho 32681) (rho 32686) (rho 32691) (rho 32696) (rho 32701) (rho 32706) (rho 32711) (rho 32716) (rho 32721) (rho 32726) (rho 32731) (rho 32736) (rho 32741) (rho 32746) (rho 32751) (rho 32756) (rho 32761) (rho 32766) (rho 32771) (rho 32776) (rho 32781) (rho 32786) (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) k := by
-  unfold Seg41.relationPart64 Seg41.relationRow320 Seg41.relationRow321 Seg41.relationRow322 Seg41.relationRow323 Seg41.relationRow324 at h
+theorem seg39_part64_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart64 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64 (rho 30944) (rho 30949) (rho 30954) (rho 30959) (rho 30964) (rho 30969) (rho 30974) (rho 30979) (rho 30984) (rho 30989) (rho 30994) (rho 30999) (rho 31004) (rho 31009) (rho 31014) (rho 31019) (rho 31024) (rho 31029) (rho 31034) (rho 31039) (rho 31044) (rho 31049) (rho 31054) (rho 31059) (rho 31064) (rho 31069) (rho 31074) (rho 31079) (rho 31084) (rho 31089) (rho 31094) (rho 31099) (rho 31104) (rho 31109) (rho 31114) (rho 31119) (rho 31124) (rho 31129) (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) k := by
+  unfold Seg39.relationPart64 Seg39.relationRow320 Seg39.relationRow321 Seg39.relationRow322 Seg39.relationRow323 Seg39.relationRow324 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg64
-  exact ⟨(rho 32817), (rho 32818), (rho 32819), (rho 32820), (rho 32821), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31160), (rho 31161), (rho 31162), (rho 31163), (rho 31164), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part65_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart65 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65 (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) k := by
-  unfold Seg41.relationPart65 Seg41.relationRow325 Seg41.relationRow326 Seg41.relationRow327 Seg41.relationRow328 Seg41.relationRow329 at h
+theorem seg39_part65_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart65 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65 (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) k := by
+  unfold Seg39.relationPart65 Seg39.relationRow325 Seg39.relationRow326 Seg39.relationRow327 Seg39.relationRow328 Seg39.relationRow329 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg65
-  exact ⟨(rho 32822), (rho 32823), (rho 32824), (rho 32825), (rho 32826), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31165), (rho 31166), (rho 31167), (rho 31168), (rho 31169), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part66_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart66 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66 (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) k := by
-  unfold Seg41.relationPart66 Seg41.relationRow330 Seg41.relationRow331 Seg41.relationRow332 Seg41.relationRow333 Seg41.relationRow334 at h
+theorem seg39_part66_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart66 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66 (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) k := by
+  unfold Seg39.relationPart66 Seg39.relationRow330 Seg39.relationRow331 Seg39.relationRow332 Seg39.relationRow333 Seg39.relationRow334 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg66
-  exact ⟨(rho 32827), (rho 32828), (rho 32829), (rho 32830), (rho 32831), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31170), (rho 31171), (rho 31172), (rho 31173), (rho 31174), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part67_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart67 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) (rho 32836)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67 (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) k := by
-  unfold Seg41.relationPart67 Seg41.relationRow335 Seg41.relationRow336 Seg41.relationRow337 Seg41.relationRow338 Seg41.relationRow339 at h
+theorem seg39_part67_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart67 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) (rho 31179)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67 (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) k := by
+  unfold Seg39.relationPart67 Seg39.relationRow335 Seg39.relationRow336 Seg39.relationRow337 Seg39.relationRow338 Seg39.relationRow339 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg67
-  exact ⟨(rho 32832), (rho 32833), (rho 32834), (rho 32835), (rho 32836), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31175), (rho 31176), (rho 31177), (rho 31178), (rho 31179), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part68_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart68 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) (rho 32836) (rho 32841)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68 (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) (rho 32836) k := by
-  unfold Seg41.relationPart68 Seg41.relationRow340 Seg41.relationRow341 Seg41.relationRow342 Seg41.relationRow343 Seg41.relationRow344 at h
+theorem seg39_part68_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart68 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) (rho 31179) (rho 31184)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68 (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) (rho 31179) k := by
+  unfold Seg39.relationPart68 Seg39.relationRow340 Seg39.relationRow341 Seg39.relationRow342 Seg39.relationRow343 Seg39.relationRow344 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg68
-  exact ⟨(rho 32837), (rho 32838), (rho 32839), (rho 32840), (rho 32841), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31180), (rho 31181), (rho 31182), (rho 31183), (rho 31184), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part69_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart69 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69 (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) (rho 32836) (rho 32841) k := by
-  unfold Seg41.relationPart69 Seg41.relationRow345 Seg41.relationRow346 Seg41.relationRow347 Seg41.relationRow348 Seg41.relationRow349 at h
+theorem seg39_part69_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart69 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69 (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) (rho 31179) (rho 31184) k := by
+  unfold Seg39.relationPart69 Seg39.relationRow345 Seg39.relationRow346 Seg39.relationRow347 Seg39.relationRow348 Seg39.relationRow349 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg69
-  exact ⟨(rho 32842), (rho 32843), (rho 32844), (rho 32845), (rho 32846), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31185), (rho 31186), (rho 31187), (rho 31188), (rho 31189), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part70_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart70 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70 (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) k := by
-  unfold Seg41.relationPart70 Seg41.relationRow350 Seg41.relationRow351 Seg41.relationRow352 Seg41.relationRow353 Seg41.relationRow354 at h
+theorem seg39_part70_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart70 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70 (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) k := by
+  unfold Seg39.relationPart70 Seg39.relationRow350 Seg39.relationRow351 Seg39.relationRow352 Seg39.relationRow353 Seg39.relationRow354 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg70
-  exact ⟨(rho 32847), (rho 32848), (rho 32849), (rho 32850), (rho 32851), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31190), (rho 31191), (rho 31192), (rho 31193), (rho 31194), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part71_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart71 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71 (rho 32791) (rho 32796) (rho 32801) (rho 32806) (rho 32811) (rho 32816) (rho 32821) (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) k := by
-  unfold Seg41.relationPart71 Seg41.relationRow355 Seg41.relationRow356 Seg41.relationRow357 Seg41.relationRow358 Seg41.relationRow359 at h
+theorem seg39_part71_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart71 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71 (rho 31134) (rho 31139) (rho 31144) (rho 31149) (rho 31154) (rho 31159) (rho 31164) (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) k := by
+  unfold Seg39.relationPart71 Seg39.relationRow355 Seg39.relationRow356 Seg39.relationRow357 Seg39.relationRow358 Seg39.relationRow359 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg71
-  exact ⟨(rho 32852), (rho 32853), (rho 32854), (rho 32855), (rho 32856), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31195), (rho 31196), (rho 31197), (rho 31198), (rho 31199), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part72_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart72 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72 (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) k := by
-  unfold Seg41.relationPart72 Seg41.relationRow360 Seg41.relationRow361 Seg41.relationRow362 Seg41.relationRow363 Seg41.relationRow364 at h
+theorem seg39_part72_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart72 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72 (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) k := by
+  unfold Seg39.relationPart72 Seg39.relationRow360 Seg39.relationRow361 Seg39.relationRow362 Seg39.relationRow363 Seg39.relationRow364 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg72
-  exact ⟨(rho 32857), (rho 32858), (rho 32859), (rho 32860), (rho 32861), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31200), (rho 31201), (rho 31202), (rho 31203), (rho 31204), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part73_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart73 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73 (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) k := by
-  unfold Seg41.relationPart73 Seg41.relationRow365 Seg41.relationRow366 Seg41.relationRow367 Seg41.relationRow368 Seg41.relationRow369 at h
+theorem seg39_part73_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart73 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73 (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) k := by
+  unfold Seg39.relationPart73 Seg39.relationRow365 Seg39.relationRow366 Seg39.relationRow367 Seg39.relationRow368 Seg39.relationRow369 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg73
-  exact ⟨(rho 32862), (rho 32863), (rho 32864), (rho 32865), (rho 32866), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31205), (rho 31206), (rho 31207), (rho 31208), (rho 31209), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part74_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart74 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) (rho 32871)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74 (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) k := by
-  unfold Seg41.relationPart74 Seg41.relationRow370 Seg41.relationRow371 Seg41.relationRow372 Seg41.relationRow373 Seg41.relationRow374 at h
+theorem seg39_part74_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart74 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) (rho 31214)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74 (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) k := by
+  unfold Seg39.relationPart74 Seg39.relationRow370 Seg39.relationRow371 Seg39.relationRow372 Seg39.relationRow373 Seg39.relationRow374 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg74
-  exact ⟨(rho 32867), (rho 32868), (rho 32869), (rho 32870), (rho 32871), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31210), (rho 31211), (rho 31212), (rho 31213), (rho 31214), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part75_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart75 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) (rho 32871) (rho 32876)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75 (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) (rho 32871) k := by
-  unfold Seg41.relationPart75 Seg41.relationRow375 Seg41.relationRow376 Seg41.relationRow377 Seg41.relationRow378 Seg41.relationRow379 at h
+theorem seg39_part75_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart75 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) (rho 31214) (rho 31219)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75 (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) (rho 31214) k := by
+  unfold Seg39.relationPart75 Seg39.relationRow375 Seg39.relationRow376 Seg39.relationRow377 Seg39.relationRow378 Seg39.relationRow379 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg75
-  exact ⟨(rho 32872), (rho 32873), (rho 32874), (rho 32875), (rho 32876), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31215), (rho 31216), (rho 31217), (rho 31218), (rho 31219), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part76_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart76 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76 (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) (rho 32871) (rho 32876) k := by
-  unfold Seg41.relationPart76 Seg41.relationRow380 Seg41.relationRow381 Seg41.relationRow382 Seg41.relationRow383 Seg41.relationRow384 at h
+theorem seg39_part76_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart76 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76 (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) (rho 31214) (rho 31219) k := by
+  unfold Seg39.relationPart76 Seg39.relationRow380 Seg39.relationRow381 Seg39.relationRow382 Seg39.relationRow383 Seg39.relationRow384 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg76
-  exact ⟨(rho 32877), (rho 32878), (rho 32879), (rho 32880), (rho 32881), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31220), (rho 31221), (rho 31222), (rho 31223), (rho 31224), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part77_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart77 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77 (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) k := by
-  unfold Seg41.relationPart77 Seg41.relationRow385 Seg41.relationRow386 Seg41.relationRow387 Seg41.relationRow388 Seg41.relationRow389 at h
+theorem seg39_part77_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart77 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77 (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) k := by
+  unfold Seg39.relationPart77 Seg39.relationRow385 Seg39.relationRow386 Seg39.relationRow387 Seg39.relationRow388 Seg39.relationRow389 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg77
-  exact ⟨(rho 32882), (rho 32883), (rho 32884), (rho 32885), (rho 32886), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31225), (rho 31226), (rho 31227), (rho 31228), (rho 31229), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part78_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart78 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78 (rho 32826) (rho 32831) (rho 32836) (rho 32841) (rho 32846) (rho 32851) (rho 32856) (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) k := by
-  unfold Seg41.relationPart78 Seg41.relationRow390 Seg41.relationRow391 Seg41.relationRow392 Seg41.relationRow393 Seg41.relationRow394 at h
+theorem seg39_part78_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart78 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78 (rho 31169) (rho 31174) (rho 31179) (rho 31184) (rho 31189) (rho 31194) (rho 31199) (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) k := by
+  unfold Seg39.relationPart78 Seg39.relationRow390 Seg39.relationRow391 Seg39.relationRow392 Seg39.relationRow393 Seg39.relationRow394 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg78
-  exact ⟨(rho 32887), (rho 32888), (rho 32889), (rho 32890), (rho 32891), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31230), (rho 31231), (rho 31232), (rho 31233), (rho 31234), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part79_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart79 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79 (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) k := by
-  unfold Seg41.relationPart79 Seg41.relationRow395 Seg41.relationRow396 Seg41.relationRow397 Seg41.relationRow398 Seg41.relationRow399 at h
+theorem seg39_part79_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart79 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79 (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) k := by
+  unfold Seg39.relationPart79 Seg39.relationRow395 Seg39.relationRow396 Seg39.relationRow397 Seg39.relationRow398 Seg39.relationRow399 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg79
-  exact ⟨(rho 32892), (rho 32893), (rho 32894), (rho 32895), (rho 32896), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31235), (rho 31236), (rho 31237), (rho 31238), (rho 31239), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part80_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart80 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80 (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) k := by
-  unfold Seg41.relationPart80 Seg41.relationRow400 Seg41.relationRow401 Seg41.relationRow402 Seg41.relationRow403 Seg41.relationRow404 at h
+theorem seg39_part80_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart80 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80 (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) k := by
+  unfold Seg39.relationPart80 Seg39.relationRow400 Seg39.relationRow401 Seg39.relationRow402 Seg39.relationRow403 Seg39.relationRow404 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg80
-  exact ⟨(rho 32897), (rho 32898), (rho 32899), (rho 32900), (rho 32901), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31240), (rho 31241), (rho 31242), (rho 31243), (rho 31244), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part81_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart81 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) (rho 32906)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81 (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) k := by
-  unfold Seg41.relationPart81 Seg41.relationRow405 Seg41.relationRow406 Seg41.relationRow407 Seg41.relationRow408 Seg41.relationRow409 at h
+theorem seg39_part81_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart81 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) (rho 31249)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81 (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) k := by
+  unfold Seg39.relationPart81 Seg39.relationRow405 Seg39.relationRow406 Seg39.relationRow407 Seg39.relationRow408 Seg39.relationRow409 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg81
-  exact ⟨(rho 32902), (rho 32903), (rho 32904), (rho 32905), (rho 32906), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31245), (rho 31246), (rho 31247), (rho 31248), (rho 31249), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part82_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart82 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) (rho 32906) (rho 32911)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82 (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) (rho 32906) k := by
-  unfold Seg41.relationPart82 Seg41.relationRow410 Seg41.relationRow411 Seg41.relationRow412 Seg41.relationRow413 Seg41.relationRow414 at h
+theorem seg39_part82_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart82 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) (rho 31249) (rho 31254)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82 (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) (rho 31249) k := by
+  unfold Seg39.relationPart82 Seg39.relationRow410 Seg39.relationRow411 Seg39.relationRow412 Seg39.relationRow413 Seg39.relationRow414 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg82
-  exact ⟨(rho 32907), (rho 32908), (rho 32909), (rho 32910), (rho 32911), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31250), (rho 31251), (rho 31252), (rho 31253), (rho 31254), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part83_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart83 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) (rho 32906) (rho 32911) (rho 32916)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) (rho 32906) (rho 32911) k := by
-  unfold Seg41.relationPart83 Seg41.relationRow415 Seg41.relationRow416 Seg41.relationRow417 Seg41.relationRow418 Seg41.relationRow419 at h
+theorem seg39_part83_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart83 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) (rho 31249) (rho 31254) (rho 31259)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) (rho 31249) (rho 31254) k := by
+  unfold Seg39.relationPart83 Seg39.relationRow415 Seg39.relationRow416 Seg39.relationRow417 Seg39.relationRow418 Seg39.relationRow419 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83
-  exact ⟨(rho 32912), (rho 32913), (rho 32914), (rho 32915), (rho 32916), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31255), (rho 31256), (rho 31257), (rho 31258), (rho 31259), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part84_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart84 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) (rho 32906) (rho 32911) (rho 32916) (rho 32921)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) (rho 32906) (rho 32911) (rho 32916) k := by
-  unfold Seg41.relationPart84 Seg41.relationRow420 Seg41.relationRow421 Seg41.relationRow422 Seg41.relationRow423 Seg41.relationRow424 at h
+theorem seg39_part84_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart84 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) (rho 31249) (rho 31254) (rho 31259) (rho 31264)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) (rho 31249) (rho 31254) (rho 31259) k := by
+  unfold Seg39.relationPart84 Seg39.relationRow420 Seg39.relationRow421 Seg39.relationRow422 Seg39.relationRow423 Seg39.relationRow424 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84
-  exact ⟨(rho 32917), (rho 32918), (rho 32919), (rho 32920), (rho 32921), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31260), (rho 31261), (rho 31262), (rho 31263), (rho 31264), h0, h1, h2, h3, h4, hk⟩
 
-theorem seg41_part85_to_extracted (rho : Nat → Seg41.F)
-    (h : Seg41.relationPart85 rho)
-    {k : Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Seg41.F → Prop} (hk : k (rho 32896) (rho 32901) (rho 32906) (rho 32911) (rho 32916) (rho 32921) (rho 32926)) :
-    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 (rho 32861) (rho 32866) (rho 32871) (rho 32876) (rho 32881) (rho 32886) (rho 32891) (rho 32896) (rho 32901) (rho 32906) (rho 32911) (rho 32916) (rho 32921) k := by
-  unfold Seg41.relationPart85 Seg41.relationRow425 Seg41.relationRow426 Seg41.relationRow427 Seg41.relationRow428 Seg41.relationRow429 at h
+theorem seg39_part85_to_extracted (rho : Nat → Seg39.F)
+    (h : Seg39.relationPart85 rho)
+    {k : Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Seg39.F → Prop} (hk : k (rho 31239) (rho 31244) (rho 31249) (rho 31254) (rho 31259) (rho 31264) (rho 31269)) :
+    Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 (rho 31204) (rho 31209) (rho 31214) (rho 31219) (rho 31224) (rho 31229) (rho 31234) (rho 31239) (rho 31244) (rho 31249) (rho 31254) (rho 31259) (rho 31264) k := by
+  unfold Seg39.relationPart85 Seg39.relationRow425 Seg39.relationRow426 Seg39.relationRow427 Seg39.relationRow428 Seg39.relationRow429 at h
   rcases h with ⟨h0, h1, h2, h3, h4⟩
   unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85
-  exact ⟨(rho 32922), (rho 32923), (rho 32924), (rho 32925), (rho 32926), h0, h1, h2, h3, h4, hk⟩
+  exact ⟨(rho 31265), (rho 31266), (rho 31267), (rho 31268), (rho 31269), h0, h1, h2, h3, h4, hk⟩
 
-def seg41NotePrefix (rho : Nat → Seg41.F) : Prop :=
-  Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) (fun w15 w16 w19 w22 w572 w912 w917 =>
+def seg39NotePrefix (rho : Nat → Seg39.F) : Prop :=
+  Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg0 (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) (fun w15 w16 w19 w22 w572 w912 w917 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg1 w15 w16 w19 w22 w572 w912 w917 (fun w16 w19 w22 w572 w912 w917 w922 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg2 w16 w19 w22 w572 w912 w917 w922 (fun w19 w22 w572 w912 w917 w922 w927 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg3 w19 w22 w572 w912 w917 w922 w927 (fun w19 w22 w917 w922 w927 w932 =>
@@ -2859,11 +2859,11 @@ def seg41NotePrefix (rho : Nat → Seg41.F) : Prop :=
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg83 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 (fun w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg84 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 (fun w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 w1337 =>
   Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.seg85 w1277 w1282 w1287 w1292 w1297 w1302 w1307 w1312 w1317 w1322 w1327 w1332 w1337 (fun w1312 w1317 w1322 w1327 w1332 w1337 w1342 =>
-  w1312 = (rho 32896) ∧ w1317 = (rho 32901) ∧ w1322 = (rho 32906) ∧ w1327 = (rho 32911) ∧ w1332 = (rho 32916) ∧ w1337 = (rho 32921) ∧ w1342 = (rho 32926)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  w1312 = (rho 31239) ∧ w1317 = (rho 31244) ∧ w1322 = (rho 31249) ∧ w1327 = (rho 31254) ∧ w1332 = (rho 31259) ∧ w1337 = (rho 31264) ∧ w1342 = (rho 31269)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
-theorem seg41_relation_to_note_prefix (rho : Nat → Seg41.F)
-    (h : Seg41.relation rho) : seg41NotePrefix rho := by
-  unfold Seg41.relation at h
+theorem seg39_relation_to_note_prefix (rho : Nat → Seg39.F)
+    (h : Seg39.relation rho) : seg39NotePrefix rho := by
+  unfold Seg39.relation at h
   rcases h with ⟨
     p0, p1, p2, p3, p4, p5, p6, p7,
     p8, p9, p10, p11, p12, p13, p14, p15,
@@ -2877,120 +2877,120 @@ theorem seg41_relation_to_note_prefix (rho : Nat → Seg41.F)
     p72, p73, p74, p75, p76, p77, p78, p79,
     p80, p81, p82, p83, p84, p85
   ⟩
-  unfold seg41NotePrefix
-  apply seg41_part0_to_extracted rho p0
-  apply seg41_part1_to_extracted rho p1
-  apply seg41_part2_to_extracted rho p2
-  apply seg41_part3_to_extracted rho p3
-  apply seg41_part4_to_extracted rho p4
-  apply seg41_part5_to_extracted rho p5
-  apply seg41_part6_to_extracted rho p6
-  apply seg41_part7_to_extracted rho p7
-  apply seg41_part8_to_extracted rho p8
-  apply seg41_part9_to_extracted rho p9
-  apply seg41_part10_to_extracted rho p10
-  apply seg41_part11_to_extracted rho p11
-  apply seg41_part12_to_extracted rho p12
-  apply seg41_part13_to_extracted rho p13
-  apply seg41_part14_to_extracted rho p14
-  apply seg41_part15_to_extracted rho p15
-  apply seg41_part16_to_extracted rho p16
-  apply seg41_part17_to_extracted rho p17
-  apply seg41_part18_to_extracted rho p18
-  apply seg41_part19_to_extracted rho p19
-  apply seg41_part20_to_extracted rho p20
-  apply seg41_part21_to_extracted rho p21
-  apply seg41_part22_to_extracted rho p22
-  apply seg41_part23_to_extracted rho p23
-  apply seg41_part24_to_extracted rho p24
-  apply seg41_part25_to_extracted rho p25
-  apply seg41_part26_to_extracted rho p26
-  apply seg41_part27_to_extracted rho p27
-  apply seg41_part28_to_extracted rho p28
-  apply seg41_part29_to_extracted rho p29
-  apply seg41_part30_to_extracted rho p30
-  apply seg41_part31_to_extracted rho p31
-  apply seg41_part32_to_extracted rho p32
-  apply seg41_part33_to_extracted rho p33
-  apply seg41_part34_to_extracted rho p34
-  apply seg41_part35_to_extracted rho p35
-  apply seg41_part36_to_extracted rho p36
-  apply seg41_part37_to_extracted rho p37
-  apply seg41_part38_to_extracted rho p38
-  apply seg41_part39_to_extracted rho p39
-  apply seg41_part40_to_extracted rho p40
-  apply seg41_part41_to_extracted rho p41
-  apply seg41_part42_to_extracted rho p42
-  apply seg41_part43_to_extracted rho p43
-  apply seg41_part44_to_extracted rho p44
-  apply seg41_part45_to_extracted rho p45
-  apply seg41_part46_to_extracted rho p46
-  apply seg41_part47_to_extracted rho p47
-  apply seg41_part48_to_extracted rho p48
-  apply seg41_part49_to_extracted rho p49
-  apply seg41_part50_to_extracted rho p50
-  apply seg41_part51_to_extracted rho p51
-  apply seg41_part52_to_extracted rho p52
-  apply seg41_part53_to_extracted rho p53
-  apply seg41_part54_to_extracted rho p54
-  apply seg41_part55_to_extracted rho p55
-  apply seg41_part56_to_extracted rho p56
-  apply seg41_part57_to_extracted rho p57
-  apply seg41_part58_to_extracted rho p58
-  apply seg41_part59_to_extracted rho p59
-  apply seg41_part60_to_extracted rho p60
-  apply seg41_part61_to_extracted rho p61
-  apply seg41_part62_to_extracted rho p62
-  apply seg41_part63_to_extracted rho p63
-  apply seg41_part64_to_extracted rho p64
-  apply seg41_part65_to_extracted rho p65
-  apply seg41_part66_to_extracted rho p66
-  apply seg41_part67_to_extracted rho p67
-  apply seg41_part68_to_extracted rho p68
-  apply seg41_part69_to_extracted rho p69
-  apply seg41_part70_to_extracted rho p70
-  apply seg41_part71_to_extracted rho p71
-  apply seg41_part72_to_extracted rho p72
-  apply seg41_part73_to_extracted rho p73
-  apply seg41_part74_to_extracted rho p74
-  apply seg41_part75_to_extracted rho p75
-  apply seg41_part76_to_extracted rho p76
-  apply seg41_part77_to_extracted rho p77
-  apply seg41_part78_to_extracted rho p78
-  apply seg41_part79_to_extracted rho p79
-  apply seg41_part80_to_extracted rho p80
-  apply seg41_part81_to_extracted rho p81
-  apply seg41_part82_to_extracted rho p82
-  apply seg41_part83_to_extracted rho p83
-  apply seg41_part84_to_extracted rho p84
-  apply seg41_part85_to_extracted rho p85
+  unfold seg39NotePrefix
+  apply seg39_part0_to_extracted rho p0
+  apply seg39_part1_to_extracted rho p1
+  apply seg39_part2_to_extracted rho p2
+  apply seg39_part3_to_extracted rho p3
+  apply seg39_part4_to_extracted rho p4
+  apply seg39_part5_to_extracted rho p5
+  apply seg39_part6_to_extracted rho p6
+  apply seg39_part7_to_extracted rho p7
+  apply seg39_part8_to_extracted rho p8
+  apply seg39_part9_to_extracted rho p9
+  apply seg39_part10_to_extracted rho p10
+  apply seg39_part11_to_extracted rho p11
+  apply seg39_part12_to_extracted rho p12
+  apply seg39_part13_to_extracted rho p13
+  apply seg39_part14_to_extracted rho p14
+  apply seg39_part15_to_extracted rho p15
+  apply seg39_part16_to_extracted rho p16
+  apply seg39_part17_to_extracted rho p17
+  apply seg39_part18_to_extracted rho p18
+  apply seg39_part19_to_extracted rho p19
+  apply seg39_part20_to_extracted rho p20
+  apply seg39_part21_to_extracted rho p21
+  apply seg39_part22_to_extracted rho p22
+  apply seg39_part23_to_extracted rho p23
+  apply seg39_part24_to_extracted rho p24
+  apply seg39_part25_to_extracted rho p25
+  apply seg39_part26_to_extracted rho p26
+  apply seg39_part27_to_extracted rho p27
+  apply seg39_part28_to_extracted rho p28
+  apply seg39_part29_to_extracted rho p29
+  apply seg39_part30_to_extracted rho p30
+  apply seg39_part31_to_extracted rho p31
+  apply seg39_part32_to_extracted rho p32
+  apply seg39_part33_to_extracted rho p33
+  apply seg39_part34_to_extracted rho p34
+  apply seg39_part35_to_extracted rho p35
+  apply seg39_part36_to_extracted rho p36
+  apply seg39_part37_to_extracted rho p37
+  apply seg39_part38_to_extracted rho p38
+  apply seg39_part39_to_extracted rho p39
+  apply seg39_part40_to_extracted rho p40
+  apply seg39_part41_to_extracted rho p41
+  apply seg39_part42_to_extracted rho p42
+  apply seg39_part43_to_extracted rho p43
+  apply seg39_part44_to_extracted rho p44
+  apply seg39_part45_to_extracted rho p45
+  apply seg39_part46_to_extracted rho p46
+  apply seg39_part47_to_extracted rho p47
+  apply seg39_part48_to_extracted rho p48
+  apply seg39_part49_to_extracted rho p49
+  apply seg39_part50_to_extracted rho p50
+  apply seg39_part51_to_extracted rho p51
+  apply seg39_part52_to_extracted rho p52
+  apply seg39_part53_to_extracted rho p53
+  apply seg39_part54_to_extracted rho p54
+  apply seg39_part55_to_extracted rho p55
+  apply seg39_part56_to_extracted rho p56
+  apply seg39_part57_to_extracted rho p57
+  apply seg39_part58_to_extracted rho p58
+  apply seg39_part59_to_extracted rho p59
+  apply seg39_part60_to_extracted rho p60
+  apply seg39_part61_to_extracted rho p61
+  apply seg39_part62_to_extracted rho p62
+  apply seg39_part63_to_extracted rho p63
+  apply seg39_part64_to_extracted rho p64
+  apply seg39_part65_to_extracted rho p65
+  apply seg39_part66_to_extracted rho p66
+  apply seg39_part67_to_extracted rho p67
+  apply seg39_part68_to_extracted rho p68
+  apply seg39_part69_to_extracted rho p69
+  apply seg39_part70_to_extracted rho p70
+  apply seg39_part71_to_extracted rho p71
+  apply seg39_part72_to_extracted rho p72
+  apply seg39_part73_to_extracted rho p73
+  apply seg39_part74_to_extracted rho p74
+  apply seg39_part75_to_extracted rho p75
+  apply seg39_part76_to_extracted rho p76
+  apply seg39_part77_to_extracted rho p77
+  apply seg39_part78_to_extracted rho p78
+  apply seg39_part79_to_extracted rho p79
+  apply seg39_part80_to_extracted rho p80
+  apply seg39_part81_to_extracted rho p81
+  apply seg39_part82_to_extracted rho p82
+  apply seg39_part83_to_extracted rho p83
+  apply seg39_part84_to_extracted rho p84
+  apply seg39_part85_to_extracted rho p85
   exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
-theorem seg41_sound (rho : Nat → Seg41.F) (h : Seg41.relation rho) : Seg41.spec rho := by
-  have hPrefix := seg41_relation_to_note_prefix rho h
-  have r0 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range0_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) _ hPrefix
+theorem seg39_sound (rho : Nat → Seg39.F) (h : Seg39.relation rho) : Seg39.spec rho := by
+  have hPrefix := seg39_relation_to_note_prefix rho h
+  have r0 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range0_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) _ hPrefix
   rcases r0 with ⟨w917, w922, w927, w932, w937, w942, hSpec0, h⟩
-  have r1 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range1_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w917 w922 w927 w932 w937 w942 _ hSpec0 h
+  have r1 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range1_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w917 w922 w927 w932 w937 w942 _ hSpec0 h
   rcases r1 with ⟨w947, w952, w957, w962, w967, w972, w977, hSpec1, h⟩
-  have r2 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range2_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w947 w952 w957 w962 w967 w972 w977 _ hSpec1 h
+  have r2 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range2_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w947 w952 w957 w962 w967 w972 w977 _ hSpec1 h
   rcases r2 with ⟨w982, w987, w992, w997, w1002, w1007, w1012, hSpec2, h⟩
-  have r3 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range3_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w982 w987 w992 w997 w1002 w1007 w1012 _ hSpec2 h
+  have r3 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range3_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w982 w987 w992 w997 w1002 w1007 w1012 _ hSpec2 h
   rcases r3 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, hSpec3, h⟩
-  have r4 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range4_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w1017 w1022 w1027 w1032 w1037 w1042 w1047 _ hSpec3 h
+  have r4 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range4_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 _ hSpec3 h
   rcases r4 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, hSpec13, h⟩
-  have r5 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range5_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 _ hSpec13 h
+  have r5 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range5_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 _ hSpec13 h
   rcases r5 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, w1102, w1107, w1112, w1117, w1122, w1127, w1132, w1137, w1142, w1147, hSpec23, h⟩
-  have r6 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range6_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 _ hSpec23 h
+  have r6 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range6_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 _ hSpec23 h
   rcases r6 with ⟨w1017, w1022, w1027, w1032, w1037, w1042, w1047, w1052, w1057, w1062, w1067, w1072, w1077, w1082, w1087, w1092, w1097, w1102, w1107, w1112, w1117, w1122, w1127, w1132, w1137, w1142, w1147, w1152, w1157, w1162, w1167, w1172, w1177, w1182, w1187, w1192, w1197, w1202, hSpec34, h⟩
-  have r7 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range7_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 w1152 w1157 w1162 w1167 w1172 w1177 w1182 w1187 w1192 w1197 w1202 _ hSpec34 h
+  have r7 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range7_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w1017 w1022 w1027 w1032 w1037 w1042 w1047 w1052 w1057 w1062 w1067 w1072 w1077 w1082 w1087 w1092 w1097 w1102 w1107 w1112 w1117 w1122 w1127 w1132 w1137 w1142 w1147 w1152 w1157 w1162 w1167 w1172 w1177 w1182 w1187 w1192 w1197 w1202 _ hSpec34 h
   rcases r7 with ⟨w1207, w1212, w1217, w1222, w1227, w1232, w1237, hSpec35, h⟩
-  have r8 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range8_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w1207 w1212 w1217 w1222 w1227 w1232 w1237 _ hSpec35 h
+  have r8 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range8_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w1207 w1212 w1217 w1222 w1227 w1232 w1237 _ hSpec35 h
   rcases r8 with ⟨w1242, w1247, w1252, w1257, w1262, w1267, w1272, hSpec36, h⟩
-  have r9 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range9_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w1242 w1247 w1252 w1257 w1262 w1267 w1272 _ hSpec36 h
+  have r9 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range9_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w1242 w1247 w1252 w1257 w1262 w1267 w1272 _ hSpec36 h
   rcases r9 with ⟨w1277, w1282, w1287, w1292, w1297, w1302, w1307, hSpec37, h⟩
-  have r10 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range10_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 32156) (rho 32496) w1277 w1282 w1287 w1292 w1297 w1302 w1307 _ hSpec37 h
+  have r10 := Shieldd.GnarkFormal.Deployed.NoteCommitment.range10_sound (rho 192) (rho 193) (rho 194) (rho 197) (rho 200) (rho 572) (rho 912) w1277 w1282 w1287 w1292 w1297 w1302 w1307 _ hSpec37 h
   rcases r10 with ⟨w1312, w1317, w1322, w1327, w1332, w1337, w1342, hSpec38, hk⟩
   rcases hk with ⟨hw1312, hw1317, hw1322, hw1327, hw1332, hw1337, hw1342⟩
-  simpa [Seg41.spec, Specs.deployedSpec41, hw1312, hw1317, hw1322, hw1327, hw1332, hw1337, hw1342] using hSpec38
+  simpa [Seg39.spec, Specs.deployedSpec39, hw1312, hw1317, hw1322, hw1327, hw1332, hw1337, hw1342] using hSpec38
 
 end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1

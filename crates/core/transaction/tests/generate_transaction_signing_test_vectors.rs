@@ -335,48 +335,30 @@ fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan>
         any::<shieldd_sdk_tct::Position>(),
     )
         .prop_map(move |(note, position)| {
-            let quarter = note.amount() / Amount::from(4u64);
-            let outputs = vec![
-                ShieldedOutputPlan::new(
-                    &mut OsRng,
-                    shieldd_sdk_asset::Value {
-                        amount: quarter,
-                        asset_id: note.asset_id(),
-                    },
-                    addr.clone(),
-                )
-                .into(),
-                ShieldedOutputPlan::new(
-                    &mut OsRng,
-                    shieldd_sdk_asset::Value {
-                        amount: quarter,
-                        asset_id: note.asset_id(),
-                    },
-                    addr.clone(),
-                )
-                .into(),
-                ShieldedOutputPlan::new(
-                    &mut OsRng,
-                    shieldd_sdk_asset::Value {
-                        amount: quarter,
-                        asset_id: note.asset_id(),
-                    },
-                    addr.clone(),
-                )
-                .into(),
-                ShieldedOutputPlan::new(
-                    &mut OsRng,
-                    shieldd_sdk_asset::Value {
-                        amount: note.amount() - quarter - quarter - quarter,
-                        asset_id: note.asset_id(),
-                    },
-                    addr.clone(),
-                )
-                .into(),
-            ];
+            let eighth = note.amount() / Amount::from(8u64);
+            let mut outputs: Vec<ShieldedOutputPlan> = (0..7)
+                .map(|_| {
+                    ShieldedOutputPlan::new(
+                        &mut OsRng,
+                        shieldd_sdk_asset::Value {
+                            amount: eighth,
+                            asset_id: note.asset_id(),
+                        },
+                        addr.clone(),
+                    )
+                })
+                .collect();
+            outputs.push(ShieldedOutputPlan::new(
+                &mut OsRng,
+                shieldd_sdk_asset::Value {
+                    amount: note.amount() - eighth * Amount::from(7u64),
+                    asset_id: note.asset_id(),
+                },
+                addr.clone(),
+            ));
 
             SplitPlan::new(
-                SplitFamilyId::OneByFour,
+                SplitFamilyId::OneByEight,
                 vec![ShieldedInputPlan::new(&mut OsRng, note, position).into()],
                 outputs,
                 Fr::rand(&mut OsRng),

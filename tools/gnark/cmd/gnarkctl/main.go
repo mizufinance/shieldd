@@ -171,7 +171,8 @@ func runExportLean(args []string) error {
 	// definitional unfolding, so they stay flat.
 	var foldGadgets []string
 	switch *circuit {
-	case "gadget-scalar-mul-le-251", "gadget-scalar-mul-le-128":
+	case "gadget-scalar-mul-le-251", "gadget-scalar-mul-le-128",
+		"gadget-conservation-net-balance-commitment":
 		foldGadgets = []string{"scalarMulStep"}
 	}
 	out, err := extractor.CircuitToLeanWithFold(instance, ecc.BLS12_377, *namespace, foldGadgets)
@@ -346,6 +347,8 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 		return &circuits.DecafDtkGadget{}, true
 	case "gadget-net-balance-commitment":
 		return &circuits.NetBalanceCommitmentGadget{}, true
+	case "gadget-conservation-net-balance-commitment":
+		return &circuits.ConservationNetBalanceCommitmentGadget{}, true
 	case "gadget-net-balance-commitment2":
 		return &circuits.NetBalanceCommitment2Gadget{}, true
 	default:
@@ -900,6 +903,9 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-net-balance-commitment":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NetBalanceCommitmentGadget{})
+		return ccs, time.Since(compileStart).Seconds() * 1000, err
+	case "gadget-conservation-net-balance-commitment":
+		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.ConservationNetBalanceCommitmentGadget{})
 		return ccs, time.Since(compileStart).Seconds() * 1000, err
 	case "gadget-net-balance-commitment2":
 		ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, &circuits.NetBalanceCommitment2Gadget{})

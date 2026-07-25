@@ -110,11 +110,11 @@ func testCircuitFamilies() []circuitFamily {
 			},
 		},
 		{
-			name:    "split1x4",
-			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(4) },
+			name:    "split1x8",
+			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadSplitWitnessV1("split1x4")
+				fixtureBytes := testfixtures.LoadSplitWitnessV1("split1x8")
 				assignment, _, err := abi.NewSplitCircuitAssignmentFromWitnessV1(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode split witness fixture: %v", err)
@@ -174,37 +174,27 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 251973, public: 2, secret: 542, internal: 224963},
+			stats:   circuitStats{constraints: 251469, public: 2, secret: 542, internal: 224461},
 		},
 		{
 			name:    "consolidate2x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(2) },
-			stats:   circuitStats{constraints: 44665, public: 2, secret: 199, internal: 41691},
-		},
-		{
-			name:    "consolidate4x1",
-			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(4) },
-			stats:   circuitStats{constraints: 76063, public: 2, secret: 379, internal: 71503},
+			stats:   circuitStats{constraints: 36553, public: 2, secret: 199, internal: 34439},
 		},
 		{
 			name:    "consolidate8x1",
 			circuit: func() frontend.Circuit { return circuits.NewConsolidateCircuit(8) },
-			stats:   circuitStats{constraints: 138419, public: 2, secret: 739, internal: 130687},
-		},
-		{
-			name:    "split1x4",
-			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(4) },
-			stats:   circuitStats{constraints: 39484, public: 2, secret: 139, internal: 36256},
+			stats:   circuitStats{constraints: 114047, public: 2, secret: 739, internal: 109233},
 		},
 		{
 			name:    "split1x8",
 			circuit: func() frontend.Circuit { return circuits.NewSplitCircuit(8) },
-			stats:   circuitStats{constraints: 52628, public: 2, secret: 179, internal: 48004},
+			stats:   circuitStats{constraints: 28256, public: 2, secret: 179, internal: 26550},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 90718, public: 2, secret: 327, internal: 84196},
+			stats:   circuitStats{constraints: 89962, public: 2, secret: 327, internal: 83443},
 		},
 	}
 }

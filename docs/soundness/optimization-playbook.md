@@ -524,7 +524,8 @@ Holes that DO restrict the loop, in the order they pay back:
    algebra outright — mechanize the RIPP refinement (TIPP/MIPP), the KZG
    commitment openings, and the aggregation transcript — so SnarkPack
    soundness rests on our own proofs rather than filecoin-lineage provenance
-   (`filecoin-divergence-findings.md`). This is the single biggest leeway
+   (`crates/crypto/proof-aggregation/formal/snarkpack/ripp-refinement.md`,
+   `filecoin-divergence-findings.md`). This is the single biggest leeway
    unlock: algebra/transcript/pairing-count optimizations go from forbidden
    to T2-class with a mechanized artifact backing each change, and every
    divergence-from-filecoin finding stops being a standing risk. Human
@@ -565,7 +566,7 @@ The detailed SnarkPack loop (category-1/2/3 rule, byte/trace baselines,
 bench discipline, transcript do-not-touch list) is
 `crates/crypto/proof-aggregation/optimization-playbook.md` — it governs any
 change inside that crate. `fv-opt-loop.sh gates` runs
-`check-snarkpack-invariants.sh`
+`check-snarkpack-invariants.sh` + `check-snarkpack-filecoin-shape.sh`
 automatically whenever the crate differs from the merge base.
 
 ## 4. The pilot run (recommended first execution)
@@ -608,6 +609,118 @@ record; distill it into a row here on commit.
 | --- | --- | --- | --- | --- | --- | --- |
 | T1-a seed-ladder elimination | 2026-07-08 (gate battery GREEN, record: `records/t1a-gate-record.md`) | 57,969 → 57,329 (−640, −1.1%) | no pre-T1-a bench; post: 142–161 ms (`gnarkctl replay --mode prove`, 3 runs, no accel) | unchanged (Groth16) | seg52 family | shared fn: also flips transfer/ics20 net-balance segs; 49/49 discharged post-flip |
 | T1-d DTK-once-not-per-note | 2026-07-10 (gate battery GREEN, record: `records/t1d-gate-record.md`) | 57,329 → 44,665 (−12,664, −22.1%) | not benched this pass (`--prove` not run) | unchanged (Groth16) | full DTK/nullifier/rvk adapter family renumbered; Lean regen only, no lake failures beyond stale-reference fixups | 45/45 discharged post-flip; also surfaced and fixed a hand-authored wiring-transcript drift (transcript still modeled per-note DTK calls after Go's Define path was hoisted) |
+| T1-f shared divGen compress (Wave 2) | 2026-07-12 (batch gate battery GREEN, record: `records/wave2-gate-record.md`) | 44,665 → 42,573 (−2,092, −4.7%) | not benched this pass | unchanged (Groth16) | per-note compress seg deleted; NEW shared seg5; downstream segs renumbered | commitment soundness flows through sharedDivGen on-curve + coset-invariant compress; per-note div_gen bound only by cross-ratio equivalence (pinned in §5b) |
+| T1-h ivk-bits-into-DTK-ladder (Wave 2) | 2026-07-12 (same record) | 42,573 → 42,321 (−252, −0.6%); transfer 251,973 → 251,469 (−504); ics20 90,718 → 89,962 (−756) | not benched this pass | unchanged (Groth16) | DTK internal ToBinary deleted; LT-ladder wires re-seated (bit_base 1187→1890); transfer: 16 stamped Seg contracts refreshed (wire shifts only, transcript hash unchanged) | width argument: LessThanConstant253 forces bits 251/252 = 0; generator trap: gen_dtk_slice.py hardcoded Q4-guard hint wires, fixed |
+| NB-1 conservation short-circuit (Wave 2) | 2026-07-12 (same record) | 42,321 → 36,553 (−5,768, −13.6%); consolidate8x1 138,419 → 114,047; split1x8 52,628 → 28,256 | not benched this pass | unchanged (Groth16) | NB value ladder deleted; NEW seg46 `decaf.conservation_net_balance_commitment` (2,193 rows) + ConservationNetBalanceCommitmentBridge | Σin=Σout one linear row + explicit ToBinary(amount,128) per amount; ZK-ASSUME-AMOUNT-RANGE stays load-bearing; NB-2 dropped |
+| **Wave 2 batch total** | 2026-07-12 | **44,665 → 36,553 (−8,112, −18.2%)** on ONE Lean re-stamp | — | — | 43/43 obligations discharged post-batch; obligation diff 37 flipped / 2 removed | re-stamp-per-wave strategy validated (§5b); T2-c parked for Wave 3 |
+
+## 5b. Wave 2 — batch the remaining consolidate optimizations, one re-stamp
+
+T1-a and T1-d each paid a full Lean re-stamp (T1-d: ~15h of serialized lake
+builds). The re-stamp cost is per *wave*, not per candidate — segment
+renumbering, generator re-derivation, and the build campaign are the same
+whether one relation changed or five. Wave 2 therefore lands every remaining
+consolidate candidate in ONE Go change-set, then re-stamps ONCE.
+
+### Phase 0 — family pruning (independent, do first)
+Delete `consolidate4x1` and `split1x4` (keep 2x1, 8x1, 1x8). Not an FV event:
+neither has a Lean stack; only consolidate2x1 and transfer do.
+- Remove from `tools/gnark/internal/generated/{consolidate,split}_families_generated.go`
+  (and whatever manifest generates them — README §"family registries" says
+  manifest-driven; find it, don't hand-edit generated output),
+  `crates/crypto/proof-params/src/gen/gnark/{consolidate,split}_registry.rs`,
+  `crates/core/component/shielded-pool/src/{consolidate,split}/generated.rs` +
+  `gnark/*.rs`, prover daemon registration, artifacts dirs, tests, docs.
+- Keep family IDs stable for the survivors (canonical identifiers: 8x1 stays
+  ID 3 / 1x8 keeps its ID; delete rows, never renumber).
+- Prototype contract policy applies: delete the paths outright, no aliases.
+- Payoff beyond hygiene: every future wave regenerates 2 fewer groth16 setups,
+  and CI/flow surface shrinks.
+
+### Phase 1 — design pass DONE 2026-07-10: batch FROZEN = {T1-f, T1-h, NB-1}
+
+1. **T1-f IN** — compress `sharedDivGen` once (~−2k rows: 2 of 3 ~1,046-row
+   compress instances). Per-note sites: `note_reshape_circuit.go:217/302`
+   (`CompressToField(spent/createdDivGen)` feeding the note commitment), with
+   `AssertEquivalent(noteDivGen, sharedDivGen)` at :280/:334. Compress
+   `sharedDivGen` once in `Define`, pass the fq wire into
+   verifyNoteReshapeSpend/Output. Pinned soundness: decaf compress is
+   coset-invariant, so equivalent representatives give the same fq; the note
+   commitment therefore binds the shared address. **Membership subtlety
+   (pinned):** deleting per-note compress also deletes its internal on-curve
+   check, and `AssertEquivalent` does NOT imply membership (CF-1) — so the
+   per-note `div_gen` witness is left bound only by cross-ratio equivalence.
+   That is sufficient: nothing downstream consumes per-note `div_gen` except
+   the equivalence assert; commitment soundness flows through
+   `sharedDivGen`'s on-curve (:79) + compress. Spec must state this.
+2. **T1-h IN** — thread ivk bits into the DTK ladder (~−0.5–1k in
+   consolidate; bigger in transfer where 2 DTK instances remain).
+   `IVKModRDecomposition` (spend_auth_shared.go:87) does
+   `ToBinary(ivkReduced, 253)`; `ScalarMulLE` inside
+   `DiversifiedTransmissionKey` re-decomposes the same wire at
+   `order.BitLen()` = 251 bits. Fix: return the 253 bits from the
+   decomposition, add a bits-in `ScalarMulLEBits`, feed bits[0:251].
+   Pinned width argument: `LessThanConstant253(bits, r)` forces the
+   decomposed value < r < 2^251, so bits 251/252 are 0 in any satisfying
+   assignment and the 251-bit ladder equals `ivkReduced·G`. Fan-out:
+   `DiversifiedTransmissionKey` signature change touches transfer (:475) and
+   ics20 (:316/:368) — **checked: transfer's segment-level Lean layer is
+   entirely `pending` (0 discharged theorems in
+   transfer-coverage-manifest.json), so the fan-out is contract/stamp regen
+   only, no proof debt.** ics20 has no Lean layer.
+3. **NB-1 IN, NB-2 dropped** — conservation short-circuit (~−3k net in
+   consolidate2x1; scales with amounts in 8x1). New relation for
+   conservation-exact reshapes: assert `Σin = Σout` (one linear row), keep an
+   explicit `ToBinary(amount, 128)` per amount (ZK-ASSUME-AMOUNT-RANGE stays
+   load-bearing — booleanity + recomposition rows), commitment collapses to
+   `blinding·G_b` (the one fixed-base ladder that already exists). Statement
+   value unchanged (natively the commitment equals `blinding·G_b` when
+   conservation holds). Generator feasibility checked: `gen_nb_slice.py`'s
+   value-ladder mining (`value_rungs`) is deleted, the blinding (rvk-shape)
+   ladder section is unchanged, and the new rows are booleanity + one linear
+   row — the simplest shapes in the substrate vocabulary. Frontier writes the
+   new slice spec; executor implements.
+4. **T2-c OUT → Wave 3** — the 2-bit `Lookup2` window changes the per-rung
+   relation shape; the StructuredLC/step-cert ladder substrates certify
+   1-bit rungs and would need a new rung lemma family. Park; revisit when
+   transfer FV ramps (transfer's 14+ compliance ladders multiply the payoff).
+5. **T1-g VOID** (per CF-1: `AssertEquivalent` does not imply curve
+   membership; the per-note transmission on-curve asserts are load-bearing).
+   Recorded so it isn't re-derived.
+
+Projected batch total: ~−5.5–6k → consolidate2x1 ≈ 38–39k rows.
+
+### Phase 2 — one batched Go change
+All frozen candidates land as one reviewed change-set on the reshape/shared
+paths. Unit + parity tests per candidate (identity-term deadness, coset
+invariance probes) BEFORE compiling artifacts. Measure per §6: recompile all
+circuits once, record rows before/after per candidate where separable (land
+candidates as separate commits compiling independently, so the per-candidate
+Δ is measurable, then re-stamp on the batch tip).
+
+### Phase 3 — one FV re-stamp (the T1-d machinery, now cheaper)
+Same pipeline as T1-d, run once: derive the old→new segment mapping table,
+re-derive generator wire offsets from fresh IR, regen + lint, re-point
+hand-authored layers (Bounds/Wiring/Statement/Specs/Glue + the hand-authored
+wiring transcript — T1-d's late catch; regenerate it from
+`gnarkctl export-wiring-transcript`, Go as ground truth), serialized lake
+campaign (one lake, LEAN_NUM_THREADS=1, nohup+log), gate battery, ONE
+`records/wave2-gate-record.md`, one §5 ledger row per candidate.
+Known-trap checklist from T1-d (verify each): `contracts.rs spec_submodule`
+table, extracted-namespace `seg{i}` positional indices (never blanket-rename),
+adapter files with no generator (NullifierAdapters), stale `deployedSpecN`
+references in emitted adapters.
+
+### Phase 4 — artifact + CI closure (one pass)
+`gnarkctl setup` for ALL surviving reshape circuits in the same commit as the
+Go change reaches CI (T1-d lesson: split1x4's stale keys broke the flow job a
+full push later). Refresh transfer/ics20 stamps if the shared-source hashes
+moved (stamp-only; STOP on contract drift). Local CI equivalents before every
+push. One PR, watch to green.
+
+### Wave 2 projected outcome (consolidate2x1, from 44,665)
+T1-f + T1-h + NB-1 ≈ −6–7k → ~38k; if T2-c makes the batch, ladders drop a
+further ~25–35% → low 30ks. Record actuals in §5, projections are not results.
 
 ## 6. Measurement discipline
 

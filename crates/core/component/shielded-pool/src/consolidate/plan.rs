@@ -442,7 +442,6 @@ mod tests {
     #[test]
     fn consolidate_family_specs_cover_expected_shapes() {
         assert_eq!(ConsolidateFamilyId::TwoByOne.input_count(), 2);
-        assert_eq!(ConsolidateFamilyId::FourByOne.input_count(), 4);
         assert_eq!(ConsolidateFamilyId::EightByOne.input_count(), 8);
         assert!(ConsolidateFamilyId::ALL
             .iter()
@@ -453,7 +452,7 @@ mod tests {
         );
         assert_eq!(
             ConsolidateFamilyId::smallest_covering_input_count(3),
-            Some(ConsolidateFamilyId::FourByOne)
+            Some(ConsolidateFamilyId::EightByOne)
         );
         assert_eq!(
             ConsolidateFamilyId::smallest_covering_input_count(5),

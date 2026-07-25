@@ -3,6 +3,7 @@ import ShielddGnarkFormal.Extracted.DecafRvk
 import ShielddGnarkFormal.Extracted.DecafDtk
 import ShielddGnarkFormal.Extracted.NetBalanceCommitment
 import ShielddGnarkFormal.Extracted.NetBalanceCommitment2
+import ShielddGnarkFormal.Extracted.ConservationNetBalanceCommitment
 
 set_option linter.unusedSectionVars false
 
@@ -12,6 +13,7 @@ variable [Fact (Nat.Prime Extracted.DecafRvk.Order)]
 variable [Fact (Nat.Prime Extracted.DecafDtk.Order)]
 variable [Fact (Nat.Prime Extracted.NetBalanceCommitment.Order)]
 variable [Fact (Nat.Prime Extracted.NetBalanceCommitment2.Order)]
+variable [Fact (Nat.Prime Extracted.ConservationNetBalanceCommitment.Order)]
 
 /-- The exact constraint set of the extracted DecafRvk gadget: a 251-step
 generator scalar-mul ladder of the randomizer followed by an Edwards add of
@@ -37,6 +39,15 @@ def NetBalanceCommitmentCircuit
   ∃ encodeWasSquare encodeInvSqrt,
     Extracted.NetBalanceCommitment.circuit input0 input1 output assetID balanceBlinding
       encodeWasSquare encodeInvSqrt out.x out.y
+
+/-- The exact constraint set of the extracted ConservationNetBalanceCommitment
+gadget (NB-1): three 128-bit range decompositions, one linear conservation
+assert `input0 + input1 = output`, and a 251-bit blinding ladder over the value
+blinding generator pinned to `out`. No hint wires. -/
+def ConservationNetBalanceCommitmentCircuit
+    (input0 input1 output balanceBlinding : F) (out : Point) : Prop :=
+  Extracted.ConservationNetBalanceCommitment.circuit input0 input1 output
+    balanceBlinding out.x out.y
 
 /-- The transfer (2-in-2-out) net-balance gadget: identical to the consolidate
 shape but subtracting two output value ladders instead of one. -/

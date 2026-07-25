@@ -904,6 +904,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "bankd-e2e-spend-builder"
+version = "2.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.21.7",
+ "cnidarium",
+ "decaf377",
+ "rand_core 0.6.4",
+ "shieldd-sdk-app",
+ "shieldd-sdk-asset",
+ "shieldd-sdk-keys",
+ "shieldd-sdk-mock-client",
+ "shieldd-sdk-num",
+ "shieldd-sdk-proof-params",
+ "shieldd-sdk-proto",
+ "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-transaction",
+ "tokio",
+]
+
+[[package]]
 name = "base16ct"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7810,6 +7831,24 @@ name = "shell-words"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
+
+[[package]]
+name = "shieldd"
+version = "2.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "cnidarium",
+ "prost 0.13.4",
+ "shieldd-sdk-app",
+ "shieldd-sdk-proto",
+ "tendermint 0.40.3",
+ "tendermint-proto 0.40.3",
+ "tokio",
+ "tonic 0.12.3",
+ "tracing",
+ "tracing-subscriber 0.3.23",
+]
 
 [[package]]
 name = "shieldd-constraint-coverage"

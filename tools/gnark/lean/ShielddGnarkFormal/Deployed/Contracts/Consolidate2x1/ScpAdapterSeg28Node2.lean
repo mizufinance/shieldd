@@ -1,0 +1,266 @@
+import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.ScpAdapterSeg28Base
+import ShielddGnarkFormal.Deployed.StateCommitmentPathNode2.SemanticBridge
+import ShielddGnarkFormal.Deployed.StateCommitmentPath.Projection
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+
+theorem seg28_scp_node2_eq (rho : Nat -> Seg28.F) (h : Seg28.relation rho) :
+    seg28ScpNode2Out rho =
+      Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4 ((545001158149490383238005163525397553024965043366546261617421270984613353336 : Seg28.F) + (3 : Seg28.F))
+        (rho 178 + rho 20401) (rho 179 + rho 20402 + rho 20403)
+        (rho 179 + rho 20404 + rho 20405) (rho 180 + rho 20406) := by
+  unfold Seg28.relation at h
+  rcases h with ⟨
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, p12, p13, p14, p15, p16, p17, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _
+  ⟩
+  unfold Seg28.relationPart12 at p12
+  rcases p12 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r1021, r1022, r1023, r1024, r1025, r1026, r1027, r1028, r1029, r1030, r1031, r1032, r1033, r1034, r1035, r1036, r1037, r1038, r1039⟩
+  unfold Seg28.relationPart13 at p13
+  rcases p13 with ⟨r1040, r1041, r1042, r1043, r1044, r1045, r1046, r1047, r1048, r1049, r1050, r1051, r1052, r1053, r1054, r1055, r1056, r1057, r1058, r1059, r1060, r1061, r1062, r1063, r1064, r1065, r1066, r1067, r1068, r1069, r1070, r1071, r1072, r1073, r1074, r1075, r1076, r1077, r1078, r1079, r1080, r1081, r1082, r1083, r1084, r1085, r1086, r1087, r1088, r1089, r1090, r1091, r1092, r1093, r1094, r1095, r1096, r1097, r1098, r1099, r1100, r1101, r1102, r1103, r1104, r1105, r1106, r1107, r1108, r1109, r1110, r1111, r1112, r1113, r1114, r1115, r1116, r1117, r1118, r1119⟩
+  unfold Seg28.relationPart14 at p14
+  rcases p14 with ⟨r1120, r1121, r1122, r1123, r1124, r1125, r1126, r1127, r1128, r1129, r1130, r1131, r1132, r1133, r1134, r1135, r1136, r1137, r1138, r1139, r1140, r1141, r1142, r1143, r1144, r1145, r1146, r1147, r1148, r1149, r1150, r1151, r1152, r1153, r1154, r1155, r1156, r1157, r1158, r1159, r1160, r1161, r1162, r1163, r1164, r1165, r1166, r1167, r1168, r1169, r1170, r1171, r1172, r1173, r1174, r1175, r1176, r1177, r1178, r1179, r1180, r1181, r1182, r1183, r1184, r1185, r1186, r1187, r1188, r1189, r1190, r1191, r1192, r1193, r1194, r1195, r1196, r1197, r1198, r1199⟩
+  unfold Seg28.relationPart15 at p15
+  rcases p15 with ⟨r1200, r1201, r1202, r1203, r1204, r1205, r1206, r1207, r1208, r1209, r1210, r1211, r1212, r1213, r1214, r1215, r1216, r1217, r1218, r1219, r1220, r1221, r1222, r1223, r1224, r1225, r1226, r1227, r1228, r1229, r1230, r1231, r1232, r1233, r1234, r1235, r1236, r1237, r1238, r1239, r1240, r1241, r1242, r1243, r1244, r1245, r1246, r1247, r1248, r1249, r1250, r1251, r1252, r1253, r1254, r1255, r1256, r1257, r1258, r1259, r1260, r1261, r1262, r1263, r1264, r1265, r1266, r1267, r1268, r1269, r1270, r1271, r1272, r1273, r1274, r1275, r1276, r1277, r1278, r1279⟩
+  unfold Seg28.relationPart16 at p16
+  rcases p16 with ⟨r1280, r1281, r1282, r1283, r1284, r1285, r1286, r1287, r1288, r1289, r1290, r1291, r1292, r1293, r1294, r1295, r1296, r1297, r1298, r1299, r1300, r1301, r1302, r1303, r1304, r1305, r1306, r1307, r1308, r1309, r1310, r1311, r1312, r1313, r1314, r1315, r1316, r1317, r1318, r1319, r1320, r1321, r1322, r1323, r1324, r1325, r1326, r1327, r1328, r1329, r1330, r1331, r1332, r1333, r1334, r1335, r1336, r1337, r1338, r1339, r1340, r1341, r1342, r1343, r1344, r1345, r1346, r1347, r1348, r1349, r1350, r1351, r1352, r1353, r1354, r1355, r1356, r1357, r1358, r1359⟩
+  unfold Seg28.relationPart17 at p17
+  rcases p17 with ⟨r1360, r1361, r1362, r1363, r1364, r1365, r1366, r1367, r1368, r1369, r1370, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩
+  have hrel : Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.relation (rho 178) (rho 179) (rho 180) (rho 20401) (rho 20402) (rho 20403) (rho 20404) (rho 20405) (rho 20406)
+      (fun o0 o1 o2 o3 o4 => o0 = rho 20736 ∧ o1 = rho 20741 ∧ o2 = rho 20746 ∧ o3 = rho 20751 ∧ o4 = rho 20756) := by
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.relation
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg0
+    refine ⟨rho 20407, rho 20408, rho 20409, rho 20410, rho 20411,
+      (by unfold Seg28.relationRow1021 at r1021; linear_combination r1021), (by unfold Seg28.relationRow1022 at r1022; linear_combination r1022), (by unfold Seg28.relationRow1023 at r1023; linear_combination r1023), (by unfold Seg28.relationRow1024 at r1024; linear_combination r1024), (by unfold Seg28.relationRow1025 at r1025; linear_combination r1025), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg1
+    refine ⟨rho 20412, rho 20413, rho 20414, rho 20415, rho 20416,
+      (by unfold Seg28.relationRow1026 at r1026; linear_combination r1026), (by unfold Seg28.relationRow1027 at r1027; linear_combination r1027), (by unfold Seg28.relationRow1028 at r1028; linear_combination r1028), (by unfold Seg28.relationRow1029 at r1029; linear_combination r1029), (by unfold Seg28.relationRow1030 at r1030; linear_combination r1030), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg2
+    refine ⟨rho 20417, rho 20418, rho 20419, rho 20420, rho 20421,
+      (by unfold Seg28.relationRow1031 at r1031; linear_combination r1031), (by unfold Seg28.relationRow1032 at r1032; linear_combination r1032), (by unfold Seg28.relationRow1033 at r1033; linear_combination r1033), (by unfold Seg28.relationRow1034 at r1034; linear_combination r1034), (by unfold Seg28.relationRow1035 at r1035; linear_combination r1035), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg3
+    refine ⟨rho 20422, rho 20423, rho 20424, rho 20425, rho 20426,
+      (by unfold Seg28.relationRow1036 at r1036; linear_combination r1036), (by unfold Seg28.relationRow1037 at r1037; linear_combination r1037), (by unfold Seg28.relationRow1038 at r1038; linear_combination r1038), (by unfold Seg28.relationRow1039 at r1039; linear_combination r1039), (by unfold Seg28.relationRow1040 at r1040; linear_combination r1040), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg4
+    refine ⟨rho 20427, rho 20428, rho 20429, rho 20430, rho 20431,
+      (by unfold Seg28.relationRow1041 at r1041; linear_combination r1041), (by unfold Seg28.relationRow1042 at r1042; linear_combination r1042), (by unfold Seg28.relationRow1043 at r1043; linear_combination r1043), (by unfold Seg28.relationRow1044 at r1044; linear_combination r1044), (by unfold Seg28.relationRow1045 at r1045; linear_combination r1045), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg5
+    refine ⟨rho 20432, rho 20433, rho 20434, rho 20435, rho 20436,
+      (by unfold Seg28.relationRow1046 at r1046; linear_combination r1046), (by unfold Seg28.relationRow1047 at r1047; linear_combination r1047), (by unfold Seg28.relationRow1048 at r1048; linear_combination r1048), (by unfold Seg28.relationRow1049 at r1049; linear_combination r1049), (by unfold Seg28.relationRow1050 at r1050; linear_combination r1050), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg6
+    refine ⟨rho 20437, rho 20438, rho 20439, rho 20440, rho 20441,
+      (by unfold Seg28.relationRow1051 at r1051; linear_combination r1051), (by unfold Seg28.relationRow1052 at r1052; linear_combination r1052), (by unfold Seg28.relationRow1053 at r1053; linear_combination r1053), (by unfold Seg28.relationRow1054 at r1054; linear_combination r1054), (by unfold Seg28.relationRow1055 at r1055; linear_combination r1055), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg7
+    refine ⟨rho 20442, rho 20443, rho 20444, rho 20445, rho 20446,
+      (by unfold Seg28.relationRow1056 at r1056; linear_combination r1056), (by unfold Seg28.relationRow1057 at r1057; linear_combination r1057), (by unfold Seg28.relationRow1058 at r1058; linear_combination r1058), (by unfold Seg28.relationRow1059 at r1059; linear_combination r1059), (by unfold Seg28.relationRow1060 at r1060; linear_combination r1060), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg8
+    refine ⟨rho 20447, rho 20448, rho 20449, rho 20450, rho 20451,
+      (by unfold Seg28.relationRow1061 at r1061; linear_combination r1061), (by unfold Seg28.relationRow1062 at r1062; linear_combination r1062), (by unfold Seg28.relationRow1063 at r1063; linear_combination r1063), (by unfold Seg28.relationRow1064 at r1064; linear_combination r1064), (by unfold Seg28.relationRow1065 at r1065; linear_combination r1065), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg9
+    refine ⟨rho 20452, rho 20453, rho 20454, rho 20455, rho 20456,
+      (by unfold Seg28.relationRow1066 at r1066; linear_combination r1066), (by unfold Seg28.relationRow1067 at r1067; linear_combination r1067), (by unfold Seg28.relationRow1068 at r1068; linear_combination r1068), (by unfold Seg28.relationRow1069 at r1069; linear_combination r1069), (by unfold Seg28.relationRow1070 at r1070; linear_combination r1070), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg10
+    refine ⟨rho 20457, rho 20458, rho 20459, rho 20460, rho 20461,
+      (by unfold Seg28.relationRow1071 at r1071; linear_combination r1071), (by unfold Seg28.relationRow1072 at r1072; linear_combination r1072), (by unfold Seg28.relationRow1073 at r1073; linear_combination r1073), (by unfold Seg28.relationRow1074 at r1074; linear_combination r1074), (by unfold Seg28.relationRow1075 at r1075; linear_combination r1075), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg11
+    refine ⟨rho 20462, rho 20463, rho 20464, rho 20465, rho 20466,
+      (by unfold Seg28.relationRow1076 at r1076; linear_combination r1076), (by unfold Seg28.relationRow1077 at r1077; linear_combination r1077), (by unfold Seg28.relationRow1078 at r1078; linear_combination r1078), (by unfold Seg28.relationRow1079 at r1079; linear_combination r1079), (by unfold Seg28.relationRow1080 at r1080; linear_combination r1080), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg12
+    refine ⟨rho 20467, rho 20468, rho 20469, rho 20470, rho 20471,
+      (by unfold Seg28.relationRow1081 at r1081; linear_combination r1081), (by unfold Seg28.relationRow1082 at r1082; linear_combination r1082), (by unfold Seg28.relationRow1083 at r1083; linear_combination r1083), (by unfold Seg28.relationRow1084 at r1084; linear_combination r1084), (by unfold Seg28.relationRow1085 at r1085; linear_combination r1085), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg13
+    refine ⟨rho 20472, rho 20473, rho 20474, rho 20475, rho 20476,
+      (by unfold Seg28.relationRow1086 at r1086; linear_combination r1086), (by unfold Seg28.relationRow1087 at r1087; linear_combination r1087), (by unfold Seg28.relationRow1088 at r1088; linear_combination r1088), (by unfold Seg28.relationRow1089 at r1089; linear_combination r1089), (by unfold Seg28.relationRow1090 at r1090; linear_combination r1090), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg14
+    refine ⟨rho 20477, rho 20478, rho 20479, rho 20480, rho 20481,
+      (by unfold Seg28.relationRow1091 at r1091; linear_combination r1091), (by unfold Seg28.relationRow1092 at r1092; linear_combination r1092), (by unfold Seg28.relationRow1093 at r1093; linear_combination r1093), (by unfold Seg28.relationRow1094 at r1094; linear_combination r1094), (by unfold Seg28.relationRow1095 at r1095; linear_combination r1095), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg15
+    refine ⟨rho 20482, rho 20483, rho 20484, rho 20485, rho 20486,
+      (by unfold Seg28.relationRow1096 at r1096; linear_combination r1096), (by unfold Seg28.relationRow1097 at r1097; linear_combination r1097), (by unfold Seg28.relationRow1098 at r1098; linear_combination r1098), (by unfold Seg28.relationRow1099 at r1099; linear_combination r1099), (by unfold Seg28.relationRow1100 at r1100; linear_combination r1100), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg16
+    refine ⟨rho 20487, rho 20488, rho 20489, rho 20490, rho 20491,
+      (by unfold Seg28.relationRow1101 at r1101; linear_combination r1101), (by unfold Seg28.relationRow1102 at r1102; linear_combination r1102), (by unfold Seg28.relationRow1103 at r1103; linear_combination r1103), (by unfold Seg28.relationRow1104 at r1104; linear_combination r1104), (by unfold Seg28.relationRow1105 at r1105; linear_combination r1105), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg17
+    refine ⟨rho 20492, rho 20493, rho 20494, rho 20495, rho 20496,
+      (by unfold Seg28.relationRow1106 at r1106; linear_combination r1106), (by unfold Seg28.relationRow1107 at r1107; linear_combination r1107), (by unfold Seg28.relationRow1108 at r1108; linear_combination r1108), (by unfold Seg28.relationRow1109 at r1109; linear_combination r1109), (by unfold Seg28.relationRow1110 at r1110; linear_combination r1110), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg18
+    refine ⟨rho 20497, rho 20498, rho 20499, rho 20500, rho 20501,
+      (by unfold Seg28.relationRow1111 at r1111; linear_combination r1111), (by unfold Seg28.relationRow1112 at r1112; linear_combination r1112), (by unfold Seg28.relationRow1113 at r1113; linear_combination r1113), (by unfold Seg28.relationRow1114 at r1114; linear_combination r1114), (by unfold Seg28.relationRow1115 at r1115; linear_combination r1115), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg19
+    refine ⟨rho 20502, rho 20503, rho 20504, rho 20505, rho 20506,
+      (by unfold Seg28.relationRow1116 at r1116; linear_combination r1116), (by unfold Seg28.relationRow1117 at r1117; linear_combination r1117), (by unfold Seg28.relationRow1118 at r1118; linear_combination r1118), (by unfold Seg28.relationRow1119 at r1119; linear_combination r1119), (by unfold Seg28.relationRow1120 at r1120; linear_combination r1120), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg20
+    refine ⟨rho 20507, rho 20508, rho 20509, rho 20510, rho 20511,
+      (by unfold Seg28.relationRow1121 at r1121; linear_combination r1121), (by unfold Seg28.relationRow1122 at r1122; linear_combination r1122), (by unfold Seg28.relationRow1123 at r1123; linear_combination r1123), (by unfold Seg28.relationRow1124 at r1124; linear_combination r1124), (by unfold Seg28.relationRow1125 at r1125; linear_combination r1125), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg21
+    refine ⟨rho 20512, rho 20513, rho 20514, rho 20515, rho 20516,
+      (by unfold Seg28.relationRow1126 at r1126; linear_combination r1126), (by unfold Seg28.relationRow1127 at r1127; linear_combination r1127), (by unfold Seg28.relationRow1128 at r1128; linear_combination r1128), (by unfold Seg28.relationRow1129 at r1129; linear_combination r1129), (by unfold Seg28.relationRow1130 at r1130; linear_combination r1130), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg22
+    refine ⟨rho 20517, rho 20518, rho 20519, rho 20520, rho 20521,
+      (by unfold Seg28.relationRow1131 at r1131; linear_combination r1131), (by unfold Seg28.relationRow1132 at r1132; linear_combination r1132), (by unfold Seg28.relationRow1133 at r1133; linear_combination r1133), (by unfold Seg28.relationRow1134 at r1134; linear_combination r1134), (by unfold Seg28.relationRow1135 at r1135; linear_combination r1135), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg23
+    refine ⟨rho 20522, rho 20523, rho 20524, rho 20525, rho 20526,
+      (by unfold Seg28.relationRow1136 at r1136; linear_combination r1136), (by unfold Seg28.relationRow1137 at r1137; linear_combination r1137), (by unfold Seg28.relationRow1138 at r1138; linear_combination r1138), (by unfold Seg28.relationRow1139 at r1139; linear_combination r1139), (by unfold Seg28.relationRow1140 at r1140; linear_combination r1140), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg24
+    refine ⟨rho 20527, rho 20528, rho 20529, rho 20530, rho 20531,
+      (by unfold Seg28.relationRow1141 at r1141; linear_combination r1141), (by unfold Seg28.relationRow1142 at r1142; linear_combination r1142), (by unfold Seg28.relationRow1143 at r1143; linear_combination r1143), (by unfold Seg28.relationRow1144 at r1144; linear_combination r1144), (by unfold Seg28.relationRow1145 at r1145; linear_combination r1145), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg25
+    refine ⟨rho 20532, rho 20533, rho 20534, rho 20535, rho 20536,
+      (by unfold Seg28.relationRow1146 at r1146; linear_combination r1146), (by unfold Seg28.relationRow1147 at r1147; linear_combination r1147), (by unfold Seg28.relationRow1148 at r1148; linear_combination r1148), (by unfold Seg28.relationRow1149 at r1149; linear_combination r1149), (by unfold Seg28.relationRow1150 at r1150; linear_combination r1150), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg26
+    refine ⟨rho 20537, rho 20538, rho 20539, rho 20540, rho 20541,
+      (by unfold Seg28.relationRow1151 at r1151; linear_combination r1151), (by unfold Seg28.relationRow1152 at r1152; linear_combination r1152), (by unfold Seg28.relationRow1153 at r1153; linear_combination r1153), (by unfold Seg28.relationRow1154 at r1154; linear_combination r1154), (by unfold Seg28.relationRow1155 at r1155; linear_combination r1155), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg27
+    refine ⟨rho 20542, rho 20543, rho 20544, rho 20545, rho 20546,
+      (by unfold Seg28.relationRow1156 at r1156; linear_combination r1156), (by unfold Seg28.relationRow1157 at r1157; linear_combination r1157), (by unfold Seg28.relationRow1158 at r1158; linear_combination r1158), (by unfold Seg28.relationRow1159 at r1159; linear_combination r1159), (by unfold Seg28.relationRow1160 at r1160; linear_combination r1160), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg28
+    refine ⟨rho 20547, rho 20548, rho 20549, rho 20550, rho 20551,
+      (by unfold Seg28.relationRow1161 at r1161; linear_combination r1161), (by unfold Seg28.relationRow1162 at r1162; linear_combination r1162), (by unfold Seg28.relationRow1163 at r1163; linear_combination r1163), (by unfold Seg28.relationRow1164 at r1164; linear_combination r1164), (by unfold Seg28.relationRow1165 at r1165; linear_combination r1165), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg29
+    refine ⟨rho 20552, rho 20553, rho 20554, rho 20555, rho 20556,
+      (by unfold Seg28.relationRow1166 at r1166; linear_combination r1166), (by unfold Seg28.relationRow1167 at r1167; linear_combination r1167), (by unfold Seg28.relationRow1168 at r1168; linear_combination r1168), (by unfold Seg28.relationRow1169 at r1169; linear_combination r1169), (by unfold Seg28.relationRow1170 at r1170; linear_combination r1170), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg30
+    refine ⟨rho 20557, rho 20558, rho 20559, rho 20560, rho 20561,
+      (by unfold Seg28.relationRow1171 at r1171; linear_combination r1171), (by unfold Seg28.relationRow1172 at r1172; linear_combination r1172), (by unfold Seg28.relationRow1173 at r1173; linear_combination r1173), (by unfold Seg28.relationRow1174 at r1174; linear_combination r1174), (by unfold Seg28.relationRow1175 at r1175; linear_combination r1175), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg31
+    refine ⟨rho 20562, rho 20563, rho 20564, rho 20565, rho 20566,
+      (by unfold Seg28.relationRow1176 at r1176; linear_combination r1176), (by unfold Seg28.relationRow1177 at r1177; linear_combination r1177), (by unfold Seg28.relationRow1178 at r1178; linear_combination r1178), (by unfold Seg28.relationRow1179 at r1179; linear_combination r1179), (by unfold Seg28.relationRow1180 at r1180; linear_combination r1180), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg32
+    refine ⟨rho 20567, rho 20568, rho 20569, rho 20570, rho 20571,
+      (by unfold Seg28.relationRow1181 at r1181; linear_combination r1181), (by unfold Seg28.relationRow1182 at r1182; linear_combination r1182), (by unfold Seg28.relationRow1183 at r1183; linear_combination r1183), (by unfold Seg28.relationRow1184 at r1184; linear_combination r1184), (by unfold Seg28.relationRow1185 at r1185; linear_combination r1185), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg33
+    refine ⟨rho 20572, rho 20573, rho 20574, rho 20575, rho 20576,
+      (by unfold Seg28.relationRow1186 at r1186; linear_combination r1186), (by unfold Seg28.relationRow1187 at r1187; linear_combination r1187), (by unfold Seg28.relationRow1188 at r1188; linear_combination r1188), (by unfold Seg28.relationRow1189 at r1189; linear_combination r1189), (by unfold Seg28.relationRow1190 at r1190; linear_combination r1190), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg34
+    refine ⟨rho 20577, rho 20578, rho 20579, rho 20580, rho 20581,
+      (by unfold Seg28.relationRow1191 at r1191; linear_combination r1191), (by unfold Seg28.relationRow1192 at r1192; linear_combination r1192), (by unfold Seg28.relationRow1193 at r1193; linear_combination r1193), (by unfold Seg28.relationRow1194 at r1194; linear_combination r1194), (by unfold Seg28.relationRow1195 at r1195; linear_combination r1195), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg35
+    refine ⟨rho 20582, rho 20583, rho 20584, rho 20585, rho 20586,
+      (by unfold Seg28.relationRow1196 at r1196; linear_combination r1196), (by unfold Seg28.relationRow1197 at r1197; linear_combination r1197), (by unfold Seg28.relationRow1198 at r1198; linear_combination r1198), (by unfold Seg28.relationRow1199 at r1199; linear_combination r1199), (by unfold Seg28.relationRow1200 at r1200; linear_combination r1200), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg36
+    refine ⟨rho 20587, rho 20588, rho 20589, rho 20590, rho 20591,
+      (by unfold Seg28.relationRow1201 at r1201; linear_combination r1201), (by unfold Seg28.relationRow1202 at r1202; linear_combination r1202), (by unfold Seg28.relationRow1203 at r1203; linear_combination r1203), (by unfold Seg28.relationRow1204 at r1204; linear_combination r1204), (by unfold Seg28.relationRow1205 at r1205; linear_combination r1205), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg37
+    refine ⟨rho 20592, rho 20593, rho 20594, rho 20595, rho 20596,
+      (by unfold Seg28.relationRow1206 at r1206; linear_combination r1206), (by unfold Seg28.relationRow1207 at r1207; linear_combination r1207), (by unfold Seg28.relationRow1208 at r1208; linear_combination r1208), (by unfold Seg28.relationRow1209 at r1209; linear_combination r1209), (by unfold Seg28.relationRow1210 at r1210; linear_combination r1210), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg38
+    refine ⟨rho 20597, rho 20598, rho 20599, rho 20600, rho 20601,
+      (by unfold Seg28.relationRow1211 at r1211; linear_combination r1211), (by unfold Seg28.relationRow1212 at r1212; linear_combination r1212), (by unfold Seg28.relationRow1213 at r1213; linear_combination r1213), (by unfold Seg28.relationRow1214 at r1214; linear_combination r1214), (by unfold Seg28.relationRow1215 at r1215; linear_combination r1215), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg39
+    refine ⟨rho 20602, rho 20603, rho 20604, rho 20605, rho 20606,
+      (by unfold Seg28.relationRow1216 at r1216; linear_combination r1216), (by unfold Seg28.relationRow1217 at r1217; linear_combination r1217), (by unfold Seg28.relationRow1218 at r1218; linear_combination r1218), (by unfold Seg28.relationRow1219 at r1219; linear_combination r1219), (by unfold Seg28.relationRow1220 at r1220; linear_combination r1220), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg40
+    refine ⟨rho 20607, rho 20608, rho 20609, rho 20610, rho 20611,
+      (by unfold Seg28.relationRow1221 at r1221; linear_combination r1221), (by unfold Seg28.relationRow1222 at r1222; linear_combination r1222), (by unfold Seg28.relationRow1223 at r1223; linear_combination r1223), (by unfold Seg28.relationRow1224 at r1224; linear_combination r1224), (by unfold Seg28.relationRow1225 at r1225; linear_combination r1225), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg41
+    refine ⟨rho 20612, rho 20613, rho 20614, rho 20615, rho 20616,
+      (by unfold Seg28.relationRow1226 at r1226; linear_combination r1226), (by unfold Seg28.relationRow1227 at r1227; linear_combination r1227), (by unfold Seg28.relationRow1228 at r1228; linear_combination r1228), (by unfold Seg28.relationRow1229 at r1229; linear_combination r1229), (by unfold Seg28.relationRow1230 at r1230; linear_combination r1230), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg42
+    refine ⟨rho 20617, rho 20618, rho 20619, rho 20620, rho 20621,
+      (by unfold Seg28.relationRow1231 at r1231; linear_combination r1231), (by unfold Seg28.relationRow1232 at r1232; linear_combination r1232), (by unfold Seg28.relationRow1233 at r1233; linear_combination r1233), (by unfold Seg28.relationRow1234 at r1234; linear_combination r1234), (by unfold Seg28.relationRow1235 at r1235; linear_combination r1235), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg43
+    refine ⟨rho 20622, rho 20623, rho 20624, rho 20625, rho 20626,
+      (by unfold Seg28.relationRow1236 at r1236; linear_combination r1236), (by unfold Seg28.relationRow1237 at r1237; linear_combination r1237), (by unfold Seg28.relationRow1238 at r1238; linear_combination r1238), (by unfold Seg28.relationRow1239 at r1239; linear_combination r1239), (by unfold Seg28.relationRow1240 at r1240; linear_combination r1240), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg44
+    refine ⟨rho 20627, rho 20628, rho 20629, rho 20630, rho 20631,
+      (by unfold Seg28.relationRow1241 at r1241; linear_combination r1241), (by unfold Seg28.relationRow1242 at r1242; linear_combination r1242), (by unfold Seg28.relationRow1243 at r1243; linear_combination r1243), (by unfold Seg28.relationRow1244 at r1244; linear_combination r1244), (by unfold Seg28.relationRow1245 at r1245; linear_combination r1245), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg45
+    refine ⟨rho 20632, rho 20633, rho 20634, rho 20635, rho 20636,
+      (by unfold Seg28.relationRow1246 at r1246; linear_combination r1246), (by unfold Seg28.relationRow1247 at r1247; linear_combination r1247), (by unfold Seg28.relationRow1248 at r1248; linear_combination r1248), (by unfold Seg28.relationRow1249 at r1249; linear_combination r1249), (by unfold Seg28.relationRow1250 at r1250; linear_combination r1250), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg46
+    refine ⟨rho 20637, rho 20638, rho 20639, rho 20640, rho 20641,
+      (by unfold Seg28.relationRow1251 at r1251; linear_combination r1251), (by unfold Seg28.relationRow1252 at r1252; linear_combination r1252), (by unfold Seg28.relationRow1253 at r1253; linear_combination r1253), (by unfold Seg28.relationRow1254 at r1254; linear_combination r1254), (by unfold Seg28.relationRow1255 at r1255; linear_combination r1255), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg47
+    refine ⟨rho 20642, rho 20643, rho 20644, rho 20645, rho 20646,
+      (by unfold Seg28.relationRow1256 at r1256; linear_combination r1256), (by unfold Seg28.relationRow1257 at r1257; linear_combination r1257), (by unfold Seg28.relationRow1258 at r1258; linear_combination r1258), (by unfold Seg28.relationRow1259 at r1259; linear_combination r1259), (by unfold Seg28.relationRow1260 at r1260; linear_combination r1260), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg48
+    refine ⟨rho 20647, rho 20648, rho 20649, rho 20650, rho 20651,
+      (by unfold Seg28.relationRow1261 at r1261; linear_combination r1261), (by unfold Seg28.relationRow1262 at r1262; linear_combination r1262), (by unfold Seg28.relationRow1263 at r1263; linear_combination r1263), (by unfold Seg28.relationRow1264 at r1264; linear_combination r1264), (by unfold Seg28.relationRow1265 at r1265; linear_combination r1265), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg49
+    refine ⟨rho 20652, rho 20653, rho 20654, rho 20655, rho 20656,
+      (by unfold Seg28.relationRow1266 at r1266; linear_combination r1266), (by unfold Seg28.relationRow1267 at r1267; linear_combination r1267), (by unfold Seg28.relationRow1268 at r1268; linear_combination r1268), (by unfold Seg28.relationRow1269 at r1269; linear_combination r1269), (by unfold Seg28.relationRow1270 at r1270; linear_combination r1270), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg50
+    refine ⟨rho 20657, rho 20658, rho 20659, rho 20660, rho 20661,
+      (by unfold Seg28.relationRow1271 at r1271; linear_combination r1271), (by unfold Seg28.relationRow1272 at r1272; linear_combination r1272), (by unfold Seg28.relationRow1273 at r1273; linear_combination r1273), (by unfold Seg28.relationRow1274 at r1274; linear_combination r1274), (by unfold Seg28.relationRow1275 at r1275; linear_combination r1275), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg51
+    refine ⟨rho 20662, rho 20663, rho 20664, rho 20665, rho 20666,
+      (by unfold Seg28.relationRow1276 at r1276; linear_combination r1276), (by unfold Seg28.relationRow1277 at r1277; linear_combination r1277), (by unfold Seg28.relationRow1278 at r1278; linear_combination r1278), (by unfold Seg28.relationRow1279 at r1279; linear_combination r1279), (by unfold Seg28.relationRow1280 at r1280; linear_combination r1280), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg52
+    refine ⟨rho 20667, rho 20668, rho 20669, rho 20670, rho 20671,
+      (by unfold Seg28.relationRow1281 at r1281; linear_combination r1281), (by unfold Seg28.relationRow1282 at r1282; linear_combination r1282), (by unfold Seg28.relationRow1283 at r1283; linear_combination r1283), (by unfold Seg28.relationRow1284 at r1284; linear_combination r1284), (by unfold Seg28.relationRow1285 at r1285; linear_combination r1285), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg53
+    refine ⟨rho 20672, rho 20673, rho 20674, rho 20675, rho 20676,
+      (by unfold Seg28.relationRow1286 at r1286; linear_combination r1286), (by unfold Seg28.relationRow1287 at r1287; linear_combination r1287), (by unfold Seg28.relationRow1288 at r1288; linear_combination r1288), (by unfold Seg28.relationRow1289 at r1289; linear_combination r1289), (by unfold Seg28.relationRow1290 at r1290; linear_combination r1290), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg54
+    refine ⟨rho 20677, rho 20678, rho 20679, rho 20680, rho 20681,
+      (by unfold Seg28.relationRow1291 at r1291; linear_combination r1291), (by unfold Seg28.relationRow1292 at r1292; linear_combination r1292), (by unfold Seg28.relationRow1293 at r1293; linear_combination r1293), (by unfold Seg28.relationRow1294 at r1294; linear_combination r1294), (by unfold Seg28.relationRow1295 at r1295; linear_combination r1295), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg55
+    refine ⟨rho 20682, rho 20683, rho 20684, rho 20685, rho 20686,
+      (by unfold Seg28.relationRow1296 at r1296; linear_combination r1296), (by unfold Seg28.relationRow1297 at r1297; linear_combination r1297), (by unfold Seg28.relationRow1298 at r1298; linear_combination r1298), (by unfold Seg28.relationRow1299 at r1299; linear_combination r1299), (by unfold Seg28.relationRow1300 at r1300; linear_combination r1300), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg56
+    refine ⟨rho 20687, rho 20688, rho 20689, rho 20690, rho 20691,
+      (by unfold Seg28.relationRow1301 at r1301; linear_combination r1301), (by unfold Seg28.relationRow1302 at r1302; linear_combination r1302), (by unfold Seg28.relationRow1303 at r1303; linear_combination r1303), (by unfold Seg28.relationRow1304 at r1304; linear_combination r1304), (by unfold Seg28.relationRow1305 at r1305; linear_combination r1305), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg57
+    refine ⟨rho 20692, rho 20693, rho 20694, rho 20695, rho 20696,
+      (by unfold Seg28.relationRow1306 at r1306; linear_combination r1306), (by unfold Seg28.relationRow1307 at r1307; linear_combination r1307), (by unfold Seg28.relationRow1308 at r1308; linear_combination r1308), (by unfold Seg28.relationRow1309 at r1309; linear_combination r1309), (by unfold Seg28.relationRow1310 at r1310; linear_combination r1310), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg58
+    refine ⟨rho 20697, rho 20698, rho 20699, rho 20700, rho 20701,
+      (by unfold Seg28.relationRow1311 at r1311; linear_combination r1311), (by unfold Seg28.relationRow1312 at r1312; linear_combination r1312), (by unfold Seg28.relationRow1313 at r1313; linear_combination r1313), (by unfold Seg28.relationRow1314 at r1314; linear_combination r1314), (by unfold Seg28.relationRow1315 at r1315; linear_combination r1315), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg59
+    refine ⟨rho 20702, rho 20703, rho 20704, rho 20705, rho 20706,
+      (by unfold Seg28.relationRow1316 at r1316; linear_combination r1316), (by unfold Seg28.relationRow1317 at r1317; linear_combination r1317), (by unfold Seg28.relationRow1318 at r1318; linear_combination r1318), (by unfold Seg28.relationRow1319 at r1319; linear_combination r1319), (by unfold Seg28.relationRow1320 at r1320; linear_combination r1320), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg60
+    refine ⟨rho 20707, rho 20708, rho 20709, rho 20710, rho 20711,
+      (by unfold Seg28.relationRow1321 at r1321; linear_combination r1321), (by unfold Seg28.relationRow1322 at r1322; linear_combination r1322), (by unfold Seg28.relationRow1323 at r1323; linear_combination r1323), (by unfold Seg28.relationRow1324 at r1324; linear_combination r1324), (by unfold Seg28.relationRow1325 at r1325; linear_combination r1325), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg61
+    refine ⟨rho 20712, rho 20713, rho 20714, rho 20715, rho 20716,
+      (by unfold Seg28.relationRow1326 at r1326; linear_combination r1326), (by unfold Seg28.relationRow1327 at r1327; linear_combination r1327), (by unfold Seg28.relationRow1328 at r1328; linear_combination r1328), (by unfold Seg28.relationRow1329 at r1329; linear_combination r1329), (by unfold Seg28.relationRow1330 at r1330; linear_combination r1330), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg62
+    refine ⟨rho 20717, rho 20718, rho 20719, rho 20720, rho 20721,
+      (by unfold Seg28.relationRow1331 at r1331; linear_combination r1331), (by unfold Seg28.relationRow1332 at r1332; linear_combination r1332), (by unfold Seg28.relationRow1333 at r1333; linear_combination r1333), (by unfold Seg28.relationRow1334 at r1334; linear_combination r1334), (by unfold Seg28.relationRow1335 at r1335; linear_combination r1335), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg63
+    refine ⟨rho 20722, rho 20723, rho 20724, rho 20725, rho 20726,
+      (by unfold Seg28.relationRow1336 at r1336; linear_combination r1336), (by unfold Seg28.relationRow1337 at r1337; linear_combination r1337), (by unfold Seg28.relationRow1338 at r1338; linear_combination r1338), (by unfold Seg28.relationRow1339 at r1339; linear_combination r1339), (by unfold Seg28.relationRow1340 at r1340; linear_combination r1340), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg64
+    refine ⟨rho 20727, rho 20728, rho 20729, rho 20730, rho 20731,
+      (by unfold Seg28.relationRow1341 at r1341; linear_combination r1341), (by unfold Seg28.relationRow1342 at r1342; linear_combination r1342), (by unfold Seg28.relationRow1343 at r1343; linear_combination r1343), (by unfold Seg28.relationRow1344 at r1344; linear_combination r1344), (by unfold Seg28.relationRow1345 at r1345; linear_combination r1345), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg65
+    refine ⟨rho 20732, rho 20733, rho 20734, rho 20735, rho 20736,
+      (by unfold Seg28.relationRow1346 at r1346; linear_combination r1346), (by unfold Seg28.relationRow1347 at r1347; linear_combination r1347), (by unfold Seg28.relationRow1348 at r1348; linear_combination r1348), (by unfold Seg28.relationRow1349 at r1349; linear_combination r1349), (by unfold Seg28.relationRow1350 at r1350; linear_combination r1350), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg66
+    refine ⟨rho 20737, rho 20738, rho 20739, rho 20740, rho 20741,
+      (by unfold Seg28.relationRow1351 at r1351; linear_combination r1351), (by unfold Seg28.relationRow1352 at r1352; linear_combination r1352), (by unfold Seg28.relationRow1353 at r1353; linear_combination r1353), (by unfold Seg28.relationRow1354 at r1354; linear_combination r1354), (by unfold Seg28.relationRow1355 at r1355; linear_combination r1355), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg67
+    refine ⟨rho 20742, rho 20743, rho 20744, rho 20745, rho 20746,
+      (by unfold Seg28.relationRow1356 at r1356; linear_combination r1356), (by unfold Seg28.relationRow1357 at r1357; linear_combination r1357), (by unfold Seg28.relationRow1358 at r1358; linear_combination r1358), (by unfold Seg28.relationRow1359 at r1359; linear_combination r1359), (by unfold Seg28.relationRow1360 at r1360; linear_combination r1360), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg68
+    refine ⟨rho 20747, rho 20748, rho 20749, rho 20750, rho 20751,
+      (by unfold Seg28.relationRow1361 at r1361; linear_combination r1361), (by unfold Seg28.relationRow1362 at r1362; linear_combination r1362), (by unfold Seg28.relationRow1363 at r1363; linear_combination r1363), (by unfold Seg28.relationRow1364 at r1364; linear_combination r1364), (by unfold Seg28.relationRow1365 at r1365; linear_combination r1365), ?_⟩
+    unfold Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode2350_867941.seg69
+    refine ⟨rho 20752, rho 20753, rho 20754, rho 20755, rho 20756,
+      (by unfold Seg28.relationRow1366 at r1366; linear_combination r1366), (by unfold Seg28.relationRow1367 at r1367; linear_combination r1367), (by unfold Seg28.relationRow1368 at r1368; linear_combination r1368), (by unfold Seg28.relationRow1369 at r1369; linear_combination r1369), (by unfold Seg28.relationRow1370 at r1370; linear_combination r1370), ?_⟩
+    exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  have hs := Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode2.relation_sound_permSpec (rho 178) (rho 179) (rho 180) (rho 20401) (rho 20402) (rho 20403) (rho 20404) (rho 20405) (rho 20406) _ hrel
+  have hd : Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode2.tctNode3DomainLit = (545001158149490383238005163525397553024965043366546261617421270984613353336 : Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode2.F) + (3 : Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode2.F) := by
+    decide
+  rcases hs with ⟨o0, o1, o2, o3, o4, ⟨rfl, rfl, rfl, rfl, rfl⟩, hs⟩
+  rw [hd] at hs
+  simpa [seg28ScpNode2Out, Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode2.s38_1,
+    Shieldd.GnarkFormal.Deployed.Poseidon4Link.row5] using hs
+
+end Shieldd.GnarkFormal.Deployed.Contracts.Consolidate2x1
+
