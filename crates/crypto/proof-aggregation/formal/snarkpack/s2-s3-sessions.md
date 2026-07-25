@@ -268,7 +268,7 @@ review-only evidence.
 **S2-38 — S2 gate and ledger rewrite** — `MECHANICAL (luna)` — `GATED` on
 S2-21 through S2-37. Gate target completeness, generated freshness, adapter
 mapping invariants, all refinement theorems, focused/full Lean checks, and
-axiom audits; then update `ripp-refinement.md`, `ripp-spec.md`, and
+axiom audits; then update
 `formal-handoff.md`. Acceptance: S2's claim is explicitly conditional on the
 challenge serializer, MSM, commitment, and pairing-adapter laws; no S3,
 serialization, hash-as-RO, KZG binding, or pairing-commitment binding claim is

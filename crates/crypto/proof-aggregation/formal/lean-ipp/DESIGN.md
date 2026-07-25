@@ -3,8 +3,9 @@
 Status: frontier-authored, living. Governs the theorem statements in `Ipp/`.
 Scope decisions: `../snarkpack/s1-mechanization-scope.md` (Antoine green light
 2026-07-08: U5 = full forking-lemma mechanization; U1+U3 first; package here).
-Model of record for equations: `../snarkpack/ripp-spec.md`. Transcript shape
-must stay aligned with `proof-aggregation-lean-conformance/lean/SnarkpackOracle.lean`.
+The Lean model is the model of record for the proved equations and transcript
+shape; the executed verifier and its typed trace provide the implementation
+boundary.
 
 ## Model (Ipp/Algebra.lean, Ipp/Model.lean)
 
@@ -56,7 +57,7 @@ against the FS challenge distribution.
 
 ## U3 — KZG opening soundness (Ipp/Kzg.lean)
 
-Spec: `ripp-spec.md` §Combined TIPP/MIPP, rows `tipp-mipp.kzg-equations`,
+Lean model: Combined TIPP/MIPP equations, including `tipp-mipp.kzg-equations`,
 `tipa.srs`. SRS = `g·αⁱ`, `h·βⁱ` (i < 2n−1). The verifier checks two openings
 (`v` once, `w` once) of the transcript polynomial
 `f(X) = ∏_j (1 + c_j·X^{2^j})`-shaped structured evaluation at the KZG
@@ -90,7 +91,7 @@ quadratic pinned by 4 points. Same reason Bulletproofs' IPA extractor
 rewinds 4× per round. 3 points leave both identities underdetermined.
 
 Spec rows: `gipa.round-folding`, `gipa.verifier-folding`,
-`gipa.input-relation`, `tipp-mipp.gipa`. Model of record: ripp-spec §GIPA;
+`gipa.input-relation`, `tipp-mipp.gipa`. Model of record: the Lean GIPA model;
 Rust: `gipa.rs` prover fold (rescale_fold call sites), verifier
 `fold_output`, `_compute_final_commitment_keys`.
 
@@ -339,7 +340,7 @@ bounded delegable task, all in-package (`Ipp/Fork.lean`,
   Four sub-deliverables:
   1. `SnarkpackFsSpec`: one uniform challenge oracle whose DOMAIN is a
      structured sum type `(stage × payload)` mirroring the
-     SnarkpackOracle stage sequence (randomizer, x0, round ℓ, bridge,
+     executed SnarkPack stage sequence (randomizer, x0, round ℓ, bridge,
      kzg) with payloads the structured tuples actually hashed (prior
      challenge + the round L/R commitment objects for round stages).
      Injectivity of the encoding is BY CONSTRUCTION in the model; the

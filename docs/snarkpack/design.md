@@ -6,11 +6,9 @@ every deliberate change we made to that upstream, with rationale. Start here.
 The companion doc is [verification.md](verification.md): how we check that this
 design is faithfully and securely implemented.
 
-The authoritative, machine-checked detail lives next to the formal artifacts and
-is linked where relevant:
+The authoritative machine-checked details live in the Lean and F* formal artifacts;
+the Filecoin divergence review remains available as provenance:
 
-- [ripp-spec.md](../../crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md) — row-by-row local algorithm spec.
-- [adaptation-register.md](../../crates/crypto/proof-aggregation/formal/snarkpack/adaptation-register.md) — every Filecoin→Shieldd difference, coverage-checked against `adaptation-scope.txt`.
 - [filecoin-divergence-findings.md](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md) — the behavioral review behind those differences.
 
 ## 1. What SnarkPack/RIPP is
@@ -72,8 +70,8 @@ it (see [verification.md](verification.md)).
 
 ## 3. Modifications we made (and why)
 
-Each is an intentional divergence from the arkworks/Filecoin upstream, tracked
-row-by-row in [adaptation-register.md](../../crates/crypto/proof-aggregation/formal/snarkpack/adaptation-register.md).
+Each is an intentional divergence from the arkworks/Filecoin upstream; the
+implementation and formal artifacts document the resulting local behavior.
 
 ### BLS12-377 curve swap
 Upstream targets BLS12-381; Shieldd runs on BLS12-377 to match the rest of the

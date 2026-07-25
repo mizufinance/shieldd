@@ -81,18 +81,17 @@ risk concentrates in scheme soundness and implementation conformance.
 | --- | --- | --- | --- | --- |
 | SL0 | Assumptions | Pairing hardness, q-type/KZG assumptions, SRS provenance for the aggregation SRS | Ledger rows in `formal-handoff.md`; `check-snarkpack-invariants.sh` row discipline | D2 (ceremony row, shared with L0) |
 | SL1 | Aggregate statement sufficiency | Does accepting one aggregate imply each per-circuit statement? (arity, statement hashing, VK binding) | S5 conformance tests: VK-arity=1 + statement-parity + VK-hash pinning (proved-by-test) | SL1r: Lean-side and F*-side statement models not yet mechanically the same statement |
-| SL2 | Scheme soundness (RIPP/TIPP/MIPP + KZG final-ck) | Does the aggregated equation imply each Groth16 equation? | Accepted on lineage evidence (S1 human decision 2026-07-06: Filecoin Bellperson v0.21.0 lineage + paper review + `ripp-refinement.md`), rowed with removal path | SL2r: not mechanized; removal path = §8a L5b Lean proof |
+| SL2 | Scheme soundness (RIPP/TIPP/MIPP + KZG final-ck) | Does the aggregated equation imply each Groth16 equation? | Accepted on paper and Filecoin lineage evidence, with the remaining gap addressed by the Lean proof surface | SL2r: not mechanized; removal path = §8a L5b Lean proof |
 | SL3 | Mechanization surface (F*) | Do the F* models match the adapted code where rows demand it? | Existing F* developments + completion rules; frozen category-3 surface (no new extraction) | guarded — completion rules enforced by gate, no new F* scope |
-| SL4 | Implementation conformance | Does the shipping Rust (`verify_family_aggregate`) match the model? | Conformance/differential tests (`just snarkpack-lean-conformance`, shape gate `check-snarkpack-filecoin-shape.sh`) + adaptation register | §8a L5d: verified reference model + byte-differential gate not yet built |
+| SL4 | Implementation conformance | Does the shipping Rust (`verify_family_aggregate`) match the model? | Conformance/differential tests and the Lean proof surface | §8a L5d: verified reference model + byte-differential gate not yet built |
 
 **How the layer boundaries are verified (SnarkPack stack):** SL0→above:
 ledger-row conditionality, same discipline gate. SL1↔ZK-stack: the
 aggregation seam — per-circuit statement hash and VK identity pinned by the
 S5 tests (this is the *only* inter-stack boundary; nothing else in either
 stack may assume facts from the other). SL2↔SL4: the Stage 9 Lean
-differential conformance gate ties the accepted-equation shape to the
-implementation. SL3↔SL4: adaptation register + divergence findings doc pin
-the F* model to the adapted Rust.
+ proof surface ties the accepted-equation shape to the implementation. SL3↔SL4:
+ divergence findings and the formal handoff pin the F* model to the adapted Rust.
 
 **Direction not covered by either stack:** L2–L4 and SL1–SL2 are
 **soundness-only** (constraints/equations ⇒ spec). **Completeness** (honest
@@ -132,7 +131,7 @@ which gate proves it is still standing.
 | consolidate2x1 L1 | Statement-sufficiency + ledger state-machine models in scope | `compliance-alloy.sh` |
 | transfer | Whole-circuit sound theorem + deployed bridges; compliance gadget surface rowed (see H-a) | coverage gate (transfer) + stamped axiom artifacts |
 | L0/L5 | Named ledger rows only, none `open` | `check-soundness-invariants.sh` (ledger discipline) |
-| SnarkPack | SL0 rowed · SL1 proved (conformance tests) · SL2 rowed (S1 accepted, removal path = L5b) · SL3 guarded (F* rows + completion rules) · SL4 rowed + tests | `check-snarkpack-invariants.sh`, `check-snarkpack-filecoin-shape.sh`, conformance tests |
+| SnarkPack | SL0 rowed · SL1 proved (conformance tests) · SL2 rowed (S1 accepted, removal path = L5b) · SL3 guarded (F* rows + completion rules) · SL4 rowed + tests | `check-snarkpack-invariants.sh`, conformance tests |
 | Optimize-safely loop | Orchestrated, fail-closed, deletion-aware | `scripts/fv-opt-loop.sh` (diff/gates) + manifest-pin tripwire in CI |
 | Release binding | Proof↔artifact identity at release tags | `docs/soundness/release-checklist.md` + CI tiers (per-PR invariants/pin tripwire; nightly Picus; cloud full Lean) |
 

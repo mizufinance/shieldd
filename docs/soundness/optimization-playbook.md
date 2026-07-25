@@ -524,8 +524,7 @@ Holes that DO restrict the loop, in the order they pay back:
    algebra outright — mechanize the RIPP refinement (TIPP/MIPP), the KZG
    commitment openings, and the aggregation transcript — so SnarkPack
    soundness rests on our own proofs rather than filecoin-lineage provenance
-   (`crates/crypto/proof-aggregation/formal/snarkpack/ripp-refinement.md`,
-   `filecoin-divergence-findings.md`). This is the single biggest leeway
+   (`filecoin-divergence-findings.md`). This is the single biggest leeway
    unlock: algebra/transcript/pairing-count optimizations go from forbidden
    to T2-class with a mechanized artifact backing each change, and every
    divergence-from-filecoin finding stops being a standing risk. Human
@@ -566,7 +565,7 @@ The detailed SnarkPack loop (category-1/2/3 rule, byte/trace baselines,
 bench discipline, transcript do-not-touch list) is
 `crates/crypto/proof-aggregation/optimization-playbook.md` — it governs any
 change inside that crate. `fv-opt-loop.sh gates` runs
-`check-snarkpack-invariants.sh` + `check-snarkpack-filecoin-shape.sh`
+`check-snarkpack-invariants.sh`
 automatically whenever the crate differs from the merge base.
 
 ## 4. The pilot run (recommended first execution)

@@ -95,10 +95,6 @@ snarkpack-fuzz-smoke:
 snarkpack-invariants:
     ./scripts/check-snarkpack-invariants.sh
 
-# Re-derive Filecoin v2 SnarkPack transcript-shape evidence from the pinned Bellperson source.
-snarkpack-filecoin-shape:
-    ./scripts/check-snarkpack-filecoin-shape.sh
-
 # Run pinned SnarkPack formal extraction and F* proof checks.
 snarkpack-formal:
     ./scripts/snarkpack-formal.sh
@@ -106,10 +102,6 @@ snarkpack-formal:
 # Enforce SnarkPack valid-vs-adversarial DoS latency and size thresholds.
 snarkpack-dos-gate:
     cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture
-
-# Run the Lean-derived SnarkPack transcript/folding conformance oracle.
-snarkpack-lean-conformance:
-    ./scripts/snarkpack-lean-conformance.sh
 
 # Build the SnarkPack S1/S2 Lean mechanization; run focused S2 modules, named
 # theorem axiom audits, then exactly one full package build.

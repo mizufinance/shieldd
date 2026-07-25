@@ -1760,7 +1760,7 @@ mod tests {
     }
 
     #[test]
-    fn strict_boundary_rejects_nested_infinity_alias() {
+    fn strict_boundary_rejects_nested_component_aliases_and_malformed_bytes() {
         let (pvk, items) = sample_items();
         let srs = DevSrs::default();
         let padded_items =
@@ -1781,6 +1781,61 @@ mod tests {
         )
         .expect("aggregate wrapper should decode");
 
+        let decoded = deserialize_aggregate_proof::<TransferTranscriptDigest>(&inner)
+            .expect("valid aggregate should decode through the reached boundary");
+        assert_eq!(compressed_bytes(&decoded), inner);
+
+        let reject = |mutated_inner: Vec<u8>, label: &str| {
+            let mutated =
+                encode_wrapped_aggregate_proof(statement.statement_digest(), &mutated_inner)
+                    .expect("mutated aggregate should fit wrapper");
+            let err = verify_family_aggregate(&statement, &pvk, &mutated, &srs).expect_err(label);
+            assert!(
+                matches!(err, AggregateVerifyError::MalformedProofBytes(_)),
+                "{label}: unexpected error {err:?}"
+            );
+        };
+
+        let gt_len = compressed_bytes(&PairingOutput::<Bls12_377>::zero()).len();
+        let g2_len = compressed_bytes(&BackendG2::zero().into_affine()).len();
+        let rounds_offset = 4 * gt_len + g1_compressed_len();
+        let rounds = u64::from_le_bytes(
+            inner[rounds_offset..rounds_offset + 8]
+                .try_into()
+                .expect("round count frame should be eight bytes"),
+        ) as usize;
+        let final_g2_offset = rounds_offset + 8 + rounds * 4736;
+
+        // A compressed flag mutation in the nested agg_c G1 component.
+        let mut malformed_flags = inner.to_vec();
+        malformed_flags[4 * gt_len + g1_compressed_len() - 1] |= 0xc0;
+        reject(malformed_flags, "nested malformed G1 flags should reject");
+
+        // The first GT lane is uncompressed Fq12. Replacing one 48-byte Fq
+        // component with 0xff bytes is a noncanonical field encoding.
+        let mut noncanonical_gt = inner.to_vec();
+        noncanonical_gt[..48].fill(0xff);
+        reject(
+            noncanonical_gt,
+            "nested noncanonical GT field should reject",
+        );
+
+        // The final commitment-key G2 is nested after the round vector. An
+        // infinity alias is accepted by arkworks' permissive decoder but not
+        // by the strict wrapper's exact re-serialization check.
+        let mut g2_infinity_alias = inner.to_vec();
+        let g2_zero = compressed_bytes(&BackendG2::zero().into_affine());
+        let mut g2_alias = g2_zero;
+        g2_alias[0] |= 1;
+        g2_infinity_alias[final_g2_offset..final_g2_offset + g2_len].copy_from_slice(&g2_alias);
+        assert!(
+            AggregateProof::<Bls12_377, TransferTranscriptDigest>::deserialize_compressed(
+                &g2_infinity_alias[..]
+            )
+            .is_ok()
+        );
+        reject(g2_infinity_alias, "nested G2 infinity alias should reject");
+
         // The first four fields are pairing outputs. The following `agg_c` is
         // a compressed G1 nested inside AggregateProof; retain its x-coordinate
         // and set only the infinity flag (the compressed flag is already set).
@@ -1794,12 +1849,17 @@ mod tests {
             .is_ok()
         );
         assert!(deserialize_aggregate_proof::<TransferTranscriptDigest>(&mutated_inner).is_err());
+        reject(mutated_inner, "nested G1 infinity alias should reject");
 
-        let mutated = encode_wrapped_aggregate_proof(statement.statement_digest(), &mutated_inner)
-            .expect("mutated aggregate should fit wrapper");
-        let err = verify_family_aggregate(&statement, &pvk, &mutated, &srs)
-            .expect_err("nested infinity alias should reject at the boundary");
-        assert!(matches!(err, AggregateVerifyError::MalformedProofBytes(_)));
+        let mut non_subgroup = inner.to_vec();
+        let torsion = non_subgroup_g1(&mut ChaCha20Rng::seed_from_u64(0x14));
+        non_subgroup[4 * gt_len..4 * gt_len + g1_compressed_len()]
+            .copy_from_slice(&compressed_bytes(&torsion));
+        reject(non_subgroup, "nested non-subgroup G1 should reject");
+
+        let mut trailing = inner.to_vec();
+        trailing.push(0);
+        reject(trailing, "aggregate trailing bytes should reject");
     }
 
     fn g1_compressed_len() -> usize {
