@@ -2729,7 +2729,7 @@ mod tests {
         )
     }
 
-    fn assert_aggregate_profiled_parity<P: Pairing>() {
+    fn assert_aggregate_profiled_acceptance_parity<P: Pairing>() {
         let (srs, pvk, proof) = zero_combined_inputs::<P>();
         let context = ChallengeContext::from_statement_digest([0u8; 32]);
         let public_inputs = vec![vec![]];
@@ -2780,19 +2780,19 @@ mod tests {
 
     #[cfg(not(feature = "bench-baseline"))]
     #[test]
-    fn aggregate_profiled_matches_normal_acceptance_and_trace() {
-        assert_aggregate_profiled_parity::<Bls12_381>();
+    fn aggregate_profiled_matches_normal_acceptance() {
+        assert_aggregate_profiled_acceptance_parity::<Bls12_381>();
     }
 
     #[cfg(feature = "bench-baseline")]
     #[test]
-    fn aggregate_profiled_baseline_matches_normal_acceptance_and_trace() {
-        assert_aggregate_profiled_parity::<Bls12_381>();
+    fn aggregate_profiled_baseline_matches_normal_acceptance() {
+        assert_aggregate_profiled_acceptance_parity::<Bls12_381>();
     }
 
     #[cfg(not(feature = "bench-baseline"))]
     #[test]
-    fn combined_checks_schedule_branch_preserves_core_result_and_trace() {
+    fn combined_checks_schedule_branch_preserves_core_acceptance() {
         let (srs, pvk, proof) = zero_combined_inputs::<Bls12_381>();
         let context = ChallengeContext::from_statement_digest([0u8; 32]);
         let r = <Bls12_381 as Pairing>::ScalarField::from(2u64);

@@ -368,7 +368,6 @@ dependencies = [
  "rayon",
  "serde",
  "sha2 0.9.9",
- "shieldd-sdk-proof-aggregation-trace-schema",
 ]
 
 [[package]]
@@ -8648,7 +8647,6 @@ dependencies = [
  "rayon",
  "serde",
  "sha2 0.10.8",
- "shieldd-sdk-proof-aggregation-trace-schema",
  "shieldd-sdk-proof-params",
  "shieldd-sdk-proto",
  "shieldd-sdk-shielded-pool",
@@ -8672,7 +8670,6 @@ dependencies = [
  "shieldd-sdk-fee",
  "shieldd-sdk-proof-aggregation",
  "shieldd-sdk-proof-aggregation-reference",
- "shieldd-sdk-proof-aggregation-trace-schema",
  "shieldd-sdk-proof-params",
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
@@ -8703,15 +8700,10 @@ dependencies = [
  "rand_chacha 0.3.1",
  "sha2 0.10.8",
  "shieldd-sdk-proof-aggregation",
- "shieldd-sdk-proof-aggregation-trace-schema",
  "shieldd-sdk-proof-params",
  "shieldd-sdk-shielded-pool",
  "thiserror 1.0.69",
 ]
-
-[[package]]
-name = "shieldd-sdk-proof-aggregation-trace-schema"
-version = "2.1.0"
 
 [[package]]
 name = "shieldd-sdk-proof-params"

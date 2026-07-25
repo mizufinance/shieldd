@@ -29,7 +29,6 @@ serde = { version = "1", features = [ "derive" ] }
 
 ark-inner-products = { path = "../inner_products" }
 ark-dh-commitments = { path = "../dh_commitments" }
-shieldd-sdk-proof-aggregation-trace-schema = { path = "../../../../proof-aggregation-trace-schema" }
 
 [dev-dependencies]
 ark-bls12-377 = { workspace = true, features = [ "curve" ] }

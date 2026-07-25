@@ -63,15 +63,14 @@ falsify that class.
   a same-code test would miss. The Rust-level independent oracle.
 - **State:** implemented; feeds ALG-I1, ALG-I3, TXN-I2, TXN-I3.
 
-#### ALG-I3 — Trace instrumentation + equivalence
-- **What:** production and reference emit structured `TraceEvent`s through the
-  dependency-free `proof-aggregation-trace-schema` crate; its policy table must
-  match the ALG-M1 Spec Row Index, and instrumentation must not re-decide levels
-  from call shape (`production_and_reference_traces_match_declared_levels`).
-- **Why:** verifies the two paths perform the same *sequence/structure* of
-  transcript operations, not just the same final answer — the spine the byte
-  baselines and mutation matrices hang off.
-- **State:** implemented.
+#### ALG-I3 — Acceptance and transcript invariants
+- **What:** production and reference cross-verify through the ordinary public API
+  (`production_and_reference_acceptance_parity`). The reference oracle retains
+  its byte baselines, mutation matrices, and transcript-manifest checks; internal
+  production parity checks compare the ordered challenge records directly.
+- **Why:** acceptance parity covers the implementation boundary, while the
+  independent transcript checks catch ordering and binding drift.
+- **State:** implemented; the former public production trace API is retired.
 
 ---
 

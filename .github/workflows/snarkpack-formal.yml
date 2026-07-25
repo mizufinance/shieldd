@@ -10,7 +10,6 @@ on:
       - 'crates/crypto/proof-aggregation/formal/**'
       - 'crates/crypto/proof-aggregation-fuzz/**'
       - 'crates/crypto/proof-aggregation-reference/**'
-      - 'crates/crypto/proof-aggregation-trace-schema/**'
       - 'crates/core/app/src/app/mod.rs'
       - 'crates/crypto/proof-aggregation/Cargo.toml'
       - 'crates/crypto/proof-aggregation/src/lib.rs'

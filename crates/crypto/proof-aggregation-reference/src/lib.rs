@@ -28,10 +28,6 @@ use shieldd_sdk_proof_aggregation::{
     encode_wrapped_aggregate_proof, preflight_aggregate_verify, srs_id, AggregatePreflightInput,
     AggregateStatement, DevSrs, ProofFamilyId, DEFAULT_MAX_PADDED_PROOF_COUNT,
 };
-pub use shieldd_sdk_proof_aggregation_trace_schema::{
-    FilecoinBugClass, TraceComparisonLevel, TraceEvent, TraceEventError, TraceEventKind,
-    TracePolicy, TRACE_POLICIES,
-};
 use shieldd_sdk_proof_params::batch::BatchItem;
 
 type P = Bls12_377;
@@ -42,6 +38,155 @@ type Fr = <P as Pairing>::ScalarField;
 const DEV_SRS_SEED: [u8; 32] = [0x50; 32];
 const CHALLENGE_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge.v1\0";
 const CHALLENGE_CONTEXT_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge_context.v1\0";
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TraceComparisonLevel {
+    ShielddByte,
+    AbstractTrace,
+    FilecoinShape,
+    ShielddLocal,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TraceEventKind {
+    ChallengeContext,
+    ChallengePreimage,
+    ChallengeDigest,
+    EquationRole,
+    ObjectRole,
+    FilecoinBugClass,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FilecoinBugClass {
+    FirstRoundHashOmission,
+    FinalRandomnessOmission,
+    PublicMessageReordering,
+    HiddenDefaultContext,
+    ProverVerifierChallengeMismatch,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TracePolicy {
+    pub spec_row_id: &'static str,
+    pub primary_level: TraceComparisonLevel,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TraceEvent {
+    pub spec_row_id: &'static str,
+    pub primary_level: TraceComparisonLevel,
+    pub event_kind: TraceEventKind,
+    pub stage_label: &'static str,
+    pub nonce: Option<u64>,
+    pub round_index: Option<u32>,
+    pub byte_payload: Vec<u8>,
+    pub abstract_payload: Option<&'static str>,
+    pub filecoin_bug_class: Option<FilecoinBugClass>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TraceEventError {
+    MissingBytePayload,
+    MissingAbstractPayload,
+    MissingFilecoinBugClass,
+}
+
+impl TraceEvent {
+    pub fn validate(&self) -> Result<(), TraceEventError> {
+        match self.primary_level {
+            TraceComparisonLevel::ShielddByte if self.byte_payload.is_empty() => {
+                Err(TraceEventError::MissingBytePayload)
+            }
+            TraceComparisonLevel::AbstractTrace if self.abstract_payload.is_none() => {
+                Err(TraceEventError::MissingAbstractPayload)
+            }
+            TraceComparisonLevel::FilecoinShape if self.filecoin_bug_class.is_none() => {
+                Err(TraceEventError::MissingFilecoinBugClass)
+            }
+            _ => Ok(()),
+        }
+    }
+}
+
+pub const TRACE_POLICIES: &[TracePolicy] = &[
+    TracePolicy {
+        spec_row_id: "fs.context-constructor",
+        primary_level: TraceComparisonLevel::ShielddByte,
+    },
+    TracePolicy {
+        spec_row_id: "fs.challenge-preimage",
+        primary_level: TraceComparisonLevel::ShielddByte,
+    },
+    TracePolicy {
+        spec_row_id: "fs.stage-labels",
+        primary_level: TraceComparisonLevel::ShielddByte,
+    },
+    TracePolicy {
+        spec_row_id: "fs.filecoin-bug-class",
+        primary_level: TraceComparisonLevel::FilecoinShape,
+    },
+    TracePolicy {
+        spec_row_id: "gipa.input-relation",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "gipa.round-folding",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "gipa.challenge-dependency",
+        primary_level: TraceComparisonLevel::ShielddByte,
+    },
+    TracePolicy {
+        spec_row_id: "gipa.verifier-folding",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "tipa.srs",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.x0-seed",
+        primary_level: TraceComparisonLevel::ShielddByte,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.gipa",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.final-bridge",
+        primary_level: TraceComparisonLevel::ShielddByte,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.kzg-challenge",
+        primary_level: TraceComparisonLevel::ShielddByte,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.kzg-equations",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.power-sequence",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "tipp-mipp.base-equations",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "groth16.randomizer",
+        primary_level: TraceComparisonLevel::ShielddByte,
+    },
+    TracePolicy {
+        spec_row_id: "groth16.folded-inputs",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+    TracePolicy {
+        spec_row_id: "groth16.ppe",
+        primary_level: TraceComparisonLevel::AbstractTrace,
+    },
+];
 
 pub type ReferenceResult<T> = Result<T, ReferencePathError>;
 pub type ReferenceTraceEntry = TraceEvent;
@@ -1460,9 +1605,9 @@ mod tests {
     use ark_snark::SNARK;
     use proptest::prelude::*;
     use shieldd_sdk_proof_aggregation::{
-        aggregate_family, aggregate_family_with_trace, decode_wrapped_aggregate_proof,
-        encode_wrapped_aggregate_proof, pad_items_to_power_of_two, verify_family_aggregate,
-        verify_family_aggregate_with_trace, AGGREGATE_PROTOCOL_VERSION, MAX_AGGREGATE_PROOF_BYTES,
+        aggregate_family, decode_wrapped_aggregate_proof, encode_wrapped_aggregate_proof,
+        pad_items_to_power_of_two, verify_family_aggregate, AGGREGATE_PROTOCOL_VERSION,
+        MAX_AGGREGATE_PROOF_BYTES,
     };
     use shieldd_sdk_proof_params::batch;
     use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
@@ -2031,25 +2176,18 @@ mod tests {
     }
 
     #[test]
-    fn production_and_reference_traces_match_declared_levels() {
+    fn production_and_reference_acceptance_parity() {
         let (pvk, items, statement, srs) = fixture();
-        let (production_proof, production_prover_trace) =
-            aggregate_family_with_trace(&statement, &pvk, &items, &srs)
-                .expect("production aggregate with trace");
-        let production_report =
-            verify_family_aggregate_with_trace(&statement, &pvk, &production_proof, &srs)
-                .expect("production verify with trace");
-        assert!(production_report.accepted);
-        validate_trace(&production_prover_trace);
-        validate_trace(&production_report.trace);
-        assert_eq!(production_prover_trace, production_report.trace);
+        let production_proof =
+            aggregate_family(&statement, &pvk, &items, &srs).expect("production aggregate");
+        verify_family_aggregate(&statement, &pvk, &production_proof, &srs)
+            .expect("production verifier should accept production aggregate");
 
-        let reference_report =
+        let production_reference_report =
             reference_verify_family_aggregate(&statement, &pvk, &production_proof, &srs)
                 .expect("reference verifier should run");
-        assert!(reference_report.accepted);
-        validate_trace(&reference_report.verifier_trace);
-        assert_eq!(production_prover_trace, reference_report.verifier_trace);
+        assert!(production_reference_report.accepted);
+        validate_trace(&production_reference_report.verifier_trace);
 
         let reference = reference_aggregate_family(&statement, &pvk, &items, &srs)
             .expect("reference aggregate");
@@ -2059,14 +2197,14 @@ mod tests {
         assert!(reference_report.accepted);
         validate_trace(&reference.prover_trace);
         validate_trace(&reference_report.verifier_trace);
+        assert_eq!(
+            reference.prover_trace,
+            production_reference_report.verifier_trace
+        );
         assert_eq!(reference.prover_trace, reference_report.verifier_trace);
 
-        let production_report =
-            verify_family_aggregate_with_trace(&statement, &pvk, &reference.wrapped_proof, &srs)
-                .expect("production verifier should run");
-        assert!(production_report.accepted);
-        validate_trace(&production_report.trace);
-        assert_eq!(reference.prover_trace, production_report.trace);
+        verify_family_aggregate(&statement, &pvk, &reference.wrapped_proof, &srs)
+            .expect("production verifier should accept reference aggregate");
     }
 
     // Stage 9 byte-trace lock: the ordered ShielddByte trace payloads for a
@@ -2119,9 +2257,9 @@ mod tests {
             &rows,
         )
         .expect("statement should build");
-        let (_bytes, events) = aggregate_family_with_trace(&statement, &pvk, &padded, &srs)
-            .expect("aggregate with trace should succeed");
-        events
+        reference_aggregate_family(&statement, &pvk, &padded, &srs)
+            .expect("reference aggregate should succeed")
+            .prover_trace
             .into_iter()
             .filter(|e| e.primary_level == TraceComparisonLevel::ShielddByte)
             .collect()
@@ -2452,9 +2590,9 @@ mod tests {
             items.len() >= 2,
             "manifest assertion needs n >= 2 so KZG transcript bindings are present"
         );
-        let (_proof, trace) = aggregate_family_with_trace(&statement, &pvk, &items, &srs)
-            .expect("production aggregate with trace");
-        trace
+        reference_aggregate_family(&statement, &pvk, &items, &srs)
+            .expect("reference aggregate")
+            .prover_trace
     }
 
     fn preimages_for_stage<'a>(trace: &'a [TraceEvent], stage_label: &str) -> Vec<&'a Vec<u8>> {

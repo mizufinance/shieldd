@@ -1,0 +1,29 @@
+12:50:40 KILL ceiling lean pid=23128 ws=6003MB > 6000 (avail=1088MB)
+12:55:22 KILL ceiling lean pid=21344 ws=6145MB > 6000 (avail=970MB)
+13:00:38 KILL ceiling lean pid=28164 ws=6259MB > 6000 (avail=843MB)
+13:12:21 KILL ceiling lean pid=19508 ws=6143MB > 6000 (avail=947MB)
+13:16:12 KILL ceiling lean pid=24200 ws=6042MB > 6000 (avail=1048MB)
+13:18:46 KILL ceiling lean pid=25616 ws=6213MB > 6000 (avail=770MB)
+13:18:46 KILL floor avail=770MB < 800 -> lean pid=25616 ws=6213MB
+13:25:29 KILL ceiling lean pid=25280 ws=6062MB > 6000 (avail=867MB)
+19:59:29 KILL ceiling lean pid=22004 ws=6345MB > 6000 (avail=506MB)
+19:59:29 KILL floor avail=506MB < 800 -> lean pid=22004 ws=6345MB
+20:01:17 KILL ceiling lean pid=20328 ws=6674MB > 6000 (avail=247MB)
+20:01:17 KILL floor avail=247MB < 800 -> lean pid=20328 ws=6674MB
+20:04:55 KILL ceiling lean pid=10216 ws=6181MB > 6000 (avail=746MB)
+20:04:55 KILL floor avail=746MB < 800 -> lean pid=10216 ws=6181MB
+20:11:59 KILL ceiling lean pid=24580 ws=6543MB > 6000 (avail=449MB)
+20:11:59 KILL floor avail=449MB < 800 -> lean pid=24580 ws=6543MB
+20:17:09 KILL ceiling lean pid=5412 ws=6295MB > 6000 (avail=720MB)
+20:17:09 KILL floor avail=720MB < 800 -> lean pid=5412 ws=6295MB
+20:18:44 KILL ceiling lean pid=9968 ws=6606MB > 6000 (avail=383MB)
+20:18:44 KILL floor avail=383MB < 800 -> lean pid=9968 ws=6606MB
+20:19:55 KILL ceiling lean pid=24368 ws=6824MB > 6000 (avail=306MB)
+20:19:55 KILL floor avail=306MB < 800 -> lean pid=24368 ws=6824MB
+20:27:32 KILL ceiling lean pid=7928 ws=6432MB > 6000 (avail=690MB)
+20:27:32 KILL floor avail=690MB < 800 -> lean pid=7928 ws=6432MB
+20:28:30 KILL ceiling lean pid=20780 ws=6223MB > 6000 (avail=904MB)
+20:48:33 KILL ceiling lean pid=25756 ws=6145MB > 6000 (avail=1141MB)
+20:49:31 KILL ceiling lean pid=27212 ws=6895MB > 6000 (avail=383MB)
+20:49:31 KILL floor avail=383MB < 800 -> lean pid=27212 ws=6895MB
+23:08:00 guardian START floor=800 ceil=6000
