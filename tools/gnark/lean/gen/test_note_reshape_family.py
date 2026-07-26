@@ -37,10 +37,15 @@ class NoteReshapeFamilyTests(unittest.TestCase):
     def test_equivalent_seating_change_does_not_regenerate_composition(self) -> None:
         ir = self.irs[0]
         mutated = copy.deepcopy(ir)
-        witness = next(
+        witnesses = (
             segment["template_equivalence_witness"]
             for segment in mutated["segments"]
             if segment["constraint_count"] > 0
+        )
+        witness = next(
+            witness
+            for witness in witnesses
+            if len(witness["canonical_local_to_deployed_wire_seating"]) >= 3
         )
         seating = witness["canonical_local_to_deployed_wire_seating"]
         seating[1], seating[2] = seating[2], seating[1]
