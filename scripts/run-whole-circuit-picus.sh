@@ -56,7 +56,7 @@ if [ "${#families[@]}" -eq 0 ]; then
   # The two Lean-proved deployed circuits. The split families were dropped: their
   # whole-circuit Picus attempts only ever walled out and they have no Lean
   # composition to cross-check against. Keep this default in sync with the
-  # nightly invocation in .github/workflows/soundness-formal.yml.
+  # nightly invocation in .github/workflows/formal.yml.
   families=(consolidate2x1 transfer)
 fi
 

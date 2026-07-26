@@ -79,7 +79,7 @@ jobs:
           {
             echo "## SnarkPack FV toolchain image pushed"
             echo ""
-            echo "Pin this digest in snarkpack-formal.yml."
+            echo "Pin this digest in formal.yml."
             echo ""
             echo '```'
             echo "${REGISTRY}/${IMAGE_NAME}@${IMAGE_DIGEST}"

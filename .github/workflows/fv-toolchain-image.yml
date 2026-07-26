@@ -3,7 +3,7 @@ name: fv-toolchain-image
 # Builds and pushes the FV toolchain image consumed by soundness-formal's
 # lean-circuit-fv gate. Triggered only by hand or when the toolchain Dockerfile
 # changes — it must NOT depend on the jobs that consume it (no circular build).
-# After a run, copy the printed digest into soundness-formal.yml's `container:`.
+# After a run, copy the printed digest into formal.yml's `container:`.
 on:
   workflow_dispatch:
   push:
@@ -55,7 +55,7 @@ jobs:
           {
             echo "## FV toolchain image pushed"
             echo ""
-            echo "Pin this digest in soundness-formal.yml \`container:\`"
+            echo "Pin this digest in formal.yml \`container:\`"
             echo ""
             echo '```'
             echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"

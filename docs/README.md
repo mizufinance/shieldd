@@ -6,7 +6,7 @@ the ledger wins and the narrative is stale.
 
 | Area | Authoritative for | Checked by |
 | --- | --- | --- |
-| `docs/soundness/` | FV plan, claim tree (`assurance-case.md`), optimization loop, release gating. Entry point: `soundness/README.md`. | `scripts/check-soundness-invariants.sh` (ledgers/mirrors), `scripts/check-constraint-coverage.sh` (Lean coverage), CI `soundness-formal.yml` |
+| `docs/soundness/` | FV plan, claim tree (`assurance-case.md`), optimization loop, release gating. Entry point: `soundness/README.md`. | `scripts/check-soundness-invariants.sh` (ledgers/mirrors), `scripts/check-constraint-coverage.sh` (Lean coverage), CI `formal.yml` |
 | `crates/*/formal/` | Typed evidence: assumption ledgers, property ledgers, proof specs, stamped artifacts. These outrank everything under `docs/`. | per-ledger invariant scripts + `*.sha256` stamps |
 | `EXECUTOR-HANDOFF.md` (root) | The active FV work queue only. History lives in `docs/soundness/reference/history.md`. | — |
 | `docs/compliance/` | Compliance design: flow walkthrough, wire/reference, chain scope, constraint checklist, testing map. | referenced tests |

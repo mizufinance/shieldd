@@ -45,7 +45,7 @@
         ".cargo/config.toml",
         ".github/actions/setup-nix-rust/**",
         ".github/workflows/fv-toolchain-image.yml",
-        ".github/workflows/soundness-formal.yml",
+        ".github/workflows/formal.yml",
         "Cargo.lock",
         "Cargo.toml",
         "ci/gates/soundness-formal.json",

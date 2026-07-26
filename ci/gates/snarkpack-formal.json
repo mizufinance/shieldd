@@ -82,7 +82,7 @@
     {
       "patterns": [
         ".github/actions/setup-nix-rust/**",
-        ".github/workflows/snarkpack-formal.yml",
+        ".github/workflows/formal.yml",
         "ci/gates/snarkpack-formal.json",
         "flake.lock",
         "flake.nix",

@@ -41,7 +41,7 @@ and artifact **hashes** still match — it does *not* re-run Lean. The recorded
 (`{consolidate2x1,transfer}-whole-circuit-lean-artifact.txt`) were established by
 an actual `lake build` + `#print axioms` run at those exact hashes; the
 `check-lean-circuit-fv.sh full` clean-room Mathlib rebuild that re-derives them
-runs **nightly CI only** (`soundness-formal.yml`), not on every local run.
+runs **nightly CI only** (`formal.yml`), not on every local run.
 Likewise the gadget-scope Picus under-constraint check is nightly-CI-tier, and
 no tool discharges a whole *transaction* circuit — the whole-circuit Picus run
 for `transfer` is recorded `FAMILY transfer undischarged-by-design` (times out on
