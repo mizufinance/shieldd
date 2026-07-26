@@ -255,7 +255,7 @@ func runExportLean(args []string) error {
 	}
 	// The bare scalar-mul gadgets carry a 251/128-rung scalarMulStep ladder that
 	// is intractable to cross as a flat continuation, so render it as a recursive
-	// `scalarMulStep_ladder`. Composite circuits (rvk/dtk/net-balance/consolidate)
+	// `scalarMulStep_ladder`. Composite circuits (rvk/dtk/net-balance/note reshape)
 	// embed the same ladder but their bridge proofs already cross the flat form by
 	// definitional unfolding, so they stay flat.
 	var foldGadgets []string
@@ -310,7 +310,7 @@ func runExtractBitInputs(args []string) error {
 
 func runExportR1CS(args []string) error {
 	fs := flag.NewFlagSet("export-r1cs", flag.ContinueOnError)
-	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, shielded-ics20-withdrawalN, or gadget-* label")
+	circuit := fs.String("circuit", "", "transferNxM, note reshape, shielded-ics20-withdrawal, or gadget-* label")
 	outPath := fs.String("out", "", "output path")
 	format := fs.String("format", "picus", "picus (.sr1cs sexpr), axe-json (named-wire R1CS), or axe-lisp (Kestrel sparse R1CS)")
 	if err := fs.Parse(args); err != nil {
@@ -447,7 +447,7 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 
 func runSetup(args []string) error {
 	fs := flag.NewFlagSet("setup", flag.ContinueOnError)
-	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
+	circuit := fs.String("circuit", "", "transferNxM, note reshape, or shielded-ics20-withdrawal family label")
 	outDir := fs.String("out-dir", "", "output directory")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -540,7 +540,7 @@ func runSetup(args []string) error {
 
 func runProve(args []string) error {
 	fs := flag.NewFlagSet("prove", flag.ContinueOnError)
-	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
+	circuit := fs.String("circuit", "", "transferNxM, note reshape, or shielded-ics20-withdrawal family label")
 	witnessPath := fs.String("witness", "", "witness binary path")
 	artifactDir := fs.String("artifact-dir", "", "artifact directory")
 	outPath := fs.String("out", "", "output artifacts JSON path")
