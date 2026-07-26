@@ -136,7 +136,7 @@ jobs:
     container:
       # Built by snarkpack-fv-toolchain-image.yml, which prints this digest in
       # its run summary. Repin here whenever that workflow publishes a new one.
-      image: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:ec595f399c308392fc8457a4ed851ebc3563b439174c8297f9253c9450b34c66
+      image: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:63fb57a0c07de6c4a3ded67410b26a2804d090a3ae51929708c8e4650a686282
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
