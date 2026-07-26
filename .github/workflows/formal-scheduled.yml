@@ -22,6 +22,12 @@ jobs:
     with:
       target_ref: dev
 
+  provers-dev:
+    if: github.event.schedule == '17 9 * * *'
+    uses: ./.github/workflows/soundness-provers.yml
+    with:
+      target_ref: dev
+
   snarkpack-main:
     if: github.event.schedule == '41 9 * * *'
     uses: ./.github/workflows/snarkpack-formal.yml
@@ -31,5 +37,11 @@ jobs:
   soundness-main:
     if: github.event.schedule == '41 9 * * *'
     uses: ./.github/workflows/soundness-formal.yml
+    with:
+      target_ref: main
+
+  provers-main:
+    if: github.event.schedule == '41 9 * * *'
+    uses: ./.github/workflows/soundness-provers.yml
     with:
       target_ref: main
