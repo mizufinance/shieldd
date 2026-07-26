@@ -1,5 +1,10 @@
 # Pinned Hax/Aeneas/Lean toolchain for SnarkPack formal verification.
-FROM rust:1.89.0-bookworm
+#
+# trixie, not bookworm: the pinned `charon` release binary requires glibc 2.39
+# and will not load on bookworm's 2.36 ("version `GLIBC_2.39' not found").
+# charon-driver needs only 2.34 and aeneas is statically linked, so charon
+# alone sets the floor. Any base substituted here must keep glibc >= 2.39.
+FROM rust:1.89.0-trixie
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV CARGO_HOME=/usr/local/cargo
