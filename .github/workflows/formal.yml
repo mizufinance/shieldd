@@ -123,16 +123,25 @@ jobs:
           SNARKPACK_FV_MODE: static
         run: nix develop --command just snarkpack-fv
 
+  # Extraction lanes only. The F* gate deliberately does NOT run here: this
+  # image pins hax at c8e27c5945 for the aeneas-lean backend's `--lakefile`
+  # support, while formal/snarkpack/toolchain.toml pins hax v0.3.7 (an older
+  # tag) for the F* proofs. Those two versions genuinely disagree, and before
+  # the lanes were folded into one container they lived in separate
+  # environments. `snarkpack-fstar` below restores that separation.
   snarkpack-toolchain:
     name: 'snarkpack: toolchain (${{ matrix.lane }})'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_run == 'true' &&
+      needs.applicability.outputs.snarkpack_tier != 'static'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        lane: ${{ fromJSON(needs.applicability.outputs.snarkpack_tier == 'static' && '["fstar"]' || needs.applicability.outputs.snarkpack_tier == 'full' && '["extract","lean","fstar"]' || '["extract","fstar"]') }}
+        lane: ${{ fromJSON(needs.applicability.outputs.snarkpack_tier == 'full' && '["extract","lean"]' || '["extract"]') }}
     container:
       # Built by snarkpack-fv-toolchain-image.yml, which prints this digest in
       # its run summary. Repin here whenever that workflow publishes a new one.
@@ -155,26 +164,6 @@ jobs:
       # dubious ownership.
       - name: Trust the workspace inside the container
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      # The image carries cargo-hax and hax-engine but not the F* solver stack,
-      # which only the fstar lane needs. Versions are the pins in
-      # formal/snarkpack/toolchain.toml, which snarkpack-formal.sh re-checks.
-      - name: Install pinned Z3 and F*
-        if: matrix.lane == 'fstar'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/opt"
-          curl -fsSL -o /tmp/z3.zip \
-            https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
-          unzip -q /tmp/z3.zip -d "$HOME/.local/opt"
-          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
-          curl -fsSL -o /tmp/fstar.tar.gz \
-            https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
-          tar -xzf /tmp/fstar.tar.gz -C "$HOME/.local/opt"
-          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
-          # hax is baked at /opt/hax in the image, so point the script's
-          # proof-library lookup there instead of re-cloning.
-          echo "HAX_PROOF_LIBS_HOME=/opt/hax/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
       - name: Restore Lean build cache
         if: matrix.lane == 'lean'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -202,14 +191,57 @@ jobs:
               export SNARKPACK_FV_MODE=lean
               just snarkpack-fv
               ;;
-            fstar)
-              just snarkpack-formal
-              ;;
             *)
               echo "unsupported toolchain lane: $LANE" >&2
               exit 1
               ;;
           esac
+
+  # Runs outside the FV toolchain image on purpose — see snarkpack-toolchain.
+  # snarkpack-formal.sh re-checks every version it is given against
+  # formal/snarkpack/toolchain.toml, so a drifted pin here fails loudly.
+  snarkpack-fstar:
+    name: 'snarkpack: fstar'
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: snarkpack-formal
+      - name: Install pinned Z3
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/z3.zip \
+            https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
+          unzip -q /tmp/z3.zip -d "$HOME/.local/opt"
+          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
+      - name: Install pinned F*
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/fstar.tar.gz \
+            https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
+          tar -xzf /tmp/fstar.tar.gz -C "$HOME/.local/opt"
+          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
+      - name: Install pinned hax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          hax_dir="$HOME/.local/opt/hax-v0.3.7"
+          git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$hax_dir"
+          nix profile install "$hax_dir#hax" "$hax_dir#hax-engine"
+          echo "HAX_PROOF_LIBS_HOME=$hax_dir/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
+      - name: Run SnarkPack F* gate
+        run: nix develop --command just snarkpack-formal
 
   snarkpack-parity:
     name: 'snarkpack: parity'
@@ -427,6 +459,7 @@ jobs:
       - applicability
       - snarkpack-static
       - snarkpack-toolchain
+      - snarkpack-fstar
       - snarkpack-parity
       - snarkpack-fuzz
       - snarkpack-dos
@@ -454,6 +487,7 @@ jobs:
           SOUNDNESS_EXPLANATION: ${{ needs.applicability.outputs.soundness_explanation }}
           STATIC: ${{ needs.snarkpack-static.result }}
           TOOLCHAIN: ${{ needs.snarkpack-toolchain.result }}
+          FSTAR: ${{ needs.snarkpack-fstar.result }}
           PARITY: ${{ needs.snarkpack-parity.result }}
           FUZZ: ${{ needs.snarkpack-fuzz.result }}
           DOS: ${{ needs.snarkpack-dos.result }}
@@ -479,12 +513,16 @@ jobs:
             echo "snarkpack explained skip: $SNARKPACK_EXPLANATION"
           else
             required+=(
-              "snarkpack-static=$STATIC" "snarkpack-toolchain=$TOOLCHAIN"
+              "snarkpack-static=$STATIC" "snarkpack-fstar=$FSTAR"
               "snarkpack-fuzz=$FUZZ" "snarkpack-dos=$DOS"
             )
             case "$SNARKPACK_TIER" in
+              # static carries no extraction, so the toolchain lanes do not run
               static) ;;
-              extract-changed|extract-all|full) required+=("snarkpack-parity=$PARITY") ;;
+              extract-changed|extract-all|full)
+                required+=(
+                  "snarkpack-toolchain=$TOOLCHAIN" "snarkpack-parity=$PARITY"
+                ) ;;
               *)
                 echo "unsupported snarkpack tier: $SNARKPACK_TIER" >&2
                 exit 1
