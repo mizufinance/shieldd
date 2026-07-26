@@ -638,12 +638,7 @@ mod test {
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
-            shieldd_sdk_transaction::ActionPlan::Consolidate(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            shieldd_sdk_transaction::ActionPlan::Split(plan) => plan
+            shieldd_sdk_transaction::ActionPlan::NoteReshape(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.randomizer)

@@ -1,5 +1,7 @@
 import ShielddGnarkFormal.Extracted.DecafCompressToField
 import ShielddGnarkFormal.CanonicalFqBitsBridge
+import ShielddGnarkFormal.ChoiceFreeBinary
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.ImtGapBridge
 import Mathlib.NumberTheory.LegendreSymbol.Basic
 
@@ -109,17 +111,31 @@ theorem zeta_not_square : ¬ IsSquare ((zetaNat : ℕ) : F) := by
 
 /-! ### Canonical-parity absolute value -/
 
+section ChoiceFreeAbsF
+
+attribute [-instance] ZMod.instField
+local instance : CommRing F := ZMod.commRing _
+
 /-- The gadget's `abs`: keep `v` when its canonical residue is even, negate
 when odd. -/
 def absF (v : F) : F := if v.val % 2 = 0 then v else -v
 
+end ChoiceFreeAbsF
+
 theorem order_odd : Order % 2 = 1 := by decide +kernel
+
+section ChoiceFreeCanonicalParity
+
+attribute [-instance] ZMod.instField
+local instance : CommRing F := ZMod.commRing _
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 /-- Low bit of the little-endian decomposition is the parity of the value. -/
 theorem ofBitsLE_parity {d : ℕ} (x : List.Vector Bool (d + 1)) :
     (Fin.ofBitsLE x).val % 2 = x.head.toNat := by
   conv_lhs => rw [← x.cons_head_tail]
-  simp only [Fin.ofBitsLE, List.Vector.reverse_cons, Fin.ofBitsBE_snoc]
+  simp only [Fin.ofBitsLE, List.Vector.reverse_cons,
+    Shieldd.GnarkFormal.ChoiceFreeBinary.ofBitsBE_snoc_val]
   cases x.head <;> simp [Nat.add_mul_mod_self_left]
 
 theorem map_toZMod_get_zero {d : ℕ} (x : List.Vector Bool (d + 1)) (h : 0 < d + 1) :
@@ -181,16 +197,38 @@ theorem abs_select_eq (In g40 : F) (x : List.Vector Bool 253)
       simpa [hx, Bool.toZMod_one] using hout
     simp [absF, hparity1, hout1]
 
+end ChoiceFreeCanonicalParity
+
 /-! ### Mathematical compress relation -/
+
+section ChoiceFreeConstants
+
+attribute [-instance] ZMod.instField
+local instance : CommRing F := ZMod.commRing _
 
 /-- decaf377 `a - d` over Fq. -/
 def aMinusD : F := 8444461749428370424248824938781546531375899335154063827935233455917409236019
 
 def zeta : F := (zetaNat : F)
 
+end ChoiceFreeConstants
+
+section ChoiceFreeZetaLiteral
+
+attribute [-instance] ZMod.instField
+local instance : CommRing F := ZMod.commRing _
+
 theorem zeta_lit :
     zeta = (2841681278031794617739547238867782961338435681360110683443920362658525667816 : F) := by
-  simp only [zeta, zetaNat]; exact_mod_cast rfl
+  rfl
+
+end ChoiceFreeZetaLiteral
+
+section ChoiceFreeRelation
+
+attribute [-instance] ZMod.instField
+local instance : CommRing F := ZMod.commRing _
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 /-- Twisted-Edwards curve membership as constrained by the gadget. -/
 def OnCurve (X Y : F) : Prop := Y * Y - X * X = 1 + 3021 * (X * X) * (Y * Y)
@@ -214,6 +252,8 @@ def outOf (X Y s : F) : F :=
 /-- The compress relation: on-curve plus a sqrt-ratio witness producing `Out`. -/
 def Relation (X Y Out : F) : Prop :=
   OnCurve X Y ∧ ∃ s, SqrtCase X Y s ∧ Out = outOf X Y s
+
+end ChoiceFreeRelation
 
 /-! ### Two-torsion invariance
 
@@ -247,6 +287,12 @@ theorem Relation_neg_invariant (X Y Out : F) :
   simp only [Relation, onCurve_neg, sqrtCase_neg, outOf_neg]
 
 /-! ### Circuit soundness -/
+
+section ChoiceFreeCircuit
+
+attribute [-instance] ZMod.instField
+local instance : CommRing F := ZMod.commRing _
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 private theorem is_zero_cases (a out : F) (h : Gates.is_zero a out) :
     (a ≠ 0 ∧ out = 0) ∨ (a = 0 ∧ out = 1) := h
@@ -339,5 +385,7 @@ theorem circuit_sound (X Y WasSquare SqrtRatio Out : F)
       GatesDef.eq] at hg41 hg42 hg43 hg44 hout
     rw [← hout, h48, hg44, hg43, hg42, hg41, h40]
     simp only [outOf, u1, aMinusD]
+
+end ChoiceFreeCircuit
 
 end Shieldd.GnarkFormal.Extracted.DecafCompressToField

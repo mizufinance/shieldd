@@ -5,13 +5,13 @@ shielded-action proving stack possible.
 
 ## What is established
 
-- `BLS12-377` `R1CS -> Groth16` proving works in gnark for the Shieldd
-  transfer, split, and consolidate circuits.
+- `BLS12-377` `R1CS -> Groth16` proving works in gnark for Shieldd transfer and
+  all NoteReshape directions.
 - The required `decaf377` companion-curve constants and quotient behavior used
   by the current circuits have been implemented and validated.
 - The required `poseidon377` semantics used by the current circuits have been
   implemented and validated.
-- Rust witness export and Go witness decoding agree on the shielded witness
+- Rust witness export and Go witness decoding agree on the unified witness
   transport formats.
 - gnark-produced proofs are consumed by the canonical Rust
   verification path.

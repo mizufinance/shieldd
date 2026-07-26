@@ -110,13 +110,8 @@ message ZKTransferProof {
   bytes inner = 1;
 }
 
-// A Shieldd ZK consolidate proof.
-message ZKConsolidateProof {
-  bytes inner = 1;
-}
-
-// A Shieldd ZK split proof.
-message ZKSplitProof {
+// A Shieldd ZK note reshape proof.
+message ZKNoteReshapeProof {
   bytes inner = 1;
 }
 
@@ -281,7 +276,7 @@ message ShieldedIcs20WithdrawalPlan {
   shieldd.core.component.ibc.v1.Ics20Withdrawal withdrawal = 6;
 }
 
-message ConsolidateInputBody {
+message NoteReshapeInputBody {
   // The nullifier of the spent note.
   sct.v1.Nullifier nullifier = 1;
   // The randomized validating key for the spend authorization signature.
@@ -290,7 +285,7 @@ message ConsolidateInputBody {
   bytes encrypted_backref = 3;
 }
 
-message ConsolidateOutputBody {
+message NoteReshapeOutputBody {
   // The minimal data required to scan and process the created note.
   NotePayload note_payload = 1;
   // An encrypted key for decrypting the memo.
@@ -299,17 +294,17 @@ message ConsolidateOutputBody {
   bytes ovk_wrapped_key = 3;
 }
 
-// Consolidates multiple notes owned by one address into fewer notes owned by that same address.
-message Consolidate {
-  // The effecting data of the consolidate action.
-  ConsolidateBody body = 1;
+// Reshapes notes owned by one address without changing their total value.
+message NoteReshape {
+  // The effecting data of the note reshape action.
+  NoteReshapeBody body = 1;
   // The authorizing signatures for each consumed input.
   repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
-  // The proof that the consolidate action is well-formed.
-  ZKConsolidateProof proof = 3;
+  // The proof that the note reshape action is well-formed.
+  ZKNoteReshapeProof proof = 3;
 }
 
-message ConsolidateBody {
+message NoteReshapeBody {
   // The proving family this action uses.
   uint32 family_id = 1;
   // The state commitment tree anchor used during proof generation.
@@ -317,112 +312,39 @@ message ConsolidateBody {
   // A commitment to the net balance of the action.
   asset.v1.BalanceCommitment balance_commitment = 3;
   // The consumed notes.
-  repeated ConsolidateInputBody inputs = 4;
+  repeated NoteReshapeInputBody inputs = 4;
   // The created notes.
-  repeated ConsolidateOutputBody outputs = 5;
+  repeated NoteReshapeOutputBody outputs = 5;
 }
 
-message ConsolidateView {
+message NoteReshapeView {
   message Visible {
-    Consolidate consolidate = 1;
+    NoteReshape note_reshape = 1;
     repeated NoteView spent_notes = 2;
     repeated NoteView created_notes = 3;
     keys.v1.PayloadKey payload_key = 4;
   }
 
   message Opaque {
-    Consolidate consolidate = 1;
+    NoteReshape note_reshape = 1;
   }
 
-  oneof consolidate_view {
+  oneof note_reshape_view {
     Visible visible = 1;
     Opaque opaque = 2;
   }
 }
 
-message ConsolidatePlan {
+message NoteReshapePlan {
   // The public body this plan will produce.
-  ConsolidateBody body = 1;
+  NoteReshapeBody body = 1;
   // The blinding factor to use for the net balance commitment.
   bytes value_blinding = 2;
   // The net action balance committed by the action body.
   asset.v1.Balance balance = 3;
-  // The shielded input plans fused into this consolidation.
+  // The shielded input plans fused into this reshape.
   repeated ShieldedInputPlan spends = 4;
-  // The shielded output plans fused into this consolidation.
-  repeated ShieldedOutputPlan outputs = 5;
-}
-
-message SplitInputBody {
-  // The nullifier of the spent note.
-  sct.v1.Nullifier nullifier = 1;
-  // The randomized validating key for the spend authorization signature.
-  crypto.decaf377_rdsa.v1.SpendVerificationKey rk = 2;
-  // An encryption of the commitment of the input note to the sender's OVK.
-  bytes encrypted_backref = 3;
-}
-
-message SplitOutputBody {
-  // The minimal data required to scan and process the created note.
-  NotePayload note_payload = 1;
-  // An encrypted key for decrypting the memo.
-  bytes wrapped_memo_key = 2;
-  // The key material used for note encryption, wrapped to the sender's OVK.
-  bytes ovk_wrapped_key = 3;
-}
-
-// Split-style note reshaping action.
-// Current supported families consume one note and create multiple notes owned by the same address.
-message Split {
-  // The effecting data of the split action.
-  SplitBody body = 1;
-  // The authorizing signatures for each consumed input.
-  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
-  // The proof that the split action is well-formed.
-  ZKSplitProof proof = 3;
-}
-
-message SplitBody {
-  // The proving family this action uses.
-  uint32 family_id = 1;
-  // The state commitment tree anchor used during proof generation.
-  crypto.tct.v1.MerkleRoot anchor = 2;
-  // A commitment to the net balance of the action.
-  asset.v1.BalanceCommitment balance_commitment = 3;
-  // The consumed notes.
-  repeated SplitInputBody inputs = 4;
-  // The created notes.
-  repeated SplitOutputBody outputs = 5;
-}
-
-message SplitView {
-  message Visible {
-    Split split = 1;
-    repeated NoteView spent_notes = 2;
-    repeated NoteView created_notes = 3;
-    keys.v1.PayloadKey payload_key = 4;
-  }
-
-  message Opaque {
-    Split split = 1;
-  }
-
-  oneof split_view {
-    Visible visible = 1;
-    Opaque opaque = 2;
-  }
-}
-
-message SplitPlan {
-  // The public body this plan will produce.
-  SplitBody body = 1;
-  // The blinding factor to use for the net balance commitment.
-  bytes value_blinding = 2;
-  // The net action balance committed by the action body.
-  asset.v1.Balance balance = 3;
-  // The shielded input plans fused into this split.
-  repeated ShieldedInputPlan spends = 4;
-  // The shielded output plans fused into this split.
+  // The shielded output plans fused into this reshape.
   repeated ShieldedOutputPlan outputs = 5;
 }
 

@@ -26,8 +26,7 @@ pub use traits::{
 include!(concat!(env!("OUT_DIR"), "/gnark_bundled.rs"));
 
 include!("gen/gnark/transfer_registry.rs");
-include!("gen/gnark/consolidate_registry.rs");
-include!("gen/gnark/split_registry.rs");
+include!("gen/gnark/note_reshape_registry.rs");
 include!("gen/gnark/shielded_ics20_withdrawal_registry.rs");
 
 type ProofG1 = <Bls12_377 as Pairing>::G1Affine;

@@ -1,6 +1,8 @@
 use shieldd_sdk_fee::Gas;
 use shieldd_sdk_ibc::IbcRelay;
-use shieldd_sdk_shielded_pool::{ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalPlan};
+use shieldd_sdk_shielded_pool::{
+    NoteReshape, NoteReshapePlan, ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalPlan,
+};
 use shieldd_sdk_validator::validator::Definition as ValidatorDefinition;
 
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
@@ -43,12 +45,15 @@ pub fn transfer_gas_cost() -> Gas {
     spend_gas_cost() + spend_gas_cost() + output_gas_cost() + output_gas_cost()
 }
 
-pub fn consolidate_gas_cost() -> Gas {
-    spend_gas_cost() + spend_gas_cost() + output_gas_cost()
-}
-
-pub fn split_gas_cost() -> Gas {
-    spend_gas_cost() + output_gas_cost() + output_gas_cost()
+pub fn note_reshape_gas_cost(input_count: usize, output_count: usize) -> Gas {
+    let mut gas = Gas::zero();
+    for _ in 0..input_count {
+        gas += spend_gas_cost();
+    }
+    for _ in 0..output_count {
+        gas += output_gas_cost();
+    }
+    gas
 }
 
 pub fn shielded_ics20_withdrawal_gas_cost() -> Gas {
@@ -71,8 +76,9 @@ impl GasCost for ActionPlan {
     fn gas_cost(&self) -> Gas {
         match self {
             ActionPlan::Transfer(_) => transfer_gas_cost(),
-            ActionPlan::Consolidate(_) => consolidate_gas_cost(),
-            ActionPlan::Split(_) => split_gas_cost(),
+            ActionPlan::NoteReshape(plan) => {
+                note_reshape_gas_cost(plan.body.inputs.len(), plan.body.outputs.len())
+            }
             ActionPlan::ValidatorDefinition(vd) => vd.gas_cost(),
             ActionPlan::IbcAction(i) => i.gas_cost(),
             ActionPlan::ProposalSubmit(ps) => ps.gas_cost(),
@@ -92,8 +98,10 @@ impl GasCost for Action {
     fn gas_cost(&self) -> Gas {
         match self {
             Action::Transfer(_) => transfer_gas_cost(),
-            Action::Consolidate(_) => consolidate_gas_cost(),
-            Action::Split(_) => split_gas_cost(),
+            Action::NoteReshape(note_reshape) => note_reshape_gas_cost(
+                note_reshape.body.inputs.len(),
+                note_reshape.body.outputs.len(),
+            ),
             Action::ProposalSubmit(submit) => submit.gas_cost(),
             Action::ValidatorVote(vote) => vote.gas_cost(),
             Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.gas_cost(),
@@ -121,15 +129,15 @@ impl GasCost for shieldd_sdk_shielded_pool::Transfer {
     }
 }
 
-impl GasCost for shieldd_sdk_shielded_pool::Consolidate {
+impl GasCost for NoteReshape {
     fn gas_cost(&self) -> Gas {
-        consolidate_gas_cost()
+        note_reshape_gas_cost(self.body.inputs.len(), self.body.outputs.len())
     }
 }
 
-impl GasCost for shieldd_sdk_shielded_pool::Split {
+impl GasCost for NoteReshapePlan {
     fn gas_cost(&self) -> Gas {
-        split_gas_cost()
+        note_reshape_gas_cost(self.body.inputs.len(), self.body.outputs.len())
     }
 }
 

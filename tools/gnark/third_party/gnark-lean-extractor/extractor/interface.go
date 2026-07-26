@@ -19,11 +19,78 @@ func CircuitToLeanWithName(circuit frontend.Circuit, field ecc.ID, namespace str
 	return CircuitToLeanWithFold(circuit, field, namespace, nil)
 }
 
+// CircuitToLeanWithHelperScopedChoiceFree emits choice-free ring instances only
+// around named gadget and folded-ladder definitions. It is intended for
+// oversized circuit terms whose helper contracts must remain axiom-safe but
+// whose monolithic top-level elaboration exceeds the guarded Lean RSS ceiling.
+func CircuitToLeanWithHelperScopedChoiceFree(
+	circuit frontend.Circuit,
+	field ecc.ID,
+	namespace string,
+) (out string, err error) {
+	return circuitToLeanWithFold(circuit, field, namespace, nil, true)
+}
+
+// LeanCircuitModules is a deterministic split rendering: Helpers owns the
+// generated gadget/ladder contracts and Top owns only the circuit term.
+type LeanCircuitModules struct {
+	Helpers string
+	Top     string
+}
+
+// CircuitToLeanModulesWithHelperScopedChoiceFree separates an oversized
+// circuit term from its choice-free helper contracts.
+func CircuitToLeanModulesWithHelperScopedChoiceFree(
+	circuit frontend.Circuit,
+	field ecc.ID,
+	namespace string,
+	helperModule string,
+	foldGadgets []string,
+) (modules LeanCircuitModules, err error) {
+	defer recoverError(&err)
+
+	schema, err := getSchema(circuit, field.ScalarField())
+	if err != nil {
+		return LeanCircuitModules{}, err
+	}
+	circuitInit(circuit, schema)
+	api := CodeExtractor{
+		Code:    []App{},
+		Gadgets: []ExGadget{},
+		FieldID: field,
+	}
+	if err = circuit.Define(&api); err != nil {
+		return LeanCircuitModules{}, err
+	}
+	extracted := ExCircuit{
+		Inputs:  getExArgs(circuit, schema.Fields),
+		Gadgets: api.Gadgets,
+		Code:    api.Code,
+		Field:   api.FieldID,
+	}
+	foldNames := map[string]bool{}
+	for _, name := range foldGadgets {
+		foldNames[name] = true
+	}
+	helpers, top := exportCircuitModules(extracted, namespace, helperModule, foldNames)
+	return LeanCircuitModules{Helpers: helpers, Top: top}, nil
+}
+
 // CircuitToLeanWithFold is CircuitToLeanWithName with ladder folding: any gadget
 // whose name is in foldGadgets has its maximal self-threading call-runs rendered
 // as a recursive `<gadget>_ladder` definition instead of being unrolled. This
 // changes only the Lean rendering, not the extracted constraints.
 func CircuitToLeanWithFold(circuit frontend.Circuit, field ecc.ID, namespace string, foldGadgets []string) (out string, err error) {
+	return circuitToLeanWithFold(circuit, field, namespace, foldGadgets, false)
+}
+
+func circuitToLeanWithFold(
+	circuit frontend.Circuit,
+	field ecc.ID,
+	namespace string,
+	foldGadgets []string,
+	helperScopedChoiceFree bool,
+) (out string, err error) {
 	defer recoverError(&err)
 
 	schema, err := getSchema(circuit, field.ScalarField())
@@ -54,7 +121,7 @@ func CircuitToLeanWithFold(circuit frontend.Circuit, field ecc.ID, namespace str
 	for _, n := range foldGadgets {
 		foldNames[n] = true
 	}
-	out = exportCircuit(extractorCircuit, namespace, foldNames)
+	out = exportCircuit(extractorCircuit, namespace, foldNames, helperScopedChoiceFree)
 	return out, nil
 }
 
@@ -79,7 +146,7 @@ func GadgetToLeanWithName(gadget abstractor.GadgetDefinition, field ecc.ID, name
 
 	api.DefineGadget(gadget)
 	gadgets := exportGadgets(api.Gadgets)
-	prelude := exportPrelude(namespace, api.FieldID.ScalarField())
+	prelude := exportPrelude(namespace, api.FieldID.ScalarField(), true)
 	footer := exportFooter(namespace)
 	return fmt.Sprintf("%s\n\n%s\n\n%s", prelude, gadgets, footer), nil
 }
@@ -140,7 +207,7 @@ func ExtractCircuits(namespace string, field ecc.ID, circuits ...frontend.Circui
 		api.Code = []App{}
 	}
 
-	prelude := exportPrelude(namespace, extractorCircuit.Field.ScalarField())
+	prelude := exportPrelude(namespace, extractorCircuit.Field.ScalarField(), true)
 	gadgets := exportGadgets(api.Gadgets)
 	footer := exportFooter(namespace)
 	return fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s", prelude, gadgets, strings.Join(circuits_extracted, "\n\n"), footer), nil
@@ -161,7 +228,7 @@ func ExtractGadgets(namespace string, field ecc.ID, gadgets ...abstractor.Gadget
 	}
 
 	gadgets_string := exportGadgets(api.Gadgets)
-	prelude := exportPrelude(namespace, api.FieldID.ScalarField())
+	prelude := exportPrelude(namespace, api.FieldID.ScalarField(), true)
 	footer := exportFooter(namespace)
 	return fmt.Sprintf("%s\n\n%s\n\n%s", prelude, gadgets_string, footer), nil
 }

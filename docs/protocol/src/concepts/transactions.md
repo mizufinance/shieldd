@@ -8,8 +8,7 @@ The reduced chain supports three main categories of actions:
 
 - shielded note actions:
   - `Transfer`
-  - `Split`
-  - `Consolidate`
+  - `NoteReshape`
   - `ShieldedIcs20Withdrawal`
 - validator and governance actions:
   - `ValidatorDefinition`

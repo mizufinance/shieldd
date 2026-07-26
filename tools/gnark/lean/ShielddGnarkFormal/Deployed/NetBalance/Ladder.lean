@@ -2,7 +2,7 @@ import ShielddGnarkFormal.NetBalanceCommitmentBridge
 import ShielddGnarkFormal.RvkFixedBaseRung
 import ShielddGnarkFormal.CompressDeployedGadgets
 
-/-! # Deployed net-balance ladder keystones (consolidate2x1 seg52)
+/-! # Deployed net-balance ladder keystones (note_reshape2x1 seg52)
 
 Seg52 carries four variable-base 128-bit value ladders (DTK rung shape) and one
 251-bit blinding ladder over the constant `blindGen`, const-folded exactly like

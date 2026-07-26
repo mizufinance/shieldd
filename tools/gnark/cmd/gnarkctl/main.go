@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -51,6 +52,8 @@ func main() {
 		err = runExportWiringTranscript(os.Args[2:])
 	case "export-manifest":
 		err = runExportManifest(os.Args[2:])
+	case "export-fv":
+		err = runExportFV(os.Args[2:])
 	case "prove":
 		err = runProve(os.Args[2:])
 	case "replay":
@@ -70,7 +73,95 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|export-manifest|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|export-wiring-transcript|prove|replay|verify-bench> [flags]")
+	fmt.Fprintln(os.Stderr, "usage: gnarkctl <setup|export-r1cs|export-manifest|export-fv|extract-bit-inputs|export-poseidon-acl2|export-poseidon-lean|export-lean|export-wiring-transcript|prove|replay|verify-bench> [flags]")
+}
+
+// runExportFV emits the two deterministic source artifacts needed by the FV
+// gate from one frontend compile. Keeping this operation in one process is
+// important: export-r1cs followed by export-manifest would compile the same
+// expensive family twice.
+func runExportFV(args []string) error {
+	fs := flag.NewFlagSet("export-fv", flag.ContinueOnError)
+	circuit := fs.String("circuit", "", "registered NoteReshape family label")
+	sr1csPath := fs.String("sr1cs-out", "", "output .sr1cs path")
+	manifestPath := fs.String("manifest-out", "", "output semantic manifest path")
+	prove := fs.Bool("prove", false, "prove and verify with deployed keys in the same compiled process")
+	witnessPath := fs.String("witness", "", "witness binary path for --prove")
+	artifactDir := fs.String("artifact-dir", "", "deployed key artifact directory for --prove")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *circuit == "" || *sr1csPath == "" || *manifestPath == "" {
+		return fmt.Errorf("--circuit, --sr1cs-out, and --manifest-out are required")
+	}
+	family, ok := generated.NoteReshapeFamilyByLabel(*circuit)
+	if !ok {
+		return fmt.Errorf("export-fv only supports registered NoteReshape families: %q", *circuit)
+	}
+	ccs, manifest, err := circuits.CompileNoteReshapeForFV(family.Label, family.NIn, family.NOut)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(*sr1csPath), 0o755); err != nil {
+		return fmt.Errorf("create SR1CS output dir: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(*manifestPath), 0o755); err != nil {
+		return fmt.Errorf("create manifest output dir: %w", err)
+	}
+	if err := artifacts.WriteConstraintSystem(*sr1csPath, ccs); err != nil {
+		return err
+	}
+	data, err := os.ReadFile(*sr1csPath)
+	if err != nil {
+		return fmt.Errorf("read emitted SR1CS: %w", err)
+	}
+	sum := sha256.Sum256(data)
+	manifest.SR1CSSHA256Hex = fmt.Sprintf("%x", sum[:])
+	if err := circuits.WriteConstraintManifest(*manifestPath, manifest); err != nil {
+		return err
+	}
+	if *prove {
+		if *witnessPath == "" || *artifactDir == "" {
+			return fmt.Errorf("--witness and --artifact-dir are required with --prove")
+		}
+		payload, err := os.ReadFile(*witnessPath)
+		if err != nil {
+			return fmt.Errorf("read witness: %w", err)
+		}
+		assignment, _, err := witnessAssignment(*circuit, payload)
+		if err != nil {
+			return err
+		}
+		fullWitness, err := frontend.NewWitness(assignment, primitives.ScalarField())
+		if err != nil {
+			return fmt.Errorf("full witness: %w", err)
+		}
+		if err := ccs.IsSolved(fullWitness); err != nil {
+			return fmt.Errorf("solve failed: %w", err)
+		}
+		pk, _, err := loadPK(filepath.Join(*artifactDir, "proving_key.bin"))
+		if err != nil {
+			return err
+		}
+		vk, _, err := loadVK(filepath.Join(*artifactDir, "verifying_key.bin"))
+		if err != nil {
+			return err
+		}
+		publicWitness, err := fullWitness.Public()
+		if err != nil {
+			return fmt.Errorf("public witness: %w", err)
+		}
+		proof, err := groth16.Prove(ccs, pk, fullWitness)
+		if err != nil {
+			return fmt.Errorf("prove: %w", err)
+		}
+		if err := groth16.Verify(proof, vk, publicWitness); err != nil {
+			return fmt.Errorf("verify: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "deployed keys prove-verify ok for %s\n", *circuit)
+	}
+	fmt.Fprintf(os.Stderr, "wrote FV artifacts for %s (constraints %d)\n", *circuit, manifest.NbConstraints)
+	return nil
 }
 
 func runExportWiringTranscript(args []string) error {
@@ -85,12 +176,11 @@ func runExportWiringTranscript(args []string) error {
 	}
 	var out string
 	var err error
-	switch *circuit {
-	case "consolidate2x1":
-		out, err = circuits.ExportConsolidate2x1WiringTranscript()
-	case "transfer":
+	if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
+		out, err = circuits.ExportNoteReshapeWiringTranscript(family.Label, family.NIn, family.NOut)
+	} else if *circuit == "transfer" {
 		out, err = circuits.ExportTransferWiringTranscript()
-	default:
+	} else {
 		return fmt.Errorf("unsupported wiring transcript circuit %q", *circuit)
 	}
 	if err != nil {
@@ -119,12 +209,11 @@ func runExportManifest(args []string) error {
 	}
 	var manifest *circuits.ConstraintManifest
 	var err error
-	switch *circuit {
-	case "consolidate2x1":
-		manifest, err = circuits.ExportConsolidate2x1ConstraintManifest(*sr1csPath)
-	case "transfer":
+	if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
+		manifest, err = circuits.ExportNoteReshapeConstraintManifest(family.Label, family.NIn, family.NOut, *sr1csPath)
+	} else if *circuit == "transfer" {
 		manifest, err = circuits.ExportTransferConstraintManifest(*sr1csPath)
-	default:
+	} else {
 		return fmt.Errorf("unsupported constraint manifest circuit %q", *circuit)
 	}
 	if err != nil {
@@ -166,7 +255,7 @@ func runExportLean(args []string) error {
 	}
 	// The bare scalar-mul gadgets carry a 251/128-rung scalarMulStep ladder that
 	// is intractable to cross as a flat continuation, so render it as a recursive
-	// `scalarMulStep_ladder`. Composite circuits (rvk/dtk/net-balance/consolidate)
+	// `scalarMulStep_ladder`. Composite circuits (rvk/dtk/net-balance/note reshape)
 	// embed the same ladder but their bridge proofs already cross the flat form by
 	// definitional unfolding, so they stay flat.
 	var foldGadgets []string
@@ -221,7 +310,7 @@ func runExtractBitInputs(args []string) error {
 
 func runExportR1CS(args []string) error {
 	fs := flag.NewFlagSet("export-r1cs", flag.ContinueOnError)
-	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, shielded-ics20-withdrawalN, or gadget-* label")
+	circuit := fs.String("circuit", "", "transferNxM, note reshape, shielded-ics20-withdrawal, or gadget-* label")
 	outPath := fs.String("out", "", "output path")
 	format := fs.String("format", "picus", "picus (.sr1cs sexpr), axe-json (named-wire R1CS), or axe-lisp (Kestrel sparse R1CS)")
 	if err := fs.Parse(args); err != nil {
@@ -358,7 +447,7 @@ func gadgetCircuit(label string) (frontend.Circuit, bool) {
 
 func runSetup(args []string) error {
 	fs := flag.NewFlagSet("setup", flag.ContinueOnError)
-	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
+	circuit := fs.String("circuit", "", "transferNxM, note reshape, or shielded-ics20-withdrawal family label")
 	outDir := fs.String("out-dir", "", "output directory")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -451,7 +540,7 @@ func runSetup(args []string) error {
 
 func runProve(args []string) error {
 	fs := flag.NewFlagSet("prove", flag.ContinueOnError)
-	circuit := fs.String("circuit", "", "transferNxM, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
+	circuit := fs.String("circuit", "", "transferNxM, note reshape, or shielded-ics20-withdrawal family label")
 	witnessPath := fs.String("witness", "", "witness binary path")
 	artifactDir := fs.String("artifact-dir", "", "artifact directory")
 	outPath := fs.String("out", "", "output artifacts JSON path")
@@ -577,7 +666,7 @@ func runCheckVKJSON(args []string) error {
 
 func runReplay(args []string) error {
 	fs := flag.NewFlagSet("replay", flag.ContinueOnError)
-	circuit := fs.String("circuit", "transfer", "transfer, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
+	circuit := fs.String("circuit", "transfer", "transfer, note reshape, or shielded-ics20-withdrawal family label")
 	witnessPath := fs.String("witness", "", "witness binary path")
 	artifactDir := fs.String("artifact-dir", "", "artifact directory for prove mode")
 	mode := fs.String("mode", "decode", "decode, solve, or prove")
@@ -597,11 +686,9 @@ func runReplay(args []string) error {
 	switch *circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(*circuit); !ok {
-			if _, ok := generated.ConsolidateFamilyByLabel(*circuit); !ok {
-				if _, ok := generated.SplitFamilyByLabel(*circuit); !ok {
-					if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); !ok {
-						return fmt.Errorf("unsupported --circuit %q", *circuit)
-					}
+			if _, ok := generated.NoteReshapeFamilyByLabel(*circuit); !ok {
+				if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); !ok {
+					return fmt.Errorf("unsupported --circuit %q", *circuit)
 				}
 			}
 		}
@@ -638,20 +725,12 @@ func runReplay(args []string) error {
 			ccs, err = frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewTransferCircuit())
 			break
 		}
-		if family, ok := generated.ConsolidateFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewConsolidateCircuitAssignmentFromWitnessV1(payload)
+		if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
+			assignment, _, err = abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(payload)
 			if err != nil {
 				return err
 			}
-			ccs, err = frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewConsolidateCircuit(family.NIn))
-			break
-		}
-		if family, ok := generated.SplitFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewSplitCircuitAssignmentFromWitnessV1(payload)
-			if err != nil {
-				return err
-			}
-			ccs, err = frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewSplitCircuit(family.NOut))
+			ccs, err = frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut))
 			break
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); ok {
@@ -915,12 +994,8 @@ func compileCircuit(circuit string) (constraint.ConstraintSystem, float64, error
 			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewTransferCircuit())
 			return ccs, time.Since(compileStart).Seconds() * 1000, err
 		}
-		if family, ok := generated.ConsolidateFamilyByLabel(circuit); ok {
-			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewConsolidateCircuit(family.NIn))
-			return ccs, time.Since(compileStart).Seconds() * 1000, err
-		}
-		if family, ok := generated.SplitFamilyByLabel(circuit); ok {
-			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewSplitCircuit(family.NOut))
+		if family, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
+			ccs, err := frontend.Compile(primitives.ScalarField(), r1cs.NewBuilder, circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut))
 			return ccs, time.Since(compileStart).Seconds() * 1000, err
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {
@@ -949,23 +1024,12 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 				StatementFields:      vec32Strings(decoded.StatementFields),
 			}, err
 		}
-		if _, ok := generated.ConsolidateFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeConsolidateWitnessV1(witnessPayload)
+		if _, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
+			decoded, _, err := abi.DecodeNoteReshapeWitnessV1(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewConsolidateCircuitAssignmentFromWitnessV1(witnessPayload)
-			return assignment, witnessSummary{
-				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
-				StatementFields:      vec32Strings(decoded.StatementFields),
-			}, err
-		}
-		if _, ok := generated.SplitFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeSplitWitnessV1(witnessPayload)
-			if err != nil {
-				return nil, witnessSummary{}, err
-			}
-			assignment, _, err := abi.NewSplitCircuitAssignmentFromWitnessV1(witnessPayload)
+			assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(decoded.StatementFields),

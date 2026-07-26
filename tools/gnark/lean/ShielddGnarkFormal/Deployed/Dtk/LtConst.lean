@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.IvkModRBridge
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 /-! # Deployed DTK `< r` / `< q-4r` constant-ladder keystone
 
@@ -19,6 +20,7 @@ that gap once, reusably across all three DTK instances and both bound ladders. -
 
 namespace Shieldd.GnarkFormal.Deployed.Dtk
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Extracted.IvkModR
 
 variable [Fact (Nat.Prime Extracted.IvkModR.Order)]

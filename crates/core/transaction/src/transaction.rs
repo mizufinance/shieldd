@@ -17,7 +17,7 @@ use shieldd_sdk_proto::{
     DomainType, Message,
 };
 use shieldd_sdk_sct::Nullifier;
-use shieldd_sdk_shielded_pool::{Consolidate, Note, ShieldedIcs20WithdrawalView, Split, Transfer};
+use shieldd_sdk_shielded_pool::{Note, NoteReshape, ShieldedIcs20WithdrawalView, Transfer};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_txhash::{
@@ -28,7 +28,7 @@ use crate::{
     fee_funding::FeeFunding,
     memo::{MemoCiphertext, MemoPlaintext},
     view::{
-        action_view::{ConsolidateView, SplitView, TransferView},
+        action_view::{NoteReshapeView, TransferView},
         MemoView, TransactionBodyView,
     },
     Action, ActionView, DetectionData, IsAction, MemoPlaintextView, TransactionParameters,
@@ -150,8 +150,7 @@ impl Transaction {
             .iter()
             .map(|action| match action {
                 Action::Transfer(_)
-                | Action::Consolidate(_)
-                | Action::Split(_)
+                | Action::NoteReshape(_)
                 | Action::ShieldedIcs20Withdrawal(_) => 1,
                 _ => 0,
             })
@@ -198,24 +197,16 @@ impl Transaction {
                         transfer.body.balance_commitment,
                     )
                 }),
-                Action::Consolidate(consolidate) => {
-                    consolidate.body.outputs.iter().next().map(|output| {
+                Action::NoteReshape(note_reshape) => {
+                    note_reshape.body.outputs.iter().next().map(|output| {
                         (
                             output.note_payload.clone(),
                             output.ovk_wrapped_key.clone(),
                             output.wrapped_memo_key.clone(),
-                            consolidate.body.balance_commitment,
+                            note_reshape.body.balance_commitment,
                         )
                     })
                 }
-                Action::Split(split) => split.body.outputs.iter().next().map(|output| {
-                    (
-                        output.note_payload.clone(),
-                        output.ovk_wrapped_key.clone(),
-                        output.wrapped_memo_key.clone(),
-                        split.body.balance_commitment,
-                    )
-                }),
                 Action::ShieldedIcs20Withdrawal(withdrawal) => Some((
                     withdrawal.body.change_output.note_payload.clone(),
                     withdrawal.body.change_output.ovk_wrapped_key.clone(),
@@ -290,19 +281,11 @@ impl Transaction {
                         fvk,
                     )?;
                 }
-                Action::Consolidate(consolidate) => {
+                Action::NoteReshape(note_reshape) => {
                     insert_payload_keys_for_outputs(
                         &mut result,
-                        &consolidate.body.outputs,
-                        consolidate.body.balance_commitment,
-                        fvk,
-                    )?;
-                }
-                Action::Split(split) => {
-                    insert_payload_keys_for_outputs(
-                        &mut result,
-                        &split.body.outputs,
-                        split.body.balance_commitment,
+                        &note_reshape.body.outputs,
+                        note_reshape.body.balance_commitment,
                         fvk,
                     )?;
                 }
@@ -358,8 +341,7 @@ impl Transaction {
             if matches!(
                 &action_view,
                 ActionView::Transfer(_)
-                    | ActionView::Consolidate(_)
-                    | ActionView::Split(_)
+                    | ActionView::NoteReshape(_)
                     | ActionView::ShieldedIcs20Withdrawal(_)
             ) && memo_plaintext.is_none()
             {
@@ -482,20 +464,10 @@ impl Transaction {
         })
     }
 
-    pub fn consolidations(&self) -> impl Iterator<Item = &Consolidate> {
+    pub fn note_reshapes(&self) -> impl Iterator<Item = &NoteReshape> {
         self.actions().filter_map(|action| {
-            if let Action::Consolidate(consolidate) = action {
-                Some(consolidate)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn splits(&self) -> impl Iterator<Item = &Split> {
-        self.actions().filter_map(|action| {
-            if let Action::Split(split) = action {
-                Some(split)
+            if let Action::NoteReshape(note_reshape) = action {
+                Some(note_reshape)
             } else {
                 None
             }
@@ -513,13 +485,7 @@ impl Transaction {
                     .filter(|input| !input.is_dummy())
                     .map(|input| input.nullifier)
                     .collect(),
-                Action::Consolidate(consolidate) => consolidate
-                    .body
-                    .inputs
-                    .iter()
-                    .map(|input| input.nullifier)
-                    .collect(),
-                Action::Split(split) => split
+                Action::NoteReshape(note_reshape) => note_reshape
                     .body
                     .inputs
                     .iter()
@@ -561,13 +527,7 @@ impl Transaction {
                     .filter(|output| !output.is_dummy())
                     .map(|output| Some(output.note_payload.note_commitment))
                     .collect::<Vec<_>>(),
-                Action::Consolidate(consolidate) => consolidate
-                    .body
-                    .outputs
-                    .iter()
-                    .map(|output| Some(output.note_payload.note_commitment))
-                    .collect::<Vec<_>>(),
-                Action::Split(split) => split
+                Action::NoteReshape(note_reshape) => note_reshape
                     .body
                     .outputs
                     .iter()
@@ -697,16 +657,7 @@ impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::TransferOutputBody
     }
 }
 
-impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::ConsolidateOutputBody {
-    fn into_output_ref(self) -> OutputRef<'a> {
-        OutputRef {
-            note_payload: &self.note_payload,
-            ovk_wrapped_key: &self.ovk_wrapped_key,
-        }
-    }
-}
-
-impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::SplitOutputBody {
+impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
     fn into_output_ref(self) -> OutputRef<'a> {
         OutputRef {
             note_payload: &self.note_payload,
@@ -719,10 +670,8 @@ fn payload_key_from_view(action_view: &ActionView) -> Option<&PayloadKey> {
     match action_view {
         ActionView::Transfer(TransferView::Visible { payload_key, .. }) => Some(payload_key),
         ActionView::Transfer(TransferView::Opaque { .. }) => None,
-        ActionView::Consolidate(ConsolidateView::Visible { payload_key, .. }) => Some(payload_key),
-        ActionView::Consolidate(ConsolidateView::Opaque { .. }) => None,
-        ActionView::Split(SplitView::Visible { payload_key, .. }) => Some(payload_key),
-        ActionView::Split(SplitView::Opaque { .. }) => None,
+        ActionView::NoteReshape(NoteReshapeView::Visible { payload_key, .. }) => Some(payload_key),
+        ActionView::NoteReshape(NoteReshapeView::Opaque { .. }) => None,
         ActionView::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalView::Visible {
             payload_key,
             ..
@@ -826,6 +775,51 @@ mod tests {
     }
 
     #[test]
+    fn note_reshape_body_sentinel_does_not_filter_spent_nullifiers() {
+        let inputs = (0..4)
+            .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
+                nullifier: Nullifier(decaf377::Fq::from(100u64 + index)),
+                rk: VerificationKey::from(SigningKey::<SpendAuth>::from(decaf377::Fr::from(
+                    200u64 + index,
+                ))),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+            })
+            .collect::<Vec<_>>();
+        assert!(inputs.iter().all(|input| input.is_dummy()));
+
+        let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
+            body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::FourByOne,
+                anchor: shieldd_sdk_tct::Tree::default().root(),
+                balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
+                inputs,
+                outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
+                    note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                        note_commitment: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(
+                            300u64,
+                        )),
+                        ephemeral_key: decaf377_ka::Public([3u8; 32]),
+                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([4u8; 176]),
+                    },
+                    wrapped_memo_key: WrappedMemoKey([5u8; 48]),
+                    ovk_wrapped_key: OvkWrappedKey([6u8; 48]),
+                }],
+            },
+            auth_sigs: vec![[0u8; 64].into(); 4],
+            proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
+        };
+        let tx = Transaction {
+            transaction_body: TransactionBody {
+                actions: vec![Action::NoteReshape(note_reshape)],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 4);
+    }
+
+    #[test]
     fn compliance_scanner_transaction_id_matches_canonical_transaction_id() {
         let tx = Transaction::default();
         let proto: shieldd_sdk_proto::core::transaction::v1::Transaction = (&tx).into();
@@ -840,13 +834,13 @@ mod tests {
         let tx = Transaction {
             transaction_body: TransactionBody {
                 actions: vec![
-                    Action::Consolidate(shieldd_sdk_shielded_pool::Consolidate {
-                        body: shieldd_sdk_shielded_pool::ConsolidateBody {
-                            family_id: shieldd_sdk_shielded_pool::ConsolidateFamilyId::TwoByOne,
+                    Action::NoteReshape(shieldd_sdk_shielded_pool::NoteReshape {
+                        body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::TwoByOne,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
                             inputs: vec![
-                                shieldd_sdk_shielded_pool::ConsolidateInputBody {
+                                shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                     nullifier: Nullifier(decaf377::Fq::from(2u64)),
                                     rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                                         decaf377::Fr::from(3u64),
@@ -854,7 +848,7 @@ mod tests {
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                 },
-                                shieldd_sdk_shielded_pool::ConsolidateInputBody {
+                                shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                     nullifier: Nullifier(decaf377::Fq::from(4u64)),
                                     rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                                         decaf377::Fr::from(5u64),
@@ -863,7 +857,7 @@ mod tests {
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                 },
                             ],
-                            outputs: vec![shieldd_sdk_shielded_pool::ConsolidateOutputBody {
+                            outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
                                 note_payload: shieldd_sdk_shielded_pool::NotePayload {
                                     note_commitment: shieldd_sdk_tct::StateCommitment(
                                         decaf377::Fq::from(6u64),
@@ -877,14 +871,14 @@ mod tests {
                             }],
                         },
                         auth_sigs: vec![[11u8; 64].into(), [12u8; 64].into()],
-                        proof: shieldd_sdk_shielded_pool::ConsolidateProof::default(),
+                        proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
                     }),
-                    Action::Split(shieldd_sdk_shielded_pool::Split {
-                        body: shieldd_sdk_shielded_pool::SplitBody {
-                            family_id: shieldd_sdk_shielded_pool::SplitFamilyId::OneByEight,
+                    Action::NoteReshape(shieldd_sdk_shielded_pool::NoteReshape {
+                        body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::OneByEight,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(decaf377::Fr::from(13u64)),
-                            inputs: vec![shieldd_sdk_shielded_pool::SplitInputBody {
+                            inputs: vec![shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                 nullifier: Nullifier(decaf377::Fq::from(14u64)),
                                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
                                     decaf377::Fr::from(15u64),
@@ -893,7 +887,7 @@ mod tests {
                                     shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                             }],
                             outputs: vec![
-                                shieldd_sdk_shielded_pool::SplitOutputBody {
+                                shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
                                     note_payload: shieldd_sdk_shielded_pool::NotePayload {
                                         note_commitment: shieldd_sdk_tct::StateCommitment(
                                             decaf377::Fq::from(16u64),
@@ -910,7 +904,7 @@ mod tests {
                             ],
                         },
                         auth_sigs: vec![[21u8; 64].into()],
-                        proof: shieldd_sdk_shielded_pool::SplitProof::default(),
+                        proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
                     }),
                     Action::ShieldedIcs20Withdrawal(
                         shieldd_sdk_shielded_pool::ShieldedIcs20Withdrawal {

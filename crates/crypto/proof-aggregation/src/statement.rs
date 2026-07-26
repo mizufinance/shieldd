@@ -9,7 +9,7 @@ use shieldd_sdk_proto::core::transaction::v1 as pb;
 
 use crate::{padding::PADDING_RULE_DOMAIN, ProofFamilyId, DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID};
 
-pub const AGGREGATE_PROTOCOL_VERSION: u32 = 1;
+pub const AGGREGATE_PROTOCOL_VERSION: u32 = 2;
 
 const STATEMENT_DIGEST_DOMAIN: &[u8] = b"shieldd.snarkpack.statement_digest.v1\0";
 const VK_DIGEST_DOMAIN: &[u8] = b"shieldd.snarkpack.vk_digest.v1\0";
@@ -87,8 +87,7 @@ pub struct StatementEncodingInput {
     pub curve_id: Vec<u8>,
     pub backend_id: Vec<u8>,
     pub proof_family_id: u32,
-    pub consolidate_family_id: u32,
-    pub split_family_id: u32,
+    pub note_reshape_family_id: u32,
     pub shielded_ics20_withdrawal_family_id: u32,
     pub srs_id: [u8; 32],
     pub vk_digest: [u8; 32],
@@ -225,8 +224,7 @@ impl AggregateStatement {
             curve_id: DEV_SRS_CURVE_ID.as_bytes().to_vec(),
             backend_id: DEV_SRS_BACKEND_ID.as_bytes().to_vec(),
             proof_family_id: family.proof_family_id,
-            consolidate_family_id: family.consolidate_family_id,
-            split_family_id: family.split_family_id,
+            note_reshape_family_id: family.note_reshape_family_id,
             shielded_ics20_withdrawal_family_id: family.shielded_ics20_withdrawal_family_id,
             srs_id,
             vk_digest,
@@ -327,8 +325,7 @@ pub fn encode_statement(
     append_bytes_field(&mut bytes, &input.backend_id)?;
     append_bytes_field(&mut bytes, PADDING_RULE_DOMAIN)?;
     append_u32_field(&mut bytes, input.proof_family_id);
-    append_u32_field(&mut bytes, input.consolidate_family_id);
-    append_u32_field(&mut bytes, input.split_family_id);
+    append_u32_field(&mut bytes, input.note_reshape_family_id);
     append_u32_field(&mut bytes, input.shielded_ics20_withdrawal_family_id);
     append_bytes_field(&mut bytes, &input.srs_id)?;
     append_bytes_field(&mut bytes, &input.vk_digest)?;
@@ -584,16 +581,14 @@ fn field_rows_to_bytes(rows: &[Vec<Fq>]) -> Result<StatementPaddedRows, Aggregat
 #[derive(Clone, Copy)]
 struct FamilyEncoding {
     proof_family_id: u32,
-    consolidate_family_id: u32,
-    split_family_id: u32,
+    note_reshape_family_id: u32,
     shielded_ics20_withdrawal_family_id: u32,
 }
 
 fn family_encoding(family_id: ProofFamilyId) -> FamilyEncoding {
     FamilyEncoding {
         proof_family_id: pb::ProofFamilyId::from(family_id) as u32,
-        consolidate_family_id: family_id.consolidate_family_id(),
-        split_family_id: family_id.split_family_id(),
+        note_reshape_family_id: family_id.note_reshape_family_id(),
         shielded_ics20_withdrawal_family_id: family_id.shielded_ics20_withdrawal_family_id(),
     }
 }
@@ -929,8 +924,7 @@ mod tests {
             curve_id: b"curve".to_vec(),
             backend_id: b"backend".to_vec(),
             proof_family_id: 1,
-            consolidate_family_id: 2,
-            split_family_id: 3,
+            note_reshape_family_id: 2,
             shielded_ics20_withdrawal_family_id: 4,
             srs_id: [0x11; 32],
             vk_digest: [0x22; 32],
@@ -943,7 +937,7 @@ mod tests {
 
         let mutations = [
             StatementEncodingInput {
-                version: 2,
+                version: 3,
                 ..base.clone()
             },
             StatementEncodingInput {
@@ -959,11 +953,7 @@ mod tests {
                 ..base.clone()
             },
             StatementEncodingInput {
-                consolidate_family_id: 9,
-                ..base.clone()
-            },
-            StatementEncodingInput {
-                split_family_id: 9,
+                note_reshape_family_id: 9,
                 ..base.clone()
             },
             StatementEncodingInput {
@@ -1011,8 +1001,7 @@ mod tests {
             curve_id: b"curve-x".to_vec(),
             backend_id: b"backend-y".to_vec(),
             proof_family_id: 1,
-            consolidate_family_id: 2,
-            split_family_id: 3,
+            note_reshape_family_id: 2,
             shielded_ics20_withdrawal_family_id: 4,
             srs_id: [0x11; 32],
             vk_digest: [0x22; 32],
@@ -1032,7 +1021,7 @@ mod tests {
         expected.extend_from_slice(b"backend-y");
         expected.extend_from_slice(&(PADDING_RULE_DOMAIN.len() as u32).to_le_bytes());
         expected.extend_from_slice(PADDING_RULE_DOMAIN);
-        for value in [1u32, 2, 3, 4] {
+        for value in [1u32, 2, 4] {
             expected.extend_from_slice(&4u32.to_le_bytes());
             expected.extend_from_slice(&value.to_le_bytes());
         }
@@ -1062,8 +1051,7 @@ mod tests {
             curve_id: b"a".to_vec(),
             backend_id: b"bc".to_vec(),
             proof_family_id: 1,
-            consolidate_family_id: 2,
-            split_family_id: 3,
+            note_reshape_family_id: 2,
             shielded_ics20_withdrawal_family_id: 4,
             srs_id: [0x11; 32],
             vk_digest: [0x22; 32],
@@ -1091,8 +1079,7 @@ mod tests {
             curve_id: b"curve".to_vec(),
             backend_id: b"backend".to_vec(),
             proof_family_id: 1,
-            consolidate_family_id: 2,
-            split_family_id: 3,
+            note_reshape_family_id: 2,
             shielded_ics20_withdrawal_family_id: 4,
             srs_id: [0x11; 32],
             vk_digest: [0x22; 32],
@@ -1119,8 +1106,7 @@ mod tests {
             curve_id: b"curve".to_vec(),
             backend_id: b"backend".to_vec(),
             proof_family_id: 1,
-            consolidate_family_id: 2,
-            split_family_id: 3,
+            note_reshape_family_id: 2,
             shielded_ics20_withdrawal_family_id: 4,
             srs_id: [0x11; 32],
             vk_digest: [0x22; 32],
@@ -1218,8 +1204,7 @@ mod tests {
                 curve_id: DEV_SRS_CURVE_ID.as_bytes().to_vec(),
                 backend_id: DEV_SRS_BACKEND_ID.as_bytes().to_vec(),
                 proof_family_id: 1,
-                consolidate_family_id: 0,
-                split_family_id: 0,
+                note_reshape_family_id: 0,
                 shielded_ics20_withdrawal_family_id: 0,
                 srs_id: [1u8; 32],
                 vk_digest: [2u8; 32],

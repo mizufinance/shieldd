@@ -17,9 +17,9 @@ use super::compliance::{
     build_transfer_compliance, change_output_transfer_compliance, is_change_output_index,
     is_receiver_output_index, receiver_output_transfer_compliance, CHANGE_OUTPUT_INDEX,
 };
-use crate::note_reshape::dummy_spend_auth_sig;
-use crate::note_reshape::dummy_state_commitment_proof;
-use crate::note_reshape::{pad_to_len, HiddenArityPadder};
+use crate::note_reshape_padding::dummy_spend_auth_sig;
+use crate::note_reshape_padding::dummy_state_commitment_proof;
+use crate::note_reshape_padding::{pad_to_len, HiddenArityPadder};
 use crate::transfer::{
     Transfer, TransferOutputPrivate, TransferOutputPublic, TransferProof, TransferProofPrivate,
     TransferProofPublic, TransferSpendPrivate, TransferSpendPublic,

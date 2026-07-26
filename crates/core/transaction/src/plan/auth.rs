@@ -23,13 +23,7 @@ impl TransactionPlan {
                         spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
                     }
                 }
-                crate::ActionPlan::Consolidate(plan) => {
-                    for spend_plan in &plan.spends {
-                        let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
-                        spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
-                    }
-                }
-                crate::ActionPlan::Split(plan) => {
+                crate::ActionPlan::NoteReshape(plan) => {
                     for spend_plan in &plan.spends {
                         let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
                         spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));

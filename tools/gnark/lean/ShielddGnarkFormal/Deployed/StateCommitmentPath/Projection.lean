@@ -1,5 +1,5 @@
 import ShielddGnarkFormal.QuadPathSpec
-import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
+import ShielddGnarkFormal.Deployed.PrimeOrder
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
@@ -24,14 +24,39 @@ def tctLeafDomainLit : F :=
 /-- 24-level 4-ary Merkle recovery with a per-level hash domain. Level `k`
 (0-based, leaf-adjacent first) uses domain `dom k`, siblings
 `(s0 k, s1 k, s2 k)` and position bits `(b0 k, b1 k)`. -/
+def recoverPrefix (H4 : F → F → F → F → F → F) (dom : Nat → F) (leaf : F)
+    (s0 s1 s2 b0 b1 : Nat → F) : Nat → F
+  | 0 => recoverStep H4 (dom 0) leaf (s0 0) (s1 0) (s2 0) (b0 0) (b1 0)
+  | k + 1 => recoverStep H4 (dom (k + 1)) (recoverPrefix H4 dom leaf s0 s1 s2 b0 b1 k)
+      (s0 (k + 1)) (s1 (k + 1)) (s2 (k + 1)) (b0 (k + 1)) (b1 (k + 1))
+
+theorem recoverPrefix_zero (H4 : F → F → F → F → F → F)
+    (dom : Nat → F) (leaf : F)
+    (s0 s1 s2 b0 b1 : Nat → F) :
+    recoverPrefix H4 dom leaf s0 s1 s2 b0 b1 0 =
+      recoverStep H4 (dom 0) leaf (s0 0) (s1 0) (s2 0) (b0 0) (b1 0) := by
+  rfl
+
+theorem recoverPrefix_succ (H4 : F → F → F → F → F → F)
+    (dom : Nat → F) (leaf : F)
+    (s0 s1 s2 b0 b1 : Nat → F) (k : Nat) :
+    recoverPrefix H4 dom leaf s0 s1 s2 b0 b1 (k + 1) =
+      recoverStep H4 (dom (k + 1))
+        (recoverPrefix H4 dom leaf s0 s1 s2 b0 b1 k)
+        (s0 (k + 1)) (s1 (k + 1)) (s2 (k + 1))
+        (b0 (k + 1)) (b1 (k + 1)) := by
+  rfl
+
 def recover24H (H4 : F → F → F → F → F → F) (dom : Nat → F) (leaf : F)
     (s0 s1 s2 b0 b1 : Nat → F) : F :=
-  let step := fun (k : Nat) (cur : F) =>
-    recoverStep H4 (dom k) cur (s0 k) (s1 k) (s2 k) (b0 k) (b1 k)
-  step 23 (step 22 (step 21 (step 20 (step 19 (step 18 (step 17 (step 16
-    (step 15 (step 14 (step 13 (step 12 (step 11 (step 10 (step 9 (step 8
-      (step 7 (step 6 (step 5 (step 4 (step 3 (step 2 (step 1 (step 0
-        leaf)))))))))))))))))))))))
+  recoverPrefix H4 dom leaf s0 s1 s2 b0 b1 23
+
+theorem recover24H_eq_prefix23 (H4 : F → F → F → F → F → F)
+    (dom : Nat → F) (leaf : F)
+    (s0 s1 s2 b0 b1 : Nat → F) :
+    recover24H H4 dom leaf s0 s1 s2 b0 b1 =
+      recoverPrefix H4 dom leaf s0 s1 s2 b0 b1 23 := by
+  rfl
 
 /-- The deployed select block computes exactly `children`: given the four
 indicator rows and six correction rows (as the extracted constraints state

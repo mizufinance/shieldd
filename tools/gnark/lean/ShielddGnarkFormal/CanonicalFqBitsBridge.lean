@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.Extracted.CanonicalFqBits
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.RangeCheckLadder
 import ProvenZk.Ext.GetElem
 
@@ -19,6 +20,7 @@ content is discharged by the proven `LeLadder` kernel in `RangeCheckLadder.lean`
 namespace Shieldd.GnarkFormal.Extracted.CanonicalFqBits
 
 open Shieldd.GnarkFormal.RangeCheck
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 variable [Fact (Nat.Prime Order)]
 
@@ -87,7 +89,7 @@ def pMinusOne : Fin (2 ^ 253) := ⟨Order - 1, by decide⟩
 def cBits : List.Vector Bool 253 := Fin.toBitsLE pMinusOne
 
 theorem cBits_val : (Fin.ofBitsLE cBits).val = Order - 1 := by
-  simp only [cBits, Fin.ofBitsLE_toBitsLE_eq_self, pMinusOne]
+  decide +kernel
 
 /-- The reduced field chain (head-first over the reversed bits, flag `1`) forces the
 recovered little-endian value to be `< Order`. This is the Full canonical pin's

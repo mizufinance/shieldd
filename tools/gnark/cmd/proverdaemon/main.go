@@ -86,21 +86,21 @@ func init() {
 			packResult: packTransferProofResult,
 		}
 	}
-	for _, family := range generated.ConsolidateFamilies {
+	for _, family := range generated.NoteReshapeFamilies {
 		family := family
 		circuitConfigs[family.Label] = circuitConfig{
 			name: family.Label,
 			template: func() frontend.Circuit {
-				return circuits.NewConsolidateCircuit(family.NIn)
+				return circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut)
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewConsolidateCircuitAssignmentFromWitnessV1(payload)
+				assignment, witnessFamily, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(payload)
 				if err != nil {
 					return nil, err
 				}
 				if witnessFamily.ID != family.ID {
 					return nil, fmt.Errorf(
-						"consolidate witness family mismatch: got %s (%d), expected %s (%d)",
+						"note reshape witness family mismatch: got %s (%d), expected %s (%d)",
 						witnessFamily.Label,
 						witnessFamily.ID,
 						family.Label,
@@ -109,33 +109,7 @@ func init() {
 				}
 				return assignment, nil
 			},
-			packResult: packConsolidateProofResult,
-		}
-	}
-	for _, family := range generated.SplitFamilies {
-		family := family
-		circuitConfigs[family.Label] = circuitConfig{
-			name: family.Label,
-			template: func() frontend.Circuit {
-				return circuits.NewSplitCircuit(family.NOut)
-			},
-			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewSplitCircuitAssignmentFromWitnessV1(payload)
-				if err != nil {
-					return nil, err
-				}
-				if witnessFamily.ID != family.ID {
-					return nil, fmt.Errorf(
-						"split witness family mismatch: got %s (%d), expected %s (%d)",
-						witnessFamily.Label,
-						witnessFamily.ID,
-						family.Label,
-						family.ID,
-					)
-				}
-				return assignment, nil
-			},
-			packResult: packSplitProofResult,
+			packResult: packNoteReshapeProofResult,
 		}
 	}
 	for _, family := range generated.ShieldedIcs20WithdrawalFamilies {
@@ -169,7 +143,7 @@ func init() {
 func main() {
 	logger.Disable()
 
-	circuit := flag.String("circuit", "", "transferNxM, consolidateN, splitN, or shielded-ics20-withdrawalN family label")
+	circuit := flag.String("circuit", "", "transfer, note-reshape, or shielded-ics20-withdrawal family label")
 	artifactDir := flag.String("artifact-dir", "", "directory containing gnark artifacts")
 	flag.Parse()
 
@@ -365,20 +339,12 @@ func packTransferProofResult(witnessPayload []byte, proof *groth16bls.Proof, pro
 	return packProofResult("PTPR", witness.ClaimedStatementHash, proof, proveMS)
 }
 
-func packConsolidateProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeConsolidateWitnessV1(witnessPayload)
+func packNoteReshapeProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
+	witness, _, err := abi.DecodeNoteReshapeWitnessV1(witnessPayload)
 	if err != nil {
-		return nil, fmt.Errorf("decode consolidate witness: %w", err)
+		return nil, fmt.Errorf("decode note reshape witness: %w", err)
 	}
-	return packProofResult("PCPR", witness.ClaimedStatementHash, proof, proveMS)
-}
-
-func packSplitProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeSplitWitnessV1(witnessPayload)
-	if err != nil {
-		return nil, fmt.Errorf("decode split witness: %w", err)
-	}
-	return packProofResult("PLPR", witness.ClaimedStatementHash, proof, proveMS)
+	return packProofResult("PNRP", witness.ClaimedStatementHash, proof, proveMS)
 }
 
 func packProofResult(magic string, claimedStatementHash [32]byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {

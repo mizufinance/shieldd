@@ -1,0 +1,61 @@
+{
+  "schema": "shieldd.note_reshape_families.v1",
+  "families": [
+    {
+      "id": 1,
+      "rust_name": "TwoByOne",
+      "label": "note_reshape2x1",
+      "artifact_name": "note_reshape2x1",
+      "input_padding": "fixed",
+      "output_padding": "fixed",
+      "n_in": 2,
+      "n_out": 1,
+      "min_real_inputs": 2,
+      "max_real_inputs": 2,
+      "min_real_outputs": 1,
+      "max_real_outputs": 1
+    },
+    {
+      "id": 2,
+      "rust_name": "OneByEight",
+      "label": "note_reshape1x8",
+      "artifact_name": "note_reshape1x8",
+      "input_padding": "fixed",
+      "output_padding": "zero_note",
+      "n_in": 1,
+      "n_out": 8,
+      "min_real_inputs": 1,
+      "max_real_inputs": 1,
+      "min_real_outputs": 2,
+      "max_real_outputs": 8
+    },
+    {
+      "id": 3,
+      "rust_name": "EightByOne",
+      "label": "note_reshape8x1",
+      "artifact_name": "note_reshape8x1",
+      "input_padding": "synthetic_private",
+      "output_padding": "fixed",
+      "n_in": 8,
+      "n_out": 1,
+      "min_real_inputs": 5,
+      "max_real_inputs": 8,
+      "min_real_outputs": 1,
+      "max_real_outputs": 1
+    },
+    {
+      "id": 4,
+      "rust_name": "FourByOne",
+      "label": "note_reshape4x1",
+      "artifact_name": "note_reshape4x1",
+      "input_padding": "synthetic_private",
+      "output_padding": "fixed",
+      "n_in": 4,
+      "n_out": 1,
+      "min_real_inputs": 3,
+      "max_real_inputs": 4,
+      "min_real_outputs": 1,
+      "max_real_outputs": 1
+    }
+  ]
+}

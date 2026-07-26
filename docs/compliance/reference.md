@@ -191,7 +191,7 @@ against `C2` after PRE or issuer-DK decryption.
 ## Restrictions
 
 - Flagging is per transfer receiver amount: `amount >= threshold`.
-- Split and consolidate do not carry compliance ciphertexts.
+- Note reshapes do not carry compliance ciphertexts.
 - Registrations and asset policies are immutable.
 - Channel whitelist enforcement is first-hop only.
 - No key rotation is currently defined.

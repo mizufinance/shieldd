@@ -184,10 +184,10 @@ impl TransactionViewExt for TransactionView {
                         ["Transfer", &action]
                     }
                 },
-                shieldd_sdk_transaction::ActionView::Consolidate(consolidate) => {
-                    match consolidate {
-                        shieldd_sdk_transaction::view::action_view::ConsolidateView::Visible {
-                            consolidate: _,
+                shieldd_sdk_transaction::ActionView::NoteReshape(note_reshape) => {
+                    match note_reshape {
+                        shieldd_sdk_transaction::view::action_view::NoteReshapeView::Visible {
+                            note_reshape: _,
                             spent_notes: _,
                             created_notes,
                             payload_key: _,
@@ -199,51 +199,23 @@ impl TransactionViewExt for TransactionView {
                                     format_address_view(&created_note.address),
                                 );
                             } else {
-                                action = "<empty consolidate>".to_string();
+                                action = "<empty note reshape>".to_string();
                             }
-                            ["Consolidate", &action]
+                            ["NoteReshape", &action]
                         }
-                        shieldd_sdk_transaction::view::action_view::ConsolidateView::Opaque {
-                            consolidate,
+                        shieldd_sdk_transaction::view::action_view::NoteReshapeView::Opaque {
+                            note_reshape,
                         } => {
-                            if let Some(first_output) = consolidate.body.outputs.first() {
+                            if let Some(first_output) = note_reshape.body.outputs.first() {
                                 let bytes = first_output.note_payload.encrypted_note.0;
                                 action = format_opaque_bytes(&bytes);
                             } else {
-                                action = "<empty consolidate>".to_string();
+                                action = "<empty note reshape>".to_string();
                             }
-                            ["Consolidate", &action]
+                            ["NoteReshape", &action]
                         }
                     }
                 }
-                shieldd_sdk_transaction::ActionView::Split(split) => match split {
-                    shieldd_sdk_transaction::view::action_view::SplitView::Visible {
-                        split: _,
-                        spent_notes: _,
-                        created_notes,
-                        payload_key: _,
-                    } => {
-                        if let Some(created_note) = created_notes.first() {
-                            action = format!(
-                                "{} -> {}",
-                                format_value_view(&created_note.value),
-                                format_address_view(&created_note.address),
-                            );
-                        } else {
-                            action = "<empty split>".to_string();
-                        }
-                        ["Split", &action]
-                    }
-                    shieldd_sdk_transaction::view::action_view::SplitView::Opaque { split } => {
-                        if let Some(first_output) = split.body.outputs.first() {
-                            let bytes = first_output.note_payload.encrypted_note.0;
-                            action = format_opaque_bytes(&bytes);
-                        } else {
-                            action = "<empty split>".to_string();
-                        }
-                        ["Split", &action]
-                    }
-                },
                 shieldd_sdk_transaction::ActionView::ShieldedIcs20Withdrawal(withdrawal) => {
                     let withdrawal = match withdrawal {
                         shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView::Visible {

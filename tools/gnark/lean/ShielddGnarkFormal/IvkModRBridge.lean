@@ -1,6 +1,7 @@
 import ShielddGnarkFormal.Extracted.IvkModR
 import ShielddGnarkFormal.LexLessLadder
 import ShielddGnarkFormal.ImtGapBridge
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
@@ -19,6 +20,7 @@ bound's bits as a constant vector.
 
 namespace Shieldd.GnarkFormal.Extracted.IvkModR
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.LexLess
 open Bool (toZMod)
 
@@ -149,10 +151,12 @@ def rBits : List.Vector Bool 253 := Fin.toBitsLE (⟨rNat, by decide⟩ : Fin (2
 def q4Bits : List.Vector Bool 253 := Fin.toBitsLE (⟨q4Nat, by decide⟩ : Fin (2 ^ 253))
 
 theorem rBits_val : (Fin.ofBitsLE rBits).val = rNat := by
-  simp only [rBits, Fin.ofBitsLE_toBitsLE_eq_self]
+  unfold rBits rNat
+  decide +kernel
 
 theorem q4Bits_val : (Fin.ofBitsLE q4Bits).val = q4Nat := by
-  simp only [q4Bits, Fin.ofBitsLE_toBitsLE_eq_self]
+  unfold q4Bits q4Nat rNat Order
+  decide +kernel
 
 theorem boolLow_rBit : boolLow rBit 253 = rBits := by
   apply List.Vector.eq; simp only [rBits, boolLow]; decide +kernel

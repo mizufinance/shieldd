@@ -14,14 +14,23 @@ use std::{
 };
 
 include!("src/gen/gnark/transfer_families_build.rs");
+include!("src/gen/gnark/note_reshape_families_build.rs");
 
 fn main() {
     emit_transfer_family_rerun_hints().expect("emit transfer family rerun-if-changed hints");
+    emit_note_reshape_family_rerun_hints()
+        .expect("emit note reshape family rerun-if-changed hints");
     emit_gnark_runtime_rerun_hints().expect("emit gnark runtime rerun-if-changed hints");
 
     let mut proving_parameter_files =
         vec!["../../../tools/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin".to_owned()];
     proving_parameter_files.extend(GENERATED_TRANSFER_FAMILIES.iter().map(|family| {
+        format!(
+            "../../../tools/gnark/artifacts/{}/proving_key.bin",
+            family.artifact_name
+        )
+    }));
+    proving_parameter_files.extend(GENERATED_NOTE_RESHAPE_FAMILIES.iter().map(|family| {
         format!(
             "../../../tools/gnark/artifacts/{}/proving_key.bin",
             family.artifact_name
@@ -44,6 +53,20 @@ fn main() {
             ),
         ]
     }));
+    verification_parameter_files.extend(GENERATED_NOTE_RESHAPE_FAMILIES.iter().flat_map(
+        |family| {
+            [
+                format!(
+                    "../../../tools/gnark/artifacts/{}/verifying_key.json",
+                    family.artifact_name
+                ),
+                format!(
+                    "../../../tools/gnark/artifacts/{}/circuit_metadata.json",
+                    family.artifact_name
+                ),
+            ]
+        },
+    ));
 
     for file in proving_parameter_files
         .iter()
@@ -114,6 +137,24 @@ fn emit_transfer_family_rerun_hints() -> anyhow::Result<()> {
     Ok(())
 }
 
+fn emit_note_reshape_family_rerun_hints() -> anyhow::Result<()> {
+    let repo_root = repo_root()?;
+    for relative_path in [
+        "tools/gnark/note_reshape_families.json",
+        "tools/gnark/internal/generated/note_reshape_families_generated.go",
+        "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
+        "crates/crypto/proof-params/src/gen/gnark/note_reshape_families_build.rs",
+        "crates/crypto/proof-params/src/gen/gnark/note_reshape_registry.rs",
+        "crates/crypto/proof-aggregation/src/backend.rs",
+    ] {
+        println!(
+            "cargo:rerun-if-changed={}",
+            repo_root.join(relative_path).display()
+        );
+    }
+    Ok(())
+}
+
 fn write_bundled_gnark_runtime_paths() -> anyhow::Result<()> {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").context("OUT_DIR is set by cargo")?);
     let include_path = out_dir.join("gnark_bundled.rs");
@@ -152,9 +193,8 @@ fn write_bundled_gnark_runtime_paths() -> anyhow::Result<()> {
     std::fs::create_dir_all(&gnark_out_dir).context("create bundled gnark output directory")?;
 
     let transfer_lib_path = gnark_out_dir.join(format!("libshieldd_gnark_transfer.{lib_ext}"));
-    let consolidate_lib_path =
-        gnark_out_dir.join(format!("libshieldd_gnark_consolidate.{lib_ext}"));
-    let split_lib_path = gnark_out_dir.join(format!("libshieldd_gnark_split.{lib_ext}"));
+    let note_reshape_lib_path =
+        gnark_out_dir.join(format!("libshieldd_gnark_note_reshape.{lib_ext}"));
     let shielded_ics20_withdrawal_lib_path = gnark_out_dir.join(format!(
         "libshieldd_gnark_shielded_ics20_withdrawal.{lib_ext}"
     ));
@@ -169,14 +209,12 @@ fn write_bundled_gnark_runtime_paths() -> anyhow::Result<()> {
     .context("build bundled gnark transfer library")?;
     build_gnark_library(
         &gnark_dir,
-        "./cmd/consolidatelib",
-        &consolidate_lib_path,
+        "./cmd/note_reshapelib",
+        &note_reshape_lib_path,
         goos,
         goarch,
     )
-    .context("build bundled gnark consolidate library")?;
-    build_gnark_library(&gnark_dir, "./cmd/splitlib", &split_lib_path, goos, goarch)
-        .context("build bundled gnark split library")?;
+    .context("build bundled gnark note reshape library")?;
     build_gnark_library(
         &gnark_dir,
         "./cmd/shieldedics20withdrawallib",
@@ -188,15 +226,14 @@ fn write_bundled_gnark_runtime_paths() -> anyhow::Result<()> {
 
     let include_body = format!(
         "pub const GNARK_TRANSFER_BUNDLED_LIBRARY_PATH: Option<&str> = Some(r#\"{}\"#);\n\
-         pub const GNARK_CONSOLIDATE_BUNDLED_LIBRARY_PATH: Option<&str> = Some(r#\"{}\"#);\n\
-         pub const GNARK_SPLIT_BUNDLED_LIBRARY_PATH: Option<&str> = Some(r#\"{}\"#);\n\
+         pub const GNARK_NOTE_RESHAPE_BUNDLED_LIBRARY_PATH: Option<&str> = Some(r#\"{}\"#);\n\
          pub const GNARK_SHIELDED_ICS20_WITHDRAWAL_BUNDLED_LIBRARY_PATH: Option<&str> = Some(r#\"{}\"#);\n",
         transfer_lib_path.display(),
-        consolidate_lib_path.display(),
-        split_lib_path.display(),
+        note_reshape_lib_path.display(),
         shielded_ics20_withdrawal_lib_path.display(),
     );
     let _ = GENERATED_TRANSFER_FAMILIES;
+    let _ = GENERATED_NOTE_RESHAPE_FAMILIES;
     std::fs::write(&include_path, include_body).context("write gnark runtime include file")?;
 
     Ok(())
@@ -205,11 +242,11 @@ fn write_bundled_gnark_runtime_paths() -> anyhow::Result<()> {
 fn write_empty_gnark_runtime_include(include_path: &Path) -> anyhow::Result<()> {
     let include_body = String::from(
         "pub const GNARK_TRANSFER_BUNDLED_LIBRARY_PATH: Option<&str> = None;\n\
-         pub const GNARK_CONSOLIDATE_BUNDLED_LIBRARY_PATH: Option<&str> = None;\n\
-         pub const GNARK_SPLIT_BUNDLED_LIBRARY_PATH: Option<&str> = None;\n\
+         pub const GNARK_NOTE_RESHAPE_BUNDLED_LIBRARY_PATH: Option<&str> = None;\n\
          pub const GNARK_SHIELDED_ICS20_WITHDRAWAL_BUNDLED_LIBRARY_PATH: Option<&str> = None;\n",
     );
     let _ = GENERATED_TRANSFER_FAMILIES;
+    let _ = GENERATED_NOTE_RESHAPE_FAMILIES;
     std::fs::write(include_path, include_body)?;
     Ok(())
 }

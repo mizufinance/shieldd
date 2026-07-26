@@ -2,18 +2,17 @@
 set -euo pipefail
 
 # Manifest-pin tripwire: recompile each circuit's R1CS from source and assert the
-# freshly compiled `sr1cs_sha256_hex` is byte-identical to the committed gnark
-# constraint manifest. A mismatch means the circuit changed without the pinned
-# manifest (and therefore the Lean/coverage proofs bound to it) being regenerated
-# — i.e. the deployed artifact would no longer be the proved artifact. Fails closed.
+# freshly compiled SR1CS and semantic segment manifest are byte-identical to the
+# committed artifacts. Comparing only `sr1cs_sha256_hex` is insufficient: an op,
+# port, or segment-boundary trace can drift without changing a constraint row.
 #
 # This is the `.sr1cs` companion to the coverage `relation_sha256_hex` tripwire in
 # scripts/check-constraint-coverage.sh (which recomputes the per-segment relation
 # hashes via the Rust extractor). Both are cheap, deterministic, and lake-free.
 #
 # Usage:
-#   scripts/check-manifest-pin.sh                 # both circuits
-#   scripts/check-manifest-pin.sh consolidate2x1  # one circuit
+#   scripts/check-manifest-pin.sh                 # all deployed circuits
+#   scripts/check-manifest-pin.sh note_reshape2x1  # one circuit
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GNARK_DIR="$ROOT/tools/gnark"
@@ -25,13 +24,13 @@ fail() {
 
 select_circuits() {
   if [[ "$#" -eq 0 ]]; then
-    printf '%s\n' consolidate2x1 transfer
+    printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
     return
   fi
   for c in "$@"; do
     case "$c" in
-      all) printf '%s\n' consolidate2x1 transfer ;;
-      consolidate2x1|transfer) printf '%s\n' "$c" ;;
+      all) printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer ;;
+      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer) printf '%s\n' "$c" ;;
       *) fail "unsupported circuit $c" ;;
     esac
   done | awk '!seen[$0]++'
@@ -43,6 +42,7 @@ json_field() {
 }
 
 command -v go >/dev/null 2>&1 || fail "go toolchain not found"
+python3 "$GNARK_DIR/check_note_reshape_registry.py"
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -58,11 +58,23 @@ while IFS= read -r circuit; do
   sr1cs="$tmp_dir/$circuit.sr1cs"
   fresh="$tmp_dir/$circuit-manifest.json"
 
-  (
-    cd "$GNARK_DIR"
-    go run ./cmd/gnarkctl export-r1cs --circuit "$circuit" --out "$sr1cs" >/dev/null
-    go run ./cmd/gnarkctl export-manifest --circuit "$circuit" --sr1cs "$sr1cs" --out "$fresh" >/dev/null
-  )
+  if [[ "$circuit" == "transfer" ]]; then
+    (
+      cd "$GNARK_DIR"
+      go run ./cmd/gnarkctl export-r1cs \
+        --circuit "$circuit" --format picus --out "$sr1cs" >/dev/null
+      go run ./cmd/gnarkctl export-manifest \
+        --circuit "$circuit" --sr1cs "$sr1cs" --out "$fresh" >/dev/null
+    )
+  else
+    (
+      cd "$GNARK_DIR"
+      go run ./cmd/gnarkctl export-fv \
+        --circuit "$circuit" \
+        --sr1cs-out "$sr1cs" \
+        --manifest-out "$fresh" >/dev/null
+    )
+  fi
 
   want="$(json_field "$committed" sr1cs_sha256_hex)"
   have="$(json_field "$fresh" sr1cs_sha256_hex)"
@@ -71,6 +83,10 @@ while IFS= read -r circuit; do
   if [[ "$want" != "$have" ]]; then
     fail "$circuit: recompiled sr1cs_sha256_hex $have != committed $want (circuit changed without re-pinning the manifest)"
   fi
+  if ! cmp -s "$fresh" "$committed"; then
+    diff -u "$committed" "$fresh" >&2 || true
+    fail "$circuit: freshly compiled semantic constraint manifest differs from committed manifest"
+  fi
 
-  echo "manifest pin ok ($circuit): sr1cs_sha256_hex=$have"
+  echo "manifest pin ok ($circuit): exact manifest, sr1cs_sha256_hex=$have"
 done < <(printf '%s\n' "$circuits")

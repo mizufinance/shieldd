@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import ShielddGnarkFormal.Deployed.Nullifier.FullTail
 
 set_option maxRecDepth 1000000
@@ -7,6 +8,8 @@ set_option linter.unreachableTactic false
 set_option linter.unusedTactic false
 
 namespace Shieldd.GnarkFormal.Deployed.Nullifier
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon3Bridge
 open Shieldd.GnarkFormal.Deployed.Poseidon3Link

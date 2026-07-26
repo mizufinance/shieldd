@@ -1,14 +1,14 @@
-// Re-seating locator for the consolidate2x1 DTK R/Q4 lt-ladders: finds
+// Re-seating locator for the note_reshape2x1 DTK R/Q4 lt-ladders: finds
 // (bit_base, start, end) in the current .sr1cs by first-rung shape
 // (1 x (1 - bit_252)) and confirms via full recovery + parity gate. Run this
-// whenever `consolidate2x1_ladders()` constants go stale after a circuit
+// whenever `note_reshape2x1_ladders()` constants go stale after a circuit
 // change; the printed seatings are parity-verified, not heuristic.
 use shieldd_constraint_coverage::{ir::parse_rows, load_sr1cs, ltchain};
 
 fn main() {
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs"
+        "/../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
     );
     let sr1cs = load_sr1cs(path).unwrap();
     let rows = parse_rows(&sr1cs).unwrap();

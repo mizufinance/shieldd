@@ -14,6 +14,17 @@ namespace Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput4
 abbrev Order : ℕ := Shieldd.GnarkFormal.Extracted.PoseidonHash6.Order
 variable [Fact (Nat.Prime Order)]
 abbrev F := Shieldd.GnarkFormal.Extracted.PoseidonHash6.F
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) : Ring F := (ZMod.commRing _).toRing
 
 def seg0 (w14 w15 w16 w19 w22 w572 w912 : F) (k : F → F → F → F → F → F → F → Prop) : Prop :=
 ∃ w913 w914 w915 w916 w917 : F,

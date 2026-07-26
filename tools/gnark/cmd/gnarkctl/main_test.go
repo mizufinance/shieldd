@@ -14,7 +14,7 @@ func TestRunExportWiringTranscript(t *testing.T) {
 		label string
 		want  func() (string, error)
 	}{
-		{"consolidate2x1", circuits.ExportConsolidate2x1WiringTranscript},
+		{"note_reshape2x1", circuits.ExportNoteReshape2x1WiringTranscript},
 		{"transfer", circuits.ExportTransferWiringTranscript},
 	}
 

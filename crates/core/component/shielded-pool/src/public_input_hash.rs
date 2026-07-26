@@ -7,36 +7,26 @@ use shieldd_sdk_compliance::{
 use shieldd_sdk_proof_params::statement_hash::{hash_statement_fields, hash_statement_fields_var};
 
 use crate::{
-    consolidate::ConsolidateProofPublic,
+    note_reshape::NoteReshapeProofPublic,
     shielded_ics20_withdrawal::ShieldedIcs20WithdrawalProofPublic,
-    split::SplitProofPublic,
     transfer::{TransferProofPublic, TransferSpendPublic},
     transfer::{TRANSFER_PROOF_LABEL, TRANSFER_STATEMENT_FIELD_COUNT},
-    ConsolidateFamilyId, SplitFamilyId,
+    NoteReshapeFamilyId,
 };
 
-pub const CONSOLIDATE_STATEMENT_BASE_FIELDS: usize = 2;
-pub const CONSOLIDATE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
-pub const CONSOLIDATE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const SPLIT_STATEMENT_BASE_FIELDS: usize = 2;
-pub const SPLIT_STATEMENT_FIELDS_PER_INPUT: usize = 2;
-pub const SPLIT_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
+pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 2;
+pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
+pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 77;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 10;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 
-pub const fn consolidate_statement_field_count(n_in: usize, n_out: usize) -> usize {
-    CONSOLIDATE_STATEMENT_BASE_FIELDS
-        + CONSOLIDATE_STATEMENT_FIELDS_PER_INPUT * n_in
-        + CONSOLIDATE_STATEMENT_FIELDS_PER_OUTPUT * n_out
-}
-
-pub const fn split_statement_field_count(n_in: usize, n_out: usize) -> usize {
-    SPLIT_STATEMENT_BASE_FIELDS
-        + SPLIT_STATEMENT_FIELDS_PER_INPUT * n_in
-        + SPLIT_STATEMENT_FIELDS_PER_OUTPUT * n_out
+pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> usize {
+    NOTE_RESHAPE_STATEMENT_BASE_FIELDS
+        + NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT * n_in
+        + NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT * n_out
 }
 
 pub const fn transfer_statement_field_count(n_in: usize, n_out: usize) -> usize {
@@ -50,14 +40,7 @@ pub const fn shielded_ics20_withdrawal_statement_field_count(n_in: usize) -> usi
         + SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT * n_in
 }
 
-fn consolidate_statement_hash_constant(family_id: ConsolidateFamilyId, suffix: &str) -> Fq {
-    let label = format!(
-        "shieldd.shielded_pool.{}.public_input_hash.{suffix}",
-        family_id.label()
-    );
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label.as_bytes()).as_bytes())
-}
-fn split_statement_hash_constant(family_id: SplitFamilyId, suffix: &str) -> Fq {
+fn note_reshape_statement_hash_constant(family_id: NoteReshapeFamilyId, suffix: &str) -> Fq {
     let label = format!(
         "shieldd.shielded_pool.{}.public_input_hash.{suffix}",
         family_id.label()
@@ -104,13 +87,7 @@ fn transfer_field_encoding_error(field: &str) -> StatementHashError {
     }
 }
 
-fn consolidate_field_encoding_error(field: &str) -> StatementHashError {
-    StatementHashError::FieldEncoding {
-        field: field.to_owned(),
-    }
-}
-
-fn split_field_encoding_error(field: &str) -> StatementHashError {
+fn note_reshape_field_encoding_error(field: &str) -> StatementHashError {
     StatementHashError::FieldEncoding {
         field: field.to_owned(),
     }
@@ -133,7 +110,7 @@ trait NoteReshapeOutputPublic {
     fn note_commitment(&self) -> shieldd_sdk_tct::StateCommitment;
 }
 
-impl NoteReshapeInputPublic for crate::ConsolidateInputPublic {
+impl NoteReshapeInputPublic for crate::NoteReshapeInputPublic {
     fn nullifier(&self) -> shieldd_sdk_sct::Nullifier {
         self.nullifier
     }
@@ -143,23 +120,7 @@ impl NoteReshapeInputPublic for crate::ConsolidateInputPublic {
     }
 }
 
-impl NoteReshapeOutputPublic for crate::ConsolidateOutputPublic {
-    fn note_commitment(&self) -> shieldd_sdk_tct::StateCommitment {
-        self.note_commitment
-    }
-}
-
-impl NoteReshapeInputPublic for crate::SplitInputPublic {
-    fn nullifier(&self) -> shieldd_sdk_sct::Nullifier {
-        self.nullifier
-    }
-
-    fn rk(&self) -> decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth> {
-        self.rk
-    }
-}
-
-impl NoteReshapeOutputPublic for crate::SplitOutputPublic {
+impl NoteReshapeOutputPublic for crate::NoteReshapeOutputPublic {
     fn note_commitment(&self) -> shieldd_sdk_tct::StateCommitment {
         self.note_commitment
     }
@@ -185,7 +146,7 @@ impl NoteReshapeOutputPublic
     }
 }
 
-fn note_reshape_statement_fields<I, O>(
+fn note_reshape_statement_fields_inner<I, O>(
     anchor: shieldd_sdk_tct::Root,
     balance_commitment: shieldd_sdk_asset::balance::Commitment,
     inputs: &[I],
@@ -243,44 +204,32 @@ where
     Ok(fields)
 }
 
-pub fn consolidate_statement_fields(
-    public: &ConsolidateProofPublic,
+pub fn note_reshape_statement_fields(
+    public: &NoteReshapeProofPublic,
 ) -> Result<Vec<Fq>, StatementHashError> {
     public
         .validate_shape()
-        .map_err(|e| consolidate_field_encoding_error(&e.to_string()))?;
+        .map_err(|e| note_reshape_field_encoding_error(&e.to_string()))?;
 
-    let expected = consolidate_statement_field_count(
+    let expected = note_reshape_statement_field_count(
         public.family_id.input_count(),
         public.family_id.output_count(),
     );
-    note_reshape_statement_fields(
+    let fields = note_reshape_statement_fields_inner(
         public.anchor,
         public.balance_commitment,
         &public.inputs,
         &public.outputs,
         expected,
-        consolidate_field_encoding_error,
-    )
-}
-
-pub fn split_statement_fields(public: &SplitProofPublic) -> Result<Vec<Fq>, StatementHashError> {
-    public
-        .validate_shape()
-        .map_err(|e| split_field_encoding_error(&e.to_string()))?;
-
-    let expected = split_statement_field_count(
-        public.family_id.input_count(),
-        public.family_id.output_count(),
-    );
-    note_reshape_statement_fields(
-        public.anchor,
-        public.balance_commitment,
-        &public.inputs,
-        &public.outputs,
-        expected,
-        split_field_encoding_error,
-    )
+        note_reshape_field_encoding_error,
+    )?;
+    if fields.len() != expected {
+        return Err(StatementHashError::InvalidFieldLength {
+            expected,
+            got: fields.len(),
+        });
+    }
+    Ok(fields)
 }
 
 pub fn transfer_statement_fields(
@@ -522,7 +471,7 @@ pub fn shielded_ics20_withdrawal_statement_fields(
         })?;
 
     let expected = shielded_ics20_withdrawal_statement_field_count(public.family_id.input_count());
-    let mut fields = note_reshape_statement_fields(
+    let mut fields = note_reshape_statement_fields_inner(
         public.anchor,
         public.balance_commitment,
         &public.inputs,
@@ -579,30 +528,16 @@ pub fn shielded_ics20_withdrawal_statement_fields(
     Ok(fields)
 }
 
-pub fn consolidate_statement_hash(
-    family_id: ConsolidateFamilyId,
+pub fn note_reshape_statement_hash(
+    family_id: NoteReshapeFamilyId,
     fields: &[Fq],
 ) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &consolidate_statement_hash_constant(family_id, "v1"),
-        consolidate_statement_hash_constant(family_id, "pad0"),
-        consolidate_statement_hash_constant(family_id, "pad1"),
+        &note_reshape_statement_hash_constant(family_id, "v1"),
+        note_reshape_statement_hash_constant(family_id, "pad0"),
+        note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
-        consolidate_statement_field_count(family_id.input_count(), family_id.output_count()),
-        |expected, got| StatementHashError::InvalidFieldLength { expected, got },
-    )
-}
-
-pub fn split_statement_hash(
-    family_id: SplitFamilyId,
-    fields: &[Fq],
-) -> Result<Fq, StatementHashError> {
-    hash_statement_fields(
-        &split_statement_hash_constant(family_id, "v1"),
-        split_statement_hash_constant(family_id, "pad0"),
-        split_statement_hash_constant(family_id, "pad1"),
-        fields,
-        split_statement_field_count(family_id.input_count(), family_id.output_count()),
+        note_reshape_statement_field_count(family_id.input_count(), family_id.output_count()),
         |expected, got| StatementHashError::InvalidFieldLength { expected, got },
     )
 }
@@ -632,18 +567,11 @@ pub fn shielded_ics20_withdrawal_statement_hash(fields: &[Fq]) -> Result<Fq, Sta
     )
 }
 
-pub fn consolidate_statement_hash_from_public(
-    public: &ConsolidateProofPublic,
+pub fn note_reshape_statement_hash_from_public(
+    public: &NoteReshapeProofPublic,
 ) -> Result<Fq, StatementHashError> {
-    let fields = consolidate_statement_fields(public)?;
-    consolidate_statement_hash(public.family_id, &fields)
-}
-
-pub fn split_statement_hash_from_public(
-    public: &SplitProofPublic,
-) -> Result<Fq, StatementHashError> {
-    let fields = split_statement_fields(public)?;
-    split_statement_hash(public.family_id, &fields)
+    let fields = note_reshape_statement_fields(public)?;
+    note_reshape_statement_hash(public.family_id, &fields)
 }
 
 pub fn transfer_statement_hash_from_public(
@@ -660,33 +588,18 @@ pub fn shielded_ics20_withdrawal_statement_hash_from_public(
     shielded_ics20_withdrawal_statement_hash(&fields)
 }
 
-pub fn consolidate_statement_hash_var(
+pub fn note_reshape_statement_hash_var(
     cs: ConstraintSystemRef<Fq>,
-    family_id: ConsolidateFamilyId,
+    family_id: NoteReshapeFamilyId,
     fields: &[FqVar],
 ) -> Result<FqVar, SynthesisError> {
     hash_statement_fields_var(
         cs,
-        &consolidate_statement_hash_constant(family_id, "v1"),
-        consolidate_statement_hash_constant(family_id, "pad0"),
-        consolidate_statement_hash_constant(family_id, "pad1"),
+        &note_reshape_statement_hash_constant(family_id, "v1"),
+        note_reshape_statement_hash_constant(family_id, "pad0"),
+        note_reshape_statement_hash_constant(family_id, "pad1"),
         fields,
-        consolidate_statement_field_count(family_id.input_count(), family_id.output_count()),
-    )
-}
-
-pub fn split_statement_hash_var(
-    cs: ConstraintSystemRef<Fq>,
-    family_id: SplitFamilyId,
-    fields: &[FqVar],
-) -> Result<FqVar, SynthesisError> {
-    hash_statement_fields_var(
-        cs,
-        &split_statement_hash_constant(family_id, "v1"),
-        split_statement_hash_constant(family_id, "pad0"),
-        split_statement_hash_constant(family_id, "pad1"),
-        fields,
-        split_statement_field_count(family_id.input_count(), family_id.output_count()),
+        note_reshape_statement_field_count(family_id.input_count(), family_id.output_count()),
     )
 }
 
@@ -710,29 +623,45 @@ pub fn transfer_statement_hash_var(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{transfer_input_count, transfer_output_count};
+    use crate::{
+        test_proof_helpers::proof_test_helpers, transfer_input_count, transfer_output_count,
+    };
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget};
     use ark_relations::r1cs::ConstraintSystem;
     use decaf377::Fq;
 
+    fn go_fixture_statement_hash(path: &str) -> (NoteReshapeFamilyId, Fq) {
+        let bytes = std::fs::read(path).expect("read Go note reshape fixture");
+        let witness = crate::gnark::decode_note_reshape_witness_v1(&bytes)
+            .expect("decode Go note reshape fixture");
+        let fields = witness
+            .statement_fields
+            .iter()
+            .map(|field| Fq::from_le_bytes_mod_order(field))
+            .collect::<Vec<_>>();
+        let hash = note_reshape_statement_hash(witness.family_id, &fields)
+            .expect("hash Go note reshape statement fields");
+        (witness.family_id, hash)
+    }
+
     #[test]
-    fn consolidate_statement_hash_native_matches_r1cs() {
-        for family_id in ConsolidateFamilyId::ALL {
-            let fields = (0..consolidate_statement_field_count(
+    fn note_reshape_statement_hash_native_matches_r1cs() {
+        for family_id in NoteReshapeFamilyId::ALL {
+            let fields = (0..note_reshape_statement_field_count(
                 family_id.input_count(),
                 family_id.output_count(),
             ))
                 .map(|i| Fq::from((i as u64) + 1))
                 .collect::<Vec<_>>();
-            let native =
-                consolidate_statement_hash(family_id, &fields).expect("native hash should succeed");
+            let native = note_reshape_statement_hash(family_id, &fields)
+                .expect("native hash should succeed");
 
             let cs = ConstraintSystem::<Fq>::new_ref();
             let vars = fields
                 .iter()
                 .map(|f| FqVar::new_witness(cs.clone(), || Ok(*f)).expect("witness allocation"))
                 .collect::<Vec<_>>();
-            let var_hash = consolidate_statement_hash_var(cs.clone(), family_id, &vars)
+            let var_hash = note_reshape_statement_hash_var(cs.clone(), family_id, &vars)
                 .expect("r1cs hash should work");
             let constrained_native = FqVar::new_witness(cs.clone(), || Ok(native))
                 .expect("native witness allocation should work");
@@ -744,28 +673,112 @@ mod tests {
     }
 
     #[test]
-    fn split_statement_hash_native_matches_r1cs() {
-        for family_id in SplitFamilyId::ALL {
-            let fields =
-                (0..split_statement_field_count(family_id.input_count(), family_id.output_count()))
-                    .map(|i| Fq::from((i as u64) + 1))
-                    .collect::<Vec<_>>();
-            let native =
-                split_statement_hash(family_id, &fields).expect("native hash should succeed");
+    fn note_reshape_statement_hash_matches_go_fixtures_for_all_families() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../..")
+            .join("tools/gnark/internal/testfixtures/vectors");
+        for (label, filename) in [
+            ("note_reshape2x1", "note_reshape2x1_witness_v1.bin"),
+            ("note_reshape1x8", "note_reshape1x8_witness_v1.bin"),
+            ("note_reshape4x1", "note_reshape4x1_witness_v1.bin"),
+            ("note_reshape8x1", "note_reshape8x1_witness_v1.bin"),
+        ] {
+            let (family_id, hash) = go_fixture_statement_hash(
+                root.join(filename).to_str().expect("fixture path is UTF-8"),
+            );
+            assert_eq!(family_id.label(), label);
+            let bytes = std::fs::read(root.join(filename)).expect("read Go note reshape fixture");
+            let witness = crate::gnark::decode_note_reshape_witness_v1(&bytes)
+                .expect("decode Go note reshape fixture");
+            assert_eq!(
+                hash,
+                Fq::from_le_bytes_mod_order(&witness.claimed_statement_hash),
+                "Rust/Go statement hash mismatch for {label}"
+            );
+        }
+    }
 
-            let cs = ConstraintSystem::<Fq>::new_ref();
-            let vars = fields
-                .iter()
-                .map(|f| FqVar::new_witness(cs.clone(), || Ok(*f)).expect("witness allocation"))
-                .collect::<Vec<_>>();
-            let var_hash = split_statement_hash_var(cs.clone(), family_id, &vars)
-                .expect("r1cs hash should work");
-            let constrained_native = FqVar::new_witness(cs.clone(), || Ok(native))
-                .expect("native witness allocation should work");
-            var_hash
-                .enforce_equal(&constrained_native)
-                .expect("hashes must be equal");
-            assert!(cs.is_satisfied().expect("cs should evaluate"));
+    #[test]
+    fn note_reshape_wrong_family_domain_changes_the_statement_hash() {
+        let family_id = NoteReshapeFamilyId::TwoByOne;
+        let fields = (0..note_reshape_statement_field_count(
+            family_id.input_count(),
+            family_id.output_count(),
+        ))
+            .map(|index| Fq::from((index + 1) as u64))
+            .collect::<Vec<_>>();
+        let correct =
+            note_reshape_statement_hash(family_id, &fields).expect("correct family statement hash");
+        let wrong = hash_statement_fields(
+            &note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "v1"),
+            note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad0"),
+            note_reshape_statement_hash_constant(NoteReshapeFamilyId::OneByEight, "pad1"),
+            &fields,
+            fields.len(),
+            |expected, got| StatementHashError::InvalidFieldLength { expected, got },
+        )
+        .expect("wrong family domain hash should still be well-formed");
+        assert_ne!(correct, wrong, "family domain must bind the statement");
+    }
+
+    #[test]
+    fn note_reshape_wrong_shape_is_rejected_for_all_families() {
+        for family_id in NoteReshapeFamilyId::ALL {
+            let (mut public, _) =
+                proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            public.inputs.pop();
+            assert!(
+                public.validate_shape().is_err(),
+                "{} must reject an input-shape mutation",
+                family_id.label()
+            );
+        }
+    }
+
+    #[test]
+    fn note_reshape_wrong_statement_preimage_changes_the_hash_for_all_families() {
+        for family_id in NoteReshapeFamilyId::ALL {
+            let (public, _) = proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            let fields = note_reshape_statement_fields(&public).expect("statement fields");
+            let correct =
+                note_reshape_statement_hash(family_id, &fields).expect("correct statement hash");
+            let mut mutated = fields;
+            mutated[0] += Fq::from(1u64);
+            let wrong =
+                note_reshape_statement_hash(family_id, &mutated).expect("mutated statement hash");
+            assert_ne!(
+                correct,
+                wrong,
+                "{} preimage mutation was ignored",
+                family_id.label()
+            );
+        }
+    }
+
+    #[test]
+    fn note_reshape_statement_has_no_active_counts_after_redesign() {
+        for family_id in NoteReshapeFamilyId::ALL {
+            let core = NOTE_RESHAPE_STATEMENT_BASE_FIELDS
+                + NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT * family_id.input_count()
+                + NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT * family_id.output_count();
+            assert_eq!(
+                note_reshape_statement_field_count(
+                    family_id.input_count(),
+                    family_id.output_count()
+                ),
+                core,
+                "{} statement field count still includes active counts",
+                family_id.label()
+            );
+            let (public, _) = proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
+            assert_eq!(
+                note_reshape_statement_fields(&public)
+                    .expect("statement fields")
+                    .len(),
+                core,
+                "{} statement preimage still includes active counts",
+                family_id.label()
+            );
         }
     }
 

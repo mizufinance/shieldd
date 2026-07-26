@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.EdwardsBridge
 import ShielddGnarkFormal.CompressToFieldBridge
+import ShielddGnarkFormal.PrimeCertificates.Decaf377
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
@@ -16,6 +17,7 @@ so scalar-mul ladders can induct.
 
 namespace Shieldd.GnarkFormal.EdwardsBridge
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Extracted.DecafCompressToField (powModAux powModAux_eq)
 
 open Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd (Order)
@@ -76,14 +78,27 @@ theorem d_pow_half : ((dNat : ℕ) : F) ^ (Order / 2) = ((Order - 1 : ℕ) : F) 
     _ = ((dNat ^ (Order / 2) % Order : ℕ) : F) := (ZMod.natCast_mod _ _).symm
     _ = ((Order - 1 : ℕ) : F) := by rw [← h]
 
-/-- d = 3021 is not a square in F (Euler criterion, kernel-evaluated). -/
+/-- d = 3021 is not a square in F, using the checked half-power residue and
+the choice-free Fermat theorem from the field's Lucas certificate. -/
 theorem d_not_square : ¬ IsSquare d := by
   rw [d_natCast]
-  intro hsq
+  rintro ⟨x, hx⟩
   have hne : ((dNat : ℕ) : F) ≠ 0 := by
     rw [← d_natCast]; exact d_ne_zero
-  have h1 := (ZMod.euler_criterion Order hne).mp hsq
-  rw [d_pow_half] at h1
+  have hxne : x ≠ 0 := by
+    intro hzero
+    apply hne
+    rw [hx, hzero, zero_mul]
+  have hsquarePow : ((dNat : ℕ) : F) ^ (Order / 2) = 1 := by
+    calc
+      ((dNat : ℕ) : F) ^ (Order / 2)
+          = (x * x) ^ (Order / 2) := by rw [hx]
+      _ = x ^ (Order / 2 + Order / 2) := by rw [mul_pow, ← pow_add]
+      _ = x ^ (Order - 1) := by congr 1 <;> decide +kernel
+      _ = 1 := by
+        simpa only [Order, PrimeCertificates.Decaf377.fieldOrder] using
+          PrimeCertificates.Decaf377.fermat x hxne
+  have h1 : ((Order - 1 : ℕ) : F) = 1 := d_pow_half.symm.trans hsquarePow
   have hlt : Order - 1 < Order := by
     have := (Fact.out (p := Nat.Prime Order)).pos
     omega
@@ -96,15 +111,26 @@ theorem two_ne_zero' : (2 : F) ≠ 0 := by
   exact natLit_ne_zero 2 (by decide) (by decide +kernel)
 
 theorem i_ne_zero : iLit ≠ 0 := by
-  intro h
-  have hi := i_sq
-  rw [h, mul_zero] at hi
-  exact one_ne_zero (α := F) (by linear_combination hi)
+  rw [iLit]
+  exact natLit_ne_zero
+    880904806456922042258150504921383618666682042621506879489
+    (by decide) (by decide +kernel)
 
 /-! ### On-curve predicate and completeness core -/
 
+section ChoiceFreeOnCurve
+
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) : Neg F := (ZMod.commRing _).toNeg
+
 def onCurve (p : Point) : Prop :=
   -(p.x * p.x) + p.y * p.y = 1 + d * (p.x * p.x) * (p.y * p.y)
+
+end ChoiceFreeOnCurve
 
 /-- Bernstein–Lange completeness: for on-curve points, `d·x₁x₂y₁y₂ ≠ ±1`. -/
 theorem completeness_core (x1 y1 x2 y2 ε : F)
@@ -116,7 +142,7 @@ theorem completeness_core (x1 y1 x2 y2 ε : F)
   have hεne : ε ≠ 0 := by
     intro h
     rw [h, mul_zero] at hε2
-    exact one_ne_zero (α := F) hε2.symm
+    exact natLit_ne_zero 1 (by decide) (by decide +kernel) hε2.symm
   have hx1 : x1 ≠ 0 := by rintro rfl; apply hεne; rw [← heq]; ring
   have hy1 : y1 ≠ 0 := by rintro rfl; apply hεne; rw [← heq]; ring
   have hx2 : x2 ≠ 0 := by rintro rfl; apply hεne; rw [← heq]; ring
@@ -142,17 +168,58 @@ theorem completeness_core (x1 y1 x2 y2 ε : F)
       intro h0
       apply hx2
       have hx2z : (2 * iLit) * x2 = 0 := by linear_combination hcase - h0
-      rcases mul_eq_zero.mp hx2z with h | h
-      · exact absurd h (mul_ne_zero two_ne_zero' i_ne_zero)
+      rcases ChoiceFreeZMod.eq_zero_or_eq_zero_of_mul_eq_zero Order hx2z with h | h
+      · exact absurd h (ChoiceFreeZMod.mul_ne_zero Order two_ne_zero' i_ne_zero)
       · exact h
+    let numerator := iLit * x1 - ε * y1
+    let denominator := (x1 * y1) * (y2 - iLit * x2)
+    let reciprocal := ZMod.inv Order denominator
+    have hdenominator : denominator ≠ 0 :=
+      ChoiceFreeZMod.mul_ne_zero Order
+        (ChoiceFreeZMod.mul_ne_zero Order hx1 hy1) hcase2
+    have hsquare :
+        numerator * numerator = d * (denominator * denominator) := by
+      dsimp only [numerator, denominator]
+      linear_combination hB
+    have hcancel : denominator * reciprocal = 1 := by
+      exact ChoiceFreeZMod.mul_inv_cancel Order denominator hdenominator
     apply d_not_square
-    refine ⟨(iLit * x1 - ε * y1) * ((x1 * y1) * (y2 - iLit * x2))⁻¹, ?_⟩
-    field_simp [hx1, hy1, hcase2]
-    linear_combination -hB
-  · apply d_not_square
-    refine ⟨(iLit * x1 + ε * y1) * ((x1 * y1) * (y2 + iLit * x2))⁻¹, ?_⟩
-    field_simp [hx1, hy1, hcase]
-    linear_combination -hA
+    refine ⟨numerator * reciprocal, ?_⟩
+    calc
+      d = d * 1 := (mul_one d).symm
+      _ = d * ((denominator * reciprocal) *
+          (denominator * reciprocal)) := by rw [hcancel, one_mul]
+      _ = (d * (denominator * denominator)) *
+          (reciprocal * reciprocal) := by ring
+      _ = (numerator * numerator) *
+          (reciprocal * reciprocal) := by rw [hsquare]
+      _ = (numerator * reciprocal) *
+          (numerator * reciprocal) := by ring
+  ·
+    let numerator := iLit * x1 + ε * y1
+    let denominator := (x1 * y1) * (y2 + iLit * x2)
+    let reciprocal := ZMod.inv Order denominator
+    have hdenominator : denominator ≠ 0 :=
+      ChoiceFreeZMod.mul_ne_zero Order
+        (ChoiceFreeZMod.mul_ne_zero Order hx1 hy1) hcase
+    have hsquare :
+        numerator * numerator = d * (denominator * denominator) := by
+      dsimp only [numerator, denominator]
+      linear_combination hA
+    have hcancel : denominator * reciprocal = 1 := by
+      exact ChoiceFreeZMod.mul_inv_cancel Order denominator hdenominator
+    apply d_not_square
+    refine ⟨numerator * reciprocal, ?_⟩
+    calc
+      d = d * 1 := (mul_one d).symm
+      _ = d * ((denominator * reciprocal) *
+          (denominator * reciprocal)) := by rw [hcancel, one_mul]
+      _ = (d * (denominator * denominator)) *
+          (reciprocal * reciprocal) := by ring
+      _ = (numerator * numerator) *
+          (reciprocal * reciprocal) := by rw [hsquare]
+      _ = (numerator * reciprocal) *
+          (numerator * reciprocal) := by ring
 
 /-! ### Denominator non-vanishing -/
 
@@ -170,6 +237,10 @@ theorem add_den_minus_ne (p q : Point) (hp : onCurve p) (hq : onCurve q) :
 
 /-! ### Functional formulas (the ⁻¹ forms used by the compose model) -/
 
+section ChoiceFreeFunctionalDefinitions
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 /-- gnark twisted-Edwards addition, functional form. -/
 def addF (p q : Point) : Point :=
   let v0 := q.y * p.x
@@ -184,6 +255,12 @@ def doubleF (p : Point) : Point :=
   let v := p.x * p.x
   let w := p.y * p.y
   ⟨(2 * u) * (w - v)⁻¹, (w + v) * (2 - (w - v))⁻¹⟩
+
+end ChoiceFreeFunctionalDefinitions
+
+section ChoiceFreeSpecFunctionalBridges
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 theorem addSpec_eq (p q out : Point) (hp : onCurve p) (hq : onCurve q)
     (h : addSpec p q out) : out = addF p q := by
@@ -202,10 +279,10 @@ theorem addSpec_eq (p q out : Point) (hp : onCurve p) (hq : onCurve q)
         linear_combination hy + (q.y * p.x - p.x * (q.x + q.y)) * ha
       have ex : out.x = (q.y * p.x + q.x * p.y)
           * (1 + d * (q.y * p.x) * (q.x * p.y))⁻¹ :=
-        (eq_mul_inv_iff_mul_eq₀ hdp).mpr hx'
+        (ChoiceFreeZMod.eq_mul_inv_iff_mul_eq Order hdp).mpr hx'
       have ey : out.y = (-(q.y * p.x) - q.x * p.y + (p.y + p.x) * (q.x + q.y))
           * (1 - d * (q.y * p.x) * (q.x * p.y))⁻¹ :=
-        (eq_mul_inv_iff_mul_eq₀ hdm).mpr hy'
+        (ChoiceFreeZMod.eq_mul_inv_iff_mul_eq Order hdm).mpr hy'
       have hsplit : out = ⟨out.x, out.y⟩ := rfl
       rw [hsplit, ex, ey]
       rfl
@@ -243,15 +320,17 @@ theorem doubleSpec_eq (p out : Point) (hp : onCurve p)
       have hy' : out.y * (2 - (p.y * p.y - p.x * p.x)) = p.y * p.y + p.x * p.x := by
         linear_combination hy + (out.y - 1) * p.x * p.x * ha
       have ex : out.x = (2 * (p.x * p.y)) * (p.y * p.y - p.x * p.x)⁻¹ :=
-        (eq_mul_inv_iff_mul_eq₀ hd1').mpr hx'
+        (ChoiceFreeZMod.eq_mul_inv_iff_mul_eq Order hd1').mpr hx'
       have ey : out.y = (p.y * p.y + p.x * p.x)
           * (2 - (p.y * p.y - p.x * p.x))⁻¹ :=
-        (eq_mul_inv_iff_mul_eq₀ hd2').mpr hy'
+        (ChoiceFreeZMod.eq_mul_inv_iff_mul_eq Order hd2').mpr hy'
       have hsplit : out = ⟨out.x, out.y⟩ := rfl
       rw [hsplit, ex, ey]
       rfl
     · exact absurd hb2 hd2
   · exact absurd hb1 hd1
+
+end ChoiceFreeSpecFunctionalBridges
 
 /-! ### On-curve closure -/
 
@@ -308,9 +387,12 @@ private theorem closure_key (x1 y1 x2 y2 X Y : F)
           * (X * (1 + d * (y2 * x1) * (x2 * y1))))
           * (Y * (1 - d * (y2 * x1) * (x2 * y1))
             + (-(y2 * x1) - x2 * y1 + (y1 + x1) * (x2 + y2)))) * e2
-  rcases mul_eq_zero.mp key with h | h
+  rcases ChoiceFreeZMod.eq_zero_or_eq_zero_of_mul_eq_zero Order key with h | h
   · linear_combination h
-  · exact absurd h (mul_ne_zero (mul_ne_zero hT1 hT1) (mul_ne_zero hT2 hT2))
+  · exact absurd h
+      (ChoiceFreeZMod.mul_ne_zero Order
+        (ChoiceFreeZMod.mul_ne_zero Order hT1 hT1)
+        (ChoiceFreeZMod.mul_ne_zero Order hT2 hT2))
 
 theorem add_onCurve (p q : Point) (hp : onCurve p) (hq : onCurve q) :
     onCurve (addF p q) := by
@@ -320,9 +402,15 @@ theorem add_onCurve (p q : Point) (hp : onCurve p) (hq : onCurve q) :
   have hT2 := add_den_minus_ne p q hp hq
   refine closure_key p.x p.y q.x q.y _ _ hp' hq' hT1 hT2 ?_ ?_
   · simp only [addF]
-    field_simp
+    rw [mul_assoc,
+      ChoiceFreeZMod.inv_mul_cancel Order
+        (1 + d * (q.y * p.x) * (q.x * p.y)) hT1,
+      mul_one]
   · simp only [addF]
-    field_simp
+    rw [mul_assoc,
+      ChoiceFreeZMod.inv_mul_cancel Order
+        (1 - d * (q.y * p.x) * (q.x * p.y)) hT2,
+      mul_one]
 
 theorem double_eq_addF_self (p : Point) (hp : onCurve p) : doubleF p = addF p p := by
   have hp' : -(p.x * p.x) + p.y * p.y = 1 + d * (p.x * p.x) * (p.y * p.y) := hp
@@ -336,8 +424,36 @@ theorem double_eq_addF_self (p : Point) (hp : onCurve p) : doubleF p = addF p p 
   constructor <;> ring
 
 theorem double_onCurve (p : Point) (hp : onCurve p) : onCurve (doubleF p) := by
-  rw [double_eq_addF_self p hp]
-  exact add_onCurve p p hp hp
+  have hp' : -(p.x * p.x) + p.y * p.y =
+      1 + d * (p.x * p.x) * (p.y * p.y) := hp
+  have hT1 := add_den_plus_ne p p hp hp
+  have hT2 := add_den_minus_ne p p hp hp
+  have hden : p.y * p.y - p.x * p.x =
+      1 + d * (p.y * p.x) * (p.x * p.y) := by
+    linear_combination hp'
+  have hden2 : 2 - (p.y * p.y - p.x * p.x) =
+      1 - d * (p.y * p.x) * (p.x * p.y) := by
+    linear_combination -hp'
+  have hdenNe : p.y * p.y - p.x * p.x ≠ 0 := by
+    rw [hden]
+    exact hT1
+  have hden2Ne : 2 - (p.y * p.y - p.x * p.x) ≠ 0 := by
+    rw [hden2]
+    exact hT2
+  refine closure_key p.x p.y p.x p.y (doubleF p).x (doubleF p).y
+    hp' hp' hT1 hT2 ?_ ?_
+  · simp only [doubleF]
+    rw [← hden, mul_assoc,
+      ChoiceFreeZMod.inv_mul_cancel Order
+        (p.y * p.y - p.x * p.x) hdenNe,
+      mul_one]
+    ring
+  · simp only [doubleF]
+    rw [← hden2, mul_assoc,
+      ChoiceFreeZMod.inv_mul_cancel Order
+        (2 - (p.y * p.y - p.x * p.x)) hden2Ne,
+      mul_one]
+    ring
 
 /-- Over `F`, the decaf cross-ratio `p.x*q.y = q.x*p.y` together with both points
 on-curve forces `q` to be either `p` itself or its 2-torsion shift `(-p.x, -p.y)`.

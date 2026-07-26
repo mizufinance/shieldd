@@ -26,7 +26,7 @@ use shieldd_sdk_proof_aggregation::{
     ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
 };
 use shieldd_sdk_proof_params::batch::BatchItem;
-use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
+use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
 // A SnarkPack transcript shape is fully determined by `padded_count = next power
 // of two of the real count`: the only count-dependent part of the trace is the
@@ -302,13 +302,17 @@ fn project_event_shape(event: &TraceEvent) -> EventShape {
     }
 }
 
-fn parity_families() -> [ProofFamilyId; 4] {
-    [
-        ProofFamilyId::Transfer,
-        ProofFamilyId::Consolidate(shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
-        ProofFamilyId::Split(shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
-        ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
-    ]
+fn parity_families() -> Vec<ProofFamilyId> {
+    let mut families = vec![ProofFamilyId::Transfer];
+    families.extend(
+        NoteReshapeFamilyId::ALL
+            .into_iter()
+            .map(ProofFamilyId::NoteReshape),
+    );
+    families.push(ProofFamilyId::ShieldedIcs20Withdrawal(
+        ShieldedIcs20WithdrawalFamilyId::Canonical,
+    ));
+    families
 }
 
 fn sample_items_with_count(

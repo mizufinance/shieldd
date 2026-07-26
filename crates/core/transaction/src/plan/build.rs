@@ -53,8 +53,7 @@ impl TransactionPlan {
             .iter()
             .map(|action| match action {
                 ActionPlan::Transfer(plan) => plan.spends.len(),
-                ActionPlan::Consolidate(plan) => plan.spends.len(),
-                ActionPlan::Split(plan) => plan.spends.len(),
+                ActionPlan::NoteReshape(plan) => plan.spends.len(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.spends.len(),
                 _ => 0,
             })
@@ -101,13 +100,8 @@ impl TransactionPlan {
                         }
                     }
                 }
-                (ActionPlan::Consolidate(plan), Action::Consolidate(consolidate)) => {
-                    for auth_sig in consolidate.auth_sigs.iter_mut().take(plan.spends.len()) {
-                        *auth_sig = spend_auths.next().expect("checked spend auth count");
-                    }
-                }
-                (ActionPlan::Split(plan), Action::Split(split)) => {
-                    for auth_sig in split.auth_sigs.iter_mut().take(plan.spends.len()) {
+                (ActionPlan::NoteReshape(plan), Action::NoteReshape(note_reshape)) => {
+                    for auth_sig in note_reshape.auth_sigs.iter_mut().take(plan.spends.len()) {
                         *auth_sig = spend_auths.next().expect("checked spend auth count");
                     }
                 }
@@ -231,13 +225,7 @@ impl TransactionPlan {
                         state_commitment_proofs.insert(commitment, proof);
                     }
                 }
-                ActionPlan::Consolidate(plan) => {
-                    for spend in &plan.spends {
-                        let (commitment, proof) = witness_note(spend)?;
-                        state_commitment_proofs.insert(commitment, proof);
-                    }
-                }
-                ActionPlan::Split(plan) => {
+                ActionPlan::NoteReshape(plan) => {
                     for spend in &plan.spends {
                         let (commitment, proof) = witness_note(spend)?;
                         state_commitment_proofs.insert(commitment, proof);

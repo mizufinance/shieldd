@@ -67,7 +67,7 @@ where
             note_manager.set_gas_prices(gas_prices);
 
             let planning_result = note_manager
-                .plan_consolidate(view, index, asset_id, None)
+                .plan_note_reshape_from_notes(view, index, asset_id, None)
                 .await
                 .context("can't build sweep transaction")?;
 

@@ -13,9 +13,9 @@ The chain does one thing: shielded transfers with compliance visibility for
 regulated assets. Heavier application logic (DEX, staking rewards, community
 pool) lives on BankD, which connects over IBC.
 
-Core actions are `Transfer`, `Consolidate`, and `Split`, alongside IBC,
-validator, governance, and compliance-registration actions. Compliance data is
-attached only to transfers.
+Core actions are `Transfer` and `NoteReshape` (1→8, 2→1, 4→1, or 8→1),
+alongside IBC, validator, governance, and compliance-registration actions.
+Compliance data is attached only to transfers.
 
 See [docs/compliance/chain-scope.md](docs/compliance/chain-scope.md) for the full
 action surface.

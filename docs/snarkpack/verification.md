@@ -190,7 +190,7 @@ bundle. The consensus boundary maps a closed `ProofFamilyId` enum to a compiled-
 ([`app/mod.rs:156-164`](../../crates/core/app/src/app/mod.rs)), and preflight
 checks `statement.vk_digest() == digest(canonical_pvk)` before any backend work
 ([`preflight.rs:160-161`](../../crates/crypto/proof-aggregation/src/preflight.rs)).
-The inner numeric `family_id` carried in `Consolidate`/`Split`/`ShieldedIcs20Withdrawal`
+The inner numeric `family_id` carried in `NoteReshape`/`ShieldedIcs20Withdrawal`
 bodies is attacker-controlled, and the registry lookups it feeds (`spec()`,
 `proof_verification_key()`) **panic** on an unknown id. That panic is unreachable
 because the wire→domain conversion validates the id against the registry

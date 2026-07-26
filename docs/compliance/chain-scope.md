@@ -10,8 +10,7 @@ visibility for regulated assets.
 | Action | Purpose |
 |--------|---------|
 | `Transfer` | Spend up to two notes and create up to two shielded notes |
-| `Consolidate` | Merge many notes of one asset into a smaller number of notes |
-| `Split` | Split one note into several notes of the same asset |
+| `NoteReshape` | Reshape sender-owned notes using a supported 1→8, 2→1, 4→1, or 8→1 family |
 | `IbcRelay` | IBC light client and channel lifecycle (inbound and outbound) |
 | `ShieldedIcs20Withdrawal` | Transfer tokens out via IBC |
 | `ValidatorDefinition` | Validator registration (permissionless, no rewards) |

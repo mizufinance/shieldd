@@ -135,7 +135,7 @@ Status model (gadget rows):
   (`check_whole_circuit_artifact`,
   [check-soundness-invariants.sh:169](../../../../scripts/check-soundness-invariants.sh#L169)):
   the artifact must be named `acl2/*whole-circuit*-artifact.txt`, be cited
-  verbatim in the property row's `soundness-handoff.md` Evidence field, carry a
+  in the authoritative property/assumption ledgers, carry a
   `.sha256` stamp, and contain the literal string `whole-circuit`. No
   `kestrel/pfcs` vendoring is required; if a future proof needs the PFCS DSL
   specifically, that is a separate toolchain addition. Rows unchanged; no

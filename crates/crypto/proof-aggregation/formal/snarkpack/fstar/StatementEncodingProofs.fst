@@ -376,8 +376,7 @@ let atoms (x: S.t_StatementEncodingInput {wf_input x}) : list (Seq.seq u8) =
     atom_bytes x.f_backend_id._0;
     atom_bytes padding_domain;
     atom_u32 x.f_proof_family_id;
-    atom_u32 x.f_consolidate_family_id;
-    atom_u32 x.f_split_family_id;
+    atom_u32 x.f_note_reshape_family_id;
     atom_u32 x.f_shielded_ics20_withdrawal_family_id;
     atom_bytes (arr32_as_slice x.f_srs_id);
     atom_bytes (arr32_as_slice x.f_vk_digest);
@@ -394,8 +393,7 @@ let spec_statement (x: S.t_StatementEncodingInput {wf_input x}) : Seq.seq u8 =
   (Seq.append (atom_bytes x.f_backend_id._0)
   (Seq.append (atom_bytes padding_domain)
   (Seq.append (atom_u32 x.f_proof_family_id)
-  (Seq.append (atom_u32 x.f_consolidate_family_id)
-  (Seq.append (atom_u32 x.f_split_family_id)
+  (Seq.append (atom_u32 x.f_note_reshape_family_id)
   (Seq.append (atom_u32 x.f_shielded_ics20_withdrawal_family_id)
   (Seq.append (atom_bytes (arr32_as_slice x.f_srs_id))
   (Seq.append (atom_bytes (arr32_as_slice x.f_vk_digest))
@@ -404,7 +402,7 @@ let spec_statement (x: S.t_StatementEncodingInput {wf_input x}) : Seq.seq u8 =
   (Seq.append (atom_u32 x.f_public_input_arity)
   (Seq.append
     (Num.impl_u32__to_le_bytes (cast (Core_models.Slice.impl__len #S.t_StatementPublicInputRow (stmt_rows x)) <: u32))
-    (spec_rows (stmt_rows x)))))))))))))))
+    (spec_rows (stmt_rows x))))))))))))))
 
 (* ------------------------------------------------------------------ *)
 (* Statement content and injectivity                                   *)
@@ -435,26 +433,24 @@ let lemma_encode_statement_content (x: S.t_StatementEncodingInput {wf_input x})
   lemma_append_bytes_field_ok b3 Shieldd_sdk_proof_aggregation.Padding.v_PADDING_RULE_DOMAIN;
   let b5 = S.append_u32_field b4 x.f_proof_family_id in
   lemma_append_u32_field_content b4 x.f_proof_family_id;
-  let b6 = S.append_u32_field b5 x.f_consolidate_family_id in
-  lemma_append_u32_field_content b5 x.f_consolidate_family_id;
-  let b7 = S.append_u32_field b6 x.f_split_family_id in
-  lemma_append_u32_field_content b6 x.f_split_family_id;
-  let b8 = S.append_u32_field b7 x.f_shielded_ics20_withdrawal_family_id in
-  lemma_append_u32_field_content b7 x.f_shielded_ics20_withdrawal_family_id;
-  let b9 = fst (S.append_bytes_field b8 x.f_srs_id) in
-  lemma_append_bytes_field_ok b8 x.f_srs_id;
-  let b10 = fst (S.append_bytes_field b9 x.f_vk_digest) in
-  lemma_append_bytes_field_ok b9 x.f_vk_digest;
-  let b11 = S.append_u32_field b10 x.f_real_count in
-  lemma_append_u32_field_content b10 x.f_real_count;
-  let b12 = S.append_u32_field b11 x.f_padded_count in
-  lemma_append_u32_field_content b11 x.f_padded_count;
-  let b13 = S.append_u32_field b12 x.f_public_input_arity in
-  lemma_append_u32_field_content b12 x.f_public_input_arity;
-  let b14 = fst (S.append_len b13
+  let b6 = S.append_u32_field b5 x.f_note_reshape_family_id in
+  lemma_append_u32_field_content b5 x.f_note_reshape_family_id;
+  let b7 = S.append_u32_field b6 x.f_shielded_ics20_withdrawal_family_id in
+  lemma_append_u32_field_content b6 x.f_shielded_ics20_withdrawal_family_id;
+  let b8 = fst (S.append_bytes_field b7 x.f_srs_id) in
+  lemma_append_bytes_field_ok b7 x.f_srs_id;
+  let b9 = fst (S.append_bytes_field b8 x.f_vk_digest) in
+  lemma_append_bytes_field_ok b8 x.f_vk_digest;
+  let b10 = S.append_u32_field b9 x.f_real_count in
+  lemma_append_u32_field_content b9 x.f_real_count;
+  let b11 = S.append_u32_field b10 x.f_padded_count in
+  lemma_append_u32_field_content b10 x.f_padded_count;
+  let b12 = S.append_u32_field b11 x.f_public_input_arity in
+  lemma_append_u32_field_content b11 x.f_public_input_arity;
+  let b13 = fst (S.append_len b12
     (S.impl_StatementPaddedRows__len x.f_padded_public_inputs) "row_count") in
-  lemma_append_len_ok b13 (S.impl_StatementPaddedRows__len x.f_padded_public_inputs) "row_count";
-  lemma_encode_rows_content b14 (S.impl_StatementPaddedRows__as_slice x.f_padded_public_inputs);
+  lemma_append_len_ok b12 (S.impl_StatementPaddedRows__len x.f_padded_public_inputs) "row_count";
+  lemma_encode_rows_content b13 (S.impl_StatementPaddedRows__as_slice x.f_padded_public_inputs);
   lemma_fold_nest Seq.empty (atoms x);
   Seq.append_empty_l (nest_right (atoms x));
   lemma_spec_is_nest x
@@ -497,27 +493,25 @@ let lemma_encode_statement_injective (x y: S.t_StatementEncodingInput)
       (ensures x == y)
 = let rcx : u32 = cast (Core_models.Slice.impl__len #S.t_StatementPublicInputRow (stmt_rows x)) in
   let rcy : u32 = cast (Core_models.Slice.impl__len #S.t_StatementPublicInputRow (stmt_rows y)) in
-  // right-nested tails, atom by atom (15 == spec_rows tail, 1 == whole)
-  let t15x = spec_rows (stmt_rows x) in
-  let t15y = spec_rows (stmt_rows y) in
-  let t14x = Seq.append (Num.impl_u32__to_le_bytes rcx) t15x in
-  let t14y = Seq.append (Num.impl_u32__to_le_bytes rcy) t15y in
-  let t13x = Seq.append (atom_u32 x.f_public_input_arity) t14x in
-  let t13y = Seq.append (atom_u32 y.f_public_input_arity) t14y in
-  let t12x = Seq.append (atom_u32 x.f_padded_count) t13x in
-  let t12y = Seq.append (atom_u32 y.f_padded_count) t13y in
-  let t11x = Seq.append (atom_u32 x.f_real_count) t12x in
-  let t11y = Seq.append (atom_u32 y.f_real_count) t12y in
-  let t10x = Seq.append (atom_bytes (arr32_as_slice x.f_vk_digest)) t11x in
-  let t10y = Seq.append (atom_bytes (arr32_as_slice y.f_vk_digest)) t11y in
-  let t9x = Seq.append (atom_bytes (arr32_as_slice x.f_srs_id)) t10x in
-  let t9y = Seq.append (atom_bytes (arr32_as_slice y.f_srs_id)) t10y in
-  let t8x = Seq.append (atom_u32 x.f_shielded_ics20_withdrawal_family_id) t9x in
-  let t8y = Seq.append (atom_u32 y.f_shielded_ics20_withdrawal_family_id) t9y in
-  let t7x = Seq.append (atom_u32 x.f_split_family_id) t8x in
-  let t7y = Seq.append (atom_u32 y.f_split_family_id) t8y in
-  let t6x = Seq.append (atom_u32 x.f_consolidate_family_id) t7x in
-  let t6y = Seq.append (atom_u32 y.f_consolidate_family_id) t7y in
+  // right-nested tails, atom by atom (14 == spec_rows tail, 1 == whole)
+  let t14x = spec_rows (stmt_rows x) in
+  let t14y = spec_rows (stmt_rows y) in
+  let t13x = Seq.append (Num.impl_u32__to_le_bytes rcx) t14x in
+  let t13y = Seq.append (Num.impl_u32__to_le_bytes rcy) t14y in
+  let t12x = Seq.append (atom_u32 x.f_public_input_arity) t13x in
+  let t12y = Seq.append (atom_u32 y.f_public_input_arity) t13y in
+  let t11x = Seq.append (atom_u32 x.f_padded_count) t12x in
+  let t11y = Seq.append (atom_u32 y.f_padded_count) t12y in
+  let t10x = Seq.append (atom_u32 x.f_real_count) t11x in
+  let t10y = Seq.append (atom_u32 y.f_real_count) t11y in
+  let t9x = Seq.append (atom_bytes (arr32_as_slice x.f_vk_digest)) t10x in
+  let t9y = Seq.append (atom_bytes (arr32_as_slice y.f_vk_digest)) t10y in
+  let t8x = Seq.append (atom_bytes (arr32_as_slice x.f_srs_id)) t9x in
+  let t8y = Seq.append (atom_bytes (arr32_as_slice y.f_srs_id)) t9y in
+  let t7x = Seq.append (atom_u32 x.f_shielded_ics20_withdrawal_family_id) t8x in
+  let t7y = Seq.append (atom_u32 y.f_shielded_ics20_withdrawal_family_id) t8y in
+  let t6x = Seq.append (atom_u32 x.f_note_reshape_family_id) t7x in
+  let t6y = Seq.append (atom_u32 y.f_note_reshape_family_id) t7y in
   let t5x = Seq.append (atom_u32 x.f_proof_family_id) t6x in
   let t5y = Seq.append (atom_u32 y.f_proof_family_id) t6y in
   let t4x = Seq.append (atom_bytes padding_domain) t5x in
@@ -532,20 +526,19 @@ let lemma_encode_statement_injective (x y: S.t_StatementEncodingInput)
   peel_bytes x.f_backend_id._0 t4x y.f_backend_id._0 t4y;
   peel_bytes padding_domain t5x padding_domain t5y;
   peel_u32 x.f_proof_family_id t6x y.f_proof_family_id t6y;
-  peel_u32 x.f_consolidate_family_id t7x y.f_consolidate_family_id t7y;
-  peel_u32 x.f_split_family_id t8x y.f_split_family_id t8y;
-  peel_u32 x.f_shielded_ics20_withdrawal_family_id t9x y.f_shielded_ics20_withdrawal_family_id t9y;
-  peel_bytes (arr32_as_slice x.f_srs_id) t10x (arr32_as_slice y.f_srs_id) t10y;
-  peel_bytes (arr32_as_slice x.f_vk_digest) t11x (arr32_as_slice y.f_vk_digest) t11y;
-  peel_u32 x.f_real_count t12x y.f_real_count t12y;
-  peel_u32 x.f_padded_count t13x y.f_padded_count t13y;
-  peel_u32 x.f_public_input_arity t14x y.f_public_input_arity t14y;
-  // now t14x == t14y: peel the bare row-count u32, leaving spec_rows == spec_rows
-  F.lemma_u32_value_frame_inj rcx t15x rcy t15y;
+  peel_u32 x.f_note_reshape_family_id t7x y.f_note_reshape_family_id t7y;
+  peel_u32 x.f_shielded_ics20_withdrawal_family_id t8x y.f_shielded_ics20_withdrawal_family_id t8y;
+  peel_bytes (arr32_as_slice x.f_srs_id) t9x (arr32_as_slice y.f_srs_id) t9y;
+  peel_bytes (arr32_as_slice x.f_vk_digest) t10x (arr32_as_slice y.f_vk_digest) t10y;
+  peel_u32 x.f_real_count t11x y.f_real_count t11y;
+  peel_u32 x.f_padded_count t12x y.f_padded_count t12y;
+  peel_u32 x.f_public_input_arity t13x y.f_public_input_arity t13y;
+  // now t13x == t13y: peel the bare row-count u32, leaving spec_rows == spec_rows
+  F.lemma_u32_value_frame_inj rcx t14x rcy t14y;
   // rcx == rcy and lengths fit u32, so the row counts match
   assert (Seq.length (stmt_rows x) == Seq.length (stmt_rows y));
-  Seq.append_empty_r t15x;
-  Seq.append_empty_r t15y;
+  Seq.append_empty_r t14x;
+  Seq.append_empty_r t14y;
   lemma_spec_rows_inj (stmt_rows x) (stmt_rows y) Seq.empty Seq.empty;
   // reassemble typed equality
   vec_eq_from_seq x.f_curve_id y.f_curve_id;

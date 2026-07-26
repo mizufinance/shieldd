@@ -1,13 +1,30 @@
 {
   "actions": [
     {
-      "transfer": {
+      "validatorDefinition": {
+        "validator": {
+          "identityKey": {
+            "ik": "tn35j+Xnc2Aw3vVvPzgxZqR/52YKmBwsbWCLBbM1zAA="
+          },
+          "consensusKey": "dWipnV3XuAKL/ebxgBWCpUuzIFycwlK7YAZn4pr7aLA=",
+          "name": "test validator",
+          "enabled": true,
+          "governanceKey": {
+            "gk": "tn35j+Xnc2Aw3vVvPzgxZqR/52YKmBwsbWCLBbM1zAA="
+          }
+        },
+        "authSig": "kji4nsBJgxJs6R10EyICpmghCpu0HCsS1d8EuHnzPRBpYd/DoAoZeUSUSTIOXiXaByaF2aSA0av1AkRz9xguBA=="
+      }
+    },
+    {
+      "shieldedIcs20Withdrawal": {
         "body": {
+          "familyId": 1,
           "anchor": {
             "inner": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
           },
           "balanceCommitment": {
-            "inner": "uAUUmBgbXYRbz5q0hUHeq8T3xPZFWQXQfHUXth+plgA="
+            "inner": "lv6SO/mCMJJRUQNTTaUEVlqjCg63DaeIbaueuPuZ0QI="
           },
           "inputs": [
             {
@@ -20,41 +37,43 @@
             },
             {
               "nullifier": {
-                "inner": "Z7w4W7tqXBo+ysI8+2qqfMo5513akSPWjCzifxeknwo="
+                "inner": "h7+y3U9epcg7T9OzT1F5etbgDtqwVzsNP2a0aViyswg="
               },
               "rk": {
-                "inner": "5DsUXEDkyR7UUbMtXI3IoJMpqg/WbvW2LYDk9mMN/gs="
+                "inner": "xh2QA2HkkEMcqGqkvE0rrq4GEHcXbmIgC1uK4Ar2exE="
               }
             }
           ],
-          "outputs": [
-            {
-              "notePayload": {
-                "noteCommitment": {
-                  "inner": "gDMNVZ55lQdv2wTxq/fG6SiL3vmzitZIjXvd3xuBtA0="
-                },
-                "ephemeralKey": "YsDwTAdpv8veAHvYJUyDvD8uP1965HZdohWehIib1w4=",
-                "encryptedNote": {
-                  "inner": "k+zRMg10XOmA8jpKIG5mm2+IkEy7T4UzuVE8bFwEjhJxObvLmxPOT0oV1ZsNzb3FKpQ/d/H6Ed3MERIidXb9s2mTRvAUnz38dN6QKQnP/gizIfNzl5j+2jf7d4IQCm1TAjMyPa9rBURDmEgST7U1T2SQ6TB6IHltu2ooR/bBXC5zgzFN2qzL713CSlpc8bDkvSgEsJsQBioujBoMAfCr9k4Je9/phhtAkFZj2uIFzHU="
-                }
-              },
-              "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              "ovkWrappedKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "withdrawal": {
+            "amount": {
+              "lo": "768929490590787863"
             },
-            {
-              "notePayload": {
-                "noteCommitment": {
-                  "inner": "J45t+i7fC/CMXWYT2nV6HYWtG0x5qs2LkqoZRI2YPRI="
-                },
-                "ephemeralKey": "eP8nj+zYaZKtUrNWkqEA2gNHr4OnZ6xtDk/Y80CxHgs=",
-                "encryptedNote": {
-                  "inner": "nzqlyx+9xdr9BKwmeuQLRqkIRmWEK1WDbDiDDwvvRwozMEyjYXkIb3tnUCx/HjKe/VUFzP4J+p/alCXT42sNcfXJvoMEfGICmRDLjYYs7W7Xw00Q+aWJmaBag58mCJxAipNSGM2d6AEe4MCkS4Dxi3tpVkERShl9pCHwC97nPFsTp0dOSMVe7QpJd68nzvicCb0Akq10gBpLv5otIGfYBbbr2SRZFp2Jax6V6F/S8Pk="
-                }
+            "denom": {
+              "denom": "ushieldd"
+            },
+            "destinationChainAddress": "shieldd1nqa4ydsxcln8cfw6rv383857qqgd3dsdxva96zk5je2dfygvmg9lhk8um2wdvl3k2ygc7fzyk8cmxsrfg445wh9lwg07qp252tjd009rhwsrxz0ktmv7kzwsyqyra78mt2lcuj",
+            "returnAddress": {
+              "inner": "mDtSNgbH5nwl2hsieJ6eABDYtg0zOl0K1JZU1JEM2gv72PzanNZ+NlERjyREsfGzQGlFa0dcv3If4AVUUuTXvKO7oDMJ9l7Z6wnQIAg++Ps="
+            },
+            "timeoutHeight": {
+              "revisionNumber": "637951478",
+              "revisionHeight": "546948232"
+            },
+            "sourceChannel": "channel-0"
+          },
+          "changeOutput": {
+            "notePayload": {
+              "noteCommitment": {
+                "inner": "oCornaiyVIc1QaP5M2ksRcPjUYq4YACEOG462Ez+2As="
               },
-              "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              "ovkWrappedKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-            }
-          ],
+              "ephemeralKey": "mgr/JZynQZfI0JMZc/R8KI8X95qDARUCNVhjoQAiGBE=",
+              "encryptedNote": {
+                "inner": "1Fzy/P1qo0KtU/D3JBVeuKEk6LPkpJo0ZNFtnO3+QP5bX1Hm9JL6sfGsFYtAxG9jzYABsjoyjRryV8Yr4+oaWP2XT8YlUYclBV+DnlsPROzhCWE8ZwkqegsPcciPcwpbvKdhKp9a6C7GmjdAW+FKZha34SX33kCQekQXjQDZHN68m3YWl2tf9WyWIdGwLN1I0dgHlDLEUbDMR+TnSVcBHwjrZWqtDfTX7cY2Emdpgyw="
+              }
+            },
+            "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "ovkWrappedKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
           "targetTimestamp": "1700000000",
           "complianceAnchor": {
             "inner": "qbH17/XFERx6iqnEwjLIj6XLvL9ARtroPY4luEpa8Q8="
@@ -63,43 +82,29 @@
             "inner": "WeZWVgf3pZ3tZArtd0wkQGvY0sNG3eO018K7FR3Qsgc="
           }
         },
-        "valueBlinding": "jHNmLAjnuZ1CFEq0XoLhZXWuFxnnpKflgrGWAmUYbAE=",
-        "balance": {
-          "values": [
-            {
-              "value": {
-                "amount": {
-                  "lo": "662990549282813666"
-                },
-                "assetId": {
-                  "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
-                }
-              },
-              "negated": true
-            }
-          ]
-        },
+        "valueBlinding": "W9cCf3k4Y6Y1VxH3YcHLKGVthGaniHD++oX3xBKCewE=",
+        "balance": {},
         "spends": [
           {
             "note": {
               "value": {
                 "amount": {
-                  "lo": "52715210354534102"
+                  "lo": "768929490590787863"
                 },
                 "assetId": {
                   "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
                 }
               },
-              "rseed": "c2QSNFIy4RvxQg252jfWtgVI2PqHOVbKJKW/3JSUEys=",
+              "rseed": "LdL1OThl18ob/7MfAbboMBLeC/X218NySwU3mQdRksg=",
               "address": {
                 "inner": "f5S87pFJRemOtMohDnOA8JE6v1moYepaF9LUFMbUhtbAlillFc83/YJQk1xWthW9oldw8HcoETnAmyKLDGgXQ9fXGnoT6opn0I0TsUULBE4="
               }
             },
-            "position": "114074878794141",
-            "randomizer": "e+hjMGvGM/pcGHZnIWM4oBzmCeTCrhPugtysYs1cMAA=",
-            "valueBlinding": "RXNMd6M7OSkZgNI8jjmKXWjtj1/gwkTovKWaHZJvUgE=",
-            "proofBlindingR": "mK4yxOKvjC91qvk/KsUPVKUCXChNAbqm4e5/QccAyAo=",
-            "proofBlindingS": "KIF3S/EB/eFhg5Rf+iikAFeNruNgX+/syldjcCWn6gE=",
+            "position": "188985397533396",
+            "randomizer": "M88rVtStnNZJjE1nivl70wTCaYD1ju5KpGsP1VWNDAA=",
+            "valueBlinding": "0bGaLxGbYkPVeMAREcgknhxlj2v9ei+ROb2k4anaqAM=",
+            "proofBlindingR": "RzM+GRjQFjXdaKT0QN82munzy7UvWyu1FOusnzv+yRA=",
+            "proofBlindingS": "iJFIVloSXGiJV+k2ssJzehVT77ZX2fwZkI3UQt2gngQ=",
             "targetTimestamp": "1700000000",
             "complianceLeaf": {
               "address": {
@@ -111,7 +116,7 @@
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
               "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
             },
-            "txBlindingNonce": "udBgqFI3iIE04W2rRrlzaUT9R6zNFCVj0Z3WXCd5UwA=",
+            "txBlindingNonce": "kK8KHbaH+NtV/Vl3xDhPXdMptVpNwhzI7RTDAZaiIQI=",
             "complianceAnchor": {
               "inner": "qbH17/XFERx6iqnEwjLIj6XLvL9ARtroPY4luEpa8Q8="
             },
@@ -372,336 +377,32 @@
             "threshold": "/////////////////////w=="
           }
         ],
-        "outputs": [
-          {
-            "value": {
-              "amount": {
-                "lo": "715705759637347768"
-              },
-              "assetId": {
-                "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
-              }
-            },
-            "destAddress": {
-              "inner": "Kak39wxHbekQR0MYIw54CL/J2MriHpYKL9/lGE+Fq+MrOaUKjaTOztzRqi4HxOfzn/8/25uy8jBglqn/Pz4xDmLuc3oYnzg9gCkp2rpPKt4="
-            },
-            "rseed": "NJnHnWWrGHgEs8L079yIFS+yLRoADsBb4+NmLyPZnQo=",
-            "valueBlinding": "Ax7+eI/G/xRSPlRrfoSt/mV0I1ebhsJdSKtYHvTrSAE=",
-            "proofBlindingR": "vFTHpuZ7a9ks0HUQO0qZWhiyIK8PBWLRmr3/InlvbQw=",
-            "proofBlindingS": "9zjWjLWI15Kjvvjkwzn0lHV1QeXns5q6imgV6qLuxAc=",
-            "targetTimestamp": "1700000000",
-            "complianceLeaf": {
-              "address": {
-                "inner": "Kak39wxHbekQR0MYIw54CL/J2MriHpYKL9/lGE+Fq+MrOaUKjaTOztzRqi4HxOfzn/8/25uy8jBglqn/Pz4xDmLuc3oYnzg9gCkp2rpPKt4="
-              },
-              "assetId": {
-                "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
-              },
-              "d": "wJkHm/IqdNLp72x0vSjaTt6j6E3ETs03wW9M0rHxfgE=",
-              "slotDerivation": "yhUi6TsBqqsobWvs0keyYJk6RxFvRZ8d28gWR27gQgQ="
-            },
-            "counterpartyLeaf": {
-              "address": {
-                "inner": "Kak39wxHbekQR0MYIw54CL/J2MriHpYKL9/lGE+Fq+MrOaUKjaTOztzRqi4HxOfzn/8/25uy8jBglqn/Pz4xDmLuc3oYnzg9gCkp2rpPKt4="
-              },
-              "assetId": {
-                "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
-              },
-              "d": "wJkHm/IqdNLp72x0vSjaTt6j6E3ETs03wW9M0rHxfgE=",
-              "slotDerivation": "yhUi6TsBqqsobWvs0keyYJk6RxFvRZ8d28gWR27gQgQ="
-            },
-            "txBlindingNonce": "udBgqFI3iIE04W2rRrlzaUT9R6zNFCVj0Z3WXCd5UwA=",
-            "complianceAnchor": {
-              "inner": "qbH17/XFERx6iqnEwjLIj6XLvL9ARtroPY4luEpa8Q8="
-            },
-            "assetAnchor": {
-              "inner": "WeZWVgf3pZ3tZArtd0wkQGvY0sNG3eO018K7FR3Qsgc="
-            },
-            "compliancePath": {
-              "layers": [
-                {
-                  "siblings": [
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "BZdhxDygikcMklFEByd5k+7htJEaWivO2k+rNZL7Cw4=",
-                    "BZdhxDygikcMklFEByd5k+7htJEaWivO2k+rNZL7Cw4=",
-                    "BZdhxDygikcMklFEByd5k+7htJEaWivO2k+rNZL7Cw4="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "wv5Kd6dxLS7oCi4pcPUzMYnoc7jyoxhaxsHSndfunwI=",
-                    "wv5Kd6dxLS7oCi4pcPUzMYnoc7jyoxhaxsHSndfunwI=",
-                    "wv5Kd6dxLS7oCi4pcPUzMYnoc7jyoxhaxsHSndfunwI="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "0CxGuEM4xzsnmmgdrRW2WnQYIB37tZOvfXlAmNViFA0=",
-                    "0CxGuEM4xzsnmmgdrRW2WnQYIB37tZOvfXlAmNViFA0=",
-                    "0CxGuEM4xzsnmmgdrRW2WnQYIB37tZOvfXlAmNViFA0="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "vEdJs76HZ3NR7rmnGBmDZiNtgokFf4RMi2ocZi5WTwk=",
-                    "vEdJs76HZ3NR7rmnGBmDZiNtgokFf4RMi2ocZi5WTwk=",
-                    "vEdJs76HZ3NR7rmnGBmDZiNtgokFf4RMi2ocZi5WTwk="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "5CSfw+0lyTedMnnaWBBle8sIeJ5W/WBn6wpYw5RPEAM=",
-                    "5CSfw+0lyTedMnnaWBBle8sIeJ5W/WBn6wpYw5RPEAM=",
-                    "5CSfw+0lyTedMnnaWBBle8sIeJ5W/WBn6wpYw5RPEAM="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "SF1s8GEt3aQGGPCzJGwQyyCVMlz1aDoRF4L84RUKcBE=",
-                    "SF1s8GEt3aQGGPCzJGwQyyCVMlz1aDoRF4L84RUKcBE=",
-                    "SF1s8GEt3aQGGPCzJGwQyyCVMlz1aDoRF4L84RUKcBE="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "uM1w9F7CUlDY1Mn1Yel7e+x8pcANipVTHMkpEjg63Q0=",
-                    "uM1w9F7CUlDY1Mn1Yel7e+x8pcANipVTHMkpEjg63Q0=",
-                    "uM1w9F7CUlDY1Mn1Yel7e+x8pcANipVTHMkpEjg63Q0="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "7g4zhL0NxvBzAJQSQdQm1VGvHLeD54pR0MqgrD9BrAk=",
-                    "7g4zhL0NxvBzAJQSQdQm1VGvHLeD54pR0MqgrD9BrAk=",
-                    "7g4zhL0NxvBzAJQSQdQm1VGvHLeD54pR0MqgrD9BrAk="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "/F4KC/SPT/VIh7urBZuLb0i6Utt6Z6xjXgSxYd/wngg=",
-                    "/F4KC/SPT/VIh7urBZuLb0i6Utt6Z6xjXgSxYd/wngg=",
-                    "/F4KC/SPT/VIh7urBZuLb0i6Utt6Z6xjXgSxYd/wngg="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "8+N6iEciQLb+5qpSyq9mcXsq93P4SDf5FJNZwXIzbxE=",
-                    "8+N6iEciQLb+5qpSyq9mcXsq93P4SDf5FJNZwXIzbxE=",
-                    "8+N6iEciQLb+5qpSyq9mcXsq93P4SDf5FJNZwXIzbxE="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "Ni4sV3PxLcrGlTyDnK9mFeEO3uDP6eECfHYTe/RnThA=",
-                    "Ni4sV3PxLcrGlTyDnK9mFeEO3uDP6eECfHYTe/RnThA=",
-                    "Ni4sV3PxLcrGlTyDnK9mFeEO3uDP6eECfHYTe/RnThA="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "Hco4e4+avTQWBbyS1SBmInM3HyrzvkIDN5xeMrgbhgY=",
-                    "Hco4e4+avTQWBbyS1SBmInM3HyrzvkIDN5xeMrgbhgY=",
-                    "Hco4e4+avTQWBbyS1SBmInM3HyrzvkIDN5xeMrgbhgY="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "8uQJZlCWikJMw5Fj3opi92TalUTJuIDVr+fQQRb4NQ4=",
-                    "8uQJZlCWikJMw5Fj3opi92TalUTJuIDVr+fQQRb4NQ4=",
-                    "8uQJZlCWikJMw5Fj3opi92TalUTJuIDVr+fQQRb4NQ4="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "CC4hQyku4ejp6Wy9UI8BLbe8G6hnCTvTO3f/2Un3yQ0=",
-                    "CC4hQyku4ejp6Wy9UI8BLbe8G6hnCTvTO3f/2Un3yQ0=",
-                    "CC4hQyku4ejp6Wy9UI8BLbe8G6hnCTvTO3f/2Un3yQ0="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "KdrLOvjSA4lsJmAHN9CbdrP509juoswSKA/tMiobAwA=",
-                    "KdrLOvjSA4lsJmAHN9CbdrP509juoswSKA/tMiobAwA=",
-                    "KdrLOvjSA4lsJmAHN9CbdrP509juoswSKA/tMiobAwA="
-                  ]
-                }
-              ]
-            },
-            "assetPath": {
-              "layers": [
-                {
-                  "siblings": [
-                    "/pmv1wR7G7XN0mRM+kOwtH56YEB209IRKjk2E+59dxA=",
-                    "/pmv1wR7G7XN0mRM+kOwtH56YEB209IRKjk2E+59dxA=",
-                    "/pmv1wR7G7XN0mRM+kOwtH56YEB209IRKjk2E+59dxA="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "cQyXX2Xl0Rz1iOSsh8zLgFyl3tf2X/IWtxRLPMNfMQc=",
-                    "cQyXX2Xl0Rz1iOSsh8zLgFyl3tf2X/IWtxRLPMNfMQc=",
-                    "cQyXX2Xl0Rz1iOSsh8zLgFyl3tf2X/IWtxRLPMNfMQc="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "ElQoNFnucIoMy/d9t7yiAwajxM4eD76hc4zNLU7amg8=",
-                    "ElQoNFnucIoMy/d9t7yiAwajxM4eD76hc4zNLU7amg8=",
-                    "ElQoNFnucIoMy/d9t7yiAwajxM4eD76hc4zNLU7amg8="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "cve3zxrhc4k7Z1f+R7m74CkEVwc4IOyE1ELWu1LX4gM=",
-                    "cve3zxrhc4k7Z1f+R7m74CkEVwc4IOyE1ELWu1LX4gM=",
-                    "cve3zxrhc4k7Z1f+R7m74CkEVwc4IOyE1ELWu1LX4gM="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "CGtgghckd7oFe98CvQTmo0GaVOKAjahkHmsItcwWTQk=",
-                    "CGtgghckd7oFe98CvQTmo0GaVOKAjahkHmsItcwWTQk=",
-                    "CGtgghckd7oFe98CvQTmo0GaVOKAjahkHmsItcwWTQk="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "RMU2qV1XDBMMeSaHaGBeeHM7B0RG+sLFLfZFH692IQo=",
-                    "RMU2qV1XDBMMeSaHaGBeeHM7B0RG+sLFLfZFH692IQo=",
-                    "RMU2qV1XDBMMeSaHaGBeeHM7B0RG+sLFLfZFH692IQo="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "lt24O7eNBBFocz+OOjFuJNPBAOIjXyZyCqdz8dbGzgY=",
-                    "lt24O7eNBBFocz+OOjFuJNPBAOIjXyZyCqdz8dbGzgY=",
-                    "lt24O7eNBBFocz+OOjFuJNPBAOIjXyZyCqdz8dbGzgY="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "rPjM2eciw/rShQNq1Abng1/Ys4ik8s7o5j232jbheAw=",
-                    "rPjM2eciw/rShQNq1Abng1/Ys4ik8s7o5j232jbheAw=",
-                    "rPjM2eciw/rShQNq1Abng1/Ys4ik8s7o5j232jbheAw="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "2HED3PZz7Eru5suXUmk9l2PuqNG5K1PXgrYDw/r7Zws=",
-                    "2HED3PZz7Eru5suXUmk9l2PuqNG5K1PXgrYDw/r7Zws=",
-                    "2HED3PZz7Eru5suXUmk9l2PuqNG5K1PXgrYDw/r7Zws="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "tj+uiJeIq8UJhVf3pRhzASNPDYmDY2cnzuKEO56C8Ao=",
-                    "tj+uiJeIq8UJhVf3pRhzASNPDYmDY2cnzuKEO56C8Ao=",
-                    "tj+uiJeIq8UJhVf3pRhzASNPDYmDY2cnzuKEO56C8Ao="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "nMq/f8bzVygLNxkW6ZTglThG/TacADjb058W8jhJbwo=",
-                    "nMq/f8bzVygLNxkW6ZTglThG/TacADjb058W8jhJbwo=",
-                    "nMq/f8bzVygLNxkW6ZTglThG/TacADjb058W8jhJbwo="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "DbLue0cVfR4HoUCjXqe20+ukZz8cGxuk8z62s01cWQU=",
-                    "DbLue0cVfR4HoUCjXqe20+ukZz8cGxuk8z62s01cWQU=",
-                    "DbLue0cVfR4HoUCjXqe20+ukZz8cGxuk8z62s01cWQU="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "ifnOyFIRvFzc5puv/jWQ0AX3wBIHYo2w1LUX7isx4Q8=",
-                    "ifnOyFIRvFzc5puv/jWQ0AX3wBIHYo2w1LUX7isx4Q8=",
-                    "ifnOyFIRvFzc5puv/jWQ0AX3wBIHYo2w1LUX7isx4Q8="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "m8O3QpMyF6cLB8ByW3zw4sEoURYEuosOvyWyqfXXDQw=",
-                    "m8O3QpMyF6cLB8ByW3zw4sEoURYEuosOvyWyqfXXDQw=",
-                    "m8O3QpMyF6cLB8ByW3zw4sEoURYEuosOvyWyqfXXDQw="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "FsUcPItBUcx6qqZzJpdlQk/Tn4UfokyTblCF6skq/g8=",
-                    "FsUcPItBUcx6qqZzJpdlQk/Tn4UfokyTblCF6skq/g8=",
-                    "FsUcPItBUcx6qqZzJpdlQk/Tn4UfokyTblCF6skq/g8="
-                  ]
-                },
-                {
-                  "siblings": [
-                    "gCuKPAaciPWCFNlQ2rRnYLY60Z98a7BV1JvUiQY1qgQ=",
-                    "gCuKPAaciPWCFNlQ2rRnYLY60Z98a7BV1JvUiQY1qgQ=",
-                    "gCuKPAaciPWCFNlQ2rRnYLY60Z98a7BV1JvUiQY1qgQ="
-                  ]
-                }
-              ]
-            },
-            "assetIndexedLeaf": {
-              "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-              "nextValue": "AAAAAACAEQoBAADQ/naqWQGwN1weTbRgVqUsml5lqxI=",
-              "dkPub": "wInusMjTU0eB6ZobblZMbGjMVdez3KCoaxOhRBZD0go=",
-              "threshold": "/////////////////////w==",
-              "routePolicyHash": "M3YaiaE47DYQlG8vVvWnV6gH0hBXNAf2ay2CY/0mUwA=",
-              "slotCount": "AAAAAA==",
-              "ringPk": "hGSXhKUqkYgrgJBprNVX4S8inyui+ll2X/YhzSAqQRE=",
-              "ringIdHash": "M3YaiaE47DYQlG8vVvWnV6gH0hBXNAf2ay2CY/0mUwA=",
-              "policyIdHash": "M3YaiaE47DYQlG8vVvWnV6gH0hBXNAf2ay2CY/0mUwA=",
-              "permissionHash": "M3YaiaE47DYQlG8vVvWnV6gH0hBXNAf2ay2CY/0mUwA=",
-              "resourceHash": "M3YaiaE47DYQlG8vVvWnV6gH0hBXNAf2ay2CY/0mUwA="
-            },
-            "salt": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "dleqK1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "dleqC1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "dleqS1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "dleqC2": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "dleqS2": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "dleqC3": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "dleqS3": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "ringPk": "hGSXhKUqkYgrgJBprNVX4S8inyui+ll2X/YhzSAqQRE=",
-            "dkPub": "wInusMjTU0eB6ZobblZMbGjMVdez3KCoaxOhRBZD0go=",
-            "thresholdBytes": "/////////////////////w=="
-          }
-        ]
-      }
-    },
-    {
-      "proposalSubmit": {
-        "proposal": {
-          "title": "hhovptjm-7146652033929223281",
-          "description": "gxsssepdhntvwuouemoqkwsaevdnxqi-123",
-          "signaling": {}
-        },
-        "proposer": {
-          "ik": "YxWYjqAfTJj+tnwpdIRrfCmd1VbXfa+s6UHWSCWARWs="
-        },
-        "governanceKey": {
-          "gk": "Gk0kpKAdsrMhRrC5EgkrV0tdiaM5uD6sBAQJOEOK8wU="
-        },
-        "authSig": {
-          "inner": "2DZ2NgfE/+5fitg2HIzzNC0gMTMghIqMRER0t77ZTQ7+HULCNaFkfuLYEhnOiQwCTr/q0nX9yCJ/1mEJehphAA=="
+        "withdrawal": {
+          "amount": {
+            "lo": "768929490590787863"
+          },
+          "denom": {
+            "denom": "ushieldd"
+          },
+          "destinationChainAddress": "shieldd1nqa4ydsxcln8cfw6rv383857qqgd3dsdxva96zk5je2dfygvmg9lhk8um2wdvl3k2ygc7fzyk8cmxsrfg445wh9lwg07qp252tjd009rhwsrxz0ktmv7kzwsyqyra78mt2lcuj",
+          "returnAddress": {
+            "inner": "mDtSNgbH5nwl2hsieJ6eABDYtg0zOl0K1JZU1JEM2gv72PzanNZ+NlERjyREsfGzQGlFa0dcv3If4AVUUuTXvKO7oDMJ9l7Z6wnQIAg++Ps="
+          },
+          "timeoutHeight": {
+            "revisionNumber": "637951478",
+            "revisionHeight": "546948232"
+          },
+          "sourceChannel": "channel-0"
         }
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "1231355391",
-    "chainId": "arbkkcjvbbccjdtkd-39163",
+    "expiryHeight": "8991041680",
+    "chainId": "tfhgzmh-29884151887767",
     "fee": {
       "amount": {
-        "lo": "85923635900292632"
+        "lo": "454249666232395936"
       }
     }
   }

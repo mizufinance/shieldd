@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.ScalarMulBridge
 import ShielddGnarkFormal.EdwardsCompleteness
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 /-! # Deployed-native per-rung bridge for rvk
 
@@ -35,6 +36,7 @@ plugs straight in. -/
 
 namespace Shieldd.GnarkFormal.RvkDeployedRung
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.ScalarMulBridge
 open Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd (Order)
 open Bool (toZMod)

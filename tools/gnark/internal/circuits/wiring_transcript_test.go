@@ -7,10 +7,11 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 )
 
-const expectedConsolidate2x1WiringTranscript = `schema shieldd.gnark.wiring.v1
-circuit consolidate2x1
+const expectedNoteReshape2x1WiringTranscript = `schema shieldd.gnark.wiring.v1
+circuit note_reshape2x1
 shape n_in=2 n_out=1
 0001 shared.bind shared.ak=auth.ak claimed.balance_commitment=balance_commitment shared.div_gen=spend0.note.div_gen shared.transmission=spend0.note.transmission shared.asset_id=spend0.note.asset_id
 0002 decaf.assert_on_curve point=claimed.balance_commitment
@@ -64,26 +65,60 @@ shape n_in=2 n_out=1
 0050 statement.append_all fields=output_commitments
 0051 statement.append field=balance_commitment.fq
 0052 statement.append_all fields=nullifiers_and_rks
-0053 statement.hash family=consolidate2x1 fields=statement_fields out=statement_hash
+0053 statement.hash family=note_reshape2x1 fields=statement_fields out=statement_hash
 0054 assert.eq lhs=statement_hash rhs=claimed_statement_hash
 `
 
-func TestConsolidate2x1WiringTranscriptExact(t *testing.T) {
-	got, err := ExportConsolidate2x1WiringTranscript()
+func TestNoteReshape2x1WiringTranscriptExact(t *testing.T) {
+	got, err := ExportNoteReshape2x1WiringTranscript()
 	if err != nil {
 		t.Fatalf("export transcript: %v", err)
 	}
-	if got != expectedConsolidate2x1WiringTranscript {
-		t.Fatalf("unexpected consolidate2x1 wiring transcript:\n%s", got)
+	if got != expectedNoteReshape2x1WiringTranscript {
+		t.Fatalf("unexpected note_reshape2x1 wiring transcript:\n%s", got)
 	}
 }
 
-func TestConsolidate2x1WiringTranscriptDeterministic(t *testing.T) {
-	first, err := ExportConsolidate2x1WiringTranscript()
+func TestNoteReshapeFamilyManifestsPartitionEveryConstraint(t *testing.T) {
+	for _, family := range generated.NoteReshapeFamilies {
+		t.Run(family.Label, func(t *testing.T) {
+			manifest, err := ExportNoteReshapeConstraintManifest(
+				family.Label,
+				family.NIn,
+				family.NOut,
+				"",
+			)
+			if err != nil {
+				t.Fatalf("export manifest: %v", err)
+			}
+			covered := 0
+			for _, segment := range manifest.Segments {
+				covered += segment.ConstraintCount
+				if segment.Kind == "marker" && segment.ConstraintCount != 0 {
+					t.Fatalf(
+						"structural marker %d %s contains %d constraints",
+						segment.Index,
+						segment.Op,
+						segment.ConstraintCount,
+					)
+				}
+			}
+			if covered != manifest.NbConstraints {
+				t.Fatalf("manifest covers %d of %d constraints", covered, manifest.NbConstraints)
+			}
+			if len(manifest.Segments) == 0 || manifest.Segments[0].Start != 0 {
+				t.Fatalf("manifest does not begin at row zero")
+			}
+		})
+	}
+}
+
+func TestNoteReshape2x1WiringTranscriptDeterministic(t *testing.T) {
+	first, err := ExportNoteReshape2x1WiringTranscript()
 	if err != nil {
 		t.Fatalf("export first transcript: %v", err)
 	}
-	second, err := ExportConsolidate2x1WiringTranscript()
+	second, err := ExportNoteReshape2x1WiringTranscript()
 	if err != nil {
 		t.Fatalf("export second transcript: %v", err)
 	}
@@ -92,8 +127,8 @@ func TestConsolidate2x1WiringTranscriptDeterministic(t *testing.T) {
 	}
 }
 
-func TestConsolidate2x1WiringTranscriptDetectsSemanticDrift(t *testing.T) {
-	actual, err := ExportConsolidate2x1WiringTranscript()
+func TestNoteReshape2x1WiringTranscriptDetectsSemanticDrift(t *testing.T) {
+	actual, err := ExportNoteReshape2x1WiringTranscript()
 	if err != nil {
 		t.Fatalf("export transcript: %v", err)
 	}
@@ -118,14 +153,14 @@ func TestConsolidate2x1WiringTranscriptDetectsSemanticDrift(t *testing.T) {
 	}
 }
 
-func TestConsolidate2x1WiringTranscriptDoesNotChangeConstraintStats(t *testing.T) {
-	untraced, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, NewConsolidateCircuit(2))
+func TestNoteReshape2x1WiringTranscriptDoesNotChangeConstraintStats(t *testing.T) {
+	untraced, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, NewNoteReshapeCircuit("note_reshape2x1", 2, 1))
 	if err != nil {
 		t.Fatalf("compile untraced circuit: %v", err)
 	}
 
-	transcript := newWiringTranscript("consolidate2x1", 2, 1)
-	traced, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, noteReshapeCircuitWithTranscript(2, transcript))
+	transcript := newWiringTranscript("note_reshape2x1", 2, 1)
+	traced, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, noteReshapeCircuitWithTranscript("note_reshape2x1", 2, 1, transcript))
 	if err != nil {
 		t.Fatalf("compile traced circuit: %v", err)
 	}
