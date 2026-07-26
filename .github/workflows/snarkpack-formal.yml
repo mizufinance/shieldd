@@ -98,9 +98,9 @@ jobs:
       matrix:
         lane: ${{ fromJSON(needs.applicability.outputs.tier == 'static' && '["fstar"]' || needs.applicability.outputs.tier == 'full' && '["extract","lean","fstar"]' || '["extract","fstar"]') }}
     container:
-      # TODO(fv-image-digest): replace the sentinel after running:
-      # gh run view "$(gh run list --workflow snarkpack-fv-toolchain-image.yml --commit 027ddbd4c06bc1eb378664ed250099bce4c65817 --limit 1 --json databaseId --jq '.[0].databaseId')" --log | grep -oE 'ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:[0-9a-f]{64}' | tail -1
-      image: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:TODO_REPLACE_FROM_027ddbd4c_WORKFLOW
+      # Built by snarkpack-fv-toolchain-image.yml, which prints this digest in
+      # its run summary. Repin here whenever that workflow publishes a new one.
+      image: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:ec595f399c308392fc8457a4ed851ebc3563b439174c8297f9253c9450b34c66
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
